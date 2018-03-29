@@ -1,0 +1,110 @@
+{
+	"name": "@ui5/fs",
+	"version": "0.0.1",
+	"description": "UI5 Build and Development Tooling - File System Abstraction",
+	"author": "SAP SE (https://www.sap.com)",
+	"license": "Apache-2.0",
+	"keywords": [
+		"openui5",
+		"sapui5",
+		"ui5",
+		"build",
+		"development",
+		"tool"
+	],
+	"main": "index.js",
+	"engines": {
+		"node": ">= 8.3",
+		"npm": ">= 5"
+	},
+	"scripts": {
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage",
+		"lint": "eslint ./",
+		"unit": "rimraf test/tmp && ava",
+		"unit-watch": "rimraf test/tmp && ava --watch",
+		"unit-nyan": "npm run unit -- --tap | tnyan",
+		"unit-debug": "rimraf test/tmp && cross-env DEBUG=*,-babel,-ava ava",
+		"unit-inspect": "cross-env DEBUG=*,-babel,-ava node --inspect-brk node_modules/ava/profile.js",
+		"coverage": "nyc npm run unit",
+		"jsdoc": "npm run jsdoc-generate && opn jsdocs/index.html",
+		"jsdoc-generate": "node_modules/.bin/jsdoc -c ./jsdoc.json ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)"
+	},
+	"ava": {
+		"files": [
+			"test/lib/**/*.js"
+		],
+		"source": [
+			"lib/**/*.js",
+			"test/lib/**/*.js"
+		]
+	},
+	"nyc": {
+		"reporter": [
+			"lcov",
+			"text",
+			"text-summary"
+		],
+		"exclude": [
+			"docs/**",
+			"jsdocs/**",
+			"coverage/**",
+			"test/**",
+			"lib/lbt/**"
+		],
+		"check-coverage": true,
+		"lines": 60,
+		"statements": 60,
+		"functions": 55,
+		"branches": 50,
+		"watermarks": {
+			"lines": [
+				60,
+				90
+			],
+			"functions": [
+				55,
+				90
+			],
+			"branches": [
+				50,
+				70
+			],
+			"statements": [
+				60,
+				90
+			]
+		},
+		"cache": true,
+		"all": true
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:SAP/ui5-fs.git"
+	},
+	"dependencies": {
+		"clone": "^2.1.0",
+		"defaults": "^1.0.3",
+		"globby": "^7.1.1",
+		"graceful-fs": "^4.1.11",
+		"make-dir": "^1.1.0",
+		"micromatch": "^3.1.4",
+		"minimatch": "^3.0.3",
+		"pretty-hrtime": "^1.0.3",
+		"random-int": "^1.0.0",
+		"@ui5/logger": "SAP/ui5-logger"
+	},
+	"devDependencies": {
+		"ava": "^0.24.0",
+		"chai": "^4.1.2",
+		"chai-fs": "^2.0.0",
+		"cross-env": "^5.1.1",
+		"docdash": "^0.4.0",
+		"eslint": "^4.13.1",
+		"eslint-config-google": "^0.9.1",
+		"jsdoc": "^3.5.5",
+		"nyc": "^11.4.1",
+		"opn-cli": "^3.1.0",
+		"rimraf": "^2.6.2",
+		"tap-nyan": "^1.1.0"
+	}
+}

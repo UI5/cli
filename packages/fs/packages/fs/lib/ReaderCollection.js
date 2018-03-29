@@ -1,0 +1,79 @@
+const AbstractReader = require("./AbstractReader");
+
+/**
+ * Resource Locator ReaderCollection
+ *
+ * @augments AbstractReader
+ */
+class ReaderCollection extends AbstractReader {
+	/**
+	 * The constructor.
+	 *
+	 * @param {Object} parameters Parameters
+	 * @param {AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
+	 * @param {string} parameters.name The collection name
+	 */
+	constructor({readers, name}) {
+		super();
+		this._name = name;
+		this._readers = readers;
+	}
+
+	/**
+	 * Locates resources by GLOB.
+	 *
+	 * @private
+	 * @param {string} pattern GLOB pattern
+	 * @param {Object} options GLOB options
+	 * @param {Trace} trace Trace instance
+	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 */
+	_byGlob(pattern, options, trace) {
+		return Promise.all(this._readers.map(function(resourceLocator) {
+			return resourceLocator._byGlob(pattern, options, trace);
+		})).then((result) => {
+			trace.collection(this._name);
+			return Array.prototype.concat.apply([], result);
+		});
+	}
+
+	/**
+	 * Locates resources by path.
+	 *
+	 * @private
+	 * @param {string} virPath Virtual path
+	 * @param {Object} options Options
+	 * @param {Trace} trace Trace instance
+	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
+	 */
+	_byPath(virPath, options, trace) {
+		let that = this;
+		let resourceLocatorCount = this._readers.length;
+		let resolveCount = 0;
+
+		if (this._readers.length === 0) {
+			// Promise.race doesn't resolve for empty arrays
+			return Promise.resolve();
+		}
+
+		/* Promise.race to cover the following (self defined) requirement:
+			Deliver files that can be found fast at the cost of slower response times for files that cannot be found.
+		*/
+		return Promise.race(this._readers.map(function(resourceLocator) {
+			return resourceLocator._byPath(virPath, options, trace).then(function(result) {
+				return new Promise(function(resolve, reject) {
+					trace.collection(that._name);
+					resolveCount++;
+					if (result) {
+						result.pushCollection(that._name);
+						resolve(result);
+					} else if (resolveCount === resourceLocatorCount) {
+						resolve(null);
+					}
+				});
+			});
+		}));
+	}
+}
+
+module.exports = ReaderCollection;

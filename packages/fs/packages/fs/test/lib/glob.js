@@ -1,0 +1,296 @@
+const {test} = require("ava");
+const ui5Fs = require("../../");
+const FsAdapter = ui5Fs.FileSystem;
+const MemAdapter = ui5Fs.Memory;
+
+// Create readerWriter before running tests
+test.beforeEach((t) => {
+	t.context.readerWriter = {
+		filesystem: new FsAdapter({
+			fsBasePath: "./test/fixtures/glob",
+			virBasePath: "/test-resources/"
+		}),
+		memory: new MemAdapter({
+			virBasePath: "/test-resources/"
+		}),
+		fromMemory: function(pattern, options) {
+			return t.context.readerWriter.filesystem.byGlob(pattern, options).then((resources) => {
+				return Promise.all(resources.map(function(resource) {
+					return t.context.readerWriter.memory.write(resource);
+				})).then(() => {
+					return t.context.readerWriter.memory.byGlob(pattern, options);
+				});
+			});
+		}
+	};
+});
+
+function matchGlobResult(t, resources, expectedResources) {
+	t.deepEqual(resources.length, expectedResources.length, "Amount of files matches expected result.");
+
+	const matchedResources = resources.map((resource) => {
+		return resource.getPath();
+	});
+
+	for (let i = 0; i < expectedResources.length; i++) {
+		const expectedResource = expectedResources[i];
+		t.true(
+			matchedResources.indexOf(expectedResource) !== -1,
+			"File '" + expectedResource + "' was found."
+		);
+	}
+}
+
+// From FileSystem
+test("GLOB all", (t) => {
+	return t.context.readerWriter.filesystem.byGlob("/**/*.*")
+		.then((resources) => {
+			t.deepEqual(resources.length, 16, "Found all resources");
+		});
+});
+
+test("GLOB all from root only", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob("/*/*.*")
+		.then((resources) => {
+			matchGlobResult(t, resources, ["/test-resources/package.json"]);
+		});
+});
+
+test("GLOB all with virtual path included", (t) => {
+	t.plan(1);
+	return t.context.readerWriter.filesystem.byGlob("/test-resources/**/*.*")
+		.then((resources) => {
+			t.deepEqual(resources.length, 16, "Found all resources");
+		});
+});
+
+test("Check for unstable order of GLOB result", (t) => {
+	t.plan(1);
+	return t.context.readerWriter.filesystem.byGlob("/**/*.*")
+		.then((resources) => {
+			const firstMatch = resources.map((resource) => {
+				return resource.getPath();
+			});
+
+			function readNext(tries) {
+				return t.context.readerWriter.filesystem.byGlob("/**/*.*").then((resources) => {
+					const nextMatch = resources.map((resource) => {
+						return resource.getPath();
+					});
+					let foundDifference = false;
+					for (let i = 0; i < firstMatch.length; i++) {
+						if (firstMatch[i] !== nextMatch[i]) {
+							foundDifference = true;
+						}
+					}
+
+					if (!foundDifference && tries > 0) {
+						return readNext(--tries);
+					} else {
+						return nextMatch;
+					}
+				});
+			}
+			return readNext(100).then((nextMatch) => {
+				t.notDeepEqual(nextMatch, firstMatch, "Result sets are of unstable order");
+			});
+		});
+});
+
+test("GLOB with multiple patterns", (t) => {
+	t.plan(5);
+	return t.context.readerWriter.filesystem.byGlob(["/**/*.yaml", "/test-resources/**/i18n_de.properties"])
+		.then((resources) => {
+			let expectedResources = [
+				"/test-resources/application.b/webapp/i18n/i18n_de.properties",
+				"/test-resources/application.b/webapp/embedded/i18n/i18n_de.properties",
+				"/test-resources/application.b/ui5.yaml",
+				"/test-resources/application.a/ui5.yaml"
+			];
+			matchGlobResult(t, resources, expectedResources);
+		});
+});
+
+
+test("GLOB only a specific filetype (yaml)", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob("/**/*.yaml")
+		.then((resources) => {
+			resources.forEach((res) => {
+				t.deepEqual(res._name, "ui5.yaml");
+			});
+		});
+});
+
+test("GLOB two specific filetype (yaml and js)", (t) => {
+	t.plan(4);
+	return t.context.readerWriter.filesystem.byGlob("/**/*.{yaml,js}")
+		.then((resources) => {
+			let expectedResources = [
+				"/test-resources/application.a/webapp/test.js",
+				"/test-resources/application.b/ui5.yaml",
+				"/test-resources/application.a/ui5.yaml"
+			];
+			matchGlobResult(t, resources, expectedResources);
+		});
+});
+
+test("GLOB only a specific filetype (json) with exclude pattern", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob([
+		"/**/*.json",
+		"!/**/*package.json"
+	]).then((resources) => {
+		resources.forEach((res) => {
+			t.deepEqual(res._name, "manifest.json");
+		});
+	});
+});
+
+test("GLOB only a specific filetype (json) with multiple exclude pattern", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob([
+		"/**/*.json",
+		"!/**/*package.json",
+		"!/**/embedded/manifest.json"
+	]).then((resources) => {
+		matchGlobResult(t, resources, ["/test-resources/application.b/webapp/manifest.json"]);
+	});
+});
+
+test("GLOB (normalized) root directory (=> fs root)", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob([
+		"/*/",
+	], {nodir: false}).then((resources) => {
+		resources.forEach((res) => {
+			t.deepEqual(res._name, "test-resources");
+			t.deepEqual(res.getStatInfo().isDirectory(), true);
+		});
+	});
+});
+
+test("GLOB root directory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob("/test-resources/", {nodir: false})
+		.then((resources) => {
+			matchGlobResult(t, resources, ["/test-resources"]);
+		});
+});
+
+test("GLOB subdirectory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.filesystem.byGlob([
+		"/test-resources/app*a",
+	], {nodir: false}).then((resources) => {
+		resources.forEach((res) => {
+			t.deepEqual(res._name, "application.a");
+			t.deepEqual(res.getStatInfo().isDirectory(), true);
+		});
+	});
+});
+
+
+// From Memory
+test("GLOB all from memory", (t) => {
+	return t.context.readerWriter.fromMemory("/**/*.*")
+		.then((resources) => {
+			t.deepEqual(resources.length, 16, "Found all resources");
+		});
+});
+
+test("GLOB all from root only from memory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.fromMemory("/*/*.*")
+		.then((resources) => {
+			matchGlobResult(t, resources, ["/test-resources/package.json"]);
+		});
+});
+
+test("GLOB all with virtual path included from memory", (t) => {
+	return t.context.readerWriter.fromMemory("/test-resources/**/*.*")
+		.then((resources) => {
+			t.deepEqual(resources.length, 16, "Found all resources");
+		});
+});
+
+test("GLOB only a specific filetype (yaml) from memory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.fromMemory("/**/*.yaml")
+		.then((resources) => {
+			resources.forEach((res) => {
+				t.deepEqual(res._name, "ui5.yaml");
+			});
+		});
+});
+
+test("GLOB two specific filetype (yaml and js) from memory", (t) => {
+	t.plan(4);
+	return t.context.readerWriter.fromMemory("/**/*.{yaml,js}")
+		.then((resources) => {
+			let expectedFiles = [
+				"/test-resources/application.b/ui5.yaml",
+				"/test-resources/application.a/ui5.yaml",
+				"/test-resources/application.a/webapp/test.js"
+			];
+			matchGlobResult(t, resources, expectedFiles);
+		});
+});
+
+test("GLOB only a specific filetype (json) with exclude pattern from memory", (t) => {
+	t.plan(3);
+	return t.context.readerWriter.fromMemory([
+		"/**/*.json",
+		"!/**/*package.json"
+	]).then((resources) => {
+		let expectedFiles = [
+			"/test-resources/application.b/webapp/manifest.json",
+			"/test-resources/application.b/webapp/embedded/manifest.json"
+		];
+		matchGlobResult(t, resources, expectedFiles);
+	});
+});
+
+test("GLOB only a specific filetype (json) with multiple exclude pattern from memory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.fromMemory([
+		"/**/*.json",
+		"!/**/*package.json",
+		"!/**/embedded/manifest.json"
+	]).then((resources) => {
+		matchGlobResult(t, resources, ["/test-resources/application.b/webapp/manifest.json"]);
+	});
+});
+
+test("GLOB (normalized) root directory (=> fs root)", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.fromMemory([
+		"/*/",
+	], {nodir: false}).then((resources) => {
+		resources.forEach((res) => {
+			t.deepEqual(res._name, "test-resources");
+			t.deepEqual(res.getStatInfo().isDirectory(), true);
+		});
+	});
+});
+
+test("GLOB root directory from memory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.fromMemory("/test-resources/", {nodir: false})
+		.then((resources) => {
+			matchGlobResult(t, resources, ["/test-resources"]);
+		});
+});
+
+test("GLOB subdirectory from memory", (t) => {
+	t.plan(2);
+	return t.context.readerWriter.fromMemory([
+		"/test-resources/app*a",
+	], {nodir: false}).then((resources) => {
+		resources.forEach((res) => {
+			t.deepEqual(res._name, "application.a");
+			t.deepEqual(res.getStatInfo().isDirectory(), true);
+		});
+	});
+});

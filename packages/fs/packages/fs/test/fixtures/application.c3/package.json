@@ -1,0 +1,13 @@
+{
+  "name": "application.c3",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application - test for dev dependencies. Optional dep gets resolved through other project (but got hoisted)",
+  "main": "index.html",
+  "dependencies": {
+    "library.e": "file:../library.e",
+    "library.d-depender": "file:../library.d-depender"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
