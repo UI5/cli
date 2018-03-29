@@ -1,0 +1,47 @@
+const stringReplacer = require("../processors/stringReplacer");
+
+/**
+ * Task to to replace the copyright.
+ *
+ * The following placeholders are replaced with corresponding values:
+ * <ul>
+ * 	<li>${copyright}</li>
+ * 	<li>@copyright@</li>
+ * </ul>
+ *
+ * If the copyright string contains the optional placeholder ${currentYear}
+ * it will be replaced with the current year.
+ * If no copyright string is given, no replacement is being done.
+ *
+ * @module builder/tasks/replaceCopyright
+ * @param {Object} parameters Parameters
+ * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {Object} parameters.options Options
+ * @param {string} parameters.options.copyright Replacement copyright
+ * @param {string} parameters.options.pattern Pattern to locate the files to be processed
+ * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
+ */
+module.exports = function({workspace, options}) {
+	if (!options.copyright) {
+		return Promise.resolve();
+	}
+
+	// Replace optional placeholder ${currentYear} with the current year
+	const copyright = options.copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
+
+	return workspace.byGlob(options.pattern)
+		.then((processedResources) => {
+			return stringReplacer({
+				resources: processedResources,
+				options: {
+					pattern: /(?:\$\{copyright\}|@copyright@)/g,
+					replacement: copyright
+				}
+			});
+		})
+		.then((processedResources) => {
+			return Promise.all(processedResources.map((resource) => {
+				return workspace.write(resource);
+			}));
+		});
+};

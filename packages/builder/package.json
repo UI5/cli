@@ -1,0 +1,116 @@
+{
+	"name": "@ui5/builder",
+	"version": "0.0.1",
+	"description": "UI5 Build and Development Tooling - Builder",
+	"author": "SAP SE (https://www.sap.com)",
+	"license": "Apache-2.0",
+	"keywords": [
+		"openui5",
+		"sapui5",
+		"ui5",
+		"build",
+		"development",
+		"tool"
+	],
+	"main": "index.js",
+	"engines": {
+		"node": ">= 8.3",
+		"npm": ">= 5"
+	},
+	"scripts": {
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage",
+		"lint": "eslint ./",
+		"unit": "rimraf test/tmp && ava",
+		"unit-watch": "rimraf test/tmp && ava --watch",
+		"unit-nyan": "npm run unit -- --tap | tnyan",
+		"unit-debug": "rimraf test/tmp && cross-env DEBUG=*,-babel,-ava ava",
+		"unit-inspect": "cross-env DEBUG=*,-babel,-ava node --inspect-brk node_modules/ava/profile.js",
+		"coverage": "nyc npm run unit",
+		"jsdoc": "npm run jsdoc-generate && opn jsdocs/index.html",
+		"jsdoc-generate": "node_modules/.bin/jsdoc -c ./jsdoc.json ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)"
+	},
+	"ava": {
+		"files": [
+			"test/lib/**/*.js"
+		],
+		"source": [
+			"lib/**/*.js",
+			"test/lib/**/*.js"
+		]
+	},
+	"nyc": {
+		"reporter": [
+			"lcov",
+			"text",
+			"text-summary"
+		],
+		"exclude": [
+			"docs/**",
+			"jsdocs/**",
+			"coverage/**",
+			"test/**",
+			"lib/lbt/**"
+		],
+		"check-coverage": true,
+		"lines": 60,
+		"statements": 60,
+		"functions": 50,
+		"branches": 30,
+		"watermarks": {
+			"lines": [
+				60,
+				90
+			],
+			"functions": [
+				50,
+				90
+			],
+			"branches": [
+				30,
+				70
+			],
+			"statements": [
+				60,
+				90
+			]
+		},
+		"cache": true,
+		"all": true
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:SAP/ui5-builder.git"
+	},
+	"dependencies": {
+		"archiver": "^2.1.0",
+		"escope": "^3.6.0",
+		"esprima": "^2.7.2",
+		"estraverse": "^4.2.0",
+		"globby": "^7.1.1",
+		"graceful-fs": "^4.1.11",
+		"less-openui5": "^0.5.1",
+		"pretty-data": "^0.40.0",
+		"pretty-hrtime": "^1.0.3",
+		"replacestream": "^4.0.3",
+		"uglify-es": "^3.2.2",
+		"xml2js": "^0.4.17",
+		"@ui5/fs": "SAP/ui5-fs",
+		"@ui5/logger": "SAP/ui5-logger"
+	},
+	"devDependencies": {
+		"adm-zip": "^0.4.7",
+		"ava": "^0.24.0",
+		"chai": "^4.1.2",
+		"chai-fs": "^2.0.0",
+		"cross-env": "^5.1.1",
+		"docdash": "^0.4.0",
+		"eslint": "^4.13.1",
+		"eslint-config-google": "^0.9.1",
+		"jsdoc": "^3.5.5",
+		"nyc": "^11.4.1",
+		"opn-cli": "^3.1.0",
+		"recursive-readdir": "^2.1.1",
+		"rimraf": "^2.6.2",
+		"tap-nyan": "^1.1.0"
+	}
+}
