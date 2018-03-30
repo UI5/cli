@@ -55,5 +55,6 @@ yarn.lock
 deploy_key
 
 # Custom directories
+!test/fixtures/**/node_modules
 test/tmp/
 jsdocs/
