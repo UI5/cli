@@ -37,10 +37,10 @@ Available processors are listed [here](lib/builder/processors).
 JavaScript port of the "legacy" Maven/Java based bundle tooling.
 
 ## Contributing
-Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/CONTRIBUTING.md).
+Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md).
 
 ## Support
-Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/CONTRIBUTING.md#report-an-issue) on how to report an issue.
+Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
 ## License
 This project is licensed under the Apache Software License, Version 2.0 except as noted otherwise in the [LICENSE](/LICENSE.txt) file.
