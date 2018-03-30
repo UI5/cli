@@ -1,7 +1,7 @@
 ![UI5 logo](https://github.com/SAP/ui5-tooling/blob/master/docs/images/UI5_logo_wide.png)
 
 # ui5-project
-> Modules for building a UI5 projects dependency tree, including configuration
+> Modules for building a UI5 projects dependency tree, including configuration  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
 **This is a Pre-Alpha release!**  
@@ -233,10 +233,10 @@ Some general information
     - `port`: Project default server port. Can be overwritten via CLI parameters.
 
 ## Contributing
-Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/CONTRIBUTING.md).
+Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md).
 
 ## Support
-Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/CONTRIBUTING.md#report-an-issue) on how to report an issue.
+Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
 ## License
 This project is licensed under the Apache Software License, Version 2.0 except as noted otherwise in the [LICENSE](/LICENSE.txt) file.
