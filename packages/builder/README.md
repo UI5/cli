@@ -23,7 +23,7 @@ Tasks are specific build steps to be executed during build phase.
 
 They are responsible for collecting resources which can be modified by a processor. A task configures one or more processors and supplies them with the collected resources. After the respective processor processed the resources, the task is able to continue with its workflow.
 
-Available tasks are listed [here](lib/builder/tasks).
+Available tasks are listed [here](lib/tasks).
 
 ### Processors
 Processors work with provided resources. They contain the actual build step logic to apply specific modifications to supplied resources or to make use of the resources' content to create new resources out of that.
@@ -31,7 +31,7 @@ Processors work with provided resources. They contain the actual build step logi
 Processors can be implemented generically. The string replacer is an example for that.
 Since string replacement is a common build step, it can be useful in different contexts, e.g. code, version, date and copyright replacement. A concrete replacement operation could be achieved by passing a custom configuration to the processor. This way multiple tasks can make use of the same processor to achive their build step.
 
-Available processors are listed [here](lib/builder/processors).
+Available processors are listed [here](lib/processors).
 
 ### Legacy Bundle Tooling (lbt)
 JavaScript port of the "legacy" Maven/Java based bundle tooling.
