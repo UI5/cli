@@ -4,6 +4,8 @@
 > UI5 specific file system abstraction  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
+[![Travis CI Build Status](https://travis-ci.org/SAP/ui5-fs.svg?branch=master)](https://travis-ci.org/SAP/ui5-fs)
+
 **This is a Pre-Alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
