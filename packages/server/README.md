@@ -4,6 +4,8 @@
 > Modules for running a UI5 development server  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
+[![Travis CI Build Status](https://travis-ci.org/SAP/ui5-server.svg?branch=master)](https://travis-ci.org/SAP/ui5-server)
+
 **This is a Pre-Alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
@@ -17,7 +19,7 @@ The development server has already a set of middlewares which supports the devel
 * Translation files with `.properties` extension are properly encoded with **ISO-8859-1**
 * Changes on files with `.less` extension triggers a theme build and delivers the compiled CSS files
 * Version Info is created automatically (`/resources/sap-ui-version.json`)
-* * List project files with URL (needed exclusively by the OpenUI5 testsuite): `/discovery/app_pages`, `/discovery/all_libs`, `/discovery/all_tests`
+* List project files with URL (needed exclusively by the OpenUI5 testsuite): `/discovery/app_pages`, `/discovery/all_libs`, `/discovery/all_tests`
 
 ## Certificates for HTTPS or HTTP/2
 
