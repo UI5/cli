@@ -4,6 +4,8 @@
 > Modules for building a UI5 projects dependency tree, including configuration  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
+[![Travis CI Build Status](https://travis-ci.org/SAP/ui5-project.svg?branch=master)](https://travis-ci.org/SAP/ui5-project)
+
 **This is a Pre-Alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
