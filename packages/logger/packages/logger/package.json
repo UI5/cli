@@ -82,8 +82,7 @@
 		"url": "git@github.com:SAP/ui5-logger.git"
 	},
 	"dependencies": {
-		"npmlog": "^4.1.2",
-		"@ui5/logger": "SAP/ui5-logger"
+		"npmlog": "^4.1.2"
 	},
 	"devDependencies": {
 		"ava": "^0.24.0",
