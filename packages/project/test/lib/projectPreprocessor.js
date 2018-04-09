@@ -40,6 +40,7 @@ test("Project with inline configuration", (t) => {
 			},
 			dependencies: [],
 			id: "application.a",
+			kind: "project",
 			version: "1.0.0",
 			specVersion: "0.1",
 			path: applicationAPath
@@ -47,20 +48,35 @@ test("Project with inline configuration", (t) => {
 	});
 });
 
-test("Project with configPath", (t) => {
+test("Projects with extension dependency inline configuration", (t) => {
 	const tree = {
 		id: "application.a",
-		path: applicationBPath, // B, not A - just to have something different
-		dependencies: [],
-		version: "1.0.0"
+		path: applicationAPath,
+		dependencies: [{
+			id: "extension.a",
+			path: applicationAPath,
+			dependencies: [],
+			version: "1.0.0",
+			specVersion: "0.1",
+			kind: "extension",
+			type: "project-type",
+			metadata: {
+				name: "z"
+			}
+		}],
+		version: "1.0.0",
+		specVersion: "0.1",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
 	};
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
 			type: "application",
 			metadata: {
-				name: "application.b",
-				namespace: "id1"
+				name: "xy",
 			},
 			resources: {
 				configuration: {
@@ -74,9 +90,47 @@ test("Project with configPath", (t) => {
 			},
 			dependencies: [],
 			id: "application.a",
+			kind: "project",
 			version: "1.0.0",
 			specVersion: "0.1",
-			path: applicationBPath
+			path: applicationAPath
+		}, "Parsed correctly");
+	});
+});
+
+
+test("Project with configPath", (t) => {
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		configPath: path.join(applicationBPath, "ui5.yaml"), // B, not A - just to have something different
+		dependencies: [],
+		version: "1.0.0"
+	};
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree, {
+			_level: 0,
+			type: "application",
+			metadata: {
+				name: "application.b"
+			},
+			resources: {
+				configuration: {
+					paths: {
+						webapp: "webapp"
+					}
+				},
+				pathMappings: {
+					"/": "webapp",
+				}
+			},
+			dependencies: [],
+			id: "application.a",
+			kind: "project",
+			version: "1.0.0",
+			specVersion: "0.1",
+			path: applicationAPath,
+			configPath: path.join(applicationBPath, "ui5.yaml")
 		}, "Parsed correctly");
 	});
 });
@@ -107,6 +161,7 @@ test("Project with ui5.yaml at default location", (t) => {
 			},
 			dependencies: [],
 			id: "application.a",
+			kind: "project",
 			version: "1.0.0",
 			specVersion: "0.1",
 			path: applicationAPath
@@ -141,6 +196,7 @@ test("Project with ui5.yaml at default location and some configuration", (t) => 
 			},
 			dependencies: [],
 			id: "application.c",
+			kind: "project",
 			version: "1.0.0",
 			specVersion: "0.1",
 			path: applicationCPath
@@ -155,7 +211,7 @@ test("Missing configuration for root project", (t) => {
 		dependencies: []
 	};
 	return t.throws(projectPreprocessor.processTree(tree),
-		"Failed to configure root project \"application.a\". Please check verbose log for details.",
+		"No specification version defined for root project application.a",
 		"Rejected with error");
 });
 
@@ -254,6 +310,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			id: "application.a",
+			kind: "project",
 			version: "1.0.0",
 			specVersion: "0.1",
 			path: applicationAPath,
@@ -275,6 +332,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 			dependencies: [
 				{
 					id: "library.d",
+					kind: "project",
 					version: "1.0.0",
 					specVersion: "0.1",
 					path: libraryDPath,
@@ -299,6 +357,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 					dependencies: [
 						{
 							id: "library.a",
+							kind: "project",
 							version: "1.0.0",
 							specVersion: "0.1",
 							path: libraryAPath,
@@ -326,6 +385,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 				},
 				{
 					id: "library.a",
+					kind: "project",
 					version: "1.0.0",
 					specVersion: "0.1",
 					path: libraryAPath,
@@ -498,6 +558,7 @@ const treeAWithDefaultYamls = {
 
 const expectedTreeAWithInlineConfigs = {
 	"id": "application.a",
+	"kind": "project",
 	"version": "1.0.0",
 	"specVersion": "0.1",
 	"path": applicationAPath,
@@ -519,6 +580,7 @@ const expectedTreeAWithInlineConfigs = {
 	"dependencies": [
 		{
 			"id": "library.d",
+			"kind": "project",
 			"version": "1.0.0",
 			"specVersion": "0.1",
 			"path": libraryDPath,
@@ -543,6 +605,7 @@ const expectedTreeAWithInlineConfigs = {
 			"dependencies": [
 				{
 					"id": "library.a",
+					"kind": "project",
 					"version": "1.0.0",
 					"specVersion": "0.1",
 					"path": libraryAPath,
@@ -570,6 +633,7 @@ const expectedTreeAWithInlineConfigs = {
 		},
 		{
 			"id": "library.a",
+			"kind": "project",
 			"version": "1.0.0",
 			"specVersion": "0.1",
 			"path": libraryAPath,
@@ -600,6 +664,7 @@ const expectedTreeAWithDefaultYamls = expectedTreeAWithInlineConfigs;
 // This is expectedTreeAWithInlineConfigs with added configPath attributes
 const expectedTreeAWithConfigPaths = {
 	"id": "application.a",
+	"kind": "project",
 	"version": "1.0.0",
 	"specVersion": "0.1",
 	"path": applicationAPath,
@@ -622,6 +687,7 @@ const expectedTreeAWithConfigPaths = {
 	"dependencies": [
 		{
 			"id": "library.d",
+			"kind": "project",
 			"version": "1.0.0",
 			"specVersion": "0.1",
 			"path": libraryDPath,
@@ -647,6 +713,7 @@ const expectedTreeAWithConfigPaths = {
 			"dependencies": [
 				{
 					"id": "library.a",
+					"kind": "project",
 					"version": "1.0.0",
 					"specVersion": "0.1",
 					"path": libraryAPath,
@@ -675,6 +742,7 @@ const expectedTreeAWithConfigPaths = {
 		},
 		{
 			"id": "library.a",
+			"kind": "project",
 			"version": "1.0.0",
 			"specVersion": "0.1",
 			"path": libraryAPath,
@@ -792,6 +860,7 @@ const treeBWithInlineConfigs = {
 
 const expectedTreeBWithInlineConfigs = {
 	"id": "application.b",
+	"kind": "project",
 	"version": "1.0.0",
 	"specVersion": "0.1",
 	"path": applicationBPath,
@@ -814,6 +883,7 @@ const expectedTreeBWithInlineConfigs = {
 	"dependencies": [
 		{
 			"id": "library.b",
+			"kind": "project",
 			"version": "1.0.0",
 			"specVersion": "0.1",
 			"path": libraryBPath,
@@ -838,6 +908,7 @@ const expectedTreeBWithInlineConfigs = {
 			"dependencies": [
 				{
 					"id": "library.d",
+					"kind": "project",
 					"version": "1.0.0",
 					"specVersion": "0.1",
 					"path": libraryDPath,
@@ -862,6 +933,7 @@ const expectedTreeBWithInlineConfigs = {
 					"dependencies": [
 						{
 							"id": "library.a",
+							"kind": "project",
 							"version": "1.0.0",
 							"specVersion": "0.1",
 							"path": libraryAPath,
@@ -891,6 +963,7 @@ const expectedTreeBWithInlineConfigs = {
 		},
 		{
 			"id": "library.d",
+			"kind": "project",
 			"version": "1.0.0",
 			"specVersion": "0.1",
 			"path": libraryDPath,
@@ -915,6 +988,7 @@ const expectedTreeBWithInlineConfigs = {
 			"dependencies": [
 				{
 					"id": "library.a",
+					"kind": "project",
 					"version": "1.0.0",
 					"specVersion": "0.1",
 					"path": libraryAPath,
