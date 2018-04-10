@@ -167,7 +167,7 @@ class FileSystem extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {Resource} resource The Resource
-	 * @returns {Promise} Promise resolving once data has been written
+	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
 		const relPath = resource.getPath().substr(this._virBasePath.length);

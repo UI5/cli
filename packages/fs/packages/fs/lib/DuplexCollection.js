@@ -36,7 +36,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @param {string} virPattern GLOB pattern for virtual directory structure
 	 * @param {Object} options GLOB options
 	 * @param {Trace} trace Trace instance
-	 * @returns {Promise} Promise resolving to list of resources
+	 * @returns {Promise<Resource[]>} Promise resolving with a list of resources
 	 */
 	_byGlob(virPattern, options, trace) {
 		return this._combo._byGlob(virPattern, options, trace);
@@ -78,7 +78,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 *
 	 * @private
 	 * @param {Resource} resource The Resource to write
-	 * @returns {Promise} Promise resolving once data has been written
+	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
 		return this._writer.write(resource);
