@@ -99,7 +99,7 @@ class Memory extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {Resource} resource The Resource to write
-	 * @returns {Promise} Promise resolving once data has been written
+	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
 		return new Promise((resolve, reject) => {
