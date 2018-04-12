@@ -96,7 +96,7 @@ function createCollectionsForTree(tree, {useNamespaces=false} = {}) {
  * @param {Object} parameters Parameters
  * @param {string} parameters.virBasePath Virtual base path
  * @param {string} [parameters.fsBasePath] File system base path
- * @returns {(FileSystem|Memory)} File System- or Virtual Adapter
+ * @returns {FileSystem|Memory} File System- or Virtual Adapter
  */
 function createAdapter({fsBasePath, virBasePath, project}) {
 	if (fsBasePath) {

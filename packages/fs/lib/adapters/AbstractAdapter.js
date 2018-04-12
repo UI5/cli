@@ -10,6 +10,7 @@ const AbstractReaderWriter = require("../AbstractReaderWriter");
  */
 class AbstractAdapter extends AbstractReaderWriter {
 	/**
+	 * The constructor
 	 *
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
