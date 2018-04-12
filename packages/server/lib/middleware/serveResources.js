@@ -13,6 +13,15 @@ function isFresh(req, res) {
 	});
 }
 
+
+/**
+ * Creates and returns the middleware to serve application resources.
+ *
+ * @module server/middleware/serveResources
+ * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
+ * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @returns {function} Returns a server middleware closure.
+ */
 function createMiddleware({resourceCollections}) {
 	return function serveResources(req, res, next) {
 		resourceCollections.combo.byPath(req.path).then(function(resource) {

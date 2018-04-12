@@ -14,15 +14,19 @@ var prompt = require("prompt");
 
 const sslUtil = {
 	/**
-	 * @param      {string}   [keyPath=$HOME/.ui5/server/server.key]  Path to private key to be used for https.
-	 *                          Defaults to <pre>$HOME/.ui5/server/server.key</pre>
-	 * @param      {string}   [certPath=$HOME/.ui5/server/server.crt]  Path to certificate to be used for for https.
-	 *                          Defaults to <pre>$HOME/.ui5/server/server.crt</pre>
-	 * @returns {Promise.<object>} Resolves with an sslObject containing <pre>cert</pre> and <pre>key</pre>
+	 * Creates a new SSL certificate or validates an existing one.
+	 *
+	 * @module server/sslUtil
+	 * @param {string} [keyPath=$HOME/.ui5/server/server.key]  Path to private key to be used for https.
+	 *                                                         Defaults to <code>$HOME/.ui5/server/server.key</code>
+	 * @param {string} [certPath=$HOME/.ui5/server/server.crt] Path to certificate to be used for for https.
+	 *                                                         Defaults to <code>$HOME/.ui5/server/server.crt</codee>
+	 * @returns {Promise<object>} Resolves with an sslObject containing <code>cert</code> and <code>key</code>
 	 */
 	getSslCertificate: function(
 		keyPath = path.join(os.homedir(), ".ui5/server/server.key"),
-		certPath = path.join(os.homedir(), ".ui5/server/server.crt")) {
+		certPath = path.join(os.homedir(), ".ui5/server/server.crt")
+	) {
 		// checks the certificates if they are present
 		return Promise.all([
 			fileExists(keyPath).then((bExists) => {

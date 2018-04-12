@@ -19,15 +19,16 @@ const fsInterface = ui5Fs.fsInterface;
  * Start a server for the given project (sub-)tree
  *
  * @module server/server
- * @param      {Object}   tree       	A (sub-)tree
- * @param      {Object}   options       Options
- * @param      {string}   options.port  Port to listen to
- * @param      {boolean}  [options.changePortIfInUse=false]  If true, change the port if it is already in use
- * @param      {string}   [options.protocol=http]  Protocol to be used (http|https|h2) - defaults to <pre>http</pre>
- * @param      {string}   [options.key]  Path to private key to be used for https
- * @param      {string}   [options.cert]  Path to certificate to be used for for https
-
- * @returns     {Promise}  Promise resolving with an object containing the <pre>port</pre> once the server is listening
+ * @param {Object} tree A (sub-)tree
+ * @param {Object} options Options
+ * @param {number} options.port Port to listen to
+ * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
+ * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to <code>http</code>
+ * @param {string} [options.key] Path to private key to be used for https
+ * @param {string} [options.cert] Path to certificate to be used for for https
+ * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and not only to localhost connections
+ * @returns {Promise<Object>} Promise resolving once the server is listening. It resolves with an object containing the <code>port</code>,
+ *                            <code>h2</code>-flag and a <code>close</code> function, which can be used to stop the server.
  */
 function serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, acceptRemoteConnections = false}) {
 	return Promise.resolve().then(() => {
@@ -72,7 +73,7 @@ function serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, ac
 		}));
 
 		if (h2) {
-			return addSsl({app, h2, key, cert});
+			return _addSsl({app, h2, key, cert});
 		}
 		return app;
 	}).then((app) => {
@@ -88,6 +89,16 @@ function serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, ac
 	});
 }
 
+/**
+ * Returns a promise resolving by starting the server.
+ *
+ * @param {Object} app The express applicaton object
+ * @param {number} port Desired port to listen to
+ * @param {boolean} changePortIfInUse If true and the port is already in use, an unused port is searched
+ * @param {boolean} acceptRemoteConnections If true, listens to remote connections and not only to localhost connections
+ * @returns {Promise<Object>} Returns an object containing server related information like (selected port, protocol)
+ * @private
+ */
 function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 	return new Promise(function(resolve, reject) {
 		const options = {};
@@ -132,7 +143,16 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 	});
 }
 
-function addSsl({app, protocol, key, cert}) {
+/**
+ * Adds SSL support to an express application
+ *
+ * @param {Object} app The original express application
+ * @param {string} key Path to private key to be used for https
+ * @param {string} cert Path to certificate to be used for for https
+ * @returns {Object} The express application with SSL support
+ * @private
+ */
+function _addSsl({app, key, cert}) {
 	// Using spdy as http2 server as the native http2 implementation
 	// from Node v8.4.0 doesn't seem to work with express
 	return require("spdy").createServer({cert, key}, app);

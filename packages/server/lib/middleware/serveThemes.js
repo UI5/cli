@@ -11,6 +11,16 @@ function isFresh(req, res) {
 
 const themeRequest = /^(.*\/)library(?:(\.css)|(-RTL\.css)|(-parameters\.json))$/i;
 
+/**
+ * Creates and returns the middleware to build themes.
+ *
+ * The theme is built in realtime. If a less file was modified, the theme build is triggered to rebuild the theme.
+ *
+ * @module server/middleware/serveThemes
+ * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
+ * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @returns {function} Returns a server middleware closure.
+ */
 function createMiddleware({resourceCollections}) {
 	const builder = new themeBuilder.ThemeBuilder({
 		fs: fsInterface(resourceCollections.combo)

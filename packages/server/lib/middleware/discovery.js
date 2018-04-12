@@ -2,6 +2,22 @@ const librariesPattern = /([A-Z0-9._%+-/]+)\/[A-Z0-9._]*\.library$/i;
 const testPagesPattern = /(([A-Z0-9._%+-]+\/)+([A-Z_0-9-\\.]+)\.(html|htm))$/i;
 const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
 
+/**
+ * Creates and returns the middleware to discover project files.
+ *
+ * List project files with URL (needed exclusively by the OpenUI5 testsuite):
+ * <ul>
+ * <li>/discovery/app_pages: get application pages</li>
+ * <li>/discovery/all_libs: list all libraries</li>
+ * <li>/discovery/all_tests: list all tests</li>
+ * </ul>
+ *
+ * @module server/middleware/discovery
+ * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
+ * @param {AbstractReader} resourceCollections.source Resource reader or collection for the source project
+ * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @returns {function} Returns a server middleware closure.
+ */
 function createMiddleware({resourceCollections}) {
 	return function discoveryMiddleware(req, res, next) {
 		var parts = urlPattern.exec(req.url);
