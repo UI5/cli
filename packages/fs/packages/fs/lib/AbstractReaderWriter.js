@@ -21,7 +21,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @param {Resource} resource The Resource to write
-	 * @returns {Promise} Promise resolving once data has been written
+	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	write(resource) {
 		return this._write(resource);
@@ -33,7 +33,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 * @abstract
 	 * @protected
 	 * @param {Resource} resource The Resource to write
-	 * @returns {Promise} Promise resolving once data has been written
+	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
 		throw new Error("Not implemented");
