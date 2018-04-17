@@ -51,7 +51,11 @@ class AbstractBuilder {
 				continue;
 			}
 
-			taskChain = taskChain.then(this.wrapTask(taskName, this.tasks[taskName]));
+			let taskFunction = this.tasks[taskName];
+
+			if (typeof taskFunction === "function") {
+				taskChain = taskChain.then(this.wrapTask(taskName, taskFunction));
+			}
 		}
 		return taskChain;
 	}

@@ -1,0 +1,13 @@
+{
+  "name": "application.g",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application",
+  "main": "index.html",
+  "dependencies": {
+    "library.d": "file:../library.d",
+    "collection": "file:../collection"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

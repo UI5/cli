@@ -9,6 +9,7 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {Object} parameters.options Options
+ * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.namespace Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
@@ -17,7 +18,7 @@ module.exports = function({workspace, dependencies, options}) {
 		name: `appBundlerStandalone - prioritize workspace over dependencies: ${options.projectName}`,
 		readers: [workspace, dependencies]
 	});
-	return combo.byGlob("/**/*.{js,json,xml,html,properties,library}")
+	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}")
 		.then((resources) => {
 			const isEvo = resources.find((resource) => {
 				return resource.getPath() === "/resources/ui5loader.js";

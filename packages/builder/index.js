@@ -12,11 +12,12 @@ const ui5Builder = {
 		versionInfoGenerator: require("./lib/processors/versionInfoGenerator")
 	},
 	tasks: {
-		generateAppPreload: require("./lib/tasks/bundlers/generateAppPreload"),
+		generateComponentPreload: require("./lib/tasks/bundlers/generateComponentPreload"),
 		generateFlexChangesBundle: require("./lib/tasks/bundlers/generateFlexChangesBundle"),
 		generateLibraryPreload: require("./lib/tasks/bundlers/generateLibraryPreload"),
 		generateManifestBundle: require("./lib/tasks/bundlers/generateManifestBundle"),
 		generateStandaloneAppBundle: require("./lib/tasks/bundlers/generateStandaloneAppBundle"),
+		generateBundle: require("./lib/tasks/bundlers/generateBundle"),
 		buildThemes: require("./lib/tasks/buildThemes"),
 		createDebugFiles: require("./lib/tasks/createDebugFiles"),
 		generateVersionInfo: require("./lib/tasks/generateVersionInfo"),

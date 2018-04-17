@@ -94,9 +94,9 @@ class FioriElementsAnalyzer {
 		}
 
 		let manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
-		let manifestResource = await this._pool.findResource(manifestName);
-		let fileContent = await manifestResource.buffer();
 		try {
+			let manifestResource = await this._pool.findResource(manifestName);
+			let fileContent = await manifestResource.buffer();
 			await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 		} catch (err) {
 			log.error("an error occurred while analyzing template app %s (ignored)", resource.name, err);

@@ -11,8 +11,9 @@ const definedTasks = {
 	generateVersionInfo: require("../tasks/generateVersionInfo"),
 	generateManifestBundle: require("../tasks/bundlers/generateManifestBundle"),
 	generateFlexChangesBundle: require("../tasks/bundlers/generateFlexChangesBundle"),
-	generateAppPreload: require("../tasks/bundlers/generateAppPreload"),
+	generateComponentPreload: require("../tasks/bundlers/generateComponentPreload"),
 	generateStandaloneAppBundle: require("../tasks/bundlers/generateStandaloneAppBundle"),
+	generateBundle: require("../tasks/bundlers/generateBundle"),
 	generateLibraryPreload: require("../tasks/bundlers/generateLibraryPreload")
 };
 
@@ -182,7 +183,7 @@ function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {
 
 	if (selfContained) {
 		// No preloads, bundle only
-		selectedTasks.generateAppPreload = false;
+		selectedTasks.generateComponentPreload = false;
 		selectedTasks.generateStandaloneAppBundle = true;
 		selectedTasks.generateLibraryPreload = false;
 	}

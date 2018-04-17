@@ -44,7 +44,8 @@ class LocatorResourcePool extends ResourcePool {
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources Resources
  * @param {Object} parameters.options Options
- * @param {string} parameters.options.bundleDefinition Module bundle definition
+ * @param {Object} parameters.options.bundleDefinition Module bundle definition
+ * @param {Object} parameters.options.bundleOptions Module bundle options
  * @returns {Promise<Resource[]>} Promise resolving with module bundle resources
  */
 module.exports = function({resources, options}) {
@@ -54,17 +55,25 @@ module.exports = function({resources, options}) {
 	const pool = new LocatorResourcePool();
 	const builder = new BundleBuilder(pool);
 
+	const bundleOptions = options.bundleOptions || {optimize: true};
+
 	return pool.prepare( resources ).
-		then( () => builder.createBundle(options.bundleDefinition, {optimize: true}) ).
-		then( ({name, content, bundleInfo}) => {
-			// console.log("creating bundle as '%s'", "/resources/" + name);
-			const resource = new EvoResource({
-				path: "/resources/" + name,
-				string: content
-			});
-			return [resource];
-			// return source.write(resource).then(
-			// 	() => ({name, content, bundleInfo})
-			// );
+		then( () => builder.createBundle(options.bundleDefinition, bundleOptions) ).
+		then( (results) => {
+			let bundles;
+			if (results instanceof Array) {
+				bundles = results;
+			} else {
+				bundles = [results];
+			}
+
+			return Promise.all(bundles.map(function({name, content, bundleInfo}) {
+				console.log("creating bundle as '%s'", "/resources/" + name);
+				const resource = new EvoResource({
+					path: "/resources/" + name,
+					string: content
+				});
+				return resource;
+			}));
 		});
 };

@@ -1,10 +1,11 @@
 const AbstractBuilder = require("../AbstractBuilder");
 const tasks = { // can't require index.js due to circular dependency
-	generateAppPreload: require("../../tasks/bundlers/generateAppPreload"),
+	generateComponentPreload: require("../../tasks/bundlers/generateComponentPreload"),
 	generateFlexChangesBundle: require("../../tasks/bundlers/generateFlexChangesBundle"),
 	generateLibraryPreload: require("../../tasks/bundlers/generateLibraryPreload"),
 	generateManifestBundle: require("../../tasks/bundlers/generateManifestBundle"),
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
+	generateBundle: require("../../tasks/bundlers/generateBundle"),
 	buildThemes: require("../../tasks/buildThemes"),
 	createDebugFiles: require("../../tasks/createDebugFiles"),
 	generateVersionInfo: require("../../tasks/generateVersionInfo"),
@@ -24,8 +25,9 @@ class ApplicationBuilder extends AbstractBuilder {
 			"createDebugFiles",
 			"generateFlexChangesBundle",
 			"generateManifestBundle",
-			"generateAppPreload",
+			"generateComponentPreload",
 			"generateStandaloneAppBundle",
+			"generateBundle",
 			"uglify",
 			"generateVersionInfo"
 		];
@@ -82,16 +84,22 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("generateAppPreload", () => {
-			const generateAppPreload = tasks.generateAppPreload;
-			return generateAppPreload({
-				workspace: resourceCollections.workspace,
-				dependencies: resourceCollections.dependencies,
-				options: {
-					namespace: project.metadata.namespace
-				}
+		const componentPreload = project.builder && project.builder.componentPreload;
+		if (componentPreload) {
+			const generateComponentPreload = tasks.generateComponentPreload;
+
+			this.addTask("generateComponentPreload", async () => {
+				return generateComponentPreload({
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					options: {
+						projectName: project.metadata.name,
+						paths: componentPreload.paths,
+						namespaces: componentPreload.namespaces
+					}
+				});
 			});
-		});
+		}
 
 		this.addTask("generateStandaloneAppBundle", () => {
 			const generateStandaloneAppBundle = tasks.generateStandaloneAppBundle;
@@ -99,10 +107,28 @@ class ApplicationBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
+					projectName: project.metadata.name,
 					namespace: project.metadata.namespace
 				}
 			});
 		});
+
+		const bundles = project.builder && project.builder.bundles;
+		if (bundles) {
+			this.addTask("generateBundle", () => {
+				return Promise.all(bundles.map((bundle) => {
+					return tasks.generateBundle({
+						workspace: resourceCollections.workspace,
+						dependencies: resourceCollections.dependencies,
+						options: {
+							projectName: project.metadata.name,
+							bundleDefinition: bundle.bundleDefinition,
+							bundleOptions: bundle.bundleOptions
+						}
+					});
+				}));
+			});
+		}
 
 		this.addTask("uglify", () => {
 			const uglify = tasks.uglify;

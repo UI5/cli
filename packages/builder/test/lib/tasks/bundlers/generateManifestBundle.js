@@ -160,6 +160,7 @@ const applicationBTree = {
 			}
 		}
 	],
+	"builder": {},
 	"_level": 0,
 	"specVersion": "0.1",
 	"type": "application",

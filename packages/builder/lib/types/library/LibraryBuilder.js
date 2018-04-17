@@ -1,7 +1,8 @@
 const AbstractBuilder = require("../AbstractBuilder");
 const tasks = { // can't require index.js due to circular dependency
-	generateAppPreload: require("../../tasks/bundlers/generateAppPreload"),
+	generateComponentPreload: require("../../tasks/bundlers/generateComponentPreload"),
 	generateFlexChangesBundle: require("../../tasks/bundlers/generateFlexChangesBundle"),
+	generateBundle: require("../../tasks/bundlers/generateBundle"),
 	generateLibraryPreload: require("../../tasks/bundlers/generateLibraryPreload"),
 	generateManifestBundle: require("../../tasks/bundlers/generateManifestBundle"),
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
@@ -17,14 +18,16 @@ class LibraryBuilder extends AbstractBuilder {
 	constructor({resourceCollections, project, parentLogger}) {
 		super({project, parentLogger});
 
-		// All availble library tasks in execution order
+		// All available library tasks in execution order
 		this.availableTasks = [
 			"replaceCopyright",
 			"replaceVersion",
-			"buildThemes",
-			"generateLibraryPreload",
 			"createDebugFiles",
-			"uglify",
+			"generateComponentPreload",
+			"generateBundle",
+			"generateLibraryPreload",
+			"buildThemes",
+			"uglify"
 		];
 
 		this.addTask("replaceCopyright", () => {
@@ -49,18 +52,32 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("buildThemes", () => {
-			const buildThemes = tasks.buildThemes;
-			return buildThemes({
+		this.addTask("createDebugFiles", () => {
+			const createDebugFiles = tasks.createDebugFiles;
+			return createDebugFiles({
 				workspace: resourceCollections.workspace,
-				dependencies: resourceCollections.dependencies,
 				options: {
-					projectName: project.metadata.name,
-					librariesPattern: "/resources/**/*.library",
-					inputPattern: "/resources/**/themes/*/library.source.less"
+					pattern: "/resources/**/*.js"
 				}
 			});
 		});
+
+		const componentPreload = project.builder && project.builder.componentPreload;
+		if (componentPreload) {
+			const generateComponentPreload = tasks.generateComponentPreload;
+
+			this.addTask("generateComponentPreload", () => {
+				return generateComponentPreload({
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					options: {
+						projectName: project.metadata.name,
+						paths: componentPreload.paths,
+						namespaces: componentPreload.namespaces
+					}
+				});
+			});
+		}
 
 		this.addTask("generateLibraryPreload", () => {
 			const generateLibraryPreload = tasks.generateLibraryPreload;
@@ -73,12 +90,32 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("createDebugFiles", () => {
-			const createDebugFiles = tasks.createDebugFiles;
-			return createDebugFiles({
+		const bundles = project.builder && project.builder.bundles;
+		if (bundles) {
+			this.addTask("generateBundle", () => {
+				return Promise.all(bundles.map((bundle) => {
+					return tasks.generateBundle({
+						workspace: resourceCollections.workspace,
+						dependencies: resourceCollections.dependencies,
+						options: {
+							projectName: project.metadata.name,
+							bundleDefinition: bundle.bundleDefinition,
+							bundleOptions: bundle.bundleOptions
+						}
+					});
+				}));
+			});
+		}
+
+		this.addTask("buildThemes", () => {
+			const buildThemes = tasks.buildThemes;
+			return buildThemes({
 				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
 				options: {
-					pattern: "/resources/**/*.js"
+					projectName: project.metadata.name,
+					librariesPattern: "/resources/**/*.library",
+					inputPattern: "/resources/**/themes/*/library.source.less"
 				}
 			});
 		});
