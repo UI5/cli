@@ -18,7 +18,7 @@
 		"npm": ">= 5"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run jsdoc-generate && npm run coverage",
+		"test": "npm run lint && npm run jsdoc-generate",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-watch": "rimraf test/tmp && ava --watch",
