@@ -57,11 +57,23 @@ test("GLOB all from root only", (t) => {
 		});
 });
 
-test("GLOB all with virtual path included", (t) => {
+test("GLOB all with virtual base path fully matching", (t) => {
 	t.plan(1);
 	return t.context.readerWriter.filesystem.byGlob("/test-resources/**/*.*")
 		.then((resources) => {
 			t.deepEqual(resources.length, 16, "Found all resources");
+		});
+});
+
+test("GLOB with virtual base path partially matching", (t) => {
+	t.plan(1);
+	const adapter = new FsAdapter({
+		fsBasePath: "./test/fixtures/glob/application.a",
+		virBasePath: "/test-resources/application/a/"
+	});
+	return adapter.byGlob("/test-resources/**/*.*")
+		.then((resources) => {
+			t.deepEqual(resources.length, 4, "Found all resources");
 		});
 });
 

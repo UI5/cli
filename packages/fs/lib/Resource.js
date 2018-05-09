@@ -78,7 +78,7 @@ class Resource {
 			} else if (this._createStream || this._stream) {
 				resolve(this._getBufferFromStream());
 			} else {
-				reject(new Error(`Resource ${this._name} has no content`));
+				reject(new Error(`Resource ${this._path} has no content`));
 			}
 		});
 	}
@@ -128,7 +128,7 @@ class Resource {
 		} else if (this._createStream || this._stream) {
 			return this._getStream();
 		} else {
-			throw new Error(`Resource ${this._name} has no content`);
+			throw new Error(`Resource ${this._path} has no content`);
 		}
 	}
 
