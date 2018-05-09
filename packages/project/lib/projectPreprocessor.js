@@ -71,7 +71,7 @@ class ProjectPreprocessor {
 					log.verbose(`Ignoring project ${project.id} with missing configuration `+
 						"(might be a non-UI5 dependency)");
 					const parents = processedProjects[project.id].parents;
-					for (var i = parents.length - 1; i >= 0; i--) {
+					for (let i = parents.length - 1; i >= 0; i--) {
 						parents[i].dependencies.splice(parents[i].dependencies.indexOf(project), 1);
 					}
 					processedProjects[project.id] = {ignored: true};

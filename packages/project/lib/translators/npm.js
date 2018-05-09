@@ -240,7 +240,7 @@ class NpmTranslator {
 			}
 
 			if (this.pendingDeps[project.id]) {
-				for (var i = this.pendingDeps[project.id].parents.length - 1; i >= 0; i--) {
+				for (let i = this.pendingDeps[project.id].parents.length - 1; i >= 0; i--) {
 					this.pendingDeps[project.id].parents[i].dependencies.push(project);
 				}
 				this.pendingDeps[project.id] = null;
