@@ -46,6 +46,11 @@ test("AppF: project with UI5-dependencies", (t) => {
 	});
 });
 
+test("Error: missing package.json", async (t) => {
+	const error = await t.throws(npmTranslator.generateDependencyTree(path.parse(__dirname).root));
+	t.is(error.message, "[npm translator] Failed to locate package.json for directory \"/\"");
+});
+
 /* ========================= */
 /* ======= Test data ======= */
 

@@ -46,7 +46,7 @@ class NpmTranslator {
 			for (let i = 0; i < ui5Deps.length; i++) {
 				let depName = ui5Deps[i];
 				if (!dependencies[depName] && !optDependencies[depName]) {
-					throw new Error(`Module ${depName} is defined as UI5 dependency ` +
+					throw new Error(`[npm translator] Module ${depName} is defined as UI5 dependency ` +
 						`but missing from npm dependencies of module ${moduleName}`);
 				}
 			}
@@ -198,7 +198,8 @@ class NpmTranslator {
 				// As of today, collections only exist in shims
 				this.shimCollection(pkg.name, pkg);
 				if (pkg.collection) {
-					log.verbose("Unable to locate module %s via resolve logic but found a collection in parent hierarchy: %s",
+					log.verbose(
+						"Unable to locate module %s via resolve logic but found a collection in parent hierarchy: %s",
 						moduleName, pkg.name);
 					const modules = pkg.collection.modules || {};
 					if (modules[moduleName]) {
@@ -257,13 +258,18 @@ class NpmTranslator {
 		return readPkgUp({
 			cwd: dirPath
 		}).then((result) => {
+			if (!result.pkg) {
+				throw new Error(
+					`[npm translator] Failed to locate package.json for directory "${path.resolve(dirPath)}"`);
+			}
 			result.name = result.pkg.name;
 			// resolved path points to the package.json, but we want just the folder path
 			result.path = path.dirname(result.path);
 			return result;
 		}).then(this.processPkg.bind(this)).then((tree) => {
 			if (this.projectsWoUi5Deps.length) {
-				log.verbose("[PERF] Consider defining UI5-dependencies in the package.json files of the relevant modules " +
+				log.verbose(
+					"[PERF] Consider defining UI5-dependencies in the package.json files of the relevant modules " +
 					"from the following list to improve npm translator execution time: " +
 					this.projectsWoUi5Deps.join(", "));
 			}
@@ -288,7 +294,7 @@ class NpmTranslator {
 				}
 			}
 
-			throw new Error("Could not identify root project.");
+			throw new Error("[npm translator] Could not identify root project.");
 		}).then(this.processPendingDeps.bind(this));
 	}
 
