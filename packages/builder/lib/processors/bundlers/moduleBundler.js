@@ -68,7 +68,7 @@ module.exports = function({resources, options}) {
 			}
 
 			return Promise.all(bundles.map(function({name, content, bundleInfo}) {
-				console.log("creating bundle as '%s'", "/resources/" + name);
+				// console.log("creating bundle as '%s'", "/resources/" + name);
 				const resource = new EvoResource({
 					path: "/resources/" + name,
 					string: content

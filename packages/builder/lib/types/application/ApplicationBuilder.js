@@ -33,8 +33,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		];
 
 		this.addTask("replaceCopyright", () => {
-			const replaceCopyright = tasks.replaceCopyright;
-			return replaceCopyright({
+			return tasks.replaceCopyright({
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
@@ -44,8 +43,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("replaceVersion", () => {
-			const replaceVersion = tasks.replaceVersion;
-			return replaceVersion({
+			return tasks.replaceVersion({
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
@@ -86,10 +84,8 @@ class ApplicationBuilder extends AbstractBuilder {
 
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
-			const generateComponentPreload = tasks.generateComponentPreload;
-
 			this.addTask("generateComponentPreload", async () => {
-				return generateComponentPreload({
+				return tasks.generateComponentPreload({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -99,11 +95,22 @@ class ApplicationBuilder extends AbstractBuilder {
 					}
 				});
 			});
+		} else {
+			// Default component preload for application namespace
+			this.addTask("generateComponentPreload", async () => {
+				return tasks.generateComponentPreload({
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					options: {
+						projectName: project.metadata.name,
+						namespaces: [project.metadata.namespace]
+					}
+				});
+			});
 		}
 
 		this.addTask("generateStandaloneAppBundle", () => {
-			const generateStandaloneAppBundle = tasks.generateStandaloneAppBundle;
-			return generateStandaloneAppBundle({
+			return tasks.generateStandaloneAppBundle({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -141,8 +148,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("generateVersionInfo", () => {
-			const generateVersionInfo = tasks.generateVersionInfo;
-			return generateVersionInfo({
+			return tasks.generateVersionInfo({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {

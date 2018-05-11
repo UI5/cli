@@ -11,8 +11,8 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @param {Array} parameters.options.paths Array of paths (or glob patterns) for component files
- * @param {Array} parameters.options.namespaces Array of component namespaces
+ * @param {Array} [parameters.options.paths] Array of paths (or glob patterns) for component files
+ * @param {Array} [parameters.options.namespaces] Array of component namespaces
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options}) {
@@ -28,8 +28,6 @@ module.exports = function({workspace, dependencies, options}) {
 				namespaces = await Promise.all(options.paths.map(async (componentPath) => {
 					const components = await combo.byGlob("/resources/" + componentPath);
 					return components.map((component) => {
-						console.log(component.getPath());
-						console.log(path.dirname(component.getPath()));
 						return path.dirname(component.getPath()).replace(/^\/resources\//i, "");
 					});
 				}));
