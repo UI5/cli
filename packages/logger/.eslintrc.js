@@ -33,9 +33,8 @@ module.exports = {
             { "allow": ["!!"] }
         ],
         "comma-dangle": "off",
-        "no-var": "off",
         "no-tabs": "off",
-        "no-console": "off", // until we have better logging
+        "no-console": "off", // to allow fallback in case of npmlog error
         'valid-jsdoc': [
             2,
             {
