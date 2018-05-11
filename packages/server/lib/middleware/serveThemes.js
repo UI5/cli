@@ -37,7 +37,7 @@ function createMiddleware({resourceCollections}) {
 			 3 => -RTL.css suffix
 			 4 => -parameters.json suffix
 		*/
-		var themeReq = themeRequest.exec(req.path);
+		const themeReq = themeRequest.exec(req.path);
 		if (!themeReq) {
 			next();
 			return;

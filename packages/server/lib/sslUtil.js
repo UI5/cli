@@ -10,7 +10,7 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const makeDir = require("make-dir");
 
-var prompt = require("prompt");
+const prompt = require("prompt");
 
 const sslUtil = {
 	/**
@@ -57,7 +57,7 @@ function createAndInstallCertificate(keyPath, certPath) {
 	return new Promise(function(resolve, reject) {
 		prompt.start();
 
-		var property = {
+		const property = {
 			name: "yesno",
 			message: "No SSL certificates found. Do you want to create new SSL certificates and install them locally?",
 			validator: /y[es]*|n[o]?/,

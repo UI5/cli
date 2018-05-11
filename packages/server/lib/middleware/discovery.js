@@ -20,17 +20,17 @@ const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
  */
 function createMiddleware({resourceCollections}) {
 	return function discoveryMiddleware(req, res, next) {
-		var parts = urlPattern.exec(req.url);
-		var type = parts && parts[1];
+		const parts = urlPattern.exec(req.url);
+		const type = parts && parts[1];
 		if (!type) {
 			next();
 			return;
 		}
 
-		var response = [];
+		const response = [];
 
 		function sendResponse() {
-			var responseData = {};
+			const responseData = {};
 			response.sort((a, b) => {
 				if (type === "app_pages" || type === "all_libs") {
 					return a.entry.localeCompare(b.entry);
@@ -61,7 +61,7 @@ function createMiddleware({resourceCollections}) {
 			]).then(function(resources) {
 				resources.forEach(function(resource) {
 					let relPath = resource.getPath().substr(11); // cut off leading "/resources/"
-					var match = librariesPattern.exec(relPath);
+					const match = librariesPattern.exec(relPath);
 					if (match) {
 						response.push({
 							entry: match[1]
@@ -77,13 +77,13 @@ function createMiddleware({resourceCollections}) {
 			]).then(function(results) {
 				let libraryResources = results[0];
 				let testPageResources = results[1];
-				var libs = {};
+				const libs = {};
 
 				libraryResources.forEach(function(resource) {
 					let relPath = resource.getPath().substr(11); // cut off leading "/resources/"
-					var match = librariesPattern.exec(relPath);
+					const match = librariesPattern.exec(relPath);
 					if (match) {
-						var lib = match[1];
+						const lib = match[1];
 						libs[lib] = lib.replace(/\//g, ".");
 					}
 				});
