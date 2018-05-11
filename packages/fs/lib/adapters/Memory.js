@@ -120,7 +120,7 @@ class Memory extends AbstractAdapter {
 				pathSegments[i] = segment;
 			});
 
-			for (var i = pathSegments.length - 1; i >= 0; i--) {
+			for (let i = pathSegments.length - 1; i >= 0; i--) {
 				const segment = pathSegments[i];
 				if (!this._virDirs[segment]) {
 					this._virDirs[segment] = new Resource({
