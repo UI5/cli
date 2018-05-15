@@ -7,6 +7,7 @@ const applicationC2Path = path.join(__dirname, "..", "..", "fixtures", "applicat
 const applicationC3Path = path.join(__dirname, "..", "..", "fixtures", "application.c3");
 const applicationDPath = path.join(__dirname, "..", "..", "fixtures", "application.d");
 const applicationFPath = path.join(__dirname, "..", "..", "fixtures", "application.f");
+const errApplicationAPath = path.join(__dirname, "..", "..", "fixtures", "err.application.a");
 
 test("AppA: project with collection dependency", (t) => {
 	return npmTranslator.generateDependencyTree(applicationAPath).then((parsedTree) => {
@@ -26,7 +27,8 @@ test("AppC2: project with dependency with optional dependency resolved through o
 	});
 });
 
-test("AppC3: project with dependency with optional dependency resolved through other project (but got hoisted)", (t) => {
+test("AppC3: project with dependency with optional dependency resolved " +
+	"through other project (but got hoisted)", (t) => {
 	return npmTranslator.generateDependencyTree(applicationC3Path).then((parsedTree) => {
 		t.deepEqual(parsedTree, applicationC3Tree, "Parsed correctly");
 	});
@@ -50,6 +52,18 @@ test("Error: missing package.json", async (t) => {
 	const error = await t.throws(npmTranslator.generateDependencyTree(path.parse(__dirname).root));
 	t.is(error.message, "[npm translator] Failed to locate package.json for directory \"/\"");
 });
+
+test("Error: missing dependency", async (t) => {
+	const error = await t.throws(npmTranslator.generateDependencyTree(errApplicationAPath));
+	t.is(error.message, "[npm translator] Failed to locate module library.xx from " +
+		errApplicationAPath + " - Error: Could not locate " +
+		"module library.xx via resolve logic (error: Cannot find module 'library.xx/package.json' from '" +
+		errApplicationAPath + "') or in a collection");
+});
+
+// TODO: Test for scenarios where a dependency is missing *and there is no package.json* in the path above the root module
+//	This should test whether the collection-fallback can handle not receiving a .pkg object from readPkgUp
+//	Currently tricky to test as there is always a package.json located above the test fixtures.
 
 /* ========================= */
 /* ======= Test data ======= */

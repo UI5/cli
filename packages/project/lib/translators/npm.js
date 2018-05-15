@@ -190,24 +190,27 @@ class NpmTranslator {
 		}).then((pkgPath) => {
 			return path.dirname(pkgPath);
 		}).catch((err) => {
+			// Fallback: Check for a collection above this module
 			return readPkgUp({
 				cwd: path.dirname(basePath)
 			}).then((result) => {
-				const pkg = result.pkg;
+				if (result.pkg) {
+					const pkg = result.pkg;
 
-				// As of today, collections only exist in shims
-				this.shimCollection(pkg.name, pkg);
-				if (pkg.collection) {
-					log.verbose(
-						"Unable to locate module %s via resolve logic but found a collection in parent hierarchy: %s",
-						moduleName, pkg.name);
-					const modules = pkg.collection.modules || {};
-					if (modules[moduleName]) {
-						const modulePath = path.join(path.dirname(result.path), modules[moduleName]);
-						log.verbose("Found module %s in that collection", moduleName);
-						return modulePath;
+					// As of today, collections only exist in shims
+					this.shimCollection(pkg.name, pkg);
+					if (pkg.collection) {
+						log.verbose(
+							"Unable to locate module %s via resolve logic but found a collection in parent hierarchy: %s",
+							moduleName, pkg.name);
+						const modules = pkg.collection.modules || {};
+						if (modules[moduleName]) {
+							const modulePath = path.join(path.dirname(result.path), modules[moduleName]);
+							log.verbose("Found module %s in that collection", moduleName);
+							return modulePath;
+						}
+						throw new Error(`Could not find module ${moduleName} in collection ${pkg.name}`);
 					}
-					throw new Error(`Could not find module ${moduleName} in collection ${pkg.name}`);
 				}
 				throw new Error(`Could not locate module ${moduleName} via resolve logic ` +
 					`(error: ${err.message}) or in a collection`);
