@@ -78,6 +78,8 @@ function createAndInstallCertificate(keyPath, certPath) {
 
 		// Inform end user about entering his root password (needed for importing
 		// the created certificate into the system)
+		/* eslint-disable no-console */
+		// TODO: Prompt and logging should happen in CLI module rather than server
 		if (process.platform === "win32") {
 			console.log("Please press allow in the opened dialog to confirm importing the newly created " +
 				"SSL certificate into the operating system and browsers.");
@@ -99,6 +101,7 @@ function createAndInstallCertificate(keyPath, certPath) {
 				console.error(err);
 			});
 		});
+		/* eslint-enable no-console */
 	});
 }
 
