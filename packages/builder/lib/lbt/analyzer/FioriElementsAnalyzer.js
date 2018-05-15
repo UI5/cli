@@ -125,7 +125,7 @@ class FioriElementsAnalyzer {
 				}
 				each(activityCfg, (actionCfg) => {
 					if ( actionCfg.template ) {
-						var module = ModuleName.fromUI5LegacyName( "sap.fe.templates." +
+						const module = ModuleName.fromUI5LegacyName( "sap.fe.templates." +
 										actionCfg.template + ".Component" );
 						log.verbose("template app: add dependency to template component %s", module);
 						info.addDependency(module);

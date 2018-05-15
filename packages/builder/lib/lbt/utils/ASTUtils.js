@@ -45,7 +45,7 @@ function isIdentifier(node, name) {
 	if ( typeof name == "string" ) {
 		return name === node.name;
 	}
-	for (var i = 0; i < name.length; i++) {
+	for (let i = 0; i < name.length; i++) {
 		if ( name[i] === node.name || name[i] === "*" ) {
 			return true;
 		}
@@ -64,12 +64,12 @@ function getPropertyKey(property) {
 }
 
 function findOwnProperty(obj, name) {
-	var property = obj && obj.properties.find((property) => getPropertyKey(property) === name);
+	const property = obj && obj.properties.find((property) => getPropertyKey(property) === name);
 	return property && property.value;
 }
 
 function getValue(obj, names) {
-	var i = 0;
+	let i = 0;
 	while ( i < names.length ) {
 		if ( obj == null || obj.type !== Syntax.ObjectExpression ) {
 			return null;

@@ -43,7 +43,7 @@ module.exports = function({workspace, dependencies, options}) {
 			}
 
 			return Promise.all(namespaces.map((namespace) => {
-				var filters = [
+				const filters = [
 					`${namespace}/`,
 					`!${namespace}/test/`,
 					`!${namespace}/*.html`

@@ -29,8 +29,8 @@ function analyze(file, name) {
 			if ( err ) {
 				reject(err);
 			}
-			var ast = esprima.parse(buffer);
-			var info = new ModuleInfo(name);
+			const ast = esprima.parse(buffer);
+			const info = new ModuleInfo(name);
 			new JSModuleAnalyzer().analyze(ast, name, info);
 			resolve( info );
 		});
@@ -44,8 +44,8 @@ function analyzeModule(t, file, name, expectedDependencies, expectDocumentation)
 		// 	t.assertNotNull(info.description, "module should have documentation");
 		// 	t.assertTrue(info.description.indexOf("declares") >= 0, "module documentation should match", );
 		// }
-		var expected = expectedDependencies.sort();
-		var actual = info.dependencies.sort();
+		const expected = expectedDependencies.sort();
+		const actual = info.dependencies.sort();
 		t.deepEqual(actual, expected, "module dependencies should match");
 		t.truthy(info.dependencies.every((dep) => !info.isConditionalDependency(dep)), "none of the dependencies must be 'conditional'");
 		t.end();
@@ -67,7 +67,7 @@ test.cb("NotAnUI5Module", analyzeModule, "modules/not_a_module.js", "modules/not
 
 test("Bundle", (t) => {
 	return analyze("modules/bundle.js").then( (info) => {
-		var expected = [
+		const expected = [
 			"sap/m/CheckBox.js",
 			"sap/ui/core/Core.js",
 			"todo/Component.js",

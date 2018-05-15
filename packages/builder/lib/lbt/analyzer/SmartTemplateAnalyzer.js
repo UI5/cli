@@ -99,12 +99,12 @@ class TemplateComponentAnalyzer {
 		// console.log("analyzing template component %s", moduleName);
 		let resource = await this._pool.findResource(moduleName);
 		let code = await resource.buffer();
-		var ast = esprima.parse(code);
-		var defaultTemplateName = this._analyzeAST(moduleName, ast);
-		var templateName = (pageConfig.component && pageConfig.component.settings &&
+		const ast = esprima.parse(code);
+		const defaultTemplateName = this._analyzeAST(moduleName, ast);
+		const templateName = (pageConfig.component && pageConfig.component.settings &&
 								pageConfig.component.settings.templateName) || defaultTemplateName;
 		if ( templateName ) {
-			var templateModuleName = ModuleName.fromUI5LegacyName( templateName, ".view.xml" );
+			const templateModuleName = ModuleName.fromUI5LegacyName( templateName, ".view.xml" );
 			log.verbose("template app: add dependency to template view %s", templateModuleName);
 			appInfo.addDependency(templateModuleName);
 		}
@@ -132,7 +132,7 @@ class TemplateComponentAnalyzer {
 	}
 
 	_analyzeTemplateClassDefinition(clazz) {
-		var defaultValue = getValue(clazz, ["metadata", "properties", "templateName", "defaultValue"]);
+		const defaultValue = getValue(clazz, ["metadata", "properties", "templateName", "defaultValue"]);
 		if ( isString(defaultValue) ) {
 			return defaultValue.value;
 		}

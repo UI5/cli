@@ -39,7 +39,7 @@ class AutoSplitter {
 			totalSize += 1024; // just a rough estimate
 		}
 
-		var promises = [];
+		const promises = [];
 
 		resolvedModule.sections.forEach( (section) => {
 			switch ( section.mode ) {

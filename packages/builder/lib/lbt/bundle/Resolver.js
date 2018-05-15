@@ -11,7 +11,7 @@ const {SectionType} = require("./BundleDefinition");
 const ResolvedBundleDefinition = require("./ResolvedBundleDefinition");
 const log = require("@ui5/logger").getLogger("Resolver");
 
-var dependencyTracker;
+let dependencyTracker;
 
 /**
  * Resolve a bundle definition.

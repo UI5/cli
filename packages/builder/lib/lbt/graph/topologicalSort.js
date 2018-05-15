@@ -37,23 +37,23 @@ class GraphNode {
  * @private
  */
 function createDependencyGraph(pool, moduleNames, indegreeOnly) {
-	var graph = Object.create(null);
+	const graph = Object.create(null);
 
-	var promises = moduleNames.map( (moduleName) => {
+	const promises = moduleNames.map( (moduleName) => {
 		return pool.getModuleInfo(moduleName).
 			then( (module) => {
-				var node = graph[moduleName];
+				let node = graph[moduleName];
 				if ( node == null ) {
 					node = new GraphNode(moduleName, indegreeOnly);
 					graph[moduleName] = node;
 				}
-				var p = module.dependencies.map( function(dep) {
+				const p = module.dependencies.map( function(dep) {
 					if ( module.isConditionalDependency(dep) ) {
 						return;
 					}
 					return pool.getModuleInfo(dep).then( (depModule) => {
 						if ( moduleNames.indexOf(dep) >= 0 ) {
-							var depNode = graph[dep];
+							let depNode = graph[dep];
 							if ( depNode == null ) {
 								depNode = new GraphNode(dep, indegreeOnly);
 								graph[dep] = depNode;
@@ -89,10 +89,10 @@ function topologicalSort(pool, moduleNames) {
 	return createDependencyGraph(pool, moduleNames, false).
 		then(function(graph) {
 		// now do a topological sort.
-			var sequence = [];
-			var i;
-			var j;
-			var l = moduleNames.length;
+			const sequence = [];
+			let i;
+			let j;
+			let l = moduleNames.length;
 			moduleNames = moduleNames.slice(); // clone
 
 			do {
@@ -100,8 +100,8 @@ function topologicalSort(pool, moduleNames) {
 
 			// first loop over all remaining modules and emit those that don't have any more dependencies
 				for (i = 0, j = 0; i < l; i++ ) {
-					var moduleName = moduleNames[i];
-					var node = graph[moduleName];
+					const moduleName = moduleNames[i];
+					const node = graph[moduleName];
 
 					// modules that don't have any unsatisfied dependencies can be emitted
 					if ( node == null || node.outgoing.length === 0 ) {
@@ -113,7 +113,7 @@ function topologicalSort(pool, moduleNames) {
 						// remove outgoing dependency to current module from all modules that depend on it
 						if ( node != null ) {
 							node.incoming.forEach( function(dependent) {
-								var index = dependent.outgoing.indexOf(node);
+								const index = dependent.outgoing.indexOf(node);
 								if ( index >= 0 ) {
 									dependent.outgoing.splice(index, 1);
 								// console.log("removing outgoing %s in %s", node.name, dependent.name);

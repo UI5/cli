@@ -24,7 +24,7 @@ function toUI5LegacyName(path) {
 	if ( !path.endsWith(".js") ) {
 		throw new Error("can't convert a non-JS resource name " + path + " to a UI5 module name");
 	}
-	var moduleName = path.slice(0, -3);
+	const moduleName = path.slice(0, -3);
 	if ( moduleName.startsWith("sap/ui/thirdparty/jquery/jquery-") ) {
 		return "sap.ui.thirdparty.jquery.jquery-" + moduleName.slice("sap/ui/thirdparty/jquery/jquery-".length);
 	} else if ( moduleName.startsWith("jquery.sap.") || moduleName.startsWith("jquery-") ) {
@@ -76,20 +76,20 @@ function resolveRelativePath(path, relativePath) {
 	//			add segment to stack
 	// combine segments in stack with '/'
 
-	var match = ANY_SPECIAL_PATH_SEGMENT.exec(relativePath);
+	const match = ANY_SPECIAL_PATH_SEGMENT.exec(relativePath);
 	if ( match ) {
 		// process segments only if there is at least one special segment
-		var segments = [];
+		let segments = [];
 
-		var p = path.lastIndexOf("/");
+		const p = path.lastIndexOf("/");
 		if ( match.index == 0 && p > 0 ) {
 			// if first segment is ./ or ../, start with parent path, otherwise start empty
 			segments = path.slice(0, p).split("/");
 		}
 
-		var relativePathSegments = relativePath.split("/");
-		for ( var i = 0; i < relativePathSegments.length; i++ ) {
-			var segment = relativePathSegments[i];
+		const relativePathSegments = relativePath.split("/");
+		for ( let i = 0; i < relativePathSegments.length; i++ ) {
+			const segment = relativePathSegments[i];
 			if ( SPECIAL_PATH_SEGMENT.test(segment) ) {
 				switch ( segment.length ) {
 				case 1:

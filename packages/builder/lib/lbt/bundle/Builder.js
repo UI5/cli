@@ -231,7 +231,7 @@ class BundleBuilder {
 		if ( !config ) {
 			return;
 		}
-		var outW = this.outW;
+		const outW = this.outW;
 		outW.ensureNewLine(); // for clarity and to avoid issues with single line comments
 		outW.writeln(`(function(window){`);
 		outW.writeln(`\tvar cfg=window['sap-ui-config']=window['sap-ui-config']||{},`);
@@ -253,7 +253,7 @@ class BundleBuilder {
 			if ( resource != null ) {
 				this.outW.startSegment(module);
 				await this.writeRawModule(module, resource);
-				var compressedSize = this.outW.endSegment();
+				const compressedSize = this.outW.endSegment();
 				log.verbose("    %s (%d,%d)", module, resource.info != null ? resource.info.size : -1, compressedSize);
 				if ( section.declareRawModules ) {
 					this.missingRawDeclarations.push(module);
@@ -277,19 +277,19 @@ class BundleBuilder {
 	}
 
 	async writePreloadFunction(section) {
-		var outW = this.outW;
-		var avoidLazyParsing = section.sectionDefinition.avoidLazyParsing;
+		const outW = this.outW;
+		const avoidLazyParsing = section.sectionDefinition.avoidLazyParsing;
 
 		outW.ensureNewLine();
 
-		var sequence = section.modules.slice();
+		const sequence = section.modules.slice();
 
 		this.beforeWriteFunctionPreloadSection(sequence);
 
 		await this.rewriteAMDModules(sequence, avoidLazyParsing);
 		if ( sequence.length > 0 ) {
 			this.targetBundleFormat.beforePreloads(outW, section);
-			var i = 0;
+			let i = 0;
 			for ( let module of sequence ) {
 				let resource = await this.pool.findResourceWithInfo(module);
 				if ( resource != null ) {
@@ -300,7 +300,7 @@ class BundleBuilder {
 					outW.write(`\t"${module.toString()}":`);
 					outW.startSegment(module);
 					await this.writePreloadModule(module, resource.info, resource, avoidLazyParsing);
-					var compressedSize = outW.endSegment();
+					const compressedSize = outW.endSegment();
 					log.verbose("    %s (%d,%d)", module,
 						resource.info != null ? resource.info.size : -1, compressedSize);
 					i++;
@@ -335,7 +335,7 @@ class BundleBuilder {
 					throw result.error;
 				}
 				// console.log(result.map);
-				// var map = new MOZ_SourceMap.SourceMapConsumer(result.map);
+				// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
 				// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
 				fileContent = result.code;
 				// throw new Error();
@@ -355,7 +355,7 @@ class BundleBuilder {
 					throw result.error;
 				}
 				// console.log(result.map);
-				// var map = new MOZ_SourceMap.SourceMapConsumer(result.map);
+				// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
 				// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
 				fileContent = result.code;
 				// throw new Error();
@@ -384,14 +384,14 @@ class BundleBuilder {
 					// console.log("trying to read " + module);
 					let resource = await this.pool.findResourceWithInfo(module);
 					let code = await resource.buffer();
-					var ast = rewriteDefine(this.targetBundleFormat, code, module, avoidLazyParsing);
+					const ast = rewriteDefine(this.targetBundleFormat, code, module, avoidLazyParsing);
 					if ( ast ) {
 						outW.startSegment(module);
 						outW.ensureNewLine();
-						var fileContent = this.compressJS( ast, resource );
+						const fileContent = this.compressJS( ast, resource );
 						outW.write( fileContent );
 						outW.ensureNewLine();
-						var compressedSize = outW.endSegment();
+						const compressedSize = outW.endSegment();
 						log.verbose("    %s (%d,%d)", module,
 							resource.info != null ? resource.info.size : -1, compressedSize);
 					} else {
@@ -415,7 +415,7 @@ class BundleBuilder {
 	}
 
 	async writePreloadModule(module, info, resource, avoidLazyParsing) {
-		var outW = this.outW;
+		const outW = this.outW;
 
 		if ( /\.js$/.test(module) && (info == null || !info.requiresTopLevelScope) ) {
 			let compressedContent = await this.compressJSAsync( resource );

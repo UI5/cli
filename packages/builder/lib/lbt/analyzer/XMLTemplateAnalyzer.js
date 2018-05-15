@@ -169,14 +169,14 @@ class XMLTemplateAnalyzer {
 	_analyzeViewRootNode(node) {
 		this.info.addImplicitDependency(XMLVIEW_MODULE);
 
-		var controllerName = getAttribute(node, XMLVIEW_CONTROLLERNAME_ATTRIBUTE);
+		const controllerName = getAttribute(node, XMLVIEW_CONTROLLERNAME_ATTRIBUTE);
 		if ( controllerName ) {
 			this._addDependency( ModuleName.fromUI5LegacyName(controllerName, ".controller.js") );
 		}
 
-		var resourceBundleName = getAttribute(node, XMLVIEW_RESBUNDLENAME_ATTRIBUTE);
+		const resourceBundleName = getAttribute(node, XMLVIEW_RESBUNDLENAME_ATTRIBUTE);
 		if ( resourceBundleName ) {
-			var resourceBundleModuleName = ModuleName.fromUI5LegacyName(resourceBundleName, ".properties");
+			const resourceBundleModuleName = ModuleName.fromUI5LegacyName(resourceBundleName, ".properties");
 			log.verbose("found dependency to resource bundle %s", resourceBundleModuleName);
 			// TODO locale dependent dependencies: this._addDependency(resourceBundleModuleName);
 			this._addDependency( resourceBundleModuleName );
@@ -186,10 +186,10 @@ class XMLTemplateAnalyzer {
 	}
 
 	_analyzeNode(node) {
-		var namespace = node.$ns.uri || "";
-		var localName = node.$ns.local;
+		const namespace = node.$ns.uri || "";
+		const localName = node.$ns.local;
 
-		var oldConditional = this.conditional;
+		const oldConditional = this.conditional;
 
 		if ( namespace === TEMPLATING_NAMESPACE ) {
 			if ( TEMPLATING_CONDITONAL_TAGS.test(localName) ) {
@@ -201,7 +201,7 @@ class XMLTemplateAnalyzer {
 
 		} else if ( PATTERN_LIBRARY_NAMESPACES.test(namespace) ) {
 			// looks like a UI5 library or package name
-			var moduleName = ModuleName.fromUI5LegacyName( (namespace ? namespace + "." : "") + localName );
+			const moduleName = ModuleName.fromUI5LegacyName( (namespace ? namespace + "." : "") + localName );
 
 			// ignore FragmentDefinition (also skipped by runtime XMLTemplateProcessor)
 			if ( FRAGMENTDEFINITION_MODULE !== moduleName ) {
@@ -216,47 +216,47 @@ class XMLTemplateAnalyzer {
 						// - Fragment references a fragment by 'fragmentName' . 'type'
 
 						if ( moduleName === COMPONENTCONTAINER_MODULE ) {
-							var componentName = getAttribute(node, COMPONENTCONTAINER_COMPONENTNAME_ATTRIBUTE);
+							const componentName = getAttribute(node, COMPONENTCONTAINER_COMPONENTNAME_ATTRIBUTE);
 							if ( componentName ) {
-								var componentModuleName =
+								const componentModuleName =
 									ModuleName.fromUI5LegacyName( componentName, "/Component.js" );
 								this._addDependency(componentModuleName);
 							}
 							// TODO what about component.json? handle it transitively via Component.js?
 						} else if ( moduleName === FRAGMENT_MODULE ) {
-							var fragmentName = getAttribute(node, FRAGMENT_FRAGMENTNAME_ATTRIBUTE);
-							var type = getAttribute(node, FRAGMENT_TYPE_ATTRIBUTE);
+							const fragmentName = getAttribute(node, FRAGMENT_FRAGMENTNAME_ATTRIBUTE);
+							const type = getAttribute(node, FRAGMENT_TYPE_ATTRIBUTE);
 							if ( fragmentName && type ) {
-								var fragmentModuleName =
+								const fragmentModuleName =
 									ModuleName.fromUI5LegacyName( fragmentName, this._getFragmentExtension(type) );
 								// console.log("child fragment detected %s", fragmentModuleName);
 								this._addDependency(fragmentModuleName);
 							}
 						} else if ( moduleName === HTMLVIEW_MODULE ) {
-							let viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 							if ( viewName ) {
-								let childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.html" );
+								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.html" );
 								// console.log("child view detected %s", childViewModuleName);
 								this._addDependency(childViewModuleName);
 							}
 						} else if ( moduleName === JSVIEW_MODULE ) {
-							let viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 							if ( viewName ) {
-								let childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.js" );
+								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.js" );
 								// console.log("child view detected %s", childViewModuleName);
 								this._addDependency(childViewModuleName);
 							}
 						} else if ( moduleName === JSONVIEW_MODULE ) {
-							let viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 							if ( viewName ) {
-								let childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.json" );
+								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.json" );
 								// console.log("child view detected %s", childViewModuleName);
 								this._addDependency(childViewModuleName);
 							}
 						} else if ( moduleName === XMLVIEW_MODULE ) {
-							let viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 							if ( viewName ) {
-								let childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.xml" );
+								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.xml" );
 								// console.log("child view detected %s", childViewModuleName);
 								this._addDependency(childViewModuleName);
 							}

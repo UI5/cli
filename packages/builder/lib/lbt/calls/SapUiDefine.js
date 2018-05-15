@@ -1,8 +1,8 @@
 "use strict";
 
-var {Syntax} = require("esprima");
-var ModuleName = require("../utils/ModuleName");
-var {isString} = require("../utils/ASTUtils");
+const {Syntax} = require("esprima");
+const ModuleName = require("../utils/ModuleName");
+const {isString} = require("../utils/ASTUtils");
 
 class SapUiDefineCall {
 	constructor(node, moduleName) {
@@ -55,7 +55,7 @@ class SapUiDefineCall {
 			// console.error("no dependency error");
 			// return;
 		}
-		var i = this.dependencyInsertionIdx++;
+		let i = this.dependencyInsertionIdx++;
 		this.dependencyArray.elements.splice(i, 0, b.literal(module));
 		this.dependencies.splice(i, 0, module);
 		// console.log(this.factory.params);

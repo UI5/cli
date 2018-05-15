@@ -68,7 +68,7 @@ class ResourceFilterList {
 	addFilters(filters) {
 		if ( Array.isArray(filters) ) {
 			filters.forEach( (filter) => {
-				var matcher = makeMatcher(filter);
+				const matcher = makeMatcher(filter);
 				this.matchers.push( matcher );
 				this.matchByDefault = this.matchByDefault && !matcher.include;
 			});

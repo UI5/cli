@@ -16,7 +16,7 @@ const ResourceFilterList = require("./ResourceFilterList");
 const Resource = require("./Resource");
 const log = require("@ui5/logger").getLogger("ResourcePool");
 
-var jsAnalyzer = new JSModuleAnalyzer();
+const jsAnalyzer = new JSModuleAnalyzer();
 
 function scanFileOrDir(fileOrDir, name, pool) {
 	// console.log("visiting " + fileOrDir + " (" + name + ")");
@@ -41,7 +41,7 @@ function scanFileOrDir(fileOrDir, name, pool) {
 				});
 			} else if ( /\.(?:js|json|xml|html|properties|library)$/.test(name) ) {
 				// TODO think about right place for configuration of such a global filtering
-				var resource = new Resource(pool, name, fileOrDir, stat);
+				const resource = new Resource(pool, name, fileOrDir, stat);
 				resolve( pool.addResource( resource ) );
 			} else {
 				/* else: ignore other resource types */
