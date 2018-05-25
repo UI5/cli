@@ -25,7 +25,10 @@ function getBundleDefinition(namespace) {
 						"sap/ui/Global.js",
 
 						// files are already part of sap-ui-core.js
+						"!sap/ui/thirdparty/baseuri.js",
 						"!sap/ui/thirdparty/es6-promise.js",
+						"!sap/ui/thirdparty/es6-string-methods.js",
+						"!sap/ui/thirdparty/mdn-object-assign.js",
 						"!jquery.sap.global.js",
 						"!ui5loader-autoconfig.js",
 						"!ui5loader.js",
