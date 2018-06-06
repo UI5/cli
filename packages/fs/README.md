@@ -20,7 +20,7 @@ The virtual file system offers an abstraction layer from the physical file syste
 ### Adapters
 Adapers abstract resource access to different resource locations.
 
-The [memory adapter] (lib/resources/adapters/Memory.js) represents a virtual filesystem which maintains respective resources inside a data structure, whereas the [file system adapter] (lib/resources/adapters/FileSystem.js) has direct access to the physical filesytem.
+The [memory adapter](lib/resources/adapters/Memory.js) represents a virtual filesystem which maintains respective resources inside a data structure, whereas the [file system adapter](lib/resources/adapters/FileSystem.js) has direct access to the physical filesytem.
 
 ### Resource Readers
 Maps virtual to physical paths.
