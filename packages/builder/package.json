@@ -86,8 +86,8 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
-		"@ui5/fs": "SAP/ui5-fs",
-		"@ui5/logger": "SAP/ui5-logger",
+		"@ui5/fs": "^0.0.1",
+		"@ui5/logger": "^0.0.1",
 		"archiver": "^2.1.0",
 		"escope": "^3.6.0",
 		"esprima": "^2.7.2",
