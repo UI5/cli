@@ -91,8 +91,8 @@
 		"read-pkg": "^3.0.0",
 		"read-pkg-up": "^3.0.0",
 		"resolve": "^1.5.0",
-		"@ui5/builder": "SAP/ui5-builder",
-		"@ui5/logger": "SAP/ui5-logger"
+		"@ui5/builder": "^0.0.1",
+		"@ui5/logger": "^0.0.1"
 	},
 	"devDependencies": {
 		"ava": "^0.25.0",
