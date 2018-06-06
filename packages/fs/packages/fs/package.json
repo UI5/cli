@@ -27,7 +27,11 @@
 		"unit-inspect": "cross-env DEBUG=*,-babel,-ava node --inspect-brk node_modules/ava/profile.js",
 		"coverage": "nyc npm run unit",
 		"jsdoc": "npm run jsdoc-generate && opn jsdocs/index.html",
-		"jsdoc-generate": "node_modules/.bin/jsdoc -c ./jsdoc.json ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)"
+		"jsdoc-generate": "node_modules/.bin/jsdoc -c ./jsdoc.json ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
+		"preversion": "npm test",
+		"version": "git-chglog --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
+		"postversion": "git push --follow-tags",
+		"release-note": "git-chglog -c .chglog/release-config.yml v$npm_package_version"
 	},
 	"ava": {
 		"files": [

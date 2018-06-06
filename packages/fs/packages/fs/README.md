@@ -50,5 +50,8 @@ Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/bl
 ## Support
 Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
+## Release History
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 This project is licensed under the Apache Software License, Version 2.0 except as noted otherwise in the [LICENSE](/LICENSE.txt) file.
