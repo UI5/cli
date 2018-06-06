@@ -93,10 +93,10 @@
 		"supports-color": "^5.1.0",
 		"treeify": "^1.0.1",
 		"yargs": "^11.0.0",
-		"@ui5/logger": "SAP/ui5-logger",
-		"@ui5/builder": "SAP/ui5-builder",
-		"@ui5/project": "SAP/ui5-project",
-		"@ui5/server": "SAP/ui5-server"
+		"@ui5/logger": "^0.0.1",
+		"@ui5/builder": "^0.0.1",
+		"@ui5/project": "^0.0.1",
+		"@ui5/server": "^0.0.1"
 	},
 	"devDependencies": {
 		"adm-zip": "^0.4.7",
