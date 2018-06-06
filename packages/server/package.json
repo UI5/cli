@@ -100,10 +100,10 @@
 		"serve-index": "RandomByte/serve-index#fs-option",
 		"spdy": "^3.4.7",
 		"treeify": "^1.0.1",
-		"@ui5/fs": "SAP/ui5-fs",
-		"@ui5/logger": "SAP/ui5-logger",
-		"@ui5/builder": "SAP/ui5-builder",
-		"@ui5/project": "SAP/ui5-project"
+		"@ui5/fs": "^0.0.1",
+		"@ui5/logger": "^0.0.1",
+		"@ui5/builder": "^0.0.1",
+		"@ui5/project": "^0.0.1"
 	},
 	"devDependencies": {
 		"ava": "^0.25.0",

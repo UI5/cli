@@ -1,10 +1,11 @@
-![UI5 logo](https://github.com/SAP/ui5-tooling/blob/master/docs/images/UI5_logo_wide.png)
+![UI5 icon](https://raw.githubusercontent.com/SAP/ui5-tooling/master/docs/images/UI5_logo_wide.png)
 
 # ui5-server
 > Modules for running a UI5 development server  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-server.svg?branch=master)](https://travis-ci.org/SAP/ui5-server)
+[![npm Package Version](https://img.shields.io/npm/v/@ui5/server.svg)](https://www.npmjs.com/package/@ui5/server)
 
 **This is a Pre-Alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
@@ -36,6 +37,9 @@ Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/bl
 
 ## Support
 Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#report-an-issue) on how to report an issue.
+
+## Release History
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 This project is licensed under the Apache Software License, Version 2.0 except as noted otherwise in the [LICENSE](/LICENSE.txt) file.
