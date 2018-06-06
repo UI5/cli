@@ -1,10 +1,11 @@
-![UI5 logo](https://github.com/SAP/ui5-tooling/blob/master/docs/images/UI5_logo_wide.png)
+![UI5 icon](https://raw.githubusercontent.com/SAP/ui5-tooling/master/docs/images/UI5_logo_wide.png)
 
 # ui5-fs
 > UI5 specific file system abstraction  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-fs.svg?branch=master)](https://travis-ci.org/SAP/ui5-fs)
+[![npm Package Version](https://img.shields.io/npm/v/@ui5/fs.svg)](https://www.npmjs.com/package/@ui5/fs)
 
 **This is a Pre-Alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
