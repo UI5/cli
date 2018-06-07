@@ -13,28 +13,13 @@
 ## Installing the UI5 CLI
 ### Requirements
 - [Node.js](https://nodejs.org/) (**version must be 8.3 or higher** ⚠️)
-- Optional: Yarn ([yarnpkg.com](https://yarnpkg.com/en/docs/install))  
-    *Yarn is currently required when working with the [OpenUI5 main repository](https://github.com/SAP/openui5). See [FAQ: What's the thing with Yarn?](https://github.com/SAP/ui5-tooling#whats-the-thing-with-yarn)*
 
 ### Installation
-Apparently, the modules that make up the UI5 Build and Development Tooling is not yet available on npm. See [FAQ: Where are the npm packages?](https://github.com/SAP/ui5-tooling#where-are-the-npm-packages)
-
 ```sh
-# Clone the repository
-git clone https://github.com/SAP/ui5-cli.git
- 
-# Navigate into the repositroy
-cd ui5-cli
+npm install --global @ui5/cli
 
-# Install all dependencies
-npm install
-
-# Link the module globally
-npm link
-
-# Test
+# Verify installation
 ui5 --help
-# This should output something like: Usage: ui5 <command> [options]...
 ```
 
 ## CLI Usage
