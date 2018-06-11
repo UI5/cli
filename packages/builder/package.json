@@ -82,6 +82,17 @@
 		"cache": true,
 		"all": true
 	},
+	"greenkeeper": {
+		"commitMessages": {
+			"initialBadge": "[INTERNAL] Greenkeeper: Add badge",
+			"initialDependencies": "[INTERNAL] Greenkeeper: Update dependencies",
+			"initialBranches": "[INTERNAL] Greenkeeper: Whitelist greenkeeper branches",
+			"dependencyUpdate": "[INTERNAL] Greenkeeper: Update ${dependency} to version ${version}",
+			"devDependencyUpdate": "[INTERNAL] Greenkeeper: Update ${dependency} (dev-dependency) to version ${version}",
+			"dependencyPin": "[FIX] Greenkeeper: Pin ${dependency} to ${oldVersion}",
+			"devDependencyPin": "[FIX] Greenkeeper: Pin ${dependency} to ${oldVersion}"
+		}
+	},
 	"repository": {
 		"type": "git",
 		"url": "git@github.com:SAP/ui5-builder.git"
