@@ -6,6 +6,7 @@
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-builder.svg?branch=master)](https://travis-ci.org/SAP/ui5-builder)
 [![npm Package Version](https://img.shields.io/npm/v/@ui5/builder.svg)](https://www.npmjs.com/package/@ui5/builder)
+[![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-builder/badge.svg)](https://coveralls.io/github/SAP/ui5-builder)
 
 **This is a Pre-Alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**

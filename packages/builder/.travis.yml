@@ -3,3 +3,5 @@ language: node_js # don't install any environment
 node_js:
 - "8"
 - "10"
+
+after_script: npm run report-coveralls
