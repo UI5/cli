@@ -11,7 +11,7 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-builder/master.svg)](https://david-dm.org/SAP/ui5-builder/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-builder/master/dev-status.svg)](https://david-dm.org/SAP/ui5-builder/master#info=devDependencies)
 
-**This is a Pre-Alpha release!**  
+**This is an alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
 ## Builder
