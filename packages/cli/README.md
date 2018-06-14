@@ -7,7 +7,7 @@
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-cli.svg?branch=master)](https://travis-ci.org/SAP/ui5-cli)
 [![npm Package Version](https://img.shields.io/npm/v/@ui5/cli.svg)](https://www.npmjs.com/package/@ui5/cli)
 
-**This is a Pre-Alpha release!**  
+**This is an alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
 ## Installing the UI5 CLI
