@@ -7,7 +7,7 @@
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-project.svg?branch=master)](https://travis-ci.org/SAP/ui5-project)
 [![npm Package Version](https://img.shields.io/npm/v/@ui5/project.svg)](https://www.npmjs.com/package/@ui5/project)
 
-**This is a Pre-Alpha release!**  
+**This is an alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
 ## Normalizer
