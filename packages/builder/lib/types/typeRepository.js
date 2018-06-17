@@ -1,9 +1,11 @@
 const applicationType = require("./application/applicationType");
 const libraryType = require("./library/libraryType");
+const moduleType = require("./module/moduleType");
 
 let types = {
 	application: applicationType,
-	library: libraryType
+	library: libraryType,
+	module: moduleType
 };
 
 function getType(typeName) {
