@@ -64,7 +64,7 @@ function createCollectionsForTree(tree, {useNamespaces=false} = {}) {
 				if (useNamespaces && tree.metadata.namespace) { // Prefix resource paths with namespace
 					virBasePath = "/resources/" + tree.metadata.namespace + virBasePath;
 				}
-				sourceResourceLocators.push(createAdapter({fsBasePath, virBasePath, tree}));
+				sourceResourceLocators.push(createAdapter({fsBasePath, virBasePath, project: tree}));
 			}
 		}
 	}
