@@ -22,11 +22,11 @@ class LibraryBuilder extends AbstractBuilder {
 		this.availableTasks = [
 			"replaceCopyright",
 			"replaceVersion",
-			"createDebugFiles",
 			"generateComponentPreload",
 			"generateBundle",
 			"generateLibraryPreload",
 			"buildThemes",
+			"createDebugFiles",
 			"uglify"
 		];
 
@@ -47,16 +47,6 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
-					pattern: "/resources/**/*.js"
-				}
-			});
-		});
-
-		this.addTask("createDebugFiles", () => {
-			const createDebugFiles = tasks.createDebugFiles;
-			return createDebugFiles({
-				workspace: resourceCollections.workspace,
-				options: {
 					pattern: "/resources/**/*.js"
 				}
 			});
@@ -116,6 +106,16 @@ class LibraryBuilder extends AbstractBuilder {
 					projectName: project.metadata.name,
 					librariesPattern: "/resources/**/*.library",
 					inputPattern: "/resources/**/themes/*/library.source.less"
+				}
+			});
+		});
+
+		this.addTask("createDebugFiles", () => {
+			const createDebugFiles = tasks.createDebugFiles;
+			return createDebugFiles({
+				workspace: resourceCollections.workspace,
+				options: {
+					pattern: "/resources/**/*.js"
 				}
 			});
 		});

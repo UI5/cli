@@ -22,12 +22,12 @@ class ApplicationBuilder extends AbstractBuilder {
 		this.availableTasks = [
 			"replaceCopyright",
 			"replaceVersion",
-			"createDebugFiles",
 			"generateFlexChangesBundle",
 			"generateManifestBundle",
 			"generateComponentPreload",
 			"generateStandaloneAppBundle",
 			"generateBundle",
+			"createDebugFiles",
 			"uglify",
 			"generateVersionInfo"
 		];
@@ -47,16 +47,6 @@ class ApplicationBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
-					pattern: "/**/*.js"
-				}
-			});
-		});
-
-		this.addTask("createDebugFiles", () => {
-			const createDebugFiles = tasks.createDebugFiles;
-			return createDebugFiles({
-				workspace: resourceCollections.workspace,
-				options: {
 					pattern: "/**/*.js"
 				}
 			});
@@ -136,6 +126,16 @@ class ApplicationBuilder extends AbstractBuilder {
 				}));
 			});
 		}
+
+		this.addTask("createDebugFiles", () => {
+			const createDebugFiles = tasks.createDebugFiles;
+			return createDebugFiles({
+				workspace: resourceCollections.workspace,
+				options: {
+					pattern: "/**/*.js"
+				}
+			});
+		});
 
 		this.addTask("uglify", () => {
 			const uglify = tasks.uglify;

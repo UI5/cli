@@ -10,16 +10,18 @@ const dbg = require("../processors/debugFileCreator");
  * @param {string} [parameters.options.pattern] Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
-	return workspace.byGlob(options.pattern)
-		.then((allResources) => {
-			return dbg({
-				resources: allResources
-			});
-		})
-		.then((processedResources) => {
-			return Promise.all(processedResources.map((resource) => {
-				return workspace.write(resource);
-			}));
-		});
+module.exports = async function({workspace, options}) {
+	let allResources;
+	if (workspace.byGlobSource) { // API only available on duplex collections
+		allResources = await workspace.byGlobSource(options.pattern);
+	} else {
+		allResources = await workspace.byGlob(options.pattern);
+	}
+	return dbg({
+		resources: allResources
+	}).then((processedResources) => {
+		return Promise.all(processedResources.map((resource) => {
+			return workspace.write(resource);
+		}));
+	});
 };
