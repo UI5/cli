@@ -136,7 +136,8 @@ class BundleBuilder {
 		// when decorateBootstrapModule is set to false, we don't write the optimized flag
 		// and don't write the try catch wrapper
 		this.shouldDecorate = this.options.decorateBootstrapModule &&
-			(((this.optimizedSources && !this.options.debugMode) || this.optimize) && resolvedModule.containsGlobal);
+			(((this.optimizedSources && !this.options.debugMode) || this.optimize) &&
+				this.targetBundleFormat.shouldDecorate(resolvedModule));
 		// TODO is the following condition ok or should the availability of jquery.sap.global.js be configurable?
 		this.jqglobalAvailable = !resolvedModule.containsGlobal;
 		this.openModule(resolvedModule.name);
