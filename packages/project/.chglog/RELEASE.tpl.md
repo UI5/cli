@@ -24,11 +24,10 @@
 
 {{ if .Tag.Previous }}
 ### All changes
-<a name="{{ .Tag.Previous.Name }}...{{ .Tag.Name }}"></a>
-`[{{ .Tag.Previous.Name }}...{{ .Tag.Name }}]``
+[`{{ .Tag.Previous.Name }}...{{ .Tag.Name }}`]
 {{ end }}
 
 {{ if .Tag.Previous -}}
-[{{ .Tag.Previous.Name }}...{{ .Tag.Name }}]: {{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}
+[`{{ .Tag.Previous.Name }}...{{ .Tag.Name }}`]: {{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}
 {{ end -}}
 {{ end -}}
