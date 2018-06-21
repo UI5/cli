@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/cli",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "UI5 Build and Development Tooling - CLI",
 	"author": "SAP SE (https://www.sap.com)",
 	"license": "Apache-2.0",

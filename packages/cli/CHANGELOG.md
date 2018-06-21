@@ -2,7 +2,15 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.0.2...HEAD).
+
+<a name="v0.0.2"></a>
+## [v0.0.2] - 2018-06-21
+### Internal Changes
+- Update [@ui5](https://github.com/ui5)/builder dependency [`9373965`](https://github.com/SAP/ui5-cli/commit/93739656247a2015df8723bbf7870ce097c403c6)
+- **README:** Pre-Alpha -> Alpha [`08ceb8c`](https://github.com/SAP/ui5-cli/commit/08ceb8cb6efe7aeb0bc1b098a860096a74e538a9)
+- **README:** Use npm install for CLI [`4908e05`](https://github.com/SAP/ui5-cli/commit/4908e05bd62329277ae8bb4e54517ef14d5310d2)
+
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
@@ -17,3 +25,4 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 - **Travis:** Add node.js 10 to test matrix [`7a94b52`](https://github.com/SAP/ui5-cli/commit/7a94b52f3878474697bc2e9c4c423432ca7d473c)
 
 
+[v0.0.2]: https://github.com/SAP/ui5-cli/compare/v0.0.1...v0.0.2
