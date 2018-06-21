@@ -94,7 +94,7 @@
 		"treeify": "^1.0.1",
 		"yargs": "^11.0.0",
 		"@ui5/logger": "^0.0.1",
-		"@ui5/builder": "^0.0.1",
+		"@ui5/builder": "^0.0.2",
 		"@ui5/project": "^0.0.1",
 		"@ui5/server": "^0.0.1"
 	},
