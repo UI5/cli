@@ -83,17 +83,19 @@ class LibraryBuilder extends AbstractBuilder {
 		const bundles = project.builder && project.builder.bundles;
 		if (bundles) {
 			this.addTask("generateBundle", () => {
-				return Promise.all(bundles.map((bundle) => {
-					return tasks.generateBundle({
-						workspace: resourceCollections.workspace,
-						dependencies: resourceCollections.dependencies,
-						options: {
-							projectName: project.metadata.name,
-							bundleDefinition: bundle.bundleDefinition,
-							bundleOptions: bundle.bundleOptions
-						}
+				return bundles.reduce(function(sequence, bundle) {
+					return sequence.then(function() {
+						return tasks.generateBundle({
+							workspace: resourceCollections.workspace,
+							dependencies: resourceCollections.dependencies,
+							options: {
+								projectName: project.metadata.name,
+								bundleDefinition: bundle.bundleDefinition,
+								bundleOptions: bundle.bundleOptions
+							}
+						});
 					});
-				}));
+				}, Promise.resolve());
 			});
 		}
 
