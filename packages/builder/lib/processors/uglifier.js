@@ -18,7 +18,8 @@ module.exports = function({resources}) {
 				warnings: false,
 				output: {
 					comments: copyrightCommentsPattern
-				}
+				},
+				compress: false
 			});
 			if (result.error) {
 				throw new Error(
