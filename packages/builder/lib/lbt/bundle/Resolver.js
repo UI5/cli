@@ -9,7 +9,7 @@ const ResourceFilterList = require("../resources/ResourceFilterList");
 
 const {SectionType} = require("./BundleDefinition");
 const ResolvedBundleDefinition = require("./ResolvedBundleDefinition");
-const log = require("@ui5/logger").getLogger("Resolver");
+const log = require("@ui5/logger").getLogger("lbt:bundle:Resolver");
 
 let dependencyTracker;
 

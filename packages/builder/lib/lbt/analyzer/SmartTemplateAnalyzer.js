@@ -30,7 +30,7 @@ const SapUiDefine = require("../calls/SapUiDefine");
 const esprima = require("esprima");
 const {Syntax} = esprima;
 const {getValue, isMethodCall, isString} = require("../utils/ASTUtils");
-const log = require("@ui5/logger").getLogger("SmartTemplateAnalyzer");
+const log = require("@ui5/logger").getLogger("lbt:analyzer:SmartTemplateAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 
@@ -54,9 +54,13 @@ class TemplateComponentAnalyzer {
 
 		let manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
 		try {
-			let manifestResource = await this._pool.findResource(manifestName);
-			let fileContent = await manifestResource.buffer();
-			await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
+			let manifestResource = await this._pool.findResource(manifestName).catch(() => null);
+			if ( manifestResource ) {
+				let fileContent = await manifestResource.buffer();
+				await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
+			} else {
+				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
+			}
 		} catch (err) {
 			log.error("an error occurred while analyzing template app %s (ignored)", resource.name, err);
 		}

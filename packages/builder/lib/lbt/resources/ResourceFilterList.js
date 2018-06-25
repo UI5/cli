@@ -1,6 +1,6 @@
 "use strict";
 
-const log = require("@ui5/logger").getLogger("ResourceFilterList");
+const log = require("@ui5/logger").getLogger("lbt:resources:ResourceFilterList");
 
 function makeMatcher(globPattern) {
 	let result = {

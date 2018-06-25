@@ -1,6 +1,6 @@
 "use strict";
 
-const log = require("@ui5/logger").getLogger("dependencyGraph");
+const log = require("@ui5/logger").getLogger("lbt:graph:dependencyGraph");
 
 class Node {
 	constructor(name) {

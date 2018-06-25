@@ -7,7 +7,7 @@ const ModuleName = require("../utils/ModuleName");
 const {Format: ModuleFormat} = require("../resources/ModuleInfo");
 const UI5ClientConstants = require("../UI5ClientConstants");
 const {findOwnProperty, getLocation, getPropertyKey, isMethodCall, isString} = require("../utils/ASTUtils");
-const log = require("@ui5/logger").getLogger("JSModuleAnalyzer");
+const log = require("@ui5/logger").getLogger("lbt:analyzer:JSModuleAnalyzer");
 
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -386,7 +386,7 @@ class JSModuleAnalyzer {
 			const nArgs = args.length;
 
 			if ( nArgs > 0 && args[0].type == Syntax.OBJECT ) {
-				log.warn("jQuery.sap.require: cannot evaluate complex require (view/controller)");
+				log.verbose("jQuery.sap.require: cannot evaluate complex require (view/controller)");
 			} else {
 				// UI5 signature with one or many required modules
 				for (let i = 0; i < nArgs; i++) {
@@ -401,7 +401,7 @@ class JSModuleAnalyzer {
 						const requiredModuleName2 = ModuleName.fromUI5LegacyName( arg.alternate.value );
 						info.addDependency(requiredModuleName2, true);
 					} else {
-						log.warn("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg);
+						log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg);
 						info.dynamicDependencies = true;
 					}
 				}

@@ -98,16 +98,13 @@ function resolveRelativePath(path, relativePath) {
 				case 2:
 					// segment '../' -> navigate to parent if possible
 					if ( segments.length === 0 ) {
-						throw new Error(String.format("Can't navigate to parent of root (%s", relativePath));
-						// NODE-TODO, getPackagePath not defined:
-						//	throw new Error(String.format(
-						//		"Can't navigate to parent of root (%s %s", getPackagePath(), relativePath));
+						throw new Error(`Can't navigate to parent of root (${path}, ${relativePath})`);
 					}
 					segments.pop();
 					break;
 				default:
 					// segment '...' or more dots: not allowed
-					throw new Error(String.format("Illegal path segment '%s'", segment));
+					throw new Error(`Illegal path segment '${segment}'`);
 				}
 			} else {
 				// normal segment: add

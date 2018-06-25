@@ -1,6 +1,6 @@
 "use strict";
 
-const log = require("@ui5/logger").getLogger("topologicalSort");
+const log = require("@ui5/logger").getLogger("lbt:graph:topologicalSort");
 
 /**
  * Represents a module and its dependencies in a dependency graph.

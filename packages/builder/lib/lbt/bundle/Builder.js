@@ -16,7 +16,7 @@ const BundleResolver = require("./Resolver");
 const BundleSplitter = require("./AutoSplitter");
 const {SectionType} = require("./BundleDefinition");
 const BundleWriter = require("./BundleWriter");
-const log = require("@ui5/logger").getLogger("Builder");
+const log = require("@ui5/logger").getLogger("lbt:bundle:Builder");
 
 const copyrightCommentsPattern = /copyright|\(c\)|released under|license|\u00a9/i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;

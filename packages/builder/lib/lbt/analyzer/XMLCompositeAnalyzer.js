@@ -5,7 +5,7 @@ const {Syntax} = esprima;
 const SapUiDefine = require("../calls/SapUiDefine");
 const {getValue, isMethodCall, isString} = require("../utils/ASTUtils");
 const ModuleName = require("../utils/ModuleName");
-const log = require("@ui5/logger").getLogger("XMLCompositeAnalyzer");
+const log = require("@ui5/logger").getLogger("lbt:analyzer:XMLCompositeAnalyzer");
 
 const CALL_DEFINE = ["define"];
 const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
@@ -54,7 +54,7 @@ class XMLCompositeAnalyzer {
 	}
 
 	_analyzeXMLCClassDefinition(clazz) {
-		log.verbose(clazz);
+		// log.verbose(clazz);
 		let fragmentName = getValue(clazz, ["fragment"]);
 		if ( isString(fragmentName) ) {
 			return fragmentName.value;

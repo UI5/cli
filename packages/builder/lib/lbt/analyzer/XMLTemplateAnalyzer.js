@@ -12,7 +12,7 @@
 
 const xml2js = require("xml2js");
 const ModuleName = require("../utils/ModuleName");
-const log = require("@ui5/logger").getLogger("XMLTemplateAnalyzer");
+const log = require("@ui5/logger").getLogger("lbt:analyzer:XMLTemplateAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 

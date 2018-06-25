@@ -21,7 +21,7 @@
 "use strict";
 
 const ModuleName = require("../utils/ModuleName");
-const log = require("@ui5/logger").getLogger("ComponentAnalyzer");
+const log = require("@ui5/logger").getLogger("lbt:analyzer:ComponentAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 
@@ -51,9 +51,13 @@ class ComponentAnalyzer {
 
 		let manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
 		try {
-			let manifestResource = await this._pool.findResource(manifestName);
-			let fileContent = await manifestResource.buffer();
-			this._analyzeManifest( JSON.parse(fileContent.toString()), info );
+			let manifestResource = await this._pool.findResource(manifestName).catch(() => null);
+			if ( manifestResource ) {
+				let fileContent = await manifestResource.buffer();
+				this._analyzeManifest( JSON.parse(fileContent.toString()), info );
+			} else {
+				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
+			}
 		} catch (err) {
 			log.error("an error occurred while analyzing component %s (ignored)", resource.name, err);
 		}

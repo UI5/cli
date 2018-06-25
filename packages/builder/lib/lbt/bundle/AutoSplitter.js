@@ -4,7 +4,7 @@ const uglify = require("uglify-es");
 const {pd} = require("pretty-data");
 const ModuleName = require("../utils/ModuleName");
 const {SectionType} = require("./BundleDefinition");
-const log = require("@ui5/logger").getLogger("AutoSplitter");
+const log = require("@ui5/logger").getLogger("lbt:bundle:AutoSplitter");
 
 const copyrightCommentsPattern = /copyright|\(c\)|released under|license|\u00a9/i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;

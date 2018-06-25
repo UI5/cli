@@ -14,7 +14,7 @@ const LibraryFileAnalyzer = require("./LibraryFileAnalyzer");
 const ModuleInfo = require("./ModuleInfo");
 const ResourceFilterList = require("./ResourceFilterList");
 const Resource = require("./Resource");
-const log = require("@ui5/logger").getLogger("ResourcePool");
+const log = require("@ui5/logger").getLogger("lbt:resources:ResourcePool");
 
 const jsAnalyzer = new JSModuleAnalyzer();
 

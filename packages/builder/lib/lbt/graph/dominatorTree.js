@@ -16,7 +16,7 @@
  * @private
  */
 function calculateDominatorTree({n0, nodes}) {
-	const log = require("@ui5/logger").getLogger("dominatorTree");
+	const log = require("@ui5/logger").getLogger("lbt:graph:dominatorTree");
 	// initialize set of dominators for each node
 	for ( let n of nodes.values() ) {
 		if ( n === n0 ) {
