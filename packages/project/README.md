@@ -5,7 +5,10 @@
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-project.svg?branch=master)](https://travis-ci.org/SAP/ui5-project)
-[![npm Package Version](https://img.shields.io/npm/v/@ui5/project.svg)](https://www.npmjs.com/package/@ui5/project)
+[![npm Package Version](https://badge.fury.io/js/%40ui5%2Fproject.svg)](https://www.npmjs.com/package/@ui5/project)
+[![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-project/badge.svg)](https://coveralls.io/github/SAP/ui5-project)
+[![Dependency Status](https://david-dm.org/SAP/ui5-project/master.svg)](https://david-dm.org/SAP/ui5-project/master)
+[![devDependency Status](https://david-dm.org/SAP/ui5-project/master/dev-status.svg)](https://david-dm.org/SAP/ui5-project/master#info=devDependencies)
 
 **This is an alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
