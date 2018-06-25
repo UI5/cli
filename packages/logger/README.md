@@ -5,7 +5,9 @@
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
  
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-logger.svg?branch=master)](https://travis-ci.org/SAP/ui5-logger)
-[![npm Package Version](https://img.shields.io/npm/v/@ui5/logger.svg)](https://www.npmjs.com/package/@ui5/logger)
+[![npm Package Version](https://badge.fury.io/js/%40ui5%2Flogger.svg)](https://www.npmjs.com/package/@ui5/logger)
+[![Dependency Status](https://david-dm.org/SAP/ui5-logger/master.svg)](https://david-dm.org/SAP/ui5-logger/master)
+[![devDependency Status](https://david-dm.org/SAP/ui5-logger/master/dev-status.svg)](https://david-dm.org/SAP/ui5-logger/master#info=devDependencies)
 
 **This is an alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
