@@ -34,7 +34,8 @@
 		"preversion": "npm test",
 		"version": "git-chglog --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"postversion": "git push --follow-tags",
-		"release-note": "git-chglog -c .chglog/release-config.yml v$npm_package_version"
+		"release-note": "git-chglog -c .chglog/release-config.yml v$npm_package_version",
+		"report-coveralls": "nyc report --reporter=text-lcov | coveralls"
 	},
 	"ava": {
 		"files": [
@@ -88,21 +89,22 @@
 		"url": "git@github.com:SAP/ui5-cli.git"
 	},
 	"dependencies": {
+		"@ui5/builder": "^0.0.2",
+		"@ui5/logger": "^0.0.1",
+		"@ui5/project": "^0.0.1",
+		"@ui5/server": "^0.0.1",
 		"js-yaml": "^3.10.0",
 		"opn": "^5.1.0",
 		"supports-color": "^5.1.0",
 		"treeify": "^1.0.1",
-		"yargs": "^11.0.0",
-		"@ui5/logger": "^0.0.1",
-		"@ui5/builder": "^0.0.2",
-		"@ui5/project": "^0.0.1",
-		"@ui5/server": "^0.0.1"
+		"yargs": "^11.0.0"
 	},
 	"devDependencies": {
 		"adm-zip": "^0.4.7",
 		"ava": "^0.25.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
+		"coveralls": "^3.0.1",
 		"cross-env": "^5.1.1",
 		"docdash": "^0.4.0",
 		"eslint": "^4.13.1",
