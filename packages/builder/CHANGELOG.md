@@ -2,7 +2,21 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.0.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.1.0...HEAD).
+
+<a name="v0.1.0"></a>
+## [v0.1.0] - 2018-06-26
+### Bug Fixes
+- Bundles should be built one after another [`164ba32`](https://github.com/SAP/ui5-builder/commit/164ba328c6e172297d71b9d3ef871005931cca71)
+- reduce build time at the price of a slightly increased code size ([#37](https://github.com/SAP/ui5-builder/issues/37)) [`1fb8d00`](https://github.com/SAP/ui5-builder/commit/1fb8d0049235467fcbd40f53e725cc419a8bc730)
+- Use the target bundle format to decide decoration ([#24](https://github.com/SAP/ui5-builder/issues/24)) [`83703bc`](https://github.com/SAP/ui5-builder/commit/83703bca17fd18b9ac700fae4801d87a4d86961d)
+
+### Internal Changes
+- Update ui5-fs and ui5-logger dependency [`dbc64df`](https://github.com/SAP/ui5-builder/commit/dbc64df8a67dd6c8d24704c45f6585ab1be97397)
+- Minor improvements around logging and error reporting ([#29](https://github.com/SAP/ui5-builder/issues/29)) [`55b1e89`](https://github.com/SAP/ui5-builder/commit/55b1e89b779b367db8aaa286e44a4f2c60ed074e)
+- Fix Changelog [`98612d4`](https://github.com/SAP/ui5-builder/commit/98612d410bd73976c8493692e11d12cd72ffbf5b)
+- **CHANGELOG:** Fix GitHub release template [`4b74ec5`](https://github.com/SAP/ui5-builder/commit/4b74ec5b7088d583de867a3bb9c116c634225ca2)
+
 
 <a name="v0.0.2"></a>
 ## [v0.0.2] - 2018-06-21
@@ -41,4 +55,5 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.1.0]: https://github.com/SAP/ui5-builder/compare/v0.0.2...v0.1.0
 [v0.0.2]: https://github.com/SAP/ui5-builder/compare/v0.0.1...v0.0.2
