@@ -235,6 +235,7 @@ class NpmTranslator {
 
 	processPendingDeps(tree) {
 		const queue = [tree];
+		const visited = new Set();
 
 		// Breadth-first search to prefer projects closer to root
 		while (queue.length) {
@@ -242,6 +243,10 @@ class NpmTranslator {
 			if (!project.id) {
 				throw new Error("Encountered project with missing id");
 			}
+			if (visited.has(project.id)) {
+				continue;
+			}
+			visited.add(project.id);
 
 			if (this.pendingDeps[project.id]) {
 				for (let i = this.pendingDeps[project.id].parents.length - 1; i >= 0; i--) {
