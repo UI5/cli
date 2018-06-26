@@ -86,6 +86,10 @@
 		"url": "git@github.com:SAP/ui5-server.git"
 	},
 	"dependencies": {
+		"@ui5/builder": "^0.1.0",
+		"@ui5/fs": "^0.1.0",
+		"@ui5/logger": "^0.1.0",
+		"@ui5/project": "^0.1.0",
 		"compression": "^1.7.1",
 		"connect-openui5": "^0.7.2",
 		"cors": "^2.8.3",
@@ -100,11 +104,7 @@
 		"replacestream": "^4.0.3",
 		"serve-index": "RandomByte/serve-index#fs-option",
 		"spdy": "^3.4.7",
-		"treeify": "^1.0.1",
-		"@ui5/fs": "^0.0.1",
-		"@ui5/logger": "^0.0.1",
-		"@ui5/builder": "^0.0.1",
-		"@ui5/project": "^0.0.1"
+		"treeify": "^1.0.1"
 	},
 	"devDependencies": {
 		"ava": "^0.25.0",
