@@ -22,7 +22,7 @@ class NpmTranslator {
 		const moduleName = data.name;
 		const pkg = data.pkg;
 
-		log.verbose("Analyzing %s (%s) (depenency of %s)", moduleName, cwd, parentName || "nothing - root project");
+		log.verbose("Analyzing %s (%s) (dependency of %s)", moduleName, cwd, parentName || "nothing - root project");
 
 		/*
 		 * 	Inject collection definitions for some known projects
@@ -57,7 +57,7 @@ class NpmTranslator {
 
 			for (let depName in dependencies) {
 				if (dependencies.hasOwnProperty(depName) && ui5Deps.indexOf(depName) === -1) {
-					log.verbose("Ignoring npm depenency %s. Not defined in UI5-dependency configuration.", depName);
+					log.verbose("Ignoring npm dependency %s. Not defined in UI5-dependency configuration.", depName);
 					delete dependencies[depName];
 				}
 			}
@@ -201,7 +201,7 @@ class NpmTranslator {
 					this.shimCollection(pkg.name, pkg);
 					if (pkg.collection) {
 						log.verbose(
-							"Unable to locate module %s via resolve logic but found a collection in parent hierarchy: %s",
+							"Unable to locate module %s via resolve logic, but found a collection in parent hierarchy: %s",
 							moduleName, pkg.name);
 						const modules = pkg.collection.modules || {};
 						if (modules[moduleName]) {
