@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.1.0...HEAD).
+
+<a name="v0.1.0"></a>
+## [v0.1.0] - 2018-06-26
+### Internal Changes
+- Update ui5 tooling dependencies [`ba34c41`](https://github.com/SAP/ui5-server/commit/ba34c41f4d291b109e2dc770672f8e945778e665)
+- Add coveralls and dm-badges [`1c22823`](https://github.com/SAP/ui5-server/commit/1c22823870acb1c761c4f52ce5b676219d411541)
+- **CHANGELOG:** Fix GitHub release template [`a4f736b`](https://github.com/SAP/ui5-server/commit/a4f736b189e74ad4b65f195509da198196d623b9)
+- **README:** Pre-Alpha -> Alpha [`8b32857`](https://github.com/SAP/ui5-server/commit/8b32857e88699ef62292a3b69b30e724d960441e)
+
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
@@ -20,3 +29,4 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 - **Travis:** Add node.js 10 to test matrix [`2881261`](https://github.com/SAP/ui5-server/commit/2881261a05afd737af7c8874b91819a52b8f88df)
 
 
+[v0.1.0]: https://github.com/SAP/ui5-server/compare/v0.0.1...v0.1.0
