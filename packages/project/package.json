@@ -86,14 +86,14 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
+		"@ui5/builder": "^0.1.0",
+		"@ui5/logger": "^0.1.0",
 		"graceful-fs": "^4.1.11",
 		"js-yaml": "^3.10.0",
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^3.0.0",
 		"read-pkg-up": "^3.0.0",
-		"resolve": "^1.5.0",
-		"@ui5/builder": "^0.0.1",
-		"@ui5/logger": "^0.0.1"
+		"resolve": "^1.5.0"
 	},
 	"devDependencies": {
 		"ava": "^0.25.0",
