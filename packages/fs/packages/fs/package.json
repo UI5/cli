@@ -86,7 +86,7 @@
 		"url": "git@github.com:SAP/ui5-fs.git"
 	},
 	"dependencies": {
-		"@ui5/logger": "^0.0.1",
+		"@ui5/logger": "^0.1.0",
 		"clone": "^2.1.0",
 		"defaults": "^1.0.3",
 		"globby": "^7.1.1",
