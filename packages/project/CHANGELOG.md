@@ -2,7 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.1.0...HEAD).
+
+<a name="v0.1.0"></a>
+## [v0.1.0] - 2018-06-26
+### Bug Fixes
+- Fix some typos in log messages ([#17](https://github.com/SAP/ui5-project/issues/17)) [`1f2f2fd`](https://github.com/SAP/ui5-project/commit/1f2f2fd164abaf449cc5e7d94ec792f469710207)
+- npm translator: Fix endless loop in case of dependency cycles ([#15](https://github.com/SAP/ui5-project/issues/15)) [`cf31112`](https://github.com/SAP/ui5-project/commit/cf3111288278e8dd36a09b549bd2b254e86af041)
+
+### Internal Changes
+- Update ui5-builder and ui5-logger dependency [`c4aaa81`](https://github.com/SAP/ui5-project/commit/c4aaa81ed813fb96a24a289ceb54bc2537bc70e7)
+- Add coveralls and dm-badges [`0fb9132`](https://github.com/SAP/ui5-project/commit/0fb9132ca87e0dd959f1dea4dd3d584f0205baad)
+- **CHANGELOG:** Fix GitHub release template [`2ca710b`](https://github.com/SAP/ui5-project/commit/2ca710b04d247e7799266644c1a3099c6621d345)
+- **README:** Pre-Alpha -> Alpha [`a988310`](https://github.com/SAP/ui5-project/commit/a988310ae2b810dcff9e8253d32d6474c9ee1da9)
+
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
@@ -23,3 +36,4 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-proj
 - **Travis:** Add node.js 10 to test matrix [`5f26276`](https://github.com/SAP/ui5-project/commit/5f2627668b7faa554b8c3810899828d3be6fd63f)
 
 
+[v0.1.0]: https://github.com/SAP/ui5-project/compare/v0.0.1...v0.1.0
