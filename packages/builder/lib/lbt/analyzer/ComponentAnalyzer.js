@@ -117,21 +117,40 @@ class ComponentAnalyzer {
 
 		let routing = ui5.routing;
 		if ( routing ) {
-			// console.log("routing: ", routing);
-			routing.routes.forEach( (route) => {
-				let target = routing.targets[route.target];
-				if ( target && target.viewName ) {
-					let module = ModuleName.fromUI5LegacyName(
-						(routing.config.viewPath ? routing.config.viewPath + "." : "") +
-						target.viewName, ".view." + routing.config.viewType.toLowerCase() );
-					log.verbose("converting route to view dependency ", module);
-					// TODO make this a conditional dependency, depending on the pattern?
-					info.addDependency(module);
+			if (Array.isArray(routing.routes)) {
+				routing.routes.forEach((route) => this._visitRoute(route, routing, info));
+			} else {
+				for (let key in routing.routes) {
+					if (!routing.routes.hasOwnProperty(key)) {
+						continue;
+					}
+					const route = routing.routes[key];
+					this._visitRoute(route, routing, info);
 				}
-			});
+			}
 		}
 
 		return info;
+	}
+
+	/**
+	 * called for any route, this adds the view used by a route as a dependency.
+	 *
+	 * @param {object} route the single route
+	 * @param {object} routing the full routing object from the manifest
+	 * @param {ModuleInfo} info  ModuleInfo object that should be enriched
+	 * @private
+	 */
+	_visitRoute( route, routing, info ) {
+		const viewPath = routing.config.viewPath ? routing.config.viewPath + "." : "";
+		const viewType = routing.config.viewType.toLowerCase();
+		const target = routing.targets[route.target];
+		if ( target && target.viewName ) {
+			const module = ModuleName.fromUI5LegacyName(viewPath + target.viewName, ".view." + viewType);
+			log.verbose("converting route to view dependency ", module);
+			// TODO make this a conditional dependency, depending on the pattern?
+			info.addDependency(module);
+		}
 	}
 }
 
