@@ -8,6 +8,7 @@ const definedTasks = {
 	createDebugFiles: require("../tasks/createDebugFiles"),
 	uglify: require("../tasks/uglify"),
 	buildThemes: require("../tasks/buildThemes"),
+	generateLibraryManifest: require("../tasks/generateLibraryManifest"),
 	generateVersionInfo: require("../tasks/generateVersionInfo"),
 	generateManifestBundle: require("../tasks/bundlers/generateManifestBundle"),
 	generateFlexChangesBundle: require("../tasks/bundlers/generateFlexChangesBundle"),

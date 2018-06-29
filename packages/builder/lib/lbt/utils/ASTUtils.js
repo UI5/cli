@@ -79,6 +79,30 @@ function getValue(obj, names) {
 	return obj;
 }
 
+/**
+ * Converts an AST node of type 'ArrayExpression' into an array of strings,
+ * assuming that each item in the array literal is a string literal.
+ *
+ * Depending on the parameter skipNonStringLiterals, unexpected items
+ * in the array are either ignored or cause the method to fail with
+ * a TypeError.
+ *
+ * @param {ESTree} array
+ * @param {boolean } skipNonStringLiterals
+ * @throws {TypeError}
+ * @returns {string[]}
+ */
+function getStringArray(array, skipNonStringLiterals) {
+	return array.elements.reduce( (result, item) => {
+		if ( isString(item) ) {
+			result.push(item.value);
+		} else if ( !skipNonStringLiterals ) {
+			throw new TypeError("array element is not a string literal:" + item.type);
+		}
+		return result;
+	}, []);
+}
+
 module.exports = {
 	isString,
 	isMethodCall,
@@ -89,5 +113,6 @@ module.exports = {
 	},
 	getPropertyKey,
 	findOwnProperty,
-	getValue
+	getValue,
+	getStringArray
 };

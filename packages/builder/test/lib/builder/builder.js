@@ -10,8 +10,10 @@ const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "applicati
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
 const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
-const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
 const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
+const libraryIPath = path.join(__dirname, "..", "..", "fixtures", "library.i");
+const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
+const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
 
 const recursive = require("recursive-readdir");
 
@@ -26,6 +28,18 @@ const findFiles = (folder) => {
 		});
 	});
 };
+
+function cloneProjectTree(tree) {
+	let clone = JSON.parse(JSON.stringify(tree));
+	function increaseDepth(node) {
+		node._level++;
+		if ( Array.isArray(node.dependencies) ) {
+			node.dependencies.forEach(increaseDepth);
+		}
+	}
+	increaseDepth(clone);
+	return clone;
+}
 
 test("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
@@ -199,6 +213,30 @@ test("Build library.h with custom bundles and component-preloads", (t) => {
 		tree: libraryHTree,
 		destPath,
 		excludedTasks: ["createDebugFiles", "generateLibraryPreload"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		// Check for all file contents
+		expectedFiles.forEach((expectedFile) => {
+			const relativeFile = path.relative(expectedPath, expectedFile);
+			const destFile = path.join(destPath, relativeFile);
+			assert.fileEqual(destFile, expectedFile);
+			t.pass();
+		});
+	});
+});
+
+test("Build library.i with manifest info taken from .library and library.js", (t) => {
+	const destPath = "./test/tmp/build/library.i/dest";
+	const expectedPath = "./test/expected/build/library.i/dest";
+
+	return builder.build({
+		tree: libraryITree,
+		destPath,
+		excludedTasks: ["createDebugFiles", "generateLibraryPreload", "uglify"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -468,7 +506,31 @@ const libraryDTree = {
 	"id": "library.d",
 	"version": "1.0.0",
 	"path": libraryDPath,
-	"dependencies": [],
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src"
+				}
+			}
+		}
+	],
 	"_level": 0,
 	"specVersion": "0.1",
 	"type": "library",
@@ -490,11 +552,85 @@ const libraryDTree = {
 	}
 };
 
+const libraryETree = {
+	"id": "library.e",
+	"version": "1.0.0",
+	"path": libraryEPath,
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src"
+				}
+			}
+		}
+	],
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "library",
+	"metadata": {
+		"name": "library.e",
+		"copyright": "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an SAP affiliate company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "src",
+				"test": "test"
+			}
+		},
+		"pathMappings": {
+			"/resources/": "src",
+			"/test-resources/": "test"
+		}
+	}
+};
+
 const libraryHTree = {
 	"id": "library.h",
 	"version": "1.0.0",
 	"path": libraryHPath,
-	"dependencies": [],
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src"
+				}
+			}
+		}
+	],
 	"_level": 0,
 	"specVersion": "0.1",
 	"type": "library",
@@ -525,7 +661,8 @@ const libraryHTree = {
 						"library/h/some.js",
 						"library/h/library.js",
 						"library/h/file.js",
-						"!library/h/not.js"
+						"!library/h/not.js",
+						"!library/h/components/"
 					],
 					"resolve": false,
 					"renderer": false
@@ -538,37 +675,63 @@ const libraryHTree = {
 		}],
 		"componentPreload": {
 			"namespaces": [
-				"components",
-				"components/subcomponent1",
-				"components/subcomponent2",
-				"components/subcomponent3"
+				"library/h/components",
+				"library/h/components/subcomponent1",
+				"library/h/components/subcomponent2",
+				"library/h/components/subcomponent3"
 			]
 		}
 	}
 };
 
-const libraryETree = {
-	"id": "library.e",
+const libraryITree = {
+	"id": "library.i",
 	"version": "1.0.0",
-	"path": libraryEPath,
-	"dependencies": [],
+	"path": libraryIPath,
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src"
+				}
+			}
+		},
+		cloneProjectTree(libraryDTree)
+	],
 	"_level": 0,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {
-		"name": "library.e",
-		"copyright": "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an SAP affiliate company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
+		"name": "library.i",
+		"copyright": "Some fancy copyright"
 	},
 	"resources": {
 		"configuration": {
 			"paths": {
-				"src": "src",
-				"test": "test"
+				"src": "main/src",
+				"test": "main/test"
 			}
 		},
 		"pathMappings": {
-			"/resources/": "src",
-			"/test-resources/": "test"
+			"/resources/": "main/src",
+			"/test-resources/": "main/test"
 		}
 	}
 };
+

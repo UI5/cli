@@ -1,6 +1,4 @@
-jQuery.sap.registerPreloadedModules({
-"version":"2.0",
-"modules":{
+sap.ui.require.preload({
 	"library/h/file.js":function(){/*!
  * Some fancy copyright
  */
@@ -16,4 +14,4 @@ console.log(" Library ");
  */
 console.log(" Some ");
 }
-}});
+});

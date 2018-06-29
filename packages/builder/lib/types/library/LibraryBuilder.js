@@ -8,6 +8,7 @@ const tasks = { // can't require index.js due to circular dependency
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
 	buildThemes: require("../../tasks/buildThemes"),
 	createDebugFiles: require("../../tasks/createDebugFiles"),
+	generateLibraryManifest: require("../../tasks/generateLibraryManifest"),
 	generateVersionInfo: require("../../tasks/generateVersionInfo"),
 	replaceCopyright: require("../../tasks/replaceCopyright"),
 	replaceVersion: require("../../tasks/replaceVersion"),
@@ -24,6 +25,7 @@ class LibraryBuilder extends AbstractBuilder {
 			"replaceVersion",
 			"generateComponentPreload",
 			"generateBundle",
+			"generateLibraryManifest",
 			"generateLibraryPreload",
 			"buildThemes",
 			"createDebugFiles",
@@ -68,6 +70,17 @@ class LibraryBuilder extends AbstractBuilder {
 				});
 			});
 		}
+
+		this.addTask("generateLibraryManifest", () => {
+			const generateLibraryManifest = tasks.generateLibraryManifest;
+			return generateLibraryManifest({
+				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name
+				}
+			});
+		});
 
 		this.addTask("generateLibraryPreload", () => {
 			const generateLibraryPreload = tasks.generateLibraryPreload;
