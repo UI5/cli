@@ -233,3 +233,46 @@ test("test1.js, test2.js: dbg file creation", (t) => {
 		});
 	});
 });
+
+test("dbg file creation should not overwrite the existing -dbg file", (t) => {
+	const sourceAdapter = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const content = "console.log('Hello World');";
+	const resource = resourceFactory.createResource({
+		path: "/test1.js",
+		string: content
+	});
+
+	const contentDebug = "console.log('Hello Debug World')";
+	const debugResource = resourceFactory.createResource({
+		path: "/test1-dbg.js",
+		string: contentDebug
+	});
+
+	const workspace = resourceFactory.createWorkspace({
+		reader: sourceAdapter
+	});
+
+	return Promise.all([
+		sourceAdapter.write(resource),
+		workspace.write(debugResource)
+	]).then(() => {
+		return tasks.createDebugFiles({
+			workspace,
+			options: {
+				pattern: "/**/*.js"
+			}
+		}).then(() => {
+			return workspace.byPath("/test1-dbg.js").then((resource) => {
+				if (!resource) {
+					t.fail("Could not find the existing /test1-dbg.js");
+				} else {
+					return resource.getBuffer();
+				}
+			});
+		}).then((buffer) => {
+			t.deepEqual(buffer.toString(), contentDebug, "Content of /test1-dbg.js is correct");
+		});
+	});
+});

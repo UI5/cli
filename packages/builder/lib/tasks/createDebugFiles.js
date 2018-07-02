@@ -1,4 +1,5 @@
 const dbg = require("../processors/debugFileCreator");
+const fsInterface = require("@ui5/fs").fsInterface;
 
 /**
  * Task to create dbg files.
@@ -18,6 +19,7 @@ module.exports = async function({workspace, options}) {
 		allResources = await workspace.byGlob(options.pattern);
 	}
 	return dbg({
+		fs: fsInterface(workspace),
 		resources: allResources
 	}).then((processedResources) => {
 		return Promise.all(processedResources.map((resource) => {
