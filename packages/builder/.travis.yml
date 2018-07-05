@@ -1,19 +1,5 @@
 language: node_js # don't install any environment
 
 node_js:
-- '8'
-- '10'
-
-before_install: npm install -g greenkeeper-lockfile
-install: if [[ "$TRAVIS_BRANCH" =~ ^greenkeeper.*$ ]] || [[ `npm -v` == 5* ]]; then
-  echo "npm install" && npm install; else echo "npm ci" && npm ci; fi
-
-before_script: greenkeeper-lockfile-update
-after_script:
-- npm run report-coveralls
-- greenkeeper-lockfile-upload
-
-env:
-  global:
-    - GK_LOCK_COMMIT_AMEND: true
-    - secure: TEh4m3aWTEhmBcI+4WG1sR/MmXIPI17vObXkBEMsuA7lq6I8qQS8i3OMfm9ZVzS5EWAE6skhX98or5ncGTb2BlDY2TWHVvCDVzk0kcn9OGKMoUMsUdPCNXXAEfyF9A2pGw9CnFf4ciXGf1cjiduXGb9ym9ExN1+3Ubdk3dKi2Eas+qTLLnvwY+xilE1RTlAMcXScOzVOATaSbr5N1ZynDH/r/xpwAVRh5VtBtBvmthHJTieKF/t91SqXR3RcLRpbMbFRR5vOibkj9kX+RFcGXy4MpLaTvWSE7h6JJV4VEx8ymMWYsfoZhElr0+jjocw54q9FqwwasQiLmvrEj5YUZo7aQMC1t9GcLdUV8pfHFPwjQbtNxld62EizMqLpx92rHK2aNQZfWEc9wh9uk+MIu8D75Pla6T9YMKiR2nEbC3DUCWTcMWqZT7wNC8jbdPpTAT+zy7oovGgkM5kU/MLV3qdR1E+PCVdMnWt3ZLFNV21EwRVDBNUGCMy8KcKoMLFvP5hcgSgacBK9MfiKU0AGYf6RszhoLh1THYFI9ZY4jyWAcpr/OGHuNUdRuQHrnsravsQT9JfxJf5CaXwbn0jIA1PyPPoGLMXXsa2sMkFcA1HF5yOC1RsnT6NqfzHKZMNVwidj77H0V7XKxh+5oF76fafmseWiehNGIMMm0sppU9A=
+- "8"
+- "10"

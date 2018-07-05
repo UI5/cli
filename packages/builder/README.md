@@ -7,7 +7,6 @@
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-builder.svg?branch=master)](https://travis-ci.org/SAP/ui5-builder)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fbuilder.svg)](https://www.npmjs.com/package/@ui5/builder)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-builder/badge.svg)](https://coveralls.io/github/SAP/ui5-builder)
-[![Greenkeeper badge](https://badges.greenkeeper.io/SAP/ui5-builder.svg)](https://greenkeeper.io/)
 [![Dependency Status](https://david-dm.org/SAP/ui5-builder/master.svg)](https://david-dm.org/SAP/ui5-builder/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-builder/master/dev-status.svg)](https://david-dm.org/SAP/ui5-builder/master#info=devDependencies)
 
