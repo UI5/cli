@@ -31,7 +31,7 @@ test("simple", (t) => {
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22%23123456%22%7D'); }
+#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22#123456%22%7D'); }
 `;
 	const cssRtlExpected =
 `.fluffyHammer {
@@ -40,7 +40,7 @@ test("simple", (t) => {
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22%23123456%22%7D'); }
+#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22#123456%22%7D'); }
 `;
 	const parametersExpected =
 `{
@@ -112,7 +112,7 @@ test("imports", (t) => {
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22%23123456%22%7D'); }
+#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22#123456%22%7D'); }
 `;
 	const cssRtlExpected =
 `.fluffyHammer {
@@ -121,7 +121,7 @@ test("imports", (t) => {
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22%23123456%22%7D'); }
+#sap-ui-theme-super\\.duper\\.looper { background-image: url('data:text/plain;utf-8,%7B%22deepSea%22:%22#123456%22%7D'); }
 `;
 	const parametersExpected =
 `{
