@@ -52,6 +52,7 @@ function analyzeModule(t, file, name, expectedDependencies, expectDocumentation)
 	});
 }
 
+
 test.cb("DeclareToplevel", analyzeModule, "modules/declare_toplevel.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
 
 test.cb("DeclareFunctionExprScope", analyzeModule, "modules/declare_function_expr_scope.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
@@ -79,5 +80,31 @@ test("Bundle", (t) => {
 		];
 		t.deepEqual(info.subModules, expected, "module dependencies should match");
 		t.truthy(info.dependencies.every((dep) => !info.isConditionalDependency(dep)), "none of the dependencies must be 'conditional'");
+	});
+});
+
+test("ES6 Syntax", (t) => {
+	return analyze("modules/es6-syntax.js", "modules/es6-syntax.js").then( (info) => {
+		const expected = [
+			"conditional/module1.js",
+			"conditional/module2.js",
+			"conditional/module3.js",
+			"static/module1.js",
+			"static/module2.js",
+			"static/module3.js",
+			"static/module4.js",
+			"static/module5.js",
+			"static/module6.js",
+			"static/module7.js",
+			"ui5loader-autoconfig.js"
+		];
+		const actual = info.dependencies.sort();
+		t.deepEqual(actual, expected, "module dependencies should match");
+		expected.forEach((dep) => {
+			t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+				"only dependencies to 'conditional/*' modules should be conditional");
+			t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+				"all dependencies other than 'conditional/*' and 'static/*' should be implicit");
+		});
 	});
 });

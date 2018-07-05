@@ -9,7 +9,7 @@ const UI5ClientConstants = require("../UI5ClientConstants");
 const {findOwnProperty, getLocation, getPropertyKey, isMethodCall, isString} = require("../utils/ASTUtils");
 const log = require("@ui5/logger").getLogger("lbt:analyzer:JSModuleAnalyzer");
 
-// --------------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------------------------
 
 const EnrichedVisitorKeys = (function() {
 	const VisitorKeys = require("estraverse").VisitorKeys;
@@ -24,17 +24,44 @@ const EnrichedVisitorKeys = (function() {
 	 * E.g. in an IfExpression, the 'test' is always executed, whereas 'consequent'
 	 * and 'alternate' are only executed under certain conditions.
 	 *
-	 * The object is checked against the 'official' list of node types
-	 * and node keys as defined by 'estraverse' This helps to ensure that no new
-	 * syntax addition is missed and that the configured keys are valid.
+	 * While visiting the AST of a JavaSCript file, the JSModuleAnalyzer uses this information
+	 * to decide whether a code block is executed conditionally or unconditionally.
+	 * Besides this information which is inherent to the language, the analyzer uses
+	 * additional knowledge about special APIS / constructs (e.g. the factory function of
+	 * an AMD module is known to be executed when the module is executed, an IIFE is known to
+	 * be executed etc.)
+	 *
+	 * To be more robust against the evolution of the language, the object below is checked
+	 * against the 'official' list of node types and node keys as defined by 'estraverse'.
+	 * This helps to ensure that no new syntax addition is missed and that the configured
+	 * keys are valid.
 	 */
 	const TempKeys = {
 		AssignmentExpression: [],
-		AssignmentPattern: toBeDone(["left", "right"]),
+		/*
+		 * function( >>>a=3<<<, b) {...}
+		 * var [>>>a=3<<<, b] = [...];
+		 *
+		 * The default value expression (right) is only evaluated when there's no other value in
+		 * the context of the pattern (e.g. destructuring or function call don't provide a value),
+		 * so it's a conditional branch.
+		 */
+		AssignmentPattern: ["right"],
 		ArrayExpression: [],
-		ArrayPattern: toBeDone(["elements"]),
+		/*
+		 * var >>>[a=3, b]<<< = [...];
+		 * All elements in an array pattern are unconditional.
+		 */
+		ArrayPattern: [], // elements
+		/*
+		 * The body of an arrow function is only executed when the arrow function is executed
+		 */
 		ArrowFunctionExpression: ["body"],
-		AwaitExpression: toBeDone(["argument"]), // CAUTION: It's deferred to ES7.
+		/*
+		 * The argument of await is always executed
+		 * TODO how to handle code after the await expression?
+		 */
+		AwaitExpression: [], // argument
 		BlockStatement: [],
 		BinaryExpression: [],
 		BreakStatement: [],
@@ -49,12 +76,16 @@ const EnrichedVisitorKeys = (function() {
 		ContinueStatement: [],
 		DebuggerStatement: [],
 		DirectiveStatement: [],
-		DoWhileStatement: [],	// condition is executed on the same conditions as the surrounding block, potentially repeated, block is always entered and might be repeated
+		/*
+		 * 'condition' is executed on the same conditions as the surrounding block, potentially repeated,
+		 * 'block' is always entered and might be repeated
+		 */
+		DoWhileStatement: [],
 		EmptyStatement: [],
-		ExportAllDeclaration: toBeDone(["source"]),
-		ExportDefaultDeclaration: toBeDone(["declaration"]),
-		ExportNamedDeclaration: toBeDone(["declaration", "specifiers", "source"]),
-		ExportSpecifier: toBeDone(["exported", "local"]),
+		ExportAllDeclaration: [], // no parts of an export are conditional - source
+		ExportDefaultDeclaration: [], // no parts of an export are conditional - declaration
+		ExportNamedDeclaration: [], // no parts of an export are conditional - declaration, specifiers, source
+		ExportSpecifier: [], // no parts of an export are conditional exported, local
 		ExpressionStatement: [],
 		ForStatement: ["update", "body"],
 		ForInStatement: ["body"],
@@ -64,10 +95,22 @@ const EnrichedVisitorKeys = (function() {
 		GeneratorExpression: toBeDone(["blocks", "filter", "body"]),	// CAUTION: It's deferred to ES7.
 		Identifier: [],
 		IfStatement: ["consequent", "alternate"],
-		ImportDeclaration: toBeDone(["specifiers", "source"]),
-		ImportDefaultSpecifier: toBeDone(["local"]),
-		ImportNamespaceSpecifier: toBeDone(["local"]),
-		ImportSpecifier: toBeDone(["imported", "local"]),
+		/*
+		 * all parts of an import declaration are executed unconditionally
+		 */
+		ImportDeclaration: [], // specifiers, source
+		/*
+		 * import >>>a<<< from 'module';
+		 */
+		ImportDefaultSpecifier: [], // local
+		/*
+		 * import >>>* as b<<< from 'module';
+		 */
+		ImportNamespaceSpecifier: [], // local
+		/*
+		 * import {>>>a as c<<<,b} from 'module';
+		 */
+		ImportSpecifier: [], // imported, local
 		Literal: [],
 		LabeledStatement: [],
 		LogicalExpression: [],
@@ -77,19 +120,33 @@ const EnrichedVisitorKeys = (function() {
 		ModuleSpecifier: [],
 		NewExpression: [],
 		ObjectExpression: [],
-		ObjectPattern: toBeDone(["properties"]),
+		/*
+		 * >>>{a,b,c}<<< = {...}
+		 *
+		 * All properties in an object pattern are executed.
+		 */
+		ObjectPattern: [], // properties
 		Program: [],
 		Property: [],
-		RestElement: toBeDone(["argument"]),
+		/*
+		 * argument of the rest element is always executed under the same condition as the rest element itself
+		 */
+		RestElement: [], // argument
 		ReturnStatement: [],
 		SequenceExpression: [],
-		SpreadElement: toBeDone(["argument"]),
+		SpreadElement: [], // the argument of the spread operator always needs to be evaluated - argument
 		Super: [],
 		SwitchStatement: [],
 		SwitchCase: ["test", "consequent"], // test and consequent are executed only conditionally
-		TaggedTemplateExpression: toBeDone(["tag", "quasi"]),
+		/*
+		 * all parts of a tagged template literal are executed under the same condition as the context
+		 */
+		TaggedTemplateExpression: [], // tag, quasi
 		TemplateElement: [],
-		TemplateLiteral: toBeDone(["quasis", "expressions"]),
+		/*
+		 * all parts of a template literal are executed under the same condition as the context
+		 */
+		TemplateLiteral: [], // quasis, expressions
 		ThisExpression: [],
 		ThrowStatement: [],
 		TryStatement: ["handler"], // handler is called conditionally
@@ -97,7 +154,11 @@ const EnrichedVisitorKeys = (function() {
 		UpdateExpression: [],
 		VariableDeclaration: [],
 		VariableDeclarator: [],
-		WhileStatement: ["body"], // condition is executed on the same conditions as the surrounding block and potentially repeated, block maybe entered only conditionally but can be repeated
+		/*
+		 * 'condition' is executed on the same conditions as the surrounding block and potentially repeated,
+		 * 'block' maybe entered only conditionally but can be repeated
+		 */
+		WhileStatement: ["body"],
 		WithStatement: [],
 		YieldExpression: []
 	};
@@ -151,6 +212,9 @@ const CALL_JQUERY_SAP_IS_DECLARED = [["jQuery", "$"], "sap", "isDeclared"];
 const CALL_JQUERY_SAP_REQUIRE = [["jQuery", "$"], "sap", "require"];
 const CALL_JQUERY_SAP_REGISTER_PRELOADED_MODULES = [["jQuery", "$"], "sap", "registerPreloadedModules"];
 
+function isCallableExpression(node) {
+	return node.type == Syntax.FunctionExpression || node.type == Syntax.ArrowFunctionExpression;
+}
 
 /**
  * Analyzes an already parsed JSDocument to collect information about the contained module(s).
@@ -233,7 +297,7 @@ class JSModuleAnalyzer {
 					if ( iArg < args.length && args[iArg].type == Syntax.ArrayExpression ) {
 						iArg++;
 					}
-					if ( iArg < args.length && args[iArg].type == Syntax.FunctionExpression ) {
+					if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
 						// unconditionally execute the factory function
 						visit(args[iArg].body, conditional);
 					}
@@ -256,7 +320,7 @@ class JSModuleAnalyzer {
 						analyzeDependencyArray(args[iArg].elements, conditional, null);
 						iArg++;
 					}
-					if ( iArg < args.length && args[iArg].type == Syntax.FunctionExpression ) {
+					if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
 						// analyze the callback function
 						visit(args[iArg].body, conditional);
 					}
@@ -275,7 +339,7 @@ class JSModuleAnalyzer {
 					let legacyCall = isMethodCall(node, CALL_JQUERY_SAP_REGISTER_PRELOADED_MODULES);
 					info.setFormat( legacyCall ? ModuleFormat.UI5_LEGACY : ModuleFormat.UI5_DEFINE);
 					onRegisterPreloadedModules(node, legacyCall);
-				} else if ( node.callee.type === Syntax.FunctionExpression ) {
+				} else if ( isCallableExpression(node.callee) ) {
 					// recognizes a scope function declaration + argument
 					visit(node.arguments, conditional);
 					// NODE-TODO defaults of callee?
