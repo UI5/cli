@@ -84,3 +84,91 @@ test("routing with routes as object", (t) => {
 	const subject = new ComponentAnalyzer(mockPool);
 	return subject.analyze({name: "test/Component.js"}, mockInfo);
 });
+
+test("routing with route with multiple targets", (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			routing: {
+				config: {
+					viewPath: "test.view",
+					viewType: "XML"
+				},
+				routes: {
+					test: {
+						target: ["test1", "test2"]
+					}
+				},
+				targets: {
+					test1: {viewName: "Master"},
+					test2: {viewName: "Detail"}
+				}
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+		t.deepEqual(mockInfo.deps, [
+			"test/view/Master.view.xml",
+			"test/view/Detail.view.xml"
+		], "dependencies should be correct");
+	});
+});
+
+test("routing with targets with local config", (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			routing: {
+				config: {
+					viewPath: "test.view",
+					viewType: "XML"
+				},
+				routes: {
+					test1: {
+						target: "test1"
+					},
+					test2: {
+						target: "test2"
+					}
+				},
+				targets: {
+					test1: {
+						viewName: "Master",
+						viewType: "JS"
+					},
+					test2: {
+						viewName: "Detail",
+						viewPath: "test.subview"
+					}
+				}
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+		t.deepEqual(mockInfo.deps, [
+			"test/view/Master.view.js",
+			"test/subview/Detail.view.xml"
+		], "dependencies should be correct");
+	});
+});
+

@@ -33,6 +33,13 @@ function each(obj, fn) {
 	}
 }
 
+function makeArray(value) {
+	if ( Array.isArray(value) ) {
+		return value;
+	}
+	return value == null ? [] : [value];
+}
+
 /**
  * Analyzes the manifest for a Component.js to find more dependencies.
  * @since 1.47.0
@@ -142,15 +149,19 @@ class ComponentAnalyzer {
 	 * @private
 	 */
 	_visitRoute( route, routing, info ) {
-		const viewPath = routing.config.viewPath ? routing.config.viewPath + "." : "";
-		const viewType = routing.config.viewType.toLowerCase();
-		const target = routing.targets[route.target];
-		if ( target && target.viewName ) {
-			const module = ModuleName.fromUI5LegacyName(viewPath + target.viewName, ".view." + viewType);
-			log.verbose("converting route to view dependency ", module);
-			// TODO make this a conditional dependency, depending on the pattern?
-			info.addDependency(module);
-		}
+		makeArray(route.target).forEach((targetRef) => {
+			const target = routing.targets[targetRef];
+			if ( target && target.viewName ) {
+				// merge target config with default config
+				const config = Object.assign({}, routing.config, target);
+				const module = ModuleName.fromUI5LegacyName(
+					(config.viewPath ? config.viewPath + "." : "") +
+					config.viewName, ".view." + config.viewType.toLowerCase() );
+				log.verbose("converting routing target '%s' to view dependency '%s'", targetRef, module);
+				// TODO make this a conditional dependency, depending on the pattern?
+				info.addDependency(module);
+			}
+		});
 	}
 }
 
