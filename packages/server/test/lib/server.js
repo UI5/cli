@@ -379,3 +379,50 @@ test("Start server twice - Port is already taken and the next one is used", (t) 
 		t.fail(error);
 	});
 });
+
+test("CSP", (t) => {
+	return Promise.all([
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-1").then((res) => {
+			t.truthy(res.headers["content-security-policy"], "response should have csp header");
+			t.regex(res.headers["content-security-policy"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
+				"policy should should have the expected content");
+			t.is(res.headers["content-security-policy-report-only"], undefined,
+				"response must not have csp report-only header");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-1:report-only").then((res) => {
+			t.is(res.headers["content-security-policy"], undefined, "response must not have csp header");
+			t.truthy(res.headers["content-security-policy-report-only"],
+				"response should have report-only csp header");
+			t.regex(res.headers["content-security-policy-report-only"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
+				"policy should should have the expected content");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-2").then((res) => {
+			t.truthy(res.headers["content-security-policy"], "response should have csp header");
+			t.regex(res.headers["content-security-policy"], /script-src\s+'self'\s*;/,
+				"policy should should have the expected content");
+			t.is(res.headers["content-security-policy-report-only"], undefined,
+				"response must not have csp report-only header");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-2:report-only").then((res) => {
+			t.is(res.headers["content-security-policy"], undefined, "response must not have csp header");
+			t.truthy(res.headers["content-security-policy-report-only"],
+				"response should have report-only csp header");
+			t.regex(res.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
+				"policy should should have the expected content");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=default-src%20'self';").then((res) => {
+			t.truthy(res.headers["content-security-policy"], "response should have csp header");
+			t.regex(res.headers["content-security-policy"], /default-src\s+'self'\s*;/,
+				"policy should should have the expected content");
+			t.is(res.headers["content-security-policy-report-only"], undefined,
+				"response must not have csp report-only header");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=default-src%20'self';:report-only").then((res) => {
+			t.is(res.headers["content-security-policy"], undefined, "response must not have csp header");
+			t.truthy(res.headers["content-security-policy-report-only"],
+				"response should have report-only csp header");
+			t.regex(res.headers["content-security-policy-report-only"], /default-src\s+'self'\s*;/,
+				"policy should should have the expected content");
+		})
+	]);
+});

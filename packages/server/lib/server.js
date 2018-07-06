@@ -8,6 +8,7 @@ const serveResources = require("./middleware/serveResources");
 const discovery = require("./middleware/discovery");
 const versionInfo = require("./middleware/versionInfo");
 const serveThemes = require("./middleware/serveThemes");
+const csp = require("./middleware/csp");
 const ui5connect = require("connect-openui5");
 const nonReadRequests = require("./middleware/nonReadRequests");
 const ui5Fs = require("@ui5/fs");
@@ -51,6 +52,34 @@ function serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, ac
 		};
 
 		const app = express();
+
+		const oCspConfig = {
+			allowDynamicPolicySelection: true,
+			allowDynamicPolicyDefinition: true,
+			defaultPolicyIsReportOnly: true,
+			definedPolicies: {
+				"sap-target-level-1":
+					"default-src 'self'; " +
+					"script-src  'self' 'unsafe-eval'; " +
+					"style-src   'self' 'unsafe-inline'; " +
+					"font-src    'self' data:; " +
+					"img-src     'self' * data: blob:; " +
+					"frame-src   'self' https: data: blob:; " +
+					"child-src   'self' https: data: blob:; " +
+					"connect-src 'self' https: wss:;",
+				"sap-target-level-2":
+					"default-src 'self'; " +
+					"script-src  'self'; " +
+					"style-src   'self' 'unsafe-inline'; " +
+					"font-src    'self' data:; " +
+					"img-src     'self' * data: blob:; " +
+					"frame-src   'self' https: data: blob:; " +
+					"child-src   'self' https: data: blob:; " +
+					"connect-src 'self' https: wss:;"
+			}
+		};
+		app.use(csp("sap-ui-xx-csp-policy", oCspConfig));
+
 		app.use(compression());
 		app.use(cors());
 
