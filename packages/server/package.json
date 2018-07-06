@@ -102,7 +102,6 @@
 		"portscanner": "^2.1.1",
 		"prompt": "^1.0.0",
 		"replacestream": "^4.0.3",
-		"serve-index": "RandomByte/serve-index#fs-option",
 		"spdy": "^3.4.7",
 		"treeify": "^1.0.1"
 	},

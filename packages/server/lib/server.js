@@ -1,10 +1,10 @@
 const express = require("express");
 const compression = require("compression");
 const cors = require("cors");
-const serveIndex = require("serve-index");
 const portscanner = require("portscanner");
 
 const serveResources = require("./middleware/serveResources");
+const serveIndex = require("./middleware/serveIndex");
 const discovery = require("./middleware/discovery");
 const versionInfo = require("./middleware/versionInfo");
 const serveThemes = require("./middleware/serveThemes");
@@ -14,7 +14,6 @@ const nonReadRequests = require("./middleware/nonReadRequests");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
-const fsInterface = ui5Fs.fsInterface;
 
 /**
  * Start a server for the given project (sub-)tree
@@ -95,11 +94,7 @@ function serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, ac
 		// Handle anything but read operations *before* the serveIndex middleware
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
 		app.use(nonReadRequests({resourceCollections}));
-		app.use(serveIndex("/", {
-			fs: fsInterface(resourceCollections.combo),
-			hidden: true,
-			icons: true
-		}));
+		app.use(serveIndex({resourceCollections}));
 
 		if (h2) {
 			return _addSsl({app, h2, key, cert});
