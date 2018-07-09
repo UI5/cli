@@ -4,6 +4,7 @@ const ui5Server = {
 	middleware: {
 		discovery: require("./lib/middleware/discovery"),
 		nonReadRequests: require("./lib/middleware/discovery"),
+		serveIndex: require("./lib/middleware/serveIndex"),
 		serveResources: require("./lib/middleware/serveResources"),
 		serveThemes: require("./lib/middleware/serveThemes"),
 		versionInfo: require("./lib/middleware/versionInfo"),
