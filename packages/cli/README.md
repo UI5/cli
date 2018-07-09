@@ -48,6 +48,8 @@ Examples:
   ui5 <command> --config /path/to/ui5.yaml                         Execute command using a project configuration from custom path
 ```
 
+The CLI automatically checks for updates using [update-notifier](https://github.com/yeoman/update-notifier). While this is skipped in CI environments, you might also opt-out manually by following the steps described [here](https://github.com/yeoman/update-notifier/blob/master/readme.md#user-settings).
+
 ### Commands
 #### build
 `ui5 build [options]` builds the project in the current directory.
