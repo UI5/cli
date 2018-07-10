@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.1.1...HEAD).
+
+<a name="v0.1.1"></a>
+## [v0.1.1] - 2018-07-09
+### Features
+- simplistic serveIndex with additional properties [`fa04ee2`](https://github.com/SAP/ui5-server/commit/fa04ee227cf5d4af4a8ba5d4d3fa594cee417da0)
+- Add CSP middleware ([#3](https://github.com/SAP/ui5-server/issues/3)) [`f9ec3ee`](https://github.com/SAP/ui5-server/commit/f9ec3eeb43708462c2d683a80beb1816beeddc92)
+
 
 <a name="v0.1.0"></a>
 ## [v0.1.0] - 2018-06-26
@@ -29,4 +36,5 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 - **Travis:** Add node.js 10 to test matrix [`2881261`](https://github.com/SAP/ui5-server/commit/2881261a05afd737af7c8874b91819a52b8f88df)
 
 
+[v0.1.1]: https://github.com/SAP/ui5-server/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/SAP/ui5-server/compare/v0.0.1...v0.1.0
