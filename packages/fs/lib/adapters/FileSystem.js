@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const glob = require("globby");
 const makeDir = require("make-dir");
+const {PassThrough} = require("stream");
 const Resource = require("../Resource");
 const AbstractAdapter = require("./AbstractAdapter");
 
@@ -153,7 +154,7 @@ class FileSystem extends AbstractAdapter {
 
 					if (!stat.isDirectory()) {
 						// Add content
-						options.createStream = () => {
+						options.createStream = function() {
 							return fs.createReadStream(fsPath);
 						};
 					}
@@ -168,10 +169,26 @@ class FileSystem extends AbstractAdapter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {module:@ui5/fs.Resource} resource The Resource
+	 * @param {module:@ui5/fs.Resource} resource Resource to write
+	 * @param {Object} [options]
+	 * @param {boolean} [options.readOnly] Whether the resource content shall be written read-only
+	 *						Do not use in conjunction with the <code>drain</code> option.
+	 *						The written file will be used as the new source of this resources content.
+	 *						Therefore the written file should not be altered by any means.
+	 *						Activating this option might improve overall memory consumption.
+	 * @param {boolean} [options.drain] Whether the resource content shall be emptied during the write process.
+	 *						Do not use in conjunction with the <code>readOnly</code> option.
+	 *						Activating this option might improve overall memory consumption.
+	 *						This should be used in cases where this is the last access to the resource.
+	 *						E.g. the final write of a resource after all processing is finished.
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
-	_write(resource) {
+	async _write(resource, {drain, readOnly}) {
+		if (drain && readOnly) {
+			throw new Error(`Error while writing resource ${resource.getPath()}: ` +
+				"Do not use options 'drain' and 'readOnly' at the same time.");
+		}
+
 		const relPath = resource.getPath().substr(this._virBasePath.length);
 		const fsPath = path.join(this._fsBasePath, relPath);
 		const dirPath = path.dirname(fsPath);
@@ -182,15 +199,48 @@ class FileSystem extends AbstractAdapter {
 			fs
 		}).then(() => {
 			return new Promise((resolve, reject) => {
-				const contentStream = resource.getStream();
-				contentStream.on("error", function(err) {
+				let contentStream;
+
+				if (drain || readOnly) {
+					// Stream will be drained
+					contentStream = resource.getStream();
+
+					contentStream.on("error", (err) => {
+						reject(err);
+					});
+				} else {
+					// Transform stream into buffer before writing
+					contentStream = new PassThrough();
+					const buffers = [];
+					contentStream.on("error", (err) => {
+						reject(err);
+					});
+					contentStream.on("data", (data) => {
+						buffers.push(data);
+					});
+					contentStream.on("end", () => {
+						const buffer = Buffer.concat(buffers);
+						resource.setBuffer(buffer);
+					});
+					resource.getStream().pipe(contentStream);
+				}
+
+				const writeOptions = {};
+				if (readOnly) {
+					writeOptions.mode = 0o444; // read only
+				}
+
+				const write = fs.createWriteStream(fsPath, writeOptions);
+				write.on("error", (err) => {
 					reject(err);
 				});
-				const write = fs.createWriteStream(fsPath);
-				write.on("error", function(err) {
-					reject(err);
-				});
-				write.on("close", function(ex) {
+				write.on("close", (ex) => {
+					if (readOnly) {
+						// Create new stream from written file
+						resource.setStream(function() {
+							return fs.createReadStream(fsPath);
+						});
+					}
 					resolve();
 				});
 				contentStream.pipe(write);
