@@ -17,7 +17,7 @@
 	},
 	"main": "index.js",
 	"engines": {
-		"node": ">= 8.3",
+		"node": ">= 8.5",
 		"npm": ">= 5"
 	},
 	"scripts": {
