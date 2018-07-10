@@ -1,6 +1,22 @@
 const {test} = require("ava");
 const Stream = require("stream");
+const fs = require("fs");
+const path = require("path");
 const Resource = require("../../lib/Resource");
+
+function createBasicResource() {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const resource = new Resource({
+		path: "/app/index.html",
+		createStream: function() {
+			return fs.createReadStream(fsPath);
+		},
+		project: {},
+		statInfo: {},
+		fsPath
+	});
+	return resource;
+}
 
 test("Resource: constructor with missing path parameter", (t) => {
 	const error = t.throws(() => {
@@ -139,4 +155,49 @@ test("Resource: clone resource with stream", (t) => {
 			t.is(value, "Content", "Cloned resource has correct content string");
 		});
 	});
+});
+
+test("getStream with createStream callback content: Subsequent content requests should throw error due " +
+		"to drained content", async (t) => {
+	const resource = createBasicResource();
+	resource.getStream();
+	t.throws(() => {
+		resource.getStream();
+	}, /Content of Resource \/app\/index.html has been drained/);
+	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+});
+
+test("getStream with Buffer content: Subsequent content requests should throw error due to drained " +
+		"content", async (t) => {
+	const resource = createBasicResource();
+	await resource.getBuffer();
+	resource.getStream();
+	t.throws(() => {
+		resource.getStream();
+	}, /Content of Resource \/app\/index.html has been drained/);
+	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+});
+
+test("getStream with Stream content: Subsequent content requests should throw error due to drained " +
+		"content", async (t) => {
+	const resource = createBasicResource();
+	const {Transform} = require("stream");
+	const tStream = new Transform({
+		transform(chunk, encoding, callback) {
+			this.push(chunk.toString());
+			callback();
+		}
+	});
+	const stream = resource.getStream();
+	stream.pipe(tStream);
+	resource.setStream(tStream);
+
+	resource.getStream();
+	t.throws(() => {
+		resource.getStream();
+	}, /Content of Resource \/app\/index.html has been drained/);
+	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
 });
