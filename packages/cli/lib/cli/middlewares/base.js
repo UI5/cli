@@ -13,7 +13,9 @@ module.exports = function(argv) {
 		}
 		if (argv.verbose) {
 			logger.setLevel("verbose");
+			logger.getLogger("cli:middlewares:base").verbose(`using node version ${process.version}`);
 		}
 	}
+
 	return {};
 };

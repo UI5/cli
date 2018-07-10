@@ -60,7 +60,7 @@
 		],
 		"check-coverage": true,
 		"lines": 20,
-		"statements": 25,
+		"statements": 23,
 		"functions": 23,
 		"branches": 20,
 		"watermarks": {
@@ -95,6 +95,7 @@
 		"@ui5/server": "^0.1.0",
 		"js-yaml": "^3.10.0",
 		"opn": "^5.1.0",
+		"semver": "^5.5.0",
 		"supports-color": "^5.1.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^2.5.0",
