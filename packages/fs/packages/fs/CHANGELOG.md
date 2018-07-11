@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v0.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v0.2.0...HEAD).
+
+<a name="v0.2.0"></a>
+## [v0.2.0] - 2018-07-11
+### Internal Changes
+- package.json: Define files to publish [`e533d82`](https://github.com/SAP/ui5-fs/commit/e533d822119d50b4ce6182c6f758df3f71f8b5d7)
+- Update min Node.js version to >=8.5 [`b141ddc`](https://github.com/SAP/ui5-fs/commit/b141ddcdde37455b7df4d8ab495abf4429424080)
+
 
 <a name="v0.1.0"></a>
 ## [v0.1.0] - 2018-06-26
@@ -34,4 +41,5 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/c
 - **Travis:** Add node.js 10 to test matrix [`78e0d47`](https://github.com/SAP/ui5-fs/commit/78e0d47ef310286bcf04ec0f7c7a7a5b6362dfd4)
 
 
+[v0.2.0]: https://github.com/SAP/ui5-fs/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-fs/compare/v0.0.1...v0.1.0
