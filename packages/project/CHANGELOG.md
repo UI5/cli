@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.0...HEAD).
+
+<a name="v0.2.0"></a>
+## [v0.2.0] - 2018-07-11
+### Internal Changes
+- package.json: Define files to publish [`01d543c`](https://github.com/SAP/ui5-project/commit/01d543c682f4a0f6fbf15fab0a73b91a5424acee)
+- Update min Node.js version to >=8.5 [`fc96d87`](https://github.com/SAP/ui5-project/commit/fc96d874c08b54f887cf375eb5028b298c96067f)
+
 
 <a name="v0.1.0"></a>
 ## [v0.1.0] - 2018-06-26
@@ -36,4 +43,5 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-proj
 - **Travis:** Add node.js 10 to test matrix [`5f26276`](https://github.com/SAP/ui5-project/commit/5f2627668b7faa554b8c3810899828d3be6fd63f)
 
 
+[v0.2.0]: https://github.com/SAP/ui5-project/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-project/compare/v0.0.1...v0.1.0
