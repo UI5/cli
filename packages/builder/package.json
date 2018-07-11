@@ -94,7 +94,7 @@
 	},
 	"dependencies": {
 		"@ui5/fs": "^0.1.0",
-		"@ui5/logger": "^0.1.0",
+		"@ui5/logger": "^0.2.0",
 		"archiver": "^2.1.0",
 		"escope": "^3.6.0",
 		"esprima": "^2.7.2",
