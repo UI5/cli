@@ -7,8 +7,8 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/c
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-11
 ### Internal Changes
-- package.json: Define files to publish [`e533d82`](https://github.com/SAP/ui5-fs/commit/e533d822119d50b4ce6182c6f758df3f71f8b5d7)
 - Update min Node.js version to >=8.5 [`b141ddc`](https://github.com/SAP/ui5-fs/commit/b141ddcdde37455b7df4d8ab495abf4429424080)
+- **package.json:** Define files to publish [`e533d82`](https://github.com/SAP/ui5-fs/commit/e533d822119d50b4ce6182c6f758df3f71f8b5d7)
 
 
 <a name="v0.1.0"></a>
