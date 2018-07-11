@@ -37,6 +37,13 @@
 		"release-note": "git-chglog -c .chglog/release-config.yml v$npm_package_version",
 		"report-coveralls": "nyc report --reporter=text-lcov | coveralls"
 	},
+	"files": [
+		"index.js",
+		"CONTRIBUTING.md",
+		"jsdoc.json",
+		"bin/**",
+		"lib/**"
+	],
 	"ava": {
 		"files": [
 			"test/lib/**/*.js"
