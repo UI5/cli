@@ -7,9 +7,9 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logg
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-11
 ### Internal Changes
-- package.json: Define files to publish [`4131212`](https://github.com/SAP/ui5-logger/commit/4131212feab9fe3ff5477bfe8c4823b88d77aa79)
 - Update min Node.js version to >=8.5 [`cbdbea7`](https://github.com/SAP/ui5-logger/commit/cbdbea784751cb6232e788fd7ff41d08b1b3f38b)
 - Fix changelog [`0ccde97`](https://github.com/SAP/ui5-logger/commit/0ccde974fa3d744f64b96fbaad701686c9587791)
+- **package.json:** Define files to publish [`4131212`](https://github.com/SAP/ui5-logger/commit/4131212feab9fe3ff5477bfe8c4823b88d77aa79)
 
 
 <a name="v0.1.0"></a>
