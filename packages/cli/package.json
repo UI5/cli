@@ -97,7 +97,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^0.1.0",
-		"@ui5/logger": "^0.1.0",
+		"@ui5/logger": "^0.2.0",
 		"@ui5/project": "^0.1.0",
 		"@ui5/server": "^0.1.0",
 		"js-yaml": "^3.10.0",
