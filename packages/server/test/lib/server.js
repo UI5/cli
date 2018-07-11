@@ -207,7 +207,7 @@ test("Get library.css from theme middleware (/resources/library/a/themes/base/li
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-library\\.a { background-image: url('data:text/plain;utf-8,%7B%22libraryAColor1%22:%22%23fafad2%22%7D'); }
+#sap-ui-theme-library\\.a { background-image: url('data:text/plain;utf-8,%7B%22libraryAColor1%22:%22#fafad2%22%7D'); }
 `, "Correct response");
 	});
 });
@@ -225,7 +225,7 @@ test("Get library-RTL.css from theme middleware (/resources/library/a/themes/bas
 }
 
 /* Inline theming parameters */
-#sap-ui-theme-library\\.a { background-image: url('data:text/plain;utf-8,%7B%22libraryAColor1%22:%22%23fafad2%22%7D'); }
+#sap-ui-theme-library\\.a { background-image: url('data:text/plain;utf-8,%7B%22libraryAColor1%22:%22#fafad2%22%7D'); }
 `, "Correct response");
 	});
 });
