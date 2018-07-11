@@ -5,9 +5,9 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.1.2...HEAD).
 
 <a name="v0.1.2"></a>
-## [v0.1.2] - 2018-07-09
+## [v0.1.2] - 2018-07-10
 ### Bug Fixes
-- CSP Middleware: Export middleware, add report-uri [`2091c0c`](https://github.com/SAP/ui5-server/commit/2091c0cc093f9997c582e301ad52bbe74d4651d6)
+- **CSP Middleware:** Export middleware, add report-uri [`2091c0c`](https://github.com/SAP/ui5-server/commit/2091c0cc093f9997c582e301ad52bbe74d4651d6)
 
 
 <a name="v0.1.1"></a>

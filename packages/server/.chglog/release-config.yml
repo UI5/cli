@@ -17,7 +17,7 @@ options:
        PERF: Performance Improvements
        INTERNAL: Internal Changes
   header:
-    pattern: "^\\[(\\w*)\\]\\s(?:(\\w*)\\:\\s)?(.*)$"
+    pattern: "^\\[(\\w*)\\]\\s(?:([^\\:]*)\\:\\s)?(.*)$"
     pattern_maps:
       - Type
       - Scope
