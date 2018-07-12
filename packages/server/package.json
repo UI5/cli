@@ -94,7 +94,7 @@
 	"dependencies": {
 		"@ui5/builder": "^0.1.0",
 		"@ui5/fs": "^0.1.0",
-		"@ui5/logger": "^0.1.0",
+		"@ui5/logger": "^0.2.0",
 		"@ui5/project": "^0.1.0",
 		"compression": "^1.7.1",
 		"connect-openui5": "^0.7.2",
