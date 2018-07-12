@@ -2,7 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.1.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.2.0...HEAD).
+
+<a name="v0.2.0"></a>
+## [v0.2.0] - 2018-07-12
+### Internal Changes
+- Add .npmrc to enforce public registry [`3eb2825`](https://github.com/SAP/ui5-server/commit/3eb2825af9d20c61beaadd811b3a1ed911159314)
+- Fix theme middleware tests [`dde2a65`](https://github.com/SAP/ui5-server/commit/dde2a65a260c51c0811245bdc92bb3409b91de9e)
+- Fix package-lock.json URLs [`173dfa1`](https://github.com/SAP/ui5-server/commit/173dfa1acf9e9a679250cd11412ae143e37d4e75)
+- Update min Node.js version to >=8.5 [`89b7f21`](https://github.com/SAP/ui5-server/commit/89b7f219279e9b92f200e7822c0f13134044c12c)
+- **CHANGELOG:** Fix scope detection in commit messages [`cd7dbd1`](https://github.com/SAP/ui5-server/commit/cd7dbd1011830e273d4e001fca1ba3cd719ee598)
+- **package.json:** Define files to publish [`5443bec`](https://github.com/SAP/ui5-server/commit/5443bec4363bf38d3935d5b13deb75438e62275a)
+
 
 <a name="v0.1.2"></a>
 ## [v0.1.2] - 2018-07-10
@@ -42,6 +53,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 - **Travis:** Add node.js 10 to test matrix [`2881261`](https://github.com/SAP/ui5-server/commit/2881261a05afd737af7c8874b91819a52b8f88df)
 
 
+[v0.2.0]: https://github.com/SAP/ui5-server/compare/v0.1.2...v0.2.0
 [v0.1.2]: https://github.com/SAP/ui5-server/compare/v0.1.1...v0.1.2
 [v0.1.1]: https://github.com/SAP/ui5-server/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/SAP/ui5-server/compare/v0.0.1...v0.1.0
