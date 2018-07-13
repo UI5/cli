@@ -141,7 +141,7 @@ function createMiddleware({resourceCollections}) {
 		log.verbose("\n Listing index of " +req.path);
 		let glob = req.path + (req.path.endsWith("/") ? "*" : "/*");
 		resourceCollections.combo.byGlob(glob, {nodir: false}).then((resources) => {
-			if (!resources) { // Not found
+			if (!resources || resources.length == 0) { // Not found
 				next();
 				return;
 			}
