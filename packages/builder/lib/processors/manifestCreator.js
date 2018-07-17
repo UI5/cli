@@ -399,9 +399,9 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 				let i18nElement = findChild(libraryAppData, "i18n");
 				if ( i18nElement ) {
 					let i18n = i18nElement._;
-					if ( "false".equals(i18n) ) {
+					if ( i18n === "false" ) {
 						return false;
-					} else if ( "true".equals(i18n) ) {
+					} else if ( i18n === "true" ) {
 						return "messagebundle.properties";
 					} else {
 						return i18n;
@@ -424,7 +424,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 				let cssElement = findChild(libraryAppData, "css");
 				if ( cssElement != null ) {
 					let css = cssElement._;
-					if ( "false".equals(css) ) {
+					if ( css === "false" ) {
 						log.verbose("  sap.ui5/library/css property taken from .library appData: '%s'", false);
 						return false;
 					}

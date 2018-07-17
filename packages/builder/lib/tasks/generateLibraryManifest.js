@@ -26,7 +26,8 @@ module.exports = function({workspace, dependencies, options}) {
 	// *.json files are needed to avoid overwriting them
 	// *.js files are needed to identify nested components
 	// *.less, *.css, *.theming and *.theme files are needed to identify supported themes
-	return combo.byGlob("/**/*.{js,json,library,less,css,theming,theme}").then((resources) => {
+	// *.properties to identify existence of i18n bundles (e.g. messagebundle.properties)
+	return combo.byGlob("/**/*.{js,json,library,less,css,theming,theme,properties}").then((resources) => {
 		// Find all libraries and create a manifest.json file
 		return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
 			if (libraryIndicatorResources.length < 1) {
