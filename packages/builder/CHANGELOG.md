@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.1...HEAD).
+
+<a name="v0.2.1"></a>
+## [v0.2.1] - 2018-07-17
+### Bug Fixes
+- **generateLibraryManifest:** i18n/css handling [`4e52a96`](https://github.com/SAP/ui5-builder/commit/4e52a9654b28a7646597ce0e0f010589ff7905d5)
+
+### Internal Changes
+- Add .npmrc to enforce public registry [`4826821`](https://github.com/SAP/ui5-builder/commit/482682131c344b29ef5587ca2db0365b43289239)
+- **CHANGELOG:** Fix scope detection in commit messages [`7b78344`](https://github.com/SAP/ui5-builder/commit/7b78344d89b8aa29f6c967ca82f3be3f76cf7772)
+
 
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-11
@@ -10,11 +20,11 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - Close gaps in routing support of ComponentAnalyzer ([#46](https://github.com/SAP/ui5-builder/issues/46)) [`4697531`](https://github.com/SAP/ui5-builder/commit/4697531cbafebf881e78b80e78d098d1361fe9a5)
 
 ### Internal Changes
-- package.json: Define files to publish [`6f2527d`](https://github.com/SAP/ui5-builder/commit/6f2527dc84be5e3465b8a33c31af2da3e2600292)
 - Update min Node.js version to >=8.5 [`f00efd9`](https://github.com/SAP/ui5-builder/commit/f00efd9bf3c832ac3732e4c00d4a12d785928e87)
 - Remove greenkeeper [`d0206ec`](https://github.com/SAP/ui5-builder/commit/d0206ecf69ebb0778fc3f6bd30d0d75f01e9fb9c)
 - Update to less-openui5[@0](https://github.com/0).5.4 and fix tests [`445c067`](https://github.com/SAP/ui5-builder/commit/445c0673dd57d2b947b678c4030d987002ec490a)
 - **JSModuleAnalyzer:** update language metadata ([#44](https://github.com/SAP/ui5-builder/issues/44)) [`05d4127`](https://github.com/SAP/ui5-builder/commit/05d4127ec71d9a9b887d431c74e0afa3e9ddba0a)
+- **package.json:** Define files to publish [`6f2527d`](https://github.com/SAP/ui5-builder/commit/6f2527dc84be5e3465b8a33c31af2da3e2600292)
 
 
 <a name="v0.1.1"></a>
@@ -78,6 +88,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.1]: https://github.com/SAP/ui5-builder/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-builder/compare/v0.1.1...v0.2.0
 [v0.1.1]: https://github.com/SAP/ui5-builder/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/SAP/ui5-builder/compare/v0.0.2...v0.1.0
