@@ -2,7 +2,10 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.2.1...HEAD).
+
+<a name="v0.2.1"></a>
+## [v0.2.1] - 2018-07-13
 
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-12
@@ -53,6 +56,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 - **Travis:** Add node.js 10 to test matrix [`2881261`](https://github.com/SAP/ui5-server/commit/2881261a05afd737af7c8874b91819a52b8f88df)
 
 
+[v0.2.1]: https://github.com/SAP/ui5-server/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-server/compare/v0.1.2...v0.2.0
 [v0.1.2]: https://github.com/SAP/ui5-server/compare/v0.1.1...v0.1.2
 [v0.1.1]: https://github.com/SAP/ui5-server/compare/v0.1.0...v0.1.1
