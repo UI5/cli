@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.1...HEAD).
+
+<a name="v0.2.1"></a>
+## [v0.2.1] - 2018-07-17
+### Internal Changes
+- Remove unused dev dependencies [`0b34ab7`](https://github.com/SAP/ui5-cli/commit/0b34ab7c8699462bef242d4f6f050f0dee7669aa)
+
 
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-12
@@ -45,6 +51,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 - **Travis:** Add node.js 10 to test matrix [`7a94b52`](https://github.com/SAP/ui5-cli/commit/7a94b52f3878474697bc2e9c4c423432ca7d473c)
 
 
+[v0.2.1]: https://github.com/SAP/ui5-cli/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-cli/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-cli/compare/v0.0.2...v0.1.0
 [v0.0.2]: https://github.com/SAP/ui5-cli/compare/v0.0.1...v0.0.2
