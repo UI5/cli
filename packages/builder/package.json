@@ -96,6 +96,7 @@
 		"@ui5/fs": "^0.2.0",
 		"@ui5/logger": "^0.2.0",
 		"archiver": "^2.1.0",
+		"escodegen": "^1.11.0",
 		"escope": "^3.6.0",
 		"esprima": "^2.7.2",
 		"estraverse": "^4.2.0",

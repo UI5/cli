@@ -5,6 +5,7 @@
 const uglify = require("uglify-es");
 const {pd} = require("pretty-data");
 const esprima = require("esprima");
+const escodegen = require("escodegen");
 const {Syntax} = esprima;
 // const MOZ_SourceMap = require("source-map");
 
@@ -321,46 +322,25 @@ class BundleBuilder {
 
 	compressJS(fileContent, resource) {
 		if ( this.optimize ) {
-			if ( typeof fileContent === "object" && fileContent.type in Syntax ) {
-				let uglifyAST = uglify.AST_Node.from_mozilla_ast(fileContent);
-				let result = uglify.minify(uglifyAST, {
-					warnings: false, // TODO configure?
-					compress: false, // TODO configure?
-					output: {
-						comments: copyrightCommentsPattern
-					}
-					// , outFileName: resource.name
-					// , outSourceMap: true
-				});
-				if ( result.error ) {
-					throw result.error;
+			let result = uglify.minify({
+				[resource.name]: String(fileContent)
+			}, {
+				warnings: false, // TODO configure?
+				compress: false, // TODO configure?
+				output: {
+					comments: copyrightCommentsPattern
 				}
-				// console.log(result.map);
-				// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
-				// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
-				fileContent = result.code;
-				// throw new Error();
-			} else {
-				let result = uglify.minify({
-					[resource.name]: String(fileContent)
-				}, {
-					warnings: false, // TODO configure?
-					compress: false, // TODO configure?
-					output: {
-						comments: copyrightCommentsPattern
-					}
-					// , outFileName: resource.name
-					// , outSourceMap: true
-				});
-				if ( result.error ) {
-					throw result.error;
-				}
-				// console.log(result.map);
-				// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
-				// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
-				fileContent = result.code;
-				// throw new Error();
+				// , outFileName: resource.name
+				// , outSourceMap: true
+			});
+			if ( result.error ) {
+				throw result.error;
 			}
+			// console.log(result.map);
+			// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
+			// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
+			fileContent = result.code;
+			// throw new Error();
 		}
 		return fileContent;
 	}
@@ -382,14 +362,15 @@ class BundleBuilder {
 			let remaining = [];
 			for ( let module of sequence ) {
 				if ( /\.js$/.test(module) ) {
-					// console.log("trying to read " + module);
+					// console.log("Processing " + module);
 					let resource = await this.pool.findResourceWithInfo(module);
 					let code = await resource.buffer();
 					const ast = rewriteDefine(this.targetBundleFormat, code, module, avoidLazyParsing);
 					if ( ast ) {
 						outW.startSegment(module);
 						outW.ensureNewLine();
-						const fileContent = this.compressJS( ast, resource );
+						let astAsCode = escodegen.generate(ast);
+						const fileContent = this.compressJS(astAsCode, resource);
 						outW.write( fileContent );
 						outW.ensureNewLine();
 						const compressedSize = outW.endSegment();
