@@ -96,18 +96,18 @@ function topologicalSort(pool, moduleNames) {
 			moduleNames = moduleNames.slice(); // clone
 
 			do {
-			// invariant: the first 'l' items in moduleNames are still to be processed
+				// invariant: the first 'l' items in moduleNames are still to be processed
 
-			// first loop over all remaining modules and emit those that don't have any more dependencies
+				// first loop over all remaining modules and emit those that don't have any more dependencies
 				for (i = 0, j = 0; i < l; i++ ) {
 					const moduleName = moduleNames[i];
 					const node = graph[moduleName];
 
 					// modules that don't have any unsatisfied dependencies can be emitted
 					if ( node == null || node.outgoing.length === 0 ) {
-					// console.log("emitting %s", moduleName, node);
+						// console.log("emitting %s", moduleName, node);
 
-					// add module to sequence
+						// add module to sequence
 						sequence.push(moduleName);
 
 						// remove outgoing dependency to current module from all modules that depend on it
