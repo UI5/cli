@@ -13,6 +13,10 @@
 **This is an alpha release!**  
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
+## General Information
+- General information regarding the **UI5 Build and Development Tooling** project can be found **[here](https://github.com/SAP/ui5-tooling)**
+- Details regarding **project configuration** can be found **[here](https://github.com/SAP/ui5-project#configuration)**
+
 ## Installing the UI5 CLI
 ### Requirements
 - [Node.js](https://nodejs.org/) (**version 8.5 or higher** ⚠️)
