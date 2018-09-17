@@ -38,6 +38,7 @@ Commands:
 	build  Build project in current directory
 	serve  Start a webserver for the current project
 	tree   Outputs the dependency tree of the current project to stdout. It takes all relevant parameters of ui5 build into account.
+	init   Initializes the UI5 Build and Development Tooling configuration for an application or library project
 
 Options:
 	--help, -h            Show help  [boolean]
