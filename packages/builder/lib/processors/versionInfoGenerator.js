@@ -23,7 +23,7 @@ module.exports = async function({options}) {
 		version: options.rootProjectVersion, // TODO: insert current application version here
 		buildTimestamp: buildTimestamp,
 		scmRevision: "", // TODO: insert current application scm revision here
-		gav: "", // TODO: insert current application id + version here
+		// gav: "", // TODO: insert current application id + version here
 		libraries: options.libraryInfos.map(function(libraryInfo) {
 			return {
 				name: libraryInfo.name,
