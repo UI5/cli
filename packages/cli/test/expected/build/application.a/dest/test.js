@@ -1,1 +1,0 @@
-function test(t){var o=t;console.log(o)}test();
