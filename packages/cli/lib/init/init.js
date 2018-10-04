@@ -73,10 +73,10 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
 		return "library";
 	} else if (hasTest) {
 		// Only test folder
-		errorReason = "Found 'test' folder but no 'src' folder\n";
+		errorReason = "Found 'test' folder but no 'src' folder.\n";
 	} else {
 		// No folders at all
-		errorReason = "Could not find 'webapp' or 'src' / 'test' folders\n";
+		errorReason = "Could not find 'webapp' or 'src' / 'test' folders.\n";
 	}
 	if (errorReason) {
 		let message = `Could not detect project type: ${errorReason}`;
@@ -100,19 +100,22 @@ async function init({cwd = "./"} = {}) {
 		specVersion: "0.1",
 		metadata: {}
 	};
+	let pkg;
 
 	try {
-		const pkg = await readPackageJson(path.join(cwd, "package.json"));
-		if (!pkg.name) {
-			throw new Error("Initialization not possible: Missing 'name' in package.json");
-		}
-		projectConfig.metadata.name = pkg.name;
+		pkg = await readPackageJson(path.join(cwd, "package.json"));
 	} catch (err) {
 		if (err.code === "ENOENT") {
 			throw new Error("Initialization not possible: Missing package.json file");
 		} else {
 			throw err;
 		}
+	}
+
+	if (pkg && pkg.name) {
+		projectConfig.metadata.name = pkg.name;
+	} else {
+		throw new Error("Initialization not possible: Missing 'name' in package.json");
 	}
 
 	const [hasWebapp, hasSrc, hasTest] = await pathsExist(["webapp", "src", "test"], cwd);
