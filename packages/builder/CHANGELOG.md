@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.2...HEAD).
+
+<a name="v0.2.2"></a>
+## [v0.2.2] - 2018-10-01
+### Bug Fixes
+- **processors/versionInfoGenerator:** Remove "gav" property [`2bf41e1`](https://github.com/SAP/ui5-builder/commit/2bf41e1622df70818f925aabafe16de082fa3884)
+
+### Features
+- **BundleBuilder:** support modules using ES6 with usePredefineCalls ([#67](https://github.com/SAP/ui5-builder/issues/67)) [`d1a4f1f`](https://github.com/SAP/ui5-builder/commit/d1a4f1f39e4262eafa8df1548f0e944998fd00a3)
+
+### Internal Changes
+- Fix ESLint indentation error [`1b775a9`](https://github.com/SAP/ui5-builder/commit/1b775a97d8e735fd2f45a31e1679de7b2a423574)
+
 
 <a name="v0.2.1"></a>
 ## [v0.2.1] - 2018-07-17
@@ -88,6 +100,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.2]: https://github.com/SAP/ui5-builder/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-builder/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-builder/compare/v0.1.1...v0.2.0
 [v0.1.1]: https://github.com/SAP/ui5-builder/compare/v0.1.0...v0.1.1
