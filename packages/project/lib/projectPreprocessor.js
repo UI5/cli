@@ -11,6 +11,7 @@ class ProjectPreprocessor {
 		this.processedProjects = {};
 		this.configShims = {};
 		this.collections = {};
+		this.appliedExtensions = {};
 	}
 
 	/*
@@ -304,11 +305,25 @@ class ProjectPreprocessor {
 	}
 
 	async applyExtension(extension) {
-		log.verbose(`Applying extension ${extension.id}...`);
-
 		if (!extension.metadata || !extension.metadata.name) {
 			throw new Error(`metadata.name configuration is missing for extension ${extension.id}`);
-		} // TODO: more checks? Version?
+		}
+		log.verbose(`Applying extension ${extension.metadata.name}...`);
+
+		if (!extension.specVersion) {
+			throw new Error(`No specification version defined for extension ${extension.metadata.name}`);
+		} else if (extension.specVersion !== "0.1") {
+			throw new Error(
+				`Invalid specification version defined for extension ${extension.metadata.name}: ` +
+				`${extension.specVersion}. The currently only allowed version is "0.1"`);
+		} else if (this.appliedExtensions[extension.metadata.name]) {
+			log.verbose(`Extension with the name ${extension.metadata.name} has already been applied. ` +
+				"This might have been done during dependency lookahead.");
+			log.verbose(`Already applied extension ID: ${this.appliedExtensions[extension.metadata.name].id}. ` +
+				`New extension ID: ${extension.id}`);
+			return;
+		}
+		this.appliedExtensions[extension.metadata.name] = extension;
 
 		switch (extension.type) {
 		case "project-shim":
