@@ -48,57 +48,6 @@ test("Project with inline configuration", (t) => {
 	});
 });
 
-test("Projects with extension dependency inline configuration", (t) => {
-	const tree = {
-		id: "application.a",
-		path: applicationAPath,
-		dependencies: [{
-			id: "extension.a",
-			path: applicationAPath,
-			dependencies: [],
-			version: "1.0.0",
-			specVersion: "0.1",
-			kind: "extension",
-			type: "project-type",
-			metadata: {
-				name: "z"
-			}
-		}],
-		version: "1.0.0",
-		specVersion: "0.1",
-		type: "application",
-		metadata: {
-			name: "xy"
-		}
-	};
-	return projectPreprocessor.processTree(tree).then((parsedTree) => {
-		t.deepEqual(parsedTree, {
-			_level: 0,
-			type: "application",
-			metadata: {
-				name: "xy",
-			},
-			resources: {
-				configuration: {
-					paths: {
-						webapp: "webapp"
-					}
-				},
-				pathMappings: {
-					"/": "webapp",
-				}
-			},
-			dependencies: [],
-			id: "application.a",
-			kind: "project",
-			version: "1.0.0",
-			specVersion: "0.1",
-			path: applicationAPath
-		}, "Parsed correctly");
-	});
-});
-
-
 test("Project with configPath", (t) => {
 	const tree = {
 		id: "application.a",
@@ -1036,6 +985,7 @@ test("Library version in package.json data is missing", (t) => {
 	const tree = {
 		id: "library.d",
 		path: libraryDPath,
+		dependencies: [],
 		type: "library",
 		metadata: {
 			name: "library.d"

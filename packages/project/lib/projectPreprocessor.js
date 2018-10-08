@@ -9,6 +9,8 @@ const typeRepository = require("@ui5/builder").types.typeRepository;
 class ProjectPreprocessor {
 	constructor() {
 		this.processedProjects = {};
+		this.configShims = {};
+		this.collections = {};
 	}
 
 	/*
@@ -64,7 +66,7 @@ class ProjectPreprocessor {
 				}
 
 				await this.loadProjectConfiguration(project);
-				// this.applyShims(project); // shims not yet implemented
+				this.applyShims(project);
 				if (this.isConfigValid(project)) {
 					await this.applyType(project);
 					queue.push({
@@ -292,8 +294,20 @@ class ProjectPreprocessor {
 		await type.format(project);
 	}
 
-	async applyExtension(project) {
-		// TOOD
+	async applyExtension(extension) {
+		log.verbose(`Applying extension ${extension.id}...`);
+
+		if (!extension.metadata || !extension.metadata.name) {
+			throw new Error(`metadata.name configuration is missing for extension ${extension.id}`);
+		} // TODO: more checks? Version?
+
+		switch (extension.type) {
+		case "project-shim":
+			this.handleShim(extension);
+			break;
+		default:
+			throw new Error(`Unknown extension type '${extension.type}' for ${extension.id}`);
+		}
 	}
 
 	async readConfigFile(configPath) {
@@ -301,6 +315,100 @@ class ProjectPreprocessor {
 		return parseYaml(configFile, {
 			filename: path
 		});
+	}
+
+	handleShim(extension) {
+		if (extension.configurations) {
+			const configurations = extension.configurations;
+			log.verbose(`Project shim ${extension.id} contains ` +
+				`${Object.keys(configurations)} configuration(s)`);
+			for (let projectId in configurations) {
+				if (configurations.hasOwnProperty(projectId)) {
+					this.normalizeConfig(configurations[projectId]); // TODO: Clone object beforehand?
+					if (this.configShims[projectId]) {
+						log.verbose(`Project shim ${extension.id}: A configuration shim for project ${projectId} `+
+							"has already been applied. Skipping.");
+					} else if (this.isConfigValid(configurations[projectId])) {
+						log.verbose(`Project shim ${extension.id}: Adding project configuration for ${projectId}...`);
+						this.configShims[projectId] = configurations[projectId];
+					} else {
+						log.verbose(`Project shim ${extension.id}: Ignoring invalid ` +
+							`configuration shim for project ${projectId}`);
+					}
+				}
+			}
+		}
+
+		if (extension.dependencies) {
+			// For the time being, shimmed dependencies only apply to shimmed project configurations
+			const dependencies = extension.dependencies;
+			for (let projectId in dependencies) {
+				if (dependencies.hasOwnProperty(projectId)) {
+					if (this.configShims[projectId]) {
+						log.verbose(`Project shim ${extension.id}: Adding dependencies ` +
+							`to project shim '${projectId}'...`);
+						this.configShims[projectId].dependencies = dependencies[projectId];
+					} else {
+						log.verbose(`Project shim ${extension.id}: No configuration shim found for ` +
+							`project ID '${projectId}'. Dependency shims currently only apply ` +
+							"to projects with configuration shims.");
+					}
+				}
+			}
+		}
+
+		if (extension.collections) {
+			const collections = extension.collections;
+			log.verbose(`Project shim ${extension.id} contains ` +
+				`${Object.keys(collections)} collection(s)`);
+			for (let projectId in collections) {
+				if (collections.hasOwnProperty(projectId)) {
+					if (this.collections[projectId]) {
+						log.verbose(`Project shim ${extension.id}: A collection with id '${projectId}' `+
+							"is already known. Skipping.");
+					} else {
+						log.verbose(`Project shim ${extension.id}: Adding collection with id '${projectId}'...`);
+						this.collections[projectId] = collections[projectId];
+					}
+				}
+			}
+		}
+	}
+
+	applyShims(project) {
+		// Apply configuration shims
+		if (this.configShims[project.id]) {
+			log.verbose(`Applying configuration shim for project ${project.id}...`);
+			const configShim = JSON.parse(JSON.stringify(this.configShims[project.id]));
+			Object.assign(project, configShim);
+		}
+
+		// Apply collections
+		for (let i = project.dependencies.length - 1; i >= 0; i--) {
+			const depId = project.dependencies[i];
+			if (this.collections[depId]) {
+				log.verbose(`Project ${project.id} depends on collection ${depId}. Resolving...`);
+				// This project contains on a collection
+				// => replace collection dependency with first collection project.
+				const collectionDep = project.dependencies[i];
+				const collection = this.collections[depId];
+				const projects = [];
+				for (let projectId in collection) {
+					if (collection.hasOwnProperty(projectId)) {
+						// Clone and modify collection "project"
+						const project = JSON.parse(JSON.stringify(collectionDep));
+						project.id = projectId;
+						project.path = path.join(project.path, collection[projectId]);
+						projects.push(project);
+					}
+				}
+
+				// Use first collection project to replace the collection dependency
+				project.dependencies[i] = projects.shift();
+				// Add any additional collection projects to end of dependency array (already processed)
+				project.dependencies.push(...projects);
+			}
+		}
 	}
 }
 
