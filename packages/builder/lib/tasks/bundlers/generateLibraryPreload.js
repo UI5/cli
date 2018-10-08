@@ -19,9 +19,14 @@ function getBundleDefinition(namespace) {
 						`!${namespace}/messagebundle*`,
 
 						"*.js",
+						"sap/base/",
 						"sap/ui/base/",
-						"sap/ui/model/",
 						"sap/ui/xml/",
+						"sap/ui/dom/",
+						"sap/ui/events/",
+						"sap/ui/model/",
+						"sap/ui/security/",
+						"sap/ui/util/",
 						"sap/ui/Global.js",
 
 						// files are already part of sap-ui-core.js
