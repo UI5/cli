@@ -1,6 +1,7 @@
 const log = require("@ui5/logger").getLogger("resources:adapters:AbstractAdapter");
 const minimatch = require("minimatch");
 const AbstractReaderWriter = require("../AbstractReaderWriter");
+const Resource = require("../Resource");
 
 /**
  * Abstract Resource Adapter
@@ -49,6 +50,25 @@ class AbstractAdapter extends AbstractReaderWriter {
 				return [];
 			}
 			patterns = Array.prototype.concat.apply([], patterns);
+			if (!options.nodir) {
+				for (let i = patterns.length - 1; i >= 0; i--) {
+					const idx = this._virBaseDir.indexOf(patterns[i]);
+					if (patterns[i] && idx !== -1 && idx < this._virBaseDir.length) {
+						const subPath = patterns[i];
+						return Promise.resolve([
+							new Resource({
+								project: this.project,
+								statInfo: { // TODO: make closer to fs stat info
+									isDirectory: function() {
+										return true;
+									}
+								},
+								path: subPath
+							})
+						]);
+					}
+				}
+			}
 			return this._runGlob(patterns, options, trace);
 		});
 	}
@@ -62,6 +82,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 */
 	_normalizePattern(virPattern) {
 		return Promise.resolve().then(() => {
+			const that = this;
 			const mm = new minimatch.Minimatch(virPattern);
 
 			const basePathParts = this._virBaseDir.split("/");
@@ -71,13 +92,20 @@ class AbstractAdapter extends AbstractReaderWriter {
 				for (i = 0; i < basePathParts.length; i++) {
 					const globPart = subset[i];
 					if (globPart === undefined) {
-						log.verbose("Ran out of glob parts to match. This should not happen.");
-						return -42;
+						log.verbose("Ran out of glob parts to match (this should not happen):");
+						if (that._project) { // project is optional
+							log.verbose(`Project: ${that._project.metadata.name}`);
+						}
+						log.verbose(`Virtual base path: ${that._virBaseDir}`);
+						log.verbose(`Pattern to match: ${virPattern}`);
+						log.verbose(`Current subset (tried index ${i}):`);
+						log.verbose(subset);
+						return {idx: i, virtualMatch: true};
 					}
 					const basePathPart = basePathParts[i];
 					if (typeof globPart === "string") {
 						if (globPart !== basePathPart) {
-							return -42;
+							return null;
 						} else {
 							continue;
 						}
@@ -85,27 +113,29 @@ class AbstractAdapter extends AbstractReaderWriter {
 						return i;
 					} else { // Regex
 						if (!globPart.test(basePathPart)) {
-							return -42;
+							return null;
 						} else {
 							continue;
 						}
 					}
 				}
 				if (subset.length === basePathParts.length) {
-					return -1;
+					return {rootMatch: true};
 				}
-				return i;
+				return {idx: i};
 			}
 
 			const resultGlobs = [];
 			for (let i = 0; i < mm.set.length; i++) {
-				const matchIdx = matchSubset(mm.set[i]);
-				let resultPattern;
-				if (matchIdx !== -42) {
-					if (matchIdx === -1) { // matched one up
+				const match = matchSubset(mm.set[i]);
+				if (match) {
+					let resultPattern;
+					if (match.virtualMatch) {
+						resultPattern = basePathParts.slice(0, match.idx).join("/");
+					} else if (match.rootMatch) { // matched one up
 						resultPattern = ""; // root "/"
 					} else { // matched at some part of the glob
-						resultPattern = mm.globParts[i].slice(matchIdx).join("/");
+						resultPattern = mm.globParts[i].slice(match.idx).join("/");
 						if (resultPattern.startsWith("/")) {
 							resultPattern = resultPattern.substr(1);
 						}
