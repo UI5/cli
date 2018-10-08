@@ -110,7 +110,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 							continue;
 						}
 					} else if (globPart === minimatch.GLOBSTAR) {
-						return i;
+						return {idx: i};
 					} else { // Regex
 						if (!globPart.test(basePathPart)) {
 							return null;

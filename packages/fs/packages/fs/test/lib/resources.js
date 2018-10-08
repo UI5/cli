@@ -224,7 +224,6 @@ test("Virtual RL: GLOB resources from application.a w/o virtual base path prefix
 
 test("Virtual RL: GLOB virtual directory w/o virtual base path prefix", (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
-	// TODO: Also add tests for nodir: true option
 	const readerWriter = ui5Fs.resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
@@ -240,7 +239,6 @@ test("Virtual RL: GLOB virtual directory w/o virtual base path prefix", (t) => {
 
 test("Virtual RL: GLOB virtual directory w/ virtual base path prefix", (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
-	// TODO: Also add tests for nodir: true option
 	const readerWriter = ui5Fs.resourceFactory.createAdapter({
 		virBasePath: "/app/one/two/"
 	});
@@ -250,6 +248,34 @@ test("Virtual RL: GLOB virtual directory w/ virtual base path prefix", (t) => {
 		readerWriter.byGlob("/*", {nodir: false})
 			.then((resources) => {
 				t.deepEqual(resources.length, 1, "Found exactly one resource");
+			})
+	);
+});
+
+test("Virtual RL: GLOB virtual directory w/o virtual base path prefix and nodir: true", (t) => {
+	const readerWriter = ui5Fs.resourceFactory.createAdapter({
+		virBasePath: "/app/"
+	});
+
+	// Get resource from one readerWriter
+	return t.notThrows(
+		readerWriter.byGlob("/*", {nodir: true})
+			.then((resources) => {
+				t.deepEqual(resources.length, 0, "Found exactly one resource");
+			})
+	);
+});
+
+test("Virtual RL: GLOB virtual directory w/ virtual base path prefix and nodir: true", (t) => {
+	const readerWriter = ui5Fs.resourceFactory.createAdapter({
+		virBasePath: "/app/one/two/"
+	});
+
+	// Get resource from one readerWriter
+	return t.notThrows(
+		readerWriter.byGlob("/*", {nodir: true})
+			.then((resources) => {
+				t.deepEqual(resources.length, 0, "Found exactly one resource");
 			})
 	);
 });
