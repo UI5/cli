@@ -97,7 +97,7 @@
 	"devDependencies": {
 		"ava": "^0.25.0",
 		"cross-env": "^5.1.1",
-		"docdash": "^0.4.0",
+		"docdash": "^1.0.0",
 		"eslint": "^5.0.1",
 		"eslint-config-google": "^0.10.0",
 		"jsdoc": "^3.5.5",
