@@ -120,8 +120,7 @@ class FileSystem extends AbstractAdapter {
 						statInfo: { // TODO: make closer to fs stat info
 							isDirectory: function() {
 								return true;
-							},
-							mtime: new Date()
+							}
 						},
 						path: virPath
 					}));

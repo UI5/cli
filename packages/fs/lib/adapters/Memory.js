@@ -42,8 +42,7 @@ class Memory extends AbstractAdapter {
 					statInfo: { // TODO: make closer to fs stat info
 						isDirectory: function() {
 							return true;
-						},
-						mtime: new Date()
+						}
 					},
 					path: this._virBasePath.slice(0, -1)
 				})
