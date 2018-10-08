@@ -38,7 +38,7 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
-					pattern: "/resources/**/*.js"
+					pattern: "/resources/**/*.{js,json,library}"
 				}
 			});
 		});
@@ -49,7 +49,7 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
-					pattern: "/resources/**/*.js"
+					pattern: "/resources/**/*.{js,json,library}"
 				}
 			});
 		});

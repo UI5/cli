@@ -5,9 +5,10 @@
         "id": "application.g",
         "type": "application",
         "applicationVersion": {
-            "version": "1.2.2"
+            "version": "${version}"
         },
         "embeds": ["embedded"],
         "title": "{{title}}"
-    }
+    },
+    "customCopyrightString": "${copyright}"
 }

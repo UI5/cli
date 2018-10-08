@@ -4,7 +4,7 @@
 	<name>library.i</name>
 	<vendor>SAP SE</vendor>
 	<copyright>Some fancy copyright</copyright>
-	<version>${version}</version>
+	<version>1.0.0</version>
 
 	<title>{{title}}</title>
 	<documentation>{{description}}</documentation>

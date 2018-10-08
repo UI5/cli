@@ -18,7 +18,7 @@ class ApplicationBuilder extends AbstractBuilder {
 	constructor({resourceCollections, project, parentLogger}) {
 		super({project, parentLogger});
 
-		// All available library tasks in execution order
+		// All available application tasks in execution order
 		this.availableTasks = [
 			"replaceCopyright",
 			"replaceVersion",
@@ -37,7 +37,7 @@ class ApplicationBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
-					pattern: "/**/*.js"
+					pattern: "/**/*.{js,json}"
 				}
 			});
 		});
@@ -47,7 +47,7 @@ class ApplicationBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
-					pattern: "/**/*.js"
+					pattern: "/**/*.{js,json}"
 				}
 			});
 		});

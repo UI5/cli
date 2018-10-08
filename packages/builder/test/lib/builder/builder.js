@@ -112,7 +112,7 @@ test("Build application.g", (t) => {
 });
 
 test("Build application.g with component preload paths", (t) => {
-	const destPath = "./test/tmp/build/application.g/dest";
+	const destPath = "./test/tmp/build/application.g/dest2";
 	const expectedPath = "./test/expected/build/application.g/dest";
 
 	return builder.build({
@@ -387,7 +387,8 @@ const applicationGTree = {
 	"type": "application",
 	"metadata": {
 		"name": "application.g",
-		"namespace": "application/g"
+		"namespace": "application/g",
+		"copyright": "Some fancy copyright"
 	},
 	"dependencies": [],
 	"resources": {
@@ -420,7 +421,8 @@ const applicationGTreeComponentPreloadPaths = {
 	"type": "application",
 	"metadata": {
 		"name": "application.g",
-		"namespace": "application/g"
+		"namespace": "application/g",
+		"copyright": "Some fancy copyright"
 	},
 	"dependencies": [],
 	"resources": {

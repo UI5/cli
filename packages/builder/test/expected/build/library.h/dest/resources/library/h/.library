@@ -4,7 +4,7 @@
 	<name>library.h</name>
 	<vendor>SAP SE</vendor>
 	<copyright>Some fancy copyright</copyright>
-	<version>${version}</version>
+	<version>1.0.0</version>
 
 	<documentation>Library D</documentation>
 
