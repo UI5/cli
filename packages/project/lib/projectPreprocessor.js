@@ -65,7 +65,15 @@ class ProjectPreprocessor {
 					await this.dependencyLookahead(project, project.dependencies);
 				}
 
-				await this.loadProjectConfiguration(project);
+				const {extensions} = await this.loadProjectConfiguration(project);
+				if (extensions && extensions.length) {
+					// Project contains additional extensions
+					// => apply them
+					// TODO: Check whether extensions get applied twice in case depLookahead already processed them
+					await Promise.all(extensions.map((extProject) => {
+						return this.applyExtension(extProject);
+					}));
+				}
 				this.applyShims(project);
 				if (this.isConfigValid(project)) {
 					await this.applyType(project);
@@ -232,6 +240,7 @@ class ProjectPreprocessor {
 
 			// Enhance project with its configuration
 			Object.assign(configuredProject, config);
+			return configuredProject;
 		});
 
 		return {extensions: extensionProjects};
