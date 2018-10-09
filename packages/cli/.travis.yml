@@ -6,3 +6,6 @@ node_js:
 
 after_script:
 - npm run report-coveralls
+
+notifications:
+  webhooks: https://coveralls.io/webhook
