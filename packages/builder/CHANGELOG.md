@@ -2,10 +2,21 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.3...HEAD).
+
+<a name="v0.2.3"></a>
+## [v0.2.3] - 2018-10-08
+### Bug Fixes
+- Replace copyright and version strings in *.json and .library files [`f305429`](https://github.com/SAP/ui5-builder/commit/f305429067610404f0958b55ef3a570e555a532e)
+- **generateLibraryPreload:** Add new sap.ui.core library namespaces [`ea901a7`](https://github.com/SAP/ui5-builder/commit/ea901a78c27e5fd112f9ac761e621b7f1c474f07)
+
+### Internal Changes
+- Fix tests after upgrade to less-openui5[@0](https://github.com/0).6.0 [`779e318`](https://github.com/SAP/ui5-builder/commit/779e3184c6ac2c4cf417492be70749a333ac189f)
+- **Coveralls:** Use parallel setting to reduce number of PR comments [`6ee52c3`](https://github.com/SAP/ui5-builder/commit/6ee52c3e1cce4f707d8760e22bf7880479384096)
+
 
 <a name="v0.2.2"></a>
-## [v0.2.2] - 2018-10-01
+## [v0.2.2] - 2018-10-05
 ### Bug Fixes
 - **processors/versionInfoGenerator:** Remove "gav" property [`2bf41e1`](https://github.com/SAP/ui5-builder/commit/2bf41e1622df70818f925aabafe16de082fa3884)
 
@@ -100,6 +111,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.3]: https://github.com/SAP/ui5-builder/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-builder/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-builder/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-builder/compare/v0.1.1...v0.2.0
