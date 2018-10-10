@@ -2,7 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.2...HEAD).
+
+<a name="v0.2.2"></a>
+## [v0.2.2] - 2018-10-09
+### Internal Changes
+- Add missing init command to the README [`5757bd9`](https://github.com/SAP/ui5-cli/commit/5757bd9d3276044e4fc9efd1afb2b3789fb6d688)
+- Update package-lock.json [`4b0e470`](https://github.com/SAP/ui5-cli/commit/4b0e4708bbcb3273534aade7613863d9d4e9adf5)
+- Add basic CLI test [`a551fa0`](https://github.com/SAP/ui5-cli/commit/a551fa09cbf85137e0602bcf0c4c732ca03cd042)
+- Add more "init" test cases [`0c533fe`](https://github.com/SAP/ui5-cli/commit/0c533fea553e652bb1ab72d24fb347b7fc1dd63e)
+- Move "init" test fixtures to separate folder [`056fecd`](https://github.com/SAP/ui5-cli/commit/056fecdb4fed3acd2bc2b6661b2874d951541e1d)
+- Remove unused test files [`bca8593`](https://github.com/SAP/ui5-cli/commit/bca859333adcaa8523034a8a50413fd317440c9e)
+- **Coveralls:** Use parallel setting to reduce number of PR comments [`288218b`](https://github.com/SAP/ui5-cli/commit/288218bf42449790bd82a41cb408debeddb2b82e)
+- **README:** Add general information links [`e4da4db`](https://github.com/SAP/ui5-cli/commit/e4da4dbde7a63d576af77a98f47b0acf88dba804)
+
 
 <a name="v0.2.1"></a>
 ## [v0.2.1] - 2018-07-17
@@ -51,6 +64,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 - **Travis:** Add node.js 10 to test matrix [`7a94b52`](https://github.com/SAP/ui5-cli/commit/7a94b52f3878474697bc2e9c4c423432ca7d473c)
 
 
+[v0.2.2]: https://github.com/SAP/ui5-cli/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-cli/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-cli/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-cli/compare/v0.0.2...v0.1.0
