@@ -1,0 +1,10 @@
+{
+  "name": "legacy.library.x",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based library - legacy library missing ui5.yaml",
+  "devDependencies": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

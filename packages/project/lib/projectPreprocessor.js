@@ -342,8 +342,9 @@ class ProjectPreprocessor {
 	}
 
 	handleShim(extension) {
-		if (extension.configurations) {
-			const configurations = extension.configurations;
+		const {configurations, dependencies, collections} = extension.shims;
+
+		if (configurations) {
 			log.verbose(`Project shim ${extension.id} contains ` +
 				`${Object.keys(configurations)} configuration(s)`);
 			for (let projectId in configurations) {
@@ -363,9 +364,8 @@ class ProjectPreprocessor {
 			}
 		}
 
-		if (extension.dependencies) {
+		if (dependencies) {
 			// For the time being, shimmed dependencies only apply to shimmed project configurations
-			const dependencies = extension.dependencies;
 			for (let projectId in dependencies) {
 				if (dependencies.hasOwnProperty(projectId)) {
 					if (this.configShims[projectId]) {
@@ -381,10 +381,9 @@ class ProjectPreprocessor {
 			}
 		}
 
-		if (extension.collections) {
-			const collections = extension.collections;
+		if (collections) {
 			log.verbose(`Project shim ${extension.id} contains ` +
-				`${Object.keys(collections)} collection(s)`);
+				`${Object.keys(collections).length} collection(s)`);
 			for (let projectId in collections) {
 				if (collections.hasOwnProperty(projectId)) {
 					if (this.collections[projectId]) {
@@ -400,29 +399,54 @@ class ProjectPreprocessor {
 	}
 
 	applyShims(project) {
+		const configShim = this.configShims[project.id];
 		// Apply configuration shims
-		if (this.configShims[project.id]) {
+		if (configShim) {
 			log.verbose(`Applying configuration shim for project ${project.id}...`);
-			const configShim = JSON.parse(JSON.stringify(this.configShims[project.id]));
+
+			if (configShim.dependencies && configShim.dependencies.length) {
+				if (!configShim.shimDependenciesResolved) {
+					configShim.dependencies = configShim.dependencies.map((depId) => {
+						const depProject = this.processedProjects[depId].project;
+						if (!depProject) {
+							throw new Error(
+								`Failed to resolve shimmed dependency '${depId}' for project ${project.id}. ` +
+								`Is a dependency with ID '${depId}' part of the dependency tree?`);
+						}
+						return depProject;
+					});
+					configShim.shimDependenciesResolved = true;
+				}
+				configShim.dependencies.forEach((depProject) => {
+					const parents = this.processedProjects[depProject.id].parents;
+					if (parents.indexOf(project) === -1) {
+						parents.push(project);
+					} else {
+						log.verbose(`Project ${project.id} is already parent of shimmed dependency ${depProject.id}`);
+					}
+				});
+			}
+
 			Object.assign(project, configShim);
+			delete project.shimDependenciesResolved; // Remove shim processing metadata from project
 		}
 
 		// Apply collections
 		for (let i = project.dependencies.length - 1; i >= 0; i--) {
-			const depId = project.dependencies[i];
+			const depId = project.dependencies[i].id;
 			if (this.collections[depId]) {
 				log.verbose(`Project ${project.id} depends on collection ${depId}. Resolving...`);
-				// This project contains on a collection
+				// This project depends on a collection
 				// => replace collection dependency with first collection project.
 				const collectionDep = project.dependencies[i];
-				const collection = this.collections[depId];
+				const collectionModules = this.collections[depId].modules;
 				const projects = [];
-				for (let projectId in collection) {
-					if (collection.hasOwnProperty(projectId)) {
+				for (let projectId in collectionModules) {
+					if (collectionModules.hasOwnProperty(projectId)) {
 						// Clone and modify collection "project"
 						const project = JSON.parse(JSON.stringify(collectionDep));
 						project.id = projectId;
-						project.path = path.join(project.path, collection[projectId]);
+						project.path = path.join(project.path, collectionModules[projectId]);
 						projects.push(project);
 					}
 				}
