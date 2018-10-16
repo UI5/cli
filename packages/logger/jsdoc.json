@@ -1,6 +1,6 @@
 {
     "tags": {
-        "allowUnknownTags": true
+        "allowUnknownTags": false
     },
     "source": {
         "include": ["README.md"],
@@ -13,10 +13,37 @@
         "encoding": "utf8",
         "destination": "jsdocs/",
         "recurse": true,
-        "verbose": true
+        "verbose": true,
+        "access": "public"
     },
     "templates": {
         "cleverLinks": false,
         "monospaceLinks": false
+    },
+    "docdash": {
+        "sectionOrder": [
+            "Modules",
+            "Classes",
+            "Externals",
+            "Events",
+            "Namespaces",
+            "Mixins",
+            "Tutorials",
+            "Interfaces"
+        ],
+        "meta": {
+            "title": "UI5 Logger JSDoc",
+            "description": "UI5 Build and Development Tooling - UI5 Logger",
+            "keyword": "openui5 sapui5 ui5 build development tool"
+        },
+        "search": true,
+        "menu": {
+            "GitHub": {
+                "href": "https://github.com/SAP/ui5-logger",
+                "target": "_blank",
+                "class": "menu-item",
+                "id": "github_link"
+            }
+        }
     }
 }
