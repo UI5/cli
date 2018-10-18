@@ -46,9 +46,9 @@ class GroupLogger extends Logger {
 		super(moduleName);
 
 		if (parentLogger) {
-			this._logger = parentLogger._getLogger().newGroup(this._moduleName, weight);
+			this._logger = parentLogger._getLogger().newGroup("", weight);
 		} else {
-			this._logger = npmlog.newGroup(this._moduleName, weight);
+			this._logger = npmlog.newGroup("", weight);
 		}
 	}
 
@@ -69,7 +69,7 @@ class TaskLogger extends Logger {
 		this._completed = 0;
 
 		if (parentLogger) {
-			this._logger = parentLogger._getLogger().newItem(this._moduleName, todo, weight);
+			this._logger = parentLogger._getLogger().newItem("", todo, weight);
 		} else {
 			this._logger = npmlog.newItem(this._moduleName, todo, weight);
 		}
