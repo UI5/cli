@@ -52,7 +52,7 @@ class NpmTranslator {
 				}
 			}
 			// When UI5-dependencies are defined, we don't care whether an npm dependency is optional or not.
-			//	All UI5-dependendies need to be there.
+			//	All UI5-dependencies need to be there.
 			dependencies = Object.assign({}, dependencies, optDependencies);
 			optDependencies = {};
 

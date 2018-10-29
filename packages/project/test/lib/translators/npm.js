@@ -55,6 +55,185 @@ test("AppG: project with npm 'optionalDependencies' should not fail if optional 
 	});
 });
 
+test("AppCycle: cyclic dev deps", (t) => {
+	const cycleDepsBasePath = path.join(__dirname, "..", "..", "fixtures", "cyclic-deps", "node_modules");
+	const applicationCycleAPath = path.join(cycleDepsBasePath, "application.cycle.a");
+
+	const applicationCycleTree = {
+		"id": "application.cycle.a",
+		"version": "1.0.0",
+		"path": applicationCycleAPath,
+		"dependencies": [
+			{
+				"id": "component.cycle.a",
+				"version": "1.0.0",
+				"path": path.join(cycleDepsBasePath, "component.cycle.a"),
+				"dependencies": [
+					{
+						"id": "library.cycle.a",
+						"version": "1.0.0",
+						"path": path.join(cycleDepsBasePath, "library.cycle.a"),
+						"dependencies": [
+							{
+								"id": "component.cycle.a",
+								"version": "1.0.0",
+								"path": path.join(cycleDepsBasePath, "component.cycle.a"),
+								"dependencies": [],
+								"deduped": true
+							}
+						]
+					},
+					{
+						"id": "library.cycle.b",
+						"version": "1.0.0",
+						"path": path.join(cycleDepsBasePath, "library.cycle.b"),
+						"dependencies": [
+							{
+								"id": "component.cycle.a",
+								"version": "1.0.0",
+								"path": path.join(cycleDepsBasePath, "component.cycle.a"),
+								"dependencies": [],
+								"deduped": true
+							}
+						]
+					},
+					{
+						"id": "application.cycle.a",
+						"version": "1.0.0",
+						"path": applicationCycleAPath,
+						"dependencies": [],
+						"deduped": true
+					}
+				]
+			}
+		]
+	};
+
+	return npmTranslator.generateDependencyTree(applicationCycleAPath).then((parsedTree) => {
+		t.deepEqual(parsedTree, applicationCycleTree, "Parsed correctly");
+	});
+});
+
+test("AppCycle: cyclic npm deps - Cycle via devDependency on second level", (t) => {
+	const cycleDepsBasePath = path.join(__dirname, "..", "..", "fixtures", "cyclic-deps", "node_modules");
+	const applicationCycleBPath = path.join(cycleDepsBasePath, "application.cycle.b");
+
+	const applicationCycleB = {
+		id: "application.cycle.b",
+		version: "1.0.0",
+		path: applicationCycleBPath,
+		dependencies: []
+	};
+
+	const moduleD = {
+		id: "module.d",
+		version: "1.0.0",
+		path: path.join(cycleDepsBasePath, "module.d"),
+		dependencies: []
+	};
+
+	const moduleE = {
+		id: "module.e",
+		version: "1.0.0",
+		path: path.join(cycleDepsBasePath, "module.e"),
+		dependencies: []
+	};
+
+	applicationCycleB.dependencies.push(moduleD, moduleE);
+	moduleD.dependencies.push(moduleE);
+	moduleE.dependencies.push(moduleD);
+
+	const applicationCycleTree = applicationCycleB;
+	return npmTranslator.generateDependencyTree(applicationCycleBPath).then((parsedTree) => {
+		t.deepEqual(parsedTree, applicationCycleTree, "Parsed correctly");
+	});
+});
+
+test("AppCycle: cyclic npm deps - Cycle on third level (one indirection)", (t) => {
+	const cycleDepsBasePath = path.join(__dirname, "..", "..", "fixtures", "cyclic-deps", "node_modules");
+	const applicationCycleCPath = path.join(cycleDepsBasePath, "application.cycle.c");
+
+	const applicationCycleTree = {
+		"id": "application.cycle.c",
+		"version": "1.0.0",
+		"path": path.join(cycleDepsBasePath, "application.cycle.c"),
+		"dependencies": [
+			{
+				"id": "module.f",
+				"version": "1.0.0",
+				"path": path.join(cycleDepsBasePath, "module.f"),
+				"dependencies": [
+					{
+						"id": "module.a",
+						"version": "1.0.0",
+						"path": path.join(cycleDepsBasePath, "module.a"),
+						"dependencies": [
+							{
+								"id": "module.b",
+								"version": "1.0.0",
+								"path": path.join(cycleDepsBasePath, "module.b"),
+								"dependencies": [
+									{
+										"id": "module.c",
+										"version": "1.0.0",
+										"path": path.join(cycleDepsBasePath, "module.c"),
+										"dependencies": [
+											{
+												"id": "module.a",
+												"version": "1.0.0",
+												"path": path.join(cycleDepsBasePath, "module.a"),
+												"dependencies": [],
+												"deduped": true
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			},
+			{
+				"id": "module.g",
+				"version": "1.0.0", "path": path.join(cycleDepsBasePath, "module.g"),
+				"dependencies": [
+					{
+						"id": "module.a",
+						"version": "1.0.0",
+						"path": path.join(cycleDepsBasePath, "module.a"),
+						"dependencies": [
+							{
+								"id": "module.b",
+								"version": "1.0.0",
+								"path": path.join(cycleDepsBasePath, "module.b"),
+								"dependencies": [
+									{
+										"id": "module.c",
+										"version": "1.0.0",
+										"path": path.join(cycleDepsBasePath, "module.c"),
+										"dependencies": [
+											{
+												"id": "module.a",
+												"version": "1.0.0",
+												"path": path.join(cycleDepsBasePath, "module.a"),
+												"dependencies": [],
+												"deduped": true
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	};
+	return npmTranslator.generateDependencyTree(applicationCycleCPath).then((parsedTree) => {
+		t.deepEqual(parsedTree, applicationCycleTree, "Parsed correctly");
+	});
+});
+
 test("Error: missing package.json", async (t) => {
 	const dir = path.parse(__dirname).root;
 	const error = await t.throws(npmTranslator.generateDependencyTree(dir));
