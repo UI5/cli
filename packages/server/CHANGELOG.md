@@ -2,10 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v0.2.2...HEAD).
+
+<a name="v0.2.2"></a>
+## [v0.2.2] - 2018-10-29
+### Internal Changes
+- **Coveralls:** Use parallel setting to reduce number of PR comments [`9e9855d`](https://github.com/SAP/ui5-server/commit/9e9855d34f5b62111ca56204c17e1183ea28beae)
+- **serveThemes:** Fix tests after upgrade to [@ui5](https://github.com/ui5)/builder v0.2.3 [`1dfba02`](https://github.com/SAP/ui5-server/commit/1dfba027b3eb0e78907d7cc67a2ef418dd025f53)
+- **versionInfo:** sap-ui-version.json no longer contains gav information [`c66af16`](https://github.com/SAP/ui5-server/commit/c66af1656b1235504ef00c4362178da7f70141c1)
+
 
 <a name="v0.2.1"></a>
-## [v0.2.1] - 2018-07-13
+## [v0.2.1] - 2018-07-17
 
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-12
@@ -56,6 +64,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 - **Travis:** Add node.js 10 to test matrix [`2881261`](https://github.com/SAP/ui5-server/commit/2881261a05afd737af7c8874b91819a52b8f88df)
 
 
+[v0.2.2]: https://github.com/SAP/ui5-server/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-server/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-server/compare/v0.1.2...v0.2.0
 [v0.1.2]: https://github.com/SAP/ui5-server/compare/v0.1.1...v0.1.2
