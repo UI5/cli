@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.4...HEAD).
+
+<a name="v0.2.4"></a>
+## [v0.2.4] - 2018-10-29
+### Features
+- Add module type [`d7efb8a`](https://github.com/SAP/ui5-builder/commit/d7efb8a16334571e7997daccd4f69e1e06591c25)
+
 
 <a name="v0.2.3"></a>
-## [v0.2.3] - 2018-10-08
+## [v0.2.3] - 2018-10-09
 ### Bug Fixes
 - Replace copyright and version strings in *.json and .library files [`f305429`](https://github.com/SAP/ui5-builder/commit/f305429067610404f0958b55ef3a570e555a532e)
 - **generateLibraryPreload:** Add new sap.ui.core library namespaces [`ea901a7`](https://github.com/SAP/ui5-builder/commit/ea901a78c27e5fd112f9ac761e621b7f1c474f07)
@@ -111,6 +117,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.4]: https://github.com/SAP/ui5-builder/compare/v0.2.3...v0.2.4
 [v0.2.3]: https://github.com/SAP/ui5-builder/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-builder/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-builder/compare/v0.2.0...v0.2.1
