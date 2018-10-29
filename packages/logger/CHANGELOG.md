@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v0.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v0.2.1...HEAD).
+
+<a name="v0.2.1"></a>
+## [v0.2.1] - 2018-10-18
+### Internal Changes
+- Reduce log progress text [`826f6c3`](https://github.com/SAP/ui5-logger/commit/826f6c386429beec2497be62cbe54a4fe88e7ab3)
+- Add .npmrc to enforce public registry [`4a0b343`](https://github.com/SAP/ui5-logger/commit/4a0b343f2a3eaf15ab74072633321ee45d064643)
+- **CHANGELOG:** Fix scope detection in commit messages [`ac87e7c`](https://github.com/SAP/ui5-logger/commit/ac87e7c2e53dea90e88dae1dd2b8cf6ab8074738)
+- **Coveralls:** Use parallel setting to reduce number of PR comments [`b034617`](https://github.com/SAP/ui5-logger/commit/b0346176885a5702139e693f9f6811e5ddb0414e)
+
 
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2018-07-11
@@ -37,5 +46,6 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logg
 - **Travis:** Add node.js 10 to test matrix [`147795a`](https://github.com/SAP/ui5-logger/commit/147795a1215c7071ddb731b085ab61defc203e42)
 
 
+[v0.2.1]: https://github.com/SAP/ui5-logger/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-logger/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-logger/compare/v0.0.1...v0.1.0
