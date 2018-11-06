@@ -1,5 +1,17 @@
 const npmlog = require("npmlog");
-npmlog.level = "info"; // Our default
+
+if (process.env.UI5_LOG_LVL) {
+	const levels = ["silly", "verbose", "info", "warn", "error"];
+	const logLvl = process.env.UI5_LOG_LVL;
+	if (!levels.includes(logLvl)) {
+		throw new Error(`UI5 Logger: Environment variable UI5_LOG_LVL is set to an unkown log level "${logLvl}". ` +
+			`Valid levels are ${levels.join(", ")}`);
+	}
+	npmlog.level = logLvl;
+} else {
+	npmlog.level = "info"; // Our default
+}
+
 npmlog.enableUnicode();
 
 npmlog.on("error", (err) => {
