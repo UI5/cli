@@ -1,11 +1,24 @@
 language: node_js # don't install any environment
 
 node_js:
-- "8"
-- "10"
+- "node"
+
+os:
+- linux
+- osx
+- windows
+
+matrix:
+  include:
+    - os: linux
+      node_js:
+        - "10"
+    - os: linux
+      node_js:
+        - "8"
 
 after_script:
-- npm run report-coveralls
+- if [[ "$TRAVIS_OS_NAME" == 'linux' ]]; then npm run report-coveralls; fi
 
 notifications:
   webhooks: https://coveralls.io/webhook
