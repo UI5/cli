@@ -1,10 +1,10 @@
 const {test} = require("ava");
-const Path = require("path");
+const path = require("path");
 const ComponentAnalyzer = require("../../../../lib/lbt/analyzer/ComponentAnalyzer");
 
 
-function createMockPool(path, manifest) {
-	const expectedPath = Path.join(path, "manifest.json");
+function createMockPool(relPath, manifest) {
+	const expectedPath = path.join(relPath, "manifest.json");
 	return {
 		async findResource(name) {
 			if (name !== expectedPath) {

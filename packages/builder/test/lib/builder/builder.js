@@ -43,7 +43,7 @@ function cloneProjectTree(tree) {
 
 test("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
-	const expectedPath = "./test/expected/build/application.a/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
 
 	return builder.build({
 		tree: applicationATree,
@@ -66,7 +66,7 @@ test("Build application.a", (t) => {
 
 test("Build application.a [dev mode]", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-dev";
-	const expectedPath = "./test/expected/build/application.a/dest-dev";
+	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-dev");
 
 	return builder.build({
 		tree: applicationATree,
@@ -90,7 +90,7 @@ test("Build application.a [dev mode]", (t) => {
 
 test("Build application.g", (t) => {
 	const destPath = "./test/tmp/build/application.g/dest";
-	const expectedPath = "./test/expected/build/application.g/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
 	return builder.build({
 		tree: applicationGTree,
@@ -113,7 +113,7 @@ test("Build application.g", (t) => {
 
 test("Build application.g with component preload paths", (t) => {
 	const destPath = "./test/tmp/build/application.g/dest2";
-	const expectedPath = "./test/expected/build/application.g/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
 	return builder.build({
 		tree: applicationGTreeComponentPreloadPaths,
@@ -136,7 +136,7 @@ test("Build application.g with component preload paths", (t) => {
 
 test("Build application.h", (t) => {
 	const destPath = "./test/tmp/build/application.h/dest";
-	const expectedPath = "./test/expected/build/application.h/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.h", "dest");
 
 	return builder.build({
 		tree: applicationHTree,
@@ -159,7 +159,7 @@ test("Build application.h", (t) => {
 
 test("Build library.d with copyright from .library file", (t) => {
 	const destPath = "./test/tmp/build/library.d/dest";
-	const expectedPath = "./test/expected/build/library.d/dest";
+	const expectedPath = path.join("test", "expected", "build", "library.d", "dest");
 
 	return builder.build({
 		tree: libraryDTree,
@@ -183,7 +183,7 @@ test("Build library.d with copyright from .library file", (t) => {
 
 test("Build library.e with copyright from settings of ui5.yaml", (t) => {
 	const destPath = "./test/tmp/build/library.e/dest";
-	const expectedPath = "./test/expected/build/library.e/dest";
+	const expectedPath = path.join("test", "expected", "build", "library.e", "dest");
 
 	return builder.build({
 		tree: libraryETree,
@@ -207,7 +207,7 @@ test("Build library.e with copyright from settings of ui5.yaml", (t) => {
 
 test("Build library.h with custom bundles and component-preloads", (t) => {
 	const destPath = "./test/tmp/build/library.h/dest";
-	const expectedPath = "./test/expected/build/library.h/dest";
+	const expectedPath = path.join("test", "expected", "build", "library.h", "dest");
 
 	return builder.build({
 		tree: libraryHTree,
@@ -231,7 +231,7 @@ test("Build library.h with custom bundles and component-preloads", (t) => {
 
 test("Build library.i with manifest info taken from .library and library.js", (t) => {
 	const destPath = "./test/tmp/build/library.i/dest";
-	const expectedPath = "./test/expected/build/library.i/dest";
+	const expectedPath = path.join("test", "expected", "build", "library.i", "dest");
 
 	return builder.build({
 		tree: libraryITree,
