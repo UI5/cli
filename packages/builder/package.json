@@ -101,7 +101,7 @@
 		"esprima": "^2.7.2",
 		"estraverse": "^4.2.0",
 		"globby": "^7.1.1",
-		"graceful-fs": "^4.1.11",
+		"graceful-fs": "^4.1.15",
 		"less-openui5": "^0.6.0",
 		"pretty-data": "^0.40.0",
 		"pretty-hrtime": "^1.0.3",
