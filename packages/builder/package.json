@@ -118,7 +118,7 @@
 		"coveralls": "^3.0.1",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.0.0",
-		"eslint": "^5.0.1",
+		"eslint": "^5.9.0",
 		"eslint-config-google": "^0.10.0",
 		"jsdoc": "^3.5.5",
 		"nyc": "^13.0.1",
