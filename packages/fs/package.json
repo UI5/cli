@@ -96,7 +96,7 @@
 		"clone": "^2.1.0",
 		"defaults": "^1.0.3",
 		"globby": "^7.1.1",
-		"graceful-fs": "^4.1.11",
+		"graceful-fs": "^4.1.15",
 		"make-dir": "^1.1.0",
 		"micromatch": "^3.1.4",
 		"minimatch": "^3.0.3",
