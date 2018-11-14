@@ -32,6 +32,26 @@ class NpmTranslator {
 
 		let dependencies = pkg.dependencies || {};
 		let optDependencies = pkg.devDependencies || {};
+
+		// Due to normalization done by by the "read-pkg-up" module the values
+		//  in optionalDependencies get added to dependencies. Also as described here:
+		//  https://github.com/npm/normalize-package-data#what-normalization-currently-entails
+		// Note: optionalDependencies are treated the same as devDependencies in the npm translator
+		if (pkg.optionalDependencies) {
+			for (let depName in pkg.optionalDependencies) {
+				if (pkg.optionalDependencies.hasOwnProperty(depName)) {
+					// Remove entry from "hard" dependencies map
+					if (dependencies[depName]) {
+						delete dependencies[depName];
+					}
+					// Add to optional dependencies map (of not already done)
+					if (optDependencies.hasOwnProperty(depName)) {
+						optDependencies[depName] = pkg.optionalDependencies[depName];
+					}
+				}
+			}
+		}
+
 		const version = pkg.version;
 
 		// Also look for "napa" dependencies (see https://github.com/shama/napa)

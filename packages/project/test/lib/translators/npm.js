@@ -7,6 +7,7 @@ const applicationC2Path = path.join(__dirname, "..", "..", "fixtures", "applicat
 const applicationC3Path = path.join(__dirname, "..", "..", "fixtures", "application.c3");
 const applicationDPath = path.join(__dirname, "..", "..", "fixtures", "application.d");
 const applicationFPath = path.join(__dirname, "..", "..", "fixtures", "application.f");
+const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 const errApplicationAPath = path.join(__dirname, "..", "..", "fixtures", "err.application.a");
 
 test("AppA: project with collection dependency", (t) => {
@@ -45,6 +46,12 @@ test("AppD: project with dependency with unresolved optional dependency", (t) =>
 test("AppF: project with UI5-dependencies", (t) => {
 	return npmTranslator.generateDependencyTree(applicationFPath).then((parsedTree) => {
 		t.deepEqual(parsedTree, applicationFTree, "Parsed correctly");
+	});
+});
+
+test("AppG: project with npm 'optionalDependencies' should not fail if optional dependency cannot be resolved", (t) => {
+	return npmTranslator.generateDependencyTree(applicationGPath).then((parsedTree) => {
+		t.deepEqual(parsedTree, applicationGTree, "Parsed correctly");
 	});
 });
 
@@ -225,4 +232,11 @@ const applicationFTree = {
 			dependencies: []
 		}
 	]
+};
+
+const applicationGTree = {
+	id: "application.g",
+	version: "1.0.0",
+	path: applicationGPath,
+	dependencies: []
 };
