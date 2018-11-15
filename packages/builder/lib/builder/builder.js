@@ -65,7 +65,7 @@ function build({tree, destPath, buildDependencies = false, dev = false, selfCont
 		" including dependencies..." + (dev ? " [dev mode]" : ""));
 	log.verbose(`Building to ${destPath}...`);
 
-	let selectedTasks = composeTaskList({dev, selfContained, includedTasks, excludedTasks});
+	const selectedTasks = composeTaskList({dev, selfContained, includedTasks, excludedTasks});
 
 	const fsTarget = resourceFactory.createAdapter({
 		fsBasePath: destPath,
@@ -201,7 +201,7 @@ function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {
 
 	// Exclude tasks
 	for (let i = 0; i < excludedTasks.length; i++) {
-		let taskName = excludedTasks[i];
+		const taskName = excludedTasks[i];
 		if (taskName === "*") {
 			Object.keys(selectedTasks).forEach((sKey) => {
 				selectedTasks[sKey] = false;
@@ -215,7 +215,7 @@ function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {
 
 	// Include tasks
 	for (let i = 0; i < includedTasks.length; i++) {
-		let taskName = includedTasks[i];
+		const taskName = includedTasks[i];
 		if (taskName === "*") {
 			Object.keys(selectedTasks).forEach((sKey) => {
 				selectedTasks[sKey] = true;

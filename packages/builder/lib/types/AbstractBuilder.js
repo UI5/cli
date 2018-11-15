@@ -45,13 +45,13 @@ class AbstractBuilder {
 
 		let taskChain = Promise.resolve();
 		for (let i = 0; i < this.availableTasks.length; i++) {
-			let taskName = this.availableTasks[i];
+			const taskName = this.availableTasks[i];
 
 			if (!tasksToRun.includes(taskName)) {
 				continue;
 			}
 
-			let taskFunction = this.tasks[taskName];
+			const taskFunction = this.tasks[taskName];
 
 			if (typeof taskFunction === "function") {
 				taskChain = taskChain.then(this.wrapTask(taskName, taskFunction));

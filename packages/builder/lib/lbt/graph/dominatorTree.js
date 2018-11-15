@@ -18,7 +18,7 @@
 function calculateDominatorTree({n0, nodes}) {
 	const log = require("@ui5/logger").getLogger("lbt:graph:dominatorTree");
 	// initialize set of dominators for each node
-	for ( let n of nodes.values() ) {
+	for ( const n of nodes.values() ) {
 		if ( n === n0 ) {
 			// dominator of the start node is the start node itself
 			n.dominators = new Set().add(n);
@@ -32,7 +32,7 @@ function calculateDominatorTree({n0, nodes}) {
 
 	function countEdges(nodes) {
 		let count = 0;
-		for ( let n of nodes.values() ) {
+		for ( const n of nodes.values() ) {
 			count += n.dominators.size;
 		}
 		return count;
@@ -46,12 +46,12 @@ function calculateDominatorTree({n0, nodes}) {
 		log.verbose("%d remaining edges", countEdges(nodes));
 
 		modified = false;
-		for ( let n of nodes.values() ) {
+		for ( const n of nodes.values() ) {
 			if ( n === n0 ) {
 				continue; // no processing for the root node
 			}
 			// Dom(n) = {n} union with intersection over Dom(p) for all p in pred(n) */
-			for ( let d of n.dominators ) {
+			for ( const d of n.dominators ) {
 				if ( d === n ) {
 					continue; // by definition, n is always a dominator of its own
 				}
@@ -60,7 +60,7 @@ function calculateDominatorTree({n0, nodes}) {
 				// is implemented by checking each current dominator of n whether it is contained
 				// in the dominator sets of all predecessors. If not, it is removed from the
 				// set of dominotors of n.
-				for ( let p of n.pred ) {
+				for ( const p of n.pred ) {
 					if ( !p.dominators.has(d) ) {
 						n.dominators.delete(d);
 						modified = true;
@@ -72,8 +72,8 @@ function calculateDominatorTree({n0, nodes}) {
 	} while (modified);
 
 	// build the inverse of the 'strictly-dominated-by' graph ('strictly-dominates' graph)
-	for ( let n of nodes.values() ) {
-		for ( let d of n.dominators ) {
+	for ( const n of nodes.values() ) {
+		for ( const d of n.dominators ) {
 			if ( d !== n ) { // ignore edge to self ('strict')
 				d.succ.add(n);
 			}
@@ -91,13 +91,13 @@ function calculateDominatorTree({n0, nodes}) {
 	// is marked as 'immediately dominated'
 	function dfs(node) {
 		// visit children, thereby identifying non-immediately dominated nodes
-		for ( let child of node.succ ) {
+		for ( const child of node.succ ) {
 			if ( !child.visited ) {
 				// console.log("visit %s->%s (visited:%s)", node.name, child.name, child.visited);
 				dfs(child);
 			}
 		}
-		for ( let child of node.succ ) {
+		for ( const child of node.succ ) {
 			if ( child.visited ) {
 				// console.log("delete %s -> %s", node.name, child.name)
 				node.succ.delete(child);

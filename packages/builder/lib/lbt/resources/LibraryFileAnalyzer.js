@@ -21,16 +21,16 @@ function getAttribute(node, attr) {
 }
 
 function makeModuleInfo(rawModule) {
-	let name = getAttribute(rawModule, "name");
-	let deps = getAttribute(rawModule, "depends");
+	const name = getAttribute(rawModule, "name");
+	const deps = getAttribute(rawModule, "depends");
 	if ( name ) {
-		let info = new ModuleInfo(name);
+		const info = new ModuleInfo(name);
 		if ( deps != null ) {
 			deps.trim().split(/\s*,\s*/).forEach( (dep) => info.addDependency(dep) );
 		}
 		info.rawModule = true;
 		info.requiresTopLevelScope = getAttribute(rawModule, "requiresTopLevelScope") === "true";
-		let ignoredGlobals = getAttribute(rawModule, "ignoredGlobals");
+		const ignoredGlobals = getAttribute(rawModule, "ignoredGlobals");
 		if ( ignoredGlobals ) {
 			info.ignoredGlobals = ignoredGlobals.trim().split(/\s*,\s*/);
 		}
@@ -40,7 +40,7 @@ function makeModuleInfo(rawModule) {
 }
 
 function getDependencyInfos( content ) {
-	let infos = {};
+	const infos = {};
 	parser.parseString(content, (err, result) => {
 		// console.log(JSON.stringify(result, null, '\t'));
 		if ( result
@@ -54,7 +54,7 @@ function getDependencyInfos( content ) {
 						&& Array.isArray(packaging["module-infos"]) ) {
 					packaging["module-infos"].forEach( function(moduleInfos) {
 						moduleInfos["raw-module"] && moduleInfos["raw-module"].forEach( (rawModule) => {
-							let info = makeModuleInfo(rawModule);
+							const info = makeModuleInfo(rawModule);
 							if ( info ) {
 								infos[info.name] = info;
 							}

@@ -105,9 +105,9 @@ class BundleBuilder {
 	async createBundle(module, options) {
 		await this._prepare();
 		if ( options.numberOfParts > 1 ) {
-			let bundleInfos = [];
-			let submodules = await this.splitter.run( module, options );
-			for ( let submodule of submodules ) {
+			const bundleInfos = [];
+			const submodules = await this.splitter.run( module, options );
+			for ( const submodule of submodules ) {
 				bundleInfos.push( await this._createBundle(submodule, options) );
 			}
 			return bundleInfos;
@@ -128,7 +128,7 @@ class BundleBuilder {
 	}
 
 	async _createBundle(module, options) {
-		let resolvedModule = await this.resolver.resolve(module /* NODE-TODO, vars */);
+		const resolvedModule = await this.resolver.resolve(module /* NODE-TODO, vars */);
 		log.verbose("  create '%s'",	resolvedModule.name);
 
 		this.options = options || {};
@@ -146,7 +146,7 @@ class BundleBuilder {
 		this.writeConfiguration(resolvedModule.configuration); // NODE-TODO configuration currently will be undefined
 
 		// create all sections in sequence
-		for ( let section of resolvedModule.sections ) {
+		for ( const section of resolvedModule.sections ) {
 			log.verbose("    adding section%s of type %s",
 				section.name ? " '" + section.name + "'" : "", section.mode);
 			await this.addSection(section);
@@ -154,7 +154,7 @@ class BundleBuilder {
 
 		this.closeModule(resolvedModule);
 
-		let bundleInfo = await resolvedModule.createModuleInfo(this.pool);
+		const bundleInfo = await resolvedModule.createModuleInfo(this.pool);
 		bundleInfo.size = this.outW.length;
 
 		return {
@@ -250,8 +250,8 @@ class BundleBuilder {
 	// TODO check that there are only JS modules contained
 	async writeRaw(section) {
 		// write all modules in sequence
-		for ( let module of section.modules ) {
-			let resource = await this.pool.findResourceWithInfo(module);
+		for ( const module of section.modules ) {
+			const resource = await this.pool.findResourceWithInfo(module);
 			if ( resource != null ) {
 				this.outW.startSegment(module);
 				await this.writeRawModule(module, resource);
@@ -292,8 +292,8 @@ class BundleBuilder {
 		if ( sequence.length > 0 ) {
 			this.targetBundleFormat.beforePreloads(outW, section);
 			let i = 0;
-			for ( let module of sequence ) {
-				let resource = await this.pool.findResourceWithInfo(module);
+			for ( const module of sequence ) {
+				const resource = await this.pool.findResourceWithInfo(module);
 				if ( resource != null ) {
 					if ( i>0 ) {
 						outW.writeln(",");
@@ -322,7 +322,7 @@ class BundleBuilder {
 
 	compressJS(fileContent, resource) {
 		if ( this.optimize ) {
-			let result = uglify.minify({
+			const result = uglify.minify({
 				[resource.name]: String(fileContent)
 			}, {
 				warnings: false, // TODO configure?
@@ -346,7 +346,7 @@ class BundleBuilder {
 	}
 
 	async compressJSAsync(resource) {
-		let content = await resource.buffer();
+		const content = await resource.buffer();
 		return this.compressJS( content, resource );
 	}
 
@@ -357,19 +357,19 @@ class BundleBuilder {
 
 	async rewriteAMDModules(sequence, avoidLazyParsing) {
 		if ( this.options.usePredefineCalls ) {
-			let outW = this.outW;
+			const outW = this.outW;
 
-			let remaining = [];
-			for ( let module of sequence ) {
+			const remaining = [];
+			for ( const module of sequence ) {
 				if ( /\.js$/.test(module) ) {
 					// console.log("Processing " + module);
-					let resource = await this.pool.findResourceWithInfo(module);
-					let code = await resource.buffer();
+					const resource = await this.pool.findResourceWithInfo(module);
+					const code = await resource.buffer();
 					const ast = rewriteDefine(this.targetBundleFormat, code, module, avoidLazyParsing);
 					if ( ast ) {
 						outW.startSegment(module);
 						outW.ensureNewLine();
-						let astAsCode = escodegen.generate(ast);
+						const astAsCode = escodegen.generate(ast);
 						const fileContent = this.compressJS(astAsCode, resource);
 						outW.write( fileContent );
 						outW.ensureNewLine();
@@ -400,7 +400,7 @@ class BundleBuilder {
 		const outW = this.outW;
 
 		if ( /\.js$/.test(module) && (info == null || !info.requiresTopLevelScope) ) {
-			let compressedContent = await this.compressJSAsync( resource );
+			const compressedContent = await this.compressJSAsync( resource );
 			if ( avoidLazyParsing ) {
 				outW.write(`(`);
 			}
@@ -415,10 +415,10 @@ class BundleBuilder {
 		} else if ( /\.js$/.test(module) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn("**** warning: module %s requires top level scope" +
 					" and can only be embedded as a string (requires 'eval')", module);
-			let compressedContent = await this.compressJSAsync( resource );
+			const compressedContent = await this.compressJSAsync( resource );
 			outW.write( makeStringLiteral( compressedContent ) );
 		} else if ( /\.html$/.test(module) ) {
-			let fileContent = await resource.buffer();
+			const fileContent = await resource.buffer();
 			outW.write( makeStringLiteral( fileContent ) );
 		} else if ( /\.json$/.test(module) ) {
 			let fileContent = await resource.buffer();
@@ -443,7 +443,7 @@ class BundleBuilder {
 			outW.write( makeStringLiteral( fileContent ) );
 		} else if ( /\.properties$/.test(module) ) {
 			// same as for other text files, but input encoding is ISO_8859_1
-			let fileContent = await resource.buffer();
+			const fileContent = await resource.buffer();
 			outW.write( makeStringLiteral( fileContent.toString("latin1") ) );
 		} else {
 			log.error("don't know how to embed module " + module); // TODO throw?
@@ -522,7 +522,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 			&& ast.body[0].type === Syntax.ExpressionStatement ) {
 		// rewrite define to require.predefine
 		if ( targetBundleFormat.supportsNativeDefine() && isMethodCall(ast.body[0].expression, CALL_DEFINE) ) {
-			let defineCall = ast.body[0].expression;
+			const defineCall = ast.body[0].expression;
 
 			if ( defineCall.callee.type === Syntax.Identifier
 					&& defineCall.callee.name === "define" ) {
@@ -565,7 +565,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 
 
 		if ( isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ) {
-			let defineCall = ast.body[0].expression;
+			const defineCall = ast.body[0].expression;
 
 			// rewrite sap.ui.define to sap.ui.predefine
 			if ( defineCall.callee.type === Syntax.MemberExpression

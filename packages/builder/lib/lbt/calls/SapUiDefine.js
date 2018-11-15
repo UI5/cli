@@ -64,7 +64,7 @@ class SapUiDefineCall {
 	}*/
 
 	findImportName(module) {
-		let idx = this.dependencies ? this.dependencies.indexOf(module) : -1;
+		const idx = this.dependencies ? this.dependencies.indexOf(module) : -1;
 		if ( idx >= 0 ) {
 			return this.paramNames[idx];
 		}

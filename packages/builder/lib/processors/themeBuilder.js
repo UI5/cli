@@ -27,7 +27,7 @@ class ThemeBuilder {
 	 * @returns {Promise} Resolving with array of created files
 	 */
 	build(resources) {
-		let files = [];
+		const files = [];
 
 		const compile = (resource) => {
 			log.verbose("Compiling %s", resource.getPath());
@@ -46,17 +46,17 @@ class ThemeBuilder {
 			}).then((result) => {
 				const themeDir = path.dirname(resource.getPath());
 
-				let libCss = new Resource({
+				const libCss = new Resource({
 					path: themeDir + "/library.css",
 					string: result.css
 				});
 
-				let libCssRtl = new Resource({
+				const libCssRtl = new Resource({
 					path: themeDir + "/library-RTL.css",
 					string: result.cssRtl
 				});
 
-				let libParams = new Resource({
+				const libParams = new Resource({
 					path: themeDir + "/library-parameters.json",
 					string: JSON.stringify(result.variables, null, "\t")
 				});

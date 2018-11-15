@@ -45,7 +45,7 @@ function findChild(node, tagName, namespaceURI) {
 }
 
 function findChildren(node, tagName, namespaceURI) {
-	let children = node && node[tagName];
+	const children = node && node[tagName];
 	if ( Array.isArray(children) ) {
 		return children.filter((child) => (namespaceURI == null || (child.$ns && child.$ns.uri === namespaceURI)));
 	}
@@ -53,7 +53,7 @@ function findChildren(node, tagName, namespaceURI) {
 }
 
 function getChildTextContent(node, tagName, defaultValue) {
-	let child = findChild(node, tagName);
+	const child = findChild(node, tagName);
 	return child ? (child._ || "") : defaultValue;
 }
 
@@ -97,18 +97,18 @@ class Library {
 	}
 
 	getDependencies() {
-		let container = findChild(this.xml, "dependencies");
-		let deps = findChildren(container, "dependency") || [];
+		const container = findChild(this.xml, "dependencies");
+		const deps = findChildren(container, "dependency") || [];
 		return deps.map((dep) => new Dependency(dep));
 	}
 
 	getAppData(tagName, namespace) {
-		let appData = findChild(this.xml, "appData", XMLNS_UILIB);
+		const appData = findChild(this.xml, "appData", XMLNS_UILIB);
 		return findChild(appData, tagName, namespace);
 	}
 
 	static async from(resource) {
-		let content = await resource.getString();
+		const content = await resource.getString();
 		return new Promise( (resolve, reject) => {
 			parser.parseString(content, (err, xml) => {
 				if ( err ) {
@@ -139,13 +139,13 @@ class LibraryBundle {
  */
 async function createManifest(libraryResource, libBundle, descriptorVersion, _include3rdParty) {
 	// create a Library wrapper around the .library XML
-	let library = await Library.from(libraryResource);
+	const library = await Library.from(libraryResource);
 
 	// collect information from library.js file
-	let libraryJSInfo = await analyzeLibraryJS(libBundle.findResource("library.js"));
+	const libraryJSInfo = await analyzeLibraryJS(libBundle.findResource("library.js"));
 
-	let manifestAppData = library.getAppData("manifest", XMLNS_MANIFEST);
-	let sapFioriAppData = findChild(manifestAppData, "sap.fiori");
+	const manifestAppData = library.getAppData("manifest", XMLNS_MANIFEST);
+	const sapFioriAppData = findChild(manifestAppData, "sap.fiori");
 
 	function sectionVersion(candidateVersion) {
 		// _version property for nested sections became optional with AppDescriptor V5
@@ -157,11 +157,11 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	function createSapApp() {
 		function findComponentPaths() {
-			let result = [];
-			let prefix = libraryResource.getPath().slice(0, - ".library".length);
-			let components = libBundle.getResources(/(?:[^/]+\/)*Component\.js$/);
+			const result = [];
+			const prefix = libraryResource.getPath().slice(0, - ".library".length);
+			const components = libBundle.getResources(/(?:[^/]+\/)*Component\.js$/);
 			components.forEach((comp) => {
-				let relativePath = comp.getPath().slice(prefix.length);
+				const relativePath = comp.getPath().slice(prefix.length);
 				if ( relativePath.lastIndexOf("/") >= 0 ) {
 					result.push( relativePath.slice(0, relativePath.lastIndexOf("/")) );
 				} else if ( prefix !== "/resources/sap/ui/core/" ) {
@@ -178,7 +178,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		}
 
 		function getProjectVersion() {
-			let project = libraryResource._project;
+			const project = libraryResource._project;
 			if ( project ) {
 				return project.version;
 			}
@@ -193,15 +193,15 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 				// remove all tags
 				desc = desc.replace(/\\s+/g, " ").replace(/<\/?[a-zA-Z][a-zA-Z0-9_$.]*(\s[^>]*)>/g, "");
 				// extract summary (first sentence)
-				let m = /^([\w\W]+?[.;!?])[^a-zA-Z0-9_$]/.exec(desc);
+				const m = /^([\w\W]+?[.;!?])[^a-zA-Z0-9_$]/.exec(desc);
 				return m ? m[1] : desc;
 			}
 			return library.getName();
 		}
 
 		function getDefaultACH() {
-			let ownership = library.getAppData("ownership", XMLNS_OWNERSHIP);
-			for (let comp of findChildren(ownership, "component")) {
+			const ownership = library.getAppData("ownership", XMLNS_OWNERSHIP);
+			for (const comp of findChildren(ownership, "component")) {
 				if ( comp._ ) {
 					return comp._;
 				}
@@ -210,7 +210,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 		function offline() {
 			let result = sapFioriAppData == null ? true : false;
-			let offlineElement = findChild(manifestAppData, "offline");
+			const offlineElement = findChild(manifestAppData, "offline");
 			if ( offlineElement ) {
 				result = offlineElement._ === "true";
 			}
@@ -218,7 +218,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		}
 
 		function sourceTemplate() {
-			let sourceTemplateElement = findChild(manifestAppData, "sourceTemplate");
+			const sourceTemplateElement = findChild(manifestAppData, "sourceTemplate");
 			if ( sourceTemplateElement ) {
 				return {
 					"id": getChildTextContent(sourceTemplateElement, "id"),
@@ -228,11 +228,11 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		}
 
 		function openSourceComponents() {
-			let embeddedOSComponents = new Set();
-			let osComponents = [];
-			for (let osCompElem of findChildren(manifestAppData, "openSourceComponent")) {
-				let name = getAttribute(osCompElem, "name");
-				let packagedWithMySelf = getBooleanAttribute(osCompElem, "packagedWithMySelf");
+			const embeddedOSComponents = new Set();
+			const osComponents = [];
+			for (const osCompElem of findChildren(manifestAppData, "openSourceComponent")) {
+				const name = getAttribute(osCompElem, "name");
+				const packagedWithMySelf = getBooleanAttribute(osCompElem, "packagedWithMySelf");
 				osComponents.push({
 					name: name,
 					packagedWithMySelf,
@@ -246,9 +246,9 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			if ( _include3rdParty ) {
 				// also merge all thirdparty libs, but only with the name - version info is not available
 				// only merge in if no lib with the same name has been declared already
-				let thirdpartyAppData = library.getAppData("thirdparty", XMLNS_THIRDPARTY);
-				for (let thirdPartyElem of findChildren(thirdpartyAppData, "lib")) {
-					let osCompName = getAttribute(thirdPartyElem, "name");
+				const thirdpartyAppData = library.getAppData("thirdparty", XMLNS_THIRDPARTY);
+				for (const thirdPartyElem of findChildren(thirdpartyAppData, "lib")) {
+					const osCompName = getAttribute(thirdPartyElem, "name");
 					if ( !embeddedOSComponents.has(osCompName) ) {
 						embeddedOSComponents.add(osCompName);
 						osComponents.push({
@@ -263,7 +263,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			return osComponents.length > 0 ? osComponents : undefined;
 		}
 
-		let sapApp = {
+		const sapApp = {
 			_version: sectionVersion(APP_DESCRIPTOR_V3_SECTION_SAP_APP),
 			id: library.getName(),
 			type: "library",
@@ -291,7 +291,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	function createSapUi() {
 		function deviceTypes() {
-			let deviceTypesElement = findChild(manifestAppData, "deviceTypes");
+			const deviceTypesElement = findChild(manifestAppData, "deviceTypes");
 			if ( deviceTypesElement ) {
 				return {
 					desktop: getBooleanAttribute(deviceTypesElement, "desktop"),
@@ -302,18 +302,18 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		}
 
 		function collectThemes() {
-			let themes = {};
+			const themes = {};
 
 			// find theme resources and determine theme names from their paths
 			libBundle.getResources(/(?:[^/]+\/)*themes\//).forEach((res) => {
-				let match = /\/themes\/([^/]+)\//.exec(res.getPath());
+				const match = /\/themes\/([^/]+)\//.exec(res.getPath());
 				if ( match ) {
 					themes[match[1]] = true;
 				}
 			});
 
 			// merge with supporteTheme info from .library file
-			let elems = findChildren(manifestAppData, "supportedTheme");
+			const elems = findChildren(manifestAppData, "supportedTheme");
 			if ( elems ) {
 				elems.forEach((elem) => {
 					if ( elem._ ) {
@@ -324,7 +324,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			return Object.keys(themes).sort();
 		}
 
-		let sapUi = {
+		const sapUi = {
 			_version: sectionVersion(APP_DESCRIPTOR_V3_OTHER_SECTIONS),
 			technology: "UI5",
 			deviceTypes: deviceTypes(),
@@ -343,7 +343,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 				return ui5Version;
 			}
 
-			let dummy = new Dependency({
+			const dummy = new Dependency({
 				libraryName: [{
 					_: "sap.ui.core"
 				}]
@@ -352,13 +352,13 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		}
 
 		function dependencies() {
-			let dependencies = {
+			const dependencies = {
 				minUI5Version: getUI5Version(),
 				libs: {
 				}
 			};
 			if ( library.getDependencies() != null ) {
-				for (let dep of library.getDependencies()) {
+				for (const dep of library.getDependencies()) {
 					dependencies.libs[dep.getLibraryName()] = {
 						minVersion: getVersion(dep),
 						lazy: dep.isLazy() || undefined // suppress default (false)
@@ -370,9 +370,9 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		}
 
 		function contentDensities() {
-			let contentDensitiesElement = findChild(manifestAppData, "contentDensities");
+			const contentDensitiesElement = findChild(manifestAppData, "contentDensities");
 			if ( contentDensitiesElement != null ) {
-				let contentDensities = {
+				const contentDensities = {
 					cozy: getBooleanAttribute(contentDensitiesElement, "cozy"),
 					compact: getBooleanAttribute(contentDensitiesElement, "compact")
 				};
@@ -389,16 +389,16 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 			log.info("  target descriptor version %s: include sap.ui5/library information", descriptorVersion);
 
-			let sapUi5AppData = findChild(manifestAppData, "sap.ui5");
-			let libraryAppData = findChild(sapUi5AppData, "library");
+			const sapUi5AppData = findChild(manifestAppData, "sap.ui5");
+			const libraryAppData = findChild(sapUi5AppData, "library");
 
 			// i18n:
 			// - from .library/appData/manifest/sap.ui5/library/i18n
 			// - from library resources (if "messagebundle.properties" exists)
 			function i18n() {
-				let i18nElement = findChild(libraryAppData, "i18n");
+				const i18nElement = findChild(libraryAppData, "i18n");
 				if ( i18nElement ) {
-					let i18n = i18nElement._;
+					const i18n = i18nElement._;
 					if ( i18n === "false" ) {
 						return false;
 					} else if ( i18n === "true" ) {
@@ -421,9 +421,9 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			// - from .library/appData/manifest/sap.ui5/library/css
 			// - from library.js/initLibrary/noLibraryCSS
 			function css() {
-				let cssElement = findChild(libraryAppData, "css");
+				const cssElement = findChild(libraryAppData, "css");
 				if ( cssElement != null ) {
-					let css = cssElement._;
+					const css = cssElement._;
 					if ( css === "false" ) {
 						log.verbose("  sap.ui5/library/css property taken from .library appData: '%s'", false);
 						return false;
@@ -437,7 +437,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			// content
 			// - from library.js/initLibrary/ (types|elements|controls|interfaces)
 			function content() {
-				let libraryJS = libraryJSInfo;
+				const libraryJS = libraryJSInfo;
 				if ( libraryJS.controls || libraryJS.elements || libraryJS.interfaces || libraryJS.types ) {
 					return {
 						controls: libraryJS.controls,
@@ -455,7 +455,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			};
 		}
 
-		let sapUI5 = {
+		const sapUI5 = {
 			_version: sectionVersion(APP_DESCRIPTOR_V3_OTHER_SECTIONS),
 			dependencies: dependencies(),
 			contentDensities: contentDensities(),
@@ -468,8 +468,8 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	function createSapFiori() {
 		// collect registrationIds if present
 		function registrationIds() {
-			let ids = [];
-			for (let regid of findChildren(sapFioriAppData, "registrationId")) {
+			const ids = [];
+			for (const regid of findChildren(sapFioriAppData, "registrationId")) {
 				ids.push(regid._);
 			}
 			return ids.length > 0 ? ids : undefined;
@@ -485,7 +485,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	}
 
 	function createSapPlatformABAP() {
-		let sapPlatformABAPElement = findChild(manifestAppData, "sap.platform.abap");
+		const sapPlatformABAPElement = findChild(manifestAppData, "sap.platform.abap");
 		if ( sapPlatformABAPElement ) {
 			return {
 				_version: sectionVersion(APP_DESCRIPTOR_V3_OTHER_SECTIONS),
@@ -495,7 +495,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	}
 
 	function createSapPlatformHCP() {
-		let sapPlatformHCPElement = findChild(manifestAppData, "sap.platform.hcp");
+		const sapPlatformHCPElement = findChild(manifestAppData, "sap.platform.hcp");
 		if ( sapPlatformHCPElement ) {
 			return {
 				_version: sectionVersion(APP_DESCRIPTOR_V3_OTHER_SECTIONS),
@@ -508,12 +508,12 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		if ( version == null ) {
 			return version;
 		}
-		let v = new Version(version);
+		const v = new Version(version);
 		return v.major + "." + v.minor;
 	}
 
 	function getVersion(dependency) {
-		let version = dependency.getVersion();
+		const version = dependency.getVersion();
 		if ( version != null ) {
 			return version;
 		}
@@ -522,10 +522,10 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			return entity.metadata && entity.metadata.name === dependency.getLibraryName();
 		}
 
-		let project = libraryResource._project;
+		const project = libraryResource._project;
 		if ( project ) {
 			if ( Array.isArray(project.dependencies) ) {
-				let lib = project.dependencies.find(hasName);
+				const lib = project.dependencies.find(hasName);
 				if ( lib ) {
 					return lib.version;
 				}
@@ -558,11 +558,11 @@ module.exports = function({libraryResource, resources, options}) {
 		prettyPrint: true
 	}, options);
 
-	let resourcePathPrefix = libraryResource.getPath().slice(0, -".library".length);
-	let libBundle = new LibraryBundle(resourcePathPrefix, resources);
+	const resourcePathPrefix = libraryResource.getPath().slice(0, -".library".length);
+	const libBundle = new LibraryBundle(resourcePathPrefix, resources);
 
 	// check whether a manifest exists already
-	let manifestResource = libBundle.findResource("manifest.json");
+	const manifestResource = libBundle.findResource("manifest.json");
 	if ( manifestResource != null ) {
 		log.info("Library manifest already exists at '%s', skipping generation", manifestResource.getPath());
 		return Promise.resolve(null); // a fulfillment of null indicates that no manifest has been created

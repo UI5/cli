@@ -30,7 +30,7 @@ const findFiles = (folder) => {
 };
 
 function cloneProjectTree(tree) {
-	let clone = JSON.parse(JSON.stringify(tree));
+	const clone = JSON.parse(JSON.stringify(tree));
 	function increaseDepth(node) {
 		node._level++;
 		if ( Array.isArray(node.dependencies) ) {

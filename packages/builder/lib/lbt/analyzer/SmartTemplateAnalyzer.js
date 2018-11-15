@@ -52,11 +52,11 @@ class TemplateComponentAnalyzer {
 			return info;
 		}
 
-		let manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
+		const manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
 		try {
-			let manifestResource = await this._pool.findResource(manifestName).catch(() => null);
+			const manifestResource = await this._pool.findResource(manifestName).catch(() => null);
 			if ( manifestResource ) {
-				let fileContent = await manifestResource.buffer();
+				const fileContent = await manifestResource.buffer();
 				await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 			} else {
 				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
@@ -78,14 +78,14 @@ class TemplateComponentAnalyzer {
 	 * @private
 	 */
 	async _analyzeManifest( manifest, info ) {
-		let promises = [];
-		let that = this;
-		let st = (manifest && manifest["sap.ui.generic.app"]) || {};
+		const promises = [];
+		const that = this;
+		const st = (manifest && manifest["sap.ui.generic.app"]) || {};
 		function recurse(ctx) {
 			if ( ctx.pages ) {
 				ctx.pages.forEach((page) => {
 					if ( page.component && page.component.name ) {
-						let module = ModuleName.fromUI5LegacyName( page.component.name + ".Component" );
+						const module = ModuleName.fromUI5LegacyName( page.component.name + ".Component" );
 						log.verbose("template app: add dependency to template component %s", module);
 						info.addDependency(module);
 						promises.push( that._analyzeTemplateComponent(module, page, info) );
@@ -101,8 +101,8 @@ class TemplateComponentAnalyzer {
 
 	async _analyzeTemplateComponent(moduleName, pageConfig, appInfo) {
 		// console.log("analyzing template component %s", moduleName);
-		let resource = await this._pool.findResource(moduleName);
-		let code = await resource.buffer();
+		const resource = await this._pool.findResource(moduleName);
+		const code = await resource.buffer();
 		const ast = esprima.parse(code);
 		const defaultTemplateName = this._analyzeAST(moduleName, ast);
 		const templateName = (pageConfig.component && pageConfig.component.settings &&
@@ -118,8 +118,8 @@ class TemplateComponentAnalyzer {
 		let templateName = "";
 		if ( ast.body.length > 0 && (isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ||
 				isMethodCall(ast.body[0].expression, CALL_DEFINE)) ) {
-			let defineCall = new SapUiDefine(ast.body[0].expression, moduleName);
-			let TA = defineCall.findImportName("sap/suite/ui/generic/template/lib/TemplateAssembler.js");
+			const defineCall = new SapUiDefine(ast.body[0].expression, moduleName);
+			const TA = defineCall.findImportName("sap/suite/ui/generic/template/lib/TemplateAssembler.js");
 			// console.log("local name for TemplateAssembler: %s", TA);
 			if ( TA && defineCall.factory ) {
 				defineCall.factory.body.body.forEach( (stmt) => {

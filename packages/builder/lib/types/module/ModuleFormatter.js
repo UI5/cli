@@ -35,7 +35,7 @@ class ModuleFormatter extends AbstractFormatter {
 			}
 			const paths = project.resources.configuration.paths;
 			const dirChecks =[];
-			for (let virPath in paths) {
+			for (const virPath in paths) {
 				if (paths.hasOwnProperty(virPath)) {
 					const absolutePath = path.join(project.path, paths[virPath]);
 					dirChecks.push(this.dirExists(absolutePath).then((bExists) => {

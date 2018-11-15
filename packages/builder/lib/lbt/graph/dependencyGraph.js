@@ -29,7 +29,7 @@ function createDependencyGraph(pool, roots, options) {
 		node.visited = true;
 
 		return pool.getModuleInfo( name ).then( (module) => {
-			let p = module.dependencies.map( (dep) => {
+			const p = module.dependencies.map( (dep) => {
 				if ( includeConditionalDependencies || !module.isConditionalDependency(dep) ) {
 					return visitNode(dep).then( (child) => child.pred.add( node ) );
 				}
@@ -41,9 +41,9 @@ function createDependencyGraph(pool, roots, options) {
 	}
 
 	// create artificial root node and link it with roots
-	let n0 = new Node("");
+	const n0 = new Node("");
 	nodes.set("", n0);
-	let p = roots.map( (root) => {
+	const p = roots.map( (root) => {
 		// console.log("  entry point %s", root.name);
 		return visitNode(root.name).then( (child) => child.pred.add( n0 ) );
 	});

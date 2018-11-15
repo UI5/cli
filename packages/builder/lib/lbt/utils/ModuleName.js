@@ -48,7 +48,7 @@ function toRequireJSName(path) {
 const KNOWN_TYPES = /\.(properties|css|(?:(?:view\.|fragment\.)?(?:html|json|xml|js))|(?:(?:controller\.)?js))$/;
 
 function getDebugName(name) {
-	let m = KNOWN_TYPES.exec(name);
+	const m = KNOWN_TYPES.exec(name);
 	if ( m && ( m[0].endsWith(".css") || m[0].endsWith(".js") ) && !name.slice(0, m.index).endsWith("-dbg") ) {
 		return name.slice(0, m.index) + "-dbg" + m[0];
 	}
@@ -56,7 +56,7 @@ function getDebugName(name) {
 }
 
 function getNonDebugName(name) {
-	let m = KNOWN_TYPES.exec(name);
+	const m = KNOWN_TYPES.exec(name);
 	if ( m && ( m[0].endsWith(".css") || m[0].endsWith(".js") ) && name.slice(0, m.index).endsWith("-dbg") ) {
 		return name.slice(0, m.index - "-dbg".length) + m[0];
 	}

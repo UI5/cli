@@ -164,7 +164,7 @@ const EnrichedVisitorKeys = (function() {
 	};
 
 	// check for unknown keys in our configuration
-	for ( let type in TempKeys ) {
+	for ( const type in TempKeys ) {
 		if ( VisitorKeys[type] === undefined ) {
 			throw new Error("configuration contains unknown node type '" + type + "'");
 		}
@@ -172,8 +172,8 @@ const EnrichedVisitorKeys = (function() {
 
 	// merge with 'official' visitor keys
 	Object.keys(VisitorKeys).forEach( (type) => {
-		let visitorKeys = VisitorKeys[type];
-		let condKeys = TempKeys[type];
+		const visitorKeys = VisitorKeys[type];
+		const condKeys = TempKeys[type];
 		if ( condKeys === undefined ) {
 			// configuration missing in ConditionalKeys, maybe a new syntax ?
 			throw new Error(`unknown estree node type '${type}', new syntax?`);
@@ -269,7 +269,7 @@ class JSModuleAnalyzer {
 				return;
 			}
 
-			let condKeys = EnrichedVisitorKeys[node.type];
+			const condKeys = EnrichedVisitorKeys[node.type];
 			switch (node.type) {
 			case Syntax.CallExpression:
 				if ( !conditional && isMethodCall(node, CALL_JQUERY_SAP_DECLARE) ) {
@@ -336,7 +336,7 @@ class JSModuleAnalyzer {
 							|| isMethodCall(node, CALL_REQUIRE_PRELOAD)
 							|| isMethodCall(node, CALL_SAP_UI_REQUIRE_PRELOAD) ) {
 					// recognizes a call to jQuery.sap.registerPreloadedModules
-					let legacyCall = isMethodCall(node, CALL_JQUERY_SAP_REGISTER_PRELOADED_MODULES);
+					const legacyCall = isMethodCall(node, CALL_JQUERY_SAP_REGISTER_PRELOADED_MODULES);
 					info.setFormat( legacyCall ? ModuleFormat.UI5_LEGACY : ModuleFormat.UI5_DEFINE);
 					onRegisterPreloadedModules(node, legacyCall);
 				} else if ( isCallableExpression(node.callee) ) {
@@ -346,7 +346,7 @@ class JSModuleAnalyzer {
 					visit(node.callee.body, conditional);
 				} else {
 					// default visit
-					for ( let key of condKeys ) {
+					for ( const key of condKeys ) {
 						visit(node[key.key], key.conditional || conditional);
 					}
 				}
@@ -366,7 +366,7 @@ class JSModuleAnalyzer {
 					visit(node.alternate, true);
 				} else {
 					// default visit
-					for ( let key of condKeys ) {
+					for ( const key of condKeys ) {
 						visit(node[key.key], key.conditional || conditional);
 					}
 				}
@@ -378,7 +378,7 @@ class JSModuleAnalyzer {
 					throw new Error(`Unhandled AST node type ${node.type}`);
 				}
 				// default visit
-				for ( let key of condKeys ) {
+				for ( const key of condKeys ) {
 					visit(node[key.key], key.conditional || conditional);
 				}
 				break;
@@ -454,7 +454,7 @@ class JSModuleAnalyzer {
 			} else {
 				// UI5 signature with one or many required modules
 				for (let i = 0; i < nArgs; i++) {
-					let arg = args[i];
+					const arg = args[i];
 					if ( isString(arg) ) {
 						const requiredModuleName = ModuleName.fromUI5LegacyName( arg.value );
 						info.addDependency(requiredModuleName, conditional);
@@ -475,7 +475,7 @@ class JSModuleAnalyzer {
 		function onSapUiRequireSync(node, conditional) {
 			const args = node.arguments;
 			const nArgs = args.length;
-			let i = 0;
+			const i = 0;
 
 			if ( i < nArgs && isString(args[i]) ) {
 				const moduleName = ModuleName.fromRequireJSName( args[i].value );
@@ -509,7 +509,7 @@ class JSModuleAnalyzer {
 				if ( legacyCall ) {
 					const obj = args[0];
 					isNewSyntax = false;
-					let version = findOwnProperty(obj, "version");
+					const version = findOwnProperty(obj, "version");
 					if ( version && isString(version) && parseFloat(version.value) >= 2.0 ) {
 						isNewSyntax = true;
 					}

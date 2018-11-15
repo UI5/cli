@@ -2,14 +2,14 @@ const applicationType = require("./application/applicationType");
 const libraryType = require("./library/libraryType");
 const moduleType = require("./module/moduleType");
 
-let types = {
+const types = {
 	application: applicationType,
 	library: libraryType,
 	module: moduleType
 };
 
 function getType(typeName) {
-	let type = types[typeName];
+	const type = types[typeName];
 
 	if (!type) {
 		throw new Error("Unkown type '" + typeName + "'");

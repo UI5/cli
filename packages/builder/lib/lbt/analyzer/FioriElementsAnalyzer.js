@@ -93,11 +93,11 @@ class FioriElementsAnalyzer {
 			return info;
 		}
 
-		let manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
+		const manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
 		try {
-			let manifestResource = await this._pool.findResource(manifestName).catch(() => null);
+			const manifestResource = await this._pool.findResource(manifestName).catch(() => null);
 			if ( manifestResource ) {
-				let fileContent = await manifestResource.buffer();
+				const fileContent = await manifestResource.buffer();
 				await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 			} else {
 				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
@@ -119,8 +119,8 @@ class FioriElementsAnalyzer {
 	 * @private
 	 */
 	async _analyzeManifest( manifest, info ) {
-		let promises = [];
-		let st = (manifest && manifest["sap.fe"]) || {};
+		const promises = [];
+		const st = (manifest && manifest["sap.fe"]) || {};
 
 		each(st.entitySets, (entitySetCfg) => {
 			each(entitySetCfg, (activityCfg, activity) => {
@@ -144,14 +144,14 @@ class FioriElementsAnalyzer {
 
 	async _analyzeTemplateComponent(moduleName, pageConfig, appInfo) {
 		// console.log("analyzing template component %s", moduleName);
-		let resource = await this._pool.findResource(moduleName);
-		let code = await resource.buffer();
-		let ast = esprima.parse(code);
-		let defaultTemplateName = this._analyzeAST(moduleName, ast);
-		let templateName = (pageConfig.component && pageConfig.component.settings &&
+		const resource = await this._pool.findResource(moduleName);
+		const code = await resource.buffer();
+		const ast = esprima.parse(code);
+		const defaultTemplateName = this._analyzeAST(moduleName, ast);
+		const templateName = (pageConfig.component && pageConfig.component.settings &&
 								pageConfig.component.settings.templateName) || defaultTemplateName;
 		if ( templateName ) {
-			let templateModuleName = ModuleName.fromUI5LegacyName( templateName, ".view.xml" );
+			const templateModuleName = ModuleName.fromUI5LegacyName( templateName, ".view.xml" );
 			log.verbose("template app: add dependency to template view %s", templateModuleName);
 			appInfo.addDependency(templateModuleName);
 		}
@@ -161,8 +161,8 @@ class FioriElementsAnalyzer {
 		let templateName = "";
 		if ( ast.body.length > 0 && (isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ||
 				isMethodCall(ast.body[0].expression, CALL_DEFINE)) ) {
-			let defineCall = new SapUiDefine(ast.body[0].expression, moduleName);
-			let TA = defineCall.findImportName("sap/fe/core/TemplateAssembler.js");
+			const defineCall = new SapUiDefine(ast.body[0].expression, moduleName);
+			const TA = defineCall.findImportName("sap/fe/core/TemplateAssembler.js");
 			// console.log("local name for TemplateAssembler: %s", TA);
 			if ( TA && defineCall.factory ) {
 				defineCall.factory.body.body.forEach( (stmt) => {
@@ -179,7 +179,7 @@ class FioriElementsAnalyzer {
 	}
 
 	_analyzeTemplateClassDefinition(clazz) {
-		let defaultValue = getValue(clazz, ["metadata", "properties", "templateName", "defaultValue"]);
+		const defaultValue = getValue(clazz, ["metadata", "properties", "templateName", "defaultValue"]);
 		if ( isString(defaultValue) ) {
 			return defaultValue.value;
 		}

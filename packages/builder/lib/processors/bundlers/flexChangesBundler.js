@@ -43,9 +43,9 @@ module.exports = function({resources, options}) {
 			return JSON.parse(buffer.toString());
 		});
 	})).then((changesContent) => {
-		let nNumberOfChanges = changesContent.length;
+		const nNumberOfChanges = changesContent.length;
 		log.verbose("Changes collected. Number of changes: " + nNumberOfChanges);
-		let result = [];
+		const result = [];
 		if (nNumberOfChanges > 0) {
 			changesContent = sortAndStringify(changesContent);
 			result.push(resourceFactory.createResource({

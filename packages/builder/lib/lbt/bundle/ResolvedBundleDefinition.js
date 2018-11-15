@@ -39,7 +39,7 @@ class ResolvedBundleDefinition {
 	}
 
 	createModuleInfo(pool) {
-		let bundleInfo = new ModuleInfo();
+		const bundleInfo = new ModuleInfo();
 		bundleInfo.name = this.name;
 
 		let promise = Promise.resolve(true);

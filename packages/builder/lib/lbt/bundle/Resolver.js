@@ -45,9 +45,10 @@ class BundleResolver {
 		 * @returns {Collection<ModuleName>}
 		 */
 		function collectModulesForSection(section) {
-			let filters;
 			let prevLength;
 			let newKeys;
+
+			const filters = new ResourceFilterList( section.filters ); // resolvePlaceholders(section.getFilters());
 
 			function isAccepted(resourceName, required) {
 				let match = required;
@@ -75,7 +76,7 @@ class BundleResolver {
 					visitedResources[resourceName] = resourceName;
 
 					done = pool.findResourceWithInfo(resourceName).then( function(resource) {
-						let dependencyInfo = resource && resource.info;
+						const dependencyInfo = resource && resource.info;
 						let promises = [];
 
 						if ( isMultiModule(dependencyInfo) ) {
@@ -134,8 +135,6 @@ class BundleResolver {
 				return done;
 			}
 
-			filters = new ResourceFilterList( section.filters ); // resolvePlaceholders(section.getFilters());
-
 			let oldSelectedResources;
 			let oldIgnoredResources;
 			let oldSelectedResourcesSequence;
@@ -191,7 +190,7 @@ class BundleResolver {
 			*/
 
 			// scan all known resources
-			let promises = pool.resources.map( function(resource) {
+			const promises = pool.resources.map( function(resource) {
 				return checkAndAddResource(resource.name, 0);
 			});
 
@@ -244,7 +243,7 @@ class BundleResolver {
 
 		log.verbose("  resolving bundle definition %s", bundle.name);
 
-		let resolved = new ResolvedBundleDefinition(bundle /* , vars*/);
+		const resolved = new ResolvedBundleDefinition(bundle /* , vars*/);
 
 		let previous = Promise.resolve(true);
 
@@ -254,7 +253,7 @@ class BundleResolver {
 					section.name ? " '" + section.name + "'" : "", section.mode);
 
 				// NODE-TODO long t0=System.nanoTime();
-				let resolvedSection = resolved.sections[index];
+				const resolvedSection = resolved.sections[index];
 
 				return collectModulesForSection(section).
 					then( (modules) => {

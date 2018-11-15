@@ -11,7 +11,7 @@ const CALL__SAP_UI_GETCORE = ["sap", "ui", "getCore"];
  * call in a library.js module.
  */
 async function analyze(resource) {
-	let libInfo = {
+	const libInfo = {
 		noLibraryCSS: false,
 		types: [],
 		controls: [],
@@ -27,8 +27,8 @@ async function analyze(resource) {
 				&& node.arguments.length === 1
 				&& node.arguments[0].type === Syntax.ObjectExpression ) {
 			node.arguments[0].properties.forEach( (prop) => {
-				let key = getPropertyKey(prop);
-				let value = prop.value;
+				const key = getPropertyKey(prop);
+				const value = prop.value;
 				if ( key === "noLibraryCSS"
 						&& (value.type === Syntax.Literal && typeof value.value === "boolean") ) {
 					libInfo.noLibraryCSS = value.value;
@@ -46,8 +46,8 @@ async function analyze(resource) {
 			return true; // abort, we're done
 		}
 
-		for ( let key of VisitorKeys[node.type] ) {
-			let child = node[key];
+		for ( const key of VisitorKeys[node.type] ) {
+			const child = node[key];
 			if ( Array.isArray(child) ) {
 				if ( child.some(visit) ) {
 					return true;
@@ -62,7 +62,7 @@ async function analyze(resource) {
 		return false;
 	}
 
-	let code = await resource.getBuffer();
+	const code = await resource.getBuffer();
 	visit( esprima.parse(code) );
 
 	return libInfo;

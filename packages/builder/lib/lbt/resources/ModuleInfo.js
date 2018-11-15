@@ -149,7 +149,7 @@ class ModuleInfo {
 		if ( other instanceof ModuleInfo ) {
 			this.addSubModule( other.name );
 			// accumulate dependencies
-			for ( let dep in other._dependencies ) {
+			for ( const dep in other._dependencies ) {
 				if (other._dependencies.hasOwnProperty(dep)) {
 					this._addDependency(dep, other._dependencies[dep]);
 				}

@@ -3,7 +3,7 @@
 const log = require("@ui5/logger").getLogger("lbt:resources:ResourceFilterList");
 
 function makeMatcher(globPattern) {
-	let result = {
+	const result = {
 		pattern: globPattern,
 		include: true
 	};
@@ -20,7 +20,7 @@ function makeMatcher(globPattern) {
 			globPattern = globPattern.replace(/\/$/, "/**/");
 		}
 
-		let regexp = globPattern.replace(/\*\*\/|\*|[[\]{}()+?.\\^$|]/g, function(match) {
+		const regexp = globPattern.replace(/\*\*\/|\*|[[\]{}()+?.\\^$|]/g, function(match) {
 			switch (match) {
 			case "**/": return "(?:[^/]+/)*";
 			case "*": return "[^/]*";
@@ -144,7 +144,7 @@ class ResourceFilterList {
 }
 
 ResourceFilterList.fromString = function(filterStr) {
-	let result = new ResourceFilterList();
+	const result = new ResourceFilterList();
 	if ( filterStr != null ) {
 		result.addFilters( filterStr.trim().split(/\s*,\s*/) );
 	}

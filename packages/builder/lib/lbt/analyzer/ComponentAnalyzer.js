@@ -56,11 +56,11 @@ class ComponentAnalyzer {
 			return info;
 		}
 
-		let manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
+		const manifestName = resource.name.replace(/Component\.js$/, "manifest.json");
 		try {
-			let manifestResource = await this._pool.findResource(manifestName).catch(() => null);
+			const manifestResource = await this._pool.findResource(manifestName).catch(() => null);
 			if ( manifestResource ) {
-				let fileContent = await manifestResource.buffer();
+				const fileContent = await manifestResource.buffer();
 				this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 			} else {
 				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
@@ -82,7 +82,7 @@ class ComponentAnalyzer {
 	 * @private
 	 */
 	_analyzeManifest( manifest, info ) {
-		let ui5 = (manifest && manifest["sap.ui5"]) || {};
+		const ui5 = (manifest && manifest["sap.ui5"]) || {};
 
 		if ( ui5.resources && ui5.resources.css ) {
 			// TODO how to handle CSS dependencies?
@@ -93,7 +93,7 @@ class ComponentAnalyzer {
 		}
 
 		if ( ui5.rootView ) {
-			let module = ModuleName.fromUI5LegacyName(
+			const module = ModuleName.fromUI5LegacyName(
 				ui5.rootView.viewName,
 				".view." + ui5.rootView.type.toLowerCase() );
 			log.verbose("adding root view dependency ", module);
@@ -101,13 +101,13 @@ class ComponentAnalyzer {
 		}
 
 		each( ui5.dependencies && ui5.dependencies.libs, (options, lib) => {
-			let module = ModuleName.fromUI5LegacyName(lib, "/library.js");
+			const module = ModuleName.fromUI5LegacyName(lib, "/library.js");
 			log.verbose("adding library dependency ", module, options.lazy || false);
 			info.addDependency( module, options.lazy ); // lazy -> conditional dependency
 		});
 
 		each( ui5.dependencies && ui5.dependencies.components, (options, component) => {
-			let module = ModuleName.fromUI5LegacyName(component, "/Component.js");
+			const module = ModuleName.fromUI5LegacyName(component, "/Component.js");
 			log.verbose("adding component dependency ", module, options.lazy || false);
 			info.addDependency( module, options.lazy ); // lazy -> conditional dependency
 		});
@@ -116,18 +116,18 @@ class ComponentAnalyzer {
 
 		each( ui5.models, (options, model) => {
 			if ( options.type ) {
-				let module = ModuleName.fromUI5LegacyName( options.type );
+				const module = ModuleName.fromUI5LegacyName( options.type );
 				log.verbose("derived model implementation dependency ", module);
 				info.addDependency(module);
 			}
 		});
 
-		let routing = ui5.routing;
+		const routing = ui5.routing;
 		if ( routing ) {
 			if (Array.isArray(routing.routes)) {
 				routing.routes.forEach((route) => this._visitRoute(route, routing, info));
 			} else {
-				for (let key in routing.routes) {
+				for (const key in routing.routes) {
 					if (!routing.routes.hasOwnProperty(key)) {
 						continue;
 					}

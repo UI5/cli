@@ -64,11 +64,11 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 			rawInfo.dependencies.forEach( (dep) => info.addDependency(dep) );
 		} else {
 			// console.log("analyzing %s", resource.file);
-			let code = await resource.buffer();
+			const code = await resource.buffer();
 			info.size = code.length;
-			let promises = [];
+			const promises = [];
 			try {
-				let ast = esprima.parse(code);
+				const ast = esprima.parse(code);
 				jsAnalyzer.analyze(ast, resource.name, info);
 				new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
 			} catch (error) {
@@ -86,15 +86,15 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		}
 		// console.log(info);
 	} else if ( /\.view.xml$/.test(resource.name) ) {
-		let xmlView = await resource.buffer();
+		const xmlView = await resource.buffer();
 		info.size = xmlView.length;
 		new XMLTemplateAnalyzer(pool).analyzeView(xmlView, info);
 	} else if ( /\.control.xml$/.test(resource.name) ) {
-		let xmlView = await resource.buffer();
+		const xmlView = await resource.buffer();
 		info.size = xmlView.length;
 		new XMLTemplateAnalyzer(pool).analyzeFragment(xmlView, info);
 	} else if ( /\.fragment.xml$/.test(resource.name) ) {
-		let xmlView = await resource.buffer();
+		const xmlView = await resource.buffer();
 		info.size = xmlView.length;
 		new XMLTemplateAnalyzer(pool).analyzeFragment(xmlView, info);
 	}
@@ -118,7 +118,7 @@ class ResourcePool {
 			prefix: prefix
 		});
 		log.verbose("  scanning <%s> for resources (prefix='%s')", fileOrFolder, prefix);
-		let p = scanFileOrDir(fileOrFolder, prefix, this);
+		const p = scanFileOrDir(fileOrFolder, prefix, this);
 		this.whenReady = this.whenReady.then( () => p );
 	}
 
@@ -134,8 +134,8 @@ class ResourcePool {
 		if ( /\.library$/.test(resource.name) ) {
 			// read raw-module info from .library files
 			return resource.buffer().then( (buffer) => {
-				let infos = LibraryFileAnalyzer.getDependencyInfos( buffer );
-				for ( let name in infos ) {
+				const infos = LibraryFileAnalyzer.getDependencyInfos( buffer );
+				for ( const name in infos ) {
 					if (infos.hasOwnProperty(name)) {
 						this._rawModuleInfos.set(name, infos[name]);
 					}
@@ -148,7 +148,7 @@ class ResourcePool {
 		let info = this._dependencyInfos.get(name);
 		if ( info == null ) {
 			// console.log("analyzing ", name);
-			let resource = await this.findResource(name);
+			const resource = await this.findResource(name);
 			info = await determineDependencyInfo( resource, this._rawModuleInfos.get(name), this );
 			// console.log("finished analyzing ", name);
 			this._dependencyInfos.set(name, info);
@@ -157,7 +157,7 @@ class ResourcePool {
 	}
 
 	async findResource(name) {
-		let resource = this._resourcesByName.get(name);
+		const resource = this._resourcesByName.get(name);
 		if ( resource == null ) {
 			throw new Error("resource not found in pool: '" + name + "'");
 		}

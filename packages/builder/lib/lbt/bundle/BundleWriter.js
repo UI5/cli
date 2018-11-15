@@ -67,7 +67,7 @@ class BundleWriter {
 		}
 		this.currentSegment.endIndex = this.length;
 		this.segments.push(this.currentSegment);
-		let targetSize = this.currentSegment.endIndex - this.currentSegment.startIndex;
+		const targetSize = this.currentSegment.endIndex - this.currentSegment.startIndex;
 		this.currentSegment = null;
 		this.currentSourceIndex = -1;
 		return targetSize;

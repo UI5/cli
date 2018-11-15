@@ -16,8 +16,8 @@ class XMLCompositeAnalyzer {
 		if ( ast.body.length > 0 && ast.body[0].type === Syntax.ExpressionStatement &&
 				(isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ||
 				isMethodCall(ast.body[0].expression, CALL_DEFINE)) ) {
-			let defineCall = new SapUiDefine(ast.body[0].expression, moduleName);
-			let XMLC = defineCall.findImportName("sap/ui/core/XMLComposite.js");
+			const defineCall = new SapUiDefine(ast.body[0].expression, moduleName);
+			const XMLC = defineCall.findImportName("sap/ui/core/XMLComposite.js");
 			// console.log("local name for XMLComposite: %s", XMLC);
 			if ( XMLC && defineCall.factory ) {
 				defineCall.factory.body.body.forEach( (stmt) => {
@@ -31,7 +31,7 @@ class XMLCompositeAnalyzer {
 					}
 				});
 				if ( fragmentName ) {
-					let fragmentModule = ModuleName.fromUI5LegacyName( fragmentName, ".control.xml" );
+					const fragmentModule = ModuleName.fromUI5LegacyName( fragmentName, ".control.xml" );
 					log.verbose("fragment control: add dependency to template fragment %s", fragmentModule);
 					info.addDependency(fragmentModule);
 				}
@@ -55,7 +55,7 @@ class XMLCompositeAnalyzer {
 
 	_analyzeXMLCClassDefinition(clazz) {
 		// log.verbose(clazz);
-		let fragmentName = getValue(clazz, ["fragment"]);
+		const fragmentName = getValue(clazz, ["fragment"]);
 		if ( isString(fragmentName) ) {
 			return fragmentName.value;
 		}

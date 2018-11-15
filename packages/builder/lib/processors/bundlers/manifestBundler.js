@@ -56,7 +56,7 @@ class I18nResourceList {
 module.exports = ({resources, options}) => {
 	function getDescriptorI18nInfo(manifest) {
 		const content = JSON.parse(manifest.content);
-		let i18nFullPath = content["sap.app"]["i18n"] || "i18n/i18n.properties";
+		const i18nFullPath = content["sap.app"]["i18n"] || "i18n/i18n.properties";
 		return {
 			path: path.join(path.dirname(manifest.path), path.dirname(i18nFullPath)),
 			rootName: path.basename(i18nFullPath, options.propertiesExtension)
@@ -106,7 +106,7 @@ module.exports = ({resources, options}) => {
 		});
 		zip.finalize();
 
-		let res = resourceFactory.createResource({
+		const res = resourceFactory.createResource({
 			path: "/" + options.bundleName,
 			stream: zip
 		});

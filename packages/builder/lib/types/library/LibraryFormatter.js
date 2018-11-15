@@ -42,7 +42,7 @@ class LibraryFormatter extends AbstractFormatter {
 					throw new Error(`Found multiple (${dotLibraryResources.length}) .library files ` +
 						`for project ${project.id}`);
 				}
-				let fsPath = path.join(basePath, dotLibraryResources[0]);
+				const fsPath = path.join(basePath, dotLibraryResources[0]);
 				return readFile(fsPath)
 					.then((content) => xmlParse(content))
 					.then((result) => {

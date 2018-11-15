@@ -74,7 +74,7 @@ class AutoSplitter {
 			totalSize, numberOfParts, partSize);
 
 		// ---- create a separate module definition for each part
-		let splittedModules = [];
+		const splittedModules = [];
 		let moduleNameWithPart = moduleDef.name;
 		if ( !/__part__/.test(moduleNameWithPart) ) {
 			moduleNameWithPart = ModuleName.toRequireJSName(moduleNameWithPart) + "-__part__.js";
@@ -126,7 +126,7 @@ class AutoSplitter {
 				currentSection.name = section.name;
 				currentModule.sections.push( currentSection );
 				section.modules.forEach( (module) => {
-					let moduleSize = moduleSizes[module];
+					const moduleSize = moduleSizes[module];
 					if ( part + 1 < numberOfParts && totalSize + moduleSize / 2 > partSize ) {
 						part++;
 						// start a new module
@@ -172,7 +172,7 @@ class AutoSplitter {
 	}
 
 	async _calcMinSize(module) {
-		let resource = await this.pool.findResourceWithInfo(module);
+		const resource = await this.pool.findResourceWithInfo(module);
 		if ( resource != null ) {
 			if ( resource.info && resource.info.compressedSize &&
 					resource.info.compressedSize !== resource.info.size ) {
@@ -184,7 +184,7 @@ class AutoSplitter {
 				let fileContent = await resource.buffer();
 				if ( this.optimize ) {
 					// console.log("uglify %s start", module);
-					let result = uglify.minify({
+					const result = uglify.minify({
 						[resource.name]: String(fileContent)
 					}, {
 						warnings: false, // TODO configure?
@@ -204,7 +204,7 @@ class AutoSplitter {
 				// trace.debug("analyzed %s:%d%n", module, mw.getTargetLength());
 				return fileContent.length;
 			} else if ( /\.properties$/.test(module) ) {
-				let fileContent = await resource.buffer();
+				const fileContent = await resource.buffer();
 				/* NODE-TODO minimize *.properties
 				Properties props = new Properties();
 				props.load(in);
@@ -230,7 +230,7 @@ class AutoSplitter {
 
 			// if there is no precompiled information about the resource, just determine its length
 			if ( !resource.info && /\.(js|json|xml)$/.test(module) ) {
-				let fileContent = await resource.buffer();
+				const fileContent = await resource.buffer();
 				return fileContent.length;
 			}
 		}
