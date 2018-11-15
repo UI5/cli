@@ -59,7 +59,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 		return Promise.resolve().then(() => {
 			const mm = new minimatch.Minimatch(virPattern);
 
-			let basePathParts = this._virBaseDir.split("/");
+			const basePathParts = this._virBaseDir.split("/");
 
 			function matchSubset(subset) {
 				let i;
@@ -94,7 +94,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 
 			const resultGlobs = [];
 			for (let i = 0; i < mm.set.length; i++) {
-				let matchIdx = matchSubset(mm.set[i]);
+				const matchIdx = matchSubset(mm.set[i]);
 				let resultPattern;
 				if (matchIdx !== -42) {
 					if (matchIdx === -1) { // matched one up

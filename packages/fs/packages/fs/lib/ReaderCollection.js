@@ -47,8 +47,8 @@ class ReaderCollection extends AbstractReader {
 	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
 	 */
 	_byPath(virPath, options, trace) {
-		let that = this;
-		let resourceLocatorCount = this._readers.length;
+		const that = this;
+		const resourceLocatorCount = this._readers.length;
 		let resolveCount = 0;
 
 		if (this._readers.length === 0) {

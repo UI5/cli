@@ -23,8 +23,8 @@ function reset() {
 
 function report() {
 	let report = "";
-	let time = prettyHrtime(traceData.timeDiff);
-	let colCount = Object.keys(traceData.collections).length;
+	const time = prettyHrtime(traceData.timeDiff);
+	const colCount = Object.keys(traceData.collections).length;
 
 	report += "==========================\n[=> TRACE SUMMARY:\n";
 	report += `  ${time} elapsed time \n`;
@@ -37,7 +37,7 @@ function report() {
 	}
 	report += `  ${colCount} rl-collections involed:\n`;
 
-	for (let coll in traceData.collections) {
+	for (const coll in traceData.collections) {
 		if (traceData.collections.hasOwnProperty(coll)) {
 			report += `      ${traceData.collections[coll].calls}x ${coll}\n`;
 		}
@@ -92,7 +92,7 @@ function collection(name) {
 	if (!active) {
 		return;
 	}
-	let collection = traceData.collections[name];
+	const collection = traceData.collections[name];
 	if (collection) {
 		traceData.collections[name].calls++;
 	} else {

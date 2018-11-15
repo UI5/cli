@@ -122,7 +122,7 @@ class Resource {
 	 */
 	getStream() {
 		if (this._buffer) {
-			let bufferStream = new stream.PassThrough();
+			const bufferStream = new stream.PassThrough();
 			bufferStream.end(this._buffer);
 			return bufferStream;
 		} else if (this._createStream || this._stream) {
@@ -193,7 +193,7 @@ class Resource {
 	 * @returns {Promise<Resource>} A promise resolving the resource.
 	 */
 	clone() {
-		let options = {
+		const options = {
 			path: this._path,
 			statInfo: clone(this._statInfo)
 		};
@@ -224,7 +224,7 @@ class Resource {
 	 * @returns {Object}
 	 */
 	getPathTree() {
-		let tree = {};
+		const tree = {};
 
 		let pointer = tree[this._path] = {};
 
@@ -256,8 +256,8 @@ class Resource {
 	 */
 	_getBufferFromStream() {
 		return new Promise((resolve, reject) => {
-			let contentStream = this._getStream();
-			let buffers = [];
+			const contentStream = this._getStream();
+			const buffers = [];
 			contentStream.on("data", (data) => {
 				buffers.push(data);
 			});
@@ -265,7 +265,7 @@ class Resource {
 				reject(err);
 			});
 			contentStream.on("end", () => {
-				let buffer = Buffer.concat(buffers);
+				const buffer = Buffer.concat(buffers);
 				this.setBuffer(buffer);
 				resolve(buffer);
 			});

@@ -30,7 +30,7 @@ class Trace {
 	}
 
 	collection(name) {
-		let collection = this._collections[name];
+		const collection = this._collections[name];
 		if (collection) {
 			this._collections[name].calls++;
 		} else {
@@ -43,9 +43,9 @@ class Trace {
 
 	printReport() {
 		let report = "";
-		let timeDiff = process.hrtime(this._startTime);
-		let time = prettyHrtime(timeDiff);
-		let colCount = Object.keys(this._collections).length;
+		const timeDiff = process.hrtime(this._startTime);
+		const time = prettyHrtime(timeDiff);
+		const colCount = Object.keys(this._collections).length;
 
 		report += `[Trace: ${this._name}\n`;
 		report += `  ${time} elapsed time \n`;
@@ -57,7 +57,7 @@ class Trace {
 		}
 		report += `  ${colCount} reader-collections involed:\n`;
 
-		for (let coll in this._collections) {
+		for (const coll in this._collections) {
 			if (this._collections.hasOwnProperty(coll)) {
 				report += `      ${this._collections[coll].calls}x ${coll}\n`;
 			}
