@@ -347,7 +347,7 @@ class ProjectPreprocessor {
 		if (configurations) {
 			log.verbose(`Project shim ${extension.id} contains ` +
 				`${Object.keys(configurations)} configuration(s)`);
-			for (let projectId in configurations) {
+			for (const projectId in configurations) {
 				if (configurations.hasOwnProperty(projectId)) {
 					this.normalizeConfig(configurations[projectId]); // TODO: Clone object beforehand?
 					if (this.configShims[projectId]) {
@@ -366,7 +366,7 @@ class ProjectPreprocessor {
 
 		if (dependencies) {
 			// For the time being, shimmed dependencies only apply to shimmed project configurations
-			for (let projectId in dependencies) {
+			for (const projectId in dependencies) {
 				if (dependencies.hasOwnProperty(projectId)) {
 					if (this.configShims[projectId]) {
 						log.verbose(`Project shim ${extension.id}: Adding dependencies ` +
@@ -384,7 +384,7 @@ class ProjectPreprocessor {
 		if (collections) {
 			log.verbose(`Project shim ${extension.id} contains ` +
 				`${Object.keys(collections).length} collection(s)`);
-			for (let projectId in collections) {
+			for (const projectId in collections) {
 				if (collections.hasOwnProperty(projectId)) {
 					if (this.collections[projectId]) {
 						log.verbose(`Project shim ${extension.id}: A collection with id '${projectId}' `+
@@ -441,7 +441,7 @@ class ProjectPreprocessor {
 				const collectionDep = project.dependencies[i];
 				const collectionModules = this.collections[depId].modules;
 				const projects = [];
-				for (let projectId in collectionModules) {
+				for (const projectId in collectionModules) {
 					if (collectionModules.hasOwnProperty(projectId)) {
 						// Clone and modify collection "project"
 						const project = JSON.parse(JSON.stringify(collectionDep));

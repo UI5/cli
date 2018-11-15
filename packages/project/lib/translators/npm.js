@@ -32,7 +32,7 @@ class NpmTranslator {
 
 		let dependencies = pkg.dependencies || {};
 		let optDependencies = pkg.devDependencies || {};
-		let version = pkg.version;
+		const version = pkg.version;
 
 		// Also look for "napa" dependencies (see https://github.com/shama/napa)
 		if (pkg.napa) {
@@ -44,7 +44,7 @@ class NpmTranslator {
 		const ui5Deps = pkg.ui5 && pkg.ui5.dependencies;
 		if (ui5Deps && ui5Deps.length) {
 			for (let i = 0; i < ui5Deps.length; i++) {
-				let depName = ui5Deps[i];
+				const depName = ui5Deps[i];
 				if (!dependencies[depName] && !optDependencies[depName]) {
 					throw new Error(`[npm translator] Module ${depName} is defined as UI5 dependency ` +
 						`but missing from npm dependencies of module ${moduleName}`);
@@ -55,7 +55,7 @@ class NpmTranslator {
 			dependencies = Object.assign({}, dependencies, optDependencies);
 			optDependencies = {};
 
-			for (let depName in dependencies) {
+			for (const depName in dependencies) {
 				if (dependencies.hasOwnProperty(depName) && ui5Deps.indexOf(depName) === -1) {
 					log.verbose("Ignoring npm dependency %s. Not defined in UI5-dependency configuration.", depName);
 					delete dependencies[depName];
@@ -80,7 +80,7 @@ class NpmTranslator {
 			}).then((depProjects) => {
 				// Array needs to be flattened because:
 				// getDepProjects returns array * 2 = array with two arrays
-				let projects = Array.prototype.concat.apply([], depProjects);
+				const projects = Array.prototype.concat.apply([], depProjects);
 
 				return [{
 					id: moduleName,
@@ -294,7 +294,7 @@ class NpmTranslator {
 			*/
 
 			for (let i = 0; i < tree.length; i++) {
-				let rootPackage = tree[i];
+				const rootPackage = tree[i];
 				if (path.resolve(rootPackage.path) === path.resolve(dirPath)) {
 					log.verbose("Built tree:");
 					log.verbose(rootPackage);

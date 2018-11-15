@@ -36,7 +36,7 @@ async function generateProjectTree(options) {
  */
 async function generateDependencyTree(options) {
 	log.verbose("Building dependency tree...");
-	let cwd = options && options.cwd || ".";
+	const cwd = options && options.cwd || ".";
 
 	let translatorName = "npm"; // Default is npm translator
 	let translatorParams = [];
