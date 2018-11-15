@@ -1,5 +1,5 @@
 // Init
-let init = {
+const init = {
 	command: "init",
 	describe: "Initialize the UI5 Build and Development Tooling configuration for an application or library project.",
 	middlewares: [require("../middlewares/base.js")]

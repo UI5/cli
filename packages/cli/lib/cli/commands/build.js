@@ -2,7 +2,7 @@
 
 const baseMiddleware = require("../middlewares/base.js");
 
-let build = {
+const build = {
 	command: "build",
 	describe: "Build project in current directory",
 	handler: handleBuild,

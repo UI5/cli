@@ -1,5 +1,5 @@
 // Serve
-let serve = {
+const serve = {
 	command: "serve",
 	describe: "Start a webserver for the current project",
 	middlewares: [require("../middlewares/base.js")]
@@ -75,7 +75,7 @@ serve.handler = function(argv) {
 			}
 		}).then((serverConfig) => {
 			return server.serve(tree, serverConfig).then(function({h2, port}) {
-				let protocol = h2 ? "https" : "http";
+				const protocol = h2 ? "https" : "http";
 				let browserUrl = protocol + "://localhost:" + port;
 				if (argv.open !== undefined) {
 					let relPath = argv.open || "/";

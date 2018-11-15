@@ -1,5 +1,5 @@
 // Tree
-let tree = {
+const tree = {
 	command: "tree",
 	describe: "Outputs the dependency tree of the current project to stdout. It takes all relevant parameters of ui5 build into account.",
 	middlewares: [require("../middlewares/base.js")]
