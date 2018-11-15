@@ -1,6 +1,7 @@
 ![UI5 icon](https://raw.githubusercontent.com/SAP/ui5-tooling/master/docs/images/UI5_logo_wide.png)
 
 # ui5-cli
+
 > UI5 Command Line Interface  
 > Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
 
@@ -14,14 +15,18 @@
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
 ## General Information
-- General information regarding the **UI5 Build and Development Tooling** project can be found **[here](https://github.com/SAP/ui5-tooling)**
-- Details regarding **project configuration** can be found **[here](https://github.com/SAP/ui5-project#configuration)**
+
+-   General information regarding the **UI5 Build and Development Tooling** project can be found **[here](https://github.com/SAP/ui5-tooling)**
+-   Details regarding **project configuration** can be found **[here](https://github.com/SAP/ui5-project#configuration)**
 
 ## Installing the UI5 CLI
+
 ### Requirements
-- [Node.js](https://nodejs.org/) (**version 8.5 or higher** ⚠️)
+
+-   [Node.js](https://nodejs.org/) (**version 8.5 or higher** ⚠️)
 
 ### Installation
+
 ```sh
 npm install --global @ui5/cli
 
@@ -30,7 +35,9 @@ ui5 --help
 ```
 
 ## CLI Usage
+
 ### Overview
+
 ```
 Usage: ui5 <command> [options]
 
@@ -56,8 +63,11 @@ Examples:
 The CLI automatically checks for updates using [update-notifier](https://github.com/yeoman/update-notifier). While this is skipped in CI environments, you might also opt-out manually by following the steps described [here](https://github.com/yeoman/update-notifier/blob/master/readme.md#user-settings).
 
 ### Commands
+
 #### build
+
 `ui5 build [options]` builds the project in the current directory.
+
 ```
 Commands:
 	dev             Dev build: Skips non-essential and time-intensive tasks during build
@@ -85,8 +95,11 @@ Examples:
 	ui5 build dev --all --dev-exclude-project=sap.ui.core sap.m                          Build project and dependencies in dev mode, except "sap.ui.core" and "sap.m" (useful in combination with --include-task)
 	ui5 build dev                                                                        Build project and dependencies in dev mode. Only a set of essential tasks is executed.
 ```
+
 #### serve
+
 `ui5 serve [options]` starts a webserver for the current project.
+
 ```
 Options:
 	--help, -h                    Show help  [boolean]
@@ -109,8 +122,11 @@ Examples:
 	ui5 serve --translator static:/path/to/projectDependencies.yaml  Use a "static" translator with translator parameters.
 	ui5 serve --port 1337 --open tests/QUnit.html                Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html
 ```
+
 #### tree
-`ui5 tree [options]` outputs the dependency tree of the current project to *stdout*. It takes all relevant parameters of ui5 build into account.
+
+`ui5 tree [options]` outputs the dependency tree of the current project to _stdout_. It takes all relevant parameters of ui5 build into account.
+
 ```
 Options:
 	--help, -h            Show help  [boolean]
@@ -128,7 +144,9 @@ Examples:
 ```
 
 #### init
+
 `ui5 init [options]` initializes the UI5 Build and Development Tooling configuration for an application or library project.
+
 ```
 Options:
 	--help, -h            Show help  [boolean]
@@ -139,7 +157,23 @@ Options:
 	--loglevel            Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
 ```
 
+#### versions
+
+`ui5 versions [options]` show the versions of all UI5 Build and Development Tooling packages.
+
+```
+Options:
+	--help, -h            Show help  [boolean]
+	--version, -v         Show version number  [boolean]
+	--config              Path to config file  [string]
+	--translator, --t8r   Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
+	--verbose             Enable verbose logging. [boolean]
+	--loglevel            Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
+
+```
+
 ### Local vs. Global Installation
+
 In general a global installation of the UI5 CLI (`npm install --global @ui5/cli`) is recommended.
 
 However, it makes sense to add the UI5 CLI as a [devDependency](https://docs.npmjs.com/files/package.json#devdependencies) (`npm install --save-dev @ui5/cli`) for a project that is using `ui5`-commands in its build or test scripts or otherwise depends on the UI5 CLI for development workflows (like Continuous Integration).
@@ -151,24 +185,27 @@ This behavior can be disabled by setting the environment variable `UI5_CLI_NO_LO
 **Example**  
 You have a project located at `/my-application`. The project has a devDependency to `@ui5/cli` and defines a start-script `"ui5 serve"`.
 
-Current Working Directory | Command | Uses globally installed UI5 CLI | Uses locally installed UI5 CLI
---- | --- | :---: | :---:
-`/` | `ui5 --version` | ✔️ |
-`/my-application` | `ui5 --version` |  | ✔️
-`/my-application` | `ui5 serve` |  | ✔️
-`/my-application` | `npm start` |  | ✔️
-`/my-application` | `UI5_CLI_NO_LOCAL=X ui5 serve` | ✔️ |
-`/my-application` | `UI5_CLI_NO_LOCAL=X npm start` |  | ✔️
-
+| Current Working Directory | Command                         | Uses globally installed UI5 CLI | Uses locally installed UI5 CLI |
+| ------------------------- | ------------------------------- | :-----------------------------: | :----------------------------: |
+| `/`                       |  `ui5 --version`                |               ✔️                |
+| `/my-application`         |  `ui5 --version`                |                                 |               ✔️               |
+| `/my-application`         |  `ui5 serve`                    |                                 |               ✔️               |
+| `/my-application`         |  `npm start`                    |                                 |               ✔️               |
+| `/my-application`         |  `UI5_CLI_NO_LOCAL=X ui5 serve` |               ✔️                |
+| `/my-application`         |  `UI5_CLI_NO_LOCAL=X npm start` |                                 |               ✔️               |
 
 ## Contributing
+
 Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md).
 
 ## Support
+
 Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
 ## Release History
+
 See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
+
 This project is licensed under the Apache Software License, Version 2.0 except as noted otherwise in the [LICENSE](/LICENSE.txt) file.
