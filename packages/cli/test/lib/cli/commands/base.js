@@ -7,10 +7,10 @@ const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 
 test("ui5 --version", async (t) => {
 	const {stdout} = await ui5(["--version"]);
-	t.is(stdout, pkg.version);
+	t.is(stdout, `${pkg.version} (from ${ui5Cli})`);
 });
 
 test("ui5 -v", async (t) => {
 	const {stdout} = await ui5(["-v"]);
-	t.is(stdout, pkg.version);
+	t.is(stdout, `${pkg.version} (from ${ui5Cli})`);
 });
