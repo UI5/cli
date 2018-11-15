@@ -283,12 +283,19 @@ class ProjectPreprocessor {
 			throw new Error(`Root project needs to be of kind "project". ${project.id} is of kind ${project.kind}`);
 		}
 
-		if (project.kind === "project" && project.type === "application" && project._level !== 0) {
-			// There is only one project project of type application allowed
-			// That project needs to be the root project
-			log.verbose(`[Warn] Ignoring project ${project.id} with type application`+
-					` (distance to root: ${project._level}). Type application is only allowed for the root project`);
-			return false; // ignore this project
+		if (project.kind === "project" && project.type === "application") {
+			// There must be exactly one application project per dependency tree
+			// If multiple are found, all but the one closest to the root are rejected (ignored)
+			// If there are two projects equally close to the root, an error is being thrown
+			if (!this.qualifiedApplicationProject) {
+				this.qualifiedApplicationProject = project;
+			} else if (this.qualifiedApplicationProject._level === project._level) {
+				throw new Error(`Found at least two projects ${this.qualifiedApplicationProject.id} and ` +
+					`${project.id} of type application with the same distance to the root project. ` +
+					"Only one project of type application can be used. Failed to decide which one to ignore.");
+			} else {
+				return false; // ignore this project
+			}
 		}
 
 		return true;

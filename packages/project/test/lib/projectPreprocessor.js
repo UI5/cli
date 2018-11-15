@@ -200,6 +200,143 @@ test("Missing dependencies", (t) => {
 		"Gracefully accepted project with no dependency attribute");
 });
 
+test("Single non-root application-project", (t) => {
+	const tree = ({
+		id: "library.a",
+		version: "1.0.0",
+		path: libraryAPath,
+		dependencies: [{
+			id: "application.a",
+			version: "1.0.0",
+			path: applicationAPath,
+			dependencies: []
+		}]
+	});
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree.id, "library.a", "Correct root project");
+		t.deepEqual(parsedTree.dependencies.length, 1, "application-project dependency was not ignored");
+		t.deepEqual(parsedTree.dependencies[0].id, "application.a", "application-project is on second level");
+	});
+});
+
+test("Multiple non-root application-projects on same level", (t) => {
+	const tree = ({
+		id: "library.a",
+		version: "1.0.0",
+		path: libraryAPath,
+		dependencies: [{
+			id: "application.a",
+			version: "1.0.0",
+			path: applicationAPath,
+			dependencies: []
+		}, {
+			id: "application.b",
+			version: "1.0.0",
+			path: applicationBPath,
+			dependencies: []
+		}]
+	});
+	return t.throws(projectPreprocessor.processTree(tree),
+		"Found at least two projects application.a and application.b of type application with the same distance to " +
+			"the root project. Only one project of type application can be used. Failed to decide which one to ignore.",
+		"Rejected with error");
+});
+
+test("Multiple non-root application-projects on different levels", (t) => {
+	const tree = ({
+		id: "library.a",
+		version: "1.0.0",
+		path: libraryAPath,
+		dependencies: [{
+			id: "application.a",
+			version: "1.0.0",
+			path: applicationAPath,
+			dependencies: []
+		}, {
+			id: "library.b",
+			version: "1.0.0",
+			path: libraryBPath,
+			dependencies: [{
+				id: "application.b",
+				version: "1.0.0",
+				path: applicationBPath,
+				dependencies: []
+			}]
+		}]
+	});
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree.id, "library.a", "Correct root project");
+		t.deepEqual(parsedTree.dependencies.length, 2, "No dependency of the first level got ignored");
+		t.deepEqual(parsedTree.dependencies[0].id, "application.a", "First application-project did not get ignored");
+		t.deepEqual(parsedTree.dependencies[1].dependencies.length, 0,
+			"Second (deeper) application-project got ignored");
+	});
+});
+
+test("Root- and non-root application-projects", (t) => {
+	const tree = ({
+		id: "application.a",
+		version: "1.0.0",
+		path: applicationAPath,
+		dependencies: [{
+			id: "library.a",
+			version: "1.0.0",
+			path: libraryAPath,
+			dependencies: [{
+				id: "application.b",
+				version: "1.0.0",
+				path: applicationBPath,
+				dependencies: []
+			}]
+		}]
+	});
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree.id, "application.a", "Correct root project");
+		t.deepEqual(parsedTree.dependencies[0].id, "library.a", "Correct library dependency");
+		t.deepEqual(parsedTree.dependencies[0].dependencies[0], undefined,
+			"Second application-project dependency was ignored");
+	});
+});
+
+test("Ignores additional application-projects", (t) => {
+	const tree = ({
+		id: "application.a",
+		version: "1.0.0",
+		path: applicationAPath,
+		dependencies: [{
+			id: "application.b",
+			version: "1.0.0",
+			path: applicationBPath,
+			dependencies: []
+		}]
+	});
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree, {
+			_level: 0,
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			resources: {
+				configuration: {
+					paths: {
+						webapp: "webapp"
+					}
+				},
+				pathMappings: {
+					"/": "webapp",
+				}
+			},
+			dependencies: [],
+			id: "application.a",
+			kind: "project",
+			version: "1.0.0",
+			specVersion: "0.1",
+			path: applicationAPath
+		}, "Parsed correctly");
+	});
+});
+
 test("Inconsistent dependencies with same ID", (t) => {
 	// The one closer to the root should win
 	const tree = {
