@@ -59,7 +59,7 @@ function createCollectionsForTree(tree, {useNamespaces=false} = {}) {
 	if (tree.resources && tree.resources.pathMappings) {
 		for (let virBasePath in tree.resources.pathMappings) {
 			if (tree.resources.pathMappings.hasOwnProperty(virBasePath)) {
-				let fsBasePath = path.join(tree.path, tree.resources.pathMappings[virBasePath]);
+				const fsBasePath = path.join(tree.path, tree.resources.pathMappings[virBasePath]);
 
 				if (useNamespaces && tree.metadata.namespace) { // Prefix resource paths with namespace
 					virBasePath = "/resources/" + tree.metadata.namespace + virBasePath;
@@ -73,11 +73,11 @@ function createCollectionsForTree(tree, {useNamespaces=false} = {}) {
 		processDependencies(project);
 	});
 
-	let source = new ReaderCollection({
+	const source = new ReaderCollection({
 		name: "source of " + tree.metadata.name,
 		readers: sourceResourceLocators
 	});
-	let dependencies = new ReaderCollection({
+	const dependencies = new ReaderCollection({
 		name: "dependencies of " + tree.metadata.name,
 		readers: dependencyCollection
 	});

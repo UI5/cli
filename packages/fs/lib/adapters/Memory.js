@@ -52,7 +52,7 @@ class Memory extends AbstractAdapter {
 
 		if (!options.nodir) {
 			// TODO: Add tests for all this
-			let dirPaths = Object.keys(this._virDirs);
+			const dirPaths = Object.keys(this._virDirs);
 			const matchedDirs = micromatch(dirPaths, patterns, {
 				dot: true
 			});
@@ -84,7 +84,7 @@ class Memory extends AbstractAdapter {
 			const relPath = virPath.substr(this._virBasePath.length);
 			trace.pathCall();
 
-			let resource = this._virFiles[relPath];
+			const resource = this._virFiles[relPath];
 
 			if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
 				resolve(null);

@@ -114,7 +114,7 @@ test("GLOB with multiple patterns", (t) => {
 	t.plan(5);
 	return t.context.readerWriter.filesystem.byGlob(["/**/*.yaml", "/test-resources/**/i18n_de.properties"])
 		.then((resources) => {
-			let expectedResources = [
+			const expectedResources = [
 				"/test-resources/application.b/webapp/i18n/i18n_de.properties",
 				"/test-resources/application.b/webapp/embedded/i18n/i18n_de.properties",
 				"/test-resources/application.b/ui5.yaml",
@@ -139,7 +139,7 @@ test("GLOB two specific filetype (yaml and js)", (t) => {
 	t.plan(4);
 	return t.context.readerWriter.filesystem.byGlob("/**/*.{yaml,js}")
 		.then((resources) => {
-			let expectedResources = [
+			const expectedResources = [
 				"/test-resources/application.a/webapp/test.js",
 				"/test-resources/application.b/ui5.yaml",
 				"/test-resources/application.a/ui5.yaml"
@@ -241,7 +241,7 @@ test("GLOB two specific filetype (yaml and js) from memory", (t) => {
 	t.plan(4);
 	return t.context.readerWriter.fromMemory("/**/*.{yaml,js}")
 		.then((resources) => {
-			let expectedFiles = [
+			const expectedFiles = [
 				"/test-resources/application.b/ui5.yaml",
 				"/test-resources/application.a/ui5.yaml",
 				"/test-resources/application.a/webapp/test.js"
@@ -256,7 +256,7 @@ test("GLOB only a specific filetype (json) with exclude pattern from memory", (t
 		"/**/*.json",
 		"!/**/*package.json"
 	]).then((resources) => {
-		let expectedFiles = [
+		const expectedFiles = [
 			"/test-resources/application.b/webapp/manifest.json",
 			"/test-resources/application.b/webapp/embedded/manifest.json"
 		];

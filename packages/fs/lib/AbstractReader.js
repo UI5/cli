@@ -31,7 +31,7 @@ class AbstractReader {
 	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
 	 */
 	byGlob(virPattern, options = {nodir: true}) {
-		let trace = new Trace(virPattern);
+		const trace = new Trace(virPattern);
 		return this._byGlob(virPattern, options, trace).then(function(result) {
 			trace.printReport();
 			return result;
@@ -39,8 +39,8 @@ class AbstractReader {
 			if (resources.length > 1) {
 				// Pseudo randomize result order to prevent consumers from relying on it:
 				// Swap the first object with a randomly chosen one
-				let x = 0;
-				let y = randomInt(0, resources.length - 1);
+				const x = 0;
+				const y = randomInt(0, resources.length - 1);
 				// Swap object at index "x" with  "y"
 				resources[x] = [resources[y], resources[y]=resources[x]][0];
 			}
@@ -57,7 +57,7 @@ class AbstractReader {
 	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
 	 */
 	byPath(virPath, options = {nodir: true}) {
-		let trace = new Trace(virPath);
+		const trace = new Trace(virPath);
 		return this._byPath(virPath, options, trace).then(function(result) {
 			trace.printReport();
 			return result;

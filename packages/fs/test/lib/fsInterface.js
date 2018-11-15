@@ -30,7 +30,7 @@ const assertReadFile = (t, readFile, basepath, filepath) => {
 };
 
 test("MemAdapter: readFile", (t) => {
-	let memAdapter = new MemAdapter({
+	const memAdapter = new MemAdapter({
 		virBasePath: "/"
 	});
 	const fs = fsInterface(memAdapter);
@@ -43,7 +43,7 @@ test("MemAdapter: readFile", (t) => {
 });
 
 test("FsAdapter: readFile", (t) => {
-	let fsAdapter = new FsAdapter({
+	const fsAdapter = new FsAdapter({
 		virBasePath: "/",
 		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterface")
 	});
@@ -73,7 +73,7 @@ const assertStat = (t, stat, basepath, filepath) => {
 };
 
 test("MemAdapter: stat", (t) => {
-	let memAdapter = new MemAdapter({
+	const memAdapter = new MemAdapter({
 		virBasePath: "/"
 	});
 	const fs = fsInterface(memAdapter);
@@ -86,7 +86,7 @@ test("MemAdapter: stat", (t) => {
 });
 
 test("FsAdapter: stat", (t) => {
-	let fsAdapter = new FsAdapter({
+	const fsAdapter = new FsAdapter({
 		virBasePath: "/",
 		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterface")
 	});

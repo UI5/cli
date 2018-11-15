@@ -37,7 +37,7 @@ class FileSystem extends AbstractAdapter {
 	 */
 	_runGlob(patterns, options, trace) {
 		return new Promise((resolve, reject) => {
-			let opt = defaults(clone(options), { // Clone needed to prevent side effects
+			const opt = defaults(clone(options), { // Clone needed to prevent side effects
 				cwd: this._fsBasePath,			 // (todo: maybe make this a module itself)
 				dot: true
 			});
@@ -66,8 +66,8 @@ class FileSystem extends AbstractAdapter {
 
 				for (let i = matches.length - 1; i >= 0; i--) {
 					promises.push(new Promise((resolve, reject) => {
-						let fsPath = path.join(this._fsBasePath, matches[i]);
-						let virPath = (this._virBasePath + matches[i]);
+						const fsPath = path.join(this._fsBasePath, matches[i]);
+						const virPath = (this._virBasePath + matches[i]);
 
 						// Workaround for not getting the stat from the glob
 						fs.stat(fsPath, (err, stat) => {
@@ -88,7 +88,7 @@ class FileSystem extends AbstractAdapter {
 				}
 
 				Promise.all(promises).then(function(results) {
-					let flat = Array.prototype.concat.apply([], results);
+					const flat = Array.prototype.concat.apply([], results);
 					resolve(flat);
 				}, function(err) {
 					reject(err);
@@ -142,7 +142,7 @@ class FileSystem extends AbstractAdapter {
 				} else if (options.nodir && stat.isDirectory()) {
 					resolve(null);
 				} else {
-					let options = {
+					const options = {
 						project: this._project,
 						statInfo: stat,
 						path: virPath,
@@ -180,11 +180,11 @@ class FileSystem extends AbstractAdapter {
 			fs
 		}).then(() => {
 			return new Promise((resolve, reject) => {
-				let contentStream = resource.getStream();
+				const contentStream = resource.getStream();
 				contentStream.on("error", function(err) {
 					reject(err);
 				});
-				let write = fs.createWriteStream(fsPath);
+				const write = fs.createWriteStream(fsPath);
 				write.on("error", function(err) {
 					reject(err);
 				});

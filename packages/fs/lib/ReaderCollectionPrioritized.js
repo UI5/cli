@@ -32,13 +32,13 @@ class ReaderCollectionPrioritized extends AbstractReader {
 		return Promise.all(this._readers.map(function(resourceLocator) {
 			return resourceLocator._byGlob(pattern, options, trace);
 		})).then((result) => {
-			let files = {};
-			let resources = [];
+			const files = {};
+			const resources = [];
 			// Prefer files found in preceding resource locators
 			for (let i = 0; i < result.length; i++) {
 				for (let j = 0; j < result[i].length; j++) {
-					let resource = result[i][j];
-					let path = resource.getPath();
+					const resource = result[i][j];
+					const path = resource.getPath();
 					if (!files[path]) {
 						files[path] = true;
 						resources.push(resource);

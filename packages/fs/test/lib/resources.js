@@ -24,7 +24,7 @@ test.beforeEach((t) => {
 */
 
 test("Get resource from application.a (/index.html) and write it to /dest/ using a ReadableStream", (t) => {
-	let readerWriters = t.context.readerWriters;
+	const readerWriters = t.context.readerWriters;
 	// Get resource from one readerWriter
 	return t.notThrows(readerWriters.source.byPath("/app/index.html")
 		.then(function(resource) {
@@ -41,7 +41,7 @@ test("Get resource from application.a (/index.html) and write it to /dest/ using
 });
 
 test("FS RL: GLOB resources from application.a w/ virtual base path prefix", (t) => {
-	let readerWriters = t.context.readerWriters;
+	const readerWriters = t.context.readerWriters;
 	// Get resource from one readerWriter
 	return t.notThrows(readerWriters.source.byGlob("/app/**/*.html").then(function(resources) {
 		t.deepEqual(resources.length, 1, "Found exactly one resource");
@@ -49,7 +49,7 @@ test("FS RL: GLOB resources from application.a w/ virtual base path prefix", (t)
 });
 
 test("FS RL: GLOB resources from application.a w/o virtual base path prefix", (t) => {
-	let readerWriters = t.context.readerWriters;
+	const readerWriters = t.context.readerWriters;
 	// Get resource from one readerWriter
 	return t.notThrows(readerWriters.source.byGlob("/**/*.html").then(function(resources) {
 		t.deepEqual(resources.length, 1, "Found exactly one resource");
@@ -57,7 +57,7 @@ test("FS RL: GLOB resources from application.a w/o virtual base path prefix", (t
 });
 
 test("Virtual RL: GLOB resources from application.a w/ virtual base path prefix", (t) => {
-	let readerWriter = ui5Fs.resourceFactory.createAdapter({
+	const readerWriter = ui5Fs.resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
 
@@ -76,7 +76,7 @@ test("Virtual RL: GLOB resources from application.a w/ virtual base path prefix"
 });
 
 test("Virtual RL: GLOB resources from application.a w/o virtual base path prefix", (t) => {
-	let readerWriter = ui5Fs.resourceFactory.createAdapter({
+	const readerWriter = ui5Fs.resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
 
@@ -97,7 +97,7 @@ test("Virtual RL: GLOB resources from application.a w/o virtual base path prefix
 test("Virtual RL: GLOB virtual directory w/o virtual base path prefix", (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
 	// TODO: Also add tests for nodir: true option
-	let readerWriter = ui5Fs.resourceFactory.createAdapter({
+	const readerWriter = ui5Fs.resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
 
