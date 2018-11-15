@@ -131,7 +131,7 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 			options.host = "localhost";
 		}
 
-		let host = options.host || "127.0.0.1";
+		const host = options.host || "127.0.0.1";
 		let portMax;
 		if (changePortIfInUse) {
 			portMax = port + 30;

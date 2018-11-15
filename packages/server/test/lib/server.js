@@ -243,8 +243,8 @@ test("Get library-parameters.json from theme middleware (/resources/library/a/th
 });
 
 test("Stop server", (t) => {
-	let port = 3350;
-	let request = supertest(`http://localhost:${port}`);
+	const port = 3350;
+	const request = supertest(`http://localhost:${port}`);
 	return normalizer.generateProjectTree({
 		cwd: "./test/fixtures/application.a"
 	}).then((tree) => {
@@ -280,7 +280,7 @@ test("Stop server", (t) => {
 });
 
 test("Start server - Port is already taken and an error occurs", (t) => {
-	let port = 3360;
+	const port = 3360;
 	const nodeServer = http.createServer((req, res) => {
 		res.end();
 	});
@@ -308,8 +308,8 @@ test("Start server - Port is already taken and an error occurs", (t) => {
 });
 
 test("Start server together with node server - Port is already taken and the next one is used", (t) => {
-	let port = 3370;
-	let nextFoundPort = 3371;
+	const port = 3370;
+	const nextFoundPort = 3371;
 	const nodeServer = http.createServer((req, res) => {
 		res.end();
 	});
@@ -327,7 +327,7 @@ test("Start server together with node server - Port is already taken and the nex
 				changePortIfInUse: true
 			}).then((serveResult) => {
 				t.deepEqual(serveResult.port, nextFoundPort, "Resolves with correct port");
-				let request = supertest(`http://localhost:${nextFoundPort}`);
+				const request = supertest(`http://localhost:${nextFoundPort}`);
 				return request.get("/index.html").then((res) => {
 					if (res.error) {
 						t.fail(res.error.text);
@@ -344,8 +344,8 @@ test("Start server together with node server - Port is already taken and the nex
 });
 
 test("Start server twice - Port is already taken and the next one is used", (t) => {
-	let port = 3380;
-	let nextFoundPort = 3381;
+	const port = 3380;
+	const nextFoundPort = 3381;
 	return normalizer.generateProjectTree({
 		cwd: "./test/fixtures/application.a"
 	}).then((tree) => {
@@ -363,7 +363,7 @@ test("Start server twice - Port is already taken and the next one is used", (t) 
 				changePortIfInUse: true
 			}).then((serveResult2) => {
 				t.deepEqual(serveResult2.port, nextFoundPort, "Resolves with correct port");
-				let request = supertest(`http://localhost:${nextFoundPort}`);
+				const request = supertest(`http://localhost:${nextFoundPort}`);
 				return request.get("/index.html").then((res) => {
 					if (res.error) {
 						t.fail(res.error.text);

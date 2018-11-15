@@ -48,7 +48,7 @@ function createMiddleware({resourceCollections}) {
 		if (type === "app_pages") {
 			resourceCollections.source.byGlob("/**/*.{html,htm}").then(function(resources) {
 				resources.forEach(function(resource) {
-					let relPath = resource.getPath().substr(1); // cut off leading "/"
+					const relPath = resource.getPath().substr(1); // cut off leading "/"
 					response.push({
 						entry: relPath
 					});
@@ -60,7 +60,7 @@ function createMiddleware({resourceCollections}) {
 				"/resources/**/*.library"
 			]).then(function(resources) {
 				resources.forEach(function(resource) {
-					let relPath = resource.getPath().substr(11); // cut off leading "/resources/"
+					const relPath = resource.getPath().substr(11); // cut off leading "/resources/"
 					const match = librariesPattern.exec(relPath);
 					if (match) {
 						response.push({
@@ -75,12 +75,12 @@ function createMiddleware({resourceCollections}) {
 				resourceCollections.combo.byGlob("/resources/**/*.library"),
 				resourceCollections.combo.byGlob("/test-resources/**/*.{html,htm}")
 			]).then(function(results) {
-				let libraryResources = results[0];
-				let testPageResources = results[1];
+				const libraryResources = results[0];
+				const testPageResources = results[1];
 				const libs = {};
 
 				libraryResources.forEach(function(resource) {
-					let relPath = resource.getPath().substr(11); // cut off leading "/resources/"
+					const relPath = resource.getPath().substr(11); // cut off leading "/resources/"
 					const match = librariesPattern.exec(relPath);
 					if (match) {
 						const lib = match[1];
@@ -89,7 +89,7 @@ function createMiddleware({resourceCollections}) {
 				});
 
 				testPageResources.forEach(function(resource) {
-					let relPath = resource.getPath().substr(16); // cut off leading "/test-resources/"
+					const relPath = resource.getPath().substr(16); // cut off leading "/test-resources/"
 					if (testPagesPattern.test(relPath)) {
 						Object.keys(libs).forEach(function(lib) {
 							if (relPath.indexOf(lib) === 0) {

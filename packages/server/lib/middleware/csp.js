@@ -33,12 +33,12 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 			};
 		}
 
-		let oParsedUrl = url.parse(req.url);
-		let oQuery = querystring.parse(oParsedUrl.query);
+		const oParsedUrl = url.parse(req.url);
+		const oQuery = querystring.parse(oParsedUrl.query);
 		let sCspUrlParameterValue = oQuery[sCspUrlParameterName];
 
 		if (sCspUrlParameterValue) {
-			let mPolicyMatch = rPolicy.exec(sCspUrlParameterValue);
+			const mPolicyMatch = rPolicy.exec(sCspUrlParameterValue);
 
 			if (mPolicyMatch && mPolicyMatch[1]
 				&& oConfig.definedPolicies[mPolicyMatch[1]] && allowDynamicPolicySelection) {
@@ -61,7 +61,7 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		}
 
 		if (oPolicy) {
-			let sHeader = bReportOnly ? HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY : HEADER_CONTENT_SECURITY_POLICY;
+			const sHeader = bReportOnly ? HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY : HEADER_CONTENT_SECURITY_POLICY;
 			let sHeaderValue;
 
 			if (bReportOnly) {

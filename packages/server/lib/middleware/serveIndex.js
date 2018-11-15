@@ -49,9 +49,9 @@ function formatSize(bytes) {
  * @returns {Object} resource info object
  */
 function createResourceInfo(resource) {
-	let stat = resource.getStatInfo();
-	let isDir = stat.isDirectory();
-	let resInfo = {
+	const stat = resource.getStatInfo();
+	const isDir = stat.isDirectory();
+	const resInfo = {
 		path: resource.getPath() + (isDir ? "/" : ""),
 		name: resource._name + (isDir ? "/" : ""),
 		isDir: isDir,
@@ -139,7 +139,7 @@ function createContent(path, resourceInfos) {
 function createMiddleware({resourceCollections}) {
 	return function serveIndex(req, res, next) {
 		log.verbose("\n Listing index of " +req.path);
-		let glob = req.path + (req.path.endsWith("/") ? "*" : "/*");
+		const glob = req.path + (req.path.endsWith("/") ? "*" : "/*");
 		resourceCollections.combo.byGlob(glob, {nodir: false}).then((resources) => {
 			if (!resources || resources.length == 0) { // Not found
 				next();
@@ -150,7 +150,7 @@ function createMiddleware({resourceCollections}) {
 				"Content-Type": "text/html"
 			});
 
-			let resourceInfos = createResourceInfos(resources);
+			const resourceInfos = createResourceInfos(resources);
 			res.end(createContent(req.path, resourceInfos));
 		}).catch((err) => {
 			next(err);
