@@ -107,7 +107,7 @@
 		"cross-env": "^5.2.0",
 		"docdash": "^1.0.0",
 		"eslint": "^5.9.0",
-		"eslint-config-google": "^0.10.0",
+		"eslint-config-google": "^0.11.0",
 		"jsdoc": "^3.5.5",
 		"nyc": "^13.1.0",
 		"tap-nyan": "^1.1.0"
