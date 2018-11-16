@@ -2,10 +2,24 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v0.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v0.2.2...HEAD).
+
+<a name="v0.2.2"></a>
+## [v0.2.2] - 2018-11-15
+### Features
+- Add UI5_LOG_LVL environment variable [`c3e65c4`](https://github.com/SAP/ui5-logger/commit/c3e65c444045832773e4dc43ffa2baf903a27e52)
+
+### Internal Changes
+- **ESLint:** Allow strings to use backticks [`737ca15`](https://github.com/SAP/ui5-logger/commit/737ca153ce44625bdb13c8033c1d5c6f48ce7099)
+- **Git:** Apply lf line-ending to all files [`2e0b5d2`](https://github.com/SAP/ui5-logger/commit/2e0b5d2129aa216e1a400bcff8ca846560818d97)
+- **GitHub:** Add PULL_REQUEST_TEMPLATE [`b2fbede`](https://github.com/SAP/ui5-logger/commit/b2fbedeca713407b84192f4c6f6ab242b3edd8f4)
+- **GitHub ISSUE_TEMPLATE:** Request UI5 module version info [`0c22afe`](https://github.com/SAP/ui5-logger/commit/0c22afe9b2774498f012ae383a7937c7fb1d0e04)
+- **Travis:** Activate Windows and Mac builds [`074c3b9`](https://github.com/SAP/ui5-logger/commit/074c3b94d16e6bf7c24d1151bc7065633059c79f)
+- **package.json scripts:** Update verbose logging params [`66a44f6`](https://github.com/SAP/ui5-logger/commit/66a44f6358c197a09f1878c9ac39979eaaade451)
+
 
 <a name="v0.2.1"></a>
-## [v0.2.1] - 2018-10-18
+## [v0.2.1] - 2018-10-29
 ### Internal Changes
 - Reduce log progress text [`826f6c3`](https://github.com/SAP/ui5-logger/commit/826f6c386429beec2497be62cbe54a4fe88e7ab3)
 - Add .npmrc to enforce public registry [`4a0b343`](https://github.com/SAP/ui5-logger/commit/4a0b343f2a3eaf15ab74072633321ee45d064643)
@@ -46,6 +60,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logg
 - **Travis:** Add node.js 10 to test matrix [`147795a`](https://github.com/SAP/ui5-logger/commit/147795a1215c7071ddb731b085ab61defc203e42)
 
 
+[v0.2.2]: https://github.com/SAP/ui5-logger/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-logger/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-logger/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-logger/compare/v0.0.1...v0.1.0
