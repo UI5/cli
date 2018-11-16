@@ -93,7 +93,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^0.2.0",
-		"@ui5/logger": "^0.2.0",
+		"@ui5/logger": "^0.2.2",
 		"graceful-fs": "^4.1.11",
 		"js-yaml": "^3.10.0",
 		"pretty-hrtime": "^1.0.3",
