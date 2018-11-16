@@ -1,23 +1,9 @@
 const log = require("@ui5/logger").getGroupLogger("builder:builder");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 const typeRepository = require("../types/typeRepository");
+const taskRepository = require("../tasks/taskRepository");
 
-const definedTasks = {
-	replaceCopyright: require("../tasks/replaceCopyright"),
-	replaceVersion: require("../tasks/replaceVersion"),
-	createDebugFiles: require("../tasks/createDebugFiles"),
-	uglify: require("../tasks/uglify"),
-	buildThemes: require("../tasks/buildThemes"),
-	generateLibraryManifest: require("../tasks/generateLibraryManifest"),
-	generateVersionInfo: require("../tasks/generateVersionInfo"),
-	generateManifestBundle: require("../tasks/bundlers/generateManifestBundle"),
-	generateFlexChangesBundle: require("../tasks/bundlers/generateFlexChangesBundle"),
-	generateComponentPreload: require("../tasks/bundlers/generateComponentPreload"),
-	generateStandaloneAppBundle: require("../tasks/bundlers/generateStandaloneAppBundle"),
-	generateBundle: require("../tasks/bundlers/generateBundle"),
-	generateLibraryPreload: require("../tasks/bundlers/generateLibraryPreload")
-};
-
+const definedTasks = taskRepository.getAllTasks();
 
 // Set of tasks for development
 const devTasks = [

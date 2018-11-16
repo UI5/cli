@@ -15,23 +15,7 @@ const tasks = { // can't require index.js due to circular dependency
 };
 
 class ApplicationBuilder extends AbstractBuilder {
-	constructor({resourceCollections, project, parentLogger}) {
-		super({project, parentLogger});
-
-		// All available application tasks in execution order
-		this.availableTasks = [
-			"replaceCopyright",
-			"replaceVersion",
-			"generateFlexChangesBundle",
-			"generateManifestBundle",
-			"generateComponentPreload",
-			"generateStandaloneAppBundle",
-			"generateBundle",
-			"createDebugFiles",
-			"uglify",
-			"generateVersionInfo"
-		];
-
+	addStandardTasks({resourceCollections, project}) {
 		this.addTask("replaceCopyright", () => {
 			return tasks.replaceCopyright({
 				workspace: resourceCollections.workspace,

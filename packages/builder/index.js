@@ -23,7 +23,8 @@ const ui5Builder = {
 		generateVersionInfo: require("./lib/tasks/generateVersionInfo"),
 		replaceCopyright: require("./lib/tasks/replaceCopyright"),
 		replaceVersion: require("./lib/tasks/replaceVersion"),
-		uglify: require("./lib/tasks/uglify")
+		uglify: require("./lib/tasks/uglify"),
+		taskRepository: require("./lib/tasks/taskRepository")
 	},
 	types: {
 		AbstractBuilder: require("./lib/types/AbstractBuilder"),

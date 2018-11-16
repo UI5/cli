@@ -16,22 +16,7 @@ const tasks = { // can't require index.js due to circular dependency
 };
 
 class LibraryBuilder extends AbstractBuilder {
-	constructor({resourceCollections, project, parentLogger}) {
-		super({project, parentLogger});
-
-		// All available library tasks in execution order
-		this.availableTasks = [
-			"replaceCopyright",
-			"replaceVersion",
-			"generateComponentPreload",
-			"generateBundle",
-			"generateLibraryManifest",
-			"generateLibraryPreload",
-			"buildThemes",
-			"createDebugFiles",
-			"uglify"
-		];
-
+	addStandardTasks({resourceCollections, project, parentLogger}) {
 		this.addTask("replaceCopyright", () => {
 			const replaceCopyright = tasks.replaceCopyright;
 			return replaceCopyright({
