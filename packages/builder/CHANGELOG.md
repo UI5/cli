@@ -2,7 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.5...HEAD).
+
+<a name="v0.2.5"></a>
+## [v0.2.5] - 2018-11-16
+### Features
+- **Builder:** Add handling for custom task configurations [`9b4ae00`](https://github.com/SAP/ui5-builder/commit/9b4ae00f62da1f5bb94aeb8a86711c2a2e98da20)
+
+### Internal Changes
+- **ESLint:** prefer-const [`dc1f8ca`](https://github.com/SAP/ui5-builder/commit/dc1f8cab7cdf3e0ce17cacb2fb2fa7c7e8ac27bd)
+- **ESLint:** Allow strings to use backticks [`a1f43fa`](https://github.com/SAP/ui5-builder/commit/a1f43fa3019fa660dfe709a36070e7ccc3a97f99)
+- **GitHub:** Add PULL_REQUEST_TEMPLATE [`6325ae6`](https://github.com/SAP/ui5-builder/commit/6325ae6ce8005e0423ead0669b48319d3d2b3259)
+- **GitHub ISSUE_TEMPLATE:** Request UI5 module version info [`1bb681f`](https://github.com/SAP/ui5-builder/commit/1bb681f5cd433142320f055405c5827484940a1e)
+- **package.json scripts:** Update verbose logging params [`29847ca`](https://github.com/SAP/ui5-builder/commit/29847ca93379a157b5648b3625643ed3c63d71a9)
+
 
 <a name="v0.2.4"></a>
 ## [v0.2.4] - 2018-10-29
@@ -117,6 +130,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.5]: https://github.com/SAP/ui5-builder/compare/v0.2.4...v0.2.5
 [v0.2.4]: https://github.com/SAP/ui5-builder/compare/v0.2.3...v0.2.4
 [v0.2.3]: https://github.com/SAP/ui5-builder/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-builder/compare/v0.2.1...v0.2.2
