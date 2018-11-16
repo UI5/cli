@@ -336,6 +336,9 @@ class ProjectPreprocessor {
 		case "project-shim":
 			this.handleShim(extension);
 			break;
+		case "task":
+			this.handleTask(extension);
+			break;
 		default:
 			throw new Error(`Unknown extension type '${extension.type}' for ${extension.id}`);
 		}
@@ -349,6 +352,9 @@ class ProjectPreprocessor {
 	}
 
 	handleShim(extension) {
+		if (!extension.shims) {
+			throw new Error(`Project shim extension ${extension.id} is missing 'shim' configuration`);
+		}
 		const {configurations, dependencies, collections} = extension.shims;
 
 		if (configurations) {
@@ -464,6 +470,21 @@ class ProjectPreprocessor {
 				project.dependencies.push(...projects);
 			}
 		}
+	}
+
+	handleTask(extension) {
+		if (!extension.metadata && !extension.metadata.name) {
+			throw new Error(`Task extension ${extension.id} is missing 'metadata.name' configuration`);
+		}
+		if (!extension.task) {
+			throw new Error(`Task extension ${extension.id} is missing 'task' configuration`);
+		}
+		const taskRepository = require("@ui5/builder").tasks.taskRepository;
+
+		const taskPath = path.join(extension.path, extension.task.path);
+		const task = require(taskPath); // throws if not found
+
+		taskRepository.addTask(extension.metadata.name, task);
 	}
 }
 

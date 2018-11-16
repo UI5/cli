@@ -505,3 +505,68 @@ test("Project with unknown extension dependency inline configuration", (t) => {
 	return t.throws(projectPreprocessor.processTree(tree),
 		"Unknown extension type 'phony-pony' for extension.a", "Rejected with error");
 });
+
+test("Project with task extension dependency", (t) => {
+	// "project-type" extension handling not yet implemented => test currently checks for error
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [{
+			id: "ext.task.a",
+			path: applicationAPath,
+			dependencies: [],
+			version: "1.0.0",
+			specVersion: "0.1",
+			kind: "extension",
+			type: "task",
+			metadata: {
+				name: "task.a"
+			},
+			task: {
+				path: "task.a.js"
+			}
+		}],
+		version: "1.0.0",
+		specVersion: "0.1",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree.dependencies.length, 0, "Application project has no dependencies");
+		const taskRepository = require("@ui5/builder").tasks.taskRepository;
+		t.truthy(taskRepository.getTask("task.a"), "task.a has been added to the task repository");
+	});
+});
+
+test("Project with task extension dependency - task module not found", async (t) => {
+	// "project-type" extension handling not yet implemented => test currently checks for error
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [{
+			id: "ext.task.a",
+			path: applicationAPath,
+			dependencies: [],
+			version: "1.0.0",
+			specVersion: "0.1",
+			kind: "extension",
+			type: "task",
+			metadata: {
+				name: "task.a"
+			},
+			task: {
+				path: "task.not.existing.js"
+			}
+		}],
+		version: "1.0.0",
+		specVersion: "0.1",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+	const error = await t.throws(projectPreprocessor.processTree(tree));
+	t.regex(error.message, /^Cannot find module.*/, "Rejected with error");
+});
