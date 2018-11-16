@@ -38,7 +38,7 @@ class NpmTranslator {
 		//  https://github.com/npm/normalize-package-data#what-normalization-currently-entails
 		// Note: optionalDependencies are treated the same as devDependencies in the npm translator
 		if (pkg.optionalDependencies) {
-			for (let depName in pkg.optionalDependencies) {
+			for (const depName in pkg.optionalDependencies) {
 				if (pkg.optionalDependencies.hasOwnProperty(depName)) {
 					// Remove entry from "hard" dependencies map
 					if (dependencies[depName]) {
