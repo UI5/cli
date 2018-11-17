@@ -2,7 +2,28 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.2...HEAD).
+
+<a name="v0.2.2"></a>
+## [v0.2.2] - 2018-11-16
+### Bug Fixes
+- **npm t8r:** Handle npm optionalDependencies correctly [`da707d7`](https://github.com/SAP/ui5-project/commit/da707d73b5c75b489e2e499de2b4f54924018844)
+
+### Features
+- **projectPreprocessor:** Add handling for task extensions [`0722865`](https://github.com/SAP/ui5-project/commit/072286591ae3b20cca8e418030c3f2bc048352c5)
+- **projectPreprocessor:** Allow application project dependency on non-root level [`b8a59d5`](https://github.com/SAP/ui5-project/commit/b8a59d56c8b5cf4c330fe99cb2162c1701aa51ca)
+
+### Internal Changes
+- Fix eslint error [`d24eeb2`](https://github.com/SAP/ui5-project/commit/d24eeb2f1c3a6582ce8514e49e9c720a05f8a0f5)
+- **ESLint:** prefer-const [`340151f`](https://github.com/SAP/ui5-project/commit/340151f4bd01ed8644d2c6b90bc695b30933cf80)
+- **ESLint:** Allow strings to use backticks [`ec81373`](https://github.com/SAP/ui5-project/commit/ec813730b08ae173f5490629a5d074301ca88de3)
+- **Git:** Apply lf line-ending to all files [`067b026`](https://github.com/SAP/ui5-project/commit/067b026d74a14d5e3807b7926a9292153ceac13e)
+- **GitHub:** Add PULL_REQUEST_TEMPLATE [`7f2366f`](https://github.com/SAP/ui5-project/commit/7f2366f0f727d150b52e23151cd8ce8ecbdcabfd)
+- **GitHub ISSUE_TEMPLATE:** Request UI5 module version info [`0936053`](https://github.com/SAP/ui5-project/commit/0936053d2c50837643495760b6b4e46eb36cb87d)
+- **Travis:** Activate Windows and Mac builds [`fe46588`](https://github.com/SAP/ui5-project/commit/fe46588218e9c85892486dd9ce120a4828b64c55)
+- **npm t8r:** Fix tests on Windows [`f304d7c`](https://github.com/SAP/ui5-project/commit/f304d7c26b14b40cd673bae7cafce8f695ea316e)
+- **package.json scripts:** Update verbose logging params [`dd232a3`](https://github.com/SAP/ui5-project/commit/dd232a39bde7c787846b89a5207558f39f3074cb)
+
 
 <a name="v0.2.1"></a>
 ## [v0.2.1] - 2018-10-29
@@ -59,6 +80,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-proj
 - **npm t8r:** Improve handling of missing package.json [`4b32134`](https://github.com/SAP/ui5-project/commit/4b321345139058dc821fb08c4556aff88366ea86)
 
 
+[v0.2.2]: https://github.com/SAP/ui5-project/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-project/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-project/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-project/compare/v0.0.1...v0.1.0
