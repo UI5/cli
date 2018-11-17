@@ -94,7 +94,7 @@
 	"dependencies": {
 		"@ui5/builder": "^0.2.5",
 		"@ui5/logger": "^0.2.2",
-		"graceful-fs": "^4.1.11",
+		"graceful-fs": "^4.1.15",
 		"js-yaml": "^3.10.0",
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^3.0.0",
