@@ -2,7 +2,22 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.4...HEAD).
+
+<a name="v0.2.4"></a>
+## [v0.2.4] - 2018-11-17
+### Features
+- Prefer local over global CLI version ([#59](https://github.com/SAP/ui5-cli/issues/59)) [`3c2a0a8`](https://github.com/SAP/ui5-cli/commit/3c2a0a898742a118206b1009188a7d4933fe8a89)
+
+### Internal Changes
+- **ESLint:** prefer-const [`571cd8d`](https://github.com/SAP/ui5-cli/commit/571cd8deee040ae1a60cf24c028bc8f5a97c0418)
+- **ESLint:** Allow strings to use backticks [`aebae6b`](https://github.com/SAP/ui5-cli/commit/aebae6b6d439b6cf635961b93015addb5cc43444)
+- **Git:** Apply lf line-ending to all files [`8c08848`](https://github.com/SAP/ui5-cli/commit/8c088486f34e2cbbfb31b485c5082075d106a2f3)
+- **GitHub:** Add PULL_REQUEST_TEMPLATE [`2f260cb`](https://github.com/SAP/ui5-cli/commit/2f260cb0c2dcbf83ef0c66b04941a997b777f923)
+- **GitHub ISSUE_TEMPLATE:** Request UI5 module version info [`13c3d6a`](https://github.com/SAP/ui5-cli/commit/13c3d6a7c48de21743ff527dec85f249a3bb6539)
+- **Travis:** Activate Windows and Mac builds [`ff65bee`](https://github.com/SAP/ui5-cli/commit/ff65beeb513fbce6c7126c947f9d861054717ced)
+- **package.json scripts:** Update verbose logging params [`90ce3e1`](https://github.com/SAP/ui5-cli/commit/90ce3e18fb0bca80f4c3f5e6c3539b0500abd695)
+
 
 <a name="v0.2.3"></a>
 ## [v0.2.3] - 2018-10-29
@@ -67,6 +82,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 - **Travis:** Add node.js 10 to test matrix [`7a94b52`](https://github.com/SAP/ui5-cli/commit/7a94b52f3878474697bc2e9c4c423432ca7d473c)
 
 
+[v0.2.4]: https://github.com/SAP/ui5-cli/compare/v0.2.3...v0.2.4
 [v0.2.3]: https://github.com/SAP/ui5-cli/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-cli/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-cli/compare/v0.2.0...v0.2.1
