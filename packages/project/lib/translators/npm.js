@@ -221,15 +221,16 @@ class NpmTranslator {
 							log.verbose("Found module %s in that collection", moduleName);
 							return modulePath;
 						}
-						throw new Error(`Could not find module ${moduleName} in collection ${pkg.name}`);
+						throw new Error(`[npm translator] Could not find module ${moduleName} in collection ${pkg.name}`);
 					}
 				}
-				throw new Error(`Could not locate module ${moduleName} via resolve logic ` +
+
+				throw new Error(`[npm translator] Could not locate module ${moduleName} via resolve logic ` +
 					`(error: ${err.message}) or in a collection`);
+			}, (err) => {
+				throw new Error(
+					`[npm translator] Failed to locate module ${moduleName} from ${basePath} - Error: ${err.message}`);
 			});
-		}).catch((err) => {
-			throw new Error(
-				`[npm translator] Failed to locate module ${moduleName} from ${basePath} - Error: ${err.message}`);
 		});
 	}
 

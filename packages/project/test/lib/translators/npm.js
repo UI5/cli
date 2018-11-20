@@ -63,8 +63,7 @@ test("Error: missing package.json", async (t) => {
 
 test("Error: missing dependency", async (t) => {
 	const error = await t.throws(npmTranslator.generateDependencyTree(errApplicationAPath));
-	t.is(error.message, "[npm translator] Failed to locate module library.xx from " +
-		errApplicationAPath + " - Error: Could not locate " +
+	t.is(error.message, "[npm translator] Could not locate " +
 		"module library.xx via resolve logic (error: Cannot find module 'library.xx/package.json' from '" +
 		errApplicationAPath + "') or in a collection");
 });
