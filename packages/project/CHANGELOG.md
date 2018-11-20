@@ -2,10 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.3...HEAD).
+
+<a name="v0.2.3"></a>
+## [v0.2.3] - 2018-11-20
+### Bug Fixes
+- **npm t8r:** Again, handle npm optionalDependencies correctly [`9fd78dc`](https://github.com/SAP/ui5-project/commit/9fd78dca4d836f9a37036fd151a78e9295b28aa1)
+
+### Internal Changes
+- **npm t8r:** Prevent re-throwing own errors [`63f15d3`](https://github.com/SAP/ui5-project/commit/63f15d320b67249c81394d4d4508e83d403e9230)
+- **npm t8r:** Handle projects with explicitly zero UI5 dependencies [`7fe6269`](https://github.com/SAP/ui5-project/commit/7fe626943b8a6a4bb53b3e43c93aafbe2b92ef1b)
+
 
 <a name="v0.2.2"></a>
-## [v0.2.2] - 2018-11-16
+## [v0.2.2] - 2018-11-17
 ### Bug Fixes
 - **npm t8r:** Handle npm optionalDependencies correctly [`da707d7`](https://github.com/SAP/ui5-project/commit/da707d73b5c75b489e2e499de2b4f54924018844)
 
@@ -80,6 +90,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-proj
 - **npm t8r:** Improve handling of missing package.json [`4b32134`](https://github.com/SAP/ui5-project/commit/4b321345139058dc821fb08c4556aff88366ea86)
 
 
+[v0.2.3]: https://github.com/SAP/ui5-project/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-project/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-project/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/SAP/ui5-project/compare/v0.1.0...v0.2.0
