@@ -238,5 +238,12 @@ const applicationGTree = {
 	id: "application.g",
 	version: "1.0.0",
 	path: applicationGPath,
-	dependencies: []
+	dependencies: [
+		{
+			id: "library.d",
+			version: "1.0.0",
+			path: path.join(applicationGPath, "node_modules", "library.d"),
+			dependencies: []
+		}
+	]
 };

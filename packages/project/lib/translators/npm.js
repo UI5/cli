@@ -33,25 +33,6 @@ class NpmTranslator {
 		let dependencies = pkg.dependencies || {};
 		let optDependencies = pkg.devDependencies || {};
 
-		// Due to normalization done by by the "read-pkg-up" module the values
-		//  in optionalDependencies get added to dependencies. Also as described here:
-		//  https://github.com/npm/normalize-package-data#what-normalization-currently-entails
-		// Note: optionalDependencies are treated the same as devDependencies in the npm translator
-		if (pkg.optionalDependencies) {
-			for (const depName in pkg.optionalDependencies) {
-				if (pkg.optionalDependencies.hasOwnProperty(depName)) {
-					// Remove entry from "hard" dependencies map
-					if (dependencies[depName]) {
-						delete dependencies[depName];
-					}
-					// Add to optional dependencies map (of not already done)
-					if (optDependencies.hasOwnProperty(depName)) {
-						optDependencies[depName] = pkg.optionalDependencies[depName];
-					}
-				}
-			}
-		}
-
 		const version = pkg.version;
 
 		// Also look for "napa" dependencies (see https://github.com/shama/napa)
@@ -96,7 +77,8 @@ class NpmTranslator {
 			return this.getDepProjects({
 				cwd,
 				parentName: moduleName,
-				dependencies
+				dependencies,
+				optionalDependencies: pkg.optionalDependencies
 			}).then((depProjects) => {
 				// Array needs to be flattened because:
 				// getDepProjects returns array * 2 = array with two arrays
@@ -141,11 +123,21 @@ class NpmTranslator {
 		}
 	}
 
-	getDepProjects({cwd, dependencies, parentName}) {
+	getDepProjects({cwd, dependencies, optionalDependencies, parentName}) {
 		return Promise.all(
 			Object.keys(dependencies).map((moduleName) => {
 				return this.findModulePath(cwd, moduleName).then((modulePath) => {
 					return this.readProject({modulePath, moduleName, parentName});
+				}, (err) => {
+					// Due to normalization done by by the "read-pkg-up" module the values
+					//  in optionalDependencies get added to dependencies. Also as described here:
+					//  https://github.com/npm/normalize-package-data#what-normalization-currently-entails
+					// Resolution errors of optionalDependencies are being ignored
+					if (optionalDependencies && optionalDependencies[moduleName]) {
+						return null;
+					} else {
+						throw err;
+					}
 				});
 			})
 		).then((depProjects) => {

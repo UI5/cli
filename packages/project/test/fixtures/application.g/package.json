@@ -4,6 +4,7 @@
   "description": "Simple SAPUI5 based application - test for npm optionalDependencies",
   "main": "index.html",
   "optionalDependencies": {
+    "library.d": "file:../library.d",
     "library.nonexistent": "file:../library.nonexistent"
   },
   "scripts": {
