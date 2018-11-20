@@ -62,7 +62,7 @@ class NpmTranslator {
 		}
 
 		const ui5Deps = pkg.ui5 && pkg.ui5.dependencies;
-		if (ui5Deps && ui5Deps.length) {
+		if (ui5Deps && Array.isArray(ui5Deps)) {
 			for (let i = 0; i < ui5Deps.length; i++) {
 				const depName = ui5Deps[i];
 				if (!dependencies[depName] && !optDependencies[depName]) {
