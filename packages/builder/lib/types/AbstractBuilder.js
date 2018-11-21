@@ -154,7 +154,8 @@ class AbstractBuilder {
 		this.taskLog.addWork(allTasksCount);
 
 		let taskChain = Promise.resolve();
-		for (const taskName in this.tasks) {
+		for (let i = 0; i < this.taskExecutionOrder.length; i++) {
+			const taskName = this.taskExecutionOrder[i];
 			if (this.tasks.hasOwnProperty(taskName) && tasksToRun.includes(taskName)) {
 				const taskFunction = this.tasks[taskName];
 
