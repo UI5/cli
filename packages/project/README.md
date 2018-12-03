@@ -212,6 +212,16 @@ resources:
         configuration:
           paths:
             "src": "source"
+builder:
+  customTasks:
+    - name: custom-task-name-1
+      beforeTask: standard-task-name
+      configuration:
+        configuration-key: value
+    - name: custom-task-name-2
+      afterTask: custom-task-name-1
+      configuration:
+        color: blue
 server:
   settings:
     port: 8099
@@ -233,6 +243,12 @@ Some general information
         + For type `application` there can be a setting for mapping the virtual path `webapp` to a physical path within the project
         + For type `library` there can be a setting for mapping the virtual paths `src` and `test` to physical paths within the project
 - `shims`: Can be used to define, extend or override UI5 configs of dependencies. Inner structure equals the general structure. It is a key-value map where the key equals the project ID as supplied by the translator.
+
+##### builder (optional)
+- `customTasks` (optional, list): in this block you can define additional custom build tasks. Please see [here](docs/BuildExtensibility.md) for a detailed explanation and examples of the build extensibility. Each entry in the `customTasks` list consists of the following options:
+  - `name` (mandatory): the name of the custom task
+  - `afterTask` or `beforeTask` (only one, mandatory): the name of the build task after or before which your custom task will be executed.
+  - `configuration` (optional): additional configuration that will be passed to the custom build task
 
 ##### server (optional)
 - `settings` (not yet implemented)
