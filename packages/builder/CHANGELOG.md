@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.6...HEAD).
+
+<a name="v0.2.6"></a>
+## [v0.2.6] - 2018-12-01
+### Internal Changes
+- **AbstractBuilder:** Obey given task execution order [`f33c09d`](https://github.com/SAP/ui5-builder/commit/f33c09df284fecd77039f797503a569f0629f662)
+
 
 <a name="v0.2.5"></a>
 ## [v0.2.5] - 2018-11-16
@@ -130,6 +136,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.6]: https://github.com/SAP/ui5-builder/compare/v0.2.5...v0.2.6
 [v0.2.5]: https://github.com/SAP/ui5-builder/compare/v0.2.4...v0.2.5
 [v0.2.4]: https://github.com/SAP/ui5-builder/compare/v0.2.3...v0.2.4
 [v0.2.3]: https://github.com/SAP/ui5-builder/compare/v0.2.2...v0.2.3
