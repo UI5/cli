@@ -93,9 +93,18 @@ class ComponentAnalyzer {
 		}
 
 		if ( ui5.rootView ) {
+			let rootView;
+			if ( typeof ui5.rootView === "string" ) {
+				rootView = {
+					viewName: ui5.rootView,
+					type: "XML"
+				};
+			} else {
+				rootView = ui5.rootView;
+			}
 			const module = ModuleName.fromUI5LegacyName(
-				ui5.rootView.viewName,
-				".view." + ui5.rootView.type.toLowerCase() );
+				rootView.viewName,
+				".view." + rootView.type.toLowerCase() );
 			log.verbose("adding root view dependency ", module);
 			info.addDependency( module );
 		}

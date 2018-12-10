@@ -172,3 +172,54 @@ test("routing with targets with local config", (t) => {
 	});
 });
 
+test("rootView with object", (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			rootView: {
+				viewName: "test.view.App",
+				type: "JS",
+				async: true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+		t.deepEqual(mockInfo.deps, [
+			"test/view/App.view.js",
+		], "dependencies should be correct");
+	});
+});
+
+test("rootView with string", (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			rootView: "test.view.App"
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+		t.deepEqual(mockInfo.deps, [
+			"test/view/App.view.xml",
+		], "dependencies should be correct");
+	});
+});
