@@ -1,7 +1,7 @@
 // Serve
 const serve = {
 	command: "serve",
-	describe: "Start a webserver for the current project",
+	describe: "Start a web server for the current project",
 	middlewares: [require("../middlewares/base.js")]
 };
 
@@ -13,12 +13,12 @@ serve.builder = function(cli) {
 			type: "number"
 		})
 		.option("open", {
-			describe: "Open webserver root directory in default browser. Optionally, supplied relative path will be appended to the root URL",
+			describe: "Open web server root directory in default browser. Optionally, supplied relative path will be appended to the root URL",
 			alias: "o",
 			type: "string"
 		})
 		.option("h2", {
-			describe: "Shortcut for enabling the HTTP/2 protocol for the webserver",
+			describe: "Shortcut for enabling the HTTP/2 protocol for the web server",
 			default: false,
 			type: "boolean"
 		})
@@ -37,8 +37,8 @@ serve.builder = function(cli) {
 			default: "$HOME/.ui5/server/server.crt",
 			type: "string"
 		})
-		.example("ui5 serve", "Start a webserver for the current project")
-		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the webserver (requires SSL certificate)")
+		.example("ui5 serve", "Start a web server for the current project")
+		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
 		.example("ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path")
 		.example("ui5 serve --translator static:/path/to/projectDependencies.yaml",
 			"Use a \"static\" translator with translator parameters.")

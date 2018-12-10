@@ -109,15 +109,15 @@ Options:
 	--verbose                     Enable verbose logging. [boolean]
 	--loglevel                    Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
 	--port, -p                    Port to bind on (default for HTTP: 8080, HTTP/2: 8443)  [number]
-	--open, -o                    Open webserver root directory in default browser. Optionally, supplied relative path will be appended to the root URL  [string]
-	--h2                          Shortcut for enabling the HTTP/2 protocol for the webserver  [boolean] [default: false]
+	--open, -o                    Open web server root directory in default browser. Optionally, supplied relative path will be appended to the root URL  [string]
+	--h2                          Shortcut for enabling the HTTP/2 protocol for the web server  [boolean] [default: false]
 	--accept-remote-connections   Accept remote connections. By default the server only accepts connections from localhost  [boolean] [default: false]
 	--key                         Path to the private key  [string] [default: "$HOME/.ui5/server/server.key"]
 	--cert                        Path to the certificate  [string] [default: "$HOME/.ui5/server/server.crt"]
 
 Examples:
-	ui5 serve                                                    Start a webserver for the current project
-	ui5 serve --h2                                               Enable the HTTP/2 protocol for the webserver (requires SSL certificate)
+	ui5 serve                                                    Start a web server for the current project
+	ui5 serve --h2                                               Enable the HTTP/2 protocol for the web server (requires SSL certificate)
 	ui5 serve --config /path/to/ui5.yaml                         Use the project configuration from a custom path
 	ui5 serve --translator static:/path/to/projectDependencies.yaml  Use a "static" translator with translator parameters.
 	ui5 serve --port 1337 --open tests/QUnit.html                Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html
