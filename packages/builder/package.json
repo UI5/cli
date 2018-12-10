@@ -59,17 +59,16 @@
 			"docs/**",
 			"jsdocs/**",
 			"coverage/**",
-			"test/**",
-			"lib/lbt/**"
+			"test/**"
 		],
 		"check-coverage": true,
-		"lines": 60,
-		"statements": 60,
+		"lines": 55,
+		"statements": 55,
 		"functions": 50,
 		"branches": 30,
 		"watermarks": {
 			"lines": [
-				60,
+				55,
 				90
 			],
 			"functions": [
@@ -81,7 +80,7 @@
 				70
 			],
 			"statements": [
-				60,
+				55,
 				90
 			]
 		},
