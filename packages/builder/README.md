@@ -15,7 +15,7 @@
 
 ## Builder
 ### Types
-Types define how a project can be configured and how it is being built. A type orchestrates a set of tasks and defines the order in which they get applied during build phase. Furthermore, it takes care of formatting and validating the project specific configuration.
+Types define how a project can be configured and how it is built. A type orchestrates a set of tasks and defines the order in which they get applied during build phase. Furthermore, it takes care of formatting and validating the project-specific configuration.
 
 Currently, the following types are defined:
 
@@ -32,10 +32,10 @@ They are responsible for collecting resources which can be modified by a process
 Available tasks are listed [here](lib/tasks).
 
 ### Processors
-Processors work with provided resources. They contain the actual build step logic to apply specific modifications to supplied resources or to make use of the resources' content to create new resources out of that.
+Processors work with provided resources. They contain the actual build step logic to apply specific modifications to supplied resources, or to make use of the resources' content to create new resources out of that.
 
 Processors can be implemented generically. The string replacer is an example for that.
-Since string replacement is a common build step, it can be useful in different contexts, e.g. code, version, date and copyright replacement. A concrete replacement operation could be achieved by passing a custom configuration to the processor. This way multiple tasks can make use of the same processor to achive their build step.
+Since string replacement is a common build step, it can be useful in different contexts, e.g. code, version, date, and copyright replacement. A concrete replacement operation could be achieved by passing a custom configuration to the processor. This way, multiple tasks can make use of the same processor to achieve their build step.
 
 Available processors are listed [here](lib/processors).
 
