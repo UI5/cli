@@ -98,7 +98,7 @@ Examples:
 
 #### serve
 
-`ui5 serve [options]` starts a webserver for the current project.
+`ui5 serve [options]` starts a web server for the current project.
 
 ```
 Options:
@@ -125,7 +125,7 @@ Examples:
 
 #### tree
 
-`ui5 tree [options]` outputs the dependency tree of the current project to _stdout_. It takes all relevant parameters of ui5 build into account.
+`ui5 tree [options]` outputs the dependency tree of the current project to _stdout_. It takes all relevant parameters of `ui5 build` into account.
 
 ```
 Options:
@@ -159,7 +159,7 @@ Options:
 
 #### versions
 
-`ui5 versions [options]` show the versions of all UI5 Build and Development Tooling packages.
+`ui5 versions [options]` shows the versions of all UI5 Build and Development Tooling packages.
 
 ```
 Options:
@@ -174,16 +174,16 @@ Options:
 
 ### Local vs. Global Installation
 
-In general a global installation of the UI5 CLI (`npm install --global @ui5/cli`) is recommended.
+In general, we recommend a global installation of the UI5 CLI (`npm install --global @ui5/cli`).
 
-However, it makes sense to add the UI5 CLI as a [devDependency](https://docs.npmjs.com/files/package.json#devdependencies) (`npm install --save-dev @ui5/cli`) for a project that is using `ui5`-commands in its build or test scripts or otherwise depends on the UI5 CLI for development workflows (like Continuous Integration).
+However, it makes sense to add the UI5 CLI as a [devDependency](https://docs.npmjs.com/files/package.json#devdependencies) (`npm install --save-dev @ui5/cli`) for a project that is using `ui5` commands in its build or test scripts or otherwise depends on the UI5 CLI for development workflows (like continuous integration).
 
 In case you have both, a local installation in one of your projects as well as a global installation, the UI5 CLI will always try to invoke the local installation. This is in part because [npm scripts](https://docs.npmjs.com/misc/scripts) defined in your `package.json` will also always invoke the local installation.
 
 This behavior can be disabled by setting the environment variable `UI5_CLI_NO_LOCAL`.
 
 **Example**  
-You have a project located at `/my-application`. The project has a devDependency to `@ui5/cli` and defines a start-script `"ui5 serve"`.
+You have a project located at `/my-application`. The project has a devDependency to `@ui5/cli` and defines the start script `"ui5 serve"`.
 
 | Current Working Directory | Command                         | Uses globally installed UI5 CLI | Uses locally installed UI5 CLI |
 | ------------------------- | ------------------------------- | :-----------------------------: | :----------------------------: |
