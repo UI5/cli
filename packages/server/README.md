@@ -20,16 +20,16 @@ The UI5 Build and Development Tooling comes along with a web server component to
 
 The development server has already a set of middlewares which supports the developer with the following features:
 
-* Translation files with `.properties` extension are properly encoded with **ISO-8859-1**
-* Changes on files with `.less` extension triggers a theme build and delivers the compiled CSS files
-* Version Info is created automatically (`/resources/sap-ui-version.json`)
+* Translation files with `.properties` extension are properly encoded with **ISO-8859-1**.
+* Changes on files with `.less` extension triggers a theme build and delivers the compiled CSS files.
+* Version info is created automatically (`/resources/sap-ui-version.json`).
 * List project files with URL (needed exclusively by the OpenUI5 testsuite): `/discovery/app_pages`, `/discovery/all_libs`, `/discovery/all_tests`
 
 ## Certificates for HTTPS or HTTP/2
 
 `ui5 serve` will automatically use an SSL certificate for HTTPS and HTTP/2 servers.
 
-Upon startup it checks if a certificate exists within the path provided.
+Upon startup, it checks if a certificate exists within the path provided.
 If there is none, a new certificate is created and used.
 
 
