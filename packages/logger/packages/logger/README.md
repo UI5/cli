@@ -13,7 +13,7 @@
 **The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
 
 ## Logger
-Used for logging purposes across the UI5 Build and Development Tooling and plugins. Features log-levels and progress logging. Basically a wrapper of [npmlog](https://github.com/npm/npmlog).
+Used for logging purposes across the UI5 Build and Development Tooling and plugins. Features log levels and progress logging. Basically, it is a wrapper of [npmlog](https://github.com/npm/npmlog).
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md).
