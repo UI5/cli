@@ -1,0 +1,6 @@
+.someClass {
+  color: #000000;
+}
+
+/* Inline theming parameters */
+#sap-ui-theme-theme\.j{background-image:url('data:text/plain;utf-8,%7B%7D')}

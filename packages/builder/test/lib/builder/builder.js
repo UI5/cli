@@ -17,6 +17,7 @@ const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const libraryIPath = path.join(__dirname, "..", "..", "fixtures", "library.i");
 const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
+const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
 
 const recursive = require("recursive-readdir");
 
@@ -36,12 +37,14 @@ const findFiles = (folder) => {
 
 function cloneProjectTree(tree) {
 	const clone = JSON.parse(JSON.stringify(tree));
+
 	function increaseDepth(node) {
 		node._level++;
-		if ( Array.isArray(node.dependencies) ) {
+		if (Array.isArray(node.dependencies)) {
 			node.dependencies.forEach(increaseDepth);
 		}
 	}
+
 	increaseDepth(clone);
 	return clone;
 }
@@ -245,6 +248,27 @@ test("Build library.i with manifest info taken from .library and library.js", (t
 	});
 });
 
+test("Build theme.j even without an library", (t) => {
+	const destPath = "./test/tmp/build/theme.j/dest";
+	const expectedPath = "./test/expected/build/theme.j/dest";
+	return builder.build({
+		tree: themeJTree,
+		destPath
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		// Check for all file contents
+		expectedFiles.forEach((expectedFile) => {
+			const relativeFile = path.relative(expectedPath, expectedFile);
+			const destFile = path.join(destPath, relativeFile);
+			assert.fileEqual(destFile, expectedFile);
+			t.pass();
+		});
+	});
+});
 
 const applicationATree = {
 	"id": "application.a",
@@ -729,3 +753,28 @@ const libraryITree = {
 	}
 };
 
+const themeJTree = {
+	"id": "library.i",
+	"version": "1.0.0",
+	"path": themeJPath,
+	"dependencies": [],
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "library",
+	"metadata": {
+		"name": "theme.j",
+		"copyright": "Some fancy copyright"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "main/src",
+				"test": "main/test"
+			}
+		},
+		"pathMappings": {
+			"/resources/": "main/src",
+			"/test-resources/": "main/test"
+		}
+	}
+};
