@@ -27,7 +27,7 @@ module.exports = function({workspace, dependencies, options}) {
 	}
 
 	return Promise.all(promises).then(([allResources, availableLibraries]) => {
-		if (!availableLibraries) {
+		if (!availableLibraries || availableLibraries.length === 0) {
 			// Try to build all themes
 			return allResources;
 		}
