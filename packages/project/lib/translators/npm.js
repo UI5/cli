@@ -6,6 +6,7 @@ const {promisify} = require("util");
 const fs = require("fs");
 const realpath = promisify(fs.realpath);
 const resolveModulePath = promisify(require("resolve"));
+const parentNameRegExp = new RegExp(/:([^:]+):$/i);
 
 class NpmTranslator {
 	constructor() {
@@ -17,12 +18,18 @@ class NpmTranslator {
 	/*
 		Returns a promise with an array of projects
 	*/
-	async processPkg(data, parentName) {
+	async processPkg(data, parentPath) {
 		const cwd = data.path;
 		const moduleName = data.name;
 		const pkg = data.pkg;
+		const parentName = parentPath && this.getParentNameFromPath(parentPath) || "nothing - root project";
 
-		log.verbose("Analyzing %s (%s) (dependency of %s)", moduleName, cwd, parentName || "nothing - root project");
+		log.verbose("Analyzing %s (%s) (dependency of %s)", moduleName, cwd, parentName);
+
+		if (!parentPath) {
+			parentPath = ":";
+		}
+		parentPath += `${moduleName}:`;
 
 		/*
 		 * 	Inject collection definitions for some known projects
@@ -76,7 +83,7 @@ class NpmTranslator {
 		if (!pkg.collection) {
 			return this.getDepProjects({
 				cwd,
-				parentName: moduleName,
+				parentPath,
 				dependencies,
 				optionalDependencies: pkg.optionalDependencies
 			}).then((depProjects) => {
@@ -98,6 +105,7 @@ class NpmTranslator {
 				//	our dependencies later on.
 				this.registerPendingDependencies({
 					parentProject: project,
+					parentPath,
 					dependencies: optDependencies
 				});
 				return [project];
@@ -112,7 +120,7 @@ class NpmTranslator {
 						log.verbose("Ignoring module with same name as parent: " + parentName);
 						return null;
 					}
-					return this.readProject({modulePath, moduleName: depName, parentName: moduleName});
+					return this.readProject({modulePath, moduleName: depName, parentPath});
 				})
 			).then((projects) => {
 				// Array needs to be flattened because:
@@ -123,16 +131,25 @@ class NpmTranslator {
 		}
 	}
 
-	getDepProjects({cwd, dependencies, optionalDependencies, parentName}) {
+	getParentNameFromPath(parentPath) {
+		const parentNameMatch = parentPath.match(parentNameRegExp);
+		if (parentNameMatch) {
+			return parentNameMatch[1];
+		} else {
+			log.error(`Failed to get parent name from path ${parentPath}`);
+		}
+	}
+
+	getDepProjects({cwd, dependencies, optionalDependencies, parentPath}) {
 		return Promise.all(
 			Object.keys(dependencies).map((moduleName) => {
 				return this.findModulePath(cwd, moduleName).then((modulePath) => {
-					return this.readProject({modulePath, moduleName, parentName});
+					return this.readProject({modulePath, moduleName, parentPath});
 				}, (err) => {
 					// Due to normalization done by by the "read-pkg-up" module the values
-					//  in optionalDependencies get added to dependencies. Also as described here:
+					//  in "optionalDependencies" get added to the modules "dependencies". Also described here:
 					//  https://github.com/npm/normalize-package-data#what-normalization-currently-entails
-					// Resolution errors of optionalDependencies are being ignored
+					// Ignore resolution errors for optional dependencies
 					if (optionalDependencies && optionalDependencies[moduleName]) {
 						return null;
 					} else {
@@ -143,17 +160,32 @@ class NpmTranslator {
 		).then((depProjects) => {
 			// Array needs to be flattened because:
 			//	readProject returns an array + Promise.all returns an array = array filled with arrays
-			// Filter out null values of ignored packages
+			// Also filter out null values of ignored packages
 			return Array.prototype.concat.apply([], depProjects.filter((p) => p !== null));
 		});
 	}
 
-	readProject({modulePath, moduleName, parentName}) {
+	readProject({modulePath, moduleName, parentPath}) {
 		if (this.projectCache[modulePath]) {
-			return this.projectCache[modulePath];
+			const cache = this.projectCache[modulePath];
+			// Check whether modules has already been processed in the current subtree (indicates a loop)
+			if (parentPath.indexOf(`:${moduleName}:`) !== -1) {
+				// This is a loop => abort further processing
+				return cache.pPkg.then((pkg) => {
+					return [{
+						id: moduleName,
+						version: pkg.version,
+						path: modulePath,
+						dependencies: [],
+						deduped: true
+					}];
+				});
+			} else {
+				return cache.pProject;
+			}
 		}
 
-		return this.projectCache[modulePath] = readPkg(modulePath).catch((err) => {
+		const pPkg = readPkg(modulePath).catch((err) => {
 			// Failed to read package
 			// If dependency shim is available, fake the package
 
@@ -171,12 +203,14 @@ class NpmTranslator {
 				};
 			}*/
 			throw err;
-		}).then((pkg) => {
+		});
+
+		const pProject = pPkg.then((pkg) => {
 			return this.processPkg({
 				name: moduleName,
 				pkg: pkg,
 				path: modulePath
-			}, parentName).then((projects) => {
+			}, parentPath).then((projects) => {
 				// Flatten the array of project arrays (yes, because collections)
 				return Array.prototype.concat.apply([], projects.filter((p) => p !== null));
 			});
@@ -189,6 +223,12 @@ class NpmTranslator {
 				dependencies: []
 			}];
 		});
+
+		this.projectCache[modulePath] = {
+			pPkg,
+			pProject
+		};
+		return pProject;
 	}
 
 	/* Returns path to a module
@@ -234,13 +274,19 @@ class NpmTranslator {
 		});
 	}
 
-	registerPendingDependencies({dependencies, parentProject}) {
+	registerPendingDependencies({dependencies, parentProject, parentPath}) {
 		Object.keys(dependencies).forEach((moduleName) => {
 			if (this.pendingDeps[moduleName]) {
-				this.pendingDeps[moduleName].parents.push(parentProject);
+				this.pendingDeps[moduleName].parents.push({
+					project: parentProject,
+					path: parentPath
+				});
 			} else {
 				this.pendingDeps[moduleName] = {
-					parents: [parentProject]
+					parents: [{
+						project: parentProject,
+						path: parentPath,
+					}]
 				};
 			}
 		});
@@ -263,7 +309,21 @@ class NpmTranslator {
 
 			if (this.pendingDeps[project.id]) {
 				for (let i = this.pendingDeps[project.id].parents.length - 1; i >= 0; i--) {
-					this.pendingDeps[project.id].parents[i].dependencies.push(project);
+					const parent = this.pendingDeps[project.id].parents[i];
+					// Check whether modules has already been processed in the current subtree (indicates a loop)
+					if (parent.path.indexOf(`:${project.id}:`) !== -1) {
+						// This is a loop => abort further processing
+						const dedupedProject = {
+							id: project.id,
+							version: project.version,
+							path: project.path,
+							dependencies: [],
+							deduped: true
+						};
+						parent.project.dependencies.push(dedupedProject);
+					} else {
+						parent.project.dependencies.push(project);
+					}
 				}
 				this.pendingDeps[project.id] = null;
 			}
