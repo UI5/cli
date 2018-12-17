@@ -24,16 +24,17 @@ tree.handler = function(argv) {
 	const treeify = require("treeify");
 
 	let p;
+	const options = {
+		translator: argv.translator,
+		translatorOptions: {
+			includeDeduped: true
+		},
+		configPath: argv.config
+	};
 	if (argv.full) {
-		p = normalizer.generateProjectTree({
-			translator: argv.translator,
-			configPath: argv.config
-		});
+		p = normalizer.generateProjectTree(options);
 	} else {
-		p = normalizer.generateDependencyTree({
-			translator: argv.translator,
-			configPath: argv.config
-		});
+		p = normalizer.generateDependencyTree(options);
 	}
 
 	p.then(function(tree) {
