@@ -121,6 +121,13 @@ test("AppCycle: cyclic npm deps - Cycle on third level (one indirection) - inclu
 	});
 });
 
+test("AppCycle: cyclic npm deps - Cycles everywhere", (t) => {
+	const applicationCycleDPath = path.join(cycleDepsBasePath, "application.cycle.d");
+	return npmTranslator.generateDependencyTree(applicationCycleDPath, {includeDeduped: true}).then((parsedTree) => {
+		t.deepEqual(parsedTree, applicationCycleDTree, "Parsed correctly");
+	});
+});
+
 test("Error: missing package.json", async (t) => {
 	const dir = path.parse(__dirname).root;
 	const error = await t.throws(npmTranslator.generateDependencyTree(dir));
@@ -527,3 +534,5 @@ const applicationCycleCTreeIncDeduped = {
 		}
 	]
 };
+
+const applicationCycleDTree = {};
