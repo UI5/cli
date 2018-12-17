@@ -2,7 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.4...HEAD).
+
+<a name="v0.2.4"></a>
+## [v0.2.4] - 2018-12-17
+### Bug Fixes
+- **npm t8r:** Add deduplication of npm dependencies [`2717088`](https://github.com/SAP/ui5-project/commit/2717088532d415b6922f290b58d9227b946a965f)
+- **projectPreprocessor:** Ignore deduped modules [`84f7b25`](https://github.com/SAP/ui5-project/commit/84f7b25a9e45df3bc55a7957e4f61db580e68509)
+
+### Internal Changes
+- Add tests for cyclic dependency handling [`0378b77`](https://github.com/SAP/ui5-project/commit/0378b77406107294acb3a0103eb6a3464d129be1)
+- UA Review README.md [`dd64ff5`](https://github.com/SAP/ui5-project/commit/dd64ff58099d2d21d59a1fe0b05ae7a7e416a5df)
+- **npm t8r:** Add includeDeduped option [`eaa2863`](https://github.com/SAP/ui5-project/commit/eaa2863c506f98e011bc0a78776d0f4d61c506d6)
+- **static translator and normalizer:** Add tests [`595936d`](https://github.com/SAP/ui5-project/commit/595936d97379bd2ab92967dc7e7e1f568374e4db)
+
 
 <a name="v0.2.3"></a>
 ## [v0.2.3] - 2018-11-20
@@ -90,6 +103,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-proj
 - **npm t8r:** Improve handling of missing package.json [`4b32134`](https://github.com/SAP/ui5-project/commit/4b321345139058dc821fb08c4556aff88366ea86)
 
 
+[v0.2.4]: https://github.com/SAP/ui5-project/compare/v0.2.3...v0.2.4
 [v0.2.3]: https://github.com/SAP/ui5-project/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-project/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-project/compare/v0.2.0...v0.2.1
