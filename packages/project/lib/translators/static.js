@@ -17,13 +17,13 @@ const parseYaml = require("js-yaml").safeLoad;
  * @param {Array} [translatorOptions] Configuration options
  * @returns {Promise} Promise resolving with a dependency tree
  */
-function generateDependencyTree(dirPath, translatorOptions) {
+function generateDependencyTree(dirPath, translatorOptions = []) {
 	const depFilePath = translatorOptions[0] || path.join(dirPath, "projectDependencies.yaml");
 
 	return new Promise(function(resolve, reject) {
 		fs.readFile(depFilePath, function(err, buffer) {
 			if (err) {
-				reject(err);
+				reject(new Error(`[static translator] Failed to locate projectDependencies.json at path: "${dirPath}" - Error: ${err.message}`));
 			} else {
 				resolve(parseYaml(buffer.toString(), {
 					filename: depFilePath
