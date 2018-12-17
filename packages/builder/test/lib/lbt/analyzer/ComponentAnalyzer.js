@@ -49,7 +49,7 @@ test("routing with routes as array", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: "test/Component.js"}, mockInfo);
+	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
 });
 
 
@@ -82,7 +82,7 @@ test("routing with routes as object", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: "test/Component.js"}, mockInfo);
+	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
 });
 
 test("routing with route with multiple targets", (t) => {
@@ -116,7 +116,7 @@ test("routing with route with multiple targets", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo).then( () => {
 		t.deepEqual(mockInfo.deps, [
 			"test/view/Master.view.xml",
 			"test/view/Detail.view.xml"
@@ -164,7 +164,7 @@ test("routing with targets with local config", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo).then( () => {
 		t.deepEqual(mockInfo.deps, [
 			"test/view/Master.view.js",
 			"test/subview/Detail.view.xml"
@@ -193,7 +193,7 @@ test("rootView with object", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo).then( () => {
 		t.deepEqual(mockInfo.deps, [
 			"test/view/App.view.js",
 		], "dependencies should be correct");
@@ -217,7 +217,7 @@ test("rootView with string", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: "test/Component.js"}, mockInfo).then( () => {
+	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo).then( () => {
 		t.deepEqual(mockInfo.deps, [
 			"test/view/App.view.xml",
 		], "dependencies should be correct");

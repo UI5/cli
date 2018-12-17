@@ -2,6 +2,9 @@ const {test} = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
+const fs = require("graceful-fs");
+const {promisify} = require("util");
+const readFile = promisify(fs.readFile);
 const assert = chai.assert;
 
 const ui5Builder = require("../../../");
@@ -16,6 +19,8 @@ const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
 
 const recursive = require("recursive-readdir");
+
+const newLineRegexp = /\r?\n|\r/g;
 
 const findFiles = (folder) => {
 	return new Promise((resolve, reject) => {
@@ -41,6 +46,20 @@ function cloneProjectTree(tree) {
 	return clone;
 }
 
+async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath) {
+	for (let i = 0; i < expectedFiles.length; i++) {
+		const expectedFile = expectedFiles[i];
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		const currentFileContentPromise = readFile(destFile, "utf8");
+		const expectedFileContentPromise = readFile(expectedFile, "utf8");
+		const assertContents = ([currentContent, expectedContent]) => {
+			assert.equal(currentContent.replace(newLineRegexp, "\n"), expectedContent.replace(newLineRegexp, "\n"));
+		};
+		await Promise.all([currentFileContentPromise, expectedFileContentPromise]).then(assertContents);
+	}
+}
+
 test("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
@@ -55,11 +74,8 @@ test("Build application.a", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
 		t.pass();
 	});
 });
@@ -79,12 +95,9 @@ test("Build application.a [dev mode]", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-			t.pass();
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
 	});
 });
 
@@ -102,11 +115,8 @@ test("Build application.g", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
 		t.pass();
 	});
 });
@@ -125,11 +135,8 @@ test("Build application.g with component preload paths", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
 		t.pass();
 	});
 });
@@ -148,11 +155,8 @@ test("Build application.h", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
 		t.pass();
 	});
 });
@@ -172,17 +176,14 @@ test("Build library.d with copyright from .library file", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-			t.pass();
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
 	});
 });
 
 test("Build library.e with copyright from settings of ui5.yaml", (t) => {
-	const destPath = "./test/tmp/build/library.e/dest";
+	const destPath = path.join("test", "tmp", "build", "library.e", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.e", "dest");
 
 	return builder.build({
@@ -196,17 +197,14 @@ test("Build library.e with copyright from settings of ui5.yaml", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-			t.pass();
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
 	});
 });
 
 test("Build library.h with custom bundles and component-preloads", (t) => {
-	const destPath = "./test/tmp/build/library.h/dest";
+	const destPath = path.join("test", "tmp", "build", "library.h", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest");
 
 	return builder.build({
@@ -220,17 +218,14 @@ test("Build library.h with custom bundles and component-preloads", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-			t.pass();
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
 	});
 });
 
 test("Build library.i with manifest info taken from .library and library.js", (t) => {
-	const destPath = "./test/tmp/build/library.i/dest";
+	const destPath = path.join("test", "tmp", "build", "library.i", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.i", "dest");
 
 	return builder.build({
@@ -244,12 +239,9 @@ test("Build library.i with manifest info taken from .library and library.js", (t
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-			t.pass();
-		});
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
 	});
 });
 

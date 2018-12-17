@@ -27,7 +27,7 @@ const findFiles = (folder) => {
 test("Build application.b with manifestBundler", (t) => {
 	const destPath = "./test/tmp/build/application.b/dest";
 	const destBundle = destPath + "/manifest-bundle";
-	const expectedPath = "./test/expected/build/application.b/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.b", "dest");
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateManifestBundle"];
 
