@@ -9,10 +9,11 @@ const resolveModulePath = promisify(require("resolve"));
 const parentNameRegExp = new RegExp(/:([^:]+):$/i);
 
 class NpmTranslator {
-	constructor() {
+	constructor({includeDeduped}) {
 		this.projectCache = {};
 		this.projectsWoUi5Deps = [];
 		this.pendingDeps = {};
+		this.includeDeduped = includeDeduped;
 	}
 
 	/*
@@ -171,15 +172,21 @@ class NpmTranslator {
 			// Check whether modules has already been processed in the current subtree (indicates a loop)
 			if (parentPath.indexOf(`:${moduleName}:`) !== -1) {
 				// This is a loop => abort further processing
-				return cache.pPkg.then((pkg) => {
-					return [{
-						id: moduleName,
-						version: pkg.version,
-						path: modulePath,
-						dependencies: [],
-						deduped: true
-					}];
-				});
+				if (this.includeDeduped) {
+					// Add module marked as deduped
+					return cache.pPkg.then((pkg) => {
+						return {
+							id: moduleName,
+							version: pkg.version,
+							path: modulePath,
+							dependencies: [],
+							deduped: true
+						};
+					});
+				} else {
+					// Ignore this dependency
+					return Promise.resolve(null);
+				}
 			} else {
 				return cache.pProject;
 			}
@@ -312,15 +319,18 @@ class NpmTranslator {
 					const parent = this.pendingDeps[project.id].parents[i];
 					// Check whether modules has already been processed in the current subtree (indicates a loop)
 					if (parent.path.indexOf(`:${project.id}:`) !== -1) {
-						// This is a loop => abort further processing
-						const dedupedProject = {
-							id: project.id,
-							version: project.version,
-							path: project.path,
-							dependencies: [],
-							deduped: true
-						};
-						parent.project.dependencies.push(dedupedProject);
+						// This is a loop
+						if (this.includeDeduped) {
+							// Add module marked as deduped
+							const dedupedProject = {
+								id: project.id,
+								version: project.version,
+								path: project.path,
+								dependencies: [],
+								deduped: true
+							};
+							parent.project.dependencies.push(dedupedProject);
+						} // else: do nothing
 					} else {
 						parent.project.dependencies.push(project);
 					}
@@ -401,9 +411,11 @@ module.exports = {
 	 * Generates a dependency tree for npm projects
 	 *
 	 * @param {string} dirPath Project path
+	 * @param {object} [options]
+	 * @param {boolean} [options.includeDeduped=false]
 	 * @returns {Promise} Promise resolving with a dependency tree
 	 */
-	generateDependencyTree(dirPath) {
-		return new NpmTranslator().generateDependencyTree(dirPath);
+	generateDependencyTree(dirPath, options = {includeDeduped: false}) {
+		return new NpmTranslator(options).generateDependencyTree(dirPath);
 	}
 };

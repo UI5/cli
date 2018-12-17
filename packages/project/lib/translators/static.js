@@ -14,11 +14,14 @@ const parseYaml = require("js-yaml").safeLoad;
  * This feature is <b>EXPERIMENTAL</b> and used for testing purposes only.
  *
  * @param {string} dirPath Project path
- * @param {Array} [translatorOptions] Configuration options
+ * @param {object} [options]
+ * @param {Array} [options.parameters] CLI configuration options
  * @returns {Promise} Promise resolving with a dependency tree
  */
-function generateDependencyTree(dirPath, translatorOptions = []) {
-	const depFilePath = translatorOptions[0] || path.join(dirPath, "projectDependencies.yaml");
+function generateDependencyTree(dirPath, options = {}) {
+	// TODO NEXT MAJOR: "options" used to be the the parameters array. We check for that here to stay compatible:
+	const parameters = Array.isArray(options) ? options : options.parameters;
+	const depFilePath = parameters && parameters[0] || path.join(dirPath, "projectDependencies.yaml");
 
 	return new Promise(function(resolve, reject) {
 		fs.readFile(depFilePath, function(err, buffer) {
