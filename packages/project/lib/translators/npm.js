@@ -14,6 +14,7 @@ class NpmTranslator {
 		this.projectsWoUi5Deps = [];
 		this.pendingDeps = {};
 		this.includeDeduped = includeDeduped;
+		this.debugUnresolvedProjects = {};
 	}
 
 	/*
@@ -82,6 +83,14 @@ class NpmTranslator {
 			Although we could add the collections dependencies as project dependencies to the related modules
 		*/
 		if (!pkg.collection) {
+			if (log.isLevelEnabled("silly")) {
+				this.debugUnresolvedProjects[cwd] = {
+					moduleName
+				};
+				const logParentPath = parentPath.replace(":", "(root) ").replace(/([^:]*):$/, "(current) $1");
+				log.silly(`Parent path: ${logParentPath.replace(/:/ig, " ➡️  ")}`);
+				log.silly(`Resolving dependencies of ${moduleName}...`);
+			}
 			return this.getDepProjects({
 				cwd,
 				parentPath,
@@ -91,6 +100,14 @@ class NpmTranslator {
 				// Array needs to be flattened because:
 				// getDepProjects returns array * 2 = array with two arrays
 				const projects = Array.prototype.concat.apply([], depProjects);
+				if (log.isLevelEnabled("silly")) {
+					delete this.debugUnresolvedProjects[cwd];
+					log.silly(`Resolved dependencies of ${moduleName}`);
+					const pendingModules = Object.keys(this.debugUnresolvedProjects).map((key) => {
+						return this.debugUnresolvedProjects[key].moduleName;
+					});
+					log.silly(`${pendingModules.length} resolutions left: ${pendingModules.join(", ")}`);
+				}
 
 				return [{
 					id: moduleName,
@@ -171,6 +188,7 @@ class NpmTranslator {
 			const cache = this.projectCache[modulePath];
 			// Check whether modules has already been processed in the current subtree (indicates a loop)
 			if (parentPath.indexOf(`:${moduleName}:`) !== -1) {
+				log.verbose(`Deduping project ${moduleName} with parent path ${parentPath}`);
 				// This is a loop => abort further processing
 				if (this.includeDeduped) {
 					// Add module marked as deduped
@@ -188,8 +206,15 @@ class NpmTranslator {
 					return Promise.resolve(null);
 				}
 			} else {
+				if (log.isLevelEnabled("silly")) {
+					log.silly(
+						`${parentPath.match(/([^:]*):$/)[1]} is waiting for ${moduleName} (waiting via cache 🗄 )...`);
+				}
 				return cache.pProject;
 			}
+		}
+		if (log.isLevelEnabled("silly")) {
+			log.silly(`${parentPath.match(/([^:]*):$/)[1]} is waiting for ${moduleName}...`);
 		}
 
 		const pPkg = readPkg(modulePath).catch((err) => {
@@ -317,9 +342,10 @@ class NpmTranslator {
 			if (this.pendingDeps[project.id]) {
 				for (let i = this.pendingDeps[project.id].parents.length - 1; i >= 0; i--) {
 					const parent = this.pendingDeps[project.id].parents[i];
-					// Check whether modules has already been processed in the current subtree (indicates a loop)
+					// Check whether module has already been processed in the current subtree (indicates a loop)
 					if (parent.path.indexOf(`:${project.id}:`) !== -1) {
 						// This is a loop
+						log.verbose(`Deduping pending dependency ${project.id} with parent path ${parent.path}`);
 						if (this.includeDeduped) {
 							// Add module marked as deduped
 							const dedupedProject = {
