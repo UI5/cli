@@ -18,7 +18,10 @@ matrix:
         - "8"
 
 after_script:
-- if [[ "$TRAVIS_OS_NAME" == 'linux' ]]; then npm run report-coveralls; fi
+- if [[ "$TRAVIS_OS_NAME" == "linux" &&
+    (( -n "$TRAVIS_PULL_REQUEST" && "$TRAVIS_PULL_REQUEST" != "false" ) || "$TRAVIS_BRANCH" == "master" ) ]]; then
+    npm run report-coveralls;
+  fi
 
 notifications:
   webhooks: https://coveralls.io/webhook
