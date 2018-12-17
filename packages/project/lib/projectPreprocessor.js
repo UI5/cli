@@ -40,7 +40,8 @@ class ProjectPreprocessor {
 			//	 by the dependency lookahead
 			const projectsToProcess = projects.filter((project) => {
 				if (!project.id) {
-					throw new Error("Encountered project with missing id");
+					const parentRefText = parent ? `(child of ${parent.id})` : `(root project)`;
+					throw new Error(`Encountered project with missing id ${parentRefText}`);
 				}
 				if (this.isBeingProcessed(parent, project)) {
 					return false;
@@ -155,6 +156,10 @@ class ProjectPreprocessor {
 
 	isBeingProcessed(parent, project) { // Check whether a project is currently being or has already been processed
 		const processedProject = this.processedProjects[project.id];
+		if (project.deduped) {
+			// Ignore deduped modules
+			return true;
+		}
 		if (processedProject) {
 			if (processedProject.ignored) {
 				log.verbose(`Dependency of project ${parent.id}, "${project.id}" is flagged as ignored.`);

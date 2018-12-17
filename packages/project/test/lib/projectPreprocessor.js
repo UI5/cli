@@ -8,6 +8,7 @@ const libraryAPath = path.join(__dirname, "..", "fixtures", "collection", "libra
 const libraryBPath = path.join(__dirname, "..", "fixtures", "collection", "library.b");
 // const libraryCPath = path.join(__dirname, "..", "fixtures", "collection", "library.c");
 const libraryDPath = path.join(__dirname, "..", "fixtures", "library.d");
+const cycleDepsBasePath = path.join(__dirname, "..", "fixtures", "cyclic-deps", "node_modules");
 
 test("Project with inline configuration", (t) => {
 	const tree = {
@@ -170,7 +171,7 @@ test("Missing id for root project", (t) => {
 		dependencies: []
 	};
 	return t.throws(projectPreprocessor.processTree(tree),
-		"Encountered project with missing id", "Rejected with error");
+		"Encountered project with missing id (root project)", "Rejected with error");
 });
 
 test("No type configured for root project", (t) => {
@@ -522,6 +523,13 @@ test("Project tree B with inline configs", (t) => {
 	// Tree B depends on Library B which has a dependency to Library D
 	return projectPreprocessor.processTree(treeBWithInlineConfigs).then((parsedTree) => {
 		t.deepEqual(parsedTree, expectedTreeBWithInlineConfigs, "Parsed correctly");
+	});
+});
+
+test("Project tree B with inline configs", (t) => {
+	// Tree B depends on Library B which has a dependency to Library D
+	return projectPreprocessor.processTree(treeApplicationCycleA).then((parsedTree) => {
+		t.deepEqual(parsedTree, expectedTreeApplicationCycleA, "Parsed correctly");
 	});
 });
 
@@ -1102,6 +1110,236 @@ const expectedTreeBWithInlineConfigs = {
 		}
 	]
 };
+
+const treeApplicationCycleA = {
+	id: "application.cycle.a",
+	version: "1.0.0",
+	specVersion: "0.1",
+	path: path.join(cycleDepsBasePath, "application.cycle.a"),
+	type: "application",
+	metadata: {
+		name: "application.cycle.a",
+	},
+	dependencies: [
+		{
+			id: "component.cycle.a",
+			version: "1.0.0",
+			specVersion: "0.1",
+			path: path.join(cycleDepsBasePath, "component.cycle.a"),
+			type: "library",
+			metadata: {
+				name: "component.cycle.a",
+			},
+			dependencies: [
+				{
+					id: "library.cycle.a",
+					version: "1.0.0",
+					specVersion: "0.1",
+					path: path.join(cycleDepsBasePath, "library.cycle.a"),
+					type: "library",
+					metadata: {
+						name: "library.cycle.a",
+					},
+					dependencies: [
+						{
+							id: "component.cycle.a",
+							version: "1.0.0",
+							specVersion: "0.1",
+							path: path.join(cycleDepsBasePath, "component.cycle.a"),
+							type: "library",
+							metadata: {
+								name: "component.cycle.a",
+							},
+							dependencies: [],
+							deduped: true
+						}
+					]
+				},
+				{
+					id: "library.cycle.b",
+					version: "1.0.0",
+					specVersion: "0.1",
+					path: path.join(cycleDepsBasePath, "library.cycle.b"),
+					type: "library",
+					metadata: {
+						name: "library.cycle.b",
+					},
+					dependencies: [
+						{
+							id: "component.cycle.a",
+							version: "1.0.0",
+							specVersion: "0.1",
+							path: path.join(cycleDepsBasePath, "component.cycle.a"),
+							type: "library",
+							metadata: {
+								name: "component.cycle.a",
+							},
+							dependencies: [],
+							deduped: true
+						}
+					]
+				},
+				{
+					id: "application.cycle.a",
+					version: "1.0.0",
+					specVersion: "0.1",
+					path: path.join(cycleDepsBasePath, "application.cycle.a"),
+					type: "application",
+					metadata: {
+						name: "application.cycle.a",
+					},
+					dependencies: [],
+					deduped: true
+				}
+			]
+		}
+	]
+};
+
+const expectedTreeApplicationCycleA = {
+	"id": "application.cycle.a",
+	"version": "1.0.0",
+	"specVersion": "0.1",
+	"path": path.join(cycleDepsBasePath, "application.cycle.a"),
+	"type": "application",
+	"metadata": {
+		"name": "application.cycle.a"
+	},
+	"dependencies": [
+		{
+			"id": "component.cycle.a",
+			"version": "1.0.0",
+			"specVersion": "0.1",
+			"path": path.join(cycleDepsBasePath, "component.cycle.a"),
+			"type": "library",
+			"metadata": {
+				"name": "component.cycle.a",
+				"copyright": "${copyright}"
+			},
+			"dependencies": [
+				{
+					"id": "library.cycle.a",
+					"version": "1.0.0",
+					"specVersion": "0.1",
+					"path": path.join(cycleDepsBasePath, "library.cycle.a"),
+					"type": "library",
+					"metadata": {
+						"name": "library.cycle.a",
+						"copyright": "${copyright}"
+					},
+					"dependencies": [
+						{
+							"id": "component.cycle.a",
+							"version": "1.0.0",
+							"specVersion": "0.1",
+							"path": path.join(cycleDepsBasePath, "component.cycle.a"),
+							"type": "library",
+							"metadata": {
+								"name": "component.cycle.a"
+							},
+							"dependencies": [],
+							"deduped": true
+						}
+					],
+					"kind": "project",
+					"_level": 2,
+					"resources": {
+						"configuration": {
+							"paths": {
+								"src": "src",
+								"test": "test"
+							}
+						},
+						"pathMappings": {
+							"/resources/": "src",
+							"/test-resources/": "test"
+						}
+					}
+				},
+				{
+					"id": "library.cycle.b",
+					"version": "1.0.0",
+					"specVersion": "0.1",
+					"path": path.join(cycleDepsBasePath, "library.cycle.b"),
+					"type": "library",
+					"metadata": {
+						"name": "library.cycle.b",
+						"copyright": "${copyright}"
+					},
+					"dependencies": [
+						{
+							"id": "component.cycle.a",
+							"version": "1.0.0",
+							"specVersion": "0.1",
+							"path": path.join(cycleDepsBasePath, "component.cycle.a"),
+							"type": "library",
+							"metadata": {
+								"name": "component.cycle.a"
+							},
+							"dependencies": [],
+							"deduped": true
+						}
+					],
+					"kind": "project",
+					"_level": 2,
+					"resources": {
+						"configuration": {
+							"paths": {
+								"src": "src",
+								"test": "test"
+							}
+						},
+						"pathMappings": {
+							"/resources/": "src",
+							"/test-resources/": "test"
+						}
+					}
+				},
+				{
+					"id": "application.cycle.a",
+					"version": "1.0.0",
+					"specVersion": "0.1",
+					"path": path.join(cycleDepsBasePath, "application.cycle.a"),
+					"type": "application",
+					"metadata": {
+						"name": "application.cycle.a"
+					},
+					"dependencies": [],
+					"deduped": true
+				}
+			],
+			"kind": "project",
+			"_level": 1,
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "src",
+						"test": "test"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "src",
+					"/test-resources/": "test"
+				}
+			}
+		}
+	],
+	"_level": 0,
+	"kind": "project",
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			}
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	}
+};
+
+/* ======= /Test data ======= */
+/* ========================= */
 
 test("Application version in package.json data is missing", (t) => {
 	const tree = {
