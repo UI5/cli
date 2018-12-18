@@ -295,16 +295,16 @@ class NpmTranslator {
 					// As of today, collections only exist in shims
 					this.shimCollection(pkg.name, pkg);
 					if (pkg.collection) {
-						log.verbose(
-							"Unable to locate module %s via resolve logic, but found a collection in parent hierarchy: %s",
-							moduleName, pkg.name);
+						log.verbose(`Unable to locate module ${moduleName} via resolve logic, but found ` +
+							`a collection in parent hierarchy: ${pkg.name}`);
 						const modules = pkg.collection.modules || {};
 						if (modules[moduleName]) {
 							const modulePath = path.join(path.dirname(result.path), modules[moduleName]);
-							log.verbose("Found module %s in that collection", moduleName);
+							log.verbose(`Found module ${moduleName} in that collection`);
 							return modulePath;
 						}
-						throw new Error(`[npm translator] Could not find module ${moduleName} in collection ${pkg.name}`);
+						throw new Error(
+							`[npm translator] Could not find module ${moduleName} in collection ${pkg.name}`);
 					}
 				}
 
@@ -320,11 +320,13 @@ class NpmTranslator {
 	registerPendingDependencies({dependencies, parentProject, parentPath}) {
 		Object.keys(dependencies).forEach((moduleName) => {
 			if (this.pendingDeps[moduleName]) {
+				// Register additional potential parent for pending dependency
 				this.pendingDeps[moduleName].parents.push({
 					project: parentProject,
 					path: parentPath
 				});
 			} else {
+				// Add new pending dependency
 				this.pendingDeps[moduleName] = {
 					parents: [{
 						project: parentProject,
