@@ -100,6 +100,13 @@ test("AppCycleD: cyclic npm deps - Cycles everywhere", (t) => {
 	});
 });
 
+test("AppCycleE: cyclic npm deps - Cycle via devDependency", (t) => {
+	const applicationCycleEPath = path.join(cycleDepsBasePath, "application.cycle.e");
+	return npmTranslator.generateDependencyTree(applicationCycleEPath, {includeDeduped: true}).then((parsedTree) => {
+		t.deepEqual(parsedTree, applicationCycleETree, "Parsed correctly");
+	});
+});
+
 test("Error: missing package.json", async (t) => {
 	const dir = path.parse(__dirname).root;
 	const error = await t.throws(npmTranslator.generateDependencyTree(dir));
@@ -401,7 +408,8 @@ const applicationCycleBTree = {
 							"id": "module.e",
 							"version": "1.0.0",
 							"path": path.join(cycleDepsBasePath, "module.e"),
-							"dependencies": []
+							"dependencies": [],
+							"deduped": true
 						}
 					]
 				}
@@ -843,6 +851,56 @@ const applicationCycleDTree = {
 									"deduped": true
 								}
 							]
+						}
+					]
+				}
+			]
+		}
+	]
+};
+
+const applicationCycleETree = {
+	"id": "application.cycle.e",
+	"version": "1.0.0",
+	"path": path.join(cycleDepsBasePath, "application.cycle.e"),
+	"dependencies": [
+		{
+			"id": "module.l",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.l"),
+			"dependencies": [
+				{
+					"id": "module.m",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.m"),
+					"dependencies": [
+						{
+							"id": "module.l",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.l"),
+							"dependencies": [],
+							"deduped": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "module.m",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.m"),
+			"dependencies": [
+				{
+					"id": "module.l",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.l"),
+					"dependencies": [
+						{
+							"id": "module.m",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.m"),
+							"dependencies": [],
+							"deduped": true
 						}
 					]
 				}

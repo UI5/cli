@@ -222,16 +222,13 @@ class NpmTranslator {
 				// Ignore this dependency
 				return null;
 			} else {
-				// Add module marked as deduped
+				// Create deduped project
 				const pkg = await pPkg;
-
-				return {
+				return this.createDedupedProject({
 					id: moduleName,
 					version: pkg.version,
-					path: modulePath,
-					dependencies: [],
-					deduped: true
-				};
+					path: modulePath
+				});
 			}
 		}
 
@@ -338,6 +335,11 @@ class NpmTranslator {
 	}
 
 	processPendingDeps(tree) {
+		if (Object.keys(this.pendingDeps).length === 0) {
+			// No pending deps => nothing to do
+			log.verbose("No pending (optional) dependencies to process");
+			return tree;
+		}
 		const queue = [tree];
 		const visited = new Set();
 
@@ -360,21 +362,28 @@ class NpmTranslator {
 						// This is a loop
 						log.verbose(`Deduping pending dependency ${project.id} with parent path ${parent.path}`);
 						if (this.includeDeduped) {
-							// Add module marked as deduped
-							const dedupedProject = {
+							// Create project marked as deduped
+							const dedupedProject = this.createDedupedProject({
 								id: project.id,
 								version: project.version,
-								path: project.path,
-								dependencies: [],
-								deduped: true
-							};
+								path: project.path
+							});
 							parent.project.dependencies.push(dedupedProject);
 						} // else: do nothing
 					} else {
-						parent.project.dependencies.push(project);
+						if (log.isLevelEnabled("silly")) {
+							log.silly(`Adding optional dependency ${project.id} to project ${parent.project.id} ` +
+								`(parent path: ${parent.path})...`);
+						}
+						const dedupedProject = this.dedupeTree(project, parent.path);
+						parent.project.dependencies.push(dedupedProject);
 					}
 				}
 				this.pendingDeps[project.id] = null;
+
+				if (log.isLevelEnabled("silly")) {
+					log.silly(`${Object.keys(this.pendingDeps).length} pending dependencies left`);
+				}
 			}
 
 			if (project.dependencies) {
@@ -437,6 +446,45 @@ class NpmTranslator {
 		if (!pkg.collection && pkgCollectionShims[moduleName]) {
 			pkg.collection = JSON.parse(JSON.stringify(pkgCollectionShims[moduleName]));
 		}*/
+	}
+
+	dedupeTree(tree, parentPath) {
+		const projectsToDedupe = new Set(parentPath.slice(1, -1).split(":"));
+		const clonedTree = JSON.parse(JSON.stringify(tree));
+		const queue = [{project: clonedTree}];
+		// BFS
+		while (queue.length) {
+			const {project, parent} = queue.shift(); // Get and remove first entry from queue
+
+			if (parent && projectsToDedupe.has(project.id)) {
+				log.silly(`In tree "${tree.id}" (parent path "${parentPath}"): Deduplicating project ${project.id} `+
+					`(child of ${parent.id})`);
+
+				const idx = parent.dependencies.indexOf(project);
+				const dedupedProject = this.createDedupedProject(project);
+				parent.dependencies.splice(idx, 1, dedupedProject);
+			}
+
+			if (project.dependencies) {
+				queue.push(...project.dependencies.map((dependency) => {
+					return {
+						project: dependency,
+						parent: project
+					};
+				}));
+			}
+		}
+		return clonedTree;
+	}
+
+	createDedupedProject({id, version, path}) {
+		return {
+			id,
+			version,
+			path,
+			dependencies: [],
+			deduped: true
+		};
 	}
 }
 
