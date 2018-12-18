@@ -56,7 +56,7 @@ test("AppG: project with npm 'optionalDependencies' should not fail if optional 
 	});
 });
 
-test("AppCycle: cyclic dev deps", (t) => {
+test("AppCycleA: cyclic dev deps", (t) => {
 	const applicationCycleAPath = path.join(cycleDepsBasePath, "application.cycle.a");
 
 	return npmTranslator.generateDependencyTree(applicationCycleAPath, {includeDeduped: false}).then((parsedTree) => {
@@ -64,7 +64,7 @@ test("AppCycle: cyclic dev deps", (t) => {
 	});
 });
 
-test("AppCycle: cyclic dev deps - include deduped", (t) => {
+test("AppCycleA: cyclic dev deps - include deduped", (t) => {
 	const applicationCycleAPath = path.join(cycleDepsBasePath, "application.cycle.a");
 
 	return npmTranslator.generateDependencyTree(applicationCycleAPath, {includeDeduped: true}).then((parsedTree) => {
@@ -72,56 +72,28 @@ test("AppCycle: cyclic dev deps - include deduped", (t) => {
 	});
 });
 
-test("AppCycle: cyclic npm deps - Cycle via devDependency on second level", (t) => {
-	const cycleDepsBasePath = path.join(__dirname, "..", "..", "fixtures", "cyclic-deps", "node_modules");
+test("AppCycleB: cyclic npm deps - Cycle via devDependency on second level", (t) => {
 	const applicationCycleBPath = path.join(cycleDepsBasePath, "application.cycle.b");
-
-	const applicationCycleB = {
-		id: "application.cycle.b",
-		version: "1.0.0",
-		path: applicationCycleBPath,
-		dependencies: []
-	};
-
-	const moduleD = {
-		id: "module.d",
-		version: "1.0.0",
-		path: path.join(cycleDepsBasePath, "module.d"),
-		dependencies: []
-	};
-
-	const moduleE = {
-		id: "module.e",
-		version: "1.0.0",
-		path: path.join(cycleDepsBasePath, "module.e"),
-		dependencies: []
-	};
-
-	applicationCycleB.dependencies.push(moduleD, moduleE);
-	moduleD.dependencies.push(moduleE);
-	moduleE.dependencies.push(moduleD);
-
-	const applicationCycleTree = applicationCycleB;
 	return npmTranslator.generateDependencyTree(applicationCycleBPath).then((parsedTree) => {
-		t.deepEqual(parsedTree, applicationCycleTree, "Parsed correctly");
+		t.deepEqual(parsedTree, applicationCycleBTree, "Parsed correctly");
 	});
 });
 
-test("AppCycle: cyclic npm deps - Cycle on third level (one indirection)", (t) => {
+test("AppCycleC: cyclic npm deps - Cycle on third level (one indirection)", (t) => {
 	const applicationCycleCPath = path.join(cycleDepsBasePath, "application.cycle.c");
 	return npmTranslator.generateDependencyTree(applicationCycleCPath, {includeDeduped: false}).then((parsedTree) => {
 		t.deepEqual(parsedTree, applicationCycleCTree, "Parsed correctly");
 	});
 });
 
-test("AppCycle: cyclic npm deps - Cycle on third level (one indirection) - include deduped", (t) => {
+test("AppCycleC: cyclic npm deps - Cycle on third level (one indirection) - include deduped", (t) => {
 	const applicationCycleCPath = path.join(cycleDepsBasePath, "application.cycle.c");
 	return npmTranslator.generateDependencyTree(applicationCycleCPath, {includeDeduped: true}).then((parsedTree) => {
 		t.deepEqual(parsedTree, applicationCycleCTreeIncDeduped, "Parsed correctly");
 	});
 });
 
-test("AppCycle: cyclic npm deps - Cycles everywhere", (t) => {
+test("AppCycleD: cyclic npm deps - Cycles everywhere", (t) => {
 	const applicationCycleDPath = path.join(cycleDepsBasePath, "application.cycle.d");
 	return npmTranslator.generateDependencyTree(applicationCycleDPath, {includeDeduped: true}).then((parsedTree) => {
 		t.deepEqual(parsedTree, applicationCycleDTree, "Parsed correctly");
@@ -397,6 +369,47 @@ const applicationCycleATreeIncDeduped = {
 	]
 };
 
+const applicationCycleBTree = {
+	"id": "application.cycle.b",
+	"version": "1.0.0",
+	"path": path.join(cycleDepsBasePath, "application.cycle.b"),
+	"dependencies": [
+		{
+			"id": "module.d",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.d"),
+			"dependencies": [
+				{
+					"id": "module.e",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.e"),
+					"dependencies": []
+				}
+			]
+		},
+		{
+			"id": "module.e",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.e"),
+			"dependencies": [
+				{
+					"id": "module.d",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.d"),
+					"dependencies": [
+						{
+							"id": "module.e",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.e"),
+							"dependencies": []
+						}
+					]
+				}
+			]
+		}
+	]
+};
+
 const applicationCycleCTree = {
 	"id": "application.cycle.c",
 	"version": "1.0.0",
@@ -500,7 +513,8 @@ const applicationCycleCTreeIncDeduped = {
 		},
 		{
 			"id": "module.g",
-			"version": "1.0.0", "path": path.join(cycleDepsBasePath, "module.g"),
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.g"),
 			"dependencies": [
 				{
 					"id": "module.a",
@@ -535,4 +549,304 @@ const applicationCycleCTreeIncDeduped = {
 	]
 };
 
-const applicationCycleDTree = {};
+const applicationCycleDTree = {
+	"id": "application.cycle.d",
+	"version": "1.0.0",
+	"path": path.join(cycleDepsBasePath, "application.cycle.d"),
+	"dependencies": [
+		{
+			"id": "module.h",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.h"),
+			"dependencies": [
+				{
+					"id": "module.i",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.i"),
+					"dependencies": [
+						{
+							"id": "module.k",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.k"),
+							"dependencies": [
+								{
+									"id": "module.h",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.h"),
+									"dependencies": [],
+									"deduped": true
+								},
+								{
+									"id": "module.i",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.i"),
+									"dependencies": [],
+									"deduped": true
+								},
+								{
+									"id": "module.j",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.j"),
+									"dependencies": [
+										{
+											"id": "module.i",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.i"),
+											"dependencies": [],
+											"deduped": true
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "module.j",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.j"),
+					"dependencies": [
+						{
+							"id": "module.i",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.i"),
+							"dependencies": [
+								{
+									"id": "module.k",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.k"),
+									"dependencies": [
+										{
+											"id": "module.h",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.h"),
+											"dependencies": [],
+											"deduped": true
+										},
+										{
+											"id": "module.i",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.i"),
+											"dependencies": [],
+											"deduped": true
+										},
+										{
+											"id": "module.j",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.j"),
+											"dependencies": [],
+											"deduped": true
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "module.i",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.i"),
+			"dependencies": [
+				{
+					"id": "module.k",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.k"),
+					"dependencies": [
+						{
+							"id": "module.h",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.h"),
+							"dependencies": [
+								{
+									"id": "module.i",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.i"),
+									"dependencies": [],
+									"deduped": true
+								},
+								{
+									"id": "module.j",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.j"),
+									"dependencies": [
+										{
+											"id": "module.i",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.i"),
+											"dependencies": [],
+											"deduped": true
+										}
+									]
+								}
+							]
+						},
+						{
+							"id": "module.i",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.i"),
+							"dependencies": [],
+							"deduped": true
+						},
+						{
+							"id": "module.j",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.j"),
+							"dependencies": [
+								{
+									"id": "module.i",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.i"),
+									"dependencies": [],
+									"deduped": true
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "module.j",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.j"),
+			"dependencies": [
+				{
+					"id": "module.i",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.i"),
+					"dependencies": [
+						{
+							"id": "module.k",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.k"),
+							"dependencies": [
+								{
+									"id": "module.h",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.h"),
+									"dependencies": [
+										{
+											"id": "module.i",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.i"),
+											"dependencies": [],
+											"deduped": true
+										},
+										{
+											"id": "module.j",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.j"),
+											"dependencies": [],
+											"deduped": true
+										}
+									]
+								},
+								{
+									"id": "module.i",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.i"),
+									"dependencies": [],
+									"deduped": true
+								},
+								{
+									"id": "module.j",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.j"),
+									"dependencies": [],
+									"deduped": true
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"id": "module.k",
+			"version": "1.0.0",
+			"path": path.join(cycleDepsBasePath, "module.k"),
+			"dependencies": [
+				{
+					"id": "module.h",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.h"),
+					"dependencies": [
+						{
+							"id": "module.i",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.i"),
+							"dependencies": [
+								{
+									"id": "module.k",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.k"),
+									"dependencies": [],
+									"deduped": true
+								}
+							]
+						},
+						{
+							"id": "module.j",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.j"),
+							"dependencies": [
+								{
+									"id": "module.i",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.i"),
+									"dependencies": [
+										{
+											"id": "module.k",
+											"version": "1.0.0",
+											"path": path.join(cycleDepsBasePath, "module.k"),
+											"dependencies": [],
+											"deduped": true
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"id": "module.i",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.i"),
+					"dependencies": [
+						{
+							"id": "module.k",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.k"),
+							"dependencies": [],
+							"deduped": true
+						}
+					]
+				},
+				{
+					"id": "module.j",
+					"version": "1.0.0",
+					"path": path.join(cycleDepsBasePath, "module.j"),
+					"dependencies": [
+						{
+							"id": "module.i",
+							"version": "1.0.0",
+							"path": path.join(cycleDepsBasePath, "module.i"),
+							"dependencies": [
+								{
+									"id": "module.k",
+									"version": "1.0.0",
+									"path": path.join(cycleDepsBasePath, "module.k"),
+									"dependencies": [],
+									"deduped": true
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+};

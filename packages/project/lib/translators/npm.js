@@ -106,7 +106,11 @@ class NpmTranslator {
 					const pendingModules = Object.keys(this.debugUnresolvedProjects).map((key) => {
 						return this.debugUnresolvedProjects[key].moduleName;
 					});
-					log.silly(`${pendingModules.length} resolutions left: ${pendingModules.join(", ")}`);
+					if (pendingModules.length) {
+						log.silly(`${pendingModules.length} resolutions left: ${pendingModules.join(", ")}`);
+					} else {
+						log.silly("All modules resolved.");
+					}
 				}
 
 				return [{
@@ -183,69 +187,85 @@ class NpmTranslator {
 		});
 	}
 
-	readProject({modulePath, moduleName, parentPath}) {
-		if (this.projectCache[modulePath]) {
-			const cache = this.projectCache[modulePath];
-			// Check whether modules has already been processed in the current subtree (indicates a loop)
-			if (parentPath.indexOf(`:${moduleName}:`) !== -1) {
-				log.verbose(`Deduping project ${moduleName} with parent path ${parentPath}`);
-				// This is a loop => abort further processing
-				if (this.includeDeduped) {
-					// Add module marked as deduped
-					return cache.pPkg.then((pkg) => {
-						return {
-							id: moduleName,
-							version: pkg.version,
-							path: modulePath,
-							dependencies: [],
-							deduped: true
-						};
-					});
-				} else {
-					// Ignore this dependency
-					return Promise.resolve(null);
-				}
+	async readProject({modulePath, moduleName, parentPath}) {
+		let {pPkg} = this.projectCache[modulePath] || {};
+		if (!pPkg) {
+			pPkg = readPkg(modulePath).catch((err) => {
+				// Failed to read package
+				// If dependency shim is available, fake the package
+
+				/* Disabled shimming until shim-plugin is available
+				const id = path.basename(modulePath);
+				if (pkgDependenciesShims[id]) {
+					const dependencies = JSON.parse(JSON.stringify(pkgDependenciesShims[id]));
+					return { // Fake package.json content
+						name: id,
+						dependencies,
+						version: "",
+						ui5: {
+							dependencies: Object.keys(dependencies)
+						}
+					};
+				}*/
+				throw err;
+			});
+			this.projectCache[modulePath] = {
+				pPkg
+			};
+		}
+
+		// Check whether module has already been processed in the current subtree (indicates a loop)
+		if (parentPath.indexOf(`:${moduleName}:`) !== -1) {
+			log.verbose(`Deduping project ${moduleName} with parent path ${parentPath}`);
+			// This is a loop => abort further processing
+			if (!this.includeDeduped) {
+				// Ignore this dependency
+				return null;
 			} else {
-				if (log.isLevelEnabled("silly")) {
-					log.silly(
-						`${parentPath.match(/([^:]*):$/)[1]} is waiting for ${moduleName} (waiting via cache 🗄 )...`);
-				}
-				return cache.pProject;
+				// Add module marked as deduped
+				const pkg = await pPkg;
+
+				return {
+					id: moduleName,
+					version: pkg.version,
+					path: modulePath,
+					dependencies: [],
+					deduped: true
+				};
 			}
 		}
+
+		// Check whether project has already been processed
+		// Note: We can only cache already *processed* projects, not the promise waiting for the processing to complete
+		//	Otherwise cyclic dependencies might wait for each other, emptying the event loop
+		// Note 2: Currently caching can't be used at all. If a cached dependency has an indirect dependency to the
+		//	requesting module, a circular reference would be created
+		/*
+		if (cachedProject) {
+			if (log.isLevelEnabled("silly")) {
+				log.silly(`${parentPath.match(/([^:]*):$/)[1]} retrieved already ` +
+					`resolved project ${moduleName} from cache 🗄 `);
+			}
+			return cachedProject;
+		}*/
 		if (log.isLevelEnabled("silly")) {
 			log.silly(`${parentPath.match(/([^:]*):$/)[1]} is waiting for ${moduleName}...`);
 		}
 
-		const pPkg = readPkg(modulePath).catch((err) => {
-			// Failed to read package
-			// If dependency shim is available, fake the package
-
-			/* Disabled shimming until shim-plugin is available
-			const id = path.basename(modulePath);
-			if (pkgDependenciesShims[id]) {
-				const dependencies = JSON.parse(JSON.stringify(pkgDependenciesShims[id]));
-				return { // Fake package.json content
-					name: id,
-					dependencies,
-					version: "",
-					ui5: {
-						dependencies: Object.keys(dependencies)
-					}
-				};
-			}*/
-			throw err;
-		});
-
-		const pProject = pPkg.then((pkg) => {
+		return pPkg.then((pkg) => {
 			return this.processPkg({
 				name: moduleName,
-				pkg: pkg,
+				pkg,
 				path: modulePath
 			}, parentPath).then((projects) => {
 				// Flatten the array of project arrays (yes, because collections)
 				return Array.prototype.concat.apply([], projects.filter((p) => p !== null));
-			});
+			})/*
+			// Currently no project caching, see above
+			.then((projects) => {
+				this.projectCache[modulePath].cachedProject = projects;
+				return projects;
+			})*/;
 		}, () => {
 			// Failed to read package. Create a project anyway
 			return [{
@@ -255,12 +275,6 @@ class NpmTranslator {
 				dependencies: []
 			}];
 		});
-
-		this.projectCache[modulePath] = {
-			pPkg,
-			pProject
-		};
-		return pProject;
 	}
 
 	/* Returns path to a module
