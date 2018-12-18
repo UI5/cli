@@ -266,14 +266,11 @@ class NpmTranslator {
 				this.projectCache[modulePath].cachedProject = projects;
 				return projects;
 			})*/;
-		}, () => {
+		}, (err) => {
 			// Failed to read package. Create a project anyway
-			return [{
-				id: moduleName,
-				version: "",
-				path: modulePath,
-				dependencies: []
-			}];
+			log.error(`Failed to read package.json of module ${moduleName} at ${modulePath} - Error: ${err.message}`);
+			log.error(`Ignoring module ${moduleName} due to errors.`);
+			return null;
 		});
 	}
 
