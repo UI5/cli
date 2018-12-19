@@ -109,6 +109,12 @@ module.exports = function({workspace, dependencies, options}) {
 
 			p = moduleBundler({
 				options: {
+					bundleOptions: {
+						optimize: true,
+						decorateBootstrapModule: true,
+						addTryCatchRestartWrapper: true,
+						usePredefineCalls: true
+					},
 					bundleDefinition: {
 						name: "sap-ui-core.js",
 						sections: [
