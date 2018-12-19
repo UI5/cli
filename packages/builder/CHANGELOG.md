@@ -2,10 +2,24 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.6...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.7...HEAD).
+
+<a name="v0.2.7"></a>
+## [v0.2.7] - 2018-12-19
+### Bug Fixes
+- **ComponentAnalyzer:** Handle sap.ui5/rootView with type string [`469e558`](https://github.com/SAP/ui5-builder/commit/469e558cae43d6a0c063170dd23e2337c0e5af26)
+- **generateLibraryPreload:** Fix sap-ui-core.js bootstrap [`7a266fd`](https://github.com/SAP/ui5-builder/commit/7a266fd48d6452ce7f6180b026109d47caf195ec)
+
+### Internal Changes
+- Fixes windows tests [`5664e8c`](https://github.com/SAP/ui5-builder/commit/5664e8ce42c3fd480346c59f8ac8714f2bfe0cd9)
+- Fix tests on Windows [`b04b613`](https://github.com/SAP/ui5-builder/commit/b04b613175228f4e086151d6e7ce4de15588e579)
+- **Coverage:** Include lbt again, adopt threshold [`63705e6`](https://github.com/SAP/ui5-builder/commit/63705e6d2fbf06503994fd35ab36802587fbff0f)
+- **Git:** Apply lf line-ending to all files [`e88ff9f`](https://github.com/SAP/ui5-builder/commit/e88ff9f858b135b70bf64c584a0f546cfd127b22)
+- **Travis:** Activate Windows and Mac builds [`692c709`](https://github.com/SAP/ui5-builder/commit/692c709c4f1aa47753b7953a954be736b41b867d)
+
 
 <a name="v0.2.6"></a>
-## [v0.2.6] - 2018-12-01
+## [v0.2.6] - 2018-12-06
 ### Internal Changes
 - **AbstractBuilder:** Obey given task execution order [`f33c09d`](https://github.com/SAP/ui5-builder/commit/f33c09df284fecd77039f797503a569f0629f662)
 
@@ -136,6 +150,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.7]: https://github.com/SAP/ui5-builder/compare/v0.2.6...v0.2.7
 [v0.2.6]: https://github.com/SAP/ui5-builder/compare/v0.2.5...v0.2.6
 [v0.2.5]: https://github.com/SAP/ui5-builder/compare/v0.2.4...v0.2.5
 [v0.2.4]: https://github.com/SAP/ui5-builder/compare/v0.2.3...v0.2.4
