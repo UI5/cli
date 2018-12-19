@@ -2,7 +2,15 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.7...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v0.2.8...HEAD).
+
+<a name="v0.2.8"></a>
+## [v0.2.8] - 2018-12-19
+### Internal Changes
+- Apply UA review to CLI texts [`dcd1d63`](https://github.com/SAP/ui5-cli/commit/dcd1d631d923e6a8c21b785db433b2448dbd449d)
+- UA Review README.md [`e295121`](https://github.com/SAP/ui5-cli/commit/e295121dc92d5106cbf33c35052999fd611cd90f)
+- **ui5 tree:** Include deduped modules in output [`cce7f7a`](https://github.com/SAP/ui5-cli/commit/cce7f7a5bae2b92b20bfd964a7336f1f55a986ad)
+
 
 <a name="v0.2.7"></a>
 ## [v0.2.7] - 2018-12-06
@@ -94,6 +102,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 - **Travis:** Add node.js 10 to test matrix [`7a94b52`](https://github.com/SAP/ui5-cli/commit/7a94b52f3878474697bc2e9c4c423432ca7d473c)
 
 
+[v0.2.8]: https://github.com/SAP/ui5-cli/compare/v0.2.7...v0.2.8
 [v0.2.7]: https://github.com/SAP/ui5-cli/compare/v0.2.6...v0.2.7
 [v0.2.6]: https://github.com/SAP/ui5-cli/compare/v0.2.5...v0.2.6
 [v0.2.5]: https://github.com/SAP/ui5-cli/compare/v0.2.4...v0.2.5
