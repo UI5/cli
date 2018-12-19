@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.7...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.8...HEAD).
+
+<a name="v0.2.8"></a>
+## [v0.2.8] - 2018-12-12
+### Bug Fixes
+- Themes not beeing build [`de26564`](https://github.com/SAP/ui5-builder/commit/de26564c2c3af3376ccf179c972eae4f0e5eeeee)
+
+### Internal Changes
+- Added Tests [`528e1c0`](https://github.com/SAP/ui5-builder/commit/528e1c0178f56b045fb1be309c1179c057cabc59)
+
 
 <a name="v0.2.7"></a>
 ## [v0.2.7] - 2018-12-19
@@ -150,6 +159,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.8]: https://github.com/SAP/ui5-builder/compare/v0.2.7...v0.2.8
 [v0.2.7]: https://github.com/SAP/ui5-builder/compare/v0.2.6...v0.2.7
 [v0.2.6]: https://github.com/SAP/ui5-builder/compare/v0.2.5...v0.2.6
 [v0.2.5]: https://github.com/SAP/ui5-builder/compare/v0.2.4...v0.2.5
