@@ -15,7 +15,7 @@ class Resource {
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.path Virtual path
 	 * @param {Object} [parameters.statInfo] File stat information
-	 * @param {Buffer} [parameters.buffer] Content of this resources as a Buffer instance
+	 * @param {Buffer} [parameters.s] Content of this resources as a Buffer instance
 	 *					(cannot be used in conjunction with parameters string, stream or createStream)
 	 * @param {string} [parameters.string] Content of this resources as a string
 	 *					(cannot be used in conjunction with parameters buffer, stream or createStream)

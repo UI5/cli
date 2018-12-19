@@ -58,17 +58,18 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
+	 * @returns {Promise<Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
+		const that = this;
 		const byPath = (i) => {
 			if (i > this._readers.length - 1) {
 				return null;
 			}
-			return this._readers[i]._byPath(virPath, options, trace).then((result) => {
-				if (result) {
-					result.pushCollection(this._name);
-					return result;
+			return this._readers[i]._byPath(virPath, options, trace).then((resource) => {
+				if (resource) {
+					resource.pushCollection(that._name);
+					return resource;
 				} else {
 					return byPath(++i);
 				}

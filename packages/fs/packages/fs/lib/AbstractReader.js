@@ -54,13 +54,13 @@ class AbstractReader {
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
+	 * @returns {Promise<Resource>} Promise resolving to a single resource
 	 */
 	byPath(virPath, options = {nodir: true}) {
 		const trace = new Trace(virPath);
-		return this._byPath(virPath, options, trace).then(function(result) {
+		return this._byPath(virPath, options, trace).then(function(resource) {
 			trace.printReport();
-			return result;
+			return resource;
 		});
 	}
 
@@ -99,7 +99,7 @@ class AbstractReader {
 	 * @protected
 	 * @param {string} virPath Virtual path
 	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
+	 * @returns {Promise<Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, trace) {
 		throw new Error("Not implemented");
