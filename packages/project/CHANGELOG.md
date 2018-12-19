@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v0.2.5...HEAD).
+
+<a name="v0.2.5"></a>
+## [v0.2.5] - 2018-12-18
+### Bug Fixes
+- **npm translator:** Deduplicate subtrees of pending dependencies [`7e55ae3`](https://github.com/SAP/ui5-project/commit/7e55ae3d88280746f5800bffc7bbd13e1495ba07)
+- **npm translator:** Fix handling of indirect dependency cycles [`c99d6d3`](https://github.com/SAP/ui5-project/commit/c99d6d3a19fbb6c197b449dfd6cb8acc48837dba)
+
+### Internal Changes
+- **npm translator:** Ignore packages that can't be read [`d8c2354`](https://github.com/SAP/ui5-project/commit/d8c23545fd8f1180f988417a9c8cee880b668415)
+- **npm translator:** Add silly debug logging [`1ae0d5d`](https://github.com/SAP/ui5-project/commit/1ae0d5dbc9ec9630cd405e108529cab83bc87347)
+- **npm translator:** Add addtl. test for cyclic dependencies [`299eb2a`](https://github.com/SAP/ui5-project/commit/299eb2af0472ecf9bf79b96895a2864667b535bf)
+
 
 <a name="v0.2.4"></a>
 ## [v0.2.4] - 2018-12-17
@@ -103,6 +115,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-proj
 - **npm t8r:** Improve handling of missing package.json [`4b32134`](https://github.com/SAP/ui5-project/commit/4b321345139058dc821fb08c4556aff88366ea86)
 
 
+[v0.2.5]: https://github.com/SAP/ui5-project/compare/v0.2.4...v0.2.5
 [v0.2.4]: https://github.com/SAP/ui5-project/compare/v0.2.3...v0.2.4
 [v0.2.3]: https://github.com/SAP/ui5-project/compare/v0.2.2...v0.2.3
 [v0.2.2]: https://github.com/SAP/ui5-project/compare/v0.2.1...v0.2.2
