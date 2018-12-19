@@ -59,19 +59,22 @@ function someTraceStarted() {
 }
 
 function someTraceEnded() {
-	tracesRunning--;
-	if (tracesRunning > 0) {
-		return;
-	}
+	return new Promise(function(resolve, reject) {
+		tracesRunning--;
+		if (tracesRunning > 0) {
+			resolve();
+		}
 
-	if (timeoutId) {
-		clearTimeout(timeoutId);
-	}
-	traceData.timeDiff = process.hrtime(traceData.startTime);
-	timeoutId = setTimeout(function() {
-		report();
-		reset();
-	}, 2000);
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+		}
+		traceData.timeDiff = process.hrtime(traceData.startTime);
+		timeoutId = setTimeout(function() {
+			report();
+			reset();
+			resolve();
+		}, 2000);
+	});
 }
 
 function pathCall() {

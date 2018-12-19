@@ -44,7 +44,7 @@ class ReaderCollection extends AbstractReader {
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
+	 * @returns {Promise<Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;
@@ -60,13 +60,13 @@ class ReaderCollection extends AbstractReader {
 			Deliver files that can be found fast at the cost of slower response times for files that cannot be found.
 		*/
 		return Promise.race(this._readers.map(function(resourceLocator) {
-			return resourceLocator._byPath(virPath, options, trace).then(function(result) {
+			return resourceLocator._byPath(virPath, options, trace).then(function(resource) {
 				return new Promise(function(resolve, reject) {
 					trace.collection(that._name);
 					resolveCount++;
-					if (result) {
-						result.pushCollection(that._name);
-						resolve(result);
+					if (resource) {
+						resource.pushCollection(that._name);
+						resolve(resource);
 					} else if (resolveCount === resourceLocatorCount) {
 						resolve(null);
 					}

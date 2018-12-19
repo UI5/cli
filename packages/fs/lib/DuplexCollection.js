@@ -67,7 +67,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to a resources
+	 * @returns {Promise<Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		return this._combo._byPath(virPath, options, trace);

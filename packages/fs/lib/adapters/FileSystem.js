@@ -106,7 +106,7 @@ class FileSystem extends AbstractAdapter {
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to a list of resources
+	 * @returns {Promise<Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		return new Promise((resolve, reject) => {
