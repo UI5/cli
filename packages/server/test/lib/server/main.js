@@ -1,9 +1,8 @@
 const {test} = require("ava");
 const supertest = require("supertest");
-const ui5Server = require("../../");
+const ui5Server = require("../../../");
 const server = ui5Server.server;
 const normalizer = require("@ui5/project").normalizer;
-const http = require("http");
 
 let request;
 let serve;
@@ -44,6 +43,18 @@ test("Get resource from application.a (/index.html)", (t) => {
 		t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
 	});
 });
+
+test("Get resource from application.a (/i18n/i18n.properties) with correct charset 'ISO-8859-1'", (t) => {
+	return request.get("/i18n/i18n.properties").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.deepEqual(res.headers["content-type"], "text/plain; charset=ISO-8859-1", "Correct content type and charset");
+		t.deepEqual(res.text, "showHelloButtonText=Say Hello!", "Correct response");
+	});
+});
+
 
 test("Get resource from library.a (/resources/library/a/.library)", (t) => {
 	return request.get("/resources/library/a/.library").then((res) => {
@@ -229,18 +240,19 @@ test("Get library-RTL.css from theme middleware (/resources/library/a/themes/bas
 	});
 });
 
-test("Get library-parameters.json from theme middleware (/resources/library/a/themes/base/library-parameters.json)", (t) => {
-	return request.get("/resources/library/a/themes/base/library-parameters.json").then((res) => {
-		if (res.error) {
-			t.fail(res.error.text);
-		}
-		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /json/, "Correct content type");
-		t.deepEqual(res.body, {
-			libraryAColor1: "#fafad2"
-		}, "Correct response");
+test("Get library-parameters.json from theme middleware (/resources/library/a/themes/base/library-parameters.json)",
+	(t) => {
+		return request.get("/resources/library/a/themes/base/library-parameters.json").then((res) => {
+			if (res.error) {
+				t.fail(res.error.text);
+			}
+			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+			t.regex(res.headers["content-type"], /json/, "Correct content type");
+			t.deepEqual(res.body, {
+				libraryAColor1: "#fafad2"
+			}, "Correct response");
+		});
 	});
-});
 
 test("Stop server", (t) => {
 	const port = 3350;
@@ -276,106 +288,6 @@ test("Stop server", (t) => {
 		}).catch(() => {
 			t.pass("Server was closed properly.");
 		});
-	});
-});
-
-test("Start server - Port is already taken and an error occurs", (t) => {
-	const port = 3360;
-	const nodeServer = http.createServer((req, res) => {
-		res.end();
-	});
-	return new Promise((resolve) => {
-		nodeServer.on("listening", () => {
-			resolve();
-		});
-		nodeServer.listen(port);
-	}).then(() => {
-		return normalizer.generateProjectTree({
-			cwd: "./test/fixtures/application.a"
-		}).then((tree) => {
-			return server.serve(tree, {
-				port: port
-			});
-		}).catch((error) => {
-			nodeServer.close();
-			t.is(
-				error,
-				"Port 3360 already in use.",
-				"Server could not start, port is already taken and no other port is used."
-			);
-		});
-	});
-});
-
-test("Start server together with node server - Port is already taken and the next one is used", (t) => {
-	const port = 3370;
-	const nextFoundPort = 3371;
-	const nodeServer = http.createServer((req, res) => {
-		res.end();
-	});
-	return new Promise((resolve) => {
-		nodeServer.on("listening", () => {
-			resolve();
-		});
-		nodeServer.listen(port);
-	}).then(() => {
-		return normalizer.generateProjectTree({
-			cwd: "./test/fixtures/application.a"
-		}).then((tree) => {
-			return server.serve(tree, {
-				port: port,
-				changePortIfInUse: true
-			}).then((serveResult) => {
-				t.deepEqual(serveResult.port, nextFoundPort, "Resolves with correct port");
-				const request = supertest(`http://localhost:${nextFoundPort}`);
-				return request.get("/index.html").then((res) => {
-					if (res.error) {
-						t.fail(res.error.text);
-					}
-					t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-					nodeServer.close();
-					serveResult.close();
-				});
-			});
-		});
-	}).catch((error) => {
-		t.fail(error);
-	});
-});
-
-test("Start server twice - Port is already taken and the next one is used", (t) => {
-	const port = 3380;
-	const nextFoundPort = 3381;
-	return normalizer.generateProjectTree({
-		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port: port,
-			changePortIfInUse: true
-		});
-	}).then((serveResult1) => {
-		t.deepEqual(serveResult1.port, port, "Resolves with correct port");
-		return normalizer.generateProjectTree({
-			cwd: "./test/fixtures/application.a"
-		}).then((tree) =>{
-			return server.serve(tree, {
-				port: port,
-				changePortIfInUse: true
-			}).then((serveResult2) => {
-				t.deepEqual(serveResult2.port, nextFoundPort, "Resolves with correct port");
-				const request = supertest(`http://localhost:${nextFoundPort}`);
-				return request.get("/index.html").then((res) => {
-					if (res.error) {
-						t.fail(res.error.text);
-					}
-					t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-					serveResult1.close();
-					serveResult2.close();
-				});
-			});
-		});
-	}).catch((error) => {
-		t.fail(error);
 	});
 });
 
@@ -432,7 +344,7 @@ test("Get index of resources", (t) => {
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			t.is(res.headers["content-type"], "text/html", "Correct content type");
 			t.is(/<title>(.*)<\/title>/i.exec(res.text)[1], "Index of /", "Found correct title");
-			t.deepEqual(res.text.match(/<td/g).length, 24, "Found correct amount of <td> elements");
+			t.deepEqual(res.text.match(/<td/g).length, 30, "Found correct amount of <td> elements");
 		}),
 		request.get("/resources").then((res) => {
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
