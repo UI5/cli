@@ -387,7 +387,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 					descriptorVersion);
 			}
 
-			log.info("  target descriptor version %s: include sap.ui5/library information", descriptorVersion);
+			log.verbose("  target descriptor version %s: include sap.ui5/library information", descriptorVersion);
 
 			const sapUi5AppData = findChild(manifestAppData, "sap.ui5");
 			const libraryAppData = findChild(sapUi5AppData, "library");
