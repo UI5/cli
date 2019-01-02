@@ -33,13 +33,6 @@ function each(obj, fn) {
 	}
 }
 
-function makeArray(value) {
-	if ( Array.isArray(value) ) {
-		return value;
-	}
-	return value == null ? [] : [value];
-}
-
 /**
  * Analyzes the manifest for a Component.js to find more dependencies.
  * @since 1.47.0
@@ -133,44 +126,43 @@ class ComponentAnalyzer {
 
 		const routing = ui5.routing;
 		if ( routing ) {
-			if (Array.isArray(routing.routes)) {
-				routing.routes.forEach((route) => this._visitRoute(route, routing, info));
-			} else {
-				for (const key in routing.routes) {
-					if (!routing.routes.hasOwnProperty(key)) {
-						continue;
-					}
-					const route = routing.routes[key];
-					this._visitRoute(route, routing, info);
+			const routingConfig = routing.config || {};
+
+			// See sap/ui/core/UIComponent#init
+			if (routing.routes) {
+				const routerClassName = routingConfig.routerClass || "sap.ui.core.routing.Router";
+				const routerClassModule = ModuleName.fromUI5LegacyName(routerClassName);
+				log.verbose(`adding router dependency '${routerClassModule}'`);
+				info.addDependency(routerClassModule);
+			} else if (routing.targets) {
+				const targetsModule = routingConfig.targetsClass || "sap/ui/core/routing/Targets.js";
+				log.verbose(`adding routing targets dependency '${targetsModule}'`);
+				info.addDependency(targetsModule);
+
+				const viewsModule = "sap/ui/core/routing/Views.js";
+				log.verbose(`adding routing views dependency '${viewsModule}'`);
+				info.addDependency(viewsModule);
+			}
+
+			for (const targetName in routing.targets) {
+				if (!routing.targets.hasOwnProperty(targetName)) {
+					continue;
+				}
+				const target = routing.targets[targetName];
+				if (target && target.viewName) {
+					// merge target config with default config
+					const config = Object.assign({}, routing.config, target);
+					const module = ModuleName.fromUI5LegacyName(
+						(config.viewPath ? config.viewPath + "." : "") +
+						config.viewName, ".view." + config.viewType.toLowerCase() );
+					log.verbose("converting routing target '%s' to view dependency '%s'", targetName, module);
+					// TODO make this a conditional dependency, depending on the route pattern?
+					info.addDependency(module);
 				}
 			}
 		}
 
 		return info;
-	}
-
-	/**
-	 * called for any route, this adds the view used by a route as a dependency.
-	 *
-	 * @param {object} route the single route
-	 * @param {object} routing the full routing object from the manifest
-	 * @param {ModuleInfo} info  ModuleInfo object that should be enriched
-	 * @private
-	 */
-	_visitRoute( route, routing, info ) {
-		makeArray(route.target).forEach((targetRef) => {
-			const target = routing.targets[targetRef];
-			if ( target && target.viewName ) {
-				// merge target config with default config
-				const config = Object.assign({}, routing.config, target);
-				const module = ModuleName.fromUI5LegacyName(
-					(config.viewPath ? config.viewPath + "." : "") +
-					config.viewName, ".view." + config.viewType.toLowerCase() );
-				log.verbose("converting routing target '%s' to view dependency '%s'", targetRef, module);
-				// TODO make this a conditional dependency, depending on the pattern?
-				info.addDependency(module);
-			}
-		});
 	}
 }
 
