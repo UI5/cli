@@ -8,7 +8,8 @@ const assert = chai.assert;
 const ui5Builder = require("../../../../");
 const builder = ui5Builder.builder;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
-const Zip = require("adm-zip");
+const {promisify} = require("util");
+const extractZip = promisify(require("extract-zip"));
 
 const recursive = require("recursive-readdir");
 
@@ -25,8 +26,8 @@ const findFiles = (folder) => {
 };
 
 test("Build application.b with manifestBundler", (t) => {
-	const destPath = "./test/tmp/build/application.b/dest";
-	const destBundle = destPath + "/manifest-bundle";
+	const destPath = path.join("test", "tmp", "build", "application.b", "dest");
+	const destBundle = path.resolve(path.join(destPath, "manifest-bundle"));
 	const expectedPath = path.join("test", "expected", "build", "application.b", "dest");
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateManifestBundle"];
@@ -37,10 +38,10 @@ test("Build application.b with manifestBundler", (t) => {
 		excludedTasks,
 		includedTasks
 	}).then(() => {
+		return extractZip(destBundle + ".zip", {dir: destBundle});
+	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
-		const zip = new Zip(destBundle + ".zip");
-		zip.extractAllTo(destBundle, true);
 		// Check for all directories and files
 		assert.directoryDeepEqual(destBundle, expectedPath);
 
@@ -49,8 +50,8 @@ test("Build application.b with manifestBundler", (t) => {
 			const relativeFile = path.relative(expectedPath, expectedFile);
 			const destFile = path.join(destBundle, relativeFile);
 			assert.fileEqual(destFile, expectedFile);
-			t.pass();
 		});
+		t.pass();
 	});
 });
 

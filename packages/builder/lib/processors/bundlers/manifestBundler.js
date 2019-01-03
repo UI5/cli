@@ -1,5 +1,5 @@
 const path = require("path");
-const archiver = require("archiver");
+const yazl = require("yazl");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 
 /**
@@ -97,18 +97,18 @@ module.exports = ({resources, options}) => {
 
 		return archiveContent;
 	}).then((archiveContent) => new Promise((resolve) => {
-		const zip = archiver("zip", {zlib: {level: 9}});
-		const regex = new RegExp(`^/resources/${options.namespace}`);
+		const zip = new yazl.ZipFile();
+		const regex = new RegExp(`^/resources/${options.namespace}/`);
 		archiveContent.forEach((content, path) => {
 			// Root-project only: Remove namespace prefix if given
 			const normalizedPath = path.replace(regex, "");
-			zip.append(content, {name: normalizedPath});
+			zip.addBuffer(content, normalizedPath);
 		});
-		zip.finalize();
+		zip.end();
 
 		const res = resourceFactory.createResource({
 			path: "/" + options.bundleName,
-			stream: zip
+			stream: zip.outputStream
 		});
 		resolve([res]);
 	}));
