@@ -101,6 +101,11 @@ class XMLTemplateAnalyzer {
 			return;
 		}
 
+		// don't add properties with data binding syntax
+		if (moduleName.includes("{") || moduleName.includes("}")) {
+			return;
+		}
+
 		this.info.addDependency(moduleName, this.conditional);
 	}
 
