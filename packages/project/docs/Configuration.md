@@ -3,7 +3,7 @@ This document describes the configuration of UI5 Build and Development Tooling b
 
 The content represents the **[Specification Version](#specification-versions) `0.1`**.
 
-## Table of contents
+## Contents
 - [Project Configuration](#project-configuration)
 - [Extension Configuration](#extension-configuration)
 	+ [Tasks](#tasks)
@@ -24,7 +24,7 @@ metadata:
   name: my-application
 ````
 
-Configuration can also be supplied by other means. In cases where a JSON is used, you can still rely on the structure described below.
+Configuration can also be supplied by other means. In cases where JSON is used, you can still rely on the structure described below.
 
 ### Structure
 
@@ -40,8 +40,8 @@ metadata:
 resources:
   configuration:
     paths:
-        "<virtual path>": "<physical path>"
-        "<virtual path 2>": "<physical path 2>"
+        "<abstract path 1>": "<physical path 1>"
+        "<abstract path 2>": "<physical path 2>"
 builder:
   customTasks:
     - name: custom-task-name-1
@@ -59,19 +59,20 @@ server:
 
 ### Properties
 #### \<root\>
-- `specVersion`: Version of the specification this configuration is based on. See [Specification Versions](#specification-versions).
-- `type`: Either `application`, `library` or `custom` (custom not yet implemented); defines the default path mappings and build steps. Custom doesn't define any specific defaults.
+- `specVersion`: Version of the specification this configuration is based on. See [Specification Versions](#specification-versions)
+- `type`: Either `application`, `library` or `module`. Defines the default path mappings and build steps. See [UI5 Builder: Types](#types) for details
 
 #### metadata
 Some general information:
-- `name`: Name of the application/library/resource
+- `name`: Name of the project
 - `copyright` (optional): String to be used for replacement of copyright placeholders in the project
 
 #### resources (optional)
 - `configuration`
-    - `paths`: Mapping between virtual and physical paths
-        + For type `application` there can be a setting for mapping the virtual path `webapp` to a physical path within the project
-        + For type `library` there can be a setting for mapping the virtual paths `src` and `test` to physical paths within the project
+    - `paths`: Mapping between virtual paths and physical paths. Physical paths are always relative to the projects root directory
+        + For projects of type `application` a "webapp" path can be configured that will be mapped to the virtual path `/`. By default this is mapped to `webpp`
+        + For projects of type `library` a "src" as well as a "test" path can be configured. They will be mapped to the virtual paths `/resources` and `/test-resources` followed by the namespace of the library. By default these paths are mapped to `src` and `test`
+        + For type `module`, any kind (and number) of mappings can be configured freely. The key will be used as the virtual path. By default, the projects root directory is mapped to the virtual directory `/`. It is recommended that libraries include their namespace in the virtual path and use the `/resources` prefix.
 
 #### builder (optional)
 - `customTasks` (optional, list): In this block, you define additional custom build tasks, see [here](./BuildExtensibility.md) for a detailed explanation and examples of the build extensibility. Each entry in the `customTasks` list consists of the following options:
