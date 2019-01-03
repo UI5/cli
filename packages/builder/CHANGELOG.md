@@ -2,10 +2,22 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.8...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.9...HEAD).
+
+<a name="v0.2.9"></a>
+## [v0.2.9] - 2019-01-03
+### Bug Fixes
+- **ComponentAnalyzer:** Fully handle sap.ui5/routing ([#124](https://github.com/SAP/ui5-builder/issues/124)) [`c59b5b1`](https://github.com/SAP/ui5-builder/commit/c59b5b1efdc3a588fb8a13029a6593feab142e0c)
+- **XMLTemplateAnalyzer:** Ignore properties with data binding [`0d5cf50`](https://github.com/SAP/ui5-builder/commit/0d5cf5086566dd0609fa354a5822f6538b335065)
+
+### Internal Changes
+- **NOTICE:** Update copyright year to 2019 [`b3be660`](https://github.com/SAP/ui5-builder/commit/b3be66043b61c1c65a16d9e04d5cdfcae4b7e8e4)
+- **manifestBundler:** Use "yazl" instead of "archiver" for zip [`b760a43`](https://github.com/SAP/ui5-builder/commit/b760a4385a1d54ef4804f4e50173fb106e2b3153)
+- **manifestCreator:** Change logging to verbose [`73ccf5c`](https://github.com/SAP/ui5-builder/commit/73ccf5cb1f77d19d4b43351fb3773d597eb2f375)
+
 
 <a name="v0.2.8"></a>
-## [v0.2.8] - 2018-12-12
+## [v0.2.8] - 2018-12-19
 ### Bug Fixes
 - Themes not beeing build [`de26564`](https://github.com/SAP/ui5-builder/commit/de26564c2c3af3376ccf179c972eae4f0e5eeeee)
 
@@ -159,6 +171,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
 
+[v0.2.9]: https://github.com/SAP/ui5-builder/compare/v0.2.8...v0.2.9
 [v0.2.8]: https://github.com/SAP/ui5-builder/compare/v0.2.7...v0.2.8
 [v0.2.7]: https://github.com/SAP/ui5-builder/compare/v0.2.6...v0.2.7
 [v0.2.6]: https://github.com/SAP/ui5-builder/compare/v0.2.5...v0.2.6
