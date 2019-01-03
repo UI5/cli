@@ -96,7 +96,7 @@
 		"@ui5/logger": "^0.2.2",
 		"escodegen": "^1.11.0",
 		"escope": "^3.6.0",
-		"esprima": "^2.7.2",
+		"esprima": "^4.0.1",
 		"estraverse": "^4.2.0",
 		"globby": "^7.1.1",
 		"graceful-fs": "^4.1.15",
