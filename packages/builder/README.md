@@ -17,12 +17,22 @@
 ### Types
 Types define how a project can be configured and how it is built. A type orchestrates a set of tasks and defines the order in which they get applied during build phase. Furthermore, it takes care of formatting and validating the project-specific configuration.
 
-Currently, the following types are defined:
+Also see [UI5 Project: Configuration](https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#root)
 
-* Application
-* Library
+#### `application`
+Projects of type `application` are typically the main or root project. In a projects dependency tree, there should only be one project of type `application`. If multiple are found, those further away from the root are ignored.
 
-The project type can be defined as part of a projects root folder.
+The source directory of an application (typically named `webapp`) is mapped to the virtual root path `/`.
+
+An applications source directory should contain a `manifest.json` file. It may or may not contain a `Component.js` file. If there is one, a `Component-preload.js` file will be generated during the build.
+
+#### `library`
+UI5 libraries are often referred to as reuse-, custom- or [control libraries](https://github.com/SAP/openui5/blob/master/docs/controllibraries.md). They are a key component in sharing code across multiple projects in UI5.
+
+A project of type `library` must have a source directory (typically named `src`). It may also feature a "test" directory. These directories are mapped to the virtual directories `/resources` for the sources and `/test-resources` for the test resources. These directories should contain a directory structure representing the namespace of the library (e.g. `src/my/first/library`) to prevent name clashes between the resources of different libraries.
+
+#### `module`
+The `module` type is meant for usage with non-UI5 resources like third party libraries. Their path mapping can be configured freely. During a build, their resources are copied without modifications.
 
 ### Tasks
 Tasks are specific build steps to be executed during build phase.
