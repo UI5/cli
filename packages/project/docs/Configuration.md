@@ -31,7 +31,7 @@ Configuration can also be supplied by other means. In cases where JSON is used, 
 ````yaml
 ---
 specVersion: "0.1"
-type: application|library|custom
+type: application|library|module
 metadata:
   name: testsuite
   copyright: |-
