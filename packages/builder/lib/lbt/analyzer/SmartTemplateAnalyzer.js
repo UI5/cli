@@ -103,7 +103,7 @@ class TemplateComponentAnalyzer {
 		// console.log("analyzing template component %s", moduleName);
 		const resource = await this._pool.findResource(moduleName);
 		const code = await resource.buffer();
-		const ast = esprima.parse(code);
+		const ast = esprima.parseScript(code.toString());
 		const defaultTemplateName = this._analyzeAST(moduleName, ast);
 		const templateName = (pageConfig.component && pageConfig.component.settings &&
 								pageConfig.component.settings.templateName) || defaultTemplateName;

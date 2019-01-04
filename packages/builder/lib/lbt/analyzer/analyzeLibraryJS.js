@@ -63,7 +63,7 @@ async function analyze(resource) {
 	}
 
 	const code = await resource.getBuffer();
-	visit( esprima.parse(code) );
+	visit( esprima.parseScript(code.toString()) );
 
 	return libInfo;
 }

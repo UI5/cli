@@ -511,7 +511,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 
 	let ast;
 	try {
-		ast = esprima.parse(code, {loc: true});
+		ast = esprima.parseScript(code.toString(), {loc: true});
 	} catch (e) {
 		log.error("error while parsing %s:%s", module, e);
 		return;

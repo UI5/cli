@@ -74,7 +74,7 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 			info.size = code.length;
 			const promises = [];
 			try {
-				const ast = esprima.parse(code);
+				const ast = esprima.parseScript(code.toString());
 				jsAnalyzer.analyze(ast, resource.name, info);
 				new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
 			} catch (error) {
