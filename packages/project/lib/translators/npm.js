@@ -491,7 +491,7 @@ class NpmTranslator {
 /**
  * Translator for npm resources
  *
- * @module normalizer/translators/npm
+ * @module @ui5/project/translators/npm
  */
 module.exports = {
 	/**

@@ -5,12 +5,14 @@ const projectPreprocessor = require("./projectPreprocessor");
 /**
  * Generate project and dependency trees via translators. Optionally configure all projects with the projectPreprocessor.
  *
- * @module normalizer/normalizer
+ * @public
+ * @module @ui5/project/normalizer
  */
 const Normalizer = {
 	/**
 	 * Generates a project and dependency tree via translators and configures all projects via the projectPreprocessor
 	 *
+	 * @public
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd] Current working directory
 	 * @param {string} [options.configPath] Path to configuration file
@@ -29,6 +31,7 @@ const Normalizer = {
 	/**
 	 * Generates a project and dependency tree via translators
 	 *
+	 * @public
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd=.] Current working directory
 	 * @param {string} [options.translator=npm] Translator to use
