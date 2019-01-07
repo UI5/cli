@@ -498,7 +498,7 @@ module.exports = {
 	 * Generates a dependency tree for npm projects
 	 *
 	 * @param {string} dirPath Project path
-	 * @param {object} [options]
+	 * @param {Object} [options]
 	 * @param {boolean} [options.includeDeduped=false]
 	 * @returns {Promise} Promise resolving with a dependency tree
 	 */

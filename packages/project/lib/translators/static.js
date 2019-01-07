@@ -14,7 +14,7 @@ const parseYaml = require("js-yaml").safeLoad;
  * This feature is <b>EXPERIMENTAL</b> and used for testing purposes only.
  *
  * @param {string} dirPath Project path
- * @param {object} [options]
+ * @param {Object} [options]
  * @param {Array} [options.parameters] CLI configuration options
  * @returns {Promise} Promise resolving with a dependency tree
  */

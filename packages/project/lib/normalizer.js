@@ -35,7 +35,7 @@ const Normalizer = {
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd=.] Current working directory
 	 * @param {string} [options.translator=npm] Translator to use
-	 * @param {object} [options.translatorOptions] Options to pass to translator
+	 * @param {Object} [options.translatorOptions] Options to pass to translator
 	 * @returns {Promise} Promise resolving to tree object
 	 */
 	generateDependencyTree: async function({cwd = ".", translator="npm", translatorOptions={}} = {}) {
