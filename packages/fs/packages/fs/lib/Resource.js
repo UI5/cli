@@ -7,6 +7,8 @@ const fnFalse = () => false;
 
 /**
  * Resource
+ *
+ * @public
  */
 class Resource {
 	/**

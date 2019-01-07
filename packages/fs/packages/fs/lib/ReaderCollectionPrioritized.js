@@ -3,6 +3,7 @@ const AbstractReader = require("./AbstractReader");
 /**
  * Prioritized Resource Locator Collection
  *
+ * @public
  * @augments AbstractReader
  */
 class ReaderCollectionPrioritized extends AbstractReader {

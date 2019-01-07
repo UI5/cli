@@ -4,6 +4,7 @@ const ReaderCollectionPrioritized = require("./ReaderCollectionPrioritized");
 /**
  * Wrapper to keep readers and writers together
  *
+ * @public
  * @augments AbstractReaderWriter
  */
 class DuplexCollection extends AbstractReaderWriter {
