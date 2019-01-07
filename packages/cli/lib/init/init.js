@@ -60,7 +60,7 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
  *
  * Checks the package.json and tries to determine the project type. If the <b>ui5.yaml</b> file does not exist,
  * it is created with the basic project configuration.
- * @module init/init
+ * @module @ui5/cli/init
  * @param {string} cwd Current working directory
  * @returns {Promise} Promise resolving with the project configuration object
  */
