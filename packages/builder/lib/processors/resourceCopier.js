@@ -1,7 +1,8 @@
 /**
  * Copy files to a different path.
  *
- * @module builder/processors/resourceCopier
+ * @public
+ * @module @ui5/builder/processors/resourceCopier
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources List of resources to be processed
  * @param {Object} [parameters.options] Options

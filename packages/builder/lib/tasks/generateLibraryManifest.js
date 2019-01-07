@@ -8,7 +8,8 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
 /**
  * Task for creating a library manifest.json from its .library file.
  *
- * @module builder/tasks/generateLibraryManifest
+ * @public
+ * @module @ui5/builder/tasks/generateLibraryManifest
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files

@@ -3,7 +3,8 @@ const stringReplacer = require("../processors/stringReplacer");
 /**
  * Task to replace the version <code>${version}</code>.
  *
- * @module builder/tasks/replaceVersion
+ * @public
+ * @module @ui5/builder/tasks/replaceVersion
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} parameters.options Options

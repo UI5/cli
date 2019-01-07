@@ -5,7 +5,8 @@ const fsInterface = require("@ui5/fs").fsInterface;
 /**
  * Task to build a library theme.
  *
- * @module builder/tasks/buildThemes
+ * @public
+ * @module @ui5/builder/tasks/buildThemes
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files

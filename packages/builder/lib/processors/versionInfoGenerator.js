@@ -3,7 +3,8 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
 /**
  * Creates sap-ui-version.json.
  *
- * @module builder/processors/versionInfoGenerator
+ * @public
+ * @module @ui5/builder/processors/versionInfoGenerator
  * @param {Object} parameters Parameters
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.rootProjectName Name of the root project

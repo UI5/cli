@@ -3,7 +3,8 @@ const uglifyProcessor = require("../processors/uglifier");
 /**
  * Task to minify resources.
  *
- * @module builder/tasks/uglify
+ * @public
+ * @module @ui5/builder/tasks/uglify
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} parameters.options Options

@@ -5,7 +5,8 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
 /**
  * Task to for application bundling.
  *
- * @module builder/tasks/bundlers/generateComponentPreload
+ * @public
+ * @module @ui5/builder/tasks/bundlers/generateComponentPreload
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files

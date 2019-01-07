@@ -4,7 +4,8 @@ const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler
 /**
  * Task to create changesBundle.json file containing all changes stored in the /changes folder for easier consumption at runtime.
  *
- * @module builder/tasks/bundlers/generateFlexChangesBundle
+ * @public
+ * @module @ui5/builder/tasks/bundlers/generateFlexChangesBundle
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} [parameters.options] Options

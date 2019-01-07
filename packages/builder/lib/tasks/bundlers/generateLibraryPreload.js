@@ -70,7 +70,8 @@ function getBundleDefinition(namespace) {
 /**
  * Task for library bundling.
  *
- * @module builder/tasks/bundlers/generateLibraryPreload
+ * @public
+ * @module @ui5/builder/tasks/bundlers/generateLibraryPreload
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files

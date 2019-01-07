@@ -3,7 +3,8 @@ const replaceStream = require("replacestream");
 /**
  * Replaces placeholders with corresponding values.
  *
- * @module builder/processors/stringReplacer
+ * @public
+ * @module @ui5/builder/processors/stringReplacer
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options

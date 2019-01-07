@@ -4,7 +4,8 @@ const fsInterface = require("@ui5/fs").fsInterface;
 /**
  * Task to create dbg files.
  *
- * @module builder/tasks/createDebugFiles
+ * @public
+ * @module @ui5/builder/tasks/createDebugFiles
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} [parameters.options] Options

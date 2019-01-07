@@ -13,7 +13,8 @@ const stringReplacer = require("../processors/stringReplacer");
  * it will be replaced with the current year.
  * If no copyright string is given, no replacement is being done.
  *
- * @module builder/tasks/replaceCopyright
+ * @public
+ * @module @ui5/builder/tasks/replaceCopyright
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} parameters.options Options
