@@ -3,6 +3,7 @@ const AbstractReader = require("./AbstractReader");
 /**
  * Resource Locator ReaderCollection
  *
+ * @public
  * @augments AbstractReader
  */
 class ReaderCollection extends AbstractReader {

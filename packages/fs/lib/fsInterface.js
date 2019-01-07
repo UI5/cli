@@ -1,7 +1,8 @@
 /**
  * Wraps readers to access them like a node fs-interface.
  *
- * @module resources/fsInterface
+ * @public
+ * @module @ui5/fs/fsInterface
  * @param {AbstractReader} reader Resource Reader or Collection
  * @returns {Object} Object with wrapped fs functions
  */

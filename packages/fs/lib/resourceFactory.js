@@ -6,7 +6,8 @@ const DuplexCollection = require("./DuplexCollection");
 const Resource = require("./Resource");
 
 /**
- * @module resources/resourceFactory
+ * @module @ui5/fs/resourceFactory
+ * @public
  */
 
 /**
@@ -18,6 +19,7 @@ const Resource = require("./Resource");
  * }
  * </pre>
  *
+ * @public
  * @param {Object} tree A (sub-)tree
  * @param {Object} [parameters] Parameters
  * @param {boolean} [parameters.useNamespaces=false] Use project namespaces as path prefixes
@@ -93,6 +95,7 @@ function createCollectionsForTree(tree, {useNamespaces=false} = {}) {
  * If a file system base path is given, file system resource <code>ReaderWriter</code> is returned.
  * In any other case a virtual one.
  *
+ * @public
  * @param {Object} parameters Parameters
  * @param {string} parameters.virBasePath Virtual base path
  * @param {string} [parameters.fsBasePath] File system base path
@@ -110,6 +113,7 @@ function createAdapter({fsBasePath, virBasePath, project}) {
 /**
  * Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
  *
+ * @public
  * @param {Object} parameters Parameters to be passed to the resource constructor
  * @returns {Resource} Resource
  */
@@ -124,6 +128,7 @@ function createResource(parameters) {
  * to write modified files into a seperate writer, this is usually a Memory adapter. If a file already exists it is
  * fetched from the memory to work on it in further build steps.
  *
+ * @public
  * @param {Object} parameters
  * @param {AbstractReader} parameters.reader The reader
  * @param {string} [parameters.name="vir & fs source"] Name of the collection
