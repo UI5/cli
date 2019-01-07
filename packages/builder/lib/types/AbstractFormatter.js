@@ -8,6 +8,7 @@ const fs = require("graceful-fs");
 class AbstractFormatter {
 	/**
 	 * Checks whether or not the given input is a directory on the file system.
+  *
 	 * @param {string} dirPath directory
 	 * @returns {Promise<boolean>} whether or not the given directory exists.
 	 * <code>true</code> directory exists

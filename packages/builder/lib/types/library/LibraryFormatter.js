@@ -12,7 +12,8 @@ const xmlParse = promisify(xml2js);
 class LibraryFormatter extends AbstractFormatter {
 	/**
 	 * Formats the given project
-	 * @param {object} project
+  *
+	 * @param {Object} project
 	 * @returns {Promise}
 	 */
 	format(project) {
@@ -65,7 +66,7 @@ class LibraryFormatter extends AbstractFormatter {
 
 	/**
 	 *
-	 * @param {object} project
+	 * @param {Object} project
 	 * @returns {Promise}
 	 */
 	validate(project) {

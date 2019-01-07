@@ -69,7 +69,7 @@ class ComponentAnalyzer {
 	 * Evaluates a manifest after it has been read and parsed
 	 * and adds any newly found dependencies to the given info object.
 	 *
-	 * @param {object} manifest JSON with app descriptor structure
+	 * @param {Object} manifest JSON with app descriptor structure
 	 * @param {ModuleInfo} info ModuleInfo object that should be enriched
 	 * @returns {ModuleInfo} ModuleInfo object that should be enriched
 	 * @private

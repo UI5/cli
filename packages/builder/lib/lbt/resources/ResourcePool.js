@@ -133,6 +133,7 @@ class ResourcePool {
 
 	/**
 	 * Adds a resource to the pool
+  *
 	 * @param {Resource} resource
 	 * @returns {Promise|undefined} for libraries a Promise is returned undefined otherwise
 	 */
@@ -190,7 +191,8 @@ class ResourcePool {
 
 	/**
 	 * Finds the resources based matching the given pattern
-	 * @param {ResourceFilterList|regexp} pattern
+  *
+	 * @param {ResourceFilterList|RegExp} pattern
 	 * @returns {Promise}
 	 */
 	async findResources(pattern) {

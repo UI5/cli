@@ -10,8 +10,9 @@ const types = {
 
 /**
  * Gets a type
+ *
  * @param {string} typeName unique identifier for the type
- * @returns {object} type identified by name
+ * @returns {Object} type identified by name
  * @throws {Error} if not found
  */
 function getType(typeName) {
@@ -25,8 +26,9 @@ function getType(typeName) {
 
 /**
  * Adds a type
+ *
  * @param {string} typeName unique identifier for the type
- * @param {object} type
+ * @param {Object} type
  * @throws {Error} if duplicate with same name was found
  */
 function addType(typeName, type) {

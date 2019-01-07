@@ -8,7 +8,8 @@ const AbstractFormatter = require("../AbstractFormatter");
 class ApplicationFormatter extends AbstractFormatter {
 	/**
 	 * Validates the project and retrieves its manifest
-	 * @param {object} project
+  *
+	 * @param {Object} project
 	 * @returns {Promise} when validated and manifest has been read
 	 */
 	format(project) {
@@ -36,8 +37,9 @@ class ApplicationFormatter extends AbstractFormatter {
 
 	/**
 	 * Reads the manifest
-	 * @param {object} project
-	 * @returns {Promise<object>} resolves with the json object
+  *
+	 * @param {Object} project
+	 * @returns {Promise<Object>} resolves with the json object
 	 */
 	readManifest(project) {
 		return readFile(path.join(project.path, project.resources.pathMappings["/"], "manifest.json"))
@@ -48,7 +50,8 @@ class ApplicationFormatter extends AbstractFormatter {
 
 	/**
 	 * Validates a project
-	 * @param {object} project
+  *
+	 * @param {Object} project
 	 * @returns {Promise} resolves if successfully validated
 	 * @throws {Error} if validation fails
 	 */

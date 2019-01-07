@@ -31,10 +31,9 @@ class BundleResolver {
 
 	/**
 	 * @param {ModuleDefinition} bundle
-	 * @param {Map<string,string>} vars
 	 * @returns {Promise<ResolvedBundleDefinition>}
 	 */
-	resolve(bundle /* NODE-TODO, vars */) {
+	resolve(bundle /* NODE-TODO, Map<string,string> vars */) {
 		let visitedResources = Object.create(null);
 		let selectedResources = Object.create(null);
 		let selectedResourcesSequence = [];

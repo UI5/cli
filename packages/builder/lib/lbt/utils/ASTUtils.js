@@ -6,6 +6,7 @@ const {Syntax} = require("esprima");
  * Checks whether the given node is a string literal.
  *
  * If second parameter 'literal' is given, the value of the node is additionally compared with that literal.
+ *
  * @private
  * @param {ESTree} node
  * @param {string} [literal]

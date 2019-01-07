@@ -153,10 +153,11 @@ function build({tree, destPath, buildDependencies = false, dev = false, selfCont
  * Tasks can be enabled or disabled. The wildcard <code>*</code> is also supported and affects all tasks.
  *
  * @private
- * @param {boolean} dev Sets development mode, which only runs essential tasks
- * @param {boolean} selfContained True if a the build should be self-contained or false for prelead build bundles
- * @param {Array} includedTasks Task list to be included from build
- * @param {Array} excludedTasks Task list to be excluded from build
+ * @param {Object} parameters
+ * @param {boolean} parameters.dev Sets development mode, which only runs essential tasks
+ * @param {boolean} parameters.selfContained True if a the build should be self-contained or false for prelead build bundles
+ * @param {Array} parameters.includedTasks Task list to be included from build
+ * @param {Array} parameters.excludedTasks Task list to be excluded from build
  * @returns {Array} Return a task list for the builder
  */
 function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {

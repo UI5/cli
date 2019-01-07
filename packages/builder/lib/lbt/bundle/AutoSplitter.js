@@ -18,6 +18,7 @@ const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;
 class AutoSplitter {
 	/**
 	 * Used to split resources
+	 *
 	 * @param {ResourcePool} pool
 	 * @param {Resolver} resolver
 	 */
@@ -31,8 +32,9 @@ class AutoSplitter {
 	// this would avoid the redundant compression code in this class
 	/**
 	 * Runs the split operation
-	 * @param {object} moduleDef
-	 * @param {object} options
+	 *
+	 * @param {Object} moduleDef
+	 * @param {Object} options
 	 * @returns {Promise<Array>}
 	 */
 	async run(moduleDef, options) {

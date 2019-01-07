@@ -16,7 +16,7 @@ class Node {
  *
  * @param {ResourcePool} pool resource pool
  * @param {Array} roots root elements
- * @param {object} options Options
+ * @param {Object} options Options
  * @param {boolean} options.includeConditionalDependencies whether or not to include optional dependencies
  * @returns {Promise<{n0: Node, nodes: Map<any, any>}>}
  */

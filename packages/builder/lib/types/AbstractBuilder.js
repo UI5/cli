@@ -7,11 +7,12 @@ class AbstractBuilder {
 	/**
 	 * Constructor
 	 *
-	 * @param {object} resourceCollections Resource collections
-	 * @param {DuplexCollection} resourceCollections.workspace Workspace Resource
-	 * @param {ReaderCollection} resourceCollections.dependencies Workspace Resource
-	 * @param {object} project Project configuration
-	 * @param {GroupLogger} parentLogger Logger to use
+	 * @param {Object} parameters
+	 * @param {Object} parameters.resourceCollections Resource collections
+	 * @param {DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
+	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
+	 * @param {Object} parameters.project Project configuration
+	 * @param {GroupLogger} parameters.parentLogger Logger to use
 	 */
 	constructor({resourceCollections, project, parentLogger}) {
 		if (new.target === AbstractBuilder) {
@@ -34,10 +35,11 @@ class AbstractBuilder {
 	 *
 	 * @abstract
 	 * @protected
- 	 * @param {object} resourceCollections Resource collections
-	 * @param {DuplexCollection} resourceCollections.workspace Workspace Resource
-	 * @param {ReaderCollection} resourceCollections.dependencies Workspace Resource
-	 * @param {object} project Project configuration
+	 * @param {Object} parameters
+ 	 * @param {Object} parameters.resourceCollections Resource collections
+	 * @param {DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
+	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
+	 * @param {Object} parameters.project Project configuration
 	 */
 	addStandardTasks({resourceCollections, project}) {
 		throw new Error("Function 'addStandardTasks' is not implemented");
@@ -47,10 +49,11 @@ class AbstractBuilder {
 	 * Adds custom tasks to execute
 	 *
 	 * @private
- 	 * @param {object} resourceCollections Resource collections
-	 * @param {DuplexCollection} resourceCollections.workspace Workspace Resource
-	 * @param {ReaderCollection} resourceCollections.dependencies Workspace Resource
-	 * @param {object} project Project configuration
+	 * @param {Object} parameters
+ 	 * @param {Object} parameters.resourceCollections Resource collections
+	 * @param {DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
+	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
+	 * @param {Object} parameters.project Project configuration
 	 */
 	addCustomTasks({resourceCollections, project}) {
 		const projectCustomTasks = project.builder && project.builder.customTasks;
@@ -129,7 +132,7 @@ class AbstractBuilder {
 	 * The order this function is being called defines the build order. FIFO.
 	 *
 	 * @param {string} taskName Name of the task which should be in the list availableTasks.
-	 * @param {function} taskFunction
+	 * @param {Function} taskFunction
 	 */
 	addTask(taskName, taskFunction) {
 		if (this.tasks[taskName]) {
@@ -146,7 +149,7 @@ class AbstractBuilder {
 	/**
 	 * Takes a list of tasks which should be executed from the available task list of the current builder
 	 *
-	 * @param {array} tasksToRun List of tasks which should be executed
+	 * @param {Array} tasksToRun List of tasks which should be executed
 	 * @returns {Promise} Returns promise chain with tasks
 	 */
 	build(tasksToRun) {
@@ -172,8 +175,8 @@ class AbstractBuilder {
 	 *
 	 * @private
 	 * @param {string} taskName Name of the task
-	 * @param {function} taskFunction Function which executed the task
-	 * @returns {function} Wrapped task function
+	 * @param {Function} taskFunction Function which executed the task
+	 * @returns {Function} Wrapped task function
 	 */
 	wrapTask(taskName, taskFunction) {
 		return () => {

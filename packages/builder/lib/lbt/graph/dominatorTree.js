@@ -9,7 +9,7 @@
  * described in https://en.wikipedia.org/wiki/Dominator_(graph_theory) .
  * It has runtime O(n^2) and could be replaced by a more sophisticated one (e.g. Lengauer and Tarjan).
  *
- * @param {object} graph Graph to calculate the DOM tree for
+ * @param {Object} graph Graph to calculate the DOM tree for
  * @param {Map.<string,Node>} graph.nodes Nodes of the dependency graph
  * @param {Node} graph.n0 Artificial root node
  * @returns {Node} Root node of the dominator tree.
