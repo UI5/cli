@@ -23,7 +23,7 @@ class Resource {
 	 *					(cannot be used in conjunction with parameters buffer, stream or createStream)
 	 * @param {Stream} [parameters.stream] Readable stream of the content of this resource
 	 *					(cannot be used in conjunction with parameters buffer, string or createStream)
-	 * @param {function} [parameters.createStream] Function callback that returns a readable stream of the content
+	 * @param {Function} [parameters.createStream] Function callback that returns a readable stream of the content
 	 *					of this resource (cannot be used in conjunction with parameters buffer, string or stream)
 	 */
 	constructor({path, statInfo, buffer, string, createStream, stream, project}) {
@@ -241,7 +241,7 @@ class Resource {
 	 * Returns the content as stream.
 	 *
 	 * @private
-	 * @returns {function} The stream
+	 * @returns {Function} The stream
 	 */
 	_getStream() {
 		if (this._createStream) {
