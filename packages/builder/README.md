@@ -24,7 +24,7 @@ Projects of type `application` are typically the main or root project. In a proj
 
 The source directory of an application (typically named `webapp`) is mapped to the virtual root path `/`.
 
-An applications source directory should contain a `manifest.json` file. It may or may not contain a `Component.js` file. If there is one, a `Component-preload.js` file will be generated during the build.
+An applications source directory may or may not contain a `Component.js` file. If it does, it must also contain a `manifest.json` file. If there is a `Component.js` file, an optimized `Component-preload.js` file will be generated during the build.
 
 #### `library`
 UI5 libraries are often referred to as reuse-, custom- or [control libraries](https://github.com/SAP/openui5/blob/master/docs/controllibraries.md). They are a key component in sharing code across multiple projects in UI5.
