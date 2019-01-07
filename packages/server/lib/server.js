@@ -18,7 +18,8 @@ const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
 /**
  * Start a server for the given project (sub-)tree
  *
- * @module server/server
+ * @public
+ * @module @ui5/server/server
  * @param {Object} tree A (sub-)tree
  * @param {Object} options Options
  * @param {number} options.port Port to listen to

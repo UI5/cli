@@ -4,7 +4,7 @@
  * Handles non read requests (POST, PUT, DELETE...) and returns an error 404,
  * because those operations aren't supported by the server.
  *
- * @module server/middleware/nonReadRequests
+ * @module @ui5/server/middleware/nonReadRequests
  * @returns {function} Returns a server middleware closure.
  */
 function createMiddleware() {

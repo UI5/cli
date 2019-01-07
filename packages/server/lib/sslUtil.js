@@ -16,7 +16,7 @@ const sslUtil = {
 	/**
 	 * Creates a new SSL certificate or validates an existing one.
 	 *
-	 * @module server/sslUtil
+	 * @module @ui5/server/sslUtil
 	 * @param {string} [keyPath=$HOME/.ui5/server/server.key]  Path to private key to be used for https.
 	 *                                                         Defaults to <code>$HOME/.ui5/server/server.key</code>
 	 * @param {string} [certPath=$HOME/.ui5/server/server.crt] Path to certificate to be used for for https.

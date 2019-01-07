@@ -131,7 +131,7 @@ function createContent(path, resourceInfos) {
 /**
  * Creates and returns the middleware to serve a resource index.
  *
- * @module server/middleware/serveIndex
+ * @module @ui5/server/middleware/serveIndex
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
  * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
  * @returns {function} Returns a server middleware closure.

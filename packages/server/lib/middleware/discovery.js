@@ -12,7 +12,7 @@ const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
  * <li>/discovery/all_tests: list all tests</li>
  * </ul>
  *
- * @module server/middleware/discovery
+ * @module @ui5/server/middleware/discovery
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
  * @param {AbstractReader} resourceCollections.source Resource reader or collection for the source project
  * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
