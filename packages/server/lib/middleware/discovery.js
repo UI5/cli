@@ -16,7 +16,7 @@ const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
  * @param {AbstractReader} resourceCollections.source Resource reader or collection for the source project
  * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
- * @returns {function} Returns a server middleware closure.
+ * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resourceCollections}) {
 	return function discoveryMiddleware(req, res, next) {

@@ -11,7 +11,7 @@ const GB = KB * KB * KB;
  * Returns the mime type of the given resource
  *
  * @param {Resource} resource the resource
- * @returns {String} mime type
+ * @returns {string} mime type
  */
 function getMimeType(resource) {
 	if (rProperties.test(resource.getPath())) {
@@ -24,8 +24,8 @@ function getMimeType(resource) {
 /**
  * Converts the given bytes into a proper human readable size
  *
- * @param {Number} bytes bytes
- * @returns {String} human readable size
+ * @param {number} bytes bytes
+ * @returns {string} human readable size
  */
 function formatSize(bytes) {
 	let result;
@@ -90,9 +90,9 @@ function createResourceInfos(resources) {
 /**
  * Creates the HTML content for the resource listing
  *
- * @param {String} path the path
+ * @param {string} path the path
  * @param {Object[]} resourceInfos an array of resource infos
- * @returns {String} HTML content for the resource listing
+ * @returns {string} HTML content for the resource listing
  */
 function createContent(path, resourceInfos) {
 	return `<!DOCTYPE html>
@@ -134,7 +134,7 @@ function createContent(path, resourceInfos) {
  * @module @ui5/server/middleware/serveIndex
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
  * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
- * @returns {function} Returns a server middleware closure.
+ * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resourceCollections}) {
 	return function serveIndex(req, res, next) {

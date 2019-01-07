@@ -171,9 +171,10 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 /**
  * Adds SSL support to an express application
  *
- * @param {Object} app The original express application
- * @param {string} key Path to private key to be used for https
- * @param {string} cert Path to certificate to be used for for https
+ * @param {Object} parameters
+ * @param {Object} parameters.app The original express application
+ * @param {string} parameters.key Path to private key to be used for https
+ * @param {string} parameters.cert Path to certificate to be used for for https
  * @returns {Object} The express application with SSL support
  * @private
  */

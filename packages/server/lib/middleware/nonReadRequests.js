@@ -5,7 +5,7 @@
  * because those operations aren't supported by the server.
  *
  * @module @ui5/server/middleware/nonReadRequests
- * @returns {function} Returns a server middleware closure.
+ * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware() {
 	return function nonReadRequests(req, res, next) {

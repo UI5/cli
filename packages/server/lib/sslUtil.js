@@ -21,7 +21,7 @@ const sslUtil = {
 	 *                                                         Defaults to <code>$HOME/.ui5/server/server.key</code>
 	 * @param {string} [certPath=$HOME/.ui5/server/server.crt] Path to certificate to be used for for https.
 	 *                                                         Defaults to <code>$HOME/.ui5/server/server.crt</codee>
-	 * @returns {Promise<object>} Resolves with an sslObject containing <code>cert</code> and <code>key</code>
+	 * @returns {Promise<Object>} Resolves with an sslObject containing <code>cert</code> and <code>key</code>
 	 */
 	getSslCertificate: function(
 		keyPath = path.join(os.homedir(), ".ui5/server/server.key"),
