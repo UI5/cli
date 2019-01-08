@@ -497,13 +497,14 @@ class ProjectPreprocessor {
  * The Project Preprocessor enriches the dependency information with project configuration
  *
  * @public
- * @module @ui5/project/projectPreprocessor
+ * @namespace @ui5/project.projectPreprocessor
  */
 module.exports = {
 	/**
 	 * Collects project information and its dependencies to enrich it with project configuration
 	 *
 	 * @public
+	 * @memberof @ui5/project.projectPreprocessor
 	 * @param {Object} tree Dependency tree of the project
 	 * @returns {Promise} Promise resolving with the dependency tree and enriched project configuration
 	 */

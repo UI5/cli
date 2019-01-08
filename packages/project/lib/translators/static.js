@@ -5,7 +5,7 @@ const parseYaml = require("js-yaml").safeLoad;
 /**
  * Translator for static resources
  *
- * @module @ui5/project/translators/static
+ * @alias @ui5/project.translators/static
  */
 
 /**
