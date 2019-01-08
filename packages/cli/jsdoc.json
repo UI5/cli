@@ -3,7 +3,7 @@
         "allowUnknownTags": false
     },
     "source": {
-        "include": ["README.md"],
+        "include": ["README.md", "index.js"],
         "includePattern": ".+\\.js$",
         "excludePattern": "(node_modules(\\\\|/))"
     },
@@ -18,7 +18,10 @@
     },
     "templates": {
         "cleverLinks": false,
-        "monospaceLinks": false
+        "monospaceLinks": false,
+        "default": {
+            "useLongnameInNav": true
+        }
     },
     "openGraph": {
         "title": "UI5 Build and Development Tooling - API Reference",
@@ -30,10 +33,10 @@
     "docdash": {
         "sectionOrder": [
             "Modules",
+            "Namespaces",
             "Classes",
             "Externals",
             "Events",
-            "Namespaces",
             "Mixins",
             "Tutorials",
             "Interfaces"
