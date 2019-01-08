@@ -5,7 +5,7 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  * Bundles all supplied changes.
  *
  * @public
- * @module @ui5/builder/processors/bundlers/flexChangesBundler
+ * @alias @ui5/builder.processors.flexChangesBundler
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options

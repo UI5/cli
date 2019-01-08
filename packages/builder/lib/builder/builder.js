@@ -26,15 +26,10 @@ function getElapsedTime(startTime) {
 }
 
 /**
- * The UI5 Builder.
- *
- * @module @ui5/builder/builder
- */
-
-/**
  * Configures the project build and starts it.
  *
  * @public
+ * @alias @ui5/builder.builder
  * @param {Object} parameters Parameters
  * @param {Object} parameters.tree Dependency tree
  * @param {string} parameters.destPath Target path

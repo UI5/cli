@@ -14,7 +14,7 @@ const stringReplacer = require("../processors/stringReplacer");
  * If no copyright string is given, no replacement is being done.
  *
  * @public
- * @module @ui5/builder/tasks/replaceCopyright
+ * @alias @ui5/builder.tasks.replaceCopyright
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} parameters.options Options

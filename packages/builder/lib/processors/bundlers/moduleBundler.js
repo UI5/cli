@@ -41,7 +41,7 @@ class LocatorResourcePool extends ResourcePool {
  * Legacy preload bundler.
  *
  * @public
- * @module @ui5/builder/processors/bundlers/moduleBundler
+ * @alias @ui5/builder.processors.moduleBundler
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources Resources
  * @param {Object} parameters.options Options

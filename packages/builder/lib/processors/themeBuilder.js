@@ -9,6 +9,7 @@ const libraryMatchPattern = /^\/resources\/(.*)\/themes\/[^/]*\/library\.source\
  * Builds a library theme
  *
  * @public
+ * @memberof @ui5/builder.processors
  */
 class ThemeBuilder {
 	/**
@@ -84,7 +85,7 @@ class ThemeBuilder {
  * Builds a library theme.
  *
  * @public
- * @module @ui5/builder/processors/themeBuilder
+ * @alias @ui5/builder.processors/themeBuilder
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources List of <code>library.source.less</code> resources to be processed
  * @param {fs|fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/fsInterface}

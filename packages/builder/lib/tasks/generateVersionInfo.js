@@ -4,7 +4,7 @@ const versionInfoGenerator = require("../processors/versionInfoGenerator");
  * Task to create sap-ui-version.json
  *
  * @public
- * @module @ui5/builder/tasks/generateVersionInfo
+ * @alias @ui5/builder.tasks.generateVersionInfo
  * @param {Object} parameters Parameters
  * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files

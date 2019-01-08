@@ -43,8 +43,8 @@ class I18nResourceList {
 /**
  * Creates a manifest bundle from the provided resources.
  *
+ * @alias @ui5/builder.processors.manifestBundler
  * @public
- * @module @ui5/builder/processors/bundlers/manifestBundler
  * @param {Object} parameters Parameters
  * @param {Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options

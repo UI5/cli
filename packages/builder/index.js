@@ -1,5 +1,13 @@
-const ui5Builder = {
+/**
+ * @module @ui5/builder
+ * @public
+ */
+module.exports = {
 	builder: require("./lib/builder/builder"),
+	/**
+	 * @public
+	 * @see @ui5/builder.processors
+	 */
 	processors: {
 		flexChangesBundler: require("./lib/processors/bundlers/flexChangesBundler"),
 		manifestBundler: require("./lib/processors/bundlers/manifestBundler"),
@@ -12,6 +20,10 @@ const ui5Builder = {
 		uglifier: require("./lib/processors/uglifier"),
 		versionInfoGenerator: require("./lib/processors/versionInfoGenerator")
 	},
+	/**
+	 * @public
+	 * @see @ui5/builder.tasks
+	 */
 	tasks: {
 		generateComponentPreload: require("./lib/tasks/bundlers/generateComponentPreload"),
 		generateFlexChangesBundle: require("./lib/tasks/bundlers/generateFlexChangesBundle"),
@@ -28,6 +40,10 @@ const ui5Builder = {
 		uglify: require("./lib/tasks/uglify"),
 		taskRepository: require("./lib/tasks/taskRepository")
 	},
+	/**
+	 * @private
+	 * @see @ui5/builder.types
+	 */
 	types: {
 		AbstractBuilder: require("./lib/types/AbstractBuilder"),
 		AbstractFormatter: require("./lib/types/AbstractFormatter"),
@@ -37,4 +53,15 @@ const ui5Builder = {
 	}
 };
 
-module.exports = ui5Builder;
+/**
+ * @public
+ * @namespace @ui5/builder.processors
+ */
+/**
+ * @public
+ * @namespace @ui5/builder.tasks
+ */
+/**
+ * @private
+ * @namespace @ui5/builder.types
+ */
