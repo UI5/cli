@@ -12,7 +12,15 @@ class Node {
 	}
 }
 
-function createDependencyGraph(pool, roots, options) {
+/**
+ *
+ * @param {ResourcePool} pool resource pool
+ * @param {Array} roots root elements
+ * @param {object} options Options
+ * @param {boolean} options.includeConditionalDependencies whether or not to include optional dependencies
+ * @returns {Promise<{n0: Node, nodes: Map<any, any>}>}
+ */
+async function createDependencyGraph(pool, roots, options) {
 	const includeConditionalDependencies = options && options.includeConditionalDependencies;
 
 	// create graph representing modules and their dependencies

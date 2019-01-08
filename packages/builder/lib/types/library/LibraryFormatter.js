@@ -10,6 +10,11 @@ const xmlParse = promisify(xml2js);
 
 
 class LibraryFormatter extends AbstractFormatter {
+	/**
+	 * Formats the given project
+	 * @param {object} project
+	 * @returns {Promise}
+	 */
 	format(project) {
 		return this.validate(project).then(function() {
 			log.verbose("Formatting project %s...", project.metadata.name);
@@ -58,6 +63,11 @@ class LibraryFormatter extends AbstractFormatter {
 		});
 	}
 
+	/**
+	 *
+	 * @param {object} project
+	 * @returns {Promise}
+	 */
 	validate(project) {
 		return Promise.resolve().then(() => {
 			if (!project) {

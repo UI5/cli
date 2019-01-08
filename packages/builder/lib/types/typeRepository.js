@@ -8,20 +8,32 @@ const types = {
 	module: moduleType
 };
 
+/**
+ * Gets a type
+ * @param {string} typeName unique identifier for the type
+ * @returns {object} type identified by name
+ * @throws {Error} if not found
+ */
 function getType(typeName) {
 	const type = types[typeName];
 
 	if (!type) {
-		throw new Error("Unkown type '" + typeName + "'");
+		throw new Error("Unknown type '" + typeName + "'");
 	}
 	return type;
 }
 
-function addType(name, type) {
-	if (types[name]) {
-		throw new Error("Type already registered '" + name + "'");
+/**
+ * Adds a type
+ * @param {string} typeName unique identifier for the type
+ * @param {object} type
+ * @throws {Error} if duplicate with same name was found
+ */
+function addType(typeName, type) {
+	if (types[typeName]) {
+		throw new Error("Type already registered '" + typeName + "'");
 	}
-	types[name] = type;
+	types[typeName] = type;
 }
 
 module.exports = {

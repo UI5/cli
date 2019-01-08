@@ -9,7 +9,7 @@ const {Syntax} = require("esprima");
  * @private
  * @param {ESTree} node
  * @param {string} [literal]
- * @returns {boolean} Whether the node is a literal and whether its value mtahces the given string
+ * @returns {boolean} Whether the node is a literal and whether its value matches the given string
  */
 function isString(node, literal) {
 	if ( node == null || node.type !== Syntax.Literal || typeof node.value !== "string" ) {
@@ -19,7 +19,7 @@ function isString(node, literal) {
 }
 
 function isMethodCall(node, methodPath) {
-	if ( node.type != Syntax.CallExpression ) {
+	if ( node.type !== Syntax.CallExpression ) {
 		return false;
 	}
 
@@ -30,12 +30,12 @@ function isMethodCall(node, methodPath) {
 function isNamedObject(node, objectPath, length) {
 	// console.log("checking for named object ", node, objectPath, length);
 	while ( length > 1
-			&& node.type == Syntax.MemberExpression
+			&& node.type === Syntax.MemberExpression
 			&& isIdentifier(node.property, objectPath[length-1]) ) {
 		node = node.object;
 		length--;
 	}
-	return length == 1 && isIdentifier(node, objectPath[0]);
+	return length === 1 && isIdentifier(node, objectPath[0]);
 }
 
 function isIdentifier(node, name) {

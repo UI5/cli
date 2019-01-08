@@ -18,7 +18,7 @@ function getTask(taskName) {
 	const task = tasks[taskName];
 
 	if (!task) {
-		throw new Error(`taskRepository: Unkown Task ${taskName}`);
+		throw new Error(`taskRepository: Unknown Task ${taskName}`);
 	}
 	return task;
 }

@@ -59,7 +59,6 @@ class XMLCompositeAnalyzer {
 		if ( isString(fragmentName) ) {
 			return fragmentName.value;
 		}
-		return;
 	}
 }
 

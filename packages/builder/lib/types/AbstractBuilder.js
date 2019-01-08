@@ -39,7 +39,7 @@ class AbstractBuilder {
 	 * @param {ReaderCollection} resourceCollections.dependencies Workspace Resource
 	 * @param {object} project Project configuration
 	 */
-	addStandardTasks() {
+	addStandardTasks({resourceCollections, project}) {
 		throw new Error("Function 'addStandardTasks' is not implemented");
 	}
 
@@ -80,7 +80,7 @@ class AbstractBuilder {
 				let suffixCounter = 0;
 				while (this.tasks[newTaskName]) {
 					suffixCounter++; // Start at 1
-					newTaskName = `${newTaskName}--${suffixCounter}`;
+					newTaskName = `${taskDef.name}--${suffixCounter}`;
 				}
 			}
 			// Create custom task if not already done (task might be referenced multiple times, first one wins)
@@ -133,10 +133,10 @@ class AbstractBuilder {
 	 */
 	addTask(taskName, taskFunction) {
 		if (this.tasks[taskName]) {
-			throw new Error(`Failed to add duplicative task ${taskName} for project ${this.project.metadata.name}`);
+			throw new Error(`Failed to add duplicate task ${taskName} for project ${this.project.metadata.name}`);
 		}
 		if (this.taskExecutionOrder.includes(taskName)) {
-			throw new Error(`Builder: Failed ot add task ${taskName} for project ${this.project.metadata.name}. ` +
+			throw new Error(`Builder: Failed to add task ${taskName} for project ${this.project.metadata.name}. ` +
 				`It has already been scheduled for execution.`);
 		}
 		this.tasks[taskName] = taskFunction;

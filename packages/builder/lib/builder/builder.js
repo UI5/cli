@@ -41,9 +41,9 @@ function getElapsedTime(startTime) {
  * @param {boolean} [parameters.dev=false] Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
  * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
  * @param {Array} [parameters.includedTasks=[]] List of tasks to be included
- * @param {Array} [parameters.excludedTasks=[]] List of tasks to be excluced. If the wildcard '*' is provided, only the included tasks will be executed.
- * @param {Array} [parameters.devExcludeProject=[]] List of projects to be exlcuded from development build
- * @returns {Promise<undefined>} Promise resolving to <code>undefined</code> once build has finished
+ * @param {Array} [parameters.excludedTasks=[]] List of tasks to be excluded. If the wildcard '*' is provided, only the included tasks will be executed.
+ * @param {Array} [parameters.devExcludeProject=[]] List of projects to be excluded from development build
+ * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
  */
 function build({tree, destPath, buildDependencies = false, dev = false, selfContained = false, includedTasks = [], excludedTasks = [], devExcludeProject = []}) {
 	const startTime = process.hrtime();
@@ -155,7 +155,7 @@ function build({tree, destPath, buildDependencies = false, dev = false, selfCont
  * @param {boolean} dev Sets development mode, which only runs essential tasks
  * @param {boolean} selfContained True if a the build should be self-contained or false for prelead build bundles
  * @param {Array} includedTasks Task list to be included from build
- * @param {Array} excludedTasks Task list to be exlcuded from build
+ * @param {Array} excludedTasks Task list to be excluded from build
  * @returns {Array} Return a task list for the builder
  */
 function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {

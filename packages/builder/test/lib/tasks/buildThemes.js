@@ -6,7 +6,7 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
-test("simple", (t) => {
+test("integration: simple", (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -86,7 +86,7 @@ test("simple", (t) => {
 	});
 });
 
-test("imports", (t) => {
+test("integration: imports", (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});

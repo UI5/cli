@@ -5,7 +5,7 @@ const tasks = ui5Builder.builder.tasks;
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 
-test("test.js: dbg file creation", (t) => {
+test("integration: test.js: dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -36,7 +36,7 @@ test("test.js: dbg file creation", (t) => {
 	});
 });
 
-test("test.view.js: dbg file creation", (t) => {
+test("integration: test.view.js: dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -67,7 +67,7 @@ test("test.view.js: dbg file creation", (t) => {
 	});
 });
 
-test("test.controller.js: dbg file creation", (t) => {
+test("integration: test.controller.js: dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -98,7 +98,7 @@ test("test.controller.js: dbg file creation", (t) => {
 	});
 });
 
-test("test.fragment.js: dbg file creation", (t) => {
+test("integration: test.fragment.js: dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -129,7 +129,7 @@ test("test.fragment.js: dbg file creation", (t) => {
 	});
 });
 
-test("test-dbg.js: dbg-dbg file creation", (t) => {
+test("integration: test-dbg.js: dbg-dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -160,7 +160,7 @@ test("test-dbg.js: dbg-dbg file creation", (t) => {
 	});
 });
 
-test("test.xml: *no* dbg file creation", (t) => {
+test("integration: test.xml: *no* dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -189,7 +189,7 @@ test("test.xml: *no* dbg file creation", (t) => {
 	});
 });
 
-test("test1.js, test2.js: dbg file creation", (t) => {
+test("integration: test1.js, test2.js: dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -234,7 +234,7 @@ test("test1.js, test2.js: dbg file creation", (t) => {
 	});
 });
 
-test("dbg file creation should not overwrite the existing -dbg file", (t) => {
+test("integration: dbg file creation should not overwrite the existing -dbg file", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});

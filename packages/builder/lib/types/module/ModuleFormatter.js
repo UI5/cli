@@ -40,7 +40,7 @@ class ModuleFormatter extends AbstractFormatter {
 					const absolutePath = path.join(project.path, paths[virPath]);
 					dirChecks.push(this.dirExists(absolutePath).then((bExists) => {
 						if (!bExists) {
-							throw new Error(`Could not find root directory of project ${project.id}: ` +
+							throw new Error(`Could not find "${virPath}" directory of project ${project.id} at ` +
 								`${absolutePath}`);
 						}
 					}));

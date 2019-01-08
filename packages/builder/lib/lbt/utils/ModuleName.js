@@ -11,7 +11,7 @@
 function fromUI5LegacyName(name, suffix) {
 	// UI5 only supports a few names with dots in them, anything else will be converted to slashes
 	if ( name.startsWith("sap.ui.thirdparty.jquery.jquery-") ) {
-		name = "sap/ui/thirdparty/jquery/jquery-" + name.slice("sap.ui.thirdparty.jquery.jquery-".length());
+		name = "sap/ui/thirdparty/jquery/jquery-" + name.slice("sap.ui.thirdparty.jquery.jquery-".length);
 	} else if ( name.startsWith("jquery.sap.") || name.startsWith("jquery-") ) {
 		// do nothing
 	} else {

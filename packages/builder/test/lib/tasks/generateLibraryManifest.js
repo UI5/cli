@@ -56,7 +56,7 @@ async function assertCreatedManifest(t, oExpectedManifest) {
 	t.deepEqual(JSON.parse(buffer), oExpectedManifest, "Correct content");
 }
 
-test("Library without i18n bundle file", async (t) => {
+test("integration: Library without i18n bundle file", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 
@@ -109,7 +109,7 @@ test("Library without i18n bundle file", async (t) => {
 	});
 });
 
-test("Library with i18n bundle file (messagebundle.properties)", async (t) => {
+test("integration: Library with i18n bundle file (messagebundle.properties)", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 
@@ -167,7 +167,7 @@ test("Library with i18n bundle file (messagebundle.properties)", async (t) => {
 	});
 });
 
-test("Library with i18n=true declared in .library", async (t) => {
+test("integration: Library with i18n=true declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 
@@ -230,7 +230,7 @@ test("Library with i18n=true declared in .library", async (t) => {
 	});
 });
 
-test("Library with i18n=false declared in .library", async (t) => {
+test("integration: Library with i18n=false declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 
@@ -293,7 +293,7 @@ test("Library with i18n=false declared in .library", async (t) => {
 	});
 });
 
-test("Library with i18n=foo.properties declared in .library", async (t) => {
+test("integration: Library with i18n=foo.properties declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 
@@ -356,7 +356,7 @@ test("Library with i18n=foo.properties declared in .library", async (t) => {
 	});
 });
 
-test("Library with css=true declared in .library", async (t) => {
+test("integration: Library with css=true declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 
@@ -419,7 +419,7 @@ test("Library with css=true declared in .library", async (t) => {
 	});
 });
 
-test("Library with css=false declared in .library", async (t) => {
+test("integration: Library with css=false declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();
 

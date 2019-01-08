@@ -25,7 +25,7 @@ const findFiles = (folder) => {
 	});
 };
 
-test("Build application.b with manifestBundler", (t) => {
+test("integration: Build application.b with manifestBundler", (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.b", "dest");
 	const destBundle = path.resolve(path.join(destPath, "manifest-bundle"));
 	const expectedPath = path.join("test", "expected", "build", "application.b", "dest");

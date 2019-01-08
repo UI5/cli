@@ -12,7 +12,7 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {string} parameters.options.projectName Project name
  * @param {Object} parameters.options.bundleDefintion Module bundle definition
  * @param {Object} parameters.options.bundleOptions Module bundle options
- * @returns {Promise} Promise resolving with undefined once data has been written
+ * @returns {Promise} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options}) {
 	const combo = new ReaderCollectionPrioritized({

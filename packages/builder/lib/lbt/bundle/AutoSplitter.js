@@ -16,6 +16,11 @@ const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;
  * @private
  */
 class AutoSplitter {
+	/**
+	 * Used to split resources
+	 * @param {ResourcePool} pool
+	 * @param {Resolver} resolver
+	 */
 	constructor(pool, resolver) {
 		this.pool = pool;
 		this.resolver = resolver;
@@ -24,6 +29,12 @@ class AutoSplitter {
 
 	// TODO refactor JSMergedModuleBuilder(Ext) so that it can be used with a NullWriter to collect all resource sizes
 	// this would avoid the redundant compression code in this class
+	/**
+	 * Runs the split operation
+	 * @param {object} moduleDef
+	 * @param {object} options
+	 * @returns {Promise<Array>}
+	 */
 	async run(moduleDef, options) {
 		options = options || {};
 		const numberOfParts = options.numberOfParts;
@@ -235,7 +246,7 @@ class AutoSplitter {
 			}
 		}
 
-		return resource && resource.info ? resource.info.size : 0;
+		return resource && resource.info && resource.info.size ? resource.info.size : 0;
 	}
 
 	/* NODE-TODO debug resources

@@ -1,7 +1,9 @@
 "use strict";
 
+/*
 const fs = require("fs");
 const path = require("path");
+*/
 const esprima = require("esprima");
 const ComponentAnalyzer = require("../analyzer/ComponentAnalyzer");
 const SmartTemplateAnalyzer = require("../analyzer/SmartTemplateAnalyzer");
@@ -13,11 +15,14 @@ const XMLTemplateAnalyzer = require("../analyzer/XMLTemplateAnalyzer");
 const LibraryFileAnalyzer = require("./LibraryFileAnalyzer");
 const ModuleInfo = require("./ModuleInfo");
 const ResourceFilterList = require("./ResourceFilterList");
+/*
 const Resource = require("./Resource");
+ */
 const log = require("@ui5/logger").getLogger("lbt:resources:ResourcePool");
 
 const jsAnalyzer = new JSModuleAnalyzer();
 
+/*
 function scanFileOrDir(fileOrDir, name, pool) {
 	// console.log("visiting " + fileOrDir + " (" + name + ")");
 	return new Promise( (resolve, reject) => {
@@ -44,12 +49,13 @@ function scanFileOrDir(fileOrDir, name, pool) {
 				const resource = new Resource(pool, name, fileOrDir, stat);
 				resolve( pool.addResource( resource ) );
 			} else {
-				/* else: ignore other resource types */
+				// else: ignore other resource types
 				resolve(true);
 			}
 		});
 	});
 }
+*/
 
 async function determineDependencyInfo(resource, rawInfo, pool) {
 	const info = new ModuleInfo(resource.name);
@@ -104,14 +110,16 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 
 class ResourcePool {
 	constructor() {
-		this._roots = [];
+		// this._roots = [];
 		this._resources = [];
 		this._resourcesByName = new Map();
 		this._dependencyInfos = new Map();
 		this._rawModuleInfos = new Map();
-		this.whenReady = Promise.resolve(true);
+		// this.whenReady = Promise.resolve(true);
 	}
 
+	/*
+	TODO check relevance
 	addRoot(fileOrFolder, prefix) {
 		this._roots.push({
 			root: fileOrFolder,
@@ -121,7 +129,13 @@ class ResourcePool {
 		const p = scanFileOrDir(fileOrFolder, prefix, this);
 		this.whenReady = this.whenReady.then( () => p );
 	}
+	*/
 
+	/**
+	 * Adds a resource to the pool
+	 * @param {Resource} resource
+	 * @returns {Promise|undefined} for libraries a Promise is returned undefined otherwise
+	 */
 	addResource( resource ) {
 		if ( this._resourcesByName.has(resource.name) ) {
 			log.warn("duplicate resource " + resource.name);
@@ -164,7 +178,7 @@ class ResourcePool {
 		return resource;
 	}
 
-	findResourceWithInfo(name) {
+	async findResourceWithInfo(name) {
 		return this.findResource(name).then( (resource) => {
 			return this.getModuleInfo(name).then( (info) => {
 				// HACK: attach info to resource
@@ -174,6 +188,11 @@ class ResourcePool {
 		});
 	}
 
+	/**
+	 * Finds the resources based matching the given pattern
+	 * @param {ResourceFilterList|regexp} pattern
+	 * @returns {Promise}
+	 */
 	async findResources(pattern) {
 		if ( pattern instanceof ResourceFilterList ) {
 			return this._resources.filter( (resource) => pattern.matches(resource.name) );

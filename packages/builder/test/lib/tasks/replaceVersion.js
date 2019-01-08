@@ -6,7 +6,7 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
-test("test.js: replace ${version}", (t) => {
+test("integration: replace version", (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
