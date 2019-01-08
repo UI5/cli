@@ -125,7 +125,7 @@
 		"nyc": "^13.1.0",
 		"opn-cli": "^4.0.0",
 		"recursive-readdir": "^2.1.1",
-		"rimraf": "^2.6.2",
+		"rimraf": "^2.6.3",
 		"sinon": "^7.2.2",
 		"tap-nyan": "^1.1.0"
 	}
