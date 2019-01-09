@@ -4,6 +4,7 @@ const tasks = {
 	createDebugFiles: require("./createDebugFiles"),
 	uglify: require("./uglify"),
 	buildThemes: require("./buildThemes"),
+	transformBootstrapHtml: require("./transformBootstrapHtml"),
 	generateLibraryManifest: require("./generateLibraryManifest"),
 	generateVersionInfo: require("./generateVersionInfo"),
 	generateManifestBundle: require("./bundlers/generateManifestBundle"),

@@ -4,6 +4,7 @@ const ui5Builder = {
 		flexChangesBundler: require("./lib/processors/bundlers/flexChangesBundler"),
 		manifestBundler: require("./lib/processors/bundlers/manifestBundler"),
 		moduleBundler: require("./lib/processors/bundlers/moduleBundler"),
+		bootstrapHtmlTransformer: require("./lib/processors/bootstrapHtmlTransformer"),
 		debugFileCreator: require("./lib/processors/debugFileCreator"),
 		resourceCopier: require("./lib/processors/resourceCopier"),
 		stringReplacer: require("./lib/processors/stringReplacer"),
@@ -23,6 +24,7 @@ const ui5Builder = {
 		generateVersionInfo: require("./lib/tasks/generateVersionInfo"),
 		replaceCopyright: require("./lib/tasks/replaceCopyright"),
 		replaceVersion: require("./lib/tasks/replaceVersion"),
+		transformBootstrapHtml: require("./lib/tasks/transformBootstrapHtml"),
 		uglify: require("./lib/tasks/uglify"),
 		taskRepository: require("./lib/tasks/taskRepository")
 	},

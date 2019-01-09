@@ -11,6 +11,7 @@ const tasks = { // can't require index.js due to circular dependency
 	generateVersionInfo: require("../../tasks/generateVersionInfo"),
 	replaceCopyright: require("../../tasks/replaceCopyright"),
 	replaceVersion: require("../../tasks/replaceVersion"),
+	transformBootstrapHtml: require("../../tasks/transformBootstrapHtml"),
 	uglify: require("../../tasks/uglify")
 };
 
@@ -87,6 +88,16 @@ class ApplicationBuilder extends AbstractBuilder {
 			return tasks.generateStandaloneAppBundle({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name,
+					namespace: project.metadata.namespace
+				}
+			});
+		});
+
+		this.addTask("transformBootstrapHtml", () => {
+			return tasks.transformBootstrapHtml({
+				workspace: resourceCollections.workspace,
 				options: {
 					projectName: project.metadata.name,
 					namespace: project.metadata.namespace

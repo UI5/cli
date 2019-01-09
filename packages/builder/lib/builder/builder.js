@@ -167,11 +167,13 @@ function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {
 	// Exclude tasks: manifestBundler
 	selectedTasks.generateManifestBundle = false;
 	selectedTasks.generateStandaloneAppBundle = false;
+	selectedTasks.transformBootstrapHtml = false;
 
 	if (selfContained) {
 		// No preloads, bundle only
 		selectedTasks.generateComponentPreload = false;
 		selectedTasks.generateStandaloneAppBundle = true;
+		selectedTasks.transformBootstrapHtml = true;
 		selectedTasks.generateLibraryPreload = false;
 	}
 
