@@ -17,11 +17,11 @@
 See [Configuration](docs/Configuration.md).
 
 ## Normalizer
-The purpose of the normalizer is to collect dependency information and to enrich it with project configuration (both done in [generateProjectTree](https://github.com/pages/SAP/ui5-tooling/module-normalizer_normalizer.html#~generateProjectTree)).
+The purpose of the normalizer is to collect dependency information and to enrich it with project configuration (both done in [generateProjectTree](https://sap.github.io/ui5-tooling/module-@ui5_project.normalizer.html#.generateProjectTree)).
 
 [Translators](#translators) are used to collect dependency information. The [Project Preprocessor](#project-preprocessor) enriches this dependency information with project configuration, typically from a `ui5.yaml` file. A development server and build process can use this information to locate project and dependency resources.
 
-If you want to retrieve the project dependency graph without any configuration, you may use use the [generateDependencyTree](https://github.com/pages/SAP/ui5-tooling/module-normalizer_normalizer.html#~generateDependencyTree) API.
+If you want to retrieve the project dependency graph without any configuration, you may use use the [generateDependencyTree](https://sap.github.io/ui5-tooling/module-@ui5_project.normalizer.html#.generateDependencyTree) API.
 
 ## Translators
 Translators collect recursively all dependencies on a package manager specific layer and return information about them in a well-defined tree structure.
