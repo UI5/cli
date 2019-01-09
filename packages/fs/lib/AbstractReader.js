@@ -4,11 +4,15 @@ const Trace = require("./tracing/Trace");
 /**
  * Abstract resource locator
  *
+ * @public
  * @abstract
+ * @memberof module:@ui5/fs
  */
 class AbstractReader {
 	/**
 	 * The constructor.
+	 *
+	 * @public
 	 */
 	constructor() {
 		if (new.target === AbstractReader) {
@@ -25,10 +29,11 @@ class AbstractReader {
 	 * // **\u00002F.library
 	 * // /pony/*
 	 *
+	 * @public
 	 * @param {string|Array} virPattern GLOB pattern as string or array of glob patterns for virtual directory structure
 	 * @param {Object} [options={}] GLOB options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	byGlob(virPattern, options = {nodir: true}) {
 		const trace = new Trace(virPattern);
@@ -51,10 +56,11 @@ class AbstractReader {
 	/**
 	 * Locates resources by path.
 	 *
+	 * @public
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<Resource>} Promise resolving to a single resource
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	byPath(virPath, options = {nodir: true}) {
 		const trace = new Trace(virPath);
@@ -71,8 +77,8 @@ class AbstractReader {
 	 * @protected
 	 * @param {string} virPattern GLOB pattern for virtual directory structure
 	 * @param {Object} options GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(virPattern, options, trace) {
 		throw new Error("Not implemented");
@@ -85,8 +91,8 @@ class AbstractReader {
 	 * @protected
 	 * @param {string} pattern GLOB pattern
 	 * @param {Object} options GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_runGlob(pattern, options, trace) {
 		throw new Error("Not implemented");
@@ -98,8 +104,8 @@ class AbstractReader {
 	 * @abstract
 	 * @protected
 	 * @param {string} virPath Virtual path
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource>} Promise resolving to a single resource
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, trace) {
 		throw new Error("Not implemented");

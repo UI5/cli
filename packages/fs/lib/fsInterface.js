@@ -2,11 +2,11 @@
  * Wraps readers to access them like a node fs-interface.
  *
  * @public
- * @module @ui5/fs/fsInterface
- * @param {AbstractReader} reader Resource Reader or Collection
- * @returns {Object} Object with wrapped fs functions
+ * @alias module:@ui5/fs.fsInterface
+ * @param {module:@ui5/fs.AbstractReader} reader Resource Reader or Collection
+ * @returns {Object} Object with fs-style functions <code>readFile</code>, <code>stat</code> and <code>readdir</code>
  */
-const fsInterface = (reader) => {
+module.exports = (reader) => {
 	return {
 		readFile(path, options, callback) {
 			if (typeof options === "function") {
@@ -68,5 +68,3 @@ const fsInterface = (reader) => {
 		}
 	};
 };
-
-module.exports = fsInterface;

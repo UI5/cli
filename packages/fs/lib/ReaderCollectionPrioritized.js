@@ -4,7 +4,8 @@ const AbstractReader = require("./AbstractReader");
  * Prioritized Resource Locator Collection
  *
  * @public
- * @augments AbstractReader
+ * @memberof module:@ui5/fs
+ * @augments module:@ui5/fs.AbstractReader
  */
 class ReaderCollectionPrioritized extends AbstractReader {
 	/**
@@ -12,7 +13,7 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 *
 	 * @param {Object} parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {AbstractReader[]} parameters.readers Prioritized list of resource readers (first is tried first)
+	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers Prioritized list of resource readers (first is tried first)
 	 */
 	constructor({readers, name}) {
 		super();
@@ -26,8 +27,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @private
 	 * @param {string} pattern GLOB pattern
 	 * @param {Object} options GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(pattern, options, trace) {
 		return Promise.all(this._readers.map(function(resourceLocator) {
@@ -58,8 +59,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource>} Promise resolving to a single resource
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;

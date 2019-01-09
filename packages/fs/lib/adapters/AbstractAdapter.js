@@ -6,12 +6,15 @@ const AbstractReaderWriter = require("../AbstractReaderWriter");
  * Abstract Resource Adapter
  *
  * @abstract
- * @augments AbstractReaderWriter
+ * @public
+ * @memberof module:@ui5/fs.adapters
+ * @augments module:@ui5/fs.AbstractReaderWriter
  */
 class AbstractAdapter extends AbstractReaderWriter {
 	/**
 	 * The constructor
 	 *
+	 * @public
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 */
@@ -33,8 +36,8 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 * @param {string|Array} virPattern GLOB pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {Object} options GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(virPattern, options, trace) {
 		if (!(virPattern instanceof Array)) {

@@ -11,7 +11,9 @@ const AbstractAdapter = require("./AbstractAdapter");
 /**
  * File system resource adapter
  *
- * @augments AbstractAdapter
+ * @public
+ * @alias module:@ui5/fs.adapters.FileSystem
+ * @augments module:@ui5/fs.adapters.AbstractAdapter
  */
 class FileSystem extends AbstractAdapter {
 	/**
@@ -32,8 +34,8 @@ class FileSystem extends AbstractAdapter {
 	 * @private
 	 * @param {Array} patterns Array of GLOB patterns
 	 * @param {Object} [options] GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_runGlob(patterns, options, trace) {
 		return new Promise((resolve, reject) => {
@@ -105,8 +107,8 @@ class FileSystem extends AbstractAdapter {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource>} Promise resolving to a single resource
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		return new Promise((resolve, reject) => {
@@ -166,7 +168,7 @@ class FileSystem extends AbstractAdapter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {Resource} resource The Resource
+	 * @param {module:@ui5/fs.Resource} resource The Resource
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
