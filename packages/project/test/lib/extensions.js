@@ -1,6 +1,8 @@
 const {test} = require("ava");
 const path = require("path");
+const sinon = require("sinon");
 const projectPreprocessor = require("../..").projectPreprocessor;
+const Preprocessor = require("../..").projectPreprocessor.ProjectPreprocessor;
 const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
 const legacyLibraryAPath = path.join(__dirname, "..", "fixtures", "legacy.library.a");
 const legacyLibraryBPath = path.join(__dirname, "..", "fixtures", "legacy.library.b");
@@ -9,6 +11,10 @@ const legacyCollectionLibraryX = path.join(__dirname, "..", "fixtures", "legacy.
 	"src", "legacy.library.x");
 const legacyCollectionLibraryY = path.join(__dirname, "..", "fixtures", "legacy.collection.a",
 	"src", "legacy.library.y");
+
+test.afterEach.always((t) => {
+	sinon.restore();
+});
 
 test("Project with project-shim extension with dependency configuration", (t) => {
 	const tree = {
@@ -569,4 +575,84 @@ test("Project with task extension dependency - task module not found", async (t)
 	};
 	const error = await t.throws(projectPreprocessor.processTree(tree));
 	t.regex(error.message, /^Cannot find module.*/, "Rejected with error");
+});
+
+test("specVersion: Missing version", async (t) => {
+	const extension = {
+		id: "extension.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		kind: "extension",
+		type: "project-shim",
+		metadata: {
+			name: "shims.a"
+		},
+		shims: {}
+	};
+	const preprocessor = new Preprocessor();
+	await t.throws(preprocessor.applyExtension(extension),
+		"No specification version defined for extension shims.a",
+		"Rejected with error");
+});
+
+test("specVersion: Extension with invalid version", async (t) => {
+	const extension = {
+		id: "extension.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "0.9",
+		kind: "extension",
+		type: "project-shim",
+		metadata: {
+			name: "shims.a"
+		},
+		shims: {}
+	};
+	const preprocessor = new Preprocessor();
+	await t.throws(preprocessor.applyExtension(extension),
+		"Invalid specification version defined for extension shims.a: 0.9. " +
+		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
+		"Rejected with error");
+});
+
+test("specVersion: Extension with valid version 0.1", async (t) => {
+	const extension = {
+		id: "extension.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "0.1",
+		kind: "extension",
+		type: "project-shim",
+		metadata: {
+			name: "shims.a"
+		},
+		shims: {}
+	};
+	const preprocessor = new Preprocessor();
+	const handleShimStub = sinon.stub(preprocessor, "handleShim");
+	await preprocessor.applyExtension(extension);
+	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "0.1", "Correct spec version");
+});
+
+test("specVersion: Extension with valid version 1.0", async (t) => {
+	const extension = {
+		id: "extension.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "1.0",
+		kind: "extension",
+		type: "project-shim",
+		metadata: {
+			name: "shims.a"
+		},
+		shims: {}
+	};
+	const preprocessor = new Preprocessor();
+	const handleShimStub = sinon.stub(preprocessor, "handleShim");
+	await preprocessor.applyExtension(extension);
+	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "1.0", "Correct spec version");
 });

@@ -1,7 +1,7 @@
 # Configuration
 This document describes the configuration of UI5 Build and Development Tooling based projects and extensions.  
 
-The content represents the **[Specification Version](#specification-versions) `0.1`**.
+The content represents the **[Specification Version](#specification-versions) `1.0`**.
 
 ## Contents
 - [Project Configuration](#project-configuration)
@@ -282,8 +282,19 @@ shims:
 ## Specification Versions
 The specification version as configured in the `specVersion` property, defines the version a configuration is based on.
 
-**List of all available specification versions:**
+### Compatibility Matrix
 
-Version | Description
+Version | [UI5 CLI](https://github.com/SAP/ui5-cli) Release
 --- | ---
-**0.1** | Initial version
+**0.1** | v0.0.1+
+**1.0** | v1.0.0+
+
+### Specification Version 0.1
+Initial version.
+
+Version 0.1 projects are compatible with [UI5 CLI](https://github.com/SAP/ui5-cli) v0.0.1 and above.
+
+### Specification Version 1.0
+First stable release.
+
+Version 1.0 projects are supported by [UI5 CLI](https://github.com/SAP/ui5-cli) v1.0.0 and above.
