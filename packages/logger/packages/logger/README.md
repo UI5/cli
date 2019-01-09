@@ -9,9 +9,6 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-logger/master.svg)](https://david-dm.org/SAP/ui5-logger/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-logger/master/dev-status.svg)](https://david-dm.org/SAP/ui5-logger/master#info=devDependencies)
 
-**This is an alpha release!**  
-**The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
-
 ## Logger
 Used for logging purposes across the UI5 Build and Development Tooling and plugins. Features log levels and progress logging. Basically, it is a wrapper of [npmlog](https://github.com/npm/npmlog).
 
