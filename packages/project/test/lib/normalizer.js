@@ -12,7 +12,7 @@ test.serial("Uses npm translator as default strategy", (t) => {
 
 test.serial("Uses static translator as strategy", (t) => {
 	normalizer.generateDependencyTree({
-		translator: "static"
+		translatorName: "static"
 	});
 	t.truthy(staticTranslatorStub.generateDependencyTree.called);
 });
@@ -29,10 +29,10 @@ test.serial("Generate project tree using with overwritten config path", async (t
 });
 
 test("Error: Throws if unknown translator should be used as strategy", async (t) => {
-	const translator = "notExistingTranslator";
+	const translatorName = "notExistingTranslator";
 	return normalizer.generateDependencyTree({
-		translator
+		translatorName
 	}).catch((error) => {
-		t.is(error.message, `Unknown translator ${translator}`);
+		t.is(error.message, `Unknown translator ${translatorName}`);
 	});
 });

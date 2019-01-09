@@ -18,7 +18,7 @@ const Normalizer = {
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd] Current working directory
 	 * @param {string} [options.configPath] Path to configuration file
-	 * @param {string} [options.translator] Translator to use
+	 * @param {string} [options.translatorName] Translator to use
 	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
 	generateProjectTree: async function(options = {}) {
@@ -36,24 +36,23 @@ const Normalizer = {
 	 * @public
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd=.] Current working directory
-	 * @param {string} [options.translator=npm] Translator to use
+	 * @param {string} [options.translatorName=npm] Translator to use
 	 * @param {Object} [options.translatorOptions] Options to pass to translator
 	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
-	generateDependencyTree: async function({cwd = ".", translator="npm", translatorOptions={}} = {}) {
-		// TODO NEXT MAJOR: Rename "translator" option to "translatorName"
+	generateDependencyTree: async function({cwd = ".", translatorName="npm", translatorOptions={}} = {}) {
 		log.verbose("Building dependency tree...");
 
 		let translatorParams = [];
-		let translatorName = translator;
-		if (translator.indexOf(":") !== -1) {
-			translatorParams = translator.split(":");
-			translatorName = translatorParams[0];
+		let translator = translatorName;
+		if (translatorName.indexOf(":") !== -1) {
+			translatorParams = translatorName.split(":");
+			translator = translatorParams[0];
 			translatorParams = translatorParams.slice(1);
 		}
 
 		let translatorModule;
-		switch (translatorName) {
+		switch (translator) {
 		case "static":
 			translatorModule = require("./translators/static");
 			break;
@@ -61,7 +60,7 @@ const Normalizer = {
 			translatorModule = require("./translators/npm");
 			break;
 		default:
-			return Promise.reject(new Error(`Unknown translator ${translatorName}`));
+			return Promise.reject(new Error(`Unknown translator ${translator}`));
 		}
 
 		translatorOptions.parameters = translatorParams;
