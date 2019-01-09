@@ -11,12 +11,14 @@ options:
         - FIX
         - PERF
         - DEPENDENCY
+        - BREAKING
   commit_groups:
     title_maps:
        FEATURE: Features
        FIX: Bug Fixes
        PERF: Performance Improvements
        DEPENDENCY: Dependency Updates
+       BREAKING: Breaking Changes
   header:
     pattern: "^\\[(\\w*)\\]\\s(?:([^\\:]*)\\:\\s)?(.*)$"
     pattern_maps:
