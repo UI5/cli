@@ -10,9 +10,6 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-fs/master.svg)](https://david-dm.org/SAP/ui5-fs/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-fs/master/dev-status.svg)](https://david-dm.org/SAP/ui5-fs/master#info=devDependencies)
 
-**This is an alpha release!**  
-**The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
-
 ## Resources
 During the build phase, a modified resource is kept in memory for further processing in other build steps.
 
