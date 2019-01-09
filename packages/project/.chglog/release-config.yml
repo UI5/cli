@@ -9,13 +9,13 @@ options:
         - FEATURE
         - FIX
         - PERF
-        - INTERNAL
+        - DEPENDENCY
   commit_groups:
     title_maps:
        FEATURE: Features
        FIX: Bug Fixes
        PERF: Performance Improvements
-       INTERNAL: Internal Changes
+       DEPENDENCY: Dependency Updates
   header:
     pattern: "^\\[(\\w*)\\]\\s(?:([^\\:]*)\\:\\s)?(.*)$"
     pattern_maps:
