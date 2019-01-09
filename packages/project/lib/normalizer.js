@@ -3,22 +3,23 @@ const projectPreprocessor = require("./projectPreprocessor");
 
 
 /**
- * Generate project and dependency trees via translators. Optionally configure all projects with the projectPreprocessor.
+ * Generate project and dependency trees via translators.
+ * Optionally configure all projects with the projectPreprocessor.
  *
  * @public
- * @namespace @ui5/project.normalizer
+ * @namespace
+ * @alias module:@ui5/project.normalizer
  */
-const Normalizer = module.exports = {
+const Normalizer = {
 	/**
 	 * Generates a project and dependency tree via translators and configures all projects via the projectPreprocessor
 	 *
 	 * @public
-	 * @memberof @ui5/project.normalizer
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd] Current working directory
 	 * @param {string} [options.configPath] Path to configuration file
 	 * @param {string} [options.translator] Translator to use
-	 * @returns {Promise} Promise resolving to tree object
+	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
 	generateProjectTree: async function(options = {}) {
 		const tree = await Normalizer.generateDependencyTree(options);
@@ -33,12 +34,11 @@ const Normalizer = module.exports = {
 	 * Generates a project and dependency tree via translators
 	 *
 	 * @public
-	 * @memberof @ui5/project.normalizer
 	 * @param {Object} [options]
 	 * @param {string} [options.cwd=.] Current working directory
 	 * @param {string} [options.translator=npm] Translator to use
 	 * @param {Object} [options.translatorOptions] Options to pass to translator
-	 * @returns {Promise} Promise resolving to tree object
+	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
 	generateDependencyTree: async function({cwd = ".", translator="npm", translatorOptions={}} = {}) {
 		// TODO NEXT MAJOR: Rename "translator" option to "translatorName"
@@ -68,3 +68,5 @@ const Normalizer = module.exports = {
 		return translatorModule.generateDependencyTree(cwd, translatorOptions);
 	}
 };
+
+module.exports = Normalizer;

@@ -491,16 +491,19 @@ class NpmTranslator {
 /**
  * Translator for npm resources
  *
- * @alias @ui5/project.translators/npm
+ * @private
+ * @namespace
+ * @alias module:@ui5/project.translators.npm
  */
 module.exports = {
 	/**
 	 * Generates a dependency tree for npm projects
 	 *
+	 * @public
 	 * @param {string} dirPath Project path
 	 * @param {Object} [options]
 	 * @param {boolean} [options.includeDeduped=false]
-	 * @returns {Promise} Promise resolving with a dependency tree
+	 * @returns {Promise<Object>} Promise resolving with a dependency tree
 	 */
 	generateDependencyTree(dirPath, options = {includeDeduped: false}) {
 		return new NpmTranslator(options).generateDependencyTree(dirPath);
