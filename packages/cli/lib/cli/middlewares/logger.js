@@ -1,7 +1,6 @@
 /**
- * Logger middleware
- *
  * Logger middleware used as one of default middlewares by tooling
+ *
  * @param {Object} argv logger arguments
  * @returns {Object} logger instance or null
  */
