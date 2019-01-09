@@ -29,11 +29,12 @@ class Memory extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {Array} patterns array of GLOB patterns
-	 * @param {Object} [options] GLOB options
+	 * @param {Object} [options={}] GLOB options
+	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
-	_runGlob(patterns, options, trace) {
+	_runGlob(patterns, options = {nodir: true}, trace) {
 		if (patterns[0] === "" && !options.nodir) { // Match virtual root directory
 			return Promise.resolve([
 				new Resource({

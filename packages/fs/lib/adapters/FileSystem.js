@@ -2,8 +2,6 @@ const log = require("@ui5/logger").getLogger("resources:adapters:FileSystem");
 const path = require("path");
 const fs = require("graceful-fs");
 const glob = require("globby");
-const defaults = require("defaults");
-const clone = require("clone");
 const makeDir = require("make-dir");
 const Resource = require("../Resource");
 const AbstractAdapter = require("./AbstractAdapter");
@@ -33,16 +31,18 @@ class FileSystem extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {Array} patterns Array of GLOB patterns
-	 * @param {Object} [options] GLOB options
+	 * @param {Object} [options={}] GLOB options
+	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
-	_runGlob(patterns, options, trace) {
+	_runGlob(patterns, options = {nodir: true}, trace) {
 		return new Promise((resolve, reject) => {
-			const opt = defaults(clone(options), { // Clone needed to prevent side effects
-				cwd: this._fsBasePath,			 // (todo: maybe make this a module itself)
-				dot: true
-			});
+			const opt = {
+				cwd: this._fsBasePath,
+				dot: true,
+				nodir: options.nodir
+			};
 
 			trace.globCall();
 			glob(patterns, opt).then((matches) => {
