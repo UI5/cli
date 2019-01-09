@@ -11,9 +11,6 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-cli/master.svg)](https://david-dm.org/SAP/ui5-cli/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-cli/master/dev-status.svg)](https://david-dm.org/SAP/ui5-cli/master#info=devDependencies)
 
-**This is an alpha release!**  
-**The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
-
 ## General Information
 
 -   General information regarding the **UI5 Build and Development Tooling** project can be found **[here](https://github.com/SAP/ui5-tooling)**
