@@ -5,10 +5,10 @@ const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|relea
  * Minifies the supplied resources.
  *
  * @public
- * @alias @ui5/builder.processors.uglifier
+ * @alias module:@ui5/builder.processors.uglifier
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources List of resources to be processed
- * @returns {Promise<Resource[]>} Promise resolving with uglified resources
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with uglified resources
  */
 module.exports = function({resources}) {
 	return Promise.all(resources.map((resource) => {

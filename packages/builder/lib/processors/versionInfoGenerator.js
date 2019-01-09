@@ -4,13 +4,13 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  * Creates sap-ui-version.json.
  *
  * @public
- * @alias @ui5/builder.processors.versionInfoGenerator
+ * @alias module:@ui5/builder.processors.versionInfoGenerator
  * @param {Object} parameters Parameters
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.rootProjectName Name of the root project
  * @param {string} parameters.options.rootProjectVersion Version of the root project
  * @param {Array} parameters.options.libraryInfos Array of objects representing libraries, e.g. <code>{name: "library.xy", version: "1.0.0"}</code>
- * @returns {Promise<Resource[]>} Promise resolving with an array containing the versioninfo resource
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with an array containing the versioninfo resource
  */
 
 module.exports = async function({options}) {

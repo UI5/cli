@@ -5,10 +5,10 @@ const util = require("util");
  * Creates *-dbg.js files for all supplied resources.
  *
  * @public
- * @alias @ui5/builder.processors.debugFileCreator
+ * @alias module:@ui5/builder.processors.debugFileCreator
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources List of resources to be processed
- * @returns {Promise<Resource[]>} Promise resolving with debug resources
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with debug resources
  */
 module.exports = function({resources, fs}) {
 	const options = {

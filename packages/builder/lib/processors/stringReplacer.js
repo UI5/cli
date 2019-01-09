@@ -4,13 +4,13 @@ const replaceStream = require("replacestream");
  * Replaces placeholders with corresponding values.
  *
  * @public
- * @alias @ui5/builder.processors.stringReplacer
+ * @alias module:@ui5/builder.processors.stringReplacer
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources List of resources to be processed
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern of placeholders
  * @param {string} parameters.options.replacement Replacement for placeholders
- * @returns {Promise<Resource[]>} Promise resolving with modified resources
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with modified resources
  */
 module.exports = function({resources, options}) {
 	return Promise.all(resources.map((resource) => {

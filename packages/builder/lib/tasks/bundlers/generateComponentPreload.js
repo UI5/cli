@@ -6,10 +6,10 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * Task to for application bundling.
  *
  * @public
- * @alias @ui5/builder.tasks.generateComponentPreload
+ * @alias module:@ui5/builder.tasks.generateComponentPreload
  * @param {Object} parameters Parameters
- * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {Array} [parameters.options.paths] Array of paths (or glob patterns) for component files

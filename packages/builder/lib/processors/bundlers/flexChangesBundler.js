@@ -5,12 +5,12 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  * Bundles all supplied changes.
  *
  * @public
- * @alias @ui5/builder.processors.flexChangesBundler
+ * @alias module:@ui5/builder.processors.flexChangesBundler
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources List of resources to be processed
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
- * @returns {Promise<Resource[]>} Promise resolving with flexchange bundle resources
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with flexchange bundle resources
  */
 module.exports = function({resources, options}) {
 	const layers = {

@@ -7,9 +7,9 @@ const BUNDLE_NAME = "manifest-bundle.zip";
  * Task for manifestBundler.
  *
  * @public
- * @alias @ui5/builder.tasks.generateManifestBundle
+ * @alias module:@ui5/builder.tasks.generateManifestBundle
  * @param {Object} parameters Parameters
- * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the application
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written

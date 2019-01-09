@@ -5,9 +5,9 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * Generates a bundle based on the given bundle definition
  *
  * @public
- * @alias @ui5/builder.tasks.generateBundle
+ * @alias module:@ui5/builder.tasks.generateBundle
  * @param {Object} parameters Parameters
- * @param {DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Collection} parameters.dependencies Collection to read dependency files
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.projectName Project name

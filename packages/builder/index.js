@@ -6,7 +6,8 @@ module.exports = {
 	builder: require("./lib/builder/builder"),
 	/**
 	 * @public
-	 * @see @ui5/builder.processors
+	 * @see module:@ui5/builder.processors
+	 * @namespace
 	 */
 	processors: {
 		flexChangesBundler: require("./lib/processors/bundlers/flexChangesBundler"),
@@ -22,7 +23,8 @@ module.exports = {
 	},
 	/**
 	 * @public
-	 * @see @ui5/builder.tasks
+	 * @see module:@ui5/builder.tasks
+	 * @namespace
 	 */
 	tasks: {
 		generateComponentPreload: require("./lib/tasks/bundlers/generateComponentPreload"),
@@ -42,7 +44,8 @@ module.exports = {
 	},
 	/**
 	 * @private
-	 * @see @ui5/builder.types
+	 * @see module:@ui5/builder.types
+	 * @namespace
 	 */
 	types: {
 		AbstractBuilder: require("./lib/types/AbstractBuilder"),
@@ -53,15 +56,3 @@ module.exports = {
 	}
 };
 
-/**
- * @public
- * @namespace @ui5/builder.processors
- */
-/**
- * @public
- * @namespace @ui5/builder.tasks
- */
-/**
- * @private
- * @namespace @ui5/builder.types
- */

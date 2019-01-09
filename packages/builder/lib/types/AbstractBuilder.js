@@ -9,7 +9,7 @@ class AbstractBuilder {
 	 *
 	 * @param {Object} parameters
 	 * @param {Object} parameters.resourceCollections Resource collections
-	 * @param {DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
+	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
 	 * @param {Object} parameters.project Project configuration
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
@@ -37,7 +37,7 @@ class AbstractBuilder {
 	 * @protected
 	 * @param {Object} parameters
  	 * @param {Object} parameters.resourceCollections Resource collections
-	 * @param {DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
+	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
 	 * @param {Object} parameters.project Project configuration
 	 */
@@ -51,7 +51,7 @@ class AbstractBuilder {
 	 * @private
 	 * @param {Object} parameters
  	 * @param {Object} parameters.resourceCollections Resource collections
-	 * @param {DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
+	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
 	 * @param {Object} parameters.project Project configuration
 	 */
@@ -92,8 +92,8 @@ class AbstractBuilder {
 				/* Custom Task Interface
 					Parameters:
 						{Object} parameters Parameters
-						{DuplexCollection} parameters.workspace DuplexCollection to read and write files
-						{AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+						{module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+						{module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name
 						{string} [parameters.options.configuration] Task configuration if given in ui5.yaml

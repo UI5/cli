@@ -19,7 +19,7 @@ class I18nResourceList {
 	 * Adds a i18n resource to the repository
 	 *
 	 * @param {string} directory Path to the i18n resource
-	 * @param {Resource} resource i18n resource
+	 * @param {module:@ui5/fs.Resource} resource i18n resource
 	 */
 	add(directory, resource) {
 		const normalizedDirectory = path.normalize(directory);
@@ -43,16 +43,16 @@ class I18nResourceList {
 /**
  * Creates a manifest bundle from the provided resources.
  *
- * @alias @ui5/builder.processors.manifestBundler
+ * @alias module:@ui5/builder.processors.manifestBundler
  * @public
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources List of resources to be processed
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the project
  * @param {string} parameters.options.bundleName Name of the bundled zip file
  * @param {string} parameters.options.propertiesExtension Extension name of the properties files
  * @param {string} parameters.options.descriptor Descriptor name
- * @returns {Promise<Resource[]>} Promise resolving with manifest bundle resources
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with manifest bundle resources
  */
 module.exports = ({resources, options}) => {
 	function getDescriptorI18nInfo(manifest) {

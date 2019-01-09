@@ -9,13 +9,15 @@ const libraryMatchPattern = /^\/resources\/(.*)\/themes\/[^/]*\/library\.source\
  * Builds a library theme
  *
  * @public
- * @memberof @ui5/builder.processors
+ * @memberof module:@ui5/builder.processors
  */
 class ThemeBuilder {
 	/**
 	 * Constructor
 	 *
-	 * @param {fs|fsInterface} fs Node fs or custom [fs interface]{@link module:resources/fsInterface}
+	 * @public
+	 * @param {fs|module:@ui5/fs.fsInterface} fs Node fs or custom
+	 * 		[fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
 	 */
 	constructor({fs}) {
 		this.builder = new less.Builder({fs});
@@ -24,8 +26,9 @@ class ThemeBuilder {
 	/**
 	 * Starts the theme build
 	 *
-	 * @param {Resource[]} resources Library files
-	 * @returns {Promise} Resolving with array of created files
+	 * @public
+	 * @param {module:@ui5/fs.Resource[]} resources Library files
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Resolving with array of created files
 	 */
 	build(resources) {
 		const files = [];
@@ -74,6 +77,7 @@ class ThemeBuilder {
 	/**
 	 * Clears all cached build results
 	 *
+ 	 * @public
 	 * Use this method to prevent high memory consumption when building many themes within the same process.
 	 */
 	clearCache() {
@@ -85,11 +89,11 @@ class ThemeBuilder {
  * Builds a library theme.
  *
  * @public
- * @alias @ui5/builder.processors/themeBuilder
+ * @alias module:@ui5/builder.processors.themeBuilder
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources List of <code>library.source.less</code> resources to be processed
- * @param {fs|fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/fsInterface}
- * @returns {Promise<Resource[]>} Promise resolving with theme resources
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code> resources to be processed
+ * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with theme resources
  */
 module.exports = ({resources, fs}) => {
 	const themeBuilder = new ThemeBuilder({fs});

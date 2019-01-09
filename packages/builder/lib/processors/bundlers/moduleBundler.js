@@ -41,13 +41,13 @@ class LocatorResourcePool extends ResourcePool {
  * Legacy preload bundler.
  *
  * @public
- * @alias @ui5/builder.processors.moduleBundler
+ * @alias module:@ui5/builder.processors.moduleBundler
  * @param {Object} parameters Parameters
- * @param {Resource[]} parameters.resources Resources
+ * @param {module:@ui5/fs.Resource[]} parameters.resources Resources
  * @param {Object} parameters.options Options
  * @param {Object} parameters.options.bundleDefinition Module bundle definition
  * @param {Object} parameters.options.bundleOptions Module bundle options
- * @returns {Promise<Resource[]>} Promise resolving with module bundle resources
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with module bundle resources
  */
 module.exports = function({resources, options}) {
 //	console.log("preloadBundler bundleDefinition:");
