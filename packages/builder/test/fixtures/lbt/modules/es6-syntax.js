@@ -35,4 +35,9 @@ sap.ui.define([
 		sap.ui.require(['conditional/module3'], function(){});
 	});
 
+	// async / await
+	const myFunction = async function() {
+		await Promise.resolve();
+	};
+
 });
