@@ -14,9 +14,6 @@ module.exports = {
 		FileSystem: require("./lib/adapters/FileSystem"),
 		Memory: require("./lib/adapters/Memory")
 	},
-	AbstractAdapter: require("./lib/adapters/AbstractAdapter"), // TODO 1.0 remove
-	FileSystem: require("./lib/adapters/FileSystem"), // TODO 1.0 remove
-	Memory: require("./lib/adapters/Memory"), // TODO 1.0 remove
 	AbstractReader: require("./lib/AbstractReader"),
 	AbstractReaderWriter: require("./lib/AbstractReaderWriter"),
 	DuplexCollection: require("./lib/DuplexCollection"),
