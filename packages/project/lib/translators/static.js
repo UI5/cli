@@ -22,9 +22,8 @@ module.exports = {
 	 * @returns {Promise} Promise resolving with a dependency tree
 	 */
 	generateDependencyTree(dirPath, options = {}) {
-		// TODO NEXT MAJOR: "options" used to be the the parameters array. We check for that here to stay compatible:
-		const parameters = Array.isArray(options) ? options : options.parameters;
-		const depFilePath = parameters && parameters[0] || path.join(dirPath, "projectDependencies.yaml");
+		const depFilePath = options.parameters && options.parameters[0] ||
+								path.join(dirPath, "projectDependencies.yaml");
 
 		return new Promise(function(resolve, reject) {
 			fs.readFile(depFilePath, function(err, buffer) {
