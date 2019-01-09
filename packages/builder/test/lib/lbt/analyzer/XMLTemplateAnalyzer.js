@@ -33,6 +33,31 @@ test("integration: Analysis of an xml view", async (t) => {
 		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
+test("integration: Analysis of an xml view with data binding in properties", async (t) => {
+	const xml = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:core="sap.ui.core"
+		controllerName="myController">
+			<core:ComponentContainer async="true" name="{/component}" />
+		</mvc:View>`;
+	const mockPool = {async findResource(name) {
+		return {
+			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
+		};
+	}};
+
+	const moduleInfo = new ModuleInfo();
+
+	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	await analyzer.analyzeView(xml, moduleInfo);
+	t.deepEqual(moduleInfo.dependencies,
+		[
+			"sap/ui/core/mvc/XMLView.js",
+			"myController.controller.js",
+			"sap/ui/core/ComponentContainer.js"
+		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
+});
+
 test("integration: Analysis of an xml fragment", async (t) => {
 	const xml = `<HBox xmlns:m="sap.m" xmlns:l="sap.ui.layout" controllerName="myController">
 			<items>
