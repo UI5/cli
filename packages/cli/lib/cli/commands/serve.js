@@ -47,7 +47,6 @@ serve.builder = function(cli) {
 };
 
 serve.handler = function(argv) {
-	const opn = require("opn");
 	const normalizer = require("@ui5/project").normalizer;
 	const ui5Server = require("@ui5/server");
 	const server = ui5Server.server;
@@ -60,34 +59,40 @@ serve.handler = function(argv) {
 			port: argv.port === undefined ? argv.h2 ? 8443 : 8080 : argv.port,
 			changePortIfInUse: argv.port === undefined, // only change if port isn't explicitly set
 			h2: argv.h2,
-			acceptRemoteConnections: argv["accept-remote-connections"]
+			acceptRemoteConnections: !!argv.acceptRemoteConnections,
+			cert: argv.h2 ? argv.cert : undefined,
+			key: argv.h2 ? argv.key : undefined
 		};
 
-		return Promise.resolve().then(function() {
-			if (serverConfig.h2) {
-				return ui5Server.sslUtil.getSslCertificate().then(({key, cert}) => {
-					serverConfig.key = key;
-					serverConfig.cert = cert;
-					return serverConfig;
-				});
-			} else {
-				return serverConfig;
-			}
-		}).then((serverConfig) => {
-			return server.serve(tree, serverConfig).then(function({h2, port}) {
-				const protocol = h2 ? "https" : "http";
-				let browserUrl = protocol + "://localhost:" + port;
-				if (argv.open !== undefined) {
+		if (!serverConfig.h2) {
+			return {serverConfig, tree};
+		} else {
+			return ui5Server.sslUtil.getSslCertificate(serverConfig.key, serverConfig.cert).then(({key, cert}) => {
+				serverConfig.key = key;
+				serverConfig.cert = cert;
+				return {serverConfig, tree};
+			});
+		}
+	}).then(({serverConfig, tree}) => {
+		return server.serve(tree, serverConfig).then(function({h2, port}) {
+			const protocol = h2 ? "https" : "http";
+			let browserUrl = protocol + "://localhost:" + port;
+			console.log("Server started");
+			console.log("URL: " + browserUrl);
+
+			if (argv.open !== undefined) {
+				if (typeof argv.open === "string") {
 					let relPath = argv.open || "/";
 					if (!relPath.startsWith("/")) {
 						relPath = "/" + relPath;
 					}
 					browserUrl += relPath;
-					opn(browserUrl);
 				}
-				console.log("Server started");
-				console.log("URL: " + browserUrl);
-			});
+				const opn = require("opn");
+				opn(browserUrl);
+			}
+
+			return browserUrl;
 		});
 	}).catch(function(err) {
 		console.error(err);

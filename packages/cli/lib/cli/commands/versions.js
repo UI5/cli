@@ -8,7 +8,7 @@ const versions = {
 };
 
 const NOT_FOUND = "===(not installed)";
-const getVersion = (pkg) => {
+versions.getVersion = (pkg) => {
 	try {
 		const packageInfo = require(`${pkg}/package.json`);
 		return packageInfo.version || NOT_FOUND;
@@ -17,15 +17,14 @@ const getVersion = (pkg) => {
 	}
 };
 
-versions.handler = (argv) => {
+versions.handler = () => {
 	try {
-		const cliVersion =
-			require("../../../package.json").version || NOT_FOUND;
-		const builderVersion = getVersion("@ui5/builder");
-		const serverVersion = getVersion("@ui5/server");
-		const fsVersion = getVersion("@ui5/fs");
-		const projectVersion = getVersion("@ui5/project");
-		const loggerVersion = getVersion("@ui5/logger");
+		const cliVersion = versions.getVersion("../../..");
+		const builderVersion = versions.getVersion("@ui5/builder");
+		const serverVersion = versions.getVersion("@ui5/server");
+		const fsVersion = versions.getVersion("@ui5/fs");
+		const projectVersion = versions.getVersion("@ui5/project");
+		const loggerVersion = versions.getVersion("@ui5/logger");
 		console.log(`
 	@ui5/cli:      ${cliVersion}
 	@ui5/builder:  ${builderVersion}

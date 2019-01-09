@@ -38,13 +38,9 @@ tree.handler = function(argv) {
 	}
 
 	p.then(function(tree) {
-		if (argv.json) {
-			// Formatted JSON
-			console.log(JSON.stringify(tree, null, 4));
-		} else {
-			// Formatted tree
-			console.log(treeify.asTree(tree, true));
-		}
+		const output = argv.json ? JSON.stringify(tree, null, 4) : treeify.asTree(tree, true);
+		console.log(output);
+		return output;
 	}).catch(function(err) {
 		console.error(err);
 		process.exit(1);

@@ -1,39 +1,8 @@
 const {promisify} = require("util");
 const path = require("path");
 const fs = require("fs");
-const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
-
-/**
- * Checks if a file or path exists
- *
- * @private
- * @param {string} filePath Path to check
- * @returns {Promise} Promise resolving with true if the file or path exists
- */
-async function exists(filePath) {
-	try {
-		await stat(filePath);
-		return true;
-	} catch (err) {
-		// "File or directory does not exist"
-		if (err.code === "ENOENT") {
-			return false;
-		} else {
-			throw err;
-		}
-	}
-}
-
-/**
- * Checks if a list of paths exists
- *
- * @private
- * @param {Array} paths List of paths to check
- * @param {string} cwd Current working directory
- * @returns {Promise} Resolving with an array of booleans for each path
- */
-const pathsExist = async (paths, cwd) => await Promise.all(paths.map((p) => exists(path.join(cwd, p))));
+const fsHelper = require("../utils/fsHelper");
 
 /**
  * Reads the package.json file and returns its content
@@ -118,10 +87,12 @@ async function init({cwd = "./"} = {}) {
 		throw new Error("Initialization not possible: Missing 'name' in package.json");
 	}
 
-	const [hasWebapp, hasSrc, hasTest] = await pathsExist(["webapp", "src", "test"], cwd);
+	const [hasWebapp, hasSrc, hasTest] = await fsHelper.pathsExist(["webapp", "src", "test"], cwd);
 	projectConfig.type = getProjectType(hasWebapp, hasSrc, hasTest);
 
 	return projectConfig;
 }
 
-module.exports = init;
+module.exports = {
+	init: init
+};

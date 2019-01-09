@@ -1,6 +1,5 @@
 const {test} = require("ava");
 const path = require("path");
-
 const ui5Cli = require("../../../");
 const init = ui5Cli.init;
 

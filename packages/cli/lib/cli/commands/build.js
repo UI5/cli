@@ -64,25 +64,6 @@ function handleBuild(argv) {
 	const logger = require("@ui5/logger");
 
 	const command = argv._[argv._.length - 1];
-	let dev = false;
-	let selfContained = false;
-
-	switch (command) {
-	case "build":
-	case "preload":
-		// Default
-		// nothing to do (yet)
-		break;
-	case "dev":
-		dev = true;
-		break;
-	case "self-contained":
-		selfContained = true;
-		break;
-	default:
-		throw new Error(`Unhandled command "${command}`);
-	}
-
 	logger.setShowProgress(true);
 
 	normalizer.generateProjectTree({
@@ -90,11 +71,11 @@ function handleBuild(argv) {
 		configPath: argv.config
 	}).then(function(tree) {
 		return builder.build({
-			tree,
+			tree: tree,
 			destPath: argv.dest,
 			buildDependencies: argv.all,
-			dev,
-			selfContained,
+			dev: command === "dev",
+			selfContained: command === "self-contained",
 			devExcludeProject: argv["dev-exclude-project"],
 			includedTasks: argv["include-task"],
 			excludedTasks: argv["exclude-task"]
