@@ -1,4 +1,8 @@
-const ui5Server = {
+/**
+ * @module @ui5/server
+ * @public
+ */
+module.exports = {
 	server: require("./lib/server"),
 	sslUtil: require("./lib/sslUtil"),
 	middleware: {
@@ -11,5 +15,3 @@ const ui5Server = {
 		versionInfo: require("./lib/middleware/versionInfo"),
 	}
 };
-
-module.exports = ui5Server;

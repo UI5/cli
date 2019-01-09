@@ -10,7 +10,7 @@ const GB = KB * KB * KB;
 /**
  * Returns the mime type of the given resource
  *
- * @param {Resource} resource the resource
+ * @param {module:@ui5/fs.Resource} resource the resource
  * @returns {string} mime type
  */
 function getMimeType(resource) {
@@ -45,7 +45,7 @@ function formatSize(bytes) {
  * Creates a resource info object which is used to create the HTML
  * content for the resource listing
  *
- * @param {Resource} resource the resource to convert
+ * @param {module:@ui5/fs.Resource} resource the resource to convert
  * @returns {Object} resource info object
  */
 function createResourceInfo(resource) {
@@ -69,7 +69,7 @@ function createResourceInfo(resource) {
 /**
  * Creates a resource info array from the given resource array
  *
- * @param {Resource[]} resources an array of resources
+ * @param {module:@ui5/fs.Resource[]} resources an array of resources
  * @returns {Object[]} sorted array of resource infos
  */
 function createResourceInfos(resources) {
@@ -133,7 +133,7 @@ function createContent(path, resourceInfos) {
  *
  * @module @ui5/server/middleware/serveIndex
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @param {module:@ui5/fs.AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resourceCollections}) {

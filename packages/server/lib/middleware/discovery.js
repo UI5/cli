@@ -14,8 +14,8 @@ const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
  *
  * @module @ui5/server/middleware/discovery
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {AbstractReader} resourceCollections.source Resource reader or collection for the source project
- * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @param {module:@ui5/fs.AbstractReader} resourceCollections.source Resource reader or collection for the source project
+ * @param {module:@ui5/fs.AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resourceCollections}) {

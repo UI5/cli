@@ -18,7 +18,7 @@ const themeRequest = /^(.*\/)library(?:(\.css)|(-RTL\.css)|(-parameters\.json))$
  *
  * @module @ui5/server/middleware/serveThemes
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @param {module:@ui5/fs.AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resourceCollections}) {

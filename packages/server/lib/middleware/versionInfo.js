@@ -5,7 +5,7 @@ const createVersionInfoProcessor = require("@ui5/builder").processors.versionInf
  *
  * @module @ui5/server/middleware/versionInfo
  * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {AbstractReader} resourceCollections.dependencies Resource collection which contains the project dependencies
+ * @param {module:@ui5/fs.AbstractReader} resourceCollections.dependencies Resource collection which contains the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resourceCollections, tree: project}) {
