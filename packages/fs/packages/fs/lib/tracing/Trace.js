@@ -7,6 +7,7 @@ const summaryTrace = require("./traceSummary");
 /**
  * Trace
  *
+ * @memberof module:@ui5/fs.tracing
  * @class
  */
 class Trace {

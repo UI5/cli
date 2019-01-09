@@ -6,12 +6,15 @@ const AbstractAdapter = require("./AbstractAdapter");
 /**
  * Virtual resource Adapter
  *
- * @augments AbstractAdapter
+ * @public
+ * @memberof module:@ui5/fs.adapters
+ * @augments module:@ui5/fs.adapters.AbstractAdapter
  */
 class Memory extends AbstractAdapter {
 	/**
 	 * The constructor.
 	 *
+	 * @public
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 */
@@ -27,8 +30,8 @@ class Memory extends AbstractAdapter {
 	 * @private
 	 * @param {Array} patterns array of GLOB patterns
 	 * @param {Object} [options] GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_runGlob(patterns, options, trace) {
 		if (patterns[0] === "" && !options.nodir) { // Match virtual root directory
@@ -70,8 +73,8 @@ class Memory extends AbstractAdapter {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource>} Promise resolving to a single resource
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		return new Promise((resolve, reject) => {
@@ -98,7 +101,7 @@ class Memory extends AbstractAdapter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {Resource} resource The Resource to write
+	 * @param {module:@ui5/fs.Resource} resource The Resource to write
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {

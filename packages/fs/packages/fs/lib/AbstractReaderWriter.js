@@ -3,12 +3,16 @@ const AbstractReader = require("./AbstractReader");
 /**
  * Abstract resource locator
  *
+ * @public
  * @abstract
- * @augments AbstractReader
+ * @memberof module:@ui5/fs
+ * @augments module:@ui5/fs.AbstractReader
  */
 class AbstractReaderWriter extends AbstractReader {
 	/**
 	 * The constructor.
+	 *
+	 * @public
 	 */
 	constructor() {
 		if (new.target === AbstractReaderWriter) {
@@ -20,7 +24,8 @@ class AbstractReaderWriter extends AbstractReader {
 	/**
 	 * Writes the content of a resource to a path.
 	 *
-	 * @param {Resource} resource The Resource to write
+	 * @public
+	 * @param {module:@ui5/fs.Resource} resource The Resource to write
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	write(resource) {
@@ -32,7 +37,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 *
 	 * @abstract
 	 * @protected
-	 * @param {Resource} resource The Resource to write
+	 * @param {module:@ui5/fs.Resource} resource The Resource to write
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {

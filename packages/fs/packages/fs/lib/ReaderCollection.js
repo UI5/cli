@@ -4,14 +4,15 @@ const AbstractReader = require("./AbstractReader");
  * Resource Locator ReaderCollection
  *
  * @public
- * @augments AbstractReader
+ * @memberof module:@ui5/fs
+ * @augments module:@ui5/fs.AbstractReader
  */
 class ReaderCollection extends AbstractReader {
 	/**
 	 * The constructor.
 	 *
 	 * @param {Object} parameters Parameters
-	 * @param {AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
+	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
 	 * @param {string} parameters.name The collection name
 	 */
 	constructor({readers, name}) {
@@ -26,8 +27,8 @@ class ReaderCollection extends AbstractReader {
 	 * @private
 	 * @param {string} pattern GLOB pattern
 	 * @param {Object} options GLOB options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource[]>} Promise resolving to list of resources
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(pattern, options, trace) {
 		return Promise.all(this._readers.map(function(resourceLocator) {
@@ -44,8 +45,8 @@ class ReaderCollection extends AbstractReader {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
-	 * @param {Trace} trace Trace instance
-	 * @returns {Promise<Resource>} Promise resolving to a single resource
+	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;

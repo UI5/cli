@@ -6,152 +6,153 @@ const DuplexCollection = require("./DuplexCollection");
 const Resource = require("./Resource");
 
 /**
- * @module @ui5/fs/resourceFactory
- * @public
- */
-
-/**
- * Creates resource reader collections for a (sub-)tree. Returns an object of resource readers:
- * <pre>
- * {
- *  source: Resource reader for source resources
- *  dependencies: Resource readers for dependency resources
- * }
- * </pre>
+ * Resource Factory
  *
  * @public
- * @param {Object} tree A (sub-)tree
- * @param {Object} [parameters] Parameters
- * @param {boolean} [parameters.useNamespaces=false] Use project namespaces as path prefixes
- * @returns {Object} Object containing <code>source</code> and <code>dependencies</code> resource readers
+ * @namespace
+ * @alias module:@ui5/fs.resourceFactory
  */
-function createCollectionsForTree(tree, {useNamespaces=false} = {}) {
-	const dependencyCollection = [];
-	const dependencyPathIndex = {};
-	const sourceResourceLocators = [];
+const resourceFactory = {
+	/**
+	 * Creates resource reader collections for a (sub-)tree. Returns an object of resource readers:
+	 * <pre>
+	 * {
+	 *  source: Resource reader for source resources
+	 *  dependencies: Resource readers for dependency resources
+	 * }
+	 * </pre>
+	 *
+	 * @public
+	 * @param {Object} tree A (sub-)tree
+	 * @param {Object} [parameters] Parameters
+	 * @param {boolean} [parameters.useNamespaces=false] Use project namespaces as path prefixes
+	 * @returns {Object} Object containing <code>source</code> and <code>dependencies</code> resource readers
+	 */
+	createCollectionsForTree(tree, {useNamespaces=false} = {}) {
+		const dependencyCollection = [];
+		const dependencyPathIndex = {};
+		const sourceResourceLocators = [];
 
-	function processDependencies(project) {
-		if (project.resources && project.resources.pathMappings) {
-			for (let virBasePath in project.resources.pathMappings) {
-				if (project.resources.pathMappings.hasOwnProperty(virBasePath)) {
-					const fsPath = project.resources.pathMappings[virBasePath];
-					const fsBasePath = path.join(project.path, fsPath);
+		function processDependencies(project) {
+			if (project.resources && project.resources.pathMappings) {
+				for (let virBasePath in project.resources.pathMappings) {
+					if (project.resources.pathMappings.hasOwnProperty(virBasePath)) {
+						const fsPath = project.resources.pathMappings[virBasePath];
+						const fsBasePath = path.join(project.path, fsPath);
 
-					if (useNamespaces && project.metadata.namespace) { // Prefix resource paths with namespace
-						virBasePath = "/resources/" + project.metadata.namespace + virBasePath;
+						if (useNamespaces && project.metadata.namespace) { // Prefix resource paths with namespace
+							virBasePath = "/resources/" + project.metadata.namespace + virBasePath;
+						}
+
+						// Prevent duplicate dependency resource locators
+						const key = virBasePath + fsBasePath;
+						if (dependencyPathIndex[key]) {
+							continue;
+						}
+						dependencyPathIndex[key] = true;
+
+						dependencyCollection.push(resourceFactory.createAdapter({fsBasePath, virBasePath, project}));
 					}
+				}
+			}
 
-					// Prevent duplicate dependency resource locators
-					const key = virBasePath + fsBasePath;
-					if (dependencyPathIndex[key]) {
-						continue;
+			project.dependencies.forEach(function(depProject) {
+				processDependencies(depProject);
+			});
+		}
+
+		if (tree.resources && tree.resources.pathMappings) {
+			for (let virBasePath in tree.resources.pathMappings) {
+				if (tree.resources.pathMappings.hasOwnProperty(virBasePath)) {
+					const fsBasePath = path.join(tree.path, tree.resources.pathMappings[virBasePath]);
+
+					if (useNamespaces && tree.metadata.namespace) { // Prefix resource paths with namespace
+						virBasePath = "/resources/" + tree.metadata.namespace + virBasePath;
 					}
-					dependencyPathIndex[key] = true;
-
-					dependencyCollection.push(createAdapter({fsBasePath, virBasePath, project}));
+					sourceResourceLocators.push(resourceFactory.createAdapter({
+						fsBasePath, virBasePath, project: tree
+					}));
 				}
 			}
 		}
 
-		project.dependencies.forEach(function(depProject) {
-			processDependencies(depProject);
+		tree.dependencies.forEach(function(project) {
+			processDependencies(project);
 		});
-	}
 
-	if (tree.resources && tree.resources.pathMappings) {
-		for (let virBasePath in tree.resources.pathMappings) {
-			if (tree.resources.pathMappings.hasOwnProperty(virBasePath)) {
-				const fsBasePath = path.join(tree.path, tree.resources.pathMappings[virBasePath]);
+		const source = new ReaderCollection({
+			name: "source of " + tree.metadata.name,
+			readers: sourceResourceLocators
+		});
+		const dependencies = new ReaderCollection({
+			name: "dependencies of " + tree.metadata.name,
+			readers: dependencyCollection
+		});
+		return {
+			source,
+			dependencies
+		};
+	},
 
-				if (useNamespaces && tree.metadata.namespace) { // Prefix resource paths with namespace
-					virBasePath = "/resources/" + tree.metadata.namespace + virBasePath;
-				}
-				sourceResourceLocators.push(createAdapter({fsBasePath, virBasePath, project: tree}));
-			}
+	/**
+	 * Creates a resource <code>ReaderWriter</code>.
+	 *
+	 * If a file system base path is given, file system resource <code>ReaderWriter</code> is returned.
+	 * In any other case a virtual one.
+	 *
+	 * @public
+	 * @param {Object} parameters Parameters
+	 * @param {string} parameters.virBasePath Virtual base path
+	 * @param {string} [parameters.fsBasePath] File system base path
+	 * @returns {module:@ui5/fs.adapters.FileSystem|module:@ui5/fs.adapters.Memory} File System- or Virtual Adapter
+	 */
+	createAdapter({fsBasePath, virBasePath, project}) {
+		if (fsBasePath) {
+			return new FsAdapter({fsBasePath, virBasePath, project});
+		} else {
+			return new MemAdapter({virBasePath, project});
 		}
-	}
-
-	tree.dependencies.forEach(function(project) {
-		processDependencies(project);
-	});
-
-	const source = new ReaderCollection({
-		name: "source of " + tree.metadata.name,
-		readers: sourceResourceLocators
-	});
-	const dependencies = new ReaderCollection({
-		name: "dependencies of " + tree.metadata.name,
-		readers: dependencyCollection
-	});
-	return {
-		source,
-		dependencies
-	};
-}
-
-/**
- * Creates a resource <code>ReaderWriter</code>.
- *
- * If a file system base path is given, file system resource <code>ReaderWriter</code> is returned.
- * In any other case a virtual one.
- *
- * @public
- * @param {Object} parameters Parameters
- * @param {string} parameters.virBasePath Virtual base path
- * @param {string} [parameters.fsBasePath] File system base path
- * @returns {FileSystem|Memory} File System- or Virtual Adapter
- */
-function createAdapter({fsBasePath, virBasePath, project}) {
-	if (fsBasePath) {
-		return new FsAdapter({fsBasePath, virBasePath, project});
-	} else {
-		return new MemAdapter({virBasePath, project});
-	}
-}
+	},
 
 
-/**
- * Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
- *
- * @public
- * @param {Object} parameters Parameters to be passed to the resource constructor
- * @returns {Resource} Resource
- */
-function createResource(parameters) {
-	return new Resource(parameters);
-}
+	/**
+	 * Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
+	 *
+	 * @public
+	 * @param {Object} parameters Parameters to be passed to the resource constructor
+	 * @returns {module:@ui5/fs.Resource} Resource
+	 */
+	createResource(parameters) {
+		return new Resource(parameters);
+	},
 
-/**
- * Creates a Workspace
- *
- * A workspace is a DuplexCollection which reads from the project sources. It is used during the build process
- * to write modified files into a seperate writer, this is usually a Memory adapter. If a file already exists it is
- * fetched from the memory to work on it in further build steps.
- *
- * @public
- * @param {Object} parameters
- * @param {AbstractReader} parameters.reader The reader
- * @param {string} [parameters.name="vir & fs source"] Name of the collection
- * @param {string} [parameters.virBasePath="/"] Virtual base path
- * @returns {DuplexCollection} DuplexCollection which wraps the provided resource locators
- */
-function createWorkspace({reader, writer, virBasePath = "/", name = "vir & fs source"}) {
-	if (!writer) {
-		writer = new MemAdapter({
-			virBasePath
+	/**
+	 * Creates a Workspace
+	 *
+	 * A workspace is a DuplexCollection which reads from the project sources. It is used during the build process
+	 * to write modified files into a seperate writer, this is usually a Memory adapter. If a file already exists it is
+	 * fetched from the memory to work on it in further build steps.
+	 *
+	 * @public
+	 * @param {Object} parameters
+	 * @param {module:@ui5/fs.AbstractReader} parameters.reader The reader
+	 * @param {string} [parameters.name="vir & fs source"] Name of the collection
+	 * @param {string} [parameters.virBasePath="/"] Virtual base path
+	 * @returns {module:@ui5/fs.DuplexCollection} DuplexCollection which wraps the provided resource locators
+	 */
+	createWorkspace({reader, writer, virBasePath = "/", name = "vir & fs source"}) {
+		if (!writer) {
+			writer = new MemAdapter({
+				virBasePath
+			});
+		}
+
+		return new DuplexCollection({
+			reader,
+			writer,
+			name
 		});
 	}
-
-	return new DuplexCollection({
-		reader,
-		writer,
-		name
-	});
-}
-
-module.exports = {
-	createCollectionsForTree,
-	createAdapter,
-	createWorkspace,
-	createResource
 };
+
+module.exports = resourceFactory;

@@ -9,15 +9,17 @@ const fnFalse = () => false;
  * Resource
  *
  * @public
+ * @memberof module:@ui5/fs
  */
 class Resource {
 	/**
 	 * The constructor.
 	 *
+	 * @public
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.path Virtual path
 	 * @param {Object} [parameters.statInfo] File stat information
-	 * @param {Buffer} [parameters.s] Content of this resources as a Buffer instance
+	 * @param {Buffer} [parameters.buffer] Content of this resources as a Buffer instance
 	 *					(cannot be used in conjunction with parameters string, stream or createStream)
 	 * @param {string} [parameters.string] Content of this resources as a string
 	 *					(cannot be used in conjunction with parameters buffer, stream or createStream)
@@ -71,6 +73,7 @@ class Resource {
 	/**
 	 * Gets a buffer with the resource content.
 	 *
+	 * @public
 	 * @returns {Promise<Buffer>} A Promise resolving with a buffer of the resource content.
 	 */
 	getBuffer() {
@@ -88,6 +91,7 @@ class Resource {
 	/**
 	 * Sets a Buffer as content.
 	 *
+	 * @public
 	 * @param {Buffer} buffer A buffer instance
 	 */
 	setBuffer(buffer) {
@@ -102,6 +106,7 @@ class Resource {
 	/**
 	 * Gets a string with the resource content.
 	 *
+	 * @public
 	 * @returns {Promise<string>} A Promise resolving with a string of the resource content.
 	 */
 	getString() {
@@ -111,6 +116,7 @@ class Resource {
 	/**
 	 * Sets a String as content
 	 *
+	 * @public
 	 * @param {string} string A string
 	 */
 	setString(string) {
@@ -120,6 +126,7 @@ class Resource {
 	/**
 	 * Gets a readable stream for the resource content.
 	 *
+	 * @public
 	 * @returns {stream.Readable} A readable stream for the resource content.
 	 */
 	getStream() {
@@ -137,6 +144,7 @@ class Resource {
 	/**
 	 * Sets a readable stream as content.
 	 *
+	 * @public
 	 * @param {stream.Readable} stream readable stream
 	 */
 	setStream(stream) {
@@ -151,6 +159,7 @@ class Resource {
 	/**
 	 * Gets the resources path
 	 *
+	 * @public
 	 * @returns {string} (Virtual) path of the resource
 	 */
 	getPath() {
@@ -160,6 +169,7 @@ class Resource {
 	/**
 	 * Sets the resources path
 	 *
+	 * @public
 	 * @param {string} path (Virtual) path of the resource
 	 */
 	setPath(path) {
@@ -170,6 +180,7 @@ class Resource {
 	/**
 	 * Gets the resources stat info.
 	 *
+	 * @public
 	 * @returns {fs.Stats} An object representing an fs.Stats instance
 	 */
 	getStatInfo() {
@@ -192,7 +203,8 @@ class Resource {
 	/**
 	 * Returns a clone of the resource.
 	 *
-	 * @returns {Promise<Resource>} A promise resolving the resource.
+	 * @public
+	 * @returns {Promise<module:@ui5/fs.Resource>} A promise resolving the resource.
 	 */
 	clone() {
 		const options = {
