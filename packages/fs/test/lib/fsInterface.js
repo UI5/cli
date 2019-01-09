@@ -5,8 +5,8 @@ const path = require("path");
 const fs = require("fs");
 const ui5Fs = require("../../");
 const fsInterface = ui5Fs.fsInterface;
-const MemAdapter = ui5Fs.Memory;
-const FsAdapter = ui5Fs.FileSystem;
+const MemAdapter = ui5Fs.adapters.Memory;
+const FsAdapter = ui5Fs.adapters.FileSystem;
 const Resource = ui5Fs.Resource;
 
 const assertReadFile = (t, readFile, basepath, filepath) => {

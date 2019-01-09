@@ -1,7 +1,7 @@
 const {test} = require("ava");
 const ui5Fs = require("../../");
-const FsAdapter = ui5Fs.FileSystem;
-const MemAdapter = ui5Fs.Memory;
+const FsAdapter = ui5Fs.adapters.FileSystem;
+const MemAdapter = ui5Fs.adapters.Memory;
 
 // Create readerWriter before running tests
 test.beforeEach((t) => {
