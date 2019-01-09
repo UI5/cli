@@ -35,11 +35,12 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 * @private
 	 * @param {string|Array} virPattern GLOB pattern as string or an array of
 	 *         glob patterns for virtual directory structure
-	 * @param {Object} options GLOB options
+	 * @param {Object} [options={}] GLOB options
+	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
-	_byGlob(virPattern, options, trace) {
+	_byGlob(virPattern, options = {nodir: true}, trace) {
 		if (!(virPattern instanceof Array)) {
 			virPattern = [virPattern];
 		}
