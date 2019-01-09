@@ -67,7 +67,7 @@ function handleBuild(argv) {
 	logger.setShowProgress(true);
 
 	normalizer.generateProjectTree({
-		translator: argv.translator,
+		translatorName: argv.translator,
 		configPath: argv.config
 	}).then(function(tree) {
 		return builder.build({

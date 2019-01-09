@@ -25,7 +25,7 @@ tree.handler = function(argv) {
 
 	let p;
 	const options = {
-		translator: argv.translator,
+		translatorName: argv.translator,
 		translatorOptions: {
 			includeDeduped: true
 		},

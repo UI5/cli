@@ -52,7 +52,7 @@ serve.handler = function(argv) {
 	const server = ui5Server.server;
 
 	normalizer.generateProjectTree({
-		translator: argv.translator,
+		translatorName: argv.translator,
 		configPath: argv.config
 	}).then(function(tree) {
 		const serverConfig = {

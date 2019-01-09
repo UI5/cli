@@ -178,7 +178,7 @@ test.serial("ui5 serve --translator --config", async (t) => {
 	await pServeServer;
 
 	t.deepEqual(normalizerStub.getCall(0).args[0], {
-		translator: "static",
+		translatorName: "static",
 		configPath: "path/to/my/config.json"
 	}, "CLI was called with static translator");
 });
