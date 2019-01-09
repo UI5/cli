@@ -10,9 +10,6 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-server/master.svg)](https://david-dm.org/SAP/ui5-server/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-server/master/dev-status.svg)](https://david-dm.org/SAP/ui5-server/master#info=devDependencies)
 
-**This is an alpha release!**  
-**The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
-
 ## Server
 The UI5 Build and Development Tooling comes along with a web server component to serve a project.
 
