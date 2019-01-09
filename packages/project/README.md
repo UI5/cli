@@ -10,9 +10,6 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-project/master.svg)](https://david-dm.org/SAP/ui5-project/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-project/master/dev-status.svg)](https://david-dm.org/SAP/ui5-project/master#info=devDependencies)
 
-**This is an alpha release!**  
-**The UI5 Build and Development Tooling described here is not intended for productive use yet. Breaking changes are to be expected.**
-
 ## Configuration
 See [Configuration](docs/Configuration.md).
 
