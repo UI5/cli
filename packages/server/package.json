@@ -95,7 +95,7 @@
 		"@ui5/builder": "^1.0.0",
 		"@ui5/fs": "^1.0.0",
 		"@ui5/logger": "^1.0.0",
-		"@ui5/project": "^0.2.5",
+		"@ui5/project": "^1.0.0",
 		"compression": "^1.7.1",
 		"connect-openui5": "^0.7.2",
 		"cors": "^2.8.5",
