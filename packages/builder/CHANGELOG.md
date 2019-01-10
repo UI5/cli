@@ -2,7 +2,22 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v0.2.9...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.0.0...HEAD).
+
+<a name="v1.0.0"></a>
+## [v1.0.0] - 2019-01-10
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/fs from 0.2.0 to 1.0.0 ([#142](https://github.com/SAP/ui5-builder/issues/142)) [`2c6893f`](https://github.com/SAP/ui5-builder/commit/2c6893f9029c161e95a4078caeb7e9f3a22a3af2)
+
+### Features
+- Add transformation of apps index.html in self-contained build ([#137](https://github.com/SAP/ui5-builder/issues/137)) [`6549b8a`](https://github.com/SAP/ui5-builder/commit/6549b8a832cc50749159f1295bd93ef6a04733b6)
+
+### BREAKING CHANGE
+
+When running a self-contained build on an application project, the
+index.html will be transformed by adopting the UI5 bootstrap script tag
+to load the custom bundle file instead.
+
 
 <a name="v0.2.9"></a>
 ## [v0.2.9] - 2019-01-03
@@ -10,19 +25,11 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **ComponentAnalyzer:** Fully handle sap.ui5/routing ([#124](https://github.com/SAP/ui5-builder/issues/124)) [`c59b5b1`](https://github.com/SAP/ui5-builder/commit/c59b5b1efdc3a588fb8a13029a6593feab142e0c)
 - **XMLTemplateAnalyzer:** Ignore properties with data binding [`0d5cf50`](https://github.com/SAP/ui5-builder/commit/0d5cf5086566dd0609fa354a5822f6538b335065)
 
-### Internal Changes
-- **NOTICE:** Update copyright year to 2019 [`b3be660`](https://github.com/SAP/ui5-builder/commit/b3be66043b61c1c65a16d9e04d5cdfcae4b7e8e4)
-- **manifestBundler:** Use "yazl" instead of "archiver" for zip [`b760a43`](https://github.com/SAP/ui5-builder/commit/b760a4385a1d54ef4804f4e50173fb106e2b3153)
-- **manifestCreator:** Change logging to verbose [`73ccf5c`](https://github.com/SAP/ui5-builder/commit/73ccf5cb1f77d19d4b43351fb3773d597eb2f375)
-
 
 <a name="v0.2.8"></a>
 ## [v0.2.8] - 2018-12-19
 ### Bug Fixes
 - Themes not beeing build [`de26564`](https://github.com/SAP/ui5-builder/commit/de26564c2c3af3376ccf179c972eae4f0e5eeeee)
-
-### Internal Changes
-- Added Tests [`528e1c0`](https://github.com/SAP/ui5-builder/commit/528e1c0178f56b045fb1be309c1179c057cabc59)
 
 
 <a name="v0.2.7"></a>
@@ -31,31 +38,14 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - **ComponentAnalyzer:** Handle sap.ui5/rootView with type string [`469e558`](https://github.com/SAP/ui5-builder/commit/469e558cae43d6a0c063170dd23e2337c0e5af26)
 - **generateLibraryPreload:** Fix sap-ui-core.js bootstrap [`7a266fd`](https://github.com/SAP/ui5-builder/commit/7a266fd48d6452ce7f6180b026109d47caf195ec)
 
-### Internal Changes
-- Fixes windows tests [`5664e8c`](https://github.com/SAP/ui5-builder/commit/5664e8ce42c3fd480346c59f8ac8714f2bfe0cd9)
-- Fix tests on Windows [`b04b613`](https://github.com/SAP/ui5-builder/commit/b04b613175228f4e086151d6e7ce4de15588e579)
-- **Coverage:** Include lbt again, adopt threshold [`63705e6`](https://github.com/SAP/ui5-builder/commit/63705e6d2fbf06503994fd35ab36802587fbff0f)
-- **Git:** Apply lf line-ending to all files [`e88ff9f`](https://github.com/SAP/ui5-builder/commit/e88ff9f858b135b70bf64c584a0f546cfd127b22)
-- **Travis:** Activate Windows and Mac builds [`692c709`](https://github.com/SAP/ui5-builder/commit/692c709c4f1aa47753b7953a954be736b41b867d)
-
 
 <a name="v0.2.6"></a>
 ## [v0.2.6] - 2018-12-06
-### Internal Changes
-- **AbstractBuilder:** Obey given task execution order [`f33c09d`](https://github.com/SAP/ui5-builder/commit/f33c09df284fecd77039f797503a569f0629f662)
-
 
 <a name="v0.2.5"></a>
 ## [v0.2.5] - 2018-11-16
 ### Features
 - **Builder:** Add handling for custom task configurations [`9b4ae00`](https://github.com/SAP/ui5-builder/commit/9b4ae00f62da1f5bb94aeb8a86711c2a2e98da20)
-
-### Internal Changes
-- **ESLint:** prefer-const [`dc1f8ca`](https://github.com/SAP/ui5-builder/commit/dc1f8cab7cdf3e0ce17cacb2fb2fa7c7e8ac27bd)
-- **ESLint:** Allow strings to use backticks [`a1f43fa`](https://github.com/SAP/ui5-builder/commit/a1f43fa3019fa660dfe709a36070e7ccc3a97f99)
-- **GitHub:** Add PULL_REQUEST_TEMPLATE [`6325ae6`](https://github.com/SAP/ui5-builder/commit/6325ae6ce8005e0423ead0669b48319d3d2b3259)
-- **GitHub ISSUE_TEMPLATE:** Request UI5 module version info [`1bb681f`](https://github.com/SAP/ui5-builder/commit/1bb681f5cd433142320f055405c5827484940a1e)
-- **package.json scripts:** Update verbose logging params [`29847ca`](https://github.com/SAP/ui5-builder/commit/29847ca93379a157b5648b3625643ed3c63d71a9)
 
 
 <a name="v0.2.4"></a>
@@ -70,10 +60,6 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - Replace copyright and version strings in *.json and .library files [`f305429`](https://github.com/SAP/ui5-builder/commit/f305429067610404f0958b55ef3a570e555a532e)
 - **generateLibraryPreload:** Add new sap.ui.core library namespaces [`ea901a7`](https://github.com/SAP/ui5-builder/commit/ea901a78c27e5fd112f9ac761e621b7f1c474f07)
 
-### Internal Changes
-- Fix tests after upgrade to less-openui5[@0](https://github.com/0).6.0 [`779e318`](https://github.com/SAP/ui5-builder/commit/779e3184c6ac2c4cf417492be70749a333ac189f)
-- **Coveralls:** Use parallel setting to reduce number of PR comments [`6ee52c3`](https://github.com/SAP/ui5-builder/commit/6ee52c3e1cce4f707d8760e22bf7880479384096)
-
 
 <a name="v0.2.2"></a>
 ## [v0.2.2] - 2018-10-05
@@ -83,18 +69,11 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 ### Features
 - **BundleBuilder:** support modules using ES6 with usePredefineCalls ([#67](https://github.com/SAP/ui5-builder/issues/67)) [`d1a4f1f`](https://github.com/SAP/ui5-builder/commit/d1a4f1f39e4262eafa8df1548f0e944998fd00a3)
 
-### Internal Changes
-- Fix ESLint indentation error [`1b775a9`](https://github.com/SAP/ui5-builder/commit/1b775a97d8e735fd2f45a31e1679de7b2a423574)
-
 
 <a name="v0.2.1"></a>
 ## [v0.2.1] - 2018-07-17
 ### Bug Fixes
 - **generateLibraryManifest:** i18n/css handling [`4e52a96`](https://github.com/SAP/ui5-builder/commit/4e52a9654b28a7646597ce0e0f010589ff7905d5)
-
-### Internal Changes
-- Add .npmrc to enforce public registry [`4826821`](https://github.com/SAP/ui5-builder/commit/482682131c344b29ef5587ca2db0365b43289239)
-- **CHANGELOG:** Fix scope detection in commit messages [`7b78344`](https://github.com/SAP/ui5-builder/commit/7b78344d89b8aa29f6c967ca82f3be3f76cf7772)
 
 
 <a name="v0.2.0"></a>
@@ -102,22 +81,11 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 ### Bug Fixes
 - Close gaps in routing support of ComponentAnalyzer ([#46](https://github.com/SAP/ui5-builder/issues/46)) [`4697531`](https://github.com/SAP/ui5-builder/commit/4697531cbafebf881e78b80e78d098d1361fe9a5)
 
-### Internal Changes
-- Update min Node.js version to >=8.5 [`f00efd9`](https://github.com/SAP/ui5-builder/commit/f00efd9bf3c832ac3732e4c00d4a12d785928e87)
-- Remove greenkeeper [`d0206ec`](https://github.com/SAP/ui5-builder/commit/d0206ecf69ebb0778fc3f6bd30d0d75f01e9fb9c)
-- Update to less-openui5[@0](https://github.com/0).5.4 and fix tests [`445c067`](https://github.com/SAP/ui5-builder/commit/445c0673dd57d2b947b678c4030d987002ec490a)
-- **JSModuleAnalyzer:** update language metadata ([#44](https://github.com/SAP/ui5-builder/issues/44)) [`05d4127`](https://github.com/SAP/ui5-builder/commit/05d4127ec71d9a9b887d431c74e0afa3e9ddba0a)
-- **package.json:** Define files to publish [`6f2527d`](https://github.com/SAP/ui5-builder/commit/6f2527dc84be5e3465b8a33c31af2da3e2600292)
-
 
 <a name="v0.1.1"></a>
 ## [v0.1.1] - 2018-07-02
 ### Bug Fixes
 - iterate over routes using a for loop if it is an object ([#31](https://github.com/SAP/ui5-builder/issues/31)) [`e9823f6`](https://github.com/SAP/ui5-builder/commit/e9823f68cf038b5fde172916e483a01d5eb88f1f)
-
-### Internal Changes
-- Task createDebugFiles checks path before writes ([#43](https://github.com/SAP/ui5-builder/issues/43)) [`57427c8`](https://github.com/SAP/ui5-builder/commit/57427c8d712b8b936a1a3070fe3110da54fdbdb7)
-- Create and integrate a new task 'generateLibraryManifest' ([#26](https://github.com/SAP/ui5-builder/issues/26)) [`000a6fe`](https://github.com/SAP/ui5-builder/commit/000a6fee49555cb266a1c575cde719e1091d1066)
 
 
 <a name="v0.1.0"></a>
@@ -127,26 +95,11 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 - reduce build time at the price of a slightly increased code size ([#37](https://github.com/SAP/ui5-builder/issues/37)) [`1fb8d00`](https://github.com/SAP/ui5-builder/commit/1fb8d0049235467fcbd40f53e725cc419a8bc730)
 - Use the target bundle format to decide decoration ([#24](https://github.com/SAP/ui5-builder/issues/24)) [`83703bc`](https://github.com/SAP/ui5-builder/commit/83703bca17fd18b9ac700fae4801d87a4d86961d)
 
-### Internal Changes
-- Update ui5-fs and ui5-logger dependency [`dbc64df`](https://github.com/SAP/ui5-builder/commit/dbc64df8a67dd6c8d24704c45f6585ab1be97397)
-- Minor improvements around logging and error reporting ([#29](https://github.com/SAP/ui5-builder/issues/29)) [`55b1e89`](https://github.com/SAP/ui5-builder/commit/55b1e89b779b367db8aaa286e44a4f2c60ed074e)
-- Fix Changelog [`98612d4`](https://github.com/SAP/ui5-builder/commit/98612d410bd73976c8493692e11d12cd72ffbf5b)
-- **CHANGELOG:** Fix GitHub release template [`4b74ec5`](https://github.com/SAP/ui5-builder/commit/4b74ec5b7088d583de867a3bb9c116c634225ca2)
-
 
 <a name="v0.0.2"></a>
 ## [v0.0.2] - 2018-06-21
 ### Bug Fixes
 - **Builders:** Do not bundle debug files [`19800a1`](https://github.com/SAP/ui5-builder/commit/19800a16689210c13495bc1bd0949896500cfc52)
-
-### Internal Changes
-- Add coveralls [`434b675`](https://github.com/SAP/ui5-builder/commit/434b67512444f279288359bf990895b607254075)
-- Add and update badges [`9c33b04`](https://github.com/SAP/ui5-builder/commit/9c33b047d9211e59f23e5fcbc76e66e5fd143150)
-- Have greenkeeper-lockfile amend any greenkeeper commit [`641817b`](https://github.com/SAP/ui5-builder/commit/641817b4e4f618aab6bbe3bde55ae01a942b93f8)
-- Prepare Greenkeeper installation [`fe9cbbf`](https://github.com/SAP/ui5-builder/commit/fe9cbbf0fbe3dd5bd8748adece8137797ae46795)
-- **Greenkeeper:** Add badge [`167cca9`](https://github.com/SAP/ui5-builder/commit/167cca9d038b4403fd282897b353db796fc0f7d9)
-- **Greenkeeper:** Add config file [`891339e`](https://github.com/SAP/ui5-builder/commit/891339e9493e8d0e609483891c476dea9c041d4e)
-- **README:** Pre-Alpha -> Alpha [`33c8190`](https://github.com/SAP/ui5-builder/commit/33c81906358d38b634099acbf8aafa234cc504db)
 
 
 <a name="v0.0.1"></a>
@@ -157,20 +110,8 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-buil
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
-### Internal Changes
-- Prepare npm release [`8947863`](https://github.com/SAP/ui5-builder/commit/8947863f6339d34aff801679e0338fe32c042194)
-- Update .editorconfig [`1f66211`](https://github.com/SAP/ui5-builder/commit/1f66211e3f7b82085caf90c341cee2c4c671fb8a)
-- Add chglog config + npm release scripts [`c82dc4e`](https://github.com/SAP/ui5-builder/commit/c82dc4e52c95260ba6e2c2f6423ce18ba9330267)
-- Update sap-ui-core bundle excludes [`d9d7a7a`](https://github.com/SAP/ui5-builder/commit/d9d7a7a75711c8f797c479dbd60b7c7aa2d984ea)
-- Update dependencies [`f852eb8`](https://github.com/SAP/ui5-builder/commit/f852eb87f98e0f1feb18fbe2b0306781f8ae52f1)
-- Add travis CI badge [`d34a3b2`](https://github.com/SAP/ui5-builder/commit/d34a3b264006dfacbd31cbb5ed2ef929fa8076b5)
-- Fix links to CONTRIBUTING.md file [`a3cc348`](https://github.com/SAP/ui5-builder/commit/a3cc3482cbb8c88b6e3dce6d46143473a66ce3e0)
-- **ESLint:** Activate no-console [`f8bd991`](https://github.com/SAP/ui5-builder/commit/f8bd99159c5359edf7bb53425c1650ee46fa0663)
-- **ESLint:** Activate no-var rule [`88c7950`](https://github.com/SAP/ui5-builder/commit/88c79501c3db9b579521a88d57a0e8a2742088bb)
-- **Readme:** Fix urls under Type and Processor section [`d1794bd`](https://github.com/SAP/ui5-builder/commit/d1794bd7026a9008b0b67870c91141f66511877a)
-- **Travis:** Add node.js 10 to test matrix [`ce91dd1`](https://github.com/SAP/ui5-builder/commit/ce91dd17e4e28932a838ec743a489ff6495d21a9)
 
-
+[v1.0.0]: https://github.com/SAP/ui5-builder/compare/v0.2.9...v1.0.0
 [v0.2.9]: https://github.com/SAP/ui5-builder/compare/v0.2.8...v0.2.9
 [v0.2.8]: https://github.com/SAP/ui5-builder/compare/v0.2.7...v0.2.8
 [v0.2.7]: https://github.com/SAP/ui5-builder/compare/v0.2.6...v0.2.7

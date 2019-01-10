@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/builder",
-	"version": "0.2.9",
+	"version": "1.0.0",
 	"description": "UI5 Build and Development Tooling - Builder",
 	"author": "SAP SE (https://www.sap.com)",
 	"license": "Apache-2.0",
