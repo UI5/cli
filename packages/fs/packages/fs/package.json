@@ -94,6 +94,7 @@
 	"dependencies": {
 		"@ui5/logger": "^1.0.0",
 		"clone": "^2.1.0",
+		"dir-glob": "2.0.0",
 		"globby": "^7.1.1",
 		"graceful-fs": "^4.1.15",
 		"make-dir": "^1.1.0",
