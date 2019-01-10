@@ -93,7 +93,7 @@
 	},
 	"dependencies": {
 		"@ui5/fs": "^0.2.0",
-		"@ui5/logger": "^0.2.2",
+		"@ui5/logger": "^1.0.0",
 		"cheerio": "^0.22.0",
 		"escodegen": "^1.11.0",
 		"escope": "^3.6.0",
