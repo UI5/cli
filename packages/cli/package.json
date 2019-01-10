@@ -99,7 +99,7 @@
 		"@ui5/builder": "^1.0.0",
 		"@ui5/logger": "^1.0.0",
 		"@ui5/project": "^1.0.0",
-		"@ui5/server": "^0.2.1",
+		"@ui5/server": "^1.0.0",
 		"import-local": "^2.0.0",
 		"js-yaml": "^3.10.0",
 		"opn": "^5.1.0",
