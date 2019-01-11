@@ -62,24 +62,24 @@
 			"test/**"
 		],
 		"check-coverage": true,
-		"lines": 70,
-		"statements": 70,
-		"functions": 60,
-		"branches": 50,
+		"statements": 85,
+		"branches": 75,
+		"functions": 85,
+		"lines": 85,
 		"watermarks": {
-			"lines": [
+			"statements": [
+				70,
+				90
+			],
+			"branches": [
 				70,
 				90
 			],
 			"functions": [
-				60,
+				70,
 				90
 			],
-			"branches": [
-				50,
-				70
-			],
-			"statements": [
+			"lines": [
 				70,
 				90
 			]
