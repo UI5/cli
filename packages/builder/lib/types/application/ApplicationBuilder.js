@@ -56,15 +56,18 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("generateManifestBundle", () => {
-			const generateManifestBundle = tasks.generateManifestBundle;
-			return generateManifestBundle({
-				workspace: resourceCollections.workspace,
-				options: {
-					namespace: project.metadata.namespace
-				}
+		if (project.metadata.namespace) {
+			this.addTask("generateManifestBundle", () => {
+				const generateManifestBundle = tasks.generateManifestBundle;
+				return generateManifestBundle({
+					workspace: resourceCollections.workspace,
+					options: {
+						projectName: project.metadata.name,
+						namespace: project.metadata.namespace
+					}
+				});
 			});
-		});
+		}
 
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {

@@ -19,6 +19,8 @@ const tasks = { // can't require index.js due to circular dependency
 
 class LibraryBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, parentLogger}) {
+		const namespace = project.metadata.name.replace(/\./g, "/");
+
 		this.addTask("replaceCopyright", () => {
 			const replaceCopyright = tasks.replaceCopyright;
 			return replaceCopyright({
@@ -53,7 +55,6 @@ class LibraryBuilder extends AbstractBuilder {
 
 				patterns.push(...excludes);
 			}
-			const namespace = project.metadata.name.replace(/\./g, "/");
 
 			return generateJsdoc({
 				workspace: resourceCollections.workspace,
@@ -104,6 +105,17 @@ class LibraryBuilder extends AbstractBuilder {
 				dependencies: resourceCollections.dependencies,
 				options: {
 					projectName: project.metadata.name
+				}
+			});
+		});
+
+		this.addTask("generateManifestBundle", () => {
+			const generateManifestBundle = tasks.generateManifestBundle;
+			return generateManifestBundle({
+				workspace: resourceCollections.workspace,
+				options: {
+					projectType: project.type,
+					namespace
 				}
 			});
 		});

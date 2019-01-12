@@ -107,8 +107,9 @@ module.exports = ({resources, options}) => {
 		});
 		zip.end();
 
+		const pathPrefix = "/resources/" + options.namespace + "/";
 		const res = resourceFactory.createResource({
-			path: "/" + options.bundleName,
+			path: pathPrefix + options.bundleName,
 			stream: zip.outputStream
 		});
 		resolve([res]);

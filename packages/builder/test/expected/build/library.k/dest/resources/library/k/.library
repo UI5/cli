@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+
+	<name>library.k</name>
+	<vendor>SAP SE</vendor>
+	<copyright>Some fancy copyright</copyright>
+	<version>1.0.0</version>
+
+	<title>{{title}}</title>
+	<documentation>{{description}}</documentation>
+
+	<dependencies>
+		<dependency>
+			<libraryName>sap.ui.core</libraryName>
+		</dependency>
+	</dependencies>
+
+	<appData>
+		<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
+			<i18n>messagebundle.properties</i18n>
+			<offline>false</offline>
+			<deviceTypes desktop="true" phone="true" tablet="true" />
+			<supportedTheme>sap_belize</supportedTheme>
+			<supportedTheme>sap_belize_plus</supportedTheme>
+			<supportedTheme>sap_belize_hcw</supportedTheme>
+			<supportedTheme>sap_belize_hcb</supportedTheme>
+			<contentDensities cozy="true" compact="false" />
+		</manifest>
+		<ownership xmlns="http://www.sap.com/ui5/buildext/ownership">
+			<component>NOT-ME</component>
+		</ownership>
+	</appData>
+
+</library>

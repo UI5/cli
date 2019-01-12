@@ -105,7 +105,6 @@ test("Instantiation without project namespace", (t) => {
 		"replaceCopyright",
 		"replaceVersion",
 		"generateFlexChangesBundle",
-		"generateManifestBundle",
 		"generateStandaloneAppBundle",
 		"transformBootstrapHtml",
 		"generateBundle",
