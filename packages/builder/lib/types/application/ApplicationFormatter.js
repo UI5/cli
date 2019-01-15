@@ -20,17 +20,13 @@ class ApplicationFormatter extends AbstractFormatter {
 			};
 
 			return this.readManifest(project).then(function(manifest) {
-				if (!manifest["sap.app"]) {
-					log.verbose("No 'sap.app' configuration found in manifest of project %s", project.metadata.name);
-					return;
-				}
-				if (!manifest["sap.app"].id) {
-					log.verbose("No application id found in manifest of project %s", project.metadata.name);
+				if (!manifest["sap.app"] || !manifest["sap.app"].id) {
+					log.warn(`No "sap.app" ID configuration found in manifest of project ${project.metadata.name}`, );
 					return;
 				}
 				project.metadata.namespace = manifest["sap.app"].id.replace(/\./g, "/");
 			}).catch((err) => {
-				log.verbose(`No manifest found for project ${project.metadata.name}. This might be an error in the future!`);
+				log.verbose(`No manifest found for project ${project.metadata.name}.`);
 			});
 		});
 	}

@@ -9,15 +9,17 @@ const bootstrapHtmlTransformer = require("../processors/bootstrapHtmlTransformer
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @param {string} parameters.options.namespace Project namespace
+ * @param {string} [parameters.options.namespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = async function({workspace, options}) {
-	if (!options.namespace) {
-		log.warn(`Skipping bootstrap transformation due to missing namespace of project "${options.projectName}".`);
-		return;
+	let indexPath;
+	if (options.namespace) {
+		indexPath = `/resources/${options.namespace}/index.html`;
+	} else {
+		indexPath = "/index.html";
 	}
-	const resource = await workspace.byPath(`/resources/${options.namespace}/index.html`);
+	const resource = await workspace.byPath(indexPath);
 	if (!resource) {
 		log.warn(`Skipping bootstrap transformation due to missing index.html in project "${options.projectName}".`);
 		return;

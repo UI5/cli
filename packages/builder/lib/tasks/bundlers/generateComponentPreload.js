@@ -38,7 +38,9 @@ module.exports = function({workspace, dependencies, options}) {
 			}
 
 			namespaces = Array.prototype.concat.apply([], namespaces);
-			if (!namespaces || !namespaces.length) {
+			// As this task is often called with a single namespace, also check
+			//	for bad calls like "namespaces: [undefined]"
+			if (!namespaces || !namespaces.length || !namespaces[0]) {
 				throw new Error("generateComponentPreload: No component namespace(s) " +
 					`found for project: ${options.projectName}`);
 			}

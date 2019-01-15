@@ -26,7 +26,7 @@ class AbstractBuilder {
 
 		this.tasks = {};
 		this.taskExecutionOrder = [];
-		this.addStandardTasks({resourceCollections, project});
+		this.addStandardTasks({resourceCollections, project, log: this.log});
 		this.addCustomTasks({resourceCollections, project});
 	}
 
@@ -40,8 +40,9 @@ class AbstractBuilder {
 	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
 	 * @param {Object} parameters.project Project configuration
+	 * @param {Object} parameters.log <code>@ui5/logger</code> logger instance
 	 */
-	addStandardTasks({resourceCollections, project}) {
+	addStandardTasks({resourceCollections, project, log}) {
 		throw new Error("Function 'addStandardTasks' is not implemented");
 	}
 

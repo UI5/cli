@@ -1,4 +1,5 @@
 const AbstractBuilder = require("../AbstractBuilder");
+
 const tasks = { // can't require index.js due to circular dependency
 	generateComponentPreload: require("../../tasks/bundlers/generateComponentPreload"),
 	generateFlexChangesBundle: require("../../tasks/bundlers/generateFlexChangesBundle"),
@@ -16,7 +17,13 @@ const tasks = { // can't require index.js due to circular dependency
 };
 
 class ApplicationBuilder extends AbstractBuilder {
-	addStandardTasks({resourceCollections, project}) {
+	addStandardTasks({resourceCollections, project, log}) {
+		if (!project.metadata.namespace) {
+			log.info("Skipping some tasks due to missing application namespace information. If your project contains" +
+					"a Component.js, you might be missing a manifest.json file. " +
+					"Also see: https://github.com/SAP/ui5-builder#application");
+		}
+
 		this.addTask("replaceCopyright", () => {
 			return tasks.replaceCopyright({
 				workspace: resourceCollections.workspace,
@@ -70,7 +77,7 @@ class ApplicationBuilder extends AbstractBuilder {
 					}
 				});
 			});
-		} else {
+		} else if (project.metadata.namespace) {
 			// Default component preload for application namespace
 			this.addTask("generateComponentPreload", async () => {
 				return tasks.generateComponentPreload({
