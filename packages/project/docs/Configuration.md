@@ -18,7 +18,7 @@ The preferred way of storing the configuration of a UI5 Build and Development To
 **Example**
 ````yaml
 ---
-specVersion: "0.1"
+specVersion: "1.0"
 type: application
 metadata:
   name: my-application
@@ -30,7 +30,7 @@ Configuration can also be supplied by other means. In cases where JSON is used, 
 
 ````yaml
 ---
-specVersion: "0.1"
+specVersion: "1.0"
 type: application|library|module
 metadata:
   name: testsuite
@@ -101,7 +101,7 @@ Also see [RFC 0002 Project Shims](https://github.com/SAP/ui5-tooling/blob/master
 
 #### Structure
 ```yaml
-specVersion: "0.1"
+specVersion: "1.0"
 kind: extension
 type: project-shim
 metadata:
@@ -109,12 +109,12 @@ metadata:
 shims:
     configurations:
         <module name (id)>:
-            specVersion: "0.1",
+            specVersion: "1.0",
             type: <project type>
             metadata:
                 name: <project name>
         <module name (id)>:
-            specVersion: "0.1",
+            specVersion: "1.0",
             type: <project type>
             metadata:
                 name: <project name>
@@ -158,12 +158,12 @@ An application "my-application" defines a npm dependency to [lodash](https://lod
 
 **ui5.yaml**
 ```yaml
-specVersion: "0.1"
+specVersion: "1.0"
 type: application
 metadata:
   name: my.application
 --- # Everything below this line could also be put into the ui5.yaml of a standalone extension module
-specVersion: "0.1"
+specVersion: "1.0"
 kind: extension
 type: project-shim
 metadata:
@@ -171,7 +171,7 @@ metadata:
 shims:
   configurations:
     lodash: # name as defined in package.json
-      specVersion: "0.1"
+      specVersion: "1.0"
       type: module # Use module type
       metadata:
         name: lodash
@@ -239,12 +239,12 @@ application-a/
 The shim defined in the application configures the legacy libraries and defines their dependencies. This shim might as well be a standalone module that is added to the applications dependencies. That would be the typical reuse scenario for shims.
 
 ```yaml
-specVersion: "0.1"
+specVersion: "1.0"
 type: application
 metadata:
     name: application.a
 ----
-specVersion: "0.1"
+specVersion: "1.0"
 kind: extension
 type: project-shim
 metadata:
@@ -252,17 +252,17 @@ metadata:
 shims:
     configurations:
         legacy-library-a:
-            specVersion: "0.1"
+            specVersion: "1.0"
             type: library
             metadata:
                 name: legacy.library.a
         legacy-library-b:
-            specVersion: "0.1"
+            specVersion: "1.0"
             type: library
             metadata:
                 name: legacy.library.b
         legacy-library-x:
-            specVersion: "0.1"
+            specVersion: "1.0"
             type: library
             metadata:
                 name: legacy.library.x
