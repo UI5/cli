@@ -18,15 +18,15 @@ In the below example, when building the library `my.library` the `babel` task wi
 specVersion: "1.0"
 type: library
 metadata:
-	name: my.library
+  name: my.library
 builder:
-	customTasks:
-	- name: babel
-	  beforeTask: generateComponentPreload
-	- name: generateMarkdownFiles
-	  afterTask: uglify
-	  configuration:
-		color: blue
+  customTasks:
+  - name: babel
+    beforeTask: generateComponentPreload
+  - name: generateMarkdownFiles
+    afterTask: uglify
+    configuration:
+      color: blue
 ````
 
 ### Example: Connect multiple custom tasks
@@ -39,13 +39,13 @@ You can also connect multiple custom task with each other. Please be aware that 
 specVersion: "1.0"
 type: library
 metadata:
-	name: my.library
+  name: my.library
 builder:
-	customTasks:
-	- name: myCustomTask1
-	  beforeTask: generateComponentPreload
-	- name: myCustomTask2
-	  afterTask: myCustomTask1
+  customTasks:
+  - name: myCustomTask1
+    beforeTask: generateComponentPreload
+  - name: myCustomTask2
+    afterTask: myCustomTask1
 ````
 
 ## Custom Task Extension
@@ -60,9 +60,9 @@ specVersion: "1.0"
 kind: extension
 type: task
 metadata:
-	name: generateMarkdownFiles
+  name: generateMarkdownFiles
 task:
-	path: lib/tasks/generateMarkdownFiles.js
+  path: lib/tasks/generateMarkdownFiles.js
 ````
 
 Task extensions can be **standalone modules** which are handled as dependencies.
@@ -80,22 +80,22 @@ specVersion: "1.0"
 kind: project
 type: library
 metadata:
-	name: my.library
+  name: my.library
 builder:
-	customTasks:
-	- name: generateMarkdownFiles
-	  afterTask: uglify
-	  configuration:
-		color: blue
+  customTasks:
+  - name: generateMarkdownFiles
+    afterTask: uglify
+    configuration:
+      color: blue
 ---
 # Task extension as part of your project
 specVersion: "1.0"
 kind: extension
 type: task
 metadata:
-	name: generateMarkdownFiles
+  name: generateMarkdownFiles
 task:
-	path: lib/tasks/generateMarkdownFiles.js
+  path: lib/tasks/generateMarkdownFiles.js
 ````
 
 ## Task Implementation
@@ -112,9 +112,9 @@ A custom task implementation needs to return a function with the following signa
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} [parameters.options.configuration] Task configuration if given in ui5.yaml
- * @returns {Promise<undefined>} Promise resolving with undefined once data has been written
+ * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
+module.exports = async function({workspace, dependencies, options}) {
 	// [...]
 };
 ````
@@ -127,17 +127,13 @@ The following code snippets shows an example how a task implementation could loo
 // Task implementation
 const markdownGenerator = require("./markdownGenerator");
 
-module.exports = function({workspace, options}) {
-	return workspace.byGlob("**/*.txt")
-		.then((textResources) => {
-			return markdownGenerator({
-				resources: textResources
-			});
-		})
-		.then((markdownResources) => {
-			return Promise.all(markdownResources.map((resource) => {
-				return workspace.write(resource);
-			}));
-		});
+module.exports = async function({workspace, dependencies, options}) {
+	const textResources = await workspace.byGlob("**/*.txt");
+	const markdownResources = await markdownGenerator({
+		resources: textResources
+	});
+	await Promise.all(markdownResources.map((resource) => {
+		return workspace.write(resource);
+	}));
 };
 ````
