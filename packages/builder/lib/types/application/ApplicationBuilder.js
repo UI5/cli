@@ -19,7 +19,7 @@ const tasks = { // can't require index.js due to circular dependency
 class ApplicationBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log}) {
 		if (!project.metadata.namespace) {
-			log.info("Skipping some tasks due to missing application namespace information. If your project contains" +
+			log.info("Skipping some tasks due to missing application namespace information. If your project contains " +
 					"a Component.js, you might be missing a manifest.json file. " +
 					"Also see: https://github.com/SAP/ui5-builder#application");
 		}

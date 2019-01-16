@@ -71,7 +71,7 @@ test("Instantiation", (t) => {
 	], "ApplicationBuilder is instantiated with standard tasks");
 });
 
-test("Instantiation without component preload", (t) => {
+test("Instantiation without component preload project configuration", (t) => {
 	const project = clone(applicationBTree);
 	project.builder.componentPreload = undefined;
 	const appBuilder = new ApplicationBuilder({parentLogger, project});
@@ -89,6 +89,26 @@ test("Instantiation without component preload", (t) => {
 		"uglify",
 		"generateVersionInfo"
 	], "ApplicationBuilder is still instantiated with standard tasks");
+});
+
+test("Instantiation without project namespace", (t) => {
+	const project = clone(applicationBTree);
+	project.builder.componentPreload = undefined;
+	project.metadata.namespace = undefined;
+	const appBuilder = new ApplicationBuilder({parentLogger, project});
+	t.truthy(appBuilder);
+	t.deepEqual(appBuilder.taskExecutionOrder, [
+		"replaceCopyright",
+		"replaceVersion",
+		"generateFlexChangesBundle",
+		"generateManifestBundle",
+		"generateStandaloneAppBundle",
+		"transformBootstrapHtml",
+		"generateBundle",
+		"createDebugFiles",
+		"uglify",
+		"generateVersionInfo"
+	], "All standard tasks but generateComponentPreload will be executed");
 });
 
 test("Instantiation with custom tasks", (t) => {

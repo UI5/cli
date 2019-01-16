@@ -21,7 +21,7 @@ class ApplicationFormatter extends AbstractFormatter {
 
 			return this.readManifest(project).then(function(manifest) {
 				if (!manifest["sap.app"] || !manifest["sap.app"].id) {
-					log.warn(`No "sap.app" ID configuration found in manifest of project ${project.metadata.name}`, );
+					log.warn(`No "sap.app" ID configuration found in manifest of project ${project.metadata.name}`);
 					return;
 				}
 				project.metadata.namespace = manifest["sap.app"].id.replace(/\./g, "/");
