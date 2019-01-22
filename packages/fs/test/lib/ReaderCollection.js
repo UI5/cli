@@ -42,7 +42,7 @@ test("ReaderCollection: _byGlob with finding a resource", (t) => {
 
 	const resource = new Resource({
 		path: "my/path",
-		buffer: new Buffer("content")
+		buffer: Buffer.from("content")
 	});
 	const abstractReader = {
 		_byGlob: sinon.stub().returns(Promise.resolve([resource]))
@@ -74,7 +74,7 @@ test("ReaderCollection: _byPath with reader finding a resource", (t) => {
 
 	const resource = new Resource({
 		path: "my/path",
-		buffer: new Buffer("content")
+		buffer: Buffer.from("content")
 	});
 	const pushCollectionSpy = sinon.spy(resource, "pushCollection");
 	const abstractReader = {
