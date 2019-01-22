@@ -14,7 +14,7 @@ test("Resource: constructor with duplicated content parameter", (t) => {
 	const error = t.throws(() => {
 		new Resource({
 			path: "my/path",
-			buffer: new Buffer("Content"),
+			buffer: Buffer.from("Content"),
 			string: "Content"
 		});
 	}, Error);
@@ -41,7 +41,7 @@ test("Resource: getStream", async (t) => {
 
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		buffer: new Buffer("Content")
+		buffer: Buffer.from("Content")
 	});
 
 	return new Promise(function(resolve, reject) {
@@ -109,7 +109,7 @@ test("Resource: clone resource with buffer", (t) => {
 
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		buffer: new Buffer("Content")
+		buffer: Buffer.from("Content")
 	});
 
 	return resource.clone().then(function(clonedResource) {

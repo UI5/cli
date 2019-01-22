@@ -61,7 +61,7 @@ test("DuplexCollection: _byGlob", (t) => {
 
 	const resource = new Resource({
 		path: "my/path",
-		buffer: new Buffer("content")
+		buffer: Buffer.from("content")
 	});
 	const abstractReader = {
 		_byGlob: sinon.stub().returns(Promise.resolve([resource]))
@@ -115,7 +115,7 @@ test("DuplexCollection: _byGlobSource with default options and a reader finding 
 
 	const resource = new Resource({
 		path: "my/path",
-		buffer: new Buffer("content")
+		buffer: Buffer.from("content")
 	});
 	const abstractReader = {
 		byGlob: sinon.stub().returns(Promise.resolve([resource]))
@@ -144,7 +144,7 @@ test("DuplexCollection: _byPath with reader finding a resource", (t) => {
 
 	const resource = new Resource({
 		path: "path",
-		buffer: new Buffer("content")
+		buffer: Buffer.from("content")
 	});
 	const pushCollectionSpy = sinon.spy(resource, "pushCollection");
 	const abstractReader = {
@@ -205,7 +205,7 @@ test("DuplexCollection: _write successful", (t) => {
 
 	const resource = new Resource({
 		path: "my/path",
-		buffer: new Buffer("content")
+		buffer: Buffer.from("content")
 	});
 	const duplexCollection = new DuplexCollection({
 		name: "myCollection",
