@@ -23,7 +23,3 @@ builder:
       - mode: require
         filters:
         - sap/ushell/bootstrap/cdm/cdm-def.js
-  componentPreload:
-    - "application/g"
-    - "application/g/subcomponentA"
-    - "application/g/subcomponentB"
