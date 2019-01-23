@@ -122,7 +122,7 @@
 		"eslint-plugin-jsdoc": "^4.0.1",
 		"extract-zip": "^1.6.7",
 		"jsdoc": "^3.5.5",
-		"mock-require": "^3.0.2",
+		"mock-require": "^3.0.3",
 		"nyc": "^13.1.0",
 		"opn-cli": "^4.0.0",
 		"recursive-readdir": "^2.1.1",
