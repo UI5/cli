@@ -50,8 +50,11 @@ class Memory extends AbstractAdapter {
 		}
 
 		const filePaths = Object.keys(this._virFiles);
-		let matchedResources = micromatch(filePaths, patterns, {
+		const matchedFilePaths = micromatch(filePaths, patterns, {
 			dot: true
+		});
+		let matchedResources = matchedFilePaths.map((virPath) => {
+			return this._virFiles[virPath];
 		});
 
 		if (!options.nodir) {
@@ -60,12 +63,12 @@ class Memory extends AbstractAdapter {
 			const matchedDirs = micromatch(dirPaths, patterns, {
 				dot: true
 			});
-			matchedResources = matchedResources.concat(matchedDirs);
+			matchedResources = matchedResources.concat(matchedDirs.map((virPath) => {
+				return this._virDirs[virPath];
+			}));
 		}
 
-		return Promise.resolve(matchedResources.map((virPath) => {
-			return this._virFiles[virPath];
-		}));
+		return Promise.resolve(matchedResources);
 	}
 
 	/**
@@ -117,9 +120,9 @@ class Memory extends AbstractAdapter {
 			pathSegments.pop(); // Remove last segment representing the resource itself
 
 			pathSegments.forEach((segment, i) => {
-				segment = "/" + segment;
-				if (i > 1) {
-					segment = pathSegments[i - 1] + segment;
+				// segment = "/" + segment;
+				if (i >= 1) {
+					segment = pathSegments[i - 1] + "/" + segment;
 				}
 				pathSegments[i] = segment;
 			});
@@ -134,7 +137,7 @@ class Memory extends AbstractAdapter {
 								return true;
 							}
 						},
-						path: segment
+						path: this._virBasePath + segment
 					});
 				}
 			}

@@ -1,7 +1,6 @@
 const {test} = require("ava");
 const ui5Fs = require("../../");
 const FsAdapter = ui5Fs.adapters.FileSystem;
-const MemAdapter = ui5Fs.adapters.Memory;
 
 // Create readerWriter before running tests
 test.beforeEach((t) => {
@@ -9,19 +8,7 @@ test.beforeEach((t) => {
 		filesystem: new FsAdapter({
 			fsBasePath: "./test/fixtures/glob",
 			virBasePath: "/test-resources/"
-		}),
-		memory: new MemAdapter({
-			virBasePath: "/test-resources/"
-		}),
-		fromMemory: function(pattern, options) {
-			return t.context.readerWriter.filesystem.byGlob(pattern, options).then((resources) => {
-				return Promise.all(resources.map(function(resource) {
-					return t.context.readerWriter.memory.write(resource);
-				})).then(() => {
-					return t.context.readerWriter.memory.byGlob(pattern, options);
-				});
-			});
-		}
+		})
 	};
 });
 
@@ -194,110 +181,6 @@ test("GLOB root directory", (t) => {
 test("GLOB subdirectory", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob([
-		"/test-resources/app*a",
-	], {nodir: false}).then((resources) => {
-		resources.forEach((res) => {
-			t.deepEqual(res._name, "application.a");
-			t.deepEqual(res.getStatInfo().isDirectory(), true);
-		});
-	});
-});
-
-
-// From Memory
-test("GLOB all from memory", (t) => {
-	return t.context.readerWriter.fromMemory("/**/*.*")
-		.then((resources) => {
-			t.deepEqual(resources.length, 16, "Found all resources");
-		});
-});
-
-test("GLOB all from root only from memory", (t) => {
-	t.plan(2);
-	return t.context.readerWriter.fromMemory("/*/*.*")
-		.then((resources) => {
-			matchGlobResult(t, resources, ["/test-resources/package.json"]);
-		});
-});
-
-test("GLOB all with virtual path included from memory", (t) => {
-	return t.context.readerWriter.fromMemory("/test-resources/**/*.*")
-		.then((resources) => {
-			t.deepEqual(resources.length, 16, "Found all resources");
-		});
-});
-
-test("GLOB only a specific filetype (yaml) from memory", (t) => {
-	t.plan(2);
-	return t.context.readerWriter.fromMemory("/**/*.yaml")
-		.then((resources) => {
-			resources.forEach((res) => {
-				t.deepEqual(res._name, "ui5.yaml");
-			});
-		});
-});
-
-test("GLOB two specific filetype (yaml and js) from memory", (t) => {
-	t.plan(4);
-	return t.context.readerWriter.fromMemory("/**/*.{yaml,js}")
-		.then((resources) => {
-			const expectedFiles = [
-				"/test-resources/application.b/ui5.yaml",
-				"/test-resources/application.a/ui5.yaml",
-				"/test-resources/application.a/webapp/test.js"
-			];
-			matchGlobResult(t, resources, expectedFiles);
-		});
-});
-
-test("GLOB only a specific filetype (json) with exclude pattern from memory", (t) => {
-	t.plan(3);
-	return t.context.readerWriter.fromMemory([
-		"/**/*.json",
-		"!/**/*package.json"
-	]).then((resources) => {
-		const expectedFiles = [
-			"/test-resources/application.b/webapp/manifest.json",
-			"/test-resources/application.b/webapp/embedded/manifest.json"
-		];
-		matchGlobResult(t, resources, expectedFiles);
-	});
-});
-
-test("GLOB only a specific filetype (json) with multiple exclude pattern from memory", (t) => {
-	t.plan(2);
-	return t.context.readerWriter.fromMemory([
-		"/**/*.json",
-		"!/**/*package.json",
-		"!/**/embedded/manifest.json"
-	]).then((resources) => {
-		matchGlobResult(t, resources, ["/test-resources/application.b/webapp/manifest.json"]);
-	});
-});
-
-test("GLOB (normalized) root directory (=> fs root)", (t) => {
-	t.plan(2);
-	return t.context.readerWriter.fromMemory([
-		"/*/",
-	], {nodir: false}).then((resources) => {
-		resources.forEach((res) => {
-			t.deepEqual(res._name, "test-resources");
-			t.deepEqual(res.getStatInfo().isDirectory(), true);
-		});
-	});
-});
-
-test("GLOB root directory from memory", (t) => {
-	t.plan(2);
-	return t.context.readerWriter.fromMemory("/test-resources/", {nodir: false})
-		.then((resources) => {
-			matchGlobResult(t, resources, ["/test-resources"]);
-		});
-});
-
-test("GLOB subdirectory from memory", (t) => {
-	t.plan(2);
-	return t.context.readerWriter.fromMemory([
 		"/test-resources/app*a",
 	], {nodir: false}).then((resources) => {
 		resources.forEach((res) => {
