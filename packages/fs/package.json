@@ -119,5 +119,8 @@
 		"rimraf": "^2.6.3",
 		"sinon": "^7.2.3",
 		"tap-nyan": "^1.1.0"
+	},
+	"resolutions": {
+		"dir-glob": "2.0.0"
 	}
 }
