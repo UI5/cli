@@ -195,56 +195,53 @@ class FileSystem extends AbstractAdapter {
 
 		log.verbose("Writing to %s", fsPath);
 
-		return makeDir(dirPath, {
-			fs
-		}).then(() => {
-			return new Promise((resolve, reject) => {
-				let contentStream;
+		await makeDir(dirPath, {fs});
+		return new Promise((resolve, reject) => {
+			let contentStream;
 
-				if (drain || readOnly) {
-					// Stream will be drained
-					contentStream = resource.getStream();
+			if (drain || readOnly) {
+				// Stream will be drained
+				contentStream = resource.getStream();
 
-					contentStream.on("error", (err) => {
-						reject(err);
-					});
-				} else {
-					// Transform stream into buffer before writing
-					contentStream = new PassThrough();
-					const buffers = [];
-					contentStream.on("error", (err) => {
-						reject(err);
-					});
-					contentStream.on("data", (data) => {
-						buffers.push(data);
-					});
-					contentStream.on("end", () => {
-						const buffer = Buffer.concat(buffers);
-						resource.setBuffer(buffer);
-					});
-					resource.getStream().pipe(contentStream);
-				}
-
-				const writeOptions = {};
-				if (readOnly) {
-					writeOptions.mode = 0o444; // read only
-				}
-
-				const write = fs.createWriteStream(fsPath, writeOptions);
-				write.on("error", (err) => {
+				contentStream.on("error", (err) => {
 					reject(err);
 				});
-				write.on("close", (ex) => {
-					if (readOnly) {
-						// Create new stream from written file
-						resource.setStream(function() {
-							return fs.createReadStream(fsPath);
-						});
-					}
-					resolve();
+			} else {
+				// Transform stream into buffer before writing
+				contentStream = new PassThrough();
+				const buffers = [];
+				contentStream.on("error", (err) => {
+					reject(err);
 				});
-				contentStream.pipe(write);
+				contentStream.on("data", (data) => {
+					buffers.push(data);
+				});
+				contentStream.on("end", () => {
+					const buffer = Buffer.concat(buffers);
+					resource.setBuffer(buffer);
+				});
+				resource.getStream().pipe(contentStream);
+			}
+
+			const writeOptions = {};
+			if (readOnly) {
+				writeOptions.mode = 0o444; // read only
+			}
+
+			const write = fs.createWriteStream(fsPath, writeOptions);
+			write.on("error", (err) => {
+				reject(err);
 			});
+			write.on("close", (ex) => {
+				if (readOnly) {
+					// Create new stream from written file
+					resource.setStream(function() {
+						return fs.createReadStream(fsPath);
+					});
+				}
+				resolve();
+			});
+			contentStream.pipe(write);
 		});
 	}
 }
