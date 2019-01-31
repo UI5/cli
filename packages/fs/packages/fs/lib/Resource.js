@@ -149,6 +149,11 @@ class Resource {
 	/**
 	 * Gets a readable stream for the resource content.
 	 *
+	 * Repetitive calls of this function are only possible if new content has been set in the meantime (through
+	 * [setStream]{@link module:@ui5/fs.Resource#setStream}, [setBuffer]{@link module:@ui5/fs.Resource#setBuffer}
+	 * or [setString]{@link module:@ui5/fs.Resource#setString}). This
+	 * is to prevent consumers from accessing drained streams.
+	 *
 	 * @public
 	 * @returns {stream.Readable} Readable stream for the resource content.
 	 */
@@ -170,7 +175,7 @@ class Resource {
 			throw new Error(`Resource ${this._path} has no content`);
 		}
 		// If a stream instance is being returned, it will typically get drained be the consumer.
-		// In that case, further content access will result in an "Content stream has been drained" error.
+		// In that case, further content access will result in a "Content stream has been drained" error.
 		// However, depending on the execution environment, a resources content stream might have been
 		//	transformed into a buffer. In that case further content access is possible as a buffer can't be
 		//	drained.
