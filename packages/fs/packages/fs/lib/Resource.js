@@ -87,21 +87,19 @@ class Resource {
 	 * @public
 	 * @returns {Promise<Buffer>} Promise resolving with a buffer of the resource content.
 	 */
-	getBuffer() {
-		return Promise.resolve().then(() => {
-			if (this._contentDrained) {
-				throw new Error(`Content of Resource ${this._path} has been drained. ` +
-					"This might be caused by requesting resource content after a content stream has been " +
-					"requested and no new content (e.g. a new stream) has been set.");
-			}
-			if (this._buffer) {
-				return this._buffer;
-			} else if (this._createStream || this._stream) {
-				return this._getBufferFromStream();
-			} else {
-				throw new Error(`Resource ${this._path} has no content`);
-			}
-		});
+	async getBuffer() {
+		if (this._contentDrained) {
+			throw new Error(`Content of Resource ${this._path} has been drained. ` +
+				"This might be caused by requesting resource content after a content stream has been " +
+				"requested and no new content (e.g. a new stream) has been set.");
+		}
+		if (this._buffer) {
+			return this._buffer;
+		} else if (this._createStream || this._stream) {
+			return this._getBufferFromStream();
+		} else {
+			throw new Error(`Resource ${this._path} has no content`);
+		}
 	}
 
 	/**
