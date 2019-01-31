@@ -58,7 +58,6 @@ class Memory extends AbstractAdapter {
 		});
 
 		if (!options.nodir) {
-			// TODO: Add tests for all this
 			const dirPaths = Object.keys(this._virDirs);
 			const matchedDirs = micromatch(dirPaths, patterns, {
 				dot: true
@@ -120,7 +119,6 @@ class Memory extends AbstractAdapter {
 			pathSegments.pop(); // Remove last segment representing the resource itself
 
 			pathSegments.forEach((segment, i) => {
-				// segment = "/" + segment;
 				if (i >= 1) {
 					segment = pathSegments[i - 1] + "/" + segment;
 				}
