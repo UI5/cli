@@ -1,6 +1,34 @@
 const {test} = require("ava");
 const {resourceFactory} = require("../../../");
 
+async function fillFromFs(readerWriter) {
+	const fsReader = resourceFactory.createAdapter({
+		fsBasePath: "./test/fixtures/glob",
+		virBasePath: "/app/",
+	});
+
+	const fsResources = await fsReader.byGlob("/**/*");
+	return Promise.all(fsResources.map(function(resource) {
+		return readerWriter.write(resource);
+	}));
+}
+
+function matchGlobResult(t, resources, expectedResources) {
+	t.deepEqual(resources.length, expectedResources.length, "Amount of files matches expected result.");
+
+	const matchedResources = resources.map((resource) => {
+		return resource.getPath();
+	});
+
+	for (let i = 0; i < expectedResources.length; i++) {
+		const expectedResource = expectedResources[i];
+		t.true(
+			matchedResources.indexOf(expectedResource) !== -1,
+			"File '" + expectedResource + "' was found."
+		);
+	}
+}
+
 test("GLOB resources from application.a w/ virtual base path prefix", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -69,35 +97,7 @@ test("GLOB virtual directory w/ virtual base path prefix and nodir: true", async
 	t.deepEqual(resources.length, 0, "Found no resources");
 });
 
-// Load more data from FS into memory
-async function fillFromFs(readerWriter) {
-	const fsReader = resourceFactory.createAdapter({
-		fsBasePath: "./test/fixtures/glob",
-		virBasePath: "/app/",
-	});
-
-	const fsResources = await fsReader.byGlob("/**/*");
-	return Promise.all(fsResources.map(function(resource) {
-		return readerWriter.write(resource);
-	}));
-}
-
-function matchGlobResult(t, resources, expectedResources) {
-	t.deepEqual(resources.length, expectedResources.length, "Amount of files matches expected result.");
-
-	const matchedResources = resources.map((resource) => {
-		return resource.getPath();
-	});
-
-	for (let i = 0; i < expectedResources.length; i++) {
-		const expectedResource = expectedResources[i];
-		t.true(
-			matchedResources.indexOf(expectedResource) !== -1,
-			"File '" + expectedResource + "' was found."
-		);
-	}
-}
-
+/* Load more data from FS into memory */
 test("GLOB all", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
