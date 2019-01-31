@@ -59,7 +59,8 @@ test("Write resource in readOnly mode", async (t) => {
 	await readerWriters.dest.write(resource, {readOnly: true});
 
 	await t.notThrows(fsAccess(destFsPath, fs.constants.R_OK), "File can be read");
-	await t.throws(fsAccess(destFsPath, fs.constants.W_OK), /EACCES: permission denied/, "File can not be written");
+	await t.throws(fsAccess(destFsPath, fs.constants.W_OK), /EACCES: permission denied|EPERM: operation not permitted/,
+		"File can not be written");
 
 	t.notThrows(() => {
 		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
