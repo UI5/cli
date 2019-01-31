@@ -15,6 +15,7 @@ class Resource {
 	/**
 	* Function for dynamic creation of content streams
 	*
+	* @public
 	* @callback module:@ui5/fs.Resource~createStream
 	* @returns {stream.Readable} A readable stream of a resources content
 	*/
@@ -25,16 +26,18 @@ class Resource {
 	 * @public
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.path Virtual path
-	 * @param {Object} [parameters.statInfo] File stat information
+	 * @param {fs.Stats|Object} [parameters.statInfo] File information. Instance of
+	 *					[fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats} or similar object
 	 * @param {Buffer} [parameters.buffer] Content of this resources as a Buffer instance
 	 *					(cannot be used in conjunction with parameters string, stream or createStream)
 	 * @param {string} [parameters.string] Content of this resources as a string
 	 *					(cannot be used in conjunction with parameters buffer, stream or createStream)
 	 * @param {Stream} [parameters.stream] Readable stream of the content of this resource
 	 *					(cannot be used in conjunction with parameters buffer, string or createStream)
-	 * @param {module:@ui5/fs.Resource~createStream} [parameters.createStream] Function callback that returns a readable stream of
-	 *			the content of this resource (cannot be used in conjunction with parameters buffer, string or stream).
-	 *			In some cases this is the most memory-efficient way to supply resource content
+	 * @param {module:@ui5/fs.Resource~createStream} [parameters.createStream] Function callback that returns a readable
+	 *					stream of the content of this resource (cannot be used in conjunction with parameters buffer,
+	 *					string or stream).
+	 *					In some cases this is the most memory-efficient way to supply resource content
 	 */
 	constructor({path, statInfo, buffer, string, createStream, stream, project}) {
 		if (!path) {
@@ -226,7 +229,8 @@ class Resource {
 	 * Gets the resources stat info.
 	 *
 	 * @public
-	 * @returns {fs.Stats} Object representing an fs.Stats instance
+	 * @returns {fs.Stats|Object} Instance of [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats}
+	 *								or similar object
 	 */
 	getStatInfo() {
 		return this._statInfo;
@@ -318,7 +322,10 @@ class Resource {
 	 * @returns {Promise<Buffer>} Promise resolving with buffer.
 	 */
 	_getBufferFromStream() {
-		return new Promise((resolve, reject) => {
+		if (this._buffering) { // Prevent simultaneous buffering, causing unexpected access to drained stream
+			return this._buffering;
+		}
+		return this._buffering = new Promise((resolve, reject) => {
 			const contentStream = this._getStream();
 			const buffers = [];
 			contentStream.on("data", (data) => {
@@ -330,6 +337,7 @@ class Resource {
 			contentStream.on("end", () => {
 				const buffer = Buffer.concat(buffers);
 				this.setBuffer(buffer);
+				this._buffering = null;
 				resolve(buffer);
 			});
 		});

@@ -201,3 +201,27 @@ test("getStream with Stream content: Subsequent content requests should throw er
 	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
 	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
 });
+
+test("getStream with Stream content: Subsequent content requests should throw error due to drained " +
+		"content", async (t) => {
+	const resource = createBasicResource();
+	const {Transform} = require("stream");
+	const tStream = new Transform({
+		transform(chunk, encoding, callback) {
+			this.push(chunk.toString());
+			callback();
+		}
+	});
+	const stream = resource.getStream();
+	stream.pipe(tStream);
+	resource.setStream(tStream);
+
+	const p1 = resource.getBuffer();
+	const p2 = resource.getBuffer();
+
+	await t.notThrows(p1);
+
+	// Race condition in _getBufferFromStream used to cause p2
+	// to throw "Content stream of Resource /app/index.html is flagged as drained."
+	await t.notThrows(p2);
+});
