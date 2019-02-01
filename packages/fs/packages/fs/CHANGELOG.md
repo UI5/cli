@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v1.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v1.0.1...HEAD).
+
+<a name="v1.0.1"></a>
+## [v1.0.1] - 2019-01-31
+### Bug Fixes
+- Prevent FS write from draining Resources content [`370f121`](https://github.com/SAP/ui5-fs/commit/370f121ca4d571397c979e2dce72b6a1cf0d0005)
+
+### Dependency Updates
+- **Yarn:** Pin dir-glob dependency to v2.0.0 [`e14457c`](https://github.com/SAP/ui5-fs/commit/e14457c5b3eda1fab3d3444bca3b8406be63db2f)
+
 
 <a name="v1.0.0"></a>
 ## [v1.0.0] - 2019-01-10
@@ -30,6 +39,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v1.0.1]: https://github.com/SAP/ui5-fs/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/SAP/ui5-fs/compare/v0.2.0...v1.0.0
 [v0.2.0]: https://github.com/SAP/ui5-fs/compare/v0.1.0...v0.2.0
 [v0.1.0]: https://github.com/SAP/ui5-fs/compare/v0.0.1...v0.1.0
