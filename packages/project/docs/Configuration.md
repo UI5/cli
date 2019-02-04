@@ -70,9 +70,15 @@ Some general information:
 #### resources (optional)
 - `configuration`
     - `paths`: Mapping between virtual paths and physical paths. Physical paths are always relative to the projects root directory
-        + For projects of type `application` a "webapp" path can be configured that will be mapped to the virtual path `/`. By default this is mapped to `webpp`
-        + For projects of type `library` a "src" as well as a "test" path can be configured. They will be mapped to the virtual paths `/resources` and `/test-resources`. By default these paths are mapped to `src` and `test`
-        + For type `module`, any kind (and number) of mappings can be configured freely. The key will be used as the virtual path. By default, the projects root directory is mapped to the virtual directory `/`. It is recommended that libraries include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/first/library/module-xy`).
+    	+ `webapp: webapp`: This path will be mapped to the virtual path `/`.  
+    	  *(Only available for projects of type `application`)*
+    	+ `src: src`: This path will be mapped to the virtual path `/resources`.  
+    	  *(Only available for projects of type `library`)*
+    	+ `test: test`: This path will be mapped to the virtual path `/test-resources`.  
+    	  *(Only available for projects of type `library`)*
+        + `<virtual path>: <physical path>` (default `/: ./`): Any virtual path mapping can be defined here.  
+          *(Only available for projects of type `module`)*  
+          It is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/first/library/module-xy`).
 
 #### builder (optional)
 - `customTasks` (optional, list): In this block, you define additional custom build tasks, see [here](./BuildExtensibility.md) for a detailed explanation and examples of the build extensibility. Each entry in the `customTasks` list consists of the following options:
