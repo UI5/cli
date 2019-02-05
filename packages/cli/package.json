@@ -38,9 +38,10 @@
 		"report-coveralls": "nyc report --reporter=text-lcov | COVERALLS_PARALLEL=true coveralls"
 	},
 	"files": [
-		"index.js",
 		"CONTRIBUTING.md",
+		"index.js",
 		"jsdoc.json",
+		"npm-shrinkwrap.json",
 		"bin/**",
 		"lib/**"
 	],
