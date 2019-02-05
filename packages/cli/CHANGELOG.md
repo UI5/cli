@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.1.0...HEAD).
+
+<a name="v1.1.0"></a>
+## [v1.1.0] - 2019-02-05
+### Features
+- Publish npm-shrinkwrap.json [`abc5d5e`](https://github.com/SAP/ui5-cli/commit/abc5d5e322696c607adecb20a70d46542862d8ee)
+
 
 <a name="v1.0.1"></a>
 ## [v1.0.1] - 2019-02-01
@@ -71,6 +77,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.1.0]: https://github.com/SAP/ui5-cli/compare/v1.0.1...v1.1.0
 [v1.0.1]: https://github.com/SAP/ui5-cli/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/SAP/ui5-cli/compare/v0.2.9...v1.0.0
 [v0.2.9]: https://github.com/SAP/ui5-cli/compare/v0.2.8...v0.2.9
