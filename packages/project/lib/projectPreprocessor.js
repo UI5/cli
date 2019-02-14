@@ -58,9 +58,8 @@ class ProjectPreprocessor {
 			});
 
 			await Promise.all(projectsToProcess.map(async (project) => {
-				log.verbose(`Processing project ${project.id} on level ${project._level}...`);
-
 				project._level = level;
+				log.verbose(`Processing project ${project.id} on level ${project._level}...`);
 
 				if (project.dependencies && project.dependencies.length) {
 					// Do a dependency lookahead to apply any extensions that might affect this project
