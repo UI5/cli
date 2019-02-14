@@ -359,11 +359,11 @@
       }
     },
     "@ui5/project": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/@ui5/project/-/project-1.0.0.tgz",
-      "integrity": "sha512-ETY/6Y4XrHfjONX+ctKrdSmtEH4HMYxnL8g0oIXsWicLtRP9HLS3ZFK7A1oqx3MqbIuORRvNQ4hgwBFbBmssJg==",
+      "version": "1.0.1",
+      "resolved": "https://registry.npmjs.org/@ui5/project/-/project-1.0.1.tgz",
+      "integrity": "sha512-bFXoFR8Tnt7TgLEvex6p15hiha7QigSnXT+6OC6nQv56QPB0alAkbDxW9+2MX25I1izzPueRTPZYG/8az/cCXA==",
       "requires": {
-        "@ui5/builder": "^1.0.0",
+        "@ui5/builder": "^1.0.1",
         "@ui5/logger": "^1.0.0",
         "graceful-fs": "^4.1.15",
         "js-yaml": "^3.12.1",
