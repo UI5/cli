@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.2.0...HEAD).
+
+<a name="v1.2.0"></a>
+## [v1.2.0] - 2019-02-14
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 1.0.0 to 1.0.1 ([#142](https://github.com/SAP/ui5-cli/issues/142)) [`c777997`](https://github.com/SAP/ui5-cli/commit/c777997034d84a8a972dbc35638df07c5f1c8c2d)
+- **Security:** Bump handlebars from 4.0.12 to 4.1.0 ([#139](https://github.com/SAP/ui5-cli/issues/139)) [`ec081b6`](https://github.com/SAP/ui5-cli/commit/ec081b61df118921cbe4f050a42cc4ecaf6596c6)
+
+### Features
+- **ui5 tree:** Add dedupe option [`91580a8`](https://github.com/SAP/ui5-cli/commit/91580a8e786a1f63365bd70617403281d5c4c8e3)
+
 
 <a name="v1.1.0"></a>
 ## [v1.1.0] - 2019-02-05
@@ -77,6 +87,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.2.0]: https://github.com/SAP/ui5-cli/compare/v1.1.0...v1.2.0
 [v1.1.0]: https://github.com/SAP/ui5-cli/compare/v1.0.1...v1.1.0
 [v1.0.1]: https://github.com/SAP/ui5-cli/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/SAP/ui5-cli/compare/v0.2.9...v1.0.0
