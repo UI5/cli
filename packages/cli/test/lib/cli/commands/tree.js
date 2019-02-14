@@ -41,6 +41,26 @@ test.serial("ui5 tree (output tree)", async (t) => {
 	treeifySpy.restore();
 });
 
+test.serial("ui5 tree --dedupe=false (default)", async (t) => {
+	normalizer.generateDependencyTree.resolves({});
+	await tree.handler({dedupe: false});
+	t.is(normalizer.generateDependencyTree.calledWithMatch({
+		translatorOptions: {
+			includeDeduped: true
+		}
+	}), true, "includeDeduped passed as expected");
+});
+
+test.serial("ui5 tree --dedupe=true", async (t) => {
+	normalizer.generateDependencyTree.resolves({});
+	await tree.handler({dedupe: true});
+	t.is(normalizer.generateDependencyTree.calledWithMatch({
+		translatorOptions: {
+			includeDeduped: false
+		}
+	}), true, "includeDeduped passed as expected");
+});
+
 // test.serial("Error: throws on error during processing", async (t) => {
 // 	normalizer.generateDependencyTree.rejects(new Error("Some error happened ..."));
 // 	const processExitStub = sinon.stub(process, "exit");
