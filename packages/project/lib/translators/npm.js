@@ -461,8 +461,12 @@ class NpmTranslator {
 					`(child of ${parent.id})`);
 
 				const idx = parent.dependencies.indexOf(project);
-				const dedupedProject = this.createDedupedProject(project);
-				parent.dependencies.splice(idx, 1, dedupedProject);
+				if (this.includeDeduped) {
+					const dedupedProject = this.createDedupedProject(project);
+					parent.dependencies.splice(idx, 1, dedupedProject);
+				} else {
+					parent.dependencies.splice(idx, 1);
+				}
 			}
 
 			if (project.dependencies) {
