@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v1.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v1.0.1...HEAD).
+
+<a name="v1.0.1"></a>
+## [v1.0.1] - 2019-02-14
+### Bug Fixes
+- **npm translator:** Remove deduped optional dependencies from tree [`3481154`](https://github.com/SAP/ui5-project/commit/348115426f03bd3a5bb823ac54a6b15475a84657)
+
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/builder from 1.0.0 to 1.0.1 ([#113](https://github.com/SAP/ui5-project/issues/113)) [`96a3d6a`](https://github.com/SAP/ui5-project/commit/96a3d6a2a54cb1eab190ba89f9da686e8aae2d84)
+
 
 <a name="v1.0.0"></a>
 ## [v1.0.0] - 2019-01-10
@@ -74,6 +83,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v1.0.1]: https://github.com/SAP/ui5-project/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/SAP/ui5-project/compare/v0.2.5...v1.0.0
 [v0.2.5]: https://github.com/SAP/ui5-project/compare/v0.2.4...v0.2.5
 [v0.2.4]: https://github.com/SAP/ui5-project/compare/v0.2.3...v0.2.4
