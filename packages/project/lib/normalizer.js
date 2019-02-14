@@ -19,6 +19,7 @@ const Normalizer = {
 	 * @param {string} [options.cwd] Current working directory
 	 * @param {string} [options.configPath] Path to configuration file
 	 * @param {string} [options.translatorName] Translator to use
+	 * @param {Object} [options.translatorOptions] Options to pass to translator
 	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
 	generateProjectTree: async function(options = {}) {
