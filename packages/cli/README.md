@@ -45,12 +45,12 @@ Commands:
 	init   Initializes the UI5 Build and Development Tooling configuration for an application or library project
 
 Options:
-	--help, -h            Show help  [boolean]
-	--version, -v         Show version number  [boolean]
-	--config              Path to config file  [string]
-	--translator, --t8r   Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
-	--verbose             Enable verbose logging. [boolean]
-	--loglevel            Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
+	--help, -h                Show help  [boolean]
+	--version, -v             Show version number  [boolean]
+	--config                  Path to config file  [string]
+	--translator, --t8r       Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
+	--verbose                 Enable verbose logging. [boolean]
+	--loglevel, --log-level   Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
 
 Examples:
 	ui5 <command> --translator static:/path/to/projectDependencies.yaml  Execute command using a "static" translator with translator parameters
@@ -72,18 +72,17 @@ Commands:
 	self-contained  Build project and create self-contained bundle
 
 Options:
-	--help, -h             Show help  [boolean]
-	--version, -v          Show version number  [boolean]
-	--config               Path to config file  [string]
-	--translator, --t8r    Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
-	--verbose              Enable verbose logging. [boolean]
-	--loglevel             Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
-	--all, -a              Include all project dependencies into build process
-	--dest                 Path of build destination  [string] [default: "./dist"]
-	--dev                  Dev mode: skips non-essential and time-intensive tasks during build  [boolean]
-	--dev-exclude-project  A list of specific projects to be excluded from dev mode (dev mode must be active for this to be effective)  [array]
-	--include-task         A list of specific tasks to be included to the default/dev set  [array]
-	--exclude-task         A list of specific tasks to be excluded from default/dev set  [array]
+	--help, -h                 Show help  [boolean]
+	--version, -v              Show version number  [boolean]
+	--config                   Path to config file  [string]
+	--translator, --t8r        Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
+	--verbose                  Enable verbose logging. [boolean]
+	--loglevel, --log-level    Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
+	--all, -a                  Include all project dependencies into build process [boolean] [default: false]
+	--dest                     Path of build destination  [string] [default: "./dist"]
+	--dev-exclude-project      A list of specific projects to be excluded from dev mode (dev mode must be active for this to be effective)  [array]
+	--include-task             A list of specific tasks to be included to the default/dev set  [array]
+	--exclude-task             A list of specific tasks to be excluded from default/dev set  [array]
 
 Examples:
 	ui5 build --all                                                                      Preload build for project and dependencies to "./dist"
@@ -104,7 +103,7 @@ Options:
 	--config                      Path to config file  [string]
 	--translator, --t8r           Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
 	--verbose                     Enable verbose logging. [boolean]
-	--loglevel                    Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
+	--loglevel, --log-level       Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
 	--port, -p                    Port to bind on (default for HTTP: 8080, HTTP/2: 8443)  [number]
 	--open, -o                    Open web server root directory in default browser. Optionally, supplied relative path will be appended to the root URL  [string]
 	--h2                          Shortcut for enabling the HTTP/2 protocol for the web server  [boolean] [default: false]
@@ -113,11 +112,11 @@ Options:
 	--cert                        Path to the certificate  [string] [default: "$HOME/.ui5/server/server.crt"]
 
 Examples:
-	ui5 serve                                                    Start a web server for the current project
-	ui5 serve --h2                                               Enable the HTTP/2 protocol for the web server (requires SSL certificate)
-	ui5 serve --config /path/to/ui5.yaml                         Use the project configuration from a custom path
+	ui5 serve                                                        Start a web server for the current project
+	ui5 serve --h2                                                   Enable the HTTP/2 protocol for the web server (requires SSL certificate)
+	ui5 serve --config /path/to/ui5.yaml                             Use the project configuration from a custom path
 	ui5 serve --translator static:/path/to/projectDependencies.yaml  Use a "static" translator with translator parameters.
-	ui5 serve --port 1337 --open tests/QUnit.html                Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html
+	ui5 serve --port 1337 --open tests/QUnit.html                    Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html
 ```
 
 #### tree
@@ -126,18 +125,22 @@ Examples:
 
 ```
 Options:
-	--help, -h            Show help  [boolean]
-	--version, -v         Show version number  [boolean]
-	--config              Path to config file  [string]
-	--translator, --t8r   Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
-	--verbose             Enable verbose logging. [boolean]
-	--loglevel            Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
-	--full                Include more information (currently the project configuration)  [boolean]
-	--json                Output tree as formatted JSON string  [boolean]
+  --help, -h               Show help [boolean]
+  --version, -v            Show version number [boolean]
+  --config                 Path to configuration file [string]
+  --translator, --t8r      Translator to use. Including optional colon separated translator parameters. [string] [default: "npm"]
+  --verbose                Enable verbose logging. [boolean]
+  --loglevel, --log-level  Set the logging level (error|warn|info|verbose|silly). [string] [default: "info"]
+  --full                   Include more information (currently the project configuration) [boolean] [default: false]
+  --json                   Output tree as formatted JSON string [boolean] [default: false]
+  --dedupe                 Remove duplicate projects from project tree [boolean] [default: false]
+
 
 Examples:
-	ui5 tree > tree.txt          Pipes the dependency tree into a new file "tree.txt"
-	ui5 tree --json > tree.json  Pipes the dependency tree into a new file "tree.json"
+    ui5 tree                              Returns plain dependency tree as returned by the used translator
+	ui5 tree --full                       Returns the dependency tree after UI5 specific configuration has been applied
+	ui5 tree > tree.txt                   Pipes the dependency tree into a new file "tree.txt"
+	ui5 tree --json --dedupe > tree.json  Pipes the dependency tree, excluding duplicates into a new file "tree.json"
 ```
 
 #### init
@@ -146,12 +149,12 @@ Examples:
 
 ```
 Options:
-	--help, -h            Show help  [boolean]
-	--version, -v         Show version number  [boolean]
-	--config              Path to config file  [string]
-	--translator, --t8r   Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
-	--verbose             Enable verbose logging. [boolean]
-	--loglevel            Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
+	--help, -h                Show help  [boolean]
+	--version, -v             Show version number  [boolean]
+	--config                  Path to config file  [string]
+	--translator, --t8r       Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
+	--verbose                 Enable verbose logging. [boolean]
+	--loglevel, --log-level   Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
 ```
 
 #### versions
@@ -160,12 +163,12 @@ Options:
 
 ```
 Options:
-	--help, -h            Show help  [boolean]
-	--version, -v         Show version number  [boolean]
-	--config              Path to config file  [string]
-	--translator, --t8r   Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
-	--verbose             Enable verbose logging. [boolean]
-	--loglevel            Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
+	--help, -h                Show help  [boolean]
+	--version, -v             Show version number  [boolean]
+	--config                  Path to config file  [string]
+	--translator, --t8r       Translator to use. Including optional colon separated translator parameters.  [string] [default: "npm"]
+	--verbose                 Enable verbose logging. [boolean]
+	--loglevel, --log-level   Set the logging level (error|warn|info|verbose|silly).  [string] [default: "info"]
 
 ```
 

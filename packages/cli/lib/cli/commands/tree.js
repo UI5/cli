@@ -9,10 +9,17 @@ tree.builder = function(cli) {
 	return cli
 		.option("full", {
 			describe: "Include more information (currently the project configuration)",
+			default: false,
 			type: "boolean"
 		})
 		.option("json", {
 			describe: "Output tree as formatted JSON string",
+			default: false,
+			type: "boolean"
+		})
+		.option("dedupe", {
+			describe: "Remove duplicate projects from project tree",
+			default: false,
 			type: "boolean"
 		})
 		.example("ui5 tree > tree.txt", "Pipes the dependency tree into a new file \"tree.txt\"")
@@ -27,7 +34,7 @@ tree.handler = function(argv) {
 	const options = {
 		translatorName: argv.translator,
 		translatorOptions: {
-			includeDeduped: true
+			includeDeduped: !argv.dedupe
 		},
 		configPath: argv.config
 	};

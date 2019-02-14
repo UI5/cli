@@ -17,6 +17,7 @@ cli.usage("Usage: ui5 <command> [options]")
 		type: "boolean"
 	})
 	.option("loglevel", {
+		alias: "log-level",
 		describe: "Set the logging level (error|warn|info|verbose|silly).",
 		default: "info",
 		type: "string"

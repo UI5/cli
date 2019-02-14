@@ -28,7 +28,9 @@ build.builder = function(cli) {
 		})
 		.option("all", {
 			describe: "Include all project dependencies into build process",
-			alias: "a"
+			alias: "a",
+			default: false,
+			type: "boolean"
 		})
 		.option("dest", {
 			describe: "Path of build destination",
