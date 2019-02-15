@@ -123,7 +123,7 @@
 		"extract-zip": "^1.6.7",
 		"jsdoc": "^3.5.5",
 		"mock-require": "^3.0.3",
-		"nyc": "^13.2.0",
+		"nyc": "^13.3.0",
 		"opn-cli": "^4.0.0",
 		"recursive-readdir": "^2.1.1",
 		"rimraf": "^2.6.3",
