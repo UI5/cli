@@ -24,10 +24,10 @@
         }
     },
     "openGraph": {
-        "title": "UI5 Build and Development Tooling - API Reference",
+        "title": "UI5 Tooling - API Reference",
         "type": "website",
         "image": "https://sap.github.io/ui5-tooling/docs/images/UI5_logo_wide.png",
-        "site_name": "UI5 Build and Development Tooling - API Reference",
+        "site_name": "UI5 Tooling - API Reference",
         "url": "https://sap.github.io/ui5-tooling/"
     },
     "docdash": {
@@ -42,8 +42,8 @@
             "Interfaces"
         ],
         "meta": {
-            "title": "UI5 Build and Development Tooling - API Reference - UI5 Logger",
-            "description": "UI5 Build and Development Tooling - API Reference - UI5 Logger",
+            "title": "UI5 Tooling - API Reference - UI5 Logger",
+            "description": "UI5 Tooling - API Reference - UI5 Logger",
             "keyword": "openui5 sapui5 ui5 build development tool api reference"
         },
         "search": true,
