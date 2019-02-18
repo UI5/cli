@@ -10,6 +10,8 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-fs/master.svg)](https://david-dm.org/SAP/ui5-fs/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-fs/master/dev-status.svg)](https://david-dm.org/SAP/ui5-fs/master#info=devDependencies)
 
+**⌨️ CLI reference can be found [here!](https://github.com/SAP/ui5-cli#cli-usage)**
+
 ## Resources
 During the build phase, a modified resource is kept in memory for further processing in other build steps.
 
