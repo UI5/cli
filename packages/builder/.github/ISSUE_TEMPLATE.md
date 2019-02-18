@@ -1,3 +1,8 @@
+<!--
+Hey there 👋 Please have a look at our guidelines on reporting issues:
+https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#-reporting-issues
+-->
+
 ## Expected Behavior
 {...}
 
@@ -13,12 +18,13 @@
 - UI5 Module Version *(output of `ui5 --version` when using the CLI)*: `{...}`
 - Node.js Version: `{...}`
 - npm Version: `{...}`
-- OS/Platform: {...}
-- Browser *(if relevant)*: {...}
-- Other information: {...}
+- OS/Platform: `{...}`
+- Browser *(if relevant)*: `{...}`
+- Other information: `{...}`
 
 ## Affected components *(if known)*
-- [ ] [ui5-builder](https://github.com/SAP/ui5-builder)
+<!-- Check affected components by writing an "X" into the brackets -->
+- [X] [ui5-builder](https://github.com/SAP/ui5-builder)
 - [ ] [ui5-server](https://github.com/SAP/ui5-server)
 - [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
 - [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
