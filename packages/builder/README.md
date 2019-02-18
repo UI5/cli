@@ -10,6 +10,8 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-builder/master.svg)](https://david-dm.org/SAP/ui5-builder/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-builder/master/dev-status.svg)](https://david-dm.org/SAP/ui5-builder/master#info=devDependencies)
 
+**⌨️ CLI reference can be found [here!](https://github.com/SAP/ui5-cli#cli-usage)**
+
 ## Builder
 ### Types
 Types define how a project can be configured and how it is built. A type orchestrates a set of tasks and defines the order in which they get applied during build phase. Furthermore, it takes care of formatting and validating the project-specific configuration.
