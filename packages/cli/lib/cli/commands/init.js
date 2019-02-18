@@ -1,7 +1,7 @@
 // Init
 const initCommand = {
 	command: "init",
-	describe: "Initialize the UI5 Build and Development Tooling configuration for an application or library project.",
+	describe: "Initialize the UI5 Tooling configuration for an application or library project.",
 	middlewares: [require("../middlewares/base.js")]
 };
 

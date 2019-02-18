@@ -3,7 +3,7 @@
 # ui5-cli
 
 > UI5 Command Line Interface  
-> Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
+> Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-cli.svg?branch=master)](https://travis-ci.org/SAP/ui5-cli)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fcli.svg)](https://www.npmjs.com/package/@ui5/cli)
@@ -13,7 +13,7 @@
 
 ## General Information
 
--   General information regarding the **UI5 Build and Development Tooling** project can be found **[here](https://github.com/SAP/ui5-tooling)**
+-   General information regarding the **UI5 Tooling** project can be found **[here](https://github.com/SAP/ui5-tooling)**
 -   Details regarding **project configuration** can be found **[here](https://github.com/SAP/ui5-project#configuration)**
 
 ## Installing the UI5 CLI
@@ -42,7 +42,7 @@ Commands:
 	build  Build project in current directory
 	serve  Start a webserver for the current project
 	tree   Outputs the dependency tree of the current project to stdout. It takes all relevant parameters of ui5 build into account.
-	init   Initializes the UI5 Build and Development Tooling configuration for an application or library project
+	init   Initializes the UI5 Tooling configuration for an application or library project
 
 Options:
 	--help, -h                Show help  [boolean]
@@ -145,7 +145,7 @@ Examples:
 
 #### init
 
-`ui5 init [options]` initializes the UI5 Build and Development Tooling configuration for an application or library project.
+`ui5 init [options]` initializes the UI5 Tooling configuration for an application or library project.
 
 ```
 Options:
@@ -159,7 +159,7 @@ Options:
 
 #### versions
 
-`ui5 versions [options]` shows the versions of all UI5 Build and Development Tooling packages.
+`ui5 versions [options]` shows the versions of all UI5 Tooling packages.
 
 ```
 Options:
