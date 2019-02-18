@@ -2,7 +2,7 @@
 
 # ui5-project
 > Modules for building a UI5 projects dependency tree, including configuration.  
-> Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
+> Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-project.svg?branch=master)](https://travis-ci.org/SAP/ui5-project)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fproject.svg)](https://www.npmjs.com/package/@ui5/project)

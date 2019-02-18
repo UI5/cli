@@ -1,5 +1,5 @@
 # Configuration
-This document describes the configuration of UI5 Build and Development Tooling based projects and extensions.  
+This document describes the configuration of UI5 Tooling based projects and extensions.  
 
 The content represents the **[Specification Version](#specification-versions) `1.0`**.
 
@@ -13,7 +13,7 @@ The content represents the **[Specification Version](#specification-versions) `1
 ## Project Configuration
 Typically located in a `ui5.yaml` file per project.
 
-The preferred way of storing the configuration of a UI5 Build and Development Tooling based project is a [YAML](https://yaml.org/) file named `ui5.yaml` inside that project.
+The preferred way of storing the configuration of a UI5 Tooling based project is a [YAML](https://yaml.org/) file named `ui5.yaml` inside that project.
 
 **Example**
 ````yaml

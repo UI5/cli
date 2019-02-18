@@ -1,7 +1,7 @@
 {
 	"name": "@ui5/project",
 	"version": "1.0.1",
-	"description": "UI5 Build and Development Tooling - Project ",
+	"description": "UI5 Tooling - Project ",
 	"author": "SAP SE (https://www.sap.com)",
 	"license": "Apache-2.0",
 	"keywords": [
