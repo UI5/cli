@@ -2,7 +2,7 @@
 
 # ui5-builder
 > Modules for building UI5 projects  
-> Part of the [UI5 Build and Development Tooling](https://github.com/SAP/ui5-tooling)
+> Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-builder.svg?branch=master)](https://travis-ci.org/SAP/ui5-builder)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fbuilder.svg)](https://www.npmjs.com/package/@ui5/builder)
