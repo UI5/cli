@@ -1,7 +1,7 @@
 ![UI5 icon](https://raw.githubusercontent.com/SAP/ui5-tooling/master/docs/images/UI5_logo_wide.png)
 
 # ui5-project
-> Modules for building a UI5 projects dependency tree, including configuration.  
+> Modules for building a projects dependency tree, including UI5 specific configuration.  
 > Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 
 [![Travis CI Build Status](https://travis-ci.org/SAP/ui5-project.svg?branch=master)](https://travis-ci.org/SAP/ui5-project)
@@ -9,6 +9,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-project/badge.svg)](https://coveralls.io/github/SAP/ui5-project)
 [![Dependency Status](https://david-dm.org/SAP/ui5-project/master.svg)](https://david-dm.org/SAP/ui5-project/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-project/master/dev-status.svg)](https://david-dm.org/SAP/ui5-project/master#info=devDependencies)
+
+**⌨️ CLI reference can be found [here!](https://github.com/SAP/ui5-cli#cli-usage)**
 
 ## Configuration
 See [Configuration](docs/Configuration.md).
