@@ -72,7 +72,7 @@ test("getStringArray", (t) => {
 });
 
 test("getLocation", (t) => {
-	t.deepEqual(ASTUtils.getLocation(), "");
+	t.deepEqual(ASTUtils.getLocation([{value: "module/name"}]), "module/name");
 });
 
 test("getPropertyKey", (t) => {

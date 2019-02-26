@@ -398,7 +398,7 @@ class JSModuleAnalyzer {
 					 */
 				} else if ( nModuleDeclarations > 1 && name === info.name ) {
 					// ignore duplicate declarations (e.g. in behavior file of design time controls)
-					log.warn("duplicate declaration of module name at %s", getLocation(args));
+					log.warn(`duplicate declaration of module ${getLocation(args)} in ${name}`);
 				} else {
 					// otherwise it is just a submodule declaration
 					info.addSubModule(name);

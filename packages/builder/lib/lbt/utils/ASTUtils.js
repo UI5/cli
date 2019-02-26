@@ -109,8 +109,9 @@ module.exports = {
 	isMethodCall,
 	isNamedObject,
 	isIdentifier,
-	getLocation: function() {
-		return ""; // NODE-TODO
+	getLocation: function(args) {
+		// NODE-TODO include line information in future
+		return args[0].value;
 	},
 	getPropertyKey,
 	findOwnProperty,
