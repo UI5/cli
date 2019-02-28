@@ -108,47 +108,74 @@ module.exports = function({workspace, dependencies, options}) {
 				filters = ["jquery.sap.global.js"];
 			}
 
-			p = moduleBundler({
-				options: {
-					bundleOptions: {
-						optimize: true,
-						decorateBootstrapModule: true,
-						addTryCatchRestartWrapper: true,
-						usePredefineCalls: true
+			p = Promise.all([
+				moduleBundler({
+					options: {
+						bundleOptions: {
+							optimize: true,
+							decorateBootstrapModule: true,
+							addTryCatchRestartWrapper: true,
+							usePredefineCalls: true
+						},
+						bundleDefinition: {
+							name: "sap-ui-core.js",
+							sections: [
+								{
+									// include all 'raw' modules that are needed for the UI5 loader
+									mode: "raw",
+									filters,
+									resolve: true, // dependencies for raw modules are taken from shims in .library files
+									sort: true, // topological sort on raw modules is mandatory
+									declareModules: false
+								},
+								{
+									mode: "preload",
+									filters: [
+										"sap/ui/core/Core.js"
+									],
+									resolve: true
+								},
+								{
+									mode: "require",
+									filters: [
+										"sap/ui/core/Core.js"
+									]
+								}
+							]
+						}
 					},
-					bundleDefinition: {
-						name: "sap-ui-core.js",
-						sections: [
-							{
-								// include all 'raw' modules that are needed for the UI5 loader
-								mode: "raw",
-								filters,
-								resolve: true, // dependencies for raw modules are taken from shims in .library files
-								sort: true, // topological sort on raw modules is mandatory
-								declareModules: false
-							},
-							{
-								mode: "preload",
-								filters: [
-									"sap/ui/core/Core.js"
-								],
-								resolve: true
-							},
-							{
-								mode: "require",
-								filters: [
-									"sap/ui/core/Core.js"
-								]
-							}
-						]
-					}
-				},
-				resources
-			}).then(([bundle]) => {
-				if (bundle) {
-					// console.log("sap-ui-core.js bundle created");
-					return workspace.write(bundle);
-				}
+					resources
+				}),
+				moduleBundler({
+					options: {
+						bundleOptions: {
+							optimize: false
+						},
+						bundleDefinition: {
+							name: "sap-ui-core-dbg.js",
+							sections: [
+								{
+									// include all 'raw' modules that are needed for the UI5 loader
+									mode: "raw",
+									filters,
+									resolve: true, // dependencies for raw modules are taken from shims in .library files
+									sort: true, // topological sort on raw modules is mandatory
+									declareModules: false
+								},
+								{
+									mode: "require",
+									filters: [
+										"sap/ui/core/Core.js"
+									]
+								}
+							]
+						}
+					},
+					resources
+				})
+			]).then((results) => {
+				const bundles = Array.prototype.concat.apply([], results);
+				return Promise.all(bundles.map((bundle) => workspace.write(bundle)));
 			});
 		} else {
 			p = Promise.resolve();
