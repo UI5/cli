@@ -661,6 +661,38 @@ test("_analyzeManifest: Manifest with V2 OData model via dataSources (default ty
 		"addDependency should be called with the dependency name");
 });
 
+test("_analyzeManifest: Manifest with V2 OData model via dataSources with settings (default type)", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/odata/v2/service",
+					"settings": {}
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
+		"addDependency should be called with the dependency name");
+});
+
 test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t) => {
 	const manifest = {
 		"sap.app": {

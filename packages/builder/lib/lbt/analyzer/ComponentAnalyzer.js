@@ -122,22 +122,27 @@ class ComponentAnalyzer {
 			let modelType;
 			if ( options.type ) {
 				modelType = options.type;
-			} else if ( options.dataSource && sapApp.dataSources ) {
-				const oDataSource = sapApp.dataSources[options.dataSource];
+			} else if ( options.dataSource ) {
+				const oDataSource = sapApp.dataSources && sapApp.dataSources[options.dataSource];
 				if (!oDataSource) {
+					log.warn(`Provided dataSource "${options.dataSource}" for model "${model}" does not exist.`);
 					return;
 				}
 				// default dataSource type is OData
 				const dataSourceType = oDataSource.type || "OData";
+				let odataVersion;
 				switch (dataSourceType) {
 				case "OData":
-					if (oDataSource.settings && oDataSource.settings.odataVersion === "4.0") {
+					odataVersion = oDataSource.settings && oDataSource.settings.odataVersion;
+					if (odataVersion === "4.0") {
 						modelType = "sap.ui.model.odata.v4.ODataModel";
-					} else if (!oDataSource.settings || oDataSource.settings.odataVersion === "2.0") {
+					} else if (!odataVersion || odataVersion === "2.0") {
 						// Default if no version is specified
 						modelType = "sap.ui.model.odata.v2.ODataModel";
 					} else {
-						// Unknown version
+						log.warn(`Provided OData version "${odataVersion}" in ` +
+							`dataSource "${options.dataSource}" for model "${model}" is unknown. ` +
+							`You might be using an outdated version of the UI5 Tooling.`);
 						return;
 					}
 					break;
@@ -149,10 +154,12 @@ class ComponentAnalyzer {
 					break;
 				default:
 					// for custom dataSource types, the class should already be specified in the sap.ui5 models config
+					log.warn(`Unknown dataSource type "${dataSourceType}" defined for model "${model}". ` +
+						`Please configure a "type" in the model config.`);
 					return;
 				}
 			} else {
-				// no type and no dataSource defined
+				log.warn(`Neither a type nor a dataSource has been defined for model "${model}".`);
 				return;
 			}
 			const module = ModuleName.fromUI5LegacyName( modelType );
