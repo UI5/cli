@@ -612,7 +612,7 @@ test("specVersion: Extension with invalid version", async (t) => {
 	};
 	const preprocessor = new Preprocessor();
 	await t.throws(preprocessor.applyExtension(extension),
-		"Invalid specification version defined for extension shims.a: 0.9. " +
+		"Unsupported specification version 0.9 defined for extension shims.a. " +
 		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
 		"Rejected with error");
 });

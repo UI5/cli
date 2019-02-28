@@ -268,8 +268,9 @@ class ProjectPreprocessor {
 
 		if (project.specVersion !== "0.1" && project.specVersion !== "1.0") {
 			throw new Error(
-				`Invalid specification version defined for project ${project.id}: ${project.specVersion}. ` +
-				"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions");
+				`Unsupported specification version ${project.specVersion} defined for project ` +
+				`${project.id}. ` +
+				`See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions`);
 		}
 
 		if (!project.type) {
@@ -325,8 +326,8 @@ class ProjectPreprocessor {
 			throw new Error(`No specification version defined for extension ${extension.metadata.name}`);
 		} else if (extension.specVersion !== "0.1" && extension.specVersion !== "1.0") {
 			throw new Error(
-				`Invalid specification version defined for extension ` +
-				`${extension.metadata.name}: ${extension.specVersion}. ` +
+				`Unsupported specification version ${extension.specVersion} defined for extension ` +
+				`${extension.metadata.name}. ` +
 				`See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions`);
 		} else if (this.appliedExtensions[extension.metadata.name]) {
 			log.verbose(`Extension with the name ${extension.metadata.name} has already been applied. ` +

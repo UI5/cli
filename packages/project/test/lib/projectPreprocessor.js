@@ -1400,7 +1400,7 @@ test("specVersion: Project with invalid version", async (t) => {
 		}
 	};
 	await t.throws(projectPreprocessor.processTree(tree),
-		"Invalid specification version defined for project application.a: 0.9. " +
+		"Unsupported specification version 0.9 defined for project application.a. " +
 		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
 		"Rejected with error");
 });
