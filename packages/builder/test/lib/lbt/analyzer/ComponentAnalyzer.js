@@ -594,3 +594,270 @@ test("_analyzeManifest: Manifest with models", async (t) => {
 	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/resource/ResourceModel.js",
 		"addDependency should be called with the dependency name");
 });
+
+test("_analyzeManifest: Manifest with V2 OData model via dataSources", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/odata/v2/service",
+					"type": "OData",
+					"settings": {
+						"odataVersion": "2.0"
+					}
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
+		"addDependency should be called with the dependency name");
+});
+
+test("_analyzeManifest: Manifest with V2 OData model via dataSources (default type)", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/odata/v2/service"
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
+		"addDependency should be called with the dependency name");
+});
+
+
+test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/odata/v4/service",
+					"type": "OData",
+					"settings": {
+						"odataVersion": "4.0",
+					}
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v4/ODataModel.js",
+		"addDependency should be called with the dependency name");
+});
+
+test("_analyzeManifest: Manifest with JSON model via dataSources", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/json/service",
+					"type": "JSON"
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/json/JSONModel.js",
+		"addDependency should be called with the dependency name");
+});
+
+test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/xml/service",
+					"type": "XML"
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/xml/XMLModel.js",
+		"addDependency should be called with the dependency name");
+});
+
+test("_analyzeManifest: Manifest with model via dataSources (custom type)", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/some/service",
+					"type": "MyType"
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.notCalled, "addDependency was not called");
+});
+
+test("_analyzeManifest: Manifest with model (non existing dataSource)", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/some/service"
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "someOtherService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.notCalled, "addDependency was not called");
+});
+
+test("_analyzeManifest: Manifest with model (non existing dataSource)", async (t) => {
+	const manifest = {
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.notCalled, "addDependency was not called");
+});
+
+test("_analyzeManifest: Manifest with model (no type / no dataSource)", async (t) => {
+	const manifest = {
+		"sap.ui5": {
+			"models": {
+				"": {}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.notCalled, "addDependency was not called");
+});

@@ -75,6 +75,7 @@ class ComponentAnalyzer {
 	 * @private
 	 */
 	_analyzeManifest( manifest, info ) {
+		const sapApp = (manifest && manifest["sap.app"]) || {};
 		const ui5 = (manifest && manifest["sap.ui5"]) || {};
 
 		if ( ui5.resources && ui5.resources.css ) {
@@ -116,12 +117,43 @@ class ComponentAnalyzer {
 
 		// TODO usages
 
+		// See sap/ui/core/Component._createManifestModelConfigurations
 		each( ui5.models, (options, model) => {
+			let modelType;
 			if ( options.type ) {
-				const module = ModuleName.fromUI5LegacyName( options.type );
-				log.verbose("derived model implementation dependency ", module);
-				info.addDependency(module);
+				modelType = options.type;
+			} else if ( options.dataSource && sapApp.dataSources ) {
+				const oDataSource = sapApp.dataSources[options.dataSource];
+				if (!oDataSource) {
+					return;
+				}
+				// default dataSource type is OData
+				const dataSourceType = oDataSource.type || "OData";
+				switch (dataSourceType) {
+				case "OData":
+					if (oDataSource.settings && oDataSource.settings.odataVersion === "4.0") {
+						modelType = "sap.ui.model.odata.v4.ODataModel";
+					} else {
+						modelType = "sap.ui.model.odata.v2.ODataModel";
+					}
+					break;
+				case "JSON":
+					modelType = "sap.ui.model.json.JSONModel";
+					break;
+				case "XML":
+					modelType = "sap.ui.model.xml.XMLModel";
+					break;
+				default:
+					// for custom dataSource types, the class should already be specified in the sap.ui5 models config
+					return;
+				}
+			} else {
+				// no type and no dataSource defined
+				return;
 			}
+			const module = ModuleName.fromUI5LegacyName( modelType );
+			log.verbose("derived model implementation dependency ", module);
+			info.addDependency(module);
 		});
 
 		const routing = ui5.routing;
