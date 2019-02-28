@@ -2,7 +2,15 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.0.2...HEAD).
+
+<a name="v1.0.2"></a>
+## [v1.0.2] - 2019-02-28
+### Bug Fixes
+- Warning log of duplicate module declaration [`9a790a3`](https://github.com/SAP/ui5-builder/commit/9a790a30905cdebe6ba3db283b75983135b967d6)
+- **Bundler:** Create sap-ui-core-dbg.js ([#176](https://github.com/SAP/ui5-builder/issues/176)) [`feb95e4`](https://github.com/SAP/ui5-builder/commit/feb95e41c199d5b455272ba5886cdd79d1502cd7)
+- **ComponentAnalyzer:** Detect model types from dataSource [`efc5cef`](https://github.com/SAP/ui5-builder/commit/efc5cef5fb2988e78dfd1ea26f3c6ba818c69d87)
+
 
 <a name="v1.0.1"></a>
 ## [v1.0.1] - 2019-02-01
@@ -117,6 +125,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.0.2]: https://github.com/SAP/ui5-builder/compare/v1.0.1...v1.0.2
 [v1.0.1]: https://github.com/SAP/ui5-builder/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/SAP/ui5-builder/compare/v0.2.9...v1.0.0
 [v0.2.9]: https://github.com/SAP/ui5-builder/compare/v0.2.8...v0.2.9
