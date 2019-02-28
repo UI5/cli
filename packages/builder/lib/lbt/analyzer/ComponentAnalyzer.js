@@ -133,8 +133,12 @@ class ComponentAnalyzer {
 				case "OData":
 					if (oDataSource.settings && oDataSource.settings.odataVersion === "4.0") {
 						modelType = "sap.ui.model.odata.v4.ODataModel";
-					} else {
+					} else if (!oDataSource.settings || oDataSource.settings.odataVersion === "2.0") {
+						// Default if no version is specified
 						modelType = "sap.ui.model.odata.v2.ODataModel";
+					} else {
+						// Unknown version
+						return;
 					}
 					break;
 				case "JSON":

@@ -661,7 +661,6 @@ test("_analyzeManifest: Manifest with V2 OData model via dataSources (default ty
 		"addDependency should be called with the dependency name");
 });
 
-
 test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t) => {
 	const manifest = {
 		"sap.app": {
@@ -697,6 +696,40 @@ test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t)
 		"addDependency should be called with the dependency name");
 });
 
+test("_analyzeManifest: Manifest with unknown OData version via dataSources", async (t) => {
+	const manifest = {
+		"sap.app": {
+			"dataSources": {
+				"mainService": {
+					"uri": "/uri/to/odata/v4/service",
+					"type": "OData",
+					"settings": {
+						"odataVersion": "5.0",
+					}
+				}
+			}
+		},
+		"sap.ui5": {
+			"models": {
+				"": {
+					"dataSource": "mainService"
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.notCalled, "addDependency was not called");
+});
+
+
 test("_analyzeManifest: Manifest with JSON model via dataSources", async (t) => {
 	const manifest = {
 		"sap.app": {
@@ -729,7 +762,7 @@ test("_analyzeManifest: Manifest with JSON model via dataSources", async (t) => 
 		"addDependency should be called with the dependency name");
 });
 
-test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t) => {
+test("_analyzeManifest: Manifest with XML model via dataSources", async (t) => {
 	const manifest = {
 		"sap.app": {
 			"dataSources": {
