@@ -123,7 +123,7 @@ test("dependency with 2 roots", async (t) => {
 test("dependency graph with rejecting pool", async (t) => {
 	const pool = {
 		async getModuleInfo() {
-			return Promise.reject("myerror");
+			throw new Error("myerror");
 		}
 	};
 	const roots = [{

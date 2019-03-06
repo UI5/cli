@@ -16,7 +16,9 @@ test("analyze: without manifest", async (t) => {
 	const mockPool = {
 		async findResource() {
 			return {
-				buffer: async () => Promise.reject()
+				buffer: async () => {
+					throw new Error("Some error");
+				}
 			};
 		}
 	};

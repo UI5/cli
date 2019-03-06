@@ -61,7 +61,7 @@ test("resources", async (t) => {
 
 class ResourcePoolWithRejectingModuleInfo extends ResourcePool {
 	async getModuleInfo(name) {
-		return Promise.reject("myerror");
+		throw new Error("myerror");
 	}
 }
 
