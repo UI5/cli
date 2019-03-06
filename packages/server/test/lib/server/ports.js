@@ -58,7 +58,7 @@ test("Start server - Port is already taken and an error occurs", async (t) => {
 
 	return t.throws(startServer).then((error) => {
 		t.deepEqual(
-			error,
+			error.message,
 			"Port 3360 already in use.", "Server could not start, port is already taken and no other port is used."
 		);
 	});
@@ -162,7 +162,7 @@ test("Start server - Port is already taken and an error occurs because no other 
 			servers[i].close();
 		}
 		t.deepEqual(
-			error,
+			error.message,
 			"Could not find available ports between 4000 and 4030.",
 			"Server could not start, port is already taken and no other port is used."
 		);

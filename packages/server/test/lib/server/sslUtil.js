@@ -84,7 +84,7 @@ test.serial("Create new certificate and do not install it", (t) => {
 	const result = sslUtil.getSslCertificate(sslPathKey, sslPathCert);
 	return result.catch((error) => {
 		t.deepEqual(
-			error,
+			error.message,
 			"Certificate installation aborted! Please install the SSL certificate manually.",
 			"Certificate install aborted."
 		);
@@ -93,15 +93,13 @@ test.serial("Create new certificate and do not install it", (t) => {
 	});
 });
 
-test.serial("Create new certificate not succeeded", (t) => {
+test.serial("Create new certificate not succeeded", async (t) => {
 	t.plan(5);
 
 	const promptStartStub = sinon.stub(prompt, "start").callsFake(function() {});
 	const promptGetStub = sinon.stub(prompt, "get").callsFake(function(property, callback) {
 		return callback(null, {yesno: "yes"});
 	});
-	const consoleSpyLog = sinon.spy(console, "log");
-	const consoleSpyError = sinon.spy(console, "error");
 
 	mock("devcert-sanscache", function(name) {
 		t.deepEqual(name, "ui5-tooling", "Create certificate for ui5-tooling.");
@@ -110,11 +108,10 @@ test.serial("Create new certificate not succeeded", (t) => {
 			cert: "bbb"
 		});
 	});
-
 	mock("make-dir", function(dirName) {
 		t.pass("make-dir mock reached.");
 
-		return Promise.reject("some error");
+		return Promise.reject(new Error("some error"));
 	});
 
 	mock.reRequire("devcert-sanscache");
@@ -124,16 +121,11 @@ test.serial("Create new certificate not succeeded", (t) => {
 	const sslPath = path.join(process.cwd(), "./test/tmp/ssl/");
 	const sslPathKey = path.join(sslPath, "someOtherServer3.key");
 	const sslPathCert = path.join(sslPath, "someOtherServer3.crt");
-	const result = sslUtil.getSslCertificate(sslPathKey, sslPathCert);
-	return result.then(() => {
-		t.true(consoleSpyLog.calledWith("Could not create certificate"), "Info was logged.");
-		t.true(consoleSpyError.calledWith("some error"), "Error was logged.");
-		promptStartStub.restore();
-		promptGetStub.restore();
-		consoleSpyLog.restore();
-		consoleSpyError.restore();
-		mock.stop("devcert-sanscache");
-		mock.stop("make-dir");
-	});
+	const err = await t.throws(sslUtil.getSslCertificate(sslPathKey, sslPathCert));
+	t.deepEqual(err.message, "some error", "Correct error thrown");
+	promptStartStub.restore();
+	promptGetStub.restore();
+	mock.stop("devcert-sanscache");
+	mock.stop("make-dir");
 });
 

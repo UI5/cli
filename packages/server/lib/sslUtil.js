@@ -67,7 +67,7 @@ function createAndInstallCertificate(keyPath, certPath) {
 
 		prompt.get(property, function(err, result) {
 			if (result.yesno !== "" && result.yesno !== "yes") {
-				reject("Certificate installation aborted! Please install the SSL certificate manually.");
+				reject(new Error("Certificate installation aborted! Please install the SSL certificate manually."));
 				return;
 			}
 			resolve();
@@ -96,9 +96,6 @@ function createAndInstallCertificate(keyPath, certPath) {
 				makeDir(path.dirname(certPath)).then(() => writeFile(certPath, cert))
 			]).then(function() {
 				return {key, cert};
-			}).catch((err) => {
-				console.log("Could not create certificate");
-				console.error(err);
 			});
 		});
 		/* eslint-enable no-console */

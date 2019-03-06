@@ -49,10 +49,10 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 
 			if (!foundPort) {
 				if (changePortIfInUse) {
-					reject(`Could not find available ports between ${port} and ${portMax}.`);
+					reject(new Error(`Could not find available ports between ${port} and ${portMax}.`));
 					return;
 				} else {
-					reject(`Port ${port} already in use.`);
+					reject(new Error(`Port ${port} already in use.`));
 					return;
 				}
 			}
