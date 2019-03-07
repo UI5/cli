@@ -2,6 +2,7 @@ const path = require("path");
 const FsAdapter = require("./adapters/FileSystem");
 const MemAdapter = require("./adapters/Memory");
 const ReaderCollection = require("./ReaderCollection");
+const ReaderCollectionPrioritized = require("./ReaderCollectionPrioritized");
 const DuplexCollection = require("./DuplexCollection");
 const Resource = require("./Resource");
 
@@ -28,14 +29,21 @@ const resourceFactory = {
 	 * @param {boolean} [parameters.useNamespaces=false] Use project namespaces as path prefixes
 	 * @returns {Object} Object containing <code>source</code> and <code>dependencies</code> resource readers
 	 */
-	createCollectionsForTree(tree, {useNamespaces=false} = {}) {
+	createCollectionsForTree(tree, {useNamespaces=false, virtualReaders={}} = {}) {
+		// TODO: virtualReaders is private API. The virtual reader of a project should be stored on the
+		//	project itself. This requires projects to become objects independent from the dependency tree.
+		//	Also see: https://github.com/SAP/ui5-project/issues/122
+
 		const dependencyCollection = [];
 		const dependencyPathIndex = {};
+		const virtualReaderIndex = {};
 		const sourceResourceLocators = [];
 
 		function processDependencies(project) {
 			if (project.resources && project.resources.pathMappings) {
+				const fsReaders = [];
 				for (let virBasePath in project.resources.pathMappings) {
+					// Create an fs reader for every path mapping
 					if (project.resources.pathMappings.hasOwnProperty(virBasePath)) {
 						const fsPath = project.resources.pathMappings[virBasePath];
 						const fsBasePath = path.join(project.path, fsPath);
@@ -51,8 +59,22 @@ const resourceFactory = {
 						}
 						dependencyPathIndex[key] = true;
 
-						dependencyCollection.push(resourceFactory.createAdapter({fsBasePath, virBasePath, project}));
+						const fsReader = resourceFactory.createAdapter({fsBasePath, virBasePath, project});
+						fsReaders.push(fsReader);
 					}
+				}
+
+				if (!virtualReaderIndex[project.metadata.name] && virtualReaders[project.metadata.name]) {
+					// Mix-in virtual reader of dependency if available and not already added
+					virtualReaderIndex[project.metadata.name] = true;
+					const virtualReader = virtualReaders[project.metadata.name];
+					const readerCollection = new ReaderCollectionPrioritized({
+						name: `fs & vir reader collection for project ${project.metadata.name}`,
+						readers: [virtualReader, ...fsReaders]
+					});
+					dependencyCollection.push(readerCollection);
+				} else {
+					dependencyCollection.push(...fsReaders);
 				}
 			}
 
