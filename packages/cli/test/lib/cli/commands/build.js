@@ -24,6 +24,7 @@ const defaultBuilderArgs = {
 	buildDependencies: undefined,
 	dev: false,
 	selfContained: false,
+	jsdoc: false,
 	devExcludeProject: undefined,
 	includedTasks: undefined,
 	excludedTasks: undefined
@@ -80,5 +81,21 @@ test.serial("ui5 build self-contained", async (t) => {
 		builderStub.getCall(0).args[0],
 		Object.assign({}, defaultBuilderArgs, {selfContained: true}),
 		"Self-contained build called with expected arguments"
+	);
+});
+
+test.serial("ui5 build jsdoc", async (t) => {
+	normalizerStub.resolves({
+		metadata:
+		{
+			name: "Sample"
+		}
+	});
+	args._ = ["build", "jsdoc"];
+	await build.handler(args);
+	t.deepEqual(
+		builderStub.getCall(0).args[0],
+		Object.assign({}, defaultBuilderArgs, {jsdoc: true}),
+		"JSDoc build called with expected arguments"
 	);
 });

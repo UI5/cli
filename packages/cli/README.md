@@ -68,6 +68,7 @@ The CLI automatically checks for updates using [update-notifier](https://github.
 ```
 Commands:
 	dev             Dev build: Skips non-essential and time-intensive tasks during build
+	jsdoc           Build JSDoc resources
 	preload         (default) Build project and create preload bundles
 	self-contained  Build project and create self-contained bundle
 

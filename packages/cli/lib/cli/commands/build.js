@@ -16,6 +16,11 @@ build.builder = function(cli) {
 			builder: noop,
 			middlewares: [baseMiddleware]
 		})
+		.command("jsdoc", "Build JSDoc resources", {
+			handler: handleBuild,
+			builder: noop,
+			middlewares: [baseMiddleware]
+		})
 		.command("preload", "(default) Build project and create preload bundles", {
 			handler: handleBuild,
 			builder: noop,
@@ -78,6 +83,7 @@ function handleBuild(argv) {
 			buildDependencies: argv.all,
 			dev: command === "dev",
 			selfContained: command === "self-contained",
+			jsdoc: command === "jsdoc",
 			devExcludeProject: argv["dev-exclude-project"],
 			includedTasks: argv["include-task"],
 			excludedTasks: argv["exclude-task"]
