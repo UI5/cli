@@ -1,7 +1,7 @@
 const npmlog = require("npmlog");
 
+const levels = ["silly", "verbose", "info", "warn", "error"];
 if (process.env.UI5_LOG_LVL) {
-	const levels = ["silly", "verbose", "info", "warn", "error"];
 	const logLvl = process.env.UI5_LOG_LVL;
 	if (!levels.includes(logLvl)) {
 		throw new Error(`UI5 Logger: Environment variable UI5_LOG_LVL is set to an unkown log level "${logLvl}". ` +
@@ -25,7 +25,19 @@ class Logger {
 	}
 
 	isLevelEnabled(levelName) {
-		return true;
+		const currIdx = levels.indexOf(npmlog.level);
+		const reqIdx = levels.indexOf(levelName);
+		if (currIdx === -1) {
+			throw new Error(`Failed to find current log level ${npmlog.level} in list of expected log levels`);
+		}
+		if (reqIdx === -1) {
+			throw new Error(`Unkown log level "${levelName}"`);
+		}
+		if (reqIdx >= currIdx) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	silly(...messages) {
