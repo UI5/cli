@@ -33,15 +33,15 @@ Configuration can also be supplied by other means. In cases where JSON is used, 
 specVersion: "1.0"
 type: application|library|module
 metadata:
-  name: testsuite
+  name: some.project.name
   copyright: |-
    <project name>
     * (c) Copyright 2009-${currentYear} <my company> <my license>
 resources:
   configuration:
     paths:
-        "<abstract path 1>": "<physical path 1>"
-        "<abstract path 2>": "<physical path 2>"
+      "<virtual path 1>": "<physical path 1>"
+      "<virtual path 2>": "<physical path 2>"
 builder:
   customTasks:
     - name: custom-task-name-1
@@ -52,6 +52,9 @@ builder:
       afterTask: custom-task-name-1
       configuration:
         color: blue
+  jsdoc:
+    excludes:
+      - some/project/name/thirdparty/**
 server:
   settings:
     port: 8099
@@ -82,9 +85,11 @@ Some general information:
 
 #### builder (optional)
 - `customTasks` (optional, list): In this block, you define additional custom build tasks, see [here](./BuildExtensibility.md) for a detailed explanation and examples of the build extensibility. Each entry in the `customTasks` list consists of the following options:
-  - `name` (mandatory): The name of the custom task
-  - `afterTask` or `beforeTask` (only one, mandatory): The name of the build task after or before which your custom task will be executed.
-  - `configuration` (optional): Additional configuration that is passed to the custom build task
+    - `name` (mandatory): The name of the custom task
+    - `afterTask` or `beforeTask` (only one, mandatory): The name of the build task after or before which your custom task will be executed.
+    - `configuration` (optional): Additional configuration that is passed to the custom build task
+- `jsdoc`
+    - `excludes`: List of glob patterns. Matching resources will be ignored from the JSDoc build
 
 #### server (optional)
 - `settings` (not yet implemented)
