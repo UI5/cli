@@ -6,8 +6,8 @@ The content represents the **[Specification Version](#specification-versions) `1
 ## Contents
 - [Project Configuration](#project-configuration)
 - [Extension Configuration](#extension-configuration)
-	+ [Tasks](#tasks)
-	+ [Project Shims](#project-shims)
+    + [Tasks](#tasks)
+    + [Project Shims](#project-shims)
 - [Specification Versions](#specification-versions)
 
 ## Project Configuration
@@ -70,12 +70,12 @@ Some general information:
 #### resources (optional)
 - `configuration`
     - `paths`: Mapping between virtual paths and physical paths. Physical paths are always relative to the projects root directory
-    	+ `webapp: webapp`: This path will be mapped to the virtual path `/`.  
-    	  *(Only available for projects of type `application`)*
-    	+ `src: src`: This path will be mapped to the virtual path `/resources`.  
-    	  *(Only available for projects of type `library`)*
-    	+ `test: test`: This path will be mapped to the virtual path `/test-resources`.  
-    	  *(Only available for projects of type `library`)*
+        + `webapp: webapp`: This path will be mapped to the virtual path `/`.  
+          *(Only available for projects of type `application`)*
+        + `src: src`: This path will be mapped to the virtual path `/resources`.  
+          *(Only available for projects of type `library`)*
+        + `test: test`: This path will be mapped to the virtual path `/test-resources`.  
+          *(Only available for projects of type `library`)*
         + `<virtual path>: <physical path>` (default `/: ./`): Any virtual path mapping can be defined here.  
           *(Only available for projects of type `module`)*  
           It is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/first/library/module-xy`).
@@ -111,31 +111,30 @@ specVersion: "1.0"
 kind: extension
 type: project-shim
 metadata:
-    name: <name of project shim extension>
+  name: <name of project shim extension>
 shims:
-    configurations:
-        <module name (id)>:
-            specVersion: "1.0",
-            type: <project type>
-            metadata:
-                name: <project name>
-        <module name (id)>:
-            specVersion: "1.0",
-            type: <project type>
-            metadata:
-                name: <project name>
-    dependencies:
-        <module name (id)>:
-            - <module name (id)>
-            - <module name (id)>
-            - <module name (id)>
-            - ...
-    collections:
-        <module name>:
-            modules:
-                <id>: <relative path>
-                <id>: <relative path>
-                <id>: <relative path>
+  configurations:
+    <module name (id)>:
+      specVersion: "1.0",
+      type: <project type>
+      metadata:
+        name: <project name>
+    <module name (id)>:
+      specVersion: "1.0",
+      type: <project type>
+      metadata:
+        name: <project name>
+  dependencies:
+    <module name (id)>:
+      - <module name (id)>
+      - <module name (id)>
+      - <module name (id)>
+  collections:
+    <module name>:
+      modules:
+        <id>: <relative path>
+        <id>: <relative path>
+        <id>: <relative path>
 ```
 
 "module name" refers to the name of the module as identified by the used translator. E.g. when using the npm translator, the name declared in the modules `package.json` is used here. In most cases, the module name also becomes the internal ID of the project.
@@ -248,41 +247,41 @@ The shim defined in the application configures the legacy libraries and defines 
 specVersion: "1.0"
 type: application
 metadata:
-    name: application.a
+  name: application.a
 ----
 specVersion: "1.0"
 kind: extension
 type: project-shim
 metadata:
-    name: legacy-lib-shims
+  name: legacy-lib-shims
 shims:
-    configurations:
-        legacy-library-a:
-            specVersion: "1.0"
-            type: library
-            metadata:
-                name: legacy.library.a
-        legacy-library-b:
-            specVersion: "1.0"
-            type: library
-            metadata:
-                name: legacy.library.b
-        legacy-library-x:
-            specVersion: "1.0"
-            type: library
-            metadata:
-                name: legacy.library.x
-    dependencies:
-        legacy-library-a:
-            - legacy-library-b
-            - legacy-library-x
-        legacy-library-b:
-            - legacy-library-x
-    collections:
-        legacy-libs:
-            modules:
-                legacy-library-a: src/library.a
-                legacy-library-b: src/library.b
+  configurations:
+    legacy-library-a:
+      specVersion: "1.0"
+      type: library
+      metadata:
+        name: legacy.library.a
+    legacy-library-b:
+      specVersion: "1.0"
+      type: library
+      metadata:
+        name: legacy.library.b
+    legacy-library-x:
+      specVersion: "1.0"
+      type: library
+      metadata:
+        name: legacy.library.x
+  dependencies:
+    legacy-library-a:
+      - legacy-library-b
+      - legacy-library-x
+    legacy-library-b:
+      - legacy-library-x
+  collections:
+    legacy-libs:
+      modules:
+        legacy-library-a: src/library.a
+        legacy-library-b: src/library.b
 ```
 
 ## Specification Versions

@@ -73,13 +73,12 @@ id: testsuite
 version: ""
 path: "./"
 dependencies:
-- id: sap.f
-  version: ""
-  path: "../sap.f"
-
-- id: sap.m
-  version: ""
-  path: "../sap.m"
+  - id: sap.f
+    version: ""
+    path: "../sap.f"
+  - id: sap.m
+    version: ""
+    path: "../sap.m"
 ````
 
 This can be used via `ui5 serve -b static:/path/to/projectDependencies.yaml`

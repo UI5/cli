@@ -21,12 +21,12 @@ metadata:
   name: my.library
 builder:
   customTasks:
-  - name: babel
-    beforeTask: generateComponentPreload
-  - name: generateMarkdownFiles
-    afterTask: uglify
-    configuration:
-      color: blue
+    - name: babel
+      beforeTask: generateComponentPreload
+    - name: generateMarkdownFiles
+      afterTask: uglify
+      configuration:
+        color: blue
 ````
 
 ### Example: Connect multiple custom tasks
@@ -42,10 +42,10 @@ metadata:
   name: my.library
 builder:
   customTasks:
-  - name: myCustomTask1
-    beforeTask: generateComponentPreload
-  - name: myCustomTask2
-    afterTask: myCustomTask1
+    - name: myCustomTask1
+      beforeTask: generateComponentPreload
+    - name: myCustomTask2
+      afterTask: myCustomTask1
 ````
 
 ## Custom Task Extension
@@ -83,10 +83,10 @@ metadata:
   name: my.library
 builder:
   customTasks:
-  - name: generateMarkdownFiles
-    afterTask: uglify
-    configuration:
-      color: blue
+    - name: generateMarkdownFiles
+      afterTask: uglify
+      configuration:
+        color: blue
 ---
 # Task extension as part of your project
 specVersion: "1.0"
