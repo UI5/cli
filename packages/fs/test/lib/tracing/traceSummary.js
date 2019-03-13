@@ -16,7 +16,7 @@ test("traceSummary", async (t) => {
 	const expectedReport = "==========================\n[=> TRACE SUMMARY:\n" +
 		"  3.43 s elapsed time \n" +
 		"  1 trace calls \n" +
-		"  1 GLOB executions\n" +
+		"  1 glob executions\n" +
 		"  1 path stats\n" +
 		"  1 rl-collections involed:\n" +
 		"      2x collection_two\n" +

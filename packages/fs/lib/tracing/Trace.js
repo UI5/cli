@@ -51,7 +51,7 @@ class Trace {
 		report += `[Trace: ${this._name}\n`;
 		report += `  ${time} elapsed time \n`;
 		if (this._globCalls) {
-			report += `  ${this._globCalls} GLOB executions\n`;
+			report += `  ${this._globCalls} glob executions\n`;
 		}
 		if (this._pathCalls) {
 			report += `  ${this._pathCalls} path stats\n`;

@@ -29,14 +29,14 @@ function matchGlobResult(t, resources, expectedResources) {
 }
 
 // From FileSystem
-test("GLOB all", (t) => {
+test("glob all", (t) => {
 	return t.context.readerWriter.filesystem.byGlob("/**/*.*")
 		.then((resources) => {
 			t.deepEqual(resources.length, 16, "Found all resources");
 		});
 });
 
-test("GLOB all from root only", (t) => {
+test("glob all from root only", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob("/*/*.*")
 		.then((resources) => {
@@ -44,7 +44,7 @@ test("GLOB all from root only", (t) => {
 		});
 });
 
-test("GLOB all with virtual base path fully matching", (t) => {
+test("glob all with virtual base path fully matching", (t) => {
 	t.plan(1);
 	return t.context.readerWriter.filesystem.byGlob("/test-resources/**/*.*")
 		.then((resources) => {
@@ -52,7 +52,7 @@ test("GLOB all with virtual base path fully matching", (t) => {
 		});
 });
 
-test("GLOB with virtual base path partially matching", (t) => {
+test("glob with virtual base path partially matching", (t) => {
 	t.plan(1);
 	const adapter = new FsAdapter({
 		fsBasePath: "./test/fixtures/glob/application.a",
@@ -64,7 +64,7 @@ test("GLOB with virtual base path partially matching", (t) => {
 		});
 });
 
-test("Check for unstable order of GLOB result", (t) => {
+test("Check for unstable order of glob result", (t) => {
 	t.plan(1);
 	return t.context.readerWriter.filesystem.byGlob("/**/*.*")
 		.then((resources) => {
@@ -97,7 +97,7 @@ test("Check for unstable order of GLOB result", (t) => {
 		});
 });
 
-test("GLOB with multiple patterns", (t) => {
+test("glob with multiple patterns", (t) => {
 	t.plan(5);
 	return t.context.readerWriter.filesystem.byGlob(["/**/*.yaml", "/test-resources/**/i18n_de.properties"])
 		.then((resources) => {
@@ -112,7 +112,7 @@ test("GLOB with multiple patterns", (t) => {
 });
 
 
-test("GLOB only a specific filetype (yaml)", (t) => {
+test("glob only a specific filetype (yaml)", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob("/**/*.yaml")
 		.then((resources) => {
@@ -122,7 +122,7 @@ test("GLOB only a specific filetype (yaml)", (t) => {
 		});
 });
 
-test("GLOB two specific filetype (yaml and js)", (t) => {
+test("glob two specific filetype (yaml and js)", (t) => {
 	t.plan(4);
 	return t.context.readerWriter.filesystem.byGlob("/**/*.{yaml,js}")
 		.then((resources) => {
@@ -135,7 +135,7 @@ test("GLOB two specific filetype (yaml and js)", (t) => {
 		});
 });
 
-test("GLOB only a specific filetype (json) with exclude pattern", (t) => {
+test("glob only a specific filetype (json) with exclude pattern", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob([
 		"/**/*.json",
@@ -147,7 +147,7 @@ test("GLOB only a specific filetype (json) with exclude pattern", (t) => {
 	});
 });
 
-test("GLOB only a specific filetype (json) with multiple exclude pattern", (t) => {
+test("glob only a specific filetype (json) with multiple exclude pattern", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob([
 		"/**/*.json",
@@ -158,7 +158,7 @@ test("GLOB only a specific filetype (json) with multiple exclude pattern", (t) =
 	});
 });
 
-test("GLOB (normalized) root directory (=> fs root)", (t) => {
+test("glob (normalized) root directory (=> fs root)", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob([
 		"/*/",
@@ -170,7 +170,7 @@ test("GLOB (normalized) root directory (=> fs root)", (t) => {
 	});
 });
 
-test("GLOB root directory", (t) => {
+test("glob root directory", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob("/test-resources/", {nodir: false})
 		.then((resources) => {
@@ -178,7 +178,7 @@ test("GLOB root directory", (t) => {
 		});
 });
 
-test("GLOB subdirectory", (t) => {
+test("glob subdirectory", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob([
 		"/test-resources/app*a",

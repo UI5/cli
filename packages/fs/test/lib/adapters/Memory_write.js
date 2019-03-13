@@ -1,7 +1,7 @@
 const {test} = require("ava");
 const {resourceFactory} = require("../../../");
 
-test("GLOB resources from application.a w/ virtual base path prefix", async (t) => {
+test("glob resources from application.a w/ virtual base path prefix", async (t) => {
 	const dest = resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
@@ -16,7 +16,7 @@ test("GLOB resources from application.a w/ virtual base path prefix", async (t) 
 		});
 });
 
-test("GLOB resources from application.a w/o virtual base path prefix", async (t) => {
+test("glob resources from application.a w/o virtual base path prefix", async (t) => {
 	const dest = resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});

@@ -32,12 +32,12 @@ class DuplexCollection extends AbstractReaderWriter {
 	}
 
 	/**
-	 * Locates resources by GLOB.
+	 * Locates resources by glob.
 	 *
 	 * @private
-	 * @param {string|string[]} virPattern GLOB pattern as string or an array of
+	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
-	 * @param {Object} options GLOB options
+	 * @param {Object} options glob options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with a list of resources
 	 */
@@ -46,11 +46,11 @@ class DuplexCollection extends AbstractReaderWriter {
 	}
 
 	/**
-	 * Locates resources by GLOB from source reader only.
+	 * Locates resources by glob from source reader only.
 	 * For found resources that are also available in the writer, the writer resource will be returned.
 	 *
-	 * @param {string} virPattern GLOB pattern for virtual directory structure
-	 * @param {Object} [options] GLOB options
+	 * @param {string} virPattern glob pattern for virtual directory structure
+	 * @param {Object} [options] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
