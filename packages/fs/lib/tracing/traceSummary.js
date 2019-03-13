@@ -47,6 +47,9 @@ function report() {
 }
 
 function someTraceStarted() {
+	if (!log.isLevelEnabled("verbose")) {
+		return;
+	}
 	if (!traceData) {
 		init();
 	}
@@ -60,9 +63,14 @@ function someTraceStarted() {
 
 function someTraceEnded() {
 	return new Promise(function(resolve, reject) {
+		if (!active) {
+			resolve();
+			return;
+		}
 		tracesRunning--;
 		if (tracesRunning > 0) {
 			resolve();
+			return;
 		}
 
 		if (timeoutId) {
