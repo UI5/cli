@@ -28,11 +28,11 @@ class FileSystem extends AbstractAdapter {
 	}
 
 	/**
-	 * Locate resources by GLOB.
+	 * Locate resources by glob.
 	 *
 	 * @private
-	 * @param {Array} patterns Array of GLOB patterns
-	 * @param {Object} [options={}] GLOB options
+	 * @param {Array} patterns Array of glob patterns
+	 * @param {Object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources

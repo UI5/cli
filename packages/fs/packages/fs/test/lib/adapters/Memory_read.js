@@ -29,7 +29,7 @@ function matchGlobResult(t, resources, expectedResources) {
 	}
 }
 
-test("GLOB resources from application.a w/ virtual base path prefix", async (t) => {
+test("glob resources from application.a w/ virtual base path prefix", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
@@ -44,7 +44,7 @@ test("GLOB resources from application.a w/ virtual base path prefix", async (t) 
 	t.deepEqual(resources.length, 1, "Found exactly one resource");
 });
 
-test("GLOB resources from application.a w/o virtual base path prefix", async (t) => {
+test("glob resources from application.a w/o virtual base path prefix", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
@@ -59,7 +59,7 @@ test("GLOB resources from application.a w/o virtual base path prefix", async (t)
 	t.deepEqual(resources.length, 1, "Found exactly one resource");
 });
 
-test("GLOB virtual directory w/o virtual base path prefix", async (t) => {
+test("glob virtual directory w/o virtual base path prefix", async (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/one/two"
@@ -69,7 +69,7 @@ test("GLOB virtual directory w/o virtual base path prefix", async (t) => {
 	t.deepEqual(resources.length, 1, "Found exactly one resource");
 });
 
-test("GLOB virtual directory w/ virtual base path prefix", async (t) => {
+test("glob virtual directory w/ virtual base path prefix", async (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/one/two/"
@@ -79,7 +79,7 @@ test("GLOB virtual directory w/ virtual base path prefix", async (t) => {
 	t.deepEqual(resources.length, 1, "Found exactly one resource");
 });
 
-test("GLOB virtual directory w/o virtual base path prefix and nodir: true", async (t) => {
+test("glob virtual directory w/o virtual base path prefix and nodir: true", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/one/two"
 	});
@@ -88,7 +88,7 @@ test("GLOB virtual directory w/o virtual base path prefix and nodir: true", asyn
 	t.deepEqual(resources.length, 0, "Found no resources");
 });
 
-test("GLOB virtual directory w/ virtual base path prefix and nodir: true", async (t) => {
+test("glob virtual directory w/ virtual base path prefix and nodir: true", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/one/two/"
 	});
@@ -98,7 +98,7 @@ test("GLOB virtual directory w/ virtual base path prefix and nodir: true", async
 });
 
 /* Load more data from FS into memory */
-test("GLOB all", async (t) => {
+test("glob all", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
@@ -107,7 +107,7 @@ test("GLOB all", async (t) => {
 	t.deepEqual(resources.length, 16, "Found all resources");
 });
 
-test("GLOB all from root", async (t) => {
+test("glob all from root", async (t) => {
 	t.plan(2);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -117,7 +117,7 @@ test("GLOB all from root", async (t) => {
 	matchGlobResult(t, resources, ["/app/package.json"]);
 });
 
-test("GLOB all with virtual path included", async (t) => {
+test("glob all with virtual path included", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
 	});
@@ -127,7 +127,7 @@ test("GLOB all with virtual path included", async (t) => {
 	t.deepEqual(resources.length, 16, "Found all resources");
 });
 
-test("GLOB a specific filetype (yaml)", async (t) => {
+test("glob a specific filetype (yaml)", async (t) => {
 	t.plan(2);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -140,7 +140,7 @@ test("GLOB a specific filetype (yaml)", async (t) => {
 	});
 });
 
-test("GLOB two specific filetype (yaml and js)", async (t) => {
+test("glob two specific filetype (yaml and js)", async (t) => {
 	t.plan(4);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -156,7 +156,7 @@ test("GLOB two specific filetype (yaml and js)", async (t) => {
 	matchGlobResult(t, resources, expectedFiles);
 });
 
-test("GLOB a specific filetype (json) with exclude pattern", async (t) => {
+test("glob a specific filetype (json) with exclude pattern", async (t) => {
 	t.plan(3);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -174,7 +174,7 @@ test("GLOB a specific filetype (json) with exclude pattern", async (t) => {
 	matchGlobResult(t, resources, expectedFiles);
 });
 
-test("GLOB a specific filetype (json) with multiple exclude pattern", async (t) => {
+test("glob a specific filetype (json) with multiple exclude pattern", async (t) => {
 	t.plan(2);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -189,7 +189,7 @@ test("GLOB a specific filetype (json) with multiple exclude pattern", async (t) 
 	matchGlobResult(t, resources, ["/app/application.b/webapp/manifest.json"]);
 });
 
-test("GLOB (normalized) root directory (=> fs root)", async (t) => {
+test("glob (normalized) root directory (=> fs root)", async (t) => {
 	t.plan(2);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -205,7 +205,7 @@ test("GLOB (normalized) root directory (=> fs root)", async (t) => {
 	});
 });
 
-test("GLOB root directory", async (t) => {
+test("glob root directory", async (t) => {
 	t.plan(2);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"
@@ -216,7 +216,7 @@ test("GLOB root directory", async (t) => {
 	matchGlobResult(t, resources, ["/app"]);
 });
 
-test("GLOB subdirectory", async (t) => {
+test("glob subdirectory", async (t) => {
 	t.plan(3);
 	const readerWriter = resourceFactory.createAdapter({
 		virBasePath: "/app/"

@@ -30,7 +30,7 @@ function report() {
 	report += `  ${time} elapsed time \n`;
 	report += `  ${traceData.traceCalls} trace calls \n`;
 	if (traceData.globCalls) {
-		report += `  ${traceData.globCalls} GLOB executions\n`;
+		report += `  ${traceData.globCalls} glob executions\n`;
 	}
 	if (traceData.pathCalls) {
 		report += `  ${traceData.pathCalls} path stats\n`;

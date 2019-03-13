@@ -30,13 +30,13 @@ class AbstractAdapter extends AbstractReaderWriter {
 	}
 
 	/**
-	 * Locates resources by GLOB.
+	 * Locates resources by glob.
 	 *
 	 * @abstract
 	 * @private
-	 * @param {string|string[]} virPattern GLOB pattern as string or an array of
+	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
-	 * @param {Object} [options={}] GLOB options
+	 * @param {Object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
@@ -74,11 +74,11 @@ class AbstractAdapter extends AbstractReaderWriter {
 	}
 
 	/**
-	 * Normalizes virtual GLOB patterns.
+	 * Normalizes virtual glob patterns.
 	 *
 	 * @private
-	 * @param {string} virPattern GLOB pattern for virtual directory structure
-	 * @returns {Promise<string[]>} Promise resolving to list of normalized GLOB patterns
+	 * @param {string} virPattern glob pattern for virtual directory structure
+	 * @returns {Promise<string[]>} Promise resolving to list of normalized glob patterns
 	 */
 	_normalizePattern(virPattern) {
 		return Promise.resolve().then(() => {

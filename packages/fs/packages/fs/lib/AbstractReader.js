@@ -21,7 +21,7 @@ class AbstractReader {
 	}
 
 	/**
-	 * Locates resources by matching GLOB patterns.
+	 * Locates resources by matching glob patterns.
 	 *
 	 * @example
 	 * byGlob("**‏/*.{html,htm}");
@@ -29,9 +29,9 @@ class AbstractReader {
 	 * byGlob("/pony/*");
 	 *
 	 * @public
-	 * @param {string|string[]} virPattern GLOB pattern as string or array of glob patterns for
+	 * @param {string|string[]} virPattern glob pattern as string or array of glob patterns for
 	 * 										virtual directory structure
-	 * @param {Object} [options] GLOB options
+	 * @param {Object} [options] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -71,13 +71,13 @@ class AbstractReader {
 	}
 
 	/**
-	 * Locates resources by GLOB.
+	 * Locates resources by one or more glob patterns.
 	 *
 	 * @abstract
 	 * @protected
-	 * @param {string|string[]} virPattern GLOB pattern as string or an array of
+	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
-	 * @param {Object} options GLOB options
+	 * @param {Object} options glob options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -86,12 +86,12 @@ class AbstractReader {
 	}
 
 	/**
-	 * Locate resources by GLOB
+	 * Locate resources by matching a single glob pattern.
 	 *
 	 * @abstract
 	 * @protected
-	 * @param {string} pattern GLOB pattern
-	 * @param {Object} options GLOB options
+	 * @param {string} pattern glob pattern
+	 * @param {Object} options glob options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
