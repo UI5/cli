@@ -100,3 +100,13 @@ test("fs: stat", (t) => {
 	const stat = promisify(fs.stat);
 	return assertStat(t, stat, path.join(__dirname, "..", "fixtures", "fsInterface"), "/foo.txt");
 });
+
+test("MemAdapter: mkdir", async (t) => {
+	const memAdapter = new MemAdapter({
+		virBasePath: "/"
+	});
+	const fs = fsInterface(memAdapter);
+	const mkdir = promisify(fs.mkdir);
+
+	await t.notThrows(mkdir("pony"), "mkdir executes successfully");
+});
