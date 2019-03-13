@@ -109,7 +109,7 @@ class FileSystem extends AbstractAdapter {
 	 * @param {string} virPath Virtual path
 	 * @param {Object} options Options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource or null if not found
 	 */
 	_byPath(virPath, options, trace) {
 		return new Promise((resolve, reject) => {

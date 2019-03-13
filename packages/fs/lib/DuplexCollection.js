@@ -35,7 +35,8 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * Locates resources by GLOB.
 	 *
 	 * @private
-	 * @param {string} virPattern GLOB pattern for virtual directory structure
+	 * @param {string|string[]} virPattern GLOB pattern as string or an array of
+	 *         glob patterns for virtual directory structure
 	 * @param {Object} options GLOB options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with a list of resources
@@ -49,10 +50,11 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * For found resources that are also available in the writer, the writer resource will be returned.
 	 *
 	 * @param {string} virPattern GLOB pattern for virtual directory structure
-	 * @param {Object} [options={}] GLOB options
+	 * @param {Object} [options] GLOB options
+	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
-	byGlobSource(virPattern, options = {}) {
+	byGlobSource(virPattern, options = {nodir: true}) {
 		return this._reader.byGlob(virPattern, options).then((resources) => {
 			return Promise.all(resources.map((readerResource) => {
 				return this._writer.byPath(readerResource.getPath()).then((writerResource) => {

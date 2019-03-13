@@ -21,17 +21,17 @@ class AbstractReader {
 	}
 
 	/**
-	 * Locates resourcess by GLOB.
+	 * Locates resources by matching GLOB patterns.
 	 *
 	 * @example
-	 * <caption>Example patterns:</caption>
-	 * // **\u00002F*.{html,htm}
-	 * // **\u00002F.library
-	 * // /pony/*
+	 * byGlob("**‏/*.{html,htm}");
+	 * byGlob("**‏/.library");
+	 * byGlob("/pony/*");
 	 *
 	 * @public
-	 * @param {string|Array} virPattern GLOB pattern as string or array of glob patterns for virtual directory structure
-	 * @param {Object} [options={}] GLOB options
+	 * @param {string|string[]} virPattern GLOB pattern as string or array of glob patterns for
+	 * 										virtual directory structure
+	 * @param {Object} [options] GLOB options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -54,11 +54,11 @@ class AbstractReader {
 	}
 
 	/**
-	 * Locates resources by path.
+	 * Locates resources by matching a given path.
 	 *
 	 * @public
 	 * @param {string} virPath Virtual path
-	 * @param {Object} options Options
+	 * @param {Object} [options] Options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
@@ -75,7 +75,8 @@ class AbstractReader {
 	 *
 	 * @abstract
 	 * @protected
-	 * @param {string} virPattern GLOB pattern for virtual directory structure
+	 * @param {string|string[]} virPattern GLOB pattern as string or an array of
+	 *         glob patterns for virtual directory structure
 	 * @param {Object} options GLOB options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources

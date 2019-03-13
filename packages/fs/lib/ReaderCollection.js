@@ -25,7 +25,8 @@ class ReaderCollection extends AbstractReader {
 	 * Locates resources by GLOB.
 	 *
 	 * @private
-	 * @param {string} pattern GLOB pattern
+	 * @param {string|string[]} pattern GLOB pattern as string or an array of
+	 *         glob patterns for virtual directory structure
 	 * @param {Object} options GLOB options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources

@@ -34,7 +34,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 *
 	 * @abstract
 	 * @private
-	 * @param {string|Array} virPattern GLOB pattern as string or an array of
+	 * @param {string|string[]} virPattern GLOB pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {Object} [options={}] GLOB options
 	 * @param {boolean} [options.nodir=true] Do not match directories
