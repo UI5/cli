@@ -132,7 +132,7 @@ test("DuplexCollection: _byGlobSource with default options and a reader finding 
 	return duplexCollection.byGlobSource("anyPattern")
 		.then(function(resources) {
 			t.true(Array.isArray(resources), "Found resources are returned as an array");
-			t.true(abstractReader.byGlob.calledWithExactly("anyPattern", {}),
+			t.true(abstractReader.byGlob.calledWithExactly("anyPattern", {nodir: true}),
 				"Delegated globbing task correctly to readers");
 			t.true(abstractWriter.byPath.calledWithExactly("my/path"),
 				"byPath called on writer");

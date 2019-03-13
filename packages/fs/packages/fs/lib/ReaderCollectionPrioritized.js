@@ -13,7 +13,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 *
 	 * @param {Object} parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers Prioritized list of resource readers (first is tried first)
+	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers Prioritized list of resource readers
+	 * 																(first is tried first)
 	 */
 	constructor({readers, name}) {
 		super();
@@ -25,7 +26,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * Locates resources by GLOB.
 	 *
 	 * @private
-	 * @param {string} pattern GLOB pattern
+	 * @param {string|string[]} pattern GLOB pattern as string or an array of
+	 *         glob patterns for virtual directory structure
 	 * @param {Object} options GLOB options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
