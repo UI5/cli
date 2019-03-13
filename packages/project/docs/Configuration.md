@@ -52,9 +52,14 @@ builder:
       afterTask: custom-task-name-1
       configuration:
         color: blue
+  resources:
+    excludes:
+      - "/resources/some/project/name/test_results/**"
+      - "/test-resources/**"
+      - "!/test-resources/some/project/name/demo-app/**"
   jsdoc:
     excludes:
-      - some/project/name/thirdparty/**
+      - "some/project/name/thirdparty/**"
 server:
   settings:
     port: 8099
@@ -84,12 +89,17 @@ Some general information:
           It is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/first/library/module-xy`).
 
 #### builder (optional)
+- `resources`: General resource configuration for this project
+    - `excludes`: List of glob patterns. Matching resources of this project will be ignored by the builder (i.e. all tasks).  
+    Patterns are applied to the **virtual** path of resources (i.e. the UI5 runtime paths). Exclude patterns are always applied after any includes.
+- `jsdoc`: Configuration specific to the JSDoc build task
+    - `excludes`: List of glob patterns. Matching resources will be ignored by the JSDoc build task.  
+    Patterns are always applied relative to the projects virtual **source** directory `/resources/`.
+    Any general builder excludes (as defined in `builder.resources.excludes`) are applied *after* these excludes.
 - `customTasks` (optional, list): In this block, you define additional custom build tasks, see [here](./BuildExtensibility.md) for a detailed explanation and examples of the build extensibility. Each entry in the `customTasks` list consists of the following options:
     - `name` (mandatory): The name of the custom task
     - `afterTask` or `beforeTask` (only one, mandatory): The name of the build task after or before which your custom task will be executed.
     - `configuration` (optional): Additional configuration that is passed to the custom build task
-- `jsdoc`
-    - `excludes`: List of glob patterns. Matching resources will be ignored from the JSDoc build
 
 #### server (optional)
 - `settings` (not yet implemented)
