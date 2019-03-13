@@ -100,6 +100,7 @@
 		"make-dir": "^2.0.0",
 		"micromatch": "^3.1.4",
 		"minimatch": "^3.0.3",
+		"mock-require": "^3.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"random-int": "^1.0.0"
 	},
