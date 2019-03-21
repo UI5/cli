@@ -1,5 +1,8 @@
 # /node_modules/* and /bower_components/* ignored by default
 
+# Exclude shared resources that can't (yet) follow our conventions
+lib/processors/jsdoc/lib
+ 
 # Exclude coverage folder
 coverage/
 

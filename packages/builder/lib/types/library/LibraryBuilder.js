@@ -8,6 +8,8 @@ const tasks = { // can't require index.js due to circular dependency
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
 	buildThemes: require("../../tasks/buildThemes"),
 	createDebugFiles: require("../../tasks/createDebugFiles"),
+	generateJsdoc: require("../../tasks/jsdoc/generateJsdoc"),
+	executeJsdocSdkTransformation: require("../../tasks/jsdoc/executeJsdocSdkTransformation"),
 	generateLibraryManifest: require("../../tasks/generateLibraryManifest"),
 	generateVersionInfo: require("../../tasks/generateVersionInfo"),
 	replaceCopyright: require("../../tasks/replaceCopyright"),
@@ -35,6 +37,45 @@ class LibraryBuilder extends AbstractBuilder {
 				options: {
 					version: project.version,
 					pattern: "/resources/**/*.{js,json,library}"
+				}
+			});
+		});
+
+		this.addTask("generateJsdoc", () => {
+			const generateJsdoc = tasks.generateJsdoc;
+
+			const patterns = ["/resources/**/*.js"];
+			// Add excludes
+			if (project.builder && project.builder.jsdoc && project.builder.jsdoc.excludes) {
+				const excludes = project.builder.jsdoc.excludes.map((pattern) => {
+					return `!/resources/${pattern}`;
+				});
+
+				patterns.push(...excludes);
+			}
+			const namespace = project.metadata.name.replace(/\./g, "/");
+
+			return generateJsdoc({
+				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name,
+					namespace,
+					version: project.version,
+					pattern: patterns
+				}
+			});
+		});
+
+		this.addTask("executeJsdocSdkTransformation", () => {
+			const executeJsdocSdkTransformation = tasks.executeJsdocSdkTransformation;
+
+			return executeJsdocSdkTransformation({
+				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name,
+					dotLibraryPattern: "/resources/**/*.library",
 				}
 			});
 		});

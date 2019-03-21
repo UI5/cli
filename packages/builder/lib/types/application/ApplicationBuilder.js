@@ -13,7 +13,8 @@ const tasks = { // can't require index.js due to circular dependency
 	replaceCopyright: require("../../tasks/replaceCopyright"),
 	replaceVersion: require("../../tasks/replaceVersion"),
 	transformBootstrapHtml: require("../../tasks/transformBootstrapHtml"),
-	uglify: require("../../tasks/uglify")
+	uglify: require("../../tasks/uglify"),
+	generateApiIndex: require("../../tasks/jsdoc/generateApiIndex")
 };
 
 class ApplicationBuilder extends AbstractBuilder {
@@ -156,6 +157,16 @@ class ApplicationBuilder extends AbstractBuilder {
 				options: {
 					rootProject: project,
 					pattern: "/**/.library"
+				}
+			});
+		});
+
+		this.addTask("generateApiIndex", () => {
+			return tasks.generateApiIndex({
+				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name
 				}
 			});
 		});

@@ -1,5 +1,6 @@
 const log = require("@ui5/logger").getGroupLogger("builder:builder");
 const resourceFactory = require("@ui5/fs").resourceFactory;
+const MemAdapter = require("@ui5/fs").adapters.Memory;
 const typeRepository = require("../types/typeRepository");
 const taskRepository = require("../tasks/taskRepository");
 
@@ -36,20 +37,24 @@ function getElapsedTime(startTime) {
  * @param {Object} parameters
  * @param {boolean} parameters.dev Sets development mode, which only runs essential tasks
  * @param {boolean} parameters.selfContained True if a the build should be self-contained or false for prelead build bundles
+ * @param {boolean} parameters.jsdoc True if a JSDoc build should be executed
  * @param {Array} parameters.includedTasks Task list to be included from build
  * @param {Array} parameters.excludedTasks Task list to be excluded from build
  * @returns {Array} Return a task list for the builder
  */
-function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {
+function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTasks}) {
 	let selectedTasks = Object.keys(definedTasks).reduce((list, key) => {
 		list[key] = true;
 		return list;
 	}, {});
 
-	// Exclude tasks: manifestBundler
+	// Exclude non default tasks
 	selectedTasks.generateManifestBundle = false;
 	selectedTasks.generateStandaloneAppBundle = false;
 	selectedTasks.transformBootstrapHtml = false;
+	selectedTasks.generateJsdoc = false;
+	selectedTasks.executeJsdocSdkTransformation = false;
+	selectedTasks.generateApiIndex = false;
 
 	if (selfContained) {
 		// No preloads, bundle only
@@ -57,6 +62,27 @@ function composeTaskList({dev, selfContained, includedTasks, excludedTasks}) {
 		selectedTasks.generateStandaloneAppBundle = true;
 		selectedTasks.transformBootstrapHtml = true;
 		selectedTasks.generateLibraryPreload = false;
+	}
+
+	if (jsdoc) {
+		// Include JSDoc tasks
+		selectedTasks.generateJsdoc = true;
+		selectedTasks.executeJsdocSdkTransformation = true;
+		selectedTasks.generateApiIndex = true;
+
+		// Include theme build as required for SDK
+		selectedTasks.buildThemes = true;
+
+		// Exclude all tasks not relevant to JSDoc generation
+		selectedTasks.replaceCopyright = false;
+		selectedTasks.replaceVersion = false;
+		selectedTasks.generateComponentPreload = false;
+		selectedTasks.generateLibraryPreload = false;
+		selectedTasks.generateLibraryManifest = false;
+		selectedTasks.createDebugFiles = false;
+		selectedTasks.uglify = false;
+		selectedTasks.generateFlexChangesBundle = false;
+		selectedTasks.generateManifestBundle = false;
 	}
 
 	// Only run essential tasks in development mode, it is not desired to run time consuming tasks during development.
@@ -123,6 +149,7 @@ module.exports = {
 	 * @param {boolean} [parameters.buildDependencies=false] Decides whether project dependencies are built as well
 	 * @param {boolean} [parameters.dev=false] Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
+	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
 	 * @param {Array} [parameters.includedTasks=[]] List of tasks to be included
 	 * @param {Array} [parameters.excludedTasks=[]] List of tasks to be excluded. If the wildcard '*' is provided, only the included tasks will be executed.
 	 * @param {Array} [parameters.devExcludeProject=[]] List of projects to be excluded from development build
@@ -130,7 +157,7 @@ module.exports = {
 	 */
 	build({
 		tree, destPath,
-		buildDependencies = false, dev = false, selfContained = false,
+		buildDependencies = false, dev = false, selfContained = false, jsdoc = false,
 		includedTasks = [], excludedTasks = [], devExcludeProject = []
 	}) {
 		const startTime = process.hrtime();
@@ -138,7 +165,7 @@ module.exports = {
 			" including dependencies..." + (dev ? " [dev mode]" : ""));
 		log.verbose(`Building to ${destPath}...`);
 
-		const selectedTasks = composeTaskList({dev, selfContained, includedTasks, excludedTasks});
+		const selectedTasks = composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTasks});
 
 		const fsTarget = resourceFactory.createAdapter({
 			fsBasePath: destPath,
@@ -147,6 +174,7 @@ module.exports = {
 
 
 		const projects = {}; // Unique project index to prevent building the same project multiple times
+		const projectWriters = {}; // Collection of memory adapters of already built libraries
 
 		const projectCountMarker = {};
 		function projectCount(project, count = 0) {
@@ -187,10 +215,21 @@ module.exports = {
 
 				const projectType = typeRepository.getType(project.type);
 				const resourceCollections = resourceFactory.createCollectionsForTree(project, {
-					useNamespaces: true
+					useNamespaces: true,
+					virtualReaders: projectWriters
 				});
 
+				const writer = new MemAdapter({
+					virBasePath: "/"
+				});
+				// Store project writer as virtual reader for parent projects
+				//	so they can access the build results of this project
+				projectWriters[project.metadata.name] = writer;
+
+				// TODO: Add getter for writer of DuplexColection
 				const workspace = resourceFactory.createWorkspace({
+					virBasePath: "/",
+					writer,
 					reader: resourceCollections.source,
 					name: project.metadata.name
 				});
@@ -198,6 +237,7 @@ module.exports = {
 				if (dev && devExcludeProject.indexOf(project.metadata.name) !== -1) {
 					projectTasks = composeTaskList({dev: false, selfContained, includedTasks, excludedTasks});
 				}
+
 				return projectType.build({
 					resourceCollections: {
 						workspace,

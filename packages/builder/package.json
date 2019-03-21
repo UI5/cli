@@ -59,7 +59,8 @@
 			"docs/**",
 			"jsdocs/**",
 			"coverage/**",
-			"test/**"
+			"test/**",
+			"lib/processors/jsdoc/lib/**"
 		],
 		"check-coverage": true,
 		"statements": 85,
@@ -101,11 +102,14 @@
 		"estraverse": "^4.2.0",
 		"globby": "^7.1.1",
 		"graceful-fs": "^4.1.15",
+		"jsdoc": "^3.5.5",
 		"less-openui5": "^0.6.0",
+		"make-dir": "^2.0.0",
 		"pretty-data": "^0.40.0",
 		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
 		"semver": "^5.6.0",
+		"tmp": "0.0.33",
 		"uglify-es": "^3.2.2",
 		"xml2js": "^0.4.17",
 		"yazl": "^2.5.1"
@@ -121,7 +125,6 @@
 		"eslint-config-google": "^0.12.0",
 		"eslint-plugin-jsdoc": "^4.1.1",
 		"extract-zip": "^1.6.7",
-		"jsdoc": "^3.5.5",
 		"mock-require": "^3.0.3",
 		"nyc": "^13.3.0",
 		"opn-cli": "^4.0.0",
