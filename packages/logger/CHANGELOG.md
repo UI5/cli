@@ -2,7 +2,10 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v1.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v1.0.1...HEAD).
+
+<a name="v1.0.1"></a>
+## [v1.0.1] - 2019-03-13
 
 <a name="v1.0.0"></a>
 ## [v1.0.0] - 2019-01-09
@@ -25,6 +28,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logg
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.0.1]: https://github.com/SAP/ui5-logger/compare/v1.0.0...v1.0.1
 [v1.0.0]: https://github.com/SAP/ui5-logger/compare/v0.2.2...v1.0.0
 [v0.2.2]: https://github.com/SAP/ui5-logger/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-logger/compare/v0.2.0...v0.2.1
