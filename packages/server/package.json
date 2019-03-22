@@ -93,7 +93,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^1.0.3",
-		"@ui5/fs": "^1.0.1",
+		"@ui5/fs": "^1.0.2",
 		"@ui5/logger": "^1.0.1",
 		"@ui5/project": "^1.0.1",
 		"compression": "^1.7.4",
