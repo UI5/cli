@@ -88,8 +88,8 @@ serve.handler = function(argv) {
 					}
 					browserUrl += relPath;
 				}
-				const opn = require("opn");
-				opn(browserUrl);
+				const open = require("open");
+				open(browserUrl);
 			}
 
 			return browserUrl;

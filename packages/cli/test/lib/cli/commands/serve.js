@@ -110,9 +110,9 @@ test.serial("ui5 serve --accept-remote-connections", async (t) => {
 test.serial("ui5 serve --open", async (t) => {
 	normalizerStub.resolves(projectTree);
 	serverStub.resolves({port: 8080});
-	mockRequire("opn", function(openedUrl) {
+	mockRequire("open", function(openedUrl) {
 		t.is(openedUrl, "http://localhost:8080/webapp/index.html", `Opens url: ${openedUrl}`);
-		mockRequire.stop("opn");
+		mockRequire.stop("open");
 	});
 	await serve.handler(
 		Object.assign({}, defaultInitialHandlerArgs, {open: "webapp/index.html"})
@@ -122,9 +122,9 @@ test.serial("ui5 serve --open", async (t) => {
 test.serial("ui5 serve --open (opens default url)", async (t) => {
 	normalizerStub.resolves(projectTree);
 	serverStub.resolves({port: 8080});
-	mockRequire("opn", function(openedUrl) {
+	mockRequire("open", function(openedUrl) {
 		t.is(openedUrl, "http://localhost:8080", `Opens url: ${openedUrl}`);
-		mockRequire.stop("opn");
+		mockRequire.stop("open");
 	});
 	await serve.handler(
 		Object.assign({}, defaultInitialHandlerArgs, {open: true})
