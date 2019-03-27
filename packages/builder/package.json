@@ -108,7 +108,7 @@
 		"pretty-data": "^0.40.0",
 		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
-		"semver": "^5.6.0",
+		"semver": "^6.0.0",
 		"tmp": "0.1.0",
 		"uglify-es": "^3.2.2",
 		"xml2js": "^0.4.17",
