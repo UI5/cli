@@ -96,6 +96,7 @@
 		"@ui5/logger": "^1.0.1",
 		"graceful-fs": "^4.1.15",
 		"js-yaml": "^3.13.0",
+		"mock-require": "^3.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^3.0.0",
 		"read-pkg-up": "^4.0.0",

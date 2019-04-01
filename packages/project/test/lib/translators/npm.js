@@ -1,6 +1,6 @@
 const {test} = require("ava");
 const path = require("path");
-const npmTranslator = require("../../..").translators.npm;
+const mock = require("mock-require");
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const applicationCPath = path.join(__dirname, "..", "..", "fixtures", "application.c");
 const applicationC2Path = path.join(__dirname, "..", "..", "fixtures", "application.c2");
@@ -11,9 +11,22 @@ const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "applicati
 const errApplicationAPath = path.join(__dirname, "..", "..", "fixtures", "err.application.a");
 const cycleDepsBasePath = path.join(__dirname, "..", "..", "fixtures", "cyclic-deps", "node_modules");
 
-test("AppA: project with collection dependency", (t) => {
+let npmTranslator = require("../../../lib/translators/npm");
+
+test.serial("AppA: project with collection dependency", (t) => {
+	// Also cover log level based conditionals in this test
+	const logger = require("@ui5/logger");
+	mock("@ui5/logger", {
+		getLogger: () => {
+			const log = logger.getLogger();
+			log.isLevelEnabled = () => true;
+			return log;
+		}
+	});
+	npmTranslator = mock.reRequire("../../../lib/translators/npm");
 	return npmTranslator.generateDependencyTree(applicationAPath).then((parsedTree) => {
 		t.deepEqual(parsedTree, applicationATree, "Parsed correctly");
+		mock.stop("@ui5/logger");
 	});
 });
 
