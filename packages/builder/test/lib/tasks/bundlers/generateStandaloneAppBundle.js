@@ -46,7 +46,7 @@ test.serial("execute module bundler and write results", async (t) => {
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.deepEqual(t.context.moduleBundlerStub.callCount, 1, "moduleBundler should be called once");
+	t.deepEqual(t.context.moduleBundlerStub.callCount, 2, "moduleBundler should be called once");
 
 	const {resources, options} = t.context.moduleBundlerStub.getCall(0).args[0];
 	t.deepEqual(resources.length, 4, "moduleBundler got supplied with 4 resources");
@@ -83,7 +83,7 @@ test.serial("execute module bundler and write results without namespace", async 
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.deepEqual(t.context.moduleBundlerStub.callCount, 1, "moduleBundler should be called once");
+	t.deepEqual(t.context.moduleBundlerStub.callCount, 2, "moduleBundler should be called once");
 
 	const {resources, options} = t.context.moduleBundlerStub.getCall(0).args[0];
 	t.deepEqual(resources.length, 4, "moduleBundler got supplied with 4 resources");
@@ -122,7 +122,7 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.deepEqual(t.context.moduleBundlerStub.callCount, 1, "moduleBundler should be called once");
+	t.deepEqual(t.context.moduleBundlerStub.callCount, 2, "moduleBundler should be called once");
 
 	const {resources, options} = t.context.moduleBundlerStub.getCall(0).args[0];
 	t.deepEqual(resources.length, 4, "moduleBundler got supplied with 4 resources");
@@ -144,6 +144,7 @@ const recursive = require("recursive-readdir");
 const ui5Builder = require("../../../../");
 const builder = ui5Builder.builder;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
+const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
 const findFiles = (folder) => {
 	return new Promise((resolve, reject) => {
@@ -176,7 +177,7 @@ test("integration: build application.b standalone", async (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
 
 		// Check for all file contents
-		t.deepEqual(expectedFiles.length, 10, "10 files are expected");
+		t.deepEqual(expectedFiles.length, 11, "11 files are expected");
 		expectedFiles.forEach((expectedFile) => {
 			const relativeFile = path.relative(expectedPath, expectedFile);
 			const destFile = path.join(destPath, relativeFile);
@@ -190,6 +191,31 @@ const applicationBTree = {
 	"version": "1.0.0",
 	"path": applicationBPath,
 	"dependencies": [
+		{
+			"id": "sap.ui.core",
+			"version": "1.0.0",
+			"path": sapUiCorePath,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src",
+						"test": "main/test"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src",
+					"/test-resources/": "main/test"
+				}
+			}
+		},
 		{
 			"id": "library.d",
 			"version": "1.0.0",

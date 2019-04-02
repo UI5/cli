@@ -1,6 +1,49 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 
+function getBundleDefinition(config) {
+	const bundleDefinition = {
+		name: config.name,
+		defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
+		sections: []
+	};
+
+	// add raw section
+	bundleDefinition.sections.push({
+		// include all 'raw' modules that are needed for the UI5 loader
+		mode: "raw",
+		filters: config.filters,
+		resolve: true, // dependencies for raw modules are taken from shims in .library files
+		sort: true, // topological sort on raw modules is mandatory
+		declareModules: false
+	});
+
+	// preload section is only relevant for sap-ui-custom.js
+	if (config.preloadSection) {
+		bundleDefinition.sections.push({
+			mode: "preload",
+			filters: [
+				`${config.namespace|| ""}/`,
+				`!${config.namespace || ""}/test/`,
+				`!${config.namespace || ""}/*.html`,
+				"sap/ui/core/Core.js"
+			],
+			resolve: true,
+			resolveConditional: true,
+			renderer: true
+		});
+	}
+
+	bundleDefinition.sections.push({
+		mode: "require",
+		filters: [
+			"sap/ui/core/Core.js"
+		]
+	});
+
+	return bundleDefinition;
+}
+
 /**
  * Task for bundling standalone applications.
  *
@@ -38,44 +81,33 @@ module.exports = async function({workspace, dependencies, options}) {
 		filters = ["jquery.sap.global.js"];
 	}
 
-	const processedResources = await moduleBundler({
-		resources,
-		options: {
-			bundleDefinition: {
-				name: "sap-ui-custom.js",
-				defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
-				sections: [
-					{
-						// include all 'raw' modules that are needed for the UI5 loader
-						mode: "raw",
-						filters,
-						resolve: true, // dependencies for raw modules are taken from shims in .library files
-						sort: true, // topological sort on raw modules is mandatory
-						declareModules: false
-					},
-					{
-						mode: "preload",
-						filters: [
-							`${options.namespace || ""}/`,
-							`!${options.namespace || ""}/test/`,
-							`!${options.namespace || ""}/*.html`,
-							"sap/ui/core/Core.js"
-						],
-						resolve: true,
-						resolveConditional: true,
-						renderer: true
-					},
-					// finally require and execute sap/ui/core/Core
-					{
-						mode: "require",
-						filters: [
-							"sap/ui/core/Core.js"
-						]
-					}
-				]
+	await Promise.all([
+		moduleBundler({
+			resources,
+			options: {
+				bundleDefinition: getBundleDefinition({
+					name: "sap-ui-custom.js",
+					filters,
+					namespace: options.namespace,
+					preloadSection: true
+				})
 			}
-		}
+		}),
+		moduleBundler({
+			resources,
+			options: {
+				bundleDefinition: getBundleDefinition({
+					name: "sap-ui-custom-dbg.js",
+					filters,
+					namespace: options.namespace
+				}),
+				bundleOptions: {
+					optimize: false
+				}
+			}
+		})
+	]).then((results) => {
+		const bundles = Array.prototype.concat.apply([], results);
+		return Promise.all(bundles.map((resource) => workspace.write(resource)));
 	});
-
-	await Promise.all(processedResources.map((resource) => workspace.write(resource)));
 };
