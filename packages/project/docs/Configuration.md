@@ -63,7 +63,7 @@ server:
 ### Properties
 #### \<root\>
 - `specVersion`: Version of the specification this configuration is based on. See [Specification Versions](#specification-versions)
-- `type`: Either `application`, `library` or `module`. Defines the default path mappings and build steps. See [UI5 Builder: Types](#types) for details
+- `type`: Either `application`, `library` or `module`. Defines the default path mappings and build steps. See [UI5 Builder: Types](https://github.com/SAP/ui5-builder#types) for details
 
 #### metadata
 Some general information:
