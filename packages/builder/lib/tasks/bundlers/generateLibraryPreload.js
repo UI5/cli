@@ -67,6 +67,76 @@ function getBundleDefinition(namespace) {
 	};
 }
 
+function getModuleBundlerOptions(config) {
+	const moduleBundlerOptions = {};
+
+	// required in sap-ui-core-nojQuery.js and sap-ui-core-nojQuery-dbg.js
+	const providedSection = {
+		mode: "provided",
+		filters: [
+			"jquery-ui-core.js",
+			"jquery-ui-datepicker.js",
+			"jquery-ui-position.js",
+			"sap/ui/thirdparty/jquery.js",
+			"sap/ui/thirdparty/jquery/*",
+			"sap/ui/thirdparty/jqueryui/*"
+		]
+	};
+
+	moduleBundlerOptions.bundleOptions = {
+		optimize: config.preload,
+		decorateBootstrapModule: config.preload,
+		addTryCatchRestartWrapper: config.preload,
+		usePredefineCalls: config.preload
+	};
+
+	moduleBundlerOptions.bundleDefinition = getSapUiCoreBunDef(config.name, config.filters, config.preload);
+
+	if (config.provided) {
+		moduleBundlerOptions.bundleDefinition.sections.unshift(providedSection);
+	}
+
+	return moduleBundlerOptions;
+}
+
+function getSapUiCoreBunDef(name, filters, preload) {
+	const bundleDefinition = {
+		name,
+		sections: []
+	};
+
+	// add raw section
+	bundleDefinition.sections.push({
+		// include all 'raw' modules that are needed for the UI5 loader
+		mode: "raw",
+		filters,
+		resolve: true, // dependencies for raw modules are taken from shims in .library files
+		sort: true, // topological sort on raw modules is mandatory
+		declareModules: false
+	});
+
+	if (preload) {
+		// add preload section
+		bundleDefinition.sections.push({
+			mode: "preload",
+			filters: [
+				"sap/ui/core/Core.js"
+			],
+			resolve: true
+		});
+	}
+
+	// add require section
+	bundleDefinition.sections.push({
+		mode: "require",
+		filters: [
+			"sap/ui/core/Core.js"
+		]
+	});
+
+	return bundleDefinition;
+}
+
 /**
  * Task for library bundling.
  *
@@ -84,6 +154,7 @@ module.exports = function({workspace, dependencies, options}) {
 		name: `libraryBundler - prioritize workspace over dependencies: ${options.projectName}`,
 		readers: [workspace, dependencies]
 	});
+
 	return combo.byGlob("/**/*.{js,json,xml,html,properties,library}").then((resources) => {
 		// Find all libraries and create a library-preload.js bundle
 
@@ -110,69 +181,21 @@ module.exports = function({workspace, dependencies, options}) {
 
 			p = Promise.all([
 				moduleBundler({
-					options: {
-						bundleOptions: {
-							optimize: true,
-							decorateBootstrapModule: true,
-							addTryCatchRestartWrapper: true,
-							usePredefineCalls: true
-						},
-						bundleDefinition: {
-							name: "sap-ui-core.js",
-							sections: [
-								{
-									// include all 'raw' modules that are needed for the UI5 loader
-									mode: "raw",
-									filters,
-									resolve: true, // dependencies for raw modules are taken from shims in .library files
-									sort: true, // topological sort on raw modules is mandatory
-									declareModules: false
-								},
-								{
-									mode: "preload",
-									filters: [
-										"sap/ui/core/Core.js"
-									],
-									resolve: true
-								},
-								{
-									mode: "require",
-									filters: [
-										"sap/ui/core/Core.js"
-									]
-								}
-							]
-						}
-					},
+					options: getModuleBundlerOptions({name: "sap-ui-core.js", filters, preload: true}),
 					resources
 				}),
 				moduleBundler({
-					options: {
-						bundleOptions: {
-							optimize: false
-						},
-						bundleDefinition: {
-							name: "sap-ui-core-dbg.js",
-							sections: [
-								{
-									// include all 'raw' modules that are needed for the UI5 loader
-									mode: "raw",
-									filters,
-									resolve: true, // dependencies for raw modules are taken from shims in .library files
-									sort: true, // topological sort on raw modules is mandatory
-									declareModules: false
-								},
-								{
-									mode: "require",
-									filters: [
-										"sap/ui/core/Core.js"
-									]
-								}
-							]
-						}
-					},
+					options: getModuleBundlerOptions({name: "sap-ui-core-dbg.js", filters, preload: false}),
 					resources
-				})
+				}),
+				moduleBundler({
+					options: getModuleBundlerOptions({name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true}),
+					resources
+				}),
+				moduleBundler({
+					options: getModuleBundlerOptions({name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true}),
+					resources
+				}),
 			]).then((results) => {
 				const bundles = Array.prototype.concat.apply([], results);
 				return Promise.all(bundles.map((bundle) => workspace.write(bundle)));
