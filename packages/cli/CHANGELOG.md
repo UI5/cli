@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.2.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.2.4...HEAD).
+
+<a name="v1.2.4"></a>
+## [v1.2.4] - 2019-04-03
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/builder from 1.0.4 to 1.0.5 [`5787d54`](https://github.com/SAP/ui5-cli/commit/5787d54a048178279de0e253332cfa845655559c)
+
 
 <a name="v1.2.3"></a>
 ## [v1.2.3] - 2019-03-28
@@ -108,6 +114,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.2.4]: https://github.com/SAP/ui5-cli/compare/v1.2.3...v1.2.4
 [v1.2.3]: https://github.com/SAP/ui5-cli/compare/v1.2.2...v1.2.3
 [v1.2.2]: https://github.com/SAP/ui5-cli/compare/v1.2.1...v1.2.2
 [v1.2.1]: https://github.com/SAP/ui5-cli/compare/v1.2.0...v1.2.1
