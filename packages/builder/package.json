@@ -127,7 +127,7 @@
 		"extract-zip": "^1.6.7",
 		"mock-require": "^3.0.3",
 		"nyc": "^13.3.0",
-		"opn-cli": "^4.0.0",
+		"opn-cli": "^4.1.0",
 		"recursive-readdir": "^2.1.1",
 		"rimraf": "^2.6.3",
 		"sinon": "^7.3.1",
