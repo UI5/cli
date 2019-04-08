@@ -7,6 +7,7 @@ const tasks = { // can't require index.js due to circular dependency
 	generateManifestBundle: require("../../tasks/bundlers/generateManifestBundle"),
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
 	generateBundle: require("../../tasks/bundlers/generateBundle"),
+	generateCachebusterInfo: require("../../tasks/generateCachebusterInfo"),
 	buildThemes: require("../../tasks/buildThemes"),
 	createDebugFiles: require("../../tasks/createDebugFiles"),
 	generateVersionInfo: require("../../tasks/generateVersionInfo"),
@@ -160,6 +161,18 @@ class ApplicationBuilder extends AbstractBuilder {
 				}
 			});
 		});
+
+		if (project.metadata.namespace) {
+			this.addTask("generateCachebusterInfo", () => {
+				return tasks.generateCachebusterInfo({
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					options: {
+						namespace: project.metadata.namespace
+					}
+				});
+			});
+		}
 
 		this.addTask("generateApiIndex", () => {
 			return tasks.generateApiIndex({

@@ -54,6 +54,7 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 	selectedTasks.transformBootstrapHtml = false;
 	selectedTasks.generateJsdoc = false;
 	selectedTasks.executeJsdocSdkTransformation = false;
+	selectedTasks.generateCachebusterInfo = false;
 	selectedTasks.generateApiIndex = false;
 
 	if (selfContained) {

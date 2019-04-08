@@ -36,6 +36,7 @@ module.exports = {
 		generateManifestBundle: require("./lib/tasks/bundlers/generateManifestBundle"),
 		generateStandaloneAppBundle: require("./lib/tasks/bundlers/generateStandaloneAppBundle"),
 		generateBundle: require("./lib/tasks/bundlers/generateBundle"),
+		generateCachebusterInfo: require("./lib/tasks/generateCachebusterInfo"),
 		buildThemes: require("./lib/tasks/buildThemes"),
 		createDebugFiles: require("./lib/tasks/createDebugFiles"),
 		executeJsdocSdkTransformation: require("./lib/tasks/jsdoc/executeJsdocSdkTransformation"),

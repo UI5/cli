@@ -15,7 +15,8 @@ const tasks = {
 	generateComponentPreload: require("./bundlers/generateComponentPreload"),
 	generateStandaloneAppBundle: require("./bundlers/generateStandaloneAppBundle"),
 	generateBundle: require("./bundlers/generateBundle"),
-	generateLibraryPreload: require("./bundlers/generateLibraryPreload")
+	generateLibraryPreload: require("./bundlers/generateLibraryPreload"),
+	generateCachebusterInfo: require("./generateCachebusterInfo")
 };
 
 function getTask(taskName) {

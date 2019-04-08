@@ -68,6 +68,7 @@ test("Instantiation", (t) => {
 		"createDebugFiles",
 		"uglify",
 		"generateVersionInfo",
+		"generateCachebusterInfo",
 		"generateApiIndex"
 	], "ApplicationBuilder is instantiated with standard tasks");
 });
@@ -89,6 +90,7 @@ test("Instantiation without component preload project configuration", (t) => {
 		"createDebugFiles",
 		"uglify",
 		"generateVersionInfo",
+		"generateCachebusterInfo",
 		"generateApiIndex"
 	], "ApplicationBuilder is still instantiated with standard tasks");
 });
@@ -136,6 +138,7 @@ test("Instantiation with custom tasks", (t) => {
 		"uglify",
 		"replaceVersion--1",
 		"generateVersionInfo",
+		"generateCachebusterInfo",
 		"generateApiIndex"
 	], "ApplicationBuilder is still instantiated with standard tasks");
 });

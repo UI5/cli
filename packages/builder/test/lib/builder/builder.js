@@ -58,7 +58,13 @@ async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, des
 		const currentFileContentPromise = readFile(destFile, "utf8");
 		const expectedFileContentPromise = readFile(expectedFile, "utf8");
 		const assertContents = ([currentContent, expectedContent]) => {
-			assert.equal(currentContent.replace(newLineRegexp, "\n"), expectedContent.replace(newLineRegexp, "\n"));
+			if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
+				currentContent = JSON.parse(currentContent.replace(/(:\s+)(\d+)/g, ": 0"));
+				expectedContent = JSON.parse(expectedContent.replace(/(:\s+)(\d+)/g, ": 0"));
+				assert.deepEqual(currentContent, expectedContent);
+			} else {
+				assert.equal(currentContent.replace(newLineRegexp, "\n"), expectedContent.replace(newLineRegexp, "\n"));
+			}
 		};
 		await Promise.all([currentFileContentPromise, expectedFileContentPromise]).then(assertContents);
 	}
