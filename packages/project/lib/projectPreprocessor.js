@@ -79,7 +79,8 @@ class ProjectPreprocessor {
 				if (this.isConfigValid(project)) {
 					await this.applyType(project);
 					queue.push({
-						projects: project.dependencies,
+						// copy array, so that the queue is stable while ignored project dependencies are removed
+						projects: [...project.dependencies],
 						parent: project,
 						level: level + 1
 					});

@@ -9,6 +9,7 @@ const libraryBPath = path.join(__dirname, "..", "fixtures", "collection", "libra
 // const libraryCPath = path.join(__dirname, "..", "fixtures", "collection", "library.c");
 const libraryDPath = path.join(__dirname, "..", "fixtures", "library.d");
 const cycleDepsBasePath = path.join(__dirname, "..", "fixtures", "cyclic-deps", "node_modules");
+const pathToInvalidModule = path.join(__dirname, "..", "fixtures", "invalidModule");
 
 test("Project with inline configuration", (t) => {
 	const tree = {
@@ -533,8 +534,152 @@ test("Project tree B with inline configs", (t) => {
 	});
 });
 
+test("Project with nested invalid dependencies", (t) => {
+	return projectPreprocessor.processTree(treeWithInvalidModules).then((parsedTree) => {
+		t.deepEqual(expectedTreeWithInvalidModules, parsedTree);
+	});
+});
+
 /* ========================= */
 /* ======= Test data ======= */
+
+/* === Invalid Modules */
+const treeWithInvalidModules = {
+	id: "application.a",
+	path: applicationAPath,
+	dependencies: [
+		// A
+		{
+			id: "library.a",
+			path: libraryAPath,
+			dependencies: [
+				{
+					// C - invalid - should be missing in preprocessed tree
+					id: "module.c",
+					dependencies: [],
+					path: pathToInvalidModule,
+					version: "1.0.0"
+				},
+				{
+					// D - invalid - should be missing in preprocessed tree
+					id: "module.d",
+					dependencies: [],
+					path: pathToInvalidModule,
+					version: "1.0.0"
+				}
+			],
+			version: "1.0.0",
+			specVersion: "1.0",
+			type: "library",
+			metadata: {name: "library.a"}
+		},
+		// B
+		{
+			id: "library.b",
+			path: libraryBPath,
+			dependencies: [
+				{
+					// C - invalid - should be missing in preprocessed tree
+					id: "module.c",
+					dependencies: [],
+					path: pathToInvalidModule,
+					version: "1.0.0"
+				},
+				{
+					// D - invalid - should be missing in preprocessed tree
+					id: "module.d",
+					dependencies: [],
+					path: pathToInvalidModule,
+					version: "1.0.0"
+				}
+			],
+			version: "1.0.0",
+			specVersion: "1.0",
+			type: "library",
+			metadata: {name: "library.b"}
+		}
+	],
+	version: "1.0.0",
+	specVersion: "1.0",
+	type: "application",
+	metadata: {
+		name: "application.a"
+	}
+};
+
+const expectedTreeWithInvalidModules = {
+	"id": "application.a",
+	"path": applicationAPath,
+	"dependencies": [{
+		"id": "library.a",
+		"path": libraryAPath,
+		"dependencies": [],
+		"version": "1.0.0",
+		"specVersion": "1.0",
+		"type": "library",
+		"metadata": {
+			"name": "library.a",
+			"copyright": "Some fancy copyright ${currentYear}"
+		},
+		"kind": "project",
+		"_level": 1,
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "src",
+					"test": "test"
+				}
+			},
+			"pathMappings": {
+				"/resources/": "src",
+				"/test-resources/": "test"
+			}
+		}
+	}, {
+		"id": "library.b",
+		"path": libraryBPath,
+		"dependencies": [],
+		"version": "1.0.0",
+		"specVersion": "1.0",
+		"type": "library",
+		"metadata": {
+			"name": "library.b",
+			"copyright": "Some fancy copyright ${currentYear}"
+		},
+		"kind": "project",
+		"_level": 1,
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "src",
+					"test": "test"
+				}
+			},
+			"pathMappings": {
+				"/resources/": "src",
+				"/test-resources/": "test"
+			}
+		}
+	}],
+	"version": "1.0.0",
+	"specVersion": "1.0",
+	"type": "application",
+	"metadata": {
+		"name": "application.a"
+	},
+	"_level": 0,
+	"kind": "project",
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			}
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	}
+};
 
 /* === Tree A === */
 const treeAWithInlineConfigs = {
