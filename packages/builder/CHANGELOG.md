@@ -2,10 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.0.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.1.0...HEAD).
+
+<a name="v1.1.0"></a>
+## [v1.1.0] - 2019-01-12
+### Features
+- Build the manifest-bundle.zip for applications and libraries [`f53aeea`](https://github.com/SAP/ui5-builder/commit/f53aeea594071616974d0e14b6d41609603bbd5b)
+- Generate the AppCacheBuster index file for apps [`dd653c8`](https://github.com/SAP/ui5-builder/commit/dd653c8f3883da41f5723093d7e40aeb3258c180)
+
 
 <a name="v1.0.5"></a>
-## [v1.0.5] - 2019-04-02
+## [v1.0.5] - 2019-04-03
 ### Bug Fixes
 - Generate sap-ui-custom-dbg.js for self-contained build ([#234](https://github.com/SAP/ui5-builder/issues/234)) [`d769d98`](https://github.com/SAP/ui5-builder/commit/d769d9894fe0a9d5262aea2cde86b463bc55433d)
 - Add bundling sap-ui-core-noJQuery.js and sap-ui-core-noJQuery-dbg.js ([#235](https://github.com/SAP/ui5-builder/issues/235)) [`e7a7a63`](https://github.com/SAP/ui5-builder/commit/e7a7a63983dec54f53ac1c906eb2f970948db25d)
@@ -148,6 +155,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.1.0]: https://github.com/SAP/ui5-builder/compare/v1.0.5...v1.1.0
 [v1.0.5]: https://github.com/SAP/ui5-builder/compare/v1.0.4...v1.0.5
 [v1.0.4]: https://github.com/SAP/ui5-builder/compare/v1.0.3...v1.0.4
 [v1.0.3]: https://github.com/SAP/ui5-builder/compare/v1.0.2...v1.0.3
