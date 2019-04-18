@@ -121,7 +121,7 @@
 		"eslint-plugin-jsdoc": "^4.8.3",
 		"jsdoc": "^3.5.5",
 		"mock-require": "^3.0.3",
-		"nyc": "^13.3.0",
+		"nyc": "^14.0.0",
 		"opn-cli": "^4.1.0",
 		"rimraf": "^2.6.3",
 		"sinon": "^7.3.2",
