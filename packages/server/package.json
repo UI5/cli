@@ -104,7 +104,7 @@
 		"express": "^4.16.4",
 		"fresh": "^0.5.2",
 		"make-dir": "^3.0.0",
-		"mime-types": "^2.1.22",
+		"mime-types": "^2.1.23",
 		"portscanner": "^2.1.1",
 		"prompt": "^1.0.0",
 		"replacestream": "^4.0.3",
