@@ -59,7 +59,8 @@
 			"docs/**",
 			"jsdocs/**",
 			"coverage/**",
-			"test/**"
+			"test/**",
+			".eslintrc.js"
 		],
 		"check-coverage": true,
 		"statements": 90,
