@@ -1,4 +1,31 @@
 const resourceFactory = require("@ui5/fs").resourceFactory;
+const crypto = require("crypto");
+
+async function signByTime(resource) {
+	return resource.getStatInfo().mtime.getTime();
+}
+
+async function signByHash(resource) {
+	const hasher = crypto.createHash("sha1");
+	const buffer = await resource.getBuffer();
+
+	hasher.update(buffer.toString("binary"));
+	return hasher.digest("hex");
+}
+
+function getSigner(type) {
+	type = type || "time";
+
+	switch (type) {
+	case "time":
+		return signByTime;
+	case "hash":
+		return signByHash;
+
+	default:
+		throw new Error(`Invalid signature type: '${type}'. Valid ones are: 'time' or 'hash'`);
+	}
+}
 
 /**
  * Task to generate the application cachebuster info file.
@@ -10,6 +37,7 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the application
+ * @param {string} [parameters.options.signatureType='time'] Type of signature to be used ('time' or 'hash')
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options}) {
@@ -17,10 +45,12 @@ module.exports = function({workspace, dependencies, options}) {
 		.then(async (resources) => {
 			const cachebusterInfo = {};
 			const regex = new RegExp(`^/resources/${options.namespace}/`);
-			resources.forEach((resource) => {
+			const signer = getSigner(options.signatureType);
+
+			await Promise.all(resources.map(async (resource) => {
 				const normalizedPath = resource.getPath().replace(regex, "");
-				cachebusterInfo[normalizedPath] = resource.getStatInfo().mtime.getTime();
-			});
+				cachebusterInfo[normalizedPath] = await signer(resource);
+			}));
 			const cachebusterInfoResource = resourceFactory.createResource({
 				path: `/resources/${options.namespace}/sap-ui-cachebuster-info.json`,
 				string: JSON.stringify(cachebusterInfo, null, 2)

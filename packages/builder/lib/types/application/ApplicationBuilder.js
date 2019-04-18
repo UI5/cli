@@ -171,7 +171,10 @@ class ApplicationBuilder extends AbstractBuilder {
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
-						namespace: project.metadata.namespace
+						namespace: project.metadata.namespace,
+						signatureType: project.builder
+							&& project.builder.cachebuster
+							&& project.builder.cachebuster.signatureType,
 					}
 				});
 			});
