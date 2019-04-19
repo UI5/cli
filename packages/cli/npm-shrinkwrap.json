@@ -4531,11 +4531,29 @@
 				"uglify-js": "^3.1.4"
 			},
 			"dependencies": {
+				"commander": {
+					"version": "2.20.0",
+					"resolved": "https://registry.npmjs.org/commander/-/commander-2.20.0.tgz",
+					"integrity": "sha512-7j2y+40w61zy6YC2iRNpUe/NwhNyoXrYpHMrSunaMG64nRnaf96zO/KMQR4OyN/UnE5KLyEBnKHd4aG3rskjpQ==",
+					"dev": true,
+					"optional": true
+				},
 				"source-map": {
 					"version": "0.6.1",
 					"resolved": "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz",
 					"integrity": "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==",
 					"dev": true
+				},
+				"uglify-js": {
+					"version": "3.5.4",
+					"resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-3.5.4.tgz",
+					"integrity": "sha512-GpKo28q/7Bm5BcX9vOu4S46FwisbPbAmkkqPnGIpKvKTM96I85N6XHQV+k4I6FA2wxgLhcsSyHoNhzucwCflvA==",
+					"dev": true,
+					"optional": true,
+					"requires": {
+						"commander": "~2.20.0",
+						"source-map": "~0.6.1"
+					}
 				}
 			}
 		},
@@ -5353,9 +5371,9 @@
 			}
 		},
 		"istanbul-reports": {
-			"version": "2.2.2",
-			"resolved": "https://registry.npmjs.org/istanbul-reports/-/istanbul-reports-2.2.2.tgz",
-			"integrity": "sha512-ZFuTdBQ3PSaPnm02aEA4R6mzQ2AF9w03CYiXADzWbbE48v/EFOWF4MaX4FT0NRdqIk48I7o0RPi+S8TMswaCbQ==",
+			"version": "2.2.3",
+			"resolved": "https://registry.npmjs.org/istanbul-reports/-/istanbul-reports-2.2.3.tgz",
+			"integrity": "sha512-T6EbPuc8Cb620LWAYyZ4D8SSn06dY9i1+IgUX2lTH8gbwflMc9Obd33zHTyNX653ybjpamAHS9toKS3E6cGhTw==",
 			"dev": true,
 			"requires": {
 				"handlebars": "^4.1.0"
@@ -6020,16 +6038,16 @@
 			"optional": true
 		},
 		"mime-db": {
-			"version": "1.38.0",
-			"resolved": "https://registry.npmjs.org/mime-db/-/mime-db-1.38.0.tgz",
-			"integrity": "sha512-bqVioMFFzc2awcdJZIzR3HjZFX20QhilVS7hytkKrv7xFAn8bM1gzc/FOX2awLISvWe0PV8ptFKcon+wZ5qYkg=="
+			"version": "1.39.0",
+			"resolved": "https://registry.npmjs.org/mime-db/-/mime-db-1.39.0.tgz",
+			"integrity": "sha512-DTsrw/iWVvwHH+9Otxccdyy0Tgiil6TWK/xhfARJZF/QFhwOgZgOIvA2/VIGpM8U7Q8z5nDmdDWC6tuVMJNibw=="
 		},
 		"mime-types": {
-			"version": "2.1.22",
-			"resolved": "https://registry.npmjs.org/mime-types/-/mime-types-2.1.22.tgz",
-			"integrity": "sha512-aGl6TZGnhm/li6F7yx82bJiBZwgiEa4Hf6CNr8YO+r5UHr53tSTYZb102zyU50DOWWKeOv0uQLRL0/9EiKWCog==",
+			"version": "2.1.23",
+			"resolved": "https://registry.npmjs.org/mime-types/-/mime-types-2.1.23.tgz",
+			"integrity": "sha512-ROk/m+gMVSrRxTkMlaQOvFmFmYDc7sZgrjjM76abqmd2Cc5fCV7jAMA5XUccEtJ3cYiYdgixUVI+fApc2LkXlw==",
 			"requires": {
-				"mime-db": "~1.38.0"
+				"mime-db": "~1.39.0"
 			}
 		},
 		"mimic-fn": {
@@ -6337,7 +6355,7 @@
 				},
 				"package-hash": {
 					"version": "3.0.0",
-					"resolved": false,
+					"resolved": "https://registry.npmjs.org/package-hash/-/package-hash-3.0.0.tgz",
 					"integrity": "sha512-lOtmukMDVvtkL84rJHI7dpTYq+0rli8N2wlnqUcBuDWCfVhRUfOmnR9SsoHFMLpACvEV60dX7rd0rFaYDZI+FA==",
 					"dev": true,
 					"requires": {
@@ -6349,7 +6367,7 @@
 				},
 				"resolve-from": {
 					"version": "4.0.0",
-					"resolved": false,
+					"resolved": "https://registry.npmjs.org/resolve-from/-/resolve-from-4.0.0.tgz",
 					"integrity": "sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==",
 					"dev": true
 				}
@@ -8425,33 +8443,6 @@
 					"version": "0.6.1",
 					"resolved": "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz",
 					"integrity": "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="
-				}
-			}
-		},
-		"uglify-js": {
-			"version": "3.5.4",
-			"resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-3.5.4.tgz",
-			"integrity": "sha512-GpKo28q/7Bm5BcX9vOu4S46FwisbPbAmkkqPnGIpKvKTM96I85N6XHQV+k4I6FA2wxgLhcsSyHoNhzucwCflvA==",
-			"dev": true,
-			"optional": true,
-			"requires": {
-				"commander": "~2.20.0",
-				"source-map": "~0.6.1"
-			},
-			"dependencies": {
-				"commander": {
-					"version": "2.20.0",
-					"resolved": "https://registry.npmjs.org/commander/-/commander-2.20.0.tgz",
-					"integrity": "sha512-7j2y+40w61zy6YC2iRNpUe/NwhNyoXrYpHMrSunaMG64nRnaf96zO/KMQR4OyN/UnE5KLyEBnKHd4aG3rskjpQ==",
-					"dev": true,
-					"optional": true
-				},
-				"source-map": {
-					"version": "0.6.1",
-					"resolved": "https://registry.npmjs.org/source-map/-/source-map-0.6.1.tgz",
-					"integrity": "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==",
-					"dev": true,
-					"optional": true
 				}
 			}
 		},
