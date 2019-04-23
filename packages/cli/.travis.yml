@@ -1,7 +1,7 @@
 language: node_js # don't install any environment
 
 node_js:
-- "node"
+- "11"
 
 os:
 - linux
