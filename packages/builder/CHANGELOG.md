@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.1.1...HEAD).
+
+<a name="v1.1.1"></a>
+## [v1.1.1] - 2019-04-24
+### Bug Fixes
+- **ApplicationFormatter:** detect the namespace for Maven placeholders ([#243](https://github.com/SAP/ui5-builder/issues/243)) [`49ecb07`](https://github.com/SAP/ui5-builder/commit/49ecb07f41efdf0778f04b05117e0daae01e8710)
+
 
 <a name="v1.1.0"></a>
-## [v1.1.0] - 2019-01-12
+## [v1.1.0] - 2019-04-12
 ### Features
 - Build the manifest-bundle.zip for applications and libraries [`f53aeea`](https://github.com/SAP/ui5-builder/commit/f53aeea594071616974d0e14b6d41609603bbd5b)
 - Generate the AppCacheBuster index file for apps [`dd653c8`](https://github.com/SAP/ui5-builder/commit/dd653c8f3883da41f5723093d7e40aeb3258c180)
@@ -155,6 +161,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.1.1]: https://github.com/SAP/ui5-builder/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-builder/compare/v1.0.5...v1.1.0
 [v1.0.5]: https://github.com/SAP/ui5-builder/compare/v1.0.4...v1.0.5
 [v1.0.4]: https://github.com/SAP/ui5-builder/compare/v1.0.3...v1.0.4
