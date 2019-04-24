@@ -317,9 +317,9 @@
 			"dev": true
 		},
 		"@ui5/builder": {
-			"version": "1.1.0",
-			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-1.1.0.tgz",
-			"integrity": "sha512-DnuPmDQdmGddQEb18Jc254ztgLGVEPpSNMq0QGxPQkDIanEEZU+OjZs0fyz9G1WydxMlf9DL9sQF8CKbzT5EYQ==",
+			"version": "1.1.1",
+			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-1.1.1.tgz",
+			"integrity": "sha512-oXbMoVdOJZnRXaVaS7NOAOre3sfwV2HJiZSBlfHw6YOUlZJt0171Vbd0huE1hBi73Gczrs4vKghulmjXTmWykg==",
 			"requires": {
 				"@ui5/fs": "^1.0.2",
 				"@ui5/logger": "^1.0.1",
