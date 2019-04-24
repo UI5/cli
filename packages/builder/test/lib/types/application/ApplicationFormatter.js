@@ -155,3 +155,54 @@ test("format: set namespace to id", async (t) => {
 	t.deepEqual(project.metadata.namespace, "my/id",
 		"namespace was successfully set since readManifest provides the correct object structure");
 });
+
+const applicationHPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.h");
+const applicationHTree = {
+	id: "application.h",
+	version: "1.0.0",
+	path: applicationHPath,
+	dependencies: [],
+	_level: 0,
+	specVersion: "0.1",
+	type: "application",
+	metadata: {
+		name: "application.h"
+	},
+	resources: {
+		configuration: {
+			paths: {
+				webapp: "webapp"
+			}
+		}
+	}
+};
+
+test("namespace: detect namespace from pom.xml via ${project.artifactId}", async (t) => {
+	const myProject = clone(applicationHTree);
+	myProject.resources.configuration.paths.webapp = "webapp-project.artifactId";
+	const applicationFormatter = new ApplicationFormatter();
+
+	await applicationFormatter.format(myProject);
+	t.deepEqual(myProject.metadata.namespace, "application/h",
+		"namespace was successfully set since readManifest provides the correct object structure");
+});
+
+test("namespace: detect namespace from pom.xml via ${componentName} from properties", async (t) => {
+	const myProject = clone(applicationHTree);
+	myProject.resources.configuration.paths.webapp = "webapp-properties.componentName";
+	const applicationFormatter = new ApplicationFormatter();
+
+	await applicationFormatter.format(myProject);
+	t.deepEqual(myProject.metadata.namespace, "application/h",
+		"namespace was successfully set since readManifest provides the correct object structure");
+});
+
+test("namespace: detect namespace from pom.xml via ${appId} from properties", async (t) => {
+	const myProject = clone(applicationHTree);
+	myProject.resources.configuration.paths.webapp = "webapp-properties.appId";
+	const applicationFormatter = new ApplicationFormatter();
+
+	await applicationFormatter.format(myProject);
+	t.falsy(myProject.metadata.namespace,
+		"namespace is falsy since readManifest resolves with an empty object");
+});
