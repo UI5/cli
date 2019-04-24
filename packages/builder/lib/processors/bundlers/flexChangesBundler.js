@@ -10,29 +10,15 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
  * @param {Object} parameters.options Options
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with flexchange bundle resources
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with flex changes bundle resources
  */
 module.exports = function({resources, options}) {
-	const layers = {
-		VENDOR: 0,
-		INDUSTRY: 1,
-		PARTNER: 2,
-		CUSTOMER_BASE: 3,
-		CUSTOMER: 4,
-		USER: 5
-	};
-
-	function sortByLayer(a, b) {
-		return layers[a.layer] - layers[b.layer];
-	}
-
 	function sortByTimeStamp(a, b) {
-		return a.creation - b.creation;
+		return a.creation > b.creation ? 1 : -1;
 	}
 
 	function sortAndStringify(changesContent) {
 		changesContent = changesContent.sort(sortByTimeStamp);
-		changesContent = changesContent.sort(sortByLayer);
 		changesContent = changesContent.map(function(change) {
 			return JSON.stringify(change);
 		});
@@ -45,13 +31,13 @@ module.exports = function({resources, options}) {
 		});
 	})).then((changesContent) => {
 		const nNumberOfChanges = changesContent.length;
-		log.verbose("Changes collected. Number of changes: " + nNumberOfChanges);
+		log.info("Changes collected. Number of changes: " + nNumberOfChanges);
 		const result = [];
 		if (nNumberOfChanges > 0) {
 			changesContent = sortAndStringify(changesContent);
 			result.push(resourceFactory.createResource({
 				path: `${options.pathPrefix}/changes/changes-bundle.json`,
-				string: "{ \"changes\": [" + changesContent.join(",") + "]}"
+				string: "[" + changesContent.join(",") + "]"
 			}));
 		}
 		return result;

@@ -2,7 +2,7 @@
 specVersion: "0.1"
 type: application
 metadata:
-  name: application.h
+  name: application.i
 builder:
   bundles:
     - name: sap/ushell/bootstrap/cdm.js

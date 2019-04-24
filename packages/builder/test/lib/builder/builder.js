@@ -12,6 +12,7 @@ const builder = ui5Builder.builder;
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
+const applicationIPath = path.join(__dirname, "..", "..", "fixtures", "application.i");
 const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
 const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
@@ -159,6 +160,26 @@ test("Build application.h", (t) => {
 		tree: applicationHTree,
 		destPath,
 		excludedTasks: ["createDebugFiles", "generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test("Build application.i", (t) => {
+	const destPath = "./test/tmp/build/application.i/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.i", "dest");
+
+	return builder.build({
+		tree: applicationITree,
+		destPath,
+		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle", "generateVersionInfo"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -546,6 +567,33 @@ const applicationHTree = {
 				"usePredefinedCalls": true
 			}
 		}]
+	}
+};
+
+const applicationITree = {
+	"id": "application.i",
+	"version": "1.0.0",
+	"path": applicationIPath,
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "application",
+	"metadata": {
+		"name": "application.i",
+		"namespace": "application/i"
+	},
+	"dependencies": [],
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			}
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	},
+	"builder": {
+		"bundles": []
 	}
 };
 

@@ -10,87 +10,86 @@ test("flexChangesBundler with empty resources", async (t) => {
 });
 
 test("flexChangesBundler with 2 changes", async (t) => {
-	const singleFlexChange = {
-		"changes": [
-			{
-				"fileName": "id_1504764957625_7_rename1",
-				"fileType": "change",
-				"changeType": "rename",
-				"reference": "rta.performance.Component",
-				"packageName": "$TMP",
-				"content": {
-					"originalControlType": "sap.m.Label"
-				},
-				"selector": {
-					"id": "initialLabel",
-					"idIsLocal": false
-				},
-				"layer": "CUSTOMER",
-				"texts": {
-					"newText": {
-						"value": "rename_0",
-						"type": "XFLD"
-					}
-				},
-				"namespace": "apps/MyComponent/changes/",
-				"creation": "2017-09-06T11:54:55.238Z",
-				"originalLanguage": "EN",
-				"conditions": {},
-				"context": "",
-				"support": {
-					"generator": "Change.createInitialFileContent",
-					"service": "",
-					"user": "",
-					"sapui5Version": "1.51.0-SNAPSHOT"
-				},
-				"dependentSelector": {},
-				"validAppVersions": {
-					"creation": "1.0.0",
-					"from": "1.0.0",
-					"to": "1.0.0"
+	const flexBundle = [
+		{
+			"fileName": "id_1504764957630_7_rename2",
+			"fileType": "change",
+			"changeType": "rename",
+			"reference": "rta.performance.Component",
+			"packageName": "$TMP",
+			"content": {
+				"originalControlType": "sap.m.Label"
+			},
+			"selector": {
+				"id": "initialLabel",
+				"idIsLocal": false
+			},
+			"layer": "USER",
+			"texts": {
+				"newText": {
+					"value": "rename_5",
+					"type": "XFLD"
 				}
-			}, {
-				"fileName": "id_1504764957630_7_rename2",
-				"fileType": "change",
-				"changeType": "rename",
-				"reference": "rta.performance.Component",
-				"packageName": "$TMP",
-				"content": {
-					"originalControlType": "sap.m.Label"
-				},
-				"selector": {
-					"id": "initialLabel",
-					"idIsLocal": false
-				},
-				"layer": "USER",
-				"texts": {
-					"newText": {
-						"value": "rename_5",
-						"type": "XFLD"
-					}
-				},
-				"namespace": "apps/MyComponent/changes/",
-				"creation": "2017-09-01T11:54:55.238Z",
-				"originalLanguage": "EN",
-				"conditions": {},
-				"context": "",
-				"support": {
-					"generator": "Change.createInitialFileContent",
-					"service": "",
-					"user": "",
-					"sapui5Version": "1.51.0-SNAPSHOT"
-				},
-				"dependentSelector": {},
-				"validAppVersions": {
-					"creation": "1.0.0",
-					"from": "1.0.0",
-					"to": "1.0.0"
-				}
+			},
+			"namespace": "apps/MyComponent/changes/",
+			"creation": "2017-09-01T11:54:55.238Z",
+			"originalLanguage": "EN",
+			"conditions": {},
+			"context": "",
+			"support": {
+				"generator": "Change.createInitialFileContent",
+				"service": "",
+				"user": "",
+				"sapui5Version": "1.51.0-SNAPSHOT"
+			},
+			"dependentSelector": {},
+			"validAppVersions": {
+				"creation": "1.0.0",
+				"from": "1.0.0",
+				"to": "1.0.0"
 			}
-		]
-	};
+		}, {
+			"fileName": "id_1504764957625_7_rename1",
+			"fileType": "change",
+			"changeType": "rename",
+			"reference": "rta.performance.Component",
+			"packageName": "$TMP",
+			"content": {
+				"originalControlType": "sap.m.Label"
+			},
+			"selector": {
+				"id": "initialLabel",
+				"idIsLocal": false
+			},
+			"layer": "CUSTOMER",
+			"texts": {
+				"newText": {
+					"value": "rename_0",
+					"type": "XFLD"
+				}
+			},
+			"namespace": "apps/MyComponent/changes/",
+			"creation": "2017-09-06T11:54:55.238Z",
+			"originalLanguage": "EN",
+			"conditions": {},
+			"context": "",
+			"support": {
+				"generator": "Change.createInitialFileContent",
+				"service": "",
+				"user": "",
+				"sapui5Version": "1.51.0-SNAPSHOT"
+			},
+			"dependentSelector": {},
+			"validAppVersions": {
+				"creation": "1.0.0",
+				"from": "1.0.0",
+				"to": "1.0.0"
+			}
+		}
+	];
+
 	const resources = [];
-	singleFlexChange.changes.forEach((change) => {
+	flexBundle.forEach((change) => {
 		resources.push({
 			name: "flexChange",
 			getBuffer: async () => JSON.stringify(change)
@@ -110,5 +109,5 @@ test("flexChangesBundler with 2 changes", async (t) => {
 	// check content
 	const content = await oResult.getString();
 	const parsedContent = JSON.parse(content);
-	t.deepEqual(parsedContent, singleFlexChange, "Result must contain the content");
+	t.deepEqual(parsedContent, flexBundle, "Result must contain the content");
 });
