@@ -17,6 +17,9 @@ coverage
 # nyc test coverage
 .nyc_output
 
+# CI (Azure Pipelines) xUnit test results
+test-results.xml
+
 # IDEs
 .vscode/
 *.~vsdx
