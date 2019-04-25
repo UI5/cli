@@ -386,23 +386,23 @@
 			}
 		},
 		"@ui5/server": {
-			"version": "1.0.0",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-1.0.0.tgz",
-			"integrity": "sha512-q8bvkrbX7miSatGTxjFfCvnMnWwP17dZSHzkcc7y6chv6LB8RtPTdGMfUMD8+AWxqKLRqaxRXK4zUSUg7XIWhg==",
+			"version": "1.1.0",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-1.1.0.tgz",
+			"integrity": "sha512-mJ5cKj4HbBzaOyfIIwbA0nAisA1ug2VqtS2gACC73tdEoRkKiPqpQAujzCqV5/PSjZm0Dof7zjNHH/30YL9cYw==",
 			"requires": {
-				"@ui5/builder": "^1.0.0",
-				"@ui5/fs": "^1.0.0",
-				"@ui5/logger": "^1.0.0",
-				"@ui5/project": "^1.0.0",
-				"compression": "^1.7.1",
-				"connect-openui5": "^0.7.2",
+				"@ui5/builder": "^1.2.0",
+				"@ui5/fs": "^1.0.2",
+				"@ui5/logger": "^1.0.1",
+				"@ui5/project": "^1.0.2",
+				"compression": "^1.7.4",
+				"connect-openui5": "^0.7.6",
 				"cors": "^2.8.5",
 				"devcert-sanscache": "^0.4.5",
 				"etag": "^1.8.1",
 				"express": "^4.16.4",
 				"fresh": "^0.5.2",
-				"make-dir": "^1.1.0",
-				"mime-types": "^2.1.17",
+				"make-dir": "^3.0.0",
+				"mime-types": "^2.1.24",
 				"portscanner": "^2.1.1",
 				"prompt": "^1.0.0",
 				"replacestream": "^4.0.3",
@@ -411,11 +411,11 @@
 			},
 			"dependencies": {
 				"make-dir": {
-					"version": "1.3.0",
-					"resolved": "https://registry.npmjs.org/make-dir/-/make-dir-1.3.0.tgz",
-					"integrity": "sha512-2w31R7SJtieJJnQtGc7RVL2StM2vGYVfqUOvUDxH6bC6aJTxPxTF0GnIgCyu7tjockiUWAYQRbxa7vKn34s5sQ==",
+					"version": "3.0.0",
+					"resolved": "https://registry.npmjs.org/make-dir/-/make-dir-3.0.0.tgz",
+					"integrity": "sha512-grNJDhb8b1Jm1qeqW5R/O63wUo4UXo2v2HMic6YT9i/HBlF93S8jkMgH7yugvY9ABDShH4VZMn8I+U8+fCNegw==",
 					"requires": {
-						"pify": "^3.0.0"
+						"semver": "^6.0.0"
 					}
 				}
 			}
