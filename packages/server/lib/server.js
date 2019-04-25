@@ -70,7 +70,7 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 }
 
 /**
- * Adds SSL support to an express application
+ * Adds SSL support to an express application.
  *
  * @param {Object} parameters
  * @param {Object} parameters.app The original express application
@@ -92,7 +92,7 @@ function _addSsl({app, key, cert}) {
  */
 module.exports = {
 	/**
-	 * Start a server for the given project (sub-)tree
+	 * Start a server for the given project (sub-)tree.
 	 *
 	 * @public
 	 * @param {Object} tree A (sub-)tree
@@ -104,12 +104,16 @@ module.exports = {
 	 * @param {string} [options.cert] Path to certificate to be used for for https
 	 * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and
 	 * 															not only to localhost connections
+	 * @param {boolean} [options.sendSAPTargetCSP=false] If true, then the content security policies that SAP and UI5
+	 * 													aim for (AKA 'target policies'), are send for any requested
+	 * 													<code>*.html</code> file
 	 * @returns {Promise<Object>} Promise resolving once the server is listening.
 	 * 							It resolves with an object containing the <code>port</code>,
 	 * 							<code>h2</code>-flag and a <code>close</code> function,
 	 * 							which can be used to stop the server.
 	 */
-	serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, acceptRemoteConnections = false}) {
+	serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, acceptRemoteConnections = false,
+		sendSAPTargetCSP = false}) {
 		return Promise.resolve().then(() => {
 			const projectResourceCollections = resourceFactory.createCollectionsForTree(tree);
 
@@ -134,7 +138,6 @@ module.exports = {
 			const oCspConfig = {
 				allowDynamicPolicySelection: true,
 				allowDynamicPolicyDefinition: true,
-				defaultPolicyIsReportOnly: true,
 				definedPolicies: {
 					"sap-target-level-1":
 						"default-src 'self'; " +
@@ -156,6 +159,14 @@ module.exports = {
 						"connect-src 'self' https: wss:;"
 				}
 			};
+			if ( sendSAPTargetCSP ) {
+				Object.assign(oCspConfig, {
+					defaultPolicy: "sap-target-level-1",
+					defaultPolicyIsReportOnly: true,
+					defaultPolicy2: "sap-target-level-2",
+					defaultPolicy2IsReportOnly: true,
+				});
+			}
 			app.use(csp("sap-ui-xx-csp-policy", oCspConfig));
 
 			app.use(compression());
