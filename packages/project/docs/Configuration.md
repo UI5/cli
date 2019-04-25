@@ -60,6 +60,8 @@ builder:
   jsdoc:
     excludes:
       - "some/project/name/thirdparty/**"
+  cachebuster:
+    signatureType: time
 server:
   settings:
     port: 8099
@@ -87,6 +89,8 @@ Some general information:
         + `<virtual path>: <physical path>` (default `/: ./`): Any virtual path mapping can be defined here.  
           *(Only available for projects of type `module`)*  
           It is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/first/library/module-xy`).
+- `cachebuster`:
+    - `signatureType`: `time` or `hash`. By default, the generated cachebuster info file signatures are based on timestamps (`time`). In setups like CI environments, a mechanism based on file hashes (`hash`) might be more reliable.
 
 #### builder (optional)
 - `resources`: General resource configuration for this project
