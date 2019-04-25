@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.1.0...HEAD).
+
+<a name="v1.1.0"></a>
+## [v1.1.0] - 2019-04-25
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/fs from 1.0.1 to 1.0.2 ([#166](https://github.com/SAP/ui5-server/issues/166)) [`5ff4765`](https://github.com/SAP/ui5-server/commit/5ff476504254baf304c2cb9db83746438a10be92)
+- Bump [@ui5](https://github.com/ui5)/logger from 1.0.0 to 1.0.1 ([#165](https://github.com/SAP/ui5-server/issues/165)) [`21be52a`](https://github.com/SAP/ui5-server/commit/21be52a109abd5096daefc54ce038a95bd437f6f)
+- Bump [@ui5](https://github.com/ui5)/builder from 1.0.0 to 1.0.1 ([#126](https://github.com/SAP/ui5-server/issues/126)) [`e22c118`](https://github.com/SAP/ui5-server/commit/e22c1185e2e5fc718b50704b6a64a121413b3f93)
+- Bump [@ui5](https://github.com/ui5)/fs from 1.0.0 to 1.0.1 [`255766a`](https://github.com/SAP/ui5-server/commit/255766a62981af2e5ef584015d2951d39189ef3a)
+
+### Features
+- Add Server Option to Send SAP's Target CSPs by default ([#179](https://github.com/SAP/ui5-server/issues/179)) [`4f05967`](https://github.com/SAP/ui5-server/commit/4f059670306c97ab5f34d82bb335f5ee21d73c72)
+
 
 <a name="v1.0.0"></a>
 ## [v1.0.0] - 2019-01-10
@@ -41,6 +53,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.1.0]: https://github.com/SAP/ui5-server/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/SAP/ui5-server/compare/v0.2.2...v1.0.0
 [v0.2.2]: https://github.com/SAP/ui5-server/compare/v0.2.1...v0.2.2
 [v0.2.1]: https://github.com/SAP/ui5-server/compare/v0.2.0...v0.2.1
