@@ -37,6 +37,11 @@ serve.builder = function(cli) {
 			default: "$HOME/.ui5/server/server.crt",
 			type: "string"
 		})
+		.option("sap-csp-policies", {
+			describe: "Always send content security policies 'sap-target-level-1' and 'sap-target-level-2' in report-only mode",
+			default: false,
+			type: "boolean"
+		})
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
 		.example("ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path")
@@ -61,7 +66,8 @@ serve.handler = function(argv) {
 			h2: argv.h2,
 			acceptRemoteConnections: !!argv.acceptRemoteConnections,
 			cert: argv.h2 ? argv.cert : undefined,
-			key: argv.h2 ? argv.key : undefined
+			key: argv.h2 ? argv.key : undefined,
+			sendSAPTargetCSP: !!argv.sapCspPolicies
 		};
 
 		if (!serverConfig.h2) {

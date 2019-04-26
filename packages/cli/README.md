@@ -111,6 +111,8 @@ Options:
 	--accept-remote-connections   Accept remote connections. By default the server only accepts connections from localhost  [boolean] [default: false]
 	--key                         Path to the private key  [string] [default: "$HOME/.ui5/server/server.key"]
 	--cert                        Path to the certificate  [string] [default: "$HOME/.ui5/server/server.crt"]
+	--sap-csp-policies            Always send content security policies 'sap-target-level-1' and 'sap-target-level-2' in report-only mode  [boolean] [default: false]
+
 
 Examples:
 	ui5 serve                                                        Start a web server for the current project
