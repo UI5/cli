@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.3.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.4.0...HEAD).
+
+<a name="v1.4.0"></a>
+## [v1.4.0] - 2019-04-26
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/server from 1.0.0 to 1.1.0 [`fe03e1e`](https://github.com/SAP/ui5-cli/commit/fe03e1ec034698f213649526482c2a05c2132c92)
+- Bump [@ui5](https://github.com/ui5)/builder from 1.1.1 to 1.2.0 [`b4747fb`](https://github.com/SAP/ui5-cli/commit/b4747fbefdab4e13173dee054bfd7b66134c65eb)
+
+### Features
+- Add 'sap-csp-policies' option to 'serve' command. ([#188](https://github.com/SAP/ui5-cli/issues/188)) [`57d5567`](https://github.com/SAP/ui5-cli/commit/57d5567b2e78a6d5ce8bbc6cae50b5d7bec80da4)
+
 
 <a name="v1.3.1"></a>
 ## [v1.3.1] - 2019-04-24
@@ -127,6 +137,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.4.0]: https://github.com/SAP/ui5-cli/compare/v1.3.1...v1.4.0
 [v1.3.1]: https://github.com/SAP/ui5-cli/compare/v1.3.0...v1.3.1
 [v1.3.0]: https://github.com/SAP/ui5-cli/compare/v1.2.4...v1.3.0
 [v1.2.4]: https://github.com/SAP/ui5-cli/compare/v1.2.3...v1.2.4
