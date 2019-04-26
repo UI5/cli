@@ -33,7 +33,7 @@ steps:
     versionSpec: $(node_version)
   displayName: 'Install Node.js'
 
-- script: npm install
+- script: npm ci
 - script: npm run test-azure
 
 - task: PublishTestResults@2
