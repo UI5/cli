@@ -48,7 +48,7 @@ test("_analyzeManifest: without manifest", async (t) => {
 });
 
 
-test("_analyzeManifest: with manifest with recursive pages", async (t) => {
+test("_analyzeManifest: with manifest with recursive pages (as array)", async (t) => {
 	const moduleInfo = {
 		addDependency: function() {}
 	};
@@ -58,14 +58,14 @@ test("_analyzeManifest: with manifest with recursive pages", async (t) => {
 		"sap.ui.generic.app": {
 			"pages": [{
 				"component": {
-					"name": "mycomp.js",
+					"name": "test.mycomp",
 					"settings": {
 						"templateName": "myTemplate"
 					}
 				},
 				"pages": [{
 					"component": {
-						"name": "mycomp2.js",
+						"name": "test.mycomp2",
 						"settings": {
 							"templateName": "myTemplate"
 						}
@@ -81,18 +81,18 @@ test("_analyzeManifest: with manifest with recursive pages", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.is(stubAnalyzeTemplateComponent.callCount, 2, "_analyzeTemplateComponent was called twice");
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[0], "mycomp/js/Component.js",
+	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[0], "test/mycomp/Component.js",
 		"_analyzeTemplateComponent should be called with the component");
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[1], {
 		"component": {
-			"name": "mycomp.js",
+			"name": "test.mycomp",
 			"settings": {
 				"templateName": "myTemplate"
 			}
 		},
 		"pages": [{
 			"component": {
-				"name": "mycomp2.js",
+				"name": "test.mycomp2",
 				"settings": {
 					"templateName": "myTemplate"
 				}
@@ -100,11 +100,11 @@ test("_analyzeManifest: with manifest with recursive pages", async (t) => {
 		}]
 	}, "_analyzeTemplateComponent should be called with the page");
 
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[0], "mycomp2/js/Component.js",
+	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[0], "test/mycomp2/Component.js",
 		"_analyzeTemplateComponent should be called with the component");
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[1], {
 		"component": {
-			"name": "mycomp2.js",
+			"name": "test.mycomp2",
 			"settings": {
 				"templateName": "myTemplate"
 			}
@@ -112,10 +112,83 @@ test("_analyzeManifest: with manifest with recursive pages", async (t) => {
 	}, "_analyzeTemplateComponent should be called with the page");
 
 	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "mycomp/js/Component.js",
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "test/mycomp/Component.js",
 		"addDependency should be called with the dependency name");
 });
 
+test("_analyzeManifest: with manifest with recursive pages (as object)", async (t) => {
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const manifest = {
+		"sap.ui.generic.app": {
+			"pages": {
+				"MyPage1": {
+					"component": {
+						"name": "test.mycomp",
+						"settings": {
+							"templateName": "myTemplate"
+						}
+					},
+					"pages": {
+						"MyPage2": {
+							"component": {
+								"name": "test.mycomp2",
+								"settings": {
+									"templateName": "myTemplate"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	};
+
+	const analyzer = new SmartTemplateAnalyzer();
+	const stubAnalyzeTemplateComponent = sinon.stub(analyzer, "_analyzeTemplateComponent").resolves();
+
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.is(stubAnalyzeTemplateComponent.callCount, 2, "_analyzeTemplateComponent was called twice");
+	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[0], "test/mycomp/Component.js",
+		"_analyzeTemplateComponent should be called with the component");
+	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[1], {
+		"component": {
+			"name": "test.mycomp",
+			"settings": {
+				"templateName": "myTemplate"
+			}
+		},
+		"pages": {
+			"MyPage2": {
+				"component": {
+					"name": "test.mycomp2",
+					"settings": {
+						"templateName": "myTemplate"
+					}
+				}
+			}
+		}
+	}, "_analyzeTemplateComponent should be called with the page");
+
+	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[0], "test/mycomp2/Component.js",
+		"_analyzeTemplateComponent should be called with the component");
+	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[1], {
+		"component": {
+			"name": "test.mycomp2",
+			"settings": {
+				"templateName": "myTemplate"
+			}
+		}
+	}, "_analyzeTemplateComponent should be called with the page");
+
+	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "test/mycomp/Component.js",
+		"addDependency should be called with the dependency name");
+});
 
 test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", async (t) => {
 	const moduleInfo = {
@@ -217,8 +290,8 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 });
 
 test("_analyzeAST: get template name from ast", async (t) => {
-	const code = `sap.ui.define(["a", "sap/suite/ui/generic/template/lib/TemplateAssembler"], 
-	function(a, TemplateAssembler){   
+	const code = `sap.ui.define(["a", "sap/suite/ui/generic/template/lib/TemplateAssembler"],
+	function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
 			metadata: {
@@ -248,8 +321,8 @@ test("_analyzeAST: get template name from ast", async (t) => {
 });
 
 test("_analyzeAST: no template name from ast", async (t) => {
-	const code = `sap.ui.define(["a", "sap/suite/ui/generic/template/lib/TemplateAssembler"], 
-	function(a, TemplateAssembler){   
+	const code = `sap.ui.define(["a", "sap/suite/ui/generic/template/lib/TemplateAssembler"],
+	function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
 			metadata: {
@@ -283,7 +356,7 @@ test("Analysis of Manifest and TemplateAssembler code", async (t) => {
 		"sap.ui.generic.app": {
 			"pages": [{
 				"component": {
-					"name": "mycomp.js",
+					"name": "test.mycomp",
 					"settings": {
 						"templateName": "myTemplate"
 					}
@@ -292,7 +365,7 @@ test("Analysis of Manifest and TemplateAssembler code", async (t) => {
 		}
 	};
 
-	const code = `sap.ui.define(["a", "sap/suite/ui/generic/template/lib/TemplateAssembler"], 
+	const code = `sap.ui.define(["a", "sap/suite/ui/generic/template/lib/TemplateAssembler"],
 		function(a, TemplateAssembler){   return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.suite.ui.generic.templates.Page.Component", {
 			metadata: {
@@ -319,7 +392,7 @@ test("Analysis of Manifest and TemplateAssembler code", async (t) => {
 	const analyzer = new SmartTemplateAnalyzer(mockPool);
 	const name = "MyComponent.js";
 	await analyzer.analyze({name}, moduleInfo);
-	t.deepEqual(moduleInfo.dependencies, ["mycomp/js/Component.js", "myTemplate.view.xml"],
+	t.deepEqual(moduleInfo.dependencies, ["test/mycomp/Component.js", "myTemplate.view.xml"],
 		"Resulting dependencies should come from manifest and code");
 });
 

@@ -81,17 +81,20 @@ class TemplateComponentAnalyzer {
 		const promises = [];
 		const that = this;
 		const st = (manifest && manifest["sap.ui.generic.app"]) || {};
+		function recursePage(page) {
+			if ( page.component && page.component.name ) {
+				const module = ModuleName.fromUI5LegacyName( page.component.name + ".Component" );
+				log.verbose("template app: add dependency to template component %s", module);
+				info.addDependency(module);
+				promises.push( that._analyzeTemplateComponent(module, page, info) );
+			}
+			recurse(page);
+		}
 		function recurse(ctx) {
-			if ( ctx.pages ) {
-				ctx.pages.forEach((page) => {
-					if ( page.component && page.component.name ) {
-						const module = ModuleName.fromUI5LegacyName( page.component.name + ".Component" );
-						log.verbose("template app: add dependency to template component %s", module);
-						info.addDependency(module);
-						promises.push( that._analyzeTemplateComponent(module, page, info) );
-					}
-					recurse(page);
-				});
+			if ( Array.isArray(ctx.pages) ) {
+				ctx.pages.forEach(recursePage);
+			} else if (typeof ctx.pages === "object") {
+				Object.values(ctx.pages).forEach(recursePage);
 			}
 		}
 		recurse(st);
