@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.2.1...HEAD).
+
+<a name="v1.2.1"></a>
+## [v1.2.1] - 2019-05-05
+### Bug Fixes
+- **SmartTemplateAnalyzer:** Detect dependencies from "pages" object [`2d400c2`](https://github.com/SAP/ui5-builder/commit/2d400c2ac0883ad57b4aa894c46a0dd5aecb070a)
+
 
 <a name="v1.2.0"></a>
-## [v1.2.0] - 2019-04-18
+## [v1.2.0] - 2019-04-25
 ### Features
 - Add option to use hash signatures in cachebuster info file [`a4e8338`](https://github.com/SAP/ui5-builder/commit/a4e83383c7371cdde8573a901fdadd2ab243440e)
 
@@ -167,6 +173,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.2.1]: https://github.com/SAP/ui5-builder/compare/v1.2.0...v1.2.1
 [v1.2.0]: https://github.com/SAP/ui5-builder/compare/v1.1.1...v1.2.0
 [v1.1.1]: https://github.com/SAP/ui5-builder/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-builder/compare/v1.0.5...v1.1.0
