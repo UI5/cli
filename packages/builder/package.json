@@ -105,7 +105,7 @@
 		"estraverse": "^4.2.0",
 		"globby": "^7.1.1",
 		"graceful-fs": "^4.1.15",
-		"jsdoc": "^3.6.0",
+		"jsdoc": "3.5.5",
 		"less-openui5": "^0.6.0",
 		"make-dir": "^2.1.0",
 		"pretty-data": "^0.40.0",
