@@ -93,7 +93,7 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^1.2.1",
+		"@ui5/builder": "^1.2.2",
 		"@ui5/logger": "^1.0.1",
 		"graceful-fs": "^4.1.15",
 		"js-yaml": "^3.13.1",
