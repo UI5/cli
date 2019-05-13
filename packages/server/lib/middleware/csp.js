@@ -1,3 +1,6 @@
+const url = require("url");
+const querystring = require("querystring");
+
 const HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
 const HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY = "Content-Security-Policy-Report-Only";
 const rPolicy = /^([-_a-zA-Z0-9]+)(:report-only|:ro)?$/i;
@@ -25,9 +28,11 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 	} = oConfig;
 
 	return function csp(req, res, next) {
+		const oParsedURL = url.parse(req.url);
+
 		if (req.method === "POST" ) {
-			if (req.headers["content-type"] === "application/csp-report" &&
-				req.path.endsWith("/dummy.csplog") ) {
+			if (req.headers["content-type"] === "application/csp-report"
+				&& oParsedURL.pathname.endsWith("/dummy.csplog") ) {
 				// In report-only mode there must be a report-uri defined
 				// For now just ignore the violation. It will be logged in the browser anyway.
 				return;
@@ -37,7 +42,7 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		}
 
 		// add CSP headers only to get requests for *.html pages
-		if (req.method !== "GET" || !req.path.endsWith(".html")) {
+		if (req.method !== "GET" || !oParsedURL.pathname.endsWith(".html")) {
 			next();
 			return;
 		}
@@ -48,7 +53,8 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		const policy2 = defaultPolicy2 && definedPolicies[defaultPolicy2];
 		const reportOnly2 = defaultPolicy2IsReportOnly;
 
-		const sCspUrlParameterValue = req.query[sCspUrlParameterName];
+		const oQuery = querystring.parse(oParsedURL.query);
+		const sCspUrlParameterValue = oQuery[sCspUrlParameterName];
 		if (sCspUrlParameterValue) {
 			const mPolicyMatch = rPolicy.exec(sCspUrlParameterValue);
 

@@ -19,26 +19,22 @@ test("Default Settings", (t) => {
 		t.fail("Next should not be called");
 	};
 
-	middleware({method: "GET", path: "/test.html", headers: {}, query: {}}, res, next);
+	middleware({method: "GET", url: "/test.html", headers: {}}, res, next);
 	middleware({
 		method: "GET",
-		path: "/test.html",
-		headers: {},
-		query: {
-			"sap-ui-xx-csp-policy": "sap-target-level-2"
-		}
+		url: "/test.html?sap-ui-xx-csp-policy=sap-target-level-2",
+		headers: {}
 	}, res, next);
-	middleware({method: "POST", path: "somePath", headers: {}, query: {}}, res, next);
+	middleware({method: "POST", url: "somePath", headers: {}}, res, next);
 	middleware({
 		method: "POST",
-		path: "/dummy.csplog",
-		headers: {"content-type": "application/csp-report"},
-		query: {}
+		url: "/dummy.csplog",
+		headers: {"content-type": "application/csp-report"}
 	}, res, noNext);
 
 	// check that unsupported methods result in a call to next()
 	["CONNECT", "DELETE", "HEAD", "OPTIONS", "PATCH", "PUT", "TRACE"].forEach(
-		(method) => middleware({method, path: "/dummy.csplog", headers: {}, query: {}}, res, next)
+		(method) => middleware({method, url: "/dummy.csplog", headers: {}}, res, next)
 	);
 });
 
@@ -74,13 +70,13 @@ test("Custom Settings", (t) => {
 	};
 
 	expected = ["default-src 'self';", "default-src http:;"];
-	middleware({method: "GET", path: "/test.html", headers: {}, query: {}}, res, next);
+	middleware({method: "GET", url: "/test.html", headers: {}}, res, next);
 
 	expected = ["default-src https:;", "default-src http:;"];
-	middleware({method: "GET", path: "/test.html", headers: {}, query: {"csp": "policy3"}}, res, next);
+	middleware({method: "GET", url: "/test.html?csp=policy3", headers: {}}, res, next);
 
 	expected = ["default-src ftp:;", "default-src http:;"];
-	middleware({method: "GET", path: "/test.html", headers: {}, query: {"csp": "default-src ftp:;"}}, res, next);
+	middleware({method: "GET", url: "/test.html?csp=default-src%20ftp:;", headers: {}}, res, next);
 });
 
 test("No Dynamic Policy Definition", (t) => {
@@ -112,7 +108,7 @@ test("No Dynamic Policy Definition", (t) => {
 	};
 
 	const expected = ["default-src 'self';", "default-src http:;"];
-	middleware({method: "GET", path: "/test.html", headers: {}, query: {"csp": "default-src ftp:;"}}, res, next);
+	middleware({method: "GET", url: "/test.html?csp=default-src%20ftp:;", headers: {}}, res, next);
 });
 
 test("Header Manipulation", (t) => {
@@ -141,6 +137,6 @@ test("Header Manipulation", (t) => {
 	};
 	const next = function() {};
 
-	middleware({method: "GET", path: "/test.html", headers: {}, query: {}}, res, next);
+	middleware({method: "GET", url: "/test.html", headers: {}}, res, next);
 	t.deepEqual(cspHeader, ["default-src: spdy:", "default-src 'self';", "default-src http:;"]);
 });
