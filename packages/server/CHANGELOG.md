@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.1.1...HEAD).
+
+<a name="v1.1.1"></a>
+## [v1.1.1] - 2019-05-13
+### Bug Fixes
+- Makes CSP middleware work in an environment without express server ([#184](https://github.com/SAP/ui5-server/issues/184)) [`c3089ad`](https://github.com/SAP/ui5-server/commit/c3089adeee030f4ace899c01944006583146e32e)
+
 
 <a name="v1.1.0"></a>
 ## [v1.1.0] - 2019-04-25
@@ -53,6 +59,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.1.1]: https://github.com/SAP/ui5-server/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-server/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/SAP/ui5-server/compare/v0.2.2...v1.0.0
 [v0.2.2]: https://github.com/SAP/ui5-server/compare/v0.2.1...v0.2.2
