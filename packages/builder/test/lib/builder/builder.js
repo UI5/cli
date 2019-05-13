@@ -6,6 +6,8 @@ const fs = require("graceful-fs");
 const {promisify} = require("util");
 const readFile = promisify(fs.readFile);
 const assert = chai.assert;
+const sinon = require("sinon");
+const mock = require("mock-require");
 
 const ui5Builder = require("../../../");
 const builder = ui5Builder.builder;
@@ -71,6 +73,10 @@ async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, des
 	}
 }
 
+test.afterEach.always((t) => {
+	sinon.restore();
+});
+
 test("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
@@ -89,6 +95,17 @@ test("Build application.a", (t) => {
 	}).then(() => {
 		t.pass();
 	});
+});
+
+
+test("Build application.a with error", async (t) => {
+	const destPath = "./test/tmp/build/application.a/dest";
+
+	const error = await t.throws(builder.build({
+		tree: applicationATreeBadType,
+		destPath
+	}));
+	t.deepEqual(error.message, `Unknown type 'non existent'`);
 });
 
 test("Build application.a [dev mode]", (t) => {
@@ -320,6 +337,60 @@ test("Build theme.j even without an library", (t) => {
 	});
 });
 
+test.serial("Cleanup", async (t) => {
+	const BuildContext = require("../../../lib/builder/BuildContext");
+	const projectContext = "project context";
+	const createProjectContextStub = sinon.stub(BuildContext.prototype, "createProjectContext").returns(projectContext);
+	const executeCleanupTasksStub = sinon.stub(BuildContext.prototype, "executeCleanupTasks").returns(projectContext);
+	const applicationType = require("../../../lib/types/application/applicationType");
+	const appBuildStub = sinon.stub(applicationType, "build").resolves();
+
+	const builder = mock.reRequire("../../../lib/builder/builder");
+
+	function getProcessListenerCount() {
+		return ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"].map((eventName) => {
+			return process.listenerCount(eventName);
+		});
+	}
+
+	const listenersBefore = getProcessListenerCount();
+
+	const destPath = "./test/tmp/build/cleanup";
+	// Success case
+	const pBuildSuccess = builder.build({
+		tree: applicationATree,
+		destPath
+	});
+	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
+		"Per signal, one new listener registered");
+
+	await pBuildSuccess;
+	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
+
+	t.deepEqual(appBuildStub.callCount, 1, "Build called once");
+	t.deepEqual(createProjectContextStub.callCount, 1, "One project context got created");
+	const createProjectContextParams = createProjectContextStub.getCall(0).args[0];
+	t.truthy(createProjectContextParams.resources.workspace, "resources.workspace object provided");
+	t.truthy(createProjectContextParams.resources.dependencies, "resources.dependencies object provided");
+	t.deepEqual(Object.keys(createProjectContextParams), ["resources"],
+		"resource parameter (and no others) provided");
+	t.deepEqual(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
+
+	// Error case
+	const pBuildError = builder.build({
+		tree: applicationATreeBadType,
+		destPath
+	});
+	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
+		"Per signal, one new listener registered");
+
+	const error = await t.throws(pBuildError);
+	t.deepEqual(error.message, `Unknown type 'non existent'`);
+	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
+
+	t.deepEqual(executeCleanupTasksStub.callCount, 2, "Cleanup called twice");
+});
+
 const applicationATree = {
 	"id": "application.a",
 	"version": "1.0.0",
@@ -429,6 +500,29 @@ const applicationATree = {
 	"_level": 0,
 	"specVersion": "0.1",
 	"type": "application",
+	"metadata": {
+		"name": "application.a"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			}
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	}
+};
+
+
+const applicationATreeBadType = {
+	"id": "application.a",
+	"version": "1.0.0",
+	"path": applicationAPath,
+	"_level": 0,
+	"specVersion": "0.1",
+	"type": "non existent",
 	"metadata": {
 		"name": "application.a"
 	},

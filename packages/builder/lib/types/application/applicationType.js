@@ -5,8 +5,8 @@ module.exports = {
 	format: function(project) {
 		return new ApplicationFormatter().format(project);
 	},
-	build: function({resourceCollections, tasks, project, parentLogger}) {
-		return new ApplicationBuilder({resourceCollections, project, parentLogger}).build(tasks);
+	build: function({resourceCollections, tasks, project, parentLogger, buildContext}) {
+		return new ApplicationBuilder({resourceCollections, project, parentLogger, buildContext}).build(tasks);
 	},
 
 	// Export type classes for extensibility

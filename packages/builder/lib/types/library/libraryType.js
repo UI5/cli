@@ -5,8 +5,8 @@ module.exports = {
 	format: function(project) {
 		return new LibraryFormatter().format(project);
 	},
-	build: function({resourceCollections, tasks, project, parentLogger}) {
-		return new LibraryBuilder({resourceCollections, project, parentLogger}).build(tasks);
+	build: function({resourceCollections, tasks, project, parentLogger, buildContext}) {
+		return new LibraryBuilder({resourceCollections, project, parentLogger, buildContext}).build(tasks);
 	},
 
 	// Export type classes for extensibility

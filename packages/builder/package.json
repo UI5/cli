@@ -111,9 +111,9 @@
 		"pretty-data": "^0.40.0",
 		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
+		"rimraf": "^2.6.3",
 		"semver": "^6.0.0",
 		"tap-xunit": "^2.3.0",
-		"tmp": "0.1.0",
 		"uglify-es": "^3.2.2",
 		"xml2js": "^0.4.17",
 		"yazl": "^2.5.1"
@@ -133,7 +133,6 @@
 		"nyc": "^14.1.1",
 		"opn-cli": "^4.1.0",
 		"recursive-readdir": "^2.1.1",
-		"rimraf": "^2.6.3",
 		"sinon": "^7.3.2",
 		"tap-nyan": "^1.1.0"
 	}

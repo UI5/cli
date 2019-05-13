@@ -1,9 +1,11 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:jsdoc:generateJsdoc");
 const path = require("path");
 const makeDir = require("make-dir");
+const os = require("os");
 const fs = require("graceful-fs");
-const tmp = require("tmp");
-tmp.setGracefulCleanup();
+const {promisify} = require("util");
+const mkdtemp = promisify(fs.mkdtemp);
+const rimraf = promisify(require("rimraf"));
 const jsdocGenerator = require("../../processors/jsdoc/jsdocGenerator");
 const {resourceFactory} = require("@ui5/fs");
 
@@ -22,12 +24,15 @@ const {resourceFactory} = require("@ui5/fs");
  * @param {string} parameters.options.version Project version
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-const generateJsdoc = async function({workspace, dependencies, options} = {}) {
+const generateJsdoc = async function({buildContext, workspace, dependencies, options} = {}) {
 	if (!options || !options.projectName || !options.namespace || !options.version || !options.pattern) {
 		throw new Error("[generateJsdoc]: One or more mandatory options not provided");
 	}
 
-	const {sourcePath: resourcePath, targetPath, tmpPath} = await generateJsdoc._createTmpDirs(options.projectName);
+	const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
+		await generateJsdoc._createTmpDirs(options.projectName);
+
+	buildContext.registerCleanupTask(cleanup);
 
 	const [writtenResourcesCount] = await Promise.all([
 		generateJsdoc._writeResourcesToDir({
@@ -64,7 +69,6 @@ const generateJsdoc = async function({workspace, dependencies, options} = {}) {
 	}));
 };
 
-
 /**
  * Create temporary directories for JSDoc generation processor
  *
@@ -73,7 +77,7 @@ const generateJsdoc = async function({workspace, dependencies, options} = {}) {
  * @returns {Promise<Object>} Promise resolving with sourcePath, targetPath and tmpPath strings
  */
 async function createTmpDirs(projectName) {
-	const {path: tmpDirPath} = await createTmpDir(projectName);
+	const tmpDirPath = await generateJsdoc._createTmpDir(projectName);
 
 	const sourcePath = path.join(tmpDirPath, "src"); // dir will be created by writing project resources below
 	await makeDir(sourcePath, {fs});
@@ -86,7 +90,10 @@ async function createTmpDirs(projectName) {
 	return {
 		sourcePath,
 		targetPath,
-		tmpPath
+		tmpPath,
+		cleanup: async () => {
+			return rimraf(tmpDirPath);
+		}
 	};
 }
 
@@ -95,28 +102,16 @@ async function createTmpDirs(projectName) {
  *
  * @private
  * @param {string} projectName Project name used for naming the temporary directory
- * @param {boolean} [keep=false] Whether to keep the temporary directory
- * @returns {Promise<Object>} Promise resolving with path of the temporary directory
+ * @returns {Promise<string>} Promise resolving with path of the temporary directory
  */
-function createTmpDir(projectName, keep = false) {
-	// Remove all non alpha-num characters from project name
+async function createTmpDir(projectName) {
 	const sanitizedProjectName = projectName.replace(/[^A-Za-z0-9]/g, "");
-	return new Promise((resolve, reject) => {
-		tmp.dir({
-			prefix: `ui5-tooling-tmp-jsdoc-${sanitizedProjectName}-`,
-			keep,
-			unsafeCleanup: true
-		}, (err, path) => {
-			if (err) {
-				reject(err);
-				return;
-			}
 
-			resolve({
-				path
-			});
-		});
-	});
+	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
+	await makeDir(tmpRootPath, {fs});
+
+	// Appending minus sign also because node docs advise to "avoid trailing X characters in prefix"
+	return mkdtemp(path.join(tmpRootPath, `jsdoc-${sanitizedProjectName}-`));
 }
 
 /**

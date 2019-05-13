@@ -18,7 +18,7 @@ const tasks = { // can't require index.js due to circular dependency
 };
 
 class LibraryBuilder extends AbstractBuilder {
-	addStandardTasks({resourceCollections, project, parentLogger}) {
+	addStandardTasks({resourceCollections, project, parentLogger, buildContext}) {
 		const namespace = project.metadata.name.replace(/\./g, "/");
 
 		this.addTask("replaceCopyright", () => {
@@ -57,6 +57,7 @@ class LibraryBuilder extends AbstractBuilder {
 			}
 
 			return generateJsdoc({
+				buildContext,
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {

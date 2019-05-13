@@ -3,6 +3,7 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
 const MemAdapter = require("@ui5/fs").adapters.Memory;
 const typeRepository = require("../types/typeRepository");
 const taskRepository = require("../tasks/taskRepository");
+const BuildContext = require("./BuildContext");
 
 const definedTasks = taskRepository.getAllTasks();
 
@@ -130,6 +131,61 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 	return selectedTasks;
 }
 
+async function executeCleanupTasks(buildContext) {
+	log.info("Executing cleanup tasks...");
+	await buildContext.executeCleanupTasks();
+}
+
+function registerCleanupSigHooks(buildContext) {
+	function createListener(exitCode) {
+		return function() {
+			// Asynchronously cleanup resources, then exit
+			executeCleanupTasks(buildContext).then(() => {
+				process.exit(exitCode);
+			});
+		};
+	}
+
+	const processSignals = {
+		"SIGHUP": createListener(128 + 1),
+		"SIGINT": createListener(128 + 2),
+		"SIGTERM": createListener(128 + 15),
+		"SIGBREAK": createListener(128 + 21)
+	};
+
+	for (const signal in processSignals) {
+		if (processSignals.hasOwnProperty(signal)) {
+			process.on(signal, processSignals[signal]);
+		}
+	}
+
+	// == TO BE DISCUSSED: Also cleanup for unhandled rejections and exceptions?
+	// Add additional events like signals since they are registered on the process
+	//	event emitter in a similar fashion
+	// processSignals["unhandledRejection"] = createListener(1);
+	// process.once("unhandledRejection", processSignals["unhandledRejection"]);
+	// processSignals["uncaughtException"] = function(err, origin) {
+	// 	const fs = require("fs");
+	// 	fs.writeSync(
+	// 		process.stderr.fd,
+	// 		`Caught exception: ${err}\n` +
+	// 		`Exception origin: ${origin}`
+	// 	);
+	// 	createListener(1)();
+	// };
+	// process.once("uncaughtException", processSignals["uncaughtException"]);
+
+	return processSignals;
+}
+
+function deregisterCleanupSigHooks(signals) {
+	for (const signal in signals) {
+		if (signals.hasOwnProperty(signal)) {
+			process.removeListener(signal, signals[signal]);
+		}
+	}
+}
+
 /**
  * Builder
  *
@@ -156,7 +212,7 @@ module.exports = {
 	 * @param {Array} [parameters.devExcludeProject=[]] List of projects to be excluded from development build
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
-	build({
+	async build({
 		tree, destPath,
 		buildDependencies = false, dev = false, selfContained = false, jsdoc = false,
 		includedTasks = [], excludedTasks = [], devExcludeProject = []
@@ -173,6 +229,8 @@ module.exports = {
 			virBasePath: "/"
 		});
 
+		const buildContext = new BuildContext();
+		const cleanupSigHooks = registerCleanupSigHooks(buildContext);
 
 		const projects = {}; // Unique project index to prevent building the same project multiple times
 		const projectWriters = {}; // Collection of memory adapters of already built libraries
@@ -235,6 +293,14 @@ module.exports = {
 					name: project.metadata.name
 				});
 
+				const projectContext = buildContext.createProjectContext({
+					// project, // TODO 2.0: Add project facade object/instance here
+					resources: {
+						workspace,
+						dependencies: resourceCollections.dependencies
+					}
+				});
+
 				if (dev && devExcludeProject.indexOf(project.metadata.name) !== -1) {
 					projectTasks = composeTaskList({dev: false, selfContained, includedTasks, excludedTasks});
 				}
@@ -246,7 +312,8 @@ module.exports = {
 					},
 					tasks: projectTasks,
 					project,
-					parentLogger: log
+					parentLogger: log,
+					buildContext: projectContext
 				}).then(() => {
 					log.verbose("Finished building project %s. Writing out files...", project.metadata.name);
 					buildLogger.completeWork(1);
@@ -265,11 +332,15 @@ module.exports = {
 			});
 		}
 
-		return buildProject(tree).then(() => {
+		try {
+			await buildProject(tree);
 			log.info(`Build succeeded in ${getElapsedTime(startTime)}`);
-		}, (err) => {
+		} catch (err) {
 			log.error(`Build failed in ${getElapsedTime(startTime)}`);
 			throw err;
-		});
+		} finally {
+			deregisterCleanupSigHooks(cleanupSigHooks);
+			await executeCleanupTasks(buildContext);
+		}
 	}
 };

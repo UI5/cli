@@ -14,7 +14,7 @@ class AbstractBuilder {
 	 * @param {Object} parameters.project Project configuration
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
 	 */
-	constructor({resourceCollections, project, parentLogger}) {
+	constructor({resourceCollections, project, parentLogger, buildContext}) {
 		if (new.target === AbstractBuilder) {
 			throw new TypeError("Class 'AbstractBuilder' is abstract");
 		}
@@ -26,8 +26,8 @@ class AbstractBuilder {
 
 		this.tasks = {};
 		this.taskExecutionOrder = [];
-		this.addStandardTasks({resourceCollections, project, log: this.log});
-		this.addCustomTasks({resourceCollections, project});
+		this.addStandardTasks({resourceCollections, project, log: this.log, buildContext});
+		this.addCustomTasks({resourceCollections, project, buildContext});
 	}
 
 	/**
@@ -42,7 +42,7 @@ class AbstractBuilder {
 	 * @param {Object} parameters.project Project configuration
 	 * @param {Object} parameters.log <code>@ui5/logger</code> logger instance
 	 */
-	addStandardTasks({resourceCollections, project, log}) {
+	addStandardTasks({resourceCollections, project, log, buildContext}) {
 		throw new Error("Function 'addStandardTasks' is not implemented");
 	}
 
@@ -56,7 +56,7 @@ class AbstractBuilder {
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
 	 * @param {Object} parameters.project Project configuration
 	 */
-	addCustomTasks({resourceCollections, project}) {
+	addCustomTasks({resourceCollections, project, buildContext}) {
 		const projectCustomTasks = project.builder && project.builder.customTasks;
 		if (!projectCustomTasks || projectCustomTasks.length === 0) {
 			return; // No custom tasks defined
