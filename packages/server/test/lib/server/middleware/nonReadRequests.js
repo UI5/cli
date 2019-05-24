@@ -13,9 +13,9 @@ test("Read requests", (t) => {
 		t.pass("Next was called.");
 	};
 
-	middleware({method: "GET", path: "somePath"}, res, next);
-	middleware({method: "HEAD", path: "somePath"}, res, next);
-	middleware({method: "OPTIONS", path: "somePath"}, res, next);
+	middleware({method: "GET", url: "/somePath"}, res, next);
+	middleware({method: "HEAD", url: "/somePath"}, res, next);
+	middleware({method: "OPTIONS", url: "/somePath"}, res, next);
 });
 
 test("Non read requests results in status 404 and an error message", (t) => {
@@ -33,12 +33,12 @@ test("Non read requests results in status 404 and an error message", (t) => {
 				t.deepEqual(status, 404, "Status should be 404");
 				return {
 					end: function(message) {
-						t.deepEqual(message, "Cannot " + method + " somePath", "Finished with error message.");
+						t.deepEqual(message, "Cannot " + method + " /somePath", "Finished with error message.");
 					}
 				};
 			}
 		};
 
-		middleware({method: method, path: "somePath"}, res, next);
+		middleware({method: method, url: "/somePath"}, res, next);
 	});
 });

@@ -4,6 +4,7 @@ const treeify = require("treeify");
 const replaceStream = require("replacestream");
 const etag = require("etag");
 const fresh = require("fresh");
+const parseurl = require("parseurl");
 
 const rProperties = /\.properties$/;
 
@@ -24,7 +25,8 @@ function isFresh(req, res) {
  */
 function createMiddleware({resourceCollections}) {
 	return function serveResources(req, res, next) {
-		resourceCollections.combo.byPath(req.path).then(function(resource) {
+		const pathname = parseurl(req).pathname;
+		resourceCollections.combo.byPath(pathname).then(function(resource) {
 			if (!resource) { // Not found
 				next();
 				return;
@@ -65,7 +67,7 @@ function createMiddleware({resourceCollections}) {
 				if (resource._project) {
 					stream = stream.pipe(replaceStream("${version}", resource._project.version));
 				} else {
-					log.verbose("Project missing from resource %s", req.path);
+					log.verbose("Project missing from resource %s", pathname);
 				}
 			}
 

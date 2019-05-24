@@ -1,5 +1,6 @@
 const log = require("@ui5/logger").getLogger("server:middleware:serveIndex");
 const mime = require("mime-types");
+const parseurl = require("parseurl");
 
 const rProperties = /\.properties$/;
 
@@ -138,8 +139,9 @@ function createContent(path, resourceInfos) {
  */
 function createMiddleware({resourceCollections}) {
 	return function serveIndex(req, res, next) {
-		log.verbose("\n Listing index of " +req.path);
-		const glob = req.path + (req.path.endsWith("/") ? "*" : "/*");
+		const pathname = parseurl(req).pathname;
+		log.verbose("\n Listing index of " + pathname);
+		const glob = pathname + (pathname.endsWith("/") ? "*" : "/*");
 		resourceCollections.combo.byGlob(glob, {nodir: false}).then((resources) => {
 			if (!resources || resources.length == 0) { // Not found
 				next();
@@ -151,7 +153,7 @@ function createMiddleware({resourceCollections}) {
 			});
 
 			const resourceInfos = createResourceInfos(resources);
-			res.end(createContent(req.path, resourceInfos));
+			res.end(createContent(pathname, resourceInfos));
 		}).catch((err) => {
 			next(err);
 		});

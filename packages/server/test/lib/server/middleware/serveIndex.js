@@ -40,7 +40,7 @@ test.serial("Check if index for files is created", (t) => {
 
 		return new Promise((resolve) => {
 			const req = {
-				path: "/"
+				url: "/"
 			};
 			const res = {
 				writeHead: function(status, contentType) {

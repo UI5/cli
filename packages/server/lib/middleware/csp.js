@@ -1,4 +1,4 @@
-const url = require("url");
+const parseurl = require("parseurl");
 const querystring = require("querystring");
 
 const HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
@@ -28,7 +28,7 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 	} = oConfig;
 
 	return function csp(req, res, next) {
-		const oParsedURL = url.parse(req.url);
+		const oParsedURL = parseurl(req);
 
 		if (req.method === "POST" ) {
 			if (req.headers["content-type"] === "application/csp-report"

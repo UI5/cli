@@ -2,6 +2,7 @@ const themeBuilder = require("@ui5/builder").processors.themeBuilder;
 const fsInterface = require("@ui5/fs").fsInterface;
 const etag = require("etag");
 const fresh = require("fresh");
+const parseurl = require("parseurl");
 
 function isFresh(req, res) {
 	return fresh(req.headers, {
@@ -27,7 +28,8 @@ function createMiddleware({resourceCollections}) {
 	});
 
 	return function theme(req, res, next) {
-		/* req.path examples:
+		const pathname = parseurl(req).pathname;
+		/* pathname examples:
 			/resources/sap/ui/core/themes/sap_belize/library.css
 		*/
 
@@ -37,7 +39,7 @@ function createMiddleware({resourceCollections}) {
 			 3 => -RTL.css suffix
 			 4 => -parameters.json suffix
 		*/
-		const themeReq = themeRequest.exec(req.path);
+		const themeReq = themeRequest.exec(pathname);
 		if (!themeReq) {
 			next();
 			return;
