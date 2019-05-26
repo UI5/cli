@@ -107,7 +107,7 @@
 		"ava": "^0.25.0",
 		"coveralls": "^3.0.3",
 		"cross-env": "^5.2.0",
-		"docdash": "^1.1.0",
+		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
 		"eslint-config-google": "^0.12.0",
 		"eslint-plugin-jsdoc": "^4.8.4",
