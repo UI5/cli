@@ -102,7 +102,7 @@
 		"cors": "^2.8.5",
 		"devcert-sanscache": "^0.4.5",
 		"etag": "^1.8.1",
-		"express": "^4.17.0",
+		"express": "^4.17.1",
 		"fresh": "^0.5.2",
 		"make-dir": "^3.0.0",
 		"mime-types": "^2.1.24",
