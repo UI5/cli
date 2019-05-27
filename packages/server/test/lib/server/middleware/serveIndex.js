@@ -1,4 +1,3 @@
-const path = require("path");
 const {test} = require("ava");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 
@@ -19,26 +18,20 @@ test.serial("Check if index for files is created", (t) => {
 		return writer.write(resource);
 	};
 
-	const filePath = path.join(process.cwd(), "./test/tmp/");
-	const reader = resourceFactory.createAdapter({fsBasePath: filePath, virBasePath: "/"});
-	const writer = resourceFactory.createAdapter({virBasePath: "/"});
-	const workspace = resourceFactory.createWorkspace({
-		reader: reader,
-		writer: writer
-	});
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 
 	return Promise.all([
-		writeResource(writer, "/myFile1.meh", 1024), // KB
-		writeResource(writer, "/myFile2.js", 1024 * 1024), // MB
-		writeResource(writer, "/myFile3.properties", 1024 * 1024 * 1024), // GB
+		writeResource(readerWriter, "/myFile1.meh", 1024), // KB
+		writeResource(readerWriter, "/myFile2.js", 1024 * 1024), // MB
+		writeResource(readerWriter, "/myFile3.properties", 1024 * 1024 * 1024), // GB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
 			resourceCollections: {
-				combo: workspace
+				combo: readerWriter
 			}
 		});
 
-		return new Promise((resolve) => {
+		return new Promise((resolve, reject) => {
 			const req = {
 				url: "/"
 			};
@@ -52,7 +45,8 @@ test.serial("Check if index for files is created", (t) => {
 					resolve();
 				},
 			};
-			const next = function() {
+			const next = function(err) {
+				reject(new Error(`Next callback called with error: ${err.message}`));
 			};
 			middleware(req, res, next);
 		});
