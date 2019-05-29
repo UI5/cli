@@ -95,11 +95,10 @@
 	"dependencies": {
 		"@ui5/logger": "^1.0.1",
 		"clone": "^2.1.0",
-		"dir-glob": "2.0.0",
-		"globby": "^7.1.1",
+		"globby": "^9.2.0",
 		"graceful-fs": "^4.1.15",
 		"make-dir": "^2.1.0",
-		"micromatch": "^3.1.4",
+		"micromatch": "^4.0.2",
 		"minimatch": "^3.0.3",
 		"mock-require": "^3.0.3",
 		"pretty-hrtime": "^1.0.3",

@@ -1,5 +1,6 @@
 const log = require("@ui5/logger").getLogger("resources:adapters:AbstractAdapter");
 const minimatch = require("minimatch");
+const micromatch = require("micromatch");
 const AbstractReaderWriter = require("../AbstractReaderWriter");
 const Resource = require("../Resource");
 
@@ -18,17 +19,19 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 * @public
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
+	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 */
-	constructor({virBasePath, project}) {
+	constructor({virBasePath, excludes = [], project}) {
 		if (new.target === AbstractAdapter) {
 			throw new TypeError("Class 'AbstractAdapter' is abstract");
 		}
 		super();
 		this._virBasePath = virBasePath;
 		this._virBaseDir = virBasePath.slice(0, -1);
+		this._excludes = excludes;
+		this._excludesNegated = excludes.map((pattern) => `!${pattern}`);
 		this._project = project;
 	}
-
 	/**
 	 * Locates resources by glob.
 	 *
@@ -42,14 +45,21 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(virPattern, options = {nodir: true}, trace) {
+		const excludes = this._excludesNegated;
+
 		if (!(virPattern instanceof Array)) {
 			virPattern = [virPattern];
 		}
+
+		// Append static exclude patterns
+		virPattern = Array.prototype.concat.apply(virPattern, excludes);
+
 		return Promise.all(virPattern.map(this._normalizePattern, this)).then((patterns) => {
+			patterns = Array.prototype.concat.apply([], patterns);
 			if (patterns.length === 0) {
 				return [];
 			}
-			patterns = Array.prototype.concat.apply([], patterns);
+
 			if (!options.nodir) {
 				for (let i = patterns.length - 1; i >= 0; i--) {
 					const idx = this._virBaseDir.indexOf(patterns[i]);
@@ -71,6 +81,16 @@ class AbstractAdapter extends AbstractReaderWriter {
 			}
 			return this._runGlob(patterns, options, trace);
 		});
+	}
+
+	/**
+	 * Validate if virtual path should be excluded
+	 *
+	 * @param {string} virPath Virtual Path
+	 * @returns {boolean} True if path is excluded, otherwise false
+	 */
+	isPathExcluded(virPath) {
+		return micromatch(virPath, this._excludes).length > 0;
 	}
 
 	/**

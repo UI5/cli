@@ -17,9 +17,10 @@ class Memory extends AbstractAdapter {
 	 * @public
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
+	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 */
-	constructor({virBasePath, project}) {
-		super({virBasePath, project});
+	constructor({virBasePath, project, excludes}) {
+		super({virBasePath, project, excludes});
 		this._virFiles = {}; // map full of files
 		this._virDirs = {}; // map full of directories
 	}
@@ -34,9 +35,9 @@ class Memory extends AbstractAdapter {
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
-	_runGlob(patterns, options = {nodir: true}, trace) {
+	async _runGlob(patterns, options = {nodir: true}, trace) {
 		if (patterns[0] === "" && !options.nodir) { // Match virtual root directory
-			return Promise.resolve([
+			return [
 				new Resource({
 					project: this.project,
 					statInfo: { // TODO: make closer to fs stat info
@@ -46,7 +47,7 @@ class Memory extends AbstractAdapter {
 					},
 					path: this._virBasePath.slice(0, -1)
 				})
-			]);
+			];
 		}
 
 		const filePaths = Object.keys(this._virFiles);
@@ -67,7 +68,7 @@ class Memory extends AbstractAdapter {
 			}));
 		}
 
-		return Promise.resolve(matchedResources);
+		return matchedResources;
 	}
 
 	/**
@@ -80,6 +81,9 @@ class Memory extends AbstractAdapter {
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
+		if (this.isPathExcluded(virPath)) {
+			return Promise.resolve(null);
+		}
 		return new Promise((resolve, reject) => {
 			if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
 				// Neither starts with basePath, nor equals baseDirectory
