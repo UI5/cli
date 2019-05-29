@@ -1,7 +1,7 @@
 const log = require("@ui5/logger").getLogger("resources:adapters:FileSystem");
 const path = require("path");
 const fs = require("graceful-fs");
-const glob = require("globby");
+const globby = require("globby");
 const makeDir = require("make-dir");
 const {PassThrough} = require("stream");
 const Resource = require("../Resource");
@@ -21,9 +21,10 @@ class FileSystem extends AbstractAdapter {
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} parameters.fsBasePath (Physical) File system path
+	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 */
-	constructor({virBasePath, project, fsBasePath}) {
-		super({virBasePath, project});
+	constructor({virBasePath, project, fsBasePath, excludes}) {
+		super({virBasePath, project, excludes});
 		this._fsBasePath = fsBasePath;
 	}
 
@@ -37,69 +38,71 @@ class FileSystem extends AbstractAdapter {
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
-	_runGlob(patterns, options = {nodir: true}, trace) {
-		return new Promise((resolve, reject) => {
-			const opt = {
-				cwd: this._fsBasePath,
-				dot: true,
-				nodir: options.nodir
-			};
+	async _runGlob(patterns, options = {nodir: true}, trace) {
+		const opt = {
+			cwd: this._fsBasePath,
+			dot: true,
+			onlyFiles: options.nodir,
+			followSymlinkedDirectories: false
+		};
+		trace.globCall();
 
-			trace.globCall();
-			glob(patterns, opt).then((matches) => {
-				const promises = [];
-				if (!opt.nodir && patterns[0] === "") { // Match physical root directory
-					promises.push(new Promise((resolve, reject) => {
-						fs.stat(this._fsBasePath, (err, stat) => {
-							if (err) {
-								reject(err);
-							} else {
-								resolve(new Resource({
-									project: this._project,
-									statInfo: stat,
-									path: this._virBaseDir,
-									createStream: () => {
-										return fs.createReadStream(this._fsBasePath);
-									}
-								}));
+		const promises = [];
+		if (!opt.onlyFiles && patterns.includes("")) { // Match physical root directory
+			promises.push(new Promise((resolve, reject) => {
+				fs.stat(this._fsBasePath, (err, stat) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(new Resource({
+							project: this._project,
+							statInfo: stat,
+							path: this._virBaseDir,
+							createStream: () => {
+								return fs.createReadStream(this._fsBasePath);
 							}
-						});
-					}));
-				}
-
-				for (let i = matches.length - 1; i >= 0; i--) {
-					promises.push(new Promise((resolve, reject) => {
-						const fsPath = path.join(this._fsBasePath, matches[i]);
-						const virPath = (this._virBasePath + matches[i]);
-
-						// Workaround for not getting the stat from the glob
-						fs.stat(fsPath, (err, stat) => {
-							if (err) {
-								reject(err);
-							} else {
-								resolve(new Resource({
-									project: this._project,
-									statInfo: stat,
-									path: virPath,
-									createStream: () => {
-										return fs.createReadStream(fsPath);
-									}
-								}));
-							}
-						});
-					}));
-				}
-
-				Promise.all(promises).then(function(results) {
-					const flat = Array.prototype.concat.apply([], results);
-					resolve(flat);
-				}, function(err) {
-					reject(err);
+						}));
+					}
 				});
-			}).catch((err) => {
-				log.error(err);
-			});
+			}));
+		}
+
+		// Remove empty string glob patterns
+		// Starting with globby v8 or v9 empty glob patterns "" act like "**"
+		// Micromatch throws on empty strings. We just ignore them since they are
+		// typically caused by our normalization in the AbstractAdapter
+		const globbyPatterns = patterns.filter((pattern) => {
+			return pattern !== "";
 		});
+		if (globbyPatterns.length > 0) {
+			const matches = await globby(globbyPatterns, opt);
+			for (let i = matches.length - 1; i >= 0; i--) {
+				promises.push(new Promise((resolve, reject) => {
+					const fsPath = path.join(this._fsBasePath, matches[i]);
+					const virPath = (this._virBasePath + matches[i]);
+
+					// Workaround for not getting the stat from the glob
+					fs.stat(fsPath, (err, stat) => {
+						if (err) {
+							reject(err);
+						} else {
+							resolve(new Resource({
+								project: this._project,
+								statInfo: stat,
+								path: virPath,
+								createStream: () => {
+									return fs.createReadStream(fsPath);
+								}
+							}));
+						}
+					});
+				}));
+			}
+		}
+		const results = await Promise.all(promises);
+
+		// Flatten results
+		return Array.prototype.concat.apply([], results);
 	}
 
 	/**
@@ -112,6 +115,10 @@ class FileSystem extends AbstractAdapter {
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource or null if not found
 	 */
 	_byPath(virPath, options, trace) {
+		if (this.isPathExcluded(virPath)) {
+			return Promise.resolve(null);
+		}
+
 		return new Promise((resolve, reject) => {
 			if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
 				// Neither starts with basePath, nor equals baseDirectory

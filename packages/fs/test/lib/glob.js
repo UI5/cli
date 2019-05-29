@@ -111,7 +111,6 @@ test("glob with multiple patterns", (t) => {
 		});
 });
 
-
 test("glob only a specific filetype (yaml)", (t) => {
 	t.plan(2);
 	return t.context.readerWriter.filesystem.byGlob("/**/*.yaml")
@@ -189,3 +188,213 @@ test("glob subdirectory", (t) => {
 		});
 	});
 });
+
+test("glob with multiple patterns with static exclude", (t) => {
+	t.plan(4);
+	return new FsAdapter({
+		fsBasePath: "./test/fixtures/glob",
+		virBasePath: "/test-resources/",
+		excludes: [
+			"/test-resources/application.b/**",
+			"!/test-resources/application.b/**/manifest.json"
+		]
+	}).byGlob(["/**/*.yaml", "/test-resources/**/i18n_de.properties"])
+		.then((resources) => {
+			const expectedResources = [
+				"/test-resources/application.a/ui5.yaml",
+				"/test-resources/application.b/webapp/manifest.json",
+				"/test-resources/application.b/webapp/embedded/manifest.json"
+			];
+			matchGlobResult(t, resources, expectedResources);
+		});
+});
+
+/*
+	Generic Micromatch tests for understanding glob exclude behavior.
+	Not active since they only test external code and our adapter-tests should
+	already test for any incompatible changes.
+*/
+// test("micromatch exclude test", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const excludePatterns = [
+// 		"!/resources/app/fileA",
+// 		"/resources/app/**",
+// 	];
+
+// 	const fileAPath = "/resources/app/fileA";
+// 	const fileBPath = "/resources/app/fileB";
+
+// 	let matches = micromatch(fileAPath, excludePatterns);
+// 	t.deepEqual(matches.length, 1, "File A is excluded");
+
+// 	matches = micromatch(fileBPath, excludePatterns);
+// 	t.deepEqual(matches.length, 1, "File B is included");
+// });
+
+// test("micromatch exclude test 2", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const excludePatterns = [
+// 		"/resources/app/**",
+// 		"!/resources/app/fileA",
+// 	];
+
+// 	const fileAPath = "/resources/app/fileA";
+// 	const fileBPath = "/resources/app/fileB";
+
+// 	let matches = micromatch(fileAPath, excludePatterns);
+// 	t.deepEqual(matches.length, 0, "File A is excluded");
+
+// 	matches = micromatch(fileBPath, excludePatterns);
+// 	t.deepEqual(matches.length, 1, "File B is included");
+// });
+
+// test("micromatch exclude test 3", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const excludePatterns = [
+// 		"!/resources/app/i18n/**",
+// 		"/resources/app/**",
+// 		"!/resources/app/manifest.json"
+// 	];
+
+// 	const paths = [
+// 		"/resources/app/manifest.json",
+// 		"/resources/app/i18n.properties",
+// 		"/resources/app/i18n/i18n.properties"
+// 	];
+
+// 	const matches = micromatch(paths, excludePatterns);
+// 	t.deepEqual(matches, [
+// 		"/resources/app/i18n.properties",
+// 		"/resources/app/i18n/i18n.properties"
+// 	], "Top level i18n.properties file is excluded");
+// });
+
+// test("micromatch exclude test 4", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const excludePatterns = [
+// 		"/!(pony)/**",
+// 	];
+
+// 	const paths = [
+// 		"/resources/app/manifest.json",
+// 		"/resources/app/i18n.properties",
+// 		"/resources/app/i18n/i18n.properties"
+// 	];
+
+// 	const matches = micromatch(paths, excludePatterns);
+// 	t.deepEqual(matches, paths, "All resources should match");
+// });
+
+// test("micromatch exclude test 5", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const excludePatterns = [
+// 		"/!(resources)/**",
+// 	];
+
+// 	const paths = [
+// 		"/resources/app/manifest.json",
+// 		"/resources/app/i18n.properties",
+// 		"/resources/app/i18n/i18n.properties"
+// 	];
+
+// 	const matches = micromatch(paths, excludePatterns);
+// 	t.deepEqual(matches, [], "No resources should match");
+// });
+
+// test("micromatch glob test 1", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const patterns = [
+// 		"**/*",
+// 		"!**",
+// 		"library/l/Test2.html",
+// 	];
+
+// 	const paths = [
+// 		"library/l/Test.html",
+// 		"library/l/Test2.html"
+// 	];
+
+// 	const matches = micromatch(paths, patterns);
+// 	t.deepEqual(matches, [
+// 		"library/l/Test2.html"
+// 	], "Resources should match");
+// });
+
+// test("micromatch glob test 2", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const patterns = [
+// 		"!**/*",
+// 		"!!**",
+// 		"!library/l/Test2.html",
+// 	];
+
+// 	const paths = [
+// 		"library/l/Test.html",
+// 		"library/l/Test2.html"
+// 	];
+
+// 	const matches = micromatch(paths, patterns);
+// 	t.deepEqual(matches, [
+// 		"library/l/Test.html"
+// 	], "Resources should match");
+// });
+
+// test("micromatch glob test 3", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const patterns = [
+// 		"**/*",
+// 		"!library/l/Test2.html",
+// 		"library/l/Test2.html",
+// 	];
+
+// 	const paths = [
+// 		"library/l/Test.html",
+// 		"library/l/Test2.html"
+// 	];
+
+// 	const matches = micromatch(paths, patterns);
+// 	t.deepEqual(matches, [
+// 		"library/l/Test.html",
+// 		"library/l/Test2.html"
+// 	], "Resources should match");
+// });
+
+// test("micromatch glob test 4", async (t) => {
+// 	const micromatch = require("micromatch");
+
+// 	const patterns = [
+// 		""
+// 	];
+
+// 	const paths = [
+// 		"library/l/Test.html",
+// 		"library/l/Test2.html"
+// 	];
+
+// 	const err = t.throws(() => {
+// 		micromatch(paths, patterns);
+// 	});
+// 	t.deepEqual(err.message, "Expected pattern to be a non-empty string", "Micromatch throws with correct exception");
+// });
+
+// test("globby test 1", async (t) => {
+// 	const glob = require("globby");
+
+// 	const opt = {
+// 		cwd: "./test/fixtures/glob",
+// 		dot: true,
+// 		onlyFiles: false
+// 	};
+// 	// Globby in version 9 somehow transforms "" to "**" while micromatch throws an exception on empty strings
+// 	const matches = await glob([""], opt);
+// 	t.deepEqual(matches.length, 23, "Resources should match");
+// });
+

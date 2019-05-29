@@ -1,3 +1,4 @@
+const log = require("@ui5/logger").getLogger("resources:resourceFactory");
 const path = require("path");
 const FsAdapter = require("./adapters/FileSystem");
 const MemAdapter = require("./adapters/Memory");
@@ -15,6 +16,26 @@ const Resource = require("./Resource");
  */
 const resourceFactory = {
 	/**
+	* Callback to retrieve excludes for a given project
+	*
+	* @public
+	* @callback module:@ui5/fs.resourceFactory~getProjectExcludes
+	* @param {Object} Project
+	* @returns {string[]} List of glob patterns to exclude
+	*/
+
+	/**
+	* Callback to retrieve a prefix to use for a given virtual base path of a project
+	*
+	* @public
+	* @callback module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix
+	* @param {Object} parameters Parameters
+	* @param {Object} parameters.project Project
+	* @param {Object} parameters.virBasePath virtual base path to prefix
+	* @returns {string} Prefix for the virtual base path
+	*/
+
+	/**
 	 * Creates resource reader collections for a (sub-)tree. Returns an object of resource readers:
 	 * <pre>
 	 * {
@@ -27,10 +48,17 @@ const resourceFactory = {
 	 * @param {Object} tree A (sub-)tree
 	 * @param {Object} [parameters] Parameters
 	 * @param {boolean} [parameters.useNamespaces=false] Use project namespaces as path prefixes
+	 *						DEPRECATED: Use parameter <code>getVirtualBasePathPrefix</code> instead.
+	 * @param {module:@ui5/fs.resourceFactory~getProjectExcludes} [parameters.getProjectExcludes]
+	 *						Callback to retrieve the exclude globs of a project
+	 * @param {module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix} [parameters.getVirtualBasePathPrefix]
+	 *						Callback to retrieve a prefix for a given virtual base path of a project if required
 	 * @returns {Object} Object containing <code>source</code> and <code>dependencies</code> resource readers
 	 */
-	createCollectionsForTree(tree, {useNamespaces=false, virtualReaders={}} = {}) {
-		// TODO: virtualReaders is private API. The virtual reader of a project should be stored on the
+	createCollectionsForTree(tree, {
+		useNamespaces=false, getProjectExcludes, getVirtualBasePathPrefix, virtualReaders={}
+	} = {}) {
+		// TODO 2.0: virtualReaders is private API. The virtual reader of a project should be stored on the
 		//	project itself. This requires projects to become objects independent from the dependency tree.
 		//	Also see: https://github.com/SAP/ui5-project/issues/122
 
@@ -39,28 +67,41 @@ const resourceFactory = {
 		const virtualReaderIndex = {};
 		const sourceResourceLocators = [];
 
+		if (useNamespaces) {
+			// TODO 2.0: Remove deprecated "useNamespaces" parameter
+			log.warn(`resourceFactory.createCollectionsForTree called with deprecated parameter "useNamespaces". ` +
+				`This parameter will be removed in @ui5/fs version 2.0. ` +
+				`Use parameter "getVirtualBasePathPrefix" instead`);
+		}
+		if (useNamespaces && getVirtualBasePathPrefix) {
+			throw new Error(
+				`resourceFactory.createCollectionsForTree called with parameters "useNamespace" and ` +
+				`"getVirtualBasePathPrefix". Please provide only one of the two.`);
+		}
+
 		function processDependencies(project) {
 			if (project.resources && project.resources.pathMappings) {
-				const fsReaders = [];
-				for (let virBasePath in project.resources.pathMappings) {
-					// Create an fs reader for every path mapping
+				const fsAdapters = [];
+				for (const virBasePath in project.resources.pathMappings) {
 					if (project.resources.pathMappings.hasOwnProperty(virBasePath)) {
+						// Prevent duplicate dependency resource locators
 						const fsPath = project.resources.pathMappings[virBasePath];
 						const fsBasePath = path.join(project.path, fsPath);
-
-						if (useNamespaces && project.metadata.namespace) { // Prefix resource paths with namespace
-							virBasePath = "/resources/" + project.metadata.namespace + virBasePath;
-						}
-
-						// Prevent duplicate dependency resource locators
 						const key = virBasePath + fsBasePath;
 						if (dependencyPathIndex[key]) {
 							continue;
 						}
 						dependencyPathIndex[key] = true;
 
-						const fsReader = resourceFactory.createAdapter({fsBasePath, virBasePath, project});
-						fsReaders.push(fsReader);
+						// Create an fs adapter for every path mapping
+						const fsAdapter = resourceFactory._createFsAdapterForVirtualBasePath({
+							project,
+							virBasePath,
+							useNamespace: useNamespaces,
+							getProjectExcludes,
+							getVirtualBasePathPrefix
+						});
+						fsAdapters.push(fsAdapter);
 					}
 				}
 
@@ -70,11 +111,11 @@ const resourceFactory = {
 					const virtualReader = virtualReaders[project.metadata.name];
 					const readerCollection = new ReaderCollectionPrioritized({
 						name: `fs & vir reader collection for project ${project.metadata.name}`,
-						readers: [virtualReader, ...fsReaders]
+						readers: [virtualReader, ...fsAdapters]
 					});
 					dependencyCollection.push(readerCollection);
 				} else {
-					dependencyCollection.push(...fsReaders);
+					dependencyCollection.push(...fsAdapters);
 				}
 			}
 
@@ -84,16 +125,17 @@ const resourceFactory = {
 		}
 
 		if (tree.resources && tree.resources.pathMappings) {
-			for (let virBasePath in tree.resources.pathMappings) {
+			for (const virBasePath in tree.resources.pathMappings) {
 				if (tree.resources.pathMappings.hasOwnProperty(virBasePath)) {
-					const fsBasePath = path.join(tree.path, tree.resources.pathMappings[virBasePath]);
-
-					if (useNamespaces && tree.metadata.namespace) { // Prefix resource paths with namespace
-						virBasePath = "/resources/" + tree.metadata.namespace + virBasePath;
-					}
-					sourceResourceLocators.push(resourceFactory.createAdapter({
-						fsBasePath, virBasePath, project: tree
-					}));
+					// Create an fs adapter for every path mapping
+					const fsAdapter = resourceFactory._createFsAdapterForVirtualBasePath({
+						project: tree,
+						virBasePath,
+						useNamespace: useNamespaces,
+						getProjectExcludes,
+						getVirtualBasePathPrefix
+					});
+					sourceResourceLocators.push(fsAdapter);
 				}
 			}
 		}
@@ -117,6 +159,89 @@ const resourceFactory = {
 	},
 
 	/**
+	 * Creates a FileSystem adapter mapping to the given virtual base path based on the given projects
+	 * configuration.
+	 *
+	 * @param {Object} parameters Parameters
+	 * @param {Project} parameters.project A project
+	 * @param {string} parameters.virBasePath Virtual base path to create the adapter for
+	 * @param {boolean} parameters.useNamespaces Use project namespace as path prefix
+	 * @param {module:@ui5/fs.resourceFactory~getProjectExcludes} [parameters.getProjectExcludes]
+	 *												Callback to retrieve the exclude glob of a project
+	 * @param {module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix} [parameters.getVirtualBasePathPrefix]
+	 *												Callback to retrieve the exclude glob of a project
+	 * @returns {Promise<string[]>} Promise resolving to list of normalized glob patterns
+	 */
+	_createFsAdapterForVirtualBasePath({
+		project, virBasePath, useNamespace, getProjectExcludes, getVirtualBasePathPrefix
+	}) {
+		const fsPath = project.resources.pathMappings[virBasePath];
+		const fsBasePath = path.join(project.path, fsPath);
+
+		let pathExcludes;
+		if (getProjectExcludes) {
+			pathExcludes = getProjectExcludes(project);
+		}
+
+		if (getVirtualBasePathPrefix) {
+			const virBasePathPrefix = getVirtualBasePathPrefix({project, virBasePath});
+			if (virBasePathPrefix) {
+				log.verbose(`Prefixing virtual base path ${virBasePath} of project ${project.metadata.name} ` +
+					`${virBasePathPrefix}...`);
+				virBasePath = virBasePathPrefix + virBasePath;
+				log.verbose(`New virtual base path: ${virBasePath}`);
+
+				if (pathExcludes) {
+					const normalizedPatterns = pathExcludes.map((pattern) => {
+						return resourceFactory._prefixGlobPattern(pattern, virBasePathPrefix);
+					});
+					pathExcludes = Array.prototype.concat.apply([], normalizedPatterns);
+				}
+			}
+		} else if (useNamespace && project.metadata.namespace) { // Prefix resource paths with namespace
+			const namespacedBasePath = "/resources/" + project.metadata.namespace;
+			virBasePath = namespacedBasePath + virBasePath;
+			if (pathExcludes) {
+				const normalizedPatterns = pathExcludes.map((pattern) => {
+					return resourceFactory._prefixGlobPattern(pattern, namespacedBasePath);
+				});
+				pathExcludes = Array.prototype.concat.apply([], normalizedPatterns);
+			}
+		}
+
+		return resourceFactory.createAdapter({
+			fsBasePath,
+			virBasePath,
+			excludes: pathExcludes,
+			project
+		});
+	},
+
+	/**
+	 * Normalizes virtual glob patterns by prefixing them with
+	 * a given virtual base directory path
+	 *
+	 * @param {string} virPattern glob pattern for virtual directory structure
+	 * @param {string} virBaseDir virtual base directory path to prefix the given patterns with
+	 * @returns {Promise<string[]>} Promise resolving to list of normalized glob patterns
+	 */
+	_prefixGlobPattern(virPattern, virBaseDir) {
+		const minimatch = require("minimatch");
+		const mm = new minimatch.Minimatch(virPattern);
+
+		const resultGlobs = [];
+		for (let i = 0; i < mm.globSet.length; i++) {
+			let resultPattern = path.posix.join(virBaseDir, mm.globSet[i]);
+
+			if (mm.negate) {
+				resultPattern = "!" + resultPattern;
+			}
+			resultGlobs.push(resultPattern);
+		}
+		return resultGlobs;
+	},
+
+	/**
 	 * Creates a resource <code>ReaderWriter</code>.
 	 *
 	 * If a file system base path is given, file system resource <code>ReaderWriter</code> is returned.
@@ -126,13 +251,14 @@ const resourceFactory = {
 	 * @param {Object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} [parameters.fsBasePath] File system base path
+	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @returns {module:@ui5/fs.adapters.FileSystem|module:@ui5/fs.adapters.Memory} File System- or Virtual Adapter
 	 */
-	createAdapter({fsBasePath, virBasePath, project}) {
+	createAdapter({fsBasePath, virBasePath, project, excludes}) {
 		if (fsBasePath) {
-			return new FsAdapter({fsBasePath, virBasePath, project});
+			return new FsAdapter({fsBasePath, virBasePath, project, excludes});
 		} else {
-			return new MemAdapter({virBasePath, project});
+			return new MemAdapter({virBasePath, project, excludes});
 		}
 	},
 
