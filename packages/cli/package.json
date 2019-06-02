@@ -106,7 +106,7 @@
 		"import-local": "^2.0.0",
 		"js-yaml": "^3.13.1",
 		"open": "^6.3.0",
-		"semver": "^6.1.0",
+		"semver": "^6.1.1",
 		"supports-color": "^6.0.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^2.5.0",
