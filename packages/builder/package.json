@@ -112,7 +112,7 @@
 		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
 		"rimraf": "^2.6.3",
-		"semver": "^6.1.0",
+		"semver": "^6.1.1",
 		"tap-xunit": "^2.3.0",
 		"uglify-es": "^3.2.2",
 		"xml2js": "^0.4.17",
