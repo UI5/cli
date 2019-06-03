@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const execa = require("execa");
 const pkg = require("../../../../package.json");

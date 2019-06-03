@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const baseMiddleware = require("../../../../lib/cli/middlewares/base");
 const logger = require("../../../../lib/cli/middlewares/logger");

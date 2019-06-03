@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const initCommand = require("../../../../lib/cli/commands/init");
 const fsHelper = require("../../../../lib/utils/fsHelper");

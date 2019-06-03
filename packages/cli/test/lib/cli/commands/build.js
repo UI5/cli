@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const build = require("../../../../lib/cli/commands/build");
 const normalizer = require("@ui5/project").normalizer;

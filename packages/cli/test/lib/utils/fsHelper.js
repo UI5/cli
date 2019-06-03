@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const {exists, pathsExist} = require("../../../lib/utils/fsHelper");
 
 test("check if directory or file exists", async (t) => {

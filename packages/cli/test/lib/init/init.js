@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const ui5Cli = require("../../../");
 const init = ui5Cli.init;
@@ -36,7 +36,7 @@ test("Init for library", async (t) => {
 });
 
 test("Init for invalid project (Found 'webapp', 'src' and 'test' folders)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-webapp-src-test")
 	}),
 	"Could not detect project type: Found 'webapp', 'src' and 'test' folders.\n" +
@@ -45,7 +45,7 @@ test("Init for invalid project (Found 'webapp', 'src' and 'test' folders)", asyn
 });
 
 test("Init for invalid project (Found 'webapp' and 'src' folders)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-webapp-src")
 	}),
 	"Could not detect project type: Found 'webapp' and 'src' folders.\n" +
@@ -54,7 +54,7 @@ test("Init for invalid project (Found 'webapp' and 'src' folders)", async (t) =>
 });
 
 test("Init for invalid project (Found 'webapp' and 'test' folders)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-webapp-test")
 	}),
 	"Could not detect project type: Found 'webapp' and 'test' folders.\n" +
@@ -63,7 +63,7 @@ test("Init for invalid project (Found 'webapp' and 'test' folders)", async (t) =
 });
 
 test("Init for invalid project (Found 'test' folder but no 'src' folder)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-test")
 	}),
 	"Could not detect project type: Found 'test' folder but no 'src' folder.\n" +
@@ -72,7 +72,7 @@ test("Init for invalid project (Found 'test' folder but no 'src' folder)", async
 });
 
 test("Init for invalid project (Could not find 'webapp' or 'src' / 'test' folders)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid")
 	}),
 	"Could not detect project type: Could not find 'webapp' or 'src' / 'test' folders.\n" +
@@ -81,14 +81,14 @@ test("Init for invalid project (Could not find 'webapp' or 'src' / 'test' folder
 });
 
 test("Init for invalid project (No package.json)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-no-package-json")
 	}),
 	"Initialization not possible: Missing package.json file");
 });
 
 test("Init for invalid project (Missing 'name' in package.json)", async (t) => {
-	await t.throws(init({
+	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-missing-package-name")
 	}),
 	"Initialization not possible: Missing 'name' in package.json");
