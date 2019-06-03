@@ -44,7 +44,7 @@
 		"files": [
 			"test/lib/**/*.js"
 		],
-		"source": [
+		"sources": [
 			"lib/**/*.js",
 			"test/lib/**/*.js"
 		]
@@ -105,7 +105,7 @@
 		"random-int": "^2.0.0"
 	},
 	"devDependencies": {
-		"ava": "^0.25.0",
+		"ava": "^2.0.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"coveralls": "^3.0.3",

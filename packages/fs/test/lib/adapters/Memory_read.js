@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const {resourceFactory} = require("../../../");
 
 async function fillFromFs(readerWriter, {fsBasePath = "./test/fixtures/glob", virBasePath = "/app/"} = {}) {

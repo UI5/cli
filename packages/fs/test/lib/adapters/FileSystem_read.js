@@ -1,27 +1,5 @@
-const {test} = require("ava");
+const test = require("ava");
 const {resourceFactory} = require("../../../");
-
-test("glob resources from application.a w/ virtual base path prefix", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
-		fsBasePath: "./test/fixtures/application.a/webapp",
-		virBasePath: "/app/"
-	});
-
-	await readerWriter.byGlob("/app/**/*.html").then(function(resources) {
-		t.deepEqual(resources.length, 1, "Found exactly one resource");
-	});
-});
-
-test("glob resources from application.a w/o virtual base path prefix", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
-		fsBasePath: "./test/fixtures/application.a/webapp",
-		virBasePath: "/app/"
-	});
-
-	await readerWriter.byGlob("/**/*.html").then(function(resources) {
-		t.deepEqual(resources.length, 1, "Found exactly one resource");
-	});
-});
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({

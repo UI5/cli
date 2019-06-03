@@ -2,7 +2,7 @@ const path = require("path");
 const {promisify} = require("util");
 const fs = require("fs");
 const fsAccess = promisify(fs.access);
-const {test} = require("ava");
+const test = require("ava");
 const rimraf = promisify(require("rimraf"));
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -46,7 +46,7 @@ test("Write resource", async (t) => {
 	t.notThrows(() => {
 		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
 	});
-	await t.notThrows(resource.getBuffer(), "Resource content can still be accessed");
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
 });
 
 test("Write resource in readOnly mode", async (t) => {
@@ -58,14 +58,15 @@ test("Write resource in readOnly mode", async (t) => {
 	// Write resource content to another readerWriter
 	await readerWriters.dest.write(resource, {readOnly: true});
 
-	await t.notThrows(fsAccess(destFsPath, fs.constants.R_OK), "File can be read");
-	await t.throws(fsAccess(destFsPath, fs.constants.W_OK), /EACCES: permission denied|EPERM: operation not permitted/,
+	await t.notThrowsAsync(fsAccess(destFsPath, fs.constants.R_OK), "File can be read");
+	await t.throwsAsync(fsAccess(destFsPath, fs.constants.W_OK),
+		/EACCES: permission denied|EPERM: operation not permitted/,
 		"File can not be written");
 
 	t.notThrows(() => {
 		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
 	});
-	await t.notThrows(resource.getBuffer(), "Resource content can still be accessed");
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
 });
 
 test("Write resource in drain mode", async (t) => {
@@ -80,7 +81,7 @@ test("Write resource in drain mode", async (t) => {
 	t.notThrows(() => {
 		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
 	});
-	return t.throws(resource.getBuffer(),
+	await t.throwsAsync(resource.getBuffer(),
 		/Content of Resource \/app\/index.html has been drained/);
 });
 
@@ -90,6 +91,6 @@ test("Writing with readOnly and drain options set should fail", async (t) => {
 	// Get resource from one readerWriter
 	const resource = await readerWriters.source.byPath("/app/index.html");
 	// Write resource content to another readerWriter
-	await t.throws(readerWriters.dest.write(resource, {readOnly: true, drain: true}),
+	await t.throwsAsync(readerWriters.dest.write(resource, {readOnly: true, drain: true}),
 		"Error while writing resource /app/index.html: Do not use options 'drain' and 'readOnly' at the same time.");
 });
