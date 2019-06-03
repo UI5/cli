@@ -109,7 +109,7 @@
 		"semver": "^6.1.1",
 		"supports-color": "^6.0.0",
 		"treeify": "^1.0.1",
-		"update-notifier": "^2.5.0",
+		"update-notifier": "^3.0.0",
 		"yargs": "^13.2.4"
 	},
 	"devDependencies": {
