@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const supertest = require("supertest");
 const ui5Server = require("../../../");
 const server = ui5Server.server;
@@ -56,7 +56,7 @@ test("Start server - Port is already taken and an error occurs", async (t) => {
 		});
 	});
 
-	return t.throws(startServer).then((error) => {
+	return t.throwsAsync(startServer).then((error) => {
 		t.deepEqual(
 			error.message,
 			"Port 3360 already in use.", "Server could not start, port is already taken and no other port is used."
@@ -103,7 +103,7 @@ test.serial("Start server - Port can not be determined and an error occurs", (t)
 	t.plan(2);
 	const portscannerFake = function(port, portMax, host, callback) {
 		return new Promise((resolve) => {
-			callback("testError", false);
+			callback(new Error("testError"), false);
 			resolve();
 		});
 	};
@@ -118,8 +118,9 @@ test.serial("Start server - Port can not be determined and an error occurs", (t)
 		});
 	});
 
-	return t.throws(startServer).then((error) => {
-		t.deepEqual(error, "testError", "Server could not start, port is already taken and no other port is used.");
+	return t.throwsAsync(startServer).then((error) => {
+		t.deepEqual(error.message, "testError",
+			"Server could not start, port is already taken and no other port is used.");
 		portScannerStub.restore();
 	});
 });
@@ -157,7 +158,7 @@ test("Start server - Port is already taken and an error occurs because no other 
 			});
 		});
 	});
-	return t.throws(startServer).then((error) => {
+	return t.throwsAsync(startServer).then((error) => {
 		for (let i = 0; i < servers.length; i++) {
 			servers[i].close();
 		}

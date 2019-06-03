@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const {promisify} = require("util");
 const stat = promisify(fs.stat);
@@ -121,7 +121,7 @@ test.serial("Create new certificate not succeeded", async (t) => {
 	const sslPath = path.join(process.cwd(), "./test/tmp/ssl/");
 	const sslPathKey = path.join(sslPath, "someOtherServer3.key");
 	const sslPathCert = path.join(sslPath, "someOtherServer3.crt");
-	const err = await t.throws(sslUtil.getSslCertificate(sslPathKey, sslPathCert));
+	const err = await t.throwsAsync(sslUtil.getSslCertificate(sslPathKey, sslPathCert));
 	t.deepEqual(err.message, "some error", "Correct error thrown");
 	promptStartStub.restore();
 	promptGetStub.restore();

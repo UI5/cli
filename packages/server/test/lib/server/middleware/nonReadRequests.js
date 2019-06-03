@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const nonReadRequestsMiddleware = require("../../../../lib/middleware/nonReadRequests");
 
 test("Read requests", (t) => {

@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 
 test.serial("Check if index for files is created", (t) => {

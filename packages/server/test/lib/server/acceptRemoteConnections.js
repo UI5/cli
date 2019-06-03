@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const supertest = require("supertest");
 const ui5Server = require("../../../");
 const server = ui5Server.server;

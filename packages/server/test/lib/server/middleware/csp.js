@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const cspMiddleware = require("../../../../lib/middleware/csp");
 
 test("Default Settings", (t) => {
