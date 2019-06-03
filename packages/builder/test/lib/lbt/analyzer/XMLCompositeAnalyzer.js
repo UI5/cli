@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const esprima = require("esprima");
 const sinon = require("sinon");
 const XMLCompositeAnalyzer = require("../../../../lib/lbt/analyzer/XMLCompositeAnalyzer");

@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 const sinon = require("sinon");
@@ -39,7 +39,7 @@ test("validate: not existing directory webapp for c3", async (t) => {
 	const myProject = clone(applicationBTree);
 	myProject.path = path.join(__dirname, "..", "..", "..", "fixtures", "application.notExisting");
 	const applicationFormatter = new ApplicationFormatter();
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.regex(error.message, /^Could not find application directory of project application\.b: (?!(undefined))+/,
 		"Correct exception thrown");
 });
@@ -48,7 +48,7 @@ test("validate: project not defined", async (t) => {
 	const applicationFormatter = new ApplicationFormatter();
 
 	// error is thrown because project is not defined (null)
-	const error = await t.throws(applicationFormatter.validate(null));
+	const error = await t.throwsAsync(applicationFormatter.validate(null));
 	t.deepEqual(error.message, "Project is undefined", "Correct exception thrown");
 });
 
@@ -58,7 +58,7 @@ test("validate: empty version", async (t) => {
 	const applicationFormatter = new ApplicationFormatter();
 
 	// error is thrown because project's version is not defined
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.deepEqual(error.message, `"version" is missing for project application.b`, "Correct exception thrown");
 });
 
@@ -68,7 +68,7 @@ test("validate: empty type", async (t) => {
 	const applicationFormatter = new ApplicationFormatter();
 
 	// error is thrown because project's type is not defined
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.deepEqual(error.message, `"type" configuration is missing for project application.b`, "Correct exception thrown");
 });
 
@@ -78,7 +78,7 @@ test("validate: empty metadata", async (t) => {
 	const applicationFormatter = new ApplicationFormatter();
 
 	// error is thrown because project's metadata is not defined
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.deepEqual(error.message, `"metadata.name" configuration is missing for project application.b`,
 		"Correct exception thrown");
 });

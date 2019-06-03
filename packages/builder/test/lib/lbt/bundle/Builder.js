@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 
 const Builder = require("../../../../lib/lbt/bundle/Builder");
 const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");

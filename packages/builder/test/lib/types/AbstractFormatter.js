@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const fs = require("graceful-fs");
 
@@ -12,9 +12,9 @@ class CustomFormatter extends AbstractFormatter {
 }
 
 test.serial("dirExists: existing dir stat rejects", async (t) => {
-	sinon.stub(fs, "stat").callsArgWith(1, {code: "MYERROR"});
-	const error = await t.throws(new CustomFormatter().dirExists("non-existing"));
-	t.deepEqual(error.code, "MYERROR", "error code MYERROR when reading dir");
+	sinon.stub(fs, "stat").callsArgWith(1, new Error("MYERROR"));
+	const error = await t.throwsAsync(new CustomFormatter().dirExists("non-existing"));
+	t.deepEqual(error.message, "MYERROR", "error code MYERROR when reading dir");
 });
 
 test.serial("dirExists: non existing dir", async (t) => {

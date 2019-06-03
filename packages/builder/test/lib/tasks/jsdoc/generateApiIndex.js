@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const ui5Fs = require("@ui5/fs");
 
@@ -68,7 +68,7 @@ test.serial("generateApiIndex", async (t) => {
 });
 
 test("generateApiIndex with missing parameters", async (t) => {
-	const error = await t.throws(generateApiIndex());
+	const error = await t.throwsAsync(generateApiIndex());
 	t.deepEqual(error.message, "[generateApiIndex]: One or more mandatory options not provided",
 		"Correct error message thrown");
 });

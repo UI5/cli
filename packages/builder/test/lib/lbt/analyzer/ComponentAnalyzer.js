@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const ComponentAnalyzer = require("../../../../lib/lbt/analyzer/ComponentAnalyzer");
 
@@ -858,7 +858,7 @@ test("_analyzeManifest: Manifest with model via dataSources (custom type)", asyn
 	t.true(stubAddDependency.notCalled, "addDependency was not called");
 });
 
-test("_analyzeManifest: Manifest with model (non existing dataSource)", async (t) => {
+test("_analyzeManifest: Manifest with model (non existing/different dataSource)", async (t) => {
 	const manifest = {
 		"sap.app": {
 			"dataSources": {

@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const ui5Fs = require("@ui5/fs");
 
@@ -95,7 +95,7 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 });
 
 test("executeJsdocSdkTransformation with missing parameters", async (t) => {
-	const error = await t.throws(executeJsdocSdkTransformation());
+	const error = await t.throwsAsync(executeJsdocSdkTransformation());
 	t.deepEqual(error.message, "[executeJsdocSdkTransformation]: One or more mandatory options not provided",
 		"Correct error message thrown");
 });
@@ -168,7 +168,7 @@ test("executeJsdocSdkTransformation too many project api.json resources", async 
 		byGlob: byGlobDependenciesStub
 	};
 
-	const error = await t.throws(executeJsdocSdkTransformation({
+	const error = await t.throwsAsync(executeJsdocSdkTransformation({
 		workspace,
 		dependencies,
 		options: {
@@ -200,7 +200,7 @@ test("executeJsdocSdkTransformation missing project .library", async (t) => {
 		byGlob: byGlobDependenciesStub
 	};
 
-	const error = await t.throws(executeJsdocSdkTransformation({
+	const error = await t.throwsAsync(executeJsdocSdkTransformation({
 		workspace,
 		dependencies,
 		options: {
@@ -236,7 +236,7 @@ test("executeJsdocSdkTransformation too many project .library resources", async 
 		byGlob: byGlobDependenciesStub
 	};
 
-	const error = await t.throws(executeJsdocSdkTransformation({
+	const error = await t.throwsAsync(executeJsdocSdkTransformation({
 		workspace,
 		dependencies,
 		options: {

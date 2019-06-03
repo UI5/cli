@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const fs = require("graceful-fs");
 const os = require("os");
@@ -37,10 +37,10 @@ test.serial("createTmpDir error", async (t) => {
 	const makeDirStub = sinon.stub().resolves();
 	mock("make-dir", makeDirStub);
 
-	const mkdtempStub = sinon.stub(fs, "mkdtemp").callsArgWithAsync(1, {message: "Dir creation failed"}, "some/path");
+	const mkdtempStub = sinon.stub(fs, "mkdtemp").callsArgWithAsync(1, new Error("Dir creation failed"), "some/path");
 	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
 
-	const res = await t.throws(generateJsdoc._createTmpDir("some.namespace"));
+	const res = await t.throwsAsync(generateJsdoc._createTmpDir("some.namespace"));
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
@@ -49,7 +49,7 @@ test.serial("createTmpDir error", async (t) => {
 
 	t.deepEqual(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenamespace-"));
-	t.deepEqual(res, {message: "Dir creation failed"}, "Dir creation failed");
+	t.deepEqual(res.message, "Dir creation failed", "Dir creation failed");
 
 	mock.stop("make-dir");
 });
@@ -334,7 +334,7 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 });
 
 test.serial("generateJsdoc missing parameters", async (t) => {
-	const error = await t.throws(generateJsdoc());
+	const error = await t.throwsAsync(generateJsdoc());
 	t.deepEqual(error.message, "[generateJsdoc]: One or more mandatory options not provided",
 		"Correct error message thrown");
 });

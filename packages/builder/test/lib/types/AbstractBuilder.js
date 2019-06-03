@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -159,7 +159,7 @@ test("Instantiation with custom task and unknown beforeTask", (t) => {
 		"to be scheduled for project application.b", "Correct exception thrown");
 });
 
-test("Instantiation with custom task", (t) => {
+test.serial("Instantiation with custom task", (t) => {
 	const customTask = function() {};
 	sinon.stub(taskRepository, "getTask").returns(customTask);
 
@@ -177,7 +177,7 @@ test("Instantiation with custom task", (t) => {
 		"Order of tasks is correct");
 });
 
-test("Instantiation with custom task defined three times", (t) => {
+test.serial("Instantiation with custom task defined three times", (t) => {
 	const customTask = function() {};
 	sinon.stub(taskRepository, "getTask").returns(customTask);
 
@@ -203,7 +203,7 @@ test("Instantiation with custom task defined three times", (t) => {
 		"Order of tasks is correct");
 });
 
-test("Instantiation with custom task: Custom task called correctly", (t) => {
+test.serial("Instantiation with custom task: Custom task called correctly", (t) => {
 	const customTask = function({workspace, dependencies, options}) {
 		t.deepEqual(options.projectName, "application.b", "Correct project name passed to custom task");
 		t.deepEqual(options.configuration, "pony", "Correct configuration passed to custom task");
@@ -228,7 +228,7 @@ test("Instantiation with custom task: Custom task called correctly", (t) => {
 	customBuilder.tasks["myTask"]();
 });
 
-test("Instantiation with custom task: Two custom tasks called correctly", (t) => {
+test.serial("Instantiation with custom task: Two custom tasks called correctly", (t) => {
 	const customTask1 = function({workspace, dependencies, options}) {
 		t.deepEqual(options.configuration, "pony", "Correct configuration passed to first custom task");
 	};

@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const SmartTemplateAnalyzer = require("../../../../lib/lbt/analyzer/SmartTemplateAnalyzer");
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 const sinon = require("sinon");

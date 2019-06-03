@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const chai = require("chai");
 chai.use(require("chai-fs"));
 

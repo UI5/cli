@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 
 const dependencyGraph = require("../../../../lib/lbt/graph/dependencyGraph");
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");

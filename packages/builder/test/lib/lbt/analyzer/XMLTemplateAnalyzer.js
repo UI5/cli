@@ -1,10 +1,10 @@
-const {test} = require("ava");
+const test = require("ava");
 const XMLTemplateAnalyzer = require("../../../../lib/lbt/analyzer/XMLTemplateAnalyzer");
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 const sinon = require("sinon");
 
 test("integration: Analysis of an xml view", async (t) => {
-	const xml = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:m="sap.m" xmlns:l="sap.ui.layout" 
+	const xml = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:m="sap.m" xmlns:l="sap.ui.layout"
 		controllerName="myController">
 			<l:HorizontalLayout id="layout">
 				<m:Button text="Button 1" id="button1" />
@@ -118,10 +118,10 @@ test("_addDependency: add dependency", (t) => {
 
 test("_analyze: parseString error", async (t) => {
 	const analyzer = new XMLTemplateAnalyzer();
-	sinon.stub(analyzer._parser, "parseString").callsArgWith(1, "my-error", "result");
+	sinon.stub(analyzer._parser, "parseString").callsArgWith(1, new Error("my-error"), "result");
 
-	const error = await t.throws(analyzer._analyze());
-	t.deepEqual(error, "my-error");
+	const error = await t.throwsAsync(analyzer._analyze());
+	t.deepEqual(error.message, "my-error");
 	t.false(analyzer.busy, "busy state is restored");
 });
 

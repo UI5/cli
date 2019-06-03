@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 const sinon = require("sinon");
@@ -41,13 +41,13 @@ test("validate: ok", async (t) => {
 	const myProject = clone(moduleATree);
 	const moduleFormatter = new ModuleFormatter();
 
-	await t.notThrows(moduleFormatter.validate(myProject));
+	await t.notThrowsAsync(moduleFormatter.validate(myProject));
 });
 
 test("validate: project not defined", async (t) => {
 	const moduleFormatter = new ModuleFormatter();
 
-	const error = await t.throws(moduleFormatter.validate(null));
+	const error = await t.throwsAsync(moduleFormatter.validate(null));
 	t.deepEqual(error.message, "Project is undefined", "Correct exception thrown");
 });
 
@@ -56,7 +56,7 @@ test("validate: empty version", async (t) => {
 	myProject.version = undefined;
 	const applicationFormatter = new ModuleFormatter();
 
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.deepEqual(error.message, `"version" is missing for project module.a`, "Correct exception thrown");
 });
 
@@ -65,7 +65,7 @@ test("validate: empty type", async (t) => {
 	myProject.type = undefined;
 	const applicationFormatter = new ModuleFormatter();
 
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.deepEqual(error.message, `"type" configuration is missing for project module.a`, "Correct exception thrown");
 });
 
@@ -75,7 +75,7 @@ test("validate: empty metadata", async (t) => {
 	myProject.metadata = undefined;
 	const applicationFormatter = new ModuleFormatter();
 
-	const error = await t.throws(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
 	t.deepEqual(error.message, `"metadata.name" configuration is missing for project module.a`,
 		"Correct exception thrown");
 });
@@ -99,7 +99,7 @@ test("validate: first configured directory does not exist", async (t) => {
 	dirExists.onFirstCall().resolves(false);
 	dirExists.onSecondCall().resolves(true);
 
-	const error = await t.throws(moduleFormatter.validate(myProject));
+	const error = await t.throwsAsync(moduleFormatter.validate(myProject));
 	t.regex(error.message, /^Could not find "\/" directory of project module.a at (?!(undefined))+/,
 		"Correct exception thrown");
 });
@@ -111,7 +111,7 @@ test("validate: second configured directory does not exist", async (t) => {
 	dirExists.onFirstCall().resolves(true);
 	dirExists.onSecondCall().resolves(false);
 
-	const error = await t.throws(moduleFormatter.validate(myProject));
+	const error = await t.throwsAsync(moduleFormatter.validate(myProject));
 	t.regex(error.message, /^Could not find "\/dev" directory of project module.a at (?!(undefined))+/,
 		"Correct exception thrown");
 });

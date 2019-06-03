@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -101,7 +101,7 @@ test("Build application.a", (t) => {
 test("Build application.a with error", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 
-	const error = await t.throws(builder.build({
+	const error = await t.throwsAsync(builder.build({
 		tree: applicationATreeBadType,
 		destPath
 	}));
@@ -406,7 +406,7 @@ test.serial("Cleanup", async (t) => {
 	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
 		"Per signal, one new listener registered");
 
-	const error = await t.throws(pBuildError);
+	const error = await t.throwsAsync(pBuildError);
 	t.deepEqual(error.message, `Unknown type 'non existent'`);
 	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
 

@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -30,7 +30,7 @@ test("integration: build library.d with library preload", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryPreload"];
 
-	return t.notThrows(builder.build({
+	return t.notThrowsAsync(builder.build({
 		tree: libraryDTree,
 		destPath,
 		excludedTasks,
@@ -83,7 +83,7 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryPreload"];
 
-	return t.notThrows(builder.build({
+	return t.notThrowsAsync(builder.build({
 		tree: sapUiCoreTree,
 		destPath,
 		excludedTasks,

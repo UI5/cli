@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const esprima = require("esprima");
 const ASTUtils = require("../../../../lib/lbt/utils/ASTUtils");
 

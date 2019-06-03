@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
 const apiIndexGenerator = require("../../../../lib/processors/jsdoc/apiIndexGenerator");
@@ -79,7 +79,7 @@ test.serial("apiIndexGenerator", async (t) => {
 });
 
 test("apiIndexGenerator missing parameters", async (t) => {
-	const error = await t.throws(apiIndexGenerator());
+	const error = await t.throwsAsync(apiIndexGenerator());
 	t.deepEqual(error.message, "[apiIndexGenerator]: One or more mandatory parameters not provided",
 		"Correct error message thrown");
 });

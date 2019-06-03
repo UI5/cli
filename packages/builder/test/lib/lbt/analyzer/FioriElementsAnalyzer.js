@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const FioriElementsAnalyzer = require("../../../../lib/lbt/analyzer/FioriElementsAnalyzer");
 const sinon = require("sinon");
 const esprima = require("esprima");
@@ -226,7 +226,7 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 });
 
 test("_analyzeAST: get template name from ast", async (t) => {
-	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){   
+	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
 			metadata: {
@@ -256,7 +256,7 @@ test("_analyzeAST: get template name from ast", async (t) => {
 });
 
 test("_analyzeAST: no template name from ast", async (t) => {
-	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){   
+	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
 			metadata: {

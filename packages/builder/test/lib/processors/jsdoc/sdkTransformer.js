@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
 const sdkTransformer = require("../../../../lib/processors/jsdoc/sdkTransformer");
@@ -55,7 +55,7 @@ test.serial("sdkTransformer", async (t) => {
 });
 
 test("sdkTransformer missing parameters", async (t) => {
-	const error = await t.throws(sdkTransformer());
+	const error = await t.throwsAsync(sdkTransformer());
 	t.deepEqual(error.message, "[sdkTransformer]: One or more mandatory parameters not provided",
 		"Correct error message thrown");
 });

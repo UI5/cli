@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 
 const dominatorTree = require("../../../../lib/lbt/graph/dominatorTree");
 const dependencyGraph = require("../../../../lib/lbt/graph/dependencyGraph");

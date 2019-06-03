@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const uglify = require("uglify-es");
 const {pd} = require("pretty-data");

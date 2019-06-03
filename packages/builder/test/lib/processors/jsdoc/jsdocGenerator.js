@@ -1,5 +1,5 @@
 const path = require("path");
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
 const jsdocGenerator = require("../../../../lib/processors/jsdoc/jsdocGenerator");
@@ -107,14 +107,14 @@ test.serial("buildJsdoc", async (t) => {
 
 	// Re-execute with exit code 1
 	exitCode = 1;
-	await t.notThrows(jsdocGenerator._buildJsdoc({
+	await t.notThrowsAsync(jsdocGenerator._buildJsdoc({
 		sourcePath: "/some/path",
 		configPath: "/some/config/path/jsdoc-config.json"
 	}));
 
 	// Re-execute with exit code 2
 	exitCode = 2;
-	const error = await t.throws(jsdocGenerator._buildJsdoc({
+	const error = await t.throwsAsync(jsdocGenerator._buildJsdoc({
 		sourcePath: "/some/path",
 		configPath: "/some/config/path/jsdoc-config.json"
 	}));
@@ -212,7 +212,7 @@ test.serial("jsdocGenerator", async (t) => {
 });
 
 test("jsdocGenerator missing parameters", async (t) => {
-	const error = await t.throws(jsdocGenerator());
+	const error = await t.throwsAsync(jsdocGenerator());
 	t.deepEqual(error.message, "[jsdocGenerator]: One or more mandatory parameters not provided",
 		"Correct error message thrown");
 });

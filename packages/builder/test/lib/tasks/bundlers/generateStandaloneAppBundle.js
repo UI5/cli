@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
@@ -165,7 +165,7 @@ test("integration: build application.b standalone", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateStandaloneAppBundle"];
 
-	return t.notThrows(builder.build({
+	return t.notThrowsAsync(builder.build({
 		tree: applicationBTree,
 		destPath,
 		excludedTasks,

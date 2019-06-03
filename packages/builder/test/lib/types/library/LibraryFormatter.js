@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const chai = require("chai");
 const sinon = require("sinon");
@@ -43,7 +43,7 @@ test("validate: project not defined", async (t) => {
 	const libraryFormatter = new LibraryFormatter();
 
 	// error is thrown because project is not defined (null)
-	const error = await t.throws(libraryFormatter.validate(null));
+	const error = await t.throwsAsync(libraryFormatter.validate(null));
 	t.deepEqual(error.message, "Project is undefined", "Correct exception thrown");
 });
 
@@ -53,7 +53,7 @@ test("validate: empty version", async (t) => {
 	const libraryFormatter = new LibraryFormatter();
 
 	// error is thrown because project's version is not defined
-	const error = await t.throws(libraryFormatter.validate(myProject));
+	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
 	t.deepEqual(error.message, `"version" is missing for project library.e`, "Correct exception thrown");
 });
 
@@ -63,7 +63,7 @@ test("validate: empty type", async (t) => {
 	const libraryFormatter = new LibraryFormatter();
 
 	// error is thrown because project's type is not defined
-	const error = await t.throws(libraryFormatter.validate(myProject));
+	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
 	t.deepEqual(error.message, `"type" configuration is missing for project library.e`, "Correct exception thrown");
 });
 
@@ -74,7 +74,7 @@ test("validate: empty metadata", async (t) => {
 	const libraryFormatter = new LibraryFormatter();
 
 	// error is thrown because project's metadata is not defined
-	const error = await t.throws(libraryFormatter.validate(myProject));
+	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
 	t.deepEqual(error.message, `"metadata.name" configuration is missing for project library.e`,
 		"Correct exception thrown");
 });
@@ -96,7 +96,7 @@ test("validate: src directory does not exist", async (t) => {
 	dirExists.onFirstCall().resolves(false);
 	dirExists.onSecondCall().resolves(true);
 
-	const error = await await t.throws(libraryFormatter.validate(myProject));
+	const error = await await t.throwsAsync(libraryFormatter.validate(myProject));
 	t.regex(error.message, /^Could not find source directory of project library.e: (?!(undefined))+/,
 		"Missing source directory caused error");
 });
@@ -177,7 +177,7 @@ test.serial("format: multiple dot library file", async (t) => {
 	sinon.stub(libraryFormatter, "validate").resolves();
 
 
-	const error = await t.throws(libraryFormatter.format(myProject));
+	const error = await t.throwsAsync(libraryFormatter.format(myProject));
 	t.deepEqual(error.message, "Found multiple (2) .library files for project library.e",
 		"Error message for 2 .library files expectzed");
 	mock.stop("globby");

@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 
 const ui5Builder = require("../../../");
 const tasks = ui5Builder.builder.tasks;

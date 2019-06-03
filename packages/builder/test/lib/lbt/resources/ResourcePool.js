@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
 const ResourceFilterList = require("../../../../lib/lbt/resources/ResourceFilterList");
 
@@ -74,7 +74,7 @@ test("findResourceWithInfo: rejecting getModuleInfo", async (t) => {
 	t.deepEqual(resource, resourceA, "Although info was rejected resource is still found");
 });
 
-test("findResourceWithInfo", async (t) => {
+test.serial("findResourceWithInfo", async (t) => {
 	const resourcePool = new ResourcePool();
 	const resourceA = {name: "a"};
 	resourcePool.addResource(resourceA);
@@ -83,6 +83,7 @@ test("findResourceWithInfo", async (t) => {
 
 	const resource = await resourcePool.findResourceWithInfo("a");
 	t.deepEqual(resource.info, "myInfo", "info is set correctly");
+	sinon.restore();
 });
 
 test("getModuleInfo", async (t) => {
@@ -102,7 +103,7 @@ test("getModuleInfo", async (t) => {
 
 test("getModuleInfo: determineDependencyInfo for js templateAssembler code", async (t) => {
 	const resourcePool = new ResourcePool();
-	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){   
+	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 	return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
 			metadata: {
@@ -122,7 +123,7 @@ test("getModuleInfo: determineDependencyInfo for js templateAssembler code", asy
 	const jsResource = await resourcePool.getModuleInfo("a.js");
 	t.is(resourcePool._dependencyInfos.get(inputJsResource.name), jsResource,
 		"info has been added to _dependencyInfos map");
-	t.deepEqual(jsResource.size, 375);
+	t.deepEqual(jsResource.size, 372);
 	t.deepEqual(jsResource.format, "ui5-define", "contains sap.ui.define therefore should be a ui5-define format");
 	t.deepEqual(jsResource.name, "a.js");
 	t.false(jsResource.rawModule);
@@ -168,7 +169,7 @@ test("getModuleInfo: determineDependencyInfo for xml control and fragment", asyn
 
 test("getModuleInfo: determineDependencyInfo for xml view", async (t) => {
 	const resourcePool = new ResourcePool();
-	const xmlView = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:m="sap.m" xmlns:l="sap.ui.layout" 
+	const xmlView = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:m="sap.m" xmlns:l="sap.ui.layout"
 		controllerName="myController">
 		<l:HorizontalLayout id="layout">
 		<m:Button text="Button 1" id="button1" />
@@ -183,7 +184,7 @@ test("getModuleInfo: determineDependencyInfo for xml view", async (t) => {
 	const xmlViewResource = await resourcePool.getModuleInfo("a.view.xml");
 	t.is(resourcePool._dependencyInfos.get(inputXmlViewResource.name), xmlViewResource,
 		"info has been added to _dependencyInfos map");
-	t.deepEqual(xmlViewResource.size, 316);
+	t.deepEqual(xmlViewResource.size, 315);
 	t.falsy(xmlViewResource.format);
 	t.deepEqual(xmlViewResource.name, "a.view.xml");
 	t.false(xmlViewResource.rawModule);
