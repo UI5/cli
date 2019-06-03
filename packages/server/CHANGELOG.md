@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.1.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.1.2...HEAD).
+
+<a name="v1.1.2"></a>
+## [v1.1.2] - 2019-06-03
+### Bug Fixes
+- **Middleware:** Allow usage without express server [`4d971b4`](https://github.com/SAP/ui5-server/commit/4d971b4babade56fef154dc4a7a524d6ffa8ad1b)
+
 
 <a name="v1.1.1"></a>
 ## [v1.1.1] - 2019-05-13
@@ -59,6 +65,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.1.2]: https://github.com/SAP/ui5-server/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/SAP/ui5-server/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-server/compare/v1.0.0...v1.1.0
 [v1.0.0]: https://github.com/SAP/ui5-server/compare/v0.2.2...v1.0.0
