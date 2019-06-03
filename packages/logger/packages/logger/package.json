@@ -44,7 +44,7 @@
 		"files": [
 			"test/lib/**/*.js"
 		],
-		"source": [
+		"sources": [
 			"lib/**/*.js",
 			"test/lib/**/*.js"
 		]
@@ -96,7 +96,7 @@
 		"npmlog": "^4.1.2"
 	},
 	"devDependencies": {
-		"ava": "^0.25.0",
+		"ava": "^2.0.0",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
