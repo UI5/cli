@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const sinon = require("sinon");
 const projectPreprocessor = require("../..").projectPreprocessor;
@@ -458,7 +458,7 @@ test("Project with project-type extension dependency inline configuration", (t) 
 			name: "xy"
 		}
 	};
-	return t.throws(projectPreprocessor.processTree(tree).then((parsedTree) => {
+	return t.throwsAsync(projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
 			type: "z",
@@ -508,7 +508,7 @@ test("Project with unknown extension dependency inline configuration", (t) => {
 			name: "xy"
 		}
 	};
-	return t.throws(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree),
 		"Unknown extension type 'phony-pony' for extension.a", "Rejected with error");
 });
 
@@ -573,7 +573,7 @@ test("Project with task extension dependency - task module not found", async (t)
 			name: "xy"
 		}
 	};
-	const error = await t.throws(projectPreprocessor.processTree(tree));
+	const error = await t.throwsAsync(projectPreprocessor.processTree(tree));
 	t.regex(error.message, /^Cannot find module.*/, "Rejected with error");
 });
 
@@ -591,7 +591,7 @@ test("specVersion: Missing version", async (t) => {
 		shims: {}
 	};
 	const preprocessor = new Preprocessor();
-	await t.throws(preprocessor.applyExtension(extension),
+	await t.throwsAsync(preprocessor.applyExtension(extension),
 		"No specification version defined for extension shims.a",
 		"Rejected with error");
 });
@@ -611,7 +611,7 @@ test("specVersion: Extension with invalid version", async (t) => {
 		shims: {}
 	};
 	const preprocessor = new Preprocessor();
-	await t.throws(preprocessor.applyExtension(extension),
+	await t.throwsAsync(preprocessor.applyExtension(extension),
 		"Unsupported specification version 0.9 defined for extension shims.a. " +
 		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
 		"Rejected with error");

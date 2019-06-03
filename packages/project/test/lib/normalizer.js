@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const normalizer = require("../..").normalizer;
 const npmTranslatorStub = sinon.stub(require("../..").translators.npm);

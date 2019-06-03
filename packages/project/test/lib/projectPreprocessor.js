@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const projectPreprocessor = require("../..").projectPreprocessor;
 const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
@@ -161,7 +161,7 @@ test("Missing configuration for root project", (t) => {
 		path: "non-existent",
 		dependencies: []
 	};
-	return t.throws(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree),
 		"No specification version defined for root project application.a",
 		"Rejected with error");
 });
@@ -171,7 +171,7 @@ test("Missing id for root project", (t) => {
 		path: path.join(__dirname, "../fixtures/application.a"),
 		dependencies: []
 	};
-	return t.throws(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree),
 		"Encountered project with missing id (root project)", "Rejected with error");
 });
 
@@ -186,7 +186,7 @@ test("No type configured for root project", (t) => {
 			name: "application.a"
 		}
 	};
-	return t.throws(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree),
 		"No type configured for root project application.a",
 		"Rejected with error");
 });
@@ -198,7 +198,7 @@ test("Missing dependencies", (t) => {
 		path: applicationAPath,
 		dependencies: []
 	});
-	return t.notThrows(projectPreprocessor.processTree(tree),
+	return t.notThrowsAsync(projectPreprocessor.processTree(tree),
 		"Gracefully accepted project with no dependency attribute");
 });
 
@@ -238,7 +238,7 @@ test("Multiple non-root application-projects on same level", (t) => {
 			dependencies: []
 		}]
 	});
-	return t.throws(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree),
 		"Found at least two projects application.a and application.b of type application with the same distance to " +
 			"the root project. Only one project of type application can be used. Failed to decide which one to ignore.",
 		"Rejected with error");
@@ -527,7 +527,7 @@ test("Project tree B with inline configs", (t) => {
 	});
 });
 
-test("Project tree B with inline configs", (t) => {
+test("Project tree Cycle A with inline configs", (t) => {
 	// Tree B depends on Library B which has a dependency to Library D
 	return projectPreprocessor.processTree(treeApplicationCycleA).then((parsedTree) => {
 		t.deepEqual(parsedTree, expectedTreeApplicationCycleA, "Parsed correctly");
@@ -1496,7 +1496,7 @@ test("Application version in package.json data is missing", (t) => {
 			name: "xy"
 		}
 	};
-	return t.throws(projectPreprocessor.processTree(tree)).then((error) => {
+	return t.throwsAsync(projectPreprocessor.processTree(tree)).then((error) => {
 		t.is(error.message, "\"version\" is missing for project " + tree.id);
 	});
 });
@@ -1511,7 +1511,7 @@ test("Library version in package.json data is missing", (t) => {
 			name: "library.d"
 		}
 	};
-	return t.throws(projectPreprocessor.processTree(tree)).then((error) => {
+	return t.throwsAsync(projectPreprocessor.processTree(tree)).then((error) => {
 		t.is(error.message, "\"version\" is missing for project " + tree.id);
 	});
 });
@@ -1527,7 +1527,7 @@ test("specVersion: Missing version", (t) => {
 			name: "xy"
 		}
 	};
-	return t.throws(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree),
 		"No specification version defined for root project application.a",
 		"Rejected with error");
 });
@@ -1544,7 +1544,7 @@ test("specVersion: Project with invalid version", async (t) => {
 			name: "xy"
 		}
 	};
-	await t.throws(projectPreprocessor.processTree(tree),
+	await t.throwsAsync(projectPreprocessor.processTree(tree),
 		"Unsupported specification version 0.9 defined for project application.a. " +
 		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
 		"Rejected with error");

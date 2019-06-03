@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const path = require("path");
 const mock = require("mock-require");
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
@@ -136,12 +136,12 @@ test("AppCycleE: cyclic npm deps - Cycle via devDependency", (t) => {
 
 test("Error: missing package.json", async (t) => {
 	const dir = path.parse(__dirname).root;
-	const error = await t.throws(npmTranslator.generateDependencyTree(dir));
+	const error = await t.throwsAsync(npmTranslator.generateDependencyTree(dir));
 	t.is(error.message, `[npm translator] Failed to locate package.json for directory "${dir}"`);
 });
 
 test("Error: missing dependency", async (t) => {
-	const error = await t.throws(npmTranslator.generateDependencyTree(errApplicationAPath));
+	const error = await t.throwsAsync(npmTranslator.generateDependencyTree(errApplicationAPath));
 	t.is(error.message, "[npm translator] Could not locate " +
 		"module library.xx via resolve logic (error: Cannot find module 'library.xx/package.json' from '" +
 		errApplicationAPath + "') or in a collection");
