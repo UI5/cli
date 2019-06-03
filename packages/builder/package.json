@@ -107,7 +107,7 @@
 		"graceful-fs": "^4.1.15",
 		"jsdoc": "3.5.5",
 		"less-openui5": "^0.6.0",
-		"make-dir": "^2.1.0",
+		"make-dir": "^3.0.0",
 		"pretty-data": "^0.40.0",
 		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
