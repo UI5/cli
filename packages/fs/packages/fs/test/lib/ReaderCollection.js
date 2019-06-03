@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const sinon = require("sinon");
 const ReaderCollection = require("../../lib/ReaderCollection");
 const Resource = require("../../lib/Resource");

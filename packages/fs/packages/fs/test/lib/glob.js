@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const ui5Fs = require("../../");
 const FsAdapter = ui5Fs.adapters.FileSystem;
 

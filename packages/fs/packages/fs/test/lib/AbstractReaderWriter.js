@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const AbstractReaderWriter = require("../../lib/AbstractReaderWriter");
 
 test("AbstractReaderWriter: constructor throws an error", (t) => {

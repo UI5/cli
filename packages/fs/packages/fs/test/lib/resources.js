@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const chai = require("chai");
 const path = require("path");
 chai.use(require("chai-fs"));
@@ -32,7 +32,7 @@ test.afterEach.always((t) => {
 test("Get resource from application.a (/index.html) and write it to /dest/ using a ReadableStream", (t) => {
 	const readerWriters = t.context.readerWriters;
 	// Get resource from one readerWriter
-	return t.notThrows(readerWriters.source.byPath("/app/index.html")
+	return t.notThrowsAsync(readerWriters.source.byPath("/app/index.html")
 		.then(function(resource) {
 			return resource.clone();
 		})

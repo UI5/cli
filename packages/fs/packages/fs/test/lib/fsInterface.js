@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const {promisify} = require("util");
 const Buffer = require("buffer").Buffer;
 const path = require("path");
@@ -108,5 +108,5 @@ test("MemAdapter: mkdir", async (t) => {
 	const fs = fsInterface(memAdapter);
 	const mkdir = promisify(fs.mkdir);
 
-	await t.notThrows(mkdir("pony"), "mkdir executes successfully");
+	await t.notThrowsAsync(mkdir("pony"), "mkdir executes successfully");
 });

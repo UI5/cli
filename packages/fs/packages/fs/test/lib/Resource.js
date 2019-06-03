@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const Stream = require("stream");
 const fs = require("fs");
 const path = require("path");
@@ -164,8 +164,8 @@ test("getStream with createStream callback content: Subsequent content requests 
 	t.throws(() => {
 		resource.getStream();
 	}, /Content of Resource \/app\/index.html has been drained/);
-	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
-	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throwsAsync(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throwsAsync(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
 });
 
 test("getStream with Buffer content: Subsequent content requests should throw error due to drained " +
@@ -176,8 +176,8 @@ test("getStream with Buffer content: Subsequent content requests should throw er
 	t.throws(() => {
 		resource.getStream();
 	}, /Content of Resource \/app\/index.html has been drained/);
-	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
-	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throwsAsync(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throwsAsync(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
 });
 
 test("getStream with Stream content: Subsequent content requests should throw error due to drained " +
@@ -198,11 +198,11 @@ test("getStream with Stream content: Subsequent content requests should throw er
 	t.throws(() => {
 		resource.getStream();
 	}, /Content of Resource \/app\/index.html has been drained/);
-	await t.throws(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
-	await t.throws(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throwsAsync(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
+	await t.throwsAsync(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
 });
 
-test("getStream with Stream content: Subsequent content requests should throw error due to drained " +
+test("getBuffer from Stream content: Subsequent content requests should not throw error due to drained " +
 		"content", async (t) => {
 	const resource = createBasicResource();
 	const {Transform} = require("stream");
@@ -219,9 +219,9 @@ test("getStream with Stream content: Subsequent content requests should throw er
 	const p1 = resource.getBuffer();
 	const p2 = resource.getBuffer();
 
-	await t.notThrows(p1);
+	await t.notThrowsAsync(p1);
 
 	// Race condition in _getBufferFromStream used to cause p2
 	// to throw "Content stream of Resource /app/index.html is flagged as drained."
-	await t.notThrows(p2);
+	await t.notThrowsAsync(p2);
 });

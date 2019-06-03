@@ -1,4 +1,4 @@
-const {test} = require("ava");
+const test = require("ava");
 const {resourceFactory} = require("../../../");
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
