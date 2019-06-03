@@ -96,14 +96,14 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
-		"@ui5/fs": "^1.0.2",
+		"@ui5/fs": "^1.1.0",
 		"@ui5/logger": "^1.0.1",
 		"cheerio": "^0.22.0",
 		"escodegen": "^1.11.1",
 		"escope": "^3.6.0",
 		"esprima": "^4.0.1",
 		"estraverse": "^4.2.0",
-		"globby": "^7.1.1",
+		"globby": "^9.2.0",
 		"graceful-fs": "^4.1.15",
 		"jsdoc": "3.5.5",
 		"less-openui5": "^0.6.0",

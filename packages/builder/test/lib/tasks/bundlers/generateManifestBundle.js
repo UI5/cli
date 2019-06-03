@@ -8,7 +8,7 @@ const assert = chai.assert;
 const ui5Builder = require("../../../../");
 const builder = ui5Builder.builder;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
-const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
+const libraryCore = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core-evo");
 const libraryKPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.k");
 const {promisify} = require("util");
 const extractZip = promisify(require("extract-zip"));
@@ -95,7 +95,7 @@ const applicationBTree = {
 		{
 			"id": "library.d",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "library.d"),
+			"path": path.join(applicationBPath, "..", "library.d"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -120,7 +120,7 @@ const applicationBTree = {
 		{
 			"id": "library.a",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "collection", "library.a"),
+			"path": path.join(applicationBPath, "..", "collection", "library.a"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -145,7 +145,7 @@ const applicationBTree = {
 		{
 			"id": "library.b",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "collection", "library.b"),
+			"path": path.join(applicationBPath, "..", "collection", "library.b"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -170,7 +170,7 @@ const applicationBTree = {
 		{
 			"id": "library.c",
 			"version": "1.0.0",
-			"path": path.join(applicationBPath, "node_modules", "collection", "library.c"),
+			"path": path.join(applicationBPath, "..", "collection", "library.c"),
 			"dependencies": [],
 			"_level": 1,
 			"specVersion": "0.1",
@@ -257,8 +257,7 @@ const libraryKTree = {
 			}
 		},
 		"pathMappings": {
-			"/resources/": "src",
-			"/test-resources/": "test"
+			"/resources/": "src"
 		}
 	}
 };

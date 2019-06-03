@@ -274,8 +274,17 @@ module.exports = {
 
 				const projectType = typeRepository.getType(project.type);
 				const resourceCollections = resourceFactory.createCollectionsForTree(project, {
-					useNamespaces: true,
-					virtualReaders: projectWriters
+					virtualReaders: projectWriters,
+					getVirtualBasePathPrefix: function({project, virBasePath}) {
+						if (project.type === "application" && project.metadata.namespace) {
+							return "/resources/" + project.metadata.namespace;
+						}
+					},
+					getProjectExcludes: function(project) {
+						if (project.builder && project.builder.resources) {
+							return project.builder.resources.excludes;
+						}
+					}
 				});
 
 				const writer = new MemAdapter({
