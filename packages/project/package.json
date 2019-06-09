@@ -101,11 +101,11 @@
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^3.0.0",
 		"read-pkg-up": "^4.0.0",
-		"resolve": "^1.11.0"
+		"resolve": "^1.11.1"
 	},
 	"devDependencies": {
 		"ava": "^2.0.0",
-		"coveralls": "^3.0.3",
+		"coveralls": "^3.0.4",
 		"cross-env": "^5.2.0",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
