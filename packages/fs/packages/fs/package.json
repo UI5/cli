@@ -108,7 +108,7 @@
 		"ava": "^2.0.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
-		"coveralls": "^3.0.3",
+		"coveralls": "^3.0.4",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
