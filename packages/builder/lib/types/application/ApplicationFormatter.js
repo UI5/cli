@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const {promisify} = require("util");
 const readFile = promisify(fs.readFile);
+const slash = require("slash");
 const AbstractUi5Formatter = require("../AbstractUi5Formatter");
 
 class ApplicationFormatter extends AbstractUi5Formatter {
@@ -37,10 +38,12 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 	 */
 	getSourceBasePath(posix) {
 		let p = path;
+		let projectPath = this._project.path;
 		if (posix) {
+			projectPath = slash(projectPath);
 			p = path.posix;
 		}
-		return p.join(this._project.path, this._project.resources.pathMappings["/"]);
+		return p.join(projectPath, this._project.resources.pathMappings["/"]);
 	}
 
 	/**

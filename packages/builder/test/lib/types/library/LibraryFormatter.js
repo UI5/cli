@@ -121,6 +121,41 @@ test("format: copyright already configured", async (t) => {
 	t.deepEqual(myProject.metadata.copyright, libraryETree.metadata.copyright, "Copyright was not altered");
 });
 
+test("format: formats correctly", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.metadata.copyright = undefined;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "validate").resolves();
+
+	await libraryFormatter.format();
+	t.deepEqual(myProject, {
+		id: "library.e.id",
+		version: "1.0.0",
+		path: libraryEPath,
+		dependencies: [],
+		_level: 0,
+		specVersion: "0.1",
+		type: "library",
+		metadata: {
+			name: "library.e",
+			copyright: "${copyright}",
+			namespace: "library/e"
+		},
+		resources: {
+			configuration: {
+				paths: {
+					src: "src",
+					test: "test"
+				}
+			},
+			pathMappings: {
+				"/resources/": "src",
+				"/test-resources/": "test"
+			}
+		}
+	}, "Project got formatted correctly");
+});
+
 
 test.serial("format: namespace resolution fails", async (t) => {
 	const myProject = clone(libraryETree);
@@ -364,15 +399,31 @@ test("getCopyright: takes copyright from project configuration", async (t) => {
 
 test("getCopyright: takes copyright from .library", async (t) => {
 	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+	myProject.metadata.copyright = undefined; // Simulate unconfigured copyright
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	const res = await libraryFormatter.getCopyright();
+	t.deepEqual(res, "${copyright}", "Returned correct copyright");
+});
+
+test("getCopyright: takes copyright from stubbed .library", async (t) => {
+	const myProject = clone(libraryETree);
 	myProject.metadata.copyright = undefined; // Simulate unconfigured copyright
 
 	const libraryFormatter = new LibraryFormatter({project: myProject});
 	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
-		library: {copyright: "pony"}
+		content: {
+			library: {copyright: "pony"}
+		},
+		fsPath: "/some/path"
 	});
 	const res = await libraryFormatter.getCopyright();
 	t.deepEqual(res, "pony", "Returned correct copyright");
 });
+
 
 test("getCopyright: no copyright available", async (t) => {
 	const myProject = clone(libraryETree);
@@ -380,7 +431,10 @@ test("getCopyright: no copyright available", async (t) => {
 
 	const libraryFormatter = new LibraryFormatter({project: myProject});
 	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
-		library: {}
+		content: {
+			library: {}
+		},
+		fsPath: "/some/path"
 	});
 	const err = await t.throwsAsync(libraryFormatter.getCopyright());
 	t.deepEqual(err.message,

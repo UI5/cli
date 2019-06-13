@@ -57,10 +57,12 @@ class LibraryFormatter extends AbstractUi5Formatter {
 	 */
 	getSourceBasePath(posix) {
 		let p = path;
+		let projectPath = this._project.path;
 		if (posix) {
+			projectPath = slash(projectPath);
 			p = path.posix;
 		}
-		return p.join(this._project.path, this._project.resources.pathMappings["/resources/"]);
+		return p.join(projectPath, this._project.resources.pathMappings["/resources/"]);
 	}
 
 	/**
@@ -191,7 +193,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		}
 		// If no copyright replacement was provided by ui5.yaml,
 		// check if the .library file has a valid copyright replacement
-		const dotLibrary = await this.getDotLibrary();
+		const {content: dotLibrary} = await this.getDotLibrary();
 		if (dotLibrary && dotLibrary.library && dotLibrary.library.copyright) {
 			log.verbose(`Using copyright from .library for project ${this._project.metadata.name}...`);
 			return dotLibrary.library.copyright;
