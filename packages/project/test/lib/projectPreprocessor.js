@@ -428,6 +428,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 					type: "library",
 					metadata: {
 						name: "library.d",
+						namespace: "library/d",
 						copyright: "Some fancy copyright",
 					},
 					resources: {
@@ -453,6 +454,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 							type: "library",
 							metadata: {
 								name: "library.a",
+								namespace: "library/a",
 								copyright: "Some fancy copyright ${currentYear}",
 							},
 							resources: {
@@ -481,6 +483,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 					type: "library",
 					metadata: {
 						name: "library.a",
+						namespace: "library/a",
 						copyright: "Some fancy copyright ${currentYear}",
 					},
 					resources: {
@@ -536,7 +539,7 @@ test("Project tree Cycle A with inline configs", (t) => {
 
 test("Project with nested invalid dependencies", (t) => {
 	return projectPreprocessor.processTree(treeWithInvalidModules).then((parsedTree) => {
-		t.deepEqual(expectedTreeWithInvalidModules, parsedTree);
+		t.deepEqual(parsedTree, expectedTreeWithInvalidModules);
 	});
 });
 
@@ -619,6 +622,7 @@ const expectedTreeWithInvalidModules = {
 		"type": "library",
 		"metadata": {
 			"name": "library.a",
+			"namespace": "library/a",
 			"copyright": "Some fancy copyright ${currentYear}"
 		},
 		"kind": "project",
@@ -644,6 +648,7 @@ const expectedTreeWithInvalidModules = {
 		"type": "library",
 		"metadata": {
 			"name": "library.b",
+			"namespace": "library/b",
 			"copyright": "Some fancy copyright ${currentYear}"
 		},
 		"kind": "project",
@@ -827,6 +832,7 @@ const expectedTreeAWithInlineConfigs = {
 			"type": "library",
 			"metadata": {
 				"name": "library.d",
+				"namespace": "library/d",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -852,6 +858,7 @@ const expectedTreeAWithInlineConfigs = {
 					"type": "library",
 					"metadata": {
 						"name": "library.a",
+						"namespace": "library/a",
 						"copyright": "Some fancy copyright ${currentYear}",
 					},
 					"resources": {
@@ -880,6 +887,7 @@ const expectedTreeAWithInlineConfigs = {
 			"type": "library",
 			"metadata": {
 				"name": "library.a",
+				"namespace": "library/a",
 				"copyright": "Some fancy copyright ${currentYear}",
 			},
 			"resources": {
@@ -935,6 +943,7 @@ const expectedTreeAWithConfigPaths = {
 			"type": "library",
 			"metadata": {
 				"name": "library.d",
+				"namespace": "library/d",
 				"copyright": "Some fancy copyright",
 			},
 			"resources": {
@@ -961,6 +970,7 @@ const expectedTreeAWithConfigPaths = {
 					"type": "library",
 					"metadata": {
 						"name": "library.a",
+						"namespace": "library/a",
 						"copyright": "Some fancy copyright ${currentYear}",
 					},
 					"resources": {
@@ -990,6 +1000,7 @@ const expectedTreeAWithConfigPaths = {
 			"type": "library",
 			"metadata": {
 				"name": "library.a",
+				"namespace": "library/a",
 				"copyright": "Some fancy copyright ${currentYear}",
 			},
 			"resources": {
@@ -1130,6 +1141,7 @@ const expectedTreeBWithInlineConfigs = {
 			"type": "library",
 			"metadata": {
 				"name": "library.b",
+				"namespace": "library/b",
 				"copyright": "Some fancy copyright ${currentYear}",
 			},
 			"resources": {
@@ -1155,6 +1167,7 @@ const expectedTreeBWithInlineConfigs = {
 					"type": "library",
 					"metadata": {
 						"name": "library.d",
+						"namespace": "library/d",
 						"copyright": "Some fancy copyright"
 					},
 					"resources": {
@@ -1180,6 +1193,7 @@ const expectedTreeBWithInlineConfigs = {
 							"type": "library",
 							"metadata": {
 								"name": "library.a",
+								"namespace": "library/a",
 								"copyright": "Some fancy copyright ${currentYear}",
 							},
 							"resources": {
@@ -1210,6 +1224,7 @@ const expectedTreeBWithInlineConfigs = {
 			"type": "library",
 			"metadata": {
 				"name": "library.d",
+				"namespace": "library/d",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -1235,6 +1250,7 @@ const expectedTreeBWithInlineConfigs = {
 					"type": "library",
 					"metadata": {
 						"name": "library.a",
+						"namespace": "library/a",
 						"copyright": "Some fancy copyright ${currentYear}"
 					},
 					"resources": {
@@ -1348,7 +1364,7 @@ const expectedTreeApplicationCycleA = {
 	"path": path.join(cycleDepsBasePath, "application.cycle.a"),
 	"type": "application",
 	"metadata": {
-		"name": "application.cycle.a"
+		"name": "application.cycle.a",
 	},
 	"dependencies": [
 		{
@@ -1359,6 +1375,7 @@ const expectedTreeApplicationCycleA = {
 			"type": "library",
 			"metadata": {
 				"name": "component.cycle.a",
+				"namespace": "component/cycle/a",
 				"copyright": "${copyright}"
 			},
 			"dependencies": [
@@ -1380,7 +1397,7 @@ const expectedTreeApplicationCycleA = {
 							"path": path.join(cycleDepsBasePath, "component.cycle.a"),
 							"type": "library",
 							"metadata": {
-								"name": "component.cycle.a"
+								"name": "component.cycle.a",
 							},
 							"dependencies": [],
 							"deduped": true
@@ -1419,7 +1436,7 @@ const expectedTreeApplicationCycleA = {
 							"path": path.join(cycleDepsBasePath, "component.cycle.a"),
 							"type": "library",
 							"metadata": {
-								"name": "component.cycle.a"
+								"name": "component.cycle.a",
 							},
 							"dependencies": [],
 							"deduped": true
@@ -1447,7 +1464,7 @@ const expectedTreeApplicationCycleA = {
 					"path": path.join(cycleDepsBasePath, "application.cycle.a"),
 					"type": "application",
 					"metadata": {
-						"name": "application.cycle.a"
+						"name": "application.cycle.a",
 					},
 					"dependencies": [],
 					"deduped": true

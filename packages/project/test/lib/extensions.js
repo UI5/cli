@@ -84,6 +84,7 @@ test("Project with project-shim extension with dependency configuration", (t) =>
 				metadata: {
 					name: "legacy.library.a",
 					copyright: "${copyright}",
+					namespace: "legacy/library/a",
 				},
 				resources: {
 					configuration: {
@@ -194,6 +195,7 @@ test("Project with project-shim extension with dependency declaration and config
 				metadata: {
 					name: "legacy.library.a",
 					copyright: "${copyright}",
+					namespace: "legacy/library/a",
 				},
 				resources: {
 					configuration: {
@@ -218,6 +220,7 @@ test("Project with project-shim extension with dependency declaration and config
 					metadata: {
 						name: "legacy.library.b",
 						copyright: "${copyright}",
+						namespace: "legacy/library/b",
 					},
 					resources: {
 						configuration: {
@@ -244,6 +247,7 @@ test("Project with project-shim extension with dependency declaration and config
 				metadata: {
 					name: "legacy.library.b",
 					copyright: "${copyright}",
+					namespace: "legacy/library/b",
 				},
 				resources: {
 					configuration: {
@@ -360,6 +364,7 @@ test("Project with project-shim extension with collection", (t) => {
 				metadata: {
 					name: "legacy.library.x",
 					copyright: "${copyright}",
+					namespace: "legacy/library/x",
 				},
 				resources: {
 					configuration: {
@@ -384,6 +389,7 @@ test("Project with project-shim extension with collection", (t) => {
 					metadata: {
 						name: "legacy.library.y",
 						copyright: "${copyright}",
+						namespace: "legacy/library/y",
 					},
 					resources: {
 						configuration: {
@@ -410,6 +416,7 @@ test("Project with project-shim extension with collection", (t) => {
 				metadata: {
 					name: "legacy.library.y",
 					copyright: "${copyright}",
+					namespace: "legacy/library/y",
 				},
 				resources: {
 					configuration: {
