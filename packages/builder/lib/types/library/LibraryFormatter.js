@@ -77,6 +77,8 @@ class LibraryFormatter extends AbstractUi5Formatter {
 			const {content: manifest, fsPath} = await this.getManifest();
 			// check for a proper sap.app/id in manifest.json to determine namespace
 			if (manifest["sap.app"] && manifest["sap.app"].id) {
+				log.verbose(`Found namespace information for project ${this._project.metadata.name} in ` +
+					`manifest.json`);
 				libraryId = manifest["sap.app"] && manifest["sap.app"].id;
 				fsNamespacePath = path.dirname(fsPath);
 			} else {
@@ -93,6 +95,8 @@ class LibraryFormatter extends AbstractUi5Formatter {
 			try {
 				const {content: dotLibrary, fsPath} = await this.getDotLibrary();
 				if (dotLibrary && dotLibrary.library && dotLibrary.library.name) {
+					log.verbose(`Found namespace information for project ${this._project.metadata.name} in ` +
+					`.library file`);
 					libraryId = dotLibrary.library.name;
 					fsNamespacePath = path.dirname(fsPath);
 				} else {
@@ -134,6 +138,8 @@ class LibraryFormatter extends AbstractUi5Formatter {
 					throw new Error(`Found library.js file in root directory. ` +
 						`Expected it to be in namespace directory.`);
 				}
+				log.verbose(`Deriving namespace for project ${this._project.metadata.name} from ` +
+					`path of library.js file`);
 			} catch (err) {
 				log.verbose(`Namespace resolution from library.js file path failed for project ` +
 					`${this._project.metadata.name}: ${err.message}`);
@@ -150,12 +156,14 @@ class LibraryFormatter extends AbstractUi5Formatter {
 	}
 
 	getNamespaceFromFsPath(fsPath) {
-		// Transform path to POSIX
-		const posixFsPath = slash(fsPath);
+		// Transform path to POSIX and remove any trailing slashes
+		const posixFsPath = slash(fsPath).replace(/\/$/, "");
 
 		// Remove base path from fsPath
 		const posixBasePath = this.getSourceBasePath(true);
-		const basePathPrefixRegExp = new RegExp(`^${posixBasePath}`);
+
+		// Can match /library/src as well as /library/src/some/namespace
+		const basePathPrefixRegExp = new RegExp(`^${posixBasePath}/?`);
 
 		if (!basePathPrefixRegExp.test(posixFsPath)) {
 			if (posixBasePath === posixFsPath + "/") {

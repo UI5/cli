@@ -669,3 +669,131 @@ test.serial("getManifest: result is cached", async (t) => {
 	t.deepEqual(content2, {pony: "no unicorn"}, "Correct result on second call");
 	t.deepEqual(fsPath2, expectedPath, "Correct manifest.json path returned on second call");
 });
+
+test("getNamespaceFromFsPath: fsPath w/ trailing slash + base path w/ trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+
+	const fsPath = "/some/path/my/namespace/";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "my/namespace", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: fsPath w/o trailing slash + base path w/ trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+
+	const fsPath = "/some/path/my/namespace";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "my/namespace", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: fsPath w/ trailing slash + base path w/o trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path");
+
+	const fsPath = "/some/path/my/namespace/";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "my/namespace", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: fsPath w/o trailing slash + base path w/o trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path");
+
+	const fsPath = "/some/path/my/namespace";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "my/namespace", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: equal paths: fsPath w/ trailing slash + base path w/ trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+
+	const fsPath = "/some/path/";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: equal paths: fsPath w/o trailing slash + base path w/ trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+
+	const fsPath = "/some/path";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: equal paths: fsPath w/ trailing slash + base path w/o trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path");
+
+	const fsPath = "/some/path/";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: equal paths: fsPath w/o trailing slash + base path w/o trailing slash", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path");
+
+	const fsPath = "/some/path";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "", "Returned correct namespace");
+});
+
+test("getNamespaceFromFsPath: fsPath is not based on base path", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path");
+
+	const fsPath = "/some/different/path";
+	const err = t.throws(() => libraryFormatter.getNamespaceFromFsPath(fsPath));
+	t.deepEqual(err.message, `Given file system path /some/different/path is not based on source base ` +
+		`path /some/path.`,
+	"Threw with correct error message");
+});
