@@ -1,16 +1,18 @@
-const log = require("@ui5/logger").getLogger("types:application:ModuleFormatter");
+const log = require("@ui5/logger").getLogger("types:module:ModuleFormatter");
 const path = require("path");
 const AbstractFormatter = require("../AbstractFormatter");
 
 class ModuleFormatter extends AbstractFormatter {
-	format(project) {
-		return this.validate(project).then(() => {
+	format() {
+		return this.validate().then(() => {
+			const project = this._project;
 			log.verbose("Formatting project %s...", project.metadata.name);
 			project.resources.pathMappings = project.resources.configuration.paths;
 		});
 	}
 
-	validate(project) {
+	validate() {
+		const project = this._project;
 		return Promise.resolve().then(() => {
 			if (!project) {
 				throw new Error("Project is undefined");

@@ -329,8 +329,8 @@ module.exports = {
 
 					return workspace.byGlob("/**/*.*").then((resources) => {
 						return Promise.all(resources.map((resource) => {
-							if (project === tree && project.metadata.namespace) {
-								// Root-project only: Remove namespace prefix if given
+							if (project === tree && project.type === "application" && project.metadata.namespace) {
+								// Root-application projects only: Remove namespace prefix if given
 								resource.setPath(resource.getPath().replace(
 									new RegExp(`^/resources/${project.metadata.namespace}`), ""));
 							}

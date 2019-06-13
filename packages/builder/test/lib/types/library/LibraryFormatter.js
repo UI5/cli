@@ -1,8 +1,7 @@
 const test = require("ava");
+const fs = require("graceful-fs");
 const path = require("path");
-const chai = require("chai");
 const sinon = require("sinon");
-chai.use(require("chai-fs"));
 const mock = require("mock-require");
 
 test.afterEach.always((t) => {
@@ -13,7 +12,7 @@ const LibraryFormatter = require("../../../../lib/types/library/LibraryFormatter
 
 const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");
 const libraryETree = {
-	id: "library.e",
+	id: "library.e.id",
 	version: "1.0.0",
 	path: libraryEPath,
 	dependencies: [],
@@ -40,49 +39,49 @@ function clone(o) {
 }
 
 test("validate: project not defined", async (t) => {
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: null});
 
 	// error is thrown because project is not defined (null)
-	const error = await t.throwsAsync(libraryFormatter.validate(null));
+	const error = await t.throwsAsync(libraryFormatter.validate());
 	t.deepEqual(error.message, "Project is undefined", "Correct exception thrown");
 });
 
 test("validate: empty version", async (t) => {
 	const myProject = clone(libraryETree);
 	myProject.version = undefined;
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 
 	// error is thrown because project's version is not defined
 	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
-	t.deepEqual(error.message, `"version" is missing for project library.e`, "Correct exception thrown");
+	t.deepEqual(error.message, `"version" is missing for project library.e.id`, "Correct exception thrown");
 });
 
 test("validate: empty type", async (t) => {
 	const myProject = clone(libraryETree);
 	myProject.type = undefined;
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 
 	// error is thrown because project's type is not defined
 	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
-	t.deepEqual(error.message, `"type" configuration is missing for project library.e`, "Correct exception thrown");
+	t.deepEqual(error.message, `"type" configuration is missing for project library.e.id`, "Correct exception thrown");
 });
 
 
 test("validate: empty metadata", async (t) => {
 	const myProject = clone(libraryETree);
 	myProject.metadata = undefined;
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 
 	// error is thrown because project's metadata is not defined
 	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
-	t.deepEqual(error.message, `"metadata.name" configuration is missing for project library.e`,
+	t.deepEqual(error.message, `"metadata.name" configuration is missing for project library.e.id`,
 		"Correct exception thrown");
 });
 
 test("validate: empty resources", async (t) => {
 	const myProject = clone(libraryETree);
 	myProject.resources = undefined;
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 
 	await libraryFormatter.validate(myProject);
 	t.deepEqual(myProject.resources.configuration.paths.src, "src", "default src directory is set");
@@ -91,19 +90,19 @@ test("validate: empty resources", async (t) => {
 
 test("validate: src directory does not exist", async (t) => {
 	const myProject = clone(libraryETree);
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 	const dirExists = sinon.stub(libraryFormatter, "dirExists");
 	dirExists.onFirstCall().resolves(false);
 	dirExists.onSecondCall().resolves(true);
 
 	const error = await await t.throwsAsync(libraryFormatter.validate(myProject));
-	t.regex(error.message, /^Could not find source directory of project library.e: (?!(undefined))+/,
+	t.regex(error.message, /^Could not find source directory of project library\.e\.id: (?!(undefined))+/,
 		"Missing source directory caused error");
 });
 
 test("validate: test directory does not exist", async (t) => {
 	const myProject = clone(libraryETree);
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 	const dirExists = sinon.stub(libraryFormatter, "dirExists");
 	dirExists.onFirstCall().resolves(true);
 	dirExists.onSecondCall().resolves(false);
@@ -115,23 +114,21 @@ test("validate: test directory does not exist", async (t) => {
 
 test("format: copyright already configured", async (t) => {
 	const myProject = clone(libraryETree);
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 	sinon.stub(libraryFormatter, "validate").resolves();
 
-	await libraryFormatter.format(myProject);
+	await libraryFormatter.format();
 	t.deepEqual(myProject.metadata.copyright, libraryETree.metadata.copyright, "Copyright was not altered");
 });
 
 
-test.serial("format: no dot library file", async (t) => {
+test.serial("format: namespace resolution fails", async (t) => {
 	const myProject = clone(libraryETree);
 	myProject.metadata.copyright = undefined;
 
 
-	mock("globby", function(name) {
-		t.deepEqual(name, "**/.library", "Glob for .library files");
-		return Promise.resolve([]);
-	});
+	const globbyStub = sinon.stub().resolves([]);
+	mock("globby", globbyStub);
 	mock.reRequire("globby");
 
 
@@ -142,28 +139,78 @@ test.serial("format: no dot library file", async (t) => {
 		getLogger: () => loggerInstance
 	});
 	mock.reRequire("@ui5/logger");
-	const loggerSpy = sinon.spy(loggerInstance, "verbose");
-
+	const loggerVerboseSpy = sinon.spy(loggerInstance, "verbose");
+	const loggerWarnSpy = sinon.spy(loggerInstance, "warn");
 
 	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
 
-	const libraryFormatter = new LibraryFormatter();
+	const libraryFormatter = new LibraryFormatter({project: myProject});
 	sinon.stub(libraryFormatter, "validate").resolves();
 
 
-	await libraryFormatter.format(myProject);
-	t.deepEqual(loggerSpy.callCount, 2, "2 calls to verbose should be done");
-	t.true(loggerSpy.getCalls().map((call) => call.args[0]).includes(
-		"Could not find .library file for project library.e"), "should contain message for .library");
+	await libraryFormatter.format();
+	t.deepEqual(globbyStub.callCount, 3, "globby got called three times");
+	t.deepEqual(globbyStub.getCall(0).args[0], "**/manifest.json", "First glob is for manifest.json files");
+	t.deepEqual(globbyStub.getCall(1).args[0], "**/.library", "Second glob is for .library files");
+	t.deepEqual(globbyStub.getCall(2).args[0], "**/library.js", "Third glob for library.js files");
+	t.deepEqual(loggerVerboseSpy.callCount, 7, "7 calls to log.verbose should be done");
+	const logVerboseCalls = loggerVerboseSpy.getCalls().map((call) => call.args[0]);
+
+	t.true(logVerboseCalls.includes(
+		"Namespace resolution from .library failed for project library.e: " +
+		"Could not find .library file for project library.e"),
+	"should contain message for missing .library");
+
+	t.true(logVerboseCalls.includes(
+		"Namespace resolution from manifest.json failed for project library.e: " +
+		"Could not find manifest.json file for project library.e"),
+	"should contain message for missing manifest.json");
+
+	t.true(logVerboseCalls.includes(
+		"Namespace resolution from library.js file path failed for project library.e: " +
+		"Could not find library.js file for project library.e"),
+	"should contain message for missing library.js");
+
+	t.deepEqual(loggerWarnSpy.callCount, 1, "1 calls to log.warn should be done");
+	const logWarnCalls = loggerWarnSpy.getCalls().map((call) => call.args[0]);
+	t.true(logWarnCalls.includes(
+		"Failed to detect namespace or namespace is empty for project library.e. Check verbose log for details."),
+	"should contain message for .library");
+
 	mock.stop("globby");
 	mock.stop("@ui5/logger");
 });
 
-
-test.serial("format: multiple dot library file", async (t) => {
+test("format: configuration test path", async (t) => {
 	const myProject = clone(libraryETree);
-	myProject.metadata.copyright = undefined;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "validate").resolves();
+	myProject.resources.configuration.paths.test = null;
+	await libraryFormatter.format();
 
+	t.falsy(myProject.resources.pathMappings["/test-resources/"], "test-resources pathMapping is not set");
+});
+
+test("getDotLibrary: reads correctly", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const {content, fsPath} = await libraryFormatter.getDotLibrary();
+	t.deepEqual(content.library.name, "library.e", ".library content has been read");
+	const expectedPath = path.join(myProject.path,
+		myProject.resources.configuration.paths.src, "library", "e", ".library");
+	t.deepEqual(fsPath, expectedPath, ".library fsPath is correct");
+});
+
+test.serial("getDotLibrary: multiple dot library files", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
 
 	mock("globby", function(name) {
 		t.deepEqual(name, "**/.library", "Glob for .library files");
@@ -173,31 +220,452 @@ test.serial("format: multiple dot library file", async (t) => {
 
 	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
 
-	const libraryFormatter = new LibraryFormatter();
-	sinon.stub(libraryFormatter, "validate").resolves();
-
-
-	const error = await t.throwsAsync(libraryFormatter.format(myProject));
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	const error = await t.throwsAsync(libraryFormatter.getDotLibrary());
 	t.deepEqual(error.message, "Found multiple (2) .library files for project library.e",
-		"Error message for 2 .library files expectzed");
+		"Rejected with correct error message");
 	mock.stop("globby");
 });
 
-test("format: takes copyright from .library", async (t) => {
+test.serial("getDotLibrary: no dot library file", async (t) => {
 	const myProject = clone(libraryETree);
-	myProject.metadata.copyright = undefined; // Simulate unconfigured copyright
-	const libraryFormatter = new LibraryFormatter();
-	sinon.stub(libraryFormatter, "validate").resolves();
-	await libraryFormatter.format(myProject);
-	t.deepEqual(myProject.metadata.copyright, "${copyright}", "Correct copyright set");
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	mock("globby", function(name) {
+		return Promise.resolve([]);
+	});
+	mock.reRequire("globby");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const error = await t.throwsAsync(libraryFormatter.getDotLibrary());
+	t.deepEqual(error.message, "Could not find .library file for project library.e",
+		"Rejected with correct error message");
+	mock.stop("globby");
 });
 
-test("format: configuration test path", async (t) => {
+test.serial("getDotLibrary: result is cached", async (t) => {
 	const myProject = clone(libraryETree);
-	const libraryFormatter = new LibraryFormatter();
-	sinon.stub(libraryFormatter, "validate").resolves();
-	myProject.resources.configuration.paths.test = null;
-	await libraryFormatter.format(myProject);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+	const globby = require("globby");
+	const globbySpy = sinon.spy(globby);
+	mock("globby", globbySpy);
+	mock.reRequire("globby");
 
-	t.falsy(myProject.resources.pathMappings["/test-resources/"], "test-resources pathMapping is not set");
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const {content, fsPath} = await libraryFormatter.getDotLibrary();
+	t.deepEqual(content.library.name, "library.e", ".library content has been read");
+	const expectedPath = path.join(myProject.path,
+		myProject.resources.configuration.paths.src, "library", "e", ".library");
+	t.deepEqual(fsPath, expectedPath, ".library fsPath is correct");
+
+	t.deepEqual(globbySpy.callCount, 1,
+		"globby got called exactly once (and then cached)");
+	mock.stop("globby");
+});
+
+test("getLibraryJsPath: reads correctly", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const fsPath = await libraryFormatter.getLibraryJsPath();
+	const expectedPath = path.join(myProject.path,
+		myProject.resources.configuration.paths.src, "library", "e", "library.js");
+	t.deepEqual(fsPath, expectedPath, ".library fsPath is correct");
+});
+
+test.serial("getLibraryJsPath: multiple dot library files", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	mock("globby", function(name) {
+		t.deepEqual(name, "**/library.js", "Glob for library.js files");
+		return Promise.resolve(["folder1/library.js", "folder2/library.js"]);
+	});
+	mock.reRequire("globby");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	const error = await t.throwsAsync(libraryFormatter.getLibraryJsPath());
+	t.deepEqual(error.message, "Found multiple (2) library.js files for project library.e",
+		"Rejected with correct error message");
+	mock.stop("globby");
+});
+
+test.serial("getLibraryJsPath: no dot library file", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	mock("globby", function(name) {
+		return Promise.resolve([]);
+	});
+	mock.reRequire("globby");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const error = await t.throwsAsync(libraryFormatter.getLibraryJsPath());
+	t.deepEqual(error.message, "Could not find library.js file for project library.e",
+		"Rejected with correct error message");
+	mock.stop("globby");
+});
+
+test.serial("getLibraryJsPath: result is cached", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+	const globby = require("globby");
+	const globbySpy = sinon.spy(globby);
+	mock("globby", globbySpy);
+	mock.reRequire("globby");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const fsPath = await libraryFormatter.getLibraryJsPath();
+	const expectedPath = path.join(myProject.path,
+		myProject.resources.configuration.paths.src, "library", "e", "library.js");
+	t.deepEqual(fsPath, expectedPath, ".library fsPath is correct");
+
+	t.deepEqual(globbySpy.callCount, 1,
+		"globby got called exactly once (and then cached)");
+	mock.stop("globby");
+});
+
+test("getCopyright: takes copyright from project configuration", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.metadata.copyright = "unicorn"; // Simulate configured copyright
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	const copyright = await libraryFormatter.getCopyright();
+	t.deepEqual(copyright, "unicorn", "Returned correct copyright");
+});
+
+test("getCopyright: takes copyright from .library", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.metadata.copyright = undefined; // Simulate unconfigured copyright
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		library: {copyright: "pony"}
+	});
+	const res = await libraryFormatter.getCopyright();
+	t.deepEqual(res, "pony", "Returned correct copyright");
+});
+
+test("getCopyright: no copyright available", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.metadata.copyright = undefined; // Simulate unconfigured copyright
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		library: {}
+	});
+	const err = await t.throwsAsync(libraryFormatter.getCopyright());
+	t.deepEqual(err.message,
+		"No copyright configuration found in .library " +
+		"of project library.e",
+		"Rejected with correct error message");
+});
+
+test("getNamespace: from manifest.json", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({
+		content: {
+			"sap.app": {
+				id: "mani-pony"
+			}
+		},
+		fsPath: path.normalize("/some/path/mani-pony/manifest.json") // normalize for windows
+	});
+	const getSourceBasePathStub = sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const res = await libraryFormatter.getNamespace();
+	t.deepEqual(getSourceBasePathStub.getCall(0).args[0], true,
+		"getSourceBasePath called with correct argument");
+	t.deepEqual(res, "mani-pony", "Returned correct namespace");
+});
+
+test("getNamespace: from manifest.json with not matching file path", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({
+		content: {
+			"sap.app": {
+				id: "mani-pony"
+			}
+		},
+		fsPath: path.normalize("/some/path/different/namespace/manifest.json") // normalize for windows
+	});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+
+	t.deepEqual(err.message, `Detected namespace "mani-pony" does not match detected directory structure ` +
+		`"different/namespace" for project library.e`,
+	"Rejected with correct error message");
+});
+
+test("getNamespace: from .library", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").rejects("No manifest aint' here");
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "dot-pony"}
+		},
+		fsPath: path.normalize("/some/path/dot-pony/.library") // normalize for windows
+	});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const res = await libraryFormatter.getNamespace();
+	t.deepEqual(res, "dot-pony", "Returned correct namespace");
+});
+
+test("getNamespace: from .library with maven placeholder", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").rejects("No manifest aint' here");
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "${mvn-pony}"}
+		},
+		fsPath: path.normalize("/some/path/mvn-unicorn/.library") // normalize for windows
+	});
+	const resolveMavenPlaceholderStub =
+		sinon.stub(libraryFormatter, "resolveMavenPlaceholder").resolves("mvn-unicorn");
+	const getSourceBasePathStub = sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const res = await libraryFormatter.getNamespace();
+
+	t.deepEqual(resolveMavenPlaceholderStub.getCall(0).args[0], "${mvn-pony}",
+		"resolveMavenPlaceholder called with correct argument");
+	t.deepEqual(getSourceBasePathStub.getCall(0).args[0], true,
+		"getSourceBasePath called with correct argument");
+	t.deepEqual(res, "mvn-unicorn", "Returned correct namespace");
+});
+
+test("getNamespace: from .library with not matching file path", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").rejects("No manifest aint' here");
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "mvn-pony"}
+		},
+		fsPath: path.normalize("/some/path/different/namespace/.library") // normalize for windows
+	});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+
+	t.deepEqual(err.message, `Detected namespace "mvn-pony" does not match detected directory structure ` +
+		`"different/namespace" for project library.e`,
+	"Rejected with correct error message");
+});
+
+test("getNamespace: from library.js", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({});
+	sinon.stub(libraryFormatter, "getLibraryJsPath").resolves(path.normalize("/some/path/my/namespace/library.js"));
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const res = await libraryFormatter.getNamespace();
+	t.deepEqual(res, "my/namespace", "Returned correct namespace");
+});
+
+test.serial("getNamespace: from project root level library.js", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const log = require("@ui5/logger");
+	const loggerInstance = log.getLogger("types:library:LibraryFormatter");
+
+	mock("@ui5/logger", {
+		getLogger: () => loggerInstance
+	});
+	mock.reRequire("@ui5/logger");
+	const loggerSpy = sinon.spy(loggerInstance, "verbose");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({});
+	sinon.stub(libraryFormatter, "getLibraryJsPath").resolves(path.normalize("/some/path/library.js"));
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+
+	t.deepEqual(err.message,
+		"Failed to detect namespace or namespace is empty for project library.e. Check verbose log for details.",
+		"Rejected with correct error message");
+
+	const logCalls = loggerSpy.getCalls().map((call) => call.args[0]);
+	t.true(logCalls.includes(
+		"Namespace resolution from library.js file path failed for project library.e: " +
+		"Found library.js file in root directory. " +
+		"Expected it to be in namespace directory."),
+	"should contain message for root level library.js");
+
+	mock.stop("@ui5/logger");
+});
+
+test("getNamespace: neither manifest nor .library or library.js path contain it", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({});
+	sinon.stub(libraryFormatter, "getLibraryJsPath").rejects(new Error("Not found bla"));
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+	t.deepEqual(err.message,
+		"Failed to detect namespace or namespace is empty for project library.e. Check verbose log for details.",
+		"Rejected with correct error message");
+});
+
+test("getNamespace: maven placeholder resolution fails", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({
+		content: {
+			"sap.app": {
+				id: "${mvn-pony}"
+			}
+		},
+		fsPath: path.normalize("/some/path/not/used") // normalize for windows
+	});
+	const resolveMavenPlaceholderStub =
+		sinon.stub(libraryFormatter, "resolveMavenPlaceholder")
+			.rejects(new Error("because squirrel"));
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+	t.deepEqual(resolveMavenPlaceholderStub.getCall(0).args[0], "${mvn-pony}",
+		"resolveMavenPlaceholder called with correct argument");
+	t.deepEqual(err.message,
+		"Failed to resolve namespace maven placeholder of project library.e: because squirrel",
+		"Rejected with correct error message");
+});
+
+test("getManifest: reads correctly", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const {content, fsPath} = await libraryFormatter.getManifest();
+	t.deepEqual(content._version, "1.1.0", "manifest.json content has been read");
+	const expectedPath = path.join(libraryEPath, "src", "library", "e", "manifest.json");
+	t.deepEqual(fsPath, expectedPath, "Correct manifest.json path returned");
+});
+
+test.serial("getManifest: invalid JSON", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, undefined, "pony");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const error = await t.throwsAsync(libraryFormatter.getManifest());
+	t.deepEqual(error.message,
+		"Failed to read manifest.json for project library.e: " +
+		"Unexpected token p in JSON at position 0",
+		"Rejected with correct error message");
+	t.deepEqual(readFileStub.callCount, 1, "fs.read got called once");
+	const expectedPath = path.join(libraryEPath, "src", "library", "e", "manifest.json");
+	t.deepEqual(readFileStub.getCall(0).args[0], expectedPath, "fs.read got called with the correct argument");
+});
+
+test.serial("getManifest: fs read error", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, new Error("EPON: Pony Error"));
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const error = await t.throwsAsync(libraryFormatter.getManifest());
+	t.deepEqual(error.message,
+		"Failed to read manifest.json for project library.e: " +
+		"EPON: Pony Error",
+		"Rejected with correct error message");
+	t.deepEqual(readFileStub.callCount, 1, "fs.read got called once");
+	const expectedPath = path.join(libraryEPath, "src", "library", "e", "manifest.json");
+	t.deepEqual(readFileStub.getCall(0).args[0], expectedPath, "fs.read got called with the correct argument");
+});
+
+test.serial("getManifest: multiple manifest.json files", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	mock("globby", function(name) {
+		t.deepEqual(name, "**/manifest.json", "Glob for .library files");
+		return Promise.resolve(["folder1/.library", "folder2/.library"]);
+	});
+	mock.reRequire("globby");
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	const error = await t.throwsAsync(libraryFormatter.getManifest());
+	t.deepEqual(error.message, "Found multiple (2) manifest.json files for project library.e",
+		"Rejected with correct error message");
+	mock.stop("globby");
+});
+
+
+test.serial("getManifest: result is cached", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, undefined,
+		`{"pony": "no unicorn"}`);
+
+	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const expectedPath = path.join(libraryEPath, "src", "library", "e", "manifest.json");
+	const {content, fsPath} = await libraryFormatter.getManifest();
+
+	t.deepEqual(readFileStub.callCount, 1, "fs.read got called exactly once (and then cached)");
+	t.deepEqual(content, {pony: "no unicorn"}, "Correct result on first call");
+	t.deepEqual(fsPath, expectedPath, "Correct manifest.json path returned on first call");
+	const {content: content2, fsPath: fsPath2} = await libraryFormatter.getManifest(); // normalize for windows
+	t.deepEqual(content2, {pony: "no unicorn"}, "Correct result on second call");
+	t.deepEqual(fsPath2, expectedPath, "Correct manifest.json path returned on second call");
 });

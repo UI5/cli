@@ -1,0 +1,8 @@
+{
+  "name": "library.m",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based library - test for library formatter (with manifest.json)",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

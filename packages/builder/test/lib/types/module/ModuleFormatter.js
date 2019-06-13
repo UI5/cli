@@ -39,33 +39,33 @@ const moduleATree = {
 
 test("validate: ok", async (t) => {
 	const myProject = clone(moduleATree);
-	const moduleFormatter = new ModuleFormatter();
+	const moduleFormatter = new ModuleFormatter({project: myProject});
 
-	await t.notThrowsAsync(moduleFormatter.validate(myProject));
+	await t.notThrowsAsync(moduleFormatter.validate());
 });
 
 test("validate: project not defined", async (t) => {
-	const moduleFormatter = new ModuleFormatter();
+	const moduleFormatter = new ModuleFormatter({project: null});
 
-	const error = await t.throwsAsync(moduleFormatter.validate(null));
+	const error = await t.throwsAsync(moduleFormatter.validate());
 	t.deepEqual(error.message, "Project is undefined", "Correct exception thrown");
 });
 
 test("validate: empty version", async (t) => {
 	const myProject = clone(moduleATree);
 	myProject.version = undefined;
-	const applicationFormatter = new ModuleFormatter();
+	const applicationFormatter = new ModuleFormatter({project: myProject});
 
-	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate());
 	t.deepEqual(error.message, `"version" is missing for project module.a`, "Correct exception thrown");
 });
 
 test("validate: empty type", async (t) => {
 	const myProject = clone(moduleATree);
 	myProject.type = undefined;
-	const applicationFormatter = new ModuleFormatter();
+	const applicationFormatter = new ModuleFormatter({project: myProject});
 
-	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate());
 	t.deepEqual(error.message, `"type" configuration is missing for project module.a`, "Correct exception thrown");
 });
 
@@ -73,9 +73,9 @@ test("validate: empty type", async (t) => {
 test("validate: empty metadata", async (t) => {
 	const myProject = clone(moduleATree);
 	myProject.metadata = undefined;
-	const applicationFormatter = new ModuleFormatter();
+	const applicationFormatter = new ModuleFormatter({project: myProject});
 
-	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
+	const error = await t.throwsAsync(applicationFormatter.validate());
 	t.deepEqual(error.message, `"metadata.name" configuration is missing for project module.a`,
 		"Correct exception thrown");
 });
@@ -83,10 +83,10 @@ test("validate: empty metadata", async (t) => {
 test("validate: empty resources", async (t) => {
 	const myProject = clone(moduleATree);
 	myProject.resources = undefined;
-	const moduleFormatter = new ModuleFormatter();
+	const moduleFormatter = new ModuleFormatter({project: myProject});
 	sinon.stub(moduleFormatter, "dirExists").resolves(true);
 
-	await moduleFormatter.validate(myProject);
+	await moduleFormatter.validate();
 	t.deepEqual(myProject.resources.configuration.paths, {
 		"/": ""
 	}, "Defaulted to correct resource path configuration");
@@ -94,24 +94,24 @@ test("validate: empty resources", async (t) => {
 
 test("validate: first configured directory does not exist", async (t) => {
 	const myProject = clone(moduleATree);
-	const moduleFormatter = new ModuleFormatter();
+	const moduleFormatter = new ModuleFormatter({project: myProject});
 	const dirExists = sinon.stub(moduleFormatter, "dirExists");
 	dirExists.onFirstCall().resolves(false);
 	dirExists.onSecondCall().resolves(true);
 
-	const error = await t.throwsAsync(moduleFormatter.validate(myProject));
+	const error = await t.throwsAsync(moduleFormatter.validate());
 	t.regex(error.message, /^Could not find "\/" directory of project module.a at (?!(undefined))+/,
 		"Correct exception thrown");
 });
 
 test("validate: second configured directory does not exist", async (t) => {
 	const myProject = clone(moduleATree);
-	const moduleFormatter = new ModuleFormatter();
+	const moduleFormatter = new ModuleFormatter({project: myProject});
 	const dirExists = sinon.stub(moduleFormatter, "dirExists");
 	dirExists.onFirstCall().resolves(true);
 	dirExists.onSecondCall().resolves(false);
 
-	const error = await t.throwsAsync(moduleFormatter.validate(myProject));
+	const error = await t.throwsAsync(moduleFormatter.validate());
 	t.regex(error.message, /^Could not find "\/dev" directory of project module.a at (?!(undefined))+/,
 		"Correct exception thrown");
 });
@@ -119,7 +119,7 @@ test("validate: second configured directory does not exist", async (t) => {
 
 test("format: pass through", async (t) => {
 	const myProject = clone(moduleATree);
-	const moduleFormatter = new ModuleFormatter();
+	const moduleFormatter = new ModuleFormatter({project: myProject});
 	sinon.stub(moduleFormatter, "validate").resolves();
 
 	await moduleFormatter.format(myProject);

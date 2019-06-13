@@ -3,7 +3,7 @@ const ApplicationBuilder = require("./ApplicationBuilder");
 
 module.exports = {
 	format: function(project) {
-		return new ApplicationFormatter().format(project);
+		return new ApplicationFormatter({project}).format();
 	},
 	build: function({resourceCollections, tasks, project, parentLogger, buildContext}) {
 		return new ApplicationBuilder({resourceCollections, project, parentLogger, buildContext}).build(tasks);

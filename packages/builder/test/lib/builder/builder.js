@@ -428,6 +428,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.d",
+				"namespace": "library/d",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -453,6 +454,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.a",
+				"namespace": "library/a",
 				"copyright": "${copyright}"
 			},
 			"resources": {
@@ -478,6 +480,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.b",
+				"namespace": "library/b",
 				"copyright": "${copyright}"
 			},
 			"resources": {
@@ -503,6 +506,7 @@ const applicationATree = {
 			"type": "library",
 			"metadata": {
 				"name": "library.c",
+				"namespace": "library/c",
 				"copyright": "${copyright}"
 			},
 			"resources": {
@@ -763,6 +767,7 @@ const libraryDTree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -782,6 +787,7 @@ const libraryDTree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.d",
+		"namespace": "library/d",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -813,6 +819,7 @@ const libraryETree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -832,6 +839,7 @@ const libraryETree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.e",
+		"namespace": "library/e",
 		"copyright": "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an SAP affiliate company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
 	},
 	"resources": {
@@ -863,6 +871,7 @@ const libraryHTree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -882,6 +891,7 @@ const libraryHTree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.h",
+		"namespace": "library/h",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -945,6 +955,7 @@ const libraryITree = {
 			"type": "library",
 			"metadata": {
 				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
 				"copyright": "Some fancy copyright"
 			},
 			"resources": {
@@ -965,6 +976,7 @@ const libraryITree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.i",
+		"namespace": "library/i",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -990,6 +1002,7 @@ const libraryJTree = {
 	"type": "library",
 	"metadata": {
 		"name": "library.j",
+		"namespace": "library/j",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -1014,6 +1027,7 @@ const themeJTree = {
 	"type": "library",
 	"metadata": {
 		"name": "theme.j",
+		"namespace": "theme/j",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {

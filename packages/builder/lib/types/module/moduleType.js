@@ -3,7 +3,7 @@ const ModuleBuilder = require("./ModuleBuilder");
 
 module.exports = {
 	format: function(project) {
-		return new ModuleFormatter().format(project);
+		return new ModuleFormatter({project}).format();
 	},
 	build: function({resourceCollections, tasks, project, parentLogger}) {
 		return new ModuleBuilder({resourceCollections, project, parentLogger}).build(tasks);

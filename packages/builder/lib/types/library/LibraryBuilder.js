@@ -18,8 +18,12 @@ const tasks = { // can't require index.js due to circular dependency
 };
 
 class LibraryBuilder extends AbstractBuilder {
-	addStandardTasks({resourceCollections, project, parentLogger, buildContext}) {
-		const namespace = project.metadata.name.replace(/\./g, "/");
+	addStandardTasks({resourceCollections, project, log, buildContext}) {
+		if (!project.metadata.namespace) {
+			log.info("Skipping some tasks due to missing library namespace information. Your project " +
+				"might be missing a manifest.json or .library file. " +
+				"Also see: https://github.com/SAP/ui5-builder#library");
+		}
 
 		this.addTask("replaceCopyright", () => {
 			const replaceCopyright = tasks.replaceCopyright;
@@ -43,44 +47,46 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("generateJsdoc", () => {
-			const generateJsdoc = tasks.generateJsdoc;
+		if (project.metadata.namespace) {
+			this.addTask("generateJsdoc", () => {
+				const generateJsdoc = tasks.generateJsdoc;
 
-			const patterns = ["/resources/**/*.js"];
-			// Add excludes
-			if (project.builder && project.builder.jsdoc && project.builder.jsdoc.excludes) {
-				const excludes = project.builder.jsdoc.excludes.map((pattern) => {
-					return `!/resources/${pattern}`;
+				const patterns = ["/resources/**/*.js"];
+				// Add excludes
+				if (project.builder && project.builder.jsdoc && project.builder.jsdoc.excludes) {
+					const excludes = project.builder.jsdoc.excludes.map((pattern) => {
+						return `!/resources/${pattern}`;
+					});
+
+					patterns.push(...excludes);
+				}
+
+				return generateJsdoc({
+					buildContext,
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					options: {
+						projectName: project.metadata.name,
+						namespace: project.metadata.namespace,
+						version: project.version,
+						pattern: patterns
+					}
 				});
-
-				patterns.push(...excludes);
-			}
-
-			return generateJsdoc({
-				buildContext,
-				workspace: resourceCollections.workspace,
-				dependencies: resourceCollections.dependencies,
-				options: {
-					projectName: project.metadata.name,
-					namespace,
-					version: project.version,
-					pattern: patterns
-				}
 			});
-		});
 
-		this.addTask("executeJsdocSdkTransformation", () => {
-			const executeJsdocSdkTransformation = tasks.executeJsdocSdkTransformation;
+			this.addTask("executeJsdocSdkTransformation", () => {
+				const executeJsdocSdkTransformation = tasks.executeJsdocSdkTransformation;
 
-			return executeJsdocSdkTransformation({
-				workspace: resourceCollections.workspace,
-				dependencies: resourceCollections.dependencies,
-				options: {
-					projectName: project.metadata.name,
-					dotLibraryPattern: "/resources/**/*.library",
-				}
+				return executeJsdocSdkTransformation({
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					options: {
+						projectName: project.metadata.name,
+						dotLibraryPattern: "/resources/**/*.library",
+					}
+				});
 			});
-		});
+		}
 
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
@@ -110,16 +116,19 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("generateManifestBundle", () => {
-			const generateManifestBundle = tasks.generateManifestBundle;
-			return generateManifestBundle({
-				workspace: resourceCollections.workspace,
-				options: {
-					projectType: project.type,
-					namespace
-				}
+
+		if (project.metadata.namespace) {
+			this.addTask("generateManifestBundle", () => {
+				const generateManifestBundle = tasks.generateManifestBundle;
+				return generateManifestBundle({
+					workspace: resourceCollections.workspace,
+					options: {
+						projectType: project.type,
+						namespace: project.metadata.namespace
+					}
+				});
 			});
-		});
+		}
 
 		this.addTask("generateLibraryPreload", () => {
 			const generateLibraryPreload = tasks.generateLibraryPreload;
