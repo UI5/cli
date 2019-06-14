@@ -114,7 +114,6 @@
 		"rimraf": "^2.6.3",
 		"semver": "^6.1.1",
 		"slash": "^3.0.0",
-		"tap-xunit": "^2.4.1",
 		"uglify-es": "^3.2.2",
 		"xml2js": "^0.4.17",
 		"yazl": "^2.5.1"
@@ -135,6 +134,7 @@
 		"opn-cli": "^4.1.0",
 		"recursive-readdir": "^2.1.1",
 		"sinon": "^7.3.2",
-		"tap-nyan": "^1.1.0"
+		"tap-nyan": "^1.1.0",
+		"tap-xunit": "^2.4.1"
 	}
 }
