@@ -61,7 +61,8 @@ test.serial("createTmpDirs", async (t) => {
 	mock("rimraf", rimrafStub);
 	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
 
-	const createTmpDirStub = sinon.stub(generateJsdoc, "_createTmpDir").resolves("/some/path");
+	const createTmpDirStub = sinon.stub(generateJsdoc, "_createTmpDir")
+		.resolves(path.join("/", "some", "path"));
 
 	const res = await generateJsdoc._createTmpDirs("some.namespace");
 
@@ -82,7 +83,8 @@ test.serial("createTmpDirs", async (t) => {
 
 	res.cleanup();
 	t.deepEqual(rimrafStub.callCount, 1, "Cleanup callback: rimraf called once");
-	t.deepEqual(rimrafStub.getCall(0).args[0], "/some/path", "Cleanup callback: rimraf called with correct path");
+	t.deepEqual(rimrafStub.getCall(0).args[0], path.join("/", "some", "path"),
+		"Cleanup callback: rimraf called with correct path");
 
 	mock.stop("make-dir");
 	mock.stop("rimraf");
@@ -103,11 +105,11 @@ test.serial("writeResourcesToDir with byGlobSource", async (t) => {
 			}
 		},
 		pattern: "some pattern",
-		targetPath: "/some/target/path"
+		targetPath: path.join("/", "some", "target", "path")
 	});
 
 	t.deepEqual(createAdapterStub.getCall(0).args[0], {
-		fsBasePath: "/some/target/path",
+		fsBasePath: path.join("/", "some", "target", "path"),
 		virBasePath: "/resources/"
 	}, "createAdapter called with correct arguments");
 
@@ -130,11 +132,11 @@ test.serial("writeResourcesToDir with byGlob", async (t) => {
 			}
 		},
 		pattern: "some pattern",
-		targetPath: "/some/target/path"
+		targetPath: path.join("/", "some", "target", "path")
 	});
 
 	t.deepEqual(createAdapterStub.getCall(0).args[0], {
-		fsBasePath: "/some/target/path",
+		fsBasePath: path.join("/", "some", "target", "path"),
 		virBasePath: "/resources/"
 	}, "createAdapter called with correct arguments");
 
@@ -179,7 +181,7 @@ test.serial("writeDependencyApisToDir with byGlob", async (t) => {
 				return Promise.resolve([initialResourceA, initialResourceB]);
 			}
 		},
-		targetPath: "/some/target/path"
+		targetPath: path.join("/", "some", "target", "path")
 	});
 
 	t.deepEqual(cloneStubA.callCount, 1, "resource A got cloned once");
@@ -192,7 +194,7 @@ test.serial("writeDependencyApisToDir with byGlob", async (t) => {
 	t.deepEqual(setPathStubB.getCall(0).args[0], "/api-1.json", "Path of cloned resource B got changed correctly");
 
 	t.deepEqual(createAdapterStub.getCall(0).args[0], {
-		fsBasePath: "/some/target/path",
+		fsBasePath: path.join("/", "some", "target", "path"),
 		virBasePath: "/"
 	}, "createAdapter called with correct arguments");
 
@@ -208,9 +210,9 @@ test.serial("generateJsdoc", async (t) => {
 
 	const cleanupStub = sinon.stub().resolves();
 	const createTmpDirsStub = sinon.stub(generateJsdoc, "_createTmpDirs").resolves({
-		sourcePath: "/some/source/path",
-		targetPath: "/some/target/path",
-		tmpPath: "/some/tmp/path",
+		sourcePath: path.join("/", "some", "source", "path"),
+		targetPath: path.join("/", "some", "target", "path"),
+		tmpPath: path.join("/", "some", "tmp", "path"),
 		cleanup: cleanupStub
 	});
 	const writeResourcesToDirStub = sinon.stub(generateJsdoc, "_writeResourcesToDir").resolves(1);
@@ -249,20 +251,20 @@ test.serial("generateJsdoc", async (t) => {
 	t.deepEqual(writeResourcesToDirStub.getCall(0).args[0], {
 		workspace,
 		pattern: "some pattern",
-		targetPath: "/some/source/path" // one's target is another one's source
+		targetPath: path.join("/", "some", "source", "path") // one's target is another one's source
 	}, "writeResourcesToDir got called with correct arguments");
 
 	t.deepEqual(writeDependencyApisToDirStub.callCount, 1, "writeDependencyApisToDir got called once");
 	t.deepEqual(writeDependencyApisToDirStub.getCall(0).args[0], {
 		dependencies: "dependencies",
-		targetPath: "/some/tmp/path/dependency-apis"
+		targetPath: path.join("/", "some", "tmp", "path", "dependency-apis")
 	}, "writeDependencyApisToDir got called with correct arguments");
 
 	t.deepEqual(jsdocGeneratorStub.callCount, 1, "jsdocGenerator processor got called once");
 	t.deepEqual(jsdocGeneratorStub.getCall(0).args[0], {
-		sourcePath: "/some/source/path",
-		targetPath: "/some/target/path",
-		tmpPath: "/some/tmp/path",
+		sourcePath: path.join("/", "some", "source", "path"),
+		targetPath: path.join("/", "some", "target", "path"),
+		tmpPath: path.join("/", "some", "tmp", "path"),
 		options: {
 			projectName: "some.project",
 			namespace: "some/project",
@@ -291,9 +293,9 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 
 	const cleanupStub = sinon.stub().resolves();
 	sinon.stub(generateJsdoc, "_createTmpDirs").resolves({
-		sourcePath: "/some/source/path",
-		targetPath: "/some/target/path",
-		tmpPath: "/some/tmp/path",
+		sourcePath: path.join("/", "some", "source", "path"),
+		targetPath: path.join("/", "some", "target", "path"),
+		tmpPath: path.join("/", "some", "tmp", "path"),
 		cleanup: cleanupStub
 	});
 	sinon.stub(generateJsdoc, "_writeResourcesToDir").resolves(0);

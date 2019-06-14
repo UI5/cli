@@ -42,7 +42,7 @@ const generateJsdoc = async function({buildContext, workspace, dependencies, opt
 		}),
 		generateJsdoc._writeDependencyApisToDir({
 			dependencies,
-			targetPath: path.posix.join(tmpPath, "dependency-apis")
+			targetPath: path.join(tmpPath, "dependency-apis")
 		})
 	]);
 
