@@ -1,21 +1,9 @@
 language: node_js # don't install any environment
 
 node_js:
-- "11"
+- "lts/*"
 
-os:
-- linux
-- osx
-- windows
-
-matrix:
-  include:
-    - os: linux
-      node_js:
-        - "10"
-    - os: linux
-      node_js:
-        - "8"
+script: npm run coverage
 
 after_script:
 - if [[ "$TRAVIS_OS_NAME" == "linux" &&
