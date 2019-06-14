@@ -124,8 +124,5 @@
 		"sinon": "^7.3.2",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
-	},
-	"resolutions": {
-		"dir-glob": "2.0.0"
 	}
 }
