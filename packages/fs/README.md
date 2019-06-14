@@ -4,7 +4,7 @@
 > UI5 specific file system abstraction  
 > Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 
-[![Travis CI Build Status](https://travis-ci.org/SAP/ui5-fs.svg?branch=master)](https://travis-ci.org/SAP/ui5-fs)
+[![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-fs?branchName=master)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=36&branchName=master)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Ffs.svg)](https://www.npmjs.com/package/@ui5/fs)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-fs/badge.svg)](https://coveralls.io/github/SAP/ui5-fs)
 [![Dependency Status](https://david-dm.org/SAP/ui5-fs/master.svg)](https://david-dm.org/SAP/ui5-fs/master)
