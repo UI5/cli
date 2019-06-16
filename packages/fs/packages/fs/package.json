@@ -108,7 +108,7 @@
 		"random-int": "^2.0.0"
 	},
 	"devDependencies": {
-		"ava": "^2.0.0",
+		"ava": "^2.1.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"coveralls": "^3.0.4",
