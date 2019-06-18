@@ -123,7 +123,7 @@ class LibraryBuilder extends AbstractBuilder {
 				return generateManifestBundle({
 					workspace: resourceCollections.workspace,
 					options: {
-						projectType: project.type,
+						projectName: project.metadata.name,
 						namespace: project.metadata.namespace
 					}
 				});

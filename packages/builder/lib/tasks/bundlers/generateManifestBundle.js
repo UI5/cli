@@ -16,25 +16,29 @@ const BUNDLE_NAME = "manifest-bundle.zip";
  * @param {string} parameters.options.namespace Namespace of the application/library
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
-	return workspace.byGlob(`/**/{${DESCRIPTOR},*${PROPERTIES_EXT}}`)
-		.then((allResources) => {
-			if (allResources.length > 0) {
-				return manifestBundler({
-					resources: allResources,
-					options: {
-						descriptor: DESCRIPTOR,
-						propertiesExtension: PROPERTIES_EXT,
-						bundleName: BUNDLE_NAME,
-						namespace: options.namespace
-					}
-				}).then((processedResources) => {
-					return Promise.all(processedResources.map((resource) => {
-						return workspace.write(resource);
-					}));
-				});
-			} else {
-				log.verbose(`Could not find a "${DESCRIPTOR}" file for project ${options.projectName}, creation of "${BUNDLE_NAME}" is skipped!`);
-			}
-		});
+module.exports = async function({workspace, options}) {
+	if (!options || !options.projectName || !options.namespace) {
+		throw new Error("[generateManifestBundle]: One or more mandatory options not provided");
+	}
+
+	const allResources = await workspace.byGlob(`/resources/${options.namespace}/**/{${DESCRIPTOR},*${PROPERTIES_EXT}}`);
+	if (allResources.length === 0) {
+		log.verbose(`Could not find a "${DESCRIPTOR}" file for project ${options.projectName}, ` +
+			`creation of "${BUNDLE_NAME}" is skipped!`);
+		return;
+	}
+
+	const processedResources = await manifestBundler({
+		resources: allResources,
+		options: {
+			descriptor: DESCRIPTOR,
+			propertiesExtension: PROPERTIES_EXT,
+			bundleName: BUNDLE_NAME,
+			namespace: options.namespace
+		}
+	});
+
+	await Promise.all(processedResources.map((resource) => {
+		return workspace.write(resource);
+	}));
 };
