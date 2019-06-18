@@ -1,1 +1,1 @@
-content of /foo.txt
+content

@@ -9,23 +9,24 @@ const MemAdapter = ui5Fs.adapters.Memory;
 const FsAdapter = ui5Fs.adapters.FileSystem;
 const Resource = ui5Fs.Resource;
 
-const assertReadFile = (t, readFile, basepath, filepath) => {
-	const fullpath = basepath + filepath;
+const assertReadFile = (t, readFile, basepath, filepath, content) => {
+	content = content || "content of " + filepath;
+	const fullpath = path.join(basepath, filepath);
 	return readFile(fullpath).then((buffer) => {
 		t.true(Buffer.isBuffer(buffer));
-		t.deepEqual(buffer.toString(), "content of " + filepath);
+		t.deepEqual(buffer.toString(), content);
 	}).then(() => readFile(fullpath, {})).then((buffer) => {
 		t.true(Buffer.isBuffer(buffer));
-		t.deepEqual(buffer.toString(), "content of " + filepath);
+		t.deepEqual(buffer.toString(), content);
 	}).then(() => readFile(fullpath, {encoding: null})).then((buffer) => {
 		t.true(Buffer.isBuffer(buffer));
-		t.deepEqual(buffer.toString(), "content of " + filepath);
+		t.deepEqual(buffer.toString(), content);
 	}).then(() => readFile(fullpath, "utf8").then((content) => {
 		t.is(typeof content, "string");
-		t.deepEqual(content, "content of " + filepath);
+		t.deepEqual(content, content);
 	}).then(() => readFile(fullpath, {encoding: "utf8"})).then((content) => {
 		t.is(typeof content, "string");
-		t.deepEqual(content, "content of " + filepath);
+		t.deepEqual(content, content);
 	}));
 };
 
@@ -36,10 +37,11 @@ test("MemAdapter: readFile", (t) => {
 	const fs = fsInterface(memAdapter);
 	const readFile = promisify(fs.readFile);
 
+	const fsPath = path.join("/", "foo.txt");
 	return memAdapter.write(new Resource({
 		path: "/foo.txt",
-		string: "content of /foo.txt"
-	})).then(() => assertReadFile(t, readFile, "", "/foo.txt"));
+		string: `content of ${fsPath}`
+	})).then(() => assertReadFile(t, readFile, "", fsPath));
 });
 
 test("FsAdapter: readFile", (t) => {
@@ -50,17 +52,18 @@ test("FsAdapter: readFile", (t) => {
 	const fs = fsInterface(fsAdapter);
 	const readFile = promisify(fs.readFile);
 
-	return assertReadFile(t, readFile, "", "/foo.txt");
+	return assertReadFile(t, readFile, "", path.join("/", "foo.txt"), "content");
 });
 
 test("fs: readFile", (t) => {
 	const readFile = promisify(fs.readFile);
-	return assertReadFile(t, readFile, path.join(__dirname, "..", "fixtures", "fsInterface"), "/foo.txt");
+	return assertReadFile(t, readFile,
+		path.join(__dirname, "..", "fixtures", "fsInterface"), path.join("/", "foo.txt"), "content");
 });
 
 
 const assertStat = (t, stat, basepath, filepath) => {
-	const fullpath = basepath + filepath;
+	const fullpath = path.join(basepath, filepath);
 	return stat(fullpath).then((stats) => {
 		t.is(stats.isFile(), true);
 		t.is(stats.isDirectory(), false);
@@ -79,10 +82,11 @@ test("MemAdapter: stat", (t) => {
 	const fs = fsInterface(memAdapter);
 	const stat = promisify(fs.stat);
 
+	const fsPath = path.join("/", "foo.txt");
 	return memAdapter.write(new Resource({
 		path: "/foo.txt",
-		string: "content of /foo.txt"
-	})).then(() => assertStat(t, stat, "", "/foo.txt"));
+		string: `content of ${fsPath}`
+	})).then(() => assertStat(t, stat, "", fsPath));
 });
 
 test("FsAdapter: stat", (t) => {
@@ -93,12 +97,12 @@ test("FsAdapter: stat", (t) => {
 	const fs = fsInterface(fsAdapter);
 	const stat = promisify(fs.stat);
 
-	return assertStat(t, stat, "", "/foo.txt");
+	return assertStat(t, stat, "", path.join("/", "foo.txt"));
 });
 
 test("fs: stat", (t) => {
 	const stat = promisify(fs.stat);
-	return assertStat(t, stat, path.join(__dirname, "..", "fixtures", "fsInterface"), "/foo.txt");
+	return assertStat(t, stat, path.join(__dirname, "..", "fixtures", "fsInterface"), path.join("/", "foo.txt"));
 });
 
 test("MemAdapter: mkdir", async (t) => {
