@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v1.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v1.1.1...HEAD).
+
+<a name="v1.1.1"></a>
+## [v1.1.1] - 2019-06-18
+### Bug Fixes
+- **fsInterface:** Handle non-POSIX paths correctly ([#147](https://github.com/SAP/ui5-fs/issues/147)) [`1ad0cc8`](https://github.com/SAP/ui5-fs/commit/1ad0cc8fdbcf74452ebfcebb23bd659faa956e54)
+
 
 <a name="v1.1.0"></a>
-## [v1.1.0] - 2019-04-28
+## [v1.1.0] - 2019-06-03
 ### Features
 - **AbstractAdapter:** Add excludes option ([#140](https://github.com/SAP/ui5-fs/issues/140)) [`daef31f`](https://github.com/SAP/ui5-fs/commit/daef31f4fb22405e8fa889615b1f3545099eb186)
 
@@ -54,6 +60,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v1.1.1]: https://github.com/SAP/ui5-fs/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-fs/compare/v1.0.2...v1.1.0
 [v1.0.2]: https://github.com/SAP/ui5-fs/compare/v1.0.1...v1.0.2
 [v1.0.1]: https://github.com/SAP/ui5-fs/compare/v1.0.0...v1.0.1
