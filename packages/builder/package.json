@@ -96,7 +96,7 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
-		"@ui5/fs": "^1.1.0",
+		"@ui5/fs": "^1.1.1",
 		"@ui5/logger": "^1.0.1",
 		"cheerio": "^0.22.0",
 		"escodegen": "^1.11.1",
