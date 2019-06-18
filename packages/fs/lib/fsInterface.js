@@ -12,8 +12,9 @@
  * [<code>mkdir</code>]{@link https://nodejs.org/api/fs.html#fs_fs_mkdir_path_options_callback}
  */
 module.exports = (reader) => {
+	const slash = require("slash");
 	return {
-		readFile(path, options, callback) {
+		readFile(fsPath, options, callback) {
 			if (typeof options === "function") {
 				callback = options;
 				options = undefined;
@@ -21,7 +22,8 @@ module.exports = (reader) => {
 			if (typeof options === "string") {
 				options = {encoding: options};
 			}
-			reader.byPath(path, {
+			const posixPath = slash(fsPath);
+			reader.byPath(posixPath, {
 				nodir: false
 			}).then(function(resource) {
 				if (!resource) {
@@ -44,8 +46,9 @@ module.exports = (reader) => {
 				});
 			}).catch(callback);
 		},
-		stat(path, callback) {
-			reader.byPath(path, {
+		stat(fsPath, callback) {
+			const posixPath = slash(fsPath);
+			reader.byPath(posixPath, {
 				nodir: false
 			}).then(function(resource) {
 				if (!resource) {
@@ -57,12 +60,13 @@ module.exports = (reader) => {
 				}
 			}).catch(callback);
 		},
-		readdir(path, callback) {
-			if (!path.match(/\/$/)) {
+		readdir(fsPath, callback) {
+			let posixPath = slash(fsPath);
+			if (!posixPath.match(/\/$/)) {
 				// Add trailing slash if not present
-				path += "/";
+				posixPath += "/";
 			}
-			reader.byGlob(path + "*", {
+			reader.byGlob(posixPath + "*", {
 				nodir: false
 			}).then((resources) => {
 				const files = resources.map((resource) => {
@@ -71,7 +75,7 @@ module.exports = (reader) => {
 				callback(null, files);
 			}).catch(callback);
 		},
-		mkdir(path, callback) {
+		mkdir(fsPath, callback) {
 			setTimeout(callback, 0);
 		}
 	};

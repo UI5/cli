@@ -105,7 +105,8 @@
 		"minimatch": "^3.0.3",
 		"mock-require": "^3.0.3",
 		"pretty-hrtime": "^1.0.3",
-		"random-int": "^2.0.0"
+		"random-int": "^2.0.0",
+		"slash": "^3.0.0"
 	},
 	"devDependencies": {
 		"ava": "^2.1.0",
