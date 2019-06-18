@@ -21,7 +21,7 @@ test.before((t) => {
 	});
 });
 
-test.after(() => {
+test.after.always(() => {
 	return new Promise((resolve, reject) => {
 		serve.close((error) => {
 			if (error) {
@@ -40,7 +40,7 @@ test("Get resource from application.a (/index.html)", (t) => {
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /html/, "Correct content type");
-		t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
+		t.regex(res.text, /<title>Application A - Version 1.0.0<\/title>/, "Correct response");
 	});
 });
 
@@ -51,10 +51,27 @@ test("Get resource from application.a (/i18n/i18n.properties) with correct chars
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.deepEqual(res.headers["content-type"], "text/plain; charset=ISO-8859-1", "Correct content type and charset");
-		t.deepEqual(res.text, "showHelloButtonText=Say Hello!", "Correct response");
+		t.deepEqual(Buffer.from(res.text, "latin1").toString(), "showHelloButtonText=Say Hello!", "Correct response");
 	});
 });
 
+test("Get resource from application.a (/i18n/i18n_de.properties) with correct encoding 'ISO-8859-1'", (t) => {
+	return request.get("/i18n/i18n_de.properties")
+		.responseType("arraybuffer")
+		.then((res) => {
+			if (res.error) {
+				t.fail(res.error.text);
+			}
+			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+			t.deepEqual(res.headers["content-type"], "text/plain; charset=ISO-8859-1",
+				"Correct content type and charset");
+
+			t.deepEqual(res.body.toString("latin1"), "showHelloButtonText=Say ä!", "Correct response");
+			// Because it took so long to figure this out I keep the below line. It is equivalent to the deepEqual above
+			// t.deepEqual(res.body.toString("latin1"), Buffer.from("showHelloButtonText=Say \u00e4!", "latin1").toString("latin1"),
+			// 	"Correct response");
+		});
+});
 
 test("Get resource from library.a (/resources/library/a/.library)", (t) => {
 	return request.get("/resources/library/a/.library").then((res) => {

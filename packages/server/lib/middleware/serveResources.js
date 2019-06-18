@@ -63,7 +63,7 @@ function createMiddleware({resourceCollections}) {
 
 			let stream = resource.getStream();
 
-			if ((type.startsWith("text/") || type === "application/javascript")) {
+			if (charset === "UTF-8" && (type.startsWith("text/") || type === "application/javascript")) {
 				if (resource._project) {
 					stream = stream.pipe(replaceStream("${version}", resource._project.version));
 				} else {
