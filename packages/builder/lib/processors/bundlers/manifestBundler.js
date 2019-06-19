@@ -1,6 +1,7 @@
 const path = require("path");
 const yazl = require("yazl");
 const resourceFactory = require("@ui5/fs").resourceFactory;
+const log = require("@ui5/logger").getLogger("builder:processors:bundlers:manifestBundler");
 
 /**
  * Repository to handle i18n resource files
@@ -99,10 +100,15 @@ module.exports = ({resources, options}) => {
 		return archiveContent;
 	}).then((archiveContent) => new Promise((resolve) => {
 		const zip = new yazl.ZipFile();
-		const regex = new RegExp(`^/resources/${options.namespace}/`);
+		const rBasePath = new RegExp(`^/resources/${options.namespace}/`);
 		archiveContent.forEach((content, path) => {
-			// Root-project only: Remove namespace prefix if given
-			const normalizedPath = path.replace(regex, "");
+			if (!rBasePath.test(path)) {
+				log.verbose(`Not bundling resource with path ${path} since it is not based on path ` +
+					`/resources/${options.namespace}/`);
+				return;
+			}
+			// Remove base path. Absolute paths are not allowed in ZIP files
+			const normalizedPath = path.replace(rBasePath, "");
 			zip.addBuffer(content, normalizedPath);
 		});
 		zip.end();
