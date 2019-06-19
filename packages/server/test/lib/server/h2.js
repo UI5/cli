@@ -54,6 +54,6 @@ test("Get resource from application.a (/index.html)", (t) => {
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /html/, "Correct content type");
-		t.regex(res.text, /<title>Application A - Version 1.0.0<\/title>/, "Correct response");
+		t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
 	});
 });

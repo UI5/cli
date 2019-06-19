@@ -40,7 +40,30 @@ test("Get resource from application.a (/index.html)", (t) => {
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /html/, "Correct content type");
-		t.regex(res.text, /<title>Application A - Version 1.0.0<\/title>/, "Correct response");
+		t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
+	});
+});
+
+
+test("Get resource from application.a with not replaced version placeholder(/versionTest.html)", (t) => {
+	return request.get("/versionTest.html").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /html/, "Correct content type");
+		t.regex(res.text, /<title>Not replaced: \${version}<\/title>/, "Correct response");
+	});
+});
+
+test("Get resource from application.a with replaced version placeholder (/versionTest.js)", (t) => {
+	return request.get("/versionTest.js").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /application\/javascript/, "Correct content type");
+		t.deepEqual(res.text, "console.log(`1.0.0`);\n", "Correct response");
 	});
 });
 
@@ -119,6 +142,9 @@ test("Get app_pages from discovery middleware (/discovery/app_pages)", (t) => {
 			"app_pages": [
 				{
 					"entry": "index.html"
+				},
+				{
+					"entry": "versionTest.html"
 				}
 			]
 		}, "Correct response");
@@ -480,7 +506,7 @@ test("Get index of resources", (t) => {
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			t.is(res.headers["content-type"], "text/html", "Correct content type");
 			t.is(/<title>(.*)<\/title>/i.exec(res.text)[1], "Index of /", "Found correct title");
-			t.deepEqual(res.text.match(/<td/g).length, 30, "Found correct amount of <td> elements");
+			t.deepEqual(res.text.match(/<td/g).length, 42, "Found correct amount of <td> elements");
 		}),
 		request.get("/resources").then((res) => {
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");

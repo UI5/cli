@@ -6,7 +6,8 @@ const etag = require("etag");
 const fresh = require("fresh");
 const parseurl = require("parseurl");
 
-const rProperties = /\.properties$/;
+const rProperties = /\.properties$/i;
+const rReplaceVersion = /\.(library|js|json)$/i;
 
 function isFresh(req, res) {
 	return fresh(req.headers, {
@@ -35,12 +36,13 @@ function createMiddleware({resourceCollections}) {
 
 			let type;
 			let charset;
-			if (rProperties.test(resource.getPath())) {
+			const resourcePath = resource.getPath();
+			if (rProperties.test(resourcePath)) {
 				// Special handling for *.properties files which are encoded with charset ISO-8859-1.
 				type = "text/plain";
 				charset = "ISO-8859-1";
 			} else {
-				type = mime.lookup(resource.getPath()) || "application/octet-stream";
+				type = mime.lookup(resourcePath) || "application/octet-stream";
 			}
 
 			if (!res.getHeader("Content-Type")) {
@@ -63,7 +65,11 @@ function createMiddleware({resourceCollections}) {
 
 			let stream = resource.getStream();
 
-			if (charset === "UTF-8" && (type.startsWith("text/") || type === "application/javascript")) {
+			// Only execute version replacement for UTF-8 encoded resources because replaceStream will always output
+			//	UTF-8 anyways.
+			// Also, only process .library, *.js and *.json files. Just like it's done in Application-
+			//	and LibraryBuilder
+			if (charset === "UTF-8" && rReplaceVersion.test(resourcePath)) {
 				if (resource._project) {
 					stream = stream.pipe(replaceStream("${version}", resource._project.version));
 				} else {
