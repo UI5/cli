@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.3.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.3.2...HEAD).
+
+<a name="v1.3.2"></a>
+## [v1.3.2] - 2019-06-19
+### Bug Fixes
+- **generateManifestBundle:** Only glob files from project namespace [`fc7f659`](https://github.com/SAP/ui5-builder/commit/fc7f659ab45a6828a1ab05a35dbe856a4a2b5f87)
+
 
 <a name="v1.3.1"></a>
-## [v1.3.1] - 2019-06-13
+## [v1.3.1] - 2019-06-14
 ### Bug Fixes
 - Detect library namespace automatically ([#255](https://github.com/SAP/ui5-builder/issues/255)) [`604d4d3`](https://github.com/SAP/ui5-builder/commit/604d4d36745c9581969c411a0a78e56981948d0e)
 
@@ -197,6 +203,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.3.2]: https://github.com/SAP/ui5-builder/compare/v1.3.1...v1.3.2
 [v1.3.1]: https://github.com/SAP/ui5-builder/compare/v1.3.0...v1.3.1
 [v1.3.0]: https://github.com/SAP/ui5-builder/compare/v1.2.3...v1.3.0
 [v1.2.3]: https://github.com/SAP/ui5-builder/compare/v1.2.2...v1.2.3
