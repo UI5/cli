@@ -584,6 +584,71 @@ test("Project with task extension dependency - task module not found", async (t)
 	t.regex(error.message, /^Cannot find module.*/, "Rejected with error");
 });
 
+
+test("Project with middleware extension dependency", (t) => {
+	// "project-type" extension handling not yet implemented => test currently checks for error
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [{
+			id: "ext.middleware.a",
+			path: applicationAPath,
+			dependencies: [],
+			version: "1.0.0",
+			specVersion: "0.1",
+			kind: "extension",
+			type: "server-middleware",
+			metadata: {
+				name: "middleware.a"
+			},
+			middleware: {
+				path: "middleware.a.js"
+			}
+		}],
+		version: "1.0.0",
+		specVersion: "1.0",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+	return projectPreprocessor.processTree(tree).then((parsedTree) => {
+		t.deepEqual(parsedTree.dependencies.length, 0, "Application project has no dependencies");
+		const {middlewareRepository} = require("@ui5/server");
+		t.truthy(middlewareRepository.getMiddleware("middleware.a"),
+			"middleware.a has been added to the middleware repository");
+	});
+});
+
+test("Project with middleware extension dependency - middleware is missing configuration", async (t) => {
+	// "project-type" extension handling not yet implemented => test currently checks for error
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [{
+			id: "ext.middleware.a",
+			path: applicationAPath,
+			dependencies: [],
+			version: "1.0.0",
+			specVersion: "0.1",
+			kind: "extension",
+			type: "server-middleware",
+			metadata: {
+				name: "middleware.a"
+			}
+		}],
+		version: "1.0.0",
+		specVersion: "1.0",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+	const error = await t.throwsAsync(projectPreprocessor.processTree(tree));
+	t.deepEqual(error.message, `Middleware extension ext.middleware.a is missing 'middleware' configuration`,
+		"Rejected with error");
+});
+
 test("specVersion: Missing version", async (t) => {
 	const extension = {
 		id: "extension.a",

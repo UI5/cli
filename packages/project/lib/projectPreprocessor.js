@@ -348,6 +348,9 @@ class ProjectPreprocessor {
 		case "task":
 			this.handleTask(extension);
 			break;
+		case "server-middleware":
+			this.handleServerMiddleware(extension);
+			break;
 		default:
 			throw new Error(`Unknown extension type '${extension.type}' for ${extension.id}`);
 		}
@@ -494,6 +497,19 @@ class ProjectPreprocessor {
 		const task = require(taskPath); // throws if not found
 
 		taskRepository.addTask(extension.metadata.name, task);
+	}
+
+	handleServerMiddleware(extension) {
+		if (!extension.metadata && !extension.metadata.name) {
+			throw new Error(`Middleware extension ${extension.id} is missing 'metadata.name' configuration`);
+		}
+		if (!extension.middleware) {
+			throw new Error(`Middleware extension ${extension.id} is missing 'middleware' configuration`);
+		}
+		const {middlewareRepository} = require("@ui5/server");
+
+		const middlewarePath = path.join(extension.path, extension.middleware.path);
+		middlewareRepository.addMiddleware(extension.metadata.name, middlewarePath);
 	}
 }
 
