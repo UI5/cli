@@ -116,7 +116,7 @@
 		"treeify": "^1.0.1"
 	},
 	"devDependencies": {
-		"@ui5/project": "^1.0.2",
+		"@ui5/project": "^1.0.3",
 		"ava": "^2.1.0",
 		"coveralls": "^3.0.4",
 		"cross-env": "^5.1.1",
