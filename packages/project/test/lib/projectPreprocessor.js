@@ -1598,3 +1598,124 @@ test("specVersion: Project with valid version 1.0", async (t) => {
 	const res = await projectPreprocessor.processTree(tree);
 	t.deepEqual(res.specVersion, "1.0", "Correct spec version");
 });
+
+test("isBeingProcessed: Is not being processed", (t) => {
+	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+
+	preprocessor.processedProjects = {};
+
+	const project = {
+		id: "some.id",
+		_level: 1337
+	};
+	const parent = {
+		dependencies: [project]
+	};
+	const res = preprocessor.isBeingProcessed(parent, project);
+	t.deepEqual(res, false, "Project is not processed");
+	t.deepEqual(parent.dependencies.length, 1, "Parent still has one dependency");
+});
+
+test("isBeingProcessed: Is being processed", (t) => {
+	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+
+	const alreadyProcessedProject = {
+		project: {
+			id: "some.id",
+			_level: 42
+		},
+		parents: []
+	};
+	preprocessor.processedProjects = {
+		"some.id": alreadyProcessedProject
+	};
+
+	const project = {
+		id: "some.id",
+		_level: 1337
+	};
+	const parent = {
+		dependencies: [project]
+	};
+	const res = preprocessor.isBeingProcessed(parent, project);
+	t.deepEqual(res, true, "Project is already processed");
+	t.deepEqual(parent.dependencies.length, 1, "parent still has one dependency");
+	t.deepEqual(parent.dependencies[0]._level, 42, "Parent dependency got replaced with already processed project");
+	t.deepEqual(alreadyProcessedProject.parents.length, 1, "Already processed project now has one parent");
+	t.is(alreadyProcessedProject.parents[0], parent, "Parent got added as parent of already processed project");
+});
+
+test("isBeingProcessed: Processed project is ignored", (t) => {
+	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+
+	const alreadyProcessedProject = {
+		project: {
+			id: "some.id",
+			_level: 42
+		},
+		parents: [],
+		ignored: true
+	};
+	preprocessor.processedProjects = {
+		"some.id": alreadyProcessedProject
+	};
+
+	const project = {
+		id: "some.id",
+		_level: 1337
+	};
+	const parent = {
+		dependencies: [project]
+	};
+	const res = preprocessor.isBeingProcessed(parent, project);
+	t.deepEqual(res, true, "Project is already processed");
+	t.deepEqual(parent.dependencies.length, 0, "Project got removed from parent dependencies");
+	t.deepEqual(alreadyProcessedProject.parents.length, 0, "Already processed project still has no parents");
+});
+
+test("isBeingProcessed: Processed project is ignored but already removed from parent", (t) => {
+	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+
+	const alreadyProcessedProject = {
+		project: {
+			id: "some.id",
+			_level: 42
+		},
+		parents: [],
+		ignored: true
+	};
+	preprocessor.processedProjects = {
+		"some.id": alreadyProcessedProject
+	};
+
+	const project = {
+		id: "some.id",
+		_level: 1337
+	};
+	const otherProject = {
+		id: "some.other.id"
+	};
+	const parent = {
+		dependencies: [otherProject]
+	};
+	const res = preprocessor.isBeingProcessed(parent, project);
+	t.deepEqual(res, true, "Project is already processed");
+	t.deepEqual(parent.dependencies.length, 1, "Parent still has one dependency");
+	t.deepEqual(parent.dependencies[0].id, "some.other.id",
+		"Parent dependency to another project has not been removed");
+	t.deepEqual(alreadyProcessedProject.parents.length, 0, "Already processed project still has no parents");
+});
+
+test("isBeingProcessed: Deduped project is being ignored", (t) => {
+	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+
+	preprocessor.processedProjects = {};
+
+	const project = {
+		deduped: true
+	};
+	const parent = {};
+
+	const res = preprocessor.isBeingProcessed(parent, project);
+	t.deepEqual(res, true, "Project is being ignored");
+});

@@ -163,7 +163,9 @@ class ProjectPreprocessor {
 		if (processedProject) {
 			if (processedProject.ignored) {
 				log.verbose(`Dependency of project ${parent.id}, "${project.id}" is flagged as ignored.`);
-				parent.dependencies.splice(parent.dependencies.indexOf(project), 1);
+				if (parent.dependencies.includes(project)) {
+					parent.dependencies.splice(parent.dependencies.indexOf(project), 1);
+				}
 				return true;
 			}
 			log.verbose(`Dependency of project ${parent.id}, "${project.id}": Distance to root of ${parent._level + 1}. Will be `+
