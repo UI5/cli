@@ -2,22 +2,47 @@
  * @module @ui5/server
  * @public
  */
-module.exports = {
-	server: require("./lib/server"),
-	sslUtil: require("./lib/sslUtil"),
-	middlewareRepository: require("./lib/middleware/middlewareRepository"),
+const modules = {
+	server: "./lib/server",
+	sslUtil: "./lib/sslUtil",
+	middlewareRepository: "./lib/middleware/middlewareRepository",
 
 	// Legacy middleware export. Still private.
 	middleware: {
-		csp: require("./lib/middleware/csp"),
-		discovery: mapLegacyMiddlewareArguments(require("./lib/middleware/discovery")),
-		nonReadRequests: mapLegacyMiddlewareArguments(require("./lib/middleware/discovery")),
-		serveIndex: mapLegacyMiddlewareArguments(require("./lib/middleware/serveIndex")),
-		serveResources: mapLegacyMiddlewareArguments(require("./lib/middleware/serveResources")),
-		serveThemes: mapLegacyMiddlewareArguments(require("./lib/middleware/serveThemes")),
-		versionInfo: mapLegacyMiddlewareArguments(require("./lib/middleware/versionInfo")),
+		csp: "./lib/middleware/csp",
+		discovery: "./lib/middleware/discovery",
+		nonReadRequests: "./lib/middleware/discovery",
+		serveIndex: "./lib/middleware/serveIndex",
+		serveResources: "./lib/middleware/serveResources",
+		serveThemes: "./lib/middleware/serveThemes",
+		versionInfo: "./lib/middleware/versionInfo",
 	}
 };
+
+const LEGACY_MIDDLEWARE = [
+	"discovery", "nonReadRequests", "serveIndex",
+	"serveResources", "serveThemes", "versionInfo"
+];
+function exportModules(exportRoot, modulePaths) {
+	for (const moduleName in modulePaths) {
+		if (Object.prototype.hasOwnProperty.call(modulePaths, moduleName)) {
+			if (typeof modulePaths[moduleName] === "object") {
+				exportRoot[moduleName] = {};
+				exportModules(exportRoot[moduleName], modulePaths[moduleName]);
+			} else {
+				Object.defineProperty(exportRoot, moduleName, {
+					get() {
+						let m = require(modulePaths[moduleName]);
+						if (LEGACY_MIDDLEWARE.includes(moduleName)) {
+							m = mapLegacyMiddlewareArguments(m);
+						}
+						return m;
+					}
+				});
+			}
+		}
+	}
+}
 
 function mapLegacyMiddlewareArguments(module) {
 	// Old arguments was a single object with optional properties
@@ -35,3 +60,5 @@ function mapLegacyMiddlewareArguments(module) {
 		});
 	};
 }
+
+exportModules(module.exports, modules);
