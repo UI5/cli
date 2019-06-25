@@ -2,9 +2,9 @@
  * @module module:@ui5/project
  * @public
  */
-module.exports = {
-	normalizer: require("./lib/normalizer"),
-	projectPreprocessor: require("./lib/projectPreprocessor"),
+const modules = {
+	normalizer: "./lib/normalizer",
+	projectPreprocessor: "./lib/projectPreprocessor",
 	/**
 	 * @public
 	 * @see module:@ui5/project.ui5Framework
@@ -29,7 +29,26 @@ module.exports = {
 	 * @namespace
 	 */
 	translators: {
-		"npm": require("./lib/translators/npm"),
-		"static": require("./lib/translators/static")
+		"npm": "./lib/translators/npm",
+		"static": "./lib/translators/static"
 	}
 };
+
+function exportModules(exportRoot, modulePaths) {
+	for (const moduleName in modulePaths) {
+		if (modulePaths.hasOwnProperty(moduleName)) {
+			if (typeof modulePaths[moduleName] === "object") {
+				exportRoot[moduleName] = {};
+				exportModules(exportRoot[moduleName], modulePaths[moduleName]);
+			} else {
+				Object.defineProperty(exportRoot, moduleName, {
+					get() {
+						return require(modulePaths[moduleName]);
+					}
+				});
+			}
+		}
+	}
+}
+
+exportModules(module.exports, modules);
