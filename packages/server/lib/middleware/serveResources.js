@@ -1,6 +1,5 @@
 const log = require("@ui5/logger").getLogger("server:middleware:serveResources");
 const mime = require("mime-types");
-const treeify = require("treeify");
 const replaceStream = require("replacestream");
 const etag = require("etag");
 const fresh = require("fresh");
@@ -32,7 +31,10 @@ function createMiddleware({resourceCollections}) {
 				next();
 				return;
 			}
-			log.verbose("\n" + treeify.asTree(resource.getPathTree()));
+			if (log.isLevelEnabled("verbose")) {
+				const treeify = require("treeify");
+				log.verbose("\n" + treeify.asTree(resource.getPathTree()));
+			}
 
 			let type;
 			let charset;
