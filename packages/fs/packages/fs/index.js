@@ -2,7 +2,7 @@
  * @module @ui5/fs
  * @public
  */
-module.exports = {
+const modules = {
 	/**
 	 * @public
 	 * @see module:@ui5/fs.adapters.AbstractAdapter
@@ -10,16 +10,35 @@ module.exports = {
 	 * @see module:@ui5/fs.adapters.Memory
 	 */
 	adapters: {
-		AbstractAdapter: require("./lib/adapters/AbstractAdapter"),
-		FileSystem: require("./lib/adapters/FileSystem"),
-		Memory: require("./lib/adapters/Memory")
+		AbstractAdapter: "./lib/adapters/AbstractAdapter",
+		FileSystem: "./lib/adapters/FileSystem",
+		Memory: "./lib/adapters/Memory"
 	},
-	AbstractReader: require("./lib/AbstractReader"),
-	AbstractReaderWriter: require("./lib/AbstractReaderWriter"),
-	DuplexCollection: require("./lib/DuplexCollection"),
-	fsInterface: require("./lib/fsInterface"),
-	ReaderCollection: require("./lib/ReaderCollection"),
-	ReaderCollectionPrioritized: require("./lib/ReaderCollectionPrioritized"),
-	Resource: require("./lib/Resource"),
-	resourceFactory: require("./lib/resourceFactory")
+	AbstractReader: "./lib/AbstractReader",
+	AbstractReaderWriter: "./lib/AbstractReaderWriter",
+	DuplexCollection: "./lib/DuplexCollection",
+	fsInterface: "./lib/fsInterface",
+	ReaderCollection: "./lib/ReaderCollection",
+	ReaderCollectionPrioritized: "./lib/ReaderCollectionPrioritized",
+	Resource: "./lib/Resource",
+	resourceFactory: "./lib/resourceFactory"
 };
+
+function exportModules(exportRoot, modulePaths) {
+	for (const moduleName in modulePaths) {
+		if (modulePaths.hasOwnProperty(moduleName)) {
+			if (typeof modulePaths[moduleName] === "object") {
+				exportRoot[moduleName] = {};
+				exportModules(exportRoot[moduleName], modulePaths[moduleName]);
+			} else {
+				Object.defineProperty(exportRoot, moduleName, {
+					get() {
+						return require(modulePaths[moduleName]);
+					}
+				});
+			}
+		}
+	}
+}
+
+exportModules(module.exports, modules);
