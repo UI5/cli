@@ -6,7 +6,7 @@ const ModuleName = require("../utils/ModuleName");
 const {SectionType} = require("./BundleDefinition");
 const log = require("@ui5/logger").getLogger("lbt:bundle:AutoSplitter");
 
-const copyrightCommentsPattern = /copyright|\(c\)|released under|license|\u00a9/i;
+const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;
 
 /**
