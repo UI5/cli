@@ -1,5 +1,7 @@
 const test = require("ava");
 const sinon = require("sinon");
+const path = require("path");
+const os = require("os");
 const normalizer = require("@ui5/project").normalizer;
 const serve = require("../../../../lib/cli/commands/serve");
 const ui5Server = require("@ui5/server");
@@ -7,9 +9,9 @@ const server = ui5Server.server;
 const mockRequire = require("mock-require");
 const defaultInitialHandlerArgs = Object.freeze({
 	accessRemoteConnections: false,
-	cert: "$HOME/.ui5/server/server.crt",
+	cert: path.join(os.homedir(), ".ui5", "server", "server.crt"),
 	h2: false,
-	key: "$HOME/.ui5/server/server.key",
+	key: path.join(os.homedir(), ".ui5", "server", "server.key"),
 	loglevel: "info",
 	t8r: "npm",
 	translator: "npm"
@@ -81,8 +83,8 @@ test.serial("ui5 serve --h2", async (t) => {
 	const injectedProjectTree = serverStub.getCall(0).args[0];
 	const injectedServerConfig = serverStub.getCall(0).args[1];
 
-	t.is(sslUtilStub.getCall(0).args[0], "$HOME/.ui5/server/server.key", "Load ssl key from default path");
-	t.is(sslUtilStub.getCall(0).args[1], "$HOME/.ui5/server/server.crt", "Load ssl cert from default path");
+	t.is(sslUtilStub.getCall(0).args[0], path.join(os.homedir(), ".ui5", "server", "server.key"), "Load ssl key from default path");
+	t.is(sslUtilStub.getCall(0).args[1], path.join(os.homedir(), ".ui5", "server", "server.crt"), "Load ssl cert from default path");
 	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
 	t.is(injectedServerConfig.port === 8443, true, "http2 default port was auto set");
 

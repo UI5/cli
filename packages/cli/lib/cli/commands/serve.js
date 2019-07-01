@@ -1,3 +1,6 @@
+const path = require("path");
+const os = require("os");
+
 // Serve
 const serve = {
 	command: "serve",
@@ -29,12 +32,12 @@ serve.builder = function(cli) {
 		})
 		.option("key", {
 			describe: "Path to the private key",
-			default: "$HOME/.ui5/server/server.key",
+			default: path.join(os.homedir(), ".ui5", "server", "server.key"),
 			type: "string"
 		})
 		.option("cert", {
 			describe: "Path to the certificate",
-			default: "$HOME/.ui5/server/server.crt",
+			default: path.join(os.homedir(), ".ui5", "server", "server.crt"),
 			type: "string"
 		})
 		.option("sap-csp-policies", {
