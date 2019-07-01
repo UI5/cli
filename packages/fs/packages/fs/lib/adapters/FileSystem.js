@@ -43,7 +43,7 @@ class FileSystem extends AbstractAdapter {
 			cwd: this._fsBasePath,
 			dot: true,
 			onlyFiles: options.nodir,
-			followSymlinkedDirectories: false
+			followSymbolicLinks: false
 		};
 		trace.globCall();
 
