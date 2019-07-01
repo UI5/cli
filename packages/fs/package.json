@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/fs",
-	"version": "1.1.1",
+	"version": "1.1.2",
 	"description": "UI5 Tooling - File System Abstraction",
 	"author": "SAP SE (https://www.sap.com)",
 	"license": "Apache-2.0",
