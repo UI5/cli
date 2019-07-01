@@ -216,7 +216,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		const basePath = this.getSourceBasePath();
 		return this._pManifest = glob("**/manifest.json", {
 			cwd: basePath,
-			followSymlinkedDirectories: false
+			followSymbolicLinks: false
 		}).then(async (manifestResources) => {
 			if (!manifestResources.length) {
 				throw new Error(`Could not find manifest.json file for project ${this._project.metadata.name}`);
@@ -252,7 +252,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		const basePath = this.getSourceBasePath();
 		return this._pDotLibrary = glob("**/.library", {
 			cwd: basePath,
-			followSymlinkedDirectories: false
+			followSymbolicLinks: false
 		}).then(async (dotLibraryResources) => {
 			if (!dotLibraryResources.length) {
 				throw new Error(`Could not find .library file for project ${this._project.metadata.name}`);
@@ -290,7 +290,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		const basePath = this.getSourceBasePath();
 		return this._pLibraryJs = glob("**/library.js", {
 			cwd: basePath,
-			followSymlinkedDirectories: false
+			followSymbolicLinks: false
 		}).then(async (libraryJsResources) => {
 			if (!libraryJsResources.length) {
 				throw new Error(`Could not find library.js file for project ${this._project.metadata.name}`);
