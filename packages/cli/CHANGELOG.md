@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.5.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.5.5...HEAD).
+
+<a name="v1.5.5"></a>
+## [v1.5.5] - 2019-07-01
+### Bug Fixes
+- **serve:** Create SSL certificate in user homedir [`48bdd06`](https://github.com/SAP/ui5-cli/commit/48bdd06bfcec3063ba046b37be76c80139458779)
+
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/builder from 1.3.2 to 1.3.3 [`43d4fd7`](https://github.com/SAP/ui5-cli/commit/43d4fd7c634e869de985ea48c4f77d25c9bc53bc)
+- Bump [@ui5](https://github.com/ui5)/fs from 1.1.1 to 1.1.2 [`5a0ece1`](https://github.com/SAP/ui5-cli/commit/5a0ece130af8164befa9e84d4494d69704cb5c0e)
+
 
 <a name="v1.5.4"></a>
 ## [v1.5.4] - 2019-06-25
@@ -194,6 +204,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.5.5]: https://github.com/SAP/ui5-cli/compare/v1.5.4...v1.5.5
 [v1.5.4]: https://github.com/SAP/ui5-cli/compare/v1.5.3...v1.5.4
 [v1.5.3]: https://github.com/SAP/ui5-cli/compare/v1.5.2...v1.5.3
 [v1.5.2]: https://github.com/SAP/ui5-cli/compare/v1.5.1...v1.5.2
