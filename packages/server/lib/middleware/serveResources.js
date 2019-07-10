@@ -19,14 +19,14 @@ function isFresh(req, res) {
  * Creates and returns the middleware to serve application resources.
  *
  * @module @ui5/server/middleware/serveResources
- * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @param {Object} resources Contains the resource reader or collection to access project related files
+ * @param {module:@ui5/fs.AbstractReader} resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resourceCollections}) {
+function createMiddleware({resources}) {
 	return function serveResources(req, res, next) {
 		const pathname = parseurl(req).pathname;
-		resourceCollections.combo.byPath(pathname).then(function(resource) {
+		resources.all.byPath(pathname).then(function(resource) {
 			if (!resource) { // Not found
 				next();
 				return;

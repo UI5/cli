@@ -18,13 +18,13 @@ const themeRequest = /^(.*\/)library(?:(\.css)|(-RTL\.css)|(-parameters\.json))$
  * The theme is built in realtime. If a less file was modified, the theme build is triggered to rebuild the theme.
  *
  * @module @ui5/server/middleware/serveThemes
- * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @param {Object} resources Contains the resource reader or collection to access project related files
+ * @param {module:@ui5/fs.AbstractReader} resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resourceCollections}) {
+function createMiddleware({resources}) {
 	const builder = new themeBuilder.ThemeBuilder({
-		fs: fsInterface(resourceCollections.combo)
+		fs: fsInterface(resources.all)
 	});
 
 	return function theme(req, res, next) {
@@ -46,7 +46,7 @@ function createMiddleware({resourceCollections}) {
 		}
 
 		const sourceLessPath = themeReq[1] + "library.source.less";
-		resourceCollections.combo.byPath(sourceLessPath).then((sourceLessResource) => {
+		resources.all.byPath(sourceLessPath).then((sourceLessResource) => {
 			if (!sourceLessResource) { // Not found
 				next();
 				return;

@@ -15,8 +15,8 @@
 ## Server
 Provides server capabilities for the [UI5 Tooling](https://github.com/SAP/ui5-tooling).
 
-### Middlewares
-The development server has already a set of middlewares which supports the developer with the following features:
+### Middleware
+The development server has already a set of middleware which supports the developer with the following features:
 
 * Translation files with `.properties` extension are properly encoded with **ISO-8859-1**.
 * Changes on files with `.less` extension triggers a theme build and delivers the compiled CSS files.

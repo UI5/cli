@@ -13,12 +13,14 @@ const urlPattern = /\/(app_pages|all_libs|all_tests)(?:[?#].*)?$/;
  * </ul>
  *
  * @module @ui5/server/middleware/discovery
- * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} resourceCollections.source Resource reader or collection for the source project
- * @param {module:@ui5/fs.AbstractReader} resourceCollections.combo Resource collection which contains the workspace and the project dependencies
+ * @param {Object} parameters Parameters
+ * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Reader or Collection to read resources of the
+ *                                        root project and its dependencies
+ * @param {module:@ui5/fs.AbstractReader} parameters.resources.rootProject Reader or Collection to read resources of
+ *                                        the project the server is started in
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resourceCollections}) {
+function createMiddleware({resources}) {
 	return function discoveryMiddleware(req, res, next) {
 		const parts = urlPattern.exec(req.url);
 		const type = parts && parts[1];
@@ -46,7 +48,7 @@ function createMiddleware({resourceCollections}) {
 		}
 
 		if (type === "app_pages") {
-			resourceCollections.source.byGlob("/**/*.{html,htm}").then(function(resources) {
+			resources.rootProject.byGlob("/**/*.{html,htm}").then(function(resources) {
 				resources.forEach(function(resource) {
 					const relPath = resource.getPath().substr(1); // cut off leading "/"
 					response.push({
@@ -56,7 +58,7 @@ function createMiddleware({resourceCollections}) {
 				sendResponse();
 			});
 		} else if (type === "all_libs") {
-			resourceCollections.combo.byGlob([
+			resources.all.byGlob([
 				"/resources/**/*.library"
 			]).then(function(resources) {
 				resources.forEach(function(resource) {
@@ -72,8 +74,8 @@ function createMiddleware({resourceCollections}) {
 			});
 		} else if (type === "all_tests") {
 			Promise.all([
-				resourceCollections.combo.byGlob("/resources/**/*.library"),
-				resourceCollections.combo.byGlob("/test-resources/**/*.{html,htm}")
+				resources.all.byGlob("/resources/**/*.library"),
+				resources.all.byGlob("/test-resources/**/*.{html,htm}")
 			]).then(function(results) {
 				const libraryResources = results[0];
 				const testPageResources = results[1];

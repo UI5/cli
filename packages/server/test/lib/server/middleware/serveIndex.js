@@ -26,8 +26,8 @@ test.serial("Check if index for files is created", (t) => {
 		writeResource(readerWriter, "/myFile3.properties", 1024 * 1024 * 1024), // GB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
-			resourceCollections: {
-				combo: readerWriter
+			resources: {
+				all: readerWriter
 			}
 		});
 

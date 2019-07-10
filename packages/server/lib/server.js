@@ -1,16 +1,8 @@
 const express = require("express");
-const compression = require("compression");
-const cors = require("cors");
 const portscanner = require("portscanner");
 
-const serveResources = require("./middleware/serveResources");
-const serveIndex = require("./middleware/serveIndex");
-const discovery = require("./middleware/discovery");
-const versionInfo = require("./middleware/versionInfo");
-const serveThemes = require("./middleware/serveThemes");
-const csp = require("./middleware/csp");
-const ui5connect = require("connect-openui5");
-const nonReadRequests = require("./middleware/nonReadRequests");
+const MiddlewareManager = require("./middleware/MiddlewareManager");
+
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
@@ -112,94 +104,47 @@ module.exports = {
 	 * 							<code>h2</code>-flag and a <code>close</code> function,
 	 * 							which can be used to stop the server.
 	 */
-	serve(tree, {port, changePortIfInUse = false, h2 = false, key, cert, acceptRemoteConnections = false,
-		sendSAPTargetCSP = false}) {
-		return Promise.resolve().then(() => {
-			const projectResourceCollections = resourceFactory.createCollectionsForTree(tree);
+	async serve(tree, {
+		port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
+		acceptRemoteConnections = false, sendSAPTargetCSP = false}) {
+		const projectResourceCollections = resourceFactory.createCollectionsForTree(tree);
 
-			const workspace = resourceFactory.createWorkspace({
-				reader: projectResourceCollections.source,
-				name: tree.metadata.name
-			});
 
-			const combo = new ReaderCollectionPrioritized({
-				name: "server - prioritize workspace over dependencies",
-				readers: [workspace, projectResourceCollections.dependencies]
-			});
-
-			const resourceCollections = {
-				source: projectResourceCollections.source,
-				dependencies: projectResourceCollections.dependencies,
-				combo
-			};
-
-			const app = express();
-
-			const oCspConfig = {
-				allowDynamicPolicySelection: true,
-				allowDynamicPolicyDefinition: true,
-				definedPolicies: {
-					"sap-target-level-1":
-						"default-src 'self'; " +
-						"script-src  'self' 'unsafe-eval'; " +
-						"style-src   'self' 'unsafe-inline'; " +
-						"font-src    'self' data:; " +
-						"img-src     'self' * data: blob:; " +
-						"frame-src   'self' https: data: blob:; " +
-						"child-src   'self' https: data: blob:; " +
-						"connect-src 'self' https: wss:;",
-					"sap-target-level-2":
-						"default-src 'self'; " +
-						"script-src  'self'; " +
-						"style-src   'self' 'unsafe-inline'; " +
-						"font-src    'self' data:; " +
-						"img-src     'self' * data: blob:; " +
-						"frame-src   'self' https: data: blob:; " +
-						"child-src   'self' https: data: blob:; " +
-						"connect-src 'self' https: wss:;"
-				}
-			};
-			if ( sendSAPTargetCSP ) {
-				Object.assign(oCspConfig, {
-					defaultPolicy: "sap-target-level-1",
-					defaultPolicyIsReportOnly: true,
-					defaultPolicy2: "sap-target-level-2",
-					defaultPolicy2IsReportOnly: true,
-				});
-			}
-			app.use(csp("sap-ui-xx-csp-policy", oCspConfig));
-
-			app.use(compression());
-			app.use(cors());
-
-			app.use("/discovery", discovery({resourceCollections}));
-			app.use(serveResources({resourceCollections}));
-			app.use(serveThemes({resourceCollections}));
-			app.use("/resources/sap-ui-version.json", versionInfo({resourceCollections, tree}));
-
-			app.use("/proxy", ui5connect.proxy({
-				secure: false
-			}));
-
-			// Handle anything but read operations *before* the serveIndex middleware
-			//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
-			app.use(nonReadRequests({resourceCollections}));
-			app.use(serveIndex({resourceCollections}));
-
-			if (h2) {
-				return _addSsl({app, h2, key, cert});
-			}
-			return app;
-		}).then((app) => {
-			return _listen(app, port, changePortIfInUse, acceptRemoteConnections).then(function({port, server}) {
-				return {
-					h2,
-					port,
-					close: function(callback) {
-						server.close(callback);
-					}
-				};
-			});
+		// TODO change to ReaderCollection once duplicates are sorted out
+		const combo = new ReaderCollectionPrioritized({
+			name: "server - prioritize workspace over dependencies",
+			readers: [projectResourceCollections.source, projectResourceCollections.dependencies]
 		});
+
+		const resources = {
+			rootProject: projectResourceCollections.source,
+			dependencies: projectResourceCollections.dependencies,
+			all: combo
+		};
+
+		const middlewareManager = new MiddlewareManager({
+			tree,
+			resources,
+			options: {
+				sendSAPTargetCSP
+			}
+		});
+
+		let app = express();
+		await middlewareManager.applyMiddleware(app);
+
+		if (h2) {
+			app = _addSsl({app, key, cert});
+		}
+
+		const {port, server} = await _listen(app, requestedPort, changePortIfInUse, acceptRemoteConnections);
+
+		return {
+			h2,
+			port,
+			close: function(callback) {
+				server.close(callback);
+			}
+		};
 	}
 };

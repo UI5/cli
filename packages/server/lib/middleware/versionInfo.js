@@ -4,13 +4,13 @@ const createVersionInfoProcessor = require("@ui5/builder").processors.versionInf
  * Creates and returns the middleware to create the version info as json object.
  *
  * @module @ui5/server/middleware/versionInfo
- * @param {Object} resourceCollections Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} resourceCollections.dependencies Resource collection which contains the project dependencies
+ * @param {Object} resources Contains the resource reader or collection to access project related files
+ * @param {module:@ui5/fs.AbstractReader} resources.dependencies Resource collection which contains the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resourceCollections, tree: project}) {
+function createMiddleware({resources, tree: project}) {
 	return function versionInfo(req, res, next) {
-		resourceCollections.dependencies.byGlob("/**/.library")
+		resources.dependencies.byGlob("/**/.library")
 			.then((resources) => {
 				resources.sort((a, b) => {
 					return a._project.metadata.name.localeCompare(b._project.metadata.name);
