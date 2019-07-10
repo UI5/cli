@@ -595,15 +595,15 @@
 			}
 		},
 		"@ui5/server": {
-			"version": "1.1.3",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-1.1.3.tgz",
-			"integrity": "sha512-wCwscMosaZRnabQk6Fh0GTnoUYIWfWuaOTCneSntutr6+LBNIP2hBZMP6VbKr5uwsoVEfhcarURZIALB7hPLGg==",
+			"version": "1.2.0",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-1.2.0.tgz",
+			"integrity": "sha512-enMatnsimYXwoHPsr99NssCVcie+VNU91Y2trQR9VHoqgZu13kZWDFwl3JttHoHmMZaBedpnU1h58GvLVXj8aQ==",
 			"requires": {
-				"@ui5/builder": "^1.3.2",
-				"@ui5/fs": "^1.1.1",
+				"@ui5/builder": "^1.3.3",
+				"@ui5/fs": "^1.1.2",
 				"@ui5/logger": "^1.0.1",
 				"compression": "^1.7.4",
-				"connect-openui5": "^0.7.6",
+				"connect-openui5": "^0.7.7",
 				"cors": "^2.8.5",
 				"devcert-sanscache": "^0.4.5",
 				"etag": "^1.8.1",
