@@ -569,13 +569,14 @@
 			}
 		},
 		"@ui5/project": {
-			"version": "1.0.3",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-1.0.3.tgz",
-			"integrity": "sha512-pC7pRk8k3OMUoYuAdUXjJLrx9zJSAj/kOFb7u9oRLoCriC/71i6vNTd+oGMnIzpM+1JB1KTIg2BKyZRGZ45bMQ==",
+			"version": "1.1.0",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-1.1.0.tgz",
+			"integrity": "sha512-nKWttqYLxShiagD2h4coCNbJFIaClhlvE5Bi6lD6Gyb1Y/rPF4lsZoXRxxgGZGdwm9HsJTDIu5V+3RD+uJUoQA==",
 			"requires": {
-				"@ui5/builder": "^1.3.2",
+				"@ui5/builder": "^1.3.3",
 				"@ui5/logger": "^1.0.1",
-				"graceful-fs": "^4.1.15",
+				"@ui5/server": "^1.2.0",
+				"graceful-fs": "^4.2.0",
 				"js-yaml": "^3.13.1",
 				"mock-require": "^3.0.3",
 				"pretty-hrtime": "^1.0.3",
