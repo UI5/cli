@@ -106,7 +106,7 @@
 		"@ui5/logger": "^1.0.1",
 		"@ui5/project": "^1.0.3",
 		"@ui5/server": "^1.2.0",
-		"import-local": "^3.0.0",
+		"import-local": "^3.0.1",
 		"js-yaml": "^3.13.1",
 		"open": "^6.4.0",
 		"semver": "^6.2.0",
@@ -116,7 +116,7 @@
 		"yargs": "^13.2.4"
 	},
 	"devDependencies": {
-		"ava": "^2.0.0",
+		"ava": "^2.2.0",
 		"coveralls": "^3.0.4",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.1.1",
