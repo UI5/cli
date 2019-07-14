@@ -117,8 +117,8 @@
 	},
 	"devDependencies": {
 		"@ui5/project": "^1.1.0",
-		"ava": "^2.1.0",
-		"coveralls": "^3.0.4",
+		"ava": "^2.2.0",
+		"coveralls": "^3.0.5",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
