@@ -109,7 +109,7 @@
 	},
 	"devDependencies": {
 		"ava": "^2.1.0",
-		"coveralls": "^3.0.4",
+		"coveralls": "^3.0.5",
 		"cross-env": "^5.2.0",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
