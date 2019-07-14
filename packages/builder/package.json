@@ -119,10 +119,10 @@
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
-		"ava": "^2.1.0",
+		"ava": "^2.2.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
-		"coveralls": "^3.0.4",
+		"coveralls": "^3.0.5",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
