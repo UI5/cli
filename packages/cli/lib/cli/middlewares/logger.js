@@ -13,6 +13,8 @@ function init(argv) {
 	}
 	if (argv.verbose) {
 		logger.setLevel("verbose");
+		const version = require("../version").get();
+		logger.getLogger("cli:middlewares:base").verbose(`using @ui5/cli version ${version}`);
 		logger.getLogger("cli:middlewares:base").verbose(`using node version ${process.version}`);
 	}
 	return logger;

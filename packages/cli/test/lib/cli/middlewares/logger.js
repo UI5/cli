@@ -19,3 +19,17 @@ test.serial("retrieves logger middleware if verbose or loglevel are set", (t) =>
 	const loggerInstance = loggerMiddleware.init({verbose: true});
 	t.deepEqual(Object.keys(loggerInstance), Object.keys(logger), "Logger is used as middleware");
 });
+
+const path = require("path");
+const execa = require("execa");
+const pkg = require("../../../../package.json");
+const ui5Cli = path.join(__dirname, "..", "..", "..", "..", "bin", "ui5.js");
+const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
+
+test("ui5 --verbose", async (t) => {
+	// Using "versions" as a command, as the --verbose flag can't be used standalone
+	const {stderr} = await ui5(["versions", "--verbose"]);
+	t.is(stderr,
+		`verb cli:middlewares:base using @ui5/cli version ${pkg.version} (from ${ui5Cli})\n`+
+		`verb cli:middlewares:base using node version ${process.version}`);
+});
