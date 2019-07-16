@@ -72,9 +72,13 @@ async function assertCreatedVersionInfo(t, oExpectedVersionInfo, options) {
 
 	const buffer = await resource.getBuffer();
 	const currentVersionInfo = JSON.parse(buffer);
-	delete currentVersionInfo.buildTimestamp;
+
+	t.is(currentVersionInfo.buildTimestamp.length, 12, "Timestamp should have length of 12 (yyyyMMddHHmm)");
+
+	delete currentVersionInfo.buildTimestamp; // removing to allow deep comparison
 	currentVersionInfo.libraries.forEach((lib) => {
-		delete lib.buildTimestamp;
+		t.is(lib.buildTimestamp.length, 12, "Timestamp should have length of 12 (yyyyMMddHHmm)");
+		delete lib.buildTimestamp; // removing to allow deep comparison
 	});
 	t.deepEqual(currentVersionInfo, oExpectedVersionInfo, "Correct content");
 }

@@ -1,5 +1,19 @@
 const resourceFactory = require("@ui5/fs").resourceFactory;
 
+function pad(v) {
+	return String(v).padStart(2, "0");
+}
+function getTimestamp() {
+	const date = new Date();
+	const year = date.getFullYear();
+	const month = pad(date.getMonth() + 1);
+	const day = pad(date.getDate());
+	const hours = pad(date.getHours());
+	const minutes = pad(date.getMinutes());
+	// yyyyMMddHHmm
+	return year + month + day + hours + minutes;
+}
+
 /**
  * Creates sap-ui-version.json.
  *
@@ -18,7 +32,7 @@ module.exports = async function({options}) {
 		throw new Error("[versionInfoGenerator]: Missing options parameters");
 	}
 
-	const buildTimestamp = new Date().getTime();
+	const buildTimestamp = getTimestamp();
 	const versionJson = {
 		name: options.rootProjectName,
 		version: options.rootProjectVersion, // TODO: insert current application version here
