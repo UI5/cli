@@ -113,7 +113,7 @@
 		"supports-color": "^7.0.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^3.0.1",
-		"yargs": "^13.2.4"
+		"yargs": "^13.3.0"
 	},
 	"devDependencies": {
 		"ava": "^2.2.0",
@@ -124,7 +124,7 @@
 		"eslint-config-google": "^0.13.0",
 		"eslint-plugin-jsdoc": "^4.8.4",
 		"execa": "^1.0.0",
-		"jsdoc": "^3.6.2",
+		"jsdoc": "^3.6.3",
 		"mock-require": "^3.0.3",
 		"nyc": "^14.1.1",
 		"open-cli": "^5.0.0",
