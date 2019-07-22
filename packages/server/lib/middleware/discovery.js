@@ -108,7 +108,7 @@ function createMiddleware({resources}) {
 				sendResponse();
 			});
 		} else {
-			next(new Error(`Unkown discovery type "${type}"`));
+			next(new Error(`Unknown discovery type "${type}"`));
 		}
 	};
 }

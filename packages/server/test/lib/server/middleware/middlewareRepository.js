@@ -7,7 +7,7 @@ test("getMiddleware", async (t) => {
 	t.is(res, cspModule, "Returned correct middleware module");
 });
 
-test("getMiddleware: Unkown middleware", async (t) => {
+test("getMiddleware: Unknown middleware", async (t) => {
 	const err = t.throws(() => {
 		middlewareRepository.getMiddleware("🐬");
 	});

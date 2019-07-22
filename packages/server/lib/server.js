@@ -10,7 +10,7 @@ const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
 /**
  * Returns a promise resolving by starting the server.
  *
- * @param {Object} app The express applicaton object
+ * @param {Object} app The express application object
  * @param {number} port Desired port to listen to
  * @param {boolean} changePortIfInUse If true and the port is already in use, an unused port is searched
  * @param {boolean} acceptRemoteConnections If true, listens to remote connections and not only to localhost connections
