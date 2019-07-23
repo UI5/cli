@@ -59,6 +59,7 @@
 			"text-summary"
 		],
 		"exclude": [
+			".eslintrc.js",
 			"docs/**",
 			"jsdocs/**",
 			"coverage/**",
