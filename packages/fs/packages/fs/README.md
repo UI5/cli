@@ -10,9 +10,11 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-fs/master.svg)](https://david-dm.org/SAP/ui5-fs/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-fs/master/dev-status.svg)](https://david-dm.org/SAP/ui5-fs/master#info=devDependencies)
 
-**⌨️ CLI reference can be found [here!](https://github.com/SAP/ui5-cli#cli-usage)**
+## Documentation
+General documentation can of the UI5 Tooling can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/)
 
-## Resources
+## UI5 FS
+### Resources
 During the build phase, a modified resource is kept in memory for further processing in other build steps.
 
 This ensures performance, as physical read and write access for a high number of resources are kept to a minimum.
@@ -20,7 +22,7 @@ This ensures performance, as physical read and write access for a high number of
 The virtual file system offers an abstraction layer from the physical file system. Amongst others, it can combine a bunch of scattered file locations into a well defined, virtualized structure.
 
 ### Adapters
-Adapers abstract resource access to different resource locations.
+Adapters abstract access to different resource locations.
 
 The [memory adapter](lib/resources/adapters/Memory.js) represents a virtual file system, which maintains respective resources inside a data structure, whereas the [file system adapter](lib/resources/adapters/FileSystem.js) has direct access to the physical file sytem.
 
