@@ -10,26 +10,8 @@
 [![Dependency Status](https://david-dm.org/SAP/ui5-server/master.svg)](https://david-dm.org/SAP/ui5-server/master)
 [![devDependency Status](https://david-dm.org/SAP/ui5-server/master/dev-status.svg)](https://david-dm.org/SAP/ui5-server/master#info=devDependencies)
 
-**⌨️ CLI reference can be found [here!](https://github.com/SAP/ui5-cli#cli-usage)**
-
-## Server
-Provides server capabilities for the [UI5 Tooling](https://github.com/SAP/ui5-tooling).
-
-### Middleware
-The development server has already a set of middleware which supports the developer with the following features:
-
-* Translation files with `.properties` extension are properly encoded with **ISO-8859-1**.
-* Changes on files with `.less` extension triggers a theme build and delivers the compiled CSS files.
-* Version info is created automatically (`/resources/sap-ui-version.json`).
-* List project files with URL (needed exclusively by the OpenUI5 testsuite): `/discovery/app_pages`, `/discovery/all_libs`, `/discovery/all_tests`
-
-## Certificates for HTTPS or HTTP/2
-The UI5 Server can automatically generate an SSL certificate for HTTPS and HTTP/2 configurations.
-
-Upon startup, it checks if a certificate exists within the path provided.
-If there is none, a new certificate is created and used.
-
-**Hint:** If Chrome unintentionally redirects a HTTP-URL to HTTPS, you need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. localhost) and pressing "delete".
+## Documentation
+Can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/pages/Server/)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md).
