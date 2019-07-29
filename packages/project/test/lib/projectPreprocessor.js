@@ -32,6 +32,7 @@ test("Project with inline configuration", (t) => {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -67,6 +68,7 @@ test("Project with configPath", (t) => {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -102,6 +104,7 @@ test("Project with ui5.yaml at default location", (t) => {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -137,6 +140,7 @@ test("Project with ui5.yaml at default location and some configuration", (t) => 
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "src"
 					}
@@ -321,6 +325,7 @@ test("Ignores additional application-projects", (t) => {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -362,6 +367,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 				},
 				resources: {
 					configuration: {
+						propertiesFileSourceEncoding: "ISO-8859-1",
 						paths: {
 							src: "main/src",
 							test: "main/test"
@@ -409,6 +415,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -433,6 +440,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 					},
 					resources: {
 						configuration: {
+							propertiesFileSourceEncoding: "ISO-8859-1",
 							paths: {
 								src: "main/src",
 								test: "main/test"
@@ -459,6 +467,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 							},
 							resources: {
 								configuration: {
+									propertiesFileSourceEncoding: "ISO-8859-1",
 									paths: {
 										src: "src",
 										test: "test"
@@ -488,6 +497,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 					},
 					resources: {
 						configuration: {
+							propertiesFileSourceEncoding: "ISO-8859-1",
 							paths: {
 								src: "src",
 								test: "test"
@@ -629,6 +639,7 @@ const expectedTreeWithInvalidModules = {
 		"_level": 1,
 		"resources": {
 			"configuration": {
+				"propertiesFileSourceEncoding": "ISO-8859-1",
 				"paths": {
 					"src": "src",
 					"test": "test"
@@ -655,6 +666,7 @@ const expectedTreeWithInvalidModules = {
 		"_level": 1,
 		"resources": {
 			"configuration": {
+				"propertiesFileSourceEncoding": "ISO-8859-1",
 				"paths": {
 					"src": "src",
 					"test": "test"
@@ -676,6 +688,7 @@ const expectedTreeWithInvalidModules = {
 	"kind": "project",
 	"resources": {
 		"configuration": {
+			"propertiesFileSourceEncoding": "ISO-8859-1",
 			"paths": {
 				"webapp": "webapp"
 			}
@@ -708,6 +721,7 @@ const treeAWithInlineConfigs = {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						src: "main/src",
 						test: "main/test"
@@ -813,6 +827,7 @@ const expectedTreeAWithInlineConfigs = {
 	},
 	"resources": {
 		"configuration": {
+			"propertiesFileSourceEncoding": "ISO-8859-1",
 			"paths": {
 				"webapp": "webapp"
 			}
@@ -837,6 +852,7 @@ const expectedTreeAWithInlineConfigs = {
 			},
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "main/src",
 						"test": "main/test"
@@ -863,6 +879,7 @@ const expectedTreeAWithInlineConfigs = {
 					},
 					"resources": {
 						"configuration": {
+							"propertiesFileSourceEncoding": "ISO-8859-1",
 							"paths": {
 								"src": "src",
 								"test": "test"
@@ -892,6 +909,7 @@ const expectedTreeAWithInlineConfigs = {
 			},
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "src",
 						"test": "test"
@@ -923,6 +941,7 @@ const expectedTreeAWithConfigPaths = {
 	},
 	"resources": {
 		"configuration": {
+			"propertiesFileSourceEncoding": "ISO-8859-1",
 			"paths": {
 				"webapp": "webapp"
 			}
@@ -948,6 +967,7 @@ const expectedTreeAWithConfigPaths = {
 			},
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "main/src",
 						"test": "main/test"
@@ -975,6 +995,7 @@ const expectedTreeAWithConfigPaths = {
 					},
 					"resources": {
 						"configuration": {
+							"propertiesFileSourceEncoding": "ISO-8859-1",
 							"paths": {
 								"src": "src",
 								"test": "test"
@@ -1005,6 +1026,7 @@ const expectedTreeAWithConfigPaths = {
 			},
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "src",
 						"test": "test"
@@ -1052,6 +1074,7 @@ const treeBWithInlineConfigs = {
 					},
 					resources: {
 						configuration: {
+							propertiesFileSourceEncoding: "ISO-8859-1",
 							paths: {
 								src: "main/src",
 								test: "main/test"
@@ -1085,6 +1108,7 @@ const treeBWithInlineConfigs = {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						src: "main/src",
 						test: "main/test"
@@ -1122,6 +1146,7 @@ const expectedTreeBWithInlineConfigs = {
 	},
 	"resources": {
 		"configuration": {
+			"propertiesFileSourceEncoding": "ISO-8859-1",
 			"paths": {
 				"webapp": "webapp"
 			}
@@ -1146,6 +1171,7 @@ const expectedTreeBWithInlineConfigs = {
 			},
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "src",
 						"test": "test"
@@ -1172,6 +1198,7 @@ const expectedTreeBWithInlineConfigs = {
 					},
 					"resources": {
 						"configuration": {
+							"propertiesFileSourceEncoding": "ISO-8859-1",
 							"paths": {
 								"src": "main/src",
 								"test": "main/test"
@@ -1198,6 +1225,7 @@ const expectedTreeBWithInlineConfigs = {
 							},
 							"resources": {
 								"configuration": {
+									"propertiesFileSourceEncoding": "ISO-8859-1",
 									"paths": {
 										"src": "src",
 										"test": "test"
@@ -1229,6 +1257,7 @@ const expectedTreeBWithInlineConfigs = {
 			},
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "main/src",
 						"test": "main/test"
@@ -1255,6 +1284,7 @@ const expectedTreeBWithInlineConfigs = {
 					},
 					"resources": {
 						"configuration": {
+							"propertiesFileSourceEncoding": "ISO-8859-1",
 							"paths": {
 								"src": "src",
 								"test": "test"
@@ -1407,6 +1437,7 @@ const expectedTreeApplicationCycleA = {
 					"_level": 2,
 					"resources": {
 						"configuration": {
+							"propertiesFileSourceEncoding": "ISO-8859-1",
 							"paths": {
 								"src": "src",
 								"test": "test"
@@ -1446,6 +1477,7 @@ const expectedTreeApplicationCycleA = {
 					"_level": 2,
 					"resources": {
 						"configuration": {
+							"propertiesFileSourceEncoding": "ISO-8859-1",
 							"paths": {
 								"src": "src",
 								"test": "test"
@@ -1474,6 +1506,7 @@ const expectedTreeApplicationCycleA = {
 			"_level": 1,
 			"resources": {
 				"configuration": {
+					"propertiesFileSourceEncoding": "ISO-8859-1",
 					"paths": {
 						"src": "src",
 						"test": "test"
@@ -1490,6 +1523,7 @@ const expectedTreeApplicationCycleA = {
 	"kind": "project",
 	"resources": {
 		"configuration": {
+			"propertiesFileSourceEncoding": "ISO-8859-1",
 			"paths": {
 				"webapp": "webapp"
 			}

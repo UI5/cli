@@ -65,6 +65,7 @@ test("Project with project-shim extension with dependency configuration", (t) =>
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -88,6 +89,7 @@ test("Project with project-shim extension with dependency configuration", (t) =>
 				},
 				resources: {
 					configuration: {
+						propertiesFileSourceEncoding: "ISO-8859-1",
 						paths: {
 							src: "src",
 							test: "test"
@@ -176,6 +178,7 @@ test("Project with project-shim extension with dependency declaration and config
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -199,6 +202,7 @@ test("Project with project-shim extension with dependency declaration and config
 				},
 				resources: {
 					configuration: {
+						propertiesFileSourceEncoding: "ISO-8859-1",
 						paths: {
 							src: "src",
 							test: "test"
@@ -224,6 +228,7 @@ test("Project with project-shim extension with dependency declaration and config
 					},
 					resources: {
 						configuration: {
+							propertiesFileSourceEncoding: "ISO-8859-1",
 							paths: {
 								src: "src",
 								test: "test"
@@ -251,6 +256,7 @@ test("Project with project-shim extension with dependency declaration and config
 				},
 				resources: {
 					configuration: {
+						propertiesFileSourceEncoding: "ISO-8859-1",
 						paths: {
 							src: "src",
 							test: "test"
@@ -345,6 +351,7 @@ test("Project with project-shim extension with collection", (t) => {
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						webapp: "webapp"
 					}
@@ -368,6 +375,7 @@ test("Project with project-shim extension with collection", (t) => {
 				},
 				resources: {
 					configuration: {
+						propertiesFileSourceEncoding: "ISO-8859-1",
 						paths: {
 							src: "src",
 							test: "test"
@@ -393,6 +401,7 @@ test("Project with project-shim extension with collection", (t) => {
 					},
 					resources: {
 						configuration: {
+							propertiesFileSourceEncoding: "ISO-8859-1",
 							paths: {
 								src: "src",
 								test: "test"
@@ -420,6 +429,7 @@ test("Project with project-shim extension with collection", (t) => {
 				},
 				resources: {
 					configuration: {
+						propertiesFileSourceEncoding: "ISO-8859-1",
 						paths: {
 							src: "src",
 							test: "test"
@@ -474,6 +484,7 @@ test("Project with project-type extension dependency inline configuration", (t) 
 			},
 			resources: {
 				configuration: {
+					propertiesFileSourceEncoding: "ISO-8859-1",
 					paths: {
 						root: ""
 					}
