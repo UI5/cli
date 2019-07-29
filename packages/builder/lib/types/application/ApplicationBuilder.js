@@ -8,6 +8,7 @@ const tasks = { // can't require index.js due to circular dependency
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
 	generateBundle: require("../../tasks/bundlers/generateBundle"),
 	generateCachebusterInfo: require("../../tasks/generateCachebusterInfo"),
+	escapeNonAsciiCharacters: require("../../tasks/escapeNonAsciiCharacters"),
 	buildThemes: require("../../tasks/buildThemes"),
 	createDebugFiles: require("../../tasks/createDebugFiles"),
 	generateVersionInfo: require("../../tasks/generateVersionInfo"),
@@ -25,6 +26,19 @@ class ApplicationBuilder extends AbstractBuilder {
 					"a Component.js, you might be missing a manifest.json file. " +
 					"Also see: https://github.com/SAP/ui5-builder#application");
 		}
+
+		this.addTask("escapeNonAsciiCharacters", () => {
+			const propertiesFileSourceEncoding = project.resources
+				&& project.resources.configuration
+				&& project.resources.configuration.propertiesFileSourceEncoding;
+			return tasks.escapeNonAsciiCharacters({
+				workspace: resourceCollections.workspace,
+				options: {
+					encoding: propertiesFileSourceEncoding,
+					pattern: "/**/*.properties"
+				}
+			});
+		});
 
 		this.addTask("replaceCopyright", () => {
 			return tasks.replaceCopyright({

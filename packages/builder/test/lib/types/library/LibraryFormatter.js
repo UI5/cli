@@ -88,6 +88,15 @@ test("validate: empty resources", async (t) => {
 	t.deepEqual(myProject.resources.configuration.paths.test, "test", "default test directory is set");
 });
 
+test("validate: empty encoding", async (t) => {
+	const myProject = clone(libraryETree);
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	await libraryFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1", "default resources encoding is set");
+});
+
 test("validate: src directory does not exist", async (t) => {
 	const myProject = clone(libraryETree);
 	const libraryFormatter = new LibraryFormatter({project: myProject});
@@ -95,7 +104,7 @@ test("validate: src directory does not exist", async (t) => {
 	dirExists.onFirstCall().resolves(false);
 	dirExists.onSecondCall().resolves(true);
 
-	const error = await await t.throwsAsync(libraryFormatter.validate(myProject));
+	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
 	t.regex(error.message, /^Could not find source directory of project library\.e\.id: (?!(undefined))+/,
 		"Missing source directory caused error");
 });
@@ -109,7 +118,17 @@ test("validate: test directory does not exist", async (t) => {
 
 	await libraryFormatter.validate(myProject);
 	// Missing test directory is not an error
-	t.deepEqual(myProject.resources.configuration.paths.test, null, "Project test path configuration is set to nul");
+	t.deepEqual(myProject.resources.configuration.paths.test, null, "Project test path configuration is set to null");
+});
+
+test("validate: test invalid encoding", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.configuration.propertiesFileSourceEncoding = "test";
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
+	t.is(error.message, `Invalid properties file encoding specified for project library.e.id: encoding provided: test. Must be either "ISO-8859-1" or "UTF-8".`,
+		"Missing source directory caused error");
 });
 
 test("format: copyright already configured", async (t) => {

@@ -16,6 +16,10 @@ class LocatorResource extends Resource {
 	buffer() {
 		return this.resource.getBuffer();
 	}
+
+	getProject() {
+		return this.resource._project;
+	}
 }
 
 class LocatorResourcePool extends ResourcePool {

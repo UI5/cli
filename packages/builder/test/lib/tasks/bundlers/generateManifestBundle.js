@@ -118,7 +118,7 @@ test("integration: Build application.b with manifestBundler", (t) => {
 	const destBundle = path.resolve(path.join(destPath, "manifest-bundle"));
 	const expectedPath = path.join("test", "expected", "build", "application.b", "dest", "manifest-bundle");
 	const excludedTasks = ["*"];
-	const includedTasks = ["generateManifestBundle"];
+	const includedTasks = ["escapeNonAsciiCharacters", "generateManifestBundle"];
 
 	return builder.build({
 		tree: applicationBTree,
@@ -189,7 +189,8 @@ const applicationBTree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"

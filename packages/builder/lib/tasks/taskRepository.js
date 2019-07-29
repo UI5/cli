@@ -2,6 +2,7 @@ const tasks = {
 	replaceCopyright: require("./replaceCopyright"),
 	replaceVersion: require("./replaceVersion"),
 	createDebugFiles: require("./createDebugFiles"),
+	escapeNonAsciiCharacters: require("./escapeNonAsciiCharacters"),
 	executeJsdocSdkTransformation: require("./jsdoc/executeJsdocSdkTransformation"),
 	generateApiIndex: require("./jsdoc/generateApiIndex"),
 	generateJsdoc: require("./jsdoc/generateJsdoc"),

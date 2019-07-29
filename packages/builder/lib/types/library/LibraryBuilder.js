@@ -6,6 +6,7 @@ const tasks = { // can't require index.js due to circular dependency
 	generateLibraryPreload: require("../../tasks/bundlers/generateLibraryPreload"),
 	generateManifestBundle: require("../../tasks/bundlers/generateManifestBundle"),
 	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
+	escapeNonAsciiCharacters: require("../../tasks/escapeNonAsciiCharacters"),
 	buildThemes: require("../../tasks/buildThemes"),
 	createDebugFiles: require("../../tasks/createDebugFiles"),
 	generateJsdoc: require("../../tasks/jsdoc/generateJsdoc"),
@@ -24,6 +25,19 @@ class LibraryBuilder extends AbstractBuilder {
 				"might be missing a manifest.json or .library file. " +
 				"Also see: https://github.com/SAP/ui5-builder#library");
 		}
+
+		this.addTask("escapeNonAsciiCharacters", () => {
+			const propertiesFileSourceEncoding = project.resources
+				&& project.resources.configuration
+				&& project.resources.configuration.propertiesFileSourceEncoding;
+			return tasks.escapeNonAsciiCharacters({
+				workspace: resourceCollections.workspace,
+				options: {
+					encoding: propertiesFileSourceEncoding,
+					pattern: "/**/*.properties"
+				}
+			});
+		});
 
 		this.addTask("replaceCopyright", () => {
 			const replaceCopyright = tasks.replaceCopyright;

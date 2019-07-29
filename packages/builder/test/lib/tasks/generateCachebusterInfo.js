@@ -27,7 +27,7 @@ const findFiles = (folder) => {
 test("integration: Build application.g with manifestBundler", (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
-	const excludedTasks = ["generateVersionInfo"];
+	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
 
 	return builder.build({
@@ -60,7 +60,7 @@ test("integration: Build application.g with manifestBundler", (t) => {
 test("integration: Build application.g with manifestBundler and cachebuster using hashes", (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster_hash");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
-	const excludedTasks = ["generateVersionInfo"];
+	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
 
 	return builder.build({

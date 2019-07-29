@@ -533,7 +533,8 @@ const applicationATree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -556,7 +557,8 @@ const applicationATreeBadType = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -581,7 +583,8 @@ const applicationGTree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -615,7 +618,8 @@ const applicationGTreeWithExcludes = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -650,7 +654,8 @@ const applicationGTreeComponentPreloadPaths = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -681,7 +686,8 @@ const applicationHTree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -741,7 +747,8 @@ const applicationITree = {
 		"configuration": {
 			"paths": {
 				"webapp": "webapp"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/": "webapp"
@@ -795,7 +802,8 @@ const libraryDTree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "main/src",
@@ -847,7 +855,8 @@ const libraryETree = {
 			"paths": {
 				"src": "src",
 				"test": "test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "src",
@@ -899,7 +908,8 @@ const libraryHTree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "main/src",
@@ -984,7 +994,8 @@ const libraryITree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "main/src"
@@ -1035,7 +1046,8 @@ const themeJTree = {
 			"paths": {
 				"src": "main/src",
 				"test": "main/test"
-			}
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
 		},
 		"pathMappings": {
 			"/resources/": "main/src"

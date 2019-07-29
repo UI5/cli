@@ -2,8 +2,10 @@
 
 const uglify = require("uglify-es");
 const {pd} = require("pretty-data");
+
 const ModuleName = require("../utils/ModuleName");
 const {SectionType} = require("./BundleDefinition");
+const escapePropertiesFile = require("../utils/escapePropertiesFile");
 const log = require("@ui5/logger").getLogger("lbt:bundle:AutoSplitter");
 
 const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
@@ -217,7 +219,6 @@ class AutoSplitter {
 				// trace.debug("analyzed %s:%d%n", module, mw.getTargetLength());
 				return fileContent.length;
 			} else if ( /\.properties$/.test(module) ) {
-				const fileContent = await resource.buffer();
 				/* NODE-TODO minimize *.properties
 				Properties props = new Properties();
 				props.load(in);
@@ -226,7 +227,12 @@ class AutoSplitter {
 				props.store(out, "");
 				return out.toString().length();
 				*/
-				return fileContent.toString("latin1").length;
+
+				// Since AutoSplitter is also used when splitting non-project resources (e.g. dependencies)
+				// *.properties files should be escaped if encoding option is specified
+				const fileContent = await escapePropertiesFile(resource);
+
+				return fileContent.length;
 			} else if ( this.optimizeXMLViews && /\.view.xml$/.test(module) ) {
 				// needs to be activated when it gets activated in JSMergedModuleBuilderExt
 				let fileContent = await resource.buffer();

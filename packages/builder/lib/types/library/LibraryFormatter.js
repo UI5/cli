@@ -340,6 +340,15 @@ class LibraryFormatter extends AbstractUi5Formatter {
 				project.resources.configuration.paths.test = "test";
 			}
 
+			// default encoding to "ISO-8859-1" if not specified
+			if (!project.resources.configuration.propertiesFileSourceEncoding) {
+				project.resources.configuration.propertiesFileSourceEncoding = "ISO-8859-1";
+			}
+			if (!["ISO-8859-1", "UTF-8"].includes(project.resources.configuration.propertiesFileSourceEncoding)) {
+				throw new Error(`Invalid properties file encoding specified for project ${project.id}: ` +
+					`encoding provided: ${project.resources.configuration.propertiesFileSourceEncoding}. Must be either "ISO-8859-1" or "UTF-8".`);
+			}
+
 			const absoluteSrcPath = path.join(project.path, project.resources.configuration.paths.src);
 			const absoluteTestPath = path.join(project.path, project.resources.configuration.paths.test);
 			return Promise.all([

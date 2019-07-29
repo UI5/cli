@@ -12,6 +12,7 @@ const {Syntax} = esprima;
 const {isMethodCall} = require("../utils/ASTUtils");
 const ModuleName = require("../utils/ModuleName");
 const UI5ClientConstants = require("../UI5ClientConstants");
+const escapePropertiesFile = require("../utils/escapePropertiesFile");
 
 const BundleResolver = require("./Resolver");
 const BundleSplitter = require("./AutoSplitter");
@@ -442,9 +443,11 @@ class BundleBuilder {
 			}
 			outW.write( makeStringLiteral( fileContent ) );
 		} else if ( /\.properties$/.test(module) ) {
-			// same as for other text files, but input encoding is ISO_8859_1
-			const fileContent = await resource.buffer();
-			outW.write( makeStringLiteral( fileContent.toString("latin1") ) );
+			// Since the Builder is also used when building non-project resources (e.g. dependencies)
+			// *.properties files should be escaped if encoding option is specified
+			const fileContent = await escapePropertiesFile(resource);
+
+			outW.write( makeStringLiteral( fileContent ) );
 		} else {
 			log.error("don't know how to embed module " + module); // TODO throw?
 		}

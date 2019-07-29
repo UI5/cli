@@ -57,6 +57,7 @@ test("Instantiation", (t) => {
 	const appBuilder = new ApplicationBuilder({parentLogger, project});
 	t.truthy(appBuilder);
 	t.deepEqual(appBuilder.taskExecutionOrder, [
+		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
 		"generateFlexChangesBundle",
@@ -79,6 +80,7 @@ test("Instantiation without component preload project configuration", (t) => {
 	const appBuilder = new ApplicationBuilder({parentLogger, project});
 	t.truthy(appBuilder);
 	t.deepEqual(appBuilder.taskExecutionOrder, [
+		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
 		"generateFlexChangesBundle",
@@ -102,6 +104,7 @@ test("Instantiation without project namespace", (t) => {
 	const appBuilder = new ApplicationBuilder({parentLogger, project});
 	t.truthy(appBuilder);
 	t.deepEqual(appBuilder.taskExecutionOrder, [
+		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
 		"generateFlexChangesBundle",
@@ -124,6 +127,7 @@ test("Instantiation with custom tasks", (t) => {
 	const appBuilder = new ApplicationBuilder({parentLogger, project});
 	t.truthy(appBuilder);
 	t.deepEqual(appBuilder.taskExecutionOrder, [
+		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"uglify--1",
 		"replaceVersion",
