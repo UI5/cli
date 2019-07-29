@@ -23,10 +23,11 @@ function isFresh(req, res) {
  * @param {module:@ui5/fs.AbstractReader} resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources}) {
-	return function serveResources(req, res, next) {
-		const pathname = parseurl(req).pathname;
-		resources.all.byPath(pathname).then(function(resource) {
+function createMiddleware({resources, tree: project}) {
+	return async function serveResources(req, res, next) {
+		try {
+			const pathname = parseurl(req).pathname;
+			const resource = await resources.all.byPath(pathname);
 			if (!resource) { // Not found
 				next();
 				return;
@@ -36,22 +37,21 @@ function createMiddleware({resources}) {
 				log.verbose("\n" + treeify.asTree(resource.getPathTree()));
 			}
 
-			let type;
-			let charset;
 			const resourcePath = resource.getPath();
+			const type = mime.lookup(resourcePath) || "application/octet-stream";
+			const charset = mime.charset(type);
 			if (rProperties.test(resourcePath)) {
-				// Special handling for *.properties files which are encoded with charset ISO-8859-1.
-				type = "text/plain";
-				charset = "ISO-8859-1";
-			} else {
-				type = mime.lookup(resourcePath) || "application/octet-stream";
+				// Special handling for *.properties files escape non ascii characters.
+				const nonAsciiEscaper = require("@ui5/builder").processors.nonAsciiEscaper;
+				const propertiesFileSourceEncoding = project && project.resources && project.resources.configuration && project.resources.configuration.propertiesFileSourceEncoding;
+				const encoding = nonAsciiEscaper.getEncodingFromAlias(propertiesFileSourceEncoding || "ISO-8859-1");
+				await nonAsciiEscaper({
+					resources: [resource], options: {
+						encoding
+					}
+				});
 			}
-
 			if (!res.getHeader("Content-Type")) {
-				if (!charset) {
-					charset = mime.charset(type);
-				}
-
 				res.setHeader("Content-Type", type + (charset ? "; charset=" + charset : ""));
 			}
 
@@ -71,7 +71,7 @@ function createMiddleware({resources}) {
 			//	UTF-8 anyways.
 			// Also, only process .library, *.js and *.json files. Just like it's done in Application-
 			//	and LibraryBuilder
-			if (charset === "UTF-8" && rReplaceVersion.test(resourcePath)) {
+			if ((!charset || charset === "UTF-8") && rReplaceVersion.test(resourcePath)) {
 				if (resource._project) {
 					stream = stream.pipe(replaceStream("${version}", resource._project.version));
 				} else {
@@ -80,9 +80,9 @@ function createMiddleware({resources}) {
 			}
 
 			stream.pipe(res);
-		}).catch((err) => {
+		} catch (err) {
 			next(err);
-		});
+		}
 	};
 }
 

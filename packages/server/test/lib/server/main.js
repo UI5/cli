@@ -67,18 +67,18 @@ test("Get resource from application.a with replaced version placeholder (/versio
 	});
 });
 
-test("Get resource from application.a (/i18n/i18n.properties) with correct charset 'ISO-8859-1'", (t) => {
+test("Get resource from application.a (/i18n/i18n.properties) with correct content-type", (t) => {
 	return request.get("/i18n/i18n.properties").then((res) => {
 		if (res.error) {
 			t.fail(res.error.text);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-		t.deepEqual(res.headers["content-type"], "text/plain; charset=ISO-8859-1", "Correct content type and charset");
-		t.deepEqual(Buffer.from(res.text, "latin1").toString(), "showHelloButtonText=Say Hello!", "Correct response");
+		t.deepEqual(res.headers["content-type"], "application/octet-stream", "Correct content type");
+		t.deepEqual(res.body.toString(), "showHelloButtonText=Say Hello!", "Correct response");
 	});
 });
 
-test("Get resource from application.a (/i18n/i18n_de.properties) with correct encoding 'ISO-8859-1'", (t) => {
+test("Get resource from application.a (/i18n/i18n_de.properties) with correct content-type'", (t) => {
 	return request.get("/i18n/i18n_de.properties")
 		.responseType("arraybuffer")
 		.then((res) => {
@@ -86,10 +86,10 @@ test("Get resource from application.a (/i18n/i18n_de.properties) with correct en
 				t.fail(res.error.text);
 			}
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-			t.deepEqual(res.headers["content-type"], "text/plain; charset=ISO-8859-1",
-				"Correct content type and charset");
+			t.deepEqual(res.headers["content-type"], "application/octet-stream",
+				"Correct content type");
 
-			t.deepEqual(res.body.toString("latin1"), "showHelloButtonText=Say ä!", "Correct response");
+			t.deepEqual(res.body.toString(), "showHelloButtonText=Say \\u00e4!", "Correct response");
 			// Because it took so long to figure this out I keep the below line. It is equivalent to the deepEqual above
 			// t.deepEqual(res.body.toString("latin1"), Buffer.from("showHelloButtonText=Say \u00e4!", "latin1").toString("latin1"),
 			// 	"Correct response");

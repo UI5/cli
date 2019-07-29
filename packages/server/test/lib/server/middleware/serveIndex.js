@@ -41,7 +41,7 @@ test.serial("Check if index for files is created", (t) => {
 				end: function(content) {
 					t.regex(content, /<td title="1024 Bytes">1\.00 KB<\/td>\s*<td><a href="\/myFile1\.meh">myFile1\.meh<\/a><\/td>\s*<td>application\/octet-stream<\/td>/);
 					t.regex(content, /<td title="1048576 Bytes">1\.00 MB<\/td>\s*<td><a href="\/myFile2\.js">myFile2\.js<\/a><\/td>\s*<td>application\/javascript<\/td>/g);
-					t.regex(content, /<td title="1073741824 Bytes">1\.00 GB<\/td>\s*<td><a href="\/myFile3\.properties">myFile3\.properties<\/a><\/td>\s*<td>text\/plain;charset=ISO-8859-1<\/td>/g);
+					t.regex(content, /<td title="1073741824 Bytes">1\.00 GB<\/td>\s*<td><a href="\/myFile3\.properties">myFile3\.properties<\/a><\/td>\s*<td>application\/octet-stream<\/td>/g);
 					resolve();
 				},
 			};

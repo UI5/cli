@@ -108,7 +108,16 @@ class MiddlewareManager {
 		await this.addMiddleware("discovery", {
 			mountPath: "/discovery"
 		});
-		await this.addMiddleware("serveResources");
+		await this.addMiddleware("serveResources", {
+			wrapperCallback: (serveResourcesModule) => {
+				return ({resources}) => {
+					return serveResourcesModule({
+						resources,
+						tree: this.tree
+					});
+				};
+			}
+		});
 		await this.addMiddleware("serveThemes");
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json",

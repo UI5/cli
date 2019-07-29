@@ -2,8 +2,6 @@ const log = require("@ui5/logger").getLogger("server:middleware:serveIndex");
 const mime = require("mime-types");
 const parseurl = require("parseurl");
 
-const rProperties = /\.properties$/;
-
 const KB = 1024;
 const MB = KB * KB;
 const GB = KB * KB * KB;
@@ -15,11 +13,7 @@ const GB = KB * KB * KB;
  * @returns {string} mime type
  */
 function getMimeType(resource) {
-	if (rProperties.test(resource.getPath())) {
-		return "text/plain;charset=ISO-8859-1";
-	} else {
-		return mime.lookup(resource.getPath()) || "application/octet-stream";
-	}
+	return mime.lookup(resource.getPath()) || "application/octet-stream";
 }
 
 /**
