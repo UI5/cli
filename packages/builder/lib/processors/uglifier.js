@@ -1,4 +1,4 @@
-const uglify = require("uglify-es");
+const terser = require("terser");
 const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
 
 /**
@@ -13,7 +13,7 @@ const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|relea
 module.exports = function({resources}) {
 	return Promise.all(resources.map((resource) => {
 		return resource.getString().then((code) => {
-			const result = uglify.minify({
+			const result = terser.minify({
 				[resource.getPath()]: code
 			}, {
 				warnings: false,

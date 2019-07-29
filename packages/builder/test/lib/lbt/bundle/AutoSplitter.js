@@ -1,6 +1,6 @@
 const test = require("ava");
 const sinon = require("sinon");
-const uglify = require("uglify-es");
+const terser = require("terser");
 const {pd} = require("pretty-data");
 const BundleResolver = require("../../../../lib/lbt/bundle/Resolver");
 const AutoSplitter = require("../../../../lib/lbt/bundle/AutoSplitter");
@@ -178,7 +178,7 @@ test("_calcMinSize: js resource", async (t) => {
 
 
 test.serial("_calcMinSize: uglify js resource", async (t) => {
-	const stubUglify = sinon.stub(uglify, "minify").returns({code: "123"});
+	const stubTerser = sinon.stub(terser, "minify").returns({code: "123"});
 	const pool = {
 		findResourceWithInfo: function() {
 			return {
@@ -194,7 +194,7 @@ test.serial("_calcMinSize: uglify js resource", async (t) => {
 	const autpSplitter = new AutoSplitter(pool);
 	autpSplitter.optimize = true;
 	t.deepEqual(await autpSplitter._calcMinSize("mymodule.js"), 3);
-	stubUglify.restore();
+	stubTerser.restore();
 });
 
 test("_calcMinSize: properties resource", async (t) => {

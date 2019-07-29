@@ -1,6 +1,6 @@
 "use strict";
 
-const uglify = require("uglify-es");
+const terser = require("terser");
 const {pd} = require("pretty-data");
 
 const ModuleName = require("../utils/ModuleName");
@@ -199,7 +199,7 @@ class AutoSplitter {
 				let fileContent = await resource.buffer();
 				if ( this.optimize ) {
 					// console.log("uglify %s start", module);
-					const result = uglify.minify({
+					const result = terser.minify({
 						[resource.name]: String(fileContent)
 					}, {
 						warnings: false, // TODO configure?

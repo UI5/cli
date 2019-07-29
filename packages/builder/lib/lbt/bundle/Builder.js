@@ -2,7 +2,7 @@
 // for consistency of write calls, we generally allow template literals
 "use strict";
 
-const uglify = require("uglify-es");
+const terser = require("terser");
 const {pd} = require("pretty-data");
 const esprima = require("esprima");
 const escodegen = require("escodegen");
@@ -323,7 +323,7 @@ class BundleBuilder {
 
 	compressJS(fileContent, resource) {
 		if ( this.optimize ) {
-			const result = uglify.minify({
+			const result = terser.minify({
 				[resource.name]: String(fileContent)
 			}, {
 				warnings: false, // TODO configure?
