@@ -23,7 +23,7 @@ function isFresh(req, res) {
  * @param {module:@ui5/fs.AbstractReader} resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources, tree: project}) {
+function createMiddleware({resources}) {
 	return async function serveResources(req, res, next) {
 		try {
 			const pathname = parseurl(req).pathname;
@@ -43,7 +43,9 @@ function createMiddleware({resources, tree: project}) {
 			if (rProperties.test(resourcePath)) {
 				// Special handling for *.properties files escape non ascii characters.
 				const nonAsciiEscaper = require("@ui5/builder").processors.nonAsciiEscaper;
-				const propertiesFileSourceEncoding = project && project.resources && project.resources.configuration && project.resources.configuration.propertiesFileSourceEncoding;
+				const project = resource._project; // _project might not be defined
+				const propertiesFileSourceEncoding = project && project.resources &&
+					project.resources.configuration && project.resources.configuration.propertiesFileSourceEncoding;
 				const encoding = nonAsciiEscaper.getEncodingFromAlias(propertiesFileSourceEncoding || "ISO-8859-1");
 				await nonAsciiEscaper({
 					resources: [resource], options: {
