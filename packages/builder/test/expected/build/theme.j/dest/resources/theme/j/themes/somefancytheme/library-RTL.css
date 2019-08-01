@@ -1,6 +1,3 @@
-.someClass {
-  color: #000000;
-}
-
+.someClass{color:#000}
 /* Inline theming parameters */
-#sap-ui-theme-theme\.j{background-image:url('data:text/plain;utf-8,%7B%7D')}
+#sap-ui-theme-theme\.j{background-image:url('data:text/plain;utf-8,%7B%22someColor%22%3A%22%23000%22%7D')}

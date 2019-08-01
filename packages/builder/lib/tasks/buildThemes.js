@@ -53,7 +53,10 @@ module.exports = function({workspace, dependencies, options}) {
 	}).then((resources) => {
 		return themeBuilder({
 			resources,
-			fs: fsInterface(combo)
+			fs: fsInterface(combo),
+			options: {
+				compress: true
+			}
 		});
 	}).then((processedResources) => {
 		return Promise.all(processedResources.map((resource) => {

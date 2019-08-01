@@ -28,9 +28,11 @@ class ThemeBuilder {
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.Resource[]} resources Library files
+	 * @param {Object} [options] Build options
+	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Resolving with array of created files
 	 */
-	build(resources) {
+	build(resources, {compress = false} = {}) {
 		const files = [];
 
 		const compile = (resource) => {
@@ -46,6 +48,9 @@ class ThemeBuilder {
 				lessInputPath: resource.getPath(),
 				library: {
 					name: libraryName
+				},
+				compiler: {
+					compress
 				}
 			}).then((result) => {
 				const themeDir = path.dirname(resource.getPath());
@@ -62,7 +67,7 @@ class ThemeBuilder {
 
 				const libParams = new Resource({
 					path: themeDir + "/library-parameters.json",
-					string: JSON.stringify(result.variables, null, "\t")
+					string: JSON.stringify(result.variables, null, compress ? null : "\t")
 				});
 
 				files.push(libCss, libCssRtl, libParams);
@@ -93,11 +98,14 @@ class ThemeBuilder {
  * @param {Object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code> resources to be processed
  * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
+ * @param {Object} [parameters.options] Options
+ * @param {Object} [parameters.options.compress=false] Compress build output (CSS / JSON)
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with theme resources
  */
-module.exports = ({resources, fs}) => {
+module.exports = ({resources, fs, options}) => {
 	const themeBuilder = new ThemeBuilder({fs});
-	return themeBuilder.build(resources).then((files) => {
+	const compress = options && options.compress;
+	return themeBuilder.build(resources, {compress}).then((files) => {
 		themeBuilder.clearCache();
 		return files;
 	});

@@ -25,27 +25,17 @@ test("integration: simple", (t) => {
   padding: 1px 2px 3px 4px;
 }`;
 	const cssExpected =
-`.fluffyHammer {
-  color: #123456;
-  padding: 1px 2px 3px 4px;
-}
-
+`.fluffyHammer{color:#123456;padding:1px 2px 3px 4px}
 /* Inline theming parameters */
 #sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
 `;
 	const cssRtlExpected =
-`.fluffyHammer {
-  color: #123456;
-  padding: 1px 4px 3px 2px;
-}
-
+`.fluffyHammer{color:#123456;padding:1px 4px 3px 2px}
 /* Inline theming parameters */
 #sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
 `;
 	const parametersExpected =
-`{
-	"deepSea": "#123456"
-}`;
+`{"deepSea":"#123456"}`;
 	const lessPath = "/resources/super/duper/looper/themes/brightlight/library.source.less";
 	const cssPath = "/resources/super/duper/looper/themes/brightlight/library.css";
 	const cssRtlPath = "/resources/super/duper/looper/themes/brightlight/library-RTL.css";
@@ -106,27 +96,17 @@ test("integration: imports", (t) => {
 	const lessVariablesContent =
 "@deepSea: #123456;";
 	const cssExpected =
-`.fluffyHammer {
-  color: #123456;
-  padding: 1px 2px 3px 4px;
-}
-
+`.fluffyHammer{color:#123456;padding:1px 2px 3px 4px}
 /* Inline theming parameters */
 #sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
 `;
 	const cssRtlExpected =
-`.fluffyHammer {
-  color: #123456;
-  padding: 1px 4px 3px 2px;
-}
-
+`.fluffyHammer{color:#123456;padding:1px 4px 3px 2px}
 /* Inline theming parameters */
 #sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
 `;
 	const parametersExpected =
-`{
-	"deepSea": "#123456"
-}`;
+`{"deepSea":"#123456"}`;
 	const lessPath = "/resources/super/duper/looper/themes/brightlight/library.source.less";
 	const lessVariablesPath = "/resources/super/duper/looper/themes/brightlight/variables.less";
 	const cssPath = "/resources/super/duper/looper/themes/brightlight/library.css";
