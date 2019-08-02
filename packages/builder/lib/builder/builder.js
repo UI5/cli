@@ -1,3 +1,5 @@
+const {promisify} = require("util");
+const rimraf = promisify(require("rimraf"));
 const log = require("@ui5/logger").getGroupLogger("builder:builder");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 const MemAdapter = require("@ui5/fs").adapters.Memory;
@@ -203,6 +205,7 @@ module.exports = {
 	 * @param {Object} parameters Parameters
 	 * @param {Object} parameters.tree Dependency tree
 	 * @param {string} parameters.destPath Target path
+	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
 	 * @param {boolean} [parameters.buildDependencies=false] Decides whether project dependencies are built as well
 	 * @param {boolean} [parameters.dev=false] Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
@@ -213,7 +216,7 @@ module.exports = {
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
-		tree, destPath,
+		tree, destPath, cleanDest = false,
 		buildDependencies = false, dev = false, selfContained = false, jsdoc = false,
 		includedTasks = [], excludedTasks = [], devExcludeProject = []
 	}) {
@@ -342,6 +345,9 @@ module.exports = {
 		}
 
 		try {
+			if (cleanDest) {
+				await rimraf(destPath);
+			}
 			await buildProject(tree);
 			log.info(`Build succeeded in ${getElapsedTime(startTime)}`);
 		} catch (err) {

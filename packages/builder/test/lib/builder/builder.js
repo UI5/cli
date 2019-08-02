@@ -129,6 +129,34 @@ test("Build application.a [dev mode]", (t) => {
 	});
 });
 
+test("Build application.a and clean target path [dev mode]", (t) => {
+	const destPath = "./test/tmp/build/application.a/dest-clean";
+	const destPathRubbishSubFolder = destPath + "/rubbish-should-be-deleted";
+	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-dev");
+
+	return builder.build({
+		tree: applicationATree,
+		destPath: destPathRubbishSubFolder,
+		dev: true
+	}).then(() => {
+		return builder.build({
+			tree: applicationATree,
+			destPath,
+			cleanDest: true,
+			dev: true
+		});
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
 test("Build application.g", (t) => {
 	const destPath = "./test/tmp/build/application.g/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
