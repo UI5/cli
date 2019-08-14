@@ -2,7 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.4.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.4.1...HEAD).
+
+<a name="v1.4.1"></a>
+## [v1.4.1] - 2019-08-14
+### Bug Fixes
+- Adapt to recent extension of estraverse's set of node types ([#310](https://github.com/SAP/ui5-builder/issues/310)) [`9db14e6`](https://github.com/SAP/ui5-builder/commit/9db14e6afc01c686c1187d8eefe327654e6cc3ca)
+
+### Features
+- Switch to Terser for JavaScript minification [`fccb514`](https://github.com/SAP/ui5-builder/commit/fccb5145d05a8509d5b9c47fa4cea4b6299ca91d)
+- **Theme Build:** Add compress option to minify output ([#295](https://github.com/SAP/ui5-builder/issues/295)) [`eea10ba`](https://github.com/SAP/ui5-builder/commit/eea10ba516c36be6aa3cdb2c8be990bc56f14078)
+- **clean build folder:** Allows developers to clean build folder before start building a project [`04eb695`](https://github.com/SAP/ui5-builder/commit/04eb695fd493ce9bd1289933d5494178c1e679d7)
+
 
 <a name="v1.4.0"></a>
 ## [v1.4.0] - 2019-07-29
@@ -221,6 +232,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.4.1]: https://github.com/SAP/ui5-builder/compare/v1.4.0...v1.4.1
 [v1.4.0]: https://github.com/SAP/ui5-builder/compare/v1.3.3...v1.4.0
 [v1.3.3]: https://github.com/SAP/ui5-builder/compare/v1.3.2...v1.3.3
 [v1.3.2]: https://github.com/SAP/ui5-builder/compare/v1.3.1...v1.3.2
