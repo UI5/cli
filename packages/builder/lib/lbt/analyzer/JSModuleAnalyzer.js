@@ -24,7 +24,7 @@ const EnrichedVisitorKeys = (function() {
 	 * E.g. in an IfExpression, the 'test' is always executed, whereas 'consequent'
 	 * and 'alternate' are only executed under certain conditions.
 	 *
-	 * While visiting the AST of a JavaSCript file, the JSModuleAnalyzer uses this information
+	 * While visiting the AST of a JavaScript file, the JSModuleAnalyzer uses this information
 	 * to decide whether a code block is executed conditionally or unconditionally.
 	 * Besides this information which is inherent to the language, the analyzer uses
 	 * additional knowledge about special APIS / constructs (e.g. the factory function of
@@ -103,6 +103,10 @@ const EnrichedVisitorKeys = (function() {
 		 * import >>>a<<< from 'module';
 		 */
 		ImportDefaultSpecifier: [], // local
+		/*
+		 * Dynamic Import expression, the argument is evaluated unconditionally.
+		 */
+		ImportExpression: [], // source,
 		/*
 		 * import >>>* as b<<< from 'module';
 		 */

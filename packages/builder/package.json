@@ -104,7 +104,7 @@
 		"escodegen": "^1.11.1",
 		"escope": "^3.6.0",
 		"esprima": "^4.0.1",
-		"estraverse": "^4.2.0",
+		"estraverse": "^4.3.0",
 		"globby": "^10.0.1",
 		"graceful-fs": "^4.2.1",
 		"jsdoc": "3.5.5",
