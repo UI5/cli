@@ -116,7 +116,7 @@
 		"yargs": "^13.3.0"
 	},
 	"devDependencies": {
-		"ava": "^2.2.0",
+		"ava": "^2.3.0",
 		"coveralls": "^3.0.6",
 		"cross-env": "^5.1.1",
 		"docdash": "^1.1.1",
