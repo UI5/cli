@@ -1,6 +1,5 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
 const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler");
-const resourceFactory = require("@ui5/fs").resourceFactory;
 
 /**
  * Task to create changesBundle.json file containing all changes stored in the /changes folder for easier consumption
@@ -26,40 +25,30 @@ module.exports = function({workspace, options}) {
 
 	function updateJson(data) {
 		// ensure the existence of the libs section in the dependencies
-		data["sap.ui5"].dependencies.libs = data["sap.ui5"].dependencies.libs || {};
-		const mLibs = data["sap.ui5"].dependencies.libs;
+		data["sap.ui5"] = data["sap.ui5"] || {};
+		data["sap.ui5"].dependencies = data["sap.ui5"].dependencies || {};
+		const mLibs = data["sap.ui5"].dependencies.libs = data["sap.ui5"].dependencies.libs || {};
 
-		if ("sap.ui.fl" in mLibs) {
+		if (mLibs["sap.ui.fl"]) {
 			log.verbose("sap.ui.fl found in manifest.json");
-			if ("lazy" in mLibs["sap.ui.fl"]) {
+			if (mLibs["sap.ui.fl"].lazy) {
 				log.verbose("sap.ui.fl 'lazy' attribute found in manifest.json, setting it to false...");
-				if (mLibs["sap.ui.fl"].lazy === true) {
-					mLibs["sap.ui.fl"].lazy = false;
-				}
+				mLibs["sap.ui.fl"].lazy = false;
 			}
 		} else {
 			log.verbose("sap.ui.fl not found in manifest.json, inserting it...");
 			mLibs["sap.ui.fl"] = {};
 		}
-
-		return data;
 	}
 
-	function updateFLdependency() {
-		return workspace.byPath(`${pathPrefix}/manifest.json`)
-			.then((manifestData) => {
-				return manifestData.getBuffer().then((buffer) => {
-					return JSON.parse(buffer.toString());
-				});
-			})
-			.then((manifestContent) => {
-				let updatedContent = updateJson(manifestContent);
-				updatedContent = JSON.stringify(updatedContent);
-				return workspace.write(resourceFactory.createResource({
-					path: `${pathPrefix}/manifest.json`,
-					string: updatedContent
-				}));
-			});
+	async function updateFLdependency() {
+		const manifestResource = await workspace.byPath(`${pathPrefix}/manifest.json`);
+		const manifestContent = JSON.parse(await manifestResource.getString());
+
+		updateJson(manifestContent);
+		manifestResource.setString(JSON.stringify(manifestContent, null, "\t"));
+
+		await workspace.write(manifestResource);
 	}
 
 	log.verbose("Collecting flexibility changes");
@@ -74,10 +63,14 @@ module.exports = function({workspace, options}) {
 			});
 		})
 		.then((processedResources) => {
-			return Promise.all(processedResources.map(async (resource) => {
+			return Promise.all(processedResources.map((resource) => {
 				log.verbose("Writing flexibility changes bundle");
-				await updateFLdependency();
 				return workspace.write(resource);
-			}));
+			})).then(async () => {
+				// Add the sap.ui.fl dependency if a bundle has been created
+				if (processedResources.length > 0) {
+					await updateFLdependency();
+				}
+			});
 		});
 };
