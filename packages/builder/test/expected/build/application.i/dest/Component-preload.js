@@ -7,5 +7,5 @@ jQuery.sap.registerPreloadedModules({
 	"application/i/changes/coding/MyExtension.js":function(){sap.ui.define([],function(){return{}});
 },
 	"application/i/changes/fragments/MyFragment.fragment.xml":'<xml></xml>',
-	"application/i/manifest.json":'{"_version":"1.1.0","sap.app":{"_version":"1.1.0","id":"application.i","type":"application","applicationVersion":{"version":"1.2.2"},"embeds":["embedded"],"title":"{{title}}"}}'
+	"application/i/manifest.json":'{"_version":"1.1.0","sap.app":{"_version":"1.1.0","id":"application.i","type":"application","applicationVersion":{"version":"1.2.2"},"embeds":["embedded"],"title":"{{title}}"},"sap.ui5":{"dependencies":{"libs":{"sap.ui.layout":{},"sap.ui.core":{},"sap.m":{},"sap.ui.fl":{}}}}}'
 }});

@@ -2,7 +2,7 @@
     "_version": "1.1.0",
     "sap.app": {
         "_version": "1.1.0",
-        "id": "application.i",
+        "id": "application.j",
         "type": "application",
         "applicationVersion": {
             "version": "1.2.2"
@@ -15,7 +15,10 @@
 			"libs": {
 				"sap.ui.layout": {},
 				"sap.ui.core": {},
-				"sap.m": {}
+                "sap.m": {},
+                "sap.ui.fl": {
+                    "lazy": true
+                }
 			}
         }
     }
