@@ -4,6 +4,7 @@
     },
     "source": {
         "include": ["README.md", "index.js"],
+        "exclude": ["lib/lbt/utils/JSTokenizer.js"],
         "includePattern": ".+\\.js$",
         "excludePattern": "(node_modules(\\\\|/))"
     },

@@ -12,6 +12,7 @@
 
 const xml2js = require("xml2js");
 const ModuleName = require("../utils/ModuleName");
+const JSTokenizer = require("../utils/JSTokenizer");
 const log = require("@ui5/logger").getLogger("lbt:analyzer:XMLTemplateAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
@@ -43,12 +44,22 @@ const XMLVIEW_MODULE = "sap/ui/core/mvc/XMLView.js";
 const ANYVIEW_VIEWNAME_ATTRIBUTE = "viewName";
 const XMLVIEW_CONTROLLERNAME_ATTRIBUTE = "controllerName";
 const XMLVIEW_RESBUNDLENAME_ATTRIBUTE = "resourceBundleName";
+const XMLVIEW_CORE_REQUIRE_ATTRIBUTE_NS = {
+	uri: "sap.ui.core",
+	local: "require"
+};
 
 /*
  * Helper to simplify access to node attributes.
  */
 function getAttribute(node, attr) {
 	return (node.$ && node.$[attr] && node.$[attr].value) || null;
+}
+function getAttributeNS(node, attrNS) {
+	const attr = Object.values(node.$).find((n) => {
+		return n.uri === attrNS.uri && n.local === attrNS.local;
+	});
+	return (attr && attr.value) || null;
 }
 
 /**
@@ -187,6 +198,8 @@ class XMLTemplateAnalyzer {
 			this._addDependency( resourceBundleModuleName );
 		}
 
+		this._analyzeCoreRequire(node);
+
 		this._analyzeChildren(node);
 	}
 
@@ -210,6 +223,8 @@ class XMLTemplateAnalyzer {
 
 			// ignore FragmentDefinition (also skipped by runtime XMLTemplateProcessor)
 			if ( FRAGMENTDEFINITION_MODULE !== moduleName ) {
+				this._analyzeCoreRequire(node);
+
 				this.promises.push(
 
 					this._pool.findResource(moduleName).then( () => {
@@ -284,6 +299,29 @@ class XMLTemplateAnalyzer {
 	_analyzeChildren(node) {
 		if ( Array.isArray(node.$$) ) {
 			node.$$.forEach( (child) => this._analyzeNode( child ) );
+		}
+	}
+
+	_analyzeCoreRequire(node) {
+		const coreRequire = getAttributeNS(node, XMLVIEW_CORE_REQUIRE_ATTRIBUTE_NS);
+		let requireContext;
+		if ( coreRequire ) {
+			try {
+				requireContext = JSTokenizer.parseJS(coreRequire);
+			} catch (e) {
+				log.error("Ignoring core:require: Attribute can't be parsed on Node ", node.$ns.local);
+				log.error(coreRequire);
+			}
+			if ( requireContext ) {
+				Object.keys(requireContext).forEach((key) => {
+					const requireJsName = requireContext[key];
+					if ( requireJsName && typeof requireJsName === "string" ) {
+						this._addDependency(ModuleName.fromRequireJSName(requireJsName));
+					} else {
+						log.error(`Ignoring core:require: '${key}' refers to invalid module name '${requireJsName}'`);
+					}
+				});
+			}
 		}
 	}
 
