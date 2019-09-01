@@ -119,7 +119,7 @@
 		"@ui5/project": "^1.1.0",
 		"ava": "^2.3.0",
 		"coveralls": "^3.0.6",
-		"cross-env": "^5.1.1",
+		"cross-env": "^5.2.1",
 		"docdash": "^1.1.1",
 		"eslint": "^5.16.0",
 		"eslint-config-google": "^0.13.0",
