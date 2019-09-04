@@ -56,7 +56,7 @@ function getAttribute(node, attr) {
 	return (node.$ && node.$[attr] && node.$[attr].value) || null;
 }
 function getAttributeNS(node, attrNS) {
-	const attr = Object.values(node.$).find((n) => {
+	const attr = Object.values(node.$ || []).find((n) => {
 		return n.uri === attrNS.uri && n.local === attrNS.local;
 	});
 	return (attr && attr.value) || null;

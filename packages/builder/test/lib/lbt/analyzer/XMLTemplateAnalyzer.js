@@ -10,6 +10,7 @@ test("integration: Analysis of an xml view", async (t) => {
 				<m:Button text="Button 1" id="button1" />
 				<m:Button text="Button 2" id="button2" />
 				<m:Button text="Button 3" id="button3" />
+				<m:Button />
 			</l:HorizontalLayout>
 		</mvc:View>`;
 	const mockPool = {async findResource(name) {
