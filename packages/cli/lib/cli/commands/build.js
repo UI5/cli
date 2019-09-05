@@ -42,6 +42,11 @@ build.builder = function(cli) {
 			default: "./dist",
 			type: "string"
 		})
+		.option("clean-dest", {
+			describe: "If present, clean the destination directory before building",
+			default: false,
+			type: "boolean"
+		})
 		.option("dev-exclude-project", {
 			describe: "A list of specific projects to be excluded from dev mode (dev mode must be active for this to be effective)",
 			type: "array"
@@ -80,6 +85,7 @@ function handleBuild(argv) {
 		return builder.build({
 			tree: tree,
 			destPath: argv.dest,
+			cleanDest: argv["clean-dest"],
 			buildDependencies: argv.all,
 			dev: command === "dev",
 			selfContained: command === "self-contained",

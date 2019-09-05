@@ -22,6 +22,7 @@ const defaultBuilderArgs = {
 	},
 	destPath: "./dist",
 	buildDependencies: undefined,
+	cleanDest: undefined,
 	dev: false,
 	selfContained: false,
 	jsdoc: false,
