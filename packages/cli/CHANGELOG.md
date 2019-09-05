@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.8.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.9.0...HEAD).
+
+<a name="v1.9.0"></a>
+## [v1.9.0] - 2019-09-05
+### Features
+- **ui5 build:** Add --clean-dest option [`fe60d04`](https://github.com/SAP/ui5-cli/commit/fe60d041c374494c58136435d7761e8ee957ce7b)
+
 
 <a name="v1.8.1"></a>
 ## [v1.8.1] - 2019-09-04
@@ -235,6 +241,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.9.0]: https://github.com/SAP/ui5-cli/compare/v1.8.1...v1.9.0
 [v1.8.1]: https://github.com/SAP/ui5-cli/compare/v1.8.0...v1.8.1
 [v1.8.0]: https://github.com/SAP/ui5-cli/compare/v1.7.0...v1.8.0
 [v1.7.0]: https://github.com/SAP/ui5-cli/compare/v1.6.0...v1.7.0
