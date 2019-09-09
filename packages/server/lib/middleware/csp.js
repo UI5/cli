@@ -31,8 +31,8 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		const oParsedURL = parseurl(req);
 
 		if (req.method === "POST" ) {
-			if (req.headers["content-type"] === "application/csp-report"
-				&& oParsedURL.pathname.endsWith("/dummy.csplog") ) {
+			if (req.headers["content-type"] === "application/csp-report" &&
+				oParsedURL.pathname.endsWith("/dummy.csplog") ) {
 				// In report-only mode there must be a report-uri defined
 				// For now just ignore the violation. It will be logged in the browser anyway.
 				return;
