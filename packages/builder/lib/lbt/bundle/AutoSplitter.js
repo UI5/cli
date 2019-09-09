@@ -205,7 +205,8 @@ class AutoSplitter {
 						warnings: false, // TODO configure?
 						compress: false, // TODO configure?
 						output: {
-							comments: copyrightCommentsPattern
+							comments: copyrightCommentsPattern,
+							wrap_func_args: false
 						}
 						// , outFileName: resource.name
 						// , outSourceMap: true
