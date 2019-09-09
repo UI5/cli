@@ -116,8 +116,8 @@
 		"rimraf": "^3.0.0",
 		"semver": "^6.3.0",
 		"slash": "^3.0.0",
-		"terser": "^4.2.1",
-		"xml2js": "^0.4.17",
+		"terser": "^4.3.0",
+		"xml2js": "^0.4.22",
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
@@ -135,7 +135,7 @@
 		"nyc": "^14.1.1",
 		"open-cli": "^5.0.0",
 		"recursive-readdir": "^2.1.1",
-		"sinon": "^7.4.1",
+		"sinon": "^7.4.2",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}
