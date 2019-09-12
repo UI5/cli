@@ -213,3 +213,105 @@ test.serial("ui5 serve --sap-csp-policies", async (t) => {
 		sendSAPTargetCSP: true
 	}, "Starting server with specific server config");
 });
+
+test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
+	const projectTree = {
+		metadata: {
+			name: "Sample"
+		},
+		server: {
+			settings: {
+				httpPort: 1337
+			}
+		}
+	};
+	normalizerStub.resolves(projectTree);
+	serverStub.resolves({h2: false, port: 1});
+	// loads project tree using http 2
+	const pPrepareServerConfig = await serve.handler(defaultInitialHandlerArgs);
+	// preprocess project config, skipping cert load
+	const pServeServer = await pPrepareServerConfig;
+	// serve server using config
+	await pServeServer;
+
+	const injectedProjectTree = serverStub.getCall(0).args[0];
+	const injectedServerConfig = serverStub.getCall(0).args[1];
+
+	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
+	t.deepEqual(injectedServerConfig.port, 1337, "http port setting from project tree was used");
+	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
+});
+
+test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
+	const projectTree = {
+		metadata: {
+			name: "Sample"
+		},
+		server: {
+			settings: {
+				httpsPort: 1443
+			}
+		}
+	};
+	normalizerStub.resolves(projectTree);
+	serverStub.resolves({h2: true, port: 1});
+	sslUtilStub.resolves({
+		key: "randombyte-likes-ponies-key",
+		cert: "randombyte-likes-ponies-cert"
+	});
+
+	// loads project tree using http 2
+	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {h2: true}));
+	// preprocess project config
+	const pFetchSSLCert = await pPrepareServerConfig;
+	// Fetching ssl certificate
+	const pServeServer = await pFetchSSLCert;
+	// serve server using config
+	await pServeServer;
+
+	const injectedProjectTree = serverStub.getCall(0).args[0];
+	const injectedServerConfig = serverStub.getCall(0).args[1];
+
+	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
+	t.deepEqual(injectedServerConfig.port, 1443, "https port setting from project tree was used");
+	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
+});
+
+test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", async (t) => {
+	const projectTree = {
+		metadata: {
+			name: "Sample"
+		},
+		server: {
+			settings: {
+				httpPort: 1337,
+				httpsPort: 1443
+			}
+		}
+	};
+	normalizerStub.resolves(projectTree);
+	serverStub.resolves({h2: true, port: 1});
+	sslUtilStub.resolves({
+		key: "randombyte-likes-ponies-key",
+		cert: "randombyte-likes-ponies-cert"
+	});
+
+	// loads project tree using http 2
+	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {
+		h2: true,
+		port: 5555
+	}));
+	// preprocess project config
+	const pFetchSSLCert = await pPrepareServerConfig;
+	// Fetching ssl certificate
+	const pServeServer = await pFetchSSLCert;
+	// serve server using config
+	await pServeServer;
+
+	const injectedProjectTree = serverStub.getCall(0).args[0];
+	const injectedServerConfig = serverStub.getCall(0).args[1];
+
+	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
+	t.deepEqual(injectedServerConfig.port, 5555, "https port setting from CLI argument was used");
+	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
+});

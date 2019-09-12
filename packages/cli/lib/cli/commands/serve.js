@@ -63,9 +63,29 @@ serve.handler = function(argv) {
 		translatorName: argv.translator,
 		configPath: argv.config
 	}).then(function(tree) {
+		let port = argv.port;
+		let changePortIfInUse = false;
+
+		if (!port && tree.server && tree.server.settings) {
+			if (argv.h2) {
+				port = tree.server.settings.httpsPort;
+			} else {
+				port = tree.server.settings.httpPort;
+			}
+		}
+
+		if (!port) {
+			changePortIfInUse = true; // only change if port isn't explicitly set
+			if (argv.h2) {
+				port = 8443;
+			} else {
+				port = 8080;
+			}
+		}
+
 		const serverConfig = {
-			port: argv.port === undefined ? argv.h2 ? 8443 : 8080 : argv.port,
-			changePortIfInUse: argv.port === undefined, // only change if port isn't explicitly set
+			port,
+			changePortIfInUse,
 			h2: argv.h2,
 			acceptRemoteConnections: !!argv.acceptRemoteConnections,
 			cert: argv.h2 ? argv.cert : undefined,
