@@ -98,6 +98,37 @@ test("integration: test.controller.js: dbg file creation", (t) => {
 	});
 });
 
+test("integration: test.designtime.js: dbg file creation", (t) => {
+	const sourceAdapter = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const content = "sap.ui.define([],function(){return {};});";
+
+	const resource = resourceFactory.createResource({
+		path: "/test.designtime.js",
+		string: content
+	});
+
+	return sourceAdapter.write(resource).then(() => {
+		return tasks.createDebugFiles({
+			workspace: sourceAdapter,
+			options: {
+				pattern: "/**/*.js"
+			}
+		}).then(() => {
+			return sourceAdapter.byPath("/test-dbg.designtime.js").then((resource) => {
+				if (!resource) {
+					t.fail("Could not find /test-dbg.designtime.js in target");
+				} else {
+					return resource.getBuffer();
+				}
+			});
+		}).then((buffer) => {
+			t.deepEqual(buffer.toString(), content, "Correct content");
+		});
+	});
+});
+
 test("integration: test.fragment.js: dbg file creation", (t) => {
 	const sourceAdapter = resourceFactory.createAdapter({
 		virBasePath: "/"
@@ -119,6 +150,37 @@ test("integration: test.fragment.js: dbg file creation", (t) => {
 			return sourceAdapter.byPath("/test-dbg.fragment.js").then((resource) => {
 				if (!resource) {
 					t.fail("Could not find /test-dbg.fragment.js in target locator");
+				} else {
+					return resource.getBuffer();
+				}
+			});
+		}).then((buffer) => {
+			t.deepEqual(buffer.toString(), content, "Correct content");
+		});
+	});
+});
+
+test("integration: test.support.js: dbg file creation", (t) => {
+	const sourceAdapter = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const content = "sap.ui.define([],function(){return {};});";
+
+	const resource = resourceFactory.createResource({
+		path: "/test.support.js",
+		string: content
+	});
+
+	return sourceAdapter.write(resource).then(() => {
+		return tasks.createDebugFiles({
+			workspace: sourceAdapter,
+			options: {
+				pattern: "/**/*.js"
+			}
+		}).then(() => {
+			return sourceAdapter.byPath("/test-dbg.support.js").then((resource) => {
+				if (!resource) {
+					t.fail("Could not find /test-dbg.support.js in target");
 				} else {
 					return resource.getBuffer();
 				}

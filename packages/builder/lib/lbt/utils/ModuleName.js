@@ -45,7 +45,7 @@ function toRequireJSName(path) {
 	return path.slice(0, -3); // cut off '.js'
 }
 
-const KNOWN_TYPES = /\.(properties|css|(?:(?:view\.|fragment\.)?(?:html|json|xml|js))|(?:(?:controller\.)?js))$/;
+const KNOWN_TYPES = /\.(properties|css|(?:(?:view\.|fragment\.)?(?:html|json|xml|js))|(?:(?:controller\.|designtime\.|support\.)?js))$/;
 
 function getDebugName(name) {
 	const m = KNOWN_TYPES.exec(name);
