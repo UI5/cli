@@ -159,7 +159,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		function findComponentPaths() {
 			const result = [];
 			const prefix = libraryResource.getPath().slice(0, - ".library".length);
-			const components = libBundle.getResources(/(?:[^/]+\/)*Component\.js$/);
+			const components = libBundle.getResources(/^\/(?:[^/]+\/)*Component\.js$/);
 			components.forEach((comp) => {
 				const relativePath = comp.getPath().slice(prefix.length);
 				if ( relativePath.lastIndexOf("/") >= 0 ) {
