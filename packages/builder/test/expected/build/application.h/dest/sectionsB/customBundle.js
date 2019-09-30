@@ -1,3 +1,4 @@
+//@ui5-bundle application/h/sectionsB/customBundle.js
 jQuery.sap.registerPreloadedModules({
 "version":"2.0",
 "modules":{

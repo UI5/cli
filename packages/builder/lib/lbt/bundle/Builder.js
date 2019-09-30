@@ -42,7 +42,7 @@ const UI5BundleFormat = {
 		outW.write(`jQuery.sap.registerPreloadedModules(`);
 		outW.writeln(`{`);
 		if ( section.name ) {
-			outW.writeln(`"name":"${section.getSectionName()}",`);
+			outW.writeln(`"name":"${section.name}",`);
 		}
 		outW.writeln(`"version":"2.0",`);
 		outW.writeln(`"modules":{`);
@@ -73,7 +73,7 @@ const EVOBundleFormat = {
 	afterPreloads(outW, section) {
 		outW.write(`}`);
 		if ( section.name ) {
-			outW.write(`,"${section.getSectionName()}"`);
+			outW.write(`,"${section.name}"`);
 		}
 		outW.writeln(`);`);
 	},
@@ -144,8 +144,6 @@ class BundleBuilder {
 		this.jqglobalAvailable = !resolvedModule.containsGlobal;
 		this.openModule(resolvedModule.name);
 
-		this.writeConfiguration(resolvedModule.configuration); // NODE-TODO configuration currently will be undefined
-
 		// create all sections in sequence
 		for ( const section of resolvedModule.sections ) {
 			log.verbose("    adding section%s of type %s",
@@ -169,6 +167,7 @@ class BundleBuilder {
 		this.outW = new BundleWriter();
 		this.missingRawDeclarations = [];
 
+		this.outW.writeln("//@ui5-bundle " + module);
 		if ( this.shouldDecorate ) {
 			this.outW.writeln(`window["sap-ui-optimized"] = true;`);
 			if ( this.options.addTryCatchRestartWrapper ) {
@@ -230,24 +229,6 @@ class BundleBuilder {
 		}
 	}
 
-	writeConfiguration(config) {
-		if ( !config ) {
-			return;
-		}
-		const outW = this.outW;
-		outW.ensureNewLine(); // for clarity and to avoid issues with single line comments
-		outW.writeln(`(function(window){`);
-		outW.writeln(`\tvar cfg=window['sap-ui-config']=window['sap-ui-config']||{},`);
-		outW.writeln(`\t\troots=cfg.resourceRoots=cfg.resourceRoots||{};`);
-		config.propertyName.forEach( (property) => {
-			outW.writeln(`\tcfg[${makeStringLiteral(property)}]=${config.getPropertyAsJSLiteral(property)};`);
-		});
-		Object.keys(config.resourceRoots).forEach( (prefix) => {
-			outW.writeln(`\troots[${makeStringLiteral(prefix)}]=${makeStringLiteral(config.resourceRoots[prefix])};`);
-		});
-		outW.writeln(`}(window));`);
-	}
-
 	// TODO check that there are only JS modules contained
 	async writeRaw(section) {
 		// write all modules in sequence
@@ -255,6 +236,8 @@ class BundleBuilder {
 			const resource = await this.pool.findResourceWithInfo(module);
 			if ( resource != null ) {
 				this.outW.startSegment(module);
+				this.outW.ensureNewLine();
+				this.outW.writeln("//@ui5-bundle-raw-include " + module);
 				await this.writeRawModule(module, resource);
 				const compressedSize = this.outW.endSegment();
 				log.verbose("    %s (%d,%d)", module, resource.info != null ? resource.info.size : -1, compressedSize);

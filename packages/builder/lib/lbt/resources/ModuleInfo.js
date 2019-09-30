@@ -35,7 +35,7 @@ const Format = {
  */
 class ModuleInfo {
 	constructor(name) {
-		this.name = name;
+		this._name = name;
 		this.subModules = [];
 		this._dependencies = {};
 		this.dynamicDependencies = false;
@@ -171,6 +171,24 @@ class ModuleInfo {
 
 	isImplicitDependency(dependency) {
 		return this._dependencies[dependency] === IMPLICIT;
+	}
+
+	get name() {
+		return this._name;
+	}
+
+	set name(n) {
+		this._name = n;
+		if ( n != null ) {
+			if ( Object.prototype.hasOwnProperty.call(this._dependencies, n) ) {
+				delete this._dependencies[n];
+			}
+
+			const idx = this.subModules.indexOf(n);
+			if ( idx >= 0 ) {
+				this.subModules.splice(idx, 1);
+			}
+		}
 	}
 
 	get dependencies() {

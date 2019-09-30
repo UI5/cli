@@ -101,7 +101,7 @@ const applicationGTree = {
 	"type": "application",
 	"metadata": {
 		"name": "application.g",
-		"namespace": "application.g",
+		"namespace": "application/g",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {
@@ -131,7 +131,7 @@ const applicationGTreeWithCachebusterHash = {
 	"type": "application",
 	"metadata": {
 		"name": "application.g",
-		"namespace": "application.g",
+		"namespace": "application/g",
 		"copyright": "Some fancy copyright"
 	},
 	"resources": {

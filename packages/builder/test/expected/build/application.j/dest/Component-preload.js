@@ -1,3 +1,4 @@
+//@ui5-bundle application/j/Component-preload.js
 jQuery.sap.registerPreloadedModules({
 "version":"2.0",
 "modules":{

@@ -72,21 +72,4 @@ class SapUiDefineCall {
 	}
 }
 
-function isSapUiDefineCall(node) {
-	return (
-		node
-		&& node.type === Syntax.CallExpression
-		&& node.callee.type === Syntax.MemberExpression
-		&& node.callee.object.type === Syntax.MemberExpression
-		&& node.callee.object.object.type === Syntax.Identifier
-		&& node.callee.object.object.name === "sap"
-		&& node.callee.object.property.type === Syntax.Identifier
-		&& node.callee.object.property.name === "ui"
-		&& node.callee.property.type === Syntax.Identifier
-		&& node.callee.property.name === "define"
-	);
-}
-
-SapUiDefineCall.check = isSapUiDefineCall;
-
 module.exports = SapUiDefineCall;

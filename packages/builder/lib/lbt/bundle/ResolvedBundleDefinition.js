@@ -99,16 +99,13 @@ class ResolvedSection {
 		return this.sectionDefinition.mode;
 	}
 
-	/*
-	public String getSectionName() {
-		return sectionDefinition.getSectionName();
+	get name() {
+		return this.sectionDefinition.name;
 	}
 
-	public boolean isDeclareRawModules() {
-		return sectionDefinition.isDeclareRawModules();
+	get declareRawModules() {
+		return this.sectionDefinition.declareRawModules;
 	}
-
-	*/
 }
 
 module.exports = ResolvedBundleDefinition;
