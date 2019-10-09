@@ -10,8 +10,6 @@ const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const makeDir = require("make-dir");
 
-const prompt = require("prompt");
-
 const sslUtil = {
 	/**
 	 * Creates a new SSL certificate or validates an existing one.
@@ -53,53 +51,43 @@ const sslUtil = {
 };
 
 
-function createAndInstallCertificate(keyPath, certPath) {
-	return new Promise(function(resolve, reject) {
-		prompt.start();
+async function createAndInstallCertificate(keyPath, certPath) {
+	const yesno = require("yesno");
 
-		const property = {
-			name: "yesno",
-			message: "No SSL certificates found. Do you want to create new SSL certificates and install them locally?",
-			validator: /y[es]*|n[o]?/,
-			warning: "Please respond yes or no",
-			default: "yes"
-		};
-
-		prompt.get(property, function(err, result) {
-			if (result.yesno !== "" && result.yesno !== "yes") {
-				reject(new Error("Certificate installation aborted! Please install the SSL certificate manually."));
-				return;
-			}
-			resolve();
-		});
-	}).then(function() {
-		// In case certificate is not found, create a self-signed one and put it into the user's trust store
-		const devCert = require("devcert-sanscache");
-
-		// Inform end user about entering his root password (needed for importing
-		// the created certificate into the system)
-		/* eslint-disable no-console */
-		// TODO: Prompt and logging should happen in CLI module rather than server
-		if (process.platform === "win32") {
-			console.log("Please press allow in the opened dialog to confirm importing the newly created " +
-				"SSL certificate into the operating system and browsers.");
-		} else {
-			console.log("Please enter your root password to allow importing the newly created " +
-				"SSL certificate into the operating system and browsers.");
-		}
-
-		return devCert("ui5-tooling").then(({key, cert}) => {
-			return Promise.all([
-				// Write certificates to the ui5 certificate folder
-				// such that they are used by default upon next startup
-				makeDir(path.dirname(keyPath)).then(() => writeFile(keyPath, key)),
-				makeDir(path.dirname(certPath)).then(() => writeFile(certPath, cert))
-			]).then(function() {
-				return {key, cert};
-			});
-		});
-		/* eslint-enable no-console */
+	const ok = await yesno({
+		question: "No SSL certificates found. " +
+			"Do you want to create new SSL certificates and install them locally? (yes)",
+		defaultValue: true
 	});
+
+	if (!ok) {
+		throw new Error("Certificate installation aborted! Please install the SSL certificate manually.");
+	}
+
+	// In case certificate is not found, create a self-signed one and put it into the user's trust store
+	const devCert = require("devcert-sanscache");
+
+	// Inform end user about entering his root password (needed for importing
+	// the created certificate into the system)
+	// TODO: Prompt and logging should happen in CLI module rather than server
+	if (process.platform === "win32") {
+		/* eslint-disable-next-line no-console */
+		console.log("Please press allow in the opened dialog to confirm importing the newly created " +
+			"SSL certificate into the operating system and browsers.");
+	} else {
+		/* eslint-disable-next-line no-console */
+		console.log("Please enter your root password to allow importing the newly created " +
+			"SSL certificate into the operating system and browsers.");
+	}
+
+	const {key, cert} = await devCert("ui5-tooling");
+	await Promise.all([
+		// Write certificates to the ui5 certificate folder
+		// such that they are used by default upon next startup
+		makeDir(path.dirname(keyPath)).then(() => writeFile(keyPath, key)),
+		makeDir(path.dirname(certPath)).then(() => writeFile(certPath, cert))
+	]);
+	return {key, cert};
 }
 
 function fileExists(filePath) {
