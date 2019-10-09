@@ -2,7 +2,15 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.5.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.5.2...HEAD).
+
+<a name="v1.5.2"></a>
+## [v1.5.2] - 2019-10-06
+### Bug Fixes
+- Improve recognition of main module in case of bundles ([#341](https://github.com/SAP/ui5-builder/issues/341)) [`7a560b4`](https://github.com/SAP/ui5-builder/commit/7a560b4bbc4c862ebded6f9e9f12c2156b1e33d1)
+- Align set of known file types with runtime ([#337](https://github.com/SAP/ui5-builder/issues/337)) [`8b372f1`](https://github.com/SAP/ui5-builder/commit/8b372f1ad65d0edfe5cd440bd9352db7e48ea156)
+- **manifestCreator:** Only consider component files called Component.js ([#273](https://github.com/SAP/ui5-builder/issues/273)) [`82fe267`](https://github.com/SAP/ui5-builder/commit/82fe2675114c13603238889e43be498f92d22a51)
+
 
 <a name="v1.5.1"></a>
 ## [v1.5.1] - 2019-09-04
@@ -250,6 +258,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.5.2]: https://github.com/SAP/ui5-builder/compare/v1.5.1...v1.5.2
 [v1.5.1]: https://github.com/SAP/ui5-builder/compare/v1.5.0...v1.5.1
 [v1.5.0]: https://github.com/SAP/ui5-builder/compare/v1.4.2...v1.5.0
 [v1.4.2]: https://github.com/SAP/ui5-builder/compare/v1.4.1...v1.4.2
