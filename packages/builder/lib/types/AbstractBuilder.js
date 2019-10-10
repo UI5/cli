@@ -97,6 +97,7 @@ class AbstractBuilder {
 						{module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name
+						{string} [parameters.options.projectNamespace] Project namespace if available
 						{string} [parameters.options.configuration] Task configuration if given in ui5.yaml
 					Returns:
 						{Promise<undefined>} Promise resolving with undefined once data has been written
@@ -106,6 +107,7 @@ class AbstractBuilder {
 					dependencies: resourceCollections.dependencies,
 					options: {
 						projectName: project.metadata.name,
+						projectNamespace: project.metadata.namespace,
 						configuration: taskDef.configuration
 					}
 				});

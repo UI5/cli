@@ -29,7 +29,8 @@ const applicationBTree = {
 	specVersion: "0.1",
 	type: "application",
 	metadata: {
-		name: "application.b"
+		name: "application.b",
+		namespace: "application/b"
 	},
 	resources: {
 		configuration: {
@@ -206,6 +207,7 @@ test.serial("Instantiation with custom task defined three times", (t) => {
 test.serial("Instantiation with custom task: Custom task called correctly", (t) => {
 	const customTask = function({workspace, dependencies, options}) {
 		t.deepEqual(options.projectName, "application.b", "Correct project name passed to custom task");
+		t.deepEqual(options.projectNamespace, "application/b", "Correct project namespace passed to custom task");
 		t.deepEqual(options.configuration, "pony", "Correct configuration passed to custom task");
 		t.deepEqual(workspace, "myWorkspace", "Correct workspace passed to custom task");
 		t.deepEqual(dependencies, "myDependencies", "Correct dependency collection passed to custom task");
