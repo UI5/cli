@@ -70,7 +70,7 @@ build.builder = function(cli) {
 			"Build project and dependencies in dev mode. Only a set of essential tasks is executed.");
 };
 
-function handleBuild(argv) {
+async function handleBuild(argv) {
 	const normalizer = require("@ui5/project").normalizer;
 	const builder = require("@ui5/builder").builder;
 	const logger = require("@ui5/logger");
@@ -78,22 +78,21 @@ function handleBuild(argv) {
 	const command = argv._[argv._.length - 1];
 	logger.setShowProgress(true);
 
-	return normalizer.generateProjectTree({
+	const tree = await normalizer.generateProjectTree({
 		translatorName: argv.translator,
 		configPath: argv.config
-	}).then(function(tree) {
-		return builder.build({
-			tree: tree,
-			destPath: argv.dest,
-			cleanDest: argv["clean-dest"],
-			buildDependencies: argv.all,
-			dev: command === "dev",
-			selfContained: command === "self-contained",
-			jsdoc: command === "jsdoc",
-			devExcludeProject: argv["dev-exclude-project"],
-			includedTasks: argv["include-task"],
-			excludedTasks: argv["exclude-task"]
-		});
+	});
+	await builder.build({
+		tree: tree,
+		destPath: argv.dest,
+		cleanDest: argv["clean-dest"],
+		buildDependencies: argv.all,
+		dev: command === "dev",
+		selfContained: command === "self-contained",
+		jsdoc: command === "jsdoc",
+		devExcludeProject: argv["dev-exclude-project"],
+		includedTasks: argv["include-task"],
+		excludedTasks: argv["exclude-task"]
 	});
 }
 

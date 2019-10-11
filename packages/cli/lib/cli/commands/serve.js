@@ -54,79 +54,69 @@ serve.builder = function(cli) {
 			"Listen to port 1337 and launch default browser with http://localhost:1337/test/QUnit.html");
 };
 
-serve.handler = function(argv) {
+serve.handler = async function(argv) {
 	const normalizer = require("@ui5/project").normalizer;
 	const ui5Server = require("@ui5/server");
 	const server = ui5Server.server;
 
-	normalizer.generateProjectTree({
+	const tree = await normalizer.generateProjectTree({
 		translatorName: argv.translator,
 		configPath: argv.config
-	}).then(function(tree) {
-		let port = argv.port;
-		let changePortIfInUse = false;
-
-		if (!port && tree.server && tree.server.settings) {
-			if (argv.h2) {
-				port = tree.server.settings.httpsPort;
-			} else {
-				port = tree.server.settings.httpPort;
-			}
-		}
-
-		if (!port) {
-			changePortIfInUse = true; // only change if port isn't explicitly set
-			if (argv.h2) {
-				port = 8443;
-			} else {
-				port = 8080;
-			}
-		}
-
-		const serverConfig = {
-			port,
-			changePortIfInUse,
-			h2: argv.h2,
-			acceptRemoteConnections: !!argv.acceptRemoteConnections,
-			cert: argv.h2 ? argv.cert : undefined,
-			key: argv.h2 ? argv.key : undefined,
-			sendSAPTargetCSP: !!argv.sapCspPolicies
-		};
-
-		if (!serverConfig.h2) {
-			return {serverConfig, tree};
-		} else {
-			return ui5Server.sslUtil.getSslCertificate(serverConfig.key, serverConfig.cert).then(({key, cert}) => {
-				serverConfig.key = key;
-				serverConfig.cert = cert;
-				return {serverConfig, tree};
-			});
-		}
-	}).then(({serverConfig, tree}) => {
-		return server.serve(tree, serverConfig).then(function({h2, port}) {
-			const protocol = h2 ? "https" : "http";
-			let browserUrl = protocol + "://localhost:" + port;
-			console.log("Server started");
-			console.log("URL: " + browserUrl);
-
-			if (argv.open !== undefined) {
-				if (typeof argv.open === "string") {
-					let relPath = argv.open || "/";
-					if (!relPath.startsWith("/")) {
-						relPath = "/" + relPath;
-					}
-					browserUrl += relPath;
-				}
-				const open = require("open");
-				open(browserUrl);
-			}
-
-			return browserUrl;
-		});
-	}).catch(function(err) {
-		console.error(err);
-		process.exit(1);
 	});
+	let port = argv.port;
+	let changePortIfInUse = false;
+
+	if (!port && tree.server && tree.server.settings) {
+		if (argv.h2) {
+			port = tree.server.settings.httpsPort;
+		} else {
+			port = tree.server.settings.httpPort;
+		}
+	}
+
+	if (!port) {
+		changePortIfInUse = true; // only change if port isn't explicitly set
+		if (argv.h2) {
+			port = 8443;
+		} else {
+			port = 8080;
+		}
+	}
+
+	const serverConfig = {
+		port,
+		changePortIfInUse,
+		h2: argv.h2,
+		acceptRemoteConnections: !!argv.acceptRemoteConnections,
+		cert: argv.h2 ? argv.cert : undefined,
+		key: argv.h2 ? argv.key : undefined,
+		sendSAPTargetCSP: !!argv.sapCspPolicies
+	};
+
+	if (serverConfig.h2) {
+		const {key, cert} = await ui5Server.sslUtil.getSslCertificate(serverConfig.key, serverConfig.cert);
+		serverConfig.key = key;
+		serverConfig.cert = cert;
+	}
+
+	const {h2, port: actualPort} = await server.serve(tree, serverConfig);
+
+	const protocol = h2 ? "https" : "http";
+	let browserUrl = protocol + "://localhost:" + actualPort;
+	console.log("Server started");
+	console.log("URL: " + browserUrl);
+
+	if (argv.open !== undefined) {
+		if (typeof argv.open === "string") {
+			let relPath = argv.open || "/";
+			if (!relPath.startsWith("/")) {
+				relPath = "/" + relPath;
+			}
+			browserUrl += relPath;
+		}
+		const open = require("open");
+		open(browserUrl);
+	}
 };
 
 module.exports = serve;

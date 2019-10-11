@@ -17,26 +17,21 @@ versions.getVersion = (pkg) => {
 	}
 };
 
-versions.handler = () => {
-	try {
-		const cliVersion = versions.getVersion("../../..");
-		const builderVersion = versions.getVersion("@ui5/builder");
-		const serverVersion = versions.getVersion("@ui5/server");
-		const fsVersion = versions.getVersion("@ui5/fs");
-		const projectVersion = versions.getVersion("@ui5/project");
-		const loggerVersion = versions.getVersion("@ui5/logger");
-		console.log(`
-	@ui5/cli:      ${cliVersion}
-	@ui5/builder:  ${builderVersion}
-	@ui5/server:   ${serverVersion}
-	@ui5/fs:       ${fsVersion}
-	@ui5/project:  ${projectVersion}
-	@ui5/logger:   ${loggerVersion}
-		`);
-	} catch (err) {
-		console.error(err);
-		process.exit(1);
-	}
+versions.handler = async function() {
+	const cliVersion = versions.getVersion("../../..");
+	const builderVersion = versions.getVersion("@ui5/builder");
+	const serverVersion = versions.getVersion("@ui5/server");
+	const fsVersion = versions.getVersion("@ui5/fs");
+	const projectVersion = versions.getVersion("@ui5/project");
+	const loggerVersion = versions.getVersion("@ui5/logger");
+	console.log(`
+@ui5/cli:      ${cliVersion}
+@ui5/builder:  ${builderVersion}
+@ui5/server:   ${serverVersion}
+@ui5/fs:       ${fsVersion}
+@ui5/project:  ${projectVersion}
+@ui5/logger:   ${loggerVersion}
+	`);
 };
 
 module.exports = versions;

@@ -26,11 +26,10 @@ tree.builder = function(cli) {
 		.example("ui5 tree --json > tree.json", "Pipes the dependency tree into a new file \"tree.json\"");
 };
 
-tree.handler = function(argv) {
+tree.handler = async function(argv) {
 	const normalizer = require("@ui5/project").normalizer;
 	const treeify = require("treeify");
 
-	let p;
 	const options = {
 		translatorName: argv.translator,
 		translatorOptions: {
@@ -39,19 +38,13 @@ tree.handler = function(argv) {
 		configPath: argv.config
 	};
 	if (argv.full) {
-		p = normalizer.generateProjectTree(options);
+		await normalizer.generateProjectTree(options);
 	} else {
-		p = normalizer.generateDependencyTree(options);
+		await normalizer.generateDependencyTree(options);
 	}
 
-	p.then(function(tree) {
-		const output = argv.json ? JSON.stringify(tree, null, 4) : treeify.asTree(tree, true);
-		console.log(output);
-		return output;
-	}).catch(function(err) {
-		console.error(err);
-		process.exit(1);
-	});
+	const output = argv.json ? JSON.stringify(tree, null, 4) : treeify.asTree(tree, true);
+	console.log(output);
 };
 
 module.exports = tree;

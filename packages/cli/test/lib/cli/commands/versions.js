@@ -20,10 +20,9 @@ test.serial("Error: returns not installed if version was not found", (t) => {
 	t.is(versions.getVersion("not/existing/path"), "===(not installed)", "No version found");
 });
 
-test.serial("Error: kills process if error occurred while processing", (t) => {
+test.serial("Error: throws with error if error occurred while processing", async (t) => {
 	sinon.stub(process, "exit");
-	sinon.stub(versions, "getVersion").throws("Error occurred");
-	versions.handler({});
-	t.is(process.exit.getCall(0).args[0], 1, "Process was killed with code 1");
-	process.exit.restore();
+	sinon.stub(versions, "getVersion").throws(new Error("Error occurred"));
+	const error = await t.throwsAsync(versions.handler({}));
+	t.deepEqual(error.message, "Error occurred", "Correct error message thrown");
 });

@@ -14,22 +14,17 @@ initCommand.handler = async function() {
 	const jsYaml = require("js-yaml");
 	const writeFile = promisify(fs.writeFile);
 
-	try {
-		const yamlPath = path.resolve("./ui5.yaml");
-		if (await fsHelper.exists(yamlPath)) {
-			throw new Error("Initialization not possible: ui5.yaml already exists");
-		}
-
-		const projectConfig = await init.init();
-		const yaml = jsYaml.safeDump(projectConfig);
-
-		await writeFile(yamlPath, yaml);
-		console.log(`Wrote ui5.yaml to ${yamlPath}:\n`);
-		console.log(yaml);
-	} catch (err) {
-		console.error(err);
-		process.exit(1);
+	const yamlPath = path.resolve("./ui5.yaml");
+	if (await fsHelper.exists(yamlPath)) {
+		throw new Error("Initialization not possible: ui5.yaml already exists");
 	}
+
+	const projectConfig = await init.init();
+	const yaml = jsYaml.safeDump(projectConfig);
+
+	await writeFile(yamlPath, yaml);
+	console.log(`Wrote ui5.yaml to ${yamlPath}:\n`);
+	console.log(yaml);
 };
 
 module.exports = initCommand;
