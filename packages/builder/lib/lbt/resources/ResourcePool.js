@@ -61,35 +61,38 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 	const info = new ModuleInfo(resource.name);
 	info.size = resource.fileSize;
 	if ( /\.js$/.test(resource.name) ) {
+		// console.log("analyzing %s", resource.file);
+		const code = await resource.buffer();
+		info.size = code.length;
+		const promises = [];
+		try {
+			const ast = esprima.parseScript(code.toString(), {comment: true});
+			jsAnalyzer.analyze(ast, resource.name, info);
+			new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
+		} catch (error) {
+			log.error("failed to parse or analyze %s:", resource.name, error);
+		}
 		if ( rawInfo ) {
-			// modules for which a raw-info was modelled should not be analyzed
-			// otherwise, we detect the internal dependencies of sap-viz.js, but can't handle them
-			// as we don't have access to the individual modules
-
+			info.rawModule = true;
 			// console.log("adding preconfigured dependencies for %s:", resource.name, rawInfo.dependencies);
 			rawInfo.dependencies.forEach( (dep) => info.addDependency(dep) );
-		} else {
-			// console.log("analyzing %s", resource.file);
-			const code = await resource.buffer();
-			info.size = code.length;
-			const promises = [];
-			try {
-				const ast = esprima.parseScript(code.toString(), {comment: true});
-				jsAnalyzer.analyze(ast, resource.name, info);
-				new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
-			} catch (error) {
-				log.error("failed to parse or analyze %s:", resource.name, error);
+			if ( rawInfo.requiresTopLevelScope ) {
+				info.requiresTopLevelScope = true;
 			}
-			if ( /(?:^|\/)Component\.js/.test(resource.name) ) {
-				promises.push(
-					new ComponentAnalyzer(pool).analyze(resource, info),
-					new SmartTemplateAnalyzer(pool).analyze(resource, info),
-					new FioriElementsAnalyzer(pool).analyze(resource, info)
-				);
+			if ( rawInfo.ignoredGlobals ) {
+				info.ignoredGlobals = rawInfo.ignoredGlobals;
 			}
-
-			await Promise.all(promises);
 		}
+		if ( /(?:^|\/)Component\.js/.test(resource.name) ) {
+			promises.push(
+				new ComponentAnalyzer(pool).analyze(resource, info),
+				new SmartTemplateAnalyzer(pool).analyze(resource, info),
+				new FioriElementsAnalyzer(pool).analyze(resource, info)
+			);
+		}
+
+		await Promise.all(promises);
+
 		// console.log(info);
 	} else if ( /\.view.xml$/.test(resource.name) ) {
 		const xmlView = await resource.buffer();

@@ -317,7 +317,7 @@ class JSModuleAnalyzer {
 		if ( currentScope.set.size > 0 ) {
 			info.requiresTopLevelScope = true;
 			info.exposedGlobals = Array.from(currentScope.set.keys());
-			// console.log(info.name, info.exposedGlobals);
+			// console.log(info.name, "exposed globals", info.exposedGlobals, "ignoredGlobals", info.ignoredGlobals);
 		}
 
 		return;

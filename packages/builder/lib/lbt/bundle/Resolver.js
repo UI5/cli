@@ -56,8 +56,21 @@ class BundleResolver {
 				return match;
 			}
 
-			function isMultiModule(moduleInfo) {
-				return moduleInfo && moduleInfo.subModules.length > 0 && !/(?:^|\/)library.js$/.test(moduleInfo.name);
+			function checkForDecomposableBundle(resource) {
+				if ( resource == null
+						|| resource.info == null
+						|| resource.info.subModules.length === 0
+						|| /(?:^|\/)library.js$/.test(resource.info.name) ) {
+					return {resource, decomposable: false};
+				}
+
+				return Promise.all(
+					resource.info.subModules.map((sub) => pool.findResource(sub).catch(() => false))
+				).then((modules) => {
+					// it might look more natural to expect 'all' embedded modules to exist in the pool,
+					// but expecting only 'some' module to exist is a more conservative approach
+					return ({resource, decomposable: modules.some(($) => ($))});
+				});
 			}
 
 			function checkAndAddResource(resourceName, depth, msg) {
@@ -74,50 +87,55 @@ class BundleResolver {
 					// remember that we have seen this module already
 					visitedResources[resourceName] = resourceName;
 
-					done = pool.findResourceWithInfo(resourceName).then( function(resource) {
-						const dependencyInfo = resource && resource.info;
-						let promises = [];
+					done = pool.findResourceWithInfo(resourceName)
+						.catch( (err) => {
+							// if the caller provided an error message, log it
+							if ( msg ) {
+								log.error(msg);
+							}
+							// return undefined
+						})
+						.then( (resource) => checkForDecomposableBundle(resource) )
+						.then( ({resource, decomposable}) => {
+							const dependencyInfo = resource && resource.info;
+							let promises = [];
 
-						if ( isMultiModule(dependencyInfo) ) {
-							// multi modules are not added, only their pieces (sub modules)
-							promises = dependencyInfo.subModules.map( (included) => {
-								return checkAndAddResource(included, depth + 1,
-									"**** error: missing submodule " + included + ", included by " + resourceName);
-							});
-						} else if ( resource != null ) {
-							// trace.trace("    checking dependencies of " + resource.name );
-							selectedResources[resourceName] = resourceName;
-							selectedResourcesSequence.push(resourceName);
-
-							// trace.info("    collecting %s", resource.name);
-
-							// add dependencies, if 'resolve' is configured
-							if ( section.resolve && dependencyInfo ) {
-								promises = dependencyInfo.dependencies.map( function(required) {
-									// ignore conditional dependencies if not configured
-									if ( !section.resolveConditional
-											&& dependencyInfo.isConditionalDependency(required) ) {
-										return;
-									}
-
-									return checkAndAddResource( required, depth + 1,
-										"**** error: missing module " + required + ", required by " + resourceName);
+							if ( decomposable ) {
+								// bundles are not added, only their embedded modules
+								promises = dependencyInfo.subModules.map( (included) => {
+									return checkAndAddResource(included, depth + 1,
+										"**** error: missing submodule " + included + ", included by " + resourceName);
 								});
+							} else if ( resource != null ) {
+								// trace.trace("    checking dependencies of " + resource.name );
+								selectedResources[resourceName] = resourceName;
+								selectedResourcesSequence.push(resourceName);
+
+								// trace.info("    collecting %s", resource.name);
+
+								// add dependencies, if 'resolve' is configured
+								if ( section.resolve && dependencyInfo ) {
+									promises = dependencyInfo.dependencies.map( function(required) {
+										// ignore conditional dependencies if not configured
+										if ( !section.resolveConditional
+												&& dependencyInfo.isConditionalDependency(required) ) {
+											return;
+										}
+
+										return checkAndAddResource( required, depth + 1,
+											"**** error: missing module " + required + ", required by " + resourceName);
+									});
+								}
+
+								// add renderer, if 'renderer' is configured and if it exists
+								if ( section.renderer ) {
+									const rendererModuleName = UI5ClientConstants.getRendererName( resourceName );
+									promises.push( checkAndAddResource( rendererModuleName, depth + 1) );
+								}
 							}
 
-							// add renderer, if 'renderer' is configured and if it exists
-							if ( section.renderer ) {
-								const rendererModuleName = UI5ClientConstants.getRendererName( resourceName );
-								promises.push( checkAndAddResource( rendererModuleName, depth + 1) );
-							}
-						}
-
-						return Promise.all( promises.filter( ($) => $ ) );
-					}, function(err) {
-						if ( msg ) {
-							log.error(msg);
-						}
-					}); // what todo after resource has been visited?
+							return Promise.all( promises.filter( ($) => $ ) );
+						});
 
 					if ( dependencyTracker != null ) {
 						dependencyTracker.endVisitDependency(resourceName);

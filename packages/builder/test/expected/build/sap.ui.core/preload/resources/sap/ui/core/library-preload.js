@@ -2,8 +2,6 @@
 jQuery.sap.registerPreloadedModules({
 "version":"2.0",
 "modules":{
-	"sap/ui/core/Core.js":function(){
-},
 	"sap/ui/core/some.js":function(){/*!
  * ${copyright}
  */

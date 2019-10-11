@@ -10,10 +10,22 @@ function getBundleDefinition(namespace) {
 			defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
 			sections: [
 				{
+					// exclude the content of sap-ui-core by declaring it as 'provided'
+					mode: "provided",
+					filters: [
+						"ui5loader-autoconfig.js",
+						"sap/ui/core/Core.js"
+					],
+					resolve: true
+				},
+				{
 					mode: "preload",
 					filters: [
 						`${namespace}/`,
 						`!${namespace}/.library`,
+						`!${namespace}/designtime/`,
+						`!${namespace}/**/*.designtime.js`,
+						`!${namespace}/**/*.support.js`,
 						`!${namespace}/themes/`,
 						`!${namespace}/cldr/`,
 						`!${namespace}/messagebundle*`,
@@ -21,7 +33,6 @@ function getBundleDefinition(namespace) {
 						"*.js",
 						"sap/base/",
 						"sap/ui/base/",
-						"sap/ui/xml/",
 						"sap/ui/dom/",
 						"sap/ui/events/",
 						"sap/ui/model/",
@@ -29,16 +40,21 @@ function getBundleDefinition(namespace) {
 						"sap/ui/util/",
 						"sap/ui/Global.js",
 
-						// files are already part of sap-ui-core.js
-						"!sap/ui/thirdparty/baseuri.js",
-						"!sap/ui/thirdparty/es6-promise.js",
-						"!sap/ui/thirdparty/es6-string-methods.js",
-						"!sap/ui/thirdparty/mdn-object-assign.js",
-						"!jquery.sap.global.js",
-						"!ui5loader-autoconfig.js",
-						"!ui5loader.js",
-						"!ui5loader-amd.js",
-						"!sap-ui-*.js"
+						// include only thirdparty that is very likely to be used
+						"sap/ui/thirdparty/crossroads.js",
+						"sap/ui/thirdparty/caja-htmlsanitizer.js",
+						"sap/ui/thirdparty/hasher.js",
+						"sap/ui/thirdparty/signals.js",
+						"sap/ui/thirdparty/jquery-mobile-custom.js",
+						"sap/ui/thirdparty/jqueryui/jquery-ui-core.js",
+						"sap/ui/thirdparty/jqueryui/jquery-ui-position.js",
+
+						// other excludes (not required for productive scenarios)
+						"!sap-ui-*.js",
+						"!sap/ui/core/support/",
+						"!sap/ui/core/plugin/DeclarativeSupport.js",
+						"!sap/ui/core/plugin/LessSupport.js"
+
 					],
 					resolve: false,
 					resolveConditional: false,
@@ -56,6 +72,9 @@ function getBundleDefinition(namespace) {
 				filters: [
 					`${namespace}/`,
 					`!${namespace}/.library`,
+					`!${namespace}/designtime/`,
+					`!${namespace}/**/*.designtime.js`,
+					`!${namespace}/**/*.support.js`,
 					`!${namespace}/themes/`,
 					`!${namespace}/messagebundle*`
 				],
@@ -232,7 +251,11 @@ module.exports = function({workspace, dependencies, options}) {
 						const libraryNamespace = libraryNamespaceMatch[1];
 						return moduleBundler({
 							options: {
-								bundleDefinition: getBundleDefinition(libraryNamespace)
+								bundleDefinition: getBundleDefinition(libraryNamespace),
+								bundleOptions: {
+									optimize: true,
+									usePredefineCalls: true
+								}
 							},
 							resources
 						}).then(([bundle]) => {

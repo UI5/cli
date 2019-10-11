@@ -1,4 +1,5 @@
 const test = require("ava");
+const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
 const ResourceFilterList = require("../../../../lib/lbt/resources/ResourceFilterList");
 
@@ -203,12 +204,20 @@ test("addResource twice", async (t) => {
 	t.is(resourcePool._resourcesByName.size, 1, "resource a was added to _resourcesByName map");
 });
 
-test.serial("addResource: library", async (t) => {
+test.serial("addResource: library and eval raw module info", async (t) => {
 	const resourcePool = new ResourcePool();
 
+	const infoA = new ModuleInfo("moduleA.js");
+	infoA.rawModule = true;
+	infoA.addDependency("123.js");
+	infoA.ignoredGlobals = ["foo", "bar"];
+	const infoB = new ModuleInfo("moduleB.js");
+	infoB.rawModule = true;
+	infoB.addDependency("456.js");
+
 	const stubGetDependencyInfos = sinon.stub(LibraryFileAnalyzer, "getDependencyInfos").returns({
-		myKeyA: "123",
-		myKeyB: "456"
+		"moduleA.js": infoA,
+		"moduleB.js": infoB
 	});
 
 	const library = {
@@ -216,11 +225,43 @@ test.serial("addResource: library", async (t) => {
 		buffer: async () => ""
 	};
 	await resourcePool.addResource(library);
-	t.deepEqual(resourcePool._resources, [library], "library a has been added to resources array twice");
+	const moduleA = {
+		name: "moduleA.js",
+		buffer: async () => "var foo,bar,some;"
+	};
+	await resourcePool.addResource(moduleA);
+	const moduleB = {
+		name: "moduleB.js",
+		buffer: async () => "var foo,bar,some; jQuery.sap.require(\"moduleC\");"
+	};
+	await resourcePool.addResource(moduleB);
+
+	t.deepEqual(resourcePool._resources, [library, moduleA, moduleB], "resources have been added to resources array");
 	t.is(resourcePool._resourcesByName.get("a.library"), library,
 		"library a has been added to the _resourcesByName map");
-	t.is(resourcePool._resourcesByName.size, 1, "library a was added to _resourcesByName map");
-	t.deepEqual(resourcePool._rawModuleInfos.get("myKeyA"), "123", "module info has been added to _rawModuleInfos");
-	t.deepEqual(resourcePool._rawModuleInfos.get("myKeyB"), "456", "module info has been added to _rawModuleInfos");
+	t.is(resourcePool._resourcesByName.size, 3, "library a was added to _resourcesByName map");
+	t.deepEqual(resourcePool._rawModuleInfos.get("moduleA.js"), infoA, "module info has been added to _rawModuleInfos");
+	t.deepEqual(resourcePool._rawModuleInfos.get("moduleB.js"), infoB, "module info has been added to _rawModuleInfos");
+
+	const actualResourceA = await resourcePool.findResourceWithInfo("moduleA.js");
+	t.true(actualResourceA.info instanceof ModuleInfo);
+	t.deepEqual(actualResourceA.info.dependencies, ["123.js"],
+		"configured dependencies should have been dded");
+	t.true(actualResourceA.info.requiresTopLevelScope);
+	t.deepEqual(actualResourceA.info.exposedGlobals, ["foo", "bar", "some"],
+		"global names should be known from analsyis step");
+	t.deepEqual(actualResourceA.info.ignoredGlobals, ["foo", "bar"],
+		"ignored globals should have been taken from .library");
+
+	const actualResourceB = await resourcePool.findResourceWithInfo("moduleB.js");
+	t.true(actualResourceB.info instanceof ModuleInfo);
+	t.deepEqual(actualResourceB.info.dependencies, ["moduleC.js", "jquery.sap.global.js", "456.js"],
+		"dependencies from analsyis and raw info should have been merged");
+	t.true(actualResourceB.info.requiresTopLevelScope);
+	t.deepEqual(actualResourceB.info.exposedGlobals, ["foo", "bar", "some"],
+		"global names should be known from analsyis step");
+	t.deepEqual(actualResourceB.info.ignoredGlobals, undefined);
+
 	stubGetDependencyInfos.restore();
 });
+
