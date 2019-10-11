@@ -18,6 +18,22 @@ npmlog.on("error", (err) => {
 	console.log(err);
 });
 
+function isLevelEnabled(levelName) {
+	const currIdx = levels.indexOf(npmlog.level);
+	const reqIdx = levels.indexOf(levelName);
+	if (currIdx === -1) {
+		throw new Error(`Failed to find current log level "${npmlog.level}"" in list of expected log levels`);
+	}
+	if (reqIdx === -1) {
+		throw new Error(`Unkown log level "${levelName}"`);
+	}
+	if (reqIdx >= currIdx) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
 class Logger {
 	constructor(moduleName) {
 		this._moduleName = moduleName;
@@ -25,19 +41,7 @@ class Logger {
 	}
 
 	isLevelEnabled(levelName) {
-		const currIdx = levels.indexOf(npmlog.level);
-		const reqIdx = levels.indexOf(levelName);
-		if (currIdx === -1) {
-			throw new Error(`Failed to find current log level ${npmlog.level} in list of expected log levels`);
-		}
-		if (reqIdx === -1) {
-			throw new Error(`Unkown log level "${levelName}"`);
-		}
-		if (reqIdx >= currIdx) {
-			return true;
-		} else {
-			return false;
-		}
+		return isLevelEnabled(levelName);
 	}
 
 	silly(...messages) {
@@ -134,6 +138,8 @@ module.exports = {
 		}
 		return npmlog.level = level;
 	},
+
+	isLevelEnabled,
 
 	setShowProgress(showProgress) {
 		if (showProgress) {
