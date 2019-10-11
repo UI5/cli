@@ -78,7 +78,7 @@ function handleBuild(argv) {
 	const command = argv._[argv._.length - 1];
 	logger.setShowProgress(true);
 
-	normalizer.generateProjectTree({
+	return normalizer.generateProjectTree({
 		translatorName: argv.translator,
 		configPath: argv.config
 	}).then(function(tree) {
@@ -94,9 +94,6 @@ function handleBuild(argv) {
 			includedTasks: argv["include-task"],
 			excludedTasks: argv["exclude-task"]
 		});
-	}).catch(function(err) {
-		console.error(err);
-		process.exit(1);
 	});
 }
 

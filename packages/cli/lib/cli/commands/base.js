@@ -29,4 +29,58 @@ cli.usage("Usage: ui5 <command> [options]")
 	.example("ui5 <command> --translator static:/path/to/projectDependencies.yaml",
 		"Execute command using a \"static\" translator with translator parameters")
 	.example("ui5 <command> --config /path/to/ui5.yaml",
-		"Execute command using a project configuration from custom path");
+		"Execute command using a project configuration from custom path")
+	.fail(function(msg, err, yargs) {
+		const chalk = require("chalk");
+		if (err) {
+			// Exception
+			const logger = require("@ui5/logger");
+			if (logger.isLevelEnabled("error")) {
+				console.log("");
+				console.log(chalk.bold.red("⚠️  Process Failed With Error"));
+
+				console.log("");
+				console.log(chalk.underline("Error Message:"));
+				console.log(err.message);
+
+				if (logger.isLevelEnabled("verbose")) {
+					console.log("");
+					console.log(chalk.underline("Stack Trace:"));
+					console.log(err.stack);
+
+					// Try to guess responsible module from stack trace file paths
+					const moduleRegExp = /@?ui5.(?:logger|fs|builder|server|project|cli)/ig;
+
+					// Only check the lowest stack entry
+					const rootStackEntry = err.stack.split("\n")[1];
+					const match = rootStackEntry.match(moduleRegExp);
+					if (match) {
+						// Use the last match of the line because of cases like this:
+						//	node_modules/@ui5/cli/node_modules/@ui5/builder/lib/ => should match the builder
+						let moduleNameGuess = match[match.length - 1];
+
+						// Normalize match
+						moduleNameGuess = moduleNameGuess.replace(/.*(ui5).(.*)/i, "$1-$2").toLowerCase();
+						const newIssueUrl = `https://github.com/SAP/${moduleNameGuess}/issues/new`;
+						console.log("");
+						console.log(
+							chalk.dim(
+								`If you think this is an issue of the UI5 Tooling, you might report it using the ` +
+								`following URL: `) +
+							chalk.dim.bold.underline(newIssueUrl));
+					}
+				} else {
+					console.log("");
+					console.log(chalk.dim(
+						`For details, execute the same command again with an additional '--verbose' parameter`));
+				}
+			}
+		} else {
+			// Yargs error
+			console.log(chalk.bold.yellow("Command Failed:"));
+			console.log(`${msg}`);
+			console.log("");
+			console.log(chalk.dim(`See 'ui5 --help' or 'ui5 build --help' for help`));
+		}
+		process.exit(1);
+	});
