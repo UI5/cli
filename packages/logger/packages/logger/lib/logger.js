@@ -1,6 +1,6 @@
 const npmlog = require("npmlog");
 
-const levels = ["silly", "verbose", "info", "warn", "error"];
+const levels = ["silly", "verbose", "info", "warn", "error", "silent"];
 if (process.env.UI5_LOG_LVL) {
 	const logLvl = process.env.UI5_LOG_LVL;
 	if (!levels.includes(logLvl)) {
@@ -129,6 +129,9 @@ module.exports = {
 	},
 
 	setLevel(level) {
+		if (!levels.includes(level)) {
+			throw new Error(`Unkown log level "${level}"`);
+		}
 		return npmlog.level = level;
 	},
 
