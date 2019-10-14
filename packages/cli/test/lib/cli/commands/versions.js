@@ -2,6 +2,10 @@ const test = require("ava");
 const sinon = require("sinon");
 const versions = require("../../../../lib/cli/commands/versions");
 
+test.afterEach.always((t) => {
+	sinon.restore();
+});
+
 test.serial("Retrieves version from package.json", (t) => {
 	const builderVersion = versions.getVersion("../../../test/fixtures/@ui5/builder");
 	const serverVersion = versions.getVersion("../../../test/fixtures/@ui5/server");
@@ -21,7 +25,6 @@ test.serial("Error: returns not installed if version was not found", (t) => {
 });
 
 test.serial("Error: throws with error if error occurred while processing", async (t) => {
-	sinon.stub(process, "exit");
 	sinon.stub(versions, "getVersion").throws(new Error("Error occurred"));
 	const error = await t.throwsAsync(versions.handler({}));
 	t.deepEqual(error.message, "Error occurred", "Correct error message thrown");
