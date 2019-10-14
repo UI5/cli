@@ -29,16 +29,27 @@ class MiddlewareManager {
 		});
 	}
 
-	async addMiddleware(middlewareName, {
+	async addMiddleware(configuredMiddlewareName, {
 		wrapperCallback, mountPath = "/",
 		beforeMiddleware, afterMiddleware
 	} = {}) {
-		let middlewareCallback = middlewareRepository.getMiddleware(middlewareName);
+		let middlewareCallback = middlewareRepository.getMiddleware(configuredMiddlewareName);
 		if (wrapperCallback) {
 			middlewareCallback = wrapperCallback(middlewareCallback);
 		}
-		if (this.middleware[middlewareName] || this.middlewareExecutionOrder.includes(middlewareName)) {
-			throw new Error(`Failed to add duplicate middleware ${middlewareName}`);
+
+		let middlewareName = configuredMiddlewareName;
+		if (this.middleware[middlewareName]) {
+			// Middleware is already known
+			// => add a suffix to allow for multiple configurations of the same middleware
+			let suffixCounter = 0;
+			while (this.middleware[middlewareName]) {
+				suffixCounter++; // Start at 1
+				middlewareName = `${configuredMiddlewareName}--${suffixCounter}`;
+			}
+		}
+		if (this.middlewareExecutionOrder.includes(middlewareName)) {
+			throw new Error(`Middleware ${middlewareName} already added to execution order. This should not happen.`);
 		}
 
 		if (beforeMiddleware || afterMiddleware) {
@@ -154,11 +165,6 @@ class MiddlewareManager {
 					`defines neither a "beforeMiddleware" nor an "afterMiddleware" parameter. One must be defined.`);
 			}
 
-			if (this.middleware[middlewareDef.name]) {
-				// Middleware is already known
-				throw new Error(`Failed to add custom middleware ${middlewareDef.name}. ` +
-					`A middleware with the same name is already known.`);
-			}
 			await this.addMiddleware(middlewareDef.name, {
 				wrapperCallback: (middleware) => {
 					return ({resources}) => {

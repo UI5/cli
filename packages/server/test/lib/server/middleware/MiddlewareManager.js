@@ -58,7 +58,7 @@ test("applyMiddleware", async (t) => {
 	t.deepEqual(appUseStub.getCall(0).args[1], "myMiddleware", "app.use got called with correct middleware parameter");
 });
 
-test("addMiddleware: Add already added middleware", async (t) => {
+test("addMiddleware: Adding already added middleware produces unique middleware name", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		tree: {},
 		resources: {
@@ -68,11 +68,50 @@ test("addMiddleware: Add already added middleware", async (t) => {
 		}
 	});
 
-	await middlewareManager.addMiddleware("serveIndex");
+	await middlewareManager.addMiddleware("serveIndex", {
+		mountPath: "/pony"
+	});
+	await middlewareManager.addMiddleware("serveIndex", {
+		mountPath: "/seagull"
+	});
+	await middlewareManager.addMiddleware("serveIndex", {
+		mountPath: "/goose"
+	});
+	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map with unique name");
+	t.deepEqual(middlewareManager.middleware["serveIndex"].mountPath, "/pony",
+		"Middleware got added correct mount path");
+	t.truthy(middlewareManager.middleware["serveIndex--1"], "Middleware got added to internal map with unique name");
+	t.deepEqual(middlewareManager.middleware["serveIndex--1"].mountPath, "/seagull",
+		"Middleware got added correct mount path");
+	t.truthy(middlewareManager.middleware["serveIndex--2"], "Middleware got added to internal map with unique name");
+	t.deepEqual(middlewareManager.middleware["serveIndex--2"].mountPath, "/goose",
+		"Middleware got added correct mount path");
+
+	t.deepEqual(middlewareManager.middlewareExecutionOrder, [
+		"serveIndex",
+		"serveIndex--1",
+		"serveIndex--2"
+	], "Middlewares got added to middlewareExecutionOrder in correct order and with correct unique names");
+});
+
+test("addMiddleware: Adding middleware already added to middlewareExecutionOrder", async (t) => {
+	const middlewareManager = new MiddlewareManager({
+		tree: {},
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+
+	middlewareManager.middlewareExecutionOrder.push("serveIndex");
+
 	const err = await t.throwsAsync(() => {
 		return middlewareManager.addMiddleware("serveIndex");
 	});
-	t.deepEqual(err.message, "Failed to add duplicate middleware serveIndex", "Rejected with correct error message");
+	t.deepEqual(err.message,
+		"Middleware serveIndex already added to execution order. This should not happen.",
+		"Rejected with correct error message");
 });
 
 test("addMiddleware: Add middleware", async (t) => {
@@ -330,7 +369,7 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 		"addMiddleware was called with correct afterMiddleware option");
 });
 
-test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => {
+test("addCustomMiddleware: No special handling for custom middleware with duplicate name", async (t) => {
 	const project = {
 		metadata: {
 			name: "my project"
@@ -338,7 +377,7 @@ test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => 
 		server: {
 			customMiddleware: [{
 				name: "my custom middleware A",
-				afterMiddleware: "my custom middleware A"
+				afterMiddleware: "serveIndex"
 			}]
 		}
 	};
@@ -352,14 +391,11 @@ test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => 
 	});
 	middlewareManager.middleware["my custom middleware A"] = true;
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
-	const err = await t.throwsAsync(() => {
-		return middlewareManager.addCustomMiddleware();
-	});
+	await middlewareManager.addCustomMiddleware();
 
-	t.deepEqual(err.message, "Failed to add custom middleware my custom middleware A. " +
-		"A middleware with the same name is already known.",
-	"Rejected with correct error message");
-	t.deepEqual(addMiddlewareStub.callCount, 0, "Add middleware did not get called");
+	t.deepEqual(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
+	t.deepEqual(addMiddlewareStub.getCall(0).args[0], "my custom middleware A",
+		"addMiddleware was called with correct middleware name");
 });
 
 test("addCustomMiddleware: Missing name configuration", async (t) => {
