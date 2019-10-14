@@ -39,7 +39,8 @@ test("Exception error handling", async (t) => {
 	t.deepEqual(stdoutLines[3], "Error Message:", "Correct error log");
 	t.deepEqual(stdoutLines[4], "Initialization not possible: ui5.yaml already exists", "Correct error log");
 	t.deepEqual(stdoutLines[stdoutLines.length - 1],
-		"For details, execute the same command again with an additional '--verbose' parameter", "Correct error log");
+		"For details, execute the same command again with an additional '--verbose' parameter",
+		"Correct last log line");
 
 	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
 });
@@ -59,9 +60,10 @@ test("Exception error handling with verbose logging", async (t) => {
 	t.deepEqual(stdoutLines[6], "Stack Trace:", "Correct error log");
 	t.deepEqual(stdoutLines[7], "Error: Initialization not possible: ui5.yaml already exists", "Correct error log");
 
-	t.deepEqual(stdoutLines[stdoutLines.length - 1], `If you think this is an issue of the UI5 Tooling, you might ` +
-		`report it using the following URL: https://github.com/SAP/ui5-cli/issues/new`,
-	"Correct last log line");
+	t.deepEqual(stdoutLines[stdoutLines.length - 1],
+		"If you think this is an issue of the UI5 Tooling, you might " +
+		"report it using the following URL: https://github.com/SAP/ui5-cli/issues/new",
+		"Correct last log line");
 
 	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
 });

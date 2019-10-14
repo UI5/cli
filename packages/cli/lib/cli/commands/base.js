@@ -49,7 +49,11 @@ cli.usage("Usage: ui5 <command> [options]")
 					console.log(err.stack);
 
 					// Try to guess responsible module from stack trace file paths
-					const moduleRegExp = /@?ui5.(?:logger|fs|builder|server|project|cli)/ig;
+					// This should work for the following paths:
+					// - @ui5/cli (npm consumption)
+					// - ui5-cli (local repository consumption)
+					// - lib/cli (local consumption without repository name in path, i.e. Azure CI)
+					const moduleRegExp = /@?(?:ui5|lib).(?:logger|fs|builder|server|project|cli)/ig;
 
 					// Only check the lowest stack entry
 					const rootStackEntry = err.stack.split("\n")[1];
@@ -60,7 +64,7 @@ cli.usage("Usage: ui5 <command> [options]")
 						let moduleNameGuess = match[match.length - 1];
 
 						// Normalize match
-						moduleNameGuess = moduleNameGuess.replace(/.*(ui5).(.*)/i, "$1-$2").toLowerCase();
+						moduleNameGuess = moduleNameGuess.replace(/.*(?:ui5|lib).(.*)/i, "ui5-$1").toLowerCase();
 						const newIssueUrl = `https://github.com/SAP/${moduleNameGuess}/issues/new`;
 						console.log("");
 						console.log(
