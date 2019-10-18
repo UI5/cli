@@ -270,11 +270,11 @@ class JSModuleAnalyzer {
 					if ( comment.value.startsWith("@ui5-bundle-raw-include ") ) {
 						const subModule = comment.value.slice("@ui5-bundle-raw-include ".length);
 						info.addSubModule(subModule);
-						log.debug(`bundle include directive ${subModule}`);
+						log.verbose(`bundle include directive ${subModule}`);
 					} else if ( comment.value.startsWith("@ui5-bundle ") ) {
 						const bundleName = comment.value.slice("@ui5-bundle ".length);
 						setMainModuleInfo(bundleName, null);
-						log.debug(`bundle name directive ${bundleName}`);
+						log.verbose(`bundle name directive ${bundleName}`);
 					} else {
 						log.warn(`unrecognized bundle directive ${comment.value}`);
 					}

@@ -94,7 +94,7 @@ function analyzeModule(
 				expectedSubmodules,
 				"submodules should match");
 		}
-	}).then(() => t.end(), () => t.end());
+	}).then(() => t.end(), (e) => t.fail(`failed to analyze module with error: ${e.message}`));
 }
 
 test.cb("DeclareToplevel", analyzeModule, "modules/declare_toplevel.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
@@ -287,8 +287,6 @@ test.cb("OldStyleBundleV2", (t) => {
 	);
 });
 
-// Note: this test still fails as the evo-style bundles don't declare the names of the
-// contained raw-modules any longer.
 test.cb("EvoBundle", (t) => {
 	analyzeModule(t,
 		"modules/bundle-evo.js",
