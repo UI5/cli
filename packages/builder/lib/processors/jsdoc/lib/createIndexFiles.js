@@ -24,7 +24,7 @@ const log = (function() {
 	}
 }());
 
-function process(versionInfoFile, unpackedTestresourcesRoot, targetFile, targetFileDeprecated, targetFileExperimental, targetFileSince, options) {
+function createIndexFiles(versionInfoFile, unpackedTestresourcesRoot, targetFile, targetFileDeprecated, targetFileExperimental, targetFileSince, options) {
 	const fs = options && options.fs || require("fs");
 	const returnOutputFiles = options && !!options.returnOutputFiles;
 
@@ -269,6 +269,7 @@ function process(versionInfoFile, unpackedTestresourcesRoot, targetFile, targetF
 						displayName: sPart,
 						lib: oSymbol.lib,
 						kind: "namespace",
+						visibility: "public", // Virtual namespace are always public
 						bIsDeprecated: false // Virtual namespace can't be deprecated
 					});
 				}
@@ -329,8 +330,8 @@ function process(versionInfoFile, unpackedTestresourcesRoot, targetFile, targetF
 		function cleanTree (oSymbol) {
 			delete oSymbol.treeName;
 			delete oSymbol.parent;
-			if (oSymbol.children) {
-				oSymbol.children.forEach(o => cleanTree(o));
+			if (oSymbol.nodes) {
+				oSymbol.nodes.forEach(o => cleanTree(o));
 			}
 		}
 		aTree.forEach(o => cleanTree(o));
@@ -449,4 +450,4 @@ function process(versionInfoFile, unpackedTestresourcesRoot, targetFile, targetF
 
 }
 
-module.exports = process;
+module.exports = createIndexFiles;

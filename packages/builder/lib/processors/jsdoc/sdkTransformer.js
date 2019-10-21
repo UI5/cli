@@ -1,5 +1,5 @@
 const resourceFactory = require("@ui5/fs").resourceFactory;
-const transformer = require("./lib/transform-apijson-for-sdk");
+const transformer = require("./lib/transformApiJson");
 
 /**
  * Transform api.json as created by [jsdocGenerator]{@link module:@ui5/builder.processors.jsdocGenerator}

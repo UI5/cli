@@ -9,7 +9,7 @@ test.afterEach.always((t) => {
 
 test.serial("sdkTransformer", async (t) => {
 	const transformerStub = sinon.stub().resolves("api.json content");
-	mock("../../../../lib/processors/jsdoc/lib/transform-apijson-for-sdk", transformerStub);
+	mock("../../../../lib/processors/jsdoc/lib/transformApiJson", transformerStub);
 	const createResourceStub = sinon.stub(require("@ui5/fs").resourceFactory, "createResource")
 		.returns("result resource");
 
@@ -51,7 +51,7 @@ test.serial("sdkTransformer", async (t) => {
 		string: "api.json content"
 	}, "createResource called with correct arguments");
 
-	mock.stop("../../../../lib/processors/jsdoc/lib/transform-apijson-for-sdk");
+	mock.stop("../../../../lib/processors/jsdoc/lib/transformApiJson");
 });
 
 test("sdkTransformer missing parameters", async (t) => {

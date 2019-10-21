@@ -14,7 +14,7 @@ test.serial("apiIndexGenerator", async (t) => {
 		"/some/path/api-index-experimental.json": "resource content C",
 		"/some/path/api-index-since.json": "resource content D"
 	});
-	mock("../../../../lib/processors/jsdoc/lib/create-api-index", createApiIndexStub);
+	mock("../../../../lib/processors/jsdoc/lib/createIndexFiles", createApiIndexStub);
 	const createResourceStub = sinon.stub(require("@ui5/fs").resourceFactory, "createResource")
 		.onCall(0).returns("result resource A")
 		.onCall(1).returns("result resource B")
@@ -39,23 +39,23 @@ test.serial("apiIndexGenerator", async (t) => {
 	t.deepEqual(res[2], "result resource C", "Returned correct resource");
 	t.deepEqual(res[3], "result resource D", "Returned correct resource");
 
-	t.deepEqual(createApiIndexStub.callCount, 1, "create-api-index called once");
+	t.deepEqual(createApiIndexStub.callCount, 1, "createIndexFiles called once");
 	t.deepEqual(createApiIndexStub.getCall(0).args[0], "/some/path/sap-ui-version.json",
-		"create-api-index called with correct argument #1");
+		"createIndexFiles called with correct argument #1");
 	t.deepEqual(createApiIndexStub.getCall(0).args[1], "/some/test-resources/path",
-		"create-api-index called with correct argument #2");
+		"createIndexFiles called with correct argument #2");
 	t.deepEqual(createApiIndexStub.getCall(0).args[2], "/some/path/api-index.json",
-		"create-api-index called with correct argument #3");
+		"createIndexFiles called with correct argument #3");
 	t.deepEqual(createApiIndexStub.getCall(0).args[3], "/some/path/api-index-deprecated.json",
-		"create-api-index called with correct argument #4");
+		"createIndexFiles called with correct argument #4");
 	t.deepEqual(createApiIndexStub.getCall(0).args[4], "/some/path/api-index-experimental.json",
-		"create-api-index called with correct argument #5");
+		"createIndexFiles called with correct argument #5");
 	t.deepEqual(createApiIndexStub.getCall(0).args[5], "/some/path/api-index-since.json",
-		"create-api-index called with correct argument #6");
+		"createIndexFiles called with correct argument #6");
 	t.deepEqual(createApiIndexStub.getCall(0).args[6], {
 		fs: "custom fs",
 		returnOutputFiles: true
-	}, "create-api-index called with correct argument #7");
+	}, "createIndexFiles called with correct argument #7");
 
 	t.deepEqual(createResourceStub.callCount, 4, "createResource called once");
 	t.deepEqual(createResourceStub.getCall(0).args[0], {
@@ -75,7 +75,7 @@ test.serial("apiIndexGenerator", async (t) => {
 		string: "resource content D"
 	}, "createResource called with correct arguments for resource 4");
 
-	mock.stop("../../../../lib/processors/jsdoc/lib/create-api-index");
+	mock.stop("../../../../lib/processors/jsdoc/lib/createIndexFiles");
 });
 
 test("apiIndexGenerator missing parameters", async (t) => {

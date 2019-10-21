@@ -1,5 +1,5 @@
 const resourceFactory = require("@ui5/fs").resourceFactory;
-const createIndex = require("./lib/create-api-index");
+const createIndex = require("./lib/createIndexFiles");
 
 /**
  * Compiles API index resources from all <code>api.json</code> resources available in the given test resources directory
