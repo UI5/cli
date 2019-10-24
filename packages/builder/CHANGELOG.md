@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.6.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.6.1...HEAD).
+
+<a name="v1.6.1"></a>
+## [v1.6.1] - 2019-10-24
+### Bug Fixes
+- **jsdoc:** Adopt version range to micro releases ([#357](https://github.com/SAP/ui5-builder/issues/357)) [`619b959`](https://github.com/SAP/ui5-builder/commit/619b959d93441fef1be8c1609ebe5a9eb15759f5)
+
 
 <a name="v1.6.0"></a>
-## [v1.6.0] - 2019-10-21
+## [v1.6.0] - 2019-10-24
 ### Bug Fixes
 - Update JSDoc to 3.6.3 ([#346](https://github.com/SAP/ui5-builder/issues/346)) [`78e2a22`](https://github.com/SAP/ui5-builder/commit/78e2a229f2ae11ca37538a75ac6746ff92af7b84)
 
@@ -273,6 +279,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.6.1]: https://github.com/SAP/ui5-builder/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/SAP/ui5-builder/compare/v1.5.3...v1.6.0
 [v1.5.3]: https://github.com/SAP/ui5-builder/compare/v1.5.2...v1.5.3
 [v1.5.2]: https://github.com/SAP/ui5-builder/compare/v1.5.1...v1.5.2
