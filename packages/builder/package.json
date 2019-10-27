@@ -106,7 +106,7 @@
 		"esprima": "^4.0.1",
 		"estraverse": "^4.3.0",
 		"globby": "^10.0.1",
-		"graceful-fs": "^4.2.2",
+		"graceful-fs": "^4.2.3",
 		"jsdoc": "~3.6.3",
 		"less-openui5": "^0.6.0",
 		"make-dir": "^3.0.0",
