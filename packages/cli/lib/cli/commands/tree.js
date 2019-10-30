@@ -37,13 +37,14 @@ tree.handler = async function(argv) {
 		},
 		configPath: argv.config
 	};
+	let projectTree;
 	if (argv.full) {
-		await normalizer.generateProjectTree(options);
+		projectTree = await normalizer.generateProjectTree(options);
 	} else {
-		await normalizer.generateDependencyTree(options);
+		projectTree = await normalizer.generateDependencyTree(options);
 	}
 
-	const output = argv.json ? JSON.stringify(tree, null, 4) : treeify.asTree(tree, true);
+	const output = argv.json ? JSON.stringify(projectTree, null, 4) : treeify.asTree(projectTree, true);
 	console.log(output);
 };
 

@@ -27,18 +27,31 @@ test.serial("ui5 tree --full (generates project tree before output)", async (t) 
 
 test.serial("ui5 tree --json (output tree in json)", async (t) => {
 	const jsonStringifySpy = sinon.spy(JSON, "stringify");
+	const consoleStub = sinon.stub(console, "log");
+
 	normalizer.generateDependencyTree.resolves({name: "sample"});
 	await tree.handler({json: true});
-	t.is(JSON.stringify.called, true, "retrieves dependency tree as json");
-	jsonStringifySpy.restore();
+
+	// Note: Some versions of Node.js seem to call stringify internally during this test
+	t.deepEqual(jsonStringifySpy.called, true, "Stringify got called at least once");
+	t.deepEqual(jsonStringifySpy.getCall(jsonStringifySpy.callCount - 1).args[0], {name: "sample"},
+		"JSON.stringify called with correct argument");
+	t.deepEqual(consoleStub.callCount, 1, "console.log was called once");
+	t.deepEqual(consoleStub.getCall(0).args[0], `{
+    "name": "sample"
+}`, "console.log was called with correct argument");
 });
 
 test.serial("ui5 tree (output tree)", async (t) => {
-	const treeifySpy = sinon.spy(treeify, "asTree");
+	const treeifySpy = sinon.stub(treeify, "asTree").returns("🌲");
+	const consoleStub = sinon.stub(console, "log");
 	normalizer.generateDependencyTree.resolves({name: "sample"});
 	await tree.handler({});
-	t.is(treeify.asTree.called, true, "retrieves dependency tree using treeify");
-	treeifySpy.restore();
+
+	t.deepEqual(treeifySpy.callCount, 1, "Treeify called once");
+	t.deepEqual(treeifySpy.getCall(0).args[0], {name: "sample"}, "Treeify called with correct argument");
+	t.deepEqual(consoleStub.callCount, 1, "console.log was called once");
+	t.deepEqual(consoleStub.getCall(0).args[0], "🌲", "console.log was called with correct argument");
 });
 
 test.serial("ui5 tree --dedupe=false (default)", async (t) => {
