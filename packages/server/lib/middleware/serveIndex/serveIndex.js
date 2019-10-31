@@ -28,6 +28,7 @@ const cache = {};
 
 /**
  * Map html `files`, returning an html unordered list.
+ *
  * @private
  */
 
@@ -225,8 +226,8 @@ function iconStyle(files) {
 /**
  * Load and cache the given `icon`.
  *
- * @param {String} icon
- * @return {String}
+ * @param {string} icon
+ * @returns {string}
  */
 
 function load(icon) {
@@ -238,8 +239,8 @@ function load(icon) {
  * Normalizes the path separator from system separator
  * to URL separator, aka `/`.
  *
- * @param {String} path
- * @return {String}
+ * @param {string} path
+ * @returns {string}
  */
 
 function normalizeSlashes(path) {
@@ -250,8 +251,8 @@ function normalizeSlashes(path) {
  * Filter "hidden" `files`, aka files
  * beginning with a `.`.
  *
- * @return {Array}
  * @param resourceInfos
+ * @returns {Array}
  */
 
 function removeHidden(resourceInfos) {
