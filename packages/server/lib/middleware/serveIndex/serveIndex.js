@@ -38,6 +38,7 @@ function createHtmlFileList(files, view) {
 			"<span class=\"name\">Name</span>" +
 			"<span class=\"size\">Size</span>" +
 			"<span class=\"date\">Modified</span>" +
+			"<span class=\"project\">Project</span>" +
 			"</li>") : "");
 
 	html += files.map(function(file) {
@@ -71,6 +72,7 @@ function createHtmlFileList(files, view) {
 			"<span class=\"name\">" + escapeHtml(file.name) + "</span>" +
 			"<span class=\"size\">" + escapeHtml(size) + "</span>" +
 			"<span class=\"date\">" + escapeHtml(date) + "</span>" +
+			"<span class=\"project\">" + escapeHtml(file.project) + "</span>" +
 			"</a></li>";
 	}).join("\n");
 

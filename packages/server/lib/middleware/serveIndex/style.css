@@ -167,7 +167,7 @@ ul#files.view-details li.header {
   border-radius: 5px;
 }
 .view-details .name {
-  width: 60%;
+  width: 30%;
   background-position: 8px 5px;
 }
 .view-details .size {
@@ -176,10 +176,14 @@ ul#files.view-details li.header {
 .view-details .date {
   width: 30%;
 }
+.view-details .project {
+  width: 30%;
+}
 .view-details .size {
   text-align: center;
 }
-.view-details .date {
+.view-details .date,
+.view-details .project {
   text-align: right;
 }
 
