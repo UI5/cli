@@ -64,6 +64,9 @@ class ProjectPreprocessor {
 				if (project.dependencies && project.dependencies.length) {
 					// Do a dependency lookahead to apply any extensions that might affect this project
 					await this.dependencyLookahead(project, project.dependencies);
+				} else {
+					// When using the static translator for instance dependencies is not defined and will fail later access calls to it
+					project.dependencies = [];
 				}
 
 				const {extensions} = await this.loadProjectConfiguration(project);
