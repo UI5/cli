@@ -19,8 +19,9 @@ function isFresh(req, res) {
  * Creates and returns the middleware to serve application resources.
  *
  * @module @ui5/server/middleware/serveResources
- * @param {Object} resources Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} resources.all Resource collection which contains the workspace and the project dependencies
+ * @param {Object} parameters Parameters
+ * @param {Object} parameters.resources Contains the resource reader or collection to access project related files
+ * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources}) {
