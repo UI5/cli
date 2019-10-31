@@ -113,7 +113,7 @@
 		"replacestream": "^4.0.3",
 		"spdy": "^3.4.7",
 		"treeify": "^1.0.1",
-		"yesno": "^0.3.1"
+		"escape-html": "^1.0.3"
 	},
 	"devDependencies": {
 		"@ui5/project": "^1.1.0",

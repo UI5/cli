@@ -33,15 +33,15 @@ test.serial("Check if index for files is created", (t) => {
 
 		return new Promise((resolve, reject) => {
 			const req = {
-				url: "/"
+				path: "/"
 			};
 			const res = {
 				writeHead: function(status, contentType) {
 				},
 				end: function(content) {
-					t.regex(content, /<td title="1024 Bytes">1\.00 KB<\/td>\s*<td><a href="\/myFile1\.meh">myFile1\.meh<\/a><\/td>\s*<td>application\/octet-stream<\/td>/);
-					t.regex(content, /<td title="1048576 Bytes">1\.00 MB<\/td>\s*<td><a href="\/myFile2\.js">myFile2\.js<\/a><\/td>\s*<td>application\/javascript<\/td>/g);
-					t.regex(content, /<td title="1073741824 Bytes">1\.00 GB<\/td>\s*<td><a href="\/myFile3\.properties">myFile3\.properties<\/a><\/td>\s*<td>application\/octet-stream<\/td>/g);
+					t.regex(content, RegExp("<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span><span class=\"size\">1.00 KB</span>"));
+					t.regex(content, RegExp("<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" title=\"myFile2.js\"><span class=\"name\">myFile2.js</span><span class=\"size\">1.00 MB</span>"));
+					t.regex(content, RegExp("<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span><span class=\"size\">1.00 GB</span>"));
 					resolve();
 				},
 			};
