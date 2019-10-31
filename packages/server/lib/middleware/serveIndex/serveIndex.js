@@ -1,3 +1,21 @@
+/*
+ * serve-index
+ *
+ * Version: 1.9.1
+ *
+ * Author: Douglas Christopher Wilson
+ * Web: https://github.com/expressjs/serve-index/tree/20e83c893b701c3a117a0f6836be0f5a818bb925
+ *
+ * Licensed under
+ *   MIT License, see "serve-index-LICENSE.txt"
+ *
+ * Copyright (c) 2010 Sencha Inc.
+ * Copyright (c) 2011 LearnBoost
+ * Copyright (c) 2011 TJ Holowaychuk
+ * Copyright (c) 2014-2015 Douglas Christopher Wilson
+ *
+ */
+
 const escapeHtml = require("escape-html");
 const mime = require("mime-types");
 const path = require("path");

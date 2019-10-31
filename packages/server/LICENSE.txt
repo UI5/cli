@@ -220,6 +220,13 @@ License: MIT License
 <year> = 2018
 <copyright holders> = Domenic Denicola
 
+Component: serve-index
+Licensor: Douglas Christopher Wilson
+Website: https://github.com/expressjs/serve-index/tree/20e83c893b701c3a117a0f6836be0f5a818bb925
+License: MIT License
+<year> = 2019
+<copyright holders> = Douglas Christopher Wilson, TJ Holowaychuk, LearnBoost, Sencha Inc.
+
 ------------------------------------------------------------------------------
 
 The MIT License (MIT)
