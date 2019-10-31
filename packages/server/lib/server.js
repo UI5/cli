@@ -10,11 +10,11 @@ const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
 /**
  * Returns a promise resolving by starting the server.
  *
- * @param {Object} app The express application object
+ * @param {object} app The express application object
  * @param {number} port Desired port to listen to
  * @param {boolean} changePortIfInUse If true and the port is already in use, an unused port is searched
  * @param {boolean} acceptRemoteConnections If true, listens to remote connections and not only to localhost connections
- * @returns {Promise<Object>} Returns an object containing server related information like (selected port, protocol)
+ * @returns {Promise<object>} Returns an object containing server related information like (selected port, protocol)
  * @private
  */
 function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
@@ -64,11 +64,11 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 /**
  * Adds SSL support to an express application.
  *
- * @param {Object} parameters
- * @param {Object} parameters.app The original express application
+ * @param {object} parameters
+ * @param {object} parameters.app The original express application
  * @param {string} parameters.key Path to private key to be used for https
  * @param {string} parameters.cert Path to certificate to be used for for https
- * @returns {Object} The express application with SSL support
+ * @returns {object} The express application with SSL support
  * @private
  */
 function _addSsl({app, key, cert}) {
@@ -87,8 +87,8 @@ module.exports = {
 	 * Start a server for the given project (sub-)tree.
 	 *
 	 * @public
-	 * @param {Object} tree A (sub-)tree
-	 * @param {Object} options Options
+	 * @param {object} tree A (sub-)tree
+	 * @param {object} options Options
 	 * @param {number} options.port Port to listen to
 	 * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
 	 * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to <code>http</code>
@@ -99,7 +99,7 @@ module.exports = {
 	 * @param {boolean} [options.sendSAPTargetCSP=false] If true, then the content security policies that SAP and UI5
 	 * 													aim for (AKA 'target policies'), are send for any requested
 	 * 													<code>*.html</code> file
-	 * @returns {Promise<Object>} Promise resolving once the server is listening.
+	 * @returns {Promise<object>} Promise resolving once the server is listening.
 	 * 							It resolves with an object containing the <code>port</code>,
 	 * 							<code>h2</code>-flag and a <code>close</code> function,
 	 * 							which can be used to stop the server.

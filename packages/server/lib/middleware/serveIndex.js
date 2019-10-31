@@ -41,7 +41,7 @@ function formatSize(bytes) {
  * content for the resource listing
  *
  * @param {module:@ui5/fs.Resource} resource the resource to convert
- * @returns {Object} resource info object
+ * @returns {object} resource info object
  */
 function createResourceInfo(resource) {
 	const stat = resource.getStatInfo();
@@ -64,7 +64,7 @@ function createResourceInfo(resource) {
  * Creates a resource info array from the given resource array
  *
  * @param {module:@ui5/fs.Resource[]} resources an array of resources
- * @returns {Object[]} sorted array of resource infos
+ * @returns {object[]} sorted array of resource infos
  */
 function createResourceInfos(resources) {
 	return resources.map((item, i) => {
@@ -85,8 +85,8 @@ function createResourceInfos(resources) {
  * Creates and returns the middleware to serve a resource index.
  *
  * @module @ui5/server/middleware/serveIndex
- * @param {Object} parameters Parameters
- * @param {Object} parameters.resources Contains the resource reader or collection to access project related files
+ * @param {object} parameters Parameters
+ * @param {object} parameters.resources Contains the resource reader or collection to access project related files
  * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
  * @param {boolean} [parameters.showDetails=true] Show detailed view.
  * @param {boolean} [parameters.showHidden=true] Show hidden files.
