@@ -12,14 +12,15 @@ test("Generates dependency tree for project with projectDependencies.yaml", (t) 
 		});
 });
 
-
 test("Error: Throws if projectDependencies.yaml was not found", async (t) => {
 	const projectPath = "notExistingPath";
 	const fsError = new Error("File not found");
 	const fsStub = sinon.stub(fs, "readFile");
 	fsStub.callsArgWith(1, fsError);
 	const error = await t.throwsAsync(staticTranslator.generateDependencyTree(projectPath));
-	t.is(error.message, `[static translator] Failed to locate projectDependencies.json at path: "${projectPath}" - Error: ${fsError.message}`);
+	t.regex(error.message,
+		new RegExp("\\[static translator\\] Failed to load dependency tree from path " +
+			"notExistingPath\\/projectDependencies\\.yaml - Error: ENOENT:"));
 	fsStub.restore();
 });
 
@@ -28,17 +29,17 @@ const expectedTree = {
 	version: "0.0.1",
 	description: "Sample App",
 	main: "index.html",
-	path: "./",
+	path: path.resolve("./"),
 	dependencies: [
 		{
 			id: "sap.f",
 			version: "1.56.1",
-			path: "../sap.f"
+			path: path.resolve("../sap.f")
 		},
 		{
 			id: "sap.m",
 			version: "1.61.0",
-			path: "../sap.m"
+			path: path.resolve("../sap.m")
 		}
 	]
 };
