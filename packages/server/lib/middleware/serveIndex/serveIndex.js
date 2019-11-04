@@ -374,7 +374,7 @@ const icons = {
 	".yaws": "page_white_code.png"
 };
 
-function handleReuqest({req, res, next, showHidden, showDetails, resourceInfos}) {
+function handleRequest({req, res, next, showHidden, showDetails, resourceInfos}) {
 	const hidden = showHidden; // display hidden files
 	const view = showDetails ? "details" : "tiles";
 
@@ -416,4 +416,4 @@ function handleReuqest({req, res, next, showHidden, showDetails, resourceInfos})
 	});
 }
 
-module.exports = handleReuqest;
+module.exports = handleRequest;

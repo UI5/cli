@@ -1,4 +1,5 @@
 const middlewareRepository = require("./middlewareRepository");
+
 /**
  *
  *
@@ -138,7 +139,15 @@ class MiddlewareManager {
 		// Handle anything but read operations *before* the serveIndex middleware
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
 		await this.addMiddleware("nonReadRequests");
-		await this.addMiddleware("serveIndex");
+		await this.addMiddleware("serveIndex", {
+			wrapperCallback: (middleware) => {
+				return ({resources}) => middleware({
+					resources,
+					showHidden: this.options.showHidden,
+					showDetails: this.options.showDetails
+				});
+			}
+		});
 	}
 
 	async addCustomMiddleware() {
@@ -181,4 +190,5 @@ class MiddlewareManager {
 		}
 	}
 }
+
 module.exports = MiddlewareManager;
