@@ -18,9 +18,13 @@ test("Error: Throws if projectDependencies.yaml was not found", async (t) => {
 	const fsStub = sinon.stub(fs, "readFile");
 	fsStub.callsArgWith(1, fsError);
 	const error = await t.throwsAsync(staticTranslator.generateDependencyTree(projectPath));
+	const escapedYamlPath = path.join(projectPath, "projectDependencies.yaml")
+		.replace("\\", "\\\\")
+		.replace("/", "\\/")
+		.replace(".", "\\.");
 	t.regex(error.message,
-		new RegExp("\\[static translator\\] Failed to load dependency tree from path " +
-			"notExistingPath\\/projectDependencies\\.yaml - Error: ENOENT:"));
+		new RegExp(`\\[static translator\\] Failed to load dependency tree from path ` +
+			`${escapedYamlPath} - Error: ENOENT:`));
 	fsStub.restore();
 });
 
