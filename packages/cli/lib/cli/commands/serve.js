@@ -115,7 +115,7 @@ serve.handler = async function(argv) {
 			browserUrl += relPath;
 		}
 		const open = require("open");
-		open(browserUrl);
+		open(browserUrl, {url: true});
 	}
 };
 
