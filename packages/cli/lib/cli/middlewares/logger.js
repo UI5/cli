@@ -1,8 +1,8 @@
 /**
  * Logger middleware used as one of default middlewares by tooling
  *
- * @param {Object} argv logger arguments
- * @returns {Object} logger instance or null
+ * @param {object} argv logger arguments
+ * @returns {object} logger instance or null
  */
 function init(argv) {
 	if (!argv.verbose && !argv.loglevel) return null;

@@ -9,7 +9,7 @@ const fsHelper = require("../utils/fsHelper");
  *
  * @private
  * @param {string} filePath Path to package.json
- * @returns {Object} Package json content
+ * @returns {object} Package json content
  */
 async function readPackageJson(filePath) {
 	const content = await readFile(filePath, "utf8");

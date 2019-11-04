@@ -4,8 +4,8 @@ const logger = require("./logger");
  *
  * This middleware should be executed for every CLI command to enable basic features (e.g. logging).
  *
- * @param {Object} argv The CLI arguments
- * @returns {Object}
+ * @param {object} argv The CLI arguments
+ * @returns {object}
  */
 module.exports = function(argv) {
 	logger.init(argv);
