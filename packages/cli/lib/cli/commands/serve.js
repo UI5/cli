@@ -25,6 +25,11 @@ serve.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("simple-index", {
+			describe: "Use a simplified view for the server directory listing",
+			default: false,
+			type: "boolean"
+		})
 		.option("accept-remote-connections", {
 			describe: "Accept remote connections. By default the server only accepts connections from localhost",
 			default: false,
@@ -87,6 +92,7 @@ serve.handler = async function(argv) {
 		port,
 		changePortIfInUse,
 		h2: argv.h2,
+		simpleIndex: !!argv.simpleIndex,
 		acceptRemoteConnections: !!argv.acceptRemoteConnections,
 		cert: argv.h2 ? argv.cert : undefined,
 		key: argv.h2 ? argv.key : undefined,
