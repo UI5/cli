@@ -374,9 +374,9 @@ const icons = {
 	".yaws": "page_white_code.png"
 };
 
-function handleRequest({req, res, next, showHidden, showDetails, resourceInfos}) {
+function handleRequest({req, res, next, showHidden, simpleIndex, resourceInfos}) {
 	const hidden = showHidden; // display hidden files
-	const view = showDetails ? "details" : "tiles";
+	const view = simpleIndex ? "tiles" : "details";
 
 	if (!hidden) {
 		resourceInfos = removeHidden(resourceInfos);

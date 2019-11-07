@@ -99,8 +99,7 @@ module.exports = {
 	 * @param {boolean} [options.sendSAPTargetCSP=false] If true, then the content security policies that SAP and UI5
 	 * 													aim for (AKA 'target policies'), are send for any requested
 	 * 													<code>*.html</code> file
-	 * @param {boolean} [options.showHidden=true] Show hidden files in the server directory listing
-	 * @param {boolean} [options.showDetails=true] Show a detailed table view in the server directory listing
+	 * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
 	 * @returns {Promise<object>} Promise resolving once the server is listening.
 	 * 							It resolves with an object containing the <code>port</code>,
 	 * 							<code>h2</code>-flag and a <code>close</code> function,
@@ -108,7 +107,7 @@ module.exports = {
 	 */
 	async serve(tree, {
 		port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
-		acceptRemoteConnections = false, sendSAPTargetCSP = false, showHidden = true, showDetails = true
+		acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false
 	}) {
 		const projectResourceCollections = resourceFactory.createCollectionsForTree(tree);
 
@@ -130,8 +129,7 @@ module.exports = {
 			resources,
 			options: {
 				sendSAPTargetCSP,
-				showHidden,
-				showDetails
+				simpleIndex
 			}
 		});
 

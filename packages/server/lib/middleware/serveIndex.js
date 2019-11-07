@@ -88,12 +88,12 @@ function createResourceInfos(resources) {
  * @param {object} parameters Parameters
  * @param {object} parameters.resources Contains the resource reader or collection to access project related files
  * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
- * @param {boolean} [parameters.showDetails=true] Show detailed view.
- * @param {boolean} [parameters.showHidden=true] Show hidden files.
+ * @param {boolean} [parameters.simpleIndex=false] Use a simplified view for the server directory listing
+ * @param {boolean} [parameters.showHidden=true] Show hidden files in the server directory listing
  * @returns {Function} Returns a server middleware closure.
  */
 
-function createMiddleware({resources, showDetails = true, showHidden = true}) {
+function createMiddleware({resources, simpleIndex = false, showHidden = true}) {
 	return function(req, res, next) {
 		log.verbose("\n Listing index of " + req.path);
 		const glob = req.path + (req.path.endsWith("/") ? "*" : "/*");
@@ -108,8 +108,8 @@ function createMiddleware({resources, showDetails = true, showHidden = true}) {
 				req,
 				res,
 				next,
+				simpleIndex,
 				showHidden,
-				showDetails,
 				resourceInfos
 			});
 		}).catch((err) => {

@@ -84,7 +84,7 @@ test.serial("serveIndex no hidden", (t) => {
 			resources: {
 				all: readerWriter
 			},
-			showDetails: true,
+			simpleIndex: false,
 			showHidden: false
 		});
 
@@ -140,7 +140,7 @@ test.serial("serveIndex no details", (t) => {
 			resources: {
 				all: readerWriter
 			},
-			showDetails: false,
+			simpleIndex: true,
 			showHidden: true
 		});
 

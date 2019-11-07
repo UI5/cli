@@ -143,8 +143,7 @@ class MiddlewareManager {
 			wrapperCallback: (middleware) => {
 				return ({resources}) => middleware({
 					resources,
-					showHidden: this.options.showHidden,
-					showDetails: this.options.showDetails
+					simpleIndex: this.options.simpleIndex
 				});
 			}
 		});
