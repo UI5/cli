@@ -591,7 +591,6 @@ const applicationATree = {
 	}
 };
 
-
 const applicationATreeBadType = {
 	"id": "application.a",
 	"version": "1.0.0",

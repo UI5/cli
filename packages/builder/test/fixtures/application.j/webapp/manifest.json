@@ -1,25 +1,26 @@
 {
-    "_version": "1.1.0",
-    "sap.app": {
-        "_version": "1.1.0",
-        "id": "application.j",
-        "type": "application",
-        "applicationVersion": {
-            "version": "1.2.2"
-        },
-        "embeds": ["embedded"],
-        "title": "{{title}}"
-    },
+	"_version": "1.1.0",
+	"sap.app": {
+		"_version": "1.1.0",
+		"id": "application.j",
+		"type": "application",
+		"applicationVersion": {
+			"version": "1.2.2"
+		},
+		"embeds": ["embedded"],
+		"title": "{{title}}"
+	},
 	"sap.ui5": {
 		"dependencies": {
+			"minUI5Version": "1.73.2",
 			"libs": {
 				"sap.ui.layout": {},
 				"sap.ui.core": {},
-                "sap.m": {},
-                "sap.ui.fl": {
-                    "lazy": true
-                }
+				"sap.m": {},
+				"sap.ui.fl": {
+					"lazy": true
+				}
 			}
-        }
-    }
+		}
+	}
 }
