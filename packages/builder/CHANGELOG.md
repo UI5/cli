@@ -2,7 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.6.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.7.0...HEAD).
+
+<a name="v1.7.0"></a>
+## [v1.7.0] - 2019-11-07
+### Bug Fixes
+- **JSDoc:** Use the rel="noopener" attribute for external links. ([#361](https://github.com/SAP/ui5-builder/issues/361)) [`c702104`](https://github.com/SAP/ui5-builder/commit/c7021046af2ac66aaef8db3841192da8a254d304)
+
+### Dependency Updates
+- Bump less-openui5 from 0.6.0 to 0.7.0 [`fdb0241`](https://github.com/SAP/ui5-builder/commit/fdb0241faec60062b1da52cc296dc343507fb802)
+
+### Features
+- **buildThemes:** Add "compress" option ([#363](https://github.com/SAP/ui5-builder/issues/363)) [`3a0cf6a`](https://github.com/SAP/ui5-builder/commit/3a0cf6aa990a48830d3c22dac285036a290534d8)
+- **flexChangesBundler:** Add flexibility-bundle.json ([#353](https://github.com/SAP/ui5-builder/issues/353)) [`cecc97d`](https://github.com/SAP/ui5-builder/commit/cecc97dd626268da2d2c707c5e0a6fabbfc561b6)
+
 
 <a name="v1.6.1"></a>
 ## [v1.6.1] - 2019-10-24
@@ -279,6 +292,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.7.0]: https://github.com/SAP/ui5-builder/compare/v1.6.1...v1.7.0
 [v1.6.1]: https://github.com/SAP/ui5-builder/compare/v1.6.0...v1.6.1
 [v1.6.0]: https://github.com/SAP/ui5-builder/compare/v1.5.3...v1.6.0
 [v1.5.3]: https://github.com/SAP/ui5-builder/compare/v1.5.2...v1.5.3
