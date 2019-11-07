@@ -117,7 +117,7 @@
 		"yesno": "^0.3.1"
 	},
 	"devDependencies": {
-		"@ui5/project": "^1.1.0",
+		"@ui5/project": "^1.1.1",
 		"ava": "^2.4.0",
 		"coveralls": "^3.0.7",
 		"cross-env": "^6.0.3",
