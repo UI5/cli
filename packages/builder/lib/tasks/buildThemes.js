@@ -11,7 +11,10 @@ const fsInterface = require("@ui5/fs").fsInterface;
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {Object} parameters.options Options
- * @param {string} parameters.options.pattern Pattern to locate the files to be processed
+ * @param {string} parameters.options.projectName Project name
+ * @param {string} parameters.options.inputPattern Search pattern for *.less files to be built
+ * @param {string} [parameters.options.librariesPattern] Search pattern for .library files
+ * @param {boolean} [parameters.options.compress=true]
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options}) {
@@ -26,6 +29,8 @@ module.exports = function({workspace, dependencies, options}) {
 		//	we will use it to reduce the set of libraries a theme will be built for
 		promises.push(combo.byGlob(options.librariesPattern));
 	}
+
+	const compress = options.compress === undefined ? true : options.compress;
 
 	return Promise.all(promises).then(([allResources, availableLibraries]) => {
 		if (!availableLibraries || availableLibraries.length === 0) {
@@ -55,7 +60,7 @@ module.exports = function({workspace, dependencies, options}) {
 			resources,
 			fs: fsInterface(combo),
 			options: {
-				compress: true
+				compress
 			}
 		});
 	}).then((processedResources) => {

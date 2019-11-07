@@ -1,157 +1,128 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
-const DuplexCollection = ui5Fs.DuplexCollection;
+const sinon = require("sinon");
+const mock = require("mock-require");
 
-test("integration: simple", (t) => {
-	const reader = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const writer = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const duplexCollection = new DuplexCollection({reader, writer});
-	const dependencies = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
+let buildThemes = require("../../../lib/tasks/buildThemes");
 
-	const content =
-`@deepSea: #123456;
-.fluffyHammer {
-  color: @deepSea;
-  padding: 1px 2px 3px 4px;
-}`;
-	const cssExpected =
-`.fluffyHammer{color:#123456;padding:1px 2px 3px 4px}
-/* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
-`;
-	const cssRtlExpected =
-`.fluffyHammer{color:#123456;padding:1px 4px 3px 2px}
-/* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
-`;
-	const parametersExpected =
-`{"deepSea":"#123456"}`;
-	const lessPath = "/resources/super/duper/looper/themes/brightlight/library.source.less";
-	const cssPath = "/resources/super/duper/looper/themes/brightlight/library.css";
-	const cssRtlPath = "/resources/super/duper/looper/themes/brightlight/library-RTL.css";
-	const parametersPath = "/resources/super/duper/looper/themes/brightlight/library-parameters.json";
+test.beforeEach((t) => {
+	// Stubbing processors/themeBuilder
+	t.context.themeBuilderStub = sinon.stub();
+	t.context.fsInterfaceStub = sinon.stub(require("@ui5/fs"), "fsInterface");
+	t.context.fsInterfaceStub.returns({});
+	mock("../../../lib/processors/themeBuilder", t.context.themeBuilderStub);
 
-	const resource = resourceFactory.createResource({
-		path: lessPath,
-		string: content
-	});
-	return reader.write(resource).then(() => {
-		return tasks.buildThemes({
-			workspace: duplexCollection,
-			dependencies: dependencies,
-			options: {
-				inputPattern: "/resources/**/themes/**/library.source.less"
-			}
-		}).then(() => {
-			return Promise.all([
-				writer.byPath(cssPath),
-				writer.byPath(cssRtlPath),
-				writer.byPath(parametersPath)
-			]);
-		}).then(([cssResource, cssRtlResource, parametersResource]) => {
-			t.truthy(cssResource, "CSS resource has been created");
-			t.truthy(cssRtlResource, "CSS right-to-left resource has been created");
-			t.truthy(parametersResource, "Parameters JSON resource has been created");
-
-			return Promise.all([
-				cssResource.getBuffer(),
-				cssRtlResource.getBuffer(),
-				parametersResource.getBuffer()
-			]);
-		}).then(([cssBuffer, cssRtlBuffer, parametersBuffer]) => {
-			t.deepEqual(cssBuffer.toString(), cssExpected, "Correct CSS content");
-			t.deepEqual(cssRtlBuffer.toString(), cssRtlExpected, "Correct CSS right-to-left content");
-			t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
-		});
-	});
+	// Re-require tested module
+	buildThemes = mock.reRequire("../../../lib/tasks/buildThemes");
 });
 
-test("integration: imports", (t) => {
-	const reader = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const writer = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const duplexCollection = new DuplexCollection({reader, writer});
-	const dependencies = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const lessContent =
-`@import "variables.less";
-.fluffyHammer {
-  color: @deepSea;
-  padding: 1px 2px 3px 4px;
-}`;
-	const lessVariablesContent =
-"@deepSea: #123456;";
-	const cssExpected =
-`.fluffyHammer{color:#123456;padding:1px 2px 3px 4px}
-/* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
-`;
-	const cssRtlExpected =
-`.fluffyHammer{color:#123456;padding:1px 4px 3px 2px}
-/* Inline theming parameters */
-#sap-ui-theme-super\\.duper\\.looper{background-image:url('data:text/plain;utf-8,%7B%22deepSea%22%3A%22%23123456%22%7D')}
-`;
-	const parametersExpected =
-`{"deepSea":"#123456"}`;
-	const lessPath = "/resources/super/duper/looper/themes/brightlight/library.source.less";
-	const lessVariablesPath = "/resources/super/duper/looper/themes/brightlight/variables.less";
-	const cssPath = "/resources/super/duper/looper/themes/brightlight/library.css";
-	const cssRtlPath = "/resources/super/duper/looper/themes/brightlight/library-RTL.css";
-	const parametersPath = "/resources/super/duper/looper/themes/brightlight/library-parameters.json";
+test.afterEach.always((t) => {
+	t.context.fsInterfaceStub.restore();
+	mock.stop("../../../lib/processors/themeBuilder");
+});
 
-	const lessResource = resourceFactory.createResource({
-		path: lessPath,
-		string: lessContent
-	});
+test.serial("buildThemes", async (t) => {
+	t.plan(6);
 
-	const lessVariablesResource = resourceFactory.createResource({
-		path: lessVariablesPath,
-		string: lessVariablesContent
-	});
+	const lessResource = {};
 
-	return Promise.all([lessResource, lessVariablesResource].map((resource) => {
-		return reader.write(resource);
-	})).then(() => {
-		return tasks.buildThemes({
-			workspace: duplexCollection,
-			dependencies: dependencies,
-			options: {
-				inputPattern: "/resources/**/themes/**/library.source.less"
+	const workspace = {
+		byGlob: async (globPattern) => {
+			if (globPattern === "/resources/test/library.source.less") {
+				return [lessResource];
+			} else {
+				return [];
 			}
-		}).then(() => {
-			return Promise.all([
-				writer.byPath(cssPath),
-				writer.byPath(cssRtlPath),
-				writer.byPath(parametersPath)
-			]);
-		}).then(([cssResource, cssRtlResource, parametersResource]) => {
-			t.truthy(cssResource, "CSS resource has been created");
-			t.truthy(cssRtlResource, "CSS right-to-left resource has been created");
-			t.truthy(parametersResource, "Parameters JSON resource has been created");
+		},
+		write: sinon.stub()
+	};
 
-			return Promise.all([
-				cssResource.getBuffer(),
-				cssRtlResource.getBuffer(),
-				parametersResource.getBuffer()
-			]);
-		}).then(([cssBuffer, cssRtlBuffer, parametersBuffer]) => {
-			t.deepEqual(cssBuffer.toString(), cssExpected, "Correct CSS content");
-			t.deepEqual(cssRtlBuffer.toString(), cssRtlExpected, "Correct CSS right-to-left content");
-			t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
-		});
+	const cssResource = {};
+	const cssRtlResource = {};
+	const jsonParametersResource = {};
+
+	t.context.themeBuilderStub.returns([
+		cssResource,
+		cssRtlResource,
+		jsonParametersResource
+	]);
+
+	await buildThemes({
+		workspace,
+		options: {
+			projectName: "sap.ui.demo.app",
+			inputPattern: "/resources/test/library.source.less"
+		}
 	});
+
+	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+		"Processor should be called once");
+
+	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
+		resources: [lessResource],
+		fs: {},
+		options: {
+			compress: true // default
+		}
+	}, "Processor should be called with expected arguments");
+
+	t.deepEqual(workspace.write.callCount, 3,
+		"workspace.write should be called 3 times");
+	t.true(workspace.write.calledWithExactly(cssResource));
+	t.true(workspace.write.calledWithExactly(cssRtlResource));
+	t.true(workspace.write.calledWithExactly(jsonParametersResource));
+});
+
+
+test.serial("buildThemes (compress = false)", async (t) => {
+	t.plan(6);
+
+	const lessResource = {};
+
+	const workspace = {
+		byGlob: async (globPattern) => {
+			if (globPattern === "/resources/test/library.source.less") {
+				return [lessResource];
+			} else {
+				return [];
+			}
+		},
+		write: sinon.stub()
+	};
+
+	const cssResource = {};
+	const cssRtlResource = {};
+	const jsonParametersResource = {};
+
+	t.context.themeBuilderStub.returns([
+		cssResource,
+		cssRtlResource,
+		jsonParametersResource
+	]);
+
+	await buildThemes({
+		workspace,
+		options: {
+			projectName: "sap.ui.demo.app",
+			inputPattern: "/resources/test/library.source.less",
+			compress: false
+		}
+	});
+
+	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+		"Processor should be called once");
+
+	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
+		resources: [lessResource],
+		fs: {},
+		options: {
+			compress: false
+		}
+	}, "Processor should be called with expected arguments");
+
+	t.deepEqual(workspace.write.callCount, 3,
+		"workspace.write should be called 3 times");
+	t.true(workspace.write.calledWithExactly(cssResource));
+	t.true(workspace.write.calledWithExactly(cssRtlResource));
+	t.true(workspace.write.calledWithExactly(jsonParametersResource));
 });
