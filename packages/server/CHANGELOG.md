@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.4.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.5.0...HEAD).
+
+<a name="v1.5.0"></a>
+## [v1.5.0] - 2019-11-07
+### Features
+- **serveIndex:** use serve-index for serving the application index [`d6ea507`](https://github.com/SAP/ui5-server/commit/d6ea507bdd649653a865f01d4e076caa4313639f)
+
 
 <a name="v1.4.0"></a>
 ## [v1.4.0] - 2019-10-24
@@ -89,6 +95,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.5.0]: https://github.com/SAP/ui5-server/compare/v1.4.0...v1.5.0
 [v1.4.0]: https://github.com/SAP/ui5-server/compare/v1.3.0...v1.4.0
 [v1.3.0]: https://github.com/SAP/ui5-server/compare/v1.2.0...v1.3.0
 [v1.2.0]: https://github.com/SAP/ui5-server/compare/v1.1.3...v1.2.0
