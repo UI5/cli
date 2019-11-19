@@ -98,7 +98,7 @@
 	"dependencies": {
 		"@ui5/builder": "^1.7.1",
 		"@ui5/logger": "^1.0.2",
-		"@ui5/server": "^1.5.0",
+		"@ui5/server": "^1.5.1",
 		"graceful-fs": "^4.2.3",
 		"js-yaml": "^3.13.1",
 		"mock-require": "^3.0.3",
