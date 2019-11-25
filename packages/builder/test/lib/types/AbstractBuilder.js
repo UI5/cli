@@ -77,6 +77,16 @@ class CustomBuilder extends AbstractBuilder {
 	}
 }
 
+class EmptyBuilder extends AbstractBuilder {
+	constructor({project, resourceCollections}) {
+		super({parentLogger, project, resourceCollections});
+	}
+
+	addStandardTasks({resourceCollections, project}) {
+		// None - like the ModuleBuilder
+	}
+}
+
 test("Instantiation with standard tasks only", (t) => {
 	const project = clone(applicationBTree);
 
@@ -176,6 +186,46 @@ test.serial("Instantiation with custom task", (t) => {
 	t.deepEqual(customBuilder.taskExecutionOrder,
 		["myStandardTask", "createDebugFiles", "myTask", "replaceVersion"],
 		"Order of tasks is correct");
+});
+
+test.serial("Instantiation of empty builder with custom tasks", (t) => {
+	const customTask = function() {};
+	sinon.stub(taskRepository, "getTask").returns(customTask);
+
+	const project = clone(applicationBTree);
+	project.builder = {
+		customTasks: [{
+			name: "myTask"
+		}, {
+			name: "myTask2",
+			beforeTask: "myTask"
+		}]
+	};
+	const customBuilder = new EmptyBuilder({project});
+	t.truthy(customBuilder.tasks["myTask"], "Custom task has been added to task array");
+	t.truthy(customBuilder.tasks["myTask2"], "Custom task 2 has been added to task array");
+	t.deepEqual(customBuilder.taskExecutionOrder,
+		["myTask2", "myTask"],
+		"Order of tasks is correct");
+});
+
+test.serial("Instantiation of empty builder with 2nd custom tasks defining neither beforeTask nor afterTask", (t) => {
+	const customTask = function() {};
+	sinon.stub(taskRepository, "getTask").returns(customTask);
+
+	const project = clone(applicationBTree);
+	project.builder = {
+		customTasks: [{
+			name: "myTask"
+		}, {
+			name: "myTask2" // should define before- or afterTask
+		}]
+	};
+	const error = t.throws(() => {
+		new EmptyBuilder({project});
+	}, Error);
+	t.deepEqual(error.message, `Custom task definition myTask2 of project application.b defines ` +
+		`neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`, "Correct exception thrown");
 });
 
 test.serial("Instantiation with custom task defined three times", (t) => {

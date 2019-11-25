@@ -72,7 +72,8 @@ class AbstractBuilder {
 				throw new Error(`Custom task definition ${taskDef.name} of project ${project.metadata.name} ` +
 					`defines both "beforeTask" and "afterTask" parameters. Only one must be defined.`);
 			}
-			if (!taskDef.beforeTask && !taskDef.afterTask) {
+			if (this.taskExecutionOrder.length && !taskDef.beforeTask && !taskDef.afterTask) {
+				// Iff there are tasks configured, beforeTask or afterTask must be given
 				throw new Error(`Custom task definition ${taskDef.name} of project ${project.metadata.name} ` +
 					`defines neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`);
 			}
@@ -115,17 +116,23 @@ class AbstractBuilder {
 
 			this.tasks[newTaskName] = execTask;
 
-			const refTaskName = taskDef.beforeTask || taskDef.afterTask;
-			let refTaskIdx = this.taskExecutionOrder.indexOf(refTaskName);
-			if (refTaskIdx === -1) {
-				throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${newTaskName}, ` +
-					`to be scheduled for project ${project.metadata.name}`);
+			if (this.taskExecutionOrder.length) {
+				// There is at least one task configured. Use before- and afterTask to add the custom task
+				const refTaskName = taskDef.beforeTask || taskDef.afterTask;
+				let refTaskIdx = this.taskExecutionOrder.indexOf(refTaskName);
+				if (refTaskIdx === -1) {
+					throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${newTaskName}, ` +
+						`to be scheduled for project ${project.metadata.name}`);
+				}
+				if (taskDef.afterTask) {
+					// Insert after index of referenced task
+					refTaskIdx++;
+				}
+				this.taskExecutionOrder.splice(refTaskIdx, 0, newTaskName);
+			} else {
+				// There is no task configured so far. Just add the custom task
+				this.taskExecutionOrder.push(newTaskName);
 			}
-			if (taskDef.afterTask) {
-				// Insert after index of referenced task
-				refTaskIdx++;
-			}
-			this.taskExecutionOrder.splice(refTaskIdx, 0, newTaskName);
 		}
 	}
 
