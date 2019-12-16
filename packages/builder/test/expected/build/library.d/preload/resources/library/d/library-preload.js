@@ -5,6 +5,6 @@ jQuery.sap.registerPreloadedModules({
 	"library/d/some.js":function(){/*!
  * ${copyright}
  */
-console.log("HelloWorld");
+(function(){var o="World";console.log("Hello "+o)})();
 }
 }});

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+
+	<name>library.a</name>
+	<vendor>SAP SE</vendor>
+	<copyright>Some fancy copyright ${currentYear}</copyright>
+	<version>1.0.0</version>
+
+	<documentation>Library A</documentation>
+
+	<dependencies>
+		<dependency>
+			<libraryName>library.d</libraryName>
+		</dependency>
+	</dependencies>
+
+</library>

@@ -207,6 +207,8 @@ module.exports = {
 	 * @param {string} parameters.destPath Target path
 	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
 	 * @param {boolean} [parameters.buildDependencies=false] Decides whether project dependencies are built as well
+	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]] List of build dependencies to be included if buildDependencies is true
+	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]] List of build dependencies to be excluded if buildDependencies is true. If the wildcard '*' is provided, only the included dependencies will be built.
 	 * @param {boolean} [parameters.dev=false] Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
 	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
@@ -217,7 +219,8 @@ module.exports = {
 	 */
 	async build({
 		tree, destPath, cleanDest = false,
-		buildDependencies = false, dev = false, selfContained = false, jsdoc = false,
+		buildDependencies = false, includedDependencies = [], excludedDependencies = [],
+		dev = false, selfContained = false, jsdoc = false,
 		includedTasks = [], excludedTasks = [], devExcludeProject = []
 	}) {
 		const startTime = process.hrtime();
@@ -237,11 +240,30 @@ module.exports = {
 
 		const projects = {}; // Unique project index to prevent building the same project multiple times
 		const projectWriters = {}; // Collection of memory adapters of already built libraries
+		function projectFilter(project) {
+			function projectMatchesAny(deps) {
+				return deps.some((dep) => dep instanceof RegExp ?
+					dep.test(project.metadata.name) : dep === project.metadata.name);
+			}
+
+			// if everything is included, this overrules exclude lists
+			if (includedDependencies.includes("*")) return true;
+			let test = !excludedDependencies.includes("*"); // exclude everything?
+
+			if (test && projectMatchesAny(excludedDependencies)) {
+				test = false;
+			}
+			if (!test && projectMatchesAny(includedDependencies)) {
+				test = true;
+			}
+
+			return test;
+		}
 
 		const projectCountMarker = {};
 		function projectCount(project, count = 0) {
 			if (buildDependencies) {
-				count = project.dependencies.reduce((depCount, depProject) => {
+				count = project.dependencies.filter(projectFilter).reduce((depCount, depProject) => {
 					return projectCount(depProject, depCount);
 				}, count);
 			}
@@ -251,21 +273,22 @@ module.exports = {
 			}
 			return count;
 		}
-		const iProjectCount = projectCount(tree);
-		const buildLogger = log.createTaskLogger("🛠 ", iProjectCount);
+		const buildLogger = log.createTaskLogger("🛠 ", projectCount(tree));
 
 		function buildProject(project) {
 			let depPromise;
 			let projectTasks = selectedTasks;
+
+			// Build dependencies in sequence as it is far easier to detect issues and reduces
+			// side effects or other issues such as too many open files
 			if (buildDependencies) {
-				// Build dependencies in sequence as it is far easier to detect issues and reduces
-				// side effects or other issues such as too many open files
-				depPromise = project.dependencies.reduce(function(p, depProject) {
+				depPromise = project.dependencies.filter(projectFilter).reduce(function(p, depProject) {
 					return p.then(() => buildProject(depProject));
 				}, Promise.resolve());
 			} else {
 				depPromise = Promise.resolve();
 			}
+
 			// Build the project after all dependencies have been built
 			return depPromise.then(() => {
 				if (projects[project.metadata.name]) {

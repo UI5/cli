@@ -1,0 +1,3 @@
+.library-a-foo{color:#fafad2;padding:1px 2px 3px 4px}
+/* Inline theming parameters */
+#sap-ui-theme-library\.a{background-image:url('data:text/plain;utf-8,%7B%22libraryAColor1%22%3A%22%23fafad2%22%7D')}

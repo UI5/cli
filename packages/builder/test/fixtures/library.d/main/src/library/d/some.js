@@ -1,4 +1,7 @@
 /*!
  * ${copyright}
  */
-console.log('HelloWorld');
+(function() {
+	var someNonUglifiedVariable = "World";
+	console.log('Hello ' + someNonUglifiedVariable);
+})();
