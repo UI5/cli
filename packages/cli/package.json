@@ -105,7 +105,7 @@
 		"@ui5/fs": "^1.1.2",
 		"@ui5/logger": "^1.0.2",
 		"@ui5/project": "^1.1.1",
-		"@ui5/server": "^1.5.1",
+		"@ui5/server": "^1.5.2",
 		"chalk": "^2.4.2",
 		"import-local": "^3.0.2",
 		"js-yaml": "^3.13.1",
