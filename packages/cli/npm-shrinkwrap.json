@@ -557,6 +557,11 @@
 						"object-assign": "^4.0.1",
 						"request": "^2.88.0"
 					}
+				},
+				"semver": {
+					"version": "6.3.0",
+					"resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
+					"integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw=="
 				}
 			}
 		},
@@ -2669,6 +2674,12 @@
 					"integrity": "sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==",
 					"dev": true
 				},
+				"semver": {
+					"version": "6.3.0",
+					"resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
+					"integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==",
+					"dev": true
+				},
 				"strip-ansi": {
 					"version": "5.2.0",
 					"resolved": "https://registry.npmjs.org/strip-ansi/-/strip-ansi-5.2.0.tgz",
@@ -4025,6 +4036,14 @@
 				"@babel/types": "^7.4.0",
 				"istanbul-lib-coverage": "^2.0.5",
 				"semver": "^6.0.0"
+			},
+			"dependencies": {
+				"semver": {
+					"version": "6.3.0",
+					"resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
+					"integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==",
+					"dev": true
+				}
 			}
 		},
 		"istanbul-lib-report": {
@@ -4491,6 +4510,13 @@
 			"integrity": "sha512-grNJDhb8b1Jm1qeqW5R/O63wUo4UXo2v2HMic6YT9i/HBlF93S8jkMgH7yugvY9ABDShH4VZMn8I+U8+fCNegw==",
 			"requires": {
 				"semver": "^6.0.0"
+			},
+			"dependencies": {
+				"semver": {
+					"version": "6.3.0",
+					"resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
+					"integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw=="
+				}
 			}
 		},
 		"map-obj": {
@@ -5276,6 +5302,13 @@
 				"registry-auth-token": "^4.0.0",
 				"registry-url": "^5.0.0",
 				"semver": "^6.2.0"
+			},
+			"dependencies": {
+				"semver": {
+					"version": "6.3.0",
+					"resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
+					"integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw=="
+				}
 			}
 		},
 		"parent-module": {
@@ -5954,9 +5987,9 @@
 			"integrity": "sha1-Yl2GWPhlr0Psliv8N2o3NZpJlMo="
 		},
 		"semver": {
-			"version": "6.3.0",
-			"resolved": "https://registry.npmjs.org/semver/-/semver-6.3.0.tgz",
-			"integrity": "sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw=="
+			"version": "7.0.0",
+			"resolved": "https://registry.npmjs.org/semver/-/semver-7.0.0.tgz",
+			"integrity": "sha512-+GB6zVA9LWh6zovYQLALHwv5rb2PHGlJi3lfiqIHxR0uuwCgefcOJc59v9fv1w8GbStwxuuqqAjI9NMAOOgq1A=="
 		},
 		"semver-diff": {
 			"version": "2.1.0",
