@@ -116,8 +116,8 @@
 		"rimraf": "^3.0.0",
 		"semver": "^6.3.0",
 		"slash": "^3.0.0",
-		"terser": "^4.4.2",
-		"xml2js": "^0.4.22",
+		"terser": "^4.4.3",
+		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
