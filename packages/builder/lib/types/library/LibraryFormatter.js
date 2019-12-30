@@ -11,7 +11,7 @@ const AbstractUi5Formatter = require("../AbstractUi5Formatter");
 class LibraryFormatter extends AbstractUi5Formatter {
 	/**
 	 * Formats and validates the project
-  	 *
+	 *
 	 * @returns {Promise}
 	 */
 	async format() {
@@ -67,16 +67,20 @@ class LibraryFormatter extends AbstractUi5Formatter {
 	 * @throws {Error} if namespace can not be determined
 	 */
 	async getNamespace() {
-		let libraryId;
-		let fsNamespacePath;
+		// Trigger both reads asynchronously
+		const pManifest = this.getManifest();
+		const pDotLibrary = this.getDotLibrary();
+
+		let manifestPath;
+		let manifestId;
 		try {
-			const {content: manifest, fsPath} = await this.getManifest();
+			const {content: manifest, fsPath} = await pManifest;
 			// check for a proper sap.app/id in manifest.json to determine namespace
 			if (manifest["sap.app"] && manifest["sap.app"].id) {
 				log.verbose(`Found namespace information for project ${this._project.metadata.name} in ` +
 					`manifest.json`);
-				libraryId = manifest["sap.app"] && manifest["sap.app"].id;
-				fsNamespacePath = path.dirname(fsPath);
+				manifestId = manifest["sap.app"] && manifest["sap.app"].id;
+				manifestPath = path.dirname(fsPath);
 			} else {
 				log.verbose(
 					`No "sap.app" ID configuration found in manifest.json of project ${this._project.metadata.name}`);
@@ -84,30 +88,88 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		} catch (err) {
 			log.verbose(`Namespace resolution from manifest.json failed for project ` +
 				`${this._project.metadata.name}: ${err.message}`);
-			log.verbose(`Falling back to .library file...`);
 		}
 
-		if (!libraryId) {
-			try {
-				const {content: dotLibrary, fsPath} = await this.getDotLibrary();
-				if (dotLibrary && dotLibrary.library && dotLibrary.library.name) {
-					log.verbose(`Found namespace information for project ${this._project.metadata.name} in ` +
-					`.library file`);
-					libraryId = dotLibrary.library.name;
-					fsNamespacePath = path.dirname(fsPath);
-				} else {
-					throw new Error(
-						`No library name found in .library of project ${this._project.metadata.name}`);
-				}
-			} catch (err) {
-				log.verbose(`Namespace resolution from .library failed for project ` +
-					`${this._project.metadata.name}: ${err.message}`);
-				log.verbose("Falling back to library.js file path...");
+		let dotLibraryPath;
+		let dotLibraryId;
+		try {
+			const {content: dotLibrary, fsPath} = await pDotLibrary;
+			if (dotLibrary && dotLibrary.library && dotLibrary.library.name) {
+				log.verbose(`Found namespace information for project ${this._project.metadata.name} in ` +
+				`.library file`);
+				dotLibraryId = dotLibrary.library.name;
+				dotLibraryPath = path.dirname(fsPath);
+			} else {
+				throw new Error(
+					`No library name found in .library of project ${this._project.metadata.name}`);
 			}
+		} catch (err) {
+			log.verbose(`Namespace resolution from .library failed for project ` +
+				`${this._project.metadata.name}: ${err.message}`);
+		}
+
+		let libraryId;
+		let fsNamespacePath;
+		if (manifestId && dotLibraryId) {
+			// Both files present
+			// => check whether they are on the same level
+			const manifestDepth = manifestPath.split(path.sep).length;
+			const dotLibraryDepth = dotLibraryPath.split(path.sep).length;
+
+			if (manifestDepth < dotLibraryDepth) {
+				// We see the .library file as the "leading" file of a library
+				// Therefore, a manifest.json on a higher level is something we do not except
+				throw new Error(`Failed to detect namespace for project ${this._project.metadata.name}: ` +
+					`Found a manifest.json on a higher directory level than the .library file. ` +
+					`It should be on the same or a lower level. ` +
+					`Note that a manifest.json on a lower level will be ignored.\n` +
+					`  manifest.json path: ${path.join(manifestPath, "manifest.json")}\n` +
+					`  is higher than\n` +
+					`  .library path: ${path.join(dotLibraryPath, ".library")}`);
+			}
+			if (manifestDepth === dotLibraryDepth) {
+				if (manifestPath !== dotLibraryPath) {
+					// This just should not happen in your project
+					throw new Error(`Failed to detect namespace for project ${this._project.metadata.name}: ` +
+					`Found a manifest.json on the same directory level but in a different directory ` +
+					`than the .library file. They should be in the same directory.\n` +
+					`  manifest.json path: ${path.join(manifestPath, "manifest.json")}\n` +
+					`  is different to\n` +
+					`  .library path: ${path.join(dotLibraryPath, ".library")}`);
+				}
+				// Typical scenario if both files are present
+				log.verbose(`Found a manifest.json and a .library file on the same level for ` +
+					`project ${this._project.metadata.name}.`);
+				log.verbose(`Resolving namespace of project ${this._project.metadata.name} from manifest.json...`);
+				libraryId = manifestId;
+				fsNamespacePath = manifestPath;
+			} else {
+				// Typical scenario: Some nested component has a manifest.json but the library itself only
+				// features a .library.  => Ignore the manifest.json
+				log.verbose(`Ignoring manifest.json found on a lower level than the .library file of ` +
+					`project ${this._project.metadata.name}.`);
+				log.verbose(`Resolving namespace of project ${this._project.metadata.name} from .library...`);
+				libraryId = dotLibraryId;
+				fsNamespacePath = dotLibraryPath;
+			}
+		} else if (manifestId) {
+			// Only manifest available
+			log.verbose(`Resolving namespace of project ${this._project.metadata.name} from manifest.json...`);
+			libraryId = manifestId;
+			fsNamespacePath = manifestPath;
+		} else if (dotLibraryId) {
+			// Only .library available
+			log.verbose(`Resolving namespace of project ${this._project.metadata.name} from .library...`);
+			libraryId = dotLibraryId;
+			fsNamespacePath = dotLibraryPath;
+		} else {
+			log.verbose(`Failed to resolve namespace of project ${this._project.metadata.name} from manifest.json ` +
+				`or .library file. Falling back to library.js file path...`);
 		}
 
 		let namespace;
 		if (libraryId) {
+			// Maven placeholders can only exist in manifest.json or .library configuration
 			if (this.hasMavenPlaceholder(libraryId)) {
 				try {
 					libraryId = await this.resolveMavenPlaceholder(libraryId);

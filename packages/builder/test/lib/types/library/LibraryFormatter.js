@@ -162,8 +162,8 @@ test.serial("format: copyright retrieval fails", async (t) => {
 	t.deepEqual(myProject.metadata.copyright, libraryETree.metadata.copyright, "Copyright was not altered");
 
 
-	t.is(loggerVerboseSpy.callCount, 4, "calls to verbose");
-	t.is(loggerVerboseSpy.getCall(3).args[0], "my-pony", "message from rejection");
+	t.is(loggerVerboseSpy.callCount, 7, "calls to verbose");
+	t.is(loggerVerboseSpy.getCall(6).args[0], "my-pony", "message from rejection");
 
 	mock.stop("@ui5/logger");
 });
@@ -237,7 +237,7 @@ test.serial("format: namespace resolution fails", async (t) => {
 	t.deepEqual(globbyStub.getCall(0).args[0], "**/manifest.json", "First glob is for manifest.json files");
 	t.deepEqual(globbyStub.getCall(1).args[0], "**/.library", "Second glob is for .library files");
 	t.deepEqual(globbyStub.getCall(2).args[0], "**/library.js", "Third glob for library.js files");
-	t.deepEqual(loggerVerboseSpy.callCount, 6, "7 calls to log.verbose should be done");
+	t.deepEqual(loggerVerboseSpy.callCount, 5, "5 calls to log.verbose should be done");
 	const logVerboseCalls = loggerVerboseSpy.getCalls().map((call) => call.args[0]);
 
 	t.true(logVerboseCalls.includes(
@@ -497,7 +497,7 @@ test("getCopyright: no copyright available", async (t) => {
 		"Rejected with correct error message");
 });
 
-test("getNamespace: from manifest.json", async (t) => {
+test("getNamespace: from manifest.json with .library on same level", async (t) => {
 	const myProject = clone(libraryETree);
 
 	const libraryFormatter = new LibraryFormatter({project: myProject});
@@ -509,11 +509,53 @@ test("getNamespace: from manifest.json", async (t) => {
 		},
 		fsPath: path.normalize("/some/path/mani-pony/manifest.json") // normalize for windows
 	});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "dot-pony"}
+		},
+		fsPath: path.normalize("/some/path/mani-pony/.library") // normalize for windows
+	});
 	const getSourceBasePathStub = sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
 	const res = await libraryFormatter.getNamespace();
+	t.deepEqual(getSourceBasePathStub.callCount, 1,
+		"getSourceBasePath got called once");
 	t.deepEqual(getSourceBasePathStub.getCall(0).args[0], true,
 		"getSourceBasePath called with correct argument");
 	t.deepEqual(res, "mani-pony", "Returned correct namespace");
+});
+
+test("getNamespace: from manifest.json with .library on same level but different directory", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const manifestFsPath = path.normalize("/some/path/mani-pony/manifest.json"); // normalize for windows
+	const dotLibraryFsPath = path.normalize("/some/path/different-pony/.library");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({
+		content: {
+			"sap.app": {
+				id: "mani-pony"
+			}
+		},
+		fsPath: manifestFsPath
+	});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "dot-pony"}
+		},
+		fsPath: dotLibraryFsPath
+	});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+
+	t.deepEqual(err.message,
+		`Failed to detect namespace for project library.e: Found a manifest.json on the same directory level ` +
+		`but in a different directory than the .library file. They should be in the same directory.\n` +
+		`  manifest.json path: ${manifestFsPath}\n` +
+		`  is different to\n` +
+		`  .library path: ${dotLibraryFsPath}`,
+		"Rejected with correct error message");
 });
 
 test("getNamespace: from manifest.json with not matching file path", async (t) => {
@@ -527,6 +569,12 @@ test("getNamespace: from manifest.json with not matching file path", async (t) =
 			}
 		},
 		fsPath: path.normalize("/some/path/different/namespace/manifest.json") // normalize for windows
+	});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "dot-pony"}
+		},
+		fsPath: path.normalize("/some/path/different/namespace/.library") // normalize for windows
 	});
 	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
 	const err = await t.throwsAsync(libraryFormatter.getNamespace());
@@ -583,6 +631,64 @@ test("getNamespace: from .library", async (t) => {
 	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
 	const res = await libraryFormatter.getNamespace();
 	t.deepEqual(res, "dot-pony", "Returned correct namespace");
+});
+
+test("getNamespace: from .library with ignored manifest.json on lower level", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({
+		content: {
+			"sap.app": {
+				id: "mani-pony"
+			}
+		},
+		fsPath: path.normalize("/some/path/namespace/somedir/manifest.json") // normalize for windows
+	});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "dot-pony"}
+		},
+		fsPath: path.normalize("/some/path/dot-pony/.library") // normalize for windows
+	});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const res = await libraryFormatter.getNamespace();
+	t.deepEqual(res, "dot-pony", "Returned correct namespace");
+});
+
+test("getNamespace: manifest.json on higher level than .library", async (t) => {
+	const myProject = clone(libraryETree);
+
+	const manifestFsPath = path.normalize("/some/path/namespace/manifest.json"); // normalize for windows
+	const dotLibraryFsPath = path.normalize("/some/path/namespace/morenamespace/.library");
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getManifest").resolves({
+		content: {
+			"sap.app": {
+				id: "mani-pony"
+			}
+		},
+		fsPath: manifestFsPath
+	});
+	sinon.stub(libraryFormatter, "getDotLibrary").resolves({
+		content: {
+			library: {name: "dot-pony"}
+		},
+		fsPath: dotLibraryFsPath
+	});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
+	const err = await t.throwsAsync(libraryFormatter.getNamespace());
+
+	t.deepEqual(err.message,
+		`Failed to detect namespace for project library.e: ` +
+		`Found a manifest.json on a higher directory level than the .library file. ` +
+		`It should be on the same or a lower level. ` +
+		`Note that a manifest.json on a lower level will be ignored.\n` +
+		`  manifest.json path: ${manifestFsPath}\n` +
+		`  is higher than\n` +
+		`  .library path: ${dotLibraryFsPath}`,
+		"Rejected with correct error message");
 });
 
 test("getNamespace: from .library with maven placeholder", async (t) => {
