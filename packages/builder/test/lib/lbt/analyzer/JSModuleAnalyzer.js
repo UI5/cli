@@ -94,6 +94,8 @@ function analyzeModule(
 				expectedSubmodules,
 				"submodules should match");
 		}
+		t.false(info.dynamicDependencies,
+			"no use of dynamic dependencies should have been detected");
 	}).then(() => t.end(), (e) => t.fail(`failed to analyze module with error: ${e.message}`));
 }
 
@@ -356,7 +358,31 @@ test("ES6 Syntax", (t) => {
 				"only dependencies to 'conditional/*' modules should be conditional");
 			t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
 				"all dependencies other than 'conditional/*' and 'static/*' should be implicit");
+			t.false(info.dynamicDependencies,
+				"no use of dynamic dependencies should have been detected");
 		});
 	});
 });
+
+test("Dynamic import (declare/require)", (t) => {
+	return analyze("modules/declare_dynamic_require.js").then((info) => {
+		t.true(info.dynamicDependencies,
+			"the use of dynamic dependencies should have been detected");
+	});
+});
+
+test("Dynamic import (define/require)", (t) => {
+	return analyze("modules/amd_dynamic_require.js").then((info) => {
+		t.true(info.dynamicDependencies,
+			"the use of dynamic dependencies should have been detected");
+	});
+});
+
+test("Dynamic import (define/requireSync)", (t) => {
+	return analyze("modules/amd_dynamic_require_sync.js").then((info) => {
+		t.true(info.dynamicDependencies,
+			"the use of dynamic dependencies should have been detected");
+	});
+});
+
 

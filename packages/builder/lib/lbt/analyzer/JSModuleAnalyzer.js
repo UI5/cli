@@ -546,7 +546,7 @@ class JSModuleAnalyzer {
 						const requiredModuleName2 = ModuleName.fromUI5LegacyName( arg.alternate.value );
 						info.addDependency(requiredModuleName2, true);
 					} else {
-						log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg);
+						log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg && arg.type);
 						info.dynamicDependencies = true;
 					}
 				}
@@ -558,12 +558,16 @@ class JSModuleAnalyzer {
 			const nArgs = args.length;
 			const i = 0;
 
-			if ( i < nArgs && isString(args[i]) ) {
-				const moduleName = ModuleName.fromRequireJSName( args[i].value );
-				info.addDependency(moduleName, conditional);
+			if ( i < nArgs ) {
+				if ( isString(args[i]) ) {
+					const moduleName = ModuleName.fromRequireJSName( args[i].value );
+					info.addDependency(moduleName, conditional);
+				} else {
+					log.verbose("sap.ui.requireSync: cannot evaluate dynamic arguments: ", args[i] && args[i].type);
+					info.dynamicDependencies = true;
+				}
 			}
 		}
-
 
 		function onSapUiPredefine(predefineCall) {
 			const args = predefineCall.arguments;
@@ -622,6 +626,9 @@ class JSModuleAnalyzer {
 						requiredModule = ModuleName.resolveRelativeRequireJSName(name, item.value);
 					}
 					info.addDependency( requiredModule, conditional );
+				} else {
+					log.verbose("sap.ui.require/sap.ui.define: cannot evaluate dynamic argument: ", item && item.type);
+					info.dynamicDependencies = true;
 				}
 			});
 		}
