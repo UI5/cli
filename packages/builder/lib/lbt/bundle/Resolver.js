@@ -30,10 +30,13 @@ class BundleResolver {
 	// NODE-TODO private final Map<ModuleName, AbstractModuleDefinition> moduleDefinitions;
 
 	/**
-	 * @param {ModuleDefinition} bundle
+	 * @param {ModuleDefinition} bundle Bundle definition to resolve
+	 * @param {Object} [options] Options
+	 * @param {string[]} [options.defaultFileTypes] List of default file types to which a prefix pattern shall be expanded.
 	 * @returns {Promise<ResolvedBundleDefinition>}
 	 */
-	resolve(bundle /* NODE-TODO, Map<string,string> vars */) {
+	resolve(bundle, options) {
+		const fileTypes = (options && options.defaultFileTypes) || undefined;
 		let visitedResources = Object.create(null);
 		let selectedResources = Object.create(null);
 		let selectedResourcesSequence = [];
@@ -47,7 +50,7 @@ class BundleResolver {
 			let prevLength;
 			let newKeys;
 
-			const filters = new ResourceFilterList( section.filters ); // resolvePlaceholders(section.getFilters());
+			const filters = new ResourceFilterList( section.filters, fileTypes ); // resolvePlaceholders(section.getFilters());
 
 			function isAccepted(resourceName, required) {
 				let match = required;

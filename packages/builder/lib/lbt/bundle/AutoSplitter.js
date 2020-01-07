@@ -47,7 +47,7 @@ class AutoSplitter {
 		this.optimize = !!options.optimize;
 
 		// ---- resolve module definition
-		const resolvedModule = await this.resolver.resolve(moduleDef /* NODE-TODO , vars*/);
+		const resolvedModule = await this.resolver.resolve(moduleDef, options);
 		// ---- calculate overall size of merged module
 
 		if ( moduleDef.configuration ) {

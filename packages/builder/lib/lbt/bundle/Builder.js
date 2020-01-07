@@ -129,8 +129,8 @@ class BundleBuilder {
 	}
 
 	async _createBundle(module, options) {
-		const resolvedModule = await this.resolver.resolve(module /* NODE-TODO, vars */);
-		log.verbose("  create '%s'",	resolvedModule.name);
+		const resolvedModule = await this.resolver.resolve(module, options);
+		log.verbose("  create '%s'", resolvedModule.name);
 
 		this.options = options || {};
 		this.optimize = !!this.options.optimize;

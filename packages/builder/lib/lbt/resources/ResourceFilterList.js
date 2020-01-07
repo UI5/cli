@@ -2,7 +2,19 @@
 
 const log = require("@ui5/logger").getLogger("lbt:resources:ResourceFilterList");
 
-function makeMatcher(globPattern) {
+function makeFileTypePattern(fileTypes) {
+	if ( fileTypes == null ) {
+		return undefined;
+	}
+	return "(?:" + fileTypes.map((type) => {
+		if ( !type.startsWith(".") ) {
+			type = "." + type;
+		}
+		return type.replace(/[*+?.()|^$]/g, "\\$&");
+	}).join("|") + ")";
+}
+
+function makeMatcher(globPattern, fileTypesPattern) {
 	const result = {
 		pattern: globPattern,
 		include: true
@@ -14,29 +26,53 @@ function makeMatcher(globPattern) {
 		globPattern = globPattern.slice(1);
 	}
 
-	// check for wildcards
-	if ( /\*|\/$/.test(globPattern) ) {
-		if ( !/\/\*\*\/$/.test(globPattern) ) {
-			globPattern = globPattern.replace(/\/$/, "/**/");
+	// normalize some convenience shortcuts
+	// - a lonely 'any sub-path' pattern implies the 'any file' pattern:
+	//      "**/" --> "**/*"
+	// - a trailing 'any sub-path' pattern also implies the 'any file' pattern:
+	//      ".../foo/**/" --> "../foo/**/*"
+	// - any other trailing slash matches any files in any sub-folder:
+	//      ".../foo/" --> ".../foo/**/*"
+	if ( globPattern.endsWith("/") ) {
+		if ( globPattern === "**/" || globPattern.endsWith("/**/") ) {
+			globPattern = globPattern + "*";
+		} else {
+			globPattern = globPattern + "**/*";
 		}
+	}
 
-		const regexp = globPattern.replace(/\*\*\/|\*|[[\]{}()+?.\\^$|]/g, function(match) {
+	// check for wildcards
+	if ( /\*/.test(globPattern) ) {
+		// Transform the globPattern into a regular expression pattern by converting
+		// the "all sub-directories" pattern "/**/" and the "any file name" pattern "*"
+		// to their respective regexp counterparts and escape all other regexp special
+		// characters.
+		let regexp = globPattern.replace(/^\*\*\/|\/\*\*\/|\*|[[\]{}()+?.\\^$|]/g, (match) => {
 			switch (match) {
 			case "**/": return "(?:[^/]+/)*";
+			case "/**/": return "/(?:[^/]+/)*";
 			case "*": return "[^/]*";
 			default: return "\\" + match;
 			}
 		});
 
-		log.verbose("%s -> %s,%s", result.pattern, "^" + regexp, result.include ? "include" : "exclude" );
-		result.regexp = new RegExp("^" + regexp);
+		// if the pattern ended with an asterisk and if a default file type pattern is defined,
+		// add that pattern. This limits the matches to the specified set of file types
+		if ( fileTypesPattern != null && regexp.endsWith("[^/]*") ) {
+			regexp = regexp + fileTypesPattern;
+		}
+
+		result.regexp = new RegExp("^" + regexp + "$");
 		result.calcMatch = result.include ? function(candidate, matchSoFar) {
 			return matchSoFar || this.regexp.test(candidate);
 		} : function(candidate, matchSoFar) {
 			return matchSoFar && !this.regexp.test(candidate);
 		};
+
+		log.verbose(`  ${result.pattern} --> ${result.include ? "include" : "exclude"}: /${result.regexp.source}/`);
 	} else {
 		result.value = globPattern;
+		log.verbose(`  ${result.pattern} --> ${result.include ? "include" : "exclude"}: "${globPattern}"`);
 		result.calcMatch = result.include ? function(candidate, matchSoFar) {
 			return matchSoFar || candidate === this.value;
 		} : function(candidate, matchSoFar) {
@@ -56,19 +92,20 @@ function makeMatcher(globPattern) {
  * @author Frank Weigel
  * @since 1.16.2
  * @private
- * TODO Share with plugins, esp. coldWater, lightening, ...
  */
 class ResourceFilterList {
-	constructor(filters) {
+	constructor(filters, fileTypes) {
 		this.matchers = [];
 		this.matchByDefault = true;
+		this.fileTypes = makeFileTypePattern(fileTypes);
+		log.verbose(`filetypes: ${fileTypes}`);
 		this.addFilters(filters);
 	}
 
 	addFilters(filters) {
 		if ( Array.isArray(filters) ) {
 			filters.forEach( (filter) => {
-				const matcher = makeMatcher(filter);
+				const matcher = makeMatcher(filter, this.fileTypes);
 				this.matchers.push( matcher );
 				this.matchByDefault = this.matchByDefault && !matcher.include;
 			});
@@ -77,59 +114,6 @@ class ResourceFilterList {
 		}
 		return this;
 	}
-
-	/* NODE-TODO
-	public ResourceFilterList addIncludes(String[] includes){
-		if ( includes != null ) {
-			for(String include : includes) {
-				add(include, false);
-			}
-		}
-		return this;
-	}
-
-	public ResourceFilterList addExcludes(String[] excludes) {
-		if ( excludes != null ) {
-			for(String exclude : excludes) {
-				add(exclude, true);
-			}
-		}
-		return this;
-	}
-
-	/**
-	 * old style resource pattern (from old Optimizer)
-	 * @param excludePattern
-	 * @deprecated Use the more flexible add or addFilters instead.
-	 *
-	public void addExcludePattern(Pattern excludePattern) {
-		isExclude.set(patterns.size(), true);
-		patterns.add(excludePattern);
-	}
-
-	public ResourceFilterList add(String patternList, boolean exclude) {
-		for(String pattern : patternList.trim().split("\\s*,\\s*")) {
-			if ( !pattern.isEmpty() ) {
-				isExclude.set(patterns.size(), exclude);
-				patterns.add(ModuleNamePattern.createRegEx(pattern, ignoreCase));
-				hasInclude = hasInclude || !exclude;
-			}
-		}
-		return this;
-	}
-
-	public ResourceFilterList add(String patternList) {
-		for(String pattern : patternList.trim().split("\\s*,\\s*")) {
-			if ( !pattern.isEmpty() ) {
-				boolean exclude = pattern.startsWith("!") || pattern.startsWith("-");
-				isExclude.set(patterns.size(), exclude);
-				patterns.add(ModuleNamePattern.createRegEx(exclude || pattern.startsWith("+")
-					? pattern.substring(1) : pattern, ignoreCase));
-				hasInclude = hasInclude || !exclude;
-			}
-		}
-		return this;
-	} */
 
 	matches(candidate, initialMatch) {
 		return this.matchers.reduce(
@@ -146,7 +130,7 @@ class ResourceFilterList {
 ResourceFilterList.fromString = function(filterStr) {
 	const result = new ResourceFilterList();
 	if ( filterStr != null ) {
-		result.addFilters( filterStr.trim().split(/\s*,\s*/) );
+		result.addFilters( filterStr.trim().split(/\s*,\s*/).filter(Boolean) );
 	}
 	return result;
 };
