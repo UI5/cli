@@ -1,0 +1,10 @@
+{
+  "name": "theme.library.e",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based library - test for dev dependencies",
+  "devDependencies": {
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

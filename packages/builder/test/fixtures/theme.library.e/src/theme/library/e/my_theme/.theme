@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<theme xmlns="http://www.sap.com/sap.ui.library.xsd" >
+
+	<name>my_theme</name>
+	<vendor>me</vendor>
+	<copyright>${copyright}</copyright>
+	<version>${version}</version>
+
+</theme>

@@ -1,11 +1,13 @@
 const applicationType = require("./application/applicationType");
 const libraryType = require("./library/libraryType");
+const themeLibraryType = require("./themeLibrary/themeLibraryType");
 const moduleType = require("./module/moduleType");
 
 const types = {
-	application: applicationType,
-	library: libraryType,
-	module: moduleType
+	"application": applicationType,
+	"library": libraryType,
+	"theme-library": themeLibraryType,
+	"module": moduleType
 };
 
 /**
