@@ -696,7 +696,8 @@ test("specVersion: Extension with invalid version", async (t) => {
 	const preprocessor = new Preprocessor();
 	await t.throwsAsync(preprocessor.applyExtension(extension),
 		"Unsupported specification version 0.9 defined for extension shims.a. " +
-		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
+		"Your UI5 CLI installation might be outdated. For details see " +
+		"https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
 		"Rejected with error");
 });
 
@@ -738,4 +739,24 @@ test("specVersion: Extension with valid version 1.0", async (t) => {
 	const handleShimStub = sinon.stub(preprocessor, "handleShim");
 	await preprocessor.applyExtension(extension);
 	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "1.0", "Correct spec version");
+});
+
+test("specVersion: Extension with valid version 1.1", async (t) => {
+	const extension = {
+		id: "extension.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "1.1",
+		kind: "extension",
+		type: "project-shim",
+		metadata: {
+			name: "shims.a"
+		},
+		shims: {}
+	};
+	const preprocessor = new Preprocessor();
+	const handleShimStub = sinon.stub(preprocessor, "handleShim");
+	await preprocessor.applyExtension(extension);
+	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "1.1", "Correct spec version");
 });

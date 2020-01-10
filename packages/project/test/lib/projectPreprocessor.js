@@ -1597,7 +1597,8 @@ test("specVersion: Project with invalid version", async (t) => {
 	};
 	await t.throwsAsync(projectPreprocessor.processTree(tree),
 		"Unsupported specification version 0.9 defined for project application.a. " +
-		"See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions",
+		"Your UI5 CLI installation might be outdated. For details see " +
+		"https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
 		"Rejected with error");
 });
 
@@ -1631,6 +1632,22 @@ test("specVersion: Project with valid version 1.0", async (t) => {
 	};
 	const res = await projectPreprocessor.processTree(tree);
 	t.deepEqual(res.specVersion, "1.0", "Correct spec version");
+});
+
+test("specVersion: Project with valid version 1.1", async (t) => {
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "1.1",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+	const res = await projectPreprocessor.processTree(tree);
+	t.deepEqual(res.specVersion, "1.1", "Correct spec version");
 });
 
 test("isBeingProcessed: Is not being processed", (t) => {

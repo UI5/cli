@@ -272,11 +272,11 @@ class ProjectPreprocessor {
 			return false; // ignore this project
 		}
 
-		if (project.specVersion !== "0.1" && project.specVersion !== "1.0") {
+		if (project.specVersion !== "0.1" && project.specVersion !== "1.0" && project.specVersion !== "1.1") {
 			throw new Error(
 				`Unsupported specification version ${project.specVersion} defined for project ` +
-				`${project.id}. ` +
-				`See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions`);
+				`${project.id}. Your UI5 CLI installation might be outdated. ` +
+				`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`);
 		}
 
 		if (!project.type) {
@@ -330,11 +330,13 @@ class ProjectPreprocessor {
 
 		if (!extension.specVersion) {
 			throw new Error(`No specification version defined for extension ${extension.metadata.name}`);
-		} else if (extension.specVersion !== "0.1" && extension.specVersion !== "1.0") {
+		} else if (extension.specVersion !== "0.1" &&
+				extension.specVersion !== "1.0" &&
+				extension.specVersion !== "1.1") {
 			throw new Error(
 				`Unsupported specification version ${extension.specVersion} defined for extension ` +
-				`${extension.metadata.name}. ` +
-				`See https://github.com/SAP/ui5-project/blob/master/docs/Configuration.md#specification-versions`);
+				`${extension.metadata.name}. Your UI5 CLI installation might be outdated. ` +
+				`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`);
 		} else if (this.appliedExtensions[extension.metadata.name]) {
 			log.verbose(`Extension with the name ${extension.metadata.name} has already been applied. ` +
 				"This might have been done during dependency lookahead.");
