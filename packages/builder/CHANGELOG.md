@@ -2,7 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.8.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.9.0...HEAD).
+
+<a name="v1.9.0"></a>
+## [v1.9.0] - 2020-01-12
+### Bug Fixes
+- Use 'defaultFileTypes' from bundle configuration ([#385](https://github.com/SAP/ui5-builder/issues/385)) [`c21e13e`](https://github.com/SAP/ui5-builder/commit/c21e13ea2d7f629b1f91b9acf625989f396c6b4f)
+- Detect dynamic dependencies also when newer APIs are used ([#391](https://github.com/SAP/ui5-builder/issues/391)) [`ed1cc9d`](https://github.com/SAP/ui5-builder/commit/ed1cc9d45e517b3b38815483cc60fa7182ffd067)
+
+### Features
+- Add new theme-library type ([#285](https://github.com/SAP/ui5-builder/issues/285)) [`a59287b`](https://github.com/SAP/ui5-builder/commit/a59287b670e956ef29ffe10bbbe1c3506ea3b330)
+- **AbstractBuilder:** Allow adding custom tasks for types that have no standard tasks [`654450d`](https://github.com/SAP/ui5-builder/commit/654450df07c22bd1930c014f8b3d6904df8248e9)
+
 
 <a name="v1.8.0"></a>
 ## [v1.8.0] - 2019-12-16
@@ -304,6 +315,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.9.0]: https://github.com/SAP/ui5-builder/compare/v1.8.0...v1.9.0
 [v1.8.0]: https://github.com/SAP/ui5-builder/compare/v1.7.1...v1.8.0
 [v1.7.1]: https://github.com/SAP/ui5-builder/compare/v1.7.0...v1.7.1
 [v1.7.0]: https://github.com/SAP/ui5-builder/compare/v1.6.1...v1.7.0
