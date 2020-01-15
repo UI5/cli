@@ -24,7 +24,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		if (!project.metadata.namespace) {
 			log.info("Skipping some tasks due to missing application namespace information. If your project contains " +
 					"a Component.js, you might be missing a manifest.json file. " +
-					"Also see: https://github.com/SAP/ui5-builder#application");
+					"Also see: https://sap.github.io/ui5-tooling/pages/Builder/#application");
 		}
 
 		this.addTask("escapeNonAsciiCharacters", () => {
