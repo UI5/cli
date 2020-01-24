@@ -80,7 +80,7 @@ async function createAndInstallCertificate(keyPath, certPath) {
 			"SSL certificate into the operating system and browsers.");
 	}
 
-	const {key, cert} = await devCert("ui5-tooling");
+	const {key, cert} = await devCert("UI5Tooling");
 	await Promise.all([
 		// Write certificates to the ui5 certificate folder
 		// such that they are used by default upon next startup

@@ -45,7 +45,7 @@ test.serial("Create new certificate and install it", (t) => {
 	});
 
 	mock("devcert-sanscache", function(name) {
-		t.deepEqual(name, "ui5-tooling", "Create certificate for ui5-tooling.");
+		t.deepEqual(name, "UI5Tooling", "Create certificate for UI5Tooling.");
 		return Promise.resolve({
 			key: sslKey,
 			cert: sslCert
@@ -119,7 +119,7 @@ test.serial("Create new certificate not succeeded", async (t) => {
 	});
 
 	mock("devcert-sanscache", function(name) {
-		t.deepEqual(name, "ui5-tooling", "Create certificate for ui5-tooling.");
+		t.deepEqual(name, "UI5Tooling", "Create certificate for UI5Tooling.");
 		return Promise.resolve({
 			key: "aaa",
 			cert: "bbb"
