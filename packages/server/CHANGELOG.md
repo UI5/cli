@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.5.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.5.3...HEAD).
+
+<a name="v1.5.3"></a>
+## [v1.5.3] - 2020-01-24
+### Bug Fixes
+- **sslUtils:** Fix Invalid Common Name error [`db06db7`](https://github.com/SAP/ui5-server/commit/db06db7a371ea7254c408f01cf231de9367c8b0d)
+
 
 <a name="v1.5.2"></a>
 ## [v1.5.2] - 2019-12-16
@@ -107,6 +113,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.5.3]: https://github.com/SAP/ui5-server/compare/v1.5.2...v1.5.3
 [v1.5.2]: https://github.com/SAP/ui5-server/compare/v1.5.1...v1.5.2
 [v1.5.1]: https://github.com/SAP/ui5-server/compare/v1.5.0...v1.5.1
 [v1.5.0]: https://github.com/SAP/ui5-server/compare/v1.4.0...v1.5.0
