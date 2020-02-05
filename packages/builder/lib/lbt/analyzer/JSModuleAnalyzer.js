@@ -607,7 +607,7 @@ class JSModuleAnalyzer {
 					info.addSubModule(moduleName);
 				});
 			} else {
-				log.warn("Cannot evaluate registerPreloadedModules: '%s'", modules && modules.type);
+				log.verbose("Cannot evaluate registerPreloadedModules: '%s'", modules && modules.type);
 			}
 		}
 
