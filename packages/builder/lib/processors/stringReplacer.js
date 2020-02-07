@@ -14,8 +14,9 @@ const replaceStream = require("replacestream");
  */
 module.exports = function({resources, options}) {
 	return Promise.all(resources.map((resource) => {
-		const stream = resource.getStream()
-			.pipe(replaceStream(options.pattern, options.replacement));
+		let stream = resource.getStream();
+		stream.setEncoding("utf8");
+		stream = stream.pipe(replaceStream(options.pattern, options.replacement));
 
 		resource.setStream(stream);
 		return resource;
