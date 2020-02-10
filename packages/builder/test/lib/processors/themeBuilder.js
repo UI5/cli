@@ -38,50 +38,80 @@ function prepareResources({library} = {}) {
 	};
 }
 
-function getExpectedResults({compress, library}) {
-	let css; let cssRtl; let json;
+function getExpectedResults({compress, library, cssVariables}) {
+	const result = {};
 	if (compress) {
-		css =
+		result.css =
 `.someClass{color:#000;padding:1px 2px 3px 4px}`;
 
-		cssRtl =
+		result.cssRtl =
 `.someClass{color:#000;padding:1px 4px 3px 2px}`;
-		json = `{"someColor":"#000"}`;
+		result.json = `{"someColor":"#000"}`;
 	} else {
-		css =
+		result.css =
 `.someClass {
   color: #000000;
   padding: 1px 2px 3px 4px;
 }
 `;
 
-		cssRtl =
+		result.cssRtl =
 `.someClass {
   color: #000000;
   padding: 1px 4px 3px 2px;
 }
 `;
 
-		json =
+		result.json =
 `{
 	"someColor": "#000000"
 }`;
 	}
 
 	if (library !== false) {
-		css +=
+		result.css +=
 `
 /* Inline theming parameters */
 #sap-ui-theme-sap\\.ui\\.foo{background-image:url('data:text/plain;utf-8,%7B%22someColor%22%3A%22%23${compress ? "000" : "000000"}%22%7D')}
 `;
-		cssRtl +=
+		result.cssRtl +=
 `
 /* Inline theming parameters */
 #sap-ui-theme-sap\\.ui\\.foo{background-image:url('data:text/plain;utf-8,%7B%22someColor%22%3A%22%23${compress ? "000" : "000000"}%22%7D')}
 `;
 	}
 
-	return {css, cssRtl, json};
+	if (cssVariables) {
+		result.cssVariablesSource =
+`@someColor: #000000;
+
+:root {
+--someColor: @someColor;
+}
+`;
+		result.cssVariables =
+`:root {
+  --someColor: #000000;
+}
+
+/* Inline theming parameters */
+#sap-ui-theme-sap\\.ui\\.foo{background-image:url('data:text/plain;utf-8,%7B%22someColor%22%3A%22%23000000%22%7D')}
+`;
+		result.cssSkeleton =
+`.someClass {
+  color: var(--someColor);
+  padding: 1px 2px 3px 4px;
+}
+`;
+		result.cssSkeletonRtl =
+`.someClass {
+  color: var(--someColor);
+  padding: 1px 4px 3px 2px;
+}
+`;
+	}
+
+	return result;
 }
 
 test("Processor: Builds a less file (default options)", async (t) => {
@@ -205,4 +235,33 @@ test("ThemeBuilder: Builds a less file (no library)", async (t) => {
 	t.is(await cssResource.getString(), expected.css, "CSS should be correct");
 	t.is(await cssRtlResource.getString(), expected.cssRtl, "Right-to-left CSS should be correct");
 	t.is(await jsonResource.getString(), expected.json, "JSON should be correct");
+});
+
+test("Processor: Builds a less file (cssVariables = true)", async (t) => {
+	const {resource, memoryAdapter} = prepareResources();
+
+	const [
+		cssResource,
+		cssRtlResource,
+		jsonResource,
+		cssVariablesSourceResource,
+		cssVariablesResource,
+		cssSkeletonResource,
+		cssSkeletonRtlResource
+	] = await themeBuilderProcessor({
+		resources: [resource],
+		fs: fsInterface(memoryAdapter),
+		options: {
+			cssVariables: true
+		}
+	});
+
+	const expected = getExpectedResults({cssVariables: true});
+	t.is(await cssResource.getString(), expected.css, "CSS should be correct");
+	t.is(await cssRtlResource.getString(), expected.cssRtl, "Right-to-left CSS should be correct");
+	t.is(await jsonResource.getString(), expected.json, "JSON should be correct");
+	t.is(await cssVariablesSourceResource.getString(), expected.cssVariablesSource, "CSS Variables source should be correct");
+	t.is(await cssVariablesResource.getString(), expected.cssVariables, "CSS Variables should be correct");
+	t.is(await cssSkeletonResource.getString(), expected.cssSkeleton, "Skeleton CSS should be correct");
+	t.is(await cssSkeletonRtlResource.getString(), expected.cssSkeletonRtl, "Right-to-left skeleton CSS should be correct");
 });

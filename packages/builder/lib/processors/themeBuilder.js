@@ -30,9 +30,10 @@ class ThemeBuilder {
 	 * @param {module:@ui5/fs.Resource[]} resources Library files
 	 * @param {Object} [options] Build options
 	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
+	 * @param {boolean} [options.cssVariables=false] Generates the CSS variables (css-variables.css, css-variables.source.less) and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css])
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Resolving with array of created files
 	 */
-	build(resources, {compress = false} = {}) {
+	build(resources, {compress = false, cssVariables = false} = {}) {
 		const files = [];
 
 		const compile = (resource) => {
@@ -51,7 +52,8 @@ class ThemeBuilder {
 				},
 				compiler: {
 					compress
-				}
+				},
+				cssVariables
 			}).then((result) => {
 				const themeDir = path.dirname(resource.getPath());
 
@@ -71,6 +73,27 @@ class ThemeBuilder {
 				});
 
 				files.push(libCss, libCssRtl, libParams);
+
+				if (cssVariables) {
+					const libCssVarsSource = new Resource({
+						path: themeDir + "/css-variables.source.less",
+						string: result.cssVariablesSource
+					});
+					const libCssVars = new Resource({
+						path: themeDir + "/css-variables.css",
+						string: result.cssVariables
+					});
+					const libCssSkel = new Resource({
+						path: themeDir + "/library-skeleton.css",
+						string: result.cssSkeleton
+					});
+					const libCssSkelRtl = new Resource({
+						path: themeDir + "/library-skeleton-RTL.css",
+						string: result.cssSkeletonRtl
+					});
+
+					files.push(libCssVarsSource, libCssVars, libCssSkel, libCssSkelRtl);
+				}
 			});
 		};
 
@@ -100,12 +123,12 @@ class ThemeBuilder {
  * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
  * @param {Object} [parameters.options] Options
  * @param {Object} [parameters.options.compress=false] Compress build output (CSS / JSON)
+ * @param {boolean} [parameters.options.cssVariables=false] Generates the CSS variables (css-variables.css, css-variables.source.less) and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css])
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with theme resources
  */
 module.exports = ({resources, fs, options}) => {
 	const themeBuilder = new ThemeBuilder({fs});
-	const compress = options && options.compress;
-	return themeBuilder.build(resources, {compress}).then((files) => {
+	return themeBuilder.build(resources, options).then((files) => {
 		themeBuilder.clearCache();
 		return files;
 	});

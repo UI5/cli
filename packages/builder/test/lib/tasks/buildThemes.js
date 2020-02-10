@@ -62,7 +62,8 @@ test.serial("buildThemes", async (t) => {
 		resources: [lessResource],
 		fs: {},
 		options: {
-			compress: true // default
+			compress: true, // default
+			cssVariables: false // default
 		}
 	}, "Processor should be called with expected arguments");
 
@@ -116,7 +117,8 @@ test.serial("buildThemes (compress = false)", async (t) => {
 		resources: [lessResource],
 		fs: {},
 		options: {
-			compress: false
+			compress: false,
+			cssVariables: false
 		}
 	}, "Processor should be called with expected arguments");
 
@@ -125,4 +127,70 @@ test.serial("buildThemes (compress = false)", async (t) => {
 	t.true(workspace.write.calledWithExactly(cssResource));
 	t.true(workspace.write.calledWithExactly(cssRtlResource));
 	t.true(workspace.write.calledWithExactly(jsonParametersResource));
+});
+
+test.serial("buildThemes (cssVariables = true)", async (t) => {
+	t.plan(10);
+
+	const lessResource = {};
+
+	const workspace = {
+		byGlob: async (globPattern) => {
+			if (globPattern === "/resources/test/library.source.less") {
+				return [lessResource];
+			} else {
+				return [];
+			}
+		},
+		write: sinon.stub()
+	};
+
+	const cssResource = {};
+	const cssRtlResource = {};
+	const jsonParametersResource = {};
+	const cssVariablesSourceResource = {};
+	const cssVariablesResource = {};
+	const cssSkeletonResource = {};
+	const cssSkeletonRtlResource = {};
+
+	t.context.themeBuilderStub.returns([
+		cssResource,
+		cssRtlResource,
+		jsonParametersResource,
+		cssVariablesSourceResource,
+		cssVariablesResource,
+		cssSkeletonResource,
+		cssSkeletonRtlResource
+	]);
+
+	await buildThemes({
+		workspace,
+		options: {
+			projectName: "sap.ui.demo.app",
+			inputPattern: "/resources/test/library.source.less",
+			cssVariables: true
+		}
+	});
+
+	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+		"Processor should be called once");
+
+	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
+		resources: [lessResource],
+		fs: {},
+		options: {
+			compress: true,
+			cssVariables: true
+		}
+	}, "Processor should be called with expected arguments");
+
+	t.deepEqual(workspace.write.callCount, 7,
+		"workspace.write should be called 7 times");
+	t.true(workspace.write.calledWithExactly(cssResource));
+	t.true(workspace.write.calledWithExactly(cssRtlResource));
+	t.true(workspace.write.calledWithExactly(jsonParametersResource));
+	t.true(workspace.write.calledWithExactly(cssVariablesSourceResource));
+	t.true(workspace.write.calledWithExactly(cssVariablesResource));
+	t.true(workspace.write.calledWithExactly(cssSkeletonResource));
+	t.true(workspace.write.calledWithExactly(cssSkeletonRtlResource));
 });

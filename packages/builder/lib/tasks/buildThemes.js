@@ -15,6 +15,7 @@ const fsInterface = require("@ui5/fs").fsInterface;
  * @param {string} parameters.options.inputPattern Search pattern for *.less files to be built
  * @param {string} [parameters.options.librariesPattern] Search pattern for .library files
  * @param {boolean} [parameters.options.compress=true]
+ * @param {boolean} [parameters.options.cssVariables=false]
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options}) {
@@ -60,7 +61,8 @@ module.exports = function({workspace, dependencies, options}) {
 			resources,
 			fs: fsInterface(combo),
 			options: {
-				compress
+				compress,
+				cssVariables: !!options.cssVariables
 			}
 		});
 	}).then((processedResources) => {
