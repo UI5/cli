@@ -2,10 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.9.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.10.0...HEAD).
+
+<a name="v1.10.0"></a>
+## [v1.10.0] - 2020-02-10
+### Bug Fixes
+- Ensure proper handling of multi-byte characters in streams ([#411](https://github.com/SAP/ui5-builder/issues/411)) [`e906ec0`](https://github.com/SAP/ui5-builder/commit/e906ec0c3c3eb9fef874f2b7666c692915a496c6)
+- **Bundling:** Dynamic preload calls should not emit warnings [`4d22b37`](https://github.com/SAP/ui5-builder/commit/4d22b37852ec130fb3198476e4a6225a47e2b657)
+
+### Features
+- Add experimental CSS variables and skeleton build ([#393](https://github.com/SAP/ui5-builder/issues/393)) [`df8c39b`](https://github.com/SAP/ui5-builder/commit/df8c39b3f5a69086662b6f92c32e1364c1a93903)
+
 
 <a name="v1.9.0"></a>
-## [v1.9.0] - 2020-01-12
+## [v1.9.0] - 2020-01-13
 ### Bug Fixes
 - Use 'defaultFileTypes' from bundle configuration ([#385](https://github.com/SAP/ui5-builder/issues/385)) [`c21e13e`](https://github.com/SAP/ui5-builder/commit/c21e13ea2d7f629b1f91b9acf625989f396c6b4f)
 - Detect dynamic dependencies also when newer APIs are used ([#391](https://github.com/SAP/ui5-builder/issues/391)) [`ed1cc9d`](https://github.com/SAP/ui5-builder/commit/ed1cc9d45e517b3b38815483cc60fa7182ffd067)
@@ -315,6 +325,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.10.0]: https://github.com/SAP/ui5-builder/compare/v1.9.0...v1.10.0
 [v1.9.0]: https://github.com/SAP/ui5-builder/compare/v1.8.0...v1.9.0
 [v1.8.0]: https://github.com/SAP/ui5-builder/compare/v1.7.1...v1.8.0
 [v1.7.1]: https://github.com/SAP/ui5-builder/compare/v1.7.0...v1.7.1
