@@ -76,6 +76,7 @@ function createMiddleware({resources}) {
 			//	and LibraryBuilder
 			if ((!charset || charset === "UTF-8") && rReplaceVersion.test(resourcePath)) {
 				if (resource._project) {
+					stream.setEncoding("utf8");
 					stream = stream.pipe(replaceStream("${version}", resource._project.version));
 				} else {
 					log.verbose("Project missing from resource %s", pathname);

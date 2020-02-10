@@ -1,5 +1,6 @@
 const test = require("ava");
 const sinon = require("sinon");
+const {Readable, Writable} = require("stream");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 const serveResourcesMiddleware = require("../../../../lib/middleware/serveResources");
 const writeResource = function(writer, path, size, stringContent, project) {
@@ -155,5 +156,145 @@ fame=stra\\u00dfe`);
 			t.is(setStringSpy.callCount, 1);
 			t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
 		});
+	});
+});
+
+test.serial.cb("Check if version replacement is done", (t) => {
+	const input = "foo ${version} bar";
+	const expected = "foo 1.0.0 bar";
+
+	const resource = {
+		getPath: sinon.stub().returns("/foo.js"),
+		getStatInfo: sinon.stub().returns({
+			ino: 0,
+			ctime: new Date(),
+			mtime: new Date(),
+			size: 1024 * 1024,
+			isDirectory: function() {
+				return false;
+			}
+		}),
+		getStream: () => {
+			const stream = new Readable();
+			stream.push(Buffer.from(input));
+			stream.push(null);
+			return stream;
+		},
+		_project: {
+			version: "1.0.0"
+		}
+	};
+
+	const resources = {
+		all: {
+			byPath: sinon.stub()
+		}
+	};
+	const middleware = serveResourcesMiddleware({
+		resources
+	});
+
+	resources.all.byPath.withArgs("/foo.js").resolves(resource);
+
+	const req = {
+		url: "/foo.js",
+		headers: {}
+	};
+
+	const res = new Writable();
+	const buffers = [];
+	res.setHeader = sinon.stub();
+	res.getHeader = sinon.stub();
+	res._write = function(chunk, encoding, callback) {
+		buffers.push(chunk);
+		callback();
+	};
+	res.end = function() {
+		t.is(Buffer.concat(buffers).toString(), expected);
+		t.end();
+	},
+
+	middleware(req, res, function(err) {
+		if (err) {
+			t.fail("Unexpected error passed to next function: " + err);
+		} else {
+			t.fail("Unexpected call of next function");
+		}
+		t.end();
+	});
+});
+
+// Skip test in Node v8 as unicode handling of streams seems to be broken
+test.serial[
+	process.version.startsWith("v8.") ? "skip" : "cb"
+]("Check if utf8 characters are correctly processed in version replacement", (t) => {
+	const utf8string = "Κυ";
+	const expected = utf8string;
+
+	const resource = {
+		getPath: sinon.stub().returns("/foo.js"),
+		getStatInfo: sinon.stub().returns({
+			ino: 0,
+			ctime: new Date(),
+			mtime: new Date(),
+			size: 1024 * 1024,
+			isDirectory: function() {
+				return false;
+			}
+		}),
+		getStream: () => {
+			const stream = new Readable();
+			const utf8stringAsBuffer = Buffer.from(utf8string, "utf8");
+			// Pushing each byte separately makes content unreadable
+			// if stream encoding is not set to utf8
+			// This might happen when reading large files with utf8 characters
+			stream.push(Buffer.from([utf8stringAsBuffer[0]]));
+			stream.push(Buffer.from([utf8stringAsBuffer[1]]));
+			stream.push(Buffer.from([utf8stringAsBuffer[2]]));
+			stream.push(Buffer.from([utf8stringAsBuffer[3]]));
+			stream.push(null);
+			return stream;
+		},
+		_project: {
+			version: "1.0.0"
+		}
+	};
+
+	const resources = {
+		all: {
+			byPath: sinon.stub()
+		}
+	};
+	const middleware = serveResourcesMiddleware({
+		resources
+	});
+
+	resources.all.byPath.withArgs("/foo.js").resolves(resource);
+
+	const req = {
+		url: "/foo.js",
+		headers: {}
+	};
+
+	const res = new Writable();
+	const buffers = [];
+	res.setHeader = sinon.stub();
+	res.getHeader = sinon.stub();
+	res._write = function(chunk, encoding, callback) {
+		buffers.push(chunk);
+		callback();
+	};
+	res.end = function() {
+		t.is(Buffer.concat(buffers).toString(), expected);
+		t.end();
+	},
+
+	middleware(req, res, function(err) {
+		if (err) {
+			t.fail("Unexpected error passed to next function: " + err);
+		} else {
+			t.fail("Unexpected call of next function");
+		}
+		t.end();
 	});
 });
