@@ -100,7 +100,7 @@
 		"clone": "^2.1.0",
 		"globby": "^10.0.2",
 		"graceful-fs": "^4.2.3",
-		"make-dir": "^3.0.0",
+		"make-dir": "^3.0.2",
 		"micromatch": "^4.0.2",
 		"minimatch": "^3.0.3",
 		"mock-require": "^3.0.3",
@@ -121,7 +121,7 @@
 		"jsdoc": "^3.6.3",
 		"nyc": "^14.1.1",
 		"open-cli": "^5.0.0",
-		"rimraf": "^3.0.1",
+		"rimraf": "^3.0.2",
 		"sinon": "^7.5.0",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
