@@ -297,6 +297,69 @@ test("Get library-parameters.json from theme middleware (/resources/library/a/th
 		});
 	});
 
+test("Get css-variables.source.less from theme middleware (/resources/library/a/themes/base/css-variables.source.less)", (t) => {
+	return request.get("/resources/library/a/themes/base/css-variables.source.less").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /less/, "Correct content type");
+		t.deepEqual(res.text, `@libraryAColor1: #fafad2;
+
+:root {
+--libraryAColor1: @libraryAColor1;
+}
+`, "Correct response");
+	});
+});
+
+test("Get css-variables.css from theme middleware (/resources/library/a/themes/base/css-variables.css)", (t) => {
+	return request.get("/resources/library/a/themes/base/css-variables.css").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /css/, "Correct content type");
+		t.deepEqual(res.text, `:root {
+  --libraryAColor1: #fafad2;
+}
+
+/* Inline theming parameters */
+#sap-ui-theme-library\\.a{background-image:url('data:text/plain;utf-8,%7B%22libraryAColor1%22%3A%22%23fafad2%22%7D')}
+`, "Correct response");
+	});
+});
+
+test("Get library-skeleton.css from theme middleware (/resources/library/a/themes/base/library-skeleton.css)", (t) => {
+	return request.get("/resources/library/a/themes/base/library-skeleton.css").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /css/, "Correct content type");
+		t.deepEqual(res.text, `.library-a-foo {
+  color: var(--libraryAColor1);
+  padding: 1px 2px 3px 4px;
+}
+`, "Correct response");
+	});
+});
+
+test("Get library-skeleton-RTL.css from theme middleware (/resources/library/a/themes/base/library-skeleton-RTL.css)", (t) => {
+	return request.get("/resources/library/a/themes/base/library-skeleton-RTL.css").then((res) => {
+		if (res.error) {
+			t.fail(res.error.text);
+		}
+		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+		t.regex(res.headers["content-type"], /css/, "Correct content type");
+		t.deepEqual(res.text, `.library-a-foo {
+  color: var(--libraryAColor1);
+  padding: 1px 4px 3px 2px;
+}
+`, "Correct response");
+	});
+});
+
 test("Stop server", (t) => {
 	const port = 3350;
 	const request = supertest(`http://localhost:${port}`);

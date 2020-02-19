@@ -1,5 +1,7 @@
 const themeBuilder = require("@ui5/builder").processors.themeBuilder;
 const fsInterface = require("@ui5/fs").fsInterface;
+const {getMimeInfo} = require("../mime-util");
+const {basename, dirname} = require("path").posix;
 const etag = require("etag");
 const fresh = require("fresh");
 const parseurl = require("parseurl");
@@ -10,7 +12,21 @@ function isFresh(req, res) {
 	});
 }
 
-const themeRequest = /^(.*\/)library(?:(\.css)|(-RTL\.css)|(-parameters\.json))$/i;
+// List of experimental css variables resources that should activate the "cssVariables" build
+const cssVariablesThemeResources = [
+	"css-variables.source.less",
+	"css-variables.css",
+	"library-skeleton.css",
+	"library-skeleton-RTL.css"
+];
+
+// List of resources that should be handled by the middleware
+const themeResources = [
+	"library.css",
+	"library-RTL.css",
+	"library-parameters.json",
+	...cssVariablesThemeResources
+];
 
 /**
  * Creates and returns the middleware to build themes.
@@ -27,63 +43,57 @@ function createMiddleware({resources}) {
 	const builder = new themeBuilder.ThemeBuilder({
 		fs: fsInterface(resources.all)
 	});
+	const buildOptions = {};
 
-	return function theme(req, res, next) {
-		const pathname = parseurl(req).pathname;
-		/* pathname examples:
-			/resources/sap/ui/core/themes/sap_belize/library.css
-		*/
+	return async function theme(req, res, next) {
+		try {
+			const pathname = parseurl(req).pathname;
+			const filename = basename(pathname);
+			if (!themeResources.includes(filename)) {
+				next();
+				return;
+			}
 
-		/* groups (array index):
-			 1 => theme directory (example: /resources/sap/ui/core/themes/sap_belize/)
-			 2 => .css suffix
-			 3 => -RTL.css suffix
-			 4 => -parameters.json suffix
-		*/
-		const themeReq = themeRequest.exec(pathname);
-		if (!themeReq) {
-			next();
-			return;
-		}
+			if (cssVariablesThemeResources.includes(filename) && !buildOptions.cssVariables) {
+				// Activate CSS Variables build the first time a relevant resource is requested
+				buildOptions.cssVariables = true;
+				// Clear the cache to ensure that the build is executed again with "cssVariables: true"
+				builder.clearCache();
+			}
 
-		const sourceLessPath = themeReq[1] + "library.source.less";
-		resources.all.byPath(sourceLessPath).then((sourceLessResource) => {
+			const sourceLessPath = dirname(pathname) + "/library.source.less";
+			const sourceLessResource = await resources.all.byPath(sourceLessPath);
 			if (!sourceLessResource) { // Not found
 				next();
 				return;
 			}
-			return builder.build([sourceLessResource]).then(function([css, cssRtl, parameters]) {
-				let resource;
-				if (themeReq[2]) { // -> .css
-					res.setHeader("Content-Type", "text/css");
-					resource = css;
-				} else if (themeReq[3]) { // -> -RTL.css
-					res.setHeader("Content-Type", "text/css");
-					resource = cssRtl;
-				} else if (themeReq[4]) { // -parameters.json
-					res.setHeader("Content-Type", "application/json");
-					resource = parameters;
-				} else {
-					next("Couldn't decide on which theme file to return. This shouldn't happen");
-					return;
-				}
 
-				return resource.getBuffer().then((content) => {
-					res.setHeader("ETag", etag(content));
+			const createdResources = await builder.build([sourceLessResource], buildOptions);
+			// Pick requested file resource
+			const resource = createdResources.find((res) => res.getPath().endsWith(filename));
+			if (!resource) {
+				next(new Error(`Theme Build did not return requested file "${pathname}"`));
+				return;
+			}
 
-					if (isFresh(req, res)) {
-						// client has a fresh copy of the resource
-						res.statusCode = 304;
-						res.end();
-						return;
-					}
+			const resourcePath = resource.getPath();
+			const {contentType} = getMimeInfo(resourcePath);
+			res.setHeader("Content-Type", contentType);
 
-					res.end(content.toString());
-				});
-			});
-		}).catch(function(err) {
+			const content = await resource.getBuffer();
+			res.setHeader("ETag", etag(content));
+
+			if (isFresh(req, res)) {
+				// client has a fresh copy of the resource
+				res.statusCode = 304;
+				res.end();
+				return;
+			}
+
+			res.end(content.toString());
+		} catch (err) {
 			next(err);
-		});
+		}
 	};
 }
 

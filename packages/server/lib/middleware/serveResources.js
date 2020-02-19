@@ -1,5 +1,5 @@
 const log = require("@ui5/logger").getLogger("server:middleware:serveResources");
-const mime = require("mime-types");
+const {getMimeInfo} = require("../mime-util");
 const replaceStream = require("replacestream");
 const etag = require("etag");
 const fresh = require("fresh");
@@ -39,8 +39,6 @@ function createMiddleware({resources}) {
 			}
 
 			const resourcePath = resource.getPath();
-			const type = mime.lookup(resourcePath) || "application/octet-stream";
-			const charset = mime.charset(type);
 			if (rProperties.test(resourcePath)) {
 				// Special handling for *.properties files escape non ascii characters.
 				const nonAsciiEscaper = require("@ui5/builder").processors.nonAsciiEscaper;
@@ -54,8 +52,10 @@ function createMiddleware({resources}) {
 					}
 				});
 			}
+
+			const {contentType, charset} = getMimeInfo(resourcePath);
 			if (!res.getHeader("Content-Type")) {
-				res.setHeader("Content-Type", type + (charset ? "; charset=" + charset : ""));
+				res.setHeader("Content-Type", contentType);
 			}
 
 			// Enable ETag caching
