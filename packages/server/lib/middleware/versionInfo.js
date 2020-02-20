@@ -11,7 +11,7 @@ const createVersionInfoProcessor = require("@ui5/builder").processors.versionInf
  */
 function createMiddleware({resources, tree: project}) {
 	return function versionInfo(req, res, next) {
-		resources.dependencies.byGlob("/**/.library")
+		resources.dependencies.byGlob("/resources/**/.library")
 			.then((resources) => {
 				resources.sort((a, b) => {
 					return a._project.metadata.name.localeCompare(b._project.metadata.name);
