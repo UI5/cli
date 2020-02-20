@@ -174,7 +174,7 @@ class ApplicationBuilder extends AbstractBuilder {
 				dependencies: resourceCollections.dependencies,
 				options: {
 					rootProject: project,
-					pattern: "/**/.library"
+					pattern: "/resources/**/.library"
 				}
 			});
 		});
