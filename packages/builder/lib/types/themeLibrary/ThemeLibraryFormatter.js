@@ -75,7 +75,7 @@ class ThemeLibraryFormatter extends AbstractUi5Formatter {
 				this.dirExists(absoluteTestPath).then(function(bExists) {
 					if (!bExists) {
 						log.verbose(`Could not find (optional) test directory of project ${project.id}: ` +
-							`${absoluteSrcPath}`);
+							`${absoluteTestPath}`);
 						// Current signal to following consumers that "test" is not available is null
 						project.resources.configuration.paths.test = null;
 					}
