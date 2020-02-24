@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.5.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.6.0...HEAD).
+
+<a name="v1.6.0"></a>
+## [v1.6.0] - 2020-02-24
+### Bug Fixes
+- **versionInfo:** Fix pattern to glob for .library files [`3621f78`](https://github.com/SAP/ui5-server/commit/3621f7868dec891f8746ca4b66cf43c4d5d9782b)
+
+### Features
+- **serveThemes:** Support experimental CSS variables and skeleton build ([#278](https://github.com/SAP/ui5-server/issues/278)) [`47d4b55`](https://github.com/SAP/ui5-server/commit/47d4b55986fd84ef85f4b42e9c91f16017183c16)
+
 
 <a name="v1.5.4"></a>
 ## [v1.5.4] - 2020-02-10
@@ -120,6 +129,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v1.6.0]: https://github.com/SAP/ui5-server/compare/v1.5.4...v1.6.0
 [v1.5.4]: https://github.com/SAP/ui5-server/compare/v1.5.3...v1.5.4
 [v1.5.3]: https://github.com/SAP/ui5-server/compare/v1.5.2...v1.5.3
 [v1.5.2]: https://github.com/SAP/ui5-server/compare/v1.5.1...v1.5.2
