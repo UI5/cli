@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.10.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.10.1...HEAD).
+
+<a name="v1.10.1"></a>
+## [v1.10.1] - 2020-02-24
+### Bug Fixes
+- **ApplicationBuilder:** Fix pattern to glob for .library files [`032d9a9`](https://github.com/SAP/ui5-builder/commit/032d9a974373ffc504fc65b46befe523eb3e4c7d)
+
 
 <a name="v1.10.0"></a>
 ## [v1.10.0] - 2020-02-10
@@ -325,6 +331,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v1.10.1]: https://github.com/SAP/ui5-builder/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/SAP/ui5-builder/compare/v1.9.0...v1.10.0
 [v1.9.0]: https://github.com/SAP/ui5-builder/compare/v1.8.0...v1.9.0
 [v1.8.0]: https://github.com/SAP/ui5-builder/compare/v1.7.1...v1.8.0
