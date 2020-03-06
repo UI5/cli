@@ -235,7 +235,7 @@ module.exports = {
 			virBasePath: "/"
 		});
 
-		const buildContext = new BuildContext();
+		const buildContext = new BuildContext({rootProject: tree});
 		const cleanupSigHooks = registerCleanupSigHooks(buildContext);
 
 		const projects = {}; // Unique project index to prevent building the same project multiple times
@@ -329,7 +329,7 @@ module.exports = {
 				});
 
 				const projectContext = buildContext.createProjectContext({
-					// project, // TODO 2.0: Add project facade object/instance here
+					project, // TODO 2.0: Add project facade object/instance here
 					resources: {
 						workspace,
 						dependencies: resourceCollections.dependencies
@@ -355,7 +355,7 @@ module.exports = {
 
 					return workspace.byGlob("/**/*.*").then((resources) => {
 						return Promise.all(resources.map((resource) => {
-							if (project === tree && project.type === "application" && project.metadata.namespace) {
+							if (projectContext.isRootProject() && project.type === "application" && project.metadata.namespace) {
 								// Root-application projects only: Remove namespace prefix if given
 								resource.setPath(resource.getPath().replace(
 									new RegExp(`^/resources/${project.metadata.namespace}`), ""));

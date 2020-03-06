@@ -48,7 +48,8 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 				dependencies: resourceCollections.dependencies,
 				options: {
 					projectName: project.metadata.name,
-					librariesPattern: "/resources/**/*.library",
+					librariesPattern: !buildContext.isRootProject() ? "/resources/**/*.library" : undefined,
+					themesPattern: !buildContext.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
 					inputPattern: "/resources/**/themes/*/library.source.less"
 				}
 			});

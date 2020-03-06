@@ -5,8 +5,13 @@
  * @memberof module:@ui5/builder.builder
  */
 class BuildContext {
-	constructor() {
+	constructor({rootProject}) {
 		this.projectBuildContexts = [];
+		this.rootProject = rootProject;
+	}
+
+	getRootProject() {
+		return this.rootProject;
 	}
 
 	createProjectContext({project, resources}) {
@@ -36,12 +41,16 @@ class BuildContext {
  */
 class ProjectBuildContext {
 	constructor({buildContext, project, resources}) {
-		// this.buildContext = buildContext;
-		// this.project = project;
+		this._buildContext = buildContext;
+		this._project = project;
 		// this.resources = resources;
 		this.queues = {
 			cleanup: []
 		};
+	}
+
+	isRootProject() {
+		return this._project === this._buildContext.getRootProject();
 	}
 
 	registerCleanupTask(callback) {

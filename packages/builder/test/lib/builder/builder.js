@@ -516,9 +516,9 @@ test("Build theme.j even without an library", (t) => {
 
 test.serial("Cleanup", async (t) => {
 	const BuildContext = require("../../../lib/builder/BuildContext");
-	const projectContext = "project context";
+	const projectContext = {isRootProject: sinon.stub()};
 	const createProjectContextStub = sinon.stub(BuildContext.prototype, "createProjectContext").returns(projectContext);
-	const executeCleanupTasksStub = sinon.stub(BuildContext.prototype, "executeCleanupTasks").returns(projectContext);
+	const executeCleanupTasksStub = sinon.stub(BuildContext.prototype, "executeCleanupTasks").resolves();
 	const applicationType = require("../../../lib/types/application/applicationType");
 	const appBuildStub = sinon.stub(applicationType, "build").resolves();
 
@@ -547,10 +547,11 @@ test.serial("Cleanup", async (t) => {
 	t.deepEqual(appBuildStub.callCount, 1, "Build called once");
 	t.deepEqual(createProjectContextStub.callCount, 1, "One project context got created");
 	const createProjectContextParams = createProjectContextStub.getCall(0).args[0];
+	t.truthy(createProjectContextParams.project, "project object provided");
 	t.truthy(createProjectContextParams.resources.workspace, "resources.workspace object provided");
 	t.truthy(createProjectContextParams.resources.dependencies, "resources.dependencies object provided");
-	t.deepEqual(Object.keys(createProjectContextParams), ["resources"],
-		"resource parameter (and no others) provided");
+	t.deepEqual(Object.keys(createProjectContextParams), ["project", "resources"],
+		"resource and project parameters provided");
 	t.deepEqual(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
 
 	// Error case
