@@ -110,7 +110,7 @@
 	"devDependencies": {
 		"ava": "^2.4.0",
 		"coveralls": "^3.0.9",
-		"cross-env": "^6.0.3",
+		"cross-env": "^7.0.2",
 		"docdash": "^1.2.0",
 		"eslint": "^5.16.0",
 		"eslint-config-google": "^0.14.0",
