@@ -7,7 +7,8 @@ const parseYaml = require("js-yaml").safeLoadAll;
 const typeRepository = require("@ui5/builder").types.typeRepository;
 
 class ProjectPreprocessor {
-	constructor() {
+	constructor({tree}) {
+		this.tree = tree;
 		this.processedProjects = {};
 		this.configShims = {};
 		this.collections = {};
@@ -19,9 +20,9 @@ class ProjectPreprocessor {
 			- Replace duplicate projects further away from the root with those closer to the root
 			- Add configuration to projects
 	*/
-	async processTree(tree) {
+	async processTree() {
 		const queue = [{
-			projects: [tree],
+			projects: [this.tree],
 			parent: null,
 			level: 0
 		}];
@@ -65,7 +66,8 @@ class ProjectPreprocessor {
 					// Do a dependency lookahead to apply any extensions that might affect this project
 					await this.dependencyLookahead(project, project.dependencies);
 				} else {
-					// When using the static translator for instance dependencies is not defined and will fail later access calls to it
+					// When using the static translator for instance, dependencies is not defined and will
+					// fail later access calls to it
 					project.dependencies = [];
 				}
 
@@ -81,6 +83,7 @@ class ProjectPreprocessor {
 				this.applyShims(project);
 				if (this.isConfigValid(project)) {
 					await this.applyType(project);
+					this.checkProjectMetadata(parent, project);
 					queue.push({
 						// copy array, so that the queue is stable while ignored project dependencies are removed
 						projects: [...project.dependencies],
@@ -88,7 +91,7 @@ class ProjectPreprocessor {
 						level: level + 1
 					});
 				} else {
-					if (project === tree) {
+					if (project === this.tree) {
 						throw new Error(`Failed to configure root project "${project.id}". Please check verbose log for details.`);
 					}
 					// No config available
@@ -110,7 +113,7 @@ class ProjectPreprocessor {
 				const timeDiff = process.hrtime(startTime);
 				log.verbose(`Processed ${Object.keys(this.processedProjects).length} projects in ${prettyHrtime(timeDiff)}`);
 			}
-			return tree;
+			return this.tree;
 		});
 	}
 
@@ -320,6 +323,20 @@ class ProjectPreprocessor {
 			throw new Error(`Failed to retrieve type for project ${project.id}: ${err.message}`);
 		}
 		await type.format(project);
+	}
+
+	checkProjectMetadata(parent, project) {
+		if (parent && project.metadata.deprecated) {
+			// Do not warn for deprecated root project
+			log.warn(`Dependency ${project.metadata.name} is deprecated and should not be used for new projects!`);
+		}
+
+		if (parent && project.metadata.sapInternal && !parent.metadata.allowSapInternal) {
+			// Do not warn for sapInternal root project
+			log.warn(`Dependency ${project.metadata.name} is restricted for use by SAP internal projects only! ` +
+				`If the project ${parent.metadata.name} is an SAP internal project, add the attribute ` +
+				`"allowSapInternal: true" to its metadata configuration`);
+		}
 	}
 
 	async applyExtension(extension) {
@@ -534,7 +551,7 @@ module.exports = {
 	 * @returns {Promise<Object>} Promise resolving with the dependency tree and enriched project configuration
 	 */
 	processTree: function(tree) {
-		return new ProjectPreprocessor().processTree(tree);
+		return new ProjectPreprocessor({tree}).processTree();
 	},
-	ProjectPreprocessor
+	_ProjectPreprocessor: ProjectPreprocessor
 };

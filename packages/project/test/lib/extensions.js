@@ -2,7 +2,7 @@ const test = require("ava");
 const path = require("path");
 const sinon = require("sinon");
 const projectPreprocessor = require("../..").projectPreprocessor;
-const Preprocessor = require("../..").projectPreprocessor.ProjectPreprocessor;
+const Preprocessor = require("../..").projectPreprocessor._ProjectPreprocessor;
 const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
 const legacyLibraryAPath = path.join(__dirname, "..", "fixtures", "legacy.library.a");
 const legacyLibraryBPath = path.join(__dirname, "..", "fixtures", "legacy.library.b");
@@ -673,7 +673,7 @@ test("specVersion: Missing version", async (t) => {
 		},
 		shims: {}
 	};
-	const preprocessor = new Preprocessor();
+	const preprocessor = new Preprocessor({});
 	await t.throwsAsync(preprocessor.applyExtension(extension),
 		"No specification version defined for extension shims.a",
 		"Rejected with error");
@@ -693,7 +693,7 @@ test("specVersion: Extension with invalid version", async (t) => {
 		},
 		shims: {}
 	};
-	const preprocessor = new Preprocessor();
+	const preprocessor = new Preprocessor({});
 	await t.throwsAsync(preprocessor.applyExtension(extension),
 		"Unsupported specification version 0.9 defined for extension shims.a. " +
 		"Your UI5 CLI installation might be outdated. For details see " +
@@ -715,7 +715,7 @@ test("specVersion: Extension with valid version 0.1", async (t) => {
 		},
 		shims: {}
 	};
-	const preprocessor = new Preprocessor();
+	const preprocessor = new Preprocessor({});
 	const handleShimStub = sinon.stub(preprocessor, "handleShim");
 	await preprocessor.applyExtension(extension);
 	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "0.1", "Correct spec version");
@@ -735,7 +735,7 @@ test("specVersion: Extension with valid version 1.0", async (t) => {
 		},
 		shims: {}
 	};
-	const preprocessor = new Preprocessor();
+	const preprocessor = new Preprocessor({});
 	const handleShimStub = sinon.stub(preprocessor, "handleShim");
 	await preprocessor.applyExtension(extension);
 	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "1.0", "Correct spec version");
@@ -755,7 +755,7 @@ test("specVersion: Extension with valid version 1.1", async (t) => {
 		},
 		shims: {}
 	};
-	const preprocessor = new Preprocessor();
+	const preprocessor = new Preprocessor({});
 	const handleShimStub = sinon.stub(preprocessor, "handleShim");
 	await preprocessor.applyExtension(extension);
 	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "1.1", "Correct spec version");

@@ -1,6 +1,8 @@
 const test = require("ava");
+const sinon = require("sinon");
+const mock = require("mock-require");
 const path = require("path");
-const projectPreprocessor = require("../..").projectPreprocessor;
+const projectPreprocessor = require("../../lib/projectPreprocessor");
 const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
 const applicationBPath = path.join(__dirname, "..", "fixtures", "application.b");
 const applicationCPath = path.join(__dirname, "..", "fixtures", "application.c");
@@ -10,6 +12,11 @@ const libraryBPath = path.join(__dirname, "..", "fixtures", "collection", "libra
 const libraryDPath = path.join(__dirname, "..", "fixtures", "library.d");
 const cycleDepsBasePath = path.join(__dirname, "..", "fixtures", "cyclic-deps", "node_modules");
 const pathToInvalidModule = path.join(__dirname, "..", "fixtures", "invalidModule");
+
+test.afterEach.always((t) => {
+	mock.stopAll();
+	sinon.restore();
+});
 
 test("Project with inline configuration", (t) => {
 	const tree = {
@@ -1651,7 +1658,7 @@ test("specVersion: Project with valid version 1.1", async (t) => {
 });
 
 test("isBeingProcessed: Is not being processed", (t) => {
-	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	preprocessor.processedProjects = {};
 
@@ -1668,7 +1675,7 @@ test("isBeingProcessed: Is not being processed", (t) => {
 });
 
 test("isBeingProcessed: Is being processed", (t) => {
-	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	const alreadyProcessedProject = {
 		project: {
@@ -1697,7 +1704,7 @@ test("isBeingProcessed: Is being processed", (t) => {
 });
 
 test("isBeingProcessed: Processed project is ignored", (t) => {
-	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	const alreadyProcessedProject = {
 		project: {
@@ -1725,7 +1732,7 @@ test("isBeingProcessed: Processed project is ignored", (t) => {
 });
 
 test("isBeingProcessed: Processed project is ignored but already removed from parent", (t) => {
-	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	const alreadyProcessedProject = {
 		project: {
@@ -1758,7 +1765,7 @@ test("isBeingProcessed: Processed project is ignored but already removed from pa
 });
 
 test("isBeingProcessed: Deduped project is being ignored", (t) => {
-	const preprocessor = new projectPreprocessor.ProjectPreprocessor();
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	preprocessor.processedProjects = {};
 
@@ -1769,4 +1776,145 @@ test("isBeingProcessed: Deduped project is being ignored", (t) => {
 
 	const res = preprocessor.isBeingProcessed(parent, project);
 	t.deepEqual(res, true, "Project is being ignored");
+});
+
+
+test.serial("applyType", async (t) => {
+	const formatStub = sinon.stub();
+	const getTypeStub = sinon.stub(require("@ui5/builder").types.typeRepository, "getType")
+		.returns({
+			format: formatStub
+		});
+
+	const project = {
+		type: "pony",
+		metadata: {}
+	};
+
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+	await preprocessor.applyType(project);
+
+	t.is(getTypeStub.callCount, 1, "getType got called once");
+	t.deepEqual(getTypeStub.getCall(0).args[0], "pony", "getType got called with correct type");
+
+	t.is(formatStub.callCount, 1, "format got called once");
+	t.is(formatStub.getCall(0).args[0], project, "format got called with correct project");
+});
+
+test.serial("checkProjectMetadata: Warning logged for deprecated dependencies", async (t) => {
+	const log = require("@ui5/logger");
+	const loggerInstance = log.getLogger("pony");
+	mock("@ui5/logger", {
+		getLogger: () => loggerInstance
+	});
+	const logWarnSpy = sinon.spy(loggerInstance, "warn");
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const project1 = {
+		metadata: {
+			name: "root.project",
+			deprecated: true
+		}
+	};
+
+	// no warning should be logged for root level project
+	await preprocessor.checkProjectMetadata(null, project1);
+
+	const project2 = {
+		_level: 1,
+		metadata: {
+			name: "my.project",
+			deprecated: true
+		}
+	};
+
+	// one warning should be logged for deprecated dependency
+	await preprocessor.checkProjectMetadata(project1, project2);
+
+	t.is(logWarnSpy.callCount, 1, "One warning got logged");
+	t.deepEqual(logWarnSpy.getCall(0).args[0],
+		"Dependency my.project is deprecated and should not be used for new projects!",
+		"Logged expected warning message");
+});
+
+test.serial("checkProjectMetadata: Warning logged for SAP internal dependencies", async (t) => {
+	const log = require("@ui5/logger");
+	const loggerInstance = log.getLogger("pony");
+	mock("@ui5/logger", {
+		getLogger: () => loggerInstance
+	});
+	const logWarnSpy = sinon.spy(loggerInstance, "warn");
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const project1 = {
+		metadata: {
+			name: "root.project",
+			sapInternal: true
+		}
+	};
+
+	// no warning should be logged for root level project
+	await preprocessor.checkProjectMetadata(null, project1);
+
+	const project2 = {
+		_level: 1,
+		metadata: {
+			name: "my.project",
+			sapInternal: true
+		}
+	};
+
+	// one warning should be logged for internal dependency
+	await preprocessor.checkProjectMetadata(project1, project2);
+
+	t.is(logWarnSpy.callCount, 1, "One warning got logged");
+	t.deepEqual(logWarnSpy.getCall(0).args[0],
+		`Dependency my.project is restricted for use by SAP internal projects only! ` +
+		`If the project root.project is an SAP internal project, add the attribute ` +
+		`"allowSapInternal: true" to its metadata configuration`,
+		"Logged expected warning message");
+});
+
+test.serial("checkProjectMetadata: No warning logged for allowed SAP internal libraries", async (t) => {
+	sinon.stub(require("@ui5/builder").types.typeRepository, "getType")
+		.returns({format: () => {}});
+
+	// Spying logger of processors/bootstrapHtmlTransformer
+	const log = require("@ui5/logger");
+	const loggerInstance = log.getLogger("pony");
+	mock("@ui5/logger", {
+		getLogger: () => loggerInstance
+	});
+	const logWarnSpy = sinon.spy(loggerInstance, "warn");
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const parent = {
+		metadata: {
+			name: "parent.project",
+			allowSapInternal: true // parent project allows sap internal project use
+		}
+	};
+
+	const project = {
+		metadata: {
+			name: "my.project",
+			sapInternal: true
+		}
+	};
+
+	await preprocessor.checkProjectMetadata(parent, project);
+
+	t.is(logWarnSpy.callCount, 0, "No warning got logged");
 });
