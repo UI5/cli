@@ -30,28 +30,44 @@ test("AbstractResolver: constructor requires 'version'", (t) => {
 	}, `AbstractResolver: Missing parameter "version"`);
 });
 
-test("AbstractResolver: Set 'cwd'", (t) => {
+test("AbstractResolver: Set absolute 'cwd'", (t) => {
 	const resolver = new MyResolver({
 		version: "1.75.0",
-		cwd: "/my-cwd/"
+		cwd: "/my-cwd"
 	});
-	t.is(resolver._cwd, "/my-cwd/", "Should be given 'cwd'");
+	t.is(resolver._cwd, path.resolve("/my-cwd"), "Should be resolved 'cwd'");
+});
+
+test("AbstractResolver: Set relative 'cwd'", (t) => {
+	const resolver = new MyResolver({
+		version: "1.75.0",
+		cwd: "./my-cwd"
+	});
+	t.is(resolver._cwd, path.resolve("./my-cwd"), "Should be resolved 'cwd'");
 });
 
 test("AbstractResolver: Defaults 'cwd' to process.cwd()", (t) => {
 	const resolver = new MyResolver({
 		version: "1.75.0",
-		ui5HomeDir: "/ui5home/"
+		ui5HomeDir: "/ui5home"
 	});
 	t.is(resolver._cwd, process.cwd(), "Should default to process.cwd()");
 });
 
-test("AbstractResolver: Set 'ui5HomeDir'", (t) => {
+test("AbstractResolver: Set absolute 'ui5HomeDir'", (t) => {
 	const resolver = new MyResolver({
 		version: "1.75.0",
-		ui5HomeDir: "/my-ui5HomeDir/"
+		ui5HomeDir: "/my-ui5HomeDir"
 	});
-	t.is(resolver._ui5HomeDir, "/my-ui5HomeDir/", "Should be given 'ui5HomeDir'");
+	t.is(resolver._ui5HomeDir, path.resolve("/my-ui5HomeDir"), "Should be resolved 'ui5HomeDir'");
+});
+
+test("AbstractResolver: Set relative 'ui5HomeDir'", (t) => {
+	const resolver = new MyResolver({
+		version: "1.75.0",
+		ui5HomeDir: "./my-ui5HomeDir"
+	});
+	t.is(resolver._ui5HomeDir, path.resolve("./my-ui5HomeDir"), "Should be resolved 'ui5HomeDir'");
 });
 
 test("AbstractResolver: Defaults 'ui5HomeDir' to ~/.ui5", (t) => {
