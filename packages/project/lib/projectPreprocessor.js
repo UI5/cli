@@ -326,13 +326,13 @@ class ProjectPreprocessor {
 	}
 
 	checkProjectMetadata(parent, project) {
-		if (parent && project.metadata.deprecated) {
-			// Do not warn for deprecated root project
+		if (project.metadata.deprecated && parent && parent._level === 0) {
+			// Only warn for direct dependencies of the root project
 			log.warn(`Dependency ${project.metadata.name} is deprecated and should not be used for new projects!`);
 		}
 
-		if (parent && project.metadata.sapInternal && !parent.metadata.allowSapInternal) {
-			// Do not warn for sapInternal root project
+		if (project.metadata.sapInternal && parent && parent._level === 0 && !parent.metadata.allowSapInternal) {
+			// Only warn for direct dependencies of the root project, except it defines "allowSapInternal"
 			log.warn(`Dependency ${project.metadata.name} is restricted for use by SAP internal projects only! ` +
 				`If the project ${parent.metadata.name} is an SAP internal project, add the attribute ` +
 				`"allowSapInternal: true" to its metadata configuration`);

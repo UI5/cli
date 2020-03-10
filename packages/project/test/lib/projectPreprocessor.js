@@ -1815,6 +1815,7 @@ test.serial("checkProjectMetadata: Warning logged for deprecated dependencies", 
 	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	const project1 = {
+		_level: 0,
 		metadata: {
 			name: "root.project",
 			deprecated: true
@@ -1841,6 +1842,46 @@ test.serial("checkProjectMetadata: Warning logged for deprecated dependencies", 
 		"Logged expected warning message");
 });
 
+test.serial("checkProjectMetadata: No warning logged for nested deprecated libraries", async (t) => {
+	sinon.stub(require("@ui5/builder").types.typeRepository, "getType")
+		.returns({format: () => {}});
+
+	// Spying logger of processors/bootstrapHtmlTransformer
+	const log = require("@ui5/logger");
+	const loggerInstance = log.getLogger("pony");
+	mock("@ui5/logger", {
+		getLogger: () => loggerInstance
+	});
+	const logWarnSpy = sinon.spy(loggerInstance, "warn");
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const project1 = {
+		_level: 1,
+		metadata: {
+			name: "some.project",
+			deprecated: true
+		}
+	};
+
+	// no warning should be logged for nested project
+	await preprocessor.checkProjectMetadata(null, project1);
+
+	const project2 = {
+		_level: 2,
+		metadata: {
+			name: "my.project",
+			deprecated: true
+		}
+	};
+	await preprocessor.checkProjectMetadata(project1, project2);
+
+	t.is(logWarnSpy.callCount, 0, "No warning got logged");
+});
+
 test.serial("checkProjectMetadata: Warning logged for SAP internal dependencies", async (t) => {
 	const log = require("@ui5/logger");
 	const loggerInstance = log.getLogger("pony");
@@ -1855,6 +1896,7 @@ test.serial("checkProjectMetadata: Warning logged for SAP internal dependencies"
 	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
 	const project1 = {
+		_level: 0,
 		metadata: {
 			name: "root.project",
 			sapInternal: true
@@ -1900,21 +1942,61 @@ test.serial("checkProjectMetadata: No warning logged for allowed SAP internal li
 
 	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 
-	const parent = {
+	const project1 = {
+		_level: 0,
 		metadata: {
-			name: "parent.project",
-			allowSapInternal: true // parent project allows sap internal project use
+			name: "root.project",
+			allowSapInternal: true // parent project (=root) allows sap internal project use
 		}
 	};
 
-	const project = {
+	const project2 = {
+		_level: 1,
 		metadata: {
 			name: "my.project",
 			sapInternal: true
 		}
 	};
 
-	await preprocessor.checkProjectMetadata(parent, project);
+	await preprocessor.checkProjectMetadata(project1, project2);
+
+	t.is(logWarnSpy.callCount, 0, "No warning got logged");
+});
+
+test.serial("checkProjectMetadata: No warning logged for nested SAP internal libraries", async (t) => {
+	sinon.stub(require("@ui5/builder").types.typeRepository, "getType")
+		.returns({format: () => {}});
+
+	// Spying logger of processors/bootstrapHtmlTransformer
+	const log = require("@ui5/logger");
+	const loggerInstance = log.getLogger("pony");
+	mock("@ui5/logger", {
+		getLogger: () => loggerInstance
+	});
+	const logWarnSpy = sinon.spy(loggerInstance, "warn");
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const project1 = {
+		_level: 1,
+		metadata: {
+			name: "some.project",
+			allowSapInternal: true // this flag doesn't matter for deeply nested internal dependency
+		}
+	};
+
+	const project2 = {
+		_level: 2,
+		metadata: {
+			name: "my.project",
+			sapInternal: true
+		}
+	};
+
+	await preprocessor.checkProjectMetadata(project1, project2);
 
 	t.is(logWarnSpy.callCount, 0, "No warning got logged");
 });
