@@ -22,6 +22,16 @@ tree.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("framework-version", {
+			describe: "Overrides the framework version defined by the project. Only supported in combination with --full",
+			type: "string"
+		}).check((argv) => {
+			if (argv.frameworkVersion && !argv.full) {
+				throw new Error(`"framework-version" can only be used in combination with option "--full"`);
+			} else {
+				return true;
+			}
+		})
 		.example("ui5 tree > tree.txt", "Pipes the dependency tree into a new file \"tree.txt\"")
 		.example("ui5 tree --json > tree.json", "Pipes the dependency tree into a new file \"tree.json\"");
 };
@@ -37,6 +47,13 @@ tree.handler = async function(argv) {
 		},
 		configPath: argv.config
 	};
+
+	if (argv.frameworkVersion ) {
+		options.frameworkOptions = {
+			versionOverride: argv.frameworkVersion
+		};
+	}
+
 	let projectTree;
 	if (argv.full) {
 		projectTree = await normalizer.generateProjectTree(options);

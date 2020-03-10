@@ -50,6 +50,10 @@ serve.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("framework-version", {
+			describe: "Overrides the framework version defined by the project",
+			type: "string"
+		})
 		.example("ui5 serve", "Start a web server for the current project")
 		.example("ui5 serve --h2", "Enable the HTTP/2 protocol for the web server (requires SSL certificate)")
 		.example("ui5 serve --config /path/to/ui5.yaml", "Use the project configuration from a custom path")
@@ -64,10 +68,18 @@ serve.handler = async function(argv) {
 	const ui5Server = require("@ui5/server");
 	const server = ui5Server.server;
 
-	const tree = await normalizer.generateProjectTree({
+	const normalizerOptions = {
 		translatorName: argv.translator,
 		configPath: argv.config
-	});
+	};
+
+	if (argv.frameworkVersion) {
+		normalizerOptions.frameworkOptions = {
+			versionOverride: argv.frameworkVersion
+		};
+	}
+
+	const tree = await normalizer.generateProjectTree(normalizerOptions);
 	let port = argv.port;
 	let changePortIfInUse = false;
 

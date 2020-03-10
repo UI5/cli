@@ -320,3 +320,26 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 	t.deepEqual(injectedServerConfig.port, 5555, "https port setting from CLI argument was used");
 	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
 });
+
+test.serial("ui5 serve: --framework-version", async (t) => {
+	normalizerStub.resolves(projectTree);
+	serverStub.resolves({h2: false, port: 8080});
+
+	// loads project tree
+	const pPrepareServerConfig = await serve.handler(
+		Object.assign({}, defaultInitialHandlerArgs, {frameworkVersion: "1.2.3"})
+	);
+	// preprocess project config, skipping cert load
+	const pServeServer = await pPrepareServerConfig;
+	// serve server using config
+	await pServeServer;
+
+	t.is(normalizerStub.called, true);
+	t.deepEqual(normalizerStub.getCall(0).args, [{
+		configPath: undefined,
+		translatorName: "npm",
+		frameworkOptions: {
+			versionOverride: "1.2.3"
+		}
+	}]);
+});

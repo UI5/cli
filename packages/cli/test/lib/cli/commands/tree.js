@@ -74,6 +74,22 @@ test.serial("ui5 tree --dedupe=true", async (t) => {
 	}), true, "includeDeduped passed as expected");
 });
 
+test.serial("ui5 tree --full --framework-version", async (t) => {
+	normalizer.generateProjectTree.resolves({});
+	await tree.handler({full: true, frameworkVersion: "1.2.3"});
+	t.is(normalizer.generateProjectTree.called, true, "project tree output");
+	t.deepEqual(normalizer.generateProjectTree.getCall(0).args, [{
+		configPath: undefined,
+		translatorName: undefined,
+		translatorOptions: {
+			includeDeduped: true
+		},
+		frameworkOptions: {
+			versionOverride: "1.2.3"
+		}
+	}]);
+});
+
 // test.serial("Error: throws on error during processing", async (t) => {
 // 	normalizer.generateDependencyTree.rejects(new Error("Some error happened ..."));
 // 	const processExitStub = sinon.stub(process, "exit");

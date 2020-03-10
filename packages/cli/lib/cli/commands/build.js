@@ -59,6 +59,10 @@ build.builder = function(cli) {
 			describe: "A list of specific tasks to be excluded from default/dev set",
 			type: "array"
 		})
+		.option("framework-version", {
+			describe: "Overrides the framework version defined by the project",
+			type: "string"
+		})
 		.example("ui5 build --all", "Preload build for project and dependencies to \"./dist\"")
 		.example("ui5 build --all --exclude-task=* --include-task=createDebugFiles generateAppPreload",
 			"Build project and dependencies but only apply the createDebugFiles- and generateAppPreload tasks")
@@ -78,10 +82,18 @@ async function handleBuild(argv) {
 	const command = argv._[argv._.length - 1];
 	logger.setShowProgress(true);
 
-	const tree = await normalizer.generateProjectTree({
+	const normalizerOptions = {
 		translatorName: argv.translator,
 		configPath: argv.config
-	});
+	};
+
+	if (argv.frameworkVersion) {
+		normalizerOptions.frameworkOptions = {
+			versionOverride: argv.frameworkVersion
+		};
+	}
+
+	const tree = await normalizer.generateProjectTree(normalizerOptions);
 	await builder.build({
 		tree: tree,
 		destPath: argv.dest,

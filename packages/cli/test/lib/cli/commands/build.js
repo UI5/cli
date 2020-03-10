@@ -100,3 +100,26 @@ test.serial("ui5 build jsdoc", async (t) => {
 		"JSDoc build called with expected arguments"
 	);
 });
+
+test.serial("ui5 build --framework-version 1.99", async (t) => {
+	normalizerStub.resolves({
+		metadata:
+		{
+			name: "Sample"
+		}
+	});
+
+	args._ = ["build"];
+	args.frameworkVersion = "1.99.0";
+	await build.handler(args);
+	t.deepEqual(
+		normalizerStub.getCall(0).args[0],
+		{
+			configPath: undefined,
+			translatorName: "npm",
+			frameworkOptions: {
+				versionOverride: "1.99.0"
+			}
+		}, "generateProjectTree got called with expected arguments"
+	);
+});
