@@ -20,15 +20,28 @@ const Normalizer = {
 	 * @param {string} [options.configPath] Path to configuration file
 	 * @param {string} [options.translatorName] Translator to use
 	 * @param {Object} [options.translatorOptions] Options to pass to translator
+	 * @param {Object} [options.frameworkOptions] Options to pass to the framework installer
 	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
 	generateProjectTree: async function(options = {}) {
-		const tree = await Normalizer.generateDependencyTree(options);
+		let tree = await Normalizer.generateDependencyTree(options);
 
 		if (options.configPath) {
 			tree.configPath = options.configPath;
 		}
-		return projectPreprocessor.processTree(tree);
+		tree = await projectPreprocessor.processTree(tree);
+
+		if (tree.framework) {
+			const ui5Framework = require("./translators/ui5Framework");
+			log.verbose(`Root project ${tree.metadata.name} defines framework ` +
+				`configuration. Installing UI5 dependencies...`);
+			let frameworkTree = await ui5Framework.generateDependencyTree(tree, options.frameworkOptions);
+			if (frameworkTree) {
+				frameworkTree = await projectPreprocessor.processTree(frameworkTree);
+				ui5Framework.mergeTrees(tree, frameworkTree);
+			}
+		}
+		return tree;
 	},
 
 	/**
