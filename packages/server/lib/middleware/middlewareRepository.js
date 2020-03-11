@@ -8,6 +8,7 @@ const middlewares = {
 	versionInfo: "./versionInfo",
 	connectUi5Proxy: "./connectUi5Proxy",
 	serveThemes: "./serveThemes",
+	testRunner: "./testRunner",
 	nonReadRequests: "./nonReadRequests"
 };
 

@@ -281,7 +281,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addStandardMiddleware();
 
-	t.deepEqual(addMiddlewareStub.callCount, 10, "Expected count of middleware got added");
+	t.deepEqual(addMiddlewareStub.callCount, 11, "Expected count of middleware got added");
 	const addedMiddlewareNames = [];
 	for (let i = 0; i < addMiddlewareStub.callCount; i++) {
 		addedMiddlewareNames.push(addMiddlewareStub.getCall(i).args[0]);
@@ -292,6 +292,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"cors",
 		"discovery",
 		"serveResources",
+		"testRunner",
 		"serveThemes",
 		"versionInfo",
 		"connectUi5Proxy",

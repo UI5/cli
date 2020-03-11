@@ -1,5 +1,8 @@
 # /node_modules/* and /bower_components/* ignored by default
 
+# Ignore test runner static resources
+lib/middleware/testRunner/
+
 # Exclude coverage folder
 coverage/
 
