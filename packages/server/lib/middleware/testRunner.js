@@ -3,6 +3,7 @@ const fs = require("graceful-fs");
 const readFile = promisify(fs.readFile);
 const path = require("path");
 const mime = require("mime-types");
+const parseurl = require("parseurl");
 const log = require("@ui5/logger").getLogger("server:middleware:testRunner");
 
 const testRunnerResourceRegEx = /\/test-resources\/sap\/ui\/qunit\/(testrunner\.(html|css)|TestRunner.js)$/;
@@ -31,7 +32,7 @@ function serveResource(res, resourcePath, resourceContent) {
 function createMiddleware({resources}) {
 	return async function(req, res, next) {
 		try {
-			const pathname = req.path; // TODO: Other middlewares use the parseurl module here but I don't get why
+			const pathname = parseurl(req).pathname;
 			const parts = testRunnerResourceRegEx.exec(pathname);
 			const resourceName = parts && parts[1];
 
