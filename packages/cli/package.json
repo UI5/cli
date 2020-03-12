@@ -114,7 +114,7 @@
 		"supports-color": "^7.1.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^4.1.0",
-		"yargs": "^13.3.0"
+		"yargs": "^15.3.0"
 	},
 	"devDependencies": {
 		"ava": "^2.4.0",
