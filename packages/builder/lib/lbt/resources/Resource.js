@@ -1,7 +1,7 @@
 "use strict";
 
 const {promisify} = require("util");
-const fs = require("fs");
+const fs = require("graceful-fs");
 const readFile = promisify(fs.readFile);
 
 class Resource {
