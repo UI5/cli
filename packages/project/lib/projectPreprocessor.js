@@ -82,8 +82,12 @@ class ProjectPreprocessor {
 				}
 				this.applyShims(project);
 				if (this.isConfigValid(project)) {
-					await this.applyType(project);
-					this.checkProjectMetadata(parent, project);
+					// Do not apply transparent projects.
+					// Their only purpose might be to have their dependencies processed
+					if (!project._transparentProject) {
+						await this.applyType(project);
+						this.checkProjectMetadata(parent, project);
+					}
 					queue.push({
 						// copy array, so that the queue is stable while ignored project dependencies are removed
 						projects: [...project.dependencies],

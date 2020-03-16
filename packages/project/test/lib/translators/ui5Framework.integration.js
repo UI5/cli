@@ -671,9 +671,14 @@ test.serial("ui5Framework translator should not try to install anything when no 
 			version: "1.75.0"
 		}
 	});
+	const frameworkTree = Object.assign({}, projectPreprocessorTree, {
+		_transparentProject: true
+	});
 
 	sinon.stub(normalizer, "generateDependencyTree").resolves(translatorTree);
-	sinon.stub(projectPreprocessor, "processTree").withArgs(translatorTree).resolves(projectPreprocessorTree);
+	sinon.stub(projectPreprocessor, "processTree")
+		.withArgs(translatorTree).resolves(projectPreprocessorTree)
+		.withArgs(frameworkTree).resolves(frameworkTree);
 
 	const extractStub = sinon.stub(pacote, "extract");
 	const manifestStub = sinon.stub(pacote, "manifest");

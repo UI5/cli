@@ -29,6 +29,7 @@ test.afterEach.always((t) => {
 
 test.serial("generateDependencyTree", async (t) => {
 	const tree = {
+		specVersion: "2.0",
 		id: "test1",
 		version: "1.0.0",
 		path: "/test-project/",
@@ -84,14 +85,20 @@ test.serial("generateDependencyTree", async (t) => {
 		"Sapui5Resolver#getProject should be called with expected args (call 3)");
 
 	t.deepEqual(ui5FrameworkTree, {
+		specVersion: "2.0", // specVersion must not be lost to prevent config re-loading in projectPreprocessor
 		id: "test1",
 		version: "1.0.0",
 		path: "/test-project/",
+		framework: {
+			name: "SAPUI5",
+			version: "1.75.0"
+		},
 		dependencies: [
 			{fake: "metadata-project-1"},
 			{fake: "metadata-project-2"},
 			{fake: "metadata-project-3"}
-		]
+		],
+		_transparentProject: true
 	});
 });
 

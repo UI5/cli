@@ -170,12 +170,19 @@ module.exports = {
 		});
 
 		// Use root project (=requesting project) as root of framework tree
-		const frameworkTree = {
-			id: tree.id,
-			version: tree.version,
-			path: tree.path,
-			dependencies: libraries
-		};
+		// For this we clone all properties of the root project,
+		// except the dependencies since they will be overwritten anyways
+		const frameworkTree = {};
+		for (const attribute in tree) {
+			if (tree.hasOwnProperty(attribute) && attribute !== "dependencies") {
+				frameworkTree[attribute] = JSON.parse(JSON.stringify(tree[attribute]));
+			}
+		}
+
+		// Overwrite dependencies to exclusively contain framework libraries
+		frameworkTree.dependencies = libraries;
+		// Flag as transparent so that the project type is not applied again
+		frameworkTree._transparentProject = true;
 		return frameworkTree;
 	},
 
