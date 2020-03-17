@@ -47,8 +47,6 @@ const resourceFactory = {
 	 * @public
 	 * @param {Object} tree A (sub-)tree
 	 * @param {Object} [parameters] Parameters
-	 * @param {boolean} [parameters.useNamespaces=false] Use project namespaces as path prefixes
-	 *						DEPRECATED: Use parameter <code>getVirtualBasePathPrefix</code> instead.
 	 * @param {module:@ui5/fs.resourceFactory~getProjectExcludes} [parameters.getProjectExcludes]
 	 *						Callback to retrieve the exclude globs of a project
 	 * @param {module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix} [parameters.getVirtualBasePathPrefix]
@@ -56,7 +54,7 @@ const resourceFactory = {
 	 * @returns {Object} Object containing <code>source</code> and <code>dependencies</code> resource readers
 	 */
 	createCollectionsForTree(tree, {
-		useNamespaces=false, getProjectExcludes, getVirtualBasePathPrefix, virtualReaders={}
+		getProjectExcludes, getVirtualBasePathPrefix, virtualReaders={}
 	} = {}) {
 		// TODO 2.0: virtualReaders is private API. The virtual reader of a project should be stored on the
 		//	project itself. This requires projects to become objects independent from the dependency tree.
@@ -66,18 +64,6 @@ const resourceFactory = {
 		const dependencyPathIndex = {};
 		const virtualReaderIndex = {};
 		const sourceResourceLocators = [];
-
-		if (useNamespaces) {
-			// TODO 2.0: Remove deprecated "useNamespaces" parameter
-			log.warn(`resourceFactory.createCollectionsForTree called with deprecated parameter "useNamespaces". ` +
-				`This parameter will be removed in @ui5/fs version 2.0. ` +
-				`Use parameter "getVirtualBasePathPrefix" instead`);
-		}
-		if (useNamespaces && getVirtualBasePathPrefix) {
-			throw new Error(
-				`resourceFactory.createCollectionsForTree called with parameters "useNamespace" and ` +
-				`"getVirtualBasePathPrefix". Please provide only one of the two.`);
-		}
 
 		function processDependencies(project) {
 			if (project.resources && project.resources.pathMappings) {
@@ -97,7 +83,6 @@ const resourceFactory = {
 						const fsAdapter = resourceFactory._createFsAdapterForVirtualBasePath({
 							project,
 							virBasePath,
-							useNamespace: useNamespaces,
 							getProjectExcludes,
 							getVirtualBasePathPrefix
 						});
@@ -131,7 +116,6 @@ const resourceFactory = {
 					const fsAdapter = resourceFactory._createFsAdapterForVirtualBasePath({
 						project: tree,
 						virBasePath,
-						useNamespace: useNamespaces,
 						getProjectExcludes,
 						getVirtualBasePathPrefix
 					});
@@ -165,7 +149,6 @@ const resourceFactory = {
 	 * @param {Object} parameters Parameters
 	 * @param {Project} parameters.project A project
 	 * @param {string} parameters.virBasePath Virtual base path to create the adapter for
-	 * @param {boolean} parameters.useNamespaces Use project namespace as path prefix
 	 * @param {module:@ui5/fs.resourceFactory~getProjectExcludes} [parameters.getProjectExcludes]
 	 *												Callback to retrieve the exclude glob of a project
 	 * @param {module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix} [parameters.getVirtualBasePathPrefix]
@@ -173,7 +156,7 @@ const resourceFactory = {
 	 * @returns {Promise<string[]>} Promise resolving to list of normalized glob patterns
 	 */
 	_createFsAdapterForVirtualBasePath({
-		project, virBasePath, useNamespace, getProjectExcludes, getVirtualBasePathPrefix
+		project, virBasePath, getProjectExcludes, getVirtualBasePathPrefix
 	}) {
 		const fsPath = project.resources.pathMappings[virBasePath];
 		const fsBasePath = path.join(project.path, fsPath);
@@ -197,15 +180,6 @@ const resourceFactory = {
 					});
 					pathExcludes = Array.prototype.concat.apply([], normalizedPatterns);
 				}
-			}
-		} else if (useNamespace && project.metadata.namespace) { // Prefix resource paths with namespace
-			const namespacedBasePath = "/resources/" + project.metadata.namespace;
-			virBasePath = namespacedBasePath + virBasePath;
-			if (pathExcludes) {
-				const normalizedPatterns = pathExcludes.map((pattern) => {
-					return resourceFactory._prefixGlobPattern(pattern, namespacedBasePath);
-				});
-				pathExcludes = Array.prototype.concat.apply([], normalizedPatterns);
 			}
 		}
 

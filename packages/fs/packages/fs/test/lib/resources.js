@@ -93,8 +93,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"First createAdapter call: Correct project supplied");
 	t.deepEqual(firstCall.virBasePath, "/",
 		"First createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(firstCall.useNamespace, false,
-		"second createAdapter call: Correct useNamespace parameter supplied");
 	t.is(firstCall.getProjectExcludes, getProjectExcludesCallback,
 		"First createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(firstCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -105,8 +103,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"second createAdapter call: Correct project supplied");
 	t.deepEqual(secondCall.virBasePath, "/resources/",
 		"second createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(secondCall.useNamespace, false,
-		"second createAdapter call: Correct useNamespace parameter supplied");
 	t.is(secondCall.getProjectExcludes, getProjectExcludesCallback,
 		"second createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(secondCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -117,8 +113,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"third createAdapter call: Correct project supplied");
 	t.deepEqual(thirdCall.virBasePath, "/test-resources/",
 		"third createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(thirdCall.useNamespace, false,
-		"third createAdapter call: Correct useNamespace parameter supplied");
 	t.is(thirdCall.getProjectExcludes, getProjectExcludesCallback,
 		"third createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(thirdCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -129,8 +123,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"fourth createAdapter call: Correct project supplied");
 	t.deepEqual(fourthCall.virBasePath, "/resources/",
 		"fourth createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(fourthCall.useNamespace, false,
-		"fourth createAdapter call: Correct useNamespace parameter supplied");
 	t.is(fourthCall.getProjectExcludes, getProjectExcludesCallback,
 		"fourth createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(fourthCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -141,8 +133,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"fifth createAdapter call: Correct project supplied");
 	t.deepEqual(fifthCall.virBasePath, "/test-resources/",
 		"fifth createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(fifthCall.useNamespace, false,
-		"fifth createAdapter call: Correct useNamespace parameter supplied");
 	t.is(fifthCall.getProjectExcludes, getProjectExcludesCallback,
 		"fifth createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(fifthCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -153,8 +143,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"sixth createAdapter call: Correct project supplied");
 	t.deepEqual(sixthCall.virBasePath, "/resources/",
 		"sixth createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(sixthCall.useNamespace, false,
-		"sixth createAdapter call: Correct useNamespace parameter supplied");
 	t.is(sixthCall.getProjectExcludes, getProjectExcludesCallback,
 		"sixth createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(sixthCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -165,8 +153,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"seventh createAdapter call: Correct project supplied");
 	t.deepEqual(seventhCall.virBasePath, "/test-resources/",
 		"seventh createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(seventhCall.useNamespace, false,
-		"seventh createAdapter call: Correct useNamespace parameter supplied");
 	t.is(seventhCall.getProjectExcludes, getProjectExcludesCallback,
 		"seventh createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(seventhCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -177,8 +163,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"eight createAdapter call: Correct project supplied");
 	t.deepEqual(eightCall.virBasePath, "/resources/",
 		"eight createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(eightCall.useNamespace, false,
-		"eight createAdapter call: Correct useNamespace parameter supplied");
 	t.is(eightCall.getProjectExcludes, getProjectExcludesCallback,
 		"eight createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(eightCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
@@ -189,8 +173,6 @@ test.serial("createCollectionsForTree", (t) => {
 		"ninth createAdapter call: Correct project supplied");
 	t.deepEqual(ninthCall.virBasePath, "/test-resources/",
 		"ninth createAdapter call: Correct virBasePath supplied");
-	t.deepEqual(ninthCall.useNamespace, false,
-		"ninth createAdapter call: Correct useNamespace parameter supplied");
 	t.is(ninthCall.getProjectExcludes, getProjectExcludesCallback,
 		"ninth createAdapter call: Correct getProjectExcludes parameter supplied");
 	t.is(ninthCall.getVirtualBasePathPrefix, getVirtualBasePathPrefixCallback,
