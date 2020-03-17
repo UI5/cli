@@ -108,6 +108,9 @@ function defineTest(testName, {
 			},
 			dependencies
 		};
+		if (_level === 0) {
+			proj._isRoot = true;
+		}
 		if (framework) {
 			proj.framework = framework;
 		}

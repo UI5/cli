@@ -237,7 +237,7 @@ module.exports = {
 							return true;
 						}
 						// Filter out development and unresolved optional dependencies for non-root projects
-						return utils.shouldIncludeDependency(dependency, project._level === 0);
+						return utils.shouldIncludeDependency(dependency, project._isRoot);
 					})
 					.map((dependency) => {
 						if (!frameworkLibs[dependency.name]) {

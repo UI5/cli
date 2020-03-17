@@ -36,6 +36,7 @@ test("Project with inline configuration", (t) => {
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "xy",
@@ -73,6 +74,7 @@ test("Project with configPath", (t) => {
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "application.b",
@@ -110,6 +112,7 @@ test("Project with ui5.yaml at default location", (t) => {
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "application.a",
@@ -146,6 +149,7 @@ test("Project with ui5.yaml at default location and some configuration", (t) => 
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "application.c",
@@ -334,6 +338,7 @@ test("Ignores additional application-projects", (t) => {
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "application.a",
@@ -425,6 +430,7 @@ test("Inconsistent dependencies with same ID", (t) => {
 			specVersion: "0.1",
 			path: applicationAPath,
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "application.a",
@@ -703,6 +709,7 @@ const expectedTreeWithInvalidModules = {
 		"namespace": "id1"
 	},
 	"_level": 0,
+	"_isRoot": true,
 	"kind": "project",
 	"resources": {
 		"configuration": {
@@ -839,6 +846,7 @@ const expectedTreeAWithInlineConfigs = {
 	"specVersion": "1.0",
 	"path": applicationAPath,
 	"_level": 0,
+	"_isRoot": true,
 	"type": "application",
 	"metadata": {
 		"name": "application.a",
@@ -954,6 +962,7 @@ const expectedTreeAWithConfigPaths = {
 	"path": applicationAPath,
 	"configPath": path.join(applicationAPath, "ui5.yaml"),
 	"_level": 0,
+	"_isRoot": true,
 	"type": "application",
 	"metadata": {
 		"name": "application.a",
@@ -1159,6 +1168,7 @@ const expectedTreeBWithInlineConfigs = {
 	"specVersion": "0.1",
 	"path": applicationBPath,
 	"_level": 0,
+	"_isRoot": true,
 	"type": "application",
 	"metadata": {
 		"name": "application.b",
@@ -1543,6 +1553,7 @@ const expectedTreeApplicationCycleA = {
 		}
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"kind": "project",
 	"resources": {
 		"configuration": {
@@ -1850,6 +1861,7 @@ test.serial("checkProjectMetadata: Warning logged for deprecated dependencies", 
 
 	const project1 = {
 		_level: 0,
+		_isRoot: true,
 		metadata: {
 			name: "root.project",
 			deprecated: true
@@ -1931,6 +1943,7 @@ test.serial("checkProjectMetadata: Warning logged for SAP internal dependencies"
 
 	const project1 = {
 		_level: 0,
+		_isRoot: true,
 		metadata: {
 			name: "root.project",
 			sapInternal: true
@@ -1978,6 +1991,7 @@ test.serial("checkProjectMetadata: No warning logged for allowed SAP internal li
 
 	const project1 = {
 		_level: 0,
+		_isRoot: true,
 		metadata: {
 			name: "root.project",
 			allowSapInternal: true // parent project (=root) allows sap internal project use

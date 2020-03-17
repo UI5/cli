@@ -60,6 +60,7 @@ test("Project with project-shim extension with dependency configuration", (t) =>
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "xy",
@@ -218,6 +219,7 @@ test("Project with project-shim extension with dependency declaration and config
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "xy",
@@ -392,6 +394,7 @@ test("Project with project-shim extension with collection", (t) => {
 	return projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "application",
 			metadata: {
 				name: "xy",
@@ -526,6 +529,7 @@ test("Project with project-type extension dependency inline configuration", (t) 
 	return t.throwsAsync(projectPreprocessor.processTree(tree).then((parsedTree) => {
 		t.deepEqual(parsedTree, {
 			_level: 0,
+			_isRoot: true,
 			type: "z",
 			metadata: {
 				name: "xy",

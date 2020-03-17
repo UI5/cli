@@ -61,6 +61,9 @@ class ProjectPreprocessor {
 
 			await Promise.all(projectsToProcess.map(async (project) => {
 				project._level = level;
+				if (level === 0) {
+					project._isRoot = true;
+				}
 				log.verbose(`Processing project ${project.id} on level ${project._level}...`);
 
 				if (project.dependencies && project.dependencies.length) {
@@ -266,7 +269,7 @@ class ProjectPreprocessor {
 
 	isConfigValid(project) {
 		if (!project.specVersion) {
-			if (project._level === 0) {
+			if (project._isRoot) {
 				throw new Error(`No specification version defined for root project ${project.id}`);
 			}
 			log.verbose(`No specification version defined for project ${project.id}`);
@@ -282,14 +285,14 @@ class ProjectPreprocessor {
 		}
 
 		if (!project.type) {
-			if (project._level === 0) {
+			if (project._isRoot) {
 				throw new Error(`No type configured for root project ${project.id}`);
 			}
 			log.verbose(`No type configured for project ${project.id}`);
 			return false; // ignore this project
 		}
 
-		if (project.kind !== "project" && project._level === 0) {
+		if (project.kind !== "project" && project._isRoot) {
 			// This is arguable. It is not the concern of ui5-project to define the entry point of a project tree
 			// On the other hand, there is no known use case for anything else right now and failing early here
 			//	makes sense in that regard
@@ -325,12 +328,12 @@ class ProjectPreprocessor {
 	}
 
 	checkProjectMetadata(parent, project) {
-		if (project.metadata.deprecated && parent && parent._level === 0) {
+		if (project.metadata.deprecated && parent && parent._isRoot) {
 			// Only warn for direct dependencies of the root project
 			log.warn(`Dependency ${project.metadata.name} is deprecated and should not be used for new projects!`);
 		}
 
-		if (project.metadata.sapInternal && parent && parent._level === 0 && !parent.metadata.allowSapInternal) {
+		if (project.metadata.sapInternal && parent && parent._isRoot && !parent.metadata.allowSapInternal) {
 			// Only warn for direct dependencies of the root project, except it defines "allowSapInternal"
 			log.warn(`Dependency ${project.metadata.name} is restricted for use by SAP internal projects only! ` +
 				`If the project ${parent.metadata.name} is an SAP internal project, add the attribute ` +
@@ -389,7 +392,7 @@ class ProjectPreprocessor {
 					`${project.id} at "${configPath}". Error: ${err.message}`;
 
 			// Something else than "File or directory does not exist" or root project
-			if (err.code !== "ENOENT" || project._level === 0) {
+			if (err.code !== "ENOENT" || project._isRoot) {
 				throw new Error(errorText);
 			} else {
 				log.verbose(errorText);
@@ -609,7 +612,8 @@ class ProjectPreprocessor {
 			"version",
 			"path",
 			"dependencies",
-			"_level"
+			"_level",
+			"_isRoot"
 		];
 		const config = {};
 		for (const key in project) {
