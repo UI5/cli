@@ -1,4 +1,5 @@
 const middlewareRepository = require("./middlewareRepository");
+const MiddlewareUtil = require("./MiddlewareUtil");
 
 /**
  *
@@ -18,6 +19,7 @@ class MiddlewareManager {
 
 		this.middleware = {};
 		this.middlewareExecutionOrder = [];
+		this.middlewareUtil = new MiddlewareUtil();
 	}
 
 	async applyMiddleware(app) {
@@ -70,7 +72,10 @@ class MiddlewareManager {
 		}
 
 		this.middleware[middlewareName] = {
-			middleware: await Promise.resolve(middlewareCallback({resources: this.resources})),
+			middleware: await Promise.resolve(middlewareCallback({
+				resources: this.resources,
+				middlewareUtil: this.middlewareUtil
+			})),
 			mountPath
 		};
 	}
@@ -126,9 +131,10 @@ class MiddlewareManager {
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json",
 			wrapperCallback: (versionInfoModule) => {
-				return ({resources}) => {
+				return ({resources, middlewareUtil}) => {
 					return versionInfoModule({
 						resources,
+						middlewareUtil,
 						tree: this.tree
 					});
 				};
@@ -142,8 +148,9 @@ class MiddlewareManager {
 		await this.addMiddleware("nonReadRequests");
 		await this.addMiddleware("serveIndex", {
 			wrapperCallback: (middleware) => {
-				return ({resources}) => middleware({
+				return ({resources, middlewareUtil}) => middleware({
 					resources,
+					middlewareUtil,
 					simpleIndex: this.options.simpleIndex
 				});
 			}
@@ -176,10 +183,13 @@ class MiddlewareManager {
 
 			await this.addMiddleware(middlewareDef.name, {
 				wrapperCallback: (middleware) => {
-					return ({resources}) => {
+					return ({resources, middlewareUtil}) => {
 						const options = {
 							configuration: middlewareDef.configuration
 						};
+						// TODO: Pass "middlewareUtil" only to custom middleware with specVersion >=2.0
+						//	Requires middleware-/task-repository enhancement
+						//	Use middlewareUtil.getInterface(specVersion)
 						return middleware({resources, options});
 					};
 				},
