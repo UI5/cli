@@ -71,16 +71,23 @@ const utils = {
 			// Ignoring UI5 Framework libraries in dependencies
 			return ui5Dependencies;
 		}
-		if (project.framework && project.framework.libraries) {
-			project.framework.libraries.forEach((dependency) => {
-				if (!ui5Dependencies.includes(dependency.name) && utils.shouldIncludeDependency(dependency, root)) {
-					ui5Dependencies.push(dependency.name);
-				}
-			});
+
+		if (project.specVersion === "2.0") {
+			if (project.framework && project.framework.libraries) {
+				project.framework.libraries.forEach((dependency) => {
+					if (!ui5Dependencies.includes(dependency.name) && utils.shouldIncludeDependency(dependency, root)) {
+						ui5Dependencies.push(dependency.name);
+					}
+				});
+			} else {
+				log.verbose(`Project ${project.metadata.name} defines no framework.libraries configuration`);
+				// Possible future enhancement: Fallback to detect OpenUI5 framework dependencies in package.json
+			}
 		} else {
-			log.verbose(`Project ${project.metadata.name} defines no framework.libraries configuration`);
-			// Possible future enhancement: Fallback to detect OpenUI5 framework dependencies in package.json
+			log.verbose(`Project ${project.metadata.name} defines invalid ` +
+				`specification version ${project.specVersion} for framework.libraries configuration`);
 		}
+
 		project.dependencies.map((depProject) => {
 			utils.getFrameworkLibrariesFromTree(depProject, ui5Dependencies, false);
 		});
@@ -209,7 +216,7 @@ module.exports = {
 			});
 			queue.push(...project.dependencies);
 
-			if (project.framework && project.framework.libraries) {
+			if (project.specVersion === "2.0" && project.framework && project.framework.libraries) {
 				const frameworkDeps = project.framework.libraries.map((dependency) => {
 					if (!frameworkLibs[dependency.name]) {
 						throw new Error(`Missing framework library ${dependency.name} ` +

@@ -1657,6 +1657,22 @@ test("specVersion: Project with valid version 1.1", async (t) => {
 	t.deepEqual(res.specVersion, "1.1", "Correct spec version");
 });
 
+test("specVersion: Project with valid version 2.0", async (t) => {
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "2.0",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+	const res = await projectPreprocessor.processTree(tree);
+	t.deepEqual(res.specVersion, "2.0", "Correct spec version");
+});
+
 test("isBeingProcessed: Is not being processed", (t) => {
 	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
 

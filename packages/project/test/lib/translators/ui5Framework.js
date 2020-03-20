@@ -228,6 +228,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project without dependencies",
 test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dependency with libraries", (t) => {
 	const tree = {
 		id: "test1",
+		specVersion: "2.0",
 		metadata: {
 			name: "test1"
 		},
@@ -249,6 +250,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 		dependencies: [
 			{
 				id: "test2",
+				specVersion: "2.0",
 				metadata: {
 					name: "test2"
 				},
@@ -266,6 +268,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 				dependencies: [
 					{
 						id: "test3",
+						specVersion: "2.0",
 						metadata: {
 							name: "test3"
 						},
@@ -286,6 +289,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 			},
 			{
 				id: "@sapui5/lib8",
+				specVersion: "2.0",
 				metadata: {
 					name: "lib8"
 				},
@@ -300,6 +304,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 			},
 			{
 				id: "@openui5/lib9",
+				specVersion: "1.1",
 				metadata: {
 					name: "lib9"
 				},
@@ -307,8 +312,16 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 			},
 			{
 				id: "@foo/library",
+				specVersion: "1.1",
 				metadata: {
 					name: "foo.library"
+				},
+				framework: {
+					libraries: [
+						{
+							name: "should.also.be.ignored"
+						}
+					]
 				},
 				dependencies: []
 			}

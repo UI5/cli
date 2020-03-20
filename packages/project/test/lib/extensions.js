@@ -760,3 +760,23 @@ test("specVersion: Extension with valid version 1.1", async (t) => {
 	await preprocessor.applyExtension(extension);
 	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "1.1", "Correct spec version");
 });
+
+test("specVersion: Extension with valid version 2.0", async (t) => {
+	const extension = {
+		id: "extension.a",
+		path: applicationAPath,
+		dependencies: [],
+		version: "1.0.0",
+		specVersion: "2.0",
+		kind: "extension",
+		type: "project-shim",
+		metadata: {
+			name: "shims.a"
+		},
+		shims: {}
+	};
+	const preprocessor = new Preprocessor({});
+	const handleShimStub = sinon.stub(preprocessor, "handleShim");
+	await preprocessor.applyExtension(extension);
+	t.deepEqual(handleShimStub.getCall(0).args[0].specVersion, "2.0", "Correct spec version");
+});
