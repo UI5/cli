@@ -1,5 +1,6 @@
 const test = require("ava");
 const resourceFactory = require("@ui5/fs").resourceFactory;
+const MiddlewareUtil = require("../../../../lib/middleware/MiddlewareUtil");
 
 test.serial("serveIndex default", (t) => {
 	t.plan(4);
@@ -27,6 +28,7 @@ test.serial("serveIndex default", (t) => {
 		writeResource(readerWriter, "/.myFile4", 1024), // hidden 1 KB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
+			middlewareUtil: new MiddlewareUtil(),
 			resources: {
 				all: readerWriter
 			}
@@ -34,7 +36,7 @@ test.serial("serveIndex default", (t) => {
 
 		return new Promise((resolve, reject) => {
 			const req = {
-				path: "/"
+				url: "/"
 			};
 			const res = {
 				writeHead: function(status, contentType) {
@@ -81,6 +83,7 @@ test.serial("serveIndex no hidden", (t) => {
 		writeResource(readerWriter, "/.myFile4", 1024), // hidden 1 KB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
+			middlewareUtil: new MiddlewareUtil(),
 			resources: {
 				all: readerWriter
 			},
@@ -90,7 +93,7 @@ test.serial("serveIndex no hidden", (t) => {
 
 		return new Promise((resolve, reject) => {
 			const req = {
-				path: "/"
+				url: "/"
 			};
 			const res = {
 				writeHead: function(status, contentType) {
@@ -137,6 +140,7 @@ test.serial("serveIndex no details", (t) => {
 		writeResource(readerWriter, "/.myFile4", 1024), // hidden 1 KB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
+			middlewareUtil: new MiddlewareUtil(),
 			resources: {
 				all: readerWriter
 			},
@@ -146,7 +150,7 @@ test.serial("serveIndex no details", (t) => {
 
 		return new Promise((resolve, reject) => {
 			const req = {
-				path: "/"
+				url: "/"
 			};
 			const res = {
 				writeHead: function(status, contentType) {

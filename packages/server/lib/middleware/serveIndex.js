@@ -93,10 +93,11 @@ function createResourceInfos(resources) {
  * @returns {Function} Returns a server middleware closure.
  */
 
-function createMiddleware({resources, simpleIndex = false, showHidden = true}) {
+function createMiddleware({resources, middlewareUtil, simpleIndex = false, showHidden = true}) {
 	return function(req, res, next) {
-		log.verbose("\n Listing index of " + req.path);
-		const glob = req.path + (req.path.endsWith("/") ? "*" : "/*");
+		const pathname = middlewareUtil.getPathname(req);
+		log.verbose("\n Listing index of " + pathname);
+		const glob = pathname + (pathname.endsWith("/") ? "*" : "/*");
 		resources.all.byGlob(glob, {nodir: false}).then((resources) => {
 			if (!resources || resources.length === 0) { // Not found
 				next();
@@ -110,7 +111,8 @@ function createMiddleware({resources, simpleIndex = false, showHidden = true}) {
 				next,
 				simpleIndex,
 				showHidden,
-				resourceInfos
+				resourceInfos,
+				pathname
 			});
 		}).catch((err) => {
 			next(err);

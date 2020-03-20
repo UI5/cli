@@ -1,9 +1,7 @@
 const log = require("@ui5/logger").getLogger("server:middleware:serveResources");
-const {getMimeInfo} = require("../mime-util");
 const replaceStream = require("replacestream");
 const etag = require("etag");
 const fresh = require("fresh");
-const parseurl = require("parseurl");
 
 const rProperties = /\.properties$/i;
 const rReplaceVersion = /\.(library|js|json)$/i;
@@ -24,10 +22,10 @@ function isFresh(req, res) {
  * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources}) {
+function createMiddleware({resources, middlewareUtil}) {
 	return async function serveResources(req, res, next) {
 		try {
-			const pathname = parseurl(req).pathname;
+			const pathname = middlewareUtil.getPathname(req);
 			const resource = await resources.all.byPath(pathname);
 			if (!resource) { // Not found
 				next();
@@ -53,7 +51,7 @@ function createMiddleware({resources}) {
 				});
 			}
 
-			const {contentType, charset} = getMimeInfo(resourcePath);
+			const {contentType, charset} = middlewareUtil.getMimeInfo(resourcePath);
 			if (!res.getHeader("Content-Type")) {
 				res.setHeader("Content-Type", contentType);
 			}

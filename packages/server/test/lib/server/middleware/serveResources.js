@@ -3,6 +3,7 @@ const sinon = require("sinon");
 const {Readable, Writable} = require("stream");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 const serveResourcesMiddleware = require("../../../../lib/middleware/serveResources");
+const MiddlewareUtil = require("../../../../lib/middleware/MiddlewareUtil");
 const writeResource = function(writer, path, size, stringContent, project) {
 	const statInfo = {
 		ino: 0,
@@ -54,6 +55,7 @@ test.serial("Check if properties file is served properly", (t) => {
 		.then((resource) => {
 			const setStringSpy = sinon.spy(resource, "setString");
 			const middleware = serveResourcesMiddleware({
+				middlewareUtil: new MiddlewareUtil(),
 				resources: {
 					all: readerWriter
 				}
@@ -97,6 +99,7 @@ test.serial("Check if properties file is served properly with UTF-8", (t) => {
 		.then((resource) => {
 			const setStringSpy = sinon.spy(resource, "setString");
 			const middleware = serveResourcesMiddleware({
+				middlewareUtil: new MiddlewareUtil(),
 				resources: {
 					all: readerWriter
 				}
@@ -132,6 +135,7 @@ test.serial("Check if properties file is served properly without property settin
 	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße").then((resource) => {
 		const setStringSpy = sinon.spy(resource, "setString");
 		const middleware = serveResourcesMiddleware({
+			middlewareUtil: new MiddlewareUtil(),
 			resources: {
 				all: readerWriter
 			}
@@ -191,6 +195,7 @@ test.serial.cb("Check if version replacement is done", (t) => {
 		}
 	};
 	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil(),
 		resources
 	});
 
@@ -266,6 +271,7 @@ test.serial[
 		}
 	};
 	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil(),
 		resources
 	});
 

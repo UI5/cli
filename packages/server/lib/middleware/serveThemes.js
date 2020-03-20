@@ -1,6 +1,5 @@
 const themeBuilder = require("@ui5/builder").processors.themeBuilder;
 const fsInterface = require("@ui5/fs").fsInterface;
-const {getMimeInfo} = require("../mime-util");
 const {basename, dirname} = require("path").posix;
 const etag = require("etag");
 const fresh = require("fresh");
@@ -39,7 +38,7 @@ const themeResources = [
  * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources}) {
+function createMiddleware({resources, middlewareUtil}) {
 	const builder = new themeBuilder.ThemeBuilder({
 		fs: fsInterface(resources.all)
 	});
@@ -77,7 +76,7 @@ function createMiddleware({resources}) {
 			}
 
 			const resourcePath = resource.getPath();
-			const {contentType} = getMimeInfo(resourcePath);
+			const {contentType} = middlewareUtil.getMimeInfo(resourcePath);
 			res.setHeader("Content-Type", contentType);
 
 			const content = await resource.getBuffer();

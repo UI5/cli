@@ -374,7 +374,7 @@ const icons = {
 	".yaws": "page_white_code.png"
 };
 
-function handleRequest({req, res, next, showHidden, simpleIndex, resourceInfos}) {
+function handleRequest({req, res, next, showHidden, simpleIndex, resourceInfos, pathname}) {
 	const hidden = showHidden; // display hidden files
 	const view = simpleIndex ? "tiles" : "details";
 
@@ -395,7 +395,7 @@ function handleRequest({req, res, next, showHidden, simpleIndex, resourceInfos})
 
 		// create locals for rendering
 		const locals = {
-			directory: req.path,
+			directory: pathname,
 			fileList: resourceInfos,
 			path: path,
 			style: style,

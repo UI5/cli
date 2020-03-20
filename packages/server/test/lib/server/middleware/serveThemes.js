@@ -3,6 +3,7 @@ const sinon = require("sinon");
 const mock = require("mock-require");
 
 const ThemeBuilder = require("@ui5/builder").processors.themeBuilder.ThemeBuilder;
+const MiddlewareUtil = require("../../../../lib/middleware/MiddlewareUtil");
 
 const failOnNext= function(t) {
 	return function(err) {
@@ -82,6 +83,7 @@ const createMiddleware = function() {
 	};
 	return {
 		middleware: require("../../../../lib/middleware/serveThemes")({
+			middlewareUtil: new MiddlewareUtil(),
 			resources
 		}),
 		byPath: resources.all.byPath
