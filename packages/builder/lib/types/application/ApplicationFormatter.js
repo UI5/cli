@@ -20,13 +20,7 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 			"/": project.resources.configuration.paths.webapp
 		};
 
-		try {
-			project.metadata.namespace = await this.getNamespace();
-		} catch (err) {
-			// Catch error because namespace is optional
-			// TODO 2.0: Make namespace mandatory and just let the error throw
-			log.warn(err.message);
-		}
+		project.metadata.namespace = await this.getNamespace();
 	}
 
 	/**

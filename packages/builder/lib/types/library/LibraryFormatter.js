@@ -31,13 +31,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 				"Either no setting was provided or the path not found.");
 		}
 
-		try {
-			project.metadata.namespace = await this.getNamespace();
-		} catch (err) {
-			// Catch error because namespace is optional
-			// TODO 2.0: Make namespace mandatory and just let the error throw
-			log.warn(err.message);
-		}
+		project.metadata.namespace = await this.getNamespace();
 
 		try {
 			project.metadata.copyright = await this.getCopyright();

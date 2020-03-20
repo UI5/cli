@@ -130,16 +130,24 @@ function createMockProject() {
 	};
 }
 
+test("getSourceBasePath: posix", async (t) => {
+	const myProject = clone(applicationBTree);
+	myProject.path = "my/pony";
+	const applicationFormatter = new ApplicationFormatter({project: myProject});
+
+	const sourceBasePath = applicationFormatter.getSourceBasePath(true);
+	t.is(sourceBasePath, "my/pony/webapp", "correct path");
+});
+
 test("format: No 'sap.app' configuration found", async (t) => {
 	const project = createMockProject();
 	const applicationFormatter = new ApplicationFormatter({project});
 	sinon.stub(applicationFormatter, "validate").resolves();
 	sinon.stub(applicationFormatter, "getManifest").resolves({content: {}, fsPath: {}});
 
-	await applicationFormatter.format();
-	t.deepEqual(project.resources.pathMappings["/"], "webapp", "path mappings is set");
-	t.falsy(project.metadata.namespace,
-		"namespace is falsy since getManifest resolves with an empty object");
+	const error = await t.throwsAsync(applicationFormatter.format());
+	t.deepEqual(error.message, "No \"sap.app\" ID configuration found in manifest.json of project projectName",
+		"Rejected with correct error message");
 });
 
 test("format: No application id in 'sap.app' configuration found", async (t) => {
@@ -148,10 +156,9 @@ test("format: No application id in 'sap.app' configuration found", async (t) => 
 	sinon.stub(applicationFormatter, "validate").resolves();
 	sinon.stub(applicationFormatter, "getManifest").resolves({content: {"sap.app": {}}});
 
-	await applicationFormatter.format();
+	const error = await t.throwsAsync(applicationFormatter.format());
+	t.deepEqual(error.message, "No \"sap.app\" ID configuration found in manifest.json of project projectName");
 	t.deepEqual(project.resources.pathMappings["/"], "webapp", "path mappings is set");
-	t.falsy(project.metadata.namespace,
-		"namespace is falsy since getManifest resolves with an empty object");
 });
 
 test("format: set namespace to id", async (t) => {
@@ -220,11 +227,12 @@ test.serial("getManifest: result is cached", async (t) => {
 
 	const ApplicationFormatter = mock.reRequire("../../../../lib/types/application/ApplicationFormatter");
 	const libraryFormatter = new ApplicationFormatter({project: myProject});
-
 	const expectedPath = path.join(applicationBPath, "webapp", "manifest.json");
+
 	const {content, fsPath} = await libraryFormatter.getManifest();
 	t.deepEqual(content, {pony: "no unicorn"}, "Correct result on first call");
 	t.deepEqual(fsPath, expectedPath, "Correct manifest.json path returned on first call");
+
 	const {content: content2, fsPath: fsPath2} = await libraryFormatter.getManifest();
 	t.deepEqual(content2, {pony: "no unicorn"}, "Correct result on second call");
 	t.deepEqual(fsPath2, expectedPath, "Correct manifest.json path returned on second call");
@@ -278,7 +286,7 @@ test("namespace: detect namespace from pom.xml via ${appId} from properties", as
 	myProject.resources.configuration.paths.webapp = "webapp-properties.appId";
 	const applicationFormatter = new ApplicationFormatter({project: myProject});
 
-	await applicationFormatter.format();
-	t.falsy(myProject.metadata.namespace,
-		"namespace is falsy since getManifest resolves with an empty object");
+	const error = await t.throwsAsync(applicationFormatter.format());
+	t.deepEqual(error.message, "Failed to resolve namespace of project application.h: \"${appId}\"" +
+		" couldn't be resolved from maven property \"appId\" of pom.xml of project application.h");
 });
