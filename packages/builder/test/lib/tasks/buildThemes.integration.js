@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const buildThemes = require("../../../lib/tasks/buildThemes");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
@@ -46,7 +45,7 @@ test("integration: simple", (t) => {
 		string: content
 	});
 	return reader.write(resource).then(() => {
-		return tasks.buildThemes({
+		return buildThemes({
 			workspace: duplexCollection,
 			dependencies: dependencies,
 			options: {
@@ -126,7 +125,7 @@ test("integration: imports", (t) => {
 	return Promise.all([lessResource, lessVariablesResource].map((resource) => {
 		return reader.write(resource);
 	})).then(() => {
-		return tasks.buildThemes({
+		return buildThemes({
 			workspace: duplexCollection,
 			dependencies: dependencies,
 			options: {

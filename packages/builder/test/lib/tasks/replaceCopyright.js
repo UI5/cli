@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const replaceCopyright = require("../../../lib/tasks/replaceCopyright");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
@@ -40,7 +39,7 @@ console.log('HelloWorld');`;
 	});
 
 	return workspace.write(resource).then(() => {
-		return tasks.replaceCopyright({
+		return replaceCopyright({
 			workspace,
 			options: {
 				copyright: copyright,
@@ -92,7 +91,7 @@ test("test.xml: replace @copyright@", (t) => {
 	});
 
 	return reader.write(resource).then(() => {
-		return tasks.replaceCopyright({
+		return replaceCopyright({
 			workspace,
 			options: {
 				pattern: "/**/*.xml",

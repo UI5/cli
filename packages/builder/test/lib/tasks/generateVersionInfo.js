@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const generateVersionInfo = require("../../../lib/tasks/generateVersionInfo");
 const path = require("path");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
@@ -62,7 +61,7 @@ async function createOptions(t, options) {
 
 async function assertCreatedVersionInfo(t, oExpectedVersionInfo, options) {
 	const oOptions = await createOptions(t, options);
-	await tasks.generateVersionInfo(oOptions);
+	await generateVersionInfo(oOptions);
 
 	const resource = await oOptions.workspace.byPath("/resources/sap-ui-version.json");
 	if (!resource) {
@@ -153,7 +152,7 @@ test("integration: Library without i18n bundle file failure", async (t) => {
 
 
 	const oOptions = await createOptions(t, options);
-	await tasks.generateVersionInfo(oOptions).catch((error) => {
+	await generateVersionInfo(oOptions).catch((error) => {
 		t.is(error.message, "[versionInfoGenerator]: Missing options parameters");
 	});
 });

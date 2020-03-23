@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const replaceVersion = require("../../../lib/tasks/replaceVersion");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
@@ -24,7 +23,7 @@ test("integration: replace version", (t) => {
 
 	const workspace = new DuplexCollection({reader, writer});
 	return reader.write(resource).then(() => {
-		return tasks.replaceVersion({
+		return replaceVersion({
 			workspace,
 			options: {
 				pattern: "/test.js",

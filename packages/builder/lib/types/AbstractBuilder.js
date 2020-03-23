@@ -89,7 +89,7 @@ class AbstractBuilder {
 				}
 			}
 			// Create custom task if not already done (task might be referenced multiple times, first one wins)
-			const task = taskRepository.getTask(taskDef.name);
+			const {task} = taskRepository.getTask(taskDef.name);
 			const execTask = function() {
 				/* Custom Task Interface
 					Parameters:

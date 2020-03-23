@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const uglify = require("../../../lib/tasks/uglify");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
@@ -30,7 +29,7 @@ test();`;
 		.then(() => {
 			return reader.byPath("/test.js");
 		}).then(() => {
-			return tasks.uglify({
+			return uglify({
 				workspace: duplexCollection,
 				options: {
 					pattern: "/test.js"

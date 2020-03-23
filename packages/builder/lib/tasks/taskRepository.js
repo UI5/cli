@@ -1,47 +1,53 @@
-const tasks = {
-	replaceCopyright: require("./replaceCopyright"),
-	replaceVersion: require("./replaceVersion"),
-	createDebugFiles: require("./createDebugFiles"),
-	escapeNonAsciiCharacters: require("./escapeNonAsciiCharacters"),
-	executeJsdocSdkTransformation: require("./jsdoc/executeJsdocSdkTransformation"),
-	generateApiIndex: require("./jsdoc/generateApiIndex"),
-	generateJsdoc: require("./jsdoc/generateJsdoc"),
-	uglify: require("./uglify"),
-	buildThemes: require("./buildThemes"),
-	transformBootstrapHtml: require("./transformBootstrapHtml"),
-	generateLibraryManifest: require("./generateLibraryManifest"),
-	generateVersionInfo: require("./generateVersionInfo"),
-	generateManifestBundle: require("./bundlers/generateManifestBundle"),
-	generateFlexChangesBundle: require("./bundlers/generateFlexChangesBundle"),
-	generateComponentPreload: require("./bundlers/generateComponentPreload"),
-	generateStandaloneAppBundle: require("./bundlers/generateStandaloneAppBundle"),
-	generateBundle: require("./bundlers/generateBundle"),
-	generateLibraryPreload: require("./bundlers/generateLibraryPreload"),
-	generateCachebusterInfo: require("./generateCachebusterInfo")
+const taskInfos = {
+	replaceCopyright: {path: "./replaceCopyright"},
+	replaceVersion: {path: "./replaceVersion"},
+	createDebugFiles: {path: "./createDebugFiles"},
+	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters"},
+	executeJsdocSdkTransformation: {path: "./jsdoc/executeJsdocSdkTransformation"},
+	generateApiIndex: {path: "./jsdoc/generateApiIndex"},
+	generateJsdoc: {path: "./jsdoc/generateJsdoc"},
+	uglify: {path: "./uglify"},
+	buildThemes: {path: "./buildThemes"},
+	transformBootstrapHtml: {path: "./transformBootstrapHtml"},
+	generateLibraryManifest: {path: "./generateLibraryManifest"},
+	generateVersionInfo: {path: "./generateVersionInfo"},
+	generateManifestBundle: {path: "./bundlers/generateManifestBundle"},
+	generateFlexChangesBundle: {path: "./bundlers/generateFlexChangesBundle"},
+	generateComponentPreload: {path: "./bundlers/generateComponentPreload"},
+	generateStandaloneAppBundle: {path: "./bundlers/generateStandaloneAppBundle"},
+	generateBundle: {path: "./bundlers/generateBundle"},
+	generateLibraryPreload: {path: "./bundlers/generateLibraryPreload"},
+	generateCachebusterInfo: {path: "./generateCachebusterInfo"}
 };
 
 function getTask(taskName) {
-	const task = tasks[taskName];
+	const taskInfo = taskInfos[taskName];
 
-	if (!task) {
+	if (!taskInfo) {
 		throw new Error(`taskRepository: Unknown Task ${taskName}`);
 	}
-	return task;
+	return {
+		task: require(taskInfo.path),
+		specVersion: taskInfo.specVersion
+	};
 }
 
-function addTask(name, task) {
-	if (tasks[name]) {
-		throw new Error(`taskRepository: Task ${name} already registered`);
+function addTask({name, specVersion, taskPath}) {
+	if (taskInfos[name]) {
+		throw new Error(`taskRepository: A task with the name ${name} has already been registered`);
 	}
-	tasks[name] = task;
+	taskInfos[name] = {
+		path: taskPath,
+		specVersion
+	};
 }
 
-function getAllTasks() {
-	return tasks;
+function getAllTaskNames() {
+	return Object.keys(taskInfos);
 }
 
 module.exports = {
-	getTask: getTask,
-	addTask: addTask,
-	getAllTasks: getAllTasks
+	getTask,
+	addTask,
+	getAllTaskNames
 };

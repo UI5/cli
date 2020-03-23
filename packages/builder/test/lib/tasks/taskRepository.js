@@ -1,12 +1,20 @@
+const path = require("path");
 const test = require("ava");
 
 const taskRepository = require("../../../lib/tasks/taskRepository");
 
 test("task retrieval", (t) => {
-	const myTask = {};
-	taskRepository.addTask("myTaskR", myTask);
-	const task = taskRepository.getTask("myTaskR");
-	t.is(task, myTask);
+	const taksPath = path.posix.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
+	taskRepository.addTask({
+		name: "myTask",
+		specVersion: "2.0",
+		taskPath: taksPath
+	});
+	const taskInfo = taskRepository.getTask("myTask");
+	t.deepEqual(taskInfo, {
+		task: require(taksPath),
+		specVersion: "2.0"
+	});
 });
 
 test("Unknown task retrieval", (t) => {
@@ -22,5 +30,6 @@ test("Duplicate task", (t) => {
 	const error = t.throws(() => {
 		taskRepository.addTask("myTask", myTask);
 	}, Error);
-	t.deepEqual(error.message, "taskRepository: Task myTask already registered", "Correct exception");
+	t.deepEqual(error.message, "taskRepository: A task with the name undefined has already been registered",
+		"Correct exception");
 });

@@ -171,8 +171,10 @@ test("Instantiation with custom task and unknown beforeTask", (t) => {
 });
 
 test.serial("Instantiation with custom task", (t) => {
-	const customTask = function() {};
-	sinon.stub(taskRepository, "getTask").returns(customTask);
+	sinon.stub(taskRepository, "getTask").returns({
+		task: function() {},
+		specVersion: undefined
+	});
 
 	const project = clone(applicationBTree);
 	project.builder = {
@@ -189,8 +191,10 @@ test.serial("Instantiation with custom task", (t) => {
 });
 
 test.serial("Instantiation of empty builder with custom tasks", (t) => {
-	const customTask = function() {};
-	sinon.stub(taskRepository, "getTask").returns(customTask);
+	sinon.stub(taskRepository, "getTask").returns({
+		task: function() {},
+		specVersion: undefined
+	});
 
 	const project = clone(applicationBTree);
 	project.builder = {
@@ -210,8 +214,10 @@ test.serial("Instantiation of empty builder with custom tasks", (t) => {
 });
 
 test.serial("Instantiation of empty builder with 2nd custom tasks defining neither beforeTask nor afterTask", (t) => {
-	const customTask = function() {};
-	sinon.stub(taskRepository, "getTask").returns(customTask);
+	sinon.stub(taskRepository, "getTask").returns({
+		task: function() {},
+		specVersion: "2.0"
+	});
 
 	const project = clone(applicationBTree);
 	project.builder = {
@@ -229,8 +235,10 @@ test.serial("Instantiation of empty builder with 2nd custom tasks defining neith
 });
 
 test.serial("Instantiation with custom task defined three times", (t) => {
-	const customTask = function() {};
-	sinon.stub(taskRepository, "getTask").returns(customTask);
+	sinon.stub(taskRepository, "getTask").returns({
+		task: function() {},
+		specVersion: "2.0"
+	});
 
 	const project = clone(applicationBTree);
 	project.builder = {
@@ -262,7 +270,10 @@ test.serial("Instantiation with custom task: Custom task called correctly", (t) 
 		t.deepEqual(workspace, "myWorkspace", "Correct workspace passed to custom task");
 		t.deepEqual(dependencies, "myDependencies", "Correct dependency collection passed to custom task");
 	};
-	sinon.stub(taskRepository, "getTask").returns(customTask);
+	sinon.stub(taskRepository, "getTask").returns({
+		task: customTask,
+		specVersion: "2.0"
+	});
 
 	const project = clone(applicationBTree);
 	project.builder = {
@@ -288,8 +299,14 @@ test.serial("Instantiation with custom task: Two custom tasks called correctly",
 		t.deepEqual(options.configuration, "donkey", "Correct configuration passed to second custom task");
 	};
 	const stubGetTask = sinon.stub(taskRepository, "getTask");
-	stubGetTask.onCall(0).returns(customTask1);
-	stubGetTask.onCall(1).returns(customTask2);
+	stubGetTask.onCall(0).returns({
+		task: customTask1,
+		specVersion: "2.0"
+	});
+	stubGetTask.onCall(1).returns({
+		task: customTask2,
+		specVersion: "2.0"
+	});
 
 	const project = clone(applicationBTree);
 	project.builder = {

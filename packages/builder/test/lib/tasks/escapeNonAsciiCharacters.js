@@ -1,7 +1,6 @@
 const test = require("ava");
 
-const ui5Builder = require("../../../");
-const tasks = ui5Builder.builder.tasks;
+const escapeNonAsciiCharacters = require("../../../lib/tasks/escapeNonAsciiCharacters");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
@@ -35,7 +34,7 @@ city=Ort:`;
 	});
 
 	return workspace.write(resource).then(() => {
-		return tasks.escapeNonAsciiCharacters({
+		return escapeNonAsciiCharacters({
 			workspace,
 			options: {
 				encoding: "UTF-8",
@@ -85,7 +84,7 @@ city=Ort:`;
 	});
 
 	return workspace.write(resource).then(() => {
-		return tasks.escapeNonAsciiCharacters({
+		return escapeNonAsciiCharacters({
 			workspace,
 			options: {
 				encoding: "ISO-8859-1",
@@ -114,7 +113,7 @@ test("integration: escape non ascii characters source encoding being empty", asy
 	});
 	const workspace = new DuplexCollection({reader, writer});
 
-	const error = await t.throwsAsync(tasks.escapeNonAsciiCharacters({
+	const error = await t.throwsAsync(escapeNonAsciiCharacters({
 		workspace,
 		options: {
 			encoding: "",
@@ -133,7 +132,7 @@ test("integration: escape non ascii characters source encoding being UTF-16", as
 	});
 	const workspace = new DuplexCollection({reader, writer});
 
-	const error = await t.throwsAsync(tasks.escapeNonAsciiCharacters({
+	const error = await t.throwsAsync(escapeNonAsciiCharacters({
 		workspace,
 		options: {
 			encoding: "utf16le",

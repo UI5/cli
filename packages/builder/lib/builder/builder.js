@@ -7,7 +7,6 @@ const typeRepository = require("../types/typeRepository");
 const taskRepository = require("../tasks/taskRepository");
 const BuildContext = require("./BuildContext");
 
-const definedTasks = taskRepository.getAllTasks();
 
 // Set of tasks for development
 const devTasks = [
@@ -46,7 +45,8 @@ function getElapsedTime(startTime) {
  * @returns {Array} Return a task list for the builder
  */
 function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTasks}) {
-	let selectedTasks = Object.keys(definedTasks).reduce((list, key) => {
+	const definedTasks = taskRepository.getAllTaskNames();
+	let selectedTasks = definedTasks.reduce((list, key) => {
 		list[key] = true;
 		return list;
 	}, {});
@@ -196,8 +196,6 @@ function deregisterCleanupSigHooks(signals) {
  * @alias module:@ui5/builder.builder
  */
 module.exports = {
-	tasks: definedTasks,
-
 	/**
 	 * Configures the project build and starts it.
 	 *
