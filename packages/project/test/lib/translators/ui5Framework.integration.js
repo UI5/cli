@@ -208,6 +208,14 @@ function defineTest(testName, {
 						},
 						{
 							name: "sap.ui.lib2"
+						},
+						{
+							name: "sap.ui.lib5",
+							optional: true
+						},
+						{
+							name: "sap.ui.lib6",
+							development: true
 						}
 					]
 				}
@@ -364,6 +372,14 @@ function defineTest(testName, {
 							},
 							{
 								name: "sap.ui.lib2"
+							},
+							{
+								name: "sap.ui.lib5",
+								optional: true
+							},
+							{
+								name: "sap.ui.lib6",
+								development: true
 							}
 						]
 					},

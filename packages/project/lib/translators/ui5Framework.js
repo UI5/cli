@@ -230,14 +230,27 @@ module.exports = {
 			queue.push(...project.dependencies);
 
 			if (project.specVersion === "2.0" && project.framework && project.framework.libraries) {
-				const frameworkDeps = project.framework.libraries.map((dependency) => {
-					if (!frameworkLibs[dependency.name]) {
-						throw new Error(`Missing framework library ${dependency.name} ` +
-							`required by project ${project.metadata.name}`);
-					}
-					return frameworkLibs[dependency.name];
-				});
-				project.dependencies.push(...frameworkDeps);
+				const frameworkDeps = project.framework.libraries
+					.filter((dependency) => {
+						// Filter out development and unresolved optional dependencies
+						if (dependency.development) {
+							return false;
+						}
+						if (!frameworkLibs[dependency.name] && dependency.optional) {
+							return false;
+						}
+						return true;
+					})
+					.map((dependency) => {
+						if (!frameworkLibs[dependency.name]) {
+							throw new Error(`Missing framework library ${dependency.name} ` +
+								`required by project ${project.metadata.name}`);
+						}
+						return frameworkLibs[dependency.name];
+					});
+				if (frameworkDeps.length) {
+					project.dependencies.push(...frameworkDeps);
+				}
 			}
 		}
 		return projectTree;
