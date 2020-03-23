@@ -72,26 +72,35 @@ const utils = {
 			return ui5Dependencies;
 		}
 
-		if (project.specVersion === "2.0") {
-			if (project.framework && project.framework.libraries) {
-				project.framework.libraries.forEach((dependency) => {
-					if (!ui5Dependencies.includes(dependency.name) && utils.shouldIncludeDependency(dependency, root)) {
-						ui5Dependencies.push(dependency.name);
-					}
-				});
-			} else {
-				log.verbose(`Project ${project.metadata.name} defines no framework.libraries configuration`);
-				// Possible future enhancement: Fallback to detect OpenUI5 framework dependencies in package.json
-			}
-		} else {
-			log.verbose(`Project ${project.metadata.name} defines invalid ` +
-				`specification version ${project.specVersion} for framework.libraries configuration`);
-		}
+		this._addFrameworkLibrariesFromProject(project, ui5Dependencies, root);
 
 		project.dependencies.map((depProject) => {
 			utils.getFrameworkLibrariesFromTree(depProject, ui5Dependencies, false);
 		});
 		return ui5Dependencies;
+	},
+	_addFrameworkLibrariesFromProject(project, ui5Dependencies, root) {
+		if (!project.framework) {
+			return;
+		}
+		if (project.specVersion !== "2.0") {
+			log.warn(`Project ${project.metadata.name} defines invalid ` +
+				`specification version ${project.specVersion} for framework.libraries configuration`);
+			return;
+		}
+
+		if (!project.framework.libraries || !project.framework.libraries.length) {
+			log.verbose(`Project ${project.metadata.name} defines no framework.libraries configuration`);
+			// Possible future enhancement: Fallback to detect OpenUI5 framework dependencies in package.json
+			return;
+		}
+
+		project.framework.libraries.forEach((dependency) => {
+			if (!ui5Dependencies.includes(dependency.name) &&
+					utils.shouldIncludeDependency(dependency, root)) {
+				ui5Dependencies.push(dependency.name);
+			}
+		});
 	},
 	ProjectProcessor
 };
@@ -145,6 +154,10 @@ module.exports = {
 		log.info(`Using ${frameworkName} version: ${version}`);
 
 		const referencedLibraries = utils.getFrameworkLibrariesFromTree(tree);
+		if (!referencedLibraries.length) {
+			log.verbose(`No ${frameworkName} libraries referenced in project ${tree.id} or its dependencies`);
+			return null;
+		}
 
 		let resolver;
 		if (frameworkName === "OpenUI5") {

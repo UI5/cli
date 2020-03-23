@@ -513,9 +513,9 @@ function defineErrorTest(testName, {
 			if (failExtract) {
 				extractStub
 					.withArgs("@sapui5/sap.ui.lib1@1.75.1")
-					.rejects(new Error("Failed extracting package @sapui5/sap.ui.lib1@1.75.1"))
+					.rejects(new Error("404 - @sapui5/sap.ui.lib1"))
 					.withArgs("@openui5/sap.ui.lib4@1.75.4")
-					.rejects(new Error("Failed extracting package @openui5/sap.ui.lib4@1.75.4"));
+					.rejects(new Error("404 - @openui5/sap.ui.lib4"));
 			} else {
 				extractStub
 					.withArgs("@sapui5/sap.ui.lib1@1.75.1").resolves()
@@ -524,7 +524,7 @@ function defineErrorTest(testName, {
 			if (failMetadata) {
 				extractStub
 					.withArgs("@sapui5/distribution-metadata@1.75.0")
-					.rejects(new Error("Failed extracting package @sapui5/distribution-metadata@1.75.0"));
+					.rejects(new Error("404 - @sapui5/distribution-metadata"));
 			} else {
 				extractStub
 					.withArgs("@sapui5/distribution-metadata@1.75.0")
@@ -574,9 +574,9 @@ function defineErrorTest(testName, {
 			if (failExtract) {
 				extractStub
 					.withArgs("@openui5/sap.ui.lib1@1.75.0")
-					.rejects(new Error("Failed extracting package @openui5/sap.ui.lib1@1.75.0"))
+					.rejects(new Error("404 - @openui5/sap.ui.lib1"))
 					.withArgs("@openui5/sap.ui.lib4@1.75.0")
-					.rejects(new Error("Failed extracting package @openui5/sap.ui.lib4@1.75.0"));
+					.rejects(new Error("404 - @openui5/sap.ui.lib4"));
 			} else {
 				extractStub
 					.withArgs("@openui5/sap.ui.lib1@1.75.0")
@@ -616,23 +616,29 @@ defineErrorTest("SAPUI5: ui5Framework translator should throw a proper error whe
 	frameworkName: "SAPUI5",
 	failMetadata: true,
 	expectedErrorMessage: `Resolution of framework libraries failed with errors:
-Failed to resolve library sap.ui.lib1: Failed extracting package @sapui5/distribution-metadata@1.75.0
-Failed to resolve library sap.ui.lib4: Failed extracting package @sapui5/distribution-metadata@1.75.0` // TODO: should only be returned once?
+Failed to resolve library sap.ui.lib1: Failed to extract package @sapui5/distribution-metadata@1.75.0: ` +
+`404 - @sapui5/distribution-metadata
+Failed to resolve library sap.ui.lib4: Failed to extract package @sapui5/distribution-metadata@1.75.0: ` +
+`404 - @sapui5/distribution-metadata` // TODO: should only be returned once?
 });
 defineErrorTest("SAPUI5: ui5Framework translator should throw a proper error when package extraction fails", {
 	frameworkName: "SAPUI5",
 	failExtract: true,
 	expectedErrorMessage: `Resolution of framework libraries failed with errors:
-Failed to resolve library sap.ui.lib1: Failed extracting package @sapui5/sap.ui.lib1@1.75.1
-Failed to resolve library sap.ui.lib4: Failed extracting package @openui5/sap.ui.lib4@1.75.4`
+Failed to resolve library sap.ui.lib1: Failed to extract package @sapui5/sap.ui.lib1@1.75.1: ` +
+`404 - @sapui5/sap.ui.lib1
+Failed to resolve library sap.ui.lib4: Failed to extract package @openui5/sap.ui.lib4@1.75.4: ` +
+`404 - @openui5/sap.ui.lib4`
 });
 defineErrorTest("SAPUI5: ui5Framework translator should throw a proper error when metadata request and package extraction fails", {
 	frameworkName: "SAPUI5",
 	failMetadata: true,
 	failExtract: true,
 	expectedErrorMessage: `Resolution of framework libraries failed with errors:
-Failed to resolve library sap.ui.lib1: Failed extracting package @sapui5/distribution-metadata@1.75.0
-Failed to resolve library sap.ui.lib4: Failed extracting package @sapui5/distribution-metadata@1.75.0`
+Failed to resolve library sap.ui.lib1: Failed to extract package @sapui5/distribution-metadata@1.75.0: ` +
+`404 - @sapui5/distribution-metadata
+Failed to resolve library sap.ui.lib4: Failed to extract package @sapui5/distribution-metadata@1.75.0: ` +
+`404 - @sapui5/distribution-metadata`
 });
 
 
@@ -647,8 +653,10 @@ defineErrorTest("OpenUI5: ui5Framework translator should throw a proper error wh
 	frameworkName: "OpenUI5",
 	failExtract: true,
 	expectedErrorMessage: `Resolution of framework libraries failed with errors:
-Failed to resolve library sap.ui.lib1: Failed extracting package @openui5/sap.ui.lib1@1.75.0
-Failed to resolve library sap.ui.lib4: Failed extracting package @openui5/sap.ui.lib4@1.75.0`
+Failed to resolve library sap.ui.lib1: Failed to extract package @openui5/sap.ui.lib1@1.75.0: ` +
+`404 - @openui5/sap.ui.lib1
+Failed to resolve library sap.ui.lib4: Failed to extract package @openui5/sap.ui.lib4@1.75.0: ` +
+`404 - @openui5/sap.ui.lib4`
 });
 defineErrorTest("OpenUI5: ui5Framework translator should throw a proper error when metadata request and package extraction fails", {
 	frameworkName: "OpenUI5",

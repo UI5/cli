@@ -16,8 +16,12 @@ class Registry {
 	requestPackageManifest(pkgName, version) {
 		return this._pacote.manifest(`${pkgName}@${version}`, this._getPacoteOptions());
 	}
-	extractPackage(pkgName, version, targetDir) {
-		return this._pacote.extract(`${pkgName}@${version}`, targetDir, this._getPacoteOptions());
+	async extractPackage(pkgName, version, targetDir) {
+		try {
+			await this._pacote.extract(`${pkgName}@${version}`, targetDir, this._getPacoteOptions());
+		} catch (err) {
+			throw new Error(`Failed to extract package ${pkgName}@${version}: ${err.message}`);
+		}
 	}
 	_getPacoteOptions() {
 		if (!this._npmConfig) {
