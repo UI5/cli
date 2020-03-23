@@ -1,10 +1,14 @@
 const test = require("ava");
+const path = require("path");
 const middlewareRepository = require("../../../../lib/middleware/middlewareRepository");
 
 test("getMiddleware", async (t) => {
 	const cspModule = require("../../../../lib/middleware/csp");
 	const res = middlewareRepository.getMiddleware("csp");
-	t.is(res, cspModule, "Returned correct middleware module");
+	t.deepEqual(res, {
+		middleware: cspModule,
+		specVersion: undefined
+	}, "Returned correct middleware module");
 });
 
 test("getMiddleware: Unknown middleware", async (t) => {
@@ -16,17 +20,27 @@ test("getMiddleware: Unknown middleware", async (t) => {
 });
 
 test("addMiddleware", async (t) => {
-	const cspModule = require("../../../../lib/middleware/csp");
-	middlewareRepository.addMiddleware("🐠", "./csp");
+	const cspModulePath = path.posix.join(__dirname, "..", "..", "..", "..", "lib", "middleware", "csp");
+	middlewareRepository.addMiddleware({
+		name: "🐠",
+		specVersion: "2.0",
+		middlewarePath: cspModulePath
+	});
 	const res = middlewareRepository.getMiddleware("🐠");
 
-	t.is(res, cspModule, "Returned added middleware module");
+	t.deepEqual(res, {
+		middleware: require(cspModulePath),
+		specVersion: "2.0",
+	}, "Returned correct middleware module");
 });
 
 test("addMiddleware: Duplicate middleware", async (t) => {
 	const err = t.throws(() => {
-		middlewareRepository.addMiddleware("cors");
+		middlewareRepository.addMiddleware({
+			name: "cors"
+		});
 	});
-	t.deepEqual(err.message, "middlewareRepository: Middleware cors already registered",
+	t.deepEqual(err.message,
+		"middlewareRepository: A middleware with the name cors has already been registered",
 		"Threw error with correct message");
 });

@@ -1,31 +1,37 @@
 const middlewares = {
-	compression: "compression",
-	cors: "cors",
-	csp: "./csp",
-	serveResources: "./serveResources",
-	serveIndex: "./serveIndex",
-	discovery: "./discovery",
-	versionInfo: "./versionInfo",
-	connectUi5Proxy: "./connectUi5Proxy",
-	serveThemes: "./serveThemes",
-	testRunner: "./testRunner",
-	nonReadRequests: "./nonReadRequests"
+	compression: {path: "compression"},
+	cors: {path: "cors"},
+	csp: {path: "./csp"},
+	serveResources: {path: "./serveResources"},
+	serveIndex: {path: "./serveIndex"},
+	discovery: {path: "./discovery"},
+	versionInfo: {path: "./versionInfo"},
+	connectUi5Proxy: {path: "./connectUi5Proxy"},
+	serveThemes: {path: "./serveThemes"},
+	testRunner: {path: "./testRunner"},
+	nonReadRequests: {path: "./nonReadRequests"}
 };
 
 function getMiddleware(middlewareName) {
-	const middlewarePath = middlewares[middlewareName];
+	const middlewareInfo = middlewares[middlewareName];
 
-	if (!middlewarePath) {
+	if (!middlewareInfo) {
 		throw new Error(`middlewareRepository: Unknown Middleware ${middlewareName}`);
 	}
-	return require(middlewarePath);
+	return {
+		middleware: require(middlewareInfo.path),
+		specVersion: middlewareInfo.specVersion
+	};
 }
 
-function addMiddleware(name, middlewarePath) {
+function addMiddleware({name, specVersion, middlewarePath}) {
 	if (middlewares[name]) {
-		throw new Error(`middlewareRepository: Middleware ${name} already registered`);
+		throw new Error(`middlewareRepository: A middleware with the name ${name} has already been registered`);
 	}
-	middlewares[name] = middlewarePath;
+	middlewares[name] = {
+		path: middlewarePath,
+		specVersion
+	};
 }
 
 module.exports = {

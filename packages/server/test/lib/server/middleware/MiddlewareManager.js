@@ -222,7 +222,7 @@ test("addMiddleware: Add middleware with rapperCallback parameter", async (t) =>
 			dependencies: "ponies"
 		}
 	});
-	const serveIndexModule = middlewareRepository.getMiddleware("serveIndex");
+	const serveIndexMiddlewareInfo = middlewareRepository.getMiddleware("serveIndex");
 
 	const moduleStub = sinon.stub().returns("🍅");
 	const wrapperCallbackStub = sinon.stub().returns(moduleStub);
@@ -230,7 +230,8 @@ test("addMiddleware: Add middleware with rapperCallback parameter", async (t) =>
 		wrapperCallback: wrapperCallbackStub
 	});
 	t.deepEqual(wrapperCallbackStub.callCount, 1, "Wrapper callback got called once");
-	t.is(wrapperCallbackStub.getCall(0).args[0], serveIndexModule, "Wrapper callback got called with correct module");
+	t.deepEqual(wrapperCallbackStub.getCall(0).args[0], serveIndexMiddlewareInfo,
+		"Wrapper callback got called with correct module");
 	t.deepEqual(moduleStub.callCount, 1, "Wrapper callback got called once");
 	t.deepEqual(moduleStub.getCall(0).args[0].resources, {
 		all: "I",
@@ -514,11 +515,20 @@ test("addCustomMiddleware: wrapperCallback", async (t) => {
 
 	const wrapperCallback = addMiddlewareStub.getCall(0).args[1].wrapperCallback;
 	const middlewareModuleStub = sinon.stub().returns("ok");
-	const middlewareWrapper = wrapperCallback(middlewareModuleStub);
+	const middlewareModuleInfo = {
+		middleware: middlewareModuleStub,
+		specVersion: "1.1"
+	};
+	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
+	const middlewareUtil = {
+		getInterface: sinon.stub().returns("interfacedMiddlewareUtil")
+	};
 	const res = middlewareWrapper({
-		resources: "resources"
+		resources: "resources",
+		middlewareUtil
 	});
 	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
+	t.is(middlewareUtil.getInterface.callCount, 0, "middlewareUtil.getInterface has not been called");
 	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
 	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
 		resources: "resources",
@@ -527,5 +537,64 @@ test("addCustomMiddleware: wrapperCallback", async (t) => {
 				"🦊": "🐰"
 			}
 		}
+	}, "Middleware module got called with correct arguments");
+});
+
+test("addCustomMiddleware: wrapperCallback provides middlewareUtil to custom middleware", async (t) => {
+	const project = {
+		metadata: {
+			name: "my project"
+		},
+		server: {
+			customMiddleware: [{
+				name: "my custom middleware A",
+				beforeMiddleware: "cors",
+				configuration: {
+					"🦊": "🐰"
+				}
+			}]
+		}
+	};
+	const middlewareManager = new MiddlewareManager({
+		tree: project,
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addCustomMiddleware();
+
+	t.deepEqual(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
+
+	const wrapperCallback = addMiddlewareStub.getCall(0).args[1].wrapperCallback;
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const middlewareModuleInfo = {
+		middleware: middlewareModuleStub,
+		specVersion: "2.0"
+	};
+	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
+	const middlewareUtil = {
+		getInterface: sinon.stub().returns("interfacedMiddlewareUtil")
+	};
+	const res = middlewareWrapper({
+		resources: "resources",
+		middlewareUtil
+	});
+
+	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
+	t.is(middlewareUtil.getInterface.callCount, 1, "middlewareUtil.getInterface got called once");
+	t.deepEqual(middlewareUtil.getInterface.getCall(0).args[0], "2.0",
+		"middlewareUtil.getInterface got called correct arguments");
+	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+		resources: "resources",
+		options: {
+			configuration: {
+				"🦊": "🐰"
+			}
+		},
+		middlewareUtil: "interfacedMiddlewareUtil"
 	}, "Middleware module got called with correct arguments");
 });

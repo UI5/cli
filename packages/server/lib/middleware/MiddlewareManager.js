@@ -36,9 +36,12 @@ class MiddlewareManager {
 		wrapperCallback, mountPath = "/",
 		beforeMiddleware, afterMiddleware
 	} = {}) {
-		let middlewareCallback = middlewareRepository.getMiddleware(configuredMiddlewareName);
+		const middlewareInfo = middlewareRepository.getMiddleware(configuredMiddlewareName);
+		let middlewareCallback;
 		if (wrapperCallback) {
-			middlewareCallback = wrapperCallback(middlewareCallback);
+			middlewareCallback = wrapperCallback(middlewareInfo);
+		} else {
+			middlewareCallback = middlewareInfo.middleware;
 		}
 
 		let middlewareName = configuredMiddlewareName;
@@ -82,7 +85,7 @@ class MiddlewareManager {
 
 	async addStandardMiddleware() {
 		await this.addMiddleware("csp", {
-			wrapperCallback: (cspModule) => {
+			wrapperCallback: ({middleware: cspModule}) => {
 				const oCspConfig = {
 					allowDynamicPolicySelection: true,
 					allowDynamicPolicyDefinition: true,
@@ -130,7 +133,7 @@ class MiddlewareManager {
 		await this.addMiddleware("serveThemes");
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json",
-			wrapperCallback: (versionInfoModule) => {
+			wrapperCallback: ({middleware: versionInfoModule}) => {
 				return ({resources, middlewareUtil}) => {
 					return versionInfoModule({
 						resources,
@@ -147,7 +150,7 @@ class MiddlewareManager {
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
 		await this.addMiddleware("nonReadRequests");
 		await this.addMiddleware("serveIndex", {
-			wrapperCallback: (middleware) => {
+			wrapperCallback: ({middleware: middleware}) => {
 				return ({resources, middlewareUtil}) => middleware({
 					resources,
 					middlewareUtil,
@@ -182,15 +185,17 @@ class MiddlewareManager {
 			}
 
 			await this.addMiddleware(middlewareDef.name, {
-				wrapperCallback: (middleware) => {
+				wrapperCallback: ({middleware: middleware, specVersion}) => {
 					return ({resources, middlewareUtil}) => {
 						const options = {
 							configuration: middlewareDef.configuration
 						};
-						// TODO: Pass "middlewareUtil" only to custom middleware with specVersion >=2.0
-						//	Requires middleware-/task-repository enhancement
-						//	Use middlewareUtil.getInterface(specVersion)
-						return middleware({resources, options});
+						const params = {resources, options};
+						if (specVersion === "2.0") {
+							// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
+							params.middlewareUtil = middlewareUtil.getInterface(specVersion);
+						}
+						return middleware(params);
 					};
 				},
 				mountPath: middlewareDef.mountPath,
