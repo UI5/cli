@@ -62,6 +62,7 @@ test("Project with project-shim extension with dependency configuration", (t) =>
 			type: "application",
 			metadata: {
 				name: "xy",
+				namespace: "id1"
 			},
 			resources: {
 				configuration: {
@@ -175,6 +176,7 @@ test("Project with project-shim extension with dependency declaration and config
 			type: "application",
 			metadata: {
 				name: "xy",
+				namespace: "id1"
 			},
 			resources: {
 				configuration: {
@@ -348,6 +350,7 @@ test("Project with project-shim extension with collection", (t) => {
 			type: "application",
 			metadata: {
 				name: "xy",
+				namespace: "id1"
 			},
 			resources: {
 				configuration: {
