@@ -31,6 +31,7 @@
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
 		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
 		"jsdoc-generate": "node_modules/.bin/jsdoc -c ./jsdoc.json ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
+		"jsdoc-watch": "npm run jsdoc && chokidar \"./lib/**/*.js\" -c \"npm run jsdoc-generate\"",
 		"preversion": "npm test",
 		"version": "git-chglog --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"postversion": "git push --follow-tags",
@@ -100,6 +101,7 @@
 	},
 	"devDependencies": {
 		"ava": "^2.4.0",
+		"chokidar-cli": "^2.1.0",
 		"cross-env": "^7.0.2",
 		"docdash": "^1.2.0",
 		"eslint": "^5.16.0",
