@@ -13,6 +13,9 @@ class Registry {
 		this._cwd = cwd;
 		this._cacheDir = cacheDir;
 	}
+	requestPackagePackument(pkgName) {
+		return this._pacote.packument(pkgName, this._getPacoteOptions());
+	}
 	requestPackageManifest(pkgName, version) {
 		return this._pacote.manifest(`${pkgName}@${version}`, this._getPacoteOptions());
 	}

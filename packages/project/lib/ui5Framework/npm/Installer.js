@@ -31,6 +31,11 @@ class Installer {
 		return JSON.parse(await readFile(jsonPath, {encoding: "utf8"}));
 	}
 
+	async fetchPackageVersions({pkgName}) {
+		const packument = await this._registry.requestPackagePackument(pkgName);
+		return Object.keys(packument.versions);
+	}
+
 	async fetchPackageManifest({pkgName, version}) {
 		const targetDir = this._getTargetDirForPackage({pkgName, version});
 		try {

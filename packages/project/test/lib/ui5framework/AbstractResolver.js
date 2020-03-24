@@ -4,7 +4,13 @@ const path = require("path");
 
 const AbstractResolver = require("../../../lib/ui5Framework/AbstractResolver");
 
-class MyResolver extends AbstractResolver {}
+class MyResolver extends AbstractResolver {
+	static async fetchAllVersions() {}
+}
+
+test.afterEach.always(() => {
+	sinon.restore();
+});
 
 test("AbstractResolver: abstract constructor should throw", async (t) => {
 	await t.throwsAsync(async () => {
@@ -76,6 +82,16 @@ test("AbstractResolver: Defaults 'ui5HomeDir' to ~/.ui5", (t) => {
 		cwd: "/test-project/"
 	});
 	t.is(resolver._ui5HomeDir, path.join(require("os").homedir(), ".ui5"), "Should default to ~/.ui5");
+});
+
+test("AbstractResolver: getLibraryMetadata should throw an Error when not implemented", async (t) => {
+	await t.throwsAsync(async () => {
+		const resolver = new MyResolver({
+			cwd: "/test-project/",
+			version: "1.75.0"
+		});
+		await resolver.getLibraryMetadata();
+	}, `AbstractResolver: getLibraryMetadata must be implemented!`);
 });
 
 test("AbstractResolver: handleLibrary should throw an Error when not implemented", async (t) => {
@@ -276,4 +292,155 @@ Failed to resolve library sap.ui.lib1: Error within handleLibrary: sap.ui.lib1
 Failed to resolve library sap.ui.lib2: Error within handleLibrary: sap.ui.lib2`);
 
 	t.is(handleLibraryStub.callCount, 2, "Each library should be handled once");
+});
+
+test("AbstractResolver: static fetchAllVersions should throw an Error when not implemented", async (t) => {
+	await t.throwsAsync(async () => {
+		await AbstractResolver.fetchAllVersions();
+	}, `AbstractResolver: static fetchAllVersions must be implemented!`);
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'latest'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const version = await MyResolver.resolveVersion("latest", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.76.0", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const version = await MyResolver.resolveVersion("1.75", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.75.1", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const version = await MyResolver.resolveVersion("1.75.0", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.75.0", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion without options", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0"]);
+
+	await MyResolver.resolveVersion("1.75.0");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: undefined,
+		ui5HomeDir: undefined
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for 'lts'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("lts", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "lts" is incorrect or not supported`);
+
+	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for '1'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("1", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "1" is incorrect or not supported`);
+
+	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for '1.x'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("1.x", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "1.x" is incorrect or not supported`);
+
+	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for '1.75.x'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("1.75.x", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "1.75.x" is incorrect or not supported`);
+
+	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for '^1.75.0'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("^1.75.0", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "^1.75.0" is incorrect or not supported`);
+
+	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for '~1.75.0'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("~1.75.0", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "~1.75.0" is incorrect or not supported`);
+
+	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
 });

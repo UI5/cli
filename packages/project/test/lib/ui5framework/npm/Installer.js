@@ -47,6 +47,30 @@ test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
 	}, `Installer: Missing parameter "ui5HomeDir"`);
 });
 
+test.serial("Installer: fetchPackageVersions", async (t) => {
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/"
+	});
+
+	const requestPackagePackumentStub = sinon.stub(installer._registry, "requestPackagePackument")
+		.resolves({
+			versions: {
+				"1.0.0": {},
+				"2.0.0": {},
+				"3.0.0": {}
+			}
+		});
+
+	const packageVersions = await installer.fetchPackageVersions({pkgName: "@openui5/sap.ui.lib1"});
+
+	t.deepEqual(packageVersions, ["1.0.0", "2.0.0", "3.0.0"], "Should resolve with expected versions");
+
+	t.is(requestPackagePackumentStub.callCount, 1, "requestPackagePackument should be called once");
+	t.deepEqual(requestPackagePackumentStub.getCall(0).args, ["@openui5/sap.ui.lib1"],
+		"requestPackagePackument should be called with pkgName");
+});
+
 test.serial("Installer: _getLockPath", async (t) => {
 	const installer = new Installer({
 		cwd: "/cwd/",

@@ -1,5 +1,10 @@
+const path = require("path");
+
 const AbstractResolver = require("./AbstractResolver");
 const Installer = require("./npm/Installer");
+
+const OPENUI5_CORE_PACKAGE = "@openui5/sap.ui.core";
+
 
 /**
  * Resolver for the OpenUI5 framework
@@ -30,7 +35,7 @@ class Openui5Resolver extends AbstractResolver {
 	static _getLibaryName(pkgName) {
 		return pkgName.replace(/^@openui5\//, "");
 	}
-	_getLibraryMetadata(libraryName) {
+	getLibraryMetadata(libraryName) {
 		if (!this._loadLibraryMetadata[libraryName]) {
 			this._loadLibraryMetadata[libraryName] = Promise.resolve().then(async () => {
 				// Trigger manifest request to gather transitive dependencies
@@ -64,13 +69,22 @@ class Openui5Resolver extends AbstractResolver {
 		const pkgName = Openui5Resolver._getNpmPackageName(libraryName);
 		return {
 			// Trigger metadata request
-			metadata: this._getLibraryMetadata(libraryName),
+			metadata: this.getLibraryMetadata(libraryName),
 			// Also trigger installation of package
 			install: this._installer.installPackage({
 				pkgName,
 				version: this._version
 			})
 		};
+	}
+	static async fetchAllVersions({ui5HomeDir, cwd} = {}) {
+		const installer = new Installer({
+			cwd: cwd ? path.resolve(cwd) : process.cwd(),
+			ui5HomeDir:
+				ui5HomeDir ? path.resolve(ui5HomeDir) :
+					path.join(require("os").homedir(), ".ui5")
+		});
+		return await installer.fetchPackageVersions({pkgName: OPENUI5_CORE_PACKAGE});
 	}
 }
 

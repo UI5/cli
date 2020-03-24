@@ -1,5 +1,8 @@
 const path = require("path");
 const log = require("@ui5/logger").getLogger("ui5Framework:AbstractResolver");
+const semver = require("semver");
+
+const versionRegExp = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?$/;
 
 /**
  * Abstract Resolver
@@ -151,9 +154,37 @@ class AbstractResolver {
 		};
 	}
 
+	/**
+	 *
+	 * @param {string} version
+	 * @param {Object} options
+	 */
+	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
+		let spec;
+		if (version === "latest") {
+			spec = "*";
+		} else if (versionRegExp.test(version)) {
+			spec = version;
+		} else {
+			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+		}
+		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
+		const resolvedVersion = semver.maxSatisfying(versions, spec);
+		if (!resolvedVersion) {
+			throw new Error(`Could not resolve framework version ${version}`);
+		}
+		return resolvedVersion;
+	}
+
 	// To be implemented by resolver
+	async getLibraryMetadata(libraryName) {
+		throw new Error("AbstractResolver: getLibraryMetadata must be implemented!");
+	}
 	async handleLibrary(libraryName) {
 		throw new Error("AbstractResolver: handleLibrary must be implemented!");
+	}
+	static fetchAllVersions(options) {
+		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
 	}
 }
 

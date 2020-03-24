@@ -45,12 +45,16 @@ class Sapui5Resolver extends AbstractResolver {
 		}
 		return this._loadDistMetadata;
 	}
-	async handleLibrary(libraryName) {
+	async getLibraryMetadata(libraryName) {
 		const distMetadata = await this.loadDistMetadata();
 		const metadata = distMetadata.libraries[libraryName];
 		if (!metadata) {
 			throw new Error(`Could not find library "${libraryName}"`);
 		}
+		return metadata;
+	}
+	async handleLibrary(libraryName) {
+		const metadata = await this.getLibraryMetadata(libraryName);
 
 		return {
 			metadata: Promise.resolve({
@@ -65,6 +69,15 @@ class Sapui5Resolver extends AbstractResolver {
 				version: metadata.version
 			})
 		};
+	}
+	static async fetchAllVersions({ui5HomeDir, cwd} = {}) {
+		const installer = new Installer({
+			cwd: cwd ? path.resolve(cwd) : process.cwd(),
+			ui5HomeDir:
+				ui5HomeDir ? path.resolve(ui5HomeDir) :
+					path.join(require("os").homedir(), ".ui5")
+		});
+		return await installer.fetchPackageVersions({pkgName: DIST_PKG_NAME});
 	}
 }
 
