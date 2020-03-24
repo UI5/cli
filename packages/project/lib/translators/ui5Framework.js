@@ -232,14 +232,12 @@ module.exports = {
 			if (project.specVersion === "2.0" && project.framework && project.framework.libraries) {
 				const frameworkDeps = project.framework.libraries
 					.filter((dependency) => {
-						// Filter out development and unresolved optional dependencies
-						if (dependency.development) {
-							return false;
+						if (dependency.optional && frameworkLibs[dependency.name]) {
+							// Resolved optional dependencies shall be used
+							return true;
 						}
-						if (!frameworkLibs[dependency.name] && dependency.optional) {
-							return false;
-						}
-						return true;
+						// Filter out development and unresolved optional dependencies for non-root projects
+						return utils.shouldIncludeDependency(dependency, project._level === 0);
 					})
 					.map((dependency) => {
 						if (!frameworkLibs[dependency.name]) {

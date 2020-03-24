@@ -84,6 +84,12 @@ function defineTest(testName, {
 					"sap.ui.lib1"
 				],
 				optionalDependencies: []
+			},
+			"sap.ui.lib8": {
+				npmPackageName: "@sapui5/sap.ui.lib8",
+				version: "1.75.8",
+				dependencies: [],
+				optionalDependencies: []
 			}
 		}
 	};
@@ -189,6 +195,10 @@ function defineTest(testName, {
 						{
 							name: "sap.ui.lib4",
 							optional: true
+						},
+						{
+							name: "sap.ui.lib8",
+							development: true
 						}
 					]
 				}
@@ -216,6 +226,10 @@ function defineTest(testName, {
 						{
 							name: "sap.ui.lib6",
 							development: true
+						},
+						{
+							name: "sap.ui.lib8",
+							optional: true // optional dependency gets resolved by dev-dependency of root project
 						}
 					]
 				}
@@ -286,6 +300,17 @@ function defineTest(testName, {
 					name: "sap.ui.lib4"
 				},
 				framework: {libraries: []}
+			}])
+			.withArgs(path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib8",
+				frameworkName === "SAPUI5" ? "1.75.8" : "1.75.0", "ui5.yaml"
+			))
+			.resolves([{
+				specVersion: "1.0",
+				type: "library",
+				metadata: {
+					name: "sap.ui.lib8"
+				},
+				framework: {libraries: []}
 			}]);
 
 		// Prevent applying types as this would require a lot of mocking
@@ -327,6 +352,12 @@ function defineTest(testName, {
 					dependencies: {
 						"@openui5/sap.ui.lib1": "1.75.0"
 					}
+				})
+				.withArgs("@openui5/sap.ui.lib8@1.75.0")
+				.resolves({
+					name: "@openui5/sap.ui.lib8",
+					version: "1.75.0",
+					dependencies: {}
 				});
 		} else if (frameworkName === "SAPUI5") {
 			sinon.stub(Installer.prototype, "readJson")
@@ -355,6 +386,10 @@ function defineTest(testName, {
 					{
 						name: "sap.ui.lib4",
 						optional: true
+					},
+					{
+						name: "sap.ui.lib8",
+						development: true
 					}
 				]
 			},
@@ -380,6 +415,10 @@ function defineTest(testName, {
 							{
 								name: "sap.ui.lib6",
 								development: true
+							},
+							{
+								name: "sap.ui.lib8",
+								optional: true
 							}
 						]
 					},
@@ -409,6 +448,10 @@ function defineTest(testName, {
 									]
 								})
 							]
+						}),
+						frameworkProject({
+							_level: 1,
+							name: "sap.ui.lib8",
 						})
 					]
 				}),
@@ -445,6 +488,10 @@ function defineTest(testName, {
 							name: "sap.ui.lib1"
 						})
 					]
+				}),
+				frameworkProject({
+					_level: 1,
+					name: "sap.ui.lib8",
 				})
 			]
 		});
