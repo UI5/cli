@@ -27,7 +27,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 			// Directory 'test' is somewhat optional for libraries
 			project.resources.pathMappings["/test-resources/"] = project.resources.configuration.paths.test;
 		} else {
-			log.verbose(`Ignoring 'test' directory for project ${project.metadata.name}.` +
+			log.verbose(`Ignoring 'test' directory for project ${project.metadata.name}. ` +
 				"Either no setting was provided or the path not found.");
 		}
 

@@ -52,7 +52,7 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 		let appId;
 		// check for a proper sap.app/id in manifest.json to determine namespace
 		if (manifest["sap.app"] && manifest["sap.app"].id) {
-			appId = manifest["sap.app"] && manifest["sap.app"].id;
+			appId = manifest["sap.app"].id;
 		} else {
 			throw new Error(
 				`No sap.app/id configuration found in manifest.json of project ${this._project.metadata.name}`);
