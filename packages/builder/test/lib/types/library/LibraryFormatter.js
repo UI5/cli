@@ -597,12 +597,13 @@ test.serial("getNamespace: from manifest.json without sap.app id", async (t) => 
 	const LibraryFormatter = mock.reRequire("../../../../lib/types/library/LibraryFormatter");
 
 	const libraryFormatter = new LibraryFormatter({project: myProject});
+	const manifestPath = path.normalize("/some/path/different/namespace/manifest.json"); // normalize for windows
 	sinon.stub(libraryFormatter, "getManifest").resolves({
 		content: {
 			"sap.app": {
 			}
 		},
-		fsPath: path.normalize("/some/path/different/namespace/manifest.json") // normalize for windows
+		fsPath: manifestPath
 	});
 	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/path/");
 
@@ -615,7 +616,8 @@ test.serial("getNamespace: from manifest.json without sap.app id", async (t) => 
 	t.is(loggerSpy.callCount, 4, "calls to verbose");
 
 
-	t.is(loggerSpy.getCall(0).args[0], "No sap.app/id configuration found in manifest.json of project library.e",
+	t.is(loggerSpy.getCall(0).args[0],
+		`No sap.app/id configuration found in manifest.json of project library.e at ${manifestPath}`,
 		"correct verbose message");
 	mock.stop("@ui5/logger");
 });
