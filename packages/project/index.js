@@ -15,6 +15,15 @@ module.exports = {
 		Sapui5Resolver: require("./lib/ui5Framework/Sapui5Resolver")
 	},
 	/**
+	 * @public
+	 * @see module:@ui5/project.validation
+	 * @namespace
+	 */
+	validation: {
+		validator: require("./lib/validation/validator"),
+		ValidationError: require("./lib/validation/ValidationError")
+	},
+	/**
 	 * @private
 	 * @see module:@ui5/project.translators
 	 * @namespace

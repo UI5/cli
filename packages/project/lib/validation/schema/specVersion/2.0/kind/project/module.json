@@ -1,0 +1,41 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project/module.json",
+
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["specVersion", "type", "metadata"],
+	"properties": {
+		"specVersion": { "enum": ["2.0"] },
+		"kind": {
+			"enum": ["project", null]
+		},
+		"type": {
+			"enum": ["module"]
+		},
+		"metadata": {
+			"$ref": "../../../../ui5.json#/definitions/metadata"
+		},
+		"resources": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"configuration": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"paths": {
+							"type": "object",
+							"additionalProperties": false,
+							"patternProperties": {
+								".+": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

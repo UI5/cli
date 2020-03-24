@@ -1,6 +1,7 @@
 const test = require("ava");
 const path = require("path");
 const sinon = require("sinon");
+const ValidationError = require("../../lib/validation/ValidationError");
 const projectPreprocessor = require("../..").projectPreprocessor;
 const Preprocessor = require("../..").projectPreprocessor._ProjectPreprocessor;
 const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
@@ -110,6 +111,50 @@ test("Project with project-shim extension with dependency configuration", (t) =>
 			path: applicationAPath
 		}, "Parsed correctly");
 	});
+});
+
+test("Project with project-shim extension with invalid dependency configuration", async (t) => {
+	const tree = {
+		id: "application.a",
+		path: applicationAPath,
+		dependencies: [{
+			id: "extension.a",
+			path: applicationAPath,
+			dependencies: [],
+			version: "1.0.0",
+			specVersion: "0.1",
+			kind: "extension",
+			type: "project-shim",
+			metadata: {
+				name: "shims.a"
+			},
+			shims: {
+				configurations: {
+					"legacy.library.a": {
+						specVersion: "2.0",
+						type: "library"
+					}
+				}
+			}
+		}, {
+			id: "legacy.library.a",
+			version: "1.0.0",
+			path: legacyLibraryAPath,
+			dependencies: []
+		}],
+		version: "1.0.0",
+		specVersion: "0.1",
+		type: "application",
+		metadata: {
+			name: "xy"
+		}
+	};
+
+	const validationError = await t.throwsAsync(projectPreprocessor.processTree(tree), {
+		instanceOf: ValidationError
+	});
+	t.true(validationError.message.includes("Configuration should have required property 'metadata'"),
+		"ValidationError should contain error about missing metadata configuration");
 });
 
 test("Project with project-shim extension with dependency declaration and configuration", (t) => {

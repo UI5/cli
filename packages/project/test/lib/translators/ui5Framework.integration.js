@@ -175,143 +175,146 @@ function defineTest(testName, {
 		sinon.stub(normalizer, "generateDependencyTree").resolves(translatorTree);
 
 		sinon.stub(projectPreprocessor._ProjectPreprocessor.prototype, "readConfigFile")
-			.callsFake(async (configPath) => {
-				throw new Error("ProjectPreprocessor#readConfigFile stub called with unknown configPath: " + configPath);
-			})
-			.withArgs(path.join(fakeBaseDir, "project-test-application", "ui5.yaml"))
-			.resolves([{
-				specVersion: "2.0",
-				type: "application",
-				metadata: {
-					name: "test-application"
-				},
-				framework: {
-					name: frameworkName,
-					version: "1.75.0",
-					libraries: [
-						{
-							name: "sap.ui.lib1"
+			.callsFake(async (project) => {
+				switch (project.path) {
+				case path.join(fakeBaseDir, "project-test-application"):
+					return [{
+						specVersion: "2.0",
+						type: "application",
+						metadata: {
+							name: "test-application"
 						},
-						{
-							name: "sap.ui.lib4",
-							optional: true
-						},
-						{
-							name: "sap.ui.lib8",
-							development: true
+						framework: {
+							name: frameworkName,
+							version: "1.75.0",
+							libraries: [
+								{
+									name: "sap.ui.lib1"
+								},
+								{
+									name: "sap.ui.lib4",
+									optional: true
+								},
+								{
+									name: "sap.ui.lib8",
+									development: true
+								}
+							]
 						}
-					]
-				}
-			}])
-			.withArgs(path.join(fakeBaseDir, "project-test-dependency", "ui5.yaml"))
-			.resolves([{
-				specVersion: "2.0",
-				type: "library",
-				metadata: {
-					name: "test-dependency"
-				},
-				framework: {
-					version: "1.99.0",
-					libraries: [
-						{
+					}];
+				case path.join(fakeBaseDir, "project-test-dependency"):
+					return [{
+						specVersion: "2.0",
+						type: "library",
+						metadata: {
+							name: "test-dependency"
+						},
+						framework: {
+							version: "1.99.0",
+							name: frameworkName,
+							libraries: [
+								{
+									name: "sap.ui.lib1"
+								},
+								{
+									name: "sap.ui.lib2"
+								},
+								{
+									name: "sap.ui.lib5",
+									optional: true
+								},
+								{
+									name: "sap.ui.lib6",
+									development: true
+								},
+								{
+									name: "sap.ui.lib8",
+									// optional dependency gets resolved by dev-dependency of root project
+									optional: true
+								}
+							]
+						}
+					}];
+				case path.join(fakeBaseDir, "project-test-dependency-no-framework"):
+					return [{
+						specVersion: "2.0",
+						type: "library",
+						metadata: {
+							name: "test-dependency-no-framework"
+						}
+					}];
+				case path.join(fakeBaseDir, "project-test-dependency-framework-old-spec-version"):
+					return [{
+						specVersion: "1.1",
+						type: "library",
+						metadata: {
+							name: "test-dependency-framework-old-spec-version"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "sap.ui.lib5"
+								}
+							]
+						}
+					}];
+				case path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib1",
+					frameworkName === "SAPUI5" ? "1.75.1" : "1.75.0"):
+					return [{
+						specVersion: "1.0",
+						type: "library",
+						metadata: {
 							name: "sap.ui.lib1"
 						},
-						{
+						framework: {libraries: []}
+					}];
+				case path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib2",
+					frameworkName === "SAPUI5" ? "1.75.2" : "1.75.0"):
+					return [{
+						specVersion: "1.0",
+						type: "library",
+						metadata: {
 							name: "sap.ui.lib2"
 						},
-						{
-							name: "sap.ui.lib5",
-							optional: true
+						framework: {libraries: []}
+					}];
+				case path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib3",
+					frameworkName === "SAPUI5" ? "1.75.3" : "1.75.0"):
+					return [{
+						specVersion: "1.0",
+						type: "library",
+						metadata: {
+							name: "sap.ui.lib3"
 						},
-						{
-							name: "sap.ui.lib6",
-							development: true
+						framework: {libraries: []}
+					}];
+				case path.join(ui5PackagesBaseDir, "@openui5", "sap.ui.lib4",
+					frameworkName === "SAPUI5" ? "1.75.4" : "1.75.0"):
+					return [{
+						specVersion: "1.0",
+						type: "library",
+						metadata: {
+							name: "sap.ui.lib4"
 						},
-						{
-							name: "sap.ui.lib8",
-							optional: true // optional dependency gets resolved by dev-dependency of root project
-						}
-					]
+						framework: {libraries: []}
+					}];
+				case path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib8",
+					frameworkName === "SAPUI5" ? "1.75.8" : "1.75.0"):
+					return [{
+						specVersion: "1.0",
+						type: "library",
+						metadata: {
+							name: "sap.ui.lib8"
+						},
+						framework: {libraries: []}
+					}];
+				default:
+					throw new Error(
+						"ProjectPreprocessor#readConfigFile stub called with unknown project: " +
+						(project && project.path)
+					);
 				}
-			}])
-			.withArgs(path.join(fakeBaseDir, "project-test-dependency-no-framework", "ui5.yaml"))
-			.resolves([{
-				specVersion: "2.0",
-				type: "library",
-				metadata: {
-					name: "test-dependency-no-framework"
-				}
-			}])
-			.withArgs(path.join(fakeBaseDir, "project-test-dependency-framework-old-spec-version", "ui5.yaml"))
-			.resolves([{
-				specVersion: "1.1",
-				type: "library",
-				metadata: {
-					name: "test-dependency-framework-old-spec-version"
-				},
-				framework: {
-					libraries: [
-						{
-							name: "sap.ui.lib5"
-						}
-					]
-				}
-			}])
-			.withArgs(path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib1",
-				frameworkName === "SAPUI5" ? "1.75.1" : "1.75.0", "ui5.yaml"
-			))
-			.resolves([{
-				specVersion: "1.0",
-				type: "library",
-				metadata: {
-					name: "sap.ui.lib1"
-				},
-				framework: {libraries: []}
-			}])
-			.withArgs(path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib2",
-				frameworkName === "SAPUI5" ? "1.75.2" : "1.75.0", "ui5.yaml"
-			))
-			.resolves([{
-				specVersion: "1.0",
-				type: "library",
-				metadata: {
-					name: "sap.ui.lib2"
-				},
-				framework: {libraries: []}
-			}])
-			.withArgs(path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib3",
-				frameworkName === "SAPUI5" ? "1.75.3" : "1.75.0", "ui5.yaml"
-			))
-			.resolves([{
-				specVersion: "1.0",
-				type: "library",
-				metadata: {
-					name: "sap.ui.lib3"
-				},
-				framework: {libraries: []}
-			}])
-			.withArgs(path.join(ui5PackagesBaseDir, "@openui5", "sap.ui.lib4",
-				frameworkName === "SAPUI5" ? "1.75.4" : "1.75.0", "ui5.yaml"
-			))
-			.resolves([{
-				specVersion: "1.0",
-				type: "library",
-				metadata: {
-					name: "sap.ui.lib4"
-				},
-				framework: {libraries: []}
-			}])
-			.withArgs(path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib8",
-				frameworkName === "SAPUI5" ? "1.75.8" : "1.75.0", "ui5.yaml"
-			))
-			.resolves([{
-				specVersion: "1.0",
-				type: "library",
-				metadata: {
-					name: "sap.ui.lib8"
-				},
-				framework: {libraries: []}
-			}]);
+			});
 
 		// Prevent applying types as this would require a lot of mocking
 		sinon.stub(projectPreprocessor._ProjectPreprocessor.prototype, "applyType");
@@ -401,6 +404,7 @@ function defineTest(testName, {
 					type: "library",
 					framework: {
 						version: "1.99.0",
+						name: frameworkName,
 						libraries: [
 							{
 								name: "sap.ui.lib1"
@@ -534,30 +538,36 @@ function defineErrorTest(testName, {
 		sinon.stub(normalizer, "generateDependencyTree").resolves(translatorTree);
 
 		sinon.stub(projectPreprocessor._ProjectPreprocessor.prototype, "readConfigFile")
-			.callsFake(async (configPath) => {
-				throw new Error("ProjectPreprocessor#readConfigFile stub called with unknown configPath: " + configPath);
-			})
-			.withArgs(path.join(fakeBaseDir, "application-project", "ui5.yaml"))
-			.resolves([{
-				specVersion: "2.0",
-				type: "application",
-				metadata: {
-					name: "test-project"
-				},
-				framework: {
-					name: frameworkName,
-					version: "1.75.0",
-					libraries: [
-						{
-							name: "sap.ui.lib1"
+			.callsFake(async (project) => {
+				switch (project.path) {
+				case path.join(fakeBaseDir, "application-project"):
+					return [{
+						specVersion: "2.0",
+						type: "application",
+						metadata: {
+							name: "test-project"
 						},
-						{
-							name: "sap.ui.lib4",
-							optional: true
+						framework: {
+							name: frameworkName,
+							version: "1.75.0",
+							libraries: [
+								{
+									name: "sap.ui.lib1"
+								},
+								{
+									name: "sap.ui.lib4",
+									optional: true
+								}
+							]
 						}
-					]
+					}];
+				default:
+					throw new Error(
+						"ProjectPreprocessor#readConfigFile stub called with unknown project: " +
+						(project && project.path)
+					);
 				}
-			}]);
+			});
 
 		// Prevent applying types as this would require a lot of mocking
 		sinon.stub(projectPreprocessor._ProjectPreprocessor.prototype, "applyType");

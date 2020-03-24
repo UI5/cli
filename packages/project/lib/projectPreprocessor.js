@@ -3,8 +3,9 @@ const fs = require("graceful-fs");
 const path = require("path");
 const {promisify} = require("util");
 const readFile = promisify(fs.readFile);
-const parseYaml = require("js-yaml").safeLoadAll;
+const jsyaml = require("js-yaml");
 const typeRepository = require("@ui5/builder").types.typeRepository;
+const {validate} = require("./validation/validator");
 
 class ProjectPreprocessor {
 	constructor({tree}) {
@@ -80,7 +81,7 @@ class ProjectPreprocessor {
 						return this.applyExtension(extProject);
 					}));
 				}
-				this.applyShims(project);
+				await this.applyShims(project);
 				if (this.isConfigValid(project)) {
 					// Do not apply transparent projects.
 					// Their only purpose might be to have their dependencies processed
@@ -194,25 +195,18 @@ class ProjectPreprocessor {
 	async loadProjectConfiguration(project) {
 		if (project.specVersion) { // Project might already be configured
 			// Currently, specVersion is the indicator for configured projects
-			this.normalizeConfig(project);
+
+			if (project._transparentProject) {
+				// Assume that project is already processed
+				return {};
+			}
+
+			await this.validateAndNormalizeExistingProject(project);
+
 			return {};
 		}
 
-		let configs;
-
-		// A projects configPath property takes precedence over the default "<projectPath>/ui5.yaml" path
-		const configPath = project.configPath || path.join(project.path, "/ui5.yaml");
-		try {
-			configs = await this.readConfigFile(configPath);
-		} catch (err) {
-			const errorText = "Failed to read configuration for project " +
-					`${project.id} at "${configPath}". Error: ${err.message}`;
-
-			if (err.code !== "ENOENT") { // Something else than "File or directory does not exist"
-				throw new Error(errorText);
-			}
-			log.verbose(errorText);
-		}
+		const configs = await this.readConfigFile(project);
 
 		if (!configs || !configs.length) {
 			return {};
@@ -384,11 +378,77 @@ class ProjectPreprocessor {
 		}
 	}
 
-	async readConfigFile(configPath) {
-		const configFile = await readFile(configPath);
-		return parseYaml(configFile, {
-			filename: path
-		});
+	async readConfigFile(project) {
+		// A projects configPath property takes precedence over the default "<projectPath>/ui5.yaml" path
+		const configPath = project.configPath || path.join(project.path, "ui5.yaml");
+		let configFile;
+		try {
+			configFile = await readFile(configPath, {encoding: "utf8"});
+		} catch (err) {
+			const errorText = "Failed to read configuration for project " +
+					`${project.id} at "${configPath}". Error: ${err.message}`;
+
+			// Something else than "File or directory does not exist" or root project
+			if (err.code !== "ENOENT" || project._level === 0) {
+				throw new Error(errorText);
+			} else {
+				log.verbose(errorText);
+				return null;
+			}
+		}
+
+		let configs;
+
+		try {
+			// Using loadAll with DEFAULT_SAFE_SCHEMA instead of safeLoadAll to pass "filename".
+			// safeLoadAll doesn't handle its parameters properly.
+			// See https://github.com/nodeca/js-yaml/issues/456 and https://github.com/nodeca/js-yaml/pull/381
+			configs = jsyaml.loadAll(configFile, undefined, {
+				filename: configPath,
+				schema: jsyaml.DEFAULT_SAFE_SCHEMA
+			});
+		} catch (err) {
+			if (err.name === "YAMLException") {
+				throw new Error("Failed to parse configuration for project " +
+				`${project.id} at "${configPath}"\nError: ${err.message}`);
+			} else {
+				throw err;
+			}
+		}
+
+		if (!configs || !configs.length) {
+			return configs;
+		}
+
+		const validationResults = await Promise.all(
+			configs.map(async (config, documentIndex) => {
+				// Catch validation errors to ensure proper order of rejections within Promise.all
+				try {
+					await validate({
+						config,
+						project: {
+							id: project.id
+						},
+						yaml: {
+							path: configPath,
+							source: configFile,
+							documentIndex
+						}
+					});
+				} catch (error) {
+					return error;
+				}
+			})
+		);
+
+		const validationErrors = validationResults.filter(($) => $);
+
+		if (validationErrors.length > 0) {
+			// For now just throw the error of the first invalid document
+			throw validationErrors[0];
+		}
+
+		return configs;
 	}
 
 	handleShim(extension) {
@@ -451,7 +511,7 @@ class ProjectPreprocessor {
 		}
 	}
 
-	applyShims(project) {
+	async applyShims(project) {
 		const configShim = this.configShims[project.id];
 		// Apply configuration shims
 		if (configShim) {
@@ -482,6 +542,8 @@ class ProjectPreprocessor {
 
 			Object.assign(project, configShim);
 			delete project.shimDependenciesResolved; // Remove shim processing metadata from project
+
+			await this.validateAndNormalizeExistingProject(project);
 		}
 
 		// Apply collections
@@ -538,6 +600,31 @@ class ProjectPreprocessor {
 
 		const middlewarePath = path.join(extension.path, extension.middleware.path);
 		middlewareRepository.addMiddleware(extension.metadata.name, middlewarePath);
+	}
+
+	async validateAndNormalizeExistingProject(project) {
+		// Validate project config, but exclude additional properties
+		const excludedProperties = [
+			"id",
+			"version",
+			"path",
+			"dependencies",
+			"_level"
+		];
+		const config = {};
+		for (const key in project) {
+			if (project.hasOwnProperty(key) && !excludedProperties.includes(key)) {
+				config[key] = project[key];
+			}
+		}
+		await validate({
+			config,
+			project: {
+				id: project.id
+			}
+		});
+
+		this.normalizeConfig(project);
 	}
 }
 

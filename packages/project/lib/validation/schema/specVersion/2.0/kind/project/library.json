@@ -1,0 +1,92 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project/library.json",
+
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["specVersion", "type", "metadata"],
+	"properties": {
+		"specVersion": { "enum": ["2.0"] },
+		"kind": {
+			"enum": ["project", null]
+		},
+		"type": {
+			"enum": ["library"]
+		},
+		"metadata": {
+			"$ref": "../../../../ui5.json#/definitions/metadata"
+		},
+		"framework": {
+			"$ref": "../project.json#/definitions/framework"
+		},
+		"resources": {
+			"$ref": "#/definitions/resources"
+		},
+		"builder": {
+			"$ref": "#/definitions/builder"
+		},
+		"server": {
+			"$ref": "../project.json#/definitions/server"
+		}
+	},
+
+	"definitions": {
+		"resources": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"configuration": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"propertiesFileSourceEncoding": {
+							"$ref": "../project.json#/definitions/resources-configuration-propertiesFileSourceEncoding"
+						},
+						"paths": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"src": {
+									"type": "string"
+								},
+								"test": {
+									"type": "string"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"builder": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"resources": {
+					"$ref": "../project.json#/definitions/builder-resources"
+				},
+				"jsdoc": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"excludes": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					}
+				},
+				"bundles": {
+					"$ref": "../project.json#/definitions/builder-bundles"
+				},
+				"componentPreload": {
+					"$ref": "../project.json#/definitions/builder-componentPreload"
+				},
+				"customTasks": {
+					"$ref": "../project.json#/definitions/customTasks"
+				}
+			}
+		}
+	}
+}

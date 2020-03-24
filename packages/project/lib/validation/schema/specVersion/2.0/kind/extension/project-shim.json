@@ -1,0 +1,68 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/extension/project-shim.json",
+
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["specVersion", "kind", "type", "metadata", "shims"],
+	"properties": {
+		"specVersion": { "enum": ["2.0"] },
+		"kind": {
+			"enum": ["extension"]
+		},
+		"type": {
+			"enum": ["project-shim"]
+		},
+		"metadata": {
+			"$ref": "../../../../ui5.json#/definitions/metadata"
+		},
+		"shims": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"configurations": {
+					"type": "object",
+					"additionalProperties": false,
+					"patternProperties": {
+						".+": {
+							"type": "object"
+						}
+					}
+				},
+				"dependencies": {
+					"type": "object",
+					"additionalProperties": false,
+					"patternProperties": {
+						".+": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							}
+						}
+					}
+				},
+				"collections": {
+					"type": "object",
+					"additionalProperties": false,
+					"patternProperties": {
+						".+": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"modules": {
+									"type": "object",
+									"additionalProperties": false,
+									"patternProperties": {
+										".+": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

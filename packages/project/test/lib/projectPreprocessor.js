@@ -2,6 +2,9 @@ const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
 const path = require("path");
+const gracefulFs = require("graceful-fs");
+const validator = require("../../lib/validation/validator");
+const ValidationError = require("../../lib/validation/ValidationError");
 const projectPreprocessor = require("../../lib/projectPreprocessor");
 const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
 const applicationBPath = path.join(__dirname, "..", "fixtures", "application.b");
@@ -169,15 +172,16 @@ test("Project with ui5.yaml at default location and some configuration", (t) => 
 	});
 });
 
-test("Missing configuration for root project", (t) => {
+test("Missing configuration for root project", async (t) => {
 	const tree = {
 		id: "application.a",
 		path: "non-existent",
 		dependencies: []
 	};
-	return t.throwsAsync(projectPreprocessor.processTree(tree),
-		"No specification version defined for root project application.a",
-		"Rejected with error");
+	const exception = await t.throwsAsync(projectPreprocessor.processTree(tree));
+
+	t.true(exception.message.includes("Failed to read configuration for project application.a"),
+		"Error message should contain expected reason");
 });
 
 test("Missing id for root project", (t) => {
@@ -1586,7 +1590,7 @@ test("Library version in package.json data is missing", (t) => {
 	});
 });
 
-test("specVersion: Missing version", (t) => {
+test("specVersion: Missing version", async (t) => {
 	const tree = {
 		id: "application.a",
 		path: "non-existent",
@@ -1597,9 +1601,10 @@ test("specVersion: Missing version", (t) => {
 			name: "xy"
 		}
 	};
-	return t.throwsAsync(projectPreprocessor.processTree(tree),
-		"No specification version defined for root project application.a",
-		"Rejected with error");
+	const exception = await t.throwsAsync(projectPreprocessor.processTree(tree));
+
+	t.true(exception.message.includes("Failed to read configuration for project application.a"),
+		"Error message should contain expected reason");
 });
 
 test("specVersion: Project with invalid version", async (t) => {
@@ -1614,11 +1619,12 @@ test("specVersion: Project with invalid version", async (t) => {
 			name: "xy"
 		}
 	};
-	await t.throwsAsync(projectPreprocessor.processTree(tree),
-		"Unsupported specification version 0.9 defined for project application.a. " +
-		"Your UI5 CLI installation might be outdated. For details see " +
-		"https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
-		"Rejected with error");
+	const validationError = await t.throwsAsync(projectPreprocessor.processTree(tree), {
+		instanceOf: ValidationError
+	});
+
+	t.is(validationError.errors.length, 1, "ValidationError should have one error object");
+	t.is(validationError.errors[0].dataPath, "/specVersion", "Error should be for the specVersion");
 });
 
 test("specVersion: Project with valid version 0.1", async (t) => {
@@ -2027,4 +2033,252 @@ test.serial("checkProjectMetadata: No warning logged for nested SAP internal lib
 	await preprocessor.checkProjectMetadata(project1, project2);
 
 	t.is(logWarnSpy.callCount, 0, "No warning got logged");
+});
+
+
+test.serial("readConfigFile: No exception for valid config", async (t) => {
+	const configPath = path.join("/application", "ui5.yaml");
+	const ui5yaml = `
+---
+specVersion: "2.0"
+type: application
+metadata:
+  name: application.a
+`;
+
+	const validateSpy = sinon.spy(validator, "validate");
+
+	sinon.stub(gracefulFs, "readFile")
+		.callsFake((path) => {
+			throw new Error("readFileStub called with unexpected path: " + path);
+		})
+		.withArgs(configPath).yieldsAsync(null, ui5yaml);
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	await t.notThrowsAsync(async () => {
+		await preprocessor.readConfigFile({path: "/application", id: "id"});
+	});
+
+	t.is(validateSpy.callCount, 1, "validate should be called once");
+	t.deepEqual(validateSpy.getCall(0).args, [{
+		config: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			}
+		},
+		project: {
+			id: "id",
+		},
+		yaml: {
+			documentIndex: 0,
+			path: configPath,
+			source: ui5yaml
+		},
+
+	}],
+	"validate should be called with expected args");
+});
+
+test.serial("readConfigFile: Exception for invalid config", async (t) => {
+	const configPath = path.join("/application", "ui5.yaml");
+	const ui5yaml = `
+---
+specVersion: "2.0"
+type: application
+metadata:
+  name: application.a
+---
+specVersion: "2.0"
+kind: extension
+type: task
+metadata:
+  name: my-task
+---
+specVersion: "2.0"
+kind: extension
+type: server-middleware
+metadata:
+  name: my-middleware
+`;
+
+	const validateSpy = sinon.spy(validator, "validate");
+
+	sinon.stub(gracefulFs, "readFile")
+		.callsFake((path) => {
+			throw new Error("readFileStub called with unexpected path: " + path);
+		})
+		.withArgs(configPath).yieldsAsync(null, ui5yaml);
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const validationError = await t.throwsAsync(async () => {
+		await preprocessor.readConfigFile({path: "/application", id: "id"});
+	}, {
+		instanceOf: ValidationError,
+		name: "ValidationError"
+	});
+
+	t.is(validationError.yaml.documentIndex, 1, "Error of first invalid document should be thrown");
+
+	t.is(validateSpy.callCount, 3, "validate should be called 3 times");
+	t.deepEqual(validateSpy.getCall(0).args, [{
+		config: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			}
+		},
+		project: {
+			id: "id",
+		},
+		yaml: {
+			documentIndex: 0,
+			path: configPath,
+			source: ui5yaml,
+		},
+	}],
+	"validate should be called first time with expected args");
+	t.deepEqual(validateSpy.getCall(1).args, [{
+		config: {
+			specVersion: "2.0",
+			kind: "extension",
+			type: "task",
+			metadata: {
+				name: "my-task"
+			}
+		},
+		project: {
+			id: "id",
+		},
+		yaml: {
+			documentIndex: 1,
+			path: configPath,
+			source: ui5yaml,
+		},
+	}],
+	"validate should be called second time with expected args");
+	t.deepEqual(validateSpy.getCall(2).args, [{
+		config: {
+			specVersion: "2.0",
+			kind: "extension",
+			type: "server-middleware",
+			metadata: {
+				name: "my-middleware"
+			}
+		},
+		project: {
+			id: "id",
+		},
+		yaml: {
+			documentIndex: 2,
+			path: configPath,
+			source: ui5yaml,
+		},
+	}],
+	"validate should be called third time with expected args");
+});
+
+test.serial("readConfigFile: Exception for invalid YAML file", async (t) => {
+	const configPath = path.join("/application", "ui5.yaml");
+	const ui5yaml = `
+--
+specVersion: "2.0"
+foo: bar
+metadata:
+  name: application.a
+`;
+
+	const validateSpy = sinon.spy(validator, "validate");
+
+	sinon.stub(gracefulFs, "readFile")
+		.callsFake((path) => {
+			throw new Error("readFileStub called with unexpected path: " + path);
+		})
+		.withArgs(configPath).yieldsAsync(null, ui5yaml);
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const error = await t.throwsAsync(async () => {
+		await preprocessor.readConfigFile({path: "/application", id: "my-project"});
+	});
+
+	t.true(error.message.includes("Failed to parse configuration for project my-project"),
+		"Error message should contain information about parsing error");
+
+	t.is(validateSpy.callCount, 0, "validate should not be called");
+});
+
+test.serial("readConfigFile: Empty YAML", async (t) => {
+	const configPath = path.join("/application", "ui5.yaml");
+	const ui5yaml = "";
+
+	const validateSpy = sinon.spy(validator, "validate");
+
+	sinon.stub(gracefulFs, "readFile")
+		.callsFake((path) => {
+			throw new Error("readFileStub called with unexpected path: " + path);
+		})
+		.withArgs(configPath).yieldsAsync(null, ui5yaml);
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	const configs = await preprocessor.readConfigFile({path: "/application", id: "my-project"});
+
+	t.deepEqual(configs, [], "Empty YAML should result in empty array");
+	t.is(validateSpy.callCount, 0, "validate should not be called");
+});
+
+test.serial("loadProjectConfiguration: Runs validation if specVersion already exists (error)", async (t) => {
+	const config = {
+		specVersion: "2.0",
+		foo: "bar",
+		metadata: {
+			name: "application.a"
+		},
+
+		id: "id",
+		version: "1.0.0",
+		path: "path",
+		dependencies: []
+	};
+
+	const validateSpy = sinon.spy(validator, "validate");
+
+	// Re-require tested module
+	const projectPreprocessor = mock.reRequire("../../lib/projectPreprocessor");
+	const preprocessor = new projectPreprocessor._ProjectPreprocessor({});
+
+	await t.throwsAsync(async () => {
+		await preprocessor.loadProjectConfiguration(config);
+	}, {
+		instanceOf: ValidationError,
+		name: "ValidationError"
+	});
+
+	t.is(validateSpy.callCount, 1, "validate should be called once");
+	t.deepEqual(validateSpy.getCall(0).args, [{
+		config: {
+			specVersion: "2.0",
+			foo: "bar",
+			metadata: {
+				name: "application.a"
+			}
+		},
+		project: {
+			id: "id"
+		}
+	}],
+	"validate should be called with expected args");
 });

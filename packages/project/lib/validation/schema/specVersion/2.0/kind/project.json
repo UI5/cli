@@ -1,0 +1,330 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project.json",
+
+	"type": "object",
+	"required": ["specVersion", "type", "metadata"],
+	"properties": {
+		"specVersion": { "enum": ["2.0"] },
+		"kind": {
+			"enum": ["project", null],
+			"$comment": "Using null to allow not defining 'kind' which defaults to project"
+		},
+		"type": {
+			"enum": [
+				"application",
+				"library",
+				"theme-library",
+				"module"
+			]
+		},
+		"metadata": {
+			"$ref": "../../../ui5.json#/definitions/metadata"
+		}
+	},
+	"if": {
+		"properties": {
+			"type": {"const": null}
+		},
+		"$comment": "Using 'if' with null and empty 'then' to ensure no other schemas are applied when the property is not set. Otherwise the first 'if' condition might still be met, causing unexpected errors."
+	},
+	"then": {},
+	"else": {
+		"if": {
+			"properties": {
+				"type": {"const": "application"}
+			}
+		},
+		"then": {
+			"$ref": "project/application.json"
+		},
+		"else": {
+			"if": {
+				"properties": {
+					"type": {"const": "library"}
+				}
+			},
+			"then": {
+				"$ref": "project/library.json"
+			},
+			"else": {
+				"if": {
+					"properties": {
+						"type": {"const": "theme-library"}
+					}
+				},
+				"then": {
+					"$ref": "project/theme-library.json"
+				},
+				"else": {
+					"if": {
+						"properties": {
+							"type": {"const": "module"}
+						}
+					},
+					"then": {
+						"$ref": "project/module.json"
+					}
+				}
+			}
+		}
+	},
+
+	"definitions": {
+		"resources-configuration-propertiesFileSourceEncoding": {
+			"enum": ["UTF-8", "ISO-8859-1"],
+			"default": "ISO-8859-1",
+			"title": "Encoding of *.properties files",
+			"description": "By default, the UI5 Tooling expects *.properties files to be ISO-8859-1 encoded."
+		},
+		"builder-resources": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-bundles": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"defaultFileTypes": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"sections": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["mode", "filters"],
+									"properties": {
+										"mode": {
+											"enum": ["raw", "preload", "require", "provided"]
+										},
+										"filters": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										},
+										"resolve": {
+											"type": "boolean",
+											"default": false
+										},
+										"resolveConditional": {
+											"type": "boolean",
+											"default": false
+										},
+										"renderer": {
+											"type": "boolean",
+											"default": false
+										},
+										"sort": {
+											"type": "boolean",
+											"default": true
+										}
+									}
+								}
+							}
+						}
+					},
+					"bundleOptions": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"optimize": {
+								"type": "boolean",
+								"default": false
+							},
+							"decorateBootstrapModule": {
+								"type": "boolean",
+								"default": true
+							},
+							"addTryCatchRestartWrapper": {
+								"type": "boolean",
+								"default": false
+							},
+							"usePredefineCalls": {
+								"type": "boolean",
+								"default": false
+							},
+							"numberOfParts": {
+								"type": "number",
+								"default": 1
+							}
+						}
+					}
+				}
+			}
+		},
+		"builder-componentPreload": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"paths": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"namespaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"server": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"settings": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"httpPort": {
+							"type": "number"
+						},
+						"httpsPort": {
+							"type": "number"
+						}
+					}
+				},
+				"customMiddleware": {
+					"type": "array",
+					"items": {
+						"oneOf": [
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["name", "beforeMiddleware"],
+								"properties": {
+									"name": {
+										"type": "string"
+									},
+									"mountPath": {
+										"type": "string"
+									},
+									"beforeMiddleware": {
+										"type": "string"
+									},
+									"configuration": {}
+								}
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["name", "afterMiddleware"],
+								"properties": {
+									"name": {
+										"type": "string"
+									},
+									"mountPath": {
+										"type": "string"
+									},
+									"afterMiddleware": {
+										"type": "string"
+									},
+									"configuration": {}
+								}
+							}
+						]
+					}
+				}
+			}
+		},
+		"framework": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name", "version"],
+			"properties": {
+				"name": {
+					"enum": ["OpenUI5", "SAPUI5"]
+				},
+				"version": {
+					"type": "string",
+					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+					"title": "Version",
+					"description": "Framework version to use in this project",
+					"errorMessage":  "Not a valid version according to the Semantic Versioning specification (https://semver.org/)"
+				},
+				"libraries": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"optional": {
+								"type": "boolean",
+								"default": false
+							},
+							"development": {
+								"type": "boolean",
+								"default": false
+							}
+						}
+					}
+				}
+			}
+		},
+		"customTasks": {
+			"type": "array",
+			"items": {
+				"oneOf": [
+					{
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name", "beforeTask"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"beforeTask": {
+								"type": "string"
+							},
+							"configuration": {}
+						}
+					},
+					{
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name", "afterTask"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"afterTask": {
+								"type": "string"
+							},
+							"configuration": {}
+						}
+					}
+				]
+			}
+		}
+	}
+}

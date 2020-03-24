@@ -1,0 +1,55 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/ui5.json",
+	"title": "ui5.yaml",
+	"description": "Schema for UI5 Tooling Configuration File (ui5.yaml)",
+	"$comment": "See https://sap.github.io/ui5-tooling/",
+
+	"type": "object",
+	"required": ["specVersion"],
+	"properties": {
+		"specVersion": {
+			"enum": [
+				"2.0",
+				"1.1", "1.0", "0.1"
+			],
+			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"2.0\", \"1.1\", \"1.0\", \"0.1\"\nFor details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions"
+		}
+	},
+
+	"if": {
+		"properties": {
+			"specVersion": { "const": "2.0" }
+		}
+	},
+	"then": {
+		"$ref": "specVersion/2.0.json"
+	},
+	"else": {
+		"if": {
+			"properties": {
+				"specVersion": { "enum": ["1.1", "1.0", "0.1"] }
+			}
+		},
+		"then": {
+			"additionalProperties": true
+		}
+	},
+
+	"definitions": {
+
+		"metadata": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"copyright": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}

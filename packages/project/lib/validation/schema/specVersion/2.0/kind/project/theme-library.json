@@ -1,0 +1,47 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project/theme-library.json",
+
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["specVersion", "type", "metadata"],
+	"properties": {
+		"specVersion": { "enum": ["2.0"] },
+		"kind": {
+			"enum": ["project", null]
+		},
+		"type": {
+			"enum": ["theme-library"]
+		},
+		"metadata": {
+			"$ref": "../../../../ui5.json#/definitions/metadata"
+		},
+		"framework": {
+			"$ref": "../project.json#/definitions/framework"
+		},
+		"resources": {
+			"$ref": "library.json#/definitions/resources"
+		},
+		"builder": {
+			"$ref": "#/definitions/builder"
+		},
+		"server": {
+			"$ref": "../project.json#/definitions/server"
+		}
+	},
+
+	"definitions": {
+		"builder": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"resources": {
+					"$ref": "../project.json#/definitions/builder-resources"
+				},
+				"customTasks": {
+					"$ref": "../project.json#/definitions/customTasks"
+				}
+			}
+		}
+	}
+}
