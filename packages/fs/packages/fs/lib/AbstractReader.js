@@ -105,10 +105,11 @@ class AbstractReader {
 	 * @abstract
 	 * @protected
 	 * @param {string} virPath Virtual path
+	 * @param {Object} options Options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
-	_byPath(virPath, trace) {
+	_byPath(virPath, options, trace) {
 		throw new Error("Not implemented");
 	}
 }
