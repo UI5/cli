@@ -609,11 +609,14 @@ test.serial("getNamespace: from manifest.json without sap.app id", async (t) => 
 	const loggerSpy = sinon.spy(loggerInstance, "verbose");
 	const err = await t.throwsAsync(libraryFormatter.getNamespace());
 
-	t.deepEqual(err.message, `Failed to detect namespace or namespace is empty for project library.e. Check verbose log for details.`, "Rejected with correct error message");
+	t.deepEqual(err.message,
+		`Failed to detect namespace or namespace is empty for project library.e. Check verbose log for details.`,
+		"Rejected with correct error message");
 	t.is(loggerSpy.callCount, 4, "calls to verbose");
 
 
-	t.is(loggerSpy.getCall(0).args[0], "No \"sap.app\" ID configuration found in manifest.json of project library.e", "correct verbose message");
+	t.is(loggerSpy.getCall(0).args[0], "No sap.app/id configuration found in manifest.json of project library.e",
+		"correct verbose message");
 	mock.stop("@ui5/logger");
 });
 

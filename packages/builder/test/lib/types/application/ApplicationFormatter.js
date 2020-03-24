@@ -146,7 +146,7 @@ test("format: No 'sap.app' configuration found", async (t) => {
 	sinon.stub(applicationFormatter, "getManifest").resolves({content: {}, fsPath: {}});
 
 	const error = await t.throwsAsync(applicationFormatter.format());
-	t.deepEqual(error.message, "No \"sap.app\" ID configuration found in manifest.json of project projectName",
+	t.deepEqual(error.message, "No sap.app/id configuration found in manifest.json of project projectName",
 		"Rejected with correct error message");
 });
 
@@ -157,7 +157,7 @@ test("format: No application id in 'sap.app' configuration found", async (t) => 
 	sinon.stub(applicationFormatter, "getManifest").resolves({content: {"sap.app": {}}});
 
 	const error = await t.throwsAsync(applicationFormatter.format());
-	t.deepEqual(error.message, "No \"sap.app\" ID configuration found in manifest.json of project projectName");
+	t.deepEqual(error.message, "No sap.app/id configuration found in manifest.json of project projectName");
 	t.deepEqual(project.resources.pathMappings["/"], "webapp", "path mappings is set");
 });
 

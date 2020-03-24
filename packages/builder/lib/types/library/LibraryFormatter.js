@@ -83,7 +83,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 				manifestPath = path.dirname(fsPath);
 			} else {
 				log.verbose(
-					`No "sap.app" ID configuration found in manifest.json of project ${this._project.metadata.name}`);
+					`No sap.app/id configuration found in manifest.json of project ${this._project.metadata.name}`);
 			}
 		} catch (err) {
 			log.verbose(`Namespace resolution from manifest.json failed for project ` +

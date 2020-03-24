@@ -55,7 +55,7 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 			appId = manifest["sap.app"] && manifest["sap.app"].id;
 		} else {
 			throw new Error(
-				`No "sap.app" ID configuration found in manifest.json of project ${this._project.metadata.name}`);
+				`No sap.app/id configuration found in manifest.json of project ${this._project.metadata.name}`);
 		}
 
 		if (this.hasMavenPlaceholder(appId)) {
