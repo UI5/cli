@@ -31,20 +31,28 @@ steps:
 - task: NodeTool@0
   inputs:
     versionSpec: $(node_version)
-  displayName: 'Install Node.js'
+  displayName: Install Node.js
 
 - script: npm ci
+  displayName: Install Dependencies
+
 - script: npm run test-azure
+  displayName: Run Tests
 
 - task: PublishTestResults@2
+  displayName: Publish Test Results
   condition: succeededOrFailed()
   inputs:
     testResultsFormat: 'JUnit'
     testResultsFiles: '$(System.DefaultWorkingDirectory)/test-results.xml'
 
 - task: PublishCodeCoverageResults@1
+  displayName: Publish Test Coverage Results
   condition: succeededOrFailed()
   inputs:
     codeCoverageTool: 'cobertura'
     summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage/cobertura-coverage.xml'
 
+- script: npm run test
+  displayName: Run Test Natively in Case of Failures
+  condition: failed()
