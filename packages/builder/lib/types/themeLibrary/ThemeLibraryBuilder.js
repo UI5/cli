@@ -1,20 +1,8 @@
 const AbstractBuilder = require("../AbstractBuilder");
 const tasks = { // can't require index.js due to circular dependency
-	generateComponentPreload: require("../../tasks/bundlers/generateComponentPreload"),
-	generateFlexChangesBundle: require("../../tasks/bundlers/generateFlexChangesBundle"),
-	generateBundle: require("../../tasks/bundlers/generateBundle"),
-	generateLibraryPreload: require("../../tasks/bundlers/generateLibraryPreload"),
-	generateManifestBundle: require("../../tasks/bundlers/generateManifestBundle"),
-	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
 	buildThemes: require("../../tasks/buildThemes"),
-	createDebugFiles: require("../../tasks/createDebugFiles"),
-	generateJsdoc: require("../../tasks/jsdoc/generateJsdoc"),
-	executeJsdocSdkTransformation: require("../../tasks/jsdoc/executeJsdocSdkTransformation"),
-	generateLibraryManifest: require("../../tasks/generateLibraryManifest"),
-	generateVersionInfo: require("../../tasks/generateVersionInfo"),
 	replaceCopyright: require("../../tasks/replaceCopyright"),
-	replaceVersion: require("../../tasks/replaceVersion"),
-	uglify: require("../../tasks/uglify")
+	replaceVersion: require("../../tasks/replaceVersion")
 };
 
 class ThemeLibraryBuilder extends AbstractBuilder {
