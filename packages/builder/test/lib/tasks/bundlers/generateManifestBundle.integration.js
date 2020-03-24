@@ -94,6 +94,7 @@ const applicationBTree = {
 	"path": applicationBPath,
 	"dependencies": [],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -143,6 +144,7 @@ const libraryKTree = {
 		}
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {

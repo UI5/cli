@@ -17,6 +17,7 @@ const applicationBTree = {
 	path: applicationBPath,
 	dependencies: [],
 	_level: 0,
+	_isRoot: true,
 	specVersion: "2.0",
 	type: "application",
 	metadata: {
@@ -281,6 +282,7 @@ const applicationHTree = {
 	path: applicationHPath,
 	dependencies: [],
 	_level: 0,
+	_isRoot: true,
 	specVersion: "2.0",
 	type: "application",
 	metadata: {

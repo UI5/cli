@@ -190,6 +190,7 @@ const applicationBTree = {
 	],
 	"builder": {},
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {

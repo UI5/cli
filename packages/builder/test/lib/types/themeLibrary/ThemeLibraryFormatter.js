@@ -15,6 +15,7 @@ const themeLibraryETree = {
 	path: themeLibraryEPath,
 	dependencies: [],
 	_level: 0,
+	_isRoot: true,
 	specVersion: "1.1",
 	type: "theme-library",
 	metadata: {
@@ -152,6 +153,7 @@ test("format: formats correctly", async (t) => {
 		path: themeLibraryEPath,
 		dependencies: [],
 		_level: 0,
+		_isRoot: true,
 		specVersion: "1.1",
 		type: "theme-library",
 		metadata: {

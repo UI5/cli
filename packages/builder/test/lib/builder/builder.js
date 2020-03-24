@@ -601,6 +601,7 @@ const libraryDTree = {
 		}
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {
@@ -709,6 +710,7 @@ const applicationATree = {
 		}
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -733,6 +735,7 @@ const applicationATreeBadType = {
 	"version": "1.0.0",
 	"path": applicationAPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "non existent",
 	"metadata": {
@@ -756,6 +759,7 @@ const applicationGTree = {
 	"version": "1.0.0",
 	"path": applicationGPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -791,6 +795,7 @@ const applicationGTreeWithExcludes = {
 	"version": "1.0.0",
 	"path": applicationGPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -827,6 +832,7 @@ const applicationGTreeComponentPreloadPaths = {
 	"version": "1.0.0",
 	"path": applicationGPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -860,6 +866,7 @@ const applicationHTree = {
 	"version": "1.0.0",
 	"path": applicationHPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -921,6 +928,7 @@ const applicationITree = {
 	"version": "1.0.0",
 	"path": applicationIPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -949,6 +957,7 @@ const applicationJTree = {
 	"version": "1.0.0",
 	"path": applicationJPath,
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -1003,6 +1012,7 @@ const libraryETree = {
 		}
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {
@@ -1056,6 +1066,7 @@ const libraryHTree = {
 		}
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {
@@ -1142,6 +1153,7 @@ const libraryITree = {
 		cloneProjectTree(libraryDTree)
 	],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {
@@ -1169,6 +1181,7 @@ const libraryJTree = {
 	"path": libraryJPath,
 	"dependencies": [],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {
@@ -1194,6 +1207,7 @@ const themeJTree = {
 	"path": themeJPath,
 	"dependencies": [],
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "library",
 	"metadata": {

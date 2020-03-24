@@ -17,6 +17,7 @@ const libraryETree = {
 	path: libraryEPath,
 	dependencies: [],
 	_level: 0,
+	_isRoot: true,
 	specVersion: "2.0",
 	type: "library",
 	metadata: {
@@ -215,6 +216,7 @@ test("format: formats correctly", async (t) => {
 		path: libraryEPath,
 		dependencies: [],
 		_level: 0,
+		_isRoot: true,
 		specVersion: "2.0",
 		type: "library",
 		metadata: {
@@ -251,6 +253,7 @@ test("format: formats legacy specVersion correctly", async (t) => {
 		path: libraryEPath,
 		dependencies: [],
 		_level: 0,
+		_isRoot: true,
 		specVersion: "0.1",
 		type: "library",
 		metadata: {

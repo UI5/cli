@@ -97,6 +97,7 @@ const applicationGTree = {
 	"dependencies": [],
 	"builder": {},
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
@@ -127,6 +128,7 @@ const applicationGTreeWithCachebusterHash = {
 		}
 	},
 	"_level": 0,
+	"_isRoot": true,
 	"specVersion": "0.1",
 	"type": "application",
 	"metadata": {
