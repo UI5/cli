@@ -42,8 +42,8 @@ async function createOptions(t, options) {
 
 	await Promise.all(resources.map((resource) => workspace.write(resource)));
 	const oOptions = {
-		workspace: workspace,
-		dependencies: dependencies
+		workspace,
+		dependencies
 	};
 	oOptions.options = options || {
 		projectName: "Test Lib",

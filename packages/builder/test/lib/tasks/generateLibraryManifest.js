@@ -38,8 +38,8 @@ async function assertCreatedManifest(t, oExpectedManifest) {
 	await Promise.all(resources.map((resource) => workspace.write(resource)));
 
 	await generateLibraryManifest({
-		workspace: workspace,
-		dependencies: dependencies,
+		workspace,
+		dependencies,
 		options: {
 			projectName: "Test Lib"
 		}
