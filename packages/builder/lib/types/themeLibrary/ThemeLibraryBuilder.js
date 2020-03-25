@@ -1,14 +1,10 @@
 const AbstractBuilder = require("../AbstractBuilder");
-const tasks = { // can't require index.js due to circular dependency
-	buildThemes: require("../../tasks/buildThemes"),
-	replaceCopyright: require("../../tasks/replaceCopyright"),
-	replaceVersion: require("../../tasks/replaceVersion")
-};
+const taskRepository = require("../../tasks/taskRepository");
 
 class ThemeLibraryBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log, buildContext}) {
 		this.addTask("replaceCopyright", () => {
-			const replaceCopyright = tasks.replaceCopyright;
+			const replaceCopyright = taskRepository.getTask("replaceCopyright").task;
 			return replaceCopyright({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -19,7 +15,7 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("replaceVersion", () => {
-			const replaceVersion = tasks.replaceVersion;
+			const replaceVersion = taskRepository.getTask("replaceVersion").task;
 			return replaceVersion({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -30,7 +26,7 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("buildThemes", () => {
-			const buildThemes = tasks.buildThemes;
+			const buildThemes = taskRepository.getTask("buildThemes").task;
 			return buildThemes({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,

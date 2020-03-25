@@ -1,23 +1,5 @@
 const AbstractBuilder = require("../AbstractBuilder");
-
-const tasks = { // can't require index.js due to circular dependency
-	generateComponentPreload: require("../../tasks/bundlers/generateComponentPreload"),
-	generateFlexChangesBundle: require("../../tasks/bundlers/generateFlexChangesBundle"),
-	generateLibraryPreload: require("../../tasks/bundlers/generateLibraryPreload"),
-	generateManifestBundle: require("../../tasks/bundlers/generateManifestBundle"),
-	generateStandaloneAppBundle: require("../../tasks/bundlers/generateStandaloneAppBundle"),
-	generateBundle: require("../../tasks/bundlers/generateBundle"),
-	generateCachebusterInfo: require("../../tasks/generateCachebusterInfo"),
-	escapeNonAsciiCharacters: require("../../tasks/escapeNonAsciiCharacters"),
-	buildThemes: require("../../tasks/buildThemes"),
-	createDebugFiles: require("../../tasks/createDebugFiles"),
-	generateVersionInfo: require("../../tasks/generateVersionInfo"),
-	replaceCopyright: require("../../tasks/replaceCopyright"),
-	replaceVersion: require("../../tasks/replaceVersion"),
-	transformBootstrapHtml: require("../../tasks/transformBootstrapHtml"),
-	uglify: require("../../tasks/uglify"),
-	generateApiIndex: require("../../tasks/jsdoc/generateApiIndex")
-};
+const taskRepository = require("../../tasks/taskRepository");
 
 class ApplicationBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log}) {
@@ -31,7 +13,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			const propertiesFileSourceEncoding = project.resources
 				&& project.resources.configuration
 				&& project.resources.configuration.propertiesFileSourceEncoding;
-			return tasks.escapeNonAsciiCharacters({
+			return taskRepository.getTask("escapeNonAsciiCharacters").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					encoding: propertiesFileSourceEncoding,
@@ -41,7 +23,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("replaceCopyright", () => {
-			return tasks.replaceCopyright({
+			return taskRepository.getTask("replaceCopyright").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
@@ -51,7 +33,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("replaceVersion", () => {
-			return tasks.replaceVersion({
+			return taskRepository.getTask("replaceVersion").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
@@ -61,7 +43,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("generateFlexChangesBundle", () => {
-			const generateFlexChangesBundle = tasks.generateFlexChangesBundle;
+			const generateFlexChangesBundle = taskRepository.getTask("generateFlexChangesBundle").task;
 			return generateFlexChangesBundle({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -72,7 +54,7 @@ class ApplicationBuilder extends AbstractBuilder {
 
 		if (project.metadata.namespace) {
 			this.addTask("generateManifestBundle", () => {
-				const generateManifestBundle = tasks.generateManifestBundle;
+				const generateManifestBundle = taskRepository.getTask("generateManifestBundle").task;
 				return generateManifestBundle({
 					workspace: resourceCollections.workspace,
 					options: {
@@ -86,7 +68,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
 			this.addTask("generateComponentPreload", async () => {
-				return tasks.generateComponentPreload({
+				return taskRepository.getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -99,7 +81,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		} else if (project.metadata.namespace) {
 			// Default component preload for application namespace
 			this.addTask("generateComponentPreload", async () => {
-				return tasks.generateComponentPreload({
+				return taskRepository.getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -111,7 +93,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("generateStandaloneAppBundle", () => {
-			return tasks.generateStandaloneAppBundle({
+			return taskRepository.getTask("generateStandaloneAppBundle").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -122,7 +104,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("transformBootstrapHtml", () => {
-			return tasks.transformBootstrapHtml({
+			return taskRepository.getTask("transformBootstrapHtml").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					projectName: project.metadata.name,
@@ -135,7 +117,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		if (bundles) {
 			this.addTask("generateBundle", () => {
 				return Promise.all(bundles.map((bundle) => {
-					return tasks.generateBundle({
+					return taskRepository.getTask("generateBundle").task({
 						workspace: resourceCollections.workspace,
 						dependencies: resourceCollections.dependencies,
 						options: {
@@ -149,7 +131,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("createDebugFiles", () => {
-			const createDebugFiles = tasks.createDebugFiles;
+			const createDebugFiles = taskRepository.getTask("createDebugFiles").task;
 			return createDebugFiles({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -159,7 +141,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("uglify", () => {
-			const uglify = tasks.uglify;
+			const uglify = taskRepository.getTask("uglify").task;
 			return uglify({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -169,7 +151,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("generateVersionInfo", () => {
-			return tasks.generateVersionInfo({
+			return taskRepository.getTask("generateVersionInfo").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -181,7 +163,7 @@ class ApplicationBuilder extends AbstractBuilder {
 
 		if (project.metadata.namespace) {
 			this.addTask("generateCachebusterInfo", () => {
-				return tasks.generateCachebusterInfo({
+				return taskRepository.getTask("generateCachebusterInfo").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -195,7 +177,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("generateApiIndex", () => {
-			return tasks.generateApiIndex({
+			return taskRepository.getTask("generateApiIndex").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
