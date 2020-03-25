@@ -587,9 +587,12 @@ class ProjectPreprocessor {
 		const taskRepository = require("@ui5/builder").tasks.taskRepository;
 
 		const taskPath = path.join(extension.path, extension.task.path);
-		const task = require(taskPath); // throws if not found
 
-		taskRepository.addTask(extension.metadata.name, task);
+		taskRepository.addTask({
+			name: extension.metadata.name,
+			specVersion: extension.specVersion,
+			taskPath,
+		});
 	}
 
 	handleServerMiddleware(extension) {
@@ -602,7 +605,11 @@ class ProjectPreprocessor {
 		const {middlewareRepository} = require("@ui5/server");
 
 		const middlewarePath = path.join(extension.path, extension.middleware.path);
-		middlewareRepository.addMiddleware(extension.metadata.name, middlewarePath);
+		middlewareRepository.addMiddleware({
+			name: extension.metadata.name,
+			specVersion: extension.specVersion,
+			middlewarePath
+		});
 	}
 
 	async validateAndNormalizeExistingProject(project) {

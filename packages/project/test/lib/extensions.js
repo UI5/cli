@@ -616,7 +616,7 @@ test("Project with task extension dependency", (t) => {
 	});
 });
 
-test("Project with task extension dependency - task module not found", async (t) => {
+test("Project with task extension dependency - does not throw for invalid task path", async (t) => {
 	// "project-type" extension handling not yet implemented => test currently checks for error
 	const tree = {
 		id: "application.a",
@@ -630,7 +630,7 @@ test("Project with task extension dependency - task module not found", async (t)
 			kind: "extension",
 			type: "task",
 			metadata: {
-				name: "task.a"
+				name: "task.b"
 			},
 			task: {
 				path: "task.not.existing.js"
@@ -643,8 +643,7 @@ test("Project with task extension dependency - task module not found", async (t)
 			name: "xy"
 		}
 	};
-	const error = await t.throwsAsync(projectPreprocessor.processTree(tree));
-	t.regex(error.message, /^Cannot find module.*/, "Rejected with error");
+	await t.notThrowsAsync(projectPreprocessor.processTree(tree));
 });
 
 
