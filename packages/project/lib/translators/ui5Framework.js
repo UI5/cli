@@ -151,13 +151,13 @@ module.exports = {
 			version = tree.framework.version;
 		}
 
-		log.info(`Using ${frameworkName} version: ${version}`);
-
 		const referencedLibraries = utils.getFrameworkLibrariesFromTree(tree);
 		if (!referencedLibraries.length) {
 			log.verbose(`No ${frameworkName} libraries referenced in project ${tree.id} or its dependencies`);
 			return null;
 		}
+
+		log.info(`Using ${frameworkName} version: ${version}`);
 
 		let resolver;
 		if (frameworkName === "OpenUI5") {
