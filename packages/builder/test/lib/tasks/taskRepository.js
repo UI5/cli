@@ -4,15 +4,15 @@ const test = require("ava");
 const taskRepository = require("../../../lib/tasks/taskRepository");
 
 test("task retrieval", (t) => {
-	const taksPath = path.posix.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
+	const taskPath = path.posix.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
 	taskRepository.addTask({
 		name: "myTask",
 		specVersion: "2.0",
-		taskPath: taksPath
+		taskPath: taskPath
 	});
 	const taskInfo = taskRepository.getTask("myTask");
 	t.deepEqual(taskInfo, {
-		task: require(taksPath),
+		task: require(taskPath),
 		specVersion: "2.0"
 	});
 });

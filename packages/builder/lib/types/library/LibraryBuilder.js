@@ -9,7 +9,7 @@ class LibraryBuilder extends AbstractBuilder {
 				"Also see: https://sap.github.io/ui5-tooling/pages/Builder/#library");
 		}
 
-		this.addTask("escapeNonAsciiCharacters", () => {
+		this.addTask("escapeNonAsciiCharacters", async () => {
 			const propertiesFileSourceEncoding = project.resources
 				&& project.resources.configuration
 				&& project.resources.configuration.propertiesFileSourceEncoding;
@@ -22,9 +22,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("replaceCopyright", () => {
-			const replaceCopyright = taskRepository.getTask("replaceCopyright").task;
-			return replaceCopyright({
+		this.addTask("replaceCopyright", async () => {
+			return taskRepository.getTask("replaceCopyright").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
@@ -33,9 +32,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("replaceVersion", () => {
-			const replaceVersion = taskRepository.getTask("replaceVersion").task;
-			return replaceVersion({
+		this.addTask("replaceVersion", async () => {
+			return taskRepository.getTask("replaceVersion").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
@@ -45,9 +43,7 @@ class LibraryBuilder extends AbstractBuilder {
 		});
 
 		if (project.metadata.namespace) {
-			this.addTask("generateJsdoc", () => {
-				const generateJsdoc = taskRepository.getTask("generateJsdoc").task;
-
+			this.addTask("generateJsdoc", async () => {
 				const patterns = ["/resources/**/*.js"];
 				// Add excludes
 				if (project.builder && project.builder.jsdoc && project.builder.jsdoc.excludes) {
@@ -58,7 +54,7 @@ class LibraryBuilder extends AbstractBuilder {
 					patterns.push(...excludes);
 				}
 
-				return generateJsdoc({
+				return taskRepository.getTask("generateJsdoc").task({
 					buildContext,
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
@@ -71,10 +67,8 @@ class LibraryBuilder extends AbstractBuilder {
 				});
 			});
 
-			this.addTask("executeJsdocSdkTransformation", () => {
-				const executeJsdocSdkTransformation = taskRepository.getTask("executeJsdocSdkTransformation").task;
-
-				return executeJsdocSdkTransformation({
+			this.addTask("executeJsdocSdkTransformation", async () => {
+				return taskRepository.getTask("executeJsdocSdkTransformation").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -87,10 +81,8 @@ class LibraryBuilder extends AbstractBuilder {
 
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
-			const generateComponentPreload = taskRepository.getTask("generateComponentPreload").task;
-
-			this.addTask("generateComponentPreload", () => {
-				return generateComponentPreload({
+			this.addTask("generateComponentPreload", async () => {
+				return taskRepository.getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -102,9 +94,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		}
 
-		this.addTask("generateLibraryManifest", () => {
-			const generateLibraryManifest = taskRepository.getTask("generateLibraryManifest").task;
-			return generateLibraryManifest({
+		this.addTask("generateLibraryManifest", async () => {
+			return taskRepository.getTask("generateLibraryManifest").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -115,9 +106,8 @@ class LibraryBuilder extends AbstractBuilder {
 
 
 		if (project.metadata.namespace) {
-			this.addTask("generateManifestBundle", () => {
-				const generateManifestBundle = taskRepository.getTask("generateManifestBundle").task;
-				return generateManifestBundle({
+			this.addTask("generateManifestBundle", async () => {
+				return taskRepository.getTask("generateManifestBundle").task({
 					workspace: resourceCollections.workspace,
 					options: {
 						projectName: project.metadata.name,
@@ -127,9 +117,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		}
 
-		this.addTask("generateLibraryPreload", () => {
-			const generateLibraryPreload = taskRepository.getTask("generateLibraryPreload").task;
-			return generateLibraryPreload({
+		this.addTask("generateLibraryPreload", async () => {
+			return taskRepository.getTask("generateLibraryPreload").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -140,7 +129,7 @@ class LibraryBuilder extends AbstractBuilder {
 
 		const bundles = project.builder && project.builder.bundles;
 		if (bundles) {
-			this.addTask("generateBundle", () => {
+			this.addTask("generateBundle", async () => {
 				return bundles.reduce(function(sequence, bundle) {
 					return sequence.then(function() {
 						return taskRepository.getTask("generateBundle").task({
@@ -157,9 +146,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		}
 
-		this.addTask("buildThemes", () => {
-			const buildThemes = taskRepository.getTask("buildThemes").task;
-			return buildThemes({
+		this.addTask("buildThemes", async () => {
+			return taskRepository.getTask("buildThemes").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -171,9 +159,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("createDebugFiles", () => {
-			const createDebugFiles = taskRepository.getTask("createDebugFiles").task;
-			return createDebugFiles({
+		this.addTask("createDebugFiles", async () => {
+			return taskRepository.getTask("createDebugFiles").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					pattern: "/resources/**/*.js"
@@ -181,9 +168,8 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("uglify", () => {
-			const uglify = taskRepository.getTask("uglify").task;
-			return uglify({
+		this.addTask("uglify", async () => {
+			return taskRepository.getTask("uglify").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					pattern: "/resources/**/*.js"

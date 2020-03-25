@@ -9,7 +9,7 @@ class ApplicationBuilder extends AbstractBuilder {
 					"Also see: https://sap.github.io/ui5-tooling/pages/Builder/#application");
 		}
 
-		this.addTask("escapeNonAsciiCharacters", () => {
+		this.addTask("escapeNonAsciiCharacters", async () => {
 			const propertiesFileSourceEncoding = project.resources
 				&& project.resources.configuration
 				&& project.resources.configuration.propertiesFileSourceEncoding;
@@ -22,7 +22,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("replaceCopyright", () => {
+		this.addTask("replaceCopyright", async () => {
 			return taskRepository.getTask("replaceCopyright").task({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -32,7 +32,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("replaceVersion", () => {
+		this.addTask("replaceVersion", async () => {
 			return taskRepository.getTask("replaceVersion").task({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -42,7 +42,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("generateFlexChangesBundle", () => {
+		this.addTask("generateFlexChangesBundle", async () => {
 			const generateFlexChangesBundle = taskRepository.getTask("generateFlexChangesBundle").task;
 			return generateFlexChangesBundle({
 				workspace: resourceCollections.workspace,
@@ -53,7 +53,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		if (project.metadata.namespace) {
-			this.addTask("generateManifestBundle", () => {
+			this.addTask("generateManifestBundle", async () => {
 				const generateManifestBundle = taskRepository.getTask("generateManifestBundle").task;
 				return generateManifestBundle({
 					workspace: resourceCollections.workspace,
@@ -92,7 +92,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		}
 
-		this.addTask("generateStandaloneAppBundle", () => {
+		this.addTask("generateStandaloneAppBundle", async () => {
 			return taskRepository.getTask("generateStandaloneAppBundle").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
@@ -103,7 +103,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("transformBootstrapHtml", () => {
+		this.addTask("transformBootstrapHtml", async () => {
 			return taskRepository.getTask("transformBootstrapHtml").task({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -115,7 +115,7 @@ class ApplicationBuilder extends AbstractBuilder {
 
 		const bundles = project.builder && project.builder.bundles;
 		if (bundles) {
-			this.addTask("generateBundle", () => {
+			this.addTask("generateBundle", async () => {
 				return Promise.all(bundles.map((bundle) => {
 					return taskRepository.getTask("generateBundle").task({
 						workspace: resourceCollections.workspace,
@@ -130,7 +130,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		}
 
-		this.addTask("createDebugFiles", () => {
+		this.addTask("createDebugFiles", async () => {
 			const createDebugFiles = taskRepository.getTask("createDebugFiles").task;
 			return createDebugFiles({
 				workspace: resourceCollections.workspace,
@@ -140,7 +140,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("uglify", () => {
+		this.addTask("uglify", async () => {
 			const uglify = taskRepository.getTask("uglify").task;
 			return uglify({
 				workspace: resourceCollections.workspace,
@@ -150,7 +150,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("generateVersionInfo", () => {
+		this.addTask("generateVersionInfo", async () => {
 			return taskRepository.getTask("generateVersionInfo").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
@@ -162,7 +162,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		if (project.metadata.namespace) {
-			this.addTask("generateCachebusterInfo", () => {
+			this.addTask("generateCachebusterInfo", async () => {
 				return taskRepository.getTask("generateCachebusterInfo").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
@@ -176,7 +176,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		}
 
-		this.addTask("generateApiIndex", () => {
+		this.addTask("generateApiIndex", async () => {
 			return taskRepository.getTask("generateApiIndex").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,

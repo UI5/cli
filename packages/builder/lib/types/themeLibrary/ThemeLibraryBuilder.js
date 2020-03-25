@@ -3,9 +3,8 @@ const taskRepository = require("../../tasks/taskRepository");
 
 class ThemeLibraryBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log, buildContext}) {
-		this.addTask("replaceCopyright", () => {
-			const replaceCopyright = taskRepository.getTask("replaceCopyright").task;
-			return replaceCopyright({
+		this.addTask("replaceCopyright", async () => {
+			return taskRepository.getTask("replaceCopyright").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
@@ -14,9 +13,8 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("replaceVersion", () => {
-			const replaceVersion = taskRepository.getTask("replaceVersion").task;
-			return replaceVersion({
+		this.addTask("replaceVersion", async () => {
+			return taskRepository.getTask("replaceVersion").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
@@ -25,9 +23,8 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		this.addTask("buildThemes", () => {
-			const buildThemes = taskRepository.getTask("buildThemes").task;
-			return buildThemes({
+		this.addTask("buildThemes", async () => {
+			return taskRepository.getTask("buildThemes").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
