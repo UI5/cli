@@ -456,7 +456,7 @@ class ProjectPreprocessor {
 
 	handleShim(extension) {
 		if (!extension.shims) {
-			throw new Error(`Project shim extension ${extension.id} is missing 'shim' configuration`);
+			throw new Error(`Project shim extension ${extension.id} is missing 'shims' configuration`);
 		}
 		const {configurations, dependencies, collections} = extension.shims;
 
