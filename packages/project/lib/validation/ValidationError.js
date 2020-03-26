@@ -79,13 +79,16 @@ class ValidationError extends Error {
 
 		switch (error.keyword) {
 		case "additionalProperties":
-			message += `property ${error.params.additionalProperty} is not expected to be here`;
+			message += `property ${error.params.additionalProperty} must not be provided here`;
 			break;
 		case "type":
-			message += `should be of type '${error.params.type}'`;
+			message += `must be of type '${error.params.type}'`;
+			break;
+		case "required":
+			message += `must have required property '${error.params.missingProperty}'`;
 			break;
 		case "enum":
-			message += error.message + "\n";
+			message += "must be equal to one of the allowed values\n";
 			message += "Allowed values: " + error.params.allowedValues.join(", ");
 			break;
 		default:

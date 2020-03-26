@@ -154,7 +154,7 @@ test("Project with project-shim extension with invalid dependency configuration"
 	const validationError = await t.throwsAsync(projectPreprocessor.processTree(tree), {
 		instanceOf: ValidationError
 	});
-	t.true(validationError.message.includes("Configuration should have required property 'metadata'"),
+	t.true(validationError.message.includes("Configuration must have required property 'metadata'"),
 		"ValidationError should contain error about missing metadata configuration");
 });
 

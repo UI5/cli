@@ -256,7 +256,7 @@
 		"framework": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["name", "version"],
+			"required": ["name"],
 			"properties": {
 				"name": {
 					"enum": ["OpenUI5", "SAPUI5"]

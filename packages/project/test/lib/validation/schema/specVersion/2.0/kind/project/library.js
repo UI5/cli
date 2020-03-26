@@ -702,3 +702,24 @@ test("framework configuration: Invalid", async (t) => {
 		}
 	]);
 });
+
+test("framework configuration: Missing 'name'", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"type": "library",
+		"metadata": {
+			"name": "my-library"
+		},
+		"framework": {}
+	}, [
+		{
+			dataPath: "/framework",
+			keyword: "required",
+			message: "should have required property 'name'",
+			params: {
+				missingProperty: "name"
+			},
+			schemaPath: "../project.json#/definitions/framework/required",
+		}
+	]);
+});

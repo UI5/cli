@@ -797,7 +797,7 @@ test.serial("ValidationError.formatMessage: keyword=type dataPath=", (t) => {
 		schemaPath: "#/type",
 	};
 
-	const expectedErrorMessage = "Configuration should be of type 'object'";
+	const expectedErrorMessage = "Configuration must be of type 'object'";
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);
@@ -814,7 +814,7 @@ test.serial("ValidationError.formatMessage: keyword=type", (t) => {
 		schemaPath: "#/type",
 	};
 
-	const expectedErrorMessage = `Configuration ${chalk.underline(chalk.red("foo"))} should be of type 'object'`;
+	const expectedErrorMessage = `Configuration ${chalk.underline(chalk.red("foo"))} must be of type 'object'`;
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);
@@ -831,7 +831,7 @@ test.serial("ValidationError.formatMessage: keyword=required w/o dataPath", (t) 
 		schemaPath: "#/required",
 	};
 
-	const expectedErrorMessage = "Configuration should have required property 'specVersion'";
+	const expectedErrorMessage = "Configuration must have required property 'specVersion'";
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);
@@ -846,7 +846,7 @@ test.serial("ValidationError.formatMessage: keyword=required", (t) => {
 		message: "should have required property 'name'"
 	};
 
-	const expectedErrorMessage = `Configuration ${chalk.underline(chalk.red("metadata"))} should have required property 'name'`;
+	const expectedErrorMessage = `Configuration ${chalk.underline(chalk.red("metadata"))} must have required property 'name'`;
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);
@@ -902,7 +902,7 @@ test.serial("ValidationError.formatMessage: keyword=additionalProperties", (t) =
 	};
 
 	const expectedErrorMessage =
-`Configuration ${chalk.underline(chalk.red("resources/configuration"))} property propertiesFileEncoding is not expected to be here`;
+`Configuration ${chalk.underline(chalk.red("resources/configuration"))} property propertiesFileEncoding must not be provided here`;
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);
@@ -920,7 +920,7 @@ test.serial("ValidationError.formatMessage: keyword=enum", (t) => {
 	};
 
 	const expectedErrorMessage =
-`Configuration ${chalk.underline(chalk.red("type"))} should be equal to one of the allowed values
+`Configuration ${chalk.underline(chalk.red("type"))} must be equal to one of the allowed values
 Allowed values: application, library, theme-library, module`;
 
 	const errorMessage = ValidationError.formatMessage(error);
