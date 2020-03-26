@@ -121,6 +121,10 @@ class AbstractResolver {
 	 * Installs the provided libraries and their dependencies
 	 *
 	 * @example
+	 * const resolver = new Sapui5Resolver({version: "1.76.0"});
+	 * // Or for OpenUI5:
+	 * // const resolver = new Openui5Resolver({version: "1.76.0"});
+	 *
 	 * resolver.install(["sap.ui.core", "sap.m"]).then(({libraryMetadata}) => {
 	 *   // Installation done
 	 * }).catch((err) => {
