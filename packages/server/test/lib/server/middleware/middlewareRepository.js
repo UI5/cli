@@ -20,7 +20,7 @@ test("getMiddleware: Unknown middleware", async (t) => {
 });
 
 test("addMiddleware", async (t) => {
-	const cspModulePath = path.posix.join(__dirname, "..", "..", "..", "..", "lib", "middleware", "csp");
+	const cspModulePath = path.join(__dirname, "..", "..", "..", "..", "lib", "middleware", "csp");
 	middlewareRepository.addMiddleware({
 		name: "🐠",
 		specVersion: "2.0",
