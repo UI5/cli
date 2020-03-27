@@ -2,28 +2,28 @@
  * @module @ui5/builder
  * @public
  */
-module.exports = {
-	builder: require("./lib/builder/builder"),
+const modules = {
+	builder: "./lib/builder/builder",
 	/**
 	 * @public
 	 * @see module:@ui5/builder.processors
 	 * @namespace
 	 */
 	processors: {
-		flexChangesBundler: require("./lib/processors/bundlers/flexChangesBundler"),
-		manifestBundler: require("./lib/processors/bundlers/manifestBundler"),
-		moduleBundler: require("./lib/processors/bundlers/moduleBundler"),
-		apiIndexGenerator: require("./lib/processors/jsdoc/apiIndexGenerator"),
-		jsdocGenerator: require("./lib/processors/jsdoc/jsdocGenerator"),
-		sdkTransformer: require("./lib/processors/jsdoc/sdkTransformer"),
-		bootstrapHtmlTransformer: require("./lib/processors/bootstrapHtmlTransformer"),
-		debugFileCreator: require("./lib/processors/debugFileCreator"),
-		resourceCopier: require("./lib/processors/resourceCopier"),
-		nonAsciiEscaper: require("./lib/processors/nonAsciiEscaper"),
-		stringReplacer: require("./lib/processors/stringReplacer"),
-		themeBuilder: require("./lib/processors/themeBuilder"),
-		uglifier: require("./lib/processors/uglifier"),
-		versionInfoGenerator: require("./lib/processors/versionInfoGenerator")
+		flexChangesBundler: "./lib/processors/bundlers/flexChangesBundler",
+		manifestBundler: "./lib/processors/bundlers/manifestBundler",
+		moduleBundler: "./lib/processors/bundlers/moduleBundler",
+		apiIndexGenerator: "./lib/processors/jsdoc/apiIndexGenerator",
+		jsdocGenerator: "./lib/processors/jsdoc/jsdocGenerator",
+		sdkTransformer: "./lib/processors/jsdoc/sdkTransformer",
+		bootstrapHtmlTransformer: "./lib/processors/bootstrapHtmlTransformer",
+		debugFileCreator: "./lib/processors/debugFileCreator",
+		resourceCopier: "./lib/processors/resourceCopier",
+		nonAsciiEscaper: "./lib/processors/nonAsciiEscaper",
+		stringReplacer: "./lib/processors/stringReplacer",
+		themeBuilder: "./lib/processors/themeBuilder",
+		uglifier: "./lib/processors/uglifier",
+		versionInfoGenerator: "./lib/processors/versionInfoGenerator"
 	},
 	/**
 	 * @public
@@ -31,25 +31,25 @@ module.exports = {
 	 * @namespace
 	 */
 	tasks: {
-		generateComponentPreload: require("./lib/tasks/bundlers/generateComponentPreload"),
-		generateFlexChangesBundle: require("./lib/tasks/bundlers/generateFlexChangesBundle"),
-		generateLibraryPreload: require("./lib/tasks/bundlers/generateLibraryPreload"),
-		generateManifestBundle: require("./lib/tasks/bundlers/generateManifestBundle"),
-		generateStandaloneAppBundle: require("./lib/tasks/bundlers/generateStandaloneAppBundle"),
-		generateBundle: require("./lib/tasks/bundlers/generateBundle"),
-		generateCachebusterInfo: require("./lib/tasks/generateCachebusterInfo"),
-		buildThemes: require("./lib/tasks/buildThemes"),
-		createDebugFiles: require("./lib/tasks/createDebugFiles"),
-		executeJsdocSdkTransformation: require("./lib/tasks/jsdoc/executeJsdocSdkTransformation"),
-		generateApiIndex: require("./lib/tasks/jsdoc/generateApiIndex"),
-		generateJsdoc: require("./lib/tasks/jsdoc/generateJsdoc"),
-		generateVersionInfo: require("./lib/tasks/generateVersionInfo"),
-		escapeNonAsciiCharacters: require("./lib/tasks/escapeNonAsciiCharacters"),
-		replaceCopyright: require("./lib/tasks/replaceCopyright"),
-		replaceVersion: require("./lib/tasks/replaceVersion"),
-		transformBootstrapHtml: require("./lib/tasks/transformBootstrapHtml"),
-		uglify: require("./lib/tasks/uglify"),
-		taskRepository: require("./lib/tasks/taskRepository")
+		generateComponentPreload: "./lib/tasks/bundlers/generateComponentPreload",
+		generateFlexChangesBundle: "./lib/tasks/bundlers/generateFlexChangesBundle",
+		generateLibraryPreload: "./lib/tasks/bundlers/generateLibraryPreload",
+		generateManifestBundle: "./lib/tasks/bundlers/generateManifestBundle",
+		generateStandaloneAppBundle: "./lib/tasks/bundlers/generateStandaloneAppBundle",
+		generateBundle: "./lib/tasks/bundlers/generateBundle",
+		generateCachebusterInfo: "./lib/tasks/generateCachebusterInfo",
+		buildThemes: "./lib/tasks/buildThemes",
+		createDebugFiles: "./lib/tasks/createDebugFiles",
+		executeJsdocSdkTransformation: "./lib/tasks/jsdoc/executeJsdocSdkTransformation",
+		generateApiIndex: "./lib/tasks/jsdoc/generateApiIndex",
+		generateJsdoc: "./lib/tasks/jsdoc/generateJsdoc",
+		generateVersionInfo: "./lib/tasks/generateVersionInfo",
+		escapeNonAsciiCharacters: "./lib/tasks/escapeNonAsciiCharacters",
+		replaceCopyright: "./lib/tasks/replaceCopyright",
+		replaceVersion: "./lib/tasks/replaceVersion",
+		transformBootstrapHtml: "./lib/tasks/transformBootstrapHtml",
+		uglify: "./lib/tasks/uglify",
+		taskRepository: "./lib/tasks/taskRepository"
 	},
 	/**
 	 * @private
@@ -57,11 +57,29 @@ module.exports = {
 	 * @namespace
 	 */
 	types: {
-		AbstractBuilder: require("./lib/types/AbstractBuilder"),
-		AbstractFormatter: require("./lib/types/AbstractFormatter"),
-		application: require("./lib/types/application/applicationType"),
-		library: require("./lib/types/library/libraryType"),
-		typeRepository: require("./lib/types/typeRepository")
+		AbstractBuilder: "./lib/types/AbstractBuilder",
+		AbstractFormatter: "./lib/types/AbstractFormatter",
+		application: "./lib/types/application/applicationType",
+		library: "./lib/types/library/libraryType",
+		typeRepository: "./lib/types/typeRepository"
 	}
 };
 
+function exportModules(exportRoot, modulePaths) {
+	for (const moduleName in modulePaths) {
+		if (modulePaths.hasOwnProperty(moduleName)) {
+			if (typeof modulePaths[moduleName] === "object") {
+				exportRoot[moduleName] = {};
+				exportModules(exportRoot[moduleName], modulePaths[moduleName]);
+			} else {
+				Object.defineProperty(exportRoot, moduleName, {
+					get() {
+						return require(modulePaths[moduleName]);
+					}
+				});
+			}
+		}
+	}
+}
+
+exportModules(module.exports, modules);
