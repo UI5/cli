@@ -1,5 +1,5 @@
 const AbstractBuilder = require("../AbstractBuilder");
-const taskRepository = require("../../tasks/taskRepository");
+const {getTask} = require("../../tasks/taskRepository");
 
 class ApplicationBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log}) {
@@ -13,7 +13,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			const propertiesFileSourceEncoding = project.resources
 				&& project.resources.configuration
 				&& project.resources.configuration.propertiesFileSourceEncoding;
-			return taskRepository.getTask("escapeNonAsciiCharacters").task({
+			return getTask("escapeNonAsciiCharacters").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					encoding: propertiesFileSourceEncoding,
@@ -23,7 +23,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("replaceCopyright", async () => {
-			return taskRepository.getTask("replaceCopyright").task({
+			return getTask("replaceCopyright").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
@@ -33,7 +33,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("replaceVersion", async () => {
-			return taskRepository.getTask("replaceVersion").task({
+			return getTask("replaceVersion").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
@@ -43,7 +43,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("generateFlexChangesBundle", async () => {
-			const generateFlexChangesBundle = taskRepository.getTask("generateFlexChangesBundle").task;
+			const generateFlexChangesBundle = getTask("generateFlexChangesBundle").task;
 			return generateFlexChangesBundle({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -54,7 +54,7 @@ class ApplicationBuilder extends AbstractBuilder {
 
 		if (project.metadata.namespace) {
 			this.addTask("generateManifestBundle", async () => {
-				const generateManifestBundle = taskRepository.getTask("generateManifestBundle").task;
+				const generateManifestBundle = getTask("generateManifestBundle").task;
 				return generateManifestBundle({
 					workspace: resourceCollections.workspace,
 					options: {
@@ -68,7 +68,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
 			this.addTask("generateComponentPreload", async () => {
-				return taskRepository.getTask("generateComponentPreload").task({
+				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -81,7 +81,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		} else if (project.metadata.namespace) {
 			// Default component preload for application namespace
 			this.addTask("generateComponentPreload", async () => {
-				return taskRepository.getTask("generateComponentPreload").task({
+				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -93,7 +93,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("generateStandaloneAppBundle", async () => {
-			return taskRepository.getTask("generateStandaloneAppBundle").task({
+			return getTask("generateStandaloneAppBundle").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -104,7 +104,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("transformBootstrapHtml", async () => {
-			return taskRepository.getTask("transformBootstrapHtml").task({
+			return getTask("transformBootstrapHtml").task({
 				workspace: resourceCollections.workspace,
 				options: {
 					projectName: project.metadata.name,
@@ -117,7 +117,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		if (bundles) {
 			this.addTask("generateBundle", async () => {
 				return Promise.all(bundles.map((bundle) => {
-					return taskRepository.getTask("generateBundle").task({
+					return getTask("generateBundle").task({
 						workspace: resourceCollections.workspace,
 						dependencies: resourceCollections.dependencies,
 						options: {
@@ -131,7 +131,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("createDebugFiles", async () => {
-			const createDebugFiles = taskRepository.getTask("createDebugFiles").task;
+			const createDebugFiles = getTask("createDebugFiles").task;
 			return createDebugFiles({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -141,7 +141,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("uglify", async () => {
-			const uglify = taskRepository.getTask("uglify").task;
+			const uglify = getTask("uglify").task;
 			return uglify({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -151,7 +151,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		});
 
 		this.addTask("generateVersionInfo", async () => {
-			return taskRepository.getTask("generateVersionInfo").task({
+			return getTask("generateVersionInfo").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
@@ -163,7 +163,7 @@ class ApplicationBuilder extends AbstractBuilder {
 
 		if (project.metadata.namespace) {
 			this.addTask("generateCachebusterInfo", async () => {
-				return taskRepository.getTask("generateCachebusterInfo").task({
+				return getTask("generateCachebusterInfo").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -177,7 +177,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("generateApiIndex", async () => {
-			return taskRepository.getTask("generateApiIndex").task({
+			return getTask("generateApiIndex").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
 				options: {
