@@ -41,9 +41,19 @@ function createMiddleware({resources, middlewareUtil}) {
 				// Special handling for *.properties files escape non ascii characters.
 				const nonAsciiEscaper = require("@ui5/builder").processors.nonAsciiEscaper;
 				const project = resource._project; // _project might not be defined
-				const propertiesFileSourceEncoding = project && project.resources &&
+				let propertiesFileSourceEncoding = project && project.resources &&
 					project.resources.configuration && project.resources.configuration.propertiesFileSourceEncoding;
-				const encoding = nonAsciiEscaper.getEncodingFromAlias(propertiesFileSourceEncoding || "ISO-8859-1");
+
+				if (!propertiesFileSourceEncoding) {
+					if (project && ["0.1", "1.0", "1.1"].includes(project.specVersion)) {
+						// default encoding to "ISO-8859-1" for old specVersions
+						propertiesFileSourceEncoding = "ISO-8859-1";
+					} else {
+						// default encoding to "UTF-8" for all projects starting with specVersion 2.0
+						propertiesFileSourceEncoding = "UTF-8";
+					}
+				}
+				const encoding = nonAsciiEscaper.getEncodingFromAlias(propertiesFileSourceEncoding);
 				await nonAsciiEscaper({
 					resources: [resource], options: {
 						encoding
