@@ -3,7 +3,7 @@ const test = require("ava");
 
 const taskRepository = require("../../../lib/tasks/taskRepository");
 
-test("task retrieval", (t) => {
+test.serial("task retrieval", (t) => {
 	const taskPath = path.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
 	taskRepository.addTask({
 		name: "myTask",
@@ -24,7 +24,7 @@ test("Unknown task retrieval", (t) => {
 	t.deepEqual(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
 });
 
-test("Duplicate task", (t) => {
+test.serial("Duplicate task", (t) => {
 	const myTask = {};
 	taskRepository.addTask("myTask", myTask);
 	const error = t.throws(() => {
