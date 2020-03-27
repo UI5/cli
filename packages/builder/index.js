@@ -61,6 +61,8 @@ const modules = {
 		AbstractFormatter: "./lib/types/AbstractFormatter",
 		application: "./lib/types/application/applicationType",
 		library: "./lib/types/library/libraryType",
+		themeLibrary: "./lib/types/themeLibrary/themeLibraryType",
+		module: "./lib/types/module/moduleType",
 		typeRepository: "./lib/types/typeRepository"
 	}
 };
