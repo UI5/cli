@@ -73,9 +73,9 @@
 	"definitions": {
 		"resources-configuration-propertiesFileSourceEncoding": {
 			"enum": ["UTF-8", "ISO-8859-1"],
-			"default": "ISO-8859-1",
+			"default": "UTF-8",
 			"title": "Encoding of *.properties files",
-			"description": "By default, the UI5 Tooling expects *.properties files to be ISO-8859-1 encoded."
+			"description": "By default, the UI5 Tooling expects *.properties files to be UTF-8 encoded."
 		},
 		"builder-resources": {
 			"type": "object",
