@@ -11,8 +11,8 @@ const modules = {
 	 * @namespace
 	 */
 	ui5Framework: {
-		Openui5Resolver: require("./lib/ui5Framework/Openui5Resolver"),
-		Sapui5Resolver: require("./lib/ui5Framework/Sapui5Resolver")
+		Openui5Resolver: "./lib/ui5Framework/Openui5Resolver",
+		Sapui5Resolver: "./lib/ui5Framework/Sapui5Resolver"
 	},
 	/**
 	 * @public
@@ -20,8 +20,8 @@ const modules = {
 	 * @namespace
 	 */
 	validation: {
-		validator: require("./lib/validation/validator"),
-		ValidationError: require("./lib/validation/ValidationError")
+		validator: "./lib/validation/validator",
+		ValidationError: "./lib/validation/ValidationError"
 	},
 	/**
 	 * @private
@@ -29,8 +29,8 @@ const modules = {
 	 * @namespace
 	 */
 	translators: {
-		"npm": "./lib/translators/npm",
-		"static": "./lib/translators/static"
+		npm: "./lib/translators/npm",
+		static: "./lib/translators/static"
 	}
 };
 
