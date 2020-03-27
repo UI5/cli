@@ -26,10 +26,15 @@ function getTask(taskName) {
 	if (!taskInfo) {
 		throw new Error(`taskRepository: Unknown Task ${taskName}`);
 	}
-	return {
-		task: require(taskInfo.path),
-		specVersion: taskInfo.specVersion
-	};
+	try {
+		const task = require(taskInfo.path);
+		return {
+			task,
+			specVersion: taskInfo.specVersion
+		};
+	} catch (err) {
+		throw new Error(`taskRepository: Failed to require task module for ${taskName}: ${err.message}`);
+	}
 }
 
 function addTask({name, specVersion, taskPath}) {

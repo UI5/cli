@@ -3,7 +3,7 @@ const test = require("ava");
 
 const taskRepository = require("../../../lib/tasks/taskRepository");
 
-test.serial("task retrieval", (t) => {
+test("task retrieval", (t) => {
 	const taskPath = path.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
 	taskRepository.addTask({
 		name: "myTask",
@@ -24,12 +24,27 @@ test("Unknown task retrieval", (t) => {
 	t.deepEqual(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
 });
 
-test.serial("Duplicate task", (t) => {
+test("Duplicate task", (t) => {
 	const myTask = {};
-	taskRepository.addTask("myTask", myTask);
+	taskRepository.addTask("myOtherTask", myTask);
 	const error = t.throws(() => {
-		taskRepository.addTask("myTask", myTask);
+		taskRepository.addTask("myOtherTask", myTask);
 	}, Error);
 	t.deepEqual(error.message, "taskRepository: A task with the name undefined has already been registered",
 		"Correct exception");
+});
+
+test("Task with invalid path", (t) => {
+	taskRepository.addTask({
+		name: "myTaskWithInvalidPath",
+		specVersion: "2.0",
+		taskPath: "/path/does/not/exist"
+	});
+	const error = t.throws(() => {
+		taskRepository.getTask("myTaskWithInvalidPath");
+	}, Error);
+	t.regex(error.message,
+		new RegExp("^taskRepository: Failed to require task module for myTaskWithInvalidPath: " +
+			"Cannot find module '/path/does/not/exist'"),
+		"Error message starts with expected text");
 });
