@@ -7,6 +7,7 @@ const mock = require("mock-require");
 const generateApiIndex = require("../../../../lib/tasks/jsdoc/generateApiIndex");
 
 test.afterEach.always((t) => {
+	mock.stopAll();
 	sinon.restore();
 });
 
@@ -23,11 +24,12 @@ test.serial("generateApiIndex", async (t) => {
 			}, "ReaderCollectionPrioritized got called with the correct arguments");
 		}
 	}
-	const readerCollectionPrioritizedStub = ReaderCollectionPrioritizedStubClass;
-	const readerCollectionPrioritizedOrig = ui5Fs.ReaderCollectionPrioritized;
-	ui5Fs.ReaderCollectionPrioritized = readerCollectionPrioritizedStub;
+
+	mock("@ui5/fs", {
+		ReaderCollectionPrioritized: ReaderCollectionPrioritizedStubClass,
+		fsInterface: fsInterfaceStub
+	});
 	const generateApiIndex = mock.reRequire("../../../../lib/tasks/jsdoc/generateApiIndex");
-	ui5Fs.ReaderCollectionPrioritized = readerCollectionPrioritizedOrig;
 
 	const writeStub = sinon.stub().resolves();
 	const workspace = {
@@ -60,11 +62,6 @@ test.serial("generateApiIndex", async (t) => {
 	t.deepEqual(writeStub.callCount, 2, "Write got called twice");
 	t.deepEqual(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
 	t.deepEqual(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
-
-	mock.stop("../../../../lib/processors/jsdoc/apiIndexGenerator");
-
-	sinon.restore();
-	mock.reRequire("../../../../lib/tasks/jsdoc/generateApiIndex");
 });
 
 test("generateApiIndex with missing parameters", async (t) => {

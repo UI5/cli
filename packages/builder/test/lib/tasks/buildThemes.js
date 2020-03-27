@@ -10,16 +10,26 @@ test.before(() => {
 	require("@ui5/logger").setLevel("verbose");
 });
 
+test.afterEach.always((t) => {
+	mock.stopAll();
+	sinon.restore();
+});
+
 test.beforeEach((t) => {
 	// Stubbing processors/themeBuilder
 	t.context.themeBuilderStub = sinon.stub();
 	t.context.fsInterfaceStub = sinon.stub(require("@ui5/fs"), "fsInterface");
 	t.context.fsInterfaceStub.returns({});
-	mock("../../../lib/processors/themeBuilder", t.context.themeBuilderStub);
 
 	t.context.ReaderCollectionPrioritizedStub = sinon.stub(require("@ui5/fs"), "ReaderCollectionPrioritized");
 	t.context.comboByGlob = sinon.stub();
 	t.context.ReaderCollectionPrioritizedStub.returns({byGlob: t.context.comboByGlob});
+
+	mock("@ui5/fs", {
+		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub,
+		fsInterface: t.context.fsInterfaceStub
+	});
+	mock("../../../lib/processors/themeBuilder", t.context.themeBuilderStub);
 
 	// Re-require tested module
 	buildThemes = mock.reRequire("../../../lib/tasks/buildThemes");

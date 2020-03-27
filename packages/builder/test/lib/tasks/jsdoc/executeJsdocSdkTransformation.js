@@ -1,18 +1,19 @@
 const test = require("ava");
 const sinon = require("sinon");
-const ui5Fs = require("@ui5/fs");
 
 const mock = require("mock-require");
 
 const executeJsdocSdkTransformation = require("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
 
 test.afterEach.always((t) => {
+	mock.stopAll();
 	sinon.restore();
 });
 
 test.serial("executeJsdocSdkTransformation", async (t) => {
+	t.plan(13);
 	const sdkTransformerStub = sinon.stub().resolves(["resource A", "resource B"]);
-	const fsInterfaceStub = sinon.stub(ui5Fs, "fsInterface").returns("custom fs");
+	const fsInterfaceStub = sinon.stub().returns("custom fs");
 	mock("../../../../lib/processors/jsdoc/sdkTransformer", sdkTransformerStub);
 
 	class ReaderCollectionPrioritizedStubClass {
@@ -23,11 +24,13 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 			}, "ReaderCollectionPrioritized got called with the correct arguments");
 		}
 	}
-	const readerCollectionPrioritizedStub = ReaderCollectionPrioritizedStubClass;
-	const readerCollectionPrioritizedOrig = ui5Fs.ReaderCollectionPrioritized;
-	ui5Fs.ReaderCollectionPrioritized = readerCollectionPrioritizedStub;
+
+	mock("@ui5/fs", {
+		ReaderCollectionPrioritized: ReaderCollectionPrioritizedStubClass,
+		fsInterface: fsInterfaceStub
+	});
+
 	const executeJsdocSdkTransformation = mock.reRequire("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
-	ui5Fs.ReaderCollectionPrioritized = readerCollectionPrioritizedOrig;
 
 	const writeStub = sinon.stub().resolves();
 	const byGlobWorkspaceStub = sinon.stub()
@@ -87,11 +90,6 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 	t.deepEqual(writeStub.callCount, 2, "Write got called twice");
 	t.deepEqual(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
 	t.deepEqual(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
-
-	mock.stop("../../../../lib/processors/jsdoc/sdkTransformer");
-
-	sinon.restore();
-	mock.reRequire("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
 });
 
 test("executeJsdocSdkTransformation with missing parameters", async (t) => {
@@ -140,9 +138,6 @@ test.serial("executeJsdocSdkTransformation with missing project api.json (skips 
 	t.deepEqual(infoLogStub.getCall(0).args[0],
 		"Failed to locate api.json resource for project some.project. Skipping SDK Transformation...",
 		"Correct message has been logged");
-
-	sinon.restore();
-	mock.reRequire("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
 });
 
 test("executeJsdocSdkTransformation too many project api.json resources", async (t) => {
