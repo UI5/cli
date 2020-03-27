@@ -17,7 +17,7 @@ const applicationBTree = {
 	path: applicationBPath,
 	dependencies: [],
 	_level: 0,
-	specVersion: "0.1",
+	specVersion: "2.0",
 	type: "application",
 	metadata: {
 		name: "application.b"
@@ -102,7 +102,41 @@ test("validate: empty encoding", async (t) => {
 	const applicationFormatter = new ApplicationFormatter({project: myProject});
 
 	await applicationFormatter.validate(myProject);
-	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1", "default resources encoding is set");
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "UTF-8",
+		"default resources encoding is set");
+});
+
+test("validate: empty encoding - legacy specVersion 0.1", async (t) => {
+	const myProject = clone(applicationBTree);
+	myProject.specVersion = "0.1";
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const applicationFormatter = new ApplicationFormatter({project: myProject});
+
+	await applicationFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1",
+		"default resources encoding is set");
+});
+
+test("validate: empty encoding - legacy specVersion 1.0", async (t) => {
+	const myProject = clone(applicationBTree);
+	myProject.specVersion = "1.0";
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const applicationFormatter = new ApplicationFormatter({project: myProject});
+
+	await applicationFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1",
+		"default resources encoding is set");
+});
+
+test("validate: empty encoding - legacy specVersion 1.1", async (t) => {
+	const myProject = clone(applicationBTree);
+	myProject.specVersion = "1.1";
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const applicationFormatter = new ApplicationFormatter({project: myProject});
+
+	await applicationFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1",
+		"default resources encoding is set");
 });
 
 test("validate: test invalid encoding", async (t) => {
@@ -111,8 +145,8 @@ test("validate: test invalid encoding", async (t) => {
 	const applicationFormatter = new ApplicationFormatter({project: myProject});
 
 	const error = await t.throwsAsync(applicationFormatter.validate(myProject));
-	t.is(error.message, `Invalid properties file encoding specified for project application.b: encoding provided: test. Must be either "ISO-8859-1" or "UTF-8".`,
-		"Missing source directory caused error");
+	t.is(error.message, `Invalid properties file encoding specified for project application.b. Encoding provided: ` +
+		`test. Must be either "ISO-8859-1" or "UTF-8".`, "Missing source directory caused error");
 });
 
 function createMockProject() {
@@ -247,7 +281,7 @@ const applicationHTree = {
 	path: applicationHPath,
 	dependencies: [],
 	_level: 0,
-	specVersion: "0.1",
+	specVersion: "2.0",
 	type: "application",
 	metadata: {
 		name: "application.h"

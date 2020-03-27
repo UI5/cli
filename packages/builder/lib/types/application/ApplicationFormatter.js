@@ -127,13 +127,19 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 				project.resources.configuration.paths.webapp = "webapp";
 			}
 
-			// default encoding to "ISO-8859-1" if not specified
 			if (!project.resources.configuration.propertiesFileSourceEncoding) {
-				project.resources.configuration.propertiesFileSourceEncoding = "ISO-8859-1";
+				if (["0.1", "1.0", "1.1"].includes(project.specVersion)) {
+					// default encoding to "ISO-8859-1" for old specVersions
+					project.resources.configuration.propertiesFileSourceEncoding = "ISO-8859-1";
+				} else {
+					// default encoding to "UTF-8" for all projects starting with specVersion 2.0
+					project.resources.configuration.propertiesFileSourceEncoding = "UTF-8";
+				}
 			}
 			if (!["ISO-8859-1", "UTF-8"].includes(project.resources.configuration.propertiesFileSourceEncoding)) {
-				throw new Error(`Invalid properties file encoding specified for project ${project.id}: ` +
-					`encoding provided: ${project.resources.configuration.propertiesFileSourceEncoding}. Must be either "ISO-8859-1" or "UTF-8".`);
+				throw new Error(`Invalid properties file encoding specified for project ${project.id}. ` +
+					`Encoding provided: ${project.resources.configuration.propertiesFileSourceEncoding}. ` +
+					`Must be either "ISO-8859-1" or "UTF-8".`);
 			}
 
 			const absolutePath = path.join(project.path, project.resources.configuration.paths.webapp);

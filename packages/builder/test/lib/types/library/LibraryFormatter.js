@@ -17,7 +17,7 @@ const libraryETree = {
 	path: libraryEPath,
 	dependencies: [],
 	_level: 0,
-	specVersion: "0.1",
+	specVersion: "2.0",
 	type: "library",
 	metadata: {
 		name: "library.e",
@@ -94,7 +94,41 @@ test("validate: empty encoding", async (t) => {
 	const libraryFormatter = new LibraryFormatter({project: myProject});
 
 	await libraryFormatter.validate(myProject);
-	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1", "default resources encoding is set");
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "UTF-8",
+		"default resources encoding is set");
+});
+
+test("validate: empty encoding - legacy specVersions 0.1", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.specVersion = "0.1";
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	await libraryFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1",
+		"default resources encoding is set");
+});
+
+test("validate: empty encoding - legacy specVersions 1.0", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.specVersion = "1.0";
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	await libraryFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1",
+		"default resources encoding is set");
+});
+
+test("validate: empty encoding - legacy specVersions 1.1", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.specVersion = "1.1";
+	delete myProject.resources.configuration.propertiesFileSourceEncoding;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	await libraryFormatter.validate(myProject);
+	t.deepEqual(myProject.resources.configuration.propertiesFileSourceEncoding, "ISO-8859-1",
+		"default resources encoding is set");
 });
 
 test("validate: src directory does not exist", async (t) => {
@@ -127,8 +161,8 @@ test("validate: test invalid encoding", async (t) => {
 	const libraryFormatter = new LibraryFormatter({project: myProject});
 
 	const error = await t.throwsAsync(libraryFormatter.validate(myProject));
-	t.is(error.message, `Invalid properties file encoding specified for project library.e.id: encoding provided: test. Must be either "ISO-8859-1" or "UTF-8".`,
-		"Missing source directory caused error");
+	t.is(error.message, `Invalid properties file encoding specified for project library.e.id. Encoding provided: ` +
+		`test. Must be either "ISO-8859-1" or "UTF-8".`, "Missing source directory caused error");
 });
 
 test("format: copyright already configured", async (t) => {
@@ -170,6 +204,42 @@ test.serial("format: copyright retrieval fails", async (t) => {
 
 test("format: formats correctly", async (t) => {
 	const myProject = clone(libraryETree);
+	myProject.metadata.copyright = undefined;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "validate").resolves();
+
+	await libraryFormatter.format();
+	t.deepEqual(myProject, {
+		id: "library.e.id",
+		version: "1.0.0",
+		path: libraryEPath,
+		dependencies: [],
+		_level: 0,
+		specVersion: "2.0",
+		type: "library",
+		metadata: {
+			name: "library.e",
+			copyright: "${copyright}",
+			namespace: "library/e"
+		},
+		resources: {
+			configuration: {
+				paths: {
+					src: "src",
+					test: "test"
+				}
+			},
+			pathMappings: {
+				"/resources/": "src",
+				"/test-resources/": "test"
+			}
+		}
+	}, "Project got formatted correctly");
+});
+
+test("format: formats legacy specVersion correctly", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.specVersion = "0.1";
 	myProject.metadata.copyright = undefined;
 	const libraryFormatter = new LibraryFormatter({project: myProject});
 	sinon.stub(libraryFormatter, "validate").resolves();
