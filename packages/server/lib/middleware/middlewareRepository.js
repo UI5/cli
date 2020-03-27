@@ -1,4 +1,4 @@
-const middlewares = {
+const middlewareInfos = {
 	compression: {path: "compression"},
 	cors: {path: "cors"},
 	csp: {path: "./csp"},
@@ -13,22 +13,28 @@ const middlewares = {
 };
 
 function getMiddleware(middlewareName) {
-	const middlewareInfo = middlewares[middlewareName];
+	const middlewareInfo = middlewareInfos[middlewareName];
 
 	if (!middlewareInfo) {
 		throw new Error(`middlewareRepository: Unknown Middleware ${middlewareName}`);
 	}
-	return {
-		middleware: require(middlewareInfo.path),
-		specVersion: middlewareInfo.specVersion
-	};
+	try {
+		const middleware = require(middlewareInfo.path);
+		return {
+			middleware,
+			specVersion: middlewareInfo.specVersion
+		};
+	} catch (err) {
+		throw new Error(
+			`middlewareRepository: Failed to require middleware module for ${middlewareName}: ${err.message}`);
+	}
 }
 
 function addMiddleware({name, specVersion, middlewarePath}) {
-	if (middlewares[name]) {
+	if (middlewareInfos[name]) {
 		throw new Error(`middlewareRepository: A middleware with the name ${name} has already been registered`);
 	}
-	middlewares[name] = {
+	middlewareInfos[name] = {
 		path: middlewarePath,
 		specVersion
 	};

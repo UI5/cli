@@ -44,3 +44,18 @@ test("addMiddleware: Duplicate middleware", async (t) => {
 		"middlewareRepository: A middleware with the name cors has already been registered",
 		"Threw error with correct message");
 });
+
+test("addMiddleware: Middleware with invalid path", (t) => {
+	middlewareRepository.addMiddleware({
+		name: "🙅",
+		specVersion: "2.0",
+		middlewarePath: "/path/does/not/exist"
+	});
+	const error = t.throws(() => {
+		middlewareRepository.getMiddleware("🙅");
+	}, Error);
+	t.regex(error.message,
+		new RegExp("^middlewareRepository: Failed to require middleware module for 🙅: " +
+			"Cannot find module '/path/does/not/exist'"),
+		"Error message starts with expected text");
+});
