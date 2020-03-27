@@ -11,11 +11,22 @@ const nonAsciiEscaper = require("../../processors/nonAsciiEscaper");
  * @returns {Promise<string>} resolves with the escaped string content of the given Resource
  */
 module.exports = async function(resource) {
-	const propertiesFileSourceEncoding = resource.getProject()
-			&& resource.getProject().resources
-			&& resource.getProject().resources.configuration
-			&& resource.getProject().resources.configuration.propertiesFileSourceEncoding;
-	const encoding = nonAsciiEscaper.getEncodingFromAlias(propertiesFileSourceEncoding || "ISO-8859-1");
+	const project = resource.getProject();
+	let propertiesFileSourceEncoding = project
+			&& project.resources
+			&& project.resources.configuration
+			&& project.resources.configuration.propertiesFileSourceEncoding;
+
+	if (!propertiesFileSourceEncoding) {
+		if (project && ["0.1", "1.0", "1.1"].includes(project.specVersion)) {
+			// default encoding to "ISO-8859-1" for old specVersions
+			propertiesFileSourceEncoding = "ISO-8859-1";
+		} else {
+			// default encoding to "UTF-8" for all projects starting with specVersion 2.0
+			propertiesFileSourceEncoding = "UTF-8";
+		}
+	}
+	const encoding = nonAsciiEscaper.getEncodingFromAlias(propertiesFileSourceEncoding);
 	await nonAsciiEscaper({
 		resources: [resource.resource],
 		options: {
