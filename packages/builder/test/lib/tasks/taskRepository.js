@@ -4,7 +4,7 @@ const test = require("ava");
 const taskRepository = require("../../../lib/tasks/taskRepository");
 
 test("task retrieval", (t) => {
-	const taskPath = path.posix.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
+	const taskPath = path.join(__dirname, "..", "..", "..", "lib", "tasks", "escapeNonAsciiCharacters");
 	taskRepository.addTask({
 		name: "myTask",
 		specVersion: "2.0",
