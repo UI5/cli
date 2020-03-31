@@ -730,6 +730,24 @@
 				"yazl": "^2.5.1"
 			},
 			"dependencies": {
+				"@ui5/fs": {
+					"version": "1.1.2",
+					"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-1.1.2.tgz",
+					"integrity": "sha512-WKoHz5IA10jr2rl2BrmJG7RtEnkpLqkQX84phBT+7onX9I+Yv72MspHZCQbHpGoaJxt6G3TavggchZ7FKroGEw==",
+					"requires": {
+						"@ui5/logger": "^1.0.1",
+						"clone": "^2.1.0",
+						"globby": "^10.0.0",
+						"graceful-fs": "^4.2.0",
+						"make-dir": "^3.0.0",
+						"micromatch": "^4.0.2",
+						"minimatch": "^3.0.3",
+						"mock-require": "^3.0.3",
+						"pretty-hrtime": "^1.0.3",
+						"random-int": "^2.0.0",
+						"slash": "^3.0.0"
+					}
+				},
 				"@ui5/logger": {
 					"version": "1.0.2",
 					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-1.0.2.tgz",
@@ -746,29 +764,34 @@
 			}
 		},
 		"@ui5/fs": {
-			"version": "1.1.2",
-			"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-1.1.2.tgz",
-			"integrity": "sha512-WKoHz5IA10jr2rl2BrmJG7RtEnkpLqkQX84phBT+7onX9I+Yv72MspHZCQbHpGoaJxt6G3TavggchZ7FKroGEw==",
+			"version": "2.0.0",
+			"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-2.0.0.tgz",
+			"integrity": "sha512-oc3eoLUBSXCgABXNV7Bt2onwKldG5TDUaEGczcb0aPqiUDtu5+PiI6UdwQ+2DMGnz465KvGtKE94AxURwlmveA==",
 			"requires": {
-				"@ui5/logger": "^1.0.1",
+				"@ui5/logger": "^2.0.0",
 				"clone": "^2.1.0",
-				"globby": "^10.0.0",
-				"graceful-fs": "^4.2.0",
-				"make-dir": "^3.0.0",
+				"globby": "^11.0.0",
+				"graceful-fs": "^4.2.3",
+				"make-dir": "^3.0.2",
 				"micromatch": "^4.0.2",
 				"minimatch": "^3.0.3",
 				"mock-require": "^3.0.3",
 				"pretty-hrtime": "^1.0.3",
-				"random-int": "^2.0.0",
+				"random-int": "^2.0.1",
 				"slash": "^3.0.0"
 			},
 			"dependencies": {
-				"@ui5/logger": {
-					"version": "1.0.2",
-					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-1.0.2.tgz",
-					"integrity": "sha512-k49q5D7EBk4vGzpM81KDNyGL4YaB12v8qYNqR7/5f4xoAksotf7h3VeAjCmJFSttEOnC9LNb9GYTzJAWJoCv7w==",
+				"globby": {
+					"version": "11.0.0",
+					"resolved": "https://registry.npmjs.org/globby/-/globby-11.0.0.tgz",
+					"integrity": "sha512-iuehFnR3xu5wBBtm4xi0dMe92Ob87ufyu/dHwpDYfbcpYpIbrO5OnS8M1vWvrBhSGEJ3/Ecj7gnX76P8YxpPEg==",
 					"requires": {
-						"npmlog": "^4.1.2"
+						"array-union": "^2.1.0",
+						"dir-glob": "^3.0.1",
+						"fast-glob": "^3.1.1",
+						"ignore": "^5.1.4",
+						"merge2": "^1.3.0",
+						"slash": "^3.0.0"
 					}
 				}
 			}
@@ -835,6 +858,24 @@
 				"yesno": "^0.3.1"
 			},
 			"dependencies": {
+				"@ui5/fs": {
+					"version": "1.1.2",
+					"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-1.1.2.tgz",
+					"integrity": "sha512-WKoHz5IA10jr2rl2BrmJG7RtEnkpLqkQX84phBT+7onX9I+Yv72MspHZCQbHpGoaJxt6G3TavggchZ7FKroGEw==",
+					"requires": {
+						"@ui5/logger": "^1.0.1",
+						"clone": "^2.1.0",
+						"globby": "^10.0.0",
+						"graceful-fs": "^4.2.0",
+						"make-dir": "^3.0.0",
+						"micromatch": "^4.0.2",
+						"minimatch": "^3.0.3",
+						"mock-require": "^3.0.3",
+						"pretty-hrtime": "^1.0.3",
+						"random-int": "^2.0.0",
+						"slash": "^3.0.0"
+					}
+				},
 				"@ui5/logger": {
 					"version": "1.0.2",
 					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-1.0.2.tgz",
