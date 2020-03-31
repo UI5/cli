@@ -2,7 +2,24 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v1.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.0.0...HEAD).
+
+<a name="v2.0.0"></a>
+## [v2.0.0] - 2020-03-31
+### Breaking Changes
+- Require Node.js >= 10 [`f21e704`](https://github.com/SAP/ui5-project/commit/f21e704f85297e3fa774c59bf5d4e8282b947b41)
+
+### Features
+- Add Configuration Schema ([#274](https://github.com/SAP/ui5-project/issues/274)) [`eb961c3`](https://github.com/SAP/ui5-project/commit/eb961c3377d42d3c93f7b7db5033f4e6716ddc71)
+- Support for spec version 2.0 ([#277](https://github.com/SAP/ui5-project/issues/277)) [`770a56f`](https://github.com/SAP/ui5-project/commit/770a56feed331a3157c9f9fad486a4674dc12c87)
+- Add ui5Framework translator and resolvers ([#265](https://github.com/SAP/ui5-project/issues/265)) [`5183e5c`](https://github.com/SAP/ui5-project/commit/5183e5cf99ac8cae6e4ccc8030d94214bce0563c)
+- **projectPreprocessor:** Log warning when using a deprecated or restricted dependency ([#268](https://github.com/SAP/ui5-project/issues/268)) [`b776a4f`](https://github.com/SAP/ui5-project/commit/b776a4fcc4604f3ecb0d3fc1e6418ed190c11756)
+
+### BREAKING CHANGE
+
+Support for older Node.js releases has been dropped.
+Only Node.js v10 or higher is supported.
+
 
 <a name="v1.2.0"></a>
 ## [v1.2.0] - 2020-01-13
@@ -113,6 +130,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v2.0.0]: https://github.com/SAP/ui5-project/compare/v1.2.0...v2.0.0
 [v1.2.0]: https://github.com/SAP/ui5-project/compare/v1.1.1...v1.2.0
 [v1.1.1]: https://github.com/SAP/ui5-project/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-project/compare/v1.0.3...v1.1.0
