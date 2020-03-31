@@ -99,7 +99,7 @@
 	},
 	"dependencies": {
 		"@ui5/fs": "^1.1.2",
-		"@ui5/logger": "^1.0.2",
+		"@ui5/logger": "^2.0.0",
 		"cheerio": "^0.22.0",
 		"escape-unicode": "^0.2.0",
 		"escodegen": "^1.14.1",
