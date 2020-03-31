@@ -87,7 +87,7 @@ class LocatorResourcePool extends ResourcePool {
  * @property {boolean} [resolveConditional=false] Whether conditional dependencies of modules should be resolved
  * 		and added to the module set for this section
  * @property {boolean} [renderer=false] Whether renderers for controls should be added to the module set
- * @property {boolean} [declareRawModules=true] Whether raw modules should be declared after jQuery.sap.global became available. With the usage of the ui5loader, this flag should be set to 'false'
+ * @property {boolean} [declareRawModules=false] Whether raw modules should be declared after jQuery.sap.global became available. With the usage of the ui5loader, this flag should be set to 'false'
  * @property {boolean} [sort=true] Whether the modules should be sorted by their dependencies
  */
 
