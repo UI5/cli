@@ -2,7 +2,35 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v1.10.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.0...HEAD).
+
+<a name="v2.0.0"></a>
+## [v2.0.0] - 2020-03-31
+### Breaking Changes
+- Make namespace mandatory for application and library projects ([#430](https://github.com/SAP/ui5-builder/issues/430)) [`ee96c00`](https://github.com/SAP/ui5-builder/commit/ee96c00d762ce24bba39f6c947997fcbb79efaae)
+- Require Node.js >= 10 [`5451765`](https://github.com/SAP/ui5-builder/commit/5451765f648ecfe2c057cc2feed2c8fb7e98ef00)
+- **LibraryFormatter:** Ignore manifest.json of nested apps [`846e929`](https://github.com/SAP/ui5-builder/commit/846e9290ef29aadc1ad18203003983181cd9c23a)
+
+### Dependency Updates
+- Bump globby from 10.0.2 to 11.0.0 ([#399](https://github.com/SAP/ui5-builder/issues/399)) [`29efbbd`](https://github.com/SAP/ui5-builder/commit/29efbbd8c5d8bf0aca19e75b08f7b3d6f89e8556)
+
+### Features
+- **buildThemes:** Add filtering for available themes ([#419](https://github.com/SAP/ui5-builder/issues/419)) [`848c503`](https://github.com/SAP/ui5-builder/commit/848c5032e98d229a655ddd17f07e252b57838f29)
+
+### BREAKING CHANGE
+
+If a library contains both, a manifest.json and .library file, they must
+either be located in the same directory or the manifest.json is ignored.
+In cases where the manifest.json is located on a higher level or
+different directory on the same level than a .library file, an exception
+is thrown.
+
+UI5 Project must be able to determine the project's namespace,
+otherwise an error is thrown.
+
+Support for older Node.js releases has been dropped.
+Only Node.js v10 or higher is supported.
+
 
 <a name="v1.10.1"></a>
 ## [v1.10.1] - 2020-02-24
@@ -331,6 +359,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.0.0]: https://github.com/SAP/ui5-builder/compare/v1.10.1...v2.0.0
 [v1.10.1]: https://github.com/SAP/ui5-builder/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/SAP/ui5-builder/compare/v1.9.0...v1.10.0
 [v1.9.0]: https://github.com/SAP/ui5-builder/compare/v1.8.0...v1.9.0
