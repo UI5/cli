@@ -190,7 +190,7 @@ class NpmTranslator {
 	async readProject({modulePath, moduleName, parentPath}) {
 		let {pPkg} = this.projectCache[modulePath] || {};
 		if (!pPkg) {
-			pPkg = readPkg(modulePath).catch((err) => {
+			pPkg = readPkg({cwd: modulePath}).catch((err) => {
 				// Failed to read package
 				// If dependency shim is available, fake the package
 
