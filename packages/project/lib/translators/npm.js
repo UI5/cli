@@ -286,8 +286,8 @@ class NpmTranslator {
 			return readPkgUp({
 				cwd: path.dirname(basePath)
 			}).then((result) => {
-				if (result.pkg) {
-					const pkg = result.pkg;
+				if (result && result.packageJson) {
+					const pkg = result.packageJson;
 
 					// As of today, collections only exist in shims
 					this.shimCollection(pkg.name, pkg);
@@ -397,14 +397,16 @@ class NpmTranslator {
 		return readPkgUp({
 			cwd: dirPath
 		}).then((result) => {
-			if (!result.pkg) {
+			if (!result || !result.packageJson) {
 				throw new Error(
 					`[npm translator] Failed to locate package.json for directory "${path.resolve(dirPath)}"`);
 			}
-			result.name = result.pkg.name;
-			// resolved path points to the package.json, but we want just the folder path
-			result.path = path.dirname(result.path);
-			return result;
+			return {
+				// resolved path points to the package.json, but we want just the folder path
+				path: path.dirname(result.path),
+				name: result.packageJson.name,
+				pkg: result.packageJson
+			};
 		}).then(this.processPkg.bind(this)).then((tree) => {
 			if (this.projectsWoUi5Deps.length) {
 				log.verbose(

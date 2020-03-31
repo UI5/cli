@@ -113,7 +113,7 @@
 		"pacote": "^11.1.4",
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^5.2.0",
-		"read-pkg-up": "^4.0.0",
+		"read-pkg-up": "^7.0.1",
 		"resolve": "^1.15.1",
 		"string.prototype.matchall": "^4.0.2"
 	},
