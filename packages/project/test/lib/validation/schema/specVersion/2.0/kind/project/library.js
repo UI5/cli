@@ -85,7 +85,8 @@ test("Valid configuration", async (t) => {
 								"resolve": false,
 								"resolveConditional": false,
 								"renderer": false,
-								"sort": false
+								"sort": false,
+								"declareRawModules": true
 							}
 						]
 					},
@@ -109,7 +110,8 @@ test("Valid configuration", async (t) => {
 									"some/app/Component.js"
 								],
 								"resolve": true,
-								"sort": true
+								"sort": true,
+								"declareRawModules": false
 							},
 							{
 								"mode": "require",
@@ -213,7 +215,8 @@ test("Invalid configuration", async (t) => {
 									"ui5loader-autoconfig.js"
 								],
 								"resolve": true,
-								"sort": true
+								"sort": true,
+								"declareModules": true
 							}
 						]
 					},
@@ -232,7 +235,8 @@ test("Invalid configuration", async (t) => {
 									"some/app/Component.js"
 								],
 								"resolve": true,
-								"sort": true
+								"sort": true,
+								"declareRawModules": []
 							},
 							{
 								"mode": "provide",
@@ -336,6 +340,15 @@ test("Invalid configuration", async (t) => {
 			schemaPath: "#/properties/jsdoc/properties/excludes/type",
 		},
 		{
+			dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				additionalProperty: "declareModules",
+			},
+			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/additionalProperties",
+		},
+		{
 			dataPath: "/builder/bundles/1/bundleDefinition",
 			keyword: "required",
 			message: "should have required property 'name'",
@@ -361,6 +374,15 @@ test("Invalid configuration", async (t) => {
 				missingProperty: "mode",
 			},
 			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/required",
+		},
+		{
+			dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
+			keyword: "type",
+			message: "should be boolean",
+			params: {
+				type: "boolean",
+			},
+			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/declareRawModules/type",
 		},
 		{
 			dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",

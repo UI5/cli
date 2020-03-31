@@ -141,6 +141,10 @@
 										"sort": {
 											"type": "boolean",
 											"default": true
+										},
+										"declareRawModules": {
+											"type": "boolean",
+											"default": false
 										}
 									}
 								}
