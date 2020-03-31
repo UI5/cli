@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/logger",
-	"version": "1.0.2",
+	"version": "2.0.0",
 	"description": "UI5 Tooling - Internal Logger",
 	"author": "SAP SE (https://www.sap.com)",
 	"license": "Apache-2.0",
