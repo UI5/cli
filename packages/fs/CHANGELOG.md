@@ -2,7 +2,26 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v1.1.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.0...HEAD).
+
+<a name="v2.0.0"></a>
+## [v2.0.0] - 2020-03-31
+### Breaking Changes
+- Remove deprecated parameter useNamespaces ([#223](https://github.com/SAP/ui5-fs/issues/223)) [`231b319`](https://github.com/SAP/ui5-fs/commit/231b319ea1899d6297e70e7b7746340cd5824217)
+- Require Node.js >= 10 [`46651f1`](https://github.com/SAP/ui5-fs/commit/46651f13bcfe391ef985fabab96f99b6ecafe13e)
+
+### Dependency Updates
+- Bump globby from 10.0.2 to 11.0.0 ([#207](https://github.com/SAP/ui5-fs/issues/207)) [`c81eb9d`](https://github.com/SAP/ui5-fs/commit/c81eb9dffc0d1281640efb2ad7e5419fe5451442)
+
+### BREAKING CHANGE
+
+Remove deprecated parameter "useNamespaces" from
+method "resourceFactory.createCollectionsForTree".
+Use parameter "getVirtualBasePathPrefix" instead.
+
+Support for older Node.js releases has been dropped.
+Only Node.js v10 or higher is supported.
+
 
 <a name="v1.1.2"></a>
 ## [v1.1.2] - 2019-07-01
@@ -66,6 +85,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v2.0.0]: https://github.com/SAP/ui5-fs/compare/v1.1.2...v2.0.0
 [v1.1.2]: https://github.com/SAP/ui5-fs/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/SAP/ui5-fs/compare/v1.1.0...v1.1.1
 [v1.1.0]: https://github.com/SAP/ui5-fs/compare/v1.0.2...v1.1.0
