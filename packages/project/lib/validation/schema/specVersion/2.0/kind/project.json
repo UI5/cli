@@ -290,6 +290,47 @@
 								"type": "boolean",
 								"default": false
 							}
+						},
+						"if": {
+							"not": {
+								"anyOf": [
+									{
+										"properties": {
+											"optional": {"enum": [false, null]}
+										}
+									},
+									{
+										"properties": {
+											"development": {"enum": [false, null]}
+										}
+									},
+									{
+										"not": {
+											"properties": {
+												"optional": {"type": "boolean"}
+											}
+										}
+									},
+									{
+										"not": {
+											"properties": {
+												"development": {"type": "boolean"}
+											}
+										}
+									}
+								],
+								"$comment": "Unfortunately it doesn't seem to work to check for both properties to be true, so instead checking for not having any of the properties to other values like false, not defined or any other type."
+							}
+						},
+						"then": {
+							"additionalProperties": false,
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							},
+							"errorMessage": "Either \"development\" or \"optional\" can be true, but not both",
+							"$comment": "Defining a custom error message and only allowing the \"name\" property causes editors to show the custom error on both properties."
 						}
 					}
 				}
