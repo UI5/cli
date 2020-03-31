@@ -2,7 +2,32 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v1.6.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.0.0...HEAD).
+
+<a name="v2.0.0"></a>
+## [v2.0.0] - 2020-03-31
+### Breaking Changes
+- Require Node.js >= 10 [`a8c7a13`](https://github.com/SAP/ui5-server/commit/a8c7a13f68426012e5ff9cfddb365bb32c46f9dc)
+- **serveResources middleware:** Expect *.properties files in UTF-8 by default [`af7f9ad`](https://github.com/SAP/ui5-server/commit/af7f9ad52aa834f63c163b99eb4fbc8d1bb05079)
+
+### Bug Fixes
+- Handle encoding in request paths correctly [`256b3f0`](https://github.com/SAP/ui5-server/commit/256b3f037880aad077b0158e3551e10ce8a3dbc7)
+
+### Features
+- Add MiddlewareUtil providing convenience functions to all middleware [`b8ab775`](https://github.com/SAP/ui5-server/commit/b8ab775039635a25109797b92fe34358057ea5e8)
+- Add test runner middleware [`ea77e20`](https://github.com/SAP/ui5-server/commit/ea77e201e20545fca7494fc581aa42adbcb2c1d7)
+
+### BREAKING CHANGE
+
+If the project a "*.properties" resource originates from cannot be
+determined, or if the project does not define a
+propertiesFileSourceEncoding configuration or uses a legacy specVersion
+(<2.0), the serveResources middleware assumes that the resource is UTF-8
+encoded instead of ISO-8859-1.
+
+Support for older Node.js releases has been dropped.
+Only Node.js v10 or higher is supported.
+
 
 <a name="v1.6.0"></a>
 ## [v1.6.0] - 2020-02-24
@@ -129,6 +154,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-serv
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.0.0]: https://github.com/SAP/ui5-server/compare/v1.6.0...v2.0.0
 [v1.6.0]: https://github.com/SAP/ui5-server/compare/v1.5.4...v1.6.0
 [v1.5.4]: https://github.com/SAP/ui5-server/compare/v1.5.3...v1.5.4
 [v1.5.3]: https://github.com/SAP/ui5-server/compare/v1.5.2...v1.5.3
