@@ -212,8 +212,18 @@ module.exports = {
 		log.verbose(`Merging framework tree into project tree "${projectTree.metadata.name}"`);
 
 		const queue = [projectTree];
+		const processedProjects = [];
 		while (queue.length) {
 			const project = queue.shift();
+			if (processedProjects.includes(project.id)) {
+				// projectTree must be duplicate free. A second occurrence of the same project
+				//	is always the same object. Therefore a single processing needs to be ensured.
+				// Otherwise the isFrameworkProject check would detect framework dependencies added
+				//	at an earlier processing of the project and yield incorrect logging.
+				log.verbose(`Project ${project.metadata.name} (${project.id}) has already been processed`);
+				return;
+			}
+			processedProjects.push(project.id);
 
 			project.dependencies = project.dependencies.filter((depProject) => {
 				if (utils.isFrameworkProject(depProject)) {

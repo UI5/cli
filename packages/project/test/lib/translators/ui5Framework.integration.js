@@ -34,6 +34,10 @@ test.beforeEach((t) => {
 	sinon.stub(lockfile, "lock").yieldsAsync();
 	sinon.stub(lockfile, "unlock").yieldsAsync();
 
+	const testLogger = logger.getLogger();
+	sinon.stub(logger, "getLogger").returns(testLogger);
+	t.context.logInfoSpy = sinon.spy(testLogger, "info");
+
 	mock("mkdirp", sinon.stub().resolves());
 
 	// Re-require to ensure that mocked modules are used
@@ -149,22 +153,25 @@ function defineTest(testName, {
 			logger.setLevel("verbose");
 		}
 
+		const testDependency = {
+			id: "test-dependency-id",
+			version: "4.5.6",
+			path: path.join(fakeBaseDir, "project-test-dependency"),
+			dependencies: []
+		};
 		const translatorTree = {
 			id: "test-application-id",
 			version: "1.2.3",
 			path: path.join(fakeBaseDir, "project-test-application"),
 			dependencies: [
-				{
-					id: "test-dependency-id",
-					version: "4.5.6",
-					path: path.join(fakeBaseDir, "project-test-dependency"),
-					dependencies: []
-				},
+				testDependency,
 				{
 					id: "test-dependency-no-framework-id",
 					version: "7.8.9",
 					path: path.join(fakeBaseDir, "project-test-dependency-no-framework"),
-					dependencies: []
+					dependencies: [
+						testDependency
+					]
 				},
 				{
 					id: "test-dependency-framework-old-spec-version-id",
@@ -377,6 +384,68 @@ function defineTest(testName, {
 				.resolves(distributionMetadata);
 		}
 
+		const testDependencyProject = project({
+			_level: 1,
+			name: "test-dependency",
+			version: "4.5.6",
+			type: "library",
+			framework: {
+				version: "1.99.0",
+				name: frameworkName,
+				libraries: [
+					{
+						name: "sap.ui.lib1"
+					},
+					{
+						name: "sap.ui.lib2"
+					},
+					{
+						name: "sap.ui.lib5",
+						optional: true
+					},
+					{
+						name: "sap.ui.lib6",
+						development: true
+					},
+					{
+						name: "sap.ui.lib8",
+						optional: true
+					}
+				]
+			},
+			dependencies: [
+				frameworkProject({
+					_level: 1,
+					name: "sap.ui.lib1",
+				}),
+				frameworkProject({
+					_level: 1,
+					name: "sap.ui.lib2",
+					dependencies: [
+						frameworkProject({
+							_level: 2,
+							name: "sap.ui.lib3",
+							dependencies: [
+								frameworkProject({
+									name: "sap.ui.lib4",
+									_level: 1,
+									dependencies: [
+										frameworkProject({
+											_level: 1,
+											name: "sap.ui.lib1"
+										})
+									]
+								})
+							]
+						})
+					]
+				}),
+				frameworkProject({
+					_level: 1,
+					name: "sap.ui.lib8",
+				})
+			]
+		});
 		const expectedTree = project({
 			_level: 0,
 			name: "test-application",
@@ -400,73 +469,13 @@ function defineTest(testName, {
 				]
 			},
 			dependencies: [
-				project({
-					_level: 1,
-					name: "test-dependency",
-					version: "4.5.6",
-					type: "library",
-					framework: {
-						version: "1.99.0",
-						name: frameworkName,
-						libraries: [
-							{
-								name: "sap.ui.lib1"
-							},
-							{
-								name: "sap.ui.lib2"
-							},
-							{
-								name: "sap.ui.lib5",
-								optional: true
-							},
-							{
-								name: "sap.ui.lib6",
-								development: true
-							},
-							{
-								name: "sap.ui.lib8",
-								optional: true
-							}
-						]
-					},
-					dependencies: [
-						frameworkProject({
-							_level: 1,
-							name: "sap.ui.lib1",
-						}),
-						frameworkProject({
-							_level: 1,
-							name: "sap.ui.lib2",
-							dependencies: [
-								frameworkProject({
-									_level: 2,
-									name: "sap.ui.lib3",
-									dependencies: [
-										frameworkProject({
-											name: "sap.ui.lib4",
-											_level: 1,
-											dependencies: [
-												frameworkProject({
-													_level: 1,
-													name: "sap.ui.lib1"
-												})
-											]
-										})
-									]
-								})
-							]
-						}),
-						frameworkProject({
-							_level: 1,
-							name: "sap.ui.lib8",
-						})
-					]
-				}),
+				testDependencyProject,
 				project({
 					_level: 1,
 					name: "test-dependency-no-framework",
 					version: "7.8.9",
-					type: "library"
+					type: "library",
+					dependencies: [testDependencyProject]
 				}),
 				project({
 					_level: 1,
@@ -506,6 +515,10 @@ function defineTest(testName, {
 		const tree = await normalizer.generateProjectTree();
 
 		t.deepEqual(tree, expectedTree, "Returned tree should be correct");
+		const frameworkLibAlreadyAddedInfoLogged = (t.context.logInfoSpy.getCalls()
+			.map(($) => $.firstArg)
+			.findIndex(($) => $.includes("defines a dependency to the UI5 framework library")) !== -1);
+		t.false(frameworkLibAlreadyAddedInfoLogged, "No info regarding already added UI5 framework libraries logged");
 	});
 }
 
