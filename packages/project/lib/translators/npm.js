@@ -429,7 +429,7 @@ class NpmTranslator {
 			for (let i = 0; i < tree.length; i++) {
 				const rootPackage = tree[i];
 				if (path.resolve(rootPackage.path) === path.resolve(dirPath)) {
-					log.verbose("Built tree:");
+					log.verbose("Treetop:");
 					log.verbose(rootPackage);
 					return rootPackage;
 				}
