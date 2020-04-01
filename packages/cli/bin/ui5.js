@@ -45,6 +45,10 @@ setTimeout(() => {
 		shouldNotifyInNpmScript: true
 	}).notify();
 
+	cli.parserConfiguration({
+		"parse-numbers": false
+	});
+
 	// Explicitly set CLI version as the yargs default might
 	// be wrong in case a local CLI installation is used
 	// Also add CLI location
