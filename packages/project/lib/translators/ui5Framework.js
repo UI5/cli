@@ -136,17 +136,24 @@ module.exports = {
 			);
 		}
 
+		let Resolver;
+		if (frameworkName === "OpenUI5") {
+			Resolver = require("../ui5Framework/Openui5Resolver");
+		} else if (frameworkName === "SAPUI5") {
+			Resolver = require("../ui5Framework/Sapui5Resolver");
+		}
+
 		let version;
 		if (!tree.framework.version) {
 			throw new Error(
 				`framework.version is not defined for project ${tree.id}`
 			);
 		} else if (options.versionOverride) {
+			version = await Resolver.resolveVersion(options.versionOverride, {cwd: tree.path});
 			log.info(
 				`Overriding configured ${frameworkName} version ` +
-				`${tree.framework.version} with supplied version ${options.versionOverride}`
+				`${tree.framework.version} with version ${version}`
 			);
-			version = options.versionOverride;
 		} else {
 			version = tree.framework.version;
 		}
@@ -159,14 +166,7 @@ module.exports = {
 
 		log.info(`Using ${frameworkName} version: ${version}`);
 
-		let resolver;
-		if (frameworkName === "OpenUI5") {
-			const Openui5Resolver = require("../ui5Framework/Openui5Resolver");
-			resolver = new Openui5Resolver({cwd: tree.path, version});
-		} else if (frameworkName === "SAPUI5") {
-			const Sapui5Resolver = require("../ui5Framework/Sapui5Resolver");
-			resolver = new Sapui5Resolver({cwd: tree.path, version});
-		}
+		const resolver = new Resolver({cwd: tree.path, version});
 
 		let startTime;
 		if (log.isLevelEnabled("verbose")) {

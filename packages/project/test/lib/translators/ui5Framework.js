@@ -13,6 +13,8 @@ test.beforeEach((t) => {
 			install: t.context.Sapui5ResolverInstallStub
 		};
 	});
+	t.context.Sapui5ResolverResolveVersionStub = sinon.stub();
+	t.context.Sapui5ResolverStub.resolveVersion = t.context.Sapui5ResolverResolveVersionStub;
 	mock("../../../lib/ui5Framework/Sapui5Resolver", t.context.Sapui5ResolverStub);
 
 	t.context.Openui5ResolverStub = sinon.stub();
@@ -120,6 +122,8 @@ test.serial("generateDependencyTree (with versionOverride)", async (t) => {
 
 	t.context.Sapui5ResolverInstallStub.resolves({libraryMetadata});
 
+	t.context.Sapui5ResolverResolveVersionStub.resolves("1.99.9");
+
 	const getProjectStub = sinon.stub();
 	getProjectStub.onFirstCall().returns({fake: "metadata-project-1"});
 	getProjectStub.onSecondCall().returns({fake: "metadata-project-2"});
@@ -131,10 +135,10 @@ test.serial("generateDependencyTree (with versionOverride)", async (t) => {
 			};
 		});
 
-	await ui5Framework.generateDependencyTree(tree, {versionOverride: "1.99.0"});
+	await ui5Framework.generateDependencyTree(tree, {versionOverride: "1.99"});
 
 	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
-	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{cwd: tree.path, version: "1.99.0"}],
+	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{cwd: tree.path, version: "1.99.9"}],
 		"Sapui5Resolver#constructor should be called with expected args");
 });
 
