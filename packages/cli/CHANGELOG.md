@@ -2,7 +2,31 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v1.14.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v2.0.0...HEAD).
+
+<a name="v2.0.0"></a>
+## [v2.0.0] - 2020-04-01
+### Breaking Changes
+- Require Node.js >= 10 [`e0916ec`](https://github.com/SAP/ui5-cli/commit/e0916ec85315f6370af1b6fbc4ba5ff99f9c2c49)
+
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 2.0.1 to 2.0.2 [`7539675`](https://github.com/SAP/ui5-cli/commit/7539675648581f3c36b21da67a1c4da12a10c763)
+- Bump [@ui5](https://github.com/ui5)/project from 2.0.0 to 2.0.1 [`2f8fbe1`](https://github.com/SAP/ui5-cli/commit/2f8fbe1b5390f6f90bf76ad107ee3f7547a7519d)
+- Bump [@ui5](https://github.com/ui5)/project from 1.2.0 to 2.0.0 [`f18f07c`](https://github.com/SAP/ui5-cli/commit/f18f07cc11f54fb936b582460d4b3ef8a844111a)
+- Bump [@ui5](https://github.com/ui5)/server from 1.6.0 to 2.0.0 [`f514cc5`](https://github.com/SAP/ui5-cli/commit/f514cc538760b6ee7a54220a2556acc8a89434b0)
+- Bump [@ui5](https://github.com/ui5)/builder from 1.10.1 to 2.0.0 [`eee43a6`](https://github.com/SAP/ui5-cli/commit/eee43a64f6b8523ffb381a47cafc416f9152d989)
+- Bump [@ui5](https://github.com/ui5)/fs from 1.1.2 to 2.0.0 [`68f69b7`](https://github.com/SAP/ui5-cli/commit/68f69b74dd2d8edcf1d145f7d7e9398136b537f4)
+- Bump [@ui5](https://github.com/ui5)/logger from 1.0.2 to 2.0.0 [`847193d`](https://github.com/SAP/ui5-cli/commit/847193d8a56c9401dfd680fe84fd99747b349ce9)
+
+### Features
+- Add "ui5 use/add" commands ([#315](https://github.com/SAP/ui5-cli/issues/315)) [`920fbfc`](https://github.com/SAP/ui5-cli/commit/920fbfc5ea27f689aeb38beb6540c41838225c8d)
+- Add --framework-version option ([#306](https://github.com/SAP/ui5-cli/issues/306)) [`ae7932b`](https://github.com/SAP/ui5-cli/commit/ae7932bb36b68f3836df285ab0040083ed914c2f)
+
+### BREAKING CHANGE
+
+Support for older Node.js releases has been dropped.
+Only Node.js v10 or higher is supported.
+
 
 <a name="v1.14.0"></a>
 ## [v1.14.0] - 2020-02-24
@@ -313,6 +337,7 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.0.0]: https://github.com/SAP/ui5-cli/compare/v1.14.0...v2.0.0
 [v1.14.0]: https://github.com/SAP/ui5-cli/compare/v1.13.1...v1.14.0
 [v1.13.1]: https://github.com/SAP/ui5-cli/compare/v1.13.0...v1.13.1
 [v1.13.0]: https://github.com/SAP/ui5-cli/compare/v1.12.2...v1.13.0
