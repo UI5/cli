@@ -444,3 +444,53 @@ test.serial("AbstractResolver: Static resolveVersion throws error for '~1.75.0'"
 
 	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
 });
+
+test.serial("AbstractResolver: Static resolveVersion throws error for version not found", async (t) => {
+	sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("1.74.0", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Could not resolve framework version 1.74.0`);
+});
+
+test.serial(
+	"AbstractResolver: Static resolveVersion throws error for version lower than lowest OpenUI5 version", async (t) => {
+		class Openui5Resolver extends AbstractResolver {
+			static async fetchAllVersions() {}
+		}
+
+		sinon.stub(Openui5Resolver, "fetchAllVersions")
+			.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("1.50.0", {
+			cwd: "/cwd",
+			ui5HomeDir: "/ui5HomeDir"
+		}));
+
+		t.is(error.message,
+			`Could not resolve framework version 1.50.0. Note that OpenUI5 framework libraries can only be ` +
+			`consumed by the UI5 Tooling starting with OpenUI5 v1.52.5`);
+	});
+
+test.serial(
+	"AbstractResolver: Static resolveVersion throws error for version lower than lowest SAPUI5 version", async (t) => {
+		class Sapui5Resolver extends AbstractResolver {
+			static async fetchAllVersions() {}
+		}
+
+		sinon.stub(Sapui5Resolver, "fetchAllVersions")
+			.returns(["1.76.0", "1.76.1", "1.90.0"]);
+
+		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("1.75.0", {
+			cwd: "/cwd",
+			ui5HomeDir: "/ui5HomeDir"
+		}));
+
+		t.is(error.message,
+			`Could not resolve framework version 1.75.0. Note that SAPUI5 framework libraries can only be ` +
+			`consumed by the UI5 Tooling starting with SAPUI5 v1.76.0`);
+	});

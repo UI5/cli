@@ -171,6 +171,16 @@ class AbstractResolver {
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec);
 		if (!resolvedVersion) {
+			if (this.name === "Sapui5Resolver" && semver.lt(spec, "1.76.0")) {
+				throw new Error(`Could not resolve framework version ${version}. ` +
+					`Note that SAPUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+					`starting with SAPUI5 v1.76.0`);
+			} else
+			if (this.name === "Openui5Resolver" && semver.lt(spec, "1.52.5")) {
+				throw new Error(`Could not resolve framework version ${version}. ` +
+					`Note that OpenUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+					`starting with OpenUI5 v1.52.5`);
+			}
 			throw new Error(`Could not resolve framework version ${version}`);
 		}
 		return resolvedVersion;
