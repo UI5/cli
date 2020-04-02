@@ -3,7 +3,7 @@
 	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project.json",
 
 	"type": "object",
-	"required": ["specVersion", "type", "metadata"],
+	"required": ["specVersion", "type"],
 	"properties": {
 		"specVersion": { "enum": ["2.0"] },
 		"kind": {
@@ -17,9 +17,6 @@
 				"theme-library",
 				"module"
 			]
-		},
-		"metadata": {
-			"$ref": "../../../ui5.json#/definitions/metadata"
 		}
 	},
 	"if": {
@@ -71,6 +68,31 @@
 	},
 
 	"definitions": {
+		"metadata": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"copyright": {
+					"type": "string"
+				},
+				"deprecated": {
+					"type": "boolean",
+					"default": false
+				},
+				"sapInternal": {
+					"type": "boolean",
+					"default": false
+				},
+				"allowSapInternal": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
 		"resources-configuration-propertiesFileSourceEncoding": {
 			"enum": ["UTF-8", "ISO-8859-1"],
 			"default": "UTF-8",

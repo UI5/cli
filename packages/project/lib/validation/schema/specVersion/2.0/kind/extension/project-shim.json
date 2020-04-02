@@ -14,7 +14,7 @@
 			"enum": ["project-shim"]
 		},
 		"metadata": {
-			"$ref": "../../../../ui5.json#/definitions/metadata"
+			"$ref": "../extension.json#/definitions/metadata"
 		},
 		"shims": {
 			"type": "object",

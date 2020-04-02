@@ -3,15 +3,12 @@
 	"$id": "http://ui5.sap/schema/specVersion/2.0.json",
 
 	"type": "object",
-	"required": ["specVersion", "metadata"],
+	"required": ["specVersion"],
 	"properties": {
 		"specVersion": { "enum": ["2.0"] },
 		"kind": {
 			"enum": ["project", "extension", null],
 			"$comment": "Using null to allow not defining 'kind' which defaults to project"
-		},
-		"metadata": {
-			"$ref": "../ui5.json#/definitions/metadata"
 		}
 	},
 	"if": {

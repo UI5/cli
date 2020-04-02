@@ -14,7 +14,7 @@
 			"enum": ["task"]
 		},
 		"metadata": {
-			"$ref": "../../../../ui5.json#/definitions/metadata"
+			"$ref": "../extension.json#/definitions/metadata"
 		},
 		"task": {
 			"type": "object",

@@ -46,7 +46,7 @@ test("Undefined", async (t) => {
 	}]);
 });
 
-test("Missing specVersion, type, metadata", async (t) => {
+test("Missing specVersion, type", async (t) => {
 	await assertValidation(t, {}, [
 		{
 			dataPath: "",
@@ -54,15 +54,6 @@ test("Missing specVersion, type, metadata", async (t) => {
 			message: "should have required property 'specVersion'",
 			params: {
 				missingProperty: "specVersion",
-			},
-			schemaPath: "#/required",
-		},
-		{
-			dataPath: "",
-			keyword: "required",
-			message: "should have required property 'metadata'",
-			params: {
-				missingProperty: "metadata",
 			},
 			schemaPath: "#/required",
 		},
@@ -79,19 +70,10 @@ test("Missing specVersion, type, metadata", async (t) => {
 	]);
 });
 
-test("Missing type, metadata", async (t) => {
+test("Missing type", async (t) => {
 	await assertValidation(t, {
 		"specVersion": "2.0"
 	}, [
-		{
-			dataPath: "",
-			keyword: "required",
-			message: "should have required property 'metadata'",
-			params: {
-				missingProperty: "metadata",
-			},
-			schemaPath: "#/required",
-		},
 		{
 			dataPath: "",
 			keyword: "required",
@@ -142,10 +124,7 @@ For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specific
 test("Invalid type", async (t) => {
 	await assertValidation(t, {
 		"specVersion": "2.0",
-		"type": "foo",
-		"metadata": {
-			"name": "foo"
-		}
+		"type": "foo"
 	}, [
 		{
 			dataPath: "/type",
@@ -167,10 +146,7 @@ test("Invalid type", async (t) => {
 test("Invalid kind", async (t) => {
 	await assertValidation(t, {
 		"specVersion": "2.0",
-		"kind": "foo",
-		"metadata": {
-			"name": "foo"
-		}
+		"kind": "foo"
 	}, [
 		{
 			dataPath: "/kind",
@@ -184,68 +160,6 @@ test("Invalid kind", async (t) => {
 				],
 			},
 			schemaPath: "#/properties/kind/enum",
-		}
-	]);
-});
-
-test("Invalid metadata.name", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": {}
-		}
-	}, [
-		{
-			dataPath: "/metadata/name",
-			keyword: "type",
-			message: "should be string",
-			params: {
-				type: "string"
-			},
-			schemaPath: "../ui5.json#/definitions/metadata/properties/name/type",
-		}
-	]);
-});
-
-test("Invalid metadata.copyright", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "foo",
-			"copyright": 123
-		}
-	}, [
-		{
-			dataPath: "/metadata/copyright",
-			keyword: "type",
-			message: "should be string",
-			params: {
-				type: "string"
-			},
-			schemaPath: "../ui5.json#/definitions/metadata/properties/copyright/type",
-		}
-	]);
-});
-
-test("Additional metadata property", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "foo",
-			"copyrihgt": "typo"
-		}
-	}, [
-		{
-			dataPath: "/metadata",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "copyrihgt"
-			},
-			schemaPath: "../ui5.json#/definitions/metadata/additionalProperties",
 		}
 	]);
 });

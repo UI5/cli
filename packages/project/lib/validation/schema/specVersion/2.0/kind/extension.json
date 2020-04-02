@@ -17,7 +17,7 @@
 			]
 		},
 		"metadata": {
-			"$ref": "../../../ui5.json#/definitions/metadata"
+			"$ref": "#/definitions/metadata"
 		}
 	},
 	"if": {
@@ -53,6 +53,21 @@
 				},
 				"then": {
 					"$ref": "extension/project-shim.json"
+				}
+			}
+		}
+	},
+	"definitions": {
+		"metadata": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"copyright": {
+					"type": "string"
 				}
 			}
 		}

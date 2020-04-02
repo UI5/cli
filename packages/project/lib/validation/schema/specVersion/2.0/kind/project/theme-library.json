@@ -14,7 +14,7 @@
 			"enum": ["theme-library"]
 		},
 		"metadata": {
-			"$ref": "../../../../ui5.json#/definitions/metadata"
+			"$ref": "../project.json#/definitions/metadata"
 		},
 		"framework": {
 			"$ref": "../project.json#/definitions/framework"

@@ -14,7 +14,7 @@
 			"enum": ["server-middleware"]
 		},
 		"metadata": {
-			"$ref": "../../../../ui5.json#/definitions/metadata"
+			"$ref": "../extension.json#/definitions/metadata"
 		},
 		"middleware": {
 			"type": "object",

@@ -14,7 +14,7 @@
 			"enum": ["module"]
 		},
 		"metadata": {
-			"$ref": "../../../../ui5.json#/definitions/metadata"
+			"$ref": "../project.json#/definitions/metadata"
 		},
 		"resources": {
 			"type": "object",

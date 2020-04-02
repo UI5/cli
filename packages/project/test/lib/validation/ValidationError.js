@@ -841,7 +841,7 @@ test.serial("ValidationError.formatMessage: keyword=required", (t) => {
 	const error = {
 		keyword: "required",
 		dataPath: "/metadata",
-		schemaPath: "../ui5.json#/definitions/metadata/required",
+		schemaPath: "#/definitions/metadata/required",
 		params: {missingProperty: "name"},
 		message: "should have required property 'name'"
 	};
