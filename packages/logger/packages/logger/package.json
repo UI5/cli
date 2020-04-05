@@ -108,7 +108,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^4.8.4",
 		"jsdoc": "^3.6.3",
-		"nyc": "^15.0.0",
+		"nyc": "^15.0.1",
 		"open-cli": "^6.0.1",
 		"rimraf": "^3.0.2",
 		"tap-nyan": "^1.1.0",
