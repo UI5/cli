@@ -24,9 +24,10 @@ const modules = {
 	resourceFactory: "./lib/resourceFactory"
 };
 
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 function exportModules(exportRoot, modulePaths) {
 	for (const moduleName in modulePaths) {
-		if (modulePaths.hasOwnProperty(moduleName)) {
+		if (hasOwnProperty.call(modulePaths, moduleName)) {
 			if (typeof modulePaths[moduleName] === "object") {
 				exportRoot[moduleName] = {};
 				exportModules(exportRoot[moduleName], modulePaths[moduleName]);
