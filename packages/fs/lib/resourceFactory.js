@@ -6,6 +6,7 @@ const ReaderCollection = require("./ReaderCollection");
 const ReaderCollectionPrioritized = require("./ReaderCollectionPrioritized");
 const DuplexCollection = require("./DuplexCollection");
 const Resource = require("./Resource");
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 /**
  * Resource Factory
@@ -69,7 +70,7 @@ const resourceFactory = {
 			if (project.resources && project.resources.pathMappings) {
 				const fsAdapters = [];
 				for (const virBasePath in project.resources.pathMappings) {
-					if (project.resources.pathMappings.hasOwnProperty(virBasePath)) {
+					if (hasOwnProperty.call(project.resources.pathMappings, virBasePath)) {
 						// Prevent duplicate dependency resource locators
 						const fsPath = project.resources.pathMappings[virBasePath];
 						const fsBasePath = path.join(project.path, fsPath);
@@ -111,7 +112,7 @@ const resourceFactory = {
 
 		if (tree.resources && tree.resources.pathMappings) {
 			for (const virBasePath in tree.resources.pathMappings) {
-				if (tree.resources.pathMappings.hasOwnProperty(virBasePath)) {
+				if (hasOwnProperty.call(tree.resources.pathMappings, virBasePath)) {
 					// Create an fs adapter for every path mapping
 					const fsAdapter = resourceFactory._createFsAdapterForVirtualBasePath({
 						project: tree,

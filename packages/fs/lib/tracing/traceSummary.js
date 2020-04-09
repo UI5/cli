@@ -1,5 +1,6 @@
 const log = require("@ui5/logger").getLogger("resources:tracing:total");
 const prettyHrtime = require("pretty-hrtime");
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 let timeoutId;
 let active = false;
 let tracesRunning = 0;
@@ -38,7 +39,7 @@ function report() {
 	report += `  ${colCount} rl-collections involed:\n`;
 
 	for (const coll in traceData.collections) {
-		if (traceData.collections.hasOwnProperty(coll)) {
+		if (hasOwnProperty.call(traceData.collections, coll)) {
 			report += `      ${traceData.collections[coll].calls}x ${coll}\n`;
 		}
 	}

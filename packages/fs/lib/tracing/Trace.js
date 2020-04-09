@@ -3,6 +3,7 @@ const logGlobs = require("@ui5/logger").getLogger("resources:tracing:Trace:globs
 const logPaths = require("@ui5/logger").getLogger("resources:tracing:Trace:paths");
 const prettyHrtime = require("pretty-hrtime");
 const summaryTrace = require("./traceSummary");
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 /**
  * Trace
@@ -59,7 +60,7 @@ class Trace {
 		report += `  ${colCount} reader-collections involed:\n`;
 
 		for (const coll in this._collections) {
-			if (this._collections.hasOwnProperty(coll)) {
+			if (hasOwnProperty.call(this._collections, coll)) {
 				report += `      ${this._collections[coll].calls}x ${coll}\n`;
 			}
 		}

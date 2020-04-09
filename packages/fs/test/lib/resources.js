@@ -4,6 +4,7 @@ const path = require("path");
 chai.use(require("chai-fs"));
 const assert = chai.assert;
 const sinon = require("sinon");
+const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 const ui5Fs = require("../../");
 const applicationBPath = path.join(__dirname, "..", "fixtures", "application.b");
@@ -52,8 +53,10 @@ test("createCollectionsForTree: high level test", (t) => {
 
 	// Check whether resulting object contains both,
 	// resource readers for the application source itself and for its dependencies.
-	t.true(resourceReaders.hasOwnProperty("source"), "Contains readers for the application code");
-	t.true(resourceReaders.hasOwnProperty("dependencies"), "Contains readers for the application's dependencies");
+	t.true(hasOwnProperty.call(resourceReaders, "source"),
+		"Contains readers for the application code");
+	t.true(hasOwnProperty.call(resourceReaders, "dependencies"),
+		"Contains readers for the application's dependencies");
 
 	t.true(resourceReaders.source._readers.length === 1, "One reader for the application code");
 	t.true(resourceReaders.dependencies._readers.length === 8, "Eight readers for the application's dependencies");
