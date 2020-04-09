@@ -19,24 +19,26 @@ function createBasicResource() {
 }
 
 test("Resource: constructor with missing path parameter", (t) => {
-	const error = t.throws(() => {
+	t.throws(() => {
 		new Resource({});
-	}, Error);
-
-	t.is(error.message, "Cannot create Resource: path parameter missing", "No path provided");
+	}, {
+		instanceOf: Error,
+		message: "Cannot create Resource: path parameter missing"
+	});
 });
 
 test("Resource: constructor with duplicated content parameter", (t) => {
-	const error = t.throws(() => {
+	t.throws(() => {
 		new Resource({
 			path: "my/path",
 			buffer: Buffer.from("Content"),
 			string: "Content"
 		});
-	}, Error);
-
-	t.is(error.message, "Cannot create Resource: Please set only one content parameter. " +
-		"Buffer, string, stream or createStream", "Duplicated content parameter");
+	}, {
+		instanceOf: Error,
+		message: "Cannot create Resource: Please set only one content parameter. " +
+			"Buffer, string, stream or createStream"
+	});
 });
 
 test("Resource: getBuffer with throwing an error", (t) => {
@@ -79,11 +81,12 @@ test("Resource: getStream throwing an error", (t) => {
 		path: "my/path/to/resource"
 	});
 
-	const error = t.throws(() => {
+	t.throws(() => {
 		resource.getStream();
-	}, Error);
-
-	t.is(error.message, "Resource my/path/to/resource has no content");
+	}, {
+		instanceOf: Error,
+		message: "Resource my/path/to/resource has no content"
+	});
 });
 
 test("Resource: setString", (t) => {
@@ -163,9 +166,9 @@ test("getStream with createStream callback content: Subsequent content requests 
 	resource.getStream();
 	t.throws(() => {
 		resource.getStream();
-	}, /Content of Resource \/app\/index.html has been drained/);
-	await t.throwsAsync(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
-	await t.throwsAsync(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+	}, {message: /Content of Resource \/app\/index.html has been drained/});
+	await t.throwsAsync(resource.getBuffer(), {message: /Content of Resource \/app\/index.html has been drained/});
+	await t.throwsAsync(resource.getString(), {message: /Content of Resource \/app\/index.html has been drained/});
 });
 
 test("getStream with Buffer content: Subsequent content requests should throw error due to drained " +
@@ -175,9 +178,9 @@ test("getStream with Buffer content: Subsequent content requests should throw er
 	resource.getStream();
 	t.throws(() => {
 		resource.getStream();
-	}, /Content of Resource \/app\/index.html has been drained/);
-	await t.throwsAsync(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
-	await t.throwsAsync(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+	}, {message: /Content of Resource \/app\/index.html has been drained/});
+	await t.throwsAsync(resource.getBuffer(), {message: /Content of Resource \/app\/index.html has been drained/});
+	await t.throwsAsync(resource.getString(), {message: /Content of Resource \/app\/index.html has been drained/});
 });
 
 test("getStream with Stream content: Subsequent content requests should throw error due to drained " +
@@ -197,9 +200,9 @@ test("getStream with Stream content: Subsequent content requests should throw er
 	resource.getStream();
 	t.throws(() => {
 		resource.getStream();
-	}, /Content of Resource \/app\/index.html has been drained/);
-	await t.throwsAsync(resource.getBuffer(), /Content of Resource \/app\/index.html has been drained/);
-	await t.throwsAsync(resource.getString(), /Content of Resource \/app\/index.html has been drained/);
+	}, {message: /Content of Resource \/app\/index.html has been drained/});
+	await t.throwsAsync(resource.getBuffer(), {message: /Content of Resource \/app\/index.html has been drained/});
+	await t.throwsAsync(resource.getString(), {message: /Content of Resource \/app\/index.html has been drained/});
 });
 
 test("getBuffer from Stream content: Subsequent content requests should not throw error due to drained " +
