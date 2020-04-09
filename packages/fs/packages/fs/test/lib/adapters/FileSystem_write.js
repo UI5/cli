@@ -60,7 +60,7 @@ test("Write resource in readOnly mode", async (t) => {
 
 	await t.notThrowsAsync(fsAccess(destFsPath, fs.constants.R_OK), "File can be read");
 	await t.throwsAsync(fsAccess(destFsPath, fs.constants.W_OK),
-		/EACCES: permission denied|EPERM: operation not permitted/,
+		{message: /EACCES: permission denied|EPERM: operation not permitted/},
 		"File can not be written");
 
 	t.notThrows(() => {
@@ -82,7 +82,7 @@ test("Write resource in drain mode", async (t) => {
 		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
 	});
 	await t.throwsAsync(resource.getBuffer(),
-		/Content of Resource \/app\/index.html has been drained/);
+		{message: /Content of Resource \/app\/index.html has been drained/});
 });
 
 test("Writing with readOnly and drain options set should fail", async (t) => {
@@ -91,6 +91,8 @@ test("Writing with readOnly and drain options set should fail", async (t) => {
 	// Get resource from one readerWriter
 	const resource = await readerWriters.source.byPath("/app/index.html");
 	// Write resource content to another readerWriter
-	await t.throwsAsync(readerWriters.dest.write(resource, {readOnly: true, drain: true}),
-		"Error while writing resource /app/index.html: Do not use options 'drain' and 'readOnly' at the same time.");
+	await t.throwsAsync(readerWriters.dest.write(resource, {readOnly: true, drain: true}), {
+		message: "Error while writing resource /app/index.html: " +
+			"Do not use options 'drain' and 'readOnly' at the same time."
+	});
 });

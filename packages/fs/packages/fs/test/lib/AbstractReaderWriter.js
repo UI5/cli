@@ -2,9 +2,10 @@ const test = require("ava");
 const AbstractReaderWriter = require("../../lib/AbstractReaderWriter");
 
 test("AbstractReaderWriter: constructor throws an error", (t) => {
-	const error = t.throws(() => {
+	t.throws(() => {
 		new AbstractReaderWriter();
-	}, TypeError);
-
-	t.is(error.message, "Class 'AbstractReaderWriter' is abstract");
+	}, {
+		instanceOf: TypeError,
+		message: "Class 'AbstractReaderWriter' is abstract"
+	});
 });
