@@ -135,7 +135,7 @@ function formatValue(value, indent) {
 		const string = safeDump(value);
 		const arr = string.split("\n");
 		arr.pop();
-		return "\n" + indentString + arr.join("\n" + indentString);
+		return "\n" + indentString + arr.join("\n" + indentString) + "\n";
 	}
 }
 
@@ -174,10 +174,14 @@ module.exports = async function({project, data}) {
 			const firstSiblingPosition = getPosition(parentData[siblings[0]]);
 			indent = firstSiblingPosition.start.column - 1;
 		}
+		let value = `${" ".repeat(indent)}${entryPath[entryPath.length - 1]}:${formatValue(newValue, indent + 2)}`;
+		if (!value.endsWith("\n")) {
+			value += "\n";
+		}
 		changes.push({
 			type: "insert",
 			parentPosition,
-			value: `${" ".repeat(indent)}${entryPath[entryPath.length - 1]}:${formatValue(newValue, indent + 2)}\n`
+			value
 		});
 	}
 
@@ -187,7 +191,7 @@ module.exports = async function({project, data}) {
 		const indent = position.start.column - 1;
 		changes.push({
 			type: "update",
-			position: getPositionFromPath(positionData, entryPath),
+			position,
 			value: `${entryPath[entryPath.length - 1]}:${formatValue(newValue, indent + 2)}`
 		});
 	}
