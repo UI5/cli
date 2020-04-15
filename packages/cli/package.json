@@ -106,7 +106,7 @@
 		"@ui5/fs": "^2.0.0",
 		"@ui5/logger": "^2.0.0",
 		"@ui5/project": "^2.0.3",
-		"@ui5/server": "^2.0.0",
+		"@ui5/server": "^2.0.1",
 		"chalk": "^3.0.0",
 		"data-with-position": "^0.4.0",
 		"import-local": "^3.0.2",
