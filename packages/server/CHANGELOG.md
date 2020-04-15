@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.0.1...HEAD).
+
+<a name="v2.0.1"></a>
+## [v2.0.1] - 2020-04-15
+### Dependency Updates
+- Bump devcert-sanscache from 0.4.6 to 0.4.8 ([#306](https://github.com/SAP/ui5-server/issues/306)) [`2a9d517`](https://github.com/SAP/ui5-server/commit/2a9d51776e967362d959eef45ce9533a9a27650c)
+
 
 <a name="v2.0.0"></a>
 ## [v2.0.0] - 2020-03-31
@@ -154,6 +160,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.0.1]: https://github.com/SAP/ui5-server/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/SAP/ui5-server/compare/v1.6.0...v2.0.0
 [v1.6.0]: https://github.com/SAP/ui5-server/compare/v1.5.4...v1.6.0
 [v1.5.4]: https://github.com/SAP/ui5-server/compare/v1.5.3...v1.5.4
