@@ -41,10 +41,21 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
 
 			if (!foundPort) {
 				if (changePortIfInUse) {
-					reject(new Error(`Could not find available ports between ${port} and ${portMax}.`));
+					const error = new Error(
+						`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.`);
+					error.code = "EADDRINUSE";
+					error.errno = "EADDRINUSE";
+					error.address = host;
+					error.port = portMax;
+					reject(error);
 					return;
 				} else {
-					reject(new Error(`Port ${port} already in use.`));
+					const error = new Error(`EADDRINUSE: Port ${port} is already in use.`);
+					error.code = "EADDRINUSE";
+					error.errno = "EADDRINUSE";
+					error.address = host;
+					error.port = portMax;
+					reject(error);
 					return;
 				}
 			}

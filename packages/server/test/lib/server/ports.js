@@ -35,7 +35,7 @@ test.after(() => {
 });
 
 test("Start server - Port is already taken and an error occurs", async (t) => {
-	t.plan(2);
+	t.plan(6);
 	const port = 3360;
 	const nodeServer = http.createServer((req, res) => {
 		res.end();
@@ -59,7 +59,28 @@ test("Start server - Port is already taken and an error occurs", async (t) => {
 	return t.throwsAsync(startServer).then((error) => {
 		t.deepEqual(
 			error.message,
-			"Port 3360 already in use.", "Server could not start, port is already taken and no other port is used."
+			"EADDRINUSE: Port 3360 is already in use.",
+			"Correct error message"
+		);
+		t.deepEqual(
+			error.code,
+			"EADDRINUSE",
+			"Correct error code"
+		);
+		t.deepEqual(
+			error.errno,
+			"EADDRINUSE",
+			"Correct error number"
+		);
+		t.deepEqual(
+			error.address,
+			"localhost",
+			"Correct error address"
+		);
+		t.deepEqual(
+			error.port,
+			3360,
+			"Correct error port"
 		);
 	});
 });
@@ -127,7 +148,7 @@ test.serial("Start server - Port can not be determined and an error occurs", (t)
 
 
 test("Start server - Port is already taken and an error occurs because no other port can be determined", (t) => {
-	t.plan(2);
+	t.plan(6);
 	const portStart = 4000;
 	const portRange = 31;
 	const servers = [];
@@ -164,8 +185,28 @@ test("Start server - Port is already taken and an error occurs because no other 
 		}
 		t.deepEqual(
 			error.message,
-			"Could not find available ports between 4000 and 4030.",
+			"EADDRINUSE: Could not find available ports between 4000 and 4030.",
 			"Server could not start, port is already taken and no other port is used."
+		);
+		t.deepEqual(
+			error.code,
+			"EADDRINUSE",
+			"Correct error code"
+		);
+		t.deepEqual(
+			error.errno,
+			"EADDRINUSE",
+			"Correct error number"
+		);
+		t.deepEqual(
+			error.address,
+			"localhost",
+			"Correct error address"
+		);
+		t.deepEqual(
+			error.port,
+			4030,
+			"Correct error port"
 		);
 	});
 });
