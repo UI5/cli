@@ -112,7 +112,7 @@
 		"import-local": "^3.0.2",
 		"js-yaml": "^3.13.1",
 		"open": "^7.0.3",
-		"semver": "^7.2.2",
+		"semver": "^7.3.2",
 		"string.prototype.matchall": "^4.0.2",
 		"supports-color": "^7.1.0",
 		"treeify": "^1.0.1",
