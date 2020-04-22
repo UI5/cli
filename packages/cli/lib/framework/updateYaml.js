@@ -79,7 +79,7 @@ function applyChanges(string, changes) {
 			};
 		}
 	}).sort((a, b) => {
-		// Sort decending by endIndex
+		// Sort descending by endIndex
 		// This means replacements are done from bottom to top to not affect length/index of upcoming replacements
 
 		if (a.endIndex < b.endIndex) {
@@ -114,7 +114,7 @@ function getPositionFromPath(positionData, path) {
 
 function formatValue(value, indent) {
 	if (typeof value === "string") {
-		// TOOD: Use better logic?
+		// TODO: Use better logic?
 		if (value.includes(".")) {
 			return ` "${value}"`; // Put quotes around versions
 		} else {
@@ -196,6 +196,18 @@ module.exports = async function({project, data}) {
 		});
 	}
 
+	function addRemove(entryPath) {
+		const position = getPositionFromPath(positionData, entryPath);
+		const copyPosition = JSON.parse(JSON.stringify(position));
+		// set copyPosition to 1 to remove the indent
+		copyPosition.start.column = 1;
+		changes.push({
+			type: "update",
+			position: copyPosition,
+			value: ``
+		});
+	}
+
 	if (!positionData.framework) {
 		addInsert(["framework"], data.framework);
 	} else {
@@ -216,8 +228,11 @@ module.exports = async function({project, data}) {
 		if (data.framework.libraries) {
 			if (!positionData.framework.libraries) {
 				addInsert(["framework", "libraries"], data.framework.libraries);
-			} else {
+			} else if (Array.isArray(data.framework.libraries) && data.framework.libraries.length > 0) {
 				addUpdate(["framework", "libraries"], data.framework.libraries);
+			} else {
+				// remove empty array
+				addRemove(["framework", "libraries"]);
 			}
 		}
 	}
