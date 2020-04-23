@@ -5,9 +5,8 @@
 const modules = {
 	/**
 	 * @public
-	 * @see module:@ui5/fs.adapters.AbstractAdapter
-	 * @see module:@ui5/fs.adapters.FileSystem
-	 * @see module:@ui5/fs.adapters.Memory
+	 * @alias module:@ui5/fs.adapters
+	 * @namespace
 	 */
 	adapters: {
 		AbstractAdapter: "./lib/adapters/AbstractAdapter",
