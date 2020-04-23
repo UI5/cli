@@ -6,7 +6,7 @@ const modules = {
 	builder: "./lib/builder/builder",
 	/**
 	 * @public
-	 * @see module:@ui5/builder.processors
+	 * @alias module:@ui5/builder.processors
 	 * @namespace
 	 */
 	processors: {
@@ -27,7 +27,7 @@ const modules = {
 	},
 	/**
 	 * @public
-	 * @see module:@ui5/builder.tasks
+	 * @alias module:@ui5/builder.tasks
 	 * @namespace
 	 */
 	tasks: {
@@ -53,7 +53,7 @@ const modules = {
 	},
 	/**
 	 * @private
-	 * @see module:@ui5/builder.types
+	 * @alias module:@ui5/builder.types
 	 * @namespace
 	 */
 	types: {
