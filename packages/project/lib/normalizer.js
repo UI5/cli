@@ -21,6 +21,7 @@ const Normalizer = {
 	 * @param {string} [options.translatorName] Translator to use
 	 * @param {Object} [options.translatorOptions] Options to pass to translator
 	 * @param {Object} [options.frameworkOptions] Options to pass to the framework installer
+	 * @param {string} [options.frameworkOptions.versionOverride] Framework version to use instead of the root projects framework
 	 * @returns {Promise<Object>} Promise resolving to tree object
 	 */
 	generateProjectTree: async function(options = {}) {

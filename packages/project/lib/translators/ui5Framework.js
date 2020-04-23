@@ -119,7 +119,7 @@ module.exports = {
 	 * @public
 	 * @param {Object} tree
 	 * @param {Object} [options]
-	 * @param {Object} [options.versionOverride] Framework version to use instead of the root projects framework
+	 * @param {string} [options.versionOverride] Framework version to use instead of the root projects framework
 	 *   version from the provided <code>tree</code>
 	 * @returns {Promise<Object|null>} Promise
 	 */

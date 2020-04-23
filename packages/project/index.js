@@ -7,7 +7,7 @@ const modules = {
 	projectPreprocessor: "./lib/projectPreprocessor",
 	/**
 	 * @public
-	 * @see module:@ui5/project.ui5Framework
+	 * @alias module:@ui5/project.ui5Framework
 	 * @namespace
 	 */
 	ui5Framework: {
@@ -16,7 +16,7 @@ const modules = {
 	},
 	/**
 	 * @public
-	 * @see module:@ui5/project.validation
+	 * @alias module:@ui5/project.validation
 	 * @namespace
 	 */
 	validation: {
@@ -25,7 +25,7 @@ const modules = {
 	},
 	/**
 	 * @private
-	 * @see module:@ui5/project.translators
+	 * @alias module:@ui5/project.translators
 	 * @namespace
 	 */
 	translators: {
