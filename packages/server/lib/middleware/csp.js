@@ -6,13 +6,13 @@ const HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY = "Content-Security-Policy-Repo
 const rPolicy = /^([-_a-zA-Z0-9]+)(:report-only|:ro)?$/i;
 
 function addHeader(res, header, value) {
-	const current = res.get(header);
+	const current = res.getHeader(header);
 	if ( current == null ) {
-		res.set(header, value);
+		res.setHeader(header, value);
 	} else if ( Array.isArray(current) ) {
-		res.set(header, [...current, value]);
+		res.setHeader(header, [...current, value]);
 	} else {
-		res.set(header, [current, value]);
+		res.setHeader(header, [current, value]);
 	}
 }
 

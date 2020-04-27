@@ -5,10 +5,10 @@ test("Default Settings", (t) => {
 	t.plan(3 + 7); // fourth request should end in middleware and not call next!
 	const middleware = cspMiddleware("sap-ui-xx-csp-policy", {});
 	const res = {
-		get: function() {
+		getHeader: function() {
 			return undefined;
 		},
-		set: function(header, value) {
+		setHeader: function(header, value) {
 			t.fail(`should not be called with header ${header} and value ${value}`);
 		}
 	};
@@ -54,10 +54,10 @@ test("Custom Settings", (t) => {
 	});
 	let expected;
 	const res = {
-		get: function() {
+		getHeader: function() {
 			return undefined;
 		},
-		set: function(header, value) {
+		setHeader: function(header, value) {
 			if ( header.toLowerCase() === "content-security-policy" ) {
 				t.is(value, expected.shift(), "should have the expected value");
 			} else {
@@ -92,10 +92,10 @@ test("No Dynamic Policy Definition", (t) => {
 		allowDynamicPolicyDefinition: false
 	});
 	const res = {
-		get: function() {
+		getHeader: function() {
 			return undefined;
 		},
-		set: function(header, value) {
+		setHeader: function(header, value) {
 			if ( header.toLowerCase() === "content-security-policy" ) {
 				t.is(value, expected.shift(), "should have the expected value");
 			} else {
@@ -124,10 +124,10 @@ test("Header Manipulation", (t) => {
 	});
 	let cspHeader = "default-src: spdy:";
 	const res = {
-		get: function() {
+		getHeader: function() {
 			return cspHeader;
 		},
-		set: function(header, value) {
+		setHeader: function(header, value) {
 			if ( header.toLowerCase() === "content-security-policy" ) {
 				cspHeader = value;
 			} else {
