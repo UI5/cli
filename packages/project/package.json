@@ -103,7 +103,7 @@
 		"@ui5/server": "^2.0.1",
 		"ajv": "^6.12.2",
 		"ajv-errors": "^1.0.1",
-		"chalk": "^3.0.0",
+		"chalk": "^4.0.0",
 		"escape-string-regexp": "^2.0.0",
 		"graceful-fs": "^4.2.3",
 		"js-yaml": "^3.13.1",
