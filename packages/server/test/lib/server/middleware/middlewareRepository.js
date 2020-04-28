@@ -53,7 +53,7 @@ test("addMiddleware: Middleware with invalid path", (t) => {
 	});
 	const error = t.throws(() => {
 		middlewareRepository.getMiddleware("🙅");
-	}, Error);
+	});
 	t.regex(error.message,
 		new RegExp("^middlewareRepository: Failed to require middleware module for 🙅: " +
 			"Cannot find module '/path/does/not/exist'"),
