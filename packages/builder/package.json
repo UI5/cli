@@ -26,7 +26,7 @@
 		"unit-watch": "rimraf test/tmp && ava --watch",
 		"unit-nyan": "rimraf test/tmp && ava --tap | tnyan",
 		"unit-xunit": "rimraf test/tmp && ava --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
-		"unit-inspect": "cross-env UI5_LOG_LVL=verbose node --inspect-brk node_modules/ava/profile.js",
+		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "nyc npm run unit",
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
 		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
@@ -48,9 +48,8 @@
 		"files": [
 			"test/lib/**/*.js"
 		],
-		"sources": [
-			"lib/**/*.js",
-			"test/lib/**/*.js"
+		"ignoredByWatcher": [
+			"test/tmp/**"
 		]
 	},
 	"nyc": {
@@ -122,7 +121,7 @@
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
-		"ava": "^2.4.0",
+		"ava": "^3.7.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",

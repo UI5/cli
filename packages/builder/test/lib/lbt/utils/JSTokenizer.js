@@ -78,7 +78,7 @@ test("tokenizer with enhancements getCh, getIndex, init, setIndex", function(t) 
 
 	t.throws(function() {
 		oTokenizer.setIndex(0);
-	}, /Must not set index 0 before previous index 7/, "setIndex must not go back in text");
+	}, {message: /Must not set index 0 before previous index 7/}, "setIndex must not go back in text");
 	oTokenizer.setIndex(42);
 	t.is(oTokenizer.getCh(), "", "move index beyond text end");
 

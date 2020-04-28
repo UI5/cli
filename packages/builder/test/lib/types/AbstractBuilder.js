@@ -44,11 +44,12 @@ const applicationBTree = {
 
 test("Instantiation of AbstractBuilder", (t) => {
 	const project = clone(applicationBTree);
-	const error = t.throws(() => {
+	t.throws(() => {
 		new AbstractBuilder({project});
-	}, TypeError, "abstract builder cannot be instantiated since it is abstract");
-	t.deepEqual(error.message, "Class 'AbstractBuilder' is abstract",
-		"Correct exception thrown");
+	}, {
+		instanceOf: TypeError,
+		message: "Class 'AbstractBuilder' is abstract"
+	});
 });
 
 class CustomBuilderWithoutStandardTasks extends AbstractBuilder {
@@ -59,11 +60,9 @@ class CustomBuilderWithoutStandardTasks extends AbstractBuilder {
 
 test("Instantiation of class with addStandardTasks not overwritten", (t) => {
 	const project = clone(applicationBTree);
-	const error = t.throws(() => {
+	t.throws(() => {
 		new CustomBuilderWithoutStandardTasks({project});
-	}, Error, "Has to implement 'addStandardTasks'");
-	t.deepEqual(error.message, "Function 'addStandardTasks' is not implemented",
-		"Correct exception thrown");
+	}, {message: "Function 'addStandardTasks' is not implemented"});
 });
 
 class CustomBuilder extends AbstractBuilder {
@@ -107,7 +106,7 @@ test("Instantiation with custom task without a name", (t) => {
 	};
 	const error = t.throws(() => {
 		new CustomBuilder({project});
-	}, Error);
+	});
 	t.deepEqual(error.message, "Missing name for custom task definition of project application.b at index 0",
 		"Correct exception thrown");
 });
@@ -121,7 +120,7 @@ test("Instantiation with custom task with neither beforeTask nor afterTask", (t)
 	};
 	const error = t.throws(() => {
 		new CustomBuilder({project});
-	}, Error);
+	});
 	t.deepEqual(error.message, `Custom task definition myTask of project application.b defines ` +
 		`neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`, "Correct exception thrown");
 });
@@ -137,7 +136,7 @@ test("Instantiation with custom task with both: beforeTask and afterTask", (t) =
 	};
 	const error = t.throws(() => {
 		new CustomBuilder({project});
-	}, Error);
+	});
 	t.deepEqual(error.message, `Custom task definition myTask of project application.b defines ` +
 		`both "beforeTask" and "afterTask" parameters. Only one must be defined.`, "Correct exception thrown");
 });
@@ -152,7 +151,7 @@ test("Instantiation with custom task that is unknown", (t) => {
 	};
 	const error = t.throws(() => {
 		new CustomBuilder({project});
-	}, Error);
+	});
 	t.deepEqual(error.message, "taskRepository: Unknown Task myTask", "Correct exception thrown");
 });
 
@@ -166,7 +165,7 @@ test("Instantiation with custom task and unknown beforeTask", (t) => {
 	};
 	const error = t.throws(() => {
 		new CustomBuilder({project});
-	}, Error);
+	});
 	t.deepEqual(error.message, "Could not find task someTask, referenced by custom task uglify, " +
 		"to be scheduled for project application.b", "Correct exception thrown");
 });
@@ -230,7 +229,7 @@ test.serial("Instantiation of empty builder with 2nd custom tasks defining neith
 	};
 	const error = t.throws(() => {
 		new EmptyBuilder({project});
-	}, Error);
+	});
 	t.deepEqual(error.message, `Custom task definition myTask2 of project application.b defines ` +
 		`neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`, "Correct exception thrown");
 });
@@ -347,7 +346,7 @@ test("addTask: Add duplicate task", (t) => {
 	customBuilder.addTask("myTask", myFunction);
 	const error = t.throws(() => {
 		customBuilder.addTask("myTask", myFunction);
-	}, Error);
+	});
 	t.deepEqual(error.message, "Failed to add duplicate task myTask for project application.b",
 		"Correct exception thrown");
 });
@@ -359,7 +358,7 @@ test("addTask: Add task already added to execution order", (t) => {
 	customBuilder.taskExecutionOrder.push("myTask");
 	const error = t.throws(() => {
 		customBuilder.addTask("myTask", myFunction);
-	}, Error);
+	});
 	t.deepEqual(error.message, "Builder: Failed to add task myTask for project application.b. " +
 		"It has already been scheduled for execution.", "Correct exception thrown");
 });

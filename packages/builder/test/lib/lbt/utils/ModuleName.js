@@ -23,7 +23,7 @@ test("toUI5LegacyName", (t) => {
 	t.deepEqual(ModuleName.toUI5LegacyName("jquery-b.js"), "jquery-b");
 	const error = t.throws(() => {
 		ModuleName.toUI5LegacyName("jquery-b.mjs");
-	}, Error);
+	});
 
 	t.deepEqual(error.message, "can't convert a non-JS resource name jquery-b.mjs to a UI5 module name");
 	const jQuerythirdParty = "sap/ui/thirdparty/jquery/jquery-b.js";
@@ -43,7 +43,7 @@ test("toRequireJSName", (t) => {
 
 	const error = t.throws(() => {
 		ModuleName.toRequireJSName("a");
-	}, Error, "does not contain a supported ending");
+	});
 
 	t.deepEqual(error.message, "can't convert a non-JS resource name a to a requireJS module name");
 });

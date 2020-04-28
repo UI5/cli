@@ -63,7 +63,7 @@ test("getStringArray", (t) => {
 	const array = esprima.parse("['a', 5]").body[0].expression;
 	const error = t.throws(() => {
 		ASTUtils.getStringArray(array);
-	}, TypeError, "array contains a number");
+	}, {instanceOf: TypeError}, "array contains a number");
 
 	t.deepEqual(error.message, "array element is not a string literal:Literal");
 

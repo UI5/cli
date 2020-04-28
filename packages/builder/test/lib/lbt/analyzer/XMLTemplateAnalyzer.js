@@ -237,7 +237,7 @@ test("_analyze: call twice to simulate busy", async (t) => {
 	// second call fails since it is still busy
 	const error = t.throws(()=> {
 		analyzer._analyze(null, moduleInfo, true);
-	}, Error);
+	});
 	t.deepEqual(error.message, "analyzer is busy");
 
 	await resultPromise;

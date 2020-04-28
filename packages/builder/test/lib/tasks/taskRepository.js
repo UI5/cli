@@ -20,7 +20,7 @@ test("task retrieval", (t) => {
 test("Unknown task retrieval", (t) => {
 	const error = t.throws(() => {
 		taskRepository.getTask("not-existing");
-	}, Error);
+	});
 	t.deepEqual(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
 });
 
@@ -29,7 +29,7 @@ test("Duplicate task", (t) => {
 	taskRepository.addTask("myOtherTask", myTask);
 	const error = t.throws(() => {
 		taskRepository.addTask("myOtherTask", myTask);
-	}, Error);
+	});
 	t.deepEqual(error.message, "taskRepository: A task with the name undefined has already been registered",
 		"Correct exception");
 });
@@ -42,7 +42,7 @@ test("Task with invalid path", (t) => {
 	});
 	const error = t.throws(() => {
 		taskRepository.getTask("myTaskWithInvalidPath");
-	}, Error);
+	});
 	t.regex(error.message,
 		new RegExp("^taskRepository: Failed to require task module for myTaskWithInvalidPath: " +
 			"Cannot find module '/path/does/not/exist'"),

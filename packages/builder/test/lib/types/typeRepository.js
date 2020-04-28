@@ -14,7 +14,7 @@ test("getType: type retrieval", (t) => {
 test("getType: Unknown type retrieval", (t) => {
 	const error = t.throws(() => {
 		typeRepository.getType("not-existing");
-	}, Error);
+	});
 	t.deepEqual(error.message, "Unknown type 'not-existing'", "Retrieving a type by an non-existing key should fail");
 });
 
@@ -23,7 +23,7 @@ test("addType: Duplicate type", (t) => {
 	typeRepository.addType("myType", myType);
 	const error = t.throws(() => {
 		typeRepository.addType("myType", myType);
-	}, Error);
+	});
 	t.deepEqual(error.message, "Type already registered 'myType'",
 		"Registering two types with the same key should throw an error");
 });
