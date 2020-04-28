@@ -100,7 +100,7 @@
 		"clone": "^2.1.0",
 		"globby": "^11.0.0",
 		"graceful-fs": "^4.2.3",
-		"make-dir": "^3.0.2",
+		"make-dir": "^3.1.0",
 		"micromatch": "^4.0.2",
 		"minimatch": "^3.0.3",
 		"mock-require": "^3.0.3",
@@ -109,11 +109,11 @@
 		"slash": "^3.0.0"
 	},
 	"devDependencies": {
-		"ava": "^3.7.0",
+		"ava": "^3.8.1",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",
-		"coveralls": "^3.0.11",
+		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",
 		"docdash": "^1.2.0",
 		"eslint": "^6.8.0",
