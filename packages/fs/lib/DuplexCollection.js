@@ -12,7 +12,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	/**
 	 * The Constructor.
 	 *
-	 * @param {Object} parameters
+	 * @param {object} parameters
 	 * @param {module:@ui5/fs.AbstractReader} parameters.reader Single reader or collection of readers
 	 * @param {module:@ui5/fs.AbstractReaderWriter} parameters.writer A ReaderWriter instance which is only used for writing files
 	 * @param {string} [parameters.name=""] The collection name
@@ -37,7 +37,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @private
 	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
-	 * @param {Object} options glob options
+	 * @param {object} options glob options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with a list of resources
 	 */
@@ -50,7 +50,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * For found resources that are also available in the writer, the writer resource will be returned.
 	 *
 	 * @param {string} virPattern glob pattern for virtual directory structure
-	 * @param {Object} [options] glob options
+	 * @param {object} [options] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -69,7 +69,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 *
 	 * @private
 	 * @param {string} virPath Virtual path
-	 * @param {Object} options Options
+	 * @param {object} options Options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */

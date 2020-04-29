@@ -31,7 +31,7 @@ class AbstractReader {
 	 * @public
 	 * @param {string|string[]} virPattern glob pattern as string or array of glob patterns for
 	 * 										virtual directory structure
-	 * @param {Object} [options] glob options
+	 * @param {object} [options] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -58,7 +58,7 @@ class AbstractReader {
 	 *
 	 * @public
 	 * @param {string} virPath Virtual path
-	 * @param {Object} [options] Options
+	 * @param {object} [options] Options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
@@ -77,7 +77,7 @@ class AbstractReader {
 	 * @protected
 	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
-	 * @param {Object} options glob options
+	 * @param {object} options glob options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -91,7 +91,7 @@ class AbstractReader {
 	 * @abstract
 	 * @protected
 	 * @param {string} pattern glob pattern
-	 * @param {Object} options glob options
+	 * @param {object} options glob options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
@@ -105,7 +105,7 @@ class AbstractReader {
 	 * @abstract
 	 * @protected
 	 * @param {string} virPath Virtual path
-	 * @param {Object} options Options
+	 * @param {object} options Options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */

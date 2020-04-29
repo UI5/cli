@@ -5,7 +5,7 @@
  * @alias module:@ui5/fs.fsInterface
  * @param {module:@ui5/fs.AbstractReader} reader Resource Reader or Collection
  *
- * @returns {Object} Object with [Node.js fs]{@link https://nodejs.org/api/fs.html} styled functions
+ * @returns {object} Object with [Node.js fs]{@link https://nodejs.org/api/fs.html} styled functions
  * [<code>readFile</code>]{@link https://nodejs.org/api/fs.html#fs_fs_readfile_path_options_callback},
  * [<code>stat</code>]{@link https://nodejs.org/api/fs.html#fs_fs_stat_path_options_callback},
  * [<code>readdir</code>]{@link https://nodejs.org/api/fs.html#fs_fs_readdir_path_options_callback} and

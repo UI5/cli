@@ -21,7 +21,7 @@ const resourceFactory = {
 	*
 	* @public
 	* @callback module:@ui5/fs.resourceFactory~getProjectExcludes
-	* @param {Object} Project
+	* @param {object} Project
 	* @returns {string[]} List of glob patterns to exclude
 	*/
 
@@ -30,9 +30,9 @@ const resourceFactory = {
 	*
 	* @public
 	* @callback module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix
-	* @param {Object} parameters Parameters
-	* @param {Object} parameters.project Project
-	* @param {Object} parameters.virBasePath virtual base path to prefix
+	* @param {object} parameters Parameters
+	* @param {object} parameters.project Project
+	* @param {object} parameters.virBasePath virtual base path to prefix
 	* @returns {string} Prefix for the virtual base path
 	*/
 
@@ -46,13 +46,13 @@ const resourceFactory = {
 	 * </pre>
 	 *
 	 * @public
-	 * @param {Object} tree A (sub-)tree
-	 * @param {Object} [parameters] Parameters
+	 * @param {object} tree A (sub-)tree
+	 * @param {object} [parameters] Parameters
 	 * @param {module:@ui5/fs.resourceFactory~getProjectExcludes} [parameters.getProjectExcludes]
 	 *						Callback to retrieve the exclude globs of a project
 	 * @param {module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix} [parameters.getVirtualBasePathPrefix]
 	 *						Callback to retrieve a prefix for a given virtual base path of a project if required
-	 * @returns {Object} Object containing <code>source</code> and <code>dependencies</code> resource readers
+	 * @returns {object} Object containing <code>source</code> and <code>dependencies</code> resource readers
 	 */
 	createCollectionsForTree(tree, {
 		getProjectExcludes, getVirtualBasePathPrefix, virtualReaders={}
@@ -147,7 +147,7 @@ const resourceFactory = {
 	 * Creates a FileSystem adapter mapping to the given virtual base path based on the given projects
 	 * configuration.
 	 *
-	 * @param {Object} parameters Parameters
+	 * @param {object} parameters Parameters
 	 * @param {Project} parameters.project A project
 	 * @param {string} parameters.virBasePath Virtual base path to create the adapter for
 	 * @param {module:@ui5/fs.resourceFactory~getProjectExcludes} [parameters.getProjectExcludes]
@@ -223,7 +223,7 @@ const resourceFactory = {
 	 * In any other case a virtual one.
 	 *
 	 * @public
-	 * @param {Object} parameters Parameters
+	 * @param {object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} [parameters.fsBasePath] File system base path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
@@ -242,7 +242,7 @@ const resourceFactory = {
 	 * Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
 	 *
 	 * @public
-	 * @param {Object} parameters Parameters to be passed to the resource constructor
+	 * @param {object} parameters Parameters to be passed to the resource constructor
 	 * @returns {module:@ui5/fs.Resource} Resource
 	 */
 	createResource(parameters) {
@@ -257,7 +257,7 @@ const resourceFactory = {
 	 * fetched from the memory to work on it in further build steps.
 	 *
 	 * @public
-	 * @param {Object} parameters
+	 * @param {object} parameters
 	 * @param {module:@ui5/fs.AbstractReader} parameters.reader The reader
 	 * @param {string} [parameters.name="vir & fs source"] Name of the collection
 	 * @param {string} [parameters.virBasePath="/"] Virtual base path

@@ -18,7 +18,7 @@ class FileSystem extends AbstractAdapter {
 	/**
 	 * The Constructor.
 	 *
-	 * @param {Object} parameters Parameters
+	 * @param {object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} parameters.fsBasePath (Physical) File system path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
@@ -33,7 +33,7 @@ class FileSystem extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {Array} patterns Array of glob patterns
-	 * @param {Object} [options={}] glob options
+	 * @param {object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
@@ -110,7 +110,7 @@ class FileSystem extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {string} virPath Virtual path
-	 * @param {Object} options Options
+	 * @param {object} options Options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource or null if not found
 	 */
@@ -177,7 +177,7 @@ class FileSystem extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {module:@ui5/fs.Resource} resource Resource to write
-	 * @param {Object} [options]
+	 * @param {object} [options]
 	 * @param {boolean} [options.readOnly] Whether the resource content shall be written read-only
 	 *						Do not use in conjunction with the <code>drain</code> option.
 	 *						The written file will be used as the new source of this resources content.

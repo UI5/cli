@@ -15,7 +15,7 @@ class Memory extends AbstractAdapter {
 	 * The constructor.
 	 *
 	 * @public
-	 * @param {Object} parameters Parameters
+	 * @param {object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 */
@@ -30,7 +30,7 @@ class Memory extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {Array} patterns array of glob patterns
-	 * @param {Object} [options={}] glob options
+	 * @param {object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
@@ -76,7 +76,7 @@ class Memory extends AbstractAdapter {
 	 *
 	 * @private
 	 * @param {string} virPath Virtual path
-	 * @param {Object} options Options
+	 * @param {object} options Options
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
