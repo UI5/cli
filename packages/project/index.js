@@ -35,18 +35,16 @@ const modules = {
 };
 
 function exportModules(exportRoot, modulePaths) {
-	for (const moduleName in modulePaths) {
-		if (modulePaths.hasOwnProperty(moduleName)) {
-			if (typeof modulePaths[moduleName] === "object") {
-				exportRoot[moduleName] = {};
-				exportModules(exportRoot[moduleName], modulePaths[moduleName]);
-			} else {
-				Object.defineProperty(exportRoot, moduleName, {
-					get() {
-						return require(modulePaths[moduleName]);
-					}
-				});
-			}
+	for (const moduleName of Object.keys(modulePaths)) {
+		if (typeof modulePaths[moduleName] === "object") {
+			exportRoot[moduleName] = {};
+			exportModules(exportRoot[moduleName], modulePaths[moduleName]);
+		} else {
+			Object.defineProperty(exportRoot, moduleName, {
+				get() {
+					return require(modulePaths[moduleName]);
+				}
+			});
 		}
 	}
 }

@@ -193,8 +193,8 @@ module.exports = {
 		// For this we clone all properties of the root project,
 		// except the dependencies since they will be overwritten anyways
 		const frameworkTree = {};
-		for (const attribute in tree) {
-			if (tree.hasOwnProperty(attribute) && attribute !== "dependencies") {
+		for (const attribute of Object.keys(tree)) {
+			if (attribute !== "dependencies") {
 				frameworkTree[attribute] = JSON.parse(JSON.stringify(tree[attribute]));
 			}
 		}

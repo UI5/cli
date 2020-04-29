@@ -463,36 +463,32 @@ class ProjectPreprocessor {
 		if (configurations) {
 			log.verbose(`Project shim ${extension.id} contains ` +
 				`${Object.keys(configurations)} configuration(s)`);
-			for (const projectId in configurations) {
-				if (configurations.hasOwnProperty(projectId)) {
-					this.normalizeConfig(configurations[projectId]); // TODO: Clone object beforehand?
-					if (this.configShims[projectId]) {
-						log.verbose(`Project shim ${extension.id}: A configuration shim for project ${projectId} `+
+			for (const projectId of Object.keys(configurations)) {
+				this.normalizeConfig(configurations[projectId]); // TODO: Clone object beforehand?
+				if (this.configShims[projectId]) {
+					log.verbose(`Project shim ${extension.id}: A configuration shim for project ${projectId} `+
 							"has already been applied. Skipping.");
-					} else if (this.isConfigValid(configurations[projectId])) {
-						log.verbose(`Project shim ${extension.id}: Adding project configuration for ${projectId}...`);
-						this.configShims[projectId] = configurations[projectId];
-					} else {
-						log.verbose(`Project shim ${extension.id}: Ignoring invalid ` +
+				} else if (this.isConfigValid(configurations[projectId])) {
+					log.verbose(`Project shim ${extension.id}: Adding project configuration for ${projectId}...`);
+					this.configShims[projectId] = configurations[projectId];
+				} else {
+					log.verbose(`Project shim ${extension.id}: Ignoring invalid ` +
 							`configuration shim for project ${projectId}`);
-					}
 				}
 			}
 		}
 
 		if (dependencies) {
 			// For the time being, shimmed dependencies only apply to shimmed project configurations
-			for (const projectId in dependencies) {
-				if (dependencies.hasOwnProperty(projectId)) {
-					if (this.configShims[projectId]) {
-						log.verbose(`Project shim ${extension.id}: Adding dependencies ` +
+			for (const projectId of Object.keys(dependencies)) {
+				if (this.configShims[projectId]) {
+					log.verbose(`Project shim ${extension.id}: Adding dependencies ` +
 							`to project shim '${projectId}'...`);
-						this.configShims[projectId].dependencies = dependencies[projectId];
-					} else {
-						log.verbose(`Project shim ${extension.id}: No configuration shim found for ` +
+					this.configShims[projectId].dependencies = dependencies[projectId];
+				} else {
+					log.verbose(`Project shim ${extension.id}: No configuration shim found for ` +
 							`project ID '${projectId}'. Dependency shims currently only apply ` +
 							"to projects with configuration shims.");
-					}
 				}
 			}
 		}
@@ -500,15 +496,13 @@ class ProjectPreprocessor {
 		if (collections) {
 			log.verbose(`Project shim ${extension.id} contains ` +
 				`${Object.keys(collections).length} collection(s)`);
-			for (const projectId in collections) {
-				if (collections.hasOwnProperty(projectId)) {
-					if (this.collections[projectId]) {
-						log.verbose(`Project shim ${extension.id}: A collection with id '${projectId}' `+
+			for (const projectId of Object.keys(collections)) {
+				if (this.collections[projectId]) {
+					log.verbose(`Project shim ${extension.id}: A collection with id '${projectId}' `+
 							"is already known. Skipping.");
-					} else {
-						log.verbose(`Project shim ${extension.id}: Adding collection with id '${projectId}'...`);
-						this.collections[projectId] = collections[projectId];
-					}
+				} else {
+					log.verbose(`Project shim ${extension.id}: Adding collection with id '${projectId}'...`);
+					this.collections[projectId] = collections[projectId];
 				}
 			}
 		}
@@ -559,14 +553,12 @@ class ProjectPreprocessor {
 				const collectionDep = project.dependencies[i];
 				const collectionModules = this.collections[depId].modules;
 				const projects = [];
-				for (const projectId in collectionModules) {
-					if (collectionModules.hasOwnProperty(projectId)) {
-						// Clone and modify collection "project"
-						const project = JSON.parse(JSON.stringify(collectionDep));
-						project.id = projectId;
-						project.path = path.join(project.path, collectionModules[projectId]);
-						projects.push(project);
-					}
+				for (const projectId of Object.keys(collectionModules)) {
+					// Clone and modify collection "project"
+					const project = JSON.parse(JSON.stringify(collectionDep));
+					project.id = projectId;
+					project.path = path.join(project.path, collectionModules[projectId]);
+					projects.push(project);
 				}
 
 				// Use first collection project to replace the collection dependency
@@ -623,8 +615,8 @@ class ProjectPreprocessor {
 			"_isRoot"
 		];
 		const config = {};
-		for (const key in project) {
-			if (project.hasOwnProperty(key) && !excludedProperties.includes(key)) {
+		for (const key of Object.keys(project)) {
+			if (!excludedProperties.includes(key)) {
 				config[key] = project[key];
 			}
 		}

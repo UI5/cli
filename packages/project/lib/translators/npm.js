@@ -65,8 +65,8 @@ class NpmTranslator {
 			dependencies = Object.assign({}, dependencies, optDependencies);
 			optDependencies = {};
 
-			for (const depName in dependencies) {
-				if (dependencies.hasOwnProperty(depName) && ui5Deps.indexOf(depName) === -1) {
+			for (const depName of Object.keys(dependencies)) {
+				if (ui5Deps.indexOf(depName) === -1) {
 					log.verbose("Ignoring npm dependency %s. Not defined in UI5-dependency configuration.", depName);
 					delete dependencies[depName];
 				}
