@@ -6,16 +6,16 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  *
  * @public
  * @alias module:@ui5/builder.tasks.generateBundle
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {Collection} parameters.dependencies Collection to read dependency files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @param {Object} parameters.options.bundleDefinition Module bundle definition
+ * @param {object} parameters.options.bundleDefinition Module bundle definition
  * @param {string} parameters.options.bundleDefinition.name The module bundle name
  * @param {string[]} [parameters.options.bundleDefinition.defaultFileTypes=[".js", ".fragment.xml", ".view.xml", ".properties", ".json"]] List of default file types to be included in the bundle
  * @param {ModuleBundleDefinitionSection[]} parameters.options.bundleDefinition.sections List of module bundle definition sections
- * @param {Object} parameters.options.bundleOptions Module bundle options
+ * @param {object} parameters.options.bundleOptions Module bundle options
  * @param {boolean} [parameters.options.bundleOptions.optimize=false] If set to 'true' the module bundle gets minified
  * @param {boolean} [parameters.options.bundleOptions.decorateBootstrapModule=true] If set to 'false', the module won't be decorated with an optimization marker
  * @param {boolean} [parameters.options.bundleOptions.addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with a try/catch to filter out "Restart" errors

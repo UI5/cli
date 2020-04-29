@@ -39,7 +39,9 @@ module.exports = {
         "comma-dangle": "off",
         "no-tabs": "off",
         "valid-jsdoc": 0,
-        "jsdoc/check-examples": 2,
+        // jsdoc/check-examples is temporarily set to "warn" as the rule causes issues in our CI
+        // See: https://github.com/gajus/eslint-plugin-jsdoc/issues/508
+        "jsdoc/check-examples": 1,
         "jsdoc/check-param-names": 2,
         "jsdoc/check-tag-names": 2,
         "jsdoc/check-types": 2,

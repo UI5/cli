@@ -9,10 +9,10 @@ const log = require("@ui5/logger").getLogger("builder:tasks:buildThemes");
  *
  * @public
  * @alias module:@ui5/builder.tasks.buildThemes
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.inputPattern Search pattern for *.less files to be built
  * @param {string} [parameters.options.librariesPattern] Search pattern for .library files

@@ -28,7 +28,7 @@ class ThemeBuilder {
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.Resource[]} resources Library files
-	 * @param {Object} [options] Build options
+	 * @param {object} [options] Build options
 	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
 	 * @param {boolean} [options.cssVariables=false] Generates the CSS variables (css-variables.css, css-variables.source.less) and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css])
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Resolving with array of created files
@@ -118,11 +118,11 @@ class ThemeBuilder {
  *
  * @public
  * @alias module:@ui5/builder.processors.themeBuilder
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code> resources to be processed
  * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
- * @param {Object} [parameters.options] Options
- * @param {Object} [parameters.options.compress=false] Compress build output (CSS / JSON)
+ * @param {object} [parameters.options] Options
+ * @param {object} [parameters.options.compress=false] Compress build output (CSS / JSON)
  * @param {boolean} [parameters.options.cssVariables=false] Generates the CSS variables (css-variables.css, css-variables.source.less) and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css])
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with theme resources
  */

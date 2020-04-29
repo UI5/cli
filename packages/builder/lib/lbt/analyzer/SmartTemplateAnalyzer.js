@@ -39,6 +39,7 @@ const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
 
 /**
  * Analyzes the manifest for a Smart Template App (next to its Component.js) to find more dependencies.
+ *
  * @private
  */
 class TemplateComponentAnalyzer {
@@ -72,7 +73,7 @@ class TemplateComponentAnalyzer {
 	 * Evaluates a manifest after it has been read and parsed
 	 * and adds any newly found dependencies to the given info object.
 	 *
-	 * @param {Object} manifest JSON with app descriptor structure
+	 * @param {object} manifest JSON with app descriptor structure
 	 * @param {ModuleInfo} info ModuleInfo object that should be enriched
 	 * @returns {ModuleInfo} ModuleInfo object that should be enriched
 	 * @private

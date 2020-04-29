@@ -10,11 +10,11 @@ const {resourceFactory} = require("@ui5/fs");
  *
  * @public
  * @alias module:@ui5/builder.processors.jsdocGenerator
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {string} parameters.sourcePath Path of the source files to be processed
  * @param {string} parameters.targetPath Path to write any output files
  * @param {string} parameters.tmpPath Path to write temporary and debug files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.namespace Namespace to build (e.g. <code>some/project/name</code>)
  * @param {string} parameters.options.version Project version
@@ -63,7 +63,7 @@ const jsdocGenerator = async function({sourcePath, targetPath, tmpPath, options}
  * Generate jsdoc-config.json content
  *
  * @private
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {string} parameters.targetPath Path to write any output files
  * @param {string} parameters.tmpPath Path to write temporary and debug files
  * @param {string} parameters.projectName Project name
@@ -131,7 +131,7 @@ async function writeJsdocConfig(targetDirPath, config) {
  * Execute JSDoc build by spawning JSDoc as an external process
  *
  * @private
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {string} parameters.sourcePath Project resources (input for JSDoc generation)
  * @param {string} parameters.configPath Full path to jsdoc-config.json file
  * @returns {Promise<undefined>}

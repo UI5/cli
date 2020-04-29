@@ -20,6 +20,7 @@ let dependencyTracker;
  * - follow dependencies, if option 'resolve' is configured for a section
  *
  * TODO ModuleResolver changes the order of the configured modules even if resolve isn't true
+ *
  * @private
  */
 class BundleResolver {
@@ -31,7 +32,7 @@ class BundleResolver {
 
 	/**
 	 * @param {ModuleDefinition} bundle Bundle definition to resolve
-	 * @param {Object} [options] Options
+	 * @param {object} [options] Options
 	 * @param {string[]} [options.defaultFileTypes] List of default file types to which a prefix pattern shall be expanded.
 	 * @returns {Promise<ResolvedBundleDefinition>}
 	 */

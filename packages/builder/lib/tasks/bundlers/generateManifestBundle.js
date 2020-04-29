@@ -9,9 +9,9 @@ const BUNDLE_NAME = "manifest-bundle.zip";
  *
  * @public
  * @alias module:@ui5/builder.tasks.generateManifestBundle
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.namespace Namespace of the application/library
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written

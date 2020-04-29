@@ -14,10 +14,10 @@ const {resourceFactory} = require("@ui5/fs");
  *
  * @public
  * @alias module:@ui5/builder.tasks.generateJsdoc
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string|Array} parameters.options.pattern Pattern to locate the files to be processed
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.namespace Namespace to build (e.g. <code>some/project/name</code>)
@@ -74,7 +74,7 @@ const generateJsdoc = async function({buildContext, workspace, dependencies, opt
  *
  * @private
  * @param {string} projectName Project name used for naming the temporary working directory
- * @returns {Promise<Object>} Promise resolving with sourcePath, targetPath and tmpPath strings
+ * @returns {Promise<object>} Promise resolving with sourcePath, targetPath and tmpPath strings
  */
 async function createTmpDirs(projectName) {
 	const tmpDirPath = await generateJsdoc._createTmpDir(projectName);
@@ -118,7 +118,7 @@ async function createTmpDir(projectName) {
  * Write resources from workspace matching the given pattern to the given fs destination
  *
  * @private
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {string} parameters.pattern Pattern to match resources in workspace against
  * @param {string} parameters.targetPath Path to write the resources to
@@ -146,7 +146,7 @@ async function writeResourcesToDir({workspace, pattern, targetPath}) {
  * Write api.json files of dependencies to given target path in a flat structure
  *
  * @private
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {string} parameters.targetPath Path to write the resources to
  * @returns {Promise<number>} Promise resolving with number of resources written to given directory

@@ -74,7 +74,7 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 	/**
 	 * Reads the projects manifest.json
 	 *
-	 * @returns {Promise<Object>} resolves with an object containing the <code>content</code> (as JSON) and
+	 * @returns {Promise<object>} resolves with an object containing the <code>content</code> (as JSON) and
 	 * 							<code>fsPath</code> (as string) of the manifest.json file
 	 */
 	async getManifest() {

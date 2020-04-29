@@ -36,7 +36,7 @@ function getElapsedTime(startTime) {
  * Tasks can be enabled or disabled. The wildcard <code>*</code> is also supported and affects all tasks.
  *
  * @private
- * @param {Object} parameters
+ * @param {object} parameters
  * @param {boolean} parameters.dev Sets development mode, which only runs essential tasks
  * @param {boolean} parameters.selfContained True if a the build should be self-contained or false for prelead build bundles
  * @param {boolean} parameters.jsdoc True if a JSDoc build should be executed
@@ -200,8 +200,8 @@ module.exports = {
 	 * Configures the project build and starts it.
 	 *
 	 * @public
-	 * @param {Object} parameters Parameters
-	 * @param {Object} parameters.tree Dependency tree
+	 * @param {object} parameters Parameters
+	 * @param {object} parameters.tree Dependency tree
 	 * @param {string} parameters.destPath Target path
 	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
 	 * @param {boolean} [parameters.buildDependencies=false] Decides whether project dependencies are built as well

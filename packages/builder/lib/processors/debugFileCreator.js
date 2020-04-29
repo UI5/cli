@@ -6,7 +6,7 @@ const util = require("util");
  *
  * @public
  * @alias module:@ui5/builder.processors.debugFileCreator
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with debug resources
  */

@@ -84,7 +84,7 @@ async function analyze(resource) {
  * Note: only the first initLibrary() call that is found with a DFS on the AST, will be evaluated.
  *
  * @param {module:@ui5/fs.Resource} resource library.js resource whose content should be analyzed
- * @returns {Promise<Object>} A Promise on the extract info object
+ * @returns {Promise<object>} A Promise on the extract info object
  */
 module.exports = function(resource) {
 	if ( resource == null ) {

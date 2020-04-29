@@ -46,9 +46,9 @@ class I18nResourceList {
  *
  * @alias module:@ui5/builder.processors.manifestBundler
  * @public
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the project
  * @param {string} parameters.options.bundleName Name of the bundled zip file
  * @param {string} parameters.options.propertiesExtension Extension name of the properties files

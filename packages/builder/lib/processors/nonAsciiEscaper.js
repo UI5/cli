@@ -59,9 +59,9 @@ const escapeNonAscii = function(string) {
  *
  * @public
  * @alias module:@ui5/builder.processors.nonAsciiEscaper
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
- * @param {Object} [parameters.options] Options
+ * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.encoding="utf8"] resource file encoding (node.js based encodings). Use #getEncodingFromAlias to get the encoding string
  * {@link https://nodejs.org/api/buffer.html#buffer_buffers_and_character_encodings Node.js character encodings};
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the processed resources

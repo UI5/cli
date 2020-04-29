@@ -3,9 +3,9 @@
  *
  * @public
  * @alias module:@ui5/builder.processors.resourceCopier
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
- * @param {Object} [parameters.options] Options
+ * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.pattern] Search pattern for path
  * @param {string} [parameters.options.replacement] Replacement string for path
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the cloned resources

@@ -7,7 +7,7 @@ const Resource = require("@ui5/fs").Resource;
  * Executes string escaping. Returns <code>undefined</code> if nothing was escaped.
  *
  * @param {string} input string
- * @param {Object} [options]
+ * @param {object} [options]
  * @param {string} encoding character encoding used, e.g. utf8, latin1, ..
  * @returns {Promise<string|undefined>} escaped string if non-ascii characters present, <code>undefined</code> otherwise
  */

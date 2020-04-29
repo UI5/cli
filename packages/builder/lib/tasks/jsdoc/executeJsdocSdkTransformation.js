@@ -10,10 +10,10 @@ const sdkTransformer = require("../../processors/jsdoc/sdkTransformer");
  *
  * @public
  * @alias module:@ui5/builder.tasks.executeJsdocSdkTransformation
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string|Array} parameters.options.dotLibraryPattern Pattern to locate the .library resource to be processed
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written

@@ -35,8 +35,8 @@ class AutoSplitter {
 	/**
 	 * Runs the split operation
 	 *
-	 * @param {Object} moduleDef
-	 * @param {Object} options
+	 * @param {object} moduleDef
+	 * @param {object} options
 	 * @returns {Promise<Array>}
 	 */
 	async run(moduleDef, options) {

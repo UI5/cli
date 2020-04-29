@@ -2,6 +2,7 @@
 
 /**
  * A strict dependency always has to be fulfilled and is declared as part of the module's definition.
+ *
  * @private
  */
 const STRICT = 0;
@@ -9,6 +10,7 @@ const STRICT = 0;
 /**
  * An implicit dependency is also strict, but has not been declared. E.g. each UI5 module depends on
  * jquery.sap.global.
+ *
  * @private
  */
 const IMPLICIT = 1;
@@ -16,6 +18,7 @@ const IMPLICIT = 1;
 /**
  * A conditional dependency has to be resolved only under certain conditions that typically are
  * checked at runtime.
+ *
  * @private
  */
 const CONDITIONAL = 2;

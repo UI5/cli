@@ -35,6 +35,7 @@ function each(obj, fn) {
 
 /**
  * Analyzes the manifest for a Component.js to find more dependencies.
+ *
  * @since 1.47.0
  * @private
  */
@@ -69,7 +70,7 @@ class ComponentAnalyzer {
 	 * Evaluates a manifest after it has been read and parsed
 	 * and adds any newly found dependencies to the given info object.
 	 *
-	 * @param {Object} manifest JSON with app descriptor structure
+	 * @param {object} manifest JSON with app descriptor structure
 	 * @param {ModuleInfo} info ModuleInfo object that should be enriched
 	 * @returns {ModuleInfo} ModuleInfo object that should be enriched
 	 * @private

@@ -5,9 +5,9 @@ const uglifyProcessor = require("../processors/uglifier");
  *
  * @public
  * @alias module:@ui5/builder.tasks.uglify
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */

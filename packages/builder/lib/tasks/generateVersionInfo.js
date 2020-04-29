@@ -5,11 +5,11 @@ const versionInfoGenerator = require("../processors/versionInfoGenerator");
  *
  * @public
  * @alias module:@ui5/builder.tasks.generateVersionInfo
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {Object} parameters.options Options
- * @param {Object} parameters.options.rootProject DuplexCollection to read and write files
+ * @param {object} parameters.options Options
+ * @param {object} parameters.options.rootProject DuplexCollection to read and write files
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options}) {

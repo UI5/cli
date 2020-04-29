@@ -32,10 +32,10 @@ function getSigner(type) {
  *
  * @public
  * @alias module:@ui5/builder.tasks.generateCachebusterInfo
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the application
  * @param {string} [parameters.options.signatureType='time'] Type of signature to be used ('time' or 'hash')
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written

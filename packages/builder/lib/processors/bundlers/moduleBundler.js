@@ -78,9 +78,12 @@ class LocatorResourcePool extends ResourcePool {
  * @example <caption>List of modules as glob patterns that should be in- or excluded</caption>
  * // Includes everything from "some/path/to/module/",
  * // but excludes the subfolder "some/path/to/module/to/be/excluded/"
- * filters:
- * - "some/path/to/module/"
- * - "!some/path/to/module/to/be/excluded/"
+ * const section = {
+ * 	"filters": [
+ * 		"some/path/to/module/",
+ * 		"!some/path/to/module/to/be/excluded/"
+ * 	]
+ * };
  *
  * @property {boolean} [resolve=false] Whether (transitive) dependencies of modules that match the given filters should be resolved
  * 		and added to the module set
@@ -96,14 +99,14 @@ class LocatorResourcePool extends ResourcePool {
  *
  * @public
  * @alias module:@ui5/builder.processors.moduleBundler
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources Resources
- * @param {Object} parameters.options Options
- * @param {Object} parameters.options.bundleDefinition Module bundle definition
+ * @param {object} parameters.options Options
+ * @param {object} parameters.options.bundleDefinition Module bundle definition
  * @param {string} parameters.options.bundleDefinition.name The module bundle name
  * @param {string[]} [parameters.options.bundleDefinition.defaultFileTypes=[".js", ".fragment.xml", ".view.xml", ".properties", ".json"]] List of default file types to be included in the bundle
  * @param {ModuleBundleDefinitionSection[]} parameters.options.bundleDefinition.sections List of module bundle definition sections.
- * @param {Object} parameters.options.bundleOptions Module bundle options
+ * @param {object} parameters.options.bundleOptions Module bundle options
  * @param {boolean} [parameters.options.bundleOptions.optimize=false] If set to 'true' the module bundle gets minified
  * @param {boolean} [parameters.options.bundleOptions.decorateBootstrapModule=true] If set to 'false', the module won't be decorated with an optimization marker
  * @param {boolean} [parameters.options.bundleOptions.addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with a try/catch to filter out "Restart" errors

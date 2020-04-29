@@ -15,8 +15,8 @@ class AbstractUi5Formatter extends AbstractFormatter {
 	/**
 	 * Constructor
 	 *
-	 * @param {Object} parameters
-	 * @param {Object} parameters.project Project
+	 * @param {object} parameters
+	 * @param {object} parameters.project Project
 	 */
 	constructor(parameters) {
 		super(parameters);
@@ -70,7 +70,7 @@ class AbstractUi5Formatter extends AbstractFormatter {
 	/**
 	 * Reads the projects pom.xml file
 	 *
-	 * @returns {Promise<Object>} Resolves with a JSON representation of the content
+	 * @returns {Promise<object>} Resolves with a JSON representation of the content
 	 */
 	async getPom() {
 		if (this._pPom) {

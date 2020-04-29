@@ -34,7 +34,7 @@ class GraphNode {
  * @param {ResourcePool} pool
  * @param {string[]} moduleNames
  * @param {boolean} indegreeOnly
- * @returns {Promise<Object>}
+ * @returns {Promise<object>}
  * @private
  */
 function createDependencyGraph(pool, moduleNames, indegreeOnly) {

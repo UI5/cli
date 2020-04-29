@@ -19,8 +19,8 @@ function getTimestamp() {
  *
  * @public
  * @alias module:@ui5/builder.processors.versionInfoGenerator
- * @param {Object} parameters Parameters
- * @param {Object} parameters.options Options
+ * @param {object} parameters Parameters
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.rootProjectName Name of the root project
  * @param {string} parameters.options.rootProjectVersion Version of the root project
  * @param {Array} parameters.options.libraryInfos Array of objects representing libraries, e.g. <code>{name: "library.xy", version: "1.0.0"}</code>

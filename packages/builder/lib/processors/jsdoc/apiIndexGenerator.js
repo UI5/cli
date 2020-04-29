@@ -9,7 +9,7 @@ const createIndex = require("./lib/createIndexFiles");
  *
  * @public
  * @alias module:@ui5/builder.processors.apiIndexGenerator
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {string} parameters.versionInfoPath Path to <code>sap-ui-version.json</code> resource
  * @param {string} parameters.testResourcesRootPath Path to <code>/test-resources</code> root directory in the
  *														given fs

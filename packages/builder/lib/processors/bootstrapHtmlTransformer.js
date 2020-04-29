@@ -5,9 +5,9 @@ const cheerio = require("cheerio");
  * Transforms the UI5 bootstrap of a HTML resource files.
  *
  * @module builder/processors/bootstrapHtmlTransformer
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
- * @param {Object} [parameters.options] Options
+ * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.src] Bootstrap "src" that should be used
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the cloned resources
  */

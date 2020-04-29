@@ -7,11 +7,11 @@ class AbstractBuilder {
 	/**
 	 * Constructor
 	 *
-	 * @param {Object} parameters
-	 * @param {Object} parameters.resourceCollections Resource collections
+	 * @param {object} parameters
+	 * @param {object} parameters.resourceCollections Resource collections
 	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
-	 * @param {Object} parameters.project Project configuration
+	 * @param {object} parameters.project Project configuration
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
 	 */
 	constructor({resourceCollections, project, parentLogger, buildContext}) {
@@ -35,12 +35,12 @@ class AbstractBuilder {
 	 *
 	 * @abstract
 	 * @protected
-	 * @param {Object} parameters
- 	 * @param {Object} parameters.resourceCollections Resource collections
+	 * @param {object} parameters
+ 	 * @param {object} parameters.resourceCollections Resource collections
 	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
-	 * @param {Object} parameters.project Project configuration
-	 * @param {Object} parameters.log <code>@ui5/logger</code> logger instance
+	 * @param {object} parameters.project Project configuration
+	 * @param {object} parameters.log <code>@ui5/logger</code> logger instance
 	 */
 	addStandardTasks({resourceCollections, project, log, buildContext}) {
 		throw new Error("Function 'addStandardTasks' is not implemented");
@@ -50,11 +50,11 @@ class AbstractBuilder {
 	 * Adds custom tasks to execute
 	 *
 	 * @private
-	 * @param {Object} parameters
- 	 * @param {Object} parameters.resourceCollections Resource collections
+	 * @param {object} parameters
+ 	 * @param {object} parameters.resourceCollections Resource collections
 	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
 	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
-	 * @param {Object} parameters.project Project configuration
+	 * @param {object} parameters.project Project configuration
 	 */
 	addCustomTasks({resourceCollections, project, buildContext}) {
 		const projectCustomTasks = project.builder && project.builder.customTasks;

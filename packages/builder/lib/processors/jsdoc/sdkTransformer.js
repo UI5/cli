@@ -7,7 +7,7 @@ const transformer = require("./lib/transformApiJson");
  *
  * @public
  * @alias module:@ui5/builder.processors.sdkTransformer
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {string} parameters.apiJsonPath Path to the projects api.json file as created by
  *				[jsdocGenerator]{@link module:@ui5/builder.processors.jsdoc.jsdocGenerator}
  * @param {string} parameters.dotLibraryPath Path to the projects .library file

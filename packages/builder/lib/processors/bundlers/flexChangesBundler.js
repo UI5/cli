@@ -6,9 +6,9 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  *
  * @public
  * @alias module:@ui5/builder.processors.flexChangesBundler
- * @param {Object} parameters Parameters
+ * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
- * @param {Object} parameters.options Options
+ * @param {object} parameters.options Options
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
  * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73 than create flexibility-bundle.json
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with flex changes bundle resources

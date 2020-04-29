@@ -9,8 +9,8 @@ class AbstractFormatter {
 	/**
 	 * Constructor
 	 *
-	 * @param {Object} parameters
-	 * @param {Object} parameters.project Project
+	 * @param {object} parameters
+	 * @param {object} parameters.project Project
 	 */
 	constructor({project}) {
 		if (new.target === AbstractFormatter) {
