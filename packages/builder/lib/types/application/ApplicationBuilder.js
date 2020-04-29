@@ -4,6 +4,7 @@ const {getTask} = require("../../tasks/taskRepository");
 class ApplicationBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log}) {
 		if (!project.metadata.namespace) {
+			// TODO 3.0: Throw here
 			log.info("Skipping some tasks due to missing application namespace information. If your project contains " +
 					"a Component.js, you might be missing a manifest.json file. " +
 					"Also see: https://sap.github.io/ui5-tooling/pages/Builder/#application");

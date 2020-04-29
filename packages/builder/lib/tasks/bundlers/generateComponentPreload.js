@@ -1,5 +1,6 @@
 const path = require("path");
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
+const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateComponentPreload");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 
 /**
@@ -27,9 +28,13 @@ module.exports = function({workspace, dependencies, options}) {
 			let namespaces = [];
 			if (options.paths) {
 				namespaces = await Promise.all(options.paths.map(async (componentPath) => {
-					const components = await combo.byGlob("/resources/" + componentPath);
+					const globPath = "/resources/" + componentPath;
+					log.verbose(`Globbing for Components directories with configured path ${globPath}...`);
+					const components = await combo.byGlob(globPath);
 					return components.map((component) => {
-						return path.dirname(component.getPath()).replace(/^\/resources\//i, "");
+						const compDir = path.dirname(component.getPath()).replace(/^\/resources\//i, "");
+						log.verbose(`Found component namespace ${compDir}`);
+						return compDir;
 					});
 				}));
 			}
@@ -59,6 +64,7 @@ module.exports = function({workspace, dependencies, options}) {
 					}
 				});
 
+				log.verbose(`Requesting Component-preload.js for namespace ${namespace}...`);
 				return moduleBundler({
 					resources,
 					options: {

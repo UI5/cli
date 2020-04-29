@@ -4,6 +4,7 @@ const {getTask} = require("../../tasks/taskRepository");
 class LibraryBuilder extends AbstractBuilder {
 	addStandardTasks({resourceCollections, project, log, buildContext}) {
 		if (!project.metadata.namespace) {
+			// TODO 3.0: Throw here
 			log.info("Skipping some tasks due to missing library namespace information. Your project " +
 				"might be missing a manifest.json or .library file. " +
 				"Also see: https://sap.github.io/ui5-tooling/pages/Builder/#library");
