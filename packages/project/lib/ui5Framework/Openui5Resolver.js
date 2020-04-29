@@ -11,7 +11,7 @@ const OPENUI5_CORE_PACKAGE = "@openui5/sap.ui.core";
  *
  * @public
  * @memberof module:@ui5/project.ui5Framework
- * @extends  module:@ui5/project.ui5Framework.AbstractResolver
+ * @augments  module:@ui5/project.ui5Framework.AbstractResolver
  */
 class Openui5Resolver extends AbstractResolver {
 	/**

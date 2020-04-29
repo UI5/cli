@@ -62,11 +62,11 @@ module.exports = {
 	/**
 	 * Validates the given configuration.
 	 *
-	 * @param {Object} options
-	 * @param {Object} options.config UI5 Configuration to validate
-	 * @param {Object} options.project Project information
+	 * @param {object} options
+	 * @param {object} options.config UI5 Configuration to validate
+	 * @param {object} options.project Project information
 	 * @param {string} options.project.id ID of the project
-	 * @param {Object} [options.yaml] YAML information
+	 * @param {object} [options.yaml] YAML information
 	 * @param {string} options.yaml.path Path of the YAML file
 	 * @param {string} options.yaml.source Content of the YAML file
 	 * @param {number} [options.yaml.documentIndex=0] Document index in case the YAML file contains multiple documents

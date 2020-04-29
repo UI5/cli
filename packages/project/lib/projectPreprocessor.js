@@ -643,8 +643,8 @@ module.exports = {
 	 * Collects project information and its dependencies to enrich it with project configuration
 	 *
 	 * @public
-	 * @param {Object} tree Dependency tree of the project
-	 * @returns {Promise<Object>} Promise resolving with the dependency tree and enriched project configuration
+	 * @param {object} tree Dependency tree of the project
+	 * @returns {Promise<object>} Promise resolving with the dependency tree and enriched project configuration
 	 */
 	processTree: function(tree) {
 		return new ProjectPreprocessor({tree}).processTree();

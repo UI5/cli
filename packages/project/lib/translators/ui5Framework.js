@@ -117,11 +117,11 @@ module.exports = {
 	 *
 	 *
 	 * @public
-	 * @param {Object} tree
-	 * @param {Object} [options]
+	 * @param {object} tree
+	 * @param {object} [options]
 	 * @param {string} [options.versionOverride] Framework version to use instead of the root projects framework
 	 *   version from the provided <code>tree</code>
-	 * @returns {Promise<Object|null>} Promise
+	 * @returns {Promise<object|null>} Promise
 	 */
 	generateDependencyTree: async function(tree, options = {}) {
 		// Don't create a tree when root project doesn't have a framework configuration

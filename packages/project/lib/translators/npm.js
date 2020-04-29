@@ -507,9 +507,9 @@ module.exports = {
 	 *
 	 * @public
 	 * @param {string} dirPath Project path
-	 * @param {Object} [options]
+	 * @param {object} [options]
 	 * @param {boolean} [options.includeDeduped=false]
-	 * @returns {Promise<Object>} Promise resolving with a dependency tree
+	 * @returns {Promise<object>} Promise resolving with a dependency tree
 	 */
 	generateDependencyTree(dirPath, options = {includeDeduped: false}) {
 		return new NpmTranslator(options).generateDependencyTree(dirPath);

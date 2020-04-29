@@ -15,14 +15,14 @@ const Normalizer = {
 	 * Generates a project and dependency tree via translators and configures all projects via the projectPreprocessor
 	 *
 	 * @public
-	 * @param {Object} [options]
+	 * @param {object} [options]
 	 * @param {string} [options.cwd] Current working directory
 	 * @param {string} [options.configPath] Path to configuration file
 	 * @param {string} [options.translatorName] Translator to use
-	 * @param {Object} [options.translatorOptions] Options to pass to translator
-	 * @param {Object} [options.frameworkOptions] Options to pass to the framework installer
+	 * @param {object} [options.translatorOptions] Options to pass to translator
+	 * @param {object} [options.frameworkOptions] Options to pass to the framework installer
 	 * @param {string} [options.frameworkOptions.versionOverride] Framework version to use instead of the root projects framework
-	 * @returns {Promise<Object>} Promise resolving to tree object
+	 * @returns {Promise<object>} Promise resolving to tree object
 	 */
 	generateProjectTree: async function(options = {}) {
 		let tree = await Normalizer.generateDependencyTree(options);
@@ -49,11 +49,11 @@ const Normalizer = {
 	 * Generates a project and dependency tree via translators
 	 *
 	 * @public
-	 * @param {Object} [options]
+	 * @param {object} [options]
 	 * @param {string} [options.cwd=.] Current working directory
 	 * @param {string} [options.translatorName=npm] Translator to use
-	 * @param {Object} [options.translatorOptions] Options to pass to translator
-	 * @returns {Promise<Object>} Promise resolving to tree object
+	 * @param {object} [options.translatorOptions] Options to pass to translator
+	 * @returns {Promise<object>} Promise resolving to tree object
 	 */
 	generateDependencyTree: async function({cwd = ".", translatorName="npm", translatorOptions={}} = {}) {
 		log.verbose("Building dependency tree...");

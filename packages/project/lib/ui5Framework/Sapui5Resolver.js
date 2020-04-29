@@ -10,7 +10,7 @@ const DIST_PKG_NAME = "@sapui5/distribution-metadata";
  *
  * @public
  * @memberof module:@ui5/project.ui5Framework
- * @extends  module:@ui5/project.ui5Framework.AbstractResolver
+ * @augments  module:@ui5/project.ui5Framework.AbstractResolver
  */
 class Sapui5Resolver extends AbstractResolver {
 	/**

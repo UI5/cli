@@ -27,7 +27,7 @@ module.exports = {
 	 *
 	 * @public
 	 * @param {string} dirPath Project path
-	 * @param {Object} [options]
+	 * @param {object} [options]
 	 * @param {Array} [options.parameters] CLI configuration options
 	 * @returns {Promise} Promise resolving with a dependency tree
 	 */

@@ -91,7 +91,7 @@ class AbstractResolver {
 	 * }
 	 *
 	 * @public
-	 * @typedef {Object} LibraryMetadataEntry
+	 * @typedef {object} LibraryMetadataEntry
 	 * @property {string} id Identifier
 	 * @property {string} version Version
 	 * @property {string} path Path
@@ -115,7 +115,7 @@ class AbstractResolver {
 	 * }
 	 *
 	 * @public
-	 * @typedef {Object} ResolverInstallResult
+	 * @typedef {object} ResolverInstallResult
 	 * @property {Object.<string, module:@ui5/project.ui5Framework.LibraryMetadataEntry>} libraryMetadata
 	 *   Object containing all installed libraries with library name as key
 	 * @memberof module:@ui5/project.ui5Framework
@@ -157,7 +157,7 @@ class AbstractResolver {
 	/**
 	 *
 	 * @param {string} version
-	 * @param {Object} options
+	 * @param {object} options
 	 */
 	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
 		let spec;

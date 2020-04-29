@@ -7,7 +7,7 @@ const matchAll = require("string.prototype.matchall");
  *
  * @public
  * @hideconstructor
- * @extends Error
+ * @augments Error
  * @memberof module:@ui5/project.validation
  */
 class ValidationError extends Error {
@@ -17,7 +17,7 @@ class ValidationError extends Error {
 		/**
 		 * ValidationError
 		 *
-		 * @const
+		 * @constant
 		 * @default
 		 * @type {string}
 		 * @readonly
