@@ -155,10 +155,8 @@ function registerCleanupSigHooks(buildContext) {
 		"SIGBREAK": createListener(128 + 21)
 	};
 
-	for (const signal in processSignals) {
-		if (processSignals.hasOwnProperty(signal)) {
-			process.on(signal, processSignals[signal]);
-		}
+	for (const signal of Object.keys(processSignals)) {
+		process.on(signal, processSignals[signal]);
 	}
 
 	// == TO BE DISCUSSED: Also cleanup for unhandled rejections and exceptions?
@@ -181,10 +179,8 @@ function registerCleanupSigHooks(buildContext) {
 }
 
 function deregisterCleanupSigHooks(signals) {
-	for (const signal in signals) {
-		if (signals.hasOwnProperty(signal)) {
-			process.removeListener(signal, signals[signal]);
-		}
+	for (const signal of Object.keys(signals)) {
+		process.removeListener(signal, signals[signal]);
 	}
 }
 

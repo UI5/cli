@@ -157,19 +157,30 @@ class AbstractBuilder {
 	}
 
 	/**
+	 * Check whether a task is defined
+	 *
+	 * @private
+	 * @param {string} taskName
+	 * @returns {boolean}
+	 */
+	hasTask(taskName) {
+		return Object.prototype.hasOwnProperty.call(this.tasks, taskName);
+	}
+
+	/**
 	 * Takes a list of tasks which should be executed from the available task list of the current builder
 	 *
 	 * @param {Array} tasksToRun List of tasks which should be executed
 	 * @returns {Promise} Returns promise chain with tasks
 	 */
 	build(tasksToRun) {
-		const allTasksCount = tasksToRun.filter((value) => this.tasks.hasOwnProperty(value)).length;
+		const allTasksCount = tasksToRun.filter((value) => this.hasTask(value)).length;
 		this.taskLog.addWork(allTasksCount);
 
 		let taskChain = Promise.resolve();
 		for (let i = 0; i < this.taskExecutionOrder.length; i++) {
 			const taskName = this.taskExecutionOrder[i];
-			if (this.tasks.hasOwnProperty(taskName) && tasksToRun.includes(taskName)) {
+			if (this.hasTask(taskName) && tasksToRun.includes(taskName)) {
 				const taskFunction = this.tasks[taskName];
 
 				if (typeof taskFunction === "function") {

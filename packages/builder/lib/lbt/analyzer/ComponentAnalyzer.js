@@ -188,10 +188,7 @@ class ComponentAnalyzer {
 				info.addDependency(viewsModule);
 			}
 
-			for (const targetName in routing.targets) {
-				if (!routing.targets.hasOwnProperty(targetName)) {
-					continue;
-				}
+			for (const targetName of Object.keys(routing.targets)) {
 				const target = routing.targets[targetName];
 				if (target && target.viewName) {
 					// merge target config with default config

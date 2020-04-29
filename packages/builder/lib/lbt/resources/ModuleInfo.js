@@ -152,10 +152,8 @@ class ModuleInfo {
 		if ( other instanceof ModuleInfo ) {
 			this.addSubModule( other.name );
 			// accumulate dependencies
-			for ( const dep in other._dependencies ) {
-				if (other._dependencies.hasOwnProperty(dep)) {
-					this._addDependency(dep, other._dependencies[dep]);
-				}
+			for ( const dep of Object.keys(other._dependencies ) ) {
+				this._addDependency(dep, other._dependencies[dep]);
 			}
 			// inherit dynamic dependencies
 			if ( other.dynamicDependencies ) {

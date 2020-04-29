@@ -153,10 +153,8 @@ class ResourcePool {
 			// read raw-module info from .library files
 			return resource.buffer().then( (buffer) => {
 				const infos = LibraryFileAnalyzer.getDependencyInfos( buffer );
-				for ( const name in infos ) {
-					if (infos.hasOwnProperty(name)) {
-						this._rawModuleInfos.set(name, infos[name]);
-					}
+				for ( const name of Object.keys(infos) ) {
+					this._rawModuleInfos.set(name, infos[name]);
 				}
 			});
 		}

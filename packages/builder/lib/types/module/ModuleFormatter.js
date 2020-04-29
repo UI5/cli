@@ -37,16 +37,14 @@ class ModuleFormatter extends AbstractFormatter {
 			}
 			const paths = project.resources.configuration.paths;
 			const dirChecks =[];
-			for (const virPath in paths) {
-				if (paths.hasOwnProperty(virPath)) {
-					const absolutePath = path.join(project.path, paths[virPath]);
-					dirChecks.push(this.dirExists(absolutePath).then((bExists) => {
-						if (!bExists) {
-							throw new Error(`Could not find "${virPath}" directory of project ${project.id} at ` +
+			for (const virPath of Object.keys(paths)) {
+				const absolutePath = path.join(project.path, paths[virPath]);
+				dirChecks.push(this.dirExists(absolutePath).then((bExists) => {
+					if (!bExists) {
+						throw new Error(`Could not find "${virPath}" directory of project ${project.id} at ` +
 								`${absolutePath}`);
-						}
-					}));
-				}
+					}
+				}));
 			}
 			return Promise.all(dirChecks);
 		});
