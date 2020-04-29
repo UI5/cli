@@ -4,8 +4,7 @@ const path = require("path");
 const chai = require("chai");
 chai.use(require("chai-fs"));
 const assert = chai.assert;
-const {promisify} = require("util");
-const extractZip = promisify(require("extract-zip"));
+const extractZip = require("extract-zip");
 const recursive = require("recursive-readdir");
 
 const ui5Builder = require("../../../../");
