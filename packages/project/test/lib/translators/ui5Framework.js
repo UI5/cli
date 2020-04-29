@@ -157,13 +157,13 @@ test.serial("generateDependencyTree should throw error when no framework version
 
 	await t.throwsAsync(async () => {
 		await ui5Framework.generateDependencyTree(tree);
-	}, "framework.version is not defined for project test-id");
+	}, {message: "framework.version is not defined for project test-id"});
 
 	await t.throwsAsync(async () => {
 		await ui5Framework.generateDependencyTree(tree, {
 			versionOverride: "1.75.0"
 		});
-	}, "framework.version is not defined for project test-id");
+	}, {message: "framework.version is not defined for project test-id"});
 });
 
 test.serial("generateDependencyTree should ignore root project without framework configuration", async (t) => {

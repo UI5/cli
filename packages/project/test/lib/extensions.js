@@ -552,7 +552,7 @@ test("Project with project-type extension dependency inline configuration", (t) 
 			specVersion: "0.1",
 			path: applicationAPath
 		}, "Parsed correctly");
-	}), "Unknown extension type 'project-type' for extension.a", "Rejected with error");
+	}), {message: "Unknown extension type 'project-type' for extension.a"}, "Rejected with error");
 });
 
 test("Project with unknown extension dependency inline configuration", (t) => {
@@ -579,7 +579,7 @@ test("Project with unknown extension dependency inline configuration", (t) => {
 		}
 	};
 	return t.throwsAsync(projectPreprocessor.processTree(tree),
-		"Unknown extension type 'phony-pony' for extension.a", "Rejected with error");
+		{message: "Unknown extension type 'phony-pony' for extension.a"}, "Rejected with error");
 });
 
 test("Project with task extension dependency", (t) => {
@@ -726,7 +726,7 @@ test("specVersion: Missing version", async (t) => {
 	};
 	const preprocessor = new Preprocessor({});
 	await t.throwsAsync(preprocessor.applyExtension(extension),
-		"No specification version defined for extension shims.a",
+		{message: "No specification version defined for extension shims.a"},
 		"Rejected with error");
 });
 
@@ -745,11 +745,11 @@ test("specVersion: Extension with invalid version", async (t) => {
 		shims: {}
 	};
 	const preprocessor = new Preprocessor({});
-	await t.throwsAsync(preprocessor.applyExtension(extension),
+	await t.throwsAsync(preprocessor.applyExtension(extension), {message:
 		"Unsupported specification version 0.9 defined for extension shims.a. " +
 		"Your UI5 CLI installation might be outdated. For details see " +
-		"https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
-		"Rejected with error");
+		"https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions"},
+	"Rejected with error");
 });
 
 test("specVersion: Extension with valid version 0.1", async (t) => {

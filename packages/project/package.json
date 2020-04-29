@@ -47,11 +47,6 @@
 	"ava": {
 		"files": [
 			"test/lib/**/*.js"
-		],
-		"sources": [
-			"lib/**/*.js",
-			"lib/validation/schema/**/*.json",
-			"test/lib/**/*.js"
 		]
 	},
 	"nyc": {
@@ -119,7 +114,7 @@
 		"string.prototype.matchall": "^4.0.2"
 	},
 	"devDependencies": {
-		"ava": "^2.4.0",
+		"ava": "^3.8.1",
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",

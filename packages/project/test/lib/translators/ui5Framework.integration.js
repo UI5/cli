@@ -697,7 +697,7 @@ function defineErrorTest(testName, {
 
 		await t.throwsAsync(async () => {
 			await normalizer.generateProjectTree();
-		}, expectedErrorMessage);
+		}, {message: expectedErrorMessage});
 	});
 }
 
@@ -844,7 +844,7 @@ test.serial("ui5Framework translator should throw an error when framework versio
 
 	await t.throwsAsync(async () => {
 		await normalizer.generateProjectTree();
-	}, `framework.version is not defined for project test-id`);
+	}, {message: `framework.version is not defined for project test-id`});
 });
 
 test.serial("ui5Framework translator should throw an error when framework name is not supported", async (t) => {
@@ -870,7 +870,7 @@ test.serial("ui5Framework translator should throw an error when framework name i
 
 	await t.throwsAsync(async () => {
 		await normalizer.generateProjectTree();
-	}, `Unknown framework.name "UI5" for project test-id. Must be "OpenUI5" or "SAPUI5"`);
+	}, {message: `Unknown framework.name "UI5" for project test-id. Must be "OpenUI5" or "SAPUI5"`});
 });
 
 test.serial("SAPUI5: ui5Framework translator should throw error when using a library that is not part of the dist metadata", async (t) => {
@@ -929,8 +929,8 @@ test.serial("SAPUI5: ui5Framework translator should throw error when using a lib
 
 	await t.throwsAsync(async () => {
 		await normalizer.generateProjectTree();
-	}, `Resolution of framework libraries failed with errors:
-Failed to resolve library does.not.exist: Could not find library "does.not.exist"`);
+	}, {message: `Resolution of framework libraries failed with errors:
+Failed to resolve library does.not.exist: Could not find library "does.not.exist"`});
 });
 
 // TODO test: Should not download packages again in case they are already installed

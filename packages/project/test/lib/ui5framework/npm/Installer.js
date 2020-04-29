@@ -36,7 +36,7 @@ test.serial("Installer: constructor", (t) => {
 test.serial("Installer: constructor requires 'cwd'", (t) => {
 	t.throws(() => {
 		new Installer({});
-	}, `Installer: Missing parameter "cwd"`);
+	}, {message: `Installer: Missing parameter "cwd"`});
 });
 
 test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
@@ -44,7 +44,7 @@ test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
 		new Installer({
 			cwd: "/cwd/"
 		});
-	}, `Installer: Missing parameter "ui5HomeDir"`);
+	}, {message: `Installer: Missing parameter "ui5HomeDir"`});
 });
 
 test.serial("Installer: fetchPackageVersions", async (t) => {
@@ -236,7 +236,7 @@ test.serial("Installer: fetchPackageManifest (readJson throws error)", async (t)
 
 	await t.throwsAsync(async () => {
 		await installer.fetchPackageManifest({pkgName: "myPackage", version: "1.2.3"});
-	}, "Error from readJson");
+	}, {message: "Error from readJson"});
 
 	t.is(getTargetDirForPackageStub.callCount, 1, "_getTargetDirForPackage should be called once");
 	t.is(readJsonStub.callCount, 1, "readJson should be called once");
@@ -335,7 +335,7 @@ test.serial("Installer: _synchronize should throw when locking fails", async (t)
 			pkgName: "@openui5/sap.ui.lib1",
 			version: "1.2.3"
 		}, callback);
-	}, "Locking error");
+	}, {message: "Locking error"});
 
 	t.is(callback.callCount, 0, "callback should not be called");
 	t.is(t.context.unlockStub.callCount, 0, "unlock should not be called");
@@ -360,7 +360,7 @@ test.serial("Installer: _synchronize should still unlock when callback throws an
 			pkgName: "@openui5/sap.ui.lib1",
 			version: "1.2.3"
 		}, callback);
-	}, "Callback throws error");
+	}, {message: "Callback throws error"});
 
 	t.is(callback.callCount, 1, "callback should be called once");
 	t.is(t.context.lockStub.callCount, 1, "lock should be called once");
@@ -386,7 +386,7 @@ test.serial("Installer: _synchronize should still unlock when callback rejects w
 			pkgName: "@openui5/sap.ui.lib1",
 			version: "1.2.3"
 		}, callback);
-	}, "Callback rejects with error");
+	}, {message: "Callback rejects with error"});
 
 	t.is(callback.callCount, 1, "callback should be called once");
 	t.is(t.context.lockStub.callCount, 1, "lock should be called once");

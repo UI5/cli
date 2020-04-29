@@ -194,7 +194,7 @@ test("Missing id for root project", (t) => {
 		dependencies: []
 	};
 	return t.throwsAsync(projectPreprocessor.processTree(tree),
-		"Encountered project with missing id (root project)", "Rejected with error");
+		{message: "Encountered project with missing id (root project)"}, "Rejected with error");
 });
 
 test("No type configured for root project", (t) => {
@@ -210,7 +210,7 @@ test("No type configured for root project", (t) => {
 		}
 	};
 	return t.throwsAsync(projectPreprocessor.processTree(tree),
-		"No type configured for root project application.a",
+		{message: "No type configured for root project application.a"},
 		"Rejected with error");
 });
 
@@ -261,10 +261,10 @@ test("Multiple non-root application-projects on same level", (t) => {
 			dependencies: []
 		}]
 	});
-	return t.throwsAsync(projectPreprocessor.processTree(tree),
+	return t.throwsAsync(projectPreprocessor.processTree(tree), {message:
 		"Found at least two projects application.a and application.b of type application with the same distance to " +
-			"the root project. Only one project of type application can be used. Failed to decide which one to ignore.",
-		"Rejected with error");
+		"the root project. Only one project of type application can be used. Failed to decide which one to ignore."},
+	"Rejected with error");
 });
 
 test("Multiple non-root application-projects on different levels", (t) => {
