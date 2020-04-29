@@ -99,7 +99,7 @@
 		"ajv": "^6.12.2",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^4.0.0",
-		"escape-string-regexp": "^2.0.0",
+		"escape-string-regexp": "^4.0.0",
 		"graceful-fs": "^4.2.3",
 		"js-yaml": "^3.13.1",
 		"libnpmconfig": "^1.2.1",
