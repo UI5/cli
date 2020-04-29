@@ -26,7 +26,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.Resource} resource Resource to write
-	 * @param {Object} [options]
+	 * @param {object} [options]
 	 * @param {boolean} [options.readOnly=false] Whether the resource content shall be written read-only
 	 *						Do not use in conjunction with the <code>drain</code> option.
 	 *						The written file will be used as the new source of this resources content.
@@ -49,7 +49,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 * @abstract
 	 * @protected
 	 * @param {module:@ui5/fs.Resource} resource Resource to write
-	 * @param {Object} [options] Write options, see above
+	 * @param {object} [options] Write options, see above
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource, options) {

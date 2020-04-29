@@ -24,9 +24,9 @@ class Resource {
 	 * The constructor.
 	 *
 	 * @public
-	 * @param {Object} parameters Parameters
+	 * @param {object} parameters Parameters
 	 * @param {string} parameters.path Virtual path
-	 * @param {fs.Stats|Object} [parameters.statInfo] File information. Instance of
+	 * @param {fs.Stats|object} [parameters.statInfo] File information. Instance of
 	 *					[fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats} or similar object
 	 * @param {Buffer} [parameters.buffer] Content of this resources as a Buffer instance
 	 *					(cannot be used in conjunction with parameters string, stream or createStream)
@@ -232,7 +232,7 @@ class Resource {
 	 * Gets the resources stat info.
 	 *
 	 * @public
-	 * @returns {fs.Stats|Object} Instance of [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats}
+	 * @returns {fs.Stats|object} Instance of [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats}
 	 *								or similar object
 	 */
 	getStatInfo() {
@@ -287,7 +287,7 @@ class Resource {
 	/**
 	 * Tracing: Get tree for printing out trace
 	 *
-	 * @returns {Object} Trace tree
+	 * @returns {object} Trace tree
 	 */
 	getPathTree() {
 		const tree = {};
