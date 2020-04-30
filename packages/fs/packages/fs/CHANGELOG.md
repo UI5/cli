@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.1...HEAD).
+
+<a name="v2.0.1"></a>
+## [v2.0.1] - 2020-04-29
+### Bug Fixes
+- Namespaces in API Reference (JSDoc) [`b9d7b3c`](https://github.com/SAP/ui5-fs/commit/b9d7b3c70679436e6cbea07a789ac5e83bab337a)
+
 
 <a name="v2.0.0"></a>
 ## [v2.0.0] - 2020-03-31
@@ -85,6 +91,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v2.0.1]: https://github.com/SAP/ui5-fs/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/SAP/ui5-fs/compare/v1.1.2...v2.0.0
 [v1.1.2]: https://github.com/SAP/ui5-fs/compare/v1.1.1...v1.1.2
 [v1.1.1]: https://github.com/SAP/ui5-fs/compare/v1.1.0...v1.1.1
