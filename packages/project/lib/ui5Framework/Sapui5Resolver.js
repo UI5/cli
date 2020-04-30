@@ -1,4 +1,5 @@
 const path = require("path");
+const semver = require("semver");
 const AbstractResolver = require("./AbstractResolver");
 const Installer = require("./npm/Installer");
 const log = require("@ui5/logger").getLogger("normalizer:ui5Framework:Sapui5Resolver");
@@ -48,9 +49,27 @@ class Sapui5Resolver extends AbstractResolver {
 	async getLibraryMetadata(libraryName) {
 		const distMetadata = await this.loadDistMetadata();
 		const metadata = distMetadata.libraries[libraryName];
+
 		if (!metadata) {
 			throw new Error(`Could not find library "${libraryName}"`);
 		}
+
+		if (metadata.npmPackageName.startsWith("@openui5/") &&
+				semver.satisfies(this._version, "1.77.x")) {
+			const Openui5Resolver = require("./Openui5Resolver");
+			const openui5Resolver = new Openui5Resolver({
+				cwd: this._cwd,
+				version: this._version
+			});
+			const openui5Metadata = await openui5Resolver.getLibraryMetadata(libraryName);
+			return {
+				npmPackageName: openui5Metadata.id,
+				version: openui5Metadata.version,
+				dependencies: openui5Metadata.dependencies,
+				optionalDependencies: openui5Metadata.optionalDependencies
+			};
+		}
+
 		return metadata;
 	}
 	async handleLibrary(libraryName) {
