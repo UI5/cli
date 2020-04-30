@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.0.2...HEAD).
+
+<a name="v2.0.2"></a>
+## [v2.0.2] - 2020-04-30
+### Bug Fixes
+- **CSP Middleware:** Use native res.getHeader/setHeader methods ([#312](https://github.com/SAP/ui5-server/issues/312)) [`c53525c`](https://github.com/SAP/ui5-server/commit/c53525ca4bb5825d241d0f137ce3912d681e6548)
+
 
 <a name="v2.0.1"></a>
 ## [v2.0.1] - 2020-04-15
@@ -160,6 +166,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.0.2]: https://github.com/SAP/ui5-server/compare/v2.0.1...v2.0.2
 [v2.0.1]: https://github.com/SAP/ui5-server/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/SAP/ui5-server/compare/v1.6.0...v2.0.0
 [v1.6.0]: https://github.com/SAP/ui5-server/compare/v1.5.4...v1.6.0
