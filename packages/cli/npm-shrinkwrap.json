@@ -581,39 +581,35 @@
 			}
 		},
 		"@ui5/project": {
-			"version": "2.0.3",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.0.3.tgz",
-			"integrity": "sha512-k1sm9rqts8WsgZsHkYeXOtdyeXFEsrujqaMonv4XfFs0s9LwRdM7PMbLE5ubORmUH59Udjyx8uX/ZNVWOGjfkQ==",
+			"version": "2.0.4",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.0.4.tgz",
+			"integrity": "sha512-BPVTLzlReMiS7v86e2U8ErtTSq/LvNsg7WpO+BAafvLyr0L6no/JWWp/b5mstlRzL1ac+Sz+Y4fXwaoDdZWEWA==",
 			"requires": {
-				"@ui5/builder": "^2.0.0",
+				"@ui5/builder": "^2.0.1",
 				"@ui5/logger": "^2.0.0",
-				"@ui5/server": "^2.0.0",
-				"ajv": "^6.12.0",
+				"@ui5/server": "^2.0.2",
+				"ajv": "^6.12.2",
 				"ajv-errors": "^1.0.1",
-				"chalk": "^3.0.0",
-				"escape-string-regexp": "^2.0.0",
+				"chalk": "^4.0.0",
+				"escape-string-regexp": "^4.0.0",
 				"graceful-fs": "^4.2.3",
 				"js-yaml": "^3.13.1",
 				"libnpmconfig": "^1.2.1",
 				"lockfile": "^1.0.4",
-				"mkdirp": "^1.0.3",
+				"mkdirp": "^1.0.4",
 				"pacote": "^9.5.12",
 				"pretty-hrtime": "^1.0.3",
 				"read-pkg": "^5.2.0",
 				"read-pkg-up": "^7.0.1",
-				"resolve": "^1.15.1",
-				"semver": "^7.1.3",
+				"resolve": "^1.17.0",
+				"semver": "^7.3.2",
 				"string.prototype.matchall": "^4.0.2"
 			},
 			"dependencies": {
-				"chalk": {
-					"version": "3.0.0",
-					"resolved": "https://registry.npmjs.org/chalk/-/chalk-3.0.0.tgz",
-					"integrity": "sha512-4D3B6Wf41KOYRFdszmDqMCGq5VV/uMAB273JILmO+3jAlh8X4qDtdtgCR3fxtbLEMzSx22QdhnDcJvu2u1fVwg==",
-					"requires": {
-						"ansi-styles": "^4.1.0",
-						"supports-color": "^7.1.0"
-					}
+				"escape-string-regexp": {
+					"version": "4.0.0",
+					"resolved": "https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz",
+					"integrity": "sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA=="
 				}
 			}
 		},
@@ -5247,9 +5243,9 @@
 			}
 		},
 		"npm-registry-fetch": {
-			"version": "4.0.3",
-			"resolved": "https://registry.npmjs.org/npm-registry-fetch/-/npm-registry-fetch-4.0.3.tgz",
-			"integrity": "sha512-WGvUx0lkKFhu9MbiGFuT9nG2NpfQ+4dCJwRwwtK2HK5izJEvwDxMeUyqbuMS7N/OkpVCqDorV6rO5E4V9F8lJw==",
+			"version": "4.0.4",
+			"resolved": "https://registry.npmjs.org/npm-registry-fetch/-/npm-registry-fetch-4.0.4.tgz",
+			"integrity": "sha512-6jb34hX/iYNQebqWUHtU8YF6Cjb1H6ouTFPClYsyiW6lpFkljTpdeftm53rRojtja1rKAvKNIIiTS5Sjpw4wsA==",
 			"requires": {
 				"JSONStream": "^1.3.4",
 				"bluebird": "^3.5.1",
