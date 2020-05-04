@@ -76,19 +76,19 @@ class ThemeBuilder {
 
 				if (cssVariables) {
 					const libCssVarsSource = new Resource({
-						path: themeDir + "/css-variables.source.less",
+						path: themeDir + "/css_variables.source.less",
 						string: result.cssVariablesSource
 					});
 					const libCssVars = new Resource({
-						path: themeDir + "/css-variables.css",
+						path: themeDir + "/css_variables.css",
 						string: result.cssVariables
 					});
 					const libCssSkel = new Resource({
-						path: themeDir + "/library-skeleton.css",
+						path: themeDir + "/library_skeleton.css",
 						string: result.cssSkeleton
 					});
 					const libCssSkelRtl = new Resource({
-						path: themeDir + "/library-skeleton-RTL.css",
+						path: themeDir + "/library_skeleton-RTL.css",
 						string: result.cssSkeletonRtl
 					});
 

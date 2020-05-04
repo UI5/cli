@@ -126,6 +126,10 @@ test("Processor: Builds a less file (default options)", async (t) => {
 	t.is(await cssResource.getString(), expected.css, "CSS should be correct");
 	t.is(await cssRtlResource.getString(), expected.cssRtl, "Right-to-left CSS should be correct");
 	t.is(await jsonResource.getString(), expected.json, "JSON should be correct");
+
+	t.is(cssResource.getPath(), "/resources/sap/ui/foo/themes/base/library.css", "CSS resource path should be correct");
+	t.is(cssRtlResource.getPath(), "/resources/sap/ui/foo/themes/base/library-RTL.css", "Right-to-left CSS resource path should be correct");
+	t.is(jsonResource.getPath(), "/resources/sap/ui/foo/themes/base/library-parameters.json", "JSON resource path should be correct");
 });
 
 test("Processor: Builds a less file (compress = true)", async (t) => {
@@ -264,4 +268,12 @@ test("Processor: Builds a less file (cssVariables = true)", async (t) => {
 	t.is(await cssVariablesResource.getString(), expected.cssVariables, "CSS Variables should be correct");
 	t.is(await cssSkeletonResource.getString(), expected.cssSkeleton, "Skeleton CSS should be correct");
 	t.is(await cssSkeletonRtlResource.getString(), expected.cssSkeletonRtl, "Right-to-left skeleton CSS should be correct");
+
+	t.is(cssResource.getPath(), "/resources/sap/ui/foo/themes/base/library.css", "CSS resource path should be correct");
+	t.is(cssRtlResource.getPath(), "/resources/sap/ui/foo/themes/base/library-RTL.css", "Right-to-left CSS resource path should be correct");
+	t.is(jsonResource.getPath(), "/resources/sap/ui/foo/themes/base/library-parameters.json", "JSON resource path should be correct");
+	t.is(cssVariablesSourceResource.getPath(), "/resources/sap/ui/foo/themes/base/css_variables.source.less", "CSS Variables source path should be correct");
+	t.is(cssVariablesResource.getPath(), "/resources/sap/ui/foo/themes/base/css_variables.css", "CSS Variables resource path should be correct");
+	t.is(cssSkeletonResource.getPath(), "/resources/sap/ui/foo/themes/base/library_skeleton.css", "Skeleton CSS resource path should be correct");
+	t.is(cssSkeletonRtlResource.getPath(), "/resources/sap/ui/foo/themes/base/library_skeleton-RTL.css", "Right-to-left skeleton CSS resource path should be correct");
 });
