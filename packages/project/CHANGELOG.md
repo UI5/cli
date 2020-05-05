@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.0.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.1.0...HEAD).
+
+<a name="v2.1.0"></a>
+## [v2.1.0] - 2020-05-05
+### Features
+- **specVersion 2.1:** Add support for "customConfiguration" ([#308](https://github.com/SAP/ui5-project/issues/308)) [`201aaab`](https://github.com/SAP/ui5-project/commit/201aaab6beb8ad86fefdf371ae20c971970f6547)
+
 
 <a name="v2.0.4"></a>
 ## [v2.0.4] - 2020-04-30
@@ -156,6 +162,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v2.1.0]: https://github.com/SAP/ui5-project/compare/v2.0.4...v2.1.0
 [v2.0.4]: https://github.com/SAP/ui5-project/compare/v2.0.3...v2.0.4
 [v2.0.3]: https://github.com/SAP/ui5-project/compare/v2.0.2...v2.0.3
 [v2.0.2]: https://github.com/SAP/ui5-project/compare/v2.0.1...v2.0.2
