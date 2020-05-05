@@ -352,7 +352,8 @@ class ProjectPreprocessor {
 		} else if (extension.specVersion !== "0.1" &&
 				extension.specVersion !== "1.0" &&
 				extension.specVersion !== "1.1" &&
-				extension.specVersion !== "2.0") {
+				extension.specVersion !== "2.0" &&
+				extension.specVersion !== "2.1") {
 			throw new Error(
 				`Unsupported specification version ${extension.specVersion} defined for extension ` +
 				`${extension.metadata.name}. Your UI5 CLI installation might be outdated. ` +

@@ -46,7 +46,8 @@
 	],
 	"ava": {
 		"files": [
-			"test/lib/**/*.js"
+			"test/lib/**/*.js",
+			"!test/**/__helper__/**"
 		]
 	},
 	"nyc": {

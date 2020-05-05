@@ -2,6 +2,7 @@ const test = require("ava");
 const AjvCoverage = require("../../../../../../../utils/AjvCoverage");
 const {_Validator: Validator} = require("../../../../../../../../lib/validation/validator");
 const ValidationError = require("../../../../../../../../lib/validation/ValidationError");
+const project = require("../../../../__helper__/project");
 
 async function assertValidation(t, config, expectedErrors = undefined) {
 	const validation = t.context.validator.validate({config, project: {id: "my-project"}});
@@ -34,956 +35,463 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-test("Valid configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"kind": "project",
-		"type": "application",
-		"metadata": {
-			"name": "com.sap.ui5.test",
-			"copyright": "okay"
-		},
-		"resources": {
-			"configuration": {
-				"propertiesFileSourceEncoding": "UTF-8",
-				"paths": {
-					"webapp": "my/path"
-				}
-			}
-		},
-		"builder": {
+["2.1", "2.0"].forEach(function(specVersion) {
+	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "okay"
+			},
 			"resources": {
-				"excludes": [
-					"/resources/some/project/name/test_results/**",
-					"/test-resources/**",
-					"!/test-resources/some/project/name/demo-app/**"
-				]
-			},
-			"bundles": [
-				{
-					"bundleDefinition": {
-						"name": "sap-ui-custom.js",
-						"defaultFileTypes": [
-							".js"
-						],
-						"sections": [
-							{
-								"mode": "raw",
-								"filters": [
-									"ui5loader-autoconfig.js"
-								],
-								"resolve": true,
-								"resolveConditional": true,
-								"renderer": true,
-								"sort": true
-							},
-							{
-								"mode": "provided",
-								"filters": [
-									"ui5loader-autoconfig.js"
-								],
-								"resolve": false,
-								"resolveConditional": false,
-								"renderer": false,
-								"sort": false,
-								"declareRawModules": true
-							}
-						]
-					},
-					"bundleOptions": {
-						"optimize": true,
-						"decorateBootstrapModule": true,
-						"addTryCatchRestartWrapper": true,
-						"usePredefineCalls": true
-					}
-				},
-				{
-					"bundleDefinition": {
-						"name": "app.js",
-						"defaultFileTypes": [
-							".js"
-						],
-						"sections": [
-							{
-								"mode": "preload",
-								"filters": [
-									"some/app/Component.js"
-								],
-								"resolve": true,
-								"sort": true,
-								"declareRawModules": false
-							},
-							{
-								"mode": "require",
-								"filters": [
-									"ui5loader-autoconfig.js"
-								],
-								"resolve": true
-							}
-						]
-					},
-					"bundleOptions": {
-						"optimize": true,
-						"numberOfParts": 3
+				"configuration": {
+					"propertiesFileSourceEncoding": "UTF-8",
+					"paths": {
+						"webapp": "my/path"
 					}
 				}
-			],
-			"componentPreload": {
-				"paths": [
-					"some/glob/**/pattern/Component.js",
-					"some/other/glob/**/pattern/Component.js"
+			},
+			"builder": {
+				"resources": {
+					"excludes": [
+						"/resources/some/project/name/test_results/**",
+						"/test-resources/**",
+						"!/test-resources/some/project/name/demo-app/**"
+					]
+				},
+				"bundles": [
+					{
+						"bundleDefinition": {
+							"name": "sap-ui-custom.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"mode": "raw",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"resolveConditional": true,
+									"renderer": true,
+									"sort": true
+								},
+								{
+									"mode": "provided",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": false,
+									"resolveConditional": false,
+									"renderer": false,
+									"sort": false,
+									"declareRawModules": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"decorateBootstrapModule": true,
+							"addTryCatchRestartWrapper": true,
+							"usePredefineCalls": true
+						}
+					},
+					{
+						"bundleDefinition": {
+							"name": "app.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"mode": "preload",
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": false
+								},
+								{
+									"mode": "require",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"numberOfParts": 3
+						}
+					}
 				],
-				"namespaces": [
-					"some/namespace",
-					"some/other/namespace"
+				"componentPreload": {
+					"paths": [
+						"some/glob/**/pattern/Component.js",
+						"some/other/glob/**/pattern/Component.js"
+					],
+					"namespaces": [
+						"some/namespace",
+						"some/other/namespace"
+					]
+				},
+				"cachebuster": {
+					"signatureType": "hash"
+				},
+				"customTasks": [
+					{
+						"name": "custom-task-1",
+						"beforeTask": "replaceCopyright",
+						"configuration": {
+							"some-key": "some value"
+						}
+					},
+					{
+						"name": "custom-task-2",
+						"afterTask": "custom-task-1",
+						"configuration": {
+							"color": "blue"
+						}
+					},
+					{
+						"name": "custom-task-2",
+						"beforeTask": "not-valid",
+						"configuration": false
+					}
 				]
 			},
-			"cachebuster": {
-				"signatureType": "hash"
-			},
-			"customTasks": [
-				{
-					"name": "custom-task-1",
-					"beforeTask": "replaceCopyright",
-					"configuration": {
-						"some-key": "some value"
-					}
+			"server": {
+				"settings": {
+					"httpPort": 1337,
+					"httpsPort": 1443
 				},
-				{
-					"name": "custom-task-2",
-					"afterTask": "custom-task-1",
-					"configuration": {
-						"color": "blue"
+				"customMiddleware": [
+					{
+						"name": "myCustomMiddleware",
+						"mountPath": "/myapp",
+						"afterMiddleware": "compression",
+						"configuration": {
+							"debug": true
+						}
+					},
+					{
+						"name": "myCustomMiddleware-2",
+						"beforeMiddleware": "myCustomMiddleware",
+						"configuration": {
+							"debug": true
+						}
 					}
-				},
-				{
-					"name": "custom-task-2",
-					"beforeTask": "not-valid",
-					"configuration": false
-				}
-			]
-		},
-		"server": {
-			"settings": {
-				"httpPort": 1337,
-				"httpsPort": 1443
-			},
-			"customMiddleware": [
-				{
-					"name": "myCustomMiddleware",
-					"mountPath": "/myapp",
-					"afterMiddleware": "compression",
-					"configuration": {
-						"debug": true
-					}
-				},
-				{
-					"name": "myCustomMiddleware-2",
-					"beforeMiddleware": "myCustomMiddleware",
-					"configuration": {
-						"debug": true
-					}
-				}
-			]
-		}
+				]
+			}
+		});
 	});
-});
 
-test("Additional property", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application"
-		},
-		"notAllowed": true
-	}, [{
-		dataPath: "",
-		keyword: "additionalProperties",
-		message: "should NOT have additional properties",
-		params: {
-			additionalProperty: "notAllowed",
-		},
-		schemaPath: "#/additionalProperties",
-	}]);
-});
-
-test("Invalid resources configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "com.sap.ui5.test"
-		},
-		"resources": {
-			"configuration": {
-				"propertiesFileSourceEncoding": "FOO",
-				"paths": {
-					"app": "webapp",
-					"webapp": {
-						"path": "invalid"
-					}
+	test(`Invalid resources configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test"
+			},
+			"resources": {
+				"configuration": {
+					"propertiesFileSourceEncoding": "FOO",
+					"paths": {
+						"app": "webapp",
+						"webapp": {
+							"path": "invalid"
+						}
+					},
+					"notAllowed": true
 				},
 				"notAllowed": true
-			},
-			"notAllowed": true
-		}
-	}, [
-		{
-			dataPath: "/resources",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "notAllowed",
-			},
-			schemaPath: "#/additionalProperties",
-		},
-		{
-			dataPath: "/resources/configuration",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "notAllowed",
-			},
-			schemaPath: "#/properties/configuration/additionalProperties",
-		},
-		{
-			dataPath: "/resources/configuration/propertiesFileSourceEncoding",
-			keyword: "enum",
-			message: "should be equal to one of the allowed values",
-			params: {
-				allowedValues: [
-					"UTF-8",
-					"ISO-8859-1"
-				],
-			},
-			schemaPath: "../project.json#/definitions/resources-configuration-propertiesFileSourceEncoding/enum"
-		},
-		{
-			dataPath: "/resources/configuration/paths",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "app",
-			},
-			schemaPath: "#/properties/configuration/properties/paths/additionalProperties",
-		},
-		{
-			dataPath: "/resources/configuration/paths/webapp",
-			keyword: "type",
-			message: "should be string",
-			params: {
-				type: "string"
-			},
-			schemaPath: "#/properties/configuration/properties/paths/properties/webapp/type"
-		}
-	]);
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "com.sap.ui5.test"
-		},
-		"resources": {
-			"configuration": {
-				"paths": "webapp"
 			}
-		}
-	}, [
-		{
-			dataPath: "/resources/configuration/paths",
-			keyword: "type",
-			message: "should be object",
-			params: {
-				type: "object"
-			},
-			schemaPath: "#/properties/configuration/properties/paths/type",
-		}
-	]);
-});
-
-test("Invalid builder configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "com.sap.ui5.test",
-			"copyright": "yes"
-		},
-		"builder": {
-			// jsdoc is not supported for type application
-			"jsdoc": {
-				"excludes": [
-					"some/project/name/thirdparty/**"
-				]
-			},
-			"bundles": [
-				{
-					"bundleDefinition": {
-						"name": "sap-ui-custom.js",
-						"defaultFileTypes": [
-							".js"
-						],
-						"sections": [
-							{
-								"mode": "raw",
-								"filters": [
-									"ui5loader-autoconfig.js"
-								],
-								"resolve": true,
-								"sort": true,
-								"declareModules": true
-							}
-						]
-					},
-					"bundleOptions": {
-						"optimize": true
-					}
+		}, [
+			{
+				dataPath: "/resources",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
 				},
-				{
-					"bundleDefinition": {
-						"defaultFileTypes": [
-							".js", true
-						],
-						"sections": [
-							{
-								"filters": [
-									"some/app/Component.js"
-								],
-								"resolve": true,
-								"sort": true,
-								"declareRawModules": []
-							},
-							{
-								"mode": "provide",
-								"filters": "*",
-								"resolve": true
-							}
-						]
-					},
-					"bundleOptions": {
-						"optimize": "true",
-						"numberOfParts": "3",
-						"notAllowed": true
-					}
-				}
-			],
-			"componentPreload": {
-				"path": "some/invalid/path",
-				"paths": "some/invalid/glob/**/pattern/Component.js",
-				"namespaces": "some/invalid/namespace",
+				schemaPath: "#/additionalProperties",
+			},
+			{
+				dataPath: "/resources/configuration",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				},
+				schemaPath: "#/properties/configuration/additionalProperties",
+			},
+			{
+				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: [
+						"UTF-8",
+						"ISO-8859-1"
+					],
+				},
+				schemaPath: "../project.json#/definitions/resources-configuration-propertiesFileSourceEncoding/enum"
+			},
+			{
+				dataPath: "/resources/configuration/paths",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "app",
+				},
+				schemaPath: "#/properties/configuration/properties/paths/additionalProperties",
+			},
+			{
+				dataPath: "/resources/configuration/paths/webapp",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string"
+				},
+				schemaPath: "#/properties/configuration/properties/paths/properties/webapp/type"
 			}
-		}
-	}, [
-		{
-			dataPath: "/builder",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "jsdoc"
+		]);
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test"
 			},
-			schemaPath: "#/additionalProperties"
-		},
-		{
-			dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "declareModules",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/additionalProperties",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleDefinition",
-			keyword: "required",
-			message: "should have required property 'name'",
-			params: {
-				missingProperty: "name",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/required",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
-			keyword: "type",
-			message: "should be string",
-			params: {
-				type: "string",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/defaultFileTypes/items/type",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
-			keyword: "required",
-			message: "should have required property 'mode'",
-			params: {
-				missingProperty: "mode",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/required",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/declareRawModules/type",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
-			keyword: "enum",
-			message: "should be equal to one of the allowed values",
-			params: {
-				allowedValues: [
-					"raw",
-					"preload",
-					"require",
-					"provided",
-				],
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/mode/enum",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
-			keyword: "type",
-			message: "should be array",
-			params: {
-				type: "array",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/filters/type",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleOptions",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "notAllowed",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/additionalProperties",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleOptions/optimize",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/properties/optimize/type",
-		},
-		{
-			dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
-			keyword: "type",
-			message: "should be number",
-			params: {
-				type: "number",
-			},
-			schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/properties/numberOfParts/type",
-		},
-		{
-			dataPath: "/builder/componentPreload",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "path",
-			},
-			schemaPath: "../project.json#/definitions/builder-componentPreload/additionalProperties",
-		},
-		{
-			dataPath: "/builder/componentPreload/paths",
-			keyword: "type",
-			message: "should be array",
-			params: {
-				type: "array",
-			},
-			schemaPath: "../project.json#/definitions/builder-componentPreload/properties/paths/type",
-		},
-		{
-			dataPath: "/builder/componentPreload/namespaces",
-			keyword: "type",
-			message: "should be array",
-			params: {
-				type: "array",
-			},
-			schemaPath: "../project.json#/definitions/builder-componentPreload/properties/namespaces/type",
-		}
-	]);
-});
-
-test("framework configuration: OpenUI5", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application"
-		},
-		"framework": {
-			"name": "OpenUI5",
-			"version": "1.75.0",
-			"libraries": [
-				{"name": "sap.ui.core"},
-				{"name": "sap.m"},
-				{"name": "sap.f", "optional": true},
-				{"name": "sap.ui.support", "development": true}
-			]
-		}
-	});
-});
-
-test("framework configuration: SAPUI5", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application"
-		},
-		"framework": {
-			"name": "SAPUI5",
-			"version": "1.75.0",
-			"libraries": [
-				{"name": "sap.ui.core"},
-				{"name": "sap.m"},
-				{"name": "sap.f", "optional": true},
-				{"name": "sap.ui.support", "development": true},
-				{"name": "sap.ui.comp", "development": true, "optional": false},
-				{"name": "sap.fe", "development": false, "optional": true},
-				{"name": "sap.ui.export", "development": false, "optional": false}
-			]
-		}
-	});
-});
-
-test("framework configuration: Invalid", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application"
-		},
-		"framework": {
-			"name": "FooUI5",
-			"version": "1.75",
-			"libraries": [
-				"sap.ui.core",
-				{"library": "sap.m"},
-				{"name": "sap.f", "optional": "x"},
-				{"name": "sap.f", "development": "no"}
-			]
-		}
-	}, [
-		{
-			dataPath: "/framework/name",
-			keyword: "enum",
-			message: "should be equal to one of the allowed values",
-			params: {
-				allowedValues: [
-					"OpenUI5",
-					"SAPUI5",
-				],
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/name/enum",
-		},
-		{
-			dataPath: "/framework/version",
-			keyword: "errorMessage",
-			message: "Not a valid version according to the Semantic Versioning specification (https://semver.org/)",
-			params: {
-				errors: [
-					{
-						dataPath: "/framework/version",
-						keyword: "pattern",
-						message:
-							"should match pattern \"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*" +
-							"|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(" +
-							"[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$\"",
-						params: {
-							pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-]" +
-							"[0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(" +
-							"?:\\.[0-9a-zA-Z-]+)*))?$",
-						},
-						schemaPath: "../project.json#/definitions/framework/properties/version/pattern",
-					}
-				]
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/version/errorMessage",
-		},
-		{
-			dataPath: "/framework/libraries/0",
-			keyword: "type",
-			message: "should be object",
-			params: {
-				type: "object",
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/type"
-
-		},
-		{
-			dataPath: "/framework/libraries/1",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "library",
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/additionalProperties",
-		},
-		{
-			dataPath: "/framework/libraries/1",
-			keyword: "required",
-			message: "should have required property 'name'",
-			params: {
-				missingProperty: "name",
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/required",
-		},
-		{
-			dataPath: "/framework/libraries/2/optional",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean"
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/optional/type",
-		},
-		{
-			dataPath: "/framework/libraries/3/development",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean"
-			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/development/type"
-		}
-	]);
-});
-
-test("framework configuration: Missing 'name'", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application"
-		},
-		"framework": {}
-	}, [
-		{
-			dataPath: "/framework",
-			keyword: "required",
-			message: "should have required property 'name'",
-			params: {
-				missingProperty: "name"
-			},
-			schemaPath: "../project.json#/definitions/framework/required",
-		}
-	]);
-});
-
-test("framework configuration: library with optional and development", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application"
-		},
-		"framework": {
-			"name": "OpenUI5",
-			"libraries": [
-				{
-					name: "sap.ui.lib1",
-					development: true,
-					optional: true
-				},
-				{
-					// This should only complain about wrong types, not that both are true
-					name: "sap.ui.lib2",
-					development: "true",
-					optional: "true"
+			"resources": {
+				"configuration": {
+					"paths": "webapp"
 				}
-			]
-		}
-	}, [
-		{
-			dataPath: "/framework/libraries/0",
-			keyword: "errorMessage",
-			message: "Either \"development\" or \"optional\" can be true, but not both",
-			params: {
-				errors: [
+			}
+		}, [
+			{
+				dataPath: "/resources/configuration/paths",
+				keyword: "type",
+				message: "should be object",
+				params: {
+					type: "object"
+				},
+				schemaPath: "#/properties/configuration/properties/paths/type",
+			}
+		]);
+	});
+
+	test(`Invalid builder configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				// jsdoc is not supported for type application
+				"jsdoc": {
+					"excludes": [
+						"some/project/name/thirdparty/**"
+					]
+				},
+				"bundles": [
 					{
-						dataPath: "/framework/libraries/0",
-						keyword: "additionalProperties",
-						message: "should NOT have additional properties",
-						params: {
-							additionalProperty: "development",
+						"bundleDefinition": {
+							"name": "sap-ui-custom.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"mode": "raw",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareModules": true
+								}
+							]
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/then/additionalProperties",
+						"bundleOptions": {
+							"optimize": true
+						}
 					},
 					{
-						dataPath: "/framework/libraries/0",
-						keyword: "additionalProperties",
-						message: "should NOT have additional properties",
-						params: {
-							additionalProperty: "optional",
+						"bundleDefinition": {
+							"defaultFileTypes": [
+								".js", true
+							],
+							"sections": [
+								{
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": []
+								},
+								{
+									"mode": "provide",
+									"filters": "*",
+									"resolve": true
+								}
+							]
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/then/additionalProperties",
-					},
+						"bundleOptions": {
+							"optimize": "true",
+							"numberOfParts": "3",
+							"notAllowed": true
+						}
+					}
 				],
+				"componentPreload": {
+					"path": "some/invalid/path",
+					"paths": "some/invalid/glob/**/pattern/Component.js",
+					"namespaces": "some/invalid/namespace",
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "jsdoc"
+				},
+				schemaPath: "#/additionalProperties"
 			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/then/errorMessage",
-		},
-		{
-			dataPath: "/framework/libraries/1/optional",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "declareModules",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/additionalProperties",
 			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/optional/type",
-		},
-		{
-			dataPath: "/framework/libraries/1/development",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition",
+				keyword: "required",
+				message: "should have required property 'name'",
+				params: {
+					missingProperty: "name",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/required",
 			},
-			schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/development/type",
-		},
-	]);
-});
-
-
-test("No metadata", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application"
-	}, [{
-		dataPath: "",
-		keyword: "required",
-		message: "should have required property 'metadata'",
-		params: {
-			missingProperty: "metadata",
-		},
-		schemaPath: "#/required",
-	}]);
-});
-
-test("Metadata not type object", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": "foo"
-	}, [{
-		dataPath: "/metadata",
-		keyword: "type",
-		message: "should be object",
-		params: {
-			type: "object",
-		},
-		schemaPath: "../project.json#/definitions/metadata/type",
-	}]);
-});
-
-test("No metadata.name", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {}
-	}, [{
-		dataPath: "/metadata",
-		keyword: "required",
-		message: "should have required property 'name'",
-		params: {
-			missingProperty: "name",
-		},
-		schemaPath: "../project.json#/definitions/metadata/required",
-	}]);
-});
-
-test("Invalid metadata.name", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": {}
-		}
-	}, [
-		{
-			dataPath: "/metadata/name",
-			keyword: "type",
-			message: "should be string",
-			params: {
-				type: "string"
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/defaultFileTypes/items/type",
 			},
-			schemaPath: "../project.json#/definitions/metadata/properties/name/type",
-		}
-	]);
-});
-
-test("Invalid metadata.copyright", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "foo",
-			"copyright": 123
-		}
-	}, [
-		{
-			dataPath: "/metadata/copyright",
-			keyword: "type",
-			message: "should be string",
-			params: {
-				type: "string"
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
+				keyword: "required",
+				message: "should have required property 'mode'",
+				params: {
+					missingProperty: "mode",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/required",
 			},
-			schemaPath: "../project.json#/definitions/metadata/properties/copyright/type",
-		}
-	]);
-});
-
-test("Additional metadata property", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "foo",
-			"copyrihgt": "typo"
-		}
-	}, [
-		{
-			dataPath: "/metadata",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "copyrihgt"
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
+				keyword: "type",
+				message: "should be boolean",
+				params: {
+					type: "boolean",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/declareRawModules/type",
 			},
-			schemaPath: "../project.json#/definitions/metadata/additionalProperties",
-		}
-	]);
-});
-
-test("metadata.deprecated: true", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"deprecated": true
-		}
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: [
+						"raw",
+						"preload",
+						"require",
+						"provided",
+					],
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/mode/enum",
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/filters/type",
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/additionalProperties",
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions/optimize",
+				keyword: "type",
+				message: "should be boolean",
+				params: {
+					type: "boolean",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/properties/optimize/type",
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
+				keyword: "type",
+				message: "should be number",
+				params: {
+					type: "number",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/properties/numberOfParts/type",
+			},
+			{
+				dataPath: "/builder/componentPreload",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "path",
+				},
+				schemaPath: "../project.json#/definitions/builder-componentPreload/additionalProperties",
+			},
+			{
+				dataPath: "/builder/componentPreload/paths",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+				schemaPath: "../project.json#/definitions/builder-componentPreload/properties/paths/type",
+			},
+			{
+				dataPath: "/builder/componentPreload/namespaces",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+				schemaPath: "../project.json#/definitions/builder-componentPreload/properties/namespaces/type",
+			}
+		]);
 	});
 });
 
-test("metadata.deprecated: false", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"deprecated": false
-		}
-	});
-});
 
-test("Invalid metadata.deprecated", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"deprecated": "Yes"
-		}
-	}, [
-		{
-			dataPath: "/metadata/deprecated",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
-			},
-			schemaPath: "../project.json#/definitions/metadata/properties/deprecated/type",
-		}
-	]);
-});
-
-test("metadata.sapInternal: true", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"sapInternal": true
-		}
-	});
-});
-
-test("metadata.sapInternal: false", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"sapInternal": false
-		}
-	});
-});
-
-test("Invalid metadata.sapInternal", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"sapInternal": "Yes"
-		}
-	}, [
-		{
-			dataPath: "/metadata/sapInternal",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
-			},
-			schemaPath: "../project.json#/definitions/metadata/properties/sapInternal/type",
-		}
-	]);
-});
-
-test("metadata.allowSapInternal: true", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"allowSapInternal": true
-		}
-	});
-});
-
-test("metadata.allowSapInternal: false", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"allowSapInternal": false
-		}
-	});
-});
-
-test("Invalid metadata.allowSapInternal", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "application",
-		"metadata": {
-			"name": "my-application",
-			"allowSapInternal": "Yes"
-		}
-	}, [
-		{
-			dataPath: "/metadata/allowSapInternal",
-			keyword: "type",
-			message: "should be boolean",
-			params: {
-				type: "boolean",
-			},
-			schemaPath: "../project.json#/definitions/metadata/properties/allowSapInternal/type",
-		}
-	]);
-});
+project.defineTests(test, assertValidation, "application");

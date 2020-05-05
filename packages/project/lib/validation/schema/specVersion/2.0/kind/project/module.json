@@ -3,10 +3,9 @@
 	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project/module.json",
 
 	"type": "object",
-	"additionalProperties": false,
 	"required": ["specVersion", "type", "metadata"],
 	"properties": {
-		"specVersion": { "enum": ["2.0"] },
+		"specVersion": { "enum": ["2.1","2.0"] },
 		"kind": {
 			"enum": ["project", null]
 		},
@@ -16,6 +15,58 @@
 		"metadata": {
 			"$ref": "../project.json#/definitions/metadata"
 		},
+		"resources": {
+			"$ref": "#/definitions/resources"
+		}
+	},
+
+	"if": {
+		"properties": {
+			"specVersion": { "enum": ["2.1"] }
+		}
+	},
+	"then": {
+		"additionalProperties": false,
+		"properties": {
+			"specVersion": { "enum": ["2.1"] },
+			"kind": {
+				"enum": ["project", null]
+			},
+			"type": {
+				"enum": ["module"]
+			},
+			"metadata": {
+				"$ref": "../project.json#/definitions/metadata"
+			},
+			"resources": {
+				"$ref": "#/definitions/resources"
+			},
+			"customConfiguration": {
+				"type": "object",
+				"additionalProperties": true
+			}
+		}
+	},
+	"else": {
+		"additionalProperties": false,
+		"properties": {
+			"specVersion": { "enum": ["2.0"] },
+			"kind": {
+				"enum": ["project", null]
+			},
+			"type": {
+				"enum": ["module"]
+			},
+			"metadata": {
+				"$ref": "../project.json#/definitions/metadata"
+			},
+			"resources": {
+				"$ref": "#/definitions/resources"
+			}
+		}
+	},
+
+	"definitions": {
 		"resources": {
 			"type": "object",
 			"additionalProperties": false,

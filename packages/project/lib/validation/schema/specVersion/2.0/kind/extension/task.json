@@ -3,19 +3,53 @@
 	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/extension/task.json",
 
 	"type": "object",
-	"additionalProperties": false,
 	"required": ["specVersion", "kind", "type", "metadata", "task"],
-	"properties": {
-		"specVersion": { "enum": ["2.0"] },
-		"kind": {
-			"enum": ["extension"]
-		},
-		"type": {
-			"enum": ["task"]
-		},
-		"metadata": {
-			"$ref": "../extension.json#/definitions/metadata"
-		},
+	"if": {
+		"properties": {
+			"specVersion": { "enum": ["2.1"] }
+		}
+	},
+	"then": {
+		"additionalProperties": false,
+		"properties": {
+			"specVersion": { "enum": ["2.1"] },
+			"kind": {
+				"enum": ["extension"]
+			},
+			"type": {
+				"enum": ["task"]
+			},
+			"metadata": {
+				"$ref": "../extension.json#/definitions/metadata"
+			},
+			"task": {
+				"$ref": "#/definitions/task"
+			},
+			"customConfiguration": {
+				"type": "object",
+				"additionalProperties": true
+			}
+		}
+	},
+	"else": {
+		"additionalProperties": false,
+		"properties": {
+			"specVersion": { "enum": ["2.0"] },
+			"kind": {
+				"enum": ["extension"]
+			},
+			"type": {
+				"enum": ["task"]
+			},
+			"metadata": {
+				"$ref": "../extension.json#/definitions/metadata"
+			},
+			"task": {
+				"$ref": "#/definitions/task"
+			}
+		}
+	},
+	"definitions": {
 		"task": {
 			"type": "object",
 			"additionalProperties": false,
