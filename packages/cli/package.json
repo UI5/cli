@@ -116,15 +116,15 @@
 		"yargs": "^15.3.1"
 	},
 	"devDependencies": {
-		"ava": "^3.8.1",
+		"ava": "^3.8.2",
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",
 		"docdash": "^1.2.0",
 		"eslint": "^6.8.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^24.0.1",
-		"execa": "^4.0.0",
+		"eslint-plugin-jsdoc": "^24.0.6",
+		"execa": "^4.0.1",
 		"jsdoc": "^3.6.4",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.0.1",
