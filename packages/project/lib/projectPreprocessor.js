@@ -277,7 +277,8 @@ class ProjectPreprocessor {
 		}
 
 		if (project.specVersion !== "0.1" && project.specVersion !== "1.0" &&
-			project.specVersion !== "1.1" && project.specVersion !== "2.0") {
+			project.specVersion !== "1.1" && project.specVersion !== "2.0" &&
+			project.specVersion !== "2.1") {
 			throw new Error(
 				`Unsupported specification version ${project.specVersion} defined for project ` +
 				`${project.id}. Your UI5 CLI installation might be outdated. ` +
