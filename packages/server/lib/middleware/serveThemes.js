@@ -13,10 +13,10 @@ function isFresh(req, res) {
 
 // List of experimental css variables resources that should activate the "cssVariables" build
 const cssVariablesThemeResources = [
-	"css-variables.source.less",
-	"css-variables.css",
-	"library-skeleton.css",
-	"library-skeleton-RTL.css"
+	"css_variables.source.less",
+	"css_variables.css",
+	"library_skeleton.css",
+	"library_skeleton-RTL.css"
 ];
 
 // List of resources that should be handled by the middleware

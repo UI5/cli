@@ -36,21 +36,21 @@ const createResources = function() {
 		},
 
 		// CSS Variables result
-		"css-variables.source.less": {
-			getBuffer: sinon.stub().resolves(`/* css-variables.source.less */`),
-			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/css-variables.source.less")
+		"css_variables.source.less": {
+			getBuffer: sinon.stub().resolves(`/* css_variables.source.less */`),
+			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/css_variables.source.less")
 		},
-		"css-variables.css": {
-			getBuffer: sinon.stub().resolves(`/* css-variables.css */`),
-			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/css-variables.css")
+		"css_variables.css": {
+			getBuffer: sinon.stub().resolves(`/* css_variables.css */`),
+			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/css_variables.css")
 		},
-		"library-skeleton.css": {
-			getBuffer: sinon.stub().resolves(`/* library-skeleton.css */`),
-			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/library-skeleton.css")
+		"library_skeleton.css": {
+			getBuffer: sinon.stub().resolves(`/* library_skeleton.css */`),
+			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/library_skeleton.css")
 		},
-		"library-skeleton-RTL.css": {
-			getBuffer: sinon.stub().resolves(`/* library-skeleton-RTL.css */`),
-			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/library-skeleton-RTL.css")
+		"library_skeleton-RTL.css": {
+			getBuffer: sinon.stub().resolves(`/* library_skeleton-RTL.css */`),
+			getPath: sinon.stub().returns("/resources/sap/ui/test/themes/base/library_skeleton-RTL.css")
 		}
 	};
 };
@@ -67,10 +67,10 @@ const stubThemeBuild = function(resources) {
 		resources["library.css"],
 		resources["library-RTL.css"],
 		resources["library-parameters.json"],
-		resources["css-variables.source.less"],
-		resources["css-variables.css"],
-		resources["library-skeleton.css"],
-		resources["library-skeleton-RTL.css"]
+		resources["css_variables.source.less"],
+		resources["css_variables.css"],
+		resources["library_skeleton.css"],
+		resources["library_skeleton-RTL.css"]
 	]);
 	return build;
 };
@@ -143,20 +143,20 @@ test.serial.cb("Serving library-parameters.json", (t) => {
 	verifyThemeRequest(t, "library-parameters.json");
 });
 
-test.serial.cb("Serving css-variables.source.less", (t) => {
-	verifyThemeRequest(t, "css-variables.source.less");
+test.serial.cb("Serving css_variables.source.less", (t) => {
+	verifyThemeRequest(t, "css_variables.source.less");
 });
 
-test.serial.cb("Serving css-variables.css", (t) => {
-	verifyThemeRequest(t, "css-variables.css");
+test.serial.cb("Serving css_variables.css", (t) => {
+	verifyThemeRequest(t, "css_variables.css");
 });
 
-test.serial.cb("Serving library-skeleton.css", (t) => {
-	verifyThemeRequest(t, "library-skeleton.css");
+test.serial.cb("Serving library_skeleton.css", (t) => {
+	verifyThemeRequest(t, "library_skeleton.css");
 });
 
-test.serial.cb("Serving library-skeleton-RTL.css", (t) => {
-	verifyThemeRequest(t, "library-skeleton-RTL.css");
+test.serial.cb("Serving library_skeleton-RTL.css", (t) => {
+	verifyThemeRequest(t, "library_skeleton-RTL.css");
 });
 
 test.serial.cb("Clear cache to rebuild themes when CSS Variables file is requested", (t) => {
@@ -194,7 +194,7 @@ test.serial.cb("Clear cache to rebuild themes when CSS Variables file is request
 
 	function secondRequest() {
 		const req = {
-			url: "/resources/sap/ui/test/themes/base/css-variables.css",
+			url: "/resources/sap/ui/test/themes/base/css_variables.css",
 			headers: {}
 		};
 
@@ -229,7 +229,7 @@ test.serial.cb("Clear cache only once after enabling CSS Variables", (t) => {
 
 	function firstRequest() {
 		const req = {
-			url: "/resources/sap/ui/test/themes/base/css-variables.css",
+			url: "/resources/sap/ui/test/themes/base/css_variables.css",
 			headers: {}
 		};
 
@@ -252,7 +252,7 @@ test.serial.cb("Clear cache only once after enabling CSS Variables", (t) => {
 
 	function secondRequest() {
 		const req = {
-			url: "/resources/sap/ui/test/themes/base/library-skeleton.css",
+			url: "/resources/sap/ui/test/themes/base/library_skeleton.css",
 			headers: {}
 		};
 

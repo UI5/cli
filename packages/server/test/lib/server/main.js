@@ -297,8 +297,8 @@ test("Get library-parameters.json from theme middleware (/resources/library/a/th
 		});
 	});
 
-test("Get css-variables.source.less from theme middleware (/resources/library/a/themes/base/css-variables.source.less)", (t) => {
-	return request.get("/resources/library/a/themes/base/css-variables.source.less").then((res) => {
+test("Get css_variables.source.less from theme middleware (/resources/library/a/themes/base/css_variables.source.less)", (t) => {
+	return request.get("/resources/library/a/themes/base/css_variables.source.less").then((res) => {
 		if (res.error) {
 			t.fail(res.error.text);
 		}
@@ -313,8 +313,8 @@ test("Get css-variables.source.less from theme middleware (/resources/library/a/
 	});
 });
 
-test("Get css-variables.css from theme middleware (/resources/library/a/themes/base/css-variables.css)", (t) => {
-	return request.get("/resources/library/a/themes/base/css-variables.css").then((res) => {
+test("Get css_variables.css from theme middleware (/resources/library/a/themes/base/css_variables.css)", (t) => {
+	return request.get("/resources/library/a/themes/base/css_variables.css").then((res) => {
 		if (res.error) {
 			t.fail(res.error.text);
 		}
@@ -330,8 +330,8 @@ test("Get css-variables.css from theme middleware (/resources/library/a/themes/b
 	});
 });
 
-test("Get library-skeleton.css from theme middleware (/resources/library/a/themes/base/library-skeleton.css)", (t) => {
-	return request.get("/resources/library/a/themes/base/library-skeleton.css").then((res) => {
+test("Get library_skeleton.css from theme middleware (/resources/library/a/themes/base/library_skeleton.css)", (t) => {
+	return request.get("/resources/library/a/themes/base/library_skeleton.css").then((res) => {
 		if (res.error) {
 			t.fail(res.error.text);
 		}
@@ -345,8 +345,8 @@ test("Get library-skeleton.css from theme middleware (/resources/library/a/theme
 	});
 });
 
-test("Get library-skeleton-RTL.css from theme middleware (/resources/library/a/themes/base/library-skeleton-RTL.css)", (t) => {
-	return request.get("/resources/library/a/themes/base/library-skeleton-RTL.css").then((res) => {
+test("Get library_skeleton-RTL.css from theme middleware (/resources/library/a/themes/base/library_skeleton-RTL.css)", (t) => {
+	return request.get("/resources/library/a/themes/base/library_skeleton-RTL.css").then((res) => {
 		if (res.error) {
 			t.fail(res.error.text);
 		}
