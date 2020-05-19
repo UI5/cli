@@ -1,7 +1,7 @@
 /*
  * JSDoc3 template for UI5 documentation generation.
  *
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,6 +19,7 @@ var template = require('jsdoc/template'),
 
 /* globals, constants */
 var MY_TEMPLATE_NAME = "ui5",
+	MY_ALT_TEMPLATE_NAME = "sapui5-jsdoc3",
 	ANONYMOUS_LONGNAME = doclet.ANONYMOUS_LONGNAME,
 	A_SECURITY_TAGS = [
 		{
@@ -56,8 +57,9 @@ var MY_TEMPLATE_NAME = "ui5",
 var	rSecurityTags = new RegExp(A_SECURITY_TAGS.map(function($) {return $.name.toLowerCase(); }).join('|'), "i");
 	//debug(A_SECURITY_TAGS.map(function($) {return $.name; }).join('|'));
 
-var templateConf = (env.conf.templates || {})[MY_TEMPLATE_NAME] || {},
-  pluginConf = templateConf,
+var templatesConf = (env.conf.templates || {}),
+	templateConf = templatesConf[MY_TEMPLATE_NAME] || templatesConf[MY_ALT_TEMPLATE_NAME] || {},
+	pluginConf = templateConf,
 	conf = {},
 	view;
 
@@ -580,50 +582,51 @@ function publish(symbolSet) {
 	var now = new Date();
 
 	info("start publishing");
-	for (var i = 0; i < templateConf.variants.length; i++) {
+	if ( Array.isArray(templateConf.variants) ) {
+		templateConf.variants.forEach(function(vVariant) {
 
-		var vVariant = templateConf.variants[i];
-		if ( typeof vVariant === "string" ) {
-			vVariant = { variant : vVariant };
-		}
+			if ( typeof vVariant === "string" ) {
+				vVariant = { variant : vVariant };
+			}
 
-		info("");
+			info("");
 
-		if ( PUBLISHING_VARIANTS[vVariant.variant] ) {
+			if ( PUBLISHING_VARIANTS[vVariant.variant] ) {
 
-			// Merge different sources of configuration (listed in increasing priority order - last one wins)
-			// and expose the result in the global 'conf' variable
-			//  - global defaults
-			//  - defaults for current variant
-			//  - user configuration for sapui5 template
-			//  - user configuration for current variant
-			//
-			// Note: trailing slash expected for dirs
-			conf = merge({
-				ext: ".html",
-				filter: function($) { return true; },
-				templatesDir: "/templates/sapui5/",
-				symbolsDir: "symbols/",
-				modulesDir: "modules/",
-				topicUrlPattern: "../../guide/{{topic}}.html",
-				srcDir: "symbols/src/",
-				creationDate : now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDay() + " " + now.getHours() + ":" + now.getMinutes(),
-				outdir: env.opts.destination
-			}, PUBLISHING_VARIANTS[vVariant.variant].defaults, templateConf, vVariant);
+				// Merge different sources of configuration (listed in increasing priority order - last one wins)
+				// and expose the result in the global 'conf' variable
+				//  - global defaults
+				//  - defaults for current variant
+				//  - user configuration for sapui5 template
+				//  - user configuration for current variant
+				//
+				// Note: trailing slash expected for dirs
+				conf = merge({
+					ext: ".html",
+					filter: function($) { return true; },
+					templatesDir: "/templates/sapui5/",
+					symbolsDir: "symbols/",
+					modulesDir: "modules/",
+					topicUrlPattern: "../../guide/{{topic}}.html",
+					srcDir: "symbols/src/",
+					creationDate : now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDay() + " " + now.getHours() + ":" + now.getMinutes(),
+					outdir: env.opts.destination
+				}, PUBLISHING_VARIANTS[vVariant.variant].defaults, templateConf, vVariant);
 
-			info("publishing as variant '" + vVariant.variant + "'");
-			debug("final configuration:");
-			debug(conf);
+				info("publishing as variant '" + vVariant.variant + "'");
+				debug("final configuration:");
+				debug(conf);
 
-			PUBLISHING_VARIANTS[vVariant.variant].processor(conf);
+				PUBLISHING_VARIANTS[vVariant.variant].processor(conf);
 
-			info("done with variant " + vVariant.variant);
+				info("done with variant " + vVariant.variant);
 
-		} else {
+			} else {
 
-			info("cannot publish unknown variant '" + vVariant.variant + "' (ignored)");
+				info("cannot publish unknown variant '" + vVariant.variant + "' (ignored)");
 
-		}
+			}
+		});
 	}
 
 	var builtinSymbols = templateConf.builtinSymbols;
@@ -741,17 +744,23 @@ function createInheritanceTree() {
 	function getOrCreateClass(sClass, sExtendingClass) {
 		var oClass = lookup(sClass);
 		if ( !oClass ) {
-			warning("create missing class " + sClass + " (extended by " + sExtendingClass + ")");
-			var sBaseClass = 'Object';
+			var sKind = "class",
+				sBaseClass = 'Object',
+				sVisibility = "public";
 			if ( externalSymbols[sClass] ) {
+				sKind = externalSymbols[sClass].kind || sKind;
 				sBaseClass = externalSymbols[sClass].extends || sBaseClass;
+				sVisibility = externalSymbols[sClass].visibility || sVisibility;
+				debug("create doclet for external class " + sClass + " (extended by " + sExtendingClass + ")");
+			} else {
+				warning("create missing class " + sClass + " (extended by " + sExtendingClass + ")");
 			}
 			var oBaseClass = getOrCreateClass(sBaseClass, sClass);
 			oClass = makeDoclet(sClass, [
 				"@extends " + sBaseClass,
-				"@class",
+				"@" + sKind,
 				"@synthetic",
-				"@public"
+				sVisibility === "restricted" ? "@ui5-restricted" : "@" + sVisibility
 			]);
 			oClass.__ui5.base = oBaseClass;
 			oBaseClass.__ui5.derived = oBaseClass.__ui5.derived || [];
@@ -786,12 +795,17 @@ function createInheritanceTree() {
 			for (var j = 0; j < oClass.implements.length; j++) {
 				var oInterface = lookup(oClass.implements[j]);
 				if ( !oInterface ) {
-					warning("create missing interface " + oClass.implements[j]);
+					var sVisibility = "public";
+					if ( externalSymbols[oClass.implements[j]] ) {
+						sVisibility = externalSymbols[oClass.implements[j]] || sVisibility;
+						debug("create doclet for external interface " + oClass.implements[j]);
+					}  else {
+						warning("create missing interface " + oClass.implements[j]);
+					}
 					oInterface = makeDoclet(oClass.implements[j], [
-						"@extends Object",
 						"@interface",
 						"@synthetic",
-						"@public"
+						sVisibility === "restricted" ? "@ui5-restricted" : "@" + sVisibility
 					]);
 					oInterface.__ui5.base = oObject;
 					oObject.__ui5.derived = oObject.__ui5.derived || [];
@@ -1697,7 +1711,7 @@ function TypeParser(defaultBuilder) {
 	 * - function(this:) // type of this
 	 * - function(new:) // constructor
 	 */
-	var rLexer = /\s*(Array\.?<|Object\.?<|Set\.?<|Promise\.?<|function\(|\{|:|\(|\||\}|>|\)|,|\[\]|\*|\?|!|\.\.\.)|\s*((?:module:)?\w+(?:[\/.#~]\w+)*)|./g;
+	var rLexer = /\s*(Array\.?<|Object\.?<|Set\.?<|Promise\.?<|function\(|\{|:|\(|\||\}|\.?<|>|\)|,|\[\]|\*|\?|!|\.\.\.)|\s*((?:module:)?\w+(?:[\/.#~]\w+)*)|./g;
 
 	var input,
 		builder,
@@ -1836,9 +1850,24 @@ function TypeParser(defaultBuilder) {
 		} else {
 			type = builder.simpleType(tokenStr);
 			next('symbol');
-			while ( token === '[]' ) {
+			// check for suffix operators: either 'type application' (generics) or 'array', but not both of them
+			if ( token === "<" || token === ".<" ) {
 				next();
-				type = builder.array(type);
+				var templateTypes = [];
+				while ( token !== ">" ) {
+					var templateType = parseType();
+					templateTypes.push(templateType);
+					if ( token === ',' ) {
+						next();
+					}
+				}
+				next(">");
+				type = builder.typeApplication(type, templateTypes);
+			} else {
+				while ( token === '[]' ) {
+					next();
+					type = builder.array(type);
+				}
 			}
 		}
 		if ( nullable ) {
@@ -1942,6 +1971,13 @@ TypeParser.ASTBuilder = {
 	repeatable: function(type) {
 		type.repeatable = true;
 		return type;
+	},
+	typeApplication: function(type, templateTypes) {
+		return {
+			type: 'typeApplication',
+			baseType: type,
+			templateTypes: templateTypes
+		};
 	}
 };
 
@@ -1972,6 +2008,7 @@ TypeParser.LinkBuilder.prototype = {
 	array: function(componentType) {
 		if ( componentType.needsParenthesis || componentType.simpleComponent === false ) {
 			return {
+				simpleComponent: false,
 				str: "Array.<" + this.safe(componentType) + ">"
 			};
 		}
@@ -1982,20 +2019,24 @@ TypeParser.LinkBuilder.prototype = {
 	object: function(keyType, valueType) {
 		if ( keyType.synthetic ) {
 			return {
+				simpleComponent: false,
 				str: "Object." + this.lt + this.safe(valueType) + this.gt
 			};
 		}
 		return {
+			simpleComponent: false,
 			str: "Object." + this.lt + this.safe(keyType) + "," + this.safe(valueType) + this.gt
 		};
 	},
 	set: function(elementType) {
 		return {
+			simpleComponent: false,
 			str: 'Set.' + this.lt + this.safe(elementType) + this.gt
 		};
 	},
 	promise: function(fulfillmentType) {
 		return {
+			simpleComponent: false,
 			str: 'Promise.' + this.lt + this.safe(fulfillmentType) + this.gt
 		};
 	},
@@ -2040,6 +2081,12 @@ TypeParser.LinkBuilder.prototype = {
 	repeatable: function(type) {
 		type.str = "..." + type.str;
 		return type;
+	},
+	typeApplication: function(type, templateTypes) {
+		return {
+			simpleComponent: false,
+			str: this.safe(type) + this.lt + templateTypes.map(function(type) { return this.safe(type); }, this).join(',') + this.gt
+		};
 	}
 };
 
@@ -2183,7 +2230,13 @@ function createAPIJSON(symbols, filename) {
 	// sort only a copy(!) of the symbols, otherwise the SymbolSet lookup is broken
 	symbols.slice(0).sort(sortByAlias).forEach(function(symbol) {
 		if ( isFirstClassSymbol(symbol) && !symbol.synthetic ) { // dump a symbol if it as a class symbol and if it is not a synthetic symbol
-			api.symbols.push(createAPIJSON4Symbol(symbol, false));
+			try {
+				var json = createAPIJSON4Symbol(symbol, false);
+				api.symbols.push(json);
+			} catch (e) {
+				error("failed to create api summary for " + symbol.name, e);
+				throw e;
+			}
 		}
 	});
 
@@ -2212,6 +2265,13 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 			}
 		}
 		return true;
+	}
+
+	// In some cases, JSDoc does not provide a basename in property symbol.name, but a partially qualified name
+	// this function reduces this to the base name
+	function basename(name) {
+		var p = name.lastIndexOf(".");
+		return p < 0 ? name : name.slice(p + 1);
 	}
 
 	function tag(name, value, omitEmpty) {
@@ -2766,7 +2826,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 	tag(kind);
 
 	attrib("name", symbol.longname);
-	attrib("basename", symbol.name);
+	attrib("basename", basename(symbol.name));
 	if ( symbol.__ui5.resource ) {
 		attrib("resource", symbol.__ui5.resource);
 	}
@@ -2810,15 +2870,19 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 
 	var skipMembers = false;
 	var i, j, member, param;
+	var standardEnum = false;
 
 	if ( kind === 'class' ) {
 
-		if ( symbol.__ui5.stereotype || hasSettings(symbol) ) {
+		if ( symbol.__ui5.stereotype || (symbol.__ui5.metadata && symbol.__ui5.metadata.metadataClass) || hasSettings(symbol) ) {
 
 			tag("ui5-metadata");
 
 			if ( symbol.__ui5.stereotype ) {
 				attrib("stereotype", symbol.__ui5.stereotype);
+			}
+			if ( symbol.__ui5.metadata && symbol.__ui5.metadata.metadataClass ) {
+				attrib("metadataClass", symbol.__ui5.metadata.metadataClass);
 			}
 
 			writeMetadata(symbol);
@@ -2827,7 +2891,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		}
 
 
-		// IF @hideconstructor tag is present we omit the whole constructor
+		// if @hideconstructor tag is present we omit the whole constructor
 		if ( !symbol.hideconstructor ) {
 
 			tag("constructor");
@@ -2882,6 +2946,13 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 			});
 			endCollection("properties");
 		}
+	} else if ( kind === 'enum' ) {
+		if ( symbol.__ui5.stereotype ) {
+			tag("ui5-metadata");
+			attrib("stereotype", symbol.__ui5.stereotype);
+			standardEnum = symbol.__ui5.stereotype === 'enum';
+			closeTag("ui5-metadata");
+		}
 	} else if ( kind === 'function' ) {
 		methodSignature(symbol);
 	}
@@ -2897,6 +2968,9 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				if ( member.__ui5.module && member.__ui5.module !== symbol.__ui5.module ) {
 					attrib("module", member.__ui5.module);
 					attrib("export", undefined, '', true);
+				}
+				if ( kind === 'enum' && !standardEnum && member.__ui5.value !== undefined ) {
+					attrib("value", member.__ui5.value, undefined, /* raw = */true);
 				}
 				attrib("visibility", visibility(member), 'public');
 				if ( member.scope === 'static' ) {
@@ -3069,7 +3143,10 @@ function postProcessAPIJSON(api) {
 
 		symbols.forEach(function(symbol) {
 			// debug("check ", symbol.name, "against", defaultExport, "and", moduleNamePath);
-			if ( symbol.name === moduleNamePath ) {
+			if ( symbol.symbol.kind === "typedef" || symbol.symbol.kind === "interface" ) {
+				// type definitions and interfaces have no representation on module level
+				symbol.symbol.export = undefined;
+			} else if ( symbol.name === moduleNamePath ) {
 				// symbol name is the same as the module namepath -> symbol is the default export
 				symbol.symbol.export = "";
 			} else if ( symbol.name.lastIndexOf(moduleNamePath + ".", 0) === 0 ) {
@@ -3091,7 +3168,7 @@ function postProcessAPIJSON(api) {
 					 || (symbol.symbol.methods && symbol.symbol.methods.length > 0) ) {
 					error("could not identify export name of '" + symbol.name + "', contained in module '" + moduleName + "'");
 				} else {
-					debug("could not identify export name of namespace '" + symbol.name + "', contained in module '" + moduleName + "'");
+					debug("could not identify export name of " + symbol.symbol.kind + " '" + symbol.name + "', contained in module '" + moduleName + "'");
 				}
 			}
 		});
@@ -3101,21 +3178,61 @@ function postProcessAPIJSON(api) {
 	for ( n in modules ) {
 		guessExports(n, modules[n]);
 	}
+
+	function findSymbol(name) {
+		if ( name == null || name === '' ) {
+			return null;
+		}
+		return symbols.find(function(candidate) {
+			return candidate.name === name;
+		}) || externalSymbols[name];
+	}
+
+	function findMetadataClass(symbol) {
+		while ( symbol ) {
+			if ( symbol["ui5-metadata"] && symbol["ui5-metadata"].metadataClass ) {
+				var metadataSymbol = findSymbol(symbol["ui5-metadata"].metadataClass);
+				if ( metadataSymbol != null && metadataSymbol.visibility === "public" ) {
+					return symbol["ui5-metadata"].metadataClass;
+				}
+			}
+			symbol = findSymbol(symbol.extends);
+		}
+		// return undefined
+	}
+
+	symbols.forEach(function(symbol) {
+		if ( !symbol["ui5-metadata"] ) {
+			return;
+		}
+		if ( Array.isArray(symbol.methods) ) {
+			symbol.methods.forEach(function(method) {
+				if ( method.name === "getMetadata" && method.returnValue ) {
+					var metadataClass = findMetadataClass(symbol);
+					if ( metadataClass && metadataClass !== method.returnValue.type ) {
+						method.returnValue.type = metadataClass;
+						debug("  return type of " + symbol.name + (method.static ? "." : "#") + "getMetadata changed to '" + metadataClass + "'");
+					}
+				}
+			});
+		}
+	});
+
 }
 
 var builtinTypes = {
-		void:true,
+		"void":true,
 		any:true,
-		boolean:true,
-		int: true,
-		float:true,
+		"boolean":true,
+		"int": true,
+		"float":true,
 		array:true,
-		function:true,
+		"function":true,
 		string:true,
 		object:true,
 		"*": true,
 		number:true,
-		null:true,
+		"null":true,
 		undefined:true,
 
 		// builtin objects
@@ -3129,21 +3246,44 @@ var builtinTypes = {
 		Promise:true,
 		ArrayBuffer:true,
 		Uint8Array:true,
-		Blob:true,
 		Error:true,
 		TypeError:true,
 		SyntaxError:true,
 
-		// DOM & Browser APIs
+		// Web APIs
+		Blob:true,
 		Document:true,
 		Element:true,
 		Event:true,
+		File:true,
 		HTMLElement: true,
 		Node:true,
 		Touch:true,
 		TouchList:true,
 		Window: true
+
 	};
+
+var typeNormalizer = (function() {
+	function TypeNormalizer() {
+		TypeParser.LinkBuilder.call(this, 'text', false);
+	}
+	TypeNormalizer.prototype = Object.create(TypeParser.LinkBuilder.prototype);
+	TypeNormalizer.prototype.simpleType = function(type) {
+		if ( type === 'map' ) {
+			return this.object(
+				this.simpleType('string'),
+				this.simpleType('any')
+			);
+		}
+		if ( type === '*' ) {
+			type = 'any';
+		}
+		return TypeParser.LinkBuilder.prototype.simpleType.call(this, type);
+	};
+
+	return new TypeNormalizer();
+}());
 
 function validateAPIJSON(api) {
 
@@ -3153,14 +3293,66 @@ function validateAPIJSON(api) {
 		api.symbols.forEach(function(symbol) { defined[symbol.name] = symbol; });
 	}
 
+	var naming = Object.create(null);
 	var missing = Object.create(null);
+
+	var rValidNames = /^[$A-Z_a-z][$0-9A-Z_a-z]*$/i;
+	var rValidModuleNames = /^[$A-Z_a-z][$\-\.0-9A-Z_a-z]*$/i;
+
+	function checkName(name, hint) {
+		if ( !rValidNames.test(name) ) {
+			naming[name] = naming[name] || [];
+			naming[name].push(hint);
+		}
+	}
+
+	function checkModuleName(name, hint) {
+		if ( !rValidModuleNames.test(name) ) {
+			naming[name] = naming[name] || [];
+			naming[name].push(hint);
+		}
+	}
+
+	function checkCompoundName(name, hint) {
+
+		if ( name.startsWith("module:") ) {
+			var segments = name.slice("module:".length).split("/");
+
+			// split last segment into a module name part and a symbol name part
+			var p = segments[segments.length - 1].search(/[.~#]/);
+			if ( p >= 0 ) {
+				name = segments[segments.length - 1].slice(p + 1);
+				segments[segments.length - 1] = segments[segments.length - 1].slice(0, p);
+			}
+
+			// check all module name parts
+			segments.forEach(function(segment) {
+				checkModuleName(segment, "path segment of " + hint);
+			});
+
+			if ( p < 0 ) {
+				// module name only, no export name to check
+				return;
+			}
+		}
+
+		name.split(/[.~#]/).forEach(function(segment) {
+			checkName(segment, "name segment of " + hint);
+		});
+	}
 
 	function reportError(type, usage) {
 		missing[type] = missing[type] || [];
 		missing[type].push(usage);
 	}
 
-	function check(type, hint) {
+	function checkSimpleType(typeName, hint) {
+		if ( !defined[typeName] ) {
+			reportError(typeName, hint);
+		}
+	}
+
+	function checkType(type, hint) {
 
 		function _check(type) {
 			if ( type == null ) {
@@ -3168,9 +3360,7 @@ function validateAPIJSON(api) {
 			}
 			switch (type.type) {
 			case 'simpleType':
-				if ( !defined[type.name] ) {
-					reportError(type.name, hint);
-				}
+				checkSimpleType(type.name, hint);
 				break;
 			case 'array':
 				_check(type.component);
@@ -3199,21 +3389,31 @@ function validateAPIJSON(api) {
 			case 'union':
 				type.types.forEach(_check);
 				break;
+			case 'typeApplication':
+				_check(type.baseType);
+				type.templateTypes.forEach(_check);
+				// TODO check number of templateTypes against declaration of baseType
+				// requires JSDoc support of @template tag, which is currently missing
+				break;
 			default:
 				break;
 			}
 		}
 		try {
-			// console.log("check", type);
-			var ast = typeParser.parse(type);
+			// debug("normalize", type);
+			type.type = typeParser.parse(type.type, typeNormalizer).str;
+			// debug("check", type);
+			var ast = typeParser.parse(type.type);
 			_check(ast);
 		} catch (e) {
-			reportError(type, "failed to parse type of " + hint);
+			error(e);
+			reportError(type.type, "failed to parse type of " + hint);
 		}
 	}
 
 	function checkParam(param, prefix, hint) {
-		check(param.type, "param " + prefix + param.name + " of " + hint);
+		checkName(param.name, "name of param " + prefix + param.name + " of " + hint);
+		checkType(param, "param " + prefix + param.name + " of " + hint);
 		if ( param.parameterProperties ) {
 			Object.keys(param.parameterProperties).forEach(function(sub) {
 				checkParam(param.parameterProperties[sub], prefix + param.name + ".", hint);
@@ -3221,9 +3421,9 @@ function validateAPIJSON(api) {
 		}
 	}
 
-	function checkMethod(method, hint) {
+	function checkMethodSignature(method, hint) {
 		if ( method.returnValue ) {
-			check(method.returnValue.type, "return value of " + hint);
+			checkType(method.returnValue, "return value of " + hint);
 		}
 		if ( method.parameters ) {
 			method.parameters.forEach(function(param) {
@@ -3232,7 +3432,7 @@ function validateAPIJSON(api) {
 		}
 		if ( method.throws ) {
 			method.throws.forEach(function(ex) {
-				check(ex.type, "exception of " + hint);
+				checkType(ex, "exception of " + hint);
 			});
 		}
 	}
@@ -3240,49 +3440,93 @@ function validateAPIJSON(api) {
 	function checkClassAgainstInterface(symbol, oIntfAPI) {
 		if ( oIntfAPI.methods ) {
 			oIntfAPI.methods.forEach(function(intfMethod) {
-				// ignore optional methods
-				if ( intfMethod.optional ) {
-					return;
-				}
 				// search for method implementation
 				var implMethod = symbol.methods.find(function(candidateMethod) {
 					return candidateMethod.name === intfMethod.name && !candidateMethod.static;
-				})
+				});
 				if ( !implMethod ) {
-					reportError(oIntfAPI.name, "implementation of " + intfMethod.name + " missing in " + symbol.name);
+					if ( !intfMethod.optional ) {
+						reportError(oIntfAPI.name, "implementation of " + intfMethod.name + " missing in " + symbol.name);
+					}
+				} else {
+					if ( intfMethod.parameters ) {
+						intfMethod.parameters.forEach(function(intfParam, idx) {
+							var implParam = implMethod.parameters && implMethod.parameters[idx];
+							if ( !implParam ) {
+								if ( !intfParam.optional ) {
+									reportError(oIntfAPI.name, "parameter " + intfParam.name + " missing in implementation of " + symbol.name + "#" + intfMethod.name);
+								}
+							} else {
+								if ( implParam.type !== intfParam.type ) {
+									reportError(oIntfAPI.name, "type of parameter " + intfParam.name + " of interface method differs from type in implementation " + symbol.name + "#" + intfMethod.name);
+								}
+								// TODO check nested properties
+							}
+						});
+					}
+					if ( intfMethod.returnValue != null && implMethod.returnValue == null ) {
+						reportError(oIntfAPI.name, "return value of interface method missing in implementation " + symbol.name + "#" + intfMethod);
+					} else if ( intfMethod.returnValue == null && implMethod.returnValue != null ) {
+						reportError(oIntfAPI.name, "while interface method is void, implementation " + symbol.name + "#" + intfMethod.name + " returns a value");
+					} else if ( intfMethod.returnValue != null && implMethod.returnValue != null ) {
+						if ( intfMethod.returnValue.type !== implMethod.returnValue.type ) {
+							reportError(oIntfAPI.name, "return type of interface method differs from return type of implementation " + symbol.name + "#" + intfMethod.name);
+						}
+					}
 				}
-				// TODO check parameters
+			});
+		}
+	}
+
+	function checkEnum(symbol) {
+		if ( symbol["ui5-metamodel"] && !(symbol["ui5-metadata"] && symbol["ui5-metadata"].stereotype === "enum") ) {
+			reportError(symbol.name, "enum is metamodel relevant but keys and values differ");
+		}
+		checkCompoundName(symbol.name, "name of " + symbol.name);
+		if ( symbol.properties ) {
+			symbol.properties.forEach(function(prop) {
+				checkName(prop.name, "name of " + symbol.name + "." + prop.name);
+				if ( prop.type ) {
+					checkType(prop, "type of " + symbol.name + "." + prop.name);
+				}
 			});
 		}
 	}
 
 	function checkClass(symbol) {
+		checkCompoundName(symbol.name, "name of " + symbol.name);
 		if ( symbol.extends ) {
-			check(symbol.extends, "base class of " + symbol.name);
+			checkSimpleType(symbol.extends, "base class of " + symbol.name);
 		}
 		if ( symbol.implements ) {
 			symbol.implements.forEach(function(intf) {
-				check(intf, "interface of " + symbol.name);
+				checkSimpleType(intf, "interface of " + symbol.name);
 				var oIntfAPI = defined[intf];
 				if ( oIntfAPI ) {
 					checkClassAgainstInterface(symbol, oIntfAPI);
 				}
 			});
 		}
+		if ( Object.prototype.hasOwnProperty.call(symbol, "constructor") ) {
+			checkMethodSignature(symbol.constructor, symbol.name + ".constructor");
+		}
 		if ( symbol.properties ) {
 			symbol.properties.forEach(function(prop) {
+				checkName(prop.name, "name of " + symbol.name + "." + prop.name);
 				if ( prop.type ) {
-					check(prop.type, "type of " + symbol.name + "." + prop.name);
+					checkType(prop, "type of " + symbol.name + "." + prop.name);
 				}
 			});
 		}
 		if ( symbol.methods ) {
 			symbol.methods.forEach(function(method) {
-				checkMethod(method, symbol.name + "." + method.name);
+				checkName(method.name, "name of " + symbol.name + "." + method.name);
+				checkMethodSignature(method, symbol.name + "." + method.name);
 			});
 		}
 		if ( symbol.events ) {
 			symbol.events.forEach(function(event) {
+				checkName(event.name, "name of " + symbol.name + "." + event.name);
 				if ( event.parameters ) {
 					event.parameters.forEach(function(param) {
 						checkParam(param, '', symbol.name + "." + event.name);
@@ -3294,20 +3538,38 @@ function validateAPIJSON(api) {
 
 	api.symbols.forEach(function(symbol) {
 		if ( symbol.kind === 'function' ) {
-			checkMethod(symbol, symbol.name);
+			checkCompoundName(symbol.name, "name of " + symbol.name);
+			checkMethodSignature(symbol, symbol.name);
+		} else if ( symbol.kind === 'enum' ) {
+			checkEnum(symbol);
 		} else {
 			checkClass(symbol);
 		}
 	});
 
-	for (var type in missing) {
-		if ( Array.isArray(missing[type]) ) {
-			error(type);
-			missing[type].forEach(function(usage) {
-				error("  " + usage);
-			});
-		}
+	if ( Object.keys(missing).length > 0 || Object.keys(naming).length > 0 ) {
+		error("API validation errors:");
+
+		Object.keys(missing).forEach(function(type) {
+			if ( Array.isArray(missing[type]) ) {
+				error("type '" + type + "'");
+				missing[type].forEach(function(usage) {
+					error("  " + usage);
+				});
+			}
+		});
+		Object.keys(naming).forEach(function(name) {
+			if ( Array.isArray(naming[name]) ) {
+				error("invalid name '" + name + "'");
+				naming[name].forEach(function(usage) {
+					error("  " + usage);
+				});
+			}
+		});
+	} else {
+		info("API validation succeeded.");
 	}
+
 }
 
 //---- add on: API XML -----------------------------------------------------------------
@@ -4353,3 +4615,4 @@ function makeExample(example) {
 /* ---- exports ---- */
 
 exports.publish = publish;
+

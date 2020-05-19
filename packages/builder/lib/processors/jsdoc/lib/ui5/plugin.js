@@ -1,7 +1,7 @@
 /*
  * JSDoc3 plugin for UI5 documentation generation.
  *
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -56,7 +56,7 @@ var Syntax = require('jsdoc/src/syntax').Syntax;
 var Doclet = require('jsdoc/doclet').Doclet;
 var fs = require('jsdoc/fs');
 var path = require('jsdoc/path');
-var pluginConfig = (env.conf && env.conf.templates && env.conf.templates.ui5) || {};
+var pluginConfig = (env.conf && env.conf.templates && env.conf.templates.ui5) || env.opts.sapui5 || {};
 
 /* ---- global vars---- */
 
@@ -99,7 +99,7 @@ var currentProgram;
  * have a 'module' and optionally a 'path' value. In that case, the local name represents an AMD
  * module import or a shortcut derived from such an import.
  *
- * See {@link getREsolvedObjectName} how the knowledge about locale names is used.
+ * See {@link getResolvedObjectName} how the knowledge about locale names is used.
  *
  * @type {{name:string,resource:string,module:string,localName:Object<string,object>}}
  */
@@ -116,6 +116,17 @@ var currentSource;
  * corresponding JSDoc doclet (e.g. with the class documentation).
  */
 var classInfos = Object.create(null);
+
+/**
+ * Map of enum value objects keyed by a unqiue enum ID.
+ *
+ * When the AST visitor detects an object literal that might be an enum, it cannot easily determine
+ * the name of the enum. Therefore, the collected enum values are stored in this map keyed by a
+ * unique ID derived from the key set of the (potential) enum (ID = sorted key set, joined with '|').
+ *
+ * In the parseComplete phase, the found values are merged into enum symbols (as detected by JSDoc).
+ */
+var enumValues = Object.create(null);
 
 /**
  *
@@ -281,7 +292,7 @@ function analyzeModuleDefinition(node) {
 
 /**
  * Searches the given body for variable declarations that can be evaluated statically,
- * either because they refer to known AMD modukle imports (e.g. shortcut varialbes)
+ * either because they refer to known AMD module imports (e.g. shortcut variables)
  * or because they have a (design time) constant value.
  *
  * @param {ASTNode} body AST node of a function body that shall be searched for shortcuts
@@ -494,6 +505,19 @@ function isProbingRequireCall(node) {
 	);
 }
 
+function isPotentialEnum(node) {
+	if ( node == null || node.type !== Syntax.ObjectExpression ) {
+		return false;
+	}
+	return node.properties.every(function(prop) {
+		return isCompileTimeConstant(prop.value);
+	});
+}
+
+function isCompileTimeConstant(node) {
+	return node && node.type === Syntax.Literal;
+}
+
 function getObjectName(node) {
 	if ( node.type === Syntax.MemberExpression && !node.computed && node.property.type === Syntax.Identifier ) {
 		var prefix = getObjectName(node.object);
@@ -686,7 +710,8 @@ function collectClassInfo(extendCall, classDoclet) {
 		methods : {},
 		annotations : {},
 		designtime: false,
-		stereotype: null
+		stereotype: null,
+		metadataClass: undefined
 	};
 
 	function upper(n) {
@@ -710,6 +735,17 @@ function collectClassInfo(extendCall, classDoclet) {
 					callback(n, settings, doclet, map[n]);
 				}
 			}
+		}
+	}
+
+	if ( extendCall.arguments.length > 2 ) {
+		// new class defines its own metadata class type
+		var metadataClass =  getResolvedObjectName(extendCall.arguments[2]);
+		if ( metadataClass ) {
+			oClassInfo.metadataClass = getResolvedObjectName(extendCall.arguments[2]);
+			debug("found metadata class name '" + oClassInfo.metadataClass + "'");
+		} else {
+			error("cannot understand metadata class parameter (AST node type '" + extendCall.arguments[2] + "')");
 		}
 	}
 
@@ -1211,6 +1247,25 @@ function createAutoDoc(oClassInfo, classComment, node, parser, filename, comment
 		return prefix + n.slice(0,1).toUpperCase() + n.slice(1);
 	}
 
+	function generateParamTag(n, type, description, defaultValue){
+		var s = "@param {" + info.type + "} ";
+
+		if (defaultValue !== null) {
+			s += "[" +  varname(n, type, true) + "=";
+			if (type === "string"){
+				defaultValue = "\"" + defaultValue + "\"";
+			}
+			s += defaultValue + "]";
+
+		} else {
+			s += varname(n, type, true);
+		}
+
+		s += " " + description;
+		
+		return s;
+	}
+
 	// add a list of the possible settings if and only if
 	// - documentation for the constructor exists
 	// - no (generated) documentation for settings exists already
@@ -1357,7 +1412,7 @@ function createAutoDoc(oClassInfo, classComment, node, parser, filename, comment
 			"",
 			"@param {string} sClassName Name of the class being created",
 			"@param {object} [oClassInfo] Object literal with information about the class",
-			"@param {function} [FNMetaImpl] Constructor function for the metadata object; if not given, it defaults to <code>sap.ui.core.ElementMetadata</code>",
+			"@param {function} [FNMetaImpl] Constructor function for the metadata object; if not given, it defaults to the metadata implementation used by this class",
 			"@returns {function} Created class / constructor function",
 			"@public",
 			"@static",
@@ -1395,7 +1450,7 @@ function createAutoDoc(oClassInfo, classComment, node, parser, filename, comment
 			"When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.",
 			"",
 			info.defaultValue !== null ? "Default value is <code>" + (info.defaultValue === "" ? "empty string" : info.defaultValue) + "</code>." : "",
-			"@param {" + info.type + "} " + varname(n,info.type,true) + " New value for property <code>" + n + "</code>",
+			generateParamTag(n, info.type, "New value for property <code>" + n + "</code>", info.defaultValue),
 			"@returns {" + oClassInfo.name + "} Reference to <code>this</code> in order to allow method chaining",
 			info.since ? "@since " + info.since : "",
 			info.deprecation ? "@deprecated " + info.deprecation : "",
@@ -2278,6 +2333,28 @@ exports.handlers = {
 				};
 			}
 
+			if ( doclet.kind === 'member' && doclet.isEnum && Array.isArray(doclet.properties) ) {
+				// determine unique enum identifier from key set
+				var enumID = doclet.properties.map(function(prop) {
+					return prop.name;
+				}).sort().join("|");
+				if ( enumValues[enumID] ) {
+					// debug("found enum values for ", enumID, enumValues[enumID]);
+					var standardEnum = true;
+					/* eslint-disable no-loop-func */
+					doclet.properties.forEach(function(prop) {
+						prop.__ui5.value = enumValues[enumID][prop.name];
+						if ( prop.__ui5.value !== prop.name ) {
+							standardEnum = false;
+						}
+					});
+					/* eslint-enable no-loop-func */
+					if ( standardEnum ) {
+						doclet.__ui5.stereotype = 'enum';
+					}
+				}
+			}
+
 			// check for duplicates: last one wins
 			if ( j > 0 && doclets[j - 1].longname === doclet.longname ) {
 				if ( !doclets[j - 1].synthetic && !doclet.__ui5.updatedDoclet ) {
@@ -2331,6 +2408,18 @@ exports.astNodeVisitor = {
 			}
 		}
 
+		function processPotentialEnum(literal, comment) {
+			var values = literal.properties.reduce(function(map, prop) {
+				map[getPropertyKey(prop)] = convertValue(prop.value);
+				return map;
+			}, Object.create(null));
+			// determine unique enum ID from key set
+			var enumID = Object.keys(values).sort().join("|");
+			// and remember the values with that ID
+			enumValues[enumID] = values;
+			// debug("found enum values for key-set", enumID);
+		}
+
 		if ( node.type === Syntax.ExpressionStatement ) {
 			if ( isSapUiDefineCall(node.expression) ) {
 				analyzeModuleDefinition(node.expression);
@@ -2372,6 +2461,9 @@ exports.astNodeVisitor = {
 					comment = (idx === 0 ? getLeadingCommentNode(node) : undefined) || getLeadingCommentNode(decl);
 					// console.log("ast node with comment " + comment);
 					processExtendCall(decl.init, comment);
+				} else if ( isPotentialEnum(decl.init) ) {
+					comment = (idx === 0 ? getLeadingCommentNode(node) : undefined) || getLeadingCommentNode(decl);
+					processPotentialEnum(decl.init, comment);
 				}
 			});
 
@@ -2392,6 +2484,10 @@ exports.astNodeVisitor = {
 				processDataType(node.expression.right);
 				// TODO remember knowledge about type and its name (left hand side of assignment)
 
+			} else if ( isPotentialEnum(node.expression.right) ) {
+				comment = getLeadingCommentNode(node) || getLeadingCommentNode(node.expression);
+				// console.log(getResolvedObjectName(node.expression.left));
+				processPotentialEnum(node.expression.right, comment);
 			}
 
 		}

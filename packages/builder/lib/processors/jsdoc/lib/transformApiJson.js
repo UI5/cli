@@ -1,7 +1,7 @@
 /*
  * Node script to preprocess api.json files for use in the UI5 SDKs.
  *
- * (c) Copyright 2009-2019 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -132,16 +132,24 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 			// Attach children info
 			symbols.forEach(oSymbol => {
 				if (oSymbol.parent) {
-					let oParent = symbols.find(({treeName}) => treeName === oSymbol.parent);
+					let oParent = symbols.find(({treeName}) => treeName === oSymbol.parent),
+						oNode;
 
 					if (!oParent.nodes) oParent.nodes = [];
-					oParent.nodes.push({
+
+					oNode = {
 						name: oSymbol.displayName,
 						description: formatters._preProcessLinksInTextBlock(
 							extractFirstSentence(oSymbol.description)
 						),
-						href: "#/api/" + encodeURIComponent(oSymbol.name)
-					});
+						href: "api/" + encodeURIComponent(oSymbol.name)
+					};
+
+					if (oSymbol.deprecated) {
+						oNode.deprecated = true;
+					}
+
+					oParent.nodes.push(oNode);
 				}
 			});
 
@@ -308,7 +316,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 					// Link Enabled
 					if (oSymbol.kind !== "enum" && !isBuiltInType(oProperty.type) && possibleUI5Symbol(oProperty.type)) {
 						oProperty.linkEnabled = true;
-						oProperty.href = "#/api/" + oProperty.type.replace("[]", "");
+						oProperty.href = "api/" + oProperty.type.replace("[]", "");
 					}
 
 					// Keep file size in check
@@ -392,7 +400,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 							oAggregation.description = formatters.formatDescription(oAggregation.description,
 								oAggregation.deprecated.text, oAggregation.deprecated.since);
 						} else {
-							oAggregation.description = formatters.formatDescription(oAggregation.description);
+							oAggregation.description = formatters.formatDescriptionSince(oAggregation.description, oAggregation.since);
 						}
 
 						// Link enabled
@@ -426,13 +434,39 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 							oAssociation.description = formatters.formatDescription(oAssociation.description,
 								oAssociation.deprecated.text, oAssociation.deprecated.since);
 						} else {
-							oAssociation.description = formatters.formatDescription(oAssociation.description);
+							oAssociation.description = formatters.formatDescriptionSince(oAssociation.description, oAssociation.since);
 						}
 					});
 				}
 
 				// Events
 				if (oMeta.events) {
+
+					oMeta.events.forEach(oEvent => {
+						let aParams = oEvent.parameters;
+
+						aParams && Object.keys(aParams).forEach(sParam => {
+							let sSince = aParams[sParam].since;
+							let oDeprecated = aParams[sParam].deprecated;
+							let oEvtInSymbol = oSymbol.events.find(e => e.name === oEvent.name);
+							let oParamInSymbol = oEvtInSymbol && oEvtInSymbol.parameters[0] &&
+													oEvtInSymbol.parameters[0].parameterProperties &&
+													oEvtInSymbol.parameters[0].parameterProperties.getParameters &&
+													oEvtInSymbol.parameters[0].parameterProperties.getParameters.parameterProperties &&
+													oEvtInSymbol.parameters[0].parameterProperties.getParameters.parameterProperties[sParam];
+
+							if (typeof oParamInSymbol === 'object' && oParamInSymbol !== null) {
+								if (sSince) {
+									oParamInSymbol.since = sSince;
+								}
+
+								if (oDeprecated) {
+									oParamInSymbol.deprecated = oDeprecated;
+								}
+							}
+						})
+					});
+
 					// We don't need event's data from the UI5-metadata for now. Keep file size in check
 					delete oMeta.events;
 				}
@@ -508,13 +542,15 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 							}
 
 							// Description
-							if (oParameter.deprecated) {
-								oParameter.description = formatters.formatDescription(oParameter.description,
-									oParameter.deprecated.text, oParameter.deprecated.since);
-							} else {
-								oParameter.description = formatters.formatDescription(oParameter.description);
+							if (oParameter.description) {
+								oParameter.description = formatters.formatDescriptionSince(oParameter.description, oParameter.since);
 							}
 
+							// Deprecated
+							if (oParameter.deprecated) {
+								oParameter.deprecatedText = formatters.formatDeprecated(oParameter.deprecated.since,
+									oParameter.deprecated.text);
+							}
 						});
 					}
 
@@ -535,8 +571,8 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 						oMethod.name = formatters.formatEntityName(oMethod.name, oSymbol.name, oMethod.static);
 
 						// Link
-						oMethod.href = "#/api/" + encodeURIComponent(oSymbol.name) +
-							"/methods/" + encodeURIComponent(oMethod.name);
+						oMethod.href = "api/" + oSymbol.name +
+							"#methods/" + oMethod.name;
 					}
 
 					formatters.formatReferencesInDescription(oMethod);
@@ -571,7 +607,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 									// Link Enabled
 									if (!isBuiltInType(oType.value) && possibleUI5Symbol(oType.value)) {
 										oType.linkEnabled = true;
-										oType.href = "#/api/" + oType.value.replace("[]", "");
+										oType.href = "api/" + oType.value.replace("[]", "");
 									}
 
 								});
@@ -603,7 +639,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 
 								// Link Enabled
 								if (!isBuiltInType(oType.value)) {
-									oType.href = "#/api/" + encodeURIComponent(oType.value.replace("[]", ""));
+									oType.href = "api/" + oType.value.replace("[]", "");
 									oType.linkEnabled = true;
 								}
 
@@ -993,11 +1029,13 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 		 * @returns string - the formatted text
 		 */
 		formatAnnotationNamespace: function (namespace) {
-			var result,
-				aNamespaceParts = namespace.split(".");
+			var aNamespaceParts = namespace.split("."),
+				result, target, text;
 
 			if (aNamespaceParts[0] === "Org" && aNamespaceParts[1] === "OData") {
-				result = '<a href="' + this.ANNOTATIONS_NAMESPACE_LINK + namespace + '.xml">' + namespace + '</a>';
+				target = this.ANNOTATIONS_NAMESPACE_LINK + namespace + ".xml";
+				text = namespace;
+				result = this.handleExternalUrl(target, text);
 			} else {
 				result = namespace;
 			}
@@ -1110,15 +1148,15 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 			var sReturn;
 
 			switch (defaultValue) {
-			case null:
-			case undefined:
-				sReturn = '';
-				break;
-			case '':
-				sReturn = 'empty string';
-				break;
-			default:
-				sReturn = defaultValue;
+				case null:
+				case undefined:
+					sReturn = '';
+					break;
+				case '':
+					sReturn = 'empty string';
+					break;
+				default:
+					sReturn = defaultValue;
 			}
 
 			return Array.isArray(sReturn) ? sReturn.join(', ') : sReturn;
@@ -1313,7 +1351,7 @@ title="Information published on ${bSAPHosted ? '' : 'non '}SAP site" class="sapU
 					let oProperty = findProperty(oSymbol, methodName, target);
 					if (oProperty) {
 						sResult = this.createLink({
-							name: oProperty.name,
+							name: className,
 							text: text
 						});
 						return true;
@@ -1409,21 +1447,18 @@ title="Information published on ${bSAPHosted ? '' : 'non '}SAP site" class="sapU
 				name = name.replace(/^module:/, "");
 			}
 
-			name = encodeURIComponent(name);
-			className = encodeURIComponent(className);
-
 			// Build the link
-			sLink = type ? `${className}/${type}/${name}` : name;
+			sLink = type ? `${className}#${type}/${name}` : name;
 
 			if (hrefAppend) {
 				sLink += hrefAppend;
 			}
 
 			if (local) {
-				return `<a target="_self" class="jsdoclink scrollTo${type === `events` ? `Event` : `Method`}" data-sap-ui-target="${name}" href="#/api/${sLink}">${text}</a>`;
+				return `<a target="_self" class="jsdoclink scrollTo${type === `events` ? `Event` : `Method`}" data-target="${name}" href="api/${sLink}">${text}</a>`;
 			}
 
-			return `<a target="_self" class="jsdoclink" href="#/api/${sLink}">${text}</a>`;
+			return `<a target="_self" class="jsdoclink" href="api/${sLink}">${text}</a>`;
 		},
 
 		/**
@@ -1453,7 +1488,7 @@ title="Information published on ${bSAPHosted ? '' : 'non '}SAP site" class="sapU
 						// topic:xxx Topic
 						aMatch = sTarget.match(/^topic:(\w{32})$/);
 						if (aMatch) {
-							return '<a target="_self" href="#/topic/' + aMatch[1] + '">' + sText + '</a>';
+							return '<a target="_self" href="topic/' + aMatch[1] + '">' + sText + '</a>';
 						}
 
 						// sap.x.Xxx.prototype.xxx - In case of prototype we have a link to method
@@ -1499,7 +1534,7 @@ title="Information published on ${bSAPHosted ? '' : 'non '}SAP site" class="sapU
 
 							return this.createLink({
 								name: sName,
-								hrefAppend: "/constructor",
+								hrefAppend: "#constructor",
 								text: sText
 							});
 						}
@@ -1974,14 +2009,14 @@ title="Information published on ${bSAPHosted ? '' : 'non '}SAP site" class="sapU
 
 	// Start the work here
 	let p = getLibraryPromise(oChainObject)
-	.then(extractComponentAndDocuindexUrl)
-	.then(flattenComponents)
-	.then(extractSamplesFromDocuIndex)
-	.then(getDependencyLibraryFilesList)
-	.then(getAPIJSONPromise)
-	.then(loadDependencyLibraryFiles)
-	.then(transformApiJson)
-	.then(createApiRefApiJson);
+		.then(extractComponentAndDocuindexUrl)
+		.then(flattenComponents)
+		.then(extractSamplesFromDocuIndex)
+		.then(getDependencyLibraryFilesList)
+		.then(getAPIJSONPromise)
+		.then(loadDependencyLibraryFiles)
+		.then(transformApiJson)
+		.then(createApiRefApiJson);
 	return p;
 
 };
