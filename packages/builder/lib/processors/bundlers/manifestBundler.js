@@ -26,8 +26,9 @@ class I18nResourceList {
 		const normalizedDirectory = path.normalize(directory);
 		if (!this.propertyFiles.has(normalizedDirectory)) {
 			this.propertyFiles.set(normalizedDirectory, [resource]);
+		} else {
+			this.propertyFiles.get(normalizedDirectory).push(resource);
 		}
-		this.propertyFiles.get(normalizedDirectory).push(resource);
 	}
 
 	/**
@@ -51,14 +52,21 @@ class I18nResourceList {
  * @param {object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the project
  * @param {string} parameters.options.bundleName Name of the bundled zip file
- * @param {string} parameters.options.propertiesExtension Extension name of the properties files
+ * @param {string} parameters.options.propertiesExtension Extension name of the properties files, e.g. ".properties"
  * @param {string} parameters.options.descriptor Descriptor name
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with manifest bundle resources
  */
 module.exports = ({resources, options}) => {
 	function getDescriptorI18nInfo(manifest) {
 		const content = JSON.parse(manifest.content);
-		const i18nFullPath = content["sap.app"]["i18n"] || "i18n/i18n.properties";
+		let i18nFullPath = content["sap.app"]["i18n"];
+		// i18n section in sap.app can be either a string or an object with bundleUrl
+		if (typeof i18nFullPath === "object") {
+			i18nFullPath = i18nFullPath.bundleUrl;
+		}
+		if (!i18nFullPath) {
+			i18nFullPath = "i18n/i18n.properties";
+		}
 		return {
 			path: path.join(path.dirname(manifest.path), path.dirname(i18nFullPath)),
 			rootName: path.basename(i18nFullPath, options.propertiesExtension)
