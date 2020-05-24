@@ -102,7 +102,7 @@
 		"chalk": "^4.0.0",
 		"escape-string-regexp": "^4.0.0",
 		"graceful-fs": "^4.2.4",
-		"js-yaml": "^3.13.1",
+		"js-yaml": "^3.14.0",
 		"libnpmconfig": "^1.2.1",
 		"lockfile": "^1.0.4",
 		"mkdirp": "^1.0.4",
