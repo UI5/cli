@@ -98,6 +98,26 @@ test.serial("Accepts framework name and version (OpenUI5@1.76)", async (t) => {
 	});
 });
 
+test.serial("Accepts framework name and version (SAPUI5@1.79.0-SNAPSHOT)", async (t) => {
+	await assertUseHandler(t, {
+		argv: {"framework-info": "SAPUI5@1.79.0-SNAPSHOT"},
+		expectedFrameworkOptions: {
+			name: "SAPUI5",
+			version: "1.79.0-SNAPSHOT"
+		}
+	});
+});
+
+test.serial("Accepts framework name and version (OpenUI5@1.79.0-SNAPSHOT)", async (t) => {
+	await assertUseHandler(t, {
+		argv: {"framework-info": "OpenUI5@1.79.0-SNAPSHOT"},
+		expectedFrameworkOptions: {
+			name: "OpenUI5",
+			version: "1.79.0-SNAPSHOT"
+		}
+	});
+});
+
 test.serial("Accepts framework name and version (SAPUI5@latest)", async (t) => {
 	await assertUseHandler(t, {
 		argv: {"framework-info": "SAPUI5@latest"},

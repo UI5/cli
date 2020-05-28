@@ -19,8 +19,6 @@ useCommand.builder = function(cli) {
 		.example("$0 use openui5", "Use OpenUI5 without a version (or use existing version)");
 };
 
-const versionRegExp = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?$/;
-
 function parseFrameworkInfo(frameworkInfo) {
 	const parts = frameworkInfo.split("@");
 	if (parts.length > 2) {
@@ -33,15 +31,15 @@ function parseFrameworkInfo(frameworkInfo) {
 		if (!nameOrVersion) {
 			throw new Error("Invalid framework info: " + frameworkInfo);
 		}
-		if (nameOrVersion === "latest" || versionRegExp.test(nameOrVersion)) {
-			return {
-				name: null,
-				version: nameOrVersion
-			};
-		} else {
+		if (["sapui5", "openui5"].includes(nameOrVersion.toLowerCase())) {
 			return {
 				name: nameOrVersion,
 				version: null
+			};
+		} else {
+			return {
+				name: null,
+				version: nameOrVersion
 			};
 		}
 	} else {
