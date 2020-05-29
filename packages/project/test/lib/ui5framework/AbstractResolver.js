@@ -354,6 +354,42 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 	}], "fetchAllVersions should be called with expected arguments");
 });
 
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-prerelease'", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT"]);
+
+	const version = await MyResolver.resolveVersion("1.79.0-SNAPSHOT", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.79.0-SNAPSHOT", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion does not include prereleases for 'latest' version", async (t) => {
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT"]);
+
+	const version = await MyResolver.resolveVersion("latest", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.78.0", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
 test.serial("AbstractResolver: Static resolveVersion without options", async (t) => {
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0"]);
@@ -494,3 +530,77 @@ test.serial(
 			`Could not resolve framework version 1.75.0. Note that SAPUI5 framework libraries can only be ` +
 			`consumed by the UI5 Tooling starting with SAPUI5 v1.76.0`);
 	});
+
+test.serial(
+	"AbstractResolver: Static resolveVersion throws error when latest OpenUI5 version cannot be found", async (t) => {
+		class Openui5Resolver extends AbstractResolver {
+			static async fetchAllVersions() {}
+		}
+
+		sinon.stub(Openui5Resolver, "fetchAllVersions")
+			.returns([]);
+
+		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("latest", {
+			cwd: "/cwd",
+			ui5HomeDir: "/ui5HomeDir"
+		}));
+
+		t.is(error.message, `Could not resolve framework version latest`);
+	});
+
+test.serial(
+	"AbstractResolver: Static resolveVersion throws error when latest SAPUI5 version cannot be found", async (t) => {
+		class Sapui5Resolver extends AbstractResolver {
+			static async fetchAllVersions() {}
+		}
+
+		sinon.stub(Sapui5Resolver, "fetchAllVersions")
+			.returns([]);
+
+		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("latest", {
+			cwd: "/cwd",
+			ui5HomeDir: "/ui5HomeDir"
+		}));
+
+		t.is(error.message, `Could not resolve framework version latest`);
+	});
+
+test.serial(
+	"AbstractResolver: Static resolveVersion throws error when OpenUI5 version range cannot be resolved", async (t) => {
+		class Openui5Resolver extends AbstractResolver {
+			static async fetchAllVersions() {}
+		}
+
+		sinon.stub(Openui5Resolver, "fetchAllVersions")
+			.returns([]);
+
+		const error = await t.throwsAsync(Openui5Resolver.resolveVersion("1.99", {
+			cwd: "/cwd",
+			ui5HomeDir: "/ui5HomeDir"
+		}));
+
+		t.is(error.message, `Could not resolve framework version 1.99`);
+	});
+
+test.serial(
+	"AbstractResolver: Static resolveVersion throws error when SAPUI5 version range cannot be resolved", async (t) => {
+		class Sapui5Resolver extends AbstractResolver {
+			static async fetchAllVersions() {}
+		}
+
+		sinon.stub(Sapui5Resolver, "fetchAllVersions")
+			.returns([]);
+
+		const error = await t.throwsAsync(Sapui5Resolver.resolveVersion("1.99", {
+			cwd: "/cwd",
+			ui5HomeDir: "/ui5HomeDir"
+		}));
+
+		t.is(error.message, `Could not resolve framework version 1.99`);
+	});
+
+test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
+	const projectSchema = require("../../../lib/validation/schema/specVersion/2.0/kind/project.json");
+	const schemaPattern = projectSchema.definitions.framework.properties.version.pattern;
+	t.is(schemaPattern, AbstractResolver._SEMVER_VERSION_REGEXP.source);
+});

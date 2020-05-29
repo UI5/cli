@@ -2,7 +2,18 @@ const path = require("path");
 const log = require("@ui5/logger").getLogger("ui5Framework:AbstractResolver");
 const semver = require("semver");
 
-const versionRegExp = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?$/;
+// Matches Semantic Versioning 2.0.0 versions
+// https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+//
+// This needs to be aligned with the ui5.yaml JSON schema:
+// lib/validation/schema/specVersion/2.0/kind/project.json#/definitions/framework/properties/version/pattern
+//
+// eslint-disable-next-line max-len
+const SEMVER_VERSION_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+// Reduced Semantic Versioning pattern
+// Matches MAJOR.MINOR as a simple version range to be resolved to the latest patch
+const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 /**
  * Abstract Resolver
@@ -163,7 +174,7 @@ class AbstractResolver {
 		let spec;
 		if (version === "latest") {
 			spec = "*";
-		} else if (versionRegExp.test(version)) {
+		} else if (VERSION_RANGE_REGEXP.test(version) || SEMVER_VERSION_REGEXP.test(version)) {
 			spec = version;
 		} else {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
@@ -171,15 +182,16 @@ class AbstractResolver {
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec);
 		if (!resolvedVersion) {
-			if (this.name === "Sapui5Resolver" && semver.lt(spec, "1.76.0")) {
-				throw new Error(`Could not resolve framework version ${version}. ` +
-					`Note that SAPUI5 framework libraries can only be consumed by the UI5 Tooling ` +
-					`starting with SAPUI5 v1.76.0`);
-			} else
-			if (this.name === "Openui5Resolver" && semver.lt(spec, "1.52.5")) {
-				throw new Error(`Could not resolve framework version ${version}. ` +
-					`Note that OpenUI5 framework libraries can only be consumed by the UI5 Tooling ` +
-					`starting with OpenUI5 v1.52.5`);
+			if (semver.valid(spec)) {
+				if (this.name === "Sapui5Resolver" && semver.lt(spec, "1.76.0")) {
+					throw new Error(`Could not resolve framework version ${version}. ` +
+						`Note that SAPUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+						`starting with SAPUI5 v1.76.0`);
+				} else if (this.name === "Openui5Resolver" && semver.lt(spec, "1.52.5")) {
+					throw new Error(`Could not resolve framework version ${version}. ` +
+						`Note that OpenUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+						`starting with OpenUI5 v1.52.5`);
+				}
 			}
 			throw new Error(`Could not resolve framework version ${version}`);
 		}
@@ -196,6 +208,11 @@ class AbstractResolver {
 	static fetchAllVersions(options) {
 		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
 	}
+}
+
+if (process.env.NODE_ENV === "test") {
+	// Export pattern for testing to be checked against JSON schema pattern
+	AbstractResolver._SEMVER_VERSION_REGEXP = SEMVER_VERSION_REGEXP;
 }
 
 module.exports = AbstractResolver;
