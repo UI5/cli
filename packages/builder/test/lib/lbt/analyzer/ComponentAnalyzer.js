@@ -480,6 +480,68 @@ test("_analyzeManifest: Manifest with routing and routes object", async (t) => {
 		"addDependency should be called with the app dependency name");
 });
 
+test("_analyzeManifest: Manifest with legacy routes object", async (t) => {
+	const manifest = {
+		"sap.ui5": {
+			routing: {
+				config: {
+					viewPath: "test.view",
+					viewType: "XML"
+				},
+				routes: {
+					test: {
+						pattern: "",
+						view: "App",
+						targetAggregation: "pages",
+						targetControl: "app",
+					}
+				}
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	// Note: Dependencies to views within legacy routes are not collected
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
+		"addDependency should be called with the router dependency name");
+});
+
+test("_analyzeManifest: Manifest with empty routes array", async (t) => {
+	const manifest = {
+		"sap.ui5": {
+			routing: {
+				config: {
+					viewPath: "test.view",
+					viewType: "XML"
+				},
+				routes: []
+			}
+		}
+	};
+
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const analyzer = new ComponentAnalyzer();
+
+	await analyzer._analyzeManifest(manifest, moduleInfo);
+
+	t.true(stubAddDependency.calledOnce, "addDependency was called once");
+	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
+		"addDependency should be called with the router dependency name");
+});
+
 test("_analyzeManifest: Manifest with rootview object", async (t) => {
 	const manifest = {
 		"sap.ui5": {

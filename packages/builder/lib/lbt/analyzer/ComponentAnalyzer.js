@@ -60,7 +60,7 @@ class ComponentAnalyzer {
 				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
 			}
 		} catch (err) {
-			log.error("an error occurred while analyzing component %s (ignored)", resource.name, err);
+			log.error("an error occurred while analyzing component %s (ignored)", resource.name, err.stack);
 		}
 
 		return info;
@@ -188,17 +188,19 @@ class ComponentAnalyzer {
 				info.addDependency(viewsModule);
 			}
 
-			for (const targetName of Object.keys(routing.targets)) {
-				const target = routing.targets[targetName];
-				if (target && target.viewName) {
-					// merge target config with default config
-					const config = Object.assign({}, routing.config, target);
-					const module = ModuleName.fromUI5LegacyName(
-						(config.viewPath ? config.viewPath + "." : "") +
-						config.viewName, ".view." + config.viewType.toLowerCase() );
-					log.verbose("converting routing target '%s' to view dependency '%s'", targetName, module);
-					// TODO make this a conditional dependency, depending on the route pattern?
-					info.addDependency(module);
+			if (routing.targets) {
+				for (const targetName of Object.keys(routing.targets)) {
+					const target = routing.targets[targetName];
+					if (target && target.viewName) {
+						// merge target config with default config
+						const config = Object.assign({}, routing.config, target);
+						const module = ModuleName.fromUI5LegacyName(
+							(config.viewPath ? config.viewPath + "." : "") +
+							config.viewName, ".view." + config.viewType.toLowerCase() );
+						log.verbose("converting routing target '%s' to view dependency '%s'", targetName, module);
+						// TODO make this a conditional dependency, depending on the route pattern?
+						info.addDependency(module);
+					}
 				}
 			}
 		}
