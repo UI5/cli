@@ -94,6 +94,9 @@ class ThemeBuilder {
 
 					files.push(libCssVarsSource, libCssVars, libCssSkel, libCssSkelRtl);
 				}
+			}, (err) => {
+				log.error(`Error while compiling ${resource.getPath()}: ${err.message}`);
+				throw err;
 			});
 		};
 
