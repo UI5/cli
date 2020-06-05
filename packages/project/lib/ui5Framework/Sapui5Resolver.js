@@ -56,10 +56,15 @@ class Sapui5Resolver extends AbstractResolver {
 
 		if (metadata.npmPackageName.startsWith("@openui5/") &&
 				semver.satisfies(this._version, "1.77.x")) {
+			// TODO 3.0: Remove this workaround
+			// 1.77.x (at least 1.77.0-1.77.2) distribution metadata.json is missing
+			//	dependency information for all OpenUI5 libraries.
+			// Therefore we need to request those from the registry like it is done
+			//	for OpenUI5 projects.
 			const Openui5Resolver = require("./Openui5Resolver");
 			const openui5Resolver = new Openui5Resolver({
 				cwd: this._cwd,
-				version: this._version
+				version: metadata.version
 			});
 			const openui5Metadata = await openui5Resolver.getLibraryMetadata(libraryName);
 			return {

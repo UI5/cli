@@ -167,3 +167,56 @@ test.serial("Sapui5Resolver: Static fetchAllVersions without options", async (t)
 	}], "Installer should be called with expected arguments");
 });
 
+test.serial(
+	"Sapui5Resolver: getLibraryMetadata should use Openui5Resolver for @openui5/ modules in 1.77.x", async (t) => {
+		const resolver = new Sapui5Resolver({
+			cwd: "/test-project/",
+			version: "1.77.7"
+		});
+
+		const openui5LibraryMetadata = {
+			"id": "@openui5/sap.ui.lib3",
+			"version": "1.77.4",
+			"dependencies": [
+				"@openui5/sap.ui.lib1"
+			],
+			"optionalDependencies": [
+				"@openui5/sap.ui.lib2"
+			]
+		};
+		const expectedMetadata = {
+			"npmPackageName": "@openui5/sap.ui.lib3",
+			"version": "1.77.4",
+			"dependencies": [
+				"@openui5/sap.ui.lib1"
+			],
+			"optionalDependencies": [
+				"@openui5/sap.ui.lib2"
+			]
+		};
+
+		const Openui5Resolver = require("../../../lib/ui5Framework/Openui5Resolver");
+		const openui5GetLibraryMetadataStub = sinon.stub(Openui5Resolver.prototype, "getLibraryMetadata");
+		openui5GetLibraryMetadataStub.resolves(openui5LibraryMetadata);
+
+		const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
+		loadDistMetadataStub.resolves({
+			libraries: {
+				"sap.ui.lib1": {
+					"npmPackageName": "@openui5/sap.ui.lib1",
+					"version": "1.77.4",
+					"dependencies": [],
+					"optionalDependencies": []
+				}
+			}
+		});
+
+		const metadata = await resolver.getLibraryMetadata("sap.ui.lib1");
+		t.deepEqual(metadata, expectedMetadata, "Metadata should be equal to expected OpenUI5 metadata");
+
+		t.is(openui5GetLibraryMetadataStub.callCount, 1, "Openui5Resolver#getLibraryMetadata should be called once");
+		t.deepEqual(openui5GetLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
+			"Openui5Resolver#getLibraryMetadata should be called with library name");
+		t.is(openui5GetLibraryMetadataStub.getCall(0).thisValue._version, "1.77.4",
+			"Openui5Resolver should be created with @openui5 library version");
+	});
