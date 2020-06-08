@@ -7,7 +7,7 @@ const glob = require("globby");
 const slash = require("slash");
 const AbstractUi5Formatter = require("../AbstractUi5Formatter");
 
-const SAP_THEMES_NS_WHITELIST = ["themelib_sap_fiori_3", "themelib_sap_bluecrystal", "themelib_sap_belize"];
+const SAP_THEMES_NS_EXEMPTIONS = ["themelib_sap_fiori_3", "themelib_sap_bluecrystal", "themelib_sap_belize"];
 
 class LibraryFormatter extends AbstractUi5Formatter {
 	/**
@@ -35,12 +35,12 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		try {
 			project.metadata.namespace = await this.getNamespace();
 		} catch (err) {
-			if (SAP_THEMES_NS_WHITELIST.includes(this._project.metadata.name)) {
+			if (SAP_THEMES_NS_EXEMPTIONS.includes(this._project.metadata.name)) {
 				// Exceptional handling for SAP theme libraries which used to be of type "library"
 				//	(today they use "theme-library").
 				// To allow use of OpenUI5 theme libraries in versions lower than 1.75 we must ignore
 				//	namespace detection errors.
-				log.verbose(`Ignoring failed namespace detection for whitelisted SAP theme library ` +
+				log.verbose(`Ignoring failed namespace detection for exempted SAP theme library ` +
 					`${this._project.metadata.name}: ${err.message}`);
 			} else {
 				throw err;

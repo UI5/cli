@@ -76,7 +76,7 @@ function getAttributeNS(node, attrNS) {
  *
  * In an XMLView, there usually exist 3 categories of element nodes: controls, aggregations
  * of cardinality 'multiple' and non-UI5 nodes (e.g. XHTML or SVG). The third category usually
- * can be identified by its namespace (whitelisted). To distinguish between the first and the second
+ * can be identified by its namespace. To distinguish between the first and the second
  * category, this analyzer uses a ResourcePool (provided by the caller and usually derived from the
  * library classpath). When the qualified node name is contained in the pool, it is assumed to
  * represent a control, otherwise it is ignored.
