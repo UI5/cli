@@ -564,6 +564,61 @@ test("CSP (sap policies)", (t) => {
 	});
 });
 
+test("CSP serveCSPReports", (t) => {
+	const port = 3450;
+	const request = supertest(`http://localhost:${port}`);
+	let localServeResult;
+	return normalizer.generateProjectTree({
+		cwd: "./test/fixtures/application.a"
+	}).then((tree) => {
+		return server.serve(tree, {
+			port,
+			serveCSPReports: true,
+			simpleIndex: false
+		});
+	}).then((serveResult) => {
+		localServeResult = serveResult;
+		const cspReport = {
+			"csp-report": {
+				"document-uri": "https://otherserver:8080/index.html",
+				"referrer": "",
+				"violated-directive": "script-src-elem",
+				"effective-directive": "script-src-elem",
+				"original-policy": "default-src 'self' myserver:443; report-uri /report-csp-violation",
+				"disposition": "report",
+				"blocked-uri": "inline",
+				"line-number": 17,
+				"source-file": "https://otherserver:8080/index.html",
+				"status-code": 0,
+				"script-sample": ""
+			}
+		};
+		return request.post("/.ui5/csp/report.csplog")
+			.set("Content-Type", "application/csp-report")
+			// to allow setting the content type the argument for sending must be a string
+			.send(JSON.stringify(cspReport))
+			.expect(200);
+	}).then(() => {
+		return request.get("/.ui5/csp/csp-reports.json")
+			.then((res) => {
+				t.true(typeof res.body === "object", "the body is an object");
+				t.true(Array.isArray(res.body["csp-reports"]), "csp-reports is an array");
+				t.is(res.body["csp-reports"].length, 1, "one csp report in result");
+			});
+	}).then(() => {
+		return new Promise((resolve, reject) => {
+			localServeResult.close((error) => {
+				if (error) {
+					reject(error);
+				} else {
+					t.pass("Server closing");
+					resolve();
+				}
+			});
+		});
+	});
+});
+
 test("Get index of resources", (t) => {
 	return Promise.all([
 		request.get("").then((res) => {

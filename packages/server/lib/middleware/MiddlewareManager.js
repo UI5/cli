@@ -8,7 +8,8 @@ const MiddlewareUtil = require("./MiddlewareUtil");
  */
 class MiddlewareManager {
 	constructor({tree, resources, options = {
-		sendSAPTargetCSP: false
+		sendSAPTargetCSP: false,
+		serveCSPReports: false
 	}}) {
 		if (!tree || !resources || !resources.all || !resources.rootProject || !resources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
@@ -116,6 +117,11 @@ class MiddlewareManager {
 						defaultPolicyIsReportOnly: true,
 						defaultPolicy2: "sap-target-level-2",
 						defaultPolicy2IsReportOnly: true,
+					});
+				}
+				if (this.options.serveCSPReports) {
+					Object.assign(oCspConfig, {
+						serveCSPReports: true,
 					});
 				}
 				return () => {
