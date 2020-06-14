@@ -131,7 +131,7 @@
 		"eslint": "^6.8.0",
 		"eslint-config-google": "^0.13.0",
 		"eslint-plugin-jsdoc": "^24.0.6",
-		"extract-zip": "^2.0.0",
+		"extract-zip": "^2.0.1",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^6.0.1",
