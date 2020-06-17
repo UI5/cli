@@ -96,19 +96,27 @@ class MiddlewareManager {
 							"script-src  'self' 'unsafe-eval'; " +
 							"style-src   'self' 'unsafe-inline'; " +
 							"font-src    'self' data:; " +
-							"img-src     'self' * data: blob:; " +
-							"frame-src   'self' https: data: blob:; " +
-							"child-src   'self' https: data: blob:; " +
-							"connect-src 'self' https: wss:;",
+							"img-src     'self' https: http: data: blob:; " +
+							"media-src   'self' https: http: data: blob:; " +
+							"object-src  blob:; " +
+							"frame-src   'self' https: gap: data: blob: mailto: tel:; " +
+							"worker-src  'self' blob:; " +
+							"child-src   'self' blob:; " +
+							"connect-src 'self' https: wss:; " +
+							"base-uri    'self';",
 						"sap-target-level-2":
 							"default-src 'self'; " +
 							"script-src  'self'; " +
 							"style-src   'self' 'unsafe-inline'; " +
 							"font-src    'self' data:; " +
-							"img-src     'self' * data: blob:; " +
-							"frame-src   'self' https: data: blob:; " +
-							"child-src   'self' https: data: blob:; " +
-							"connect-src 'self' https: wss:;"
+							"img-src     'self' https: http: data: blob:; " +
+							"media-src   'self' https: http: data: blob:; " +
+							"object-src  blob:; " +
+							"frame-src   'self' https: gap: data: blob: mailto: tel:; " +
+							"worker-src  'self' blob:; " +
+							"child-src   'self' blob:; " +
+							"connect-src 'self' https: wss:; " +
+							"base-uri    'self';"
 					}
 				};
 				if (this.options.sendSAPTargetCSP) {
