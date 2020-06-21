@@ -109,7 +109,7 @@
 		"slash": "^3.0.0"
 	},
 	"devDependencies": {
-		"ava": "^3.8.2",
+		"ava": "^3.9.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",
