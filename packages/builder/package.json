@@ -116,12 +116,12 @@
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.2",
 		"slash": "^3.0.0",
-		"terser": "^4.7.0",
+		"terser": "^4.8.0",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
-		"ava": "^3.8.2",
+		"ava": "^3.9.0",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",
