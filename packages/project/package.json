@@ -115,7 +115,7 @@
 		"string.prototype.matchall": "^4.0.2"
 	},
 	"devDependencies": {
-		"ava": "^3.8.2",
+		"ava": "^3.9.0",
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",
