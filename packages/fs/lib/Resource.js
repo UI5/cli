@@ -73,7 +73,7 @@ class Resource {
 		this._createStream = createStream || null;
 		this._stream = stream || null;
 		this._buffer = buffer || null;
-		if (string) {
+		if (typeof string === "string" || string instanceof String) {
 			this._buffer = Buffer.from(string, "utf8");
 		}
 

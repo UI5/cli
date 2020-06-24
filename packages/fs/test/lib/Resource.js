@@ -18,6 +18,27 @@ function createBasicResource() {
 	return resource;
 }
 
+/**
+ * Reads a readable stream and resolves with its content
+ *
+ * @param {stream.Readable} readableStream readable stream
+ * @returns {Promise<string>} resolves with the read string
+ */
+const readStream = (readableStream) => {
+	return new Promise((resolve, reject) => {
+		let streamedResult = "";
+		readableStream.on("data", (chunk) => {
+			streamedResult += chunk;
+		});
+		readableStream.on("end", () => {
+			resolve(streamedResult);
+		});
+		readableStream.on("error", (err) => {
+			reject(err);
+		});
+	});
+};
+
 test("Resource: constructor with missing path parameter", (t) => {
 	t.throws(() => {
 		new Resource({});
@@ -62,17 +83,35 @@ test("Resource: getStream", async (t) => {
 		buffer: Buffer.from("Content")
 	});
 
-	return new Promise(function(resolve, reject) {
-		let streamedResult = "";
-		const readableStream = resource.getStream();
-		readableStream.on("data", (chunk) => {
-			streamedResult += chunk;
-		});
-		readableStream.on("end", () => {
-			resolve(streamedResult);
-		});
-	}).then((result) => {
+	return readStream(resource.getStream()).then((result) => {
 		t.is(result, "Content", "Stream has been read correctly");
+	});
+});
+
+test("Resource: getStream for empty string", async (t) => {
+	t.plan(1);
+
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		string: ""
+	});
+
+	return readStream(resource.getStream()).then((result) => {
+		t.is(result, "", "Stream has been read correctly for empty string");
+	});
+});
+
+test("Resource: getStream for empty string instance", async (t) => {
+	t.plan(1);
+
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		// eslint-disable-next-line no-new-wrappers
+		string: new String("")
+	});
+
+	return readStream(resource.getStream()).then((result) => {
+		t.is(result, "", "Stream has been read correctly for empty string");
 	});
 });
 
