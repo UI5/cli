@@ -25,6 +25,9 @@ const writeResource = function(writer, path, size, stringContent, stringEncoding
 		pipe: function() {
 		}
 	});
+
+	writer.byPath = sinon.stub();
+	writer.byPath.withArgs(path).resolves(resource);
 	return writer.write(resource).then(() => {
 		return resource;
 	});

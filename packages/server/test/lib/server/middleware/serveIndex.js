@@ -6,16 +6,14 @@ test.serial("serveIndex default", (t) => {
 	t.plan(4);
 	const serveIndexMiddleware = require("../../../../lib/middleware/serveIndex");
 	const writeResource = function(writer, path, size = 0, stringContent = "abc") {
-		const resource = resourceFactory.createResource({path, string: stringContent});
-		resource.getStatInfo = function() {
-			return {
-				mtime: 0,
-				size: size,
-				isDirectory: function() {
-					return false;
-				}
-			};
+		const statInfo = {
+			mtime: 0,
+			size: size,
+			isDirectory: function() {
+				return false;
+			}
 		};
+		const resource = resourceFactory.createResource({statInfo, path, string: stringContent});
 		return writer.write(resource);
 	};
 
@@ -61,16 +59,14 @@ test.serial("serveIndex no hidden", (t) => {
 	t.plan(4);
 	const serveIndexMiddleware = require("../../../../lib/middleware/serveIndex");
 	const writeResource = function(writer, path, size = 0, stringContent = "abc") {
-		const resource = resourceFactory.createResource({path, string: stringContent});
-		resource.getStatInfo = function() {
-			return {
-				mtime: 0,
-				size: size,
-				isDirectory: function() {
-					return false;
-				}
-			};
+		const statInfo = {
+			mtime: 0,
+			size: size,
+			isDirectory: function() {
+				return false;
+			}
 		};
+		const resource = resourceFactory.createResource({statInfo, path, string: stringContent});
 		return writer.write(resource);
 	};
 
@@ -118,16 +114,14 @@ test.serial("serveIndex no details", (t) => {
 	t.plan(4);
 	const serveIndexMiddleware = require("../../../../lib/middleware/serveIndex");
 	const writeResource = function(writer, path, size = 0, stringContent = "abc") {
-		const resource = resourceFactory.createResource({path, string: stringContent});
-		resource.getStatInfo = function() {
-			return {
-				mtime: 0,
-				size: size,
-				isDirectory: function() {
-					return false;
-				}
-			};
+		const statInfo = {
+			mtime: 0,
+			size: size,
+			isDirectory: function() {
+				return false;
+			}
 		};
+		const resource = resourceFactory.createResource({statInfo, path, string: stringContent});
 		return writer.write(resource);
 	};
 
