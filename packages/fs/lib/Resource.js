@@ -70,11 +70,14 @@ class Resource {
 			birthtime: new Date()
 		};
 
-		this._createStream = createStream || null;
-		this._stream = stream || null;
-		this._buffer = buffer || null;
-		if (typeof string === "string" || string instanceof String) {
-			this._buffer = Buffer.from(string, "utf8");
+		if (createStream) {
+			this._createStream = createStream;
+		} else if (stream) {
+			this._stream = stream;
+		} else if (buffer) {
+			this.setBuffer(buffer);
+		} else if (typeof string === "string" || string instanceof String) {
+			this.setString(string);
 		}
 
 		// Tracing:
@@ -117,6 +120,7 @@ class Resource {
 		this._buffer = buffer;
 		this._contentDrained = false;
 		this._streamDrained = false;
+		this._setSize(this._buffer.byteLength);
 	}
 
 	/**
@@ -205,6 +209,17 @@ class Resource {
 		}
 		this._contentDrained = false;
 		this._streamDrained = false;
+	}
+
+	/**
+	 * Set the size in bytes
+	 *
+	 * @param {number} size byte size
+	 * @private
+	 * @see https://nodejs.org/api/fs.html#fs_stats_size
+	 */
+	_setSize(size) {
+		this._statInfo.size = size;
 	}
 
 	/**
