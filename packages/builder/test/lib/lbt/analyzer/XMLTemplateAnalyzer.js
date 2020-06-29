@@ -3,6 +3,10 @@ const XMLTemplateAnalyzer = require("../../../../lib/lbt/analyzer/XMLTemplateAna
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 const sinon = require("sinon");
 
+const fakeMockPool = {
+	findResource: () => Promise.resolve()
+};
+
 test("integration: Analysis of an xml view", async (t) => {
 	const xml = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:m="sap.m" xmlns:l="sap.ui.layout"
 		controllerName="myController">
@@ -13,15 +17,10 @@ test("integration: Analysis of an xml view", async (t) => {
 				<m:Button />
 			</l:HorizontalLayout>
 		</mvc:View>`;
-	const mockPool = {async findResource(name) {
-		return {
-			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
-		};
-	}};
 
 	const moduleInfo = new ModuleInfo();
 
-	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
@@ -39,15 +38,10 @@ test("integration: Analysis of an xml view with data binding in properties", asy
 		controllerName="myController">
 			<core:ComponentContainer async="true" name="{/component}" />
 		</mvc:View>`;
-	const mockPool = {async findResource(name) {
-		return {
-			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
-		};
-	}};
 
 	const moduleInfo = new ModuleInfo();
 
-	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
@@ -70,15 +64,10 @@ test("integration: Analysis of an xml view with core:require", async (t) => {
 			<Button core:require="{Toast:'sap/m/MessageToast'}" text="Show Toast" press="Toast.show(\${$source>text})"/>
 
 		</mvc:View>`;
-	const mockPool = {async findResource(name) {
-		return {
-			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
-		};
-	}};
 
 	const moduleInfo = new ModuleInfo();
 
-	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
@@ -104,15 +93,10 @@ test("integration: Analysis of an xml view with core:require (invalid module nam
 			<Button core:require="{ Toast: '' }" text="Show Toast" press="Toast.show(\${$source>text})"/>
 
 		</mvc:View>`;
-	const mockPool = {async findResource(name) {
-		return {
-			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
-		};
-	}};
 
 	const moduleInfo = new ModuleInfo();
 
-	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
@@ -135,15 +119,10 @@ test("integration: Analysis of an xml view with core:require (parsing error)", a
 			<Button core:require="this can't be parsed" text="Show Toast" press="Toast.show(\${$source>text})"/>
 
 		</mvc:View>`;
-	const mockPool = {async findResource(name) {
-		return {
-			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
-		};
-	}};
 
 	const moduleInfo = new ModuleInfo();
 
-	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
@@ -165,15 +144,10 @@ test("integration: Analysis of an xml fragment", async (t) => {
 				</l:HorizontalLayout>
 			</items>
 		</HBox>`;
-	const mockPool = {async findResource(name) {
-		return {
-			buffer: () => name.endsWith(".xml") ? JSON.stringify(xml): "test"
-		};
-	}};
 
 	const moduleInfo = new ModuleInfo();
 
-	const analyzer = new XMLTemplateAnalyzer(mockPool);
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
 	await analyzer.analyzeFragment(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
@@ -183,6 +157,18 @@ test("integration: Analysis of an xml fragment", async (t) => {
 		]);
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/Fragment.js"),
 		"Implicit dependency should be added since a fragment is analyzed");
+});
+
+test("integration: Analysis of an empty xml view", async (t) => {
+	const xml = "";
+
+	const moduleInfo = new ModuleInfo("empty.xml");
+
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
+
+	await t.throwsAsync(analyzer.analyzeView(xml, moduleInfo), {
+		message: "Invalid empty XML document: empty.xml"
+	}, "Should throw an error for empty XML views");
 });
 
 test("_addDependency: self reference", (t) => {

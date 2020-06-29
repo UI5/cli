@@ -162,6 +162,12 @@ class XMLTemplateAnalyzer {
 					return;
 				}
 
+				if ( !result ) {
+					// Handle empty xml views/fragments
+					reject(new Error("Invalid empty XML document: " + info.name));
+					return;
+				}
+
 				// console.log(result);
 				// clear();
 				if ( isFragment ) {
