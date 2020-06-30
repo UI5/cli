@@ -17,24 +17,24 @@ class ResolvedBundleDefinition {
 	get containsCore() {
 		return this.sections.some(
 			(section) =>
-				(section.mode === SectionType.Raw || section.mode === SectionType.Require)
-				&& section.modules.some((module) => module === UI5ClientConstants.MODULE__SAP_UI_CORE_CORE)
+				(section.mode === SectionType.Raw || section.mode === SectionType.Require) &&
+				section.modules.some((module) => module === UI5ClientConstants.MODULE__SAP_UI_CORE_CORE)
 		);
 	}
 
 	get containsGlobal() {
 		return this.sections.some(
 			(section) =>
-				section.mode === SectionType.Raw
-				&& section.modules.some((module) => module === UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL)
+				section.mode === SectionType.Raw &&
+				section.modules.some((module) => module === UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL)
 		);
 	}
 
 	executes(moduleName) {
 		return this.sections.some(
 			(section) =>
-				(section.mode === SectionType.Raw || section.mode === SectionType.Require)
-				&& section.modules.some((module) => module === moduleName)
+				(section.mode === SectionType.Raw || section.mode === SectionType.Require) &&
+				section.modules.some((module) => module === moduleName)
 		);
 	}
 

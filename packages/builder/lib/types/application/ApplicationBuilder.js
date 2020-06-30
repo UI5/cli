@@ -11,9 +11,9 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("escapeNonAsciiCharacters", async () => {
-			const propertiesFileSourceEncoding = project.resources
-				&& project.resources.configuration
-				&& project.resources.configuration.propertiesFileSourceEncoding;
+			const propertiesFileSourceEncoding = project.resources &&
+			project.resources.configuration &&
+			project.resources.configuration.propertiesFileSourceEncoding;
 			return getTask("escapeNonAsciiCharacters").task({
 				workspace: resourceCollections.workspace,
 				options: {
@@ -169,9 +169,9 @@ class ApplicationBuilder extends AbstractBuilder {
 					dependencies: resourceCollections.dependencies,
 					options: {
 						namespace: project.metadata.namespace,
-						signatureType: project.builder
-							&& project.builder.cachebuster
-							&& project.builder.cachebuster.signatureType,
+						signatureType: project.builder &&
+							project.builder.cachebuster &&
+							project.builder.cachebuster.signatureType,
 					}
 				});
 			});

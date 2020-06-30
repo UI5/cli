@@ -354,8 +354,8 @@ class JSModuleAnalyzer {
 					nModuleDeclarations++;
 					info.setFormat(ModuleFormat.UI5_LEGACY);
 					onDeclare(node);
-				} else if ( !conditional
-								&& (isMethodCall(node, CALL_SAP_UI_DEFINE) || isMethodCall(node, CALL_AMD_DEFINE)) ) {
+				} else if ( !conditional &&
+								(isMethodCall(node, CALL_SAP_UI_DEFINE) || isMethodCall(node, CALL_AMD_DEFINE)) ) {
 					// recognized a call to define() or sap.ui.define()
 					// console.log("**** recognized a call to sap.ui.define");
 					nModuleDeclarations++;
@@ -437,9 +437,9 @@ class JSModuleAnalyzer {
 				//     }
 				// required for the analysis of files that have been build with the
 				// embedding merge writer (e.g. sap-ui-core-all.js)
-				if ( node.test.type == Syntax.UnaryExpression
-						&& node.test.operator === "!"
-						&& isMethodCall(node.test.argument, CALL_JQUERY_SAP_IS_DECLARED ) ) {
+				if ( node.test.type == Syntax.UnaryExpression &&
+						node.test.operator === "!" &&
+						isMethodCall(node.test.argument, CALL_JQUERY_SAP_IS_DECLARED ) ) {
 					visit(node.consequent, conditional);
 					visit(node.alternate, true);
 				} else {
@@ -539,8 +539,8 @@ class JSModuleAnalyzer {
 					if ( isString(arg) ) {
 						const requiredModuleName = ModuleName.fromUI5LegacyName( arg.value );
 						info.addDependency(requiredModuleName, conditional);
-					} else if ( arg.type == Syntax.ConditionalExpression
-									&& isString(arg.consequent) && isString(arg.alternate) ) {
+					} else if ( arg.type == Syntax.ConditionalExpression &&
+									isString(arg.consequent) && isString(arg.alternate) ) {
 						const requiredModuleName1 = ModuleName.fromUI5LegacyName( arg.consequent.value );
 						info.addDependency(requiredModuleName1, true);
 						const requiredModuleName2 = ModuleName.fromUI5LegacyName( arg.alternate.value );

@@ -30,9 +30,9 @@ function isMethodCall(node, methodPath) {
 
 function isNamedObject(node, objectPath, length) {
 	// console.log("checking for named object ", node, objectPath, length);
-	while ( length > 1
-			&& node.type === Syntax.MemberExpression
-			&& isIdentifier(node.property, objectPath[length-1]) ) {
+	while ( length > 1 &&
+			node.type === Syntax.MemberExpression &&
+			isIdentifier(node.property, objectPath[length-1]) ) {
 		node = node.object;
 		length--;
 	}

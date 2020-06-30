@@ -12,10 +12,10 @@ const nonAsciiEscaper = require("../../processors/nonAsciiEscaper");
  */
 module.exports = async function(resource) {
 	const project = resource.getProject();
-	let propertiesFileSourceEncoding = project
-			&& project.resources
-			&& project.resources.configuration
-			&& project.resources.configuration.propertiesFileSourceEncoding;
+	let propertiesFileSourceEncoding = project &&
+			project.resources &&
+			project.resources.configuration &&
+			project.resources.configuration.propertiesFileSourceEncoding;
 
 	if (!propertiesFileSourceEncoding) {
 		if (project && ["0.1", "1.0", "1.1"].includes(project.specVersion)) {

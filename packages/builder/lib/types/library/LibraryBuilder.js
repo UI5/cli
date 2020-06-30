@@ -11,9 +11,9 @@ class LibraryBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("escapeNonAsciiCharacters", async () => {
-			const propertiesFileSourceEncoding = project.resources
-				&& project.resources.configuration
-				&& project.resources.configuration.propertiesFileSourceEncoding;
+			const propertiesFileSourceEncoding = project.resources &&
+				project.resources.configuration &&
+				project.resources.configuration.propertiesFileSourceEncoding;
 			return getTask("escapeNonAsciiCharacters").task({
 				workspace: resourceCollections.workspace,
 				options: {

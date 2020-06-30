@@ -25,8 +25,8 @@ class XMLCompositeAnalyzer {
 						stmt.declarations.forEach( (decl) => {
 							fragmentName = this._checkForXMLCClassDefinition( XMLC, decl.init ) || fragmentName;
 						});
-					} else if ( stmt.type === Syntax.ExpressionStatement
-								&& stmt.expression.type === Syntax.AssignmentExpression ) {
+					} else if ( stmt.type === Syntax.ExpressionStatement &&
+								stmt.expression.type === Syntax.AssignmentExpression ) {
 						fragmentName = this._checkForXMLCClassDefinition( XMLC, stmt.expression.right ) || fragmentName;
 					}
 				});

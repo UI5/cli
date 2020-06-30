@@ -108,10 +108,10 @@ class ModuleInfo {
 		// If the dependency was known already, update the kind
 		// only when the new kind is stronger than the current one.
 		// STRICT is stronger than IMPLICIT, IMPLICIT is stronger than CONDITIONAL
-		if ( dependency
-				&& dependency !== this.name
-				&& this.subModules.indexOf(dependency) < 0
-				&& ( !(dependency in this._dependencies) || kind < this._dependencies[dependency]) ) {
+		if ( dependency &&
+				dependency !== this.name &&
+				this.subModules.indexOf(dependency) < 0 &&
+				( !(dependency in this._dependencies) || kind < this._dependencies[dependency]) ) {
 			this._dependencies[dependency] = kind;
 		}
 	}
@@ -125,9 +125,9 @@ class ModuleInfo {
 	}
 
 	setFormat(detectedFormat) {
-		if ( this.format == null
-				|| detectedFormat === Format.UI5_LEGACY
-				|| (detectedFormat === Format.UI5_DEFINE && this.format !== Format.UI5_LEGACY) ) {
+		if ( this.format == null ||
+				detectedFormat === Format.UI5_LEGACY ||
+				(detectedFormat === Format.UI5_DEFINE && this.format !== Format.UI5_LEGACY) ) {
 			this.format = detectedFormat;
 		}
 	}

@@ -462,8 +462,8 @@ const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
 
 function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 	function _injectModuleNameIfNeeded(defineCall) {
-		if ( defineCall.arguments.length == 0
-				|| defineCall.arguments[0].type !== Syntax.Literal ) {
+		if ( defineCall.arguments.length == 0 ||
+				defineCall.arguments[0].type !== Syntax.Literal ) {
 			defineCall.arguments.unshift({
 				type: Syntax.Literal,
 				value: ModuleName.toRequireJSName(moduleName)
@@ -504,15 +504,15 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 		return;
 	}
 
-	if ( ast.type === Syntax.Program
-			&& ast.body.length === 1
-			&& ast.body[0].type === Syntax.ExpressionStatement ) {
+	if ( ast.type === Syntax.Program &&
+			ast.body.length === 1 &&
+			ast.body[0].type === Syntax.ExpressionStatement ) {
 		// rewrite define to require.predefine
 		if ( targetBundleFormat.supportsNativeDefine() && isMethodCall(ast.body[0].expression, CALL_DEFINE) ) {
 			const defineCall = ast.body[0].expression;
 
-			if ( defineCall.callee.type === Syntax.Identifier
-					&& defineCall.callee.name === "define" ) {
+			if ( defineCall.callee.type === Syntax.Identifier &&
+					defineCall.callee.name === "define" ) {
 				defineCall.callee.name = "predefine"; // rename method to predefine
 				// add a member expression 'sap.ui.require.'
 				defineCall.callee = {
@@ -555,9 +555,9 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 			const defineCall = ast.body[0].expression;
 
 			// rewrite sap.ui.define to sap.ui.predefine
-			if ( defineCall.callee.type === Syntax.MemberExpression
-					&& defineCall.callee.property.type === Syntax.Identifier
-					&& defineCall.callee.property.name === "define" ) {
+			if ( defineCall.callee.type === Syntax.MemberExpression &&
+					defineCall.callee.property.type === Syntax.Identifier &&
+					defineCall.callee.property.name === "define" ) {
 				defineCall.callee.property.name = "predefine";
 			}
 

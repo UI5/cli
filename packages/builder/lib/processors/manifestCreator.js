@@ -36,10 +36,10 @@ function getBooleanAttribute(node, attr) {
 }
 
 function findChild(node, tagName, namespaceURI) {
-	if ( node
-			&& Array.isArray(node[tagName])
-			&& node[tagName].length > 0
-			&& (namespaceURI == null || (node[tagName][0].$ns && node[tagName][0].$ns.uri === namespaceURI)) ) {
+	if ( node &&
+			Array.isArray(node[tagName]) &&
+			node[tagName].length > 0 &&
+			(namespaceURI == null || (node[tagName][0].$ns && node[tagName][0].$ns.uri === namespaceURI)) ) {
 		return node[tagName][0];
 	}
 }

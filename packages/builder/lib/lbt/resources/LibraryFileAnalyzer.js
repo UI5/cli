@@ -43,15 +43,15 @@ function getDependencyInfos( content ) {
 	const infos = {};
 	parser.parseString(content, (err, result) => {
 		// console.log(JSON.stringify(result, null, '\t'));
-		if ( result
-				&& result.library
-				&& Array.isArray(result.library.appData)
-				&& result.library.appData.length >= 1
-				&& Array.isArray(result.library.appData[0].packaging) ) {
+		if ( result &&
+				result.library &&
+				Array.isArray(result.library.appData) &&
+				result.library.appData.length >= 1 &&
+				Array.isArray(result.library.appData[0].packaging) ) {
 			result.library.appData[0].packaging.forEach( (packaging) => {
-				if ( packaging.$ns
-						&& packaging.$ns.uri === "http://www.sap.com/ui5/buildext/packaging"
-						&& Array.isArray(packaging["module-infos"]) ) {
+				if ( packaging.$ns &&
+						packaging.$ns.uri === "http://www.sap.com/ui5/buildext/packaging" &&
+						Array.isArray(packaging["module-infos"]) ) {
 					packaging["module-infos"].forEach( function(moduleInfos) {
 						moduleInfos["raw-module"] && moduleInfos["raw-module"].forEach( (rawModule) => {
 							const info = makeModuleInfo(rawModule);

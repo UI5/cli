@@ -127,10 +127,10 @@ class TemplateComponentAnalyzer {
 			// console.log("local name for TemplateAssembler: %s", TA);
 			if ( TA && defineCall.factory ) {
 				defineCall.factory.body.body.forEach( (stmt) => {
-					if ( stmt.type === Syntax.ReturnStatement
-							&& isMethodCall(stmt.argument, [TA, "getTemplateComponent"])
-							&& stmt.argument.arguments.length > 2
-							&& stmt.argument.arguments[2].type === "ObjectExpression" ) {
+					if ( stmt.type === Syntax.ReturnStatement &&
+							isMethodCall(stmt.argument, [TA, "getTemplateComponent"]) &&
+							stmt.argument.arguments.length > 2 &&
+							stmt.argument.arguments[2].type === "ObjectExpression" ) {
 						templateName = this._analyzeTemplateClassDefinition(stmt.argument.arguments[2]) || templateName;
 					}
 				});

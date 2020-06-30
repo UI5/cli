@@ -61,10 +61,10 @@ class BundleResolver {
 			}
 
 			function checkForDecomposableBundle(resource) {
-				if ( resource == null
-						|| resource.info == null
-						|| resource.info.subModules.length === 0
-						|| /(?:^|\/)library.js$/.test(resource.info.name) ) {
+				if ( resource == null ||
+						resource.info == null ||
+						resource.info.subModules.length === 0 ||
+						/(?:^|\/)library.js$/.test(resource.info.name) ) {
 					return {resource, decomposable: false};
 				}
 
@@ -121,8 +121,8 @@ class BundleResolver {
 								if ( section.resolve && dependencyInfo ) {
 									promises = dependencyInfo.dependencies.map( function(required) {
 										// ignore conditional dependencies if not configured
-										if ( !section.resolveConditional
-												&& dependencyInfo.isConditionalDependency(required) ) {
+										if ( !section.resolveConditional &&
+												dependencyInfo.isConditionalDependency(required) ) {
 											return;
 										}
 

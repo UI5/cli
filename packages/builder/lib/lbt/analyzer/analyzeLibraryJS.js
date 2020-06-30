@@ -20,17 +20,17 @@ async function analyze(resource) {
 	};
 
 	function visit(node) {
-		if ( node.type == Syntax.CallExpression
-				&& node.callee.type === Syntax.MemberExpression
-				&& isMethodCall(node.callee.object, CALL__SAP_UI_GETCORE)
-				&& isIdentifier(node.callee.property, "initLibrary")
-				&& node.arguments.length === 1
-				&& node.arguments[0].type === Syntax.ObjectExpression ) {
+		if ( node.type == Syntax.CallExpression &&
+				node.callee.type === Syntax.MemberExpression &&
+				isMethodCall(node.callee.object, CALL__SAP_UI_GETCORE) &&
+				isIdentifier(node.callee.property, "initLibrary") &&
+				node.arguments.length === 1 &&
+				node.arguments[0].type === Syntax.ObjectExpression ) {
 			node.arguments[0].properties.forEach( (prop) => {
 				const key = getPropertyKey(prop);
 				const value = prop.value;
-				if ( key === "noLibraryCSS"
-						&& (value.type === Syntax.Literal && typeof value.value === "boolean") ) {
+				if ( key === "noLibraryCSS" &&
+						(value.type === Syntax.Literal && typeof value.value === "boolean") ) {
 					libInfo.noLibraryCSS = value.value;
 				} else if ( key === "types" && value.type == Syntax.ArrayExpression ) {
 					libInfo.types = getStringArray(value, true);
