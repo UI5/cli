@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.0...HEAD).
+
+<a name="v2.2.0"></a>
+## [v2.2.0] - 2020-07-01
+### Bug Fixes
+- **MiddlewareManager:** Update SAP Target CSP Policies [`269c22c`](https://github.com/SAP/ui5-server/commit/269c22c80a6682a3d680c47e768f69a20ecabcd0)
+
+### Features
+- **CSP:** Add ignorePaths option ([#331](https://github.com/SAP/ui5-server/issues/331)) [`27a962e`](https://github.com/SAP/ui5-server/commit/27a962eb80fd7de95c6076f7d307e0dd06dac057)
+
 
 <a name="v2.1.0"></a>
 ## [v2.1.0] - 2020-06-15
@@ -175,6 +184,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.2.0]: https://github.com/SAP/ui5-server/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/SAP/ui5-server/compare/v2.0.3...v2.1.0
 [v2.0.3]: https://github.com/SAP/ui5-server/compare/v2.0.2...v2.0.3
 [v2.0.2]: https://github.com/SAP/ui5-server/compare/v2.0.1...v2.0.2
