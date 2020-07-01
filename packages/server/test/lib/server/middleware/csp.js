@@ -1,4 +1,6 @@
 const test = require("ava");
+const sinon = require("sinon");
+
 const cspMiddleware = require("../../../../lib/middleware/csp");
 
 
@@ -407,6 +409,63 @@ test("Header Manipulation, add headers to existing header", async (t) => {
 	await new Promise((resolve) => {
 		middleware({method: "GET", url: "/test.html", headers: {}}, res, () => {
 			t.deepEqual(cspHeader, ["default-src: spdy:", "default-src 'self';", "default-src http:;"]);
+			resolve();
+		});
+	});
+});
+
+test("TestRunner Settings ignorePaths", async (t) => {
+	const middleware = cspMiddleware("csp", {
+		definedPolicies: {
+			policy1: "default-src 'self';",
+			policy2: "default-src http:;"
+		},
+		defaultPolicy: "policy1",
+		defaultPolicyIsReportOnly: false,
+		defaultPolicy2: "policy2",
+		defaultPolicy2IsReportOnly: false,
+		ignorePaths: ["my/pony.html"]
+	});
+
+	function fakeRes() {
+		return {
+			getHeader: sinon.stub(),
+			end: sinon.stub(),
+			setHeader: sinon.stub()
+		};
+	}
+
+	// matches the pathName
+	await new Promise((resolve) => {
+		const res = fakeRes();
+		middleware({method: "GET", url: "/my/pony.html", headers: {}}, res, function(err) {
+			t.falsy(err, "Next should not be called with an error");
+			t.is(res.setHeader.callCount, 0, "res.setHeader should not be called");
+			t.is(res.end.callCount, 0, "res.end should not be called");
+			resolve();
+		});
+	});
+
+	// matches the referer
+	await new Promise((resolve) => {
+		const res = fakeRes();
+		middleware({method: "GET", url: "/my/app.html", headers: {
+			referer: "http://localhost:8080/my/pony.html"
+		}}, res, function(err) {
+			t.falsy(err, "Next should not be called with an error");
+			t.is(res.setHeader.callCount, 0, "res.setHeader should not be called");
+			t.is(res.end.callCount, 0, "res.end should not be called");
+			resolve();
+		});
+	});
+
+	// normal call which does not match the ignorePaths
+	await new Promise((resolve) => {
+		const res = fakeRes();
+		middleware({method: "GET", url: "/my/nothin.html", headers: {}}, res, function(err) {
+			t.falsy(err, "Next should not be called with an error");
+			t.is(res.setHeader.callCount, 2, "setHeader should be called twice");
+			t.is(res.end.callCount, 0, "res.end should not be called");
 			resolve();
 		});
 	});

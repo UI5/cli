@@ -125,6 +125,7 @@ class MiddlewareManager {
 						defaultPolicyIsReportOnly: true,
 						defaultPolicy2: "sap-target-level-2",
 						defaultPolicy2IsReportOnly: true,
+						ignorePaths: ["test-resources/sap/ui/qunit/testrunner.html"]
 					});
 				}
 				if (this.options.serveCSPReports) {

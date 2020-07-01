@@ -619,6 +619,43 @@ test("CSP serveCSPReports", (t) => {
 	});
 });
 
+test("CSP with ignore paths", async (t) => {
+	const port = 3500;
+	const request = supertest(`http://localhost:${port}`);
+	const tree = await normalizer.generateProjectTree({
+		cwd: "./test/fixtures/application.a"
+	});
+	const serveResult = await server.serve(tree, {
+		port,
+		serveCSPReports: true,
+		sendSAPTargetCSP: true,
+		simpleIndex: false
+	});
+	const testrunnerRequest1 = request.get("/test-resources/sap/ui/qunit/testrunner.html")
+		.expect(200);
+	const testrunnerRequest2 = request.get("/index.html")
+		.set("Referer", `http://localhost:${port}/test-resources/sap/ui/qunit/testrunner.html`)
+		.expect(200);
+	const testrunnerRequest3 = request.get("/index.html")
+		.expect(200);
+	const [response1, response2, response3] = await Promise.all([testrunnerRequest1, testrunnerRequest2, testrunnerRequest3]);
+	t.falsy(response1.headers["content-security-policy-report-only"], "url match");
+	t.falsy(response2.headers["content-security-policy-report-only"], "referer match");
+	t.truthy(response3.headers["content-security-policy-report-only"], "no match");
+
+	// close connection
+	await new Promise((resolve, reject) => {
+		serveResult.close((error) => {
+			if (error) {
+				reject(error);
+			} else {
+				t.pass("Server closing");
+				resolve();
+			}
+		});
+	});
+});
+
 test("Get index of resources", (t) => {
 	return Promise.all([
 		request.get("").then((res) => {

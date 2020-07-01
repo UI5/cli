@@ -19,6 +19,19 @@ function addHeader(res, header, value) {
 	}
 }
 
+/**
+ * Evaluates if the uriPath is either part of the pathName or in the request header referer
+ *
+ * @param {string} uriPath path in the URI, e.g. "test-resources/sap/ui/qunit/testrunner.html"
+ * @param {http.IncomingMessage} req request
+ * @param {string} pathName path name of the request
+ * @returns {boolean} whether or not path fragment is in pathName or in referer header
+ */
+function containsPath(uriPath, req, pathName) {
+	return pathName.includes(uriPath) ||
+		(req.headers["referer"] && req.headers["referer"].includes(uriPath));
+}
+
 
 /**
  * @typedef {object} CspConfig
@@ -30,6 +43,7 @@ function addHeader(res, header, value) {
  * @property {boolean} defaultPolicy2IsReportOnly
  * @property {object} definedPolicies
  * @property {boolean} serveCSPReports whether to serve the csp resources
+ * @property {string[]} ignorePaths URI paths which are ignored by the CSP reports, e.g. ["test-resources/sap/ui/qunit/testrunner.html"]
  */
 
 /**
@@ -49,7 +63,8 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		defaultPolicy2 = null,
 		defaultPolicy2IsReportOnly = false,
 		definedPolicies = {},
-		serveCSPReports = false
+		serveCSPReports = false,
+		ignorePaths = []
 	} = oConfig;
 
 
@@ -110,6 +125,15 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 
 		// add CSP headers only to get requests for *.html pages
 		if (req.method !== "GET" || !oParsedURL.pathname.endsWith(".html")) {
+			next();
+			return;
+		}
+
+		const containsIgnorePath = (ignoredPath) => {
+			return containsPath(ignoredPath, req, oParsedURL.pathname);
+		};
+
+		if (ignorePaths.some(containsIgnorePath)) {
 			next();
 			return;
 		}
