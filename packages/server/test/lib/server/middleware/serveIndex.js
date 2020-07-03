@@ -5,25 +5,25 @@ const MiddlewareUtil = require("../../../../lib/middleware/MiddlewareUtil");
 test.serial("serveIndex default", (t) => {
 	t.plan(4);
 	const serveIndexMiddleware = require("../../../../lib/middleware/serveIndex");
-	const writeResource = function(writer, path, size = 0, stringContent = "abc") {
+	const writeResource = function(writer, path, buffer) {
 		const statInfo = {
 			mtime: 0,
-			size: size,
+			size: buffer.byteLength,
 			isDirectory: function() {
 				return false;
 			}
 		};
-		const resource = resourceFactory.createResource({statInfo, path, string: stringContent});
+		const resource = resourceFactory.createResource({statInfo, path, buffer});
 		return writer.write(resource);
 	};
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 
 	return Promise.all([
-		writeResource(readerWriter, "/myFile1.meh", 1024), // KB
-		writeResource(readerWriter, "/myFile2.js", 1024 * 1024), // MB
-		writeResource(readerWriter, "/myFile3.properties", 1024 * 1024 * 1024), // GB
-		writeResource(readerWriter, "/.myFile4", 1024), // hidden 1 KB
+		writeResource(readerWriter, "/myFile1.meh", Buffer.alloc(1024)), // KB
+		writeResource(readerWriter, "/myFile2.js", Buffer.alloc(1024 * 1024)), // MB
+		writeResource(readerWriter, "/myFile3.properties", Buffer.alloc(1024 * 1024 * 1024)), // GB
+		writeResource(readerWriter, "/.myFile4", Buffer.alloc(1024)), // hidden 1 KB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
@@ -58,25 +58,25 @@ test.serial("serveIndex default", (t) => {
 test.serial("serveIndex no hidden", (t) => {
 	t.plan(4);
 	const serveIndexMiddleware = require("../../../../lib/middleware/serveIndex");
-	const writeResource = function(writer, path, size = 0, stringContent = "abc") {
+	const writeResource = function(writer, path, buffer) {
 		const statInfo = {
 			mtime: 0,
-			size: size,
+			size: buffer.byteLength,
 			isDirectory: function() {
 				return false;
 			}
 		};
-		const resource = resourceFactory.createResource({statInfo, path, string: stringContent});
+		const resource = resourceFactory.createResource({statInfo, path, buffer});
 		return writer.write(resource);
 	};
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 
 	return Promise.all([
-		writeResource(readerWriter, "/myFile1.meh", 1024), // KB
-		writeResource(readerWriter, "/myFile2.js", 1024 * 1024), // MB
-		writeResource(readerWriter, "/myFile3.properties", 1024 * 1024 * 1024), // GB
-		writeResource(readerWriter, "/.myFile4", 1024), // hidden 1 KB
+		writeResource(readerWriter, "/myFile1.meh", Buffer.alloc(1024)), // KB
+		writeResource(readerWriter, "/myFile2.js", Buffer.alloc(1024 * 1024)), // MB
+		writeResource(readerWriter, "/myFile3.properties", Buffer.alloc(1024 * 1024 * 1024)), // GB
+		writeResource(readerWriter, "/.myFile4", Buffer.alloc(1024)), // hidden 1 KB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
@@ -113,25 +113,25 @@ test.serial("serveIndex no hidden", (t) => {
 test.serial("serveIndex no details", (t) => {
 	t.plan(4);
 	const serveIndexMiddleware = require("../../../../lib/middleware/serveIndex");
-	const writeResource = function(writer, path, size = 0, stringContent = "abc") {
+	const writeResource = function(writer, path, buffer) {
 		const statInfo = {
 			mtime: 0,
-			size: size,
+			size: buffer.byteLength,
 			isDirectory: function() {
 				return false;
 			}
 		};
-		const resource = resourceFactory.createResource({statInfo, path, string: stringContent});
+		const resource = resourceFactory.createResource({statInfo, path, buffer});
 		return writer.write(resource);
 	};
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 
 	return Promise.all([
-		writeResource(readerWriter, "/myFile1.meh", 1024), // KB
-		writeResource(readerWriter, "/myFile2.js", 1024 * 1024), // MB
-		writeResource(readerWriter, "/myFile3.properties", 1024 * 1024 * 1024), // GB
-		writeResource(readerWriter, "/.myFile4", 1024), // hidden 1 KB
+		writeResource(readerWriter, "/myFile1.meh", Buffer.alloc(1024)), // KB
+		writeResource(readerWriter, "/myFile2.js", Buffer.alloc(1024 * 1024)), // MB
+		writeResource(readerWriter, "/myFile3.properties", Buffer.alloc(1024 * 1024 * 1024)), // GB
+		writeResource(readerWriter, "/.myFile4", Buffer.alloc(1024)), // hidden 1 KB
 	]).then(() => {
 		const middleware = serveIndexMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
