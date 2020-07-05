@@ -97,7 +97,7 @@
 		"@ui5/builder": "^2.0.4",
 		"@ui5/logger": "^2.0.0",
 		"@ui5/server": "^2.2.0",
-		"ajv": "^6.12.2",
+		"ajv": "^6.12.3",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^4.1.0",
 		"escape-string-regexp": "^4.0.0",
