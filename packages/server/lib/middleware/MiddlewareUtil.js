@@ -29,6 +29,7 @@ class MiddlewareUtil {
 		case "1.1":
 			return undefined;
 		case "2.0":
+		case "2.1":
 			return baseInterface;
 		default:
 			throw new Error(`MiddlewareUtil: Unknown or unsupported specification version ${specVersion}`);
