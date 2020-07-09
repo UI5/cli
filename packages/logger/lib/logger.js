@@ -22,7 +22,7 @@ function isLevelEnabled(levelName) {
 	const currIdx = levels.indexOf(npmlog.level);
 	const reqIdx = levels.indexOf(levelName);
 	if (currIdx === -1) {
-		throw new Error(`Failed to find current log level "${npmlog.level}"" in list of expected log levels`);
+		throw new Error(`Failed to find current log level "${npmlog.level}" in list of expected log levels`);
 	}
 	if (reqIdx === -1) {
 		throw new Error(`Unkown log level "${levelName}"`);
@@ -41,7 +41,7 @@ class Logger {
 	}
 
 	isLevelEnabled(levelName) {
-		return isLevelEnabled(levelName);
+		return logger.isLevelEnabled(levelName);
 	}
 
 	silly(...messages) {
@@ -123,7 +123,7 @@ class TaskLogger extends Logger {
 	}
 }
 
-module.exports = {
+const logger = {
 	getLogger: function(moduleName) {
 		return new Logger(moduleName);
 	},
@@ -147,5 +147,14 @@ module.exports = {
 		} else {
 			npmlog.disableProgress();
 		}
-	}
+	},
 };
+
+// Export internal classes for testing only
+if (process.env.NODE_ENV === "test") {
+	logger.__test__ = {
+		Logger, GroupLogger, TaskLogger
+	};
+}
+
+module.exports = logger;

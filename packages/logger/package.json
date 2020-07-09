@@ -18,15 +18,15 @@
 		"npm": ">= 5"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run jsdoc-generate",
-		"test-azure": "npm run lint && npm run jsdoc-generate",
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage",
+		"test-azure": "npm run lint && npm run jsdoc-generate && npm run coverage-xunit",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
 		"unit-watch": "rimraf test/tmp && ava --watch",
 		"unit-nyan": "npm run unit -- --tap | tnyan",
 		"unit-xunit": "rimraf test/tmp && ava --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
-		"unit-inspect": "cross-env UI5_LOG_LVL=verbose node --inspect-brk node_modules/ava/profile.js",
+		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "nyc npm run unit",
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
 		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
@@ -46,10 +46,6 @@
 	],
 	"ava": {
 		"files": [
-			"test/lib/**/*.js"
-		],
-		"sources": [
-			"lib/**/*.js",
 			"test/lib/**/*.js"
 		]
 	},
@@ -100,7 +96,7 @@
 		"npmlog": "^4.1.2"
 	},
 	"devDependencies": {
-		"ava": "^2.4.0",
+		"ava": "^3.9.0",
 		"chokidar-cli": "^2.1.0",
 		"cross-env": "^7.0.2",
 		"docdash": "^1.2.0",
@@ -108,9 +104,11 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^28.6.1",
 		"jsdoc": "^3.6.4",
+		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^6.0.1",
 		"rimraf": "^3.0.2",
+		"sinon": "^9.0.2",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}
