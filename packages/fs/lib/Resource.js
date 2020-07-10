@@ -233,6 +233,9 @@ class Resource {
 
 	/**
 	 * Gets the resources stat info.
+	 * Note that a resources stat information is not updated when the resource is being modified.
+	 * Also, depending on the used adapter, some fields might be missing which would be present for a
+	 * [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats} instance.
 	 *
 	 * @public
 	 * @returns {fs.Stats|object} Instance of [fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats}
