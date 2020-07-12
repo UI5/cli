@@ -113,10 +113,10 @@
 		"supports-color": "^7.1.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^4.1.0",
-		"yargs": "^15.4.0"
+		"yargs": "^15.4.1"
 	},
 	"devDependencies": {
-		"ava": "^3.9.0",
+		"ava": "^3.10.1",
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",
@@ -124,7 +124,7 @@
 		"eslint": "^6.8.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^24.0.6",
-		"execa": "^4.0.2",
+		"execa": "^4.0.3",
 		"jsdoc": "^3.6.4",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
