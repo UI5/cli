@@ -121,7 +121,7 @@
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
-		"ava": "^3.9.0",
+		"ava": "^3.10.1",
 		"chai": "^4.1.2",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",
