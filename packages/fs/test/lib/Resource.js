@@ -148,25 +148,25 @@ test("Resource: size modification", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource"
 	});
-	t.falsy(resource.getStatInfo().size, "initial size is not defined");
+	t.is(await resource.getSize(), 0, "initial size without content");
 
 	// string
 	resource.setString("Content");
 
-	t.is(resource.getStatInfo().size, 7, "size after manually setting the string");
-	t.is(new Resource({
+	t.is(await resource.getSize(), 7, "size after manually setting the string");
+	t.is(await new Resource({
 		path: "my/path/to/resource",
 		string: "Content"
-	}).getStatInfo().size, 7, "size when passing string to constructor");
+	}).getSize(), 7, "size when passing string to constructor");
 
 
 	// buffer
 	resource.setBuffer(Buffer.from("Super"));
 
-	t.is(resource.getStatInfo().size, 5, "size after manually setting the string");
+	t.is(await resource.getSize(), 5, "size after manually setting the string");
 
 	const clonedResource1 = await resource.clone();
-	t.is(clonedResource1.getStatInfo().size, 5, "size after cloning the resource");
+	t.is(await clonedResource1.getSize(), 5, "size after cloning the resource");
 
 
 	// buffer with alloc
@@ -174,26 +174,34 @@ test("Resource: size modification", async (t) => {
 	buf.write("some string", 0, "utf8");
 	resource.setBuffer(buf);
 
-	t.is(resource.getStatInfo().size, 1234, "buffer with alloc after setting the buffer");
-	t.is(new Resource({
+	t.is(await resource.getSize(), 1234, "buffer with alloc after setting the buffer");
+	t.is(await new Resource({
 		path: "my/path/to/resource",
 		buffer: buf
-	}).getStatInfo().size, 1234, "buffer with alloc when passing buffer to constructor");
+	}).getSize(), 1234, "buffer with alloc when passing buffer to constructor");
 
 	const clonedResource2 = await resource.clone();
-	t.is(clonedResource2.getStatInfo().size, 1234, "buffer with alloc atfer clone");
-});
+	t.is(await clonedResource2.getSize(), 1234, "buffer with alloc after clone");
 
-test("Resource: _setSize", (t) => {
-	t.plan(1);
-
-	const resource = new Resource({
-		path: "my/path/to/resource"
+	// stream
+	const streamResource = new Resource({
+		path: "my/path/to/resource",
 	});
+	const stream = new Stream.Readable();
+	stream._read = function() {};
+	stream.push("I am a ");
+	stream.push("readable ");
+	stream.push("stream!");
+	stream.push(null);
 
-	resource._setSize(1337);
+	streamResource.setStream(stream);
 
-	t.is(resource.getStatInfo().size, 1337);
+	// stream is read and stored in buffer
+	// test parallel size retrieval
+	const [size1, size2] = await Promise.all([streamResource.getSize(), streamResource.getSize()]);
+	t.is(size1, 23, "size for streamResource, parallel 1");
+	t.is(size2, 23, "size for streamResource, parallel 2");
+	t.is(await streamResource.getSize(), 23, "size for streamResource read again");
 });
 
 test("Resource: setStream", (t) => {
@@ -333,12 +341,12 @@ test("integration stat - resource size", async (t) => {
 			return fs.createReadStream(fsPath);
 		}
 	});
-	t.is(resource.getStatInfo().size, 91);
+	t.is(await resource.getSize(), 91);
 
 	// Setting the same content again should end up with the same size
 	resource.setString(await resource.getString());
-	t.is(resource.getStatInfo().size, 91);
+	t.is(await resource.getSize(), 91);
 
 	resource.setString("myvalue");
-	t.is(resource.getStatInfo().size, 7);
+	t.is(await resource.getSize(), 7);
 });

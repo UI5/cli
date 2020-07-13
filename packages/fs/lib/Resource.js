@@ -120,7 +120,6 @@ class Resource {
 		this._buffer = buffer;
 		this._contentDrained = false;
 		this._streamDrained = false;
-		this._setSize(this._buffer.byteLength);
 	}
 
 	/**
@@ -212,17 +211,6 @@ class Resource {
 	}
 
 	/**
-	 * Set the size in bytes
-	 *
-	 * @param {number} size byte size
-	 * @private
-	 * @see https://nodejs.org/api/fs.html#fs_stats_size
-	 */
-	_setSize(size) {
-		this._statInfo.size = size;
-	}
-
-	/**
 	 * Gets the resources path
 	 *
 	 * @public
@@ -252,6 +240,21 @@ class Resource {
 	 */
 	getStatInfo() {
 		return this._statInfo;
+	}
+
+	/**
+	 * Size in bytes allocated by the underlying buffer.
+	 *
+	 * @see {TypedArray#byteLength}
+	 * @returns {Promise<number>} size in bytes, <code>0</code> if there is no content yet
+	 */
+	async getSize() {
+		// if resource does not have any content it should have 0 bytes
+		if (!this._buffer && !this._createStream && !this._stream) {
+			return 0;
+		}
+		const buffer = await this.getBuffer();
+		return buffer.byteLength;
 	}
 
 	_getNameFromPath(virPath) {
