@@ -50,6 +50,11 @@ serve.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("serve-csp-reports", {
+			describe: "Collects and serves CSP reports upon request to '/.ui5/csp/csp-reports.json'",
+			default: false,
+			type: "boolean"
+		})
 		.option("framework-version", {
 			describe: "Overrides the framework version defined by the project",
 			type: "string"
@@ -108,7 +113,8 @@ serve.handler = async function(argv) {
 		acceptRemoteConnections: !!argv.acceptRemoteConnections,
 		cert: argv.h2 ? argv.cert : undefined,
 		key: argv.h2 ? argv.key : undefined,
-		sendSAPTargetCSP: !!argv.sapCspPolicies
+		sendSAPTargetCSP: !!argv.sapCspPolicies,
+		serveCSPReports: !!argv.serveCspReports
 	};
 
 	if (serverConfig.h2) {

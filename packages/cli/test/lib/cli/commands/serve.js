@@ -61,7 +61,8 @@ test.serial("ui5 serve: default", async (t) => {
 		port: 8080,
 		cert: undefined,
 		key: undefined,
-		sendSAPTargetCSP: false
+		sendSAPTargetCSP: false,
+		serveCSPReports: false
 	}, "Starting server with specific server config");
 });
 
@@ -98,7 +99,8 @@ test.serial("ui5 serve --h2", async (t) => {
 		port: 8443,
 		key: "randombyte-likes-ponies-key",
 		cert: "randombyte-likes-ponies-cert",
-		sendSAPTargetCSP: false
+		sendSAPTargetCSP: false,
+		serveCSPReports: false
 	}, "Starting server with specific server config");
 });
 
@@ -170,7 +172,8 @@ test.serial("ui5 serve --key --cert", async (t) => {
 		port: 8443,
 		key: "ponies-loaded-from-custompath-key",
 		cert: "ponies-loaded-from-custompath-crt",
-		sendSAPTargetCSP: false
+		sendSAPTargetCSP: false,
+		serveCSPReports: false
 	}, "Starting server with specific server config");
 });
 
@@ -215,7 +218,8 @@ test.serial("ui5 serve --sap-csp-policies", async (t) => {
 		port: 8080,
 		cert: undefined,
 		key: undefined,
-		sendSAPTargetCSP: true
+		sendSAPTargetCSP: true,
+		serveCSPReports: false
 	}, "Starting server with specific server config");
 });
 
@@ -342,4 +346,23 @@ test.serial("ui5 serve: --framework-version", async (t) => {
 			versionOverride: "1.2.3"
 		}
 	}]);
+});
+
+test.serial("ui5 serve --serve-csp-reports", async (t) => {
+	normalizerStub.resolves(projectTree);
+	serverStub.resolves({h2: false, port: 8080});
+
+	// loads project tree
+	const pPrepareServerConfig = await serve.handler(
+		Object.assign({}, defaultInitialHandlerArgs, {serveCspReports: true})
+	);
+	// preprocess project config, skipping cert load
+	const pServeServer = await pPrepareServerConfig;
+	// serve server using config
+	await pServeServer;
+
+	const injectedServerConfig = serverStub.getCall(0).args[1];
+
+	t.is(normalizerStub.called, true);
+	t.deepEqual(injectedServerConfig.serveCSPReports, true, "serveCSPReports value set");
 });
