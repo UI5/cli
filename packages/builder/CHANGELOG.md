@@ -2,10 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.5...HEAD).
+
+<a name="v2.0.5"></a>
+## [v2.0.5] - 2020-07-14
+### Bug Fixes
+- **Node.js API:** TypeScript type definition support ([#475](https://github.com/SAP/ui5-builder/issues/475)) [`7858810`](https://github.com/SAP/ui5-builder/commit/785881061fe72e25230573ffb6b2a440d6782792)
+- **XMLTemplateAnalyzer:** Handle empty XML view/fragment ([#471](https://github.com/SAP/ui5-builder/issues/471)) [`7488d5f`](https://github.com/SAP/ui5-builder/commit/7488d5f2c9216ac87e47ac7019fbc18674e86e30)
+
 
 <a name="v2.0.4"></a>
-## [v2.0.4] - 2020-06-09
+## [v2.0.4] - 2020-06-15
 ### Bug Fixes
 - **ComponentAnalyzer:** Properly handle sap.ui5/routing ([#463](https://github.com/SAP/ui5-builder/issues/463)) [`717f2ec`](https://github.com/SAP/ui5-builder/commit/717f2ec8e6b04e67966183d25cc0ae59db94f43b)
 
@@ -381,6 +388,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.0.5]: https://github.com/SAP/ui5-builder/compare/v2.0.4...v2.0.5
 [v2.0.4]: https://github.com/SAP/ui5-builder/compare/v2.0.3...v2.0.4
 [v2.0.3]: https://github.com/SAP/ui5-builder/compare/v2.0.2...v2.0.3
 [v2.0.2]: https://github.com/SAP/ui5-builder/compare/v2.0.1...v2.0.2
