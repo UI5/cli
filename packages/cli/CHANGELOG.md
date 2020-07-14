@@ -2,7 +2,21 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v2.2.6...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v2.3.0...HEAD).
+
+<a name="v2.3.0"></a>
+## [v2.3.0] - 2020-07-14
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 2.1.4 to 2.1.5 [`0740fd1`](https://github.com/SAP/ui5-cli/commit/0740fd19d8530478820d5638db4e5eb0170b9ac1)
+- Bump [@ui5](https://github.com/ui5)/server from 2.2.0 to 2.2.1 [`139b59a`](https://github.com/SAP/ui5-cli/commit/139b59a3237bf66e8a851fbcf51d6a20b48dcc10)
+- Bump [@ui5](https://github.com/ui5)/builder from 2.0.4 to 2.0.5 [`4c28263`](https://github.com/SAP/ui5-cli/commit/4c2826320ff8ac9af34fa417121f2cdcacb042aa)
+- Bump [@ui5](https://github.com/ui5)/server from 2.1.0 to 2.2.0 [`b5bf1cb`](https://github.com/SAP/ui5-cli/commit/b5bf1cb8e73dc563ffb42397cfa679b5d97202ee)
+- Bump [@ui5](https://github.com/ui5)/server from 2.0.3 to 2.1.0 [`bd26b2b`](https://github.com/SAP/ui5-cli/commit/bd26b2bb5ed2824a1d0be1c8a18ffa17f4e4af22)
+- Bump [@ui5](https://github.com/ui5)/builder from 2.0.3 to 2.0.4 [`a20233e`](https://github.com/SAP/ui5-cli/commit/a20233ea8f88bf41b09990c53a3911c558e62dfa)
+
+### Features
+- **ui5 serve:** Add serve-csp-reports option ([#339](https://github.com/SAP/ui5-cli/issues/339)) [`063e7a5`](https://github.com/SAP/ui5-cli/commit/063e7a512d474353e2d86dd77453b10935b4bc05)
+
 
 <a name="v2.2.6"></a>
 ## [v2.2.6] - 2020-05-29
@@ -414,6 +428,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.3.0]: https://github.com/SAP/ui5-cli/compare/v2.2.6...v2.3.0
 [v2.2.6]: https://github.com/SAP/ui5-cli/compare/v2.2.5...v2.2.6
 [v2.2.5]: https://github.com/SAP/ui5-cli/compare/v2.2.4...v2.2.5
 [v2.2.4]: https://github.com/SAP/ui5-cli/compare/v2.2.3...v2.2.4
