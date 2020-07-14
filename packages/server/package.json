@@ -121,7 +121,7 @@
 		"yesno": "^0.3.1"
 	},
 	"devDependencies": {
-		"@ui5/project": "^2.1.4",
+		"@ui5/project": "^2.1.5",
 		"ava": "^3.10.1",
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
