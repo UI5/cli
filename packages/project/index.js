@@ -2,8 +2,14 @@
  * @module module:@ui5/project
  * @public
  */
-const modules = {
+module.exports = {
+	/**
+	 * @type {import('./lib/normalizer')}
+	 */
 	normalizer: "./lib/normalizer",
+	/**
+	 * @type {import('./lib/projectPreprocessor')}
+	 */
 	projectPreprocessor: "./lib/projectPreprocessor",
 	/**
 	 * @public
@@ -11,7 +17,13 @@ const modules = {
 	 * @namespace
 	 */
 	ui5Framework: {
+		/**
+		 * @type {typeof import('./lib/ui5Framework/Openui5Resolver')}
+		 */
 		Openui5Resolver: "./lib/ui5Framework/Openui5Resolver",
+		/**
+		 * @type {typeof import('./lib/ui5Framework/Sapui5Resolver')}
+		 */
 		Sapui5Resolver: "./lib/ui5Framework/Sapui5Resolver"
 	},
 	/**
@@ -20,7 +32,13 @@ const modules = {
 	 * @namespace
 	 */
 	validation: {
+		/**
+		 * @type {import('./lib/validation/validator')}
+		 */
 		validator: "./lib/validation/validator",
+		/**
+		 * @type {typeof import('./lib/validation/ValidationError')}
+		 */
 		ValidationError: "./lib/validation/ValidationError"
 	},
 	/**
@@ -29,7 +47,13 @@ const modules = {
 	 * @namespace
 	 */
 	translators: {
+		/**
+		 * @type {import('./lib/translators/npm')}
+		 */
 		npm: "./lib/translators/npm",
+		/**
+		 * @type {import('./lib/translators/static')}
+		 */
 		static: "./lib/translators/static"
 	}
 };
@@ -49,4 +73,4 @@ function exportModules(exportRoot, modulePaths) {
 	}
 }
 
-exportModules(module.exports, modules);
+exportModules(module.exports, JSON.parse(JSON.stringify(module.exports)));
