@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.1...HEAD).
+
+<a name="v2.2.1"></a>
+## [v2.2.1] - 2020-07-14
+### Bug Fixes
+- **MiddlewareManager:** Provide MiddlewareUtil to custom middleware using specVersion 2.1 [`3e249fa`](https://github.com/SAP/ui5-server/commit/3e249fa4333fb6afa0e512201959bfcbcee196d0)
+- **Node.js API:** TypeScript type definition support ([#334](https://github.com/SAP/ui5-server/issues/334)) [`b66f9cc`](https://github.com/SAP/ui5-server/commit/b66f9cc10b35b2997f5e9b3840ef92dd504c8a33)
+
 
 <a name="v2.2.0"></a>
 ## [v2.2.0] - 2020-07-01
@@ -184,6 +191,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.2.1]: https://github.com/SAP/ui5-server/compare/v2.2.0...v2.2.1
 [v2.2.0]: https://github.com/SAP/ui5-server/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/SAP/ui5-server/compare/v2.0.3...v2.1.0
 [v2.0.3]: https://github.com/SAP/ui5-server/compare/v2.0.2...v2.0.3
