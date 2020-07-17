@@ -1,3 +1,5 @@
+const ProjectBuildContext = require("./ProjectBuildContext");
+
 /**
  * Context of a build process
  *
@@ -6,8 +8,11 @@
  */
 class BuildContext {
 	constructor({rootProject}) {
-		this.projectBuildContexts = [];
+		if (!rootProject) {
+			throw new Error(`Missing parameter 'rootProject'`);
+		}
 		this.rootProject = rootProject;
+		this.projectBuildContexts = [];
 	}
 
 	getRootProject() {
@@ -27,39 +32,6 @@ class BuildContext {
 	async executeCleanupTasks() {
 		await Promise.all(this.projectBuildContexts.map((ctx) => {
 			return ctx.executeCleanupTasks();
-		}));
-	}
-}
-
-
-/**
- * Build context of a single project. Always part of an overall
- * [Build Context]{@link module:@ui5/builder.builder.BuildContext}
- *
- * @private
- * @memberof module:@ui5/builder.builder
- */
-class ProjectBuildContext {
-	constructor({buildContext, project, resources}) {
-		this._buildContext = buildContext;
-		this._project = project;
-		// this.resources = resources;
-		this.queues = {
-			cleanup: []
-		};
-	}
-
-	isRootProject() {
-		return this._project === this._buildContext.getRootProject();
-	}
-
-	registerCleanupTask(callback) {
-		this.queues.cleanup.push(callback);
-	}
-
-	async executeCleanupTasks() {
-		await Promise.all(this.queues.cleanup.map((callback) => {
-			return callback();
 		}));
 	}
 }
