@@ -1,8 +1,10 @@
 const test = require("ava");
 const sinon = require("sinon");
+const mock = require("mock-require");
 
 test.afterEach.always((t) => {
 	sinon.restore();
+	mock.stopAll();
 });
 
 const ProjectBuildContext = require("../../../lib/builder/ProjectBuildContext");
@@ -54,7 +56,6 @@ test("registerCleanupTask", (t) => {
 	t.is(projectBuildContext.queues.cleanup[1], "my task 2", "Cleanup task registered");
 });
 
-
 test("executeCleanupTasks", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
@@ -72,4 +73,44 @@ test("executeCleanupTasks", (t) => {
 
 	t.is(task1.callCount, 1, "Cleanup task 1 got called");
 	t.is(task2.callCount, 1, "my task 2", "Cleanup task 2 got called");
+});
+
+test("TAGS constant", (t) => {
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getRootProject: () => "root project"
+		},
+		project: "no root project",
+		resources: "resources"
+	});
+
+	t.deepEqual(projectBuildContext.TAGS, {
+		HideFromBuildResult: "ui5:HideFromBuildResult"
+	}, "Exposes correct TAGS constant");
+});
+
+test.serial("getResourceTagCollection", (t) => {
+	class DummyResourceTagCollection {
+		constructor({allowedTags}) {
+			t.deepEqual(allowedTags, ["ui5:HideFromBuildResult"],
+				"Correct allowedTags parameter supplied");
+		}
+	}
+	mock("@ui5/fs", {
+		ResourceTagCollection: DummyResourceTagCollection
+	});
+
+	const ProjectBuildContext = mock.reRequire("../../../lib/builder/ProjectBuildContext");
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getRootProject: () => "root project"
+		},
+		project: "no root project",
+		resources: "resources"
+	});
+
+	const collection = projectBuildContext.getResourceTagCollection();
+
+	t.true(collection instanceof DummyResourceTagCollection,
+		"Returned an instance of mocked DummyResourceTagCollection");
 });

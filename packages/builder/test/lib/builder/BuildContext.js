@@ -4,6 +4,7 @@ const mock = require("mock-require");
 
 test.afterEach.always((t) => {
 	sinon.restore();
+	mock.stopAll();
 });
 
 const BuildContext = require("../../../lib/builder/BuildContext");

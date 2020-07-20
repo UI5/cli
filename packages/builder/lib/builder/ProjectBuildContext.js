@@ -1,3 +1,9 @@
+const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
+
+const TAGS = Object.freeze({
+	HideFromBuildResult: "ui5:HideFromBuildResult"
+});
+
 /**
  * Build context of a single project. Always part of an overall
  * [Build Context]{@link module:@ui5/builder.builder.BuildContext}
@@ -16,6 +22,12 @@ class ProjectBuildContext {
 		this.queues = {
 			cleanup: []
 		};
+
+		this.TAGS = TAGS;
+
+		this._resourceTagCollection = new ResourceTagCollection({
+			allowedTags: Object.values(this.TAGS)
+		});
 	}
 
 	isRootProject() {
@@ -30,6 +42,10 @@ class ProjectBuildContext {
 		await Promise.all(this.queues.cleanup.map((callback) => {
 			return callback();
 		}));
+	}
+
+	getResourceTagCollection() {
+		return this._resourceTagCollection;
 	}
 }
 
