@@ -51,6 +51,10 @@ module.exports = {
 	 */
 	Resource: "./lib/Resource",
 	/**
+	 * @type {typeof import('./lib/ResourceTagCollection')}
+	 */
+	ResourceTagCollection: "./lib/ResourceTagCollection",
+	/**
 	 * @type {import('./lib/resourceFactory')}
 	 */
 	resourceFactory: "./lib/resourceFactory"
