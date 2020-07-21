@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.6...HEAD).
+
+<a name="v2.0.6"></a>
+## [v2.0.6] - 2020-07-21
+### Bug Fixes
+- **SmartTemplateAnalyzer:** Do not throw in case missing dependency is expected ([#479](https://github.com/SAP/ui5-builder/issues/479)) [`b2150c3`](https://github.com/SAP/ui5-builder/commit/b2150c303fb14cd07b1f1ecadd1db5117cc7dccf)
+
 
 <a name="v2.0.5"></a>
 ## [v2.0.5] - 2020-07-14
@@ -388,6 +394,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.0.6]: https://github.com/SAP/ui5-builder/compare/v2.0.5...v2.0.6
 [v2.0.5]: https://github.com/SAP/ui5-builder/compare/v2.0.4...v2.0.5
 [v2.0.4]: https://github.com/SAP/ui5-builder/compare/v2.0.3...v2.0.4
 [v2.0.3]: https://github.com/SAP/ui5-builder/compare/v2.0.2...v2.0.3
