@@ -60,6 +60,17 @@ test("resources", async (t) => {
 	t.deepEqual(resourcePool.resources, [resourceA], "resource a in pool");
 });
 
+test("getIgnoreMissingModules", async (t) => {
+	let resourcePool = new ResourcePool({});
+	t.deepEqual(resourcePool.getIgnoreMissingModules(), false, "returned expected value");
+
+	resourcePool = new ResourcePool({
+		ignoreMissingModules: true
+	});
+	t.deepEqual(resourcePool.getIgnoreMissingModules(), true, "returned expected value");
+});
+
+
 class ResourcePoolWithRejectingModuleInfo extends ResourcePool {
 	async getModuleInfo(name) {
 		throw new Error("myerror");

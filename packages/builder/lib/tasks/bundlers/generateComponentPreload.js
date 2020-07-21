@@ -80,6 +80,10 @@ module.exports = function({workspace, dependencies, options}) {
 									renderer: false
 								}
 							]
+						},
+						bundleOptions: {
+							ignoreMissingModules: true,
+							optimize: true
 						}
 					}
 				});

@@ -23,8 +23,8 @@ class LocatorResource extends Resource {
 }
 
 class LocatorResourcePool extends ResourcePool {
-	constructor() {
-		super();
+	constructor({ignoreMissingModules}) {
+		super({ignoreMissingModules});
 	}
 
 	prepare(resources) {
@@ -108,20 +108,25 @@ class LocatorResourcePool extends ResourcePool {
  * @param {ModuleBundleDefinitionSection[]} parameters.options.bundleDefinition.sections List of module bundle definition sections.
  * @param {object} parameters.options.bundleOptions Module bundle options
  * @param {boolean} [parameters.options.bundleOptions.optimize=false] If set to 'true' the module bundle gets minified
- * @param {boolean} [parameters.options.bundleOptions.decorateBootstrapModule=true] If set to 'false', the module won't be decorated with an optimization marker
+ * @param {boolean} [parameters.options.bundleOptions.decorateBootstrapModule=false] If set to 'false', the module won't be decorated with an optimization marker
  * @param {boolean} [parameters.options.bundleOptions.addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with a try/catch to filter out "Restart" errors
  * @param {boolean} [parameters.options.bundleOptions.usePredefineCalls=false] If set to 'true', sap.ui.predefine is used for UI5 modules
  * @param {number} [parameters.options.bundleOptions.numberOfParts=1] The number of parts the module bundle should be splitted
+ * @param {number} [parameters.options.bundleOptions.ignoreMissingModules] When searching for modules which are optional for further processing, do not throw in case they are missing
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with module bundle resources
  */
 module.exports = function({resources, options}) {
 //	console.log("preloadBundler bundleDefinition:");
 //	console.log(JSON.stringify(options.bundleDefinition, null, 4));
 
-	const pool = new LocatorResourcePool();
+	// TODO 3.0: Fix defaulting behavior, align with JSDoc
+	const bundleOptions = options.bundleOptions || {optimize: true};
+
+	const pool = new LocatorResourcePool({
+		ignoreMissingModules: bundleOptions.ignoreMissingModules
+	});
 	const builder = new BundleBuilder(pool);
 
-	const bundleOptions = options.bundleOptions || {optimize: true};
 
 	return pool.prepare( resources ).
 		then( () => builder.createBundle(options.bundleDefinition, bundleOptions) ).

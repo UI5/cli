@@ -201,6 +201,9 @@ test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", a
 			return {
 				buffer: async () => ""
 			};
+		},
+		getIgnoreMissingModules() {
+			return false;
 		}
 	};
 
@@ -235,6 +238,9 @@ test.serial("_analyzeTemplateComponent: no default template name", async (t) => 
 			return {
 				buffer: async () => ""
 			};
+		},
+		getIgnoreMissingModules() {
+			return false;
 		}
 	};
 
@@ -264,6 +270,9 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 			return {
 				buffer: async () => ""
 			};
+		},
+		getIgnoreMissingModules() {
+			return false;
 		}
 	};
 
@@ -285,6 +294,78 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
 	t.deepEqual(stubAddDependency.getCall(0).args[0], "donkey.view.xml",
 		"addDependency should be called with the dependency name");
+	stubAnalyzeAST.restore();
+	stubParse.restore();
+});
+
+test.serial("_analyzeTemplateComponent: dependency not found", async (t) => {
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const mockPool = {
+		async findResource() {
+			throw new Error(`resource not found in pool: 'pony'`);
+		},
+		getIgnoreMissingModules() {
+			return false;
+		}
+	};
+
+	const analyzer = new SmartTemplateAnalyzer(mockPool);
+
+	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
+	const stubParse = sinon.stub(esprima, "parse").returns("");
+
+	const error = await t.throwsAsync(analyzer._analyzeTemplateComponent("pony", {
+		component: {
+			settings: {
+				templateName: "donkey"
+			}
+		}
+	}, moduleInfo));
+
+	t.deepEqual(error.message, `resource not found in pool: 'pony'`);
+
+	t.is(stubAnalyzeAST.callCount, 0, "_analyzeManifest was not called");
+
+	t.is(stubAddDependency.callCount, 0, "addDependency was not called");
+	stubAnalyzeAST.restore();
+	stubParse.restore();
+});
+
+test.serial("_analyzeTemplateComponent: dependency not found is ignored", async (t) => {
+	const moduleInfo = {
+		addDependency: function() {}
+	};
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
+
+	const mockPool = {
+		async findResource() {
+			throw new Error(`resource not found in pool: 'pony'`);
+		},
+		getIgnoreMissingModules() {
+			return true; // Missing dependency error can be ignored
+		}
+	};
+
+	const analyzer = new SmartTemplateAnalyzer(mockPool);
+
+	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
+	const stubParse = sinon.stub(esprima, "parse").returns("");
+
+	await analyzer._analyzeTemplateComponent("pony", {
+		component: {
+			settings: {
+				templateName: "donkey"
+			}
+		}
+	}, moduleInfo);
+
+	t.is(stubAnalyzeAST.callCount, 0, "_analyzeManifest was not called");
+
+	t.is(stubAddDependency.callCount, 0, "addDependency was not called");
 	stubAnalyzeAST.restore();
 	stubParse.restore();
 });

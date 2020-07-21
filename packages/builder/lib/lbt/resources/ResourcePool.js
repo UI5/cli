@@ -112,7 +112,8 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 }
 
 class ResourcePool {
-	constructor() {
+	constructor({ignoreMissingModules} = {}) {
+		this._ignoreMissingModules = !!ignoreMissingModules;
 		// this._roots = [];
 		this._resources = [];
 		this._resourcesByName = new Map();
@@ -175,6 +176,8 @@ class ResourcePool {
 	async findResource(name) {
 		const resource = this._resourcesByName.get(name);
 		if ( resource == null ) {
+			// TODO: Remove throw and return null to align with ui5-fs
+			//	This would require changes in most consuming classes
 			throw new Error("resource not found in pool: '" + name + "'");
 		}
 		return resource;
@@ -209,6 +212,10 @@ class ResourcePool {
 
 	get resources() {
 		return this._resources.slice();
+	}
+
+	getIgnoreMissingModules() {
+		return this._ignoreMissingModules;
 	}
 }
 
