@@ -47,6 +47,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			const generateFlexChangesBundle = getTask("generateFlexChangesBundle").task;
 			return generateFlexChangesBundle({
 				workspace: resourceCollections.workspace,
+				taskUtil,
 				options: {
 					namespace: project.metadata.namespace
 				}

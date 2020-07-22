@@ -17,7 +17,7 @@ const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler
  * @param {string} [parameters.options.namespace] Application Namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options: {namespace}}) {
+module.exports = async function({workspace, taskUtil, options: {namespace}}) {
 	// Use the given namespace if available, otherwise use no namespace
 	// (e.g. in case no manifest.json is present)
 	let pathPrefix = "";
@@ -63,34 +63,33 @@ module.exports = function({workspace, options: {namespace}}) {
 	}
 
 	log.verbose("Collecting flexibility changes");
-	return workspace.byGlob(`${pathPrefix}/changes/*.{change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`)
-		.then((allResources) => {
-			if (allResources.length > 0) {
-				return readManifestMinUI5Version().then((version) => {
-					let hasFlexBundleVersion = false;
-					if (parseFloat(version) >= 1.73) {
-						hasFlexBundleVersion = true;
-					}
-					return flexChangesBundler({
-						resources: allResources,
-						options: {
-							pathPrefix,
-							hasFlexBundleVersion
-						}
-					});
-				});
+	const allResources = await workspace.byGlob(
+		`${pathPrefix}/changes/*.{change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`);
+	if (allResources.length > 0) {
+		const version = await readManifestMinUI5Version();
+		let hasFlexBundleVersion = false;
+		if (parseFloat(version) >= 1.73) {
+			hasFlexBundleVersion = true;
+		}
+		const processedResources = await flexChangesBundler({
+			resources: allResources,
+			options: {
+				pathPrefix,
+				hasFlexBundleVersion
 			}
-			return [];
-		})
-		.then((processedResources) => {
-			return Promise.all(processedResources.map((resource) => {
-				log.verbose("Writing flexibility changes bundle");
-				return workspace.write(resource);
-			})).then(async () => {
-				// Add the sap.ui.fl dependency if a bundle has been created
-				if (processedResources.length > 0) {
-					await updateFLdependency();
-				}
-			});
 		});
+		await Promise.all(processedResources.map((resource) => {
+			log.verbose("Writing flexibility changes bundle");
+			return workspace.write(resource);
+		}));
+		// Add the sap.ui.fl dependency if a bundle has been created
+		if (processedResources.length > 0) {
+			await updateFLdependency();
+		}
+
+		// Do not write bundled source files to build result
+		allResources.forEach((resource) => {
+			taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HideFromBuildResult);
+		});
+	}
 };
