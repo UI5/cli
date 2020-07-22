@@ -77,6 +77,7 @@ async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, des
 
 test.afterEach.always((t) => {
 	sinon.restore();
+	mock.stopAll();
 });
 
 test("Build application.a", (t) => {
@@ -516,8 +517,7 @@ test("Build theme.j even without an library", (t) => {
 
 test.serial("Cleanup", async (t) => {
 	const BuildContext = require("../../../lib/builder/BuildContext");
-	const projectContext = {isRootProject: sinon.stub()};
-	const createProjectContextStub = sinon.stub(BuildContext.prototype, "createProjectContext").returns(projectContext);
+	const createProjectContextStub = sinon.spy(BuildContext.prototype, "createProjectContext");
 	const executeCleanupTasksStub = sinon.stub(BuildContext.prototype, "executeCleanupTasks").resolves();
 	const applicationType = require("../../../lib/types/application/applicationType");
 	const appBuildStub = sinon.stub(applicationType, "build").resolves();

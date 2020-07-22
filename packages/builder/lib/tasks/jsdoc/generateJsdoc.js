@@ -32,7 +32,7 @@ const {resourceFactory} = require("@ui5/fs");
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 const generateJsdoc = async function({
-	buildContext,
+	taskUtil,
 	workspace,
 	dependencies,
 	options = {}
@@ -46,7 +46,7 @@ const generateJsdoc = async function({
 	const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
 		await generateJsdoc._createTmpDirs(projectName);
 
-	buildContext.registerCleanupTask(cleanup);
+	taskUtil.registerCleanupTask(cleanup);
 
 	const [writtenResourcesCount] = await Promise.all([
 		generateJsdoc._writeResourcesToDir({

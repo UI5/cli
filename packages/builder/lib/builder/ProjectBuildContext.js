@@ -1,6 +1,6 @@
 const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 
-const TAGS = Object.freeze({
+const STANDARD_TAGS = Object.freeze({
 	HideFromBuildResult: "ui5:HideFromBuildResult"
 });
 
@@ -23,10 +23,10 @@ class ProjectBuildContext {
 			cleanup: []
 		};
 
-		this.TAGS = TAGS;
+		this.STANDARD_TAGS = STANDARD_TAGS;
 
 		this._resourceTagCollection = new ResourceTagCollection({
-			allowedTags: Object.values(this.TAGS)
+			allowedTags: Object.values(this.STANDARD_TAGS)
 		});
 	}
 

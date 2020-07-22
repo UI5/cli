@@ -75,7 +75,7 @@ test("executeCleanupTasks", (t) => {
 	t.is(task2.callCount, 1, "my task 2", "Cleanup task 2 got called");
 });
 
-test("TAGS constant", (t) => {
+test("STANDARD_TAGS constant", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
 			getRootProject: () => "root project"
@@ -84,9 +84,9 @@ test("TAGS constant", (t) => {
 		resources: "resources"
 	});
 
-	t.deepEqual(projectBuildContext.TAGS, {
+	t.deepEqual(projectBuildContext.STANDARD_TAGS, {
 		HideFromBuildResult: "ui5:HideFromBuildResult"
-	}, "Exposes correct TAGS constant");
+	}, "Exposes correct STANDARD_TAGS constant");
 });
 
 test.serial("getResourceTagCollection", (t) => {

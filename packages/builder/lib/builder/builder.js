@@ -332,6 +332,11 @@ module.exports = {
 					}
 				});
 
+				const TaskUtil = require("../tasks/TaskUtil");
+				const taskUtil = new TaskUtil({
+					projectBuildContext: projectContext
+				});
+
 				if (dev && devExcludeProject.indexOf(project.metadata.name) !== -1) {
 					projectTasks = composeTaskList({dev: false, selfContained, includedTasks, excludedTasks});
 				}
@@ -344,13 +349,19 @@ module.exports = {
 					tasks: projectTasks,
 					project,
 					parentLogger: log,
-					buildContext: projectContext
+					taskUtil
 				}).then(() => {
 					log.verbose("Finished building project %s. Writing out files...", project.metadata.name);
 					buildLogger.completeWork(1);
 
 					return workspace.byGlob("/**/*.*").then((resources) => {
+						const tagCollection = projectContext.getResourceTagCollection();
 						return Promise.all(resources.map((resource) => {
+							if (tagCollection.getTag(resource, projectContext.STANDARD_TAGS.HideFromBuildResult)) {
+								log.verbose(`Skipping write of resource tagged as "HideFromBuildResult": ` +
+									resource.getPath());
+								return; // Skip target write for this resource
+							}
 							if (projectContext.isRootProject() && project.type === "application" && project.metadata.namespace) {
 								// Root-application projects only: Remove namespace prefix if given
 								resource.setPath(resource.getPath().replace(

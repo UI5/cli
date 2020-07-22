@@ -151,7 +151,11 @@ module.exports = {
 		/**
 		 * @type {import('./lib/tasks/taskRepository')}
 		 */
-		taskRepository: "./lib/tasks/taskRepository"
+		taskRepository: "./lib/tasks/taskRepository",
+		/**
+		 * @type {import('./lib/tasks/TaskUtil')}
+		 */
+		TaskUtil: "./lib/tasks/TaskUtil"
 	},
 	/**
 	 * @private

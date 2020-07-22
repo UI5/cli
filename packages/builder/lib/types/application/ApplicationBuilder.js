@@ -2,7 +2,7 @@ const AbstractBuilder = require("../AbstractBuilder");
 const {getTask} = require("../../tasks/taskRepository");
 
 class ApplicationBuilder extends AbstractBuilder {
-	addStandardTasks({resourceCollections, project, log}) {
+	addStandardTasks({resourceCollections, project, log, taskUtil}) {
 		if (!project.metadata.namespace) {
 			// TODO 3.0: Throw here
 			log.info("Skipping some tasks due to missing application namespace information. If your project contains " +

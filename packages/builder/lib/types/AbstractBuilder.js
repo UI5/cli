@@ -23,7 +23,7 @@ class AbstractBuilder {
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
 	 * @param {object} parameters.buildContext
 	 */
-	constructor({resourceCollections, project, parentLogger, buildContext}) {
+	constructor({resourceCollections, project, parentLogger, taskUtil}) {
 		if (new.target === AbstractBuilder) {
 			throw new TypeError("Class 'AbstractBuilder' is abstract");
 		}
@@ -35,8 +35,17 @@ class AbstractBuilder {
 
 		this.tasks = {};
 		this.taskExecutionOrder = [];
-		this.addStandardTasks({resourceCollections, project, log: this.log, buildContext});
-		this.addCustomTasks({resourceCollections, project, buildContext});
+		this.addStandardTasks({
+			resourceCollections,
+			project,
+			log: this.log,
+			taskUtil
+		});
+		this.addCustomTasks({
+			resourceCollections,
+			project,
+			taskUtil
+		});
 	}
 
 	/**
@@ -50,7 +59,7 @@ class AbstractBuilder {
 	 * @param {object} parameters.project Project configuration
 	 * @param {object} parameters.log <code>@ui5/logger</code> logger instance
 	 */
-	addStandardTasks({resourceCollections, project, log, buildContext}) {
+	addStandardTasks({resourceCollections, project, log, taskUtil}) {
 		throw new Error("Function 'addStandardTasks' is not implemented");
 	}
 
@@ -63,7 +72,7 @@ class AbstractBuilder {
 	 * @param {object} parameters.buildContext
 	 * @param {object} parameters.project Project configuration
 	 */
-	addCustomTasks({resourceCollections, project, buildContext}) {
+	addCustomTasks({resourceCollections, project, taskUtil}) {
 		const projectCustomTasks = project.builder && project.builder.customTasks;
 		if (!projectCustomTasks || projectCustomTasks.length === 0) {
 			return; // No custom tasks defined
@@ -96,13 +105,15 @@ class AbstractBuilder {
 				}
 			}
 			// Create custom task if not already done (task might be referenced multiple times, first one wins)
-			const {task} = taskRepository.getTask(taskDef.name);
+			const {/* specVersion, */ task} = taskRepository.getTask(taskDef.name);
 			const execTask = function() {
 				/* Custom Task Interface
 					Parameters:
 						{Object} parameters Parameters
 						{module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
 						{module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+						{Object} taskUtil Specification Version dependent interface to a
+							[TaskUtil]{@link module:@ui5/builder.tasks.TaskUtil} instance
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name
 						{string} [parameters.options.projectNamespace] Project namespace if available
@@ -110,7 +121,7 @@ class AbstractBuilder {
 					Returns:
 						{Promise<undefined>} Promise resolving with undefined once data has been written
 				*/
-				return task({
+				const params = {
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -118,7 +129,12 @@ class AbstractBuilder {
 						projectNamespace: project.metadata.namespace,
 						configuration: taskDef.configuration
 					}
-				});
+				};
+				// TODO: Decide whether custom tasks should already get access to TaskUtil
+				// if (specVersion === "2.2") {
+				// 	params.taskUtil = taskUtil.getInterface(specVersion);
+				// }
+				return task(params);
 			};
 
 			this.tasks[newTaskName] = execTask;

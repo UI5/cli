@@ -224,11 +224,11 @@ test.serial("generateJsdoc", async (t) => {
 	};
 
 	const registerCleanupTaskStub = sinon.stub();
-	const buildContext = {
+	const taskUtil = {
 		registerCleanupTask: registerCleanupTaskStub
 	};
 	await generateJsdoc({
-		buildContext,
+		taskUtil,
 		workspace,
 		dependencies: "dependencies",
 		options: {
@@ -306,11 +306,11 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 		write: writeStub
 	};
 	const registerCleanupTaskStub = sinon.stub();
-	const buildContext = {
+	const taskUtil = {
 		registerCleanupTask: registerCleanupTaskStub
 	};
 	await generateJsdoc({
-		buildContext,
+		taskUtil,
 		workspace,
 		dependencies: "dependencies",
 		options: {

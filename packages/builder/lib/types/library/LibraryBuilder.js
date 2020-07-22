@@ -2,7 +2,7 @@ const AbstractBuilder = require("../AbstractBuilder");
 const {getTask} = require("../../tasks/taskRepository");
 
 class LibraryBuilder extends AbstractBuilder {
-	addStandardTasks({resourceCollections, project, log, buildContext}) {
+	addStandardTasks({resourceCollections, project, log, taskUtil}) {
 		if (!project.metadata.namespace) {
 			// TODO 3.0: Throw here
 			log.info("Skipping some tasks due to missing library namespace information. Your project " +
@@ -56,7 +56,7 @@ class LibraryBuilder extends AbstractBuilder {
 				}
 
 				return getTask("generateJsdoc").task({
-					buildContext,
+					taskUtil,
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
 					options: {
@@ -153,8 +153,8 @@ class LibraryBuilder extends AbstractBuilder {
 				dependencies: resourceCollections.dependencies,
 				options: {
 					projectName: project.metadata.name,
-					librariesPattern: !buildContext.isRootProject() ? "/resources/**/*.library" : undefined,
-					themesPattern: !buildContext.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
+					librariesPattern: !taskUtil.isRootProject() ? "/resources/**/*.library" : undefined,
+					themesPattern: !taskUtil.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
 					inputPattern: "/resources/**/themes/*/library.source.less"
 				}
 			});
