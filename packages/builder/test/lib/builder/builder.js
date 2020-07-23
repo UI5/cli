@@ -80,6 +80,89 @@ test.afterEach.always((t) => {
 	mock.stopAll();
 });
 
+test.serial("Build", async (t) => {
+	class DummyBuildContext {
+		constructor({rootProject}) {
+			t.deepEqual(rootProject, applicationATree, "Correct rootProject parameter");
+		}
+	}
+	const getTagStub = sinon.stub().returns();
+	const getResourceTagCollectionStub = sinon.stub().returns({
+		getTag: getTagStub
+	});
+	const isRootProjectStub = sinon.stub().returns(true);
+	const dummyProjectContext = {
+		getResourceTagCollection: getResourceTagCollectionStub,
+		isRootProject: isRootProjectStub,
+		STANDARD_TAGS: {
+			HideFromBuildResult: "👻"
+		}
+	};
+	const createProjectContextStub = sinon.stub().returns(dummyProjectContext);
+	const executeCleanupTasksStub = sinon.stub().resolves();
+	DummyBuildContext.prototype.createProjectContext = createProjectContextStub;
+	DummyBuildContext.prototype.executeCleanupTasks = executeCleanupTasksStub;
+	mock("../../../lib/builder/BuildContext", DummyBuildContext);
+
+	class DummyTaskUtil {
+		constructor({projectBuildContext}) {
+			t.is(projectBuildContext, dummyProjectContext, "Correct projectBuildContext parameter");
+		}
+	}
+	mock("../../../lib/tasks/TaskUtil", DummyTaskUtil);
+
+	const applicationType = require("../../../lib/types/application/applicationType");
+	const appBuildStub = sinon.stub(applicationType, "build").resolves();
+
+	const builder = mock.reRequire("../../../lib/builder/builder");
+
+	const destPath = "./test/tmp/build/build";
+	await builder.build({
+		tree: applicationATree,
+		destPath
+	});
+
+	t.is(createProjectContextStub.callCount, 1, "One project context got created");
+	const createProjectContextParams = createProjectContextStub.getCall(0).args[0];
+	t.is(createProjectContextParams.project, applicationATree, "Correct project provided to projectContext");
+	t.truthy(createProjectContextParams.resources.workspace, "resources.workspace object provided to projectContext");
+	t.truthy(createProjectContextParams.resources.dependencies,
+		"resources.dependencies object provided to projectContext");
+	t.deepEqual(Object.keys(createProjectContextParams), ["project", "resources"],
+		"resource and project parameters provided");
+
+	t.is(appBuildStub.callCount, 1, "Build called once");
+	const appBuildParams = appBuildStub.getCall(0).args[0];
+	t.is(Object.keys(appBuildParams).length, 5, "Five parameters provided to types build function");
+	t.is(appBuildParams.project, applicationATree, "Correct project provided to type");
+	t.truthy(appBuildParams.resourceCollections, "resourceCollections object provided to type");
+	t.truthy(appBuildParams.resourceCollections.workspace, "resources.workspace object provided to type");
+	t.truthy(appBuildParams.resourceCollections.dependencies, "resources.dependencies object provided to type");
+	t.deepEqual(appBuildParams.tasks, [
+		"replaceCopyright",
+		"replaceVersion",
+		"createDebugFiles",
+		"escapeNonAsciiCharacters",
+		"uglify",
+		"buildThemes",
+		"generateLibraryManifest",
+		"generateVersionInfo",
+		"generateFlexChangesBundle",
+		"generateComponentPreload",
+		"generateBundle",
+		"generateLibraryPreload"
+	], "Correct tasks provided to type");
+	t.truthy(appBuildParams.parentLogger, "parentLogger object provided to type");
+	t.true(appBuildParams.taskUtil instanceof DummyTaskUtil, "Correct taskUtil instance provided to type");
+
+	t.is(getResourceTagCollectionStub.callCount, 1, "getResourceTagCollection called once");
+	t.is(getTagStub.callCount, 2, "getTag called once");
+	t.deepEqual(getTagStub.getCall(0).args[1], "👻", "First getTag call with expected tag name");
+	t.deepEqual(getTagStub.getCall(1).args[1], "👻", "Second getTag call with expected tag name");
+	t.is(isRootProjectStub.callCount, 2, "isRootProject called once");
+	t.is(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
+});
+
 test("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
