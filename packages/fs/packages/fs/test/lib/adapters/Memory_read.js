@@ -1,6 +1,5 @@
 const test = require("ava");
 const {resourceFactory} = require("../../../");
-const MemoryAdapter = require("../../../lib/adapters/Memory");
 
 async function fillFromFs(readerWriter, {fsBasePath = "./test/fixtures/glob", virBasePath = "/app/"} = {}) {
 	const fsReader = resourceFactory.createAdapter({
@@ -606,60 +605,4 @@ test("static excludes: glob with negated directory exclude, not excluding resour
 	const resources = await srcReader.byGlob("/**/*", {nodir: false});
 
 	t.deepEqual(resources.length, 4, "Found two resources and two directories");
-});
-
-test("byPath returns new resource", async (t) => {
-	const originalResource = resourceFactory.createResource({
-		path: "/app/index.html",
-		string: "test"
-	});
-
-	const memoryAdapter = new MemoryAdapter({virBasePath: "/"});
-
-	await memoryAdapter.write(originalResource);
-
-	const returnedResource = await memoryAdapter.byPath("/app/index.html");
-
-	t.deepEqual(returnedResource, originalResource,
-		"Returned resource should be deep equal to original resource");
-	t.not(returnedResource, originalResource,
-		"Returned resource should not have same reference as original resource");
-
-	const anotherReturnedResource = await memoryAdapter.byPath("/app/index.html");
-
-	t.deepEqual(anotherReturnedResource, originalResource,
-		"Returned resource should be deep equal to original resource");
-	t.not(anotherReturnedResource, originalResource,
-		"Returned resource should not have same reference as original resource");
-
-	t.not(returnedResource, anotherReturnedResource,
-		"Both returned resources should not have same reference");
-});
-
-test("byGlob returns new resources", async (t) => {
-	const originalResource = resourceFactory.createResource({
-		path: "/app/index.html",
-		string: "test"
-	});
-
-	const memoryAdapter = new MemoryAdapter({virBasePath: "/"});
-
-	await memoryAdapter.write(originalResource);
-
-	const [returnedResource] = await memoryAdapter.byGlob("/**");
-
-	t.deepEqual(returnedResource, originalResource,
-		"Returned resource should be deep equal to the original resource");
-	t.not(returnedResource, originalResource,
-		"Returned resource should not have same reference as the original resource");
-
-	const [anotherReturnedResource] = await memoryAdapter.byGlob("/**");
-
-	t.deepEqual(anotherReturnedResource, originalResource,
-		"Another returned resource should be deep equal to the original resource");
-	t.not(anotherReturnedResource, originalResource,
-		"Another returned resource should not have same reference as the original resource");
-
-	t.not(returnedResource, anotherReturnedResource,
-		"Both returned resources should not have same reference");
 });
