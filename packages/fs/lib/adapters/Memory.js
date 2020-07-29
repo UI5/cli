@@ -26,24 +26,6 @@ class Memory extends AbstractAdapter {
 	}
 
 	/**
-	 * Matches and returns resources from a given map (either _virFiles or _virDirs).
-	 *
-	 * @private
-	 * @param {string[]} patterns
-	 * @param {object} resourceMap
-	 * @returns {Promise<module:@ui5/fs.Resource[]>}
-	 */
-	async _matchPatterns(patterns, resourceMap) {
-		const resourcePaths = Object.keys(resourceMap);
-		const matchedPaths = micromatch(resourcePaths, patterns, {
-			dot: true
-		});
-		return Promise.all(matchedPaths.map((virPath) => {
-			return resourceMap[virPath] && resourceMap[virPath].clone();
-		}));
-	}
-
-	/**
 	 * Locate resources by glob.
 	 *
 	 * @private
@@ -68,11 +50,22 @@ class Memory extends AbstractAdapter {
 			];
 		}
 
-		let matchedResources = await this._matchPatterns(patterns, this._virFiles);
+		const filePaths = Object.keys(this._virFiles);
+		const matchedFilePaths = micromatch(filePaths, patterns, {
+			dot: true
+		});
+		let matchedResources = matchedFilePaths.map((virPath) => {
+			return this._virFiles[virPath];
+		});
 
 		if (!options.nodir) {
-			const matchedDirs = await this._matchPatterns(patterns, this._virDirs);
-			matchedResources = matchedResources.concat(matchedDirs);
+			const dirPaths = Object.keys(this._virDirs);
+			const matchedDirs = micromatch(dirPaths, patterns, {
+				dot: true
+			});
+			matchedResources = matchedResources.concat(matchedDirs.map((virPath) => {
+				return this._virDirs[virPath];
+			}));
 		}
 
 		return matchedResources;
@@ -87,25 +80,28 @@ class Memory extends AbstractAdapter {
 	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
-	async _byPath(virPath, options, trace) {
+	_byPath(virPath, options, trace) {
 		if (this.isPathExcluded(virPath)) {
-			return null;
+			return Promise.resolve(null);
 		}
-		if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
-			// Neither starts with basePath, nor equals baseDirectory
-			return null;
-		}
+		return new Promise((resolve, reject) => {
+			if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
+				// Neither starts with basePath, nor equals baseDirectory
+				resolve(null);
+				return;
+			}
 
-		const relPath = virPath.substr(this._virBasePath.length);
-		trace.pathCall();
+			const relPath = virPath.substr(this._virBasePath.length);
+			trace.pathCall();
 
-		const resource = this._virFiles[relPath];
+			const resource = this._virFiles[relPath];
 
-		if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
-			return null;
-		} else {
-			return await resource.clone();
-		}
+			if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
+				resolve(null);
+			} else {
+				resolve(resource);
+			}
+		});
 	}
 
 	/**

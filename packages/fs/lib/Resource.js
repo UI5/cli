@@ -282,8 +282,7 @@ class Resource {
 	clone() {
 		const options = {
 			path: this._path,
-			statInfo: clone(this._statInfo),
-			project: this._project
+			statInfo: clone(this._statInfo)
 		};
 
 		const addContentOption = () => {
