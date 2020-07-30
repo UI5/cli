@@ -105,7 +105,7 @@ class AbstractBuilder {
 				}
 			}
 			// Create custom task if not already done (task might be referenced multiple times, first one wins)
-			const {/* specVersion, */ task} = taskRepository.getTask(taskDef.name);
+			const {specVersion, task} = taskRepository.getTask(taskDef.name);
 			const execTask = function() {
 				/* Custom Task Interface
 					Parameters:
@@ -130,10 +130,12 @@ class AbstractBuilder {
 						configuration: taskDef.configuration
 					}
 				};
-				// TODO: Decide whether custom tasks should already get access to TaskUtil
-				// if (specVersion === "2.2") {
-				// 	params.taskUtil = taskUtil.getInterface(specVersion);
-				// }
+
+				const taskUtilInterface = taskUtil.getInterface(specVersion);
+				// Interface is undefined if specVersion does not support taskUtil
+				if (taskUtilInterface) {
+					params.taskUtil = taskUtilInterface;
+				}
 				return task(params);
 			};
 

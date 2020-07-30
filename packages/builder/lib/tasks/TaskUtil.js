@@ -107,6 +107,10 @@ class TaskUtil {
 	 * @returns {object} An object with bound instance methods supported by the given specification version
 	 */
 	getInterface(specVersion) {
+		if (["0.1", "1.0", "1.1", "2.0", "2.1"].includes(specVersion)) {
+			return undefined;
+		}
+
 		const baseInterface = {
 			STANDARD_TAGS: this.STANDARD_TAGS,
 			setTag: this.setTag.bind(this),
@@ -116,12 +120,6 @@ class TaskUtil {
 			registerCleanupTask: this.registerCleanupTask.bind(this)
 		};
 		switch (specVersion) {
-		case "0.1":
-		case "1.0":
-		case "1.1":
-		case "2.0":
-		case "2.1":
-			return undefined;
 		case "2.2":
 			return baseInterface;
 		default:

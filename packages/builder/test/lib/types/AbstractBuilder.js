@@ -66,8 +66,8 @@ test("Instantiation of class with addStandardTasks not overwritten", (t) => {
 });
 
 class CustomBuilder extends AbstractBuilder {
-	constructor({project, resourceCollections}) {
-		super({parentLogger, project, resourceCollections});
+	constructor({project, resourceCollections, taskUtil}) {
+		super({parentLogger, project, resourceCollections, taskUtil});
 	}
 
 	addStandardTasks({resourceCollections, project}) {
@@ -263,15 +263,9 @@ test.serial("Instantiation with custom task defined three times", (t) => {
 });
 
 test.serial("Instantiation with custom task: Custom task called correctly", (t) => {
-	const customTask = function({workspace, dependencies, options}) {
-		t.deepEqual(options.projectName, "application.b", "Correct project name passed to custom task");
-		t.deepEqual(options.projectNamespace, "application/b", "Correct project namespace passed to custom task");
-		t.deepEqual(options.configuration, "pony", "Correct configuration passed to custom task");
-		t.deepEqual(workspace, "myWorkspace", "Correct workspace passed to custom task");
-		t.deepEqual(dependencies, "myDependencies", "Correct dependency collection passed to custom task");
-	};
+	const customTaskStub = sinon.stub();
 	sinon.stub(taskRepository, "getTask").returns({
-		task: customTask,
+		task: customTaskStub,
 		specVersion: "2.0"
 	});
 
@@ -287,24 +281,80 @@ test.serial("Instantiation with custom task: Custom task called correctly", (t) 
 		workspace: "myWorkspace",
 		dependencies: "myDependencies"
 	};
-	const customBuilder = new CustomBuilder({project, resourceCollections});
+	const getInterfaceStub = sinon.stub().returns(undefined);
+	const taskUtil = {
+		getInterface: getInterfaceStub
+	};
+	const customBuilder = new CustomBuilder({project, resourceCollections, taskUtil});
 	customBuilder.tasks["myTask"]();
+
+	t.is(getInterfaceStub.callCount, 1, "taskUtil.getInterface got called once");
+	t.deepEqual(getInterfaceStub.getCall(0).args[0], "2.0", "taskUtil.getInterface got called with correct argument");
+
+	t.is(customTaskStub.callCount, 1, "Custom task got called once");
+	t.deepEqual(customTaskStub.getCall(0).args[0], {
+		options: {
+			projectName: "application.b",
+			projectNamespace: "application/b",
+			configuration: "pony"
+		},
+		workspace: "myWorkspace",
+		dependencies: "myDependencies"
+	}, "Custom task got called with expected arguments");
+});
+
+test.serial("Instantiation with custom task specVersion 2.2: Custom task called correctly", (t) => {
+	const customTaskStub = sinon.stub();
+	sinon.stub(taskRepository, "getTask").returns({
+		task: customTaskStub,
+		specVersion: "2.2"
+	});
+
+	const project = clone(applicationBTree);
+	project.builder = {
+		customTasks: [{
+			name: "myTask",
+			beforeTask: "replaceVersion",
+			configuration: "pony"
+		}]
+	};
+	const resourceCollections = {
+		workspace: "myWorkspace",
+		dependencies: "myDependencies"
+	};
+	const getInterfaceStub = sinon.stub().returns("myTaskUtilInterface");
+	const taskUtil = {
+		getInterface: getInterfaceStub
+	};
+	const customBuilder = new CustomBuilder({project, resourceCollections, taskUtil});
+	customBuilder.tasks["myTask"]();
+
+	t.is(getInterfaceStub.callCount, 1, "taskUtil.getInterface got called once");
+	t.deepEqual(getInterfaceStub.getCall(0).args[0], "2.2", "taskUtil.getInterface got called with correct argument");
+
+	t.is(customTaskStub.callCount, 1, "Custom task got called once");
+	t.deepEqual(customTaskStub.getCall(0).args[0], {
+		options: {
+			projectName: "application.b",
+			projectNamespace: "application/b",
+			configuration: "pony"
+		},
+		workspace: "myWorkspace",
+		dependencies: "myDependencies",
+		taskUtil: "myTaskUtilInterface"
+	}, "Custom task got called with expected arguments");
 });
 
 test.serial("Instantiation with custom task: Two custom tasks called correctly", (t) => {
-	const customTask1 = function({workspace, dependencies, options}) {
-		t.deepEqual(options.configuration, "pony", "Correct configuration passed to first custom task");
-	};
-	const customTask2 = function({workspace, dependencies, options}) {
-		t.deepEqual(options.configuration, "donkey", "Correct configuration passed to second custom task");
-	};
+	const customTaskStub1 = sinon.stub();
+	const customTaskStub2 = sinon.stub();
 	const stubGetTask = sinon.stub(taskRepository, "getTask");
 	stubGetTask.onCall(0).returns({
-		task: customTask1,
+		task: customTaskStub1,
 		specVersion: "2.0"
 	});
 	stubGetTask.onCall(1).returns({
-		task: customTask2,
+		task: customTaskStub2,
 		specVersion: "2.0"
 	});
 
@@ -324,9 +374,39 @@ test.serial("Instantiation with custom task: Two custom tasks called correctly",
 		workspace: "myWorkspace",
 		dependencies: "myDependencies"
 	};
-	const customBuilder = new CustomBuilder({project, resourceCollections});
+	const getInterfaceStub = sinon.stub().returns(undefined);
+	const taskUtil = {
+		getInterface: getInterfaceStub
+	};
+	const customBuilder = new CustomBuilder({project, resourceCollections, taskUtil});
 	customBuilder.tasks["myTask"]();
 	customBuilder.tasks["myTask--1"]();
+
+	t.is(getInterfaceStub.callCount, 2, "taskUtil.getInterface got called once");
+	t.deepEqual(getInterfaceStub.getCall(0).args[0], "2.0", "taskUtil.getInterface got called with correct argument");
+	t.deepEqual(getInterfaceStub.getCall(1).args[0], "2.0", "taskUtil.getInterface got called with correct argument");
+
+	t.is(customTaskStub1.callCount, 1, "Custom task got called once");
+	t.deepEqual(customTaskStub1.getCall(0).args[0], {
+		options: {
+			projectName: "application.b",
+			projectNamespace: "application/b",
+			configuration: "pony"
+		},
+		workspace: "myWorkspace",
+		dependencies: "myDependencies"
+	}, "Custom task got called with expected arguments");
+
+	t.is(customTaskStub2.callCount, 1, "Custom task got called once");
+	t.deepEqual(customTaskStub2.getCall(0).args[0], {
+		options: {
+			projectName: "application.b",
+			projectNamespace: "application/b",
+			configuration: "donkey"
+		},
+		workspace: "myWorkspace",
+		dependencies: "myDependencies"
+	}, "Custom task got called with expected arguments");
 });
 
 test("addTask: Add task", (t) => {
