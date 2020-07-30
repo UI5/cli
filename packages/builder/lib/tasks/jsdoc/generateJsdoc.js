@@ -28,11 +28,13 @@ const {resourceFactory} = require("@ui5/fs");
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {GenerateJsdocOptions} parameters.options Options
- * @param {object} parameters.buildContext
+ * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {object} [parameters.buildContext] Internal, deprecated parameter
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 const generateJsdoc = async function({
 	taskUtil,
+	buildContext,
 	workspace,
 	dependencies,
 	options = {}
@@ -46,7 +48,11 @@ const generateJsdoc = async function({
 	const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
 		await generateJsdoc._createTmpDirs(projectName);
 
-	taskUtil.registerCleanupTask(cleanup);
+	// TODO 3.0: remove buildContext
+	const _taskUtil = taskUtil || buildContext;
+	if (_taskUtil) {
+		_taskUtil.registerCleanupTask(cleanup);
+	}
 
 	const [writtenResourcesCount] = await Promise.all([
 		generateJsdoc._writeResourcesToDir({
