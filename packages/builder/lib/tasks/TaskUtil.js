@@ -1,10 +1,10 @@
 /**
  * Convenience functions for UI5 Builder tasks.
- * An instance of this class is passed to every standard UI5 Builder task.
- * Custom tasks that define a specification version >= 2.2 will also receive an instance
- * of this class when called.
+ * An instance of this class is passed to every standard UI5 Builder task that requires it.
  *
- * The set of functions that can be accessed by a custom tasks depends on the specification
+ * Custom tasks that define a specification version >= 2.2 will receive an interface
+ * to an instance of this class when called.
+ * The set of available functions on that interface depends on the specification
  * version defined for the extension.
  *
  * @public
