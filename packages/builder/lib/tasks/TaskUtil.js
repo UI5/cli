@@ -15,7 +15,7 @@ class TaskUtil {
 	 * Standard Build Tags. See UI5 Tooling RFC 0008 for details.
 	 *
 	 * @public
-	 * @typedef {object} StandardBuildTags
+	 * @typedef {object} module:@ui5/builder.tasks.TaskUtil~StandardBuildTags
 	 * @property {string} OmitFromBuildResult
 	 * 		Setting this tag to true for a resource will prevent it from being written to the build target
 	 */
@@ -32,7 +32,7 @@ class TaskUtil {
 		this._projectBuildContext = projectBuildContext;
 
 		/**
-		 * @member {StandardBuildTags}
+		 * @member {module:@ui5/builder.tasks.TaskUtil~StandardBuildTags}
 		 * @public
 		*/
 		this.STANDARD_TAGS = this._projectBuildContext.STANDARD_TAGS;
