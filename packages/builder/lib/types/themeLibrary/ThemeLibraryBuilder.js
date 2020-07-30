@@ -2,7 +2,7 @@ const AbstractBuilder = require("../AbstractBuilder");
 const {getTask} = require("../../tasks/taskRepository");
 
 class ThemeLibraryBuilder extends AbstractBuilder {
-	addStandardTasks({resourceCollections, project, log, buildContext}) {
+	addStandardTasks({resourceCollections, project, log, taskUtil}) {
 		this.addTask("replaceCopyright", async () => {
 			return getTask("replaceCopyright").task({
 				workspace: resourceCollections.workspace,
@@ -29,8 +29,8 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 				dependencies: resourceCollections.dependencies,
 				options: {
 					projectName: project.metadata.name,
-					librariesPattern: !buildContext.isRootProject() ? "/resources/**/*.library" : undefined,
-					themesPattern: !buildContext.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
+					librariesPattern: !taskUtil.isRootProject() ? "/resources/**/*.library" : undefined,
+					themesPattern: !taskUtil.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
 					inputPattern: "/resources/**/themes/*/library.source.less"
 				}
 			});
