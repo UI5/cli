@@ -2,10 +2,23 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.2...HEAD).
+
+<a name="v2.0.2"></a>
+## [v2.0.2] - 2020-07-20
+### Bug Fixes
+- TypeScript type definition support ([#252](https://github.com/SAP/ui5-fs/issues/252)) [`f379094`](https://github.com/SAP/ui5-fs/commit/f37909483b2740219da36c7e0931f7824d51e1a3)
+- **Resource:** Keep stats size up to date ([#253](https://github.com/SAP/ui5-fs/issues/253)) [`0ef976f`](https://github.com/SAP/ui5-fs/commit/0ef976fe658765ae46afd1b4aa5b9100aa9829f8)
+- **Resource:** getStream for empty string ([#249](https://github.com/SAP/ui5-fs/issues/249)) [`bc5eafb`](https://github.com/SAP/ui5-fs/commit/bc5eafb19bf71141b88dff749240354898849a66)
+- **Resource#getSize:** Retrieve Resource's size ([#256](https://github.com/SAP/ui5-fs/issues/256)) [`9d2cc6c`](https://github.com/SAP/ui5-fs/commit/9d2cc6cf92b4a3f29e5c42db2f14afeeac9a0c98)
+- **adapters/Memory:** Return cloned resources ([#235](https://github.com/SAP/ui5-fs/issues/235)) [`7bf3c6a`](https://github.com/SAP/ui5-fs/commit/7bf3c6a2ce55cd1c48b8aaaed83591bd85c228fa)
+
+### Reverts
+- [FIX] adapters/Memory: Return cloned resources ([#235](https://github.com/SAP/ui5-fs/issues/235))
+
 
 <a name="v2.0.1"></a>
-## [v2.0.1] - 2020-04-29
+## [v2.0.1] - 2020-04-30
 ### Bug Fixes
 - Namespaces in API Reference (JSDoc) [`b9d7b3c`](https://github.com/SAP/ui5-fs/commit/b9d7b3c70679436e6cbea07a789ac5e83bab337a)
 
@@ -91,6 +104,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v2.0.2]: https://github.com/SAP/ui5-fs/compare/v2.0.1...v2.0.2
 [v2.0.1]: https://github.com/SAP/ui5-fs/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/SAP/ui5-fs/compare/v1.1.2...v2.0.0
 [v1.1.2]: https://github.com/SAP/ui5-fs/compare/v1.1.1...v1.1.2
