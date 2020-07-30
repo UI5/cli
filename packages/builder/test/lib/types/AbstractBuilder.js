@@ -78,8 +78,8 @@ class CustomBuilder extends AbstractBuilder {
 }
 
 class EmptyBuilder extends AbstractBuilder {
-	constructor({project, resourceCollections}) {
-		super({parentLogger, project, resourceCollections});
+	constructor({project, resourceCollections, taskUtil}) {
+		super({parentLogger, project, resourceCollections, taskUtil});
 	}
 
 	addStandardTasks({resourceCollections, project}) {
@@ -232,6 +232,47 @@ test.serial("Instantiation of empty builder with 2nd custom tasks defining neith
 	});
 	t.deepEqual(error.message, `Custom task definition myTask2 of project application.b defines ` +
 		`neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`, "Correct exception thrown");
+});
+
+test.serial("Instantiation of empty builder with custom task: Custom task called correctly", (t) => {
+	const customTaskStub = sinon.stub();
+	sinon.stub(taskRepository, "getTask").returns({
+		task: customTaskStub,
+		specVersion: "2.0"
+	});
+
+	const project = clone(applicationBTree);
+	project.builder = {
+		customTasks: [{
+			name: "myTask",
+			beforeTask: "replaceVersion",
+			configuration: "pony"
+		}]
+	};
+	const resourceCollections = {
+		workspace: "myWorkspace",
+		dependencies: "myDependencies"
+	};
+	const getInterfaceStub = sinon.stub().returns(undefined);
+	const taskUtil = {
+		getInterface: getInterfaceStub
+	};
+	const customBuilder = new EmptyBuilder({project, resourceCollections, taskUtil});
+	customBuilder.tasks["myTask"]();
+
+	t.is(getInterfaceStub.callCount, 1, "taskUtil.getInterface got called once");
+	t.deepEqual(getInterfaceStub.getCall(0).args[0], "2.0", "taskUtil.getInterface got called with correct argument");
+
+	t.is(customTaskStub.callCount, 1, "Custom task got called once");
+	t.deepEqual(customTaskStub.getCall(0).args[0], {
+		options: {
+			projectName: "application.b",
+			projectNamespace: "application/b",
+			configuration: "pony"
+		},
+		workspace: "myWorkspace",
+		dependencies: "myDependencies"
+	}, "Custom task got called with expected arguments");
 });
 
 test.serial("Instantiation with custom task defined three times", (t) => {
