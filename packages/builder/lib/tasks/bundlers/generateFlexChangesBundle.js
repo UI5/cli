@@ -91,7 +91,7 @@ module.exports = async function({workspace, taskUtil, options: {namespace}}) {
 		// Do not write bundled source files to build result
 		if (taskUtil) {
 			allResources.forEach((resource) => {
-				taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HideFromBuildResult);
+				taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 			});
 		}
 	}

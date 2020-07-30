@@ -16,7 +16,7 @@ class TaskUtil {
 	 *
 	 * @public
 	 * @typedef {object} StandardBuildTags
-	 * @property {string} HideFromBuildResult
+	 * @property {string} OmitFromBuildResult
 	 * 		Setting this tag to true for a resource will prevent it from being written to the build target
 	 */
 

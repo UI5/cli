@@ -1,7 +1,7 @@
 const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 
 const STANDARD_TAGS = Object.freeze({
-	HideFromBuildResult: "ui5:HideFromBuildResult"
+	OmitFromBuildResult: "ui5:OmitFromBuildResult"
 });
 
 /**

@@ -357,8 +357,8 @@ module.exports = {
 					return workspace.byGlob("/**/*.*").then((resources) => {
 						const tagCollection = projectContext.getResourceTagCollection();
 						return Promise.all(resources.map((resource) => {
-							if (tagCollection.getTag(resource, projectContext.STANDARD_TAGS.HideFromBuildResult)) {
-								log.verbose(`Skipping write of resource tagged as "HideFromBuildResult": ` +
+							if (tagCollection.getTag(resource, projectContext.STANDARD_TAGS.OmitFromBuildResult)) {
+								log.verbose(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
 									resource.getPath());
 								return; // Skip target write for this resource
 							}

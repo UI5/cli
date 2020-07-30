@@ -95,7 +95,7 @@ test.serial("Build", async (t) => {
 		getResourceTagCollection: getResourceTagCollectionStub,
 		isRootProject: isRootProjectStub,
 		STANDARD_TAGS: {
-			HideFromBuildResult: "👻"
+			OmitFromBuildResult: "👻"
 		}
 	};
 	const createProjectContextStub = sinon.stub().returns(dummyProjectContext);

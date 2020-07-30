@@ -85,14 +85,14 @@ test("STANDARD_TAGS constant", (t) => {
 	});
 
 	t.deepEqual(projectBuildContext.STANDARD_TAGS, {
-		HideFromBuildResult: "ui5:HideFromBuildResult"
+		OmitFromBuildResult: "ui5:OmitFromBuildResult"
 	}, "Exposes correct STANDARD_TAGS constant");
 });
 
 test.serial("getResourceTagCollection", (t) => {
 	class DummyResourceTagCollection {
 		constructor({allowedTags}) {
-			t.deepEqual(allowedTags, ["ui5:HideFromBuildResult"],
+			t.deepEqual(allowedTags, ["ui5:OmitFromBuildResult"],
 				"Correct allowedTags parameter supplied");
 		}
 	}
