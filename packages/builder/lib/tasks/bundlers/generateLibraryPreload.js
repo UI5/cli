@@ -2,6 +2,18 @@ const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateLib
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 
+function getDefaultLibraryPreloadFilters(namespace) {
+	return [
+		`${namespace}/`,
+		`!${namespace}/.library`,
+		`!${namespace}/designtime/`,
+		`!${namespace}/**/*.designtime.js`,
+		`!${namespace}/**/*.support.js`,
+		`!${namespace}/themes/`,
+		`!${namespace}/messagebundle*`
+	];
+}
+
 function getBundleDefinition(namespace) {
 	// TODO: move to config of actual core project
 	if (namespace === "sap/ui/core") {
@@ -21,15 +33,9 @@ function getBundleDefinition(namespace) {
 				{
 					mode: "preload",
 					filters: [
-						`${namespace}/`,
-						`!${namespace}/.library`,
-						`!${namespace}/designtime/`,
-						`!${namespace}/**/*.designtime.js`,
-						`!${namespace}/**/*.support.js`,
-						`!${namespace}/themes/`,
-						`!${namespace}/cldr/`,
-						`!${namespace}/messagebundle*`,
+						...getDefaultLibraryPreloadFilters(namespace),
 
+						`!${namespace}/cldr/`,
 						"*.js",
 						"sap/base/",
 						"sap/ui/base/",
@@ -69,15 +75,7 @@ function getBundleDefinition(namespace) {
 		sections: [
 			{
 				mode: "preload",
-				filters: [
-					`${namespace}/`,
-					`!${namespace}/.library`,
-					`!${namespace}/designtime/`,
-					`!${namespace}/**/*.designtime.js`,
-					`!${namespace}/**/*.support.js`,
-					`!${namespace}/themes/`,
-					`!${namespace}/messagebundle*`
-				],
+				filters: getDefaultLibraryPreloadFilters(namespace),
 				resolve: false,
 				resolveConditional: false,
 				renderer: true
@@ -254,7 +252,8 @@ module.exports = function({workspace, dependencies, options}) {
 								bundleDefinition: getBundleDefinition(libraryNamespace),
 								bundleOptions: {
 									optimize: true,
-									usePredefineCalls: true
+									usePredefineCalls: true,
+									ignoreMissingModules: true
 								}
 							},
 							resources
