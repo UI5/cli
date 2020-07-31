@@ -59,12 +59,13 @@
 			"text-summary"
 		],
 		"exclude": [
-			".eslintrc.js",
+			"lib/processors/jsdoc/lib/**",
 			"docs/**",
 			"jsdocs/**",
 			"coverage/**",
 			"test/**",
-			"lib/processors/jsdoc/lib/**"
+			".eslintrc.js",
+			"jsdoc-plugin.js"
 		],
 		"check-coverage": true,
 		"statements": 85,
