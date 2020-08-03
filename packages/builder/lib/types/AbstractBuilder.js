@@ -112,7 +112,7 @@ class AbstractBuilder {
 						{Object} parameters Parameters
 						{module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
 						{module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
-						{Object} taskUtil Specification Version dependent interface to a
+						{Object} parameters.taskUtil Specification Version dependent interface to a
 							[TaskUtil]{@link module:@ui5/builder.tasks.TaskUtil} instance
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name

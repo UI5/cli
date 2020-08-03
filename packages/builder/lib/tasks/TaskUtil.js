@@ -2,7 +2,7 @@
  * Convenience functions for UI5 Builder tasks.
  * An instance of this class is passed to every standard UI5 Builder task that requires it.
  *
- * Custom tasks that define a specification version >= 2.2 will receive an interface
+ * Custom tasks that define a Specification Version >= 2.2 will receive an interface
  * to an instance of this class when called.
  * The set of available functions on that interface depends on the specification
  * version defined for the extension.
@@ -12,7 +12,9 @@
  */
 class TaskUtil {
 	/**
-	 * Standard Build Tags. See UI5 Tooling RFC 0008 for details.
+	 * Standard Build Tags. See UI5 Tooling
+	 * [RFC 0008]{@link https://github.com/SAP/ui5-tooling/blob/master/rfcs/0008-resource-tagging-during-build.md}
+	 * for details.
 	 *
 	 * @public
 	 * @typedef {object} module:@ui5/builder.tasks.TaskUtil~StandardBuildTags
@@ -21,12 +23,12 @@ class TaskUtil {
 	 */
 
 	/**
-	 * Constructor
+	 * Since <code>@ui5/builder.builder.ProjectBuildContext</code> is a private class, TaskUtil must not be
+	 * instantiated by modules other than @ui5/builder itself.
 	 *
 	 * @param {object} parameters
 	 * @param {module:@ui5/builder.builder.ProjectBuildContext} parameters.projectBuildContext ProjectBuildContext
 	 * @public
-	 * @hideconstructor
 	 */
 	constructor({projectBuildContext}) {
 		this._projectBuildContext = projectBuildContext;
@@ -43,6 +45,10 @@ class TaskUtil {
 	 * resource instance. For two resource instances with the same path, the same tag value is returned.
 	 * If the path of a resource is changed, any tag information previously stored for that resource is lost.
 	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 2.2 and above</b>.
+	 *
 	 * @param {module:@ui5/fs.Resource} resource Resource the tag should be stored for
 	 * @param {string} tag Name of the tag.
 	 * 		Currently only the [STANDARD_TAGS]{@link module:@ui5/builder.tasks.TaskUtil#STANDARD_TAGS} are allowed
@@ -56,9 +62,13 @@ class TaskUtil {
 	/**
 	 * Retrieves the value for a stored tag. If no value is stored, <code>undefined</code> is returned.
 	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 2.2 and above</b>.
+	 *
 	 * @param {module:@ui5/fs.Resource} resource Resource the tag should be retrieved for
 	 * @param {string} tag Name of the tag
-	 * @returns {string|boolean|integer} Tag value for the given resource.
+	 * @returns {string|boolean|integer|undefined} Tag value for the given resource.
 	 * 										<code>undefined</code> if no value is available
 	 * @public
 	 */
@@ -69,6 +79,10 @@ class TaskUtil {
 	/**
 	 * Clears the value of a tag stored for the given resource's path.
 	 * It's like the tag was never set for that resource.
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 2.2 and above</b>.
 	 *
 	 * @param {module:@ui5/fs.Resource} resource Resource the tag should be cleared for
 	 * @param {string} tag Tag
@@ -81,7 +95,11 @@ class TaskUtil {
 	/**
 	 * Check whether the project currently being build is the root project.
 	 *
-	 * @returns {boolean} True if the currently built project is the root project
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 2.2 and above</b>.
+	 *
+	 * @returns {boolean} <code>true</code> if the currently built project is the root project
 	 * @public
 	 */
 	isRootProject() {
@@ -89,8 +107,13 @@ class TaskUtil {
 	}
 
 	/**
-	 * Register a function that must be executed once the build is finished. This can be used to for example
+	 * Register a function that must be executed once the build is finished. This can be used to, for example,
 	 * cleanup files temporarily created on the file system. If the callback returns a Promise, it will be waited for.
+	 * It will also be executed in cases where the build has failed or has been aborted.
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 2.2 and above</b>.
 	 *
 	 * @param {Function} callback Callback to register. If it returns a Promise, it will be waited for
 	 * @public
@@ -101,10 +124,10 @@ class TaskUtil {
 
 	/**
 	 * Get an interface to an instance of this class that only provides those functions
-	 * that are supported by the given custom middleware extension specification version.
+	 * that are supported by the given custom task extension Specification Version.
 	 *
-	 * @param {string} specVersion Specification Version of custom middleware extension
-	 * @returns {object} An object with bound instance methods supported by the given specification version
+	 * @param {string} specVersion Specification Version of custom task extension
+	 * @returns {object} An object with bound instance methods supported by the given Specification Version
 	 */
 	getInterface(specVersion) {
 		if (["0.1", "1.0", "1.1", "2.0", "2.1"].includes(specVersion)) {
@@ -123,7 +146,7 @@ class TaskUtil {
 		case "2.2":
 			return baseInterface;
 		default:
-			throw new Error(`TaskUtil: Unknown or unsupported specification version ${specVersion}`);
+			throw new Error(`TaskUtil: Unknown or unsupported Specification Version ${specVersion}`);
 		}
 	}
 }
