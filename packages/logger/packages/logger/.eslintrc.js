@@ -6,9 +6,10 @@ module.exports = {
 	"parserOptions": {
 		"ecmaVersion": 8
 	},
-	"extends": ["eslint:recommended", "google"],
+	"extends": ["eslint:recommended", "plugin:ava/recommended", "google"],
 	"plugins": [
-		"jsdoc"
+		"jsdoc",
+		"ava"
 	],
 	"rules": {
 		"indent": [
