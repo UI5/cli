@@ -2,7 +2,7 @@
  * Convenience functions for UI5 Builder tasks.
  * An instance of this class is passed to every standard UI5 Builder task that requires it.
  *
- * Custom tasks that define a Specification Version >= 2.2 will receive an interface
+ * Custom tasks that define a specification version >= 2.2 will receive an interface
  * to an instance of this class when called.
  * The set of available functions on that interface depends on the specification
  * version defined for the extension.
@@ -49,7 +49,7 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource Resource the tag should be stored for
+	 * @param {module:@ui5/fs.Resource} resource The resource the tag should be stored for
 	 * @param {string} tag Name of the tag.
 	 * 		Currently only the [STANDARD_TAGS]{@link module:@ui5/builder.tasks.TaskUtil#STANDARD_TAGS} are allowed
 	 * @param {string|boolean|integer} [value=true] Tag value. Must be primitive
@@ -66,7 +66,7 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource Resource the tag should be retrieved for
+	 * @param {module:@ui5/fs.Resource} resource The resource the tag should be retrieved for
 	 * @param {string} tag Name of the tag
 	 * @returns {string|boolean|integer|undefined} Tag value for the given resource.
 	 * 										<code>undefined</code> if no value is available
@@ -84,7 +84,7 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource Resource the tag should be cleared for
+	 * @param {module:@ui5/fs.Resource} resource The resource the tag should be cleared for
 	 * @param {string} tag Tag
 	 * @public
 	 */
@@ -93,7 +93,7 @@ class TaskUtil {
 	}
 
 	/**
-	 * Check whether the project currently being build is the root project.
+	 * Check whether the project currently being built is the root project.
 	 *
 	 * </br></br>
 	 * This method is only available to custom task extensions defining
@@ -108,7 +108,7 @@ class TaskUtil {
 
 	/**
 	 * Register a function that must be executed once the build is finished. This can be used to, for example,
-	 * cleanup files temporarily created on the file system. If the callback returns a Promise, it will be waited for.
+	 * clean up files temporarily created on the file system. If the callback returns a Promise, it will be waited for.
 	 * It will also be executed in cases where the build has failed or has been aborted.
 	 *
 	 * </br></br>
@@ -124,10 +124,10 @@ class TaskUtil {
 
 	/**
 	 * Get an interface to an instance of this class that only provides those functions
-	 * that are supported by the given custom task extension Specification Version.
+	 * that are supported by the given custom task extension specification version.
 	 *
-	 * @param {string} specVersion Specification Version of custom task extension
-	 * @returns {object} An object with bound instance methods supported by the given Specification Version
+	 * @param {string} specVersion Specification version of custom task extension
+	 * @returns {object} An object with bound instance methods supported by the given specification version
 	 */
 	getInterface(specVersion) {
 		if (["0.1", "1.0", "1.1", "2.0", "2.1"].includes(specVersion)) {
