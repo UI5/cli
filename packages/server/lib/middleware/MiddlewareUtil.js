@@ -33,7 +33,7 @@ class MiddlewareUtil {
 		case "2.2":
 			return baseInterface;
 		default:
-			throw new Error(`MiddlewareUtil: Unknown or unsupported specification version ${specVersion}`);
+			throw new Error(`MiddlewareUtil: Unknown or unsupported Specification Version ${specVersion}`);
 		}
 	}
 
@@ -42,7 +42,7 @@ class MiddlewareUtil {
 	 * of a given request. Any escape sequences will be decoded.
 	 * </br></br>
 	 * This method is only available to custom middleware extensions defining
-	 * <b>specification version 2.0 and above</b>.
+	 * <b>Specification Version 2.0 and above</b>.
 	 *
 	 * @param {object} req Request object
 	 * @returns {string} [Pathname]{@link https://developer.mozilla.org/en-US/docs/Web/API/URL/pathname}
@@ -77,7 +77,7 @@ class MiddlewareUtil {
 	 * Returns MIME information derived from a given resource path.
 	 * </br></br>
 	 * This method is only available to custom middleware extensions defining
-	 * <b>specification version 2.0 and above</b>.
+	 * <b>Specification Version 2.0 and above</b>.
 	 *
 	 * @param {object} resourcePath
 	 * @returns {module:@ui5/server.middleware.MiddlewareUtil.MimeInfo}

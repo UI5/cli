@@ -114,7 +114,7 @@ test("getInterface: specVersion undefined", async (t) => {
 		middlewareUtil.getInterface();
 	});
 
-	t.is(err.message, "MiddlewareUtil: Unknown or unsupported specification version undefined",
+	t.is(err.message, "MiddlewareUtil: Unknown or unsupported Specification Version undefined",
 		"Throw with correct error message");
 });
 
@@ -124,6 +124,6 @@ test("getInterface: specVersion unknown", async (t) => {
 		middlewareUtil.getInterface("1.5");
 	});
 
-	t.is(err.message, "MiddlewareUtil: Unknown or unsupported specification version 1.5",
+	t.is(err.message, "MiddlewareUtil: Unknown or unsupported Specification Version 1.5",
 		"Throw with correct error message");
 });
