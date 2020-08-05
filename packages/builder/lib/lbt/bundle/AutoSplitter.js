@@ -1,7 +1,7 @@
 "use strict";
 
 const terser = require("terser");
-const {pd} = require("pretty-data");
+const minifyXml = require("minify-xml");
 
 const ModuleName = require("../utils/ModuleName");
 const {SectionType} = require("./BundleDefinition");
@@ -9,7 +9,7 @@ const escapePropertiesFile = require("../utils/escapePropertiesFile");
 const log = require("@ui5/logger").getLogger("lbt:bundle:AutoSplitter");
 
 const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
-const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;
+const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 
 /**
  *
@@ -235,12 +235,12 @@ class AutoSplitter {
 				// needs to be activated when it gets activated in JSMergedModuleBuilderExt
 				let fileContent = await resource.buffer();
 				if ( this.optimize ) {
-					// For XML we use the pretty data
-					// Do not minify if XML(View) contains an <*:pre> tag because whitespace of
-					//	HTML <pre> should be preserved (should only happen rarely)
-					if (!xmlHtmlPrePattern.test(fileContent)) {
-						fileContent = pd.xmlmin(fileContent, false);
-					}
+					// use minify-xml for XML, do not minify whitespaces between tags if the XML(View) contains an
+					// <*:pre> tag, because whitespace of HTML <pre> should be preserved (this should rarely happen)
+					const noPreTag = !xmlHtmlPrePattern.test(fileContent);
+					fileContent = minifyXml.minify(fileContent.toString(), {
+						removeWhitespaceBetweenTags: noPreTag
+					});
 				}
 				return fileContent.length;
 			}
