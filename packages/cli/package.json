@@ -47,7 +47,9 @@
 		"jsdoc.json",
 		"npm-shrinkwrap.json",
 		"bin/**",
-		"lib/**"
+		"lib/**",
+		"LICENSES/**",
+		".reuse/**"
 	],
 	"ava": {
 		"files": [
