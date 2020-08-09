@@ -4,6 +4,10 @@ const log = require("@ui5/logger").getLogger("cli:framework:remove");
 
 /**
  * Removes the given set of libraries from the framework libraries section in the ui5.yaml
+ *
+ * @param {object} parameters Parameters
+ * @param {object} parameters.normalizerOptions
+ * @param {object} parameters.libraries
  */
 module.exports = async function({normalizerOptions, libraries}) {
 	const project = await getRootProjectConfiguration({normalizerOptions});
