@@ -34,8 +34,9 @@ const themeResources = [
  *
  * @module @ui5/server/middleware/serveThemes
  * @param {object} parameters Parameters
- * @param {object} parameters.resources Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
+ * @param {module:@ui5/server.middleware.MiddlewareManager.middlewareResources} parameters.resources Parameters
+ * @param {object} parameters.middlewareUtil Specification version dependent interface to a
+ *                                        [MiddlewareUtil]{@link module:@ui5/server.middleware.MiddlewareUtil} instance
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources, middlewareUtil}) {

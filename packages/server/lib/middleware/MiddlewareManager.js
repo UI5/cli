@@ -3,6 +3,15 @@ const MiddlewareUtil = require("./MiddlewareUtil");
 
 /**
  *
+ * @typedef {object} middlewareResources
+ * @property {module:@ui5/fs.AbstractReader} all Reader or Collection to read resources of the
+ *                                        root project and its dependencies
+ * @property {module:@ui5/fs.AbstractReader} rootProject Reader or Collection to read resources of
+ *                                        the project the server is started in
+ */
+
+/**
+ *
  *
  * @memberof module:@ui5/server.middleware
  */
