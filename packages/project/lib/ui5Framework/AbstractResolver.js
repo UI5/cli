@@ -165,11 +165,6 @@ class AbstractResolver {
 		};
 	}
 
-	/**
-	 *
-	 * @param {string} version
-	 * @param {object} options
-	 */
 	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
 		let spec;
 		if (version === "latest") {
