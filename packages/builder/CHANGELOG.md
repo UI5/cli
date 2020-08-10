@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.6...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.7...HEAD).
+
+<a name="v2.0.7"></a>
+## [v2.0.7] - 2020-08-10
+### Bug Fixes
+- **generateLibraryPreload:** Ignore missing modules ([#481](https://github.com/SAP/ui5-builder/issues/481)) [`97b339f`](https://github.com/SAP/ui5-builder/commit/97b339f9c5dbddc8b80ed11c68f557d4eddc7f0a)
+
+### Dependency Updates
+- Pin estraverse to v5.1.0 [`e5bc455`](https://github.com/SAP/ui5-builder/commit/e5bc4552015b71678102fd922609ef184502410c)
+
 
 <a name="v2.0.6"></a>
 ## [v2.0.6] - 2020-07-21
@@ -394,6 +403,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.0.7]: https://github.com/SAP/ui5-builder/compare/v2.0.6...v2.0.7
 [v2.0.6]: https://github.com/SAP/ui5-builder/compare/v2.0.5...v2.0.6
 [v2.0.5]: https://github.com/SAP/ui5-builder/compare/v2.0.4...v2.0.5
 [v2.0.4]: https://github.com/SAP/ui5-builder/compare/v2.0.3...v2.0.4
