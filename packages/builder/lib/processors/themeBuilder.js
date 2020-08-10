@@ -30,7 +30,9 @@ class ThemeBuilder {
 	 * @param {module:@ui5/fs.Resource[]} resources Library files
 	 * @param {object} [options] Build options
 	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
-	 * @param {boolean} [options.cssVariables=false] Generates the CSS variables (css-variables.css, css-variables.source.less) and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css])
+	 * @param {boolean} [options.cssVariables=false] Generates the CSS variables
+	 *   (css-variables.css, css-variables.source.less) and the skeleton for a theme
+	 *   (library-skeleton.css, [library-skeleton-RTL.css])
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Resolving with array of created files
 	 */
 	build(resources, {compress = false, cssVariables = false} = {}) {
@@ -117,21 +119,39 @@ class ThemeBuilder {
 }
 
 /**
+ *
+ * @public
+ * @typedef {object} ThemeBuilderOptions
+ * @property {boolean} [compress=false] Compress build output (CSS / JSON)
+ * @property {boolean} [cssVariables=false] Generates the CSS variables
+ * (css-variables.css, css-variables.source.less) and the skeleton for a theme
+ * (library-skeleton.css, [library-skeleton-RTL.css])
+ */
+
+/**
  * Builds a library theme.
  *
  * @public
  * @alias module:@ui5/builder.processors.themeBuilder
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code> resources to be processed
- * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
- * @param {object} [parameters.options] Options
- * @param {object} [parameters.options.compress=false] Compress build output (CSS / JSON)
- * @param {boolean} [parameters.options.cssVariables=false] Generates the CSS variables (css-variables.css, css-variables.source.less) and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css])
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code>
+ *   resources to be processed
+ * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom
+ *   [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
+ * @param {ThemeBuilderOptions} [parameters.options] Options
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with theme resources
  */
-module.exports = ({resources, fs, options}) => {
+module.exports = async function({
+	resources,
+	fs,
+	options = {}
+}) {
+	const {compress, cssVariables} = /** @type {ThemeBuilderOptions} */ (options);
 	const themeBuilder = new ThemeBuilder({fs});
-	return themeBuilder.build(resources, options).then((files) => {
+	return themeBuilder.build(resources, {
+		compress,
+		cssVariables
+	}).then((files) => {
 		themeBuilder.clearCache();
 		return files;
 	});

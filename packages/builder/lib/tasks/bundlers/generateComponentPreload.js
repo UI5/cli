@@ -17,17 +17,17 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {Array} [parameters.options.namespaces] Array of component namespaces
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options}) {
+module.exports = function({workspace, dependencies, options: {projectName, paths, namespaces}}) {
 	const combo = new ReaderCollectionPrioritized({
-		name: `generateComponentPreload - prioritize workspace over dependencies: ${options.projectName}`,
+		name: `generateComponentPreload - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}")
 		.then(async (resources) => {
-			let namespaces = [];
-			if (options.paths) {
-				namespaces = await Promise.all(options.paths.map(async (componentPath) => {
+			let allNamespaces = [];
+			if (paths) {
+				allNamespaces = await Promise.all(paths.map(async (componentPath) => {
 					const globPath = "/resources/" + componentPath;
 					log.verbose(`Globbing for Components directories with configured path ${globPath}...`);
 					const components = await combo.byGlob(globPath);
@@ -38,19 +38,19 @@ module.exports = function({workspace, dependencies, options}) {
 					});
 				}));
 			}
-			if (options.namespaces) {
-				namespaces.push(...options.namespaces);
+			if (namespaces) {
+				allNamespaces.push(...namespaces);
 			}
 
-			namespaces = Array.prototype.concat.apply([], namespaces);
+			allNamespaces = Array.prototype.concat.apply([], allNamespaces);
 			// As this task is often called with a single namespace, also check
 			//	for bad calls like "namespaces: [undefined]"
-			if (!namespaces || !namespaces.length || !namespaces[0]) {
+			if (!allNamespaces || !allNamespaces.length || !allNamespaces[0]) {
 				throw new Error("generateComponentPreload: No component namespace(s) " +
-					`found for project: ${options.projectName}`);
+					`found for project: ${projectName}`);
 			}
 
-			return Promise.all(namespaces.map((namespace) => {
+			return Promise.all(allNamespaces.map((namespace) => {
 				const filters = [
 					`${namespace}/`,
 					`!${namespace}/test/`,
@@ -58,7 +58,7 @@ module.exports = function({workspace, dependencies, options}) {
 				];
 
 				// Exclude other namespaces
-				namespaces.forEach((ns) => {
+				allNamespaces.forEach((ns) => {
 					if (ns !== namespace && ns.indexOf(namespace) === 0) {
 						filters.push(`!${ns}/`);
 					}

@@ -17,12 +17,12 @@ const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler
  * @param {string} [parameters.options.namespace] Application Namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
+module.exports = function({workspace, options: {namespace}}) {
 	// Use the given namespace if available, otherwise use no namespace
 	// (e.g. in case no manifest.json is present)
 	let pathPrefix = "";
-	if (options && options.namespace) {
-		pathPrefix = `/resources/${options.namespace}`;
+	if (namespace) {
+		pathPrefix = `/resources/${namespace}`;
 	}
 
 	function updateJson(data) {

@@ -56,7 +56,7 @@ class I18nResourceList {
  * @param {string} parameters.options.descriptor Descriptor name
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with manifest bundle resources
  */
-module.exports = ({resources, options}) => {
+module.exports = ({resources, options: {namespace, bundleName, propertiesExtension, descriptor}}) => {
 	function getDescriptorI18nInfo(manifest) {
 		const content = JSON.parse(manifest.content);
 		let i18nFullPath = content["sap.app"]["i18n"];
@@ -69,7 +69,7 @@ module.exports = ({resources, options}) => {
 		}
 		return {
 			path: path.join(path.dirname(manifest.path), path.dirname(i18nFullPath)),
-			rootName: path.basename(i18nFullPath, options.propertiesExtension)
+			rootName: path.basename(i18nFullPath, propertiesExtension)
 		};
 	}
 
@@ -78,7 +78,7 @@ module.exports = ({resources, options}) => {
 			const basename = path.basename(resource.getPath());
 			return {
 				name: basename,
-				isManifest: basename === options.descriptor,
+				isManifest: basename === descriptor,
 				path: resource.getPath(),
 				content: content
 			};
@@ -108,11 +108,11 @@ module.exports = ({resources, options}) => {
 		return archiveContent;
 	}).then((archiveContent) => new Promise((resolve) => {
 		const zip = new yazl.ZipFile();
-		const rBasePath = new RegExp(`^/resources/${options.namespace}/`);
+		const rBasePath = new RegExp(`^/resources/${namespace}/`);
 		archiveContent.forEach((content, path) => {
 			if (!rBasePath.test(path)) {
 				log.verbose(`Not bundling resource with path ${path} since it is not based on path ` +
-					`/resources/${options.namespace}/`);
+					`/resources/${namespace}/`);
 				return;
 			}
 			// Remove base path. Absolute paths are not allowed in ZIP files
@@ -121,9 +121,9 @@ module.exports = ({resources, options}) => {
 		});
 		zip.end();
 
-		const pathPrefix = "/resources/" + options.namespace + "/";
+		const pathPrefix = "/resources/" + namespace + "/";
 		const res = resourceFactory.createResource({
-			path: pathPrefix + options.bundleName,
+			path: pathPrefix + bundleName,
 			stream: zip.outputStream
 		});
 		resolve([res]);

@@ -18,34 +18,36 @@ const sdkTransformer = require("../../processors/jsdoc/sdkTransformer");
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-const executeJsdocSdkTransformation = async function({workspace, dependencies, options} = {}) {
-	if (!options || !options.projectName || !options.dotLibraryPattern) {
+const executeJsdocSdkTransformation = async function(
+	{workspace, dependencies, options: {projectName, dotLibraryPattern}} = {}
+) {
+	if (!projectName || !dotLibraryPattern) {
 		throw new Error("[executeJsdocSdkTransformation]: One or more mandatory options not provided");
 	}
 
 	const [apiJsons, dotLibraries, depApiJsons] = await Promise.all([
 		workspace.byGlob("/test-resources/**/designtime/api.json"),
-		workspace.byGlob(options.dotLibraryPattern),
+		workspace.byGlob(dotLibraryPattern),
 		dependencies.byGlob("/test-resources/**/designtime/api.json")
 	]);
 	if (!apiJsons.length) {
-		log.info(`Failed to locate api.json resource for project ${options.projectName}. ` +
+		log.info(`Failed to locate api.json resource for project ${projectName}. ` +
 			`Skipping SDK Transformation...`);
 		return;
 	} else if (apiJsons.length > 1) {
 		throw new Error(`[executeJsdocSdkTransformation]: Found more than one api.json resources for project ` +
-			`${options.projectName}.`);
+			`${projectName}.`);
 	}
 	if (!dotLibraries.length) {
 		throw new Error(`[executeJsdocSdkTransformation]: Failed to locate .library resource for project ` +
-			`${options.projectName}.`);
+			`${projectName}.`);
 	} else if (dotLibraries.length > 1) {
 		throw new Error(`[executeJsdocSdkTransformation]: Found more than one .library resources for project ` +
-			`${options.projectName}.`);
+			`${projectName}.`);
 	}
 
 	const combo = new ReaderCollectionPrioritized({
-		name: `executeJsdocSdkTransformation - custom workspace + dependencies FS: ${options.projectName}`,
+		name: `executeJsdocSdkTransformation - custom workspace + dependencies FS: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 

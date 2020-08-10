@@ -8,6 +8,8 @@ const util = require("util");
  * @alias module:@ui5/builder.processors.debugFileCreator
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or
+ *   custom [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with debug resources
  */
 module.exports = function({resources, fs}) {

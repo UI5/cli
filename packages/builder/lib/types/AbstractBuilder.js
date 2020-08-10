@@ -1,3 +1,13 @@
+
+/**
+ * Resource collections
+ *
+ * @public
+ * @typedef module:@ui5/builder.BuilderResourceCollections
+ * @property {module:@ui5/fs.DuplexCollection} workspace Workspace Resource
+ * @property {module:@ui5/fs.ReaderCollection} dependencies Workspace Resource
+ */
+
 /**
  * Base class for the builder implementation of a project type
  *
@@ -8,11 +18,10 @@ class AbstractBuilder {
 	 * Constructor
 	 *
 	 * @param {object} parameters
-	 * @param {object} parameters.resourceCollections Resource collections
-	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
-	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
+	 * @param {BuilderResourceCollections} parameters.resourceCollections Resource collections
 	 * @param {object} parameters.project Project configuration
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
+	 * @param {object} parameters.buildContext
 	 */
 	constructor({resourceCollections, project, parentLogger, buildContext}) {
 		if (new.target === AbstractBuilder) {
@@ -36,9 +45,8 @@ class AbstractBuilder {
 	 * @abstract
 	 * @protected
 	 * @param {object} parameters
- 	 * @param {object} parameters.resourceCollections Resource collections
-	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
-	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
+	 * @param {BuilderResourceCollections} parameters.resourceCollections Resource collections
+	 * @param {object} parameters.buildContext
 	 * @param {object} parameters.project Project configuration
 	 * @param {object} parameters.log <code>@ui5/logger</code> logger instance
 	 */
@@ -51,9 +59,8 @@ class AbstractBuilder {
 	 *
 	 * @private
 	 * @param {object} parameters
- 	 * @param {object} parameters.resourceCollections Resource collections
-	 * @param {module:@ui5/fs.DuplexCollection} parameters.resourceCollections.workspace Workspace Resource
-	 * @param {ReaderCollection} parameters.resourceCollections.dependencies Workspace Resource
+	 * @param {BuilderResourceCollections} parameters.resourceCollections Resource collections
+	 * @param {object} parameters.buildContext
 	 * @param {object} parameters.project Project configuration
 	 */
 	addCustomTasks({resourceCollections, project, buildContext}) {

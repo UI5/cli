@@ -11,8 +11,8 @@ const uglifyProcessor = require("../processors/uglifier");
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
-	return workspace.byGlobSource(options.pattern)
+module.exports = function({workspace, options: {pattern}}) {
+	return workspace.byGlobSource(pattern)
 		.then((allResources) => {
 			return uglifyProcessor({
 				resources: allResources

@@ -95,6 +95,32 @@ class LocatorResourcePool extends ResourcePool {
  */
 
 /**
+ * Module bundle definition
+ *
+ * @public
+ * @typedef {object} ModuleBundleDefinition
+ * @property {string} name The module bundle name
+ * @property {string[]} [defaultFileTypes=[".js", ".fragment.xml", ".view.xml", ".properties", ".json"]]
+ *   List of default file types to be included in the bundle
+ * @property {ModuleBundleDefinitionSection[]} sections List of module bundle definition sections.
+ */
+
+/**
+ * Module bundle options
+ *
+ * @public
+ * @typedef {object} ModuleBundleOptions
+ * @property {boolean} [optimize=false] If set to 'true' the module bundle gets minified
+ * @property {boolean} [decorateBootstrapModule=false] If set to 'false', the module won't be decorated
+ *   with an optimization marker
+ * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with
+ *   a try/catch to filter out "Restart" errors
+ * @property {boolean} [usePredefineCalls=false] If set to 'true', sap.ui.predefine is used for UI5 modules
+ * @property {number} [numberOfParts=1] The number of parts the module bundle should be splitted
+ * @property {boolean} [ignoreMissingModules=false] When searching for modules which are optional for further processing, do not throw in case they are missing
+ */
+
+/**
  * Legacy preload bundler.
  *
  * @public
@@ -102,34 +128,24 @@ class LocatorResourcePool extends ResourcePool {
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources Resources
  * @param {object} parameters.options Options
- * @param {object} parameters.options.bundleDefinition Module bundle definition
- * @param {string} parameters.options.bundleDefinition.name The module bundle name
- * @param {string[]} [parameters.options.bundleDefinition.defaultFileTypes=[".js", ".fragment.xml", ".view.xml", ".properties", ".json"]] List of default file types to be included in the bundle
- * @param {ModuleBundleDefinitionSection[]} parameters.options.bundleDefinition.sections List of module bundle definition sections.
- * @param {object} parameters.options.bundleOptions Module bundle options
- * @param {boolean} [parameters.options.bundleOptions.optimize=false] If set to 'true' the module bundle gets minified
- * @param {boolean} [parameters.options.bundleOptions.decorateBootstrapModule=false] If set to 'false', the module won't be decorated with an optimization marker
- * @param {boolean} [parameters.options.bundleOptions.addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with a try/catch to filter out "Restart" errors
- * @param {boolean} [parameters.options.bundleOptions.usePredefineCalls=false] If set to 'true', sap.ui.predefine is used for UI5 modules
- * @param {number} [parameters.options.bundleOptions.numberOfParts=1] The number of parts the module bundle should be splitted
- * @param {number} [parameters.options.bundleOptions.ignoreMissingModules] When searching for modules which are optional for further processing, do not throw in case they are missing
+ * @param {ModuleBundleDefinition} parameters.options.bundleDefinition Module bundle definition
+ * @param {ModuleBundleOptions} parameters.options.bundleOptions Module bundle options
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with module bundle resources
  */
-module.exports = function({resources, options}) {
+module.exports = function({resources, options: {bundleDefinition, bundleOptions}}) {
 //	console.log("preloadBundler bundleDefinition:");
 //	console.log(JSON.stringify(options.bundleDefinition, null, 4));
 
 	// TODO 3.0: Fix defaulting behavior, align with JSDoc
-	const bundleOptions = options.bundleOptions || {optimize: true};
+	bundleOptions = bundleOptions || {optimize: true};
 
 	const pool = new LocatorResourcePool({
 		ignoreMissingModules: bundleOptions.ignoreMissingModules
 	});
 	const builder = new BundleBuilder(pool);
 
-
 	return pool.prepare( resources ).
-		then( () => builder.createBundle(options.bundleDefinition, bundleOptions) ).
+		then( () => builder.createBundle(bundleDefinition, bundleOptions) ).
 		then( (results) => {
 			let bundles;
 			if (results instanceof Array) {

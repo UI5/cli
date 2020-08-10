@@ -57,9 +57,9 @@ function getBundleDefinition(config) {
  * @param {string} [parameters.options.namespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, options}) {
-	if (!options.namespace) {
-		log.warn(`Namespace of project ${options.projectName} is not known. Self contained bundling is currently ` +
+module.exports = async function({workspace, dependencies, options: {projectName, namespace}}) {
+	if (!namespace) {
+		log.warn(`Namespace of project ${projectName} is not known. Self contained bundling is currently ` +
 			`unable to generate complete bundles for such projects.`);
 	}
 
@@ -88,7 +88,7 @@ module.exports = async function({workspace, dependencies, options}) {
 				bundleDefinition: getBundleDefinition({
 					name: "sap-ui-custom.js",
 					filters,
-					namespace: options.namespace,
+					namespace,
 					preloadSection: true
 				})
 			}
@@ -99,7 +99,7 @@ module.exports = async function({workspace, dependencies, options}) {
 				bundleDefinition: getBundleDefinition({
 					name: "sap-ui-custom-dbg.js",
 					filters,
-					namespace: options.namespace
+					namespace
 				}),
 				bundleOptions: {
 					optimize: false

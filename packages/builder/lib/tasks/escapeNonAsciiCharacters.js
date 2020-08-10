@@ -12,17 +12,17 @@ const nonAsciiEscaper = require("../processors/nonAsciiEscaper");
  * @param {string} parameters.options.encoding source file encoding either "UTF-8" or "ISO-8859-1"
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, options}) {
-	if (!options.encoding) {
+module.exports = async function({workspace, options: {pattern, encoding}}) {
+	if (!encoding) {
 		throw new Error("[escapeNonAsciiCharacters] Mandatory option 'encoding' not provided");
 	}
 
-	const allResources = await workspace.byGlob(options.pattern);
+	const allResources = await workspace.byGlob(pattern);
 
 	const processedResources = await nonAsciiEscaper({
 		resources: allResources,
 		options: {
-			encoding: nonAsciiEscaper.getEncodingFromAlias(options.encoding)
+			encoding: nonAsciiEscaper.getEncodingFromAlias(encoding)
 		}
 	});
 

@@ -166,9 +166,9 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options}) {
+module.exports = function({workspace, dependencies, options: {projectName}}) {
 	const combo = new ReaderCollectionPrioritized({
-		name: `libraryBundler - prioritize workspace over dependencies: ${options.projectName}`,
+		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 
@@ -179,7 +179,7 @@ module.exports = function({workspace, dependencies, options}) {
 
 		// Create sap-ui-core.js
 		// TODO: move to config of actual core project
-		if (options.projectName === "sap.ui.core") {
+		if (projectName === "sap.ui.core") {
 			// Filter out sap-ui-core.js from further uglification/replacement processors
 			//	to prevent them from overwriting it
 			resources = resources.filter((resource) => {
@@ -227,13 +227,13 @@ module.exports = function({workspace, dependencies, options}) {
 					return libraryIndicatorResources;
 				} else {
 					// Fallback to "library.js" as library indicator
-					log.verbose(`Could not find a ".library" file for project ${options.projectName}, falling back to "library.js".`);
+					log.verbose(`Could not find a ".library" file for project ${projectName}, falling back to "library.js".`);
 					return workspace.byGlob("/resources/**/library.js");
 				}
 			}).then((libraryIndicatorResources) => {
 				if (libraryIndicatorResources.length < 1) {
 					// No library found - nothing to do
-					log.verbose(`Could not find a ".library" or "library.js" file for project ${options.projectName}. Skipping library preload bundling.`);
+					log.verbose(`Could not find a ".library" or "library.js" file for project ${projectName}. Skipping library preload bundling.`);
 					return;
 				}
 
@@ -264,7 +264,7 @@ module.exports = function({workspace, dependencies, options}) {
 							}
 						});
 					} else {
-						log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${options.projectName}. Skipping library preload bundling.`);
+						log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${projectName}. Skipping library preload bundling.`);
 						return Promise.resolve();
 					}
 				}));

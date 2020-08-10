@@ -40,19 +40,19 @@ function getSigner(type) {
  * @param {string} [parameters.options.signatureType='time'] Type of signature to be used ('time' or 'hash')
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options}) {
-	return workspace.byGlob(`/resources/${options.namespace}/**/*`)
+module.exports = function({workspace, dependencies, options: {namespace, signatureType}}) {
+	return workspace.byGlob(`/resources/${namespace}/**/*`)
 		.then(async (resources) => {
 			const cachebusterInfo = {};
-			const regex = new RegExp(`^/resources/${options.namespace}/`);
-			const signer = getSigner(options.signatureType);
+			const regex = new RegExp(`^/resources/${namespace}/`);
+			const signer = getSigner(signatureType);
 
 			await Promise.all(resources.map(async (resource) => {
 				const normalizedPath = resource.getPath().replace(regex, "");
 				cachebusterInfo[normalizedPath] = await signer(resource);
 			}));
 			const cachebusterInfoResource = resourceFactory.createResource({
-				path: `/resources/${options.namespace}/sap-ui-cachebuster-info.json`,
+				path: `/resources/${namespace}/sap-ui-cachebuster-info.json`,
 				string: JSON.stringify(cachebusterInfo, null, 2)
 			});
 			return workspace.write(cachebusterInfoResource);

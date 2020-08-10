@@ -62,12 +62,13 @@ const escapeNonAscii = function(string) {
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
  * @param {object} [parameters.options] Options
- * @param {string} [parameters.options.encoding="utf8"] resource file encoding (node.js based encodings). Use #getEncodingFromAlias to get the encoding string
- * {@link https://nodejs.org/api/buffer.html#buffer_buffers_and_character_encodings Node.js character encodings};
+ * @param {string} [parameters.options.encoding="utf8"] resource file encoding
+ *   ({@link https://nodejs.org/api/buffer.html#buffer_buffers_and_character_encodings Node.js character encodings}).
+ *   Use #getEncodingFromAlias to get the encoding string
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the processed resources
  */
-module.exports = async function nonAsciiEscaper({resources, options={}}) {
-	const encoding = options.encoding || "utf8";
+module.exports = async function nonAsciiEscaper({resources, options: {encoding}}) {
+	encoding = encoding || "utf8";
 
 	async function processResource(resource) {
 		const resourceString = (await resource.getBuffer()).toString(encoding);

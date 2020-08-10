@@ -65,7 +65,7 @@ test.serial("generateApiIndex", async (t) => {
 });
 
 test("generateApiIndex with missing parameters", async (t) => {
-	const error = await t.throwsAsync(generateApiIndex());
-	t.deepEqual(error.message, "[generateApiIndex]: One or more mandatory options not provided",
-		"Correct error message thrown");
+	await t.throwsAsync(generateApiIndex(), {
+		instanceOf: TypeError
+	}, "TypeError thrown");
 });

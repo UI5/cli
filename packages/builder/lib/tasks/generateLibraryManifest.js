@@ -17,9 +17,9 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options}) {
+module.exports = function({workspace, dependencies, options: {projectName}}) {
 	const combo = new ReaderCollectionPrioritized({
-		name: `libraryManifestGenerator - prioritize workspace over dependencies: ${options.projectName}`,
+		name: `libraryManifestGenerator - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 	// Note:
@@ -33,7 +33,7 @@ module.exports = function({workspace, dependencies, options}) {
 		return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
 			if (libraryIndicatorResources.length < 1) {
 				// No library found - nothing to do
-				log.verbose(`Could not find a ".library" file for project ${options.projectName}. Skipping library manifest generation.`);
+				log.verbose(`Could not find a ".library" file for project ${projectName}. Skipping library manifest generation.`);
 				return;
 			}
 
@@ -58,7 +58,7 @@ module.exports = function({workspace, dependencies, options}) {
 						}
 					});
 				} else {
-					log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${options.projectName}. Skipping library manifest generation.`);
+					log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${projectName}. Skipping library manifest generation.`);
 					return Promise.resolve();
 				}
 			}));

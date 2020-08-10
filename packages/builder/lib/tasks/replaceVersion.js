@@ -12,14 +12,14 @@ const stringReplacer = require("../processors/stringReplacer");
  * @param {string} parameters.options.version Replacement version
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
-	return workspace.byGlob(options.pattern)
+module.exports = function({workspace, options: {pattern, version}}) {
+	return workspace.byGlob(pattern)
 		.then((allResources) => {
 			return stringReplacer({
 				resources: allResources,
 				options: {
 					pattern: "${version}",
-					replacement: options.version
+					replacement: version
 				}
 			});
 		})

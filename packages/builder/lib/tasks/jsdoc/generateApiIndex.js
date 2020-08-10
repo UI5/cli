@@ -17,12 +17,13 @@ const apiIndexGenerator = require("../../processors/jsdoc/apiIndexGenerator");
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, options} = {}) {
-	if (!options || !options.projectName) {
-		throw new Error("[generateApiIndex]: One or more mandatory options not provided");
-	}
+module.exports = async function({
+	workspace,
+	dependencies,
+	options: {projectName}
+}) {
 	const combo = new ReaderCollectionPrioritized({
-		name: `generateApiIndex - workspace + dependencies: ${options.projectName}`,
+		name: `generateApiIndex - workspace + dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 

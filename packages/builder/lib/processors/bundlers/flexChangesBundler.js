@@ -13,7 +13,7 @@ const resourceFactory = require("@ui5/fs").resourceFactory;
  * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73 than create flexibility-bundle.json
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with flex changes bundle resources
  */
-module.exports = function({resources, options}) {
+module.exports = function({resources, options: {pathPrefix, hasFlexBundleVersion}}) {
 	let bundleName = "changes-bundle.json";
 
 	function sortByTimeStamp(a, b) {
@@ -62,11 +62,11 @@ module.exports = function({resources, options}) {
 			}
 		});
 
-		if (!options.hasFlexBundleVersion && (compVariants.length != 0 || variants.length != 0 || variantChanges.length != 0 || variantDependentControlChanges.length != 0 || variantManagementChanges.length != 0)) {
+		if (!hasFlexBundleVersion && (compVariants.length != 0 || variants.length != 0 || variantChanges.length != 0 || variantDependentControlChanges.length != 0 || variantManagementChanges.length != 0)) {
 			throw new Error("There are some control variant changes in the changes folder. This only works with a minUI5Version 1.73.0. Please update the minUI5Version in the manifest.json to 1.73.0 or higher");
 		}
 		// create changes-bundle.json
-		if (!options.hasFlexBundleVersion) {
+		if (!hasFlexBundleVersion) {
 			return JSON.stringify(changes);
 		} else {
 			bundleName = "flexibility-bundle.json";
@@ -94,7 +94,7 @@ module.exports = function({resources, options}) {
 		if (nNumberOfChanges > 0) {
 			changesContent = sortAndStringifyInFlexFormat(changesContent);
 			result.push(resourceFactory.createResource({
-				path: `${options.pathPrefix}/changes/${bundleName}`,
+				path: `${pathPrefix}/changes/${bundleName}`,
 				string: changesContent
 			}));
 		}

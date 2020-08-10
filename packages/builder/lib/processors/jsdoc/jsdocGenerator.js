@@ -21,22 +21,24 @@ const {resourceFactory} = require("@ui5/fs");
  * @param {Array} [parameters.options.variants=["apijson"]] JSDoc variants to be built
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with newly created resources
  */
-const jsdocGenerator = async function({sourcePath, targetPath, tmpPath, options} = {}) {
-	if (!sourcePath || !targetPath || !tmpPath || !options.projectName || !options.namespace || !options.version) {
+const jsdocGenerator = async function(
+	{sourcePath, targetPath, tmpPath, options: {projectName, namespace, version, variants}} = {}
+) {
+	if (!sourcePath || !targetPath || !tmpPath || !projectName || !namespace || !version) {
 		throw new Error("[jsdocGenerator]: One or more mandatory parameters not provided");
 	}
 
-	if (!options.variants || options.variants.length === 0) {
-		options.variants = ["apijson"];
+	if (!variants || variants.length === 0) {
+		variants = ["apijson"];
 	}
 
 	const config = await jsdocGenerator._generateJsdocConfig({
 		targetPath,
 		tmpPath,
-		namespace: options.namespace,
-		projectName: options.projectName,
-		version: options.version,
-		variants: options.variants
+		namespace,
+		projectName,
+		version,
+		variants
 	});
 
 	const configPath = await jsdocGenerator._writeJsdocConfig(tmpPath, config);
@@ -53,7 +55,7 @@ const jsdocGenerator = async function({sourcePath, targetPath, tmpPath, options}
 
 	// create resources from the output files
 	return Promise.all([
-		fsTarget.byPath(`/test-resources/${options.namespace}/designtime/api.json`)
+		fsTarget.byPath(`/test-resources/${namespace}/designtime/api.json`)
 		// fsTarget.byPath(`/libraries/${options.projectName}.js`)
 	]).then((res) => res.filter(($)=>$));
 };
@@ -68,6 +70,7 @@ const jsdocGenerator = async function({sourcePath, targetPath, tmpPath, options}
  * @param {string} parameters.tmpPath Path to write temporary and debug files
  * @param {string} parameters.projectName Project name
  * @param {string} parameters.version Project version
+ * @param {string} parameters.namespace Namespace to use (e.g. <code>some/project/name</code>)
  * @param {Array} parameters.variants JSDoc variants to be built
  * @returns {string} jsdoc-config.json content string
  */

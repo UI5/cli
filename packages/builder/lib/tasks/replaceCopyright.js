@@ -22,15 +22,15 @@ const stringReplacer = require("../processors/stringReplacer");
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
-	if (!options.copyright) {
+module.exports = function({workspace, options: {copyright, pattern}}) {
+	if (!copyright) {
 		return Promise.resolve();
 	}
 
 	// Replace optional placeholder ${currentYear} with the current year
-	const copyright = options.copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
+	copyright = copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
 
-	return workspace.byGlob(options.pattern)
+	return workspace.byGlob(pattern)
 		.then((processedResources) => {
 			return stringReplacer({
 				resources: processedResources,

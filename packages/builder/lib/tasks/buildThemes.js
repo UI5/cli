@@ -21,26 +21,31 @@ const log = require("@ui5/logger").getLogger("builder:tasks:buildThemes");
  * @param {boolean} [parameters.options.cssVariables=false]
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, options}) {
+module.exports = async function({
+	workspace, dependencies,
+	options: {
+		projectName, inputPattern, librariesPattern, themesPattern, compress, cssVariables
+	}
+}) {
 	const combo = new ReaderCollectionPrioritized({
-		name: `theme - prioritize workspace over dependencies: ${options.projectName}`,
+		name: `theme - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 
-	const compress = options.compress === undefined ? true : options.compress;
+	compress = compress === undefined ? true : compress;
 
-	const pAllResources = workspace.byGlob(options.inputPattern);
+	const pAllResources = workspace.byGlob(inputPattern);
 	let pAvailableLibraries;
 	let pAvailableThemes;
-	if (options.librariesPattern) {
+	if (librariesPattern) {
 		// If a librariesPattern is given
 		//	we will use it to reduce the set of libraries a theme will be built for
-		pAvailableLibraries = combo.byGlob(options.librariesPattern);
+		pAvailableLibraries = combo.byGlob(librariesPattern);
 	}
-	if (options.themesPattern) {
+	if (themesPattern) {
 		// If a themesPattern is given
 		//	we will use it to reduce the set of themes that will be built
-		pAvailableThemes = combo.byGlob(options.themesPattern, {nodir: false});
+		pAvailableThemes = combo.byGlob(themesPattern, {nodir: false});
 	}
 
 	/* Don't try to build themes for libraries that are not available
@@ -120,7 +125,7 @@ module.exports = async function({workspace, dependencies, options}) {
 		fs: fsInterface(combo),
 		options: {
 			compress,
-			cssVariables: !!options.cssVariables
+			cssVariables: !!cssVariables
 		}
 	});
 

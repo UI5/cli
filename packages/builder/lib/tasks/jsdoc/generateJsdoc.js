@@ -10,6 +10,16 @@ const jsdocGenerator = require("../../processors/jsdoc/jsdocGenerator");
 const {resourceFactory} = require("@ui5/fs");
 
 /**
+ *
+ * @public
+ * @typedef {object} GenerateJsdocOptions
+ * @property {string|string[]} pattern Pattern to locate the files to be processed
+ * @property {string} projectName Project name
+ * @property {string} namespace Namespace to build (e.g. <code>some/project/name</code>)
+ * @property {string} version Project version
+ */
+
+/**
  * Task to execute a JSDoc build for UI5 projects
  *
  * @public
@@ -17,27 +27,31 @@ const {resourceFactory} = require("@ui5/fs");
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {object} parameters.options Options
- * @param {string|Array} parameters.options.pattern Pattern to locate the files to be processed
- * @param {string} parameters.options.projectName Project name
- * @param {string} parameters.options.namespace Namespace to build (e.g. <code>some/project/name</code>)
- * @param {string} parameters.options.version Project version
+ * @param {GenerateJsdocOptions} parameters.options Options
+ * @param {object} parameters.buildContext
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-const generateJsdoc = async function({buildContext, workspace, dependencies, options} = {}) {
-	if (!options || !options.projectName || !options.namespace || !options.version || !options.pattern) {
+const generateJsdoc = async function({
+	buildContext,
+	workspace,
+	dependencies,
+	options = {}
+}) {
+	const {projectName, namespace, version, pattern} = /** @type {GenerateJsdocOptions} */ (options);
+
+	if (!projectName || !namespace || !version || !pattern) {
 		throw new Error("[generateJsdoc]: One or more mandatory options not provided");
 	}
 
 	const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
-		await generateJsdoc._createTmpDirs(options.projectName);
+		await generateJsdoc._createTmpDirs(projectName);
 
 	buildContext.registerCleanupTask(cleanup);
 
 	const [writtenResourcesCount] = await Promise.all([
 		generateJsdoc._writeResourcesToDir({
 			workspace,
-			pattern: options.pattern,
+			pattern,
 			targetPath: resourcePath
 		}),
 		generateJsdoc._writeDependencyApisToDir({
@@ -47,8 +61,8 @@ const generateJsdoc = async function({buildContext, workspace, dependencies, opt
 	]);
 
 	if (writtenResourcesCount === 0) {
-		log.info(`Failed to find any input resources for project ${options.projectName} using pattern ` +
-			`${options.pattern}. Skipping JSDoc generation...`);
+		log.info(`Failed to find any input resources for project ${projectName} using pattern ` +
+			`${pattern}. Skipping JSDoc generation...`);
 		return;
 	}
 
@@ -57,9 +71,9 @@ const generateJsdoc = async function({buildContext, workspace, dependencies, opt
 		targetPath,
 		tmpPath,
 		options: {
-			projectName: options.projectName,
-			namespace: options.namespace,
-			version: options.version,
+			projectName,
+			namespace,
+			version,
 			variants: ["apijson"]
 		}
 	});

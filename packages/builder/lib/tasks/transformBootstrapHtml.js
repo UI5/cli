@@ -12,16 +12,16 @@ const bootstrapHtmlTransformer = require("../processors/bootstrapHtmlTransformer
  * @param {string} [parameters.options.namespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, options}) {
+module.exports = async function({workspace, options: {projectName, namespace}}) {
 	let indexPath;
-	if (options.namespace) {
-		indexPath = `/resources/${options.namespace}/index.html`;
+	if (namespace) {
+		indexPath = `/resources/${namespace}/index.html`;
 	} else {
 		indexPath = "/index.html";
 	}
 	const resource = await workspace.byPath(indexPath);
 	if (!resource) {
-		log.warn(`Skipping bootstrap transformation due to missing index.html in project "${options.projectName}".`);
+		log.warn(`Skipping bootstrap transformation due to missing index.html in project "${projectName}".`);
 		return;
 	}
 	const processedResources = await bootstrapHtmlTransformer({
