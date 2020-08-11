@@ -2,7 +2,7 @@
 
 const {Syntax} = require("esprima");
 const ModuleName = require("../utils/ModuleName");
-const {isString} = require("../utils/ASTUtils");
+const {isString, isBoolean} = require("../utils/ASTUtils");
 
 class SapUiDefineCall {
 	constructor(node, moduleName) {
@@ -10,17 +10,29 @@ class SapUiDefineCall {
 		this.name = moduleName;
 		this.dependencyArray = null;
 		this.factory = null;
+		this.exportAsGlobal = false;
 
 		const args = node.arguments;
+		if ( args == null ) {
+			return;
+		}
+
+		// Note: the following code assumes that no variables or expressions are used
+		// for the arguments of the sap.ui.define call. The analysis could be made more
+		// sophisticated and could try to skip unhandled parameter types, based on the
+		// AST type of follow-up arguments.
+		// But on the other hand, an incomplete analysis of the define call is useless in
+		// many cases, so it might not be worth the effort.
+
 		let i = 0;
 		let params;
 
-		if ( args[i].type === Syntax.Literal ) {
+		if ( i < args.length && isString(args[i]) ) {
 			// assert(String)
 			this.name = args[i++].value;
 		}
 
-		if ( args[i].type === Syntax.ArrayExpression ) {
+		if ( i < args.length && args[i].type === Syntax.ArrayExpression ) {
 			this.dependencyArray = args[i++];
 			this.dependencies = this.dependencyArray.elements.map( (elem) => {
 				if ( !isString(elem) ) {
@@ -31,7 +43,7 @@ class SapUiDefineCall {
 			this.dependencyInsertionIdx = this.dependencyArray.elements.length;
 		}
 
-		if ( args[i].type === Syntax.FunctionExpression ) {
+		if ( i < args.length && args[i].type === Syntax.FunctionExpression ) {
 			this.factory = args[i++];
 			params = this.factory.params;
 			this.paramNames = params.map( (param) => {
@@ -43,6 +55,10 @@ class SapUiDefineCall {
 			if ( this.factory.params.length < this.dependencyInsertionIdx ) {
 				this.dependencyInsertionIdx = this.factory.params.length;
 			}
+		}
+
+		if ( i < args.length && isBoolean(args[i]) ) {
+			this.exportAsGlobal = args[i].value;
 		}
 
 		// console.log("declared dependencies: " + this.dependencies);

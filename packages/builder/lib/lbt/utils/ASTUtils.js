@@ -19,6 +19,13 @@ function isString(node, literal) {
 	return literal == null ? true : node.value === literal;
 }
 
+function isBoolean(node, literal) {
+	if ( node == null || node.type !== Syntax.Literal || typeof node.value !== "boolean" ) {
+		return false;
+	}
+	return literal == null ? true : node.value === literal;
+}
+
 function isMethodCall(node, methodPath) {
 	if ( node.type !== Syntax.CallExpression ) {
 		return false;
@@ -106,6 +113,7 @@ function getStringArray(array, skipNonStringLiterals) {
 
 module.exports = {
 	isString,
+	isBoolean,
 	isMethodCall,
 	isNamedObject,
 	isIdentifier,

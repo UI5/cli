@@ -14,6 +14,24 @@ test("isString", (t) => {
 	t.false(ASTUtils.isString(literal, "myOtherValue47"), "is a literal but its value does not match");
 });
 
+test("isBoolean", (t) => {
+	t.false(ASTUtils.isString(null));
+
+	const trueLiteral = esprima.parse("true").body[0].expression;
+	const falseLiteral = esprima.parse("false").body[0].expression;
+	const stringLiteral = esprima.parse("'some string'").body[0].expression;
+	const call = esprima.parse("setTimeout()").body[0];
+
+	t.true(ASTUtils.isBoolean(trueLiteral), "is a boolean literal");
+	t.true(ASTUtils.isBoolean(falseLiteral), "is a boolean literal");
+	t.false(ASTUtils.isBoolean(stringLiteral), "is not a boolean literal");
+	t.false(ASTUtils.isBoolean(call), "is not a boolean literal");
+	t.true(ASTUtils.isBoolean(trueLiteral, true), "is a literal and its value matches");
+	t.false(ASTUtils.isBoolean(trueLiteral, false), "is a literal and value does not matches");
+	t.true(ASTUtils.isBoolean(falseLiteral, false), "is a literal and its value matches");
+	t.false(ASTUtils.isBoolean(falseLiteral, true), "is a literal and value does not matches");
+});
+
 test("isIdentifier", (t) => {
 	const literal = esprima.parse("'testValue47'").body[0].expression;
 
