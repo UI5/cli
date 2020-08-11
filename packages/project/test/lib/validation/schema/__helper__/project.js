@@ -22,10 +22,9 @@ module.exports = {
 		// customConfiguration tests
 		customConfiguration.defineTests(test, assertValidation, type);
 
-
 		// version specific tests
-		["2.0", "2.1"].forEach((specVersion) => {
-			// tests for all kinds and version 2.0 and 2.1
+		["2.2", "2.1", "2.0"].forEach((specVersion) => {
+			// tests for all kinds and version 2.0 and above
 			test(`${type} (specVersion ${specVersion}): No metadata`, async (t) => {
 				await assertValidation(t, {
 					"specVersion": specVersion,
@@ -279,7 +278,7 @@ module.exports = {
 					params: {
 						additionalProperty: "notAllowed",
 					},
-					schemaPath: specVersion === "2.1" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+					schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
 				}]);
 			});
 		});

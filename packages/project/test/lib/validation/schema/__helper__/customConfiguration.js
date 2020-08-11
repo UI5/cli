@@ -36,17 +36,19 @@ module.exports = {
 			]);
 		});
 
-		test(`${type}: Valid customConfiguration (specVersion 2.1)`, async (t) => {
-			await assertValidation(t, Object.assign( {
-				"specVersion": "2.1",
-				"type": type,
-				"metadata": {
-					"name": "my-" + type
-				},
-				"customConfiguration": {
-					"foo": "bar"
-				}
-			}, additionalConfiguration));
+		["2.2", "2.1"].forEach((specVersion) => {
+			test(`${type}: Valid customConfiguration (specVersion ${specVersion})`, async (t) => {
+				await assertValidation(t, Object.assign( {
+					"specVersion": specVersion,
+					"type": type,
+					"metadata": {
+						"name": "my-" + type
+					},
+					"customConfiguration": {
+						"foo": "bar"
+					}
+				}, additionalConfiguration));
+			});
 		});
 	}
 };

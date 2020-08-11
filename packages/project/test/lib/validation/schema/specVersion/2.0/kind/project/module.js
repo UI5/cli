@@ -35,93 +35,95 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-test("Valid configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"kind": "project",
-		"type": "module",
-		"metadata": {
-			"name": "my-module"
-		},
-		"resources": {
-			"configuration": {
-				"paths": {
-					"/resources/my/library/module-xy/": "lib",
-					"/resources/my/library/module-xy-min/": "dist"
+["2.2", "2.1", "2.0"].forEach((specVersion) => {
+	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "module",
+			"metadata": {
+				"name": "my-module"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"/resources/my/library/module-xy/": "lib",
+						"/resources/my/library/module-xy-min/": "dist"
+					}
 				}
 			}
-		}
+		});
 	});
-});
 
-test("No framework configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "module",
-		"metadata": {
-			"name": "my-module"
-		},
-		"framework": {}
-	}, [{
-		dataPath: "",
-		keyword: "additionalProperties",
-		message: "should NOT have additional properties",
-		params: {
-			"additionalProperty": "framework"
-		},
-		schemaPath: "#/else/additionalProperties"
-	}]);
-});
+	test(`No framework configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "module",
+			"metadata": {
+				"name": "my-module"
+			},
+			"framework": {}
+		}, [{
+			dataPath: "",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				"additionalProperty": "framework"
+			},
+			schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+		}]);
+	});
 
-test("No propertiesFileSourceEncoding configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "module",
-		"metadata": {
-			"name": "my-module"
-		},
-		"resources": {
-			"configuration": {
-				"propertiesFileSourceEncoding": "UTF-8"
+	test(`No propertiesFileSourceEncoding configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "module",
+			"metadata": {
+				"name": "my-module"
+			},
+			"resources": {
+				"configuration": {
+					"propertiesFileSourceEncoding": "UTF-8"
+				}
 			}
-		}
-	}, [{
-		dataPath: "/resources/configuration",
-		keyword: "additionalProperties",
-		message: "should NOT have additional properties",
-		params: {
-			"additionalProperty": "propertiesFileSourceEncoding"
-		},
-		schemaPath: "#/definitions/resources/properties/configuration/additionalProperties"
-	}]);
-});
+		}, [{
+			dataPath: "/resources/configuration",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				"additionalProperty": "propertiesFileSourceEncoding"
+			},
+			schemaPath: "#/definitions/resources/properties/configuration/additionalProperties"
+		}]);
+	});
 
-test("No builder, server configuration", async (t) => {
-	await assertValidation(t, {
-		"specVersion": "2.0",
-		"type": "module",
-		"metadata": {
-			"name": "my-module"
-		},
-		"builder": {},
-		"server": {}
-	}, [{
-		dataPath: "",
-		keyword: "additionalProperties",
-		message: "should NOT have additional properties",
-		params: {
-			"additionalProperty": "builder"
-		},
-		schemaPath: "#/else/additionalProperties"
-	}, {
-		dataPath: "",
-		keyword: "additionalProperties",
-		message: "should NOT have additional properties",
-		params: {
-			"additionalProperty": "server"
-		},
-		schemaPath: "#/else/additionalProperties"
-	}]);
+	test(`No builder, server configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "module",
+			"metadata": {
+				"name": "my-module"
+			},
+			"builder": {},
+			"server": {}
+		}, [{
+			dataPath: "",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				"additionalProperty": "builder"
+			},
+			schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+		}, {
+			dataPath: "",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				"additionalProperty": "server"
+			},
+			schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+		}]);
+	});
 });
 
 project.defineTests(test, assertValidation, "module");

@@ -4,31 +4,15 @@
 
 	"type": "object",
 	"required": ["specVersion", "type", "metadata"],
-	"properties": {
-		"specVersion": { "enum": ["2.1","2.0"] },
-		"kind": {
-			"enum": ["project", null]
-		},
-		"type": {
-			"enum": ["module"]
-		},
-		"metadata": {
-			"$ref": "../project.json#/definitions/metadata"
-		},
-		"resources": {
-			"$ref": "#/definitions/resources"
-		}
-	},
-
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.1"] }
+			"specVersion": { "enum": ["2.1", "2.2"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.1"] },
+			"specVersion": { "enum": ["2.1", "2.2"] },
 			"kind": {
 				"enum": ["project", null]
 			},
