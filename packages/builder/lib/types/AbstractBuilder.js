@@ -21,7 +21,7 @@ class AbstractBuilder {
 	 * @param {BuilderResourceCollections} parameters.resourceCollections Resource collections
 	 * @param {object} parameters.project Project configuration
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
-	 * @param {object} parameters.buildContext
+	 * @param {object} parameters.taskUtil
 	 */
 	constructor({resourceCollections, project, parentLogger, taskUtil}) {
 		if (new.target === AbstractBuilder) {
@@ -55,7 +55,7 @@ class AbstractBuilder {
 	 * @protected
 	 * @param {object} parameters
 	 * @param {BuilderResourceCollections} parameters.resourceCollections Resource collections
-	 * @param {object} parameters.buildContext
+	 * @param {object} parameters.taskUtil
 	 * @param {object} parameters.project Project configuration
 	 * @param {object} parameters.log <code>@ui5/logger</code> logger instance
 	 */
@@ -69,7 +69,7 @@ class AbstractBuilder {
 	 * @private
 	 * @param {object} parameters
 	 * @param {BuilderResourceCollections} parameters.resourceCollections Resource collections
-	 * @param {object} parameters.buildContext
+	 * @param {object} parameters.taskUtil
 	 * @param {object} parameters.project Project configuration
 	 */
 	addCustomTasks({resourceCollections, project, taskUtil}) {

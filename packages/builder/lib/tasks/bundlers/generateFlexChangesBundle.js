@@ -13,7 +13,7 @@ const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler
  * @alias module:@ui5/builder.tasks.generateFlexChangesBundle
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/builder.tasks.TaskUtil} [parameters.taskUtil] TaskUtil
+ * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.namespace] Application Namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
