@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.0.7...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.1.0...HEAD).
+
+<a name="v2.1.0"></a>
+## [v2.1.0] - 2020-08-11
+### Features
+- Implement TaskUtil class [`a7074ae`](https://github.com/SAP/ui5-builder/commit/a7074aeb8167330fd1b6d30bf5b387a212cd6b1b)
+- **generateFlexChangesBundle:** Hide bundle input from build result [`001183a`](https://github.com/SAP/ui5-builder/commit/001183a4981bb5fe43039cedfbea70c2090b24db)
+
 
 <a name="v2.0.7"></a>
 ## [v2.0.7] - 2020-08-10
@@ -403,6 +410,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.1.0]: https://github.com/SAP/ui5-builder/compare/v2.0.7...v2.1.0
 [v2.0.7]: https://github.com/SAP/ui5-builder/compare/v2.0.6...v2.0.7
 [v2.0.6]: https://github.com/SAP/ui5-builder/compare/v2.0.5...v2.0.6
 [v2.0.5]: https://github.com/SAP/ui5-builder/compare/v2.0.4...v2.0.5
