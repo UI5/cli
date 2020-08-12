@@ -278,3 +278,17 @@ test("_validateValue: Invalid value null", (t) => {
 		message: "Invalid Tag Value: Must be of type string, number or boolean but is object"
 	});
 });
+
+test("_validateResource: Empty path", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"]
+	});
+	t.throws(() => {
+		tagCollection._validateResource({
+			getPath: () => ""
+		});
+	}, {
+		instanceOf: Error,
+		message: "Invalid Resource: Resource path must not be empty"
+	});
+});
