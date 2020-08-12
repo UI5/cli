@@ -1,8 +1,6 @@
 const tagNamespaceRegExp = new RegExp("^[a-z][a-z0-9]*$"); // part before the colon
 const tagNameRegExp = new RegExp("^[A-Z][A-Za-z0-9]+$"); // part after the colon
 
-const Resource = require("./Resource");
-
 class ResourceTagCollection {
 	constructor({allowedTags}) {
 		if (!allowedTags || !allowedTags.length) {
@@ -47,8 +45,9 @@ class ResourceTagCollection {
 	}
 
 	_validateResource(resource) {
-		if (!(resource instanceof Resource)) {
-			throw new Error(`Invalid Resource: Must be instance of @ui5/fs.Resource`);
+		const path = resource.getPath();
+		if (!path) {
+			throw new Error(`Invalid Resource: Resource path must not be empty`);
 		}
 	}
 
