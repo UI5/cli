@@ -38,6 +38,7 @@ class Resource {
 	 *					stream of the content of this resource (cannot be used in conjunction with parameters buffer,
 	 *					string or stream).
 	 *					In some cases this is the most memory-efficient way to supply resource content
+	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 */
 	constructor({path, statInfo, buffer, string, createStream, stream, project}) {
 		if (!path) {

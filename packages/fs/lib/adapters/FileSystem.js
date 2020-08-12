@@ -22,6 +22,7 @@ class FileSystem extends AbstractAdapter {
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} parameters.fsBasePath (Physical) File system path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
+	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 */
 	constructor({virBasePath, project, fsBasePath, excludes}) {
 		super({virBasePath, project, excludes});
