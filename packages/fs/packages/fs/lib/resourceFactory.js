@@ -52,12 +52,13 @@ const resourceFactory = {
 	 *						Callback to retrieve the exclude globs of a project
 	 * @param {module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix} [parameters.getVirtualBasePathPrefix]
 	 *						Callback to retrieve a prefix for a given virtual base path of a project if required
+	 * @param {object} [parameters.virtualReaders] Experimental, internal parameter. Do not use
 	 * @returns {object} Object containing <code>source</code> and <code>dependencies</code> resource readers
 	 */
 	createCollectionsForTree(tree, {
 		getProjectExcludes, getVirtualBasePathPrefix, virtualReaders={}
 	} = {}) {
-		// TODO 2.0: virtualReaders is private API. The virtual reader of a project should be stored on the
+		// TODO 3.0: virtualReaders is private API. The virtual reader of a project should be stored on the
 		//	project itself. This requires projects to become objects independent from the dependency tree.
 		//	Also see: https://github.com/SAP/ui5-project/issues/122
 
@@ -227,6 +228,7 @@ const resourceFactory = {
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} [parameters.fsBasePath] File system base path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
+	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 * @returns {module:@ui5/fs.adapters.FileSystem|module:@ui5/fs.adapters.Memory} File System- or Virtual Adapter
 	 */
 	createAdapter({fsBasePath, virBasePath, project, excludes}) {
@@ -253,12 +255,14 @@ const resourceFactory = {
 	 * Creates a Workspace
 	 *
 	 * A workspace is a DuplexCollection which reads from the project sources. It is used during the build process
-	 * to write modified files into a seperate writer, this is usually a Memory adapter. If a file already exists it is
+	 * to write modified files into a separate writer, this is usually a Memory adapter. If a file already exists it is
 	 * fetched from the memory to work on it in further build steps.
 	 *
 	 * @public
 	 * @param {object} parameters
-	 * @param {module:@ui5/fs.AbstractReader} parameters.reader The reader
+	 * @param {module:@ui5/fs.AbstractReader} parameters.reader Single reader or collection of readers
+	 * @param {module:@ui5/fs.AbstractReaderWriter} [parameters.writer] A ReaderWriter instance which is
+	 *							only used for writing files. If not supplied, a Memory adapter will be created.
 	 * @param {string} [parameters.name="vir & fs source"] Name of the collection
 	 * @param {string} [parameters.virBasePath="/"] Virtual base path
 	 * @returns {module:@ui5/fs.DuplexCollection} DuplexCollection which wraps the provided resource locators
