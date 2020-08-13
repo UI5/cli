@@ -24,6 +24,52 @@
 		this.aPages.push(sTestPage);
 	};
 
+	function XHRQueue(iMaxParallelRequests, iWaitTime) {
+		this.iLimit = iMaxParallelRequests === undefined ? Infinity : iMaxParallelRequests;
+		this.iWaitTime = iWaitTime === undefined ? 0 : iWaitTime;
+		this.aPendingTasks = [];
+		this.oRunningTasks = new Set();
+		this.iLastTaskExecution = -Infinity;
+	}
+
+	XHRQueue.prototype.ajax = function(sUrl, options) {
+		var oTask = {
+			url: sUrl,
+			options: options
+		};
+		oTask.promise = new Promise(function(resolve, reject) {
+			oTask.resolve = resolve;
+			oTask.reject = reject;
+		});
+		this.aPendingTasks.push(oTask);
+		this._processNext();
+		return oTask.promise;
+	};
+
+	XHRQueue.prototype._processNext = function() {
+		var iNow = Date.now();
+		var iDelay = iNow - this.iLastTaskExecution;
+		if ( iDelay < this.iWaitTime ) {
+			setTimeout(function() {
+				this._processNext();
+			}.bind(this), iDelay);
+			return;
+		}
+		if ( this.aPendingTasks.length > 0 && this.oRunningTasks.size < this.iLimit ) {
+			var oTask = this.aPendingTasks.shift();
+			this.oRunningTasks.add(oTask);
+			this.iLastTaskExecution = iNow;
+			Promise.resolve(jQuery.ajax(oTask.url, oTask.options))
+				.then(oTask.resolve, oTask.reject)
+				.finally(function() {
+					this.oRunningTasks.delete(oTask);
+					this._processNext();
+				}.bind(this));
+		}
+	};
+
+	var oXHRQueue = new XHRQueue(50, 2);
+
 	/*
 	 * Template for test results
 	 */
@@ -62,6 +108,21 @@
 	window.sap.ui.qunit.TestRunner = {
 
 		checkTestPage: function(sTestPage, bSequential) {
+			var t0 = Date.now();
+			var oPromise =
+				this._checkTestPage(sTestPage, bSequential)
+				.then(function(aTestPages) {
+					var t1 = Date.now();
+					window.console.log("[DEBUG] checkTestPage(\"" + sTestPage + "\") found " + aTestPages.length + " pages in " + (t1 - t0) + "msec.");
+					window.console.log("[DEBUG] checkTestPage(\"" + sTestPage + "\") currently running IFrames: " + window.frames.length);
+					return aTestPages;
+				});
+			oPromise.done = oPromise.then; // compat for Deferred
+			oPromise.fail = oPromise.catch; // compat for Deferred
+			return oPromise;
+		},
+
+		_checkTestPage: function(sTestPage, bSequential) {
 
 			var oPromise = new Promise(function(resolve, reject) {
 
@@ -70,25 +131,28 @@
 					reject("QUnit: invalid test page specified");
 				}
 
+				/*
 				if (window.console && typeof window.console.log === "function") {
 					window.console.log("QUnit: checking test page: " + sTestPage);
-				}
+				}*/
 
 				// check for an existing test page and check for test suite or page
-				jQuery.get(sTestPage).done(function(sData) {
+				oXHRQueue.ajax(sTestPage).then(function(sData) {
 					if (/(?:window\.suite\s*=|function\s*suite\s*\(\s*\)\s*{)/.test(sData)
 							|| (/data-sap-ui-testsuite/.test(sData) && !/sap\/ui\/test\/starter\/runTest/.test(sData)) ) {
+						// window.console.log("[DEBUG] _checkTestPage checking testsuite page: " + sTestPage);
 						var $frame = jQuery("<iframe>");
 						var that = this;
 
 						var onSuiteReady = function(oIFrame) {
 							that.findTestPages(oIFrame, bSequential).then(function(aTestPages) {
+								var aTestPagesFiltered = aTestPages.filter(function(e, i, a) { return a.indexOf(e) === i; });
 								$frame.remove();
 								// avoid duplicates in test pages
-								resolve(aTestPages.filter(function(e, i, a) { return a.indexOf(e) === i; }));
+								resolve(aTestPagesFiltered);
 							}, function(oError) {
 								if (window.console && typeof window.console.error === "function") {
-									window.console.error("QUnit: failed to load page '" + sTestPage + "'");
+									window.console.error("QUnit: failed to load page '" + sTestPage + "'" + " Error: " + oError);
 								}
 								$frame.remove();
 								resolve([]);
@@ -111,7 +175,7 @@
 					} else {
 						resolve([sTestPage]);
 					}
-				}.bind(this)).fail(function(xhr,status,msg) {
+				}.bind(this)).catch(function(xhr,status,msg) {
 					var text = (xhr ? xhr.status + " " : "") + (msg || status || 'unspecified error');
 					if (window.console && typeof window.console.error === "function") {
 						window.console.error("QUnit: failed to load page '" + sTestPage + "': " + text);
@@ -123,9 +187,6 @@
 
 			}.bind(this));
 
-			oPromise.done = oPromise.then; // compat for Deferred
-			oPromise.fail = oPromise.catch; // compat for Deferred
-
 			return oPromise;
 
 		},
@@ -133,7 +194,11 @@
 		findTestPages: function(oIFrame, bSequential) {
 
 			return Promise.resolve(oIFrame.contentWindow.suite()).then(function(oSuite) {
+				window.console.log("[DEBUG] findTestPages oIFrame source: " + oIFrame.src);
 				var aPages = oSuite && oSuite.getTestPages() || [];
+				for (var i = 0; i < aPages.length; i++) {
+					window.console.log("[DEBUG] findTestPages oIFrame source " + oIFrame.src + ": " + aPages[i]);
+				}
 				return new Promise(function(resolve, reject) {
 
 					try {
@@ -146,7 +211,7 @@
 
 								var aTestPages = [];
 								aTestPagePromises.push(aPages.reduce(function(oPromise, sTestPage) {
-									return oPromise.then(this.checkTestPage.bind(this, sTestPage, bSequential)).then(function(aFoundTestPages) {
+									return oPromise.then(this._checkTestPage.bind(this, sTestPage, bSequential)).then(function(aFoundTestPages) {
 										aTestPages = aTestPages.concat(aFoundTestPages);
 									});
 								}.bind(this), Promise.resolve([])).then(function() {
@@ -157,7 +222,7 @@
 
 								for (var i = 0, l = aPages.length; i < l; i++) {
 									var sTestPage = aPages[i];
-									aTestPagePromises.push(this.checkTestPage(sTestPage, bSequential));
+									aTestPagePromises.push(this._checkTestPage(sTestPage, bSequential));
 								}
 
 							}
@@ -169,6 +234,11 @@
 										aTestPages = aTestPages.concat(aFoundTestPages[i]);
 									}
 									resolve(aTestPages);
+								})
+								.catch(function(oError){
+									if (window.console && typeof window.console.error === "function") {
+										window.console.error("[DEBUG] findTestPages Promise.all error: " + oError);
+									}
 								});
 							}
 
@@ -267,10 +337,10 @@
 			var sHTML = fnTemplate(oContext);
 			var $testResult = jQuery(sHTML);
 			var $children = $testResult.children();
-			jQuery($children[0]).click(function() {
+			jQuery($children[0]).on("click", function() {
 				jQuery(this.nextSibling).toggle();
 			});
-			jQuery($children[1]).find("li.test > p").click(function() {
+			jQuery($children[1]).find("li.test > p").on("click", function() {
 				jQuery(this.parentElement.children[2]).toggle();
 			});
 			$testResult.appendTo("div.test-reporting");
