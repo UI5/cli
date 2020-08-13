@@ -42,7 +42,9 @@
 		"index.js",
 		"CONTRIBUTING.md",
 		"jsdoc.json",
-		"lib/**"
+		"lib/**",
+		"LICENSES/**",
+		".reuse/**"
 	],
 	"ava": {
 		"files": [
