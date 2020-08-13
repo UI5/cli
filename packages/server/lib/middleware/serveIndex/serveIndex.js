@@ -7,7 +7,7 @@
  * Web: https://github.com/expressjs/serve-index/tree/20e83c893b701c3a117a0f6836be0f5a818bb925
  *
  * Licensed under
- *   MIT License, see "serve-index-LICENSE.txt"
+ *   MIT License, see "/LICENSES/MIT.txt"
  *
  * Copyright (c) 2010 Sencha Inc.
  * Copyright (c) 2011 LearnBoost
