@@ -23,6 +23,3 @@ Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/b
 
 ## Release History
 See [CHANGELOG.md](CHANGELOG.md).
-
-## License
-This project is licensed under the Apache Software License, Version 2.0 except as noted otherwise in the [LICENSE](/LICENSE.txt) file.
