@@ -4,6 +4,7 @@
 > Internal logging module  
 > Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
  
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP/ui5-logger)](https://api.reuse.software/info/github.com/SAP/ui5-logger)
 [![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-logger?branchName=master)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=37&branchName=master)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Flogger.svg)](https://www.npmjs.com/package/@ui5/logger)
 [![Dependency Status](https://david-dm.org/SAP/ui5-logger/master.svg)](https://david-dm.org/SAP/ui5-logger/master)
