@@ -239,6 +239,13 @@ function getDocumentation(node) {
  * @private
  */
 class JSModuleAnalyzer {
+	/**
+	 * Analyzes the JS AST
+	 *
+	 * @param {object} ast js ast
+	 * @param {string} defaultName default name
+	 * @param {ModuleInfo} info module info
+	 */
 	analyze(ast, defaultName, info) {
 		let mainModuleFound = false;
 		/**
@@ -259,6 +266,20 @@ class JSModuleAnalyzer {
 		 * Total number of module declarations (declare or define).
 		 */
 		let nModuleDeclarations = 0;
+
+		/**
+		 * Whether or not this is a UI5 module
+		 *
+		 * When in the non-conditional module execution there is a call to:
+		 * <ul>
+		 * <li>sap.ui.define call</li>
+		 * <li>jQuery.sap.declare call</li>
+		 * </ul>
+		 * this value is true
+		 *
+		 * @type {boolean}
+		 */
+		let bIsUi5Module = false;
 
 		// first analyze the whole AST...
 		visit(ast, false);
@@ -307,7 +328,7 @@ class JSModuleAnalyzer {
 			info.addImplicitDependency(UI5ClientConstants.MODULE__UI5LOADER_AUTOCONFIG);
 		}
 
-		if ( nModuleDeclarations === 0 && info.dependencies.length === 0 && info.subModules.length === 0 ) {
+		if ( !bIsUi5Module ) {
 			// when there are no indicators for module APIs, mark the module as 'raw' module
 			info.rawModule = true;
 		}
@@ -320,7 +341,6 @@ class JSModuleAnalyzer {
 			// console.log(info.name, "exposed globals", info.exposedGlobals, "ignoredGlobals", info.ignoredGlobals);
 		}
 
-		return;
 
 		// hoisted functions
 		function setMainModuleInfo(name, description) {
@@ -353,6 +373,7 @@ class JSModuleAnalyzer {
 					// recognized a call to jQuery.sap.declare()
 					nModuleDeclarations++;
 					info.setFormat(ModuleFormat.UI5_LEGACY);
+					bIsUi5Module = true;
 					onDeclare(node);
 				} else if ( !conditional &&
 								(isMethodCall(node, CALL_SAP_UI_DEFINE) || isMethodCall(node, CALL_AMD_DEFINE)) ) {
@@ -364,6 +385,7 @@ class JSModuleAnalyzer {
 					} else {
 						info.setFormat(ModuleFormat.AMD);
 					}
+					bIsUi5Module = true;
 					onDefine(node);
 
 					const args = node.arguments;
@@ -380,8 +402,24 @@ class JSModuleAnalyzer {
 					}
 				} else if ( isMethodCall(node, CALL_REQUIRE_PREDEFINE) || isMethodCall(node, CALL_SAP_UI_PREDEFINE) ) {
 					// recognized a call to require.predefine() or sap.ui.predefine()
+					if (!conditional) {
+						bIsUi5Module = true;
+					}
 					info.setFormat(ModuleFormat.UI5_DEFINE);
-					onSapUiPredefine(node);
+					onSapUiPredefine(node, conditional);
+
+					const args = node.arguments;
+					let iArg = 0;
+					if ( iArg < args.length && isString(args[iArg]) ) {
+						iArg++;
+					}
+					if ( iArg < args.length && args[iArg].type == Syntax.ArrayExpression ) {
+						iArg++;
+					}
+					if ( iArg < args.length && isCallableExpression(args[iArg]) ) {
+						// unconditionally execute the factory function
+						visit(args[iArg].body, conditional);
+					}
 				} else if ( isMethodCall(node, CALL_SAP_UI_REQUIRE) || isMethodCall(node, CALL_AMD_REQUIRE) ) {
 					// recognized a call to require() or sap.ui.require()
 					if ( isMethodCall(node, CALL_SAP_UI_REQUIRE) ) {
@@ -404,6 +442,7 @@ class JSModuleAnalyzer {
 				} else if ( isMethodCall(node, CALL_REQUIRE_SYNC) || isMethodCall(node, CALL_SAP_UI_REQUIRE_SYNC) ) {
 					// recognizes a call to sap.ui.requireSync
 					info.setFormat(ModuleFormat.UI5_DEFINE);
+
 					onSapUiRequireSync(node, conditional);
 				} else if ( isMethodCall(node, CALL_JQUERY_SAP_REQUIRE) ) {
 					// recognizes a call to jQuery.sap.require
@@ -411,10 +450,16 @@ class JSModuleAnalyzer {
 					onJQuerySapRequire(node, conditional);
 				} else if ( isMethodCall(node, CALL_JQUERY_SAP_REGISTER_PRELOADED_MODULES) ) {
 					// recognizes a call to jQuery.sap.registerPreloadedModules
+					if (!conditional) {
+						bIsUi5Module = true;
+					}
 					info.setFormat(ModuleFormat.UI5_LEGACY);
 					onRegisterPreloadedModules(node, /* evoSyntax= */ false);
 				} else if ( isMethodCall(node, CALL_SAP_UI_REQUIRE_PRELOAD) ) {
 					// recognizes a call to sap.ui.require.preload
+					if (!conditional) {
+						bIsUi5Module = true;
+					}
 					info.setFormat(ModuleFormat.UI5_DEFINE);
 					onRegisterPreloadedModules(node, /* evoSyntax= */ true);
 				} else if ( isCallableExpression(node.callee) ) {
@@ -560,6 +605,7 @@ class JSModuleAnalyzer {
 
 			if ( i < nArgs ) {
 				if ( isString(args[i]) ) {
+					// sap.ui.requireSync does not support relative dependencies
 					const moduleName = ModuleName.fromRequireJSName( args[i].value );
 					info.addDependency(moduleName, conditional);
 				} else {
@@ -569,7 +615,7 @@ class JSModuleAnalyzer {
 			}
 		}
 
-		function onSapUiPredefine(predefineCall) {
+		function onSapUiPredefine(predefineCall, conditional) {
 			const args = predefineCall.arguments;
 			const nArgs = args.length;
 			let i = 0;
@@ -578,6 +624,16 @@ class JSModuleAnalyzer {
 			if ( i < nArgs && isString(args[i]) ) {
 				const moduleName = ModuleName.fromRequireJSName( args[i++].value );
 				info.addSubModule(moduleName);
+
+				// add dependencies
+				// to correctly identify dependencies e.g. of a library-preload
+				const elementArg = args[i++];
+				if (elementArg && elementArg.type === Syntax.ArrayExpression) {
+					elementArg.elements.forEach((element) => {
+						const dependencyName = ModuleName.resolveRelativeRequireJSName(moduleName, element.value);
+						info.addDependency(dependencyName, conditional);
+					});
+				}
 			} else {
 				log.warn("sap.ui.predefine call is missing a module name (ignored)");
 			}

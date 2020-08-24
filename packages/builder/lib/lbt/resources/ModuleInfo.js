@@ -58,6 +58,12 @@ class ModuleInfo {
 		/**
 		 * 'raw' modules are modules that don't use UI5's module system (require/declare)
 		 * TODO align with module format (ui5, amd, es6, raw)
+		 *
+		 * A raw module is a module which does not have in its non-conditional execution:
+		 * <ul>
+		 * <li>sap.ui.define call</li>
+		 * <li>jQuery.sap.declare call</li>
+		 * </ul>
 		 */
 		this.rawModule = false;
 

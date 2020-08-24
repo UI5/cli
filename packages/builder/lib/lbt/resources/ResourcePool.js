@@ -161,6 +161,12 @@ class ResourcePool {
 		}
 	}
 
+	/**
+	 * Retrieves the module info
+	 *
+	 * @param {string} name module name
+	 * @returns {Promise<ModuleInfo>}
+	 */
 	async getModuleInfo(name) {
 		let info = this._dependencyInfos.get(name);
 		if ( info == null ) {

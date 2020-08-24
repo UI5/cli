@@ -60,6 +60,11 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 	selectedTasks.generateCachebusterInfo = false;
 	selectedTasks.generateApiIndex = false;
 
+	// Disable generateResourcesJson due to performance.
+	// When executed it analyzes each module's AST and therefore
+	// takes up much time (~10% more)
+	selectedTasks.generateResourcesJson = false;
+
 	if (selfContained) {
 		// No preloads, bundle only
 		selectedTasks.generateComponentPreload = false;

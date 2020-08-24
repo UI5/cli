@@ -1,5 +1,16 @@
 const terser = require("terser");
-const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
+/**
+ * Preserve comments which contain:
+ * <ul>
+ *  <li>copyright notice</li>
+ *  <li>license terms</li>
+ *  <li>"@ui5-bundle"</li>
+ *  <li>"@ui5-bundle-raw-include"</li>
+ * </ul>
+ *
+ * @type {RegExp}
+ */
+const copyrightCommentsAndBundleCommentPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9|^@ui5-bundle-raw-include |^@ui5-bundle /i;
 
 /**
  * Minifies the supplied resources.
@@ -18,7 +29,7 @@ module.exports = function({resources}) {
 			}, {
 				warnings: false,
 				output: {
-					comments: copyrightCommentsPattern,
+					comments: copyrightCommentsAndBundleCommentPattern,
 					wrap_func_args: false
 				},
 				compress: false

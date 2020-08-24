@@ -70,7 +70,8 @@ test("Instantiation", (t) => {
 		"uglify",
 		"generateVersionInfo",
 		"generateCachebusterInfo",
-		"generateApiIndex"
+		"generateApiIndex",
+		"generateResourcesJson"
 	], "ApplicationBuilder is instantiated with standard tasks");
 });
 
@@ -93,7 +94,8 @@ test("Instantiation without component preload project configuration", (t) => {
 		"uglify",
 		"generateVersionInfo",
 		"generateCachebusterInfo",
-		"generateApiIndex"
+		"generateApiIndex",
+		"generateResourcesJson"
 	], "ApplicationBuilder is still instantiated with standard tasks");
 });
 
@@ -114,7 +116,8 @@ test("Instantiation without project namespace", (t) => {
 		"createDebugFiles",
 		"uglify",
 		"generateVersionInfo",
-		"generateApiIndex"
+		"generateApiIndex",
+		"generateResourcesJson"
 	], "All standard tasks but generateComponentPreload will be executed");
 });
 
@@ -142,6 +145,7 @@ test("Instantiation with custom tasks", (t) => {
 		"replaceVersion--1",
 		"generateVersionInfo",
 		"generateCachebusterInfo",
-		"generateApiIndex"
+		"generateApiIndex",
+		"generateResourcesJson"
 	], "ApplicationBuilder is still instantiated with standard tasks");
 });

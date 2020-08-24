@@ -127,6 +127,32 @@ class ResourceFilterList {
 	}
 }
 
+/**
+ * Each filter entry can be a comma separated list of simple filters. Each simple filter
+ * can be a pattern in resource name pattern syntax: A double asterisk '&0x2a;&0x2a;/' denotes an arbitrary
+ * number of resource name segments (folders) incl. a trailing slash, whereas a simple asterisk '*'
+ * denotes an arbitrary number of resource name characters, but not the segment separator '/'.
+ * A dot is interpreted as a dot, all other special regular expression characters keep their
+ * special meaning. This is a mixture of ANT-style path patterns and regular expressions.
+ *
+ * Excludes can be denoted by a leading '-' or '!', includes optionally by a leading '+'.
+ * Order of filters is significant, a later exclusion overrides an earlier inclusion
+ * and vice versa.
+ *
+ * Example:
+ * <pre>
+ *	 !sap/ui/core/
+ *	 +sap/ui/core/utils/
+ * </pre>
+ * excludes everything from sap/ui/core, but includes everything from the subpackage sap/ui/core/utils/.
+ *
+ * Note that the filter operates on the full name of each resource. If a resource name
+ * <code>prefix</code> is configured for a resource set, the filter will be applied
+ * to the combination of prefix and local file path and not only to the local file path.
+ *
+ * @param {string} filterStr comma separated list of simple filters
+ * @returns {ResourceFilterList}
+ */
 ResourceFilterList.fromString = function(filterStr) {
 	const result = new ResourceFilterList();
 	if ( filterStr != null ) {

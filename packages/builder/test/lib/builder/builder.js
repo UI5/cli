@@ -8,6 +8,7 @@ const readFile = promisify(fs.readFile);
 const assert = chai.assert;
 const sinon = require("sinon");
 const mock = require("mock-require");
+const resourceFactory = require("@ui5/fs").resourceFactory;
 
 const ui5Builder = require("../../../");
 const builder = ui5Builder.builder;
@@ -55,7 +56,7 @@ function cloneProjectTree(tree) {
 	return clone;
 }
 
-async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath) {
+async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath) {
 	for (let i = 0; i < expectedFiles.length; i++) {
 		const expectedFile = expectedFiles[i];
 		const relativeFile = path.relative(expectedPath, expectedFile);
@@ -66,9 +67,16 @@ async function checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, des
 			if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
 				currentContent = JSON.parse(currentContent.replace(/(:\s+)(\d+)/g, ": 0"));
 				expectedContent = JSON.parse(expectedContent.replace(/(:\s+)(\d+)/g, ": 0"));
-				assert.deepEqual(currentContent, expectedContent);
+				t.deepEqual(currentContent, expectedContent);
 			} else {
-				assert.equal(currentContent.replace(newLineRegexp, "\n"), expectedContent.replace(newLineRegexp, "\n"));
+				if (expectedFile.endsWith(".json")) {
+					try {
+						t.deepEqual(JSON.parse(currentContent), JSON.parse(expectedContent), expectedFile);
+					} catch (e) {
+						t.falsy(e, expectedFile);
+					}
+				}
+				t.is(currentContent.replace(newLineRegexp, "\n"), expectedContent.replace(newLineRegexp, "\n"), relativeFile);
 			}
 		};
 		await Promise.all([currentFileContentPromise, expectedFileContentPromise]).then(assertContents);
@@ -177,7 +185,7 @@ test("Build application.a", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -208,7 +216,7 @@ test("Build application.a with dependencies", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -229,7 +237,7 @@ test("Build application.a with dependencies include", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -250,7 +258,7 @@ test("Build application.a with dependencies exclude", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -271,7 +279,7 @@ test("Build application.a self-contained", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -293,7 +301,7 @@ test("Build application.a with dependencies self-contained", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -314,7 +322,7 @@ test("Build application.a [dev mode]", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -342,7 +350,7 @@ test("Build application.a and clean target path [dev mode]", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -362,7 +370,7 @@ test("Build application.g", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -382,7 +390,7 @@ test("Build application.g with component preload paths", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -403,7 +411,7 @@ test("Build application.g with excludes", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -424,7 +432,7 @@ test("Build application.h", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -444,7 +452,7 @@ test("Build application.i", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -464,7 +472,52 @@ test("Build application.j", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test("Build application.j with resources.json and version info", (t) => {
+	const destPath = "./test/tmp/build/application.j/dest-resources-json";
+	const expectedPath = path.join("test", "expected", "build", "application.j", "dest-resources-json");
+
+
+	const dummyVersionInfoGenerator = () => {
+		const versionJson = {
+			"name": "application.j",
+			"version": "1.0.0",
+			"buildTimestamp": "202008120917",
+			"scmRevision": "",
+			"libraries": []
+		};
+
+		return [resourceFactory.createResource({
+			path: "/resources/sap-ui-version.json",
+			string: JSON.stringify(versionJson, null, "\t")
+		})];
+	};
+
+	mock("../../../lib/processors/versionInfoGenerator", dummyVersionInfoGenerator);
+	mock.reRequire("../../../lib/tasks/generateVersionInfo");
+
+	const builder = mock.reRequire("../../../lib/builder/builder");
+
+
+	return builder.build({
+		includedTasks: [
+			"generateResourcesJson"
+		],
+		tree: applicationJTree,
+		destPath,
+		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -485,7 +538,7 @@ test("Build library.d with copyright from .library file", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -506,7 +559,7 @@ test("Build library.e with copyright from settings of ui5.yaml", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -527,7 +580,31 @@ test("Build library.h with custom bundles and component-preloads", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test("Build library.h with custom bundles and component-preloads with resources.json", (t) => {
+	const destPath = path.join("test", "tmp", "build", "library.h", "dest-resources-json");
+	const expectedPath = path.join("test", "expected", "build", "library.h", "dest-resources-json");
+
+	return builder.build({
+		includedTasks: [
+			"generateResourcesJson"
+		],
+		tree: libraryHTree,
+		destPath,
+		excludedTasks: ["createDebugFiles", "generateLibraryPreload"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -548,7 +625,7 @@ test("Build library.i with manifest info taken from .library and library.js", (t
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -570,7 +647,7 @@ test("Build library.j with JSDoc build only", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		return checkFileContentsIgnoreLineFeeds(expectedFiles, expectedPath, destPath);
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
 	});
@@ -588,13 +665,30 @@ test("Build theme.j even without an library", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-			t.pass();
-		});
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test("Build theme.j even without an library with resources.json", (t) => {
+	const destPath = "./test/tmp/build/theme.j/dest-resources-json";
+	const expectedPath = "./test/expected/build/theme.j/dest-resources-json";
+	return builder.build({
+		includedTasks: [
+			"generateResourcesJson"
+		],
+		tree: themeJTree,
+		destPath
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
 	});
 });
 
@@ -1181,10 +1275,18 @@ const libraryHTree = {
 						"library/h/some.js",
 						"library/h/library.js",
 						"library/h/file.js",
-						"!library/h/not.js",
 						"!library/h/components/"
 					],
 					"resolve": false,
+					"renderer": false
+				}, {
+					"mode": "raw",
+					"filters": [
+						"library/h/not.js"
+					],
+					"resolve": true,
+					"declareModules": false,
+					"sort": true,
 					"renderer": false
 				}]
 			},

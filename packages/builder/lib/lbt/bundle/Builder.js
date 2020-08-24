@@ -20,7 +20,7 @@ const {SectionType} = require("./BundleDefinition");
 const BundleWriter = require("./BundleWriter");
 const log = require("@ui5/logger").getLogger("lbt:bundle:Builder");
 
-const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
+const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9|^@ui5-bundle-raw-include |^@ui5-bundle /i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre>/;
 
 const strReplacements = {

@@ -1,0 +1,159 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": ".library",
+			"size": 473
+		},
+		{
+			"name": "components/Component-preload.js",
+			"module": "library/h/components/Component-preload.js",
+			"size": 361,
+			"merged": true,
+			"included": [
+				"library/h/components/Component.js",
+				"library/h/components/TodoComponent.js"
+			]
+		},
+		{
+			"name": "components/Component.js",
+			"module": "library/h/components/Component.js",
+			"size": 115,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "components/TodoComponent.js",
+			"module": "library/h/components/TodoComponent.js",
+			"size": 54,
+			"format": "raw"
+		},
+		{
+			"name": "components/subcomponent1/Component-preload.js",
+			"module": "library/h/components/subcomponent1/Component-preload.js",
+			"size": 279,
+			"merged": true,
+			"included": [
+				"library/h/components/subcomponent1/Component.js"
+			]
+		},
+		{
+			"name": "components/subcomponent1/Component.js",
+			"module": "library/h/components/subcomponent1/Component.js",
+			"size": 115,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "components/subcomponent2/Component-preload.js",
+			"module": "library/h/components/subcomponent2/Component-preload.js",
+			"size": 279,
+			"merged": true,
+			"included": [
+				"library/h/components/subcomponent2/Component.js"
+			]
+		},
+		{
+			"name": "components/subcomponent2/Component.js",
+			"module": "library/h/components/subcomponent2/Component.js",
+			"size": 115,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "components/subcomponent3/Component-preload.js",
+			"module": "library/h/components/subcomponent3/Component-preload.js",
+			"size": 279,
+			"merged": true,
+			"included": [
+				"library/h/components/subcomponent3/Component.js"
+			]
+		},
+		{
+			"name": "components/subcomponent3/Component.js",
+			"module": "library/h/components/subcomponent3/Component.js",
+			"size": 115,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "customBundle.js",
+			"module": "library/h/customBundle.js",
+			"size": 495,
+			"merged": true,
+			"included": [
+				"library/h/file.js",
+				"library/h/library.js",
+				"library/h/some.js",
+				"library/h/other.js",
+				"library/h/not.js"
+			]
+		},
+		{
+			"name": "designtime/library.designtime.js",
+			"module": "library/h/designtime/library.designtime.js",
+			"size": 86,
+			"requiresTopLevelScope": true,
+			"exposedGlobalNames": [
+				"myexport"
+			],
+			"format": "raw",
+			"designtime": true
+		},
+		{
+			"name": "file.js",
+			"module": "library/h/file.js",
+			"size": 54,
+			"format": "raw"
+		},
+		{
+			"name": "i18n/messagebundle.properties",
+			"module": "library/h/i18n/messagebundle.properties",
+			"size": 3,
+			"locale": "",
+			"raw": "i18n/messagebundle.properties"
+		},
+		{
+			"name": "i18n/messagebundle_en.properties",
+			"module": "library/h/i18n/messagebundle_en.properties",
+			"size": 3,
+			"locale": "en",
+			"raw": "i18n/messagebundle.properties"
+		},
+		{
+			"name": "library.js",
+			"module": "library/h/library.js",
+			"size": 57,
+			"format": "raw"
+		},
+		{
+			"name": "manifest.json",
+			"module": "library/h/manifest.json",
+			"size": 739
+		},
+		{
+			"name": "not.js",
+			"module": "library/h/not.js",
+			"size": 63,
+			"format": "raw"
+		},
+		{
+			"name": "resources.json",
+			"size": 3500
+		},
+		{
+			"name": "some.js",
+			"module": "library/h/some.js",
+			"size": 99,
+			"format": "raw",
+			"merged": true,
+			"included": [
+				"library/h/other.js"
+			]
+		}
+	]
+}
