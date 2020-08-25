@@ -171,7 +171,7 @@ test.serial("Build", async (t) => {
 	t.is(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
 });
 
-test("Build application.a", (t) => {
+test.serial("Build application.a", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
 
@@ -191,7 +191,7 @@ test("Build application.a", (t) => {
 	});
 });
 
-test("Build application.a with error", async (t) => {
+test.serial("Build application.a with error", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 
 	const error = await t.throwsAsync(builder.build({
@@ -201,7 +201,7 @@ test("Build application.a with error", async (t) => {
 	t.deepEqual(error.message, `Unknown type 'non existent'`);
 });
 
-test("Build application.a with dependencies", (t) => {
+test.serial("Build application.a with dependencies", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-deps";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps");
 
@@ -222,7 +222,7 @@ test("Build application.a with dependencies", (t) => {
 	});
 });
 
-test("Build application.a with dependencies include", (t) => {
+test.serial("Build application.a with dependencies include", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-deps-incl";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps");
 
@@ -243,7 +243,7 @@ test("Build application.a with dependencies include", (t) => {
 	});
 });
 
-test("Build application.a with dependencies exclude", (t) => {
+test.serial("Build application.a with dependencies exclude", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-deps-excl";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps-excl");
 
@@ -264,7 +264,7 @@ test("Build application.a with dependencies exclude", (t) => {
 	});
 });
 
-test("Build application.a self-contained", (t) => {
+test.serial("Build application.a self-contained", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-self";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-self");
 
@@ -285,7 +285,7 @@ test("Build application.a self-contained", (t) => {
 	});
 });
 
-test("Build application.a with dependencies self-contained", (t) => {
+test.serial("Build application.a with dependencies self-contained", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-depself";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-depself");
 
@@ -307,7 +307,7 @@ test("Build application.a with dependencies self-contained", (t) => {
 	});
 });
 
-test("Build application.a [dev mode]", (t) => {
+test.serial("Build application.a [dev mode]", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-dev";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-dev");
 
@@ -328,7 +328,7 @@ test("Build application.a [dev mode]", (t) => {
 	});
 });
 
-test("Build application.a and clean target path [dev mode]", (t) => {
+test.serial("Build application.a and clean target path [dev mode]", (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-clean";
 	const destPathRubbishSubFolder = destPath + "/rubbish-should-be-deleted";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-dev");
@@ -356,7 +356,7 @@ test("Build application.a and clean target path [dev mode]", (t) => {
 	});
 });
 
-test("Build application.g", (t) => {
+test.serial("Build application.g", (t) => {
 	const destPath = "./test/tmp/build/application.g/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
@@ -376,7 +376,7 @@ test("Build application.g", (t) => {
 	});
 });
 
-test("Build application.g with component preload paths", (t) => {
+test.serial("Build application.g with component preload paths", (t) => {
 	const destPath = "./test/tmp/build/application.g/dest2";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
@@ -396,7 +396,7 @@ test("Build application.g with component preload paths", (t) => {
 	});
 });
 
-test("Build application.g with excludes", (t) => {
+test.serial("Build application.g with excludes", (t) => {
 	const destPath = "./test/tmp/build/application.g/excludes";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "excludes");
 
@@ -417,7 +417,7 @@ test("Build application.g with excludes", (t) => {
 	});
 });
 
-test("Build application.h", (t) => {
+test.serial("Build application.h", (t) => {
 	const destPath = "./test/tmp/build/application.h/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.h", "dest");
 
@@ -438,7 +438,7 @@ test("Build application.h", (t) => {
 	});
 });
 
-test("Build application.i", (t) => {
+test.serial("Build application.i", (t) => {
 	const destPath = "./test/tmp/build/application.i/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.i", "dest");
 
@@ -458,7 +458,7 @@ test("Build application.i", (t) => {
 	});
 });
 
-test("Build application.j", (t) => {
+test.serial("Build application.j", (t) => {
 	const destPath = "./test/tmp/build/application.j/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.j", "dest");
 
@@ -478,7 +478,7 @@ test("Build application.j", (t) => {
 	});
 });
 
-test("Build application.j with resources.json and version info", (t) => {
+test.serial("Build application.j with resources.json and version info", (t) => {
 	const destPath = "./test/tmp/build/application.j/dest-resources-json";
 	const expectedPath = path.join("test", "expected", "build", "application.j", "dest-resources-json");
 
@@ -523,7 +523,7 @@ test("Build application.j with resources.json and version info", (t) => {
 	});
 });
 
-test("Build library.d with copyright from .library file", (t) => {
+test.serial("Build library.d with copyright from .library file", (t) => {
 	const destPath = "./test/tmp/build/library.d/dest";
 	const expectedPath = path.join("test", "expected", "build", "library.d", "dest");
 
@@ -544,7 +544,7 @@ test("Build library.d with copyright from .library file", (t) => {
 	});
 });
 
-test("Build library.e with copyright from settings of ui5.yaml", (t) => {
+test.serial("Build library.e with copyright from settings of ui5.yaml", (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.e", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.e", "dest");
 
@@ -565,7 +565,7 @@ test("Build library.e with copyright from settings of ui5.yaml", (t) => {
 	});
 });
 
-test("Build library.h with custom bundles and component-preloads", (t) => {
+test.serial("Build library.h with custom bundles and component-preloads", (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.h", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest");
 
@@ -586,7 +586,7 @@ test("Build library.h with custom bundles and component-preloads", (t) => {
 	});
 });
 
-test("Build library.h with custom bundles and component-preloads with resources.json", (t) => {
+test.serial("Build library.h with custom bundles and component-preloads with resources.json", (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.h", "dest-resources-json");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest-resources-json");
 
@@ -610,7 +610,7 @@ test("Build library.h with custom bundles and component-preloads with resources.
 	});
 });
 
-test("Build library.i with manifest info taken from .library and library.js", (t) => {
+test.serial("Build library.i with manifest info taken from .library and library.js", (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.i", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.i", "dest");
 
@@ -631,7 +631,7 @@ test("Build library.i with manifest info taken from .library and library.js", (t
 	});
 });
 
-test("Build library.j with JSDoc build only", (t) => {
+test.serial("Build library.j with JSDoc build only", (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.j", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.j", "dest");
 
@@ -653,7 +653,7 @@ test("Build library.j with JSDoc build only", (t) => {
 	});
 });
 
-test("Build theme.j even without an library", (t) => {
+test.serial("Build theme.j even without an library", (t) => {
 	const destPath = "./test/tmp/build/theme.j/dest";
 	const expectedPath = "./test/expected/build/theme.j/dest";
 	return builder.build({
@@ -671,7 +671,7 @@ test("Build theme.j even without an library", (t) => {
 	});
 });
 
-test("Build theme.j even without an library with resources.json", (t) => {
+test.serial("Build theme.j even without an library with resources.json", (t) => {
 	const destPath = "./test/tmp/build/theme.j/dest-resources-json";
 	const expectedPath = "./test/expected/build/theme.j/dest-resources-json";
 	return builder.build({
