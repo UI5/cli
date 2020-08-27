@@ -48,7 +48,7 @@ function getBundleDefinition(namespace) {
 
 						// include only thirdparty that is very likely to be used
 						"sap/ui/thirdparty/crossroads.js",
-						"sap/ui/thirdparty/caja-htmlsanitizer.js",
+						"sap/ui/thirdparty/caja-html-sanitizer.js",
 						"sap/ui/thirdparty/hasher.js",
 						"sap/ui/thirdparty/signals.js",
 						"sap/ui/thirdparty/jquery-mobile-custom.js",
