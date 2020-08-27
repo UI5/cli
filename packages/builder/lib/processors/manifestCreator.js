@@ -164,6 +164,9 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 				const relativePath = comp.getPath().slice(prefix.length);
 				if ( relativePath.lastIndexOf("/") >= 0 ) {
 					result.push( relativePath.slice(0, relativePath.lastIndexOf("/")) );
+				} else if ( prefix === "/resources/sap/apf/" ) {
+					log.verbose("Package %s contains both '*.library' and 'Component.js'. " +
+						"This is a known issue but can't be solved due to backward compatibility.", comp.getPath());
 				} else if ( prefix !== "/resources/sap/ui/core/" ) {
 					log.error("Package %s contains both '*.library' and 'Component.js'. " +
 						"This is not supported by manifests, therefore the component won't be " +
