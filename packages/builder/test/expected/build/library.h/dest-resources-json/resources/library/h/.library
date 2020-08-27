@@ -6,7 +6,7 @@
 	<copyright>Some fancy copyright</copyright>
 	<version>1.0.0</version>
 
-	<documentation>Library D</documentation>
+	<documentation>Library H</documentation>
 	<appData>
 		<packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0" >
 			  <module-infos>
