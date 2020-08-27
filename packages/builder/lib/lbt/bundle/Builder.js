@@ -411,7 +411,8 @@ class BundleBuilder {
 				try {
 					fileContent = JSON.stringify( JSON.parse( fileContent) );
 				} catch (e) {
-					log.error(e);
+					log.verbose("Failed to parse JSON file %s. Ignoring error, skipping compression.", module);
+					log.verbose(e);
 				}
 			}
 			outW.write(makeStringLiteral(fileContent));

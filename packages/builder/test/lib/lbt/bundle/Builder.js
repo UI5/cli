@@ -1,7 +1,50 @@
 const test = require("ava");
+const sinon = require("sinon");
+const mock = require("mock-require");
 
 const Builder = require("../../../../lib/lbt/bundle/Builder");
 const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
+
+test.afterEach.always((t) => {
+	mock.stopAll();
+	sinon.restore();
+});
+
+test.serial("writePreloadModule: with invalid json content", async (t) => {
+	const writeStub = sinon.stub();
+	const logger = require("@ui5/logger");
+	const verboseLogStub = sinon.stub();
+	const myLoggerInstance = {
+		verbose: verboseLogStub
+	};
+	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
+	const BuilderWithStub = mock.reRequire("../../../../lib/lbt/bundle/Builder");
+	const invalidJsonContent = `{
+	"a": 47,
+	"b": {{include: asd}}
+	}`;
+
+	const builder = new BuilderWithStub({});
+	builder.optimize = true;
+	builder.outW = {
+		write: writeStub
+	};
+	const invalidJsonResource = {
+		buffer: async () => {
+			return invalidJsonContent;
+		}
+	};
+	const result = await builder.writePreloadModule("invalid.json", undefined, invalidJsonResource);
+
+
+	t.is(verboseLogStub.callCount, 2, "called 2 times");
+	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file %s. Ignoring error, skipping compression.", "first verbose log argument 0 is correct");
+	t.is(verboseLogStub.firstCall.args[1], "invalid.json", "first verbose log argument 1 is correct");
+	t.deepEqual(verboseLogStub.secondCall.args[0], new SyntaxError("Unexpected token { in JSON at position 19"), "second verbose log");
+
+	t.true(result, "result is true");
+	t.is(writeStub.callCount, 1, "Writer is called once");
+});
 
 
 test("integration: createBundle EVOBundleFormat (ui5loader.js)", async (t) => {
