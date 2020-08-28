@@ -150,6 +150,7 @@ class XMLTemplateAnalyzer {
 
 		this.info = info;
 		this.conditional = false;
+		this.templateTag = false;
 		this.promises = [];
 		this.busy = true;
 
@@ -214,11 +215,13 @@ class XMLTemplateAnalyzer {
 		const localName = node.$ns.local;
 
 		const oldConditional = this.conditional;
+		const oldTemplateTag = this.templateTag;
 
 		if ( namespace === TEMPLATING_NAMESPACE ) {
 			if ( TEMPLATING_CONDITONAL_TAGS.test(localName) ) {
 				this.conditional = true;
 			}
+			this.templateTag = true;
 		} else if ( namespace === XHTML_NAMESPACE || namespace === SVG_NAMESPACE ) {
 
 			// ignore XHTML and SVG nodes
@@ -298,13 +301,16 @@ class XMLTemplateAnalyzer {
 
 		this._analyzeChildren(node);
 
-		// restore conditional state of the outer block
+		// restore conditional and templateTag state of the outer block
 		this.conditional = oldConditional;
+		this.templateTag = oldTemplateTag;
 	}
 
 	_analyzeChildren(node) {
 		if ( Array.isArray(node.$$) ) {
-			node.$$.forEach( (child) => this._analyzeNode( child ) );
+			node.$$.forEach( (child) => {
+				return this._analyzeNode( child);
+			});
 		}
 	}
 
@@ -312,6 +318,16 @@ class XMLTemplateAnalyzer {
 		const coreRequire = getAttributeNS(node, XMLVIEW_CORE_REQUIRE_ATTRIBUTE_NS);
 		let requireContext;
 		if ( coreRequire ) {
+			// expression binding syntax within coreRequire and a template parent node
+			// These expressions cannot be parsed using parseJS and if within a template tag
+			// represent an expression binding which needs to be evaluated before analysis
+			// e.g. "{= '{Handler: \'' + ${myActions > handlerModule} + '\'}'}"
+			if ((coreRequire.startsWith("{=") || coreRequire.startsWith("{:=")) && this.templateTag) {
+				log.verbose(`Ignoring core:require: Attribute of Node ${node.$ns.local} contains an expression binding and is within a 'template' Node`);
+				log.verbose(coreRequire);
+				return;
+			}
+
 			try {
 				requireContext = JSTokenizer.parseJS(coreRequire);
 			} catch (e) {
