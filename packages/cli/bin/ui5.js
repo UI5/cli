@@ -37,13 +37,18 @@ setTimeout(() => {
 	}
 
 	const updateNotifier = require("update-notifier");
-	const cli = require("yargs");
-
 	updateNotifier({
 		pkg,
 		updateCheckInterval: 1000 * 60 * 60 * 24, // 1 day
 		shouldNotifyInNpmScript: true
 	}).notify();
+	// Remove --no-update-notifier from argv as it's not known to yargs, but we still want to support using it
+	const NO_UPDATE_NOTIFIER = "--no-update-notifier";
+	if (process.argv.includes(NO_UPDATE_NOTIFIER)) {
+		process.argv = process.argv.filter((v) => v !== NO_UPDATE_NOTIFIER);
+	}
+
+	const cli = require("yargs");
 
 	cli.parserConfiguration({
 		"parse-numbers": false

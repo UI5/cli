@@ -45,7 +45,6 @@ test("Exception error handling", async (t) => {
 	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
 });
 
-
 test("Exception error handling with verbose logging", async (t) => {
 	// This test depends on the init command throwing on projects that already have a ui5.yaml
 
@@ -66,4 +65,10 @@ test("Exception error handling with verbose logging", async (t) => {
 		"Correct last log line");
 
 	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
+});
+
+test("ui5 --no-update-notifier", async (t) => {
+	const {stdout, failed} = await ui5(["versions", "--no-update-notifier"]);
+	t.regex(stdout, /@ui5\/cli:/, "Output includes version information");
+	t.false(failed, "Command should not fail");
 });
