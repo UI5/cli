@@ -110,10 +110,10 @@
 		"data-with-position": "^0.4.0",
 		"import-local": "^3.0.2",
 		"js-yaml": "^3.14.0",
-		"open": "^7.2.0",
+		"open": "^7.2.1",
 		"semver": "^7.3.2",
 		"string.prototype.matchall": "^4.0.2",
-		"supports-color": "^7.1.0",
+		"supports-color": "^7.2.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^4.1.1",
 		"yargs": "^15.4.1"
