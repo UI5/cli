@@ -82,7 +82,8 @@ class NpmTranslator {
 			on projects.
 			Although we could add the collections dependencies as project dependencies to the related modules
 		*/
-		if (!pkg.collection) {
+		const isCollection = typeof pkg.collection === "object" && typeof pkg.collection.modules === "object";
+		if (!isCollection) {
 			if (log.isLevelEnabled("silly")) {
 				this.debugUnresolvedProjects[cwd] = {
 					moduleName
@@ -134,7 +135,7 @@ class NpmTranslator {
 			});
 		} else { // collection
 			log.verbose("Found a collection: %s", moduleName);
-			const modules = pkg.collection && pkg.collection.modules || {};
+			const modules = pkg.collection.modules;
 			return Promise.all(
 				Object.keys(modules).map((depName) => {
 					const modulePath = path.join(cwd, modules[depName]);
@@ -515,3 +516,8 @@ module.exports = {
 		return new NpmTranslator(options).generateDependencyTree(dirPath);
 	}
 };
+
+// Export NpmTranslator class for testing only
+if (process.env.NODE_ENV === "test") {
+	module.exports._NpmTranslator = NpmTranslator;
+}
