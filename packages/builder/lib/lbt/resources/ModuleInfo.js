@@ -202,6 +202,18 @@ class ModuleInfo {
 		return Object.keys(this._dependencies);
 	}
 
+	/**
+	 * Removes the given set of `ignoredGlobals` from the set of exposed global names.
+	 *
+	 * @param {string[]} ignoredGlobals Names to ignore (determined from shims in .library)
+	 */
+	removeIgnoredGlobalNames(ignoredGlobals) {
+		if ( this.exposedGlobals ) {
+			const remaining = this.exposedGlobals.filter((global) => !ignoredGlobals.includes(global));
+			this.exposedGlobals = remaining.length > 0 ? remaining : null;
+		}
+	}
+
 	toString() {
 		return "ModuleInfo(" +
 			this.name +
@@ -235,13 +247,6 @@ public class ModuleInfo {
 	 * This is relevant during the generation of the all-in-one files.
 	 *
 	private boolean excludeFromAllInOne;
-
-
-	public void removeIgnoredGlobalNames(Collection<String> ignoredNames) {
-		if ( !exposedGlobals.isEmpty() ) {
-			exposedGlobals.removeAll(ignoredNames);
-		}
-	}
 
 } */
 

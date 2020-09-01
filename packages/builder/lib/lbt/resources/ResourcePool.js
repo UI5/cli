@@ -75,12 +75,17 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		if ( rawInfo ) {
 			info.rawModule = true;
 			// console.log("adding preconfigured dependencies for %s:", resource.name, rawInfo.dependencies);
-			rawInfo.dependencies.forEach( (dep) => info.addDependency(dep) );
-			if ( rawInfo.requiresTopLevelScope ) {
-				info.requiresTopLevelScope = true;
+			if ( rawInfo.dependencies ) {
+				rawInfo.dependencies.forEach( (dep) => info.addDependency(dep) );
 			}
+
+			if ( rawInfo.requiresTopLevelScope != null ) {
+				// an explicitly defined value for requiresTopLevelScope from .library overrides analysis result
+				info.requiresTopLevelScope = rawInfo.requiresTopLevelScope;
+			}
+
 			if ( rawInfo.ignoredGlobals ) {
-				info.ignoredGlobals = rawInfo.ignoredGlobals;
+				info.removeIgnoredGlobalNames(rawInfo.ignoredGlobals);
 			}
 		}
 		if ( /(?:^|\/)Component\.js/.test(resource.name) ) {
@@ -153,7 +158,7 @@ class ResourcePool {
 		if ( /\.library$/.test(resource.name) ) {
 			// read raw-module info from .library files
 			return resource.buffer().then( (buffer) => {
-				const infos = LibraryFileAnalyzer.getDependencyInfos( buffer );
+				const infos = LibraryFileAnalyzer.getDependencyInfos( resource.name, buffer );
 				for ( const name of Object.keys(infos) ) {
 					this._rawModuleInfos.set(name, infos[name]);
 				}

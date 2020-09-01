@@ -381,6 +381,14 @@ class BundleBuilder {
 	beforeWritePreloadModule(module, info, resource) {
 	}
 
+	/**
+	 *
+	 * @param {string} module module name
+	 * @param {ModuleInfo} info
+	 * @param {module:@ui5/fs.Resource} resource
+	 * @param {boolean} avoidLazyParsing
+	 * @returns {Promise<boolean>}
+	 */
 	async writePreloadModule(module, info, resource, avoidLazyParsing) {
 		const outW = this.outW;
 
@@ -440,12 +448,18 @@ class BundleBuilder {
 		return true;
 	}
 
+	/**
+	 * Create exports for globals
+	 *
+	 * @param {ModuleInfo} info
+	 */
 	exportGlobalNames(info) {
-		if ( !info || !info.exposedGlobalNames || !info.exposedGlobalNames.length ) {
+		if ( !info || !info.exposedGlobals || !info.exposedGlobals.length ) {
 			return;
 		}
 		this.outW.ensureNewLine();
-		info.exposedGlobalNames.forEach( (globalName) => {
+		info.exposedGlobals.forEach( (globalName) => {
+			// Note: globalName can be assumed to be a valid identifier as it is used as variable name anyhow
 			this.outW.writeln(`this.${globalName}=${globalName};`);
 		});
 	}

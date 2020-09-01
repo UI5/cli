@@ -48,7 +48,7 @@ test("extract packaging info from .library file", (t) => {
 		}
 	];
 
-	const actual = LibraryFileAnalyzer.getDependencyInfos(libraryFile);
+	const actual = LibraryFileAnalyzer.getDependencyInfos("a.library", libraryFile);
 
 	t.deepEqual(Object.keys(actual), expectedInfos.map((exp) => exp.name),
 		"Method should return the expected set of modules");

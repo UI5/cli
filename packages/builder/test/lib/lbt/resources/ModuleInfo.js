@@ -61,3 +61,14 @@ test("ModuleInfo: toString", async (t) => {
 	// expectation
 	t.is(stringContent, "ModuleInfo(myName, dependencies=dep1,dep2, includes=sub1,sub2)", "string value is correct");
 });
+
+test("ModuleInfo: removeIgnoredGlobalNames", (t) => {
+	// setup
+	const moduleInfo = new ModuleInfo("myName");
+	moduleInfo.exposedGlobals = ["supi", "dupi"];
+
+	moduleInfo.removeIgnoredGlobalNames(["hop", "supi"]);
+
+	// expectation
+	t.deepEqual(moduleInfo.exposedGlobals, ["dupi"], "exposedGlobals are correct");
+});

@@ -113,6 +113,32 @@ test("getModuleInfo", async (t) => {
 	t.deepEqual(jsResource.subModules, [], "does not contain submodules");
 });
 
+test("getModuleInfo: determineDependencyInfo for raw js resources", async (t) => {
+	const resourcePool = new ResourcePool();
+	const code = `function One() {return 1;}`;
+	const inputJsResource = {name: "a.js", buffer: async () => code};
+	resourcePool.addResource(inputJsResource);
+
+
+	const infoA = new ModuleInfo("a.js");
+	infoA.requiresTopLevelScope = false;
+
+	const stubGetDependencyInfos = sinon.stub(LibraryFileAnalyzer, "getDependencyInfos").returns({
+		"a.js": infoA
+	});
+
+	const library = {
+		name: "a.library",
+		buffer: async () => ""
+	};
+	await resourcePool.addResource(library);
+
+	const jsResource = await resourcePool.getModuleInfo("a.js");
+	t.false(jsResource.requiresTopLevelScope);
+
+	stubGetDependencyInfos.restore();
+});
+
 test("getModuleInfo: determineDependencyInfo for js templateAssembler code", async (t) => {
 	const resourcePool = new ResourcePool();
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
@@ -218,13 +244,15 @@ test("addResource twice", async (t) => {
 test.serial("addResource: library and eval raw module info", async (t) => {
 	const resourcePool = new ResourcePool();
 
-	const infoA = new ModuleInfo("moduleA.js");
+	const infoA = {};
+	infoA.name = "moduleA.js";
 	infoA.rawModule = true;
-	infoA.addDependency("123.js");
+	infoA.dependencies = ["123.js"];
 	infoA.ignoredGlobals = ["foo", "bar"];
-	const infoB = new ModuleInfo("moduleB.js");
+	const infoB = {};
+	infoB.name = "moduleB.js";
 	infoB.rawModule = true;
-	infoB.addDependency("456.js");
+	infoB.dependencies = ["456.js"];
 
 	const stubGetDependencyInfos = sinon.stub(LibraryFileAnalyzer, "getDependencyInfos").returns({
 		"moduleA.js": infoA,
@@ -233,7 +261,7 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 
 	const library = {
 		name: "a.library",
-		buffer: async () => ""
+		buffer: async () => "" // LibraryFileAnalyzer.getDependencyInfos() is stubbed! Therefore this content is irrelevant.
 	};
 	await resourcePool.addResource(library);
 	const moduleA = {
@@ -258,11 +286,9 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 	t.true(actualResourceA.info instanceof ModuleInfo);
 	t.deepEqual(actualResourceA.info.dependencies, ["123.js"],
 		"configured dependencies should have been dded");
-	t.true(actualResourceA.info.requiresTopLevelScope);
-	t.deepEqual(actualResourceA.info.exposedGlobals, ["foo", "bar", "some"],
-		"global names should be known from analsyis step");
-	t.deepEqual(actualResourceA.info.ignoredGlobals, ["foo", "bar"],
-		"ignored globals should have been taken from .library");
+	t.true(actualResourceA.info.requiresTopLevelScope, "'some' is the global variable to be exposed");
+	t.deepEqual(actualResourceA.info.exposedGlobals, ["some"],
+		"global names should be known from analysis step");
 
 	const actualResourceB = await resourcePool.findResourceWithInfo("moduleB.js");
 	t.true(actualResourceB.info instanceof ModuleInfo);
@@ -271,7 +297,6 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 	t.true(actualResourceB.info.requiresTopLevelScope);
 	t.deepEqual(actualResourceB.info.exposedGlobals, ["foo", "bar", "some"],
 		"global names should be known from analsyis step");
-	t.deepEqual(actualResourceB.info.ignoredGlobals, undefined);
 
 	stubGetDependencyInfos.restore();
 });

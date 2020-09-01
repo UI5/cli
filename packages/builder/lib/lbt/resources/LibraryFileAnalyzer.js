@@ -5,7 +5,7 @@
 "use strict";
 
 const xml2js = require("xml2js");
-const ModuleInfo = require("./ModuleInfo");
+const log = require("@ui5/logger").getLogger("lbt:resources:LibraryFileAnalyzer");
 
 const parser = new xml2js.Parser({
 	// explicitChildren: true,
@@ -20,29 +20,38 @@ function getAttribute(node, attr) {
 	return (node.$ && node.$[attr] && node.$[attr].value) || null;
 }
 
-function makeModuleInfo(rawModule) {
+/*
+ * Analyzes the given XML2JS object `rawModule` and creates a rawInfo object from it.
+ * @param {object} rawModule XML2JS object, representing a &lt;raw-module&gt; node from a .library file
+ * @returns {{name:string,dependencies?:string[],requiresTopLevelScope?:boolean,ignoredGlobals?:string[]}
+ */
+function createRawInfo(rawModule) {
 	const name = getAttribute(rawModule, "name");
-	const deps = getAttribute(rawModule, "depends");
 	if ( name ) {
-		const info = new ModuleInfo(name);
+		const rawInfo = {
+			name,
+			rawModule: true,
+			dependencies: []
+		};
+		const deps = getAttribute(rawModule, "depends");
 		if ( deps != null ) {
-			deps.trim().split(/\s*,\s*/).forEach( (dep) => info.addDependency(dep) );
+			rawInfo.dependencies = deps.trim().split(/\s*,\s*/);
 		}
-		info.rawModule = true;
-		info.requiresTopLevelScope = getAttribute(rawModule, "requiresTopLevelScope") === "true";
+		const requiresTopLevelScope = getAttribute(rawModule, "requiresTopLevelScope");
+		if ( requiresTopLevelScope ) {
+			rawInfo.requiresTopLevelScope = requiresTopLevelScope === "true";
+		}
 		const ignoredGlobals = getAttribute(rawModule, "ignoredGlobals");
 		if ( ignoredGlobals ) {
-			info.ignoredGlobals = ignoredGlobals.trim().split(/\s*,\s*/);
+			rawInfo.ignoredGlobals = ignoredGlobals.trim().split(/\s*,\s*/);
 		}
-		// console.log(info);
-		return info;
+		return rawInfo;
 	}
 }
 
-function getDependencyInfos( content ) {
+function getDependencyInfos( name, content ) {
 	const infos = {};
 	parser.parseString(content, (err, result) => {
-		// console.log(JSON.stringify(result, null, '\t'));
 		if ( result &&
 				result.library &&
 				Array.isArray(result.library.appData) &&
@@ -54,9 +63,10 @@ function getDependencyInfos( content ) {
 						Array.isArray(packaging["module-infos"]) ) {
 					packaging["module-infos"].forEach( function(moduleInfos) {
 						moduleInfos["raw-module"] && moduleInfos["raw-module"].forEach( (rawModule) => {
-							const info = makeModuleInfo(rawModule);
-							if ( info ) {
-								infos[info.name] = info;
+							const rawInfo = createRawInfo(rawModule);
+							if ( rawInfo ) {
+								log.verbose(name + " rawInfo:", JSON.stringify(rawInfo));
+								infos[rawInfo.name] = rawInfo;
 							}
 						});
 					});
