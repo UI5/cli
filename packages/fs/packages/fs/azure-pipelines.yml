@@ -36,6 +36,9 @@ steps:
 - script: npm ci
   displayName: Install Dependencies
 
+- script: npm ls
+  displayName: Check for missing / extraneous Dependencies
+
 - script: npm run test-azure
   displayName: Run Tests
 
