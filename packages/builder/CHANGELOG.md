@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.2.0...HEAD).
+
+<a name="v2.2.0"></a>
+## [v2.2.0] - 2020-09-02
+### Bug Fixes
+- SapUiDefine call should not fail when there's no factory function ([#491](https://github.com/SAP/ui5-builder/issues/491)) [`25c6a3c`](https://github.com/SAP/ui5-builder/commit/25c6a3c9cae0d41f2757a8f0641bc043e171201b)
+
+### Features
+- Add generateResourcesJson task ([#390](https://github.com/SAP/ui5-builder/issues/390)) [`021f439`](https://github.com/SAP/ui5-builder/commit/021f439e4125403d0d9e2fa0b7bcd3174ceb46e6)
+
 
 <a name="v2.1.0"></a>
 ## [v2.1.0] - 2020-08-11
@@ -410,6 +419,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.2.0]: https://github.com/SAP/ui5-builder/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/SAP/ui5-builder/compare/v2.0.7...v2.1.0
 [v2.0.7]: https://github.com/SAP/ui5-builder/compare/v2.0.6...v2.0.7
 [v2.0.6]: https://github.com/SAP/ui5-builder/compare/v2.0.5...v2.0.6
