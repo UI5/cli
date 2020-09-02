@@ -580,14 +580,14 @@
 			}
 		},
 		"@ui5/project": {
-			"version": "2.2.0",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.2.0.tgz",
-			"integrity": "sha512-2nlGLb4KySU7yAx2nUUODBpb1fgCsEYweSXpxS013SaFDGWL89X7SPIOqqRbtZeRALd6AC4fcEdy77oMDXytww==",
+			"version": "2.2.1",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.2.1.tgz",
+			"integrity": "sha512-VmWuaLqH7aO5E5b5Z30s+lt7UeyJf+HkhYqqzgD/tFcIr72h1Hi2yiTCjzjFVmJb5Sd13O52+eobo93wyl2uZQ==",
 			"requires": {
-				"@ui5/builder": "^2.1.0",
+				"@ui5/builder": "^2.2.0",
 				"@ui5/logger": "^2.0.0",
-				"@ui5/server": "^2.2.2",
-				"ajv": "^6.12.3",
+				"@ui5/server": "^2.2.3",
+				"ajv": "^6.12.4",
 				"ajv-errors": "^1.0.1",
 				"chalk": "^4.1.0",
 				"escape-string-regexp": "^4.0.0",
