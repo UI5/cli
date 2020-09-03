@@ -186,3 +186,34 @@ function test(t){var o=t;console.log(o)}test();`;
 			return t.deepEqual(buffer.toString(), expected, "Correct content");
 		});
 });
+
+test("integration: uglify error handling", async (t) => {
+	const reader = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const writer = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const duplexCollection = new DuplexCollection({reader: reader, writer: writer});
+	const content = `
+this code can't be parsed!`;
+	const testResource = resourceFactory.createResource({
+		path: "/test.js",
+		string: content
+	});
+
+	await reader.write(testResource);
+
+	const error = await t.throwsAsync(uglify({
+		workspace: duplexCollection,
+		options: {
+			pattern: "/test.js"
+		}
+	}));
+
+	t.regex(error.message, /Uglification failed with error/, "Error should contain expected message");
+	t.regex(error.message, /test\.js/, "Error should contain filename");
+	t.regex(error.message, /col/, "Error should contain col");
+	t.regex(error.message, /pos/, "Error should contain pos");
+	t.regex(error.message, /line/, "Error should contain line");
+});

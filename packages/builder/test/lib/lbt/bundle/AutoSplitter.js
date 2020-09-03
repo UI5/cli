@@ -178,7 +178,7 @@ test("_calcMinSize: js resource", async (t) => {
 
 
 test.serial("_calcMinSize: uglify js resource", async (t) => {
-	const stubTerser = sinon.stub(terser, "minify").returns({code: "123"});
+	const stubTerser = sinon.stub(terser, "minify").resolves({code: "123"});
 	const pool = {
 		findResourceWithInfo: function() {
 			return {

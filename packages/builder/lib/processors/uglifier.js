@@ -22,26 +22,24 @@ const copyrightCommentsAndBundleCommentPattern = /copyright|\(c\)(?:[0-9]+|\s+[0
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with uglified resources
  */
 module.exports = function({resources}) {
-	return Promise.all(resources.map((resource) => {
-		return resource.getString().then((code) => {
-			const result = terser.minify({
+	return Promise.all(resources.map(async (resource) => {
+		const code = await resource.getString();
+		try {
+			const result = await terser.minify({
 				[resource.getPath()]: code
 			}, {
-				warnings: false,
 				output: {
 					comments: copyrightCommentsAndBundleCommentPattern,
 					wrap_func_args: false
 				},
 				compress: false
 			});
-			if (result.error) {
-				throw new Error(
-					`Uglification failed with error: ${result.error.message} in file ${result.error.filename} ` +
-					`(line ${result.error.line}, col ${result.error.col}, pos ${result.error.pos})`);
-			}
-
 			resource.setString(result.code);
 			return resource;
-		});
+		} catch (err) {
+			throw new Error(
+				`Uglification failed with error: ${err.message} in file ${err.filename} ` +
+				`(line ${err.line}, col ${err.col}, pos ${err.pos})`);
+		}
 	}));
 };

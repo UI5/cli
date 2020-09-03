@@ -199,7 +199,7 @@ class AutoSplitter {
 				let fileContent = await resource.buffer();
 				if ( this.optimize ) {
 					// console.log("uglify %s start", module);
-					const result = terser.minify({
+					const result = await terser.minify({
 						[resource.name]: String(fileContent)
 					}, {
 						warnings: false, // TODO configure?
@@ -211,9 +211,6 @@ class AutoSplitter {
 						// , outFileName: resource.name
 						// , outSourceMap: true
 					});
-					if ( result.error ) {
-						throw result.error;
-					}
 					// console.log("uglify %s end", module);
 					fileContent = result.code;
 				}

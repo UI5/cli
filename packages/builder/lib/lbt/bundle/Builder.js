@@ -256,7 +256,7 @@ class BundleBuilder {
 	async writeRawModule(module, resource) {
 		let fileContent = await resource.buffer();
 		if ( /\.js$/.test(module) ) {
-			fileContent = this.compressJS( fileContent, resource );
+			fileContent = await this.compressJS( fileContent, resource );
 		}
 		this.outW.ensureNewLine();
 		this.outW.write( fileContent );
@@ -304,12 +304,11 @@ class BundleBuilder {
 		// this.afterWriteFunctionPreloadSection();
 	}
 
-	compressJS(fileContent, resource) {
+	async compressJS(fileContent, resource) {
 		if ( this.optimize ) {
-			const result = terser.minify({
+			const result = await terser.minify({
 				[resource.name]: String(fileContent)
 			}, {
-				warnings: false, // TODO configure?
 				compress: false, // TODO configure?
 				output: {
 					comments: copyrightCommentsPattern,
@@ -318,9 +317,6 @@ class BundleBuilder {
 				// , outFileName: resource.name
 				// , outSourceMap: true
 			});
-			if ( result.error ) {
-				throw result.error;
-			}
 			// console.log(result.map);
 			// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
 			// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
@@ -328,11 +324,6 @@ class BundleBuilder {
 			// throw new Error();
 		}
 		return fileContent;
-	}
-
-	async compressJSAsync(resource) {
-		const content = await resource.buffer();
-		return this.compressJS( content, resource );
 	}
 
 	beforeWriteFunctionPreloadSection(sequence) {
@@ -355,7 +346,7 @@ class BundleBuilder {
 						outW.startSegment(module);
 						outW.ensureNewLine();
 						const astAsCode = escodegen.generate(ast);
-						const fileContent = this.compressJS(astAsCode, resource);
+						const fileContent = await this.compressJS(astAsCode, resource);
 						outW.write( fileContent );
 						outW.ensureNewLine();
 						const compressedSize = outW.endSegment();
@@ -393,7 +384,7 @@ class BundleBuilder {
 		const outW = this.outW;
 
 		if ( /\.js$/.test(module) && (info == null || !info.requiresTopLevelScope) ) {
-			const compressedContent = await this.compressJSAsync( resource );
+			const compressedContent = await this.compressJS( await resource.buffer(), resource );
 			if ( avoidLazyParsing ) {
 				outW.write(`(`);
 			}
@@ -408,7 +399,7 @@ class BundleBuilder {
 		} else if ( /\.js$/.test(module) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn("**** warning: module %s requires top level scope" +
 					" and can only be embedded as a string (requires 'eval')", module);
-			const compressedContent = await this.compressJSAsync( resource );
+			const compressedContent = await this.compressJS( await resource.buffer(), resource );
 			outW.write( makeStringLiteral( compressedContent ) );
 		} else if ( /\.html$/.test(module) ) {
 			const fileContent = await resource.buffer();
