@@ -65,12 +65,19 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		const code = await resource.buffer();
 		info.size = code.length;
 		const promises = [];
+		let ast;
 		try {
-			const ast = esprima.parseScript(code.toString(), {comment: true});
-			jsAnalyzer.analyze(ast, resource.name, info);
-			new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
-		} catch (error) {
-			log.error("failed to parse or analyze %s:", resource.name, error);
+			ast = esprima.parseScript(code.toString(), {comment: true});
+		} catch (err) {
+			log.error("failed to parse %s: %s", resource.name, err.message);
+		}
+		if (ast) {
+			try {
+				jsAnalyzer.analyze(ast, resource.name, info);
+				new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
+			} catch (error) {
+				log.error("failed to analyze %s: %s", resource.name, error.stack);
+			}
 		}
 		if ( rawInfo ) {
 			info.rawModule = true;

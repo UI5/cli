@@ -63,7 +63,8 @@ class TemplateComponentAnalyzer {
 				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
 			}
 		} catch (err) {
-			log.error("an error occurred while analyzing template app %s (ignored)", resource.name, err);
+			log.error("an error occurred while analyzing template app %s (ignored):", resource.name);
+			log.error(err.stack);
 		}
 
 		return info;

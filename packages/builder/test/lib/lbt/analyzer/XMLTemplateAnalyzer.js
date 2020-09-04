@@ -85,7 +85,7 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 		</HBox>
 		<HBox>
 			<Button
-					core:require="{= '{Handler: \\'' + \${myActions > handlerModule} + '\\'}'}"
+					core:require="{= '{Handler: \\'' + \${myActions>handlerModule} + '\\'}'}"
 					id="myID"
 					text="{myAction>text}"
 					press="myMethod"
@@ -107,9 +107,13 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
 		"Implicit dependency should be added since an XMLView is analyzed");
 
-	t.is(errorLogStub.callCount, 2, "should be called 2 times");
-	t.is(errorLogStub.getCall(0).args[0], "Ignoring core:require: Attribute can't be parsed on Node ", "first argument");
-	t.is(errorLogStub.getCall(0).args[1], "Button", "second argument");
+	t.is(errorLogStub.callCount, 1, "should be called 1 time");
+	t.deepEqual(errorLogStub.getCall(0).args, [
+		"Ignoring core:require: '%s' can't be parsed on Node %s:%s",
+		"{= '{Handler: \\'' + ${myActions>handlerModule} + '\\'}'}",
+		"sap.m",
+		"Button"
+	], "should be called with expected args");
 });
 
 test.serial("integration: Analysis of an xml view with core:require from databinding in template", async (t) => {
@@ -153,8 +157,13 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
 		"Implicit dependency should be added since an XMLView is analyzed");
 
-	t.is(verboseLogStub.callCount, 2, "should be called 2 times");
-	t.is(verboseLogStub.getCall(0).args[0], "Ignoring core:require: Attribute of Node Button contains an expression binding and is within a 'template' Node", "first argument");
+	t.is(verboseLogStub.callCount, 1, "should be called 1 time");
+	t.deepEqual(verboseLogStub.getCall(0).args, [
+		"Ignoring core:require: '%s' on Node %s:%s contains an expression binding and is within a 'template' Node",
+		"{= '{Handler: \\'' + ${myActions > handlerModule} + '\\'}'}",
+		"sap.m",
+		"Button"
+	], "should be called with expected args");
 });
 
 test.serial("integration: Analysis of an xml view with core:require from expression binding in template", async (t) => {
@@ -194,8 +203,13 @@ test.serial("integration: Analysis of an xml view with core:require from express
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
 		"Implicit dependency should be added since an XMLView is analyzed");
 
-	t.is(verboseLogStub.callCount, 2, "should be called 2 times");
-	t.is(verboseLogStub.getCall(0).args[0], "Ignoring core:require: Attribute of Node Button contains an expression binding and is within a 'template' Node", "first argument");
+	t.is(verboseLogStub.callCount, 1, "should be called 1 time");
+	t.deepEqual(verboseLogStub.getCall(0).args, [
+		"Ignoring core:require: '%s' on Node %s:%s contains an expression binding and is within a 'template' Node",
+		"{= 'foo': true}",
+		"sap.m",
+		"Button"
+	], "should be called with expected args");
 });
 
 test("integration: Analysis of an xml view with core:require", async (t) => {
@@ -446,4 +460,33 @@ test("_analyzeViewRootNode: process node", async (t) => {
 		"addDependency should be called with the dependency name");
 	t.deepEqual(stubAddDependency.getCall(1).args[0], "myResourceBundleName.properties",
 		"addDependency should be called with the dependency name");
+});
+
+test("_analyzeCoreRequire: Catches error when attribute can't be parsed", async (t) => {
+	const analyzer = new XMLTemplateAnalyzer();
+	analyzer.info = {
+		addImplicitDependency: function() {},
+		addDependency: function() {}
+	};
+	const stubAddImplicitDependency = sinon.spy(analyzer.info, "addImplicitDependency");
+	const stubAddDependency = sinon.spy(analyzer.info, "addDependency");
+
+	const node = {
+		$: {
+			"core:require": {
+				name: "core:require",
+				prefix: "core",
+				local: "require",
+				uri: "sap.ui.core",
+				value: "{= '{Handler: \\'' + ${action>handlerModule} + '\\'}'}"
+			}
+		},
+		$ns: {
+			local: "Button"
+		}
+	};
+	await analyzer._analyzeCoreRequire(node);
+
+	t.is(stubAddImplicitDependency.callCount, 0, "addImplicitDependency was never called");
+	t.is(stubAddDependency.callCount, 0, "addDependency was never called");
 });

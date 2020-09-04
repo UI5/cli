@@ -506,7 +506,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 	try {
 		ast = esprima.parseScript(code.toString(), {loc: true});
 	} catch (e) {
-		log.error("error while parsing %s:%s", module, e);
+		log.error("error while parsing %s: %s", moduleName, e.message);
 		return;
 	}
 

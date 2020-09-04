@@ -323,16 +323,21 @@ class XMLTemplateAnalyzer {
 			// represent an expression binding which needs to be evaluated before analysis
 			// e.g. "{= '{Handler: \'' + ${myActions > handlerModule} + '\'}'}"
 			if ((coreRequire.startsWith("{=") || coreRequire.startsWith("{:=")) && this.templateTag) {
-				log.verbose(`Ignoring core:require: Attribute of Node ${node.$ns.local} contains an expression binding and is within a 'template' Node`);
-				log.verbose(coreRequire);
+				log.verbose(
+					`Ignoring core:require: '%s' on Node %s:%s contains ` +
+					`an expression binding and is within a 'template' Node`,
+					coreRequire, node.$ns.uri, node.$ns.local
+				);
 				return;
 			}
 
 			try {
 				requireContext = JSTokenizer.parseJS(coreRequire);
 			} catch (e) {
-				log.error("Ignoring core:require: Attribute can't be parsed on Node ", node.$ns.local);
-				log.error(coreRequire);
+				log.error(
+					"Ignoring core:require: '%s' can't be parsed on Node %s:%s",
+					coreRequire, node.$ns.uri, node.$ns.local
+				);
 			}
 			if ( requireContext ) {
 				Object.keys(requireContext).forEach((key) => {
