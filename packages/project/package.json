@@ -99,7 +99,7 @@
 	"dependencies": {
 		"@ui5/builder": "^2.2.0",
 		"@ui5/logger": "^2.0.0",
-		"@ui5/server": "^2.2.3",
+		"@ui5/server": "^2.2.4",
 		"ajv": "^6.12.4",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^4.1.0",
