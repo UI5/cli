@@ -25,7 +25,7 @@
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
 		"unit-watch": "rimraf test/tmp && ava --watch",
 		"unit-nyan": "rimraf test/tmp && ava --tap | tnyan",
-		"unit-xunit": "rimraf test/tmp && ava --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
+		"unit-xunit": "rimraf test/tmp && ava --tap --timeout=1m | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose node --inspect-brk node_modules/ava/profile.js",
 		"coverage": "nyc npm run unit",
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
