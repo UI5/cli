@@ -12,10 +12,6 @@ updates:
   - matz3
   versioning-strategy: increase
   ignore:
-  - dependency-name: ava
-    versions:
-    - "< 1.0.2"
-    - ">= 1.0.1.a"
   - dependency-name: pacote
     versions:
     - ">= 10.a"
