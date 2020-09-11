@@ -1,0 +1,22 @@
+version: 2
+updates:
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: weekly
+    day: sunday
+    time: "10:00"
+    timezone: Etc/UCT
+  reviewers:
+  - matz3
+  - svbender
+  versioning-strategy: increase
+  ignore:
+  - dependency-name: ava
+    versions:
+    - "< 1.0.2"
+    - ">= 1.0.1.a"
+  - dependency-name: devcert-sanscache
+    versions:
+    - ">= 0.4.7.a"
+    - "< 0.4.8"
