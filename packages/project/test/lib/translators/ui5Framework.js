@@ -236,6 +236,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 		metadata: {
 			name: "test1"
 		},
+		_isRoot: true,
 		framework: {
 			libraries: [
 				{
@@ -333,6 +334,540 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 	};
 	const ui5Dependencies = utils.getFrameworkLibrariesFromTree(tree);
 	t.deepEqual(ui5Dependencies, ["lib1", "lib2", "lib6", "lib3", "lib5"]);
+});
+
+test.serial("utils.mergeTrees", (t) => {
+	const projectTree = {
+		id: "test1",
+		specVersion: "2.0",
+		metadata: {
+			name: "test1"
+		},
+		_isRoot: true,
+		framework: {
+			libraries: [
+				{
+					name: "lib1"
+				},
+				{
+					name: "lib2",
+					optional: true
+				},
+				{
+					name: "lib6",
+					development: true
+				}
+			]
+		},
+		dependencies: [
+			{
+				id: "test2",
+				specVersion: "2.0",
+				metadata: {
+					name: "test2"
+				},
+				framework: {
+					libraries: [
+						{
+							name: "lib3"
+						},
+						{
+							name: "lib4",
+							optional: true
+						}
+					]
+				},
+				dependencies: [
+					{
+						id: "test3",
+						specVersion: "2.0",
+						metadata: {
+							name: "test3"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib5"
+								},
+								{
+									name: "lib7",
+									development: true
+								}
+							]
+						},
+						dependencies: []
+					}
+				]
+			},
+			{
+				id: "@openui5/lib9",
+				specVersion: "1.1",
+				metadata: {
+					name: "lib9"
+				},
+				dependencies: []
+			},
+			{
+				id: "@foo/library",
+				specVersion: "1.1",
+				metadata: {
+					name: "foo.library"
+				},
+				framework: {
+					libraries: [
+						{
+							name: "should.also.be.ignored"
+						}
+					]
+				},
+				dependencies: []
+			}
+		]
+	};
+	const frameworkTree = {
+		metadata: {
+			name: "test1"
+		},
+		_transparentProject: true,
+		dependencies: [
+			{
+				metadata: {
+					name: "lib1"
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib2"
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib3"
+				},
+				dependencies: [
+					{
+						metadata: {
+							name: "lib4"
+						},
+						dependencies: [
+							{
+								metadata: {
+									name: "lib6"
+								},
+								dependencies: []
+							}
+						]
+					}
+				]
+			},
+			{
+				metadata: {
+					name: "lib4"
+				},
+				dependencies: [
+					{
+						metadata: {
+							name: "lib6"
+						},
+						dependencies: []
+					}
+				]
+			},
+			{
+				metadata: {
+					name: "lib5"
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib6"
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib7"
+				},
+				dependencies: []
+			}
+		]
+	};
+	const mergedProjectTree = ui5Framework.mergeTrees(projectTree, frameworkTree);
+	t.deepEqual(mergedProjectTree, {
+		id: "test1",
+		specVersion: "2.0",
+		metadata: {
+			name: "test1"
+		},
+		_isRoot: true,
+		framework: {
+			libraries: [
+				{
+					name: "lib1"
+				},
+				{
+					name: "lib2",
+					optional: true
+				},
+				{
+					name: "lib6",
+					development: true
+				}
+			]
+		},
+		dependencies: [
+			{
+				id: "test2",
+				specVersion: "2.0",
+				metadata: {
+					name: "test2"
+				},
+				framework: {
+					libraries: [
+						{
+							name: "lib3"
+						},
+						{
+							name: "lib4",
+							optional: true
+						}
+					]
+				},
+				dependencies: [
+					{
+						id: "test3",
+						specVersion: "2.0",
+						metadata: {
+							name: "test3"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib5"
+								},
+								{
+									name: "lib7",
+									development: true
+								}
+							]
+						},
+						dependencies: [
+							{
+								metadata: {
+									name: "lib5"
+								},
+								dependencies: []
+							}
+						]
+					},
+					{
+						metadata: {
+							name: "lib3"
+						},
+						dependencies: [
+							{
+								metadata: {
+									name: "lib4"
+								},
+								dependencies: [
+									{
+										metadata: {
+											name: "lib6"
+										},
+										dependencies: []
+									}
+								]
+							}
+						]
+					},
+					{
+						metadata: {
+							name: "lib4"
+						},
+						dependencies: [
+							{
+								metadata: {
+									name: "lib6"
+								},
+								dependencies: []
+							}
+						]
+					}
+				]
+			},
+			{
+				id: "@foo/library",
+				specVersion: "1.1",
+				metadata: {
+					name: "foo.library"
+				},
+				framework: {
+					libraries: [
+						{
+							name: "should.also.be.ignored"
+						}
+					]
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib1"
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib2"
+				},
+				dependencies: []
+			},
+			{
+				metadata: {
+					name: "lib6"
+				},
+				dependencies: []
+			},
+		]
+	});
+});
+
+test.serial("utils.mergeTrees: Missing framework library", (t) => {
+	const projectTree = {
+		id: "test1",
+		specVersion: "2.0",
+		metadata: {
+			name: "test1"
+		},
+		_isRoot: true,
+		framework: {
+			libraries: [
+				{
+					name: "lib1"
+				}
+			]
+		},
+		dependencies: []
+	};
+	const frameworkTree = {
+		metadata: {
+			name: "test1"
+		},
+		_transparentProject: true,
+		dependencies: [
+			{
+				metadata: {
+					name: "lib2"
+				},
+				dependencies: []
+			}
+		]
+	};
+	const error = t.throws(() => {
+		ui5Framework.mergeTrees(projectTree, frameworkTree);
+	});
+	t.is(error.message, `Missing framework library lib1 required by project test1`);
+});
+
+test.serial("utils.mergeTrees: Do not abort merge if project has already been processed", (t) => {
+	const projectTree = {
+		id: "test1",
+		specVersion: "2.0",
+		metadata: {
+			name: "test1"
+		},
+		_isRoot: true,
+		framework: {
+			libraries: [
+				{
+					name: "lib1"
+				}
+			]
+		},
+		dependencies: [
+			{
+				id: "test2",
+				specVersion: "2.0",
+				metadata: {
+					name: "test2"
+				},
+				dependencies: [
+					{
+						id: "test4",
+						specVersion: "2.0",
+						metadata: {
+							name: "test4"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib1"
+								}
+							]
+						},
+						dependencies: []
+					}
+				]
+			},
+			{
+				id: "test3",
+				specVersion: "2.0",
+				metadata: {
+					name: "test3"
+				},
+				dependencies: [
+					{
+						id: "test4",
+						specVersion: "2.0",
+						metadata: {
+							name: "test4"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib1"
+								}
+							]
+						},
+						dependencies: []
+					},
+					{
+						id: "test5",
+						specVersion: "2.0",
+						metadata: {
+							name: "test5"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib1"
+								}
+							]
+						},
+						dependencies: []
+					}
+				]
+			}
+		]
+	};
+	const frameworkTree = {
+		metadata: {
+			name: "test1"
+		},
+		_transparentProject: true,
+		dependencies: [
+			{
+				metadata: {
+					name: "lib1"
+				},
+				dependencies: []
+			}
+		]
+	};
+	const mergedProjectTree = ui5Framework.mergeTrees(projectTree, frameworkTree);
+	t.deepEqual(mergedProjectTree, {
+		id: "test1",
+		specVersion: "2.0",
+		metadata: {
+			name: "test1"
+		},
+		_isRoot: true,
+		framework: {
+			libraries: [
+				{
+					name: "lib1"
+				}
+			]
+		},
+		dependencies: [
+			{
+				id: "test2",
+				specVersion: "2.0",
+				metadata: {
+					name: "test2"
+				},
+				dependencies: [
+					{
+						id: "test4",
+						specVersion: "2.0",
+						metadata: {
+							name: "test4"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib1"
+								}
+							]
+						},
+						dependencies: [
+							{
+								metadata: {
+									name: "lib1"
+								},
+								dependencies: []
+							}
+						]
+					}
+				]
+			},
+			{
+				id: "test3",
+				specVersion: "2.0",
+				metadata: {
+					name: "test3"
+				},
+				dependencies: [
+					{
+						id: "test4",
+						specVersion: "2.0",
+						metadata: {
+							name: "test4"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib1"
+								}
+							]
+						},
+						dependencies: []
+					},
+					{
+						id: "test5",
+						specVersion: "2.0",
+						metadata: {
+							name: "test5"
+						},
+						framework: {
+							libraries: [
+								{
+									name: "lib1"
+								}
+							]
+						},
+						dependencies: [
+							{
+								metadata: {
+									name: "lib1"
+								},
+								dependencies: []
+							}
+						]
+					}
+				]
+			},
+			{
+				metadata: {
+					name: "lib1"
+				},
+				dependencies: []
+			}
+		]
+	});
 });
 
 // TODO test: utils.getAllNodesOfTree

@@ -221,7 +221,7 @@ module.exports = {
 				// Otherwise the isFrameworkProject check would detect framework dependencies added
 				//	at an earlier processing of the project and yield incorrect logging.
 				log.verbose(`Project ${project.metadata.name} (${project.id}) has already been processed`);
-				return;
+				continue;
 			}
 			processedProjects.push(project.id);
 
