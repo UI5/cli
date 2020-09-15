@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.2.2...HEAD).
+
+<a name="v2.2.2"></a>
+## [v2.2.2] - 2020-09-14
+### Bug Fixes
+- **ui5Framework.mergeTrees:** Do not abort merge if a project has already been processed [`264c353`](https://github.com/SAP/ui5-project/commit/264c353b6973bade57164aded4f10a668986482d)
+
 
 <a name="v2.2.1"></a>
 ## [v2.2.1] - 2020-09-02
@@ -198,6 +204,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v2.2.2]: https://github.com/SAP/ui5-project/compare/v2.2.1...v2.2.2
 [v2.2.1]: https://github.com/SAP/ui5-project/compare/v2.2.0...v2.2.1
 [v2.2.0]: https://github.com/SAP/ui5-project/compare/v2.1.5...v2.2.0
 [v2.1.5]: https://github.com/SAP/ui5-project/compare/v2.1.4...v2.1.5
