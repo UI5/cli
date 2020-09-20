@@ -106,7 +106,7 @@
 		"eslint": "^7.9.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^11.0.0",
-		"eslint-plugin-jsdoc": "^30.4.2",
+		"eslint-plugin-jsdoc": "^30.5.1",
 		"jsdoc": "^3.6.5",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
