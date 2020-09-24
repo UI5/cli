@@ -83,20 +83,22 @@ function createMiddleware({resources}) {
 					const match = librariesPattern.exec(relPath);
 					if (match) {
 						const lib = match[1];
-						libs[lib] = lib.replace(/\//g, ".");
+						libs[lib + "/"] = lib.replace(/\//g, ".");
 					}
 				});
 
+				const libPrefixes = Object.keys(libs).sort().reverse();
 				testPageResources.forEach(function(resource) {
 					const relPath = resource.getPath().substr(16); // cut off leading "/test-resources/"
 					if (testPagesPattern.test(relPath)) {
-						Object.keys(libs).forEach(function(lib) {
-							if (relPath.indexOf(lib) === 0) {
+						libPrefixes.some(function(lib) {
+							if (relPath.startsWith(lib)) {
 								response.push({
 									lib: libs[lib],
-									name: relPath.substr(lib.length + 1),
+									name: relPath.substr(lib.length),
 									url: "../" + relPath
 								});
+								return true; // abort loop
 							}
 						});
 					}
