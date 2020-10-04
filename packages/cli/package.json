@@ -119,7 +119,7 @@
 		"string.prototype.matchall": "^4.0.2",
 		"supports-color": "^7.2.0",
 		"treeify": "^1.0.1",
-		"update-notifier": "^4.1.3",
+		"update-notifier": "^5.0.0",
 		"yargs": "^15.4.1"
 	},
 	"devDependencies": {
