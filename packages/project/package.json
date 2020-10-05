@@ -2,7 +2,11 @@
 	"name": "@ui5/project",
 	"version": "2.2.2",
 	"description": "UI5 Tooling - Project ",
-	"author": "SAP SE (https://www.sap.com)",
+	"author": {
+		"name": "SAP SE",
+		"email": "openui5@sap.com",
+		"url": "https://www.sap.com"
+	},
 	"license": "Apache-2.0",
 	"keywords": [
 		"openui5",
