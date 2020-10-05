@@ -15,6 +15,7 @@ const DEFAULT_EXCLUDES = [
 
 function getCreatorOptions(projectName) {
 	const creatorOptions = {};
+	// TODO: Move configuration into ui5.yaml
 	if ( projectName === "sap.ui.core" ) {
 		Object.assign(creatorOptions, {
 			externalResources: {
@@ -36,6 +37,14 @@ function getCreatorOptions(projectName) {
 				"**/designtime/library-preload.designtime.js",
 				"**/library-preload.support.js"
 			]
+		});
+	} else if ( projectName === "sap.ui.integration" ) {
+		Object.assign(creatorOptions, {
+			externalResources: {
+				"sap/ui/integration": [
+					"sap-ui-integration*.js",
+				]
+			}
 		});
 	}
 	return creatorOptions;
