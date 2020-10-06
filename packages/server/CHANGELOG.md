@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.5...HEAD).
+
+<a name="v2.2.5"></a>
+## [v2.2.5] - 2020-10-06
+### Bug Fixes
+- Discovery middleware shouldn't fail when lib names overlap ([#362](https://github.com/SAP/ui5-server/issues/362)) [`f5067ce`](https://github.com/SAP/ui5-server/commit/f5067ce38b89442948ce096e5d89651e8970bdb9)
+
 
 <a name="v2.2.4"></a>
 ## [v2.2.4] - 2020-09-10
@@ -203,6 +209,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.2.5]: https://github.com/SAP/ui5-server/compare/v2.2.4...v2.2.5
 [v2.2.4]: https://github.com/SAP/ui5-server/compare/v2.2.3...v2.2.4
 [v2.2.3]: https://github.com/SAP/ui5-server/compare/v2.2.2...v2.2.3
 [v2.2.2]: https://github.com/SAP/ui5-server/compare/v2.2.1...v2.2.2
