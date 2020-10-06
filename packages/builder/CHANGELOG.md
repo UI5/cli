@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.2.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.2.1...HEAD).
+
+<a name="v2.2.1"></a>
+## [v2.2.1] - 2020-10-05
+### Bug Fixes
+- **Bundler:** Improve error log messages ([#466](https://github.com/SAP/ui5-builder/issues/466)) [`6bb6235`](https://github.com/SAP/ui5-builder/commit/6bb6235464b54da4e13553ecf9e0fe0ebcb3fe61)
+- **tasks/generateResourcesJson:** Handling for sap.ui.integration [`1191b3d`](https://github.com/SAP/ui5-builder/commit/1191b3d4fac9ab7b78467d254afa88041962c416)
+
+### Dependency Updates
+- Bump terser from 4.8.0 to 5.2.1 ([#511](https://github.com/SAP/ui5-builder/issues/511)) [`18f0df8`](https://github.com/SAP/ui5-builder/commit/18f0df84d7f3f4c7de9b1cacf06a5f5d2f0de8a9)
+
 
 <a name="v2.2.0"></a>
 ## [v2.2.0] - 2020-09-02
@@ -419,6 +429,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.2.1]: https://github.com/SAP/ui5-builder/compare/v2.2.0...v2.2.1
 [v2.2.0]: https://github.com/SAP/ui5-builder/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/SAP/ui5-builder/compare/v2.0.7...v2.1.0
 [v2.0.7]: https://github.com/SAP/ui5-builder/compare/v2.0.6...v2.0.7
