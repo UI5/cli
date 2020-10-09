@@ -100,7 +100,7 @@ test.serial("isLevelEnabled", (t) => {
 
 	t.throws(() => {
 		logger.isLevelEnabled("all");
-	}, {message: `Unkown log level "all"`});
+	}, {message: `Unknown log level "all"`});
 
 	// Just to test the error handling
 	npmLogStub.level = "level should not be set here";
