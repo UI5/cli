@@ -25,7 +25,7 @@ function isLevelEnabled(levelName) {
 		throw new Error(`Failed to find current log level "${npmlog.level}" in list of expected log levels`);
 	}
 	if (reqIdx === -1) {
-		throw new Error(`Unkown log level "${levelName}"`);
+		throw new Error(`Unknown log level "${levelName}"`);
 	}
 	if (reqIdx >= currIdx) {
 		return true;
