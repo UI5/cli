@@ -45,6 +45,54 @@ function createMiddleware({resources, middlewareUtil}) {
 	});
 	const buildOptions = {};
 
+	const currentRequests = {};
+
+	async function buildTheme(pathname) {
+		const filename = basename(pathname);
+
+		if (cssVariablesThemeResources.includes(filename) && !buildOptions.cssVariables) {
+			// Activate CSS Variables build the first time a relevant resource is requested
+			buildOptions.cssVariables = true;
+			// Clear the cache to ensure that the build is executed again with "cssVariables: true"
+			builder.clearCache();
+		}
+
+		const sourceLessPath = dirname(pathname) + "/library.source.less";
+		const sourceLessResource = await resources.all.byPath(sourceLessPath);
+		if (!sourceLessResource) { // Not found
+			return;
+		}
+
+		const createdResources = await builder.build([sourceLessResource], buildOptions);
+
+		// Pick requested file resource
+		const resource = createdResources.find((res) => res.getPath().endsWith(filename));
+		if (!resource) {
+			throw new Error(`Theme Build did not return requested file "${pathname}"`);
+		}
+
+		return resource;
+	}
+
+	async function sendResponse(req, res, resource) {
+		const resourcePath = resource.getPath();
+		const {contentType} = middlewareUtil.getMimeInfo(resourcePath);
+		res.setHeader("Content-Type", contentType);
+
+		const content = await resource.getBuffer();
+
+		res.setHeader("ETag", etag(content));
+
+		if (isFresh(req, res)) {
+			// client has a fresh copy of the resource
+			res.statusCode = 304;
+			res.end();
+			return;
+		}
+
+		res.end(content);
+	}
+
 	return async function theme(req, res, next) {
 		try {
 			const pathname = parseurl(req).pathname;
@@ -54,43 +102,18 @@ function createMiddleware({resources, middlewareUtil}) {
 				return;
 			}
 
-			if (cssVariablesThemeResources.includes(filename) && !buildOptions.cssVariables) {
-				// Activate CSS Variables build the first time a relevant resource is requested
-				buildOptions.cssVariables = true;
-				// Clear the cache to ensure that the build is executed again with "cssVariables: true"
-				builder.clearCache();
+			if (!currentRequests[pathname]) {
+				currentRequests[pathname] = buildTheme(pathname);
 			}
 
-			const sourceLessPath = dirname(pathname) + "/library.source.less";
-			const sourceLessResource = await resources.all.byPath(sourceLessPath);
-			if (!sourceLessResource) { // Not found
-				next();
-				return;
-			}
-
-			const createdResources = await builder.build([sourceLessResource], buildOptions);
-			// Pick requested file resource
-			const resource = createdResources.find((res) => res.getPath().endsWith(filename));
+			const resource = await currentRequests[pathname];
 			if (!resource) {
-				next(new Error(`Theme Build did not return requested file "${pathname}"`));
-				return;
+				next();
+			} else {
+				await sendResponse(req, res, resource);
 			}
 
-			const resourcePath = resource.getPath();
-			const {contentType} = middlewareUtil.getMimeInfo(resourcePath);
-			res.setHeader("Content-Type", contentType);
-
-			const content = await resource.getBuffer();
-			res.setHeader("ETag", etag(content));
-
-			if (isFresh(req, res)) {
-				// client has a fresh copy of the resource
-				res.statusCode = 304;
-				res.end();
-				return;
-			}
-
-			res.end(content.toString());
+			delete currentRequests[pathname];
 		} catch (err) {
 			next(err);
 		}

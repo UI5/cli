@@ -401,3 +401,56 @@ test.serial.cb("Error handling: Unexpected exception within middleware should ca
 		t.end();
 	});
 });
+
+test.serial("Multiple parallel requests to the same path should only result in one theme build", async (t) => {
+	const resources = createResources();
+
+	const build = stubThemeBuild(resources);
+
+	const {middleware, byPath} = createMiddleware();
+	byPath.withArgs("/resources/sap/ui/test/themes/base/library.source.less")
+		.resolves(resources["library.source.less"]);
+	byPath.withArgs("/resources/sap/ui/test2/themes/base/library.source.less")
+		.resolves(resources["library.source.less"]);
+
+	function request(url) {
+		return new Promise((resolve, reject) => {
+			const req = {
+				url,
+				headers: {}
+			};
+
+			const res = {
+				setHeader: sinon.stub(),
+				getHeader: sinon.stub(),
+				end: resolve
+			};
+
+			middleware(req, res, reject);
+		});
+	}
+
+	await Promise.all([
+		request("/resources/sap/ui/test/themes/base/library.css"),
+		request("/resources/sap/ui/test/themes/base/library.css"),
+		request("/resources/sap/ui/test/themes/base/library.css"),
+
+		request("/resources/sap/ui/test2/themes/base/library.css"),
+		request("/resources/sap/ui/test2/themes/base/library.css")
+	]);
+	// Should only build once per url
+	t.is(build.callCount, 2, "Build should be called 2 times");
+
+
+	// After all requests have finished, the build should be started again when another request comes in
+	await Promise.all([
+		request("/resources/sap/ui/test/themes/base/library.css"),
+		request("/resources/sap/ui/test/themes/base/library.css"),
+		request("/resources/sap/ui/test/themes/base/library.css"),
+
+		request("/resources/sap/ui/test2/themes/base/library.css"),
+		request("/resources/sap/ui/test2/themes/base/library.css")
+	]);
+	// Should only build once per url
+	t.is(build.callCount, 4, "Build should be called 4 times");
+});
