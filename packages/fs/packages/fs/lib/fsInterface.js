@@ -27,7 +27,7 @@ module.exports = (reader) => {
 				nodir: false
 			}).then(function(resource) {
 				if (!resource) {
-					const error = new Error();
+					const error = new Error(`ENOENT: no such file or directory, open '${fsPath}'`);
 					error.code = "ENOENT"; // "File or directory does not exist"
 					callback(error);
 					return;
@@ -52,7 +52,7 @@ module.exports = (reader) => {
 				nodir: false
 			}).then(function(resource) {
 				if (!resource) {
-					const error = new Error();
+					const error = new Error(`ENOENT: no such file or directory, stat '${fsPath}'`);
 					error.code = "ENOENT"; // "File or directory does not exist"
 					callback(error);
 				} else {
