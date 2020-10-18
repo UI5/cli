@@ -129,7 +129,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.11.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^30.6.4",
+		"eslint-plugin-jsdoc": "^30.6.5",
 		"istanbul-lib-coverage": "^3.0.0",
 		"istanbul-lib-instrument": "^4.0.3",
 		"istanbul-lib-report": "^3.0.0",
