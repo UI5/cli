@@ -129,7 +129,7 @@
 	},
 	"devDependencies": {
 		"@ui5/project": "^2.2.2",
-		"ava": "3.11.1",
+		"ava": "3.13.0",
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",
