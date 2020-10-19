@@ -66,7 +66,7 @@ function createMiddleware({resources, middlewareUtil}) {
 		const createdResources = await builder.build([sourceLessResource], buildOptions);
 
 		// Pick requested file resource
-		const resource = createdResources.find((res) => res.getPath().endsWith(filename));
+		const resource = createdResources.find((res) => basename(res.getPath()) === filename);
 		if (!resource) {
 			throw new Error(`Theme Build did not return requested file "${pathname}"`);
 		}
