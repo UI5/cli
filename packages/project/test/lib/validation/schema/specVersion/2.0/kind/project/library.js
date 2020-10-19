@@ -70,6 +70,7 @@ test.after.always((t) => {
 							],
 							"sections": [
 								{
+									"name": "my-raw-section",
 									"mode": "raw",
 									"filters": [
 										"ui5loader-autoconfig.js"
@@ -107,6 +108,7 @@ test.after.always((t) => {
 							],
 							"sections": [
 								{
+									"name": "some-app-preload",
 									"mode": "preload",
 									"filters": [
 										"some/app/Component.js"
@@ -212,6 +214,7 @@ test.after.always((t) => {
 							],
 							"sections": [
 								{
+									"name": true,
 									"mode": "raw",
 									"filters": [
 										"ui5loader-autoconfig.js"
@@ -349,6 +352,15 @@ test.after.always((t) => {
 					additionalProperty: "declareModules",
 				},
 				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/additionalProperties",
+			},
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/name/type",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition",

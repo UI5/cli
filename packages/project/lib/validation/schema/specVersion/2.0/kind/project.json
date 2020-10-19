@@ -139,6 +139,9 @@
 									"additionalProperties": false,
 									"required": ["mode", "filters"],
 									"properties": {
+										"name": {
+											"type": "string"
+										},
 										"mode": {
 											"enum": ["raw", "preload", "require", "provided"]
 										},
