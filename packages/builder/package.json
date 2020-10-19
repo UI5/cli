@@ -123,7 +123,7 @@
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.2",
 		"slash": "^3.0.0",
-		"terser": "^5.3.4",
+		"terser": "^5.3.5",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},
@@ -137,7 +137,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.11.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^30.6.4",
+		"eslint-plugin-jsdoc": "^30.6.5",
 		"extract-zip": "^2.0.1",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
