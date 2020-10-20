@@ -121,17 +121,17 @@ function makeResourcesJSON(list, prefix) {
 }
 
 /**
- * Whether the detection of orphans should result in a build failure.
+ * Creates resources.json files
  *
- * @since 1.29.1
- * @param {object} configuration
- * @param {module:@ui5/fs.Resource[]} configuration.resources
- * @param {object} [options] configuration options
- * @returns {module:@ui5/fs.Resource[]} list of resources.json files
+ * @private
+ * @param {object} parameters Parameters
+ * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources
+ * @param {object} [parameters.options] Options
+ * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the resources.json resources
  */
-module.exports = async function({resources}, options) {
+module.exports = async function({resources, options}) {
 	options = Object.assign({
-		failOnOrphans: true,
+		failOnOrphans: false,
 		externalResources: undefined,
 		debugResources: DEFAULT_DEBUG_RESOURCES_FILTER,
 		mergedResources: DEFAULT_BUNDLE_RESOURCES_FILTER,

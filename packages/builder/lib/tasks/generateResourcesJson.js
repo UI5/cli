@@ -116,8 +116,9 @@ module.exports = async function({workspace, options: {projectName}}) {
 	const resources = await workspace.byGlob(["/resources/**/*.*"].concat(DEFAULT_EXCLUDES));
 
 	const resourceLists = await resourceListCreator({
-		resources
-	}, getCreatorOptions(projectName));
+		resources,
+		options: getCreatorOptions(projectName)
+	});
 	await Promise.all(
 		resourceLists.map((resourceList) => workspace.write(resourceList))
 	);

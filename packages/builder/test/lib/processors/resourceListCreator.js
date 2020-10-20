@@ -33,23 +33,39 @@ test.serial("Empty resources", async (t) => {
 
 test.serial("Empty resources but options", async (t) => {
 	const result = await resourceListCreator({
-		resources: []
-	}, {
-		externalResources: {
-			"mycomp": [".*dbg.js"]
+		resources: [],
+		options: {
+			externalResources: {
+				"mycomp": [".*dbg.js"]
+			}
 		}
 	});
 	t.deepEqual(result, []);
 });
 
 test.serial("Orphaned resources", async (t) => {
+	// Does not fail by default
+	const resource = resourceFactory.createResource({
+		path: "/resources/nomodule.foo",
+		string: "bar content"
+	});
+	await resourceListCreator({
+		resources: [resource]
+	});
+	t.is(t.context.logErrorSpy.callCount, 0);
+});
+
+test.serial("Orphaned resources (failOnOrphans: true)", async (t) => {
 	const resource = resourceFactory.createResource({
 		path: "/resources/nomodule.foo",
 		string: "bar content"
 	});
 	const errorObject = await t.throwsAsync(() => {
 		return resourceListCreator({
-			resources: [resource]
+			resources: [resource],
+			options: {
+				failOnOrphans: true
+			}
 		});
 	});
 	t.is(errorObject.message, "resources.json generation failed with error: There are 1 resources which could not be assigned to components.");

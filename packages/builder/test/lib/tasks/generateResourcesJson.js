@@ -40,7 +40,13 @@ test.afterEach.always((t) => {
 test("empty resources", async (t) => {
 	const generateResourcesJson = require("../../../lib/tasks/generateResourcesJson");
 
-	const result = await generateResourcesJson({workspace: createWorkspace(), dependencies: undefined, options: {projectName: "sap.ui.core"}});
+	const result = await generateResourcesJson({
+		workspace: createWorkspace(),
+		dependencies: undefined,
+		options: {
+			projectName: "sap.ui.core"
+		}
+	});
 	t.deepEqual(result, undefined, "no resources returned");
 	t.is(t.context.resourceListCreatorStub.callCount, 1);
 	const expectedOptions = {
@@ -64,5 +70,5 @@ test("empty resources", async (t) => {
 			"**/library-preload.support.js"
 		]
 	};
-	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[1], expectedOptions, "options match");
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].options, expectedOptions, "options match");
 });
