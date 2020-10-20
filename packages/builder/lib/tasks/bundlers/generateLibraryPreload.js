@@ -2,10 +2,24 @@ const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateLib
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 
+const DEFAULT_FILE_TYPES = [
+	".js",
+	".control.xml", // XMLComposite
+	".fragment.html",
+	".fragment.json",
+	".fragment.xml",
+	".view.html",
+	".view.json",
+	".view.xml",
+	".properties",
+	".json"
+];
+
 function getDefaultLibraryPreloadFilters(namespace) {
 	return [
 		`${namespace}/`,
 		`!${namespace}/.library`,
+		`!${namespace}/*-preload.js`, // exclude all bundles
 		`!${namespace}/designtime/`,
 		`!${namespace}/**/*.designtime.js`,
 		`!${namespace}/**/*.support.js`,
@@ -19,7 +33,7 @@ function getBundleDefinition(namespace) {
 	if (namespace === "sap/ui/core") {
 		return {
 			name: `${namespace}/library-preload.js`,
-			defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
+			defaultFileTypes: DEFAULT_FILE_TYPES,
 			sections: [
 				{
 					// exclude the content of sap-ui-core by declaring it as 'provided'
@@ -71,7 +85,7 @@ function getBundleDefinition(namespace) {
 	}
 	return {
 		name: `${namespace}/library-preload.js`,
-		defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
+		defaultFileTypes: DEFAULT_FILE_TYPES,
 		sections: [
 			{
 				mode: "preload",
@@ -82,6 +96,88 @@ function getBundleDefinition(namespace) {
 			}
 		]
 	};
+}
+
+function getDesigntimeBundleDefinition(namespace) {
+	return {
+		name: `${namespace}/designtime/library-preload.designtime.js`,
+		defaultFileTypes: DEFAULT_FILE_TYPES,
+		sections: [
+			{
+				mode: "preload",
+				filters: [
+					`${namespace}/**/*.designtime.js`,
+					`${namespace}/designtime/`,
+					`!${namespace}/**/*-preload.designtime.js`,
+					`!${namespace}/designtime/**/*.properties`,
+					`!${namespace}/designtime/**/*.svg`,
+					`!${namespace}/designtime/**/*.xml`
+				],
+				resolve: false,
+				resolveConditional: false,
+				renderer: false
+			}
+		]
+	};
+}
+
+function getSupportFilesBundleDefinition(namespace) {
+	return {
+		name: `${namespace}/library-preload.support.js`,
+		defaultFileTypes: DEFAULT_FILE_TYPES,
+		sections: [
+			{
+				mode: "preload",
+				filters: [
+					`${namespace}/**/*.support.js`,
+					`!${namespace}/**/*-preload.support.js`
+				],
+				resolve: false,
+				resolveConditional: false,
+				renderer: false
+			}
+		]
+	};
+}
+
+function createLibraryBundles(libraryNamespace, resources) {
+	return Promise.all([
+		moduleBundler({
+			options: {
+				bundleDefinition: getBundleDefinition(libraryNamespace),
+				bundleOptions: {
+					optimize: true,
+					usePredefineCalls: true,
+					ignoreMissingModules: true
+				}
+			},
+			resources
+		}),
+		moduleBundler({
+			options: {
+				bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
+				bundleOptions: {
+					optimize: true,
+					usePredefineCalls: true,
+					ignoreMissingModules: true,
+					skipIfEmpty: true
+				}
+			},
+			resources
+		}),
+		moduleBundler({
+			options: {
+				bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
+				bundleOptions: {
+					optimize: false,
+					usePredefineCalls: true,
+					ignoreMissingModules: true,
+					skipIfEmpty: true
+				}
+			},
+			resources
+		})
+	]);
 }
 
 function getModuleBundlerOptions(config) {
@@ -247,22 +343,11 @@ module.exports = function({workspace, dependencies, options: {projectName}}) {
 					const libraryNamespaceMatch = libraryIndicatorPath.match(libraryNamespacePattern);
 					if (libraryNamespaceMatch && libraryNamespaceMatch[1]) {
 						const libraryNamespace = libraryNamespaceMatch[1];
-						return moduleBundler({
-							options: {
-								bundleDefinition: getBundleDefinition(libraryNamespace),
-								bundleOptions: {
-									optimize: true,
-									usePredefineCalls: true,
-									ignoreMissingModules: true
-								}
-							},
-							resources
-						}).then(([bundle]) => {
-							if (bundle) {
-								// console.log(`${libraryNamespace}/library-preload.js bundle created`);
-								return workspace.write(bundle);
-							}
-						});
+						return createLibraryBundles(libraryNamespace, resources)
+							.then((results) => {
+								const bundles = Array.prototype.concat.apply([], results);
+								return Promise.all(bundles.map((bundle) => bundle && workspace.write(bundle)));
+							});
 					} else {
 						log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${projectName}. Skipping library preload bundling.`);
 						return Promise.resolve();

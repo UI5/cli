@@ -52,16 +52,21 @@ test.serial("generateLibraryPreload", async (t) => {
 		}
 	});
 
-	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
+	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
 					".properties",
-					".json",
+					".json"
 				],
 				name: "my/lib/library-preload.js",
 				sections: [
@@ -69,6 +74,7 @@ test.serial("generateLibraryPreload", async (t) => {
 						filters: [
 							"my/lib/",
 							"!my/lib/.library",
+							"!my/lib/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
 							"!my/lib/**/*.support.js",
@@ -127,7 +133,7 @@ test("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (t) => {
 		}
 	});
 
-	t.is(moduleBundlerStub.callCount, 5, "moduleBundler should have been called 5 times");
+	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition: {
@@ -293,10 +299,15 @@ test("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (t) => {
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
 					".properties",
-					".json",
+					".json"
 				],
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -312,6 +323,7 @@ test("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (t) => {
 						filters: [
 							"sap/ui/core/",
 							"!sap/ui/core/.library",
+							"!sap/ui/core/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -394,7 +406,7 @@ test("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t) => {
 		}
 	});
 
-	t.is(moduleBundlerStub.callCount, 5, "moduleBundler should have been called 5 times");
+	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 5 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition: {
@@ -560,10 +572,15 @@ test("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t) => {
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
 					".properties",
-					".json",
+					".json"
 				],
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -579,6 +596,7 @@ test("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t) => {
 						filters: [
 							"sap/ui/core/",
 							"!sap/ui/core/.library",
+							"!sap/ui/core/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -618,6 +636,86 @@ test("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t) => {
 				optimize: true,
 				usePredefineCalls: true,
 				ignoreMissingModules: true
+			}
+		},
+		resources: filteredResources
+	}]);
+	t.deepEqual(moduleBundlerStub.getCall(5).args, [{
+		options: {
+			bundleDefinition: {
+				defaultFileTypes: [
+					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
+					".fragment.xml",
+					".view.html",
+					".view.json",
+					".view.xml",
+					".properties",
+					".json"
+				],
+				name: "sap/ui/core/designtime/library-preload.designtime.js",
+				sections: [
+					{
+						filters: [
+							"sap/ui/core/**/*.designtime.js",
+							"sap/ui/core/designtime/",
+							"!sap/ui/core/**/*-preload.designtime.js",
+							"!sap/ui/core/designtime/**/*.properties",
+							"!sap/ui/core/designtime/**/*.svg",
+							"!sap/ui/core/designtime/**/*.xml"
+						],
+						mode: "preload",
+						renderer: false,
+						resolve: false,
+						resolveConditional: false,
+					}
+				]
+			},
+			bundleOptions: {
+				optimize: true,
+				usePredefineCalls: true,
+				ignoreMissingModules: true,
+				skipIfEmpty: true
+			}
+		},
+		resources: filteredResources
+	}]);
+	t.deepEqual(moduleBundlerStub.getCall(6).args, [{
+		options: {
+			bundleDefinition: {
+				defaultFileTypes: [
+					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
+					".fragment.xml",
+					".view.html",
+					".view.json",
+					".view.xml",
+					".properties",
+					".json"
+				],
+				name: "sap/ui/core/library-preload.support.js",
+				sections: [
+					{
+						filters: [
+							"sap/ui/core/**/*.support.js",
+							"!sap/ui/core/**/*-preload.support.js"
+						],
+						mode: "preload",
+						renderer: false,
+						resolve: false,
+						resolveConditional: false,
+					}
+				]
+			},
+			bundleOptions: {
+				optimize: false,
+				usePredefineCalls: true,
+				ignoreMissingModules: true,
+				skipIfEmpty: true
 			}
 		},
 		resources: filteredResources

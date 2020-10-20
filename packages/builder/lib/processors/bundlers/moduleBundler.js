@@ -116,13 +116,16 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions}
 				bundles = [results];
 			}
 
-			return Promise.all(bundles.map(function({name, content, bundleInfo}) {
-				// console.log("creating bundle as '%s'", "/resources/" + name);
-				const resource = new EvoResource({
-					path: "/resources/" + name,
-					string: content
-				});
-				return resource;
+			return Promise.all(bundles.map((bundleObj) => {
+				if ( bundleObj ) {
+					const {name, content} = bundleObj;
+					// console.log("creating bundle as '%s'", "/resources/" + name);
+					const resource = new EvoResource({
+						path: "/resources/" + name,
+						string: content
+					});
+					return resource;
+				}
 			}));
 		});
 };

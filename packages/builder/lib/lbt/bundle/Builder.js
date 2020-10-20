@@ -37,6 +37,10 @@ function makeStringLiteral(str) {
 	}) + "'";
 }
 
+function isEmptyBundle(resolvedBundle) {
+	return resolvedBundle.sections.every((section) => section.modules.length === 0);
+}
+
 const UI5BundleFormat = {
 	beforePreloads(outW, section) {
 		outW.write(`jQuery.sap.registerPreloadedModules(`);
@@ -130,6 +134,10 @@ class BundleBuilder {
 
 	async _createBundle(module, options) {
 		const resolvedModule = await this.resolver.resolve(module, options);
+		if ( options.skipIfEmpty && isEmptyBundle(resolvedModule) ) {
+			log.verbose("  skipping empty bundle " + module.name);
+			return undefined;
+		}
 		log.verbose("  create '%s'", resolvedModule.name);
 
 		this.options = options || {};
