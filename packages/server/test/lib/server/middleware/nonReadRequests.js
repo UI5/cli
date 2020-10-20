@@ -29,13 +29,10 @@ test("Non read requests results in status 404 and an error message", (t) => {
 	const methods = ["POST", "PUT", "DELETE"];
 	methods.forEach(function(method) {
 		res = {
-			status: function(status) {
-				t.deepEqual(status, 404, "Status should be 404");
-				return {
-					end: function(message) {
-						t.deepEqual(message, "Cannot " + method + " /somePath", "Finished with error message.");
-					}
-				};
+			statusCode: 200,
+			end: function(message) {
+				t.deepEqual(res.statusCode, 404, "Status should be 404");
+				t.deepEqual(message, "Cannot " + method + " /somePath", "Finished with error message.");
 			}
 		};
 
