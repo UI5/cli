@@ -628,13 +628,13 @@
 			}
 		},
 		"@ui5/server": {
-			"version": "2.2.5",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-2.2.5.tgz",
-			"integrity": "sha512-Osd9ilB4zP7Mk67burIMsqLGqabfjBY9TfHGSFoZDC0uhitArwvpCTWrqAl2JoBmKF+mSD8MLHaEqTApDSKrHA==",
+			"version": "2.2.6",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-2.2.6.tgz",
+			"integrity": "sha512-a0E+tKITgbTpqnPCdLDZ6YRxCKGBp4Arm0TKFG3aRQwRyll1JMHXWCFTQLexrn4AHwcdTaVCM6QK12DzgP6Okg==",
 			"requires": {
-				"@ui5/builder": "^2.2.1",
-				"@ui5/fs": "^2.0.3",
-				"@ui5/logger": "^2.0.0",
+				"@ui5/builder": "^2.3.0",
+				"@ui5/fs": "^2.0.4",
+				"@ui5/logger": "^2.0.1",
 				"body-parser": "^1.19.0",
 				"compression": "^1.7.4",
 				"connect-openui5": "^0.9.1",
