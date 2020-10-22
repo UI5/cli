@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v2.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v2.0.1...HEAD).
+
+<a name="v2.0.1"></a>
+## [v2.0.1] - 2020-10-22
+### Bug Fixes
+- Typos in error messages [`1d25902`](https://github.com/SAP/ui5-logger/commit/1d2590223c4332f5ea6f1326b23ecf584fea5934)
+
 
 <a name="v2.0.0"></a>
-## [v2.0.0] - 2020-03-29
+## [v2.0.0] - 2020-03-31
 ### Breaking Changes
 - Require Node.js >= 10 [`1825d10`](https://github.com/SAP/ui5-logger/commit/1825d1013a88f164cbbfbf579c3e8e02df2b5082)
 
@@ -45,6 +51,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.0.1]: https://github.com/SAP/ui5-logger/compare/v2.0.0...v2.0.1
 [v2.0.0]: https://github.com/SAP/ui5-logger/compare/v1.0.2...v2.0.0
 [v1.0.2]: https://github.com/SAP/ui5-logger/compare/v1.0.1...v1.0.2
 [v1.0.1]: https://github.com/SAP/ui5-logger/compare/v1.0.0...v1.0.1
