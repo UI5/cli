@@ -2,10 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.3.0...HEAD).
+
+<a name="v2.3.0"></a>
+## [v2.3.0] - 2020-10-22
+### Features
+- Create designtime and support bundles for libraries ([#529](https://github.com/SAP/ui5-builder/issues/529)) [`2a51943`](https://github.com/SAP/ui5-builder/commit/2a5194346279279a6fb28c7332245e1cc5360d63)
+
+### Performance Improvements
+- **BundleWriter:** Improve performance ([#534](https://github.com/SAP/ui5-builder/issues/534)) [`750b43e`](https://github.com/SAP/ui5-builder/commit/750b43eb88aded89eb8cd0b4b9ccb1ca5d5f94d2)
+
 
 <a name="v2.2.1"></a>
-## [v2.2.1] - 2020-10-05
+## [v2.2.1] - 2020-10-06
 ### Bug Fixes
 - **Bundler:** Improve error log messages ([#466](https://github.com/SAP/ui5-builder/issues/466)) [`6bb6235`](https://github.com/SAP/ui5-builder/commit/6bb6235464b54da4e13553ecf9e0fe0ebcb3fe61)
 - **tasks/generateResourcesJson:** Handling for sap.ui.integration [`1191b3d`](https://github.com/SAP/ui5-builder/commit/1191b3d4fac9ab7b78467d254afa88041962c416)
@@ -429,6 +438,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.3.0]: https://github.com/SAP/ui5-builder/compare/v2.2.1...v2.3.0
 [v2.2.1]: https://github.com/SAP/ui5-builder/compare/v2.2.0...v2.2.1
 [v2.2.0]: https://github.com/SAP/ui5-builder/compare/v2.1.0...v2.2.0
 [v2.1.0]: https://github.com/SAP/ui5-builder/compare/v2.0.7...v2.1.0
