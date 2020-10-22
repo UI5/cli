@@ -4,7 +4,7 @@ const levels = ["silly", "verbose", "info", "warn", "error", "silent"];
 if (process.env.UI5_LOG_LVL) {
 	const logLvl = process.env.UI5_LOG_LVL;
 	if (!levels.includes(logLvl)) {
-		throw new Error(`UI5 Logger: Environment variable UI5_LOG_LVL is set to an unkown log level "${logLvl}". ` +
+		throw new Error(`UI5 Logger: Environment variable UI5_LOG_LVL is set to an unknown log level "${logLvl}". ` +
 			`Valid levels are ${levels.join(", ")}`);
 	}
 	npmlog.level = logLvl;
@@ -134,7 +134,7 @@ const logger = {
 
 	setLevel(level) {
 		if (!levels.includes(level)) {
-			throw new Error(`Unkown log level "${level}"`);
+			throw new Error(`Unknown log level "${level}"`);
 		}
 		return npmlog.level = level;
 	},

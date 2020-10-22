@@ -64,7 +64,7 @@ test.serial("setLevel", (t) => {
 	logger.setLevel("silly");
 	t.is(t.context.npmLogStub.level, "silly", "npmlog.level should be set to 'silly'");
 
-	t.throws(() => logger.setLevel("fancy"), {message: `Unkown log level "fancy"`});
+	t.throws(() => logger.setLevel("fancy"), {message: `Unknown log level "fancy"`});
 	t.is(t.context.npmLogStub.level, "silly", "npmlog.level should still be set to 'silly'");
 });
 
@@ -143,7 +143,7 @@ test.serial("Environment variable UI5_LOG_LVL (invalid)", (t) => {
 	t.throws(() => {
 		mock.reRequire("../../lib/logger");
 	}, {
-		message: `UI5 Logger: Environment variable UI5_LOG_LVL is set to an unkown log level "all". ` +
+		message: `UI5 Logger: Environment variable UI5_LOG_LVL is set to an unknown log level "all". ` +
 			`Valid levels are silly, verbose, info, warn, error, silent`
 	});
 });
