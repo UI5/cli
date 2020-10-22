@@ -1,5 +1,6 @@
 const test = require("ava");
 const sinon = require("sinon");
+const mock = require("mock-require");
 const {Readable, Writable} = require("stream");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 const serveResourcesMiddleware = require("../../../../lib/middleware/serveResources");
@@ -39,6 +40,7 @@ const fakeResponse = {
 };
 
 test.afterEach.always((t) => {
+	mock.stopAll();
 	sinon.restore();
 });
 
@@ -242,6 +244,91 @@ fame=stra\\u00dfe`);
 	});
 });
 
+test.serial("Check verbose logging", (t) => {
+	const logger = require("@ui5/logger");
+	const verboseLogStub = sinon.stub();
+	const myLoggerInstance = {
+		verbose: verboseLogStub,
+		isLevelEnabled: () => true
+	};
+	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
+	const serveResourcesMiddlewareWithMock = mock.reRequire("../../../../lib/middleware/serveResources");
+
+
+	const resource = {
+		getPath: sinon.stub().returns("/foo.js"),
+		getStatInfo: sinon.stub().returns({
+			ino: 0,
+			ctime: new Date(),
+			mtime: new Date(),
+			size: 1024 * 1024,
+			isDirectory: function() {
+				return false;
+			}
+		}),
+		getStream: () => {
+			const stream = new Readable();
+			stream.push(Buffer.from(""));
+			stream.push(null);
+			return stream;
+		},
+		_project: {
+			version: "1.0.0"
+		},
+		getPathTree: () => {
+			return {
+				"mypath": {
+					"a": {
+						"b": {}
+					}
+
+				}
+			};
+		}
+	};
+
+	const resources = {
+		all: {
+			byPath: sinon.stub()
+		}
+	};
+	const middleware = serveResourcesMiddlewareWithMock({
+		middlewareUtil: new MiddlewareUtil(),
+		resources
+	});
+
+	resources.all.byPath.withArgs("/foo.js").resolves(resource);
+
+	const req = {
+		url: "/foo.js",
+		headers: {}
+	};
+
+	return new Promise((resolve, reject) => {
+		const res = new Writable();
+		res.setHeader = sinon.stub();
+		res.getHeader = sinon.stub();
+		res._write = sinon.stub();
+		res.end = function() {
+			t.is(verboseLogStub.callCount, 1, "was called once");
+			const expected = "\n└─ mypath\n" +
+				"   └─ a\n" +
+				"      └─ b\n";
+			t.deepEqual(verboseLogStub.getCall(0).args, [expected], "treeify works correctly");
+			resolve();
+		};
+
+		middleware(req, res, function(err) {
+			if (err) {
+				t.fail("Unexpected error passed to next function: " + err);
+			} else {
+				t.fail("Unexpected call of next function");
+			}
+			reject(new Error("should not happen"));
+		});
+	});
+});
+
 test.serial.cb("Check if version replacement is done", (t) => {
 	const input = "foo ${version} bar";
 	const expected = "foo 1.0.0 bar";
@@ -265,7 +352,8 @@ test.serial.cb("Check if version replacement is done", (t) => {
 		},
 		_project: {
 			version: "1.0.0"
-		}
+		},
+		getPathTree: () => ""
 	};
 
 	const resources = {
@@ -296,7 +384,7 @@ test.serial.cb("Check if version replacement is done", (t) => {
 	res.end = function() {
 		t.is(Buffer.concat(buffers).toString(), expected);
 		t.end();
-	},
+	};
 
 	middleware(req, res, function(err) {
 		if (err) {
@@ -341,7 +429,8 @@ test.serial[
 		},
 		_project: {
 			version: "1.0.0"
-		}
+		},
+		getPathTree: () => ""
 	};
 
 	const resources = {
@@ -372,7 +461,7 @@ test.serial[
 	res.end = function() {
 		t.is(Buffer.concat(buffers).toString(), expected);
 		t.end();
-	},
+	};
 
 	middleware(req, res, function(err) {
 		if (err) {
