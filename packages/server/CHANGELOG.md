@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.6...HEAD).
+
+<a name="v2.2.6"></a>
+## [v2.2.6] - 2020-10-22
+### Bug Fixes
+- Improve parallel theme request handling [`88bc0d6`](https://github.com/SAP/ui5-server/commit/88bc0d6d4e5ca8bb191029335451713579360e1c)
+- **nonReadRequests middleware:** Use native response API [`2d2325f`](https://github.com/SAP/ui5-server/commit/2d2325f638820d25738ddbd56afe0d104e37f2e0)
+
 
 <a name="v2.2.5"></a>
 ## [v2.2.5] - 2020-10-06
@@ -209,6 +216,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.2.6]: https://github.com/SAP/ui5-server/compare/v2.2.5...v2.2.6
 [v2.2.5]: https://github.com/SAP/ui5-server/compare/v2.2.4...v2.2.5
 [v2.2.4]: https://github.com/SAP/ui5-server/compare/v2.2.3...v2.2.4
 [v2.2.3]: https://github.com/SAP/ui5-server/compare/v2.2.2...v2.2.3
