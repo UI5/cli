@@ -2,7 +2,8 @@
 
 
 const NL = "\n";
-const ENDS_WITH_NEW_LINE = /(^|\r\n|\r|\n)[ \t]*$/;
+const ENDS_WITH_NEW_LINE = /(\r\n|\r|\n)[ \t]*$/;
+const SPACES_OR_TABS_ONLY = /^[ \t]+$/;
 
 /**
  * A filtering writer that can count written chars and provides some convenience
@@ -20,11 +21,19 @@ class BundleWriter {
 		this.segments = [];
 		this.currentSegment = null;
 		this.currentSourceIndex = 0;
+		this.endsWithNewLine = true; // Initially we don't need a new line
 	}
 
 	write(...str) {
+		let writeBuf = "";
 		for ( let i = 0; i < str.length; i++ ) {
-			this.buf += str[i];
+			writeBuf += str[i];
+		}
+		if ( writeBuf.length >= 1 ) {
+			this.buf += writeBuf;
+			this.endsWithNewLine =
+				ENDS_WITH_NEW_LINE.test(writeBuf) ||
+				(this.endsWithNewLine && SPACES_OR_TABS_ONLY.test(writeBuf));
 		}
 	}
 
@@ -33,12 +42,13 @@ class BundleWriter {
 			this.buf += str[i];
 		}
 		this.buf += NL;
+		this.endsWithNewLine = true;
 	}
 
 	ensureNewLine() {
-		// TODO this regexp might be quite expensive (use of $ anchor on long strings)
-		if ( !ENDS_WITH_NEW_LINE.test(this.buf) ) {
+		if ( !this.endsWithNewLine ) {
 			this.buf += NL;
+			this.endsWithNewLine = true;
 		}
 	}
 
@@ -75,4 +85,3 @@ class BundleWriter {
 }
 
 module.exports = BundleWriter;
-
