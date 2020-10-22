@@ -120,7 +120,7 @@
 		"supports-color": "^7.2.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^5.0.0",
-		"yargs": "^15.4.1"
+		"yargs": "^16.1.0"
 	},
 	"devDependencies": {
 		"ava": "^3.13.0",
