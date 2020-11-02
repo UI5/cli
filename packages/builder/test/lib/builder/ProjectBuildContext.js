@@ -85,15 +85,19 @@ test("STANDARD_TAGS constant", (t) => {
 	});
 
 	t.deepEqual(projectBuildContext.STANDARD_TAGS, {
-		OmitFromBuildResult: "ui5:OmitFromBuildResult"
+		OmitFromBuildResult: "ui5:OmitFromBuildResult",
+		IsBundle: "ui5:IsBundle"
 	}, "Exposes correct STANDARD_TAGS constant");
 });
 
 test.serial("getResourceTagCollection", (t) => {
 	class DummyResourceTagCollection {
 		constructor({allowedTags}) {
-			t.deepEqual(allowedTags, ["ui5:OmitFromBuildResult"],
-				"Correct allowedTags parameter supplied");
+			t.deepEqual(allowedTags, [
+				"ui5:OmitFromBuildResult",
+				"ui5:IsBundle"
+			],
+			"Correct allowedTags parameter supplied");
 		}
 	}
 	mock("@ui5/fs", {

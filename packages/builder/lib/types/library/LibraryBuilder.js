@@ -56,9 +56,9 @@ class LibraryBuilder extends AbstractBuilder {
 				}
 
 				return getTask("generateJsdoc").task({
-					taskUtil,
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
+					taskUtil,
 					options: {
 						projectName: project.metadata.name,
 						namespace: project.metadata.namespace,
@@ -86,6 +86,7 @@ class LibraryBuilder extends AbstractBuilder {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
+					taskUtil,
 					options: {
 						projectName: project.metadata.name,
 						paths: componentPreload.paths,
@@ -99,6 +100,7 @@ class LibraryBuilder extends AbstractBuilder {
 			return getTask("generateLibraryManifest").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
+				taskUtil,
 				options: {
 					projectName: project.metadata.name
 				}
@@ -122,6 +124,7 @@ class LibraryBuilder extends AbstractBuilder {
 			return getTask("generateLibraryPreload").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
+				taskUtil,
 				options: {
 					projectName: project.metadata.name
 				}
@@ -136,6 +139,7 @@ class LibraryBuilder extends AbstractBuilder {
 						return getTask("generateBundle").task({
 							workspace: resourceCollections.workspace,
 							dependencies: resourceCollections.dependencies,
+							taskUtil,
 							options: {
 								projectName: project.metadata.name,
 								bundleDefinition: bundle.bundleDefinition,
@@ -172,6 +176,7 @@ class LibraryBuilder extends AbstractBuilder {
 		this.addTask("uglify", async () => {
 			return getTask("uglify").task({
 				workspace: resourceCollections.workspace,
+				taskUtil,
 				options: {
 					pattern: "/resources/**/*.js"
 				}

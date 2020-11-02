@@ -11,13 +11,14 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {Array} [parameters.options.paths] Array of paths (or glob patterns) for component files
  * @param {Array} [parameters.options.namespaces] Array of component namespaces
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options: {projectName, paths, namespaces}}) {
+module.exports = function({workspace, dependencies, taskUtil, options: {projectName, paths, namespaces}}) {
 	const combo = new ReaderCollectionPrioritized({
 		name: `generateComponentPreload - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
@@ -91,6 +92,9 @@ module.exports = function({workspace, dependencies, options: {projectName, paths
 		})
 		.then((processedResources) => {
 			return Promise.all(processedResources.map((resource) => {
+				if (taskUtil) {
+					taskUtil.setTag(resource[0], taskUtil.STANDARD_TAGS.IsBundle);
+				}
 				return workspace.write(resource[0]);
 			}));
 		});

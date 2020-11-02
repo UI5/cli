@@ -73,6 +73,7 @@ class ApplicationBuilder extends AbstractBuilder {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
+					taskUtil,
 					options: {
 						projectName: project.metadata.name,
 						paths: componentPreload.paths,
@@ -86,6 +87,7 @@ class ApplicationBuilder extends AbstractBuilder {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
 					dependencies: resourceCollections.dependencies,
+					taskUtil,
 					options: {
 						projectName: project.metadata.name,
 						namespaces: [project.metadata.namespace]
@@ -98,6 +100,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			return getTask("generateStandaloneAppBundle").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
+				taskUtil,
 				options: {
 					projectName: project.metadata.name,
 					namespace: project.metadata.namespace
@@ -122,6 +125,7 @@ class ApplicationBuilder extends AbstractBuilder {
 					return getTask("generateBundle").task({
 						workspace: resourceCollections.workspace,
 						dependencies: resourceCollections.dependencies,
+						taskUtil,
 						options: {
 							projectName: project.metadata.name,
 							bundleDefinition: bundle.bundleDefinition,
@@ -146,6 +150,7 @@ class ApplicationBuilder extends AbstractBuilder {
 			const uglify = getTask("uglify").task;
 			return uglify({
 				workspace: resourceCollections.workspace,
+				taskUtil,
 				options: {
 					pattern: "/**/*.js"
 				}

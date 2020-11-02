@@ -258,11 +258,12 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options: {projectName}}) {
+module.exports = function({workspace, dependencies, taskUtil, options: {projectName}}) {
 	const combo = new ReaderCollectionPrioritized({
 		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
@@ -311,7 +312,12 @@ module.exports = function({workspace, dependencies, options: {projectName}}) {
 				}),
 			]).then((results) => {
 				const bundles = Array.prototype.concat.apply([], results);
-				return Promise.all(bundles.map((bundle) => workspace.write(bundle)));
+				return Promise.all(bundles.map((bundle) => {
+					if (taskUtil) {
+						taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+					}
+					return workspace.write(bundle);
+				}));
 			});
 		} else {
 			p = Promise.resolve();
@@ -346,7 +352,14 @@ module.exports = function({workspace, dependencies, options: {projectName}}) {
 						return createLibraryBundles(libraryNamespace, resources)
 							.then((results) => {
 								const bundles = Array.prototype.concat.apply([], results);
-								return Promise.all(bundles.map((bundle) => bundle && workspace.write(bundle)));
+								return Promise.all(bundles.map((bundle) => {
+									if (bundle) {
+										if (taskUtil) {
+											taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+										}
+										return workspace.write(bundle);
+									}
+								}));
 							});
 					} else {
 						log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${projectName}. Skipping library preload bundling.`);
