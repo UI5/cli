@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.3.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.4.0...HEAD).
+
+<a name="v2.4.0"></a>
+## [v2.4.0] - 2020-11-02
+### Features
+- Tag bundles and ignore them in uglify task ([#535](https://github.com/SAP/ui5-builder/issues/535)) [`b487366`](https://github.com/SAP/ui5-builder/commit/b4873663ea67fa16f8fd9c2672c647026894ba32)
+- Switch XML minifier from pretty-data to minify-xml [`be29520`](https://github.com/SAP/ui5-builder/commit/be295203cf71740f0585ee59f44c55ee59e41b26)
+
 
 <a name="v2.3.0"></a>
 ## [v2.3.0] - 2020-10-22
@@ -438,6 +445,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.4.0]: https://github.com/SAP/ui5-builder/compare/v2.3.0...v2.4.0
 [v2.3.0]: https://github.com/SAP/ui5-builder/compare/v2.2.1...v2.3.0
 [v2.2.1]: https://github.com/SAP/ui5-builder/compare/v2.2.0...v2.2.1
 [v2.2.0]: https://github.com/SAP/ui5-builder/compare/v2.1.0...v2.2.0
