@@ -116,7 +116,7 @@
 		"jsdoc": "^3.6.6",
 		"less-openui5": "^0.8.7",
 		"make-dir": "^3.1.0",
-		"minify-xml": "^2.1.2",
+		"minify-xml": "^2.1.3",
 		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
 		"rimraf": "^3.0.2",
