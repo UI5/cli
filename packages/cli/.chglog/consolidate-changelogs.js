@@ -22,7 +22,7 @@ function handleDependencyBump(line) {
 		versionChangelog = versionChangelog.replace(/^./gm, "      $&");
 		const repoUrl = `https://github.com/SAP/${moduleName.replace("@ui5/", "ui5-")}/tree/v${moduleVersion}`;
 		line += `
-    - Changes contained in [v${moduleVersion}](${repoUrl})
+    - Changes contained in [${moduleName}@${moduleVersion}](${repoUrl}):
 
 ${versionChangelog}`;
 	}
