@@ -1,10 +1,6 @@
-const Ajv = require("ajv");
-const ajvErrors = require("ajv-errors");
 const path = require("path");
 const {promisify} = require("util");
 const readFile = promisify(require("fs").readFile);
-
-const ValidationError = require("./ValidationError");
 
 async function loadSchema(schemaPath) {
 	const filePath = schemaPath.replace("http://ui5.sap/schema/", "");
@@ -18,11 +14,13 @@ async function loadSchema(schemaPath) {
  */
 class Validator {
 	constructor() {
+		const Ajv = require("ajv");
 		this.ajv = new Ajv({
 			allErrors: true,
 			jsonPointers: true,
 			loadSchema
 		});
+		const ajvErrors = require("ajv-errors");
 		ajvErrors(this.ajv);
 	}
 
@@ -41,6 +39,7 @@ class Validator {
 		const fnValidate = await this._compileSchema();
 		const valid = fnValidate(config);
 		if (!valid) {
+			const ValidationError = require("./ValidationError");
 			throw new ValidationError({
 				errors: fnValidate.errors,
 				schema: fnValidate.schema,
@@ -51,7 +50,7 @@ class Validator {
 	}
 }
 
-const validator = new Validator();
+let validator;
 
 /**
  * @public
@@ -77,6 +76,9 @@ module.exports = {
 	 * @public
 	 */
 	validate: async (options) => {
+		if (!validator) {
+			validator = new Validator();
+		}
 		await validator.validate(options);
 	},
 	_Validator: Validator // For testing only
