@@ -4,7 +4,7 @@
 		{
 			"name": "Component-preload.js",
 			"module": "application/j/Component-preload.js",
-			"size": 3741,
+			"size": 3746,
 			"merged": true,
 			"included": [
 				"application/j/Component.js",

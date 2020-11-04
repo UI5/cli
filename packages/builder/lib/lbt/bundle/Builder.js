@@ -3,7 +3,7 @@
 "use strict";
 
 const terser = require("terser");
-const minifyXml = require("minify-xml");
+const {pd} = require("pretty-data");
 const esprima = require("esprima");
 const escodegen = require("escodegen");
 const {Syntax} = esprima;
@@ -426,12 +426,12 @@ class BundleBuilder {
 		} else if ( /\.xml$/.test(module) ) {
 			let fileContent = await resource.buffer();
 			if ( this.optimize ) {
-				// use minify-xml for XML, do not minify whitespaces between tags if the XML(View) contains an
-				// <*:pre> tag, because whitespace of HTML <pre> should be preserved (this should rarely happen)
-				const noPreTag = !xmlHtmlPrePattern.test(fileContent);
-				fileContent = minifyXml.minify(fileContent.toString(), {
-					removeWhitespaceBetweenTags: noPreTag
-				});
+				// For XML we use the pretty data
+				// Do not minify if XML(View) contains an <*:pre> tag,
+				// because whitespace of HTML <pre> should be preserved (should only happen rarely)
+				if (!xmlHtmlPrePattern.test(fileContent.toString())) {
+					fileContent = pd.xmlmin(fileContent.toString(), false);
+				}
 			}
 			outW.write( makeStringLiteral( fileContent ) );
 		} else if ( /\.properties$/.test(module) ) {
