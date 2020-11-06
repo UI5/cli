@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v2.0.5...HEAD).
+
+<a name="v2.0.5"></a>
+## [v2.0.5] - 2020-11-06
+### Performance Improvements
+- Reduce install size by moving 'mock-require' to devDependencies [`173f4ff`](https://github.com/SAP/ui5-fs/commit/173f4ffc55f0e264025c6e2bce12721a6673790a)
+
 
 <a name="v2.0.4"></a>
 ## [v2.0.4] - 2020-10-22
@@ -116,6 +122,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v2.0.5]: https://github.com/SAP/ui5-fs/compare/v2.0.4...v2.0.5
 [v2.0.4]: https://github.com/SAP/ui5-fs/compare/v2.0.3...v2.0.4
 [v2.0.3]: https://github.com/SAP/ui5-fs/compare/v2.0.2...v2.0.3
 [v2.0.2]: https://github.com/SAP/ui5-fs/compare/v2.0.1...v2.0.2
