@@ -25,12 +25,11 @@ function getProjectYamlDocument({project, configFile, configPath}) {
 		);
 	}
 
-	const matchAll = require("string.prototype.matchall");
 	const matchDocumentSeparator = /^---/gm;
-	const documents = matchAll(configFile, matchDocumentSeparator);
 	let currentDocumentIndex = 0;
 	let currentIndex = 0;
-	for (const document of documents) {
+	let document;
+	while ((document = matchDocumentSeparator.exec(configFile)) !== null) {
 		// If the first separator is not at the beginning of the file
 		// we are already at document index 1
 		// Using String#trim() to remove any whitespace characters
