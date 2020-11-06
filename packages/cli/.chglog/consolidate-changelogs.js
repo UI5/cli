@@ -12,19 +12,21 @@ function handleDependencyBump(line) {
 		const changelog = fs.readFileSync(changelogPath, {
 			encoding: "utf8"
 		});
-		const sectionRegExp = new RegExp(`^## \\[v${moduleVersion.replace(".", "\\.")}\\].+\\n((?:.|\\n)+?)(?=\\n<a )`, "m");
+		const sectionRegExp = new RegExp(`^## \\[v${moduleVersion.replace(".", "\\.")}\\].+\\n((?:.|\\n)+?)(?=^<a )`, "m");
 		const changelogMatch = changelog.match(sectionRegExp);
 		if (!changelogMatch) {
 			throw new Error(`Failed to find relevant changelog for ${moduleName}@${moduleVersion}`)
 		}
 		let versionChangelog = changelogMatch[1];
-		versionChangelog = versionChangelog.replace(/^### /gm, "#### ");
-		versionChangelog = versionChangelog.replace(/^./gm, "      $&");
-		const repoUrl = `https://github.com/SAP/${moduleName.replace("@ui5/", "ui5-")}/tree/v${moduleVersion}`;
-		line += `
+		if (versionChangelog.length > 1) { // In case of an empty changelog, we still match the newline with a length of 1
+			versionChangelog = versionChangelog.replace(/^### /gm, "#### ");
+			versionChangelog = versionChangelog.replace(/^./gm, "      $&");
+			const repoUrl = `https://github.com/SAP/${moduleName.replace("@ui5/", "ui5-")}/tree/v${moduleVersion}`;
+			line += `
     - Changes contained in [${moduleName}@${moduleVersion}](${repoUrl}):
 
 ${versionChangelog}`;
+		}
 	}
 	return line;
 }
