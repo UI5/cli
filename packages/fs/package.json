@@ -110,7 +110,6 @@
 		"make-dir": "^3.1.0",
 		"micromatch": "^4.0.2",
 		"minimatch": "^3.0.3",
-		"mock-require": "^3.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"random-int": "^2.0.1",
 		"slash": "^3.0.0"
@@ -127,6 +126,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^30.7.5",
 		"jsdoc": "^3.6.6",
+		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^6.0.1",
 		"rimraf": "^3.0.2",
