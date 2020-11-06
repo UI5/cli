@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.2.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.2.4...HEAD).
+
+<a name="v2.2.4"></a>
+## [v2.2.4] - 2020-11-06
+### Performance Improvements
+- Reduce install size by removing 'string.prototype.matchall' dependency [`b69d75e`](https://github.com/SAP/ui5-project/commit/b69d75e740bfc594668ea73273bb03fdd40a4ce2)
+- **validator:** Lazy load dependencies [`609346b`](https://github.com/SAP/ui5-project/commit/609346b2b1bb0417fde36a35ec43e9970c68504f)
+
 
 <a name="v2.2.3"></a>
 ## [v2.2.3] - 2020-10-22
@@ -210,6 +217,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v2.2.4]: https://github.com/SAP/ui5-project/compare/v2.2.3...v2.2.4
 [v2.2.3]: https://github.com/SAP/ui5-project/compare/v2.2.2...v2.2.3
 [v2.2.2]: https://github.com/SAP/ui5-project/compare/v2.2.1...v2.2.2
 [v2.2.1]: https://github.com/SAP/ui5-project/compare/v2.2.0...v2.2.1
