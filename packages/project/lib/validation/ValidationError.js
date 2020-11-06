@@ -1,6 +1,5 @@
 const chalk = require("chalk");
 const escapeStringRegExp = require("escape-string-regexp");
-const matchAll = require("string.prototype.matchall");
 
 /**
  * Error class for validation of project configuration.
@@ -140,9 +139,9 @@ class ValidationError extends Error {
 		let currentIndex;
 		if (yaml.documentIndex) {
 			const matchDocumentSeparator = /^---/gm;
-			const documents = matchAll(yaml.source, matchDocumentSeparator);
 			let currentDocumentIndex = 0;
-			for (const document of documents) {
+			let document;
+			while ((document = matchDocumentSeparator.exec(yaml.source)) !== null) {
 				// If the first separator is not at the beginning of the file
 				// we are already at document index 1
 				// Using String#trim() to remove any whitespace characters
@@ -168,8 +167,6 @@ class ValidationError extends Error {
 			currentSubstring = yaml.source;
 		}
 
-
-		const matchArrayElement = /(^|\r?\n)([ ]*-[^\r\n]*)/g;
 		const matchArrayElementIndentation = /([ ]*)-/;
 
 		for (let i = 0; i < objectPath.length; i++) {
@@ -193,11 +190,12 @@ class ValidationError extends Error {
 				// This currently only works for arrays defined with "-" in multiple lines.
 				// Arrays using square brackets are not supported.
 
+				const matchArrayElement = /(^|\r?\n)([ ]*-[^\r\n]*)/g;
 				const arrayIndex = parseInt(property);
-				const arrayIndicators = matchAll(currentSubstring, matchArrayElement);
 				let a = 0;
 				let firstIndentation = -1;
-				for (const match of arrayIndicators) {
+				let match;
+				while ((match = matchArrayElement.exec(currentSubstring)) !== null) {
 					const indentationMatch = match[2].match(matchArrayElementIndentation);
 					if (!indentationMatch) {
 						return {line: -1, column: -1};
