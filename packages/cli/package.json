@@ -117,7 +117,6 @@
 		"js-yaml": "^3.14.0",
 		"open": "^7.3.0",
 		"semver": "^7.3.2",
-		"supports-color": "^7.2.0",
 		"treeify": "^1.0.1",
 		"update-notifier": "^5.0.0",
 		"yargs": "^16.1.0"
