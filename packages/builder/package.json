@@ -22,8 +22,8 @@
 		"npm": ">= 5"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run jsdoc-generate && npm run coverage",
-		"test-azure": "npm run lint && npm run jsdoc-generate && npm run coverage-xunit",
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck",
+		"test-azure": "npm run lint && npm run jsdoc-generate && npm run coverage-xunit && npm run depcheck",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
@@ -39,7 +39,8 @@
 		"preversion": "npm test",
 		"version": "git-chglog --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"postversion": "git push --follow-tags",
-		"release-note": "git-chglog -c .chglog/release-config.yml v$npm_package_version"
+		"release-note": "git-chglog -c .chglog/release-config.yml v$npm_package_version",
+		"depcheck": "depcheck --ignores docdash"
 	},
 	"files": [
 		"index.js",
@@ -133,6 +134,7 @@
 		"chokidar-cli": "^2.1.0",
 		"coveralls": "^3.1.0",
 		"cross-env": "^7.0.2",
+		"depcheck": "^1.2.0",
 		"docdash": "^1.2.0",
 		"eslint": "^7.13.0",
 		"eslint-config-google": "^0.14.0",
