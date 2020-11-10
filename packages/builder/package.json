@@ -23,7 +23,7 @@
 	},
 	"scripts": {
 		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck",
-		"test-azure": "npm run lint && npm run jsdoc-generate && npm run coverage-xunit && npm run depcheck",
+		"test-azure": "npm run coverage-xunit",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
