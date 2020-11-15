@@ -117,7 +117,7 @@
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^5.2.0",
 		"read-pkg-up": "^7.0.1",
-		"resolve": "^1.18.1",
+		"resolve": "^1.19.0",
 		"semver": "^7.3.2"
 	},
 	"devDependencies": {
@@ -128,7 +128,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.13.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^30.7.7",
+		"eslint-plugin-jsdoc": "^30.7.8",
 		"istanbul-lib-coverage": "^3.0.0",
 		"istanbul-lib-instrument": "^4.0.3",
 		"istanbul-lib-report": "^3.0.0",
