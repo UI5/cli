@@ -61,7 +61,7 @@ test("Exception error handling with verbose logging", async (t) => {
 
 	t.deepEqual(stdoutLines[stdoutLines.length - 1],
 		"If you think this is an issue of the UI5 Tooling, you might " +
-		"report it using the following URL: https://github.com/SAP/ui5-cli/issues/new",
+		"report it using the following URL: https://github.com/SAP/ui5-tooling/issues/new/choose",
 		"Correct last log line");
 
 	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
