@@ -650,9 +650,11 @@ class JSModuleAnalyzer {
 				modules = args[0];
 			} else {
 				const obj = args[0];
-				const version = findOwnProperty(obj, "version");
-				namesUseLegacyNotation = !(version && isString(version) && parseFloat(version.value) >= 2.0);
-				modules = findOwnProperty(obj, "modules");
+				if (obj && obj.type === Syntax.ObjectExpression) {
+					const version = findOwnProperty(obj, "version");
+					namesUseLegacyNotation = !(version && isString(version) && parseFloat(version.value) >= 2.0);
+					modules = findOwnProperty(obj, "modules");
+				}
 			}
 			if ( modules && modules.type == Syntax.ObjectExpression ) {
 				modules.properties.forEach( function(property) {

@@ -620,3 +620,54 @@ sap.ui.testmodule.load = function(modName) {
 	t.deepEqual(info.subModules, [],
 		"no submodules");
 });
+
+test("jQuery.sap.registerPreloadedModules (with Identifier)", (t) => {
+	const content = `
+var data = {};
+jQuery.sap.registerPreloadedModules(data);
+`;
+	const info = analyzeString(content, "modules/registerPreloadedModules-Identifier.js");
+	t.deepEqual(info.subModules, [],
+		"no submodules");
+});
+
+test("jQuery.sap.registerPreloadedModules (with ObjectExpression)", (t) => {
+	const content = `
+jQuery.sap.registerPreloadedModules({
+	"modules": {
+		"foo.bar": ""
+	}
+});
+`;
+	const info = analyzeString(content, "modules/registerPreloadedModules-ObjectExpression.js");
+	t.deepEqual(info.subModules, ["foo/bar.js"],
+		"submodule from jQuery.sap.registerPreloadedModules");
+});
+
+test("jQuery.sap.registerPreloadedModules (with ObjectExpression, version 1.0)", (t) => {
+	const content = `
+jQuery.sap.registerPreloadedModules({
+	"modules": {
+		"foo.bar": ""
+	},
+	"version": "1.0"
+});
+`;
+	const info = analyzeString(content, "modules/registerPreloadedModules-ObjectExpression.js");
+	t.deepEqual(info.subModules, ["foo/bar.js"],
+		"submodule from jQuery.sap.registerPreloadedModules");
+});
+
+test("jQuery.sap.registerPreloadedModules (with ObjectExpression, version 2.0)", (t) => {
+	const content = `
+jQuery.sap.registerPreloadedModules({
+	"modules": {
+		"foo/bar.js": ""
+	},
+	"version": "2.0"
+});
+`;
+	const info = analyzeString(content, "modules/registerPreloadedModules-ObjectExpression.js");
+	t.deepEqual(info.subModules, ["foo/bar.js"],
+		"submodule from jQuery.sap.registerPreloadedModules");
+});
