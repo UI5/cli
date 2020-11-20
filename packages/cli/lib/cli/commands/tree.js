@@ -1,7 +1,9 @@
 // Tree
 const tree = {
 	command: "tree",
-	describe: "Outputs the dependency tree of the current project to stdout. It takes all relevant parameters of ui5 build into account.",
+	describe:
+		"Outputs the dependency tree of the current project to stdout. " +
+		"It takes all relevant parameters of ui5 build into account.",
 	middlewares: [require("../middlewares/base.js")]
 };
 
@@ -23,7 +25,8 @@ tree.builder = function(cli) {
 			type: "boolean"
 		})
 		.option("framework-version", {
-			describe: "Overrides the framework version defined by the project. Only supported in combination with --full",
+			describe:
+				"Overrides the framework version defined by the project. Only supported in combination with --full",
 			type: "string"
 		}).check((argv) => {
 			if (argv.frameworkVersion && !argv.full) {

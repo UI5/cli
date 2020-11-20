@@ -31,7 +31,14 @@ module.exports = {
 		"no-negated-condition": "off",
 		"require-jsdoc": "off",
 		"no-mixed-requires": "off",
-		"max-len": ["warn", 120],
+		"max-len": [
+			"error",
+			{
+				"code": 120,
+				"ignoreUrls": true,
+				"ignoreRegExpLiterals": true
+			}
+		],
 		"no-implicit-coercion": [
 			2,
 			{"allow": ["!!"]}

@@ -45,7 +45,8 @@ module.exports = async function({normalizerOptions, libraries}) {
 		if (iIndexToRemove === -1) {
 			// do not fail here just log, because the framework library is not present afterwards
 			log.warn(
-				`Failed to remove framework library ${library.name} from project ${project.metadata.name} because it is not present.`
+				`Failed to remove framework library ${library.name} from project ` +
+				`${project.metadata.name} because it is not present.`
 			);
 		} else {
 			allLibraries.splice(iIndexToRemove, 1);

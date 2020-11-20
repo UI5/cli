@@ -16,7 +16,9 @@ serve.builder = function(cli) {
 			type: "number"
 		})
 		.option("open", {
-			describe: "Open web server root directory in default browser. Optionally, supplied relative path will be appended to the root URL",
+			describe:
+				"Open web server root directory in default browser. " +
+				"Optionally, supplied relative path will be appended to the root URL",
 			alias: "o",
 			type: "string"
 		})
@@ -46,7 +48,9 @@ serve.builder = function(cli) {
 			type: "string"
 		})
 		.option("sap-csp-policies", {
-			describe: "Always send content security policies 'sap-target-level-1' and 'sap-target-level-2' in report-only mode",
+			describe:
+				"Always send content security policies 'sap-target-level-1' and " +
+				"'sap-target-level-2' in report-only mode",
 			default: false,
 			type: "boolean"
 		})

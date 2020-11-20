@@ -48,7 +48,9 @@ build.builder = function(cli) {
 			type: "boolean"
 		})
 		.option("dev-exclude-project", {
-			describe: "A list of specific projects to be excluded from dev mode (dev mode must be active for this to be effective)",
+			describe:
+				"A list of specific projects to be excluded from dev mode " +
+				"(dev mode must be active for this to be effective)",
 			type: "array"
 		})
 		.option("include-task", {
@@ -67,9 +69,11 @@ build.builder = function(cli) {
 		.example("ui5 build --all --exclude-task=* --include-task=createDebugFiles generateAppPreload",
 			"Build project and dependencies but only apply the createDebugFiles- and generateAppPreload tasks")
 		.example("ui5 build --all --include-task=createDebugFiles --exclude-task=generateAppPreload",
-			"Build project and dependencies by applying all default tasks including the createDebugFiles task and excluding the generateAppPreload task")
+			"Build project and dependencies by applying all default tasks including the createDebugFiles " +
+			"task and excluding the generateAppPreload task")
 		.example("ui5 build dev --all --dev-exclude-project=sap.ui.core sap.m",
-			"Build project and dependencies in dev mode, except \"sap.ui.core\" and \"sap.m\" (useful in combination with --include-task)")
+			"Build project and dependencies in dev mode, except \"sap.ui.core\" and \"sap.m\" " +
+			"(useful in combination with --include-task)")
 		.example("ui5 build dev",
 			"Build project and dependencies in dev mode. Only a set of essential tasks is executed.");
 };

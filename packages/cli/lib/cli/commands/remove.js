@@ -46,7 +46,8 @@ removeCommand.handler = async function(argv) {
 	if (!yamlUpdated) {
 		if (argv.config) {
 			throw new Error(
-				`Internal error while removing framework ${library} ${libraryNames.join(" ")} to config at ${argv.config}`
+				`Internal error while removing framework ${library} ${libraryNames.join(" ")} ` +
+				`to config at ${argv.config}`
 			);
 		} else {
 			throw new Error(
