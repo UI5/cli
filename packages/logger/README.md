@@ -22,5 +22,7 @@ Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/bl
 ## Support
 Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/master/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
+Please report issues in the main [UI5 Tooling](https://github.com/SAP/ui5-tooling) repository.
+
 ## Release History
 See [CHANGELOG.md](CHANGELOG.md).
