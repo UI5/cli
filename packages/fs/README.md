@@ -8,8 +8,6 @@
 [![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-fs?branchName=master)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=36&branchName=master)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Ffs.svg)](https://www.npmjs.com/package/@ui5/fs)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-fs/badge.svg)](https://coveralls.io/github/SAP/ui5-fs)
-[![Dependency Status](https://david-dm.org/SAP/ui5-fs/master.svg)](https://david-dm.org/SAP/ui5-fs/master)
-[![devDependency Status](https://david-dm.org/SAP/ui5-fs/master/dev-status.svg)](https://david-dm.org/SAP/ui5-fs/master#info=devDependencies)
 
 ## Documentation
 General documentation can of the UI5 Tooling can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/)
