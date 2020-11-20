@@ -76,7 +76,9 @@ async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, 
 						t.falsy(e, expectedFile);
 					}
 				}
-				t.is(currentContent.replace(newLineRegexp, "\n"), expectedContent.replace(newLineRegexp, "\n"), relativeFile);
+				t.is(currentContent.replace(newLineRegexp, "\n"),
+					expectedContent.replace(newLineRegexp, "\n"),
+					relativeFile);
 			}
 		};
 		await Promise.all([currentFileContentPromise, expectedFileContentPromise]).then(assertContents);
@@ -208,7 +210,10 @@ test.serial("Build application.a with dependencies", (t) => {
 	return builder.build({
 		tree: applicationATree,
 		destPath,
-		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo", "generateLibraryPreload", "escapeNonAsciiCharacters", "generateLibraryManifest"],
+		excludedTasks: [
+			"generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo",
+			"generateLibraryPreload", "escapeNonAsciiCharacters", "generateLibraryManifest"
+		],
 		buildDependencies: true
 	}).then(() => {
 		return findFiles(expectedPath);
@@ -229,7 +234,10 @@ test.serial("Build application.a with dependencies include", (t) => {
 	return builder.build({
 		tree: applicationATree,
 		destPath,
-		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo", "generateLibraryPreload", "escapeNonAsciiCharacters", "generateLibraryManifest"],
+		excludedTasks: [
+			"generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo",
+			"generateLibraryPreload", "escapeNonAsciiCharacters", "generateLibraryManifest"
+		],
 		buildDependencies: true, includedDependencies: ["*"]
 	}).then(() => {
 		return findFiles(expectedPath);
@@ -250,7 +258,10 @@ test.serial("Build application.a with dependencies exclude", (t) => {
 	return builder.build({
 		tree: applicationATree,
 		destPath,
-		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo", "generateLibraryPreload", "escapeNonAsciiCharacters", "generateLibraryManifest"],
+		excludedTasks: [
+			"generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo",
+			"generateLibraryPreload", "escapeNonAsciiCharacters", "generateLibraryManifest"
+		],
 		buildDependencies: true, excludedDependencies: ["library.d"]
 	}).then(() => {
 		return findFiles(expectedPath);
@@ -292,7 +303,10 @@ test.serial("Build application.a with dependencies self-contained", (t) => {
 	return builder.build({
 		tree: applicationATree,
 		destPath,
-		excludedTasks: ["generateComponentPreload", "generateVersionInfo", "escapeNonAsciiCharacters", "generateLibraryManifest"],
+		excludedTasks: [
+			"generateComponentPreload", "generateVersionInfo", "escapeNonAsciiCharacters",
+			"generateLibraryManifest"
+		],
 		buildDependencies: true,
 		selfContained: true
 	}).then(() => {
@@ -1195,7 +1209,8 @@ const libraryETree = {
 	"metadata": {
 		"name": "library.e",
 		"namespace": "library/e",
-		"copyright": "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an SAP affiliate company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
+		"copyright": "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an " +
+			"SAP affiliate company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
 	},
 	"resources": {
 		"configuration": {

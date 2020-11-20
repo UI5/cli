@@ -9,10 +9,12 @@ const EXPECTED_MODULE_NAME = "sap/ui/testmodule.js";
 
 const EXPECTED_DECLARE_DEPENDENCIES = [
 	"jquery.sap.global.js",
-	"top/require/void.js", "top/require/var.js", "top/require/assign.js", "top/requireSync/var.js", "top/requireSync/assign.js",
-	"block/require/void.js", "block/require/var.js", "block/require/assign.js", "block/requireSync/var.js", "block/requireSync/assign.js",
-	"nested/scope/require/void.js", "nested/scope/require/var.js", "nested/scope/require/assign.js", "nested/scope/requireSync/var.js", "nested/scope/requireSync/assign.js",
-	"nested/scope2/require/void.js", "nested/scope2/require/var.js", "nested/scope2/require/assign.js", "nested/scope2/requireSync/var.js", "nested/scope2/requireSync/assign.js"
+	"top/require/void.js", "top/require/var.js", "top/require/assign.js", "top/requireSync/var.js",
+	"top/requireSync/assign.js", "block/require/void.js", "block/require/var.js", "block/require/assign.js",
+	"block/requireSync/var.js", "block/requireSync/assign.js", "nested/scope/require/void.js",
+	"nested/scope/require/var.js", "nested/scope/require/assign.js", "nested/scope/requireSync/var.js",
+	"nested/scope/requireSync/assign.js", "nested/scope2/require/void.js", "nested/scope2/require/var.js",
+	"nested/scope2/require/assign.js", "nested/scope2/requireSync/var.js", "nested/scope2/requireSync/assign.js"
 ];
 
 const EXPECTED_DEFINE_DEPENDENCIES_NO_LEGACY = [
@@ -112,17 +114,24 @@ function analyzeModule(
 	}).then(() => t.end(), (e) => t.fail(`failed to analyze module with error: ${e.message}`));
 }
 
-test.cb("DeclareToplevel", analyzeModule, "modules/declare_toplevel.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
+test.cb("DeclareToplevel", analyzeModule,
+	"modules/declare_toplevel.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
 
-test.cb("DeclareFunctionExprScope", analyzeModule, "modules/declare_function_expr_scope.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
+test.cb("DeclareFunctionExprScope", analyzeModule,
+	"modules/declare_function_expr_scope.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
 
-test.cb("DeclareFunctionInvocationScope", analyzeModule, "modules/declare_function_invocation_scope.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
+test.cb("DeclareFunctionInvocationScope", analyzeModule,
+	"modules/declare_function_invocation_scope.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
 
-test.cb("DefineToplevelNamed", analyzeModule, "modules/define_toplevel_named.js", EXPECTED_MODULE_NAME, EXPECTED_DEFINE_DEPENDENCIES_NO_LEGACY);
+test.cb("DefineToplevelNamed", analyzeModule,
+	"modules/define_toplevel_named.js", EXPECTED_MODULE_NAME, EXPECTED_DEFINE_DEPENDENCIES_NO_LEGACY);
 
-test.cb("DefineToplevelUnnamed", analyzeModule, "modules/define_toplevel_unnamed.js", "modules/define_toplevel_unnamed.js", EXPECTED_DEFINE_DEPENDENCIES_NO_LEGACY);
+test.cb("DefineToplevelUnnamed", analyzeModule,
+	"modules/define_toplevel_unnamed.js", "modules/define_toplevel_unnamed.js", EXPECTED_DEFINE_DEPENDENCIES_NO_LEGACY);
 
-test.cb("DefineWithLegacyCalls", analyzeModule, "modules/define_with_legacy_calls.js", "modules/define_with_legacy_calls.js", EXPECTED_DEFINE_DEPENDENCIES_WITH_LEGACY);
+test.cb("DefineWithLegacyCalls", analyzeModule,
+	"modules/define_with_legacy_calls.js", "modules/define_with_legacy_calls.js",
+	EXPECTED_DEFINE_DEPENDENCIES_WITH_LEGACY);
 
 test.cb("OldStyleModuleWithoutDeclare", function(t) {
 	analyze("modules/no_declare_but_requires.js", null).then((info) => {
@@ -136,7 +145,9 @@ test.cb("OldStyleModuleWithoutDeclare", function(t) {
 	});
 });
 
-test.cb("NotAnUI5Module", analyzeModule, "modules/not_a_module.js", "modules/not_a_module.js", NO_DEPENDENCIES, NO_DEPENDENCIES, NO_DEPENDENCIES, NO_DEPENDENCIES, true);
+test.cb("NotAnUI5Module", analyzeModule,
+	"modules/not_a_module.js", "modules/not_a_module.js",
+	NO_DEPENDENCIES, NO_DEPENDENCIES, NO_DEPENDENCIES, NO_DEPENDENCIES, true);
 
 test.cb("AMDSpecialDependenciesShouldBeIgnored", (t) => {
 	analyzeModule(t,
@@ -469,7 +480,8 @@ test("Bundle", (t) => {
 			"todo/view/App.view.xml"
 		];
 		t.deepEqual(info.subModules, expected, "module dependencies should match");
-		t.truthy(info.dependencies.every((dep) => !info.isConditionalDependency(dep)), "none of the dependencies must be 'conditional'");
+		t.truthy(info.dependencies.every((dep) => !info.isConditionalDependency(dep)),
+			"none of the dependencies must be 'conditional'");
 		t.false(info.rawModule,
 			"ui5 module");
 	});

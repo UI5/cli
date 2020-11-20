@@ -90,8 +90,8 @@ const encodingMap = {
 
 /**
  * Provides a mapping from user-friendly encoding name (alias) such as "UTF-8" and "ISO-8859-1" to node
- * specific encoding name such as "utf8" or "latin1". Simplifies usage of nonAsciiEscaper encoding
- * option such that it can be used standalone without the respective task (e.g. in Splitter, Bundler and related projects).
+ * specific encoding name such as "utf8" or "latin1". Simplifies usage of nonAsciiEscaper encoding option
+ * such that it can be used standalone without the respective task (e.g. in Splitter, Bundler and related projects).
  *
  * @public
  * @alias module:@ui5/builder.processors.nonAsciiEscaper․getEncodingFromAlias
@@ -100,7 +100,8 @@ const encodingMap = {
  */
 nonAsciiEscaper.getEncodingFromAlias = function(encoding) {
 	if (!encodingMap[encoding]) {
-		throw new Error(`Encoding "${encoding}" is not supported. Only ${Object.keys(encodingMap).join(", ")} are allowed values` );
+		throw new Error(
+			`Encoding "${encoding}" is not supported. Only ${Object.keys(encodingMap).join(", ")} are allowed values` );
 	}
 	return encodingMap[encoding];
 };

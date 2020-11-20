@@ -56,7 +56,9 @@ test.serial("manifestBundler with manifest path not starting with '/resources'",
 	await manifestBundler({resources, options});
 	t.deepEqual(t.context.addBufferSpy.callCount, 0, "should not be called");
 	t.deepEqual(t.context.logVerboseSpy.callCount, 1, "should be called once");
-	t.deepEqual(t.context.logVerboseSpy.getCall(0).args, ["Not bundling resource with path pony/manifest.json since it is not based on path /resources/pony/"], "should be called with correct arguments");
+	t.deepEqual(t.context.logVerboseSpy.getCall(0).args,
+		["Not bundling resource with path pony/manifest.json since it is not based on path /resources/pony/"],
+		"should be called with correct arguments");
 });
 
 test.serial("manifestBundler with manifest without i18n section in sap.app", async (t) => {
@@ -74,7 +76,8 @@ test.serial("manifestBundler with manifest without i18n section in sap.app", asy
 	};
 	await manifestBundler({resources, options});
 	t.deepEqual(t.context.addBufferSpy.callCount, 1, "should be called once");
-	t.deepEqual(t.context.addBufferSpy.getCall(0).args, ["{\"sap.app\":{}}", "manifest.json"], "should be called with correct arguments");
+	t.deepEqual(t.context.addBufferSpy.getCall(0).args, ["{\"sap.app\":{}}", "manifest.json"],
+		"should be called with correct arguments");
 	t.deepEqual(t.context.logVerboseSpy.callCount, 0, "should not be called");
 });
 
@@ -95,7 +98,9 @@ test.serial("manifestBundler with manifest with i18n string", async (t) => {
 	};
 	await manifestBundler({resources, options});
 	t.deepEqual(t.context.addBufferSpy.callCount, 1, "should be called once");
-	t.deepEqual(t.context.addBufferSpy.getCall(0).args, ["{\"sap.app\":{\"i18n\":\"i18n/i18n.properties\"}}", "manifest.json"], "should be called with correct arguments");
+	t.deepEqual(t.context.addBufferSpy.getCall(0).args,
+		["{\"sap.app\":{\"i18n\":\"i18n/i18n.properties\"}}", "manifest.json"],
+		"should be called with correct arguments");
 	t.deepEqual(t.context.logVerboseSpy.callCount, 0, "should not be called");
 });
 
@@ -133,7 +138,10 @@ test.serial("manifestBundler with manifest with i18n object", async (t) => {
 	await manifestBundler({resources, options});
 	t.deepEqual(t.context.addBufferSpy.callCount, 3, "should be called 3 times");
 	t.deepEqual(t.context.logVerboseSpy.callCount, 0, "should not be called");
-	t.deepEqual(t.context.addBufferSpy.getCall(0).args, [manifestString, "manifest.json"], "should be called with correct arguments");
-	t.deepEqual(t.context.addBufferSpy.getCall(1).args, ["A=B", "i18n/i18n_de.properties"], "should be called with correct arguments");
-	t.deepEqual(t.context.addBufferSpy.getCall(2).args, ["A=C", "i18n/i18n_en.properties"], "should be called with correct arguments");
+	t.deepEqual(t.context.addBufferSpy.getCall(0).args, [manifestString, "manifest.json"],
+		"should be called with correct arguments");
+	t.deepEqual(t.context.addBufferSpy.getCall(1).args, ["A=B", "i18n/i18n_de.properties"],
+		"should be called with correct arguments");
+	t.deepEqual(t.context.addBufferSpy.getCall(2).args, ["A=C", "i18n/i18n_en.properties"],
+		"should be called with correct arguments");
 });

@@ -68,9 +68,12 @@ test.serial("Orphaned resources (failOnOrphans: true)", async (t) => {
 			}
 		});
 	});
-	t.is(errorObject.message, "resources.json generation failed with error: There are 1 resources which could not be assigned to components.");
+	t.is(errorObject.message,
+		"resources.json generation failed with error: " +
+		"There are 1 resources which could not be assigned to components.");
 	t.is(t.context.logErrorSpy.callCount, 1);
-	t.is(t.context.logErrorSpy.getCall(0).args[0], "resources.json generation failed because of unassigned resources: nomodule.foo");
+	t.is(t.context.logErrorSpy.getCall(0).args[0],
+		"resources.json generation failed because of unassigned resources: nomodule.foo");
 });
 
 // 114,134-168,174-175

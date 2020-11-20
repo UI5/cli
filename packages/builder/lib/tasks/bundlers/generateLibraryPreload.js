@@ -303,11 +303,15 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					resources
 				}),
 				moduleBundler({
-					options: getModuleBundlerOptions({name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true}),
+					options: getModuleBundlerOptions({
+						name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true
+					}),
 					resources
 				}),
 				moduleBundler({
-					options: getModuleBundlerOptions({name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true}),
+					options: getModuleBundlerOptions({
+						name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true
+					}),
 					resources
 				}),
 			]).then((results) => {
@@ -329,13 +333,16 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					return libraryIndicatorResources;
 				} else {
 					// Fallback to "library.js" as library indicator
-					log.verbose(`Could not find a ".library" file for project ${projectName}, falling back to "library.js".`);
+					log.verbose(
+						`Could not find a ".library" file for project ${projectName}, falling back to "library.js".`);
 					return workspace.byGlob("/resources/**/library.js");
 				}
 			}).then((libraryIndicatorResources) => {
 				if (libraryIndicatorResources.length < 1) {
 					// No library found - nothing to do
-					log.verbose(`Could not find a ".library" or "library.js" file for project ${projectName}. Skipping library preload bundling.`);
+					log.verbose(
+						`Could not find a ".library" or "library.js" file for project ${projectName}. ` +
+						`Skipping library preload bundling.`);
 					return;
 				}
 
@@ -362,7 +369,9 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 								}));
 							});
 					} else {
-						log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${projectName}. Skipping library preload bundling.`);
+						log.verbose(
+							`Could not determine library namespace from file "${libraryIndicatorPath}" ` +
+							`for project ${projectName}. Skipping library preload bundling.`);
 						return Promise.resolve();
 					}
 				}));

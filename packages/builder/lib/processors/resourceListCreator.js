@@ -107,8 +107,8 @@ function makeResourcesJSON(list, prefix) {
 	// Adjust size until it is correct
 	// This entry's size depends on the file size which depends on this entry's size,...
 	// Updating the number of the size in the content might influence the size of the file itself
-	// This is deterministic because e.g. in the content -> <code>"size": 1000</code> has the same amount of bytes as <code>"size": 9999</code>
-	// the difference might only come for:
+	// This is deterministic because e.g. in the content -> <code>"size": 1000</code> has the same
+	// amount of bytes as <code>"size": 9999</code> the difference might only come for:
 	// * adding the initial entry of resources.json
 	// * changes when the number of digits of the number changes, e.g. 100 -> 1000
 	while (resourcesJson.size !== newLength) {
@@ -193,7 +193,9 @@ module.exports = async function({resources, options}) {
 	const unassigned = collector.resources;
 	if ( unassigned.size > 0 && options.failOnOrphans ) {
 		log.error(`resources.json generation failed because of unassigned resources: ${[...unassigned].join(", ")}`);
-		throw new Error(`resources.json generation failed with error: There are ${unassigned.size} resources which could not be assigned to components.`);
+		throw new Error(
+			`resources.json generation failed with error: There are ${unassigned.size} ` +
+			`resources which could not be assigned to components.`);
 	}
 
 	return resourceLists;

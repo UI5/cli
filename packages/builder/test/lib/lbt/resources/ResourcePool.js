@@ -261,7 +261,9 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 
 	const library = {
 		name: "a.library",
-		buffer: async () => "" // LibraryFileAnalyzer.getDependencyInfos() is stubbed! Therefore this content is irrelevant.
+
+		// LibraryFileAnalyzer.getDependencyInfos() is stubbed! Therefore this content is irrelevant.
+		buffer: async () => ""
 	};
 	await resourcePool.addResource(library);
 	const moduleA = {

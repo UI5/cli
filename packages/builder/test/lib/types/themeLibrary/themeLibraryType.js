@@ -99,5 +99,6 @@ test.serial("themeLibraryType.Builder", (t) => {
 
 test.serial("themeLibraryType.Formatter", (t) => {
 	const {themeLibraryType, ThemeLibraryFormatterStub} = t.context;
-	t.is(themeLibraryType.Formatter, ThemeLibraryFormatterStub, "themeLibraryType.Formatter exports ThemeLibraryFormatter");
+	t.is(themeLibraryType.Formatter, ThemeLibraryFormatterStub,
+		"themeLibraryType.Formatter exports ThemeLibraryFormatter");
 });

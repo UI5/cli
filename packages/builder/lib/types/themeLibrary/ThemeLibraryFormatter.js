@@ -39,7 +39,9 @@ class ThemeLibraryFormatter extends AbstractUi5Formatter {
 			if (!project) {
 				throw new Error("Project is undefined");
 			} else if (project.specVersion === "0.1" || project.specVersion === "1.0") {
-				throw new Error(`theme-library type requires "specVersion" 1.1 or higher. Project "specVersion" is: ${project.specVersion}`);
+				throw new Error(
+					`theme-library type requires "specVersion" 1.1 or higher. ` +
+					`Project "specVersion" is: ${project.specVersion}`);
 			} else if (!project.metadata || !project.metadata.name) {
 				throw new Error(`"metadata.name" configuration is missing for project ${project.id}`);
 			} else if (!project.type) {

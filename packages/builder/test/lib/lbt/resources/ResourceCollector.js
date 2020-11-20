@@ -66,7 +66,10 @@ test.serial("visitResource: path", async (t) => {
 test.serial("visitResource: library.source.less", async (t) => {
 	const resourceCollector = new ResourceCollector();
 	t.is(resourceCollector.themePackages.size, 0, "initially there is no theme package");
-	await resourceCollector.visitResource({getPath: () => "/resources/themes/a/library.source.less", getSize: async () => 13});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/themes/a/library.source.less",
+		getSize: async () => 13
+	});
 	t.is(resourceCollector.themePackages.size, 1, "theme package was added");
 });
 
@@ -98,13 +101,20 @@ test.serial("determineResourceDetails: properties", async (t) => {
 			};
 		}
 	});
-	await resourceCollector.visitResource({getPath: () => "/resources/mylib/manifest.json", getSize: async () => 13});
-	await resourceCollector.visitResource({getPath: () => "/resources/mylib/i18n/i18n_de.properties", getSize: async () => 13});
-	await resourceCollector.visitResource({getPath: () => "/resources/mylib/i18n/i18n.properties", getSize: async () => 13});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/mylib/manifest.json", getSize: async () => 13
+	});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/mylib/i18n/i18n_de.properties", getSize: async () => 13
+	});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/mylib/i18n/i18n.properties", getSize: async () => 13
+	});
 	await resourceCollector.determineResourceDetails({});
 	resourceCollector.groupResourcesByComponents({});
 	const resources = resourceCollector.components.get("mylib/").resources;
-	t.deepEqual(resources.map((res) => res.i18nName), [null, "i18n/i18n.properties", "i18n/i18n.properties"], "i18nName was set");
+	t.deepEqual(resources.map((res) => res.i18nName),
+		[null, "i18n/i18n.properties", "i18n/i18n.properties"], "i18nName was set");
 });
 
 test.serial("determineResourceDetails: view.xml", async (t) => {
@@ -115,7 +125,8 @@ test.serial("determineResourceDetails: view.xml", async (t) => {
 			};
 		}
 	});
-	const enrichWithDependencyInfoStub = sinon.stub(resourceCollector, "enrichWithDependencyInfo").returns(Promise.resolve());
+	const enrichWithDependencyInfoStub = sinon.stub(resourceCollector, "enrichWithDependencyInfo")
+		.returns(Promise.resolve());
 	await resourceCollector.visitResource({getPath: () => "/resources/mylib/my.view.xml", getSize: async () => 13});
 	await resourceCollector.determineResourceDetails({});
 	t.is(enrichWithDependencyInfoStub.callCount, 1, "is called once");

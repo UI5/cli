@@ -100,7 +100,8 @@ class ResourceCollector {
 			// Note: ignores .theme files in library folders
 
 			// .theming files are not always present therefore this check is relevant for the library.source.less
-			if ( name.match("(?:[^/]+/)*themes/[^/]+/(?:\\.theming|library\\.source\\.less)") && !this._themePackages.has(prefix) ) {
+			if ( name.match("(?:[^/]+/)*themes/[^/]+/(?:\\.theming|library\\.source\\.less)") &&
+					!this._themePackages.has(prefix) ) {
 				// log.info("found new theme package %s", prefix);
 				this._themePackages.set(prefix, new ResourceInfoList(prefix));
 			}
@@ -230,7 +231,8 @@ class ResourceCollector {
 
 	createOrphanFilters() {
 		log.verbose(
-			`  configured external resources filters (resources outside the namespace): ${this._externalResources == null ? "(none)" : this._externalResources}`);
+			`  configured external resources filters (resources outside the namespace): ` +
+			`${this._externalResources == null ? "(none)" : this._externalResources}`);
 
 		const filtersByComponent = new Map();
 
@@ -260,7 +262,8 @@ class ResourceCollector {
 					list.add(resource, !isDebugBundle);
 					contained = true;
 				} else if ( orphanFilters.has(prefix) ) {
-					// log.verbose(`  checking '${resource.name}' against orphan filter '${orphanFilters.get(prefix)}' (${prefix})`);
+					// log.verbose(`  checking '${resource.name}' against orphan filter ` +
+					// 	`'${orphanFilters.get(prefix)}' (${prefix})`);
 					if ( orphanFilters.get(prefix).matches(resource.name) ) {
 						list.add(resource, !isDebugBundle);
 						contained = true;

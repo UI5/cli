@@ -183,7 +183,9 @@ test.serial("Logs warning when bootstrap script can't be found due to missing ID
 	t.deepEqual(processedResources, [resource], "Input resource is returned");
 
 	t.deepEqual(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
-	t.true(t.context.logWarnSpy.calledWith("Skipping bootstrap transformation. Could not find bootstrap script tag with id=sap-ui-bootstrap."),
+	t.true(
+		t.context.logWarnSpy.calledWith(
+			"Skipping bootstrap transformation. Could not find bootstrap script tag with id=sap-ui-bootstrap."),
 		"Warning about missing bootstrap script tag should be logged");
 });
 
@@ -218,7 +220,9 @@ test.serial("Logs warning when bootstrap script can't be found due to wrong tag"
 	t.deepEqual(processedResources, [resource], "Input resource is returned");
 
 	t.deepEqual(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
-	t.true(t.context.logWarnSpy.calledWith("Skipping bootstrap transformation. Could not find bootstrap script tag with id=sap-ui-bootstrap."),
+	t.true(
+		t.context.logWarnSpy.calledWith(
+			"Skipping bootstrap transformation. Could not find bootstrap script tag with id=sap-ui-bootstrap."),
 		"Warning about missing bootstrap script tag should be logged");
 });
 
@@ -243,7 +247,9 @@ console.log("This is not HTML!")`;
 	t.deepEqual(processedResources, [resource], "Input resource is returned");
 
 	t.deepEqual(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
-	t.true(t.context.logWarnSpy.calledWith("Skipping bootstrap transformation. Could not find bootstrap script tag with id=sap-ui-bootstrap."),
+	t.true(
+		t.context.logWarnSpy.calledWith(
+			"Skipping bootstrap transformation. Could not find bootstrap script tag with id=sap-ui-bootstrap."),
 		"Warning about missing bootstrap script tag should be logged");
 });
 
@@ -278,6 +284,8 @@ test.serial("Logs warning when multiple bootstrap scripts are found", async (t) 
 	t.deepEqual(processedResources, [resource], "Input resource is returned");
 
 	t.deepEqual(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
-	t.true(t.context.logWarnSpy.calledWith("Skipping bootstrap transformation. Found multiple bootstrap script tags with id=sap-ui-bootstrap."),
+	t.true(
+		t.context.logWarnSpy.calledWith(
+			"Skipping bootstrap transformation. Found multiple bootstrap script tags with id=sap-ui-bootstrap."),
 		"Warning about multiple bootstrap script tags should be logged");
 });

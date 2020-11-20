@@ -38,7 +38,8 @@ function getElapsedTime(startTime) {
  * @private
  * @param {object} parameters
  * @param {boolean} parameters.dev Sets development mode, which only runs essential tasks
- * @param {boolean} parameters.selfContained True if a the build should be self-contained or false for prelead build bundles
+ * @param {boolean} parameters.selfContained
+ *			True if a the build should be self-contained or false for prelead build bundles
  * @param {boolean} parameters.jsdoc True if a JSDoc build should be executed
  * @param {Array} parameters.includedTasks Task list to be included from build
  * @param {Array} parameters.excludedTasks Task list to be excluded from build
@@ -207,9 +208,13 @@ module.exports = {
 	 * @param {string} parameters.destPath Target path
 	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
 	 * @param {boolean} [parameters.buildDependencies=false] Decides whether project dependencies are built as well
-	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]] List of build dependencies to be included if buildDependencies is true
-	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]] List of build dependencies to be excluded if buildDependencies is true. If the wildcard '*' is provided, only the included dependencies will be built.
-	 * @param {boolean} [parameters.dev=false] Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
+	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]]
+	 *			List of build dependencies to be included if buildDependencies is true
+	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]]
+	 *			List of build dependencies to be excluded if buildDependencies is true.
+	 *			If the wildcard '*' is provided, only the included dependencies will be built.
+	 * @param {boolean} [parameters.dev=false]
+	 *			Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
 	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
 	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
@@ -367,7 +372,8 @@ module.exports = {
 									resource.getPath());
 								return; // Skip target write for this resource
 							}
-							if (projectContext.isRootProject() && project.type === "application" && project.metadata.namespace) {
+							if (projectContext.isRootProject() && project.type === "application" &&
+									project.metadata.namespace) {
 								// Root-application projects only: Remove namespace prefix if given
 								resource.setPath(resource.getPath().replace(
 									new RegExp(`^/resources/${project.metadata.namespace}`), ""));

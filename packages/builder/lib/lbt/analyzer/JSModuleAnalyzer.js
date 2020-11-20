@@ -554,7 +554,9 @@ class JSModuleAnalyzer {
 			} else {
 				nUnnamedDefines++;
 				if ( nUnnamedDefines > 1 ) {
-					throw new Error("if multiple modules are contained in a file, only one of them may omit the module ID " + name + " " + nUnnamedDefines);
+					throw new Error(
+						"if multiple modules are contained in a file, only one of them may omit the module ID " +
+						name + " " + nUnnamedDefines);
 				}
 				if ( defaultName == null ) {
 					throw new Error("unnamed module found, but no default name given");

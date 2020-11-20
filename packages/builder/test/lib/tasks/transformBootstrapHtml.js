@@ -133,6 +133,8 @@ test.serial("No index.html resource exists", async (t) => {
 		"Processor should not be called");
 
 	t.deepEqual(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
-	t.true(t.context.logWarnSpy.calledWith(`Skipping bootstrap transformation due to missing index.html in project "sap.ui.demo.app".`),
+	t.true(
+		t.context.logWarnSpy.calledWith(
+			`Skipping bootstrap transformation due to missing index.html in project "sap.ui.demo.app".`),
 		"Warning about missing index.html file should be logged");
 });

@@ -571,10 +571,11 @@ module.exports = function({libraryResource, resources, options}) {
 		return Promise.resolve(null); // a fulfillment of null indicates that no manifest has been created
 	}
 
-	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty).then((manifest) => {
-		return new EvoResource({
-			path: resourcePathPrefix + "manifest.json",
-			string: JSON.stringify(manifest, null, options.prettyPrint ? "  " : undefined)
+	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty)
+		.then((manifest) => {
+			return new EvoResource({
+				path: resourcePathPrefix + "manifest.json",
+				string: JSON.stringify(manifest, null, options.prettyPrint ? "  " : undefined)
+			});
 		});
-	});
 };

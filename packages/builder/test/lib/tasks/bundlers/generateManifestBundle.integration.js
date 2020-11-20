@@ -60,7 +60,8 @@ test("integration: Build application.b with manifestBundler", (t) => {
 test("integration: Build library.k with manifestBundler", (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.k", "dest");
 	const destBundle = path.resolve(path.join(destPath, "resources", "library", "k", "manifest-bundle"));
-	const expectedPath = path.join("test", "expected", "build", "library.k", "dest", "resources", "library", "k", "manifest-bundle");
+	const expectedPath =
+		path.join("test", "expected", "build", "library.k", "dest", "resources", "library", "k", "manifest-bundle");
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryManifest", "generateManifestBundle"];
 

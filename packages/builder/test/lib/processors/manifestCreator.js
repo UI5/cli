@@ -9,9 +9,9 @@ const libraryContent = `<?xml version="1.0" encoding="UTF-8" ?>
 	<name>library.e</name>
 	<vendor>SAP SE</vendor>
 	<copyright>my copyright</copyright>
-	<version>1.0.0</version>   
+	<version>1.0.0</version>
 	<documentation>Library E</documentation>
-	
+
 	<dependencies>
 	    <dependency>
 	      <libraryName>sap.ui.core</libraryName>
@@ -111,6 +111,8 @@ test.serial("manifest creation for sap/apf", async (t) => {
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(verboseLogStub.callCount, 8);
-	t.is(verboseLogStub.firstCall.args[0], "Package %s contains both '*.library' and 'Component.js'. This is a known issue but can't be solved due to backward compatibility.");
+	t.is(verboseLogStub.firstCall.args[0],
+		"Package %s contains both '*.library' and 'Component.js'. " +
+		"This is a known issue but can't be solved due to backward compatibility.");
 	t.is(verboseLogStub.firstCall.args[1], "/resources/sap/apf/Component.js");
 });

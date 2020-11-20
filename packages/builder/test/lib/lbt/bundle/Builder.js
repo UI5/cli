@@ -38,9 +38,11 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 
 
 	t.is(verboseLogStub.callCount, 2, "called 2 times");
-	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file %s. Ignoring error, skipping compression.", "first verbose log argument 0 is correct");
+	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file %s. Ignoring error, skipping compression.",
+		"first verbose log argument 0 is correct");
 	t.is(verboseLogStub.firstCall.args[1], "invalid.json", "first verbose log argument 1 is correct");
-	t.deepEqual(verboseLogStub.secondCall.args[0], new SyntaxError("Unexpected token { in JSON at position 19"), "second verbose log");
+	t.deepEqual(verboseLogStub.secondCall.args[0], new SyntaxError("Unexpected token { in JSON at position 19"),
+		"second verbose log");
 
 	t.true(result, "result is true");
 	t.is(writeStub.callCount, 1, "Writer is called once");
@@ -228,7 +230,8 @@ sap.ui.requireSync("ui5loader");
 		" require part from ui5loader.js");
 	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
-	t.deepEqual(oResult.bundleInfo.subModules, ["jquery.sap.global.js", "myModuleUsingGlobalScope.js", "myRawModule.js"],
+	t.deepEqual(oResult.bundleInfo.subModules,
+		["jquery.sap.global.js", "myModuleUsingGlobalScope.js", "myRawModule.js"],
 		"bundle info subModules are correct");
 });
 

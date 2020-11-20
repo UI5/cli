@@ -52,7 +52,9 @@ test("validate: wrong specVersion (0.1)", async (t) => {
 
 	// error is thrown because project is not defined (null)
 	const error = await t.throwsAsync(themeLibraryFormatter.validate());
-	t.deepEqual(error.message, `theme-library type requires "specVersion" 1.1 or higher. Project "specVersion" is: 0.1`, "Correct exception thrown");
+	t.deepEqual(error.message,
+		`theme-library type requires "specVersion" 1.1 or higher. Project "specVersion" is: 0.1`,
+		"Correct exception thrown");
 });
 
 test("validate: wrong specVersion (1.0)", async (t) => {
@@ -62,7 +64,9 @@ test("validate: wrong specVersion (1.0)", async (t) => {
 
 	// error is thrown because project is not defined (null)
 	const error = await t.throwsAsync(themeLibraryFormatter.validate());
-	t.deepEqual(error.message, `theme-library type requires "specVersion" 1.1 or higher. Project "specVersion" is: 1.0`, "Correct exception thrown");
+	t.deepEqual(error.message,
+		`theme-library type requires "specVersion" 1.1 or higher. Project "specVersion" is: 1.0`,
+		"Correct exception thrown");
 });
 
 test("validate: empty version", async (t) => {

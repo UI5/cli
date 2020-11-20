@@ -60,7 +60,8 @@ module.exports = async function({workspace, taskUtil, options: {namespace}}) {
 
 		manifestContent["sap.ui5"] = manifestContent["sap.ui5"] || {};
 		manifestContent["sap.ui5"].dependencies = manifestContent["sap.ui5"].dependencies || {};
-		return manifestContent["sap.ui5"].dependencies.minUI5Version = manifestContent["sap.ui5"].dependencies.minUI5Version || "";
+		return manifestContent["sap.ui5"].dependencies.minUI5Version =
+			manifestContent["sap.ui5"].dependencies.minUI5Version || "";
 	}
 
 	log.verbose("Collecting flexibility changes");

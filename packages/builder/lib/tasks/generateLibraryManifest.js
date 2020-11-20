@@ -33,7 +33,8 @@ module.exports = function({workspace, dependencies, options: {projectName}}) {
 		return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
 			if (libraryIndicatorResources.length < 1) {
 				// No library found - nothing to do
-				log.verbose(`Could not find a ".library" file for project ${projectName}. Skipping library manifest generation.`);
+				log.verbose(`Could not find a ".library" file for project ${projectName}. ` +
+					`Skipping library manifest generation.`);
 				return;
 			}
 
@@ -58,7 +59,8 @@ module.exports = function({workspace, dependencies, options: {projectName}}) {
 						}
 					});
 				} else {
-					log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" for project ${projectName}. Skipping library manifest generation.`);
+					log.verbose(`Could not determine library namespace from file "${libraryIndicatorPath}" ` +
+						`for project ${projectName}. Skipping library manifest generation.`);
 					return Promise.resolve();
 				}
 			}));
