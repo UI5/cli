@@ -8,8 +8,6 @@
 [![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-project?branchName=master)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=35&branchName=master)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fproject.svg)](https://www.npmjs.com/package/@ui5/project)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-project/badge.svg)](https://coveralls.io/github/SAP/ui5-project)
-[![Dependency Status](https://david-dm.org/SAP/ui5-project/master.svg)](https://david-dm.org/SAP/ui5-project/master)
-[![devDependency Status](https://david-dm.org/SAP/ui5-project/master/dev-status.svg)](https://david-dm.org/SAP/ui5-project/master#info=devDependencies)
 
 ## Documentation
 Can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/pages/Project/)
