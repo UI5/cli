@@ -178,7 +178,9 @@ module.exports = {
 		if (log.isLevelEnabled("verbose")) {
 			const timeDiff = process.hrtime(startTime);
 			const prettyHrtime = require("pretty-hrtime");
-			log.verbose(`${frameworkName} dependencies ${referencedLibraries.join(", ")} resolved in ${prettyHrtime(timeDiff)}`);
+			log.verbose(
+				`${frameworkName} dependencies ${referencedLibraries.join(", ")} ` +
+				`resolved in ${prettyHrtime(timeDiff)}`);
 		}
 
 		const projectProcessor = new utils.ProjectProcessor({

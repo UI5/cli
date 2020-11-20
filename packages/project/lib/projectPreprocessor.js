@@ -100,7 +100,8 @@ class ProjectPreprocessor {
 					});
 				} else {
 					if (project === this.tree) {
-						throw new Error(`Failed to configure root project "${project.id}". Please check verbose log for details.`);
+						throw new Error(
+							`Failed to configure root project "${project.id}". Please check verbose log for details.`);
 					}
 					// No config available
 					// => reject this project by removing it from its parents list of dependencies
@@ -119,7 +120,8 @@ class ProjectPreprocessor {
 			if (log.isLevelEnabled("verbose")) {
 				const prettyHrtime = require("pretty-hrtime");
 				const timeDiff = process.hrtime(startTime);
-				log.verbose(`Processed ${Object.keys(this.processedProjects).length} projects in ${prettyHrtime(timeDiff)}`);
+				log.verbose(
+					`Processed ${Object.keys(this.processedProjects).length} projects in ${prettyHrtime(timeDiff)}`);
 			}
 			return this.tree;
 		});
@@ -182,8 +184,10 @@ class ProjectPreprocessor {
 				}
 				return true;
 			}
-			log.verbose(`Dependency of project ${parent.id}, "${project.id}": Distance to root of ${parent._level + 1}. Will be `+
-				`replaced by project with same ID and distance to root of ${processedProject.project._level}.`);
+			log.verbose(
+				`Dependency of project ${parent.id}, "${project.id}": ` +
+				`Distance to root of ${parent._level + 1}. Will be replaced `+
+				`by project with same ID and distance to root of ${processedProject.project._level}.`);
 
 			// Replace with the already processed project (closer to root -> preferred)
 			parent.dependencies[parent.dependencies.indexOf(project)] = processedProject.project;

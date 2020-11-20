@@ -116,7 +116,9 @@ test.after.always((t) => {
 				params: {
 					type: "string",
 				},
-				schemaPath: "#/definitions/shims/properties/collections/patternProperties/.%2B/properties/modules/patternProperties/.%2B/type"
+				schemaPath:
+					"#/definitions/shims/properties/collections/patternProperties/.%2B/properties/" +
+					"modules/patternProperties/.%2B/type"
 			}
 		]);
 	});

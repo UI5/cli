@@ -147,7 +147,8 @@ test("Error: missing dependency", async (t) => {
 		errApplicationAPath + "') or in a collection");
 });
 
-// TODO: Test for scenarios where a dependency is missing *and there is no package.json* in the path above the root module
+// TODO: Test for scenarios where a dependency is missing *and there is no package.json* in the path above
+// the root module
 //	This should test whether the collection-fallback can handle not receiving a .pkg object from readPkgUp
 //	Currently tricky to test as there is always a package.json located above the test fixtures.
 

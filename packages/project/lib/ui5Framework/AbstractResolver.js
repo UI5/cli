@@ -27,7 +27,8 @@ class AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} options.version Framework version to use
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
-	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages, metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
+	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
 	 */
 	constructor({cwd, version, ui5HomeDir}) {
 		if (new.target === AbstractResolver) {
@@ -93,13 +94,13 @@ class AbstractResolver {
 	 * Library metadata entry
 	 *
 	 * @example
-	 * {
-	 *   "id": "@openui5/sap.ui.core",
-	 *   "version": "1.75.0",
-	 *   "path": "~/.ui5/framework/packages/@openui5/sap.ui.core/1.75.0",
-	 *   "dependencies": [],
-	 *   "optionalDependencies": []
-	 * }
+	 * const libraryMetadataEntry = {
+	 *	"id": "@openui5/sap.ui.core",
+	 *	"version": "1.75.0",
+	 *	"path": "~/.ui5/framework/packages/@openui5/sap.ui.core/1.75.0",
+	 *	"dependencies": [],
+	 *	"optionalDependencies": []
+	 * };
 	 *
 	 * @public
 	 * @typedef {object} LibraryMetadataEntry
@@ -114,16 +115,16 @@ class AbstractResolver {
 	 * Install result
 	 *
 	 * @example
-	 * {
-	 *   "libraryMetadata": {
-	 *     "sap.ui.core": {
-	 *       // ...
-	 *     },
-	 *     "sap.m": {
-	 *       // ...
-	 *     }
-	 *   }
-	 * }
+	 * const resolverInstallResult = {
+	 * 	"libraryMetadata": {
+	 * 		"sap.ui.core": {
+	 * 			// ...
+	 * 		},
+	 * 		"sap.m": {
+	 * 			// ...
+	 * 		}
+	 * 	}
+	 * };
 	 *
 	 * @public
 	 * @typedef {object} ResolverInstallResult
@@ -140,9 +141,9 @@ class AbstractResolver {
 	 * // const resolver = new Openui5Resolver({version: "1.76.0"});
 	 *
 	 * resolver.install(["sap.ui.core", "sap.m"]).then(({libraryMetadata}) => {
-	 *   // Installation done
+	 * 	// Installation done
 	 * }).catch((err) => {
-	 *   // Handle installation errors
+	 * 	// Handle installation errors
 	 * });
 	 *
 	 * @public

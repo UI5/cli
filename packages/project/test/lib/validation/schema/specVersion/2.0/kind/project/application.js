@@ -377,7 +377,9 @@ test.after.always((t) => {
 				params: {
 					additionalProperty: "declareModules",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/additionalProperties",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/sections/items/additionalProperties",
 			},
 			{
 				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
@@ -386,7 +388,9 @@ test.after.always((t) => {
 				params: {
 					type: "string",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/name/type",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/sections/items/properties/name/type",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition",
@@ -404,7 +408,9 @@ test.after.always((t) => {
 				params: {
 					type: "string",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/defaultFileTypes/items/type",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/defaultFileTypes/items/type",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
@@ -413,7 +419,9 @@ test.after.always((t) => {
 				params: {
 					missingProperty: "mode",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/required",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/sections/items/required",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
@@ -422,7 +430,9 @@ test.after.always((t) => {
 				params: {
 					type: "boolean",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/declareRawModules/type",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/sections/items/properties/declareRawModules/type",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
@@ -436,7 +446,9 @@ test.after.always((t) => {
 						"provided",
 					],
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/mode/enum",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/sections/items/properties/mode/enum",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
@@ -445,7 +457,9 @@ test.after.always((t) => {
 				params: {
 					type: "array",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/properties/sections/items/properties/filters/type",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
+					"properties/sections/items/properties/filters/type",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleOptions",
@@ -454,7 +468,9 @@ test.after.always((t) => {
 				params: {
 					additionalProperty: "notAllowed",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/additionalProperties",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleOptions/" +
+					"additionalProperties",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleOptions/optimize",
@@ -463,7 +479,9 @@ test.after.always((t) => {
 				params: {
 					type: "boolean",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/properties/optimize/type",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleOptions/" +
+					"properties/optimize/type",
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
@@ -472,7 +490,9 @@ test.after.always((t) => {
 				params: {
 					type: "number",
 				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleOptions/properties/numberOfParts/type",
+				schemaPath:
+					"../project.json#/definitions/builder-bundles/items/properties/bundleOptions/" +
+					"properties/numberOfParts/type",
 			},
 			{
 				dataPath: "/builder/componentPreload",

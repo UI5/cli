@@ -102,13 +102,14 @@ module.exports = {
 									dataPath: "/framework/version",
 									keyword: "pattern",
 									message:
-										"should match pattern \"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*" +
-										"|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(" +
-										"[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$\"",
+										"should match pattern \"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)" +
+										"(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*" +
+										"[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$\"",
 									params: {
-										pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-]" +
-											"[0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(" +
-											"?:\\.[0-9a-zA-Z-]+)*))?$",
+										pattern:
+											"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*" +
+											"[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-]" +
+											"[0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
 									},
 									schemaPath: "../project.json#/definitions/framework/properties/version/pattern",
 								}
@@ -132,7 +133,8 @@ module.exports = {
 						params: {
 							additionalProperty: "library",
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/additionalProperties",
+						schemaPath:
+							"../project.json#/definitions/framework/properties/libraries/items/additionalProperties",
 					},
 					{
 						dataPath: "/framework/libraries/1",
@@ -150,7 +152,9 @@ module.exports = {
 						params: {
 							type: "boolean"
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/optional/type",
+						schemaPath:
+							"../project.json#/definitions/framework/properties/libraries" +
+							"/items/properties/optional/type",
 					},
 					{
 						dataPath: "/framework/libraries/3/development",
@@ -159,7 +163,9 @@ module.exports = {
 						params: {
 							type: "boolean"
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/development/type"
+						schemaPath:
+							"../project.json#/definitions/framework/properties/libraries" +
+							"/items/properties/development/type"
 					}
 				]);
 			});
@@ -185,78 +191,89 @@ module.exports = {
 				]);
 			});
 
-			test(`${type} (specVersion ${specVersion}): framework configuration: library with optional and development`, async (t) => {
-				await assertValidation(t, {
-					"specVersion": specVersion,
-					"type": type,
-					"metadata": {
-						"name": "my-" + type
-					},
-					"framework": {
-						"name": "OpenUI5",
-						"libraries": [
-							{
-								name: "sap.ui.lib1",
-								development: true,
-								optional: true
+			test(
+				`${type} (specVersion ${specVersion}): framework configuration: library with optional and development`,
+				async (t) => {
+					await assertValidation(t, {
+						"specVersion": specVersion,
+						"type": type,
+						"metadata": {
+							"name": "my-" + type
+						},
+						"framework": {
+							"name": "OpenUI5",
+							"libraries": [
+								{
+									name: "sap.ui.lib1",
+									development: true,
+									optional: true
+								},
+								{
+									// This should only complain about wrong types, not that both are true
+									name: "sap.ui.lib2",
+									development: "true",
+									optional: "true"
+								}
+							]
+						}
+					}, [
+						{
+							dataPath: "/framework/libraries/0",
+							keyword: "errorMessage",
+							message: "Either \"development\" or \"optional\" can be true, but not both",
+							params: {
+								errors: [
+									{
+										dataPath: "/framework/libraries/0",
+										keyword: "additionalProperties",
+										message: "should NOT have additional properties",
+										params: {
+											additionalProperty: "development",
+										},
+										schemaPath:
+											"../project.json#/definitions/framework/properties/libraries/items/" +
+											"then/additionalProperties",
+									},
+									{
+										dataPath: "/framework/libraries/0",
+										keyword: "additionalProperties",
+										message: "should NOT have additional properties",
+										params: {
+											additionalProperty: "optional",
+										},
+										schemaPath:
+											"../project.json#/definitions/framework/properties/libraries/items/then/" +
+											"additionalProperties",
+									},
+								],
 							},
-							{
-								// This should only complain about wrong types, not that both are true
-								name: "sap.ui.lib2",
-								development: "true",
-								optional: "true"
-							}
-						]
-					}
-				}, [
-					{
-						dataPath: "/framework/libraries/0",
-						keyword: "errorMessage",
-						message: "Either \"development\" or \"optional\" can be true, but not both",
-						params: {
-							errors: [
-								{
-									dataPath: "/framework/libraries/0",
-									keyword: "additionalProperties",
-									message: "should NOT have additional properties",
-									params: {
-										additionalProperty: "development",
-									},
-									schemaPath: "../project.json#/definitions/framework/properties/libraries/items/then/additionalProperties",
-								},
-								{
-									dataPath: "/framework/libraries/0",
-									keyword: "additionalProperties",
-									message: "should NOT have additional properties",
-									params: {
-										additionalProperty: "optional",
-									},
-									schemaPath: "../project.json#/definitions/framework/properties/libraries/items/then/additionalProperties",
-								},
-							],
+							schemaPath:
+								"../project.json#/definitions/framework/properties/libraries/items/then/errorMessage",
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/then/errorMessage",
-					},
-					{
-						dataPath: "/framework/libraries/1/optional",
-						keyword: "type",
-						message: "should be boolean",
-						params: {
-							type: "boolean",
+						{
+							dataPath: "/framework/libraries/1/optional",
+							keyword: "type",
+							message: "should be boolean",
+							params: {
+								type: "boolean",
+							},
+							schemaPath:
+								"../project.json#/definitions/framework/properties/libraries/items/properties/" +
+								"optional/type",
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/optional/type",
-					},
-					{
-						dataPath: "/framework/libraries/1/development",
-						keyword: "type",
-						message: "should be boolean",
-						params: {
-							type: "boolean",
+						{
+							dataPath: "/framework/libraries/1/development",
+							keyword: "type",
+							message: "should be boolean",
+							params: {
+								type: "boolean",
+							},
+							schemaPath:
+								"../project.json#/definitions/framework/properties/libraries/items/properties/" +
+								"development/type",
 						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/properties/development/type",
-					},
-				]);
-			});
+					]);
+				});
 		});
 	}
 };

@@ -18,7 +18,8 @@ class Sapui5Resolver extends AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} options.version SAPUI5 version to use
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
-	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages, metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
+	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
 	 */
 	constructor(options) {
 		super(options);

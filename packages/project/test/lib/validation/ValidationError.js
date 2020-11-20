@@ -846,7 +846,8 @@ test.serial("ValidationError.formatMessage: keyword=required", (t) => {
 		message: "should have required property 'name'"
 	};
 
-	const expectedErrorMessage = `Configuration ${chalk.underline(chalk.red("metadata"))} must have required property 'name'`;
+	const expectedErrorMessage =
+		`Configuration ${chalk.underline(chalk.red("metadata"))} must have required property 'name'`;
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);
@@ -902,7 +903,8 @@ test.serial("ValidationError.formatMessage: keyword=additionalProperties", (t) =
 	};
 
 	const expectedErrorMessage =
-`Configuration ${chalk.underline(chalk.red("resources/configuration"))} property propertiesFileEncoding must not be provided here`;
+		`Configuration ${chalk.underline(chalk.red("resources/configuration"))} ` +
+		`property propertiesFileEncoding must not be provided here`;
 
 	const errorMessage = ValidationError.formatMessage(error);
 	t.is(errorMessage, expectedErrorMessage);

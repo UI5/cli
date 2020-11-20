@@ -31,53 +31,55 @@ test.afterEach.always(() => {
 	mock.stopAll();
 });
 
-test.serial("Sapui5Resolver: loadDistMetadata loads metadata once from @sapui5/distribution-metadata package", async (t) => {
-	const resolver = new Sapui5Resolver({
-		cwd: "/test-project/",
-		version: "1.75.0"
-	});
+test.serial(
+	"Sapui5Resolver: loadDistMetadata loads metadata once from @sapui5/distribution-metadata package", async (t) => {
+		const resolver = new Sapui5Resolver({
+			cwd: "/test-project/",
+			version: "1.75.0"
+		});
 
-	t.context.getTargetDirForPackageStub.callsFake(({pkgName, version}) => {
-		throw new Error(`getTargetDirForPackage stub called with unknown arguments pkgName: ${pkgName}, version: ${version}}`);
-	}).withArgs({
-		pkgName: "@sapui5/distribution-metadata",
-		version: "1.75.0"
-	}).returns(path.join("/path", "to", "distribution-metadata", "1.75.0"));
-	t.context.installPackageStub.withArgs({
-		pkgName: "@sapui5/distribution-metadata",
-		version: "1.75.0"
-	}).resolves({pkgPath: path.join("/path", "to", "distribution-metadata", "1.75.0")});
+		t.context.getTargetDirForPackageStub.callsFake(({pkgName, version}) => {
+			throw new Error(
+				`getTargetDirForPackage stub called with unknown arguments pkgName: ${pkgName}, version: ${version}}`);
+		}).withArgs({
+			pkgName: "@sapui5/distribution-metadata",
+			version: "1.75.0"
+		}).returns(path.join("/path", "to", "distribution-metadata", "1.75.0"));
+		t.context.installPackageStub.withArgs({
+			pkgName: "@sapui5/distribution-metadata",
+			version: "1.75.0"
+		}).resolves({pkgPath: path.join("/path", "to", "distribution-metadata", "1.75.0")});
 
-	const expectedMetadata = {
-		libraries: {
-			"sap.ui.foo": {
-				"npmPackageName": "@openui5/sap.ui.foo",
-				"version": "1.75.0",
-				"dependencies": [],
-				"optionalDependencies": []
+		const expectedMetadata = {
+			libraries: {
+				"sap.ui.foo": {
+					"npmPackageName": "@openui5/sap.ui.foo",
+					"version": "1.75.0",
+					"dependencies": [],
+					"optionalDependencies": []
+				}
 			}
-		}
-	};
-	t.context.readJsonStub
-		.withArgs(path.join("/path", "to", "distribution-metadata", "1.75.0", "metadata.json"))
-		.resolves(expectedMetadata);
+		};
+		t.context.readJsonStub
+			.withArgs(path.join("/path", "to", "distribution-metadata", "1.75.0", "metadata.json"))
+			.resolves(expectedMetadata);
 
-	let distMetadata = await resolver.loadDistMetadata();
-	t.is(t.context.installPackageStub.callCount, 1, "Distribution metadata package should be installed once");
-	t.deepEqual(distMetadata, expectedMetadata,
-		"loadDistMetadata should resolve with expected metadata");
+		let distMetadata = await resolver.loadDistMetadata();
+		t.is(t.context.installPackageStub.callCount, 1, "Distribution metadata package should be installed once");
+		t.deepEqual(distMetadata, expectedMetadata,
+			"loadDistMetadata should resolve with expected metadata");
 
-	// Calling loadDistMetadata again should not load package again
-	distMetadata = await resolver.loadDistMetadata();
+		// Calling loadDistMetadata again should not load package again
+		distMetadata = await resolver.loadDistMetadata();
 
-	t.is(t.context.installPackageStub.callCount, 1, "Distribution metadata package should still be installed once");
-	t.deepEqual(distMetadata, expectedMetadata,
-		"Metadata should still be the expected metadata after calling loadDistMetadata again");
+		t.is(t.context.installPackageStub.callCount, 1, "Distribution metadata package should still be installed once");
+		t.deepEqual(distMetadata, expectedMetadata,
+			"Metadata should still be the expected metadata after calling loadDistMetadata again");
 
-	const libraryMetadata = await resolver.getLibraryMetadata("sap.ui.foo");
-	t.deepEqual(libraryMetadata, expectedMetadata.libraries["sap.ui.foo"],
-		"getLibraryMetadata returns metadata for one library");
-});
+		const libraryMetadata = await resolver.getLibraryMetadata("sap.ui.foo");
+		t.deepEqual(libraryMetadata, expectedMetadata.libraries["sap.ui.foo"],
+			"getLibraryMetadata returns metadata for one library");
+	});
 
 test.serial("Sapui5Resolver: handleLibrary", async (t) => {
 	const resolver = new Sapui5Resolver({
