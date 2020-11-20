@@ -91,7 +91,8 @@ test("Get resource from application.a (/i18n/i18n_de.properties) with correct co
 
 			t.deepEqual(res.body.toString(), "showHelloButtonText=Say \\u00e4!", "Correct response");
 			// Because it took so long to figure this out I keep the below line. It is equivalent to the deepEqual above
-			// t.deepEqual(res.body.toString("latin1"), Buffer.from("showHelloButtonText=Say \u00e4!", "latin1").toString("latin1"),
+			// t.deepEqual(res.body.toString("latin1"),
+			// 	Buffer.from("showHelloButtonText=Say \u00e4!", "latin1").toString("latin1"),
 			// 	"Correct response");
 		});
 });
@@ -297,21 +298,22 @@ test("Get library-parameters.json from theme middleware (/resources/library/a/th
 		});
 	});
 
-test("Get css_variables.source.less from theme middleware (/resources/library/a/themes/base/css_variables.source.less)", (t) => {
-	return request.get("/resources/library/a/themes/base/css_variables.source.less").then((res) => {
-		if (res.error) {
-			t.fail(res.error.text);
-		}
-		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /less/, "Correct content type");
-		t.deepEqual(res.text, `@libraryAColor1: #fafad2;
+test("Get css_variables.source.less from theme middleware (/resources/library/a/themes/base/css_variables.source.less)",
+	(t) => {
+		return request.get("/resources/library/a/themes/base/css_variables.source.less").then((res) => {
+			if (res.error) {
+				t.fail(res.error.text);
+			}
+			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+			t.regex(res.headers["content-type"], /less/, "Correct content type");
+			t.deepEqual(res.text, `@libraryAColor1: #fafad2;
 
 :root {
 --libraryAColor1: @libraryAColor1;
 }
 `, "Correct response");
+		});
 	});
-});
 
 test("Get css_variables.css from theme middleware (/resources/library/a/themes/base/css_variables.css)", (t) => {
 	return request.get("/resources/library/a/themes/base/css_variables.css").then((res) => {
@@ -345,20 +347,21 @@ test("Get library_skeleton.css from theme middleware (/resources/library/a/theme
 	});
 });
 
-test("Get library_skeleton-RTL.css from theme middleware (/resources/library/a/themes/base/library_skeleton-RTL.css)", (t) => {
-	return request.get("/resources/library/a/themes/base/library_skeleton-RTL.css").then((res) => {
-		if (res.error) {
-			t.fail(res.error.text);
-		}
-		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /css/, "Correct content type");
-		t.deepEqual(res.text, `.library-a-foo {
+test("Get library_skeleton-RTL.css from theme middleware (/resources/library/a/themes/base/library_skeleton-RTL.css)",
+	(t) => {
+		return request.get("/resources/library/a/themes/base/library_skeleton-RTL.css").then((res) => {
+			if (res.error) {
+				t.fail(res.error.text);
+			}
+			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+			t.regex(res.headers["content-type"], /css/, "Correct content type");
+			t.deepEqual(res.text, `.library-a-foo {
   color: var(--libraryAColor1);
   padding: 1px 4px 3px 2px;
 }
 `, "Correct response");
+		});
 	});
-});
 
 test("Stop server", (t) => {
 	const port = 3350;
@@ -638,7 +641,9 @@ test("CSP with ignore paths", async (t) => {
 		.expect(200);
 	const testrunnerRequest3 = request.get("/index.html")
 		.expect(200);
-	const [response1, response2, response3] = await Promise.all([testrunnerRequest1, testrunnerRequest2, testrunnerRequest3]);
+	const [response1, response2, response3] = await Promise.all([
+		testrunnerRequest1, testrunnerRequest2, testrunnerRequest3
+	]);
 	t.falsy(response1.headers["content-security-policy-report-only"], "url match");
 	t.falsy(response2.headers["content-security-policy-report-only"], "referer match");
 	t.truthy(response3.headers["content-security-policy-report-only"], "no match");

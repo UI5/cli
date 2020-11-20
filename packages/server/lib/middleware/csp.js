@@ -43,7 +43,8 @@ function containsPath(uriPath, req, pathName) {
  * @property {boolean} defaultPolicy2IsReportOnly
  * @property {object} definedPolicies
  * @property {boolean} serveCSPReports whether to serve the csp resources
- * @property {string[]} ignorePaths URI paths which are ignored by the CSP reports, e.g. ["test-resources/sap/ui/qunit/testrunner.html"]
+ * @property {string[]} ignorePaths URI paths which are ignored by the CSP reports,
+ * e.g. ["test-resources/sap/ui/qunit/testrunner.html"]
  */
 
 /**
@@ -173,7 +174,8 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		if (policy) {
 			if (reportOnly) {
 				// Add report-uri. This is mandatory for the report-only mode.
-				addHeader(res, HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY, policy + " report-uri /.ui5/csp/report.csplog;");
+				addHeader(res, HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY,
+					policy + " report-uri /.ui5/csp/report.csplog;");
 			} else {
 				addHeader(res, HEADER_CONTENT_SECURITY_POLICY, policy);
 			}
@@ -181,7 +183,8 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 		if (policy2) {
 			if (reportOnly2) {
 				// Add report-uri. This is mandatory for the report-only mode.
-				addHeader(res, HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY, policy2 + " report-uri /.ui5/csp/report.csplog;");
+				addHeader(res, HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY,
+					policy2 + " report-uri /.ui5/csp/report.csplog;");
 			} else {
 				addHeader(res, HEADER_CONTENT_SECURITY_POLICY, policy2);
 			}

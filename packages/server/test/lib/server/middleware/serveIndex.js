@@ -40,10 +40,25 @@ test.serial("serveIndex default", (t) => {
 				writeHead: function(status, contentType) {
 				},
 				end: function(content) {
-					t.regex(content, RegExp("<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span><span class=\"size\">1.00 KB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" title=\"myFile2.js\"><span class=\"name\">myFile2.js</span><span class=\"size\">1.00 MB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span><span class=\"size\">1.00 GB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/.myFile4\" class=\"icon icon icon- icon-default\" title=\".myFile4\"><span class=\"name\">.myFile4</span><span class=\"size\">1.00 KB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" " +
+							"title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span><span class=\"size\">" +
+							"1.00 KB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" " +
+							"title=\"myFile2.js\"><span class=\"name\">myFile2.js</span><span class=\"size\">" +
+							"1.00 MB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" " +
+							"title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span>" +
+							"<span class=\"size\">1.00 GB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/.myFile4\" class=\"icon icon icon- icon-default\" title=\".myFile4\">" +
+							"<span class=\"name\">.myFile4</span><span class=\"size\">1.00 KB</span>"));
 					resolve();
 				},
 			};
@@ -95,10 +110,26 @@ test.serial("serveIndex no hidden", (t) => {
 				writeHead: function(status, contentType) {
 				},
 				end: function(content) {
-					t.regex(content, RegExp("<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span><span class=\"size\">1.00 KB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" title=\"myFile2.js\"><span class=\"name\">myFile2.js</span><span class=\"size\">1.00 MB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span><span class=\"size\">1.00 GB</span>"));
-					t.notRegex(content, RegExp("<li><a href=\"/.myFile4\" class=\"icon icon icon- icon-default\" title=\".myFile4\"><span class=\"name\">.myFile4</span><span class=\"size\">1.00 KB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" " +
+							"title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span>" +
+							"<span class=\"size\">1.00 KB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" " +
+							"title=\"myFile2.js\"><span class=\"name\">myFile2.js</span>" +
+							"<span class=\"size\">1.00 MB</span>"));
+					t.regex(content,
+						RegExp(
+							"<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" " +
+							"title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span>" +
+							"<span class=\"size\">1.00 GB</span>"));
+					t.notRegex(content,
+						RegExp(
+							"<li><a href=\"/.myFile4\" class=\"icon icon icon- icon-default\" " +
+							"title=\".myFile4\"><span class=\"name\">.myFile4</span>" +
+							"<span class=\"size\">1.00 KB</span>"));
 					resolve();
 				},
 			};
@@ -150,10 +181,21 @@ test.serial("serveIndex no details", (t) => {
 				writeHead: function(status, contentType) {
 				},
 				end: function(content) {
-					t.regex(content, RegExp("<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span><span class=\"size\">1.00 KB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" title=\"myFile2.js\"><span class=\"name\">myFile2.js</span><span class=\"size\">1.00 MB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span><span class=\"size\">1.00 GB</span>"));
-					t.regex(content, RegExp("<li><a href=\"/.myFile4\" class=\"icon icon icon- icon-default\" title=\".myFile4\"><span class=\"name\">.myFile4</span><span class=\"size\">1.00 KB</span>"));
+					t.regex(content, RegExp(
+						"<li><a href=\"/myFile1.meh\" class=\"icon icon icon-meh icon-default\" " +
+						"title=\"myFile1.meh\"><span class=\"name\">myFile1.meh</span>" +
+						"<span class=\"size\">1.00 KB</span>"));
+					t.regex(content, RegExp(
+						"<li><a href=\"/myFile2.js\" class=\"icon icon icon-js icon-application-javascript\" " +
+						"title=\"myFile2.js\"><span class=\"name\">myFile2.js</span>" +
+						"<span class=\"size\">1.00 MB</span>"));
+					t.regex(content, RegExp(
+						"<li><a href=\"/myFile3.properties\" class=\"icon icon icon-properties icon-default\" " +
+						"title=\"myFile3.properties\"><span class=\"name\">myFile3.properties</span>" +
+						"<span class=\"size\">1.00 GB</span>"));
+					t.regex(content, RegExp(
+						"<li><a href=\"/.myFile4\" class=\"icon icon icon- icon-default\" " +
+						"title=\".myFile4\"><span class=\"name\">.myFile4</span><span class=\"size\">1.00 KB</span>"));
 					resolve();
 				},
 			};

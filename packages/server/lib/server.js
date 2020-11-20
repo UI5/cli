@@ -111,7 +111,8 @@ module.exports = {
 	 * 													aim for (AKA 'target policies'), are send for any requested
 	 * 													<code>*.html</code> file
 	 * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
-	 * @param {boolean} [options.serveCSPReports=false] Enable csp reports serving for request url '/.ui5/csp/csp-reports.json'
+	 * @param {boolean} [options.serveCSPReports=false] Enable csp reports serving for request url
+	 * '/.ui5/csp/csp-reports.json'
 	 * @returns {Promise<object>} Promise resolving once the server is listening.
 	 * 							It resolves with an object containing the <code>port</code>,
 	 * 							<code>h2</code>-flag and a <code>close</code> function,

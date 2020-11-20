@@ -87,7 +87,8 @@ function createResourceInfos(resources) {
  * @module @ui5/server/middleware/serveIndex
  * @param {object} parameters Parameters
  * @param {object} parameters.resources Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace and the project dependencies
+ * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace
+ * and the project dependencies
  * @param {boolean} [parameters.simpleIndex=false] Use a simplified view for the server directory listing
  * @param {boolean} [parameters.showHidden=true] Show hidden files in the server directory listing
  * @returns {Function} Returns a server middleware closure.

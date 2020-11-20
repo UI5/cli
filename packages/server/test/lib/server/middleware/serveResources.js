@@ -137,7 +137,9 @@ test.serial("Check if properties file is served properly without property settin
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 
-	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "utf8").then((resource) => {
+	return writeResource(readerWriter, "/myFile3.properties",
+		1024 * 1024, "key=titel\nfame=straße", "utf8"
+	).then((resource) => {
 		const setStringSpy = sinon.spy(resource, "setString");
 		const middleware = serveResourcesMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
@@ -175,7 +177,9 @@ test.serial("Check if properties file is served properly without property settin
 	const project = {
 		specVersion: "1.1"
 	};
-	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "latin1", project).then((resource) => {
+	return writeResource(readerWriter, "/myFile3.properties",
+		1024 * 1024, "key=titel\nfame=straße", "latin1", project
+	).then((resource) => {
 		const setStringSpy = sinon.spy(resource, "setString");
 		const middleware = serveResourcesMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
@@ -213,7 +217,9 @@ test.serial("Check if properties file is served properly without property settin
 	const project = {
 		specVersion: "2.0"
 	};
-	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "utf8", project).then((resource) => {
+	return writeResource(readerWriter, "/myFile3.properties",
+		1024 * 1024, "key=titel\nfame=straße", "utf8", project
+	).then((resource) => {
 		const setStringSpy = sinon.spy(resource, "setString");
 		const middleware = serveResourcesMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
