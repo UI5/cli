@@ -14,7 +14,8 @@ class DuplexCollection extends AbstractReaderWriter {
 	 *
 	 * @param {object} parameters
 	 * @param {module:@ui5/fs.AbstractReader} parameters.reader Single reader or collection of readers
-	 * @param {module:@ui5/fs.AbstractReaderWriter} parameters.writer A ReaderWriter instance which is only used for writing files
+	 * @param {module:@ui5/fs.AbstractReaderWriter} parameters.writer
+	 *			A ReaderWriter instance which is only used for writing files
 	 * @param {string} [parameters.name=""] The collection name
 	 */
 	constructor({reader, writer, name = ""}) {
