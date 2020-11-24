@@ -80,7 +80,7 @@ test.serial("groupResourcesByComponents: debugBundles", async (t) => {
 	});
 	await resourceCollector.visitResource({getPath: () => "/resources/testcomp/Component.js", getSize: async () => 13});
 	await resourceCollector.visitResource({getPath: () => "/resources/my/file.js", getSize: async () => 13});
-	resourceCollector.groupResourcesByComponents({debugBundles: [".*-dbg.js"]});
+	resourceCollector.groupResourcesByComponents();
 	t.is(resourceCollector.resources.size, 0, "all resources were deleted");
 });
 
@@ -89,7 +89,7 @@ test.serial("groupResourcesByComponents: theme", async (t) => {
 	await resourceCollector.visitResource({getPath: () => "/resources/themes/a/.theming", getSize: async () => 13});
 	t.is(resourceCollector.themePackages.size, 1, "1 theme was added");
 	await resourceCollector.determineResourceDetails({});
-	resourceCollector.groupResourcesByComponents({});
+	resourceCollector.groupResourcesByComponents();
 	t.is(resourceCollector.themePackages.get("themes/a/").resources.length, 1, "1 theme was grouped");
 });
 
@@ -111,7 +111,7 @@ test.serial("determineResourceDetails: properties", async (t) => {
 		getPath: () => "/resources/mylib/i18n/i18n.properties", getSize: async () => 13
 	});
 	await resourceCollector.determineResourceDetails({});
-	resourceCollector.groupResourcesByComponents({});
+	resourceCollector.groupResourcesByComponents();
 	const resources = resourceCollector.components.get("mylib/").resources;
 	t.deepEqual(resources.map((res) => res.i18nName),
 		[null, "i18n/i18n.properties", "i18n/i18n.properties"], "i18nName was set");
