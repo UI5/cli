@@ -22,17 +22,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Lint
-      run: npm run lint
-
-    - name: Check for unused and missing dependencies
-      run: npm run depcheck
-
-    - name: Test JSDoc generation
-      run: npm run jsdoc-generate
-
-    - name: Generate test coverage report
-      run: npm run coverage
+    - name: Perform checks and tests
+      run: npm test
 
     - name: Send report to Coveralls
       uses: coverallsapp/github-action@v1.1.2
