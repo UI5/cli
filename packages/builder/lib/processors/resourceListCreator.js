@@ -73,7 +73,8 @@ const DEFAULT_SUPPORT_RESOURCES_FILTER = [
  * @type {string[]}
  */
 const DEBUG_BUNDLES = [
-	"sap-ui-core-dbg.js"
+	"sap-ui-core-dbg.js",
+	"sap-ui-core-nojQuery-dbg.js"
 ];
 
 /**
@@ -159,13 +160,12 @@ module.exports = async function({resources, options}) {
 		debugResources: options.debugResources,
 		mergedResources: options.mergedResources,
 		designtimeResources: options.designtimeResources,
-		supportResources: options.supportResources
+		supportResources: options.supportResources,
+		debugBundles: options.debugBundles
 	});
 
 	// group resources by components and create ResourceInfoLists
-	collector.groupResourcesByComponents({
-		debugBundles: options.debugBundles
-	});
+	collector.groupResourcesByComponents();
 
 	const resourceLists = [];
 

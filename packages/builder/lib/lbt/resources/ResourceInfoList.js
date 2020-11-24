@@ -39,36 +39,11 @@ class ResourceInfoList {
 	 * Add ResourceInfo to list
 	 *
 	 * @param {ResourceInfo} info
-	 * @param {boolean} shareDebugInformation
 	 */
-	add(info, shareDebugInformation=true) {
+	add(info) {
 		const relativeName = ResourceInfoList.makePathRelativeTo(this.name, info.name);
-
 		// search for a resource with the same name
 		let myInfo = this.resourcesByName.get(relativeName);
-
-		if ( myInfo == null && shareDebugInformation) {
-			// when not found, check if the given resource is a debug resource and
-			// share the information with the non-dbg version
-			const nonDbgName = ResourceInfoList.getNonDebugName(relativeName);
-			const dbgName = ResourceInfoList.getDebugName(relativeName);
-			if ( nonDbgName != null && this.resourcesByName.has(nonDbgName) ) {
-				// copy from source
-				myInfo = new ResourceInfo(relativeName);
-				const source = this.resourcesByName.get(nonDbgName);
-				myInfo.copyFrom(this.name, source);
-				this.resources.push(myInfo);
-				this.resourcesByName.set(relativeName, myInfo);
-			} else if (dbgName != null && this.resourcesByName.has(dbgName)) {
-				// copy from debug
-				myInfo = new ResourceInfo(relativeName);
-				const source = this.resourcesByName.get(dbgName);
-				myInfo.copyFrom(this.name, source);
-				myInfo.module = ResourceInfoList.getNonDebugName(source.module);
-				this.resources.push(myInfo);
-				this.resourcesByName.set(relativeName, myInfo);
-			}
-		}
 
 		// this is the assumption, that the debug one is the same as the non-dbg one
 		if ( myInfo == null ) {

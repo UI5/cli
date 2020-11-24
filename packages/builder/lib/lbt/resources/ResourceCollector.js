@@ -150,16 +150,25 @@ class ResourceCollector {
 		});
 	}
 
-	async determineResourceDetails({pool, debugResources, mergedResources, designtimeResources, supportResources}) {
+	async determineResourceDetails({
+		debugResources, mergedResources, designtimeResources, supportResources, debugBundles
+	}) {
 		const baseNames = new Set();
 		const debugFilter = new ResourceFilterList(debugResources);
 		const mergeFilter = new ResourceFilterList(mergedResources);
 		const designtimeFilter = new ResourceFilterList(designtimeResources);
 		const supportFilter = new ResourceFilterList(supportResources);
+		const debugBundleFilter = new ResourceFilterList(debugBundles);
 
 		const promises = [];
+		const nonBundledDebugResources = [];
 
 		for (const [name, info] of this._resources.entries()) {
+			if ( debugFilter.matches(name) ) {
+				info.isDebug = true;
+				log.verbose(`  found potential debug resource '${name}'`);
+			}
+
 			// log.verbose(`  checking ${name}`);
 			let m;
 			if ( m = LOCALE.exec(name) ) {
@@ -180,9 +189,14 @@ class ResourceCollector {
 			}
 
 			if ( /(?:\.js|\.view\.xml|\.control\.xml|\.fragment\.xml)$/.test(name) ) {
-				promises.push(
-					this.enrichWithDependencyInfo(info)
-				);
+				if ( (!info.isDebug || debugBundleFilter.matches(name)) ) {
+					// Only analyze non-debug files which are not special debug bundles (like sap-ui-core-dbg.js)
+					promises.push(
+						this.enrichWithDependencyInfo(info)
+					);
+				} else {
+					nonBundledDebugResources.push(info);
+				}
 			}
 
 			// set the module name for .properties and .json
@@ -195,11 +209,6 @@ class ResourceCollector {
 						resolve();
 					});
 				}));
-			}
-
-			if ( debugFilter.matches(name) ) {
-				info.isDebug = true;
-				log.verbose(`  found potential debug resource '${name}'`);
 			}
 
 			if ( mergeFilter.matches(name) ) {
@@ -226,7 +235,17 @@ class ResourceCollector {
 			}
 		}
 
-		return Promise.all(promises);
+		await Promise.all(promises);
+
+		for (let i = nonBundledDebugResources.length - 1; i >= 0; i--) {
+			const dbgInfo = nonBundledDebugResources[i];
+			const nonDebugName = ResourceInfoList.getNonDebugName(dbgInfo.name);
+			const nonDbgInfo = this._resources.get(nonDebugName);
+			const newDbgInfo = new ResourceInfo(dbgInfo.name);
+			newDbgInfo.copyFrom(null, nonDbgInfo);
+			newDbgInfo.copyFrom(null, dbgInfo);
+			this._resources.set(dbgInfo.name, newDbgInfo);
+		}
 	}
 
 	createOrphanFilters() {
@@ -253,19 +272,17 @@ class ResourceCollector {
 
 	groupResourcesByComponents(options) {
 		const orphanFilters = this.createOrphanFilters();
-		const debugBundlesFilter = new ResourceFilterList(options.debugBundles);
 		for (const resource of this._resources.values()) {
 			let contained = false;
 			for (const [prefix, list] of this._components.entries()) {
-				const isDebugBundle = debugBundlesFilter.matches(resource.name);
 				if ( resource.name.startsWith(prefix) ) {
-					list.add(resource, !isDebugBundle);
+					list.add(resource);
 					contained = true;
 				} else if ( orphanFilters.has(prefix) ) {
 					// log.verbose(`  checking '${resource.name}' against orphan filter ` +
 					// 	`'${orphanFilters.get(prefix)}' (${prefix})`);
 					if ( orphanFilters.get(prefix).matches(resource.name) ) {
-						list.add(resource, !isDebugBundle);
+						list.add(resource);
 						contained = true;
 					}
 				}
