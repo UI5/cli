@@ -43,7 +43,9 @@ cli.usage("Usage: ui5 <command> [options]")
 				console.log(chalk.underline("Error Message:"));
 				console.log(err.message);
 
-				if (logger.isLevelEnabled("verbose")) {
+				// Unexpected errors should always be logged with stack trace
+				const unexpectedErrors = ["SyntaxError", "ReferenceError", "TypeError"];
+				if (unexpectedErrors.includes(err.name) || logger.isLevelEnabled("verbose")) {
 					console.log("");
 					console.log(chalk.underline("Stack Trace:"));
 					console.log(err.stack);
