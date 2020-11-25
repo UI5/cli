@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.4.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.4.4...HEAD).
+
+<a name="v2.4.4"></a>
+## [v2.4.4] - 2020-11-24
+### Bug Fixes
+- **JSModuleAnalyzer:** Properly handle jQuery.sap.registerPreloadedModules calls [`9433f6a`](https://github.com/SAP/ui5-builder/commit/9433f6a989d6fea46f637ac8ff58c739977f456c)
+
 
 <a name="v2.4.3"></a>
 ## [v2.4.3] - 2020-11-06
@@ -460,6 +466,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.4.4]: https://github.com/SAP/ui5-builder/compare/v2.4.3...v2.4.4
 [v2.4.3]: https://github.com/SAP/ui5-builder/compare/v2.4.2...v2.4.3
 [v2.4.2]: https://github.com/SAP/ui5-builder/compare/v2.4.1...v2.4.2
 [v2.4.1]: https://github.com/SAP/ui5-builder/compare/v2.4.0...v2.4.1
