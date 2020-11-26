@@ -64,7 +64,7 @@ function getCreatorOptions(projectName) {
  * </p>
  *
  * @example <caption>sample resources.json</caption>
- * {
+ * const resourcesJson = {
  * 	"_version": "1.1.0",
  * 	"resources": [
  * 		{
@@ -102,7 +102,7 @@ function getCreatorOptions(projectName) {
  * 			"support": true
  * 		}
  * 	]
- * }
+ * };
  *
  * @public
  * @alias module:@ui5/builder.tasks.generateResourcesJson
