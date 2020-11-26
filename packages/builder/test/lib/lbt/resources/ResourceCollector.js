@@ -118,19 +118,79 @@ test.serial("determineResourceDetails: properties", async (t) => {
 });
 
 test.serial("determineResourceDetails: view.xml", async (t) => {
-	const resourceCollector = new ResourceCollector({
-		getModuleInfo: async (moduleInfo) => {
-			return {
-				name: "myName"
-			};
-		}
-	});
+	const resourceCollector = new ResourceCollector();
 	const enrichWithDependencyInfoStub = sinon.stub(resourceCollector, "enrichWithDependencyInfo")
 		.returns(Promise.resolve());
 	await resourceCollector.visitResource({getPath: () => "/resources/mylib/my.view.xml", getSize: async () => 13});
 	await resourceCollector.determineResourceDetails({});
 	t.is(enrichWithDependencyInfoStub.callCount, 1, "is called once");
 	t.is(enrichWithDependencyInfoStub.getCall(0).args[0].name, "mylib/my.view.xml", "is called with view");
+});
+
+test.serial("determineResourceDetails: Debug bundle", async (t) => {
+	const resourceCollector = new ResourceCollector();
+
+	const enrichWithDependencyInfoStub = sinon.stub(resourceCollector, "enrichWithDependencyInfo").resolves();
+	await resourceCollector.visitResource({getPath: () => "/resources/MyBundle-dbg.js", getSize: async () => 13});
+
+	await resourceCollector.determineResourceDetails({
+		debugBundles: ["MyBundle-dbg.js"]
+	});
+	t.is(enrichWithDependencyInfoStub.callCount, 1, "enrichWithDependencyInfo is called once");
+	t.is(enrichWithDependencyInfoStub.getCall(0).args[0].name, "MyBundle-dbg.js",
+		"enrichWithDependencyInfo is called with debug bundle");
+});
+
+test.serial("determineResourceDetails: Debug files and non-debug files", async (t) => {
+	const resourceCollector = new ResourceCollector();
+
+	const enrichWithDependencyInfoStub = sinon.stub(resourceCollector, "enrichWithDependencyInfo")
+		.callsFake((resourceInfo) => {
+			// Simulate enriching resource info with dependency info to test whether it gets shared
+			// with the dbg resource alter on
+			resourceInfo.dynRequired = true;
+		});
+	await Promise.all([
+		"/resources/MyBundle-dbg.js",
+		"/resources/mylib/MyControlA-dbg.js",
+		"/resources/mylib/MyControlA.js",
+		"/resources/mylib/MyControlB.js",
+		"/resources/mylib/MyControlB-dbg.js"
+	].map((resourcePath) => {
+		return resourceCollector.visitResource({getPath: () => resourcePath, getSize: async () => 13});
+	}));
+
+	await resourceCollector.determineResourceDetails({
+		debugResources: ["**/*-dbg.js"],
+		debugBundles: ["MyBundle-dbg.js"]
+	});
+	t.is(enrichWithDependencyInfoStub.callCount, 3, "enrichWithDependencyInfo is called three times");
+	t.is(enrichWithDependencyInfoStub.getCall(0).args[0].name, "MyBundle-dbg.js",
+		"enrichWithDependencyInfo called with debug bundle");
+	t.is(enrichWithDependencyInfoStub.getCall(1).args[0].name, "mylib/MyControlA.js",
+		"enrichWithDependencyInfo called with non-debug control A");
+	t.is(enrichWithDependencyInfoStub.getCall(2).args[0].name, "mylib/MyControlB.js",
+		"enrichWithDependencyInfo called with non-debug control B");
+
+	t.is(resourceCollector._resources.get("MyBundle-dbg.js").isDebug, true, "MyBundle-dbg is a debug file");
+	t.is(resourceCollector._resources.get("MyBundle-dbg.js").dynRequired, true,
+		"MyBundle-dbg is flagged as dynRequired");
+
+	t.is(resourceCollector._resources.get("mylib/MyControlA.js").isDebug, false, "MyControlA is no debug file");
+	t.is(resourceCollector._resources.get("mylib/MyControlA.js").dynRequired, true,
+		"MyControlA is flagged as dynRequired");
+
+	t.is(resourceCollector._resources.get("mylib/MyControlA-dbg.js").isDebug, true, "MyControlA-dbg is a debug file");
+	t.is(resourceCollector._resources.get("mylib/MyControlA-dbg.js").dynRequired, true,
+		"MyControlA-dbg is flagged as dynRequired");
+
+	t.is(resourceCollector._resources.get("mylib/MyControlB.js").isDebug, false, "MyControlB is no debug file");
+	t.is(resourceCollector._resources.get("mylib/MyControlB.js").dynRequired, true,
+		"MyControlB is flagged as dynRequired");
+
+	t.is(resourceCollector._resources.get("mylib/MyControlB-dbg.js").isDebug, true, "MyControlB-dbg is a debug file");
+	t.is(resourceCollector._resources.get("mylib/MyControlB-dbg.js").dynRequired, true,
+		"MyControlB-dbg is flagged as dynRequired");
 });
 
 test.serial("enrichWithDependencyInfo: add infos to resourceinfo", async (t) => {
