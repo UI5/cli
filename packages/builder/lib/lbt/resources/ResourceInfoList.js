@@ -1,7 +1,6 @@
 const ResourceInfo = require("./ResourceInfo");
 
 const DEBUG_RESOURCES_PATTERN = /-dbg((?:\.view|\.fragment|\.controller|\.designtime|\.support)?\.js|\.css)$/;
-const RESOURCES_PATTERN = /((?:\.view|\.fragment|\.controller|\.designtime|\.support)?\.js|\.css)$/;
 
 /**
  * A list of ResourceInfo objects, suitable for (but not dependent on) JSON serialization.
@@ -111,15 +110,6 @@ class ResourceInfoList {
 	static getNonDebugName(path) {
 		if ( DEBUG_RESOURCES_PATTERN.test(path) ) {
 			return path.replace( DEBUG_RESOURCES_PATTERN, "$1");
-		}
-		return null;
-	}
-
-	static getDebugName(path) {
-		if ( RESOURCES_PATTERN.test(path) ) {
-			if (!path.replace(RESOURCES_PATTERN, "").endsWith("-dbg")) {
-				return path.replace( RESOURCES_PATTERN, "-dbg$1");
-			}
 		}
 		return null;
 	}
