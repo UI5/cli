@@ -147,7 +147,7 @@ test.serial("determineResourceDetails: Debug files and non-debug files", async (
 	const enrichWithDependencyInfoStub = sinon.stub(resourceCollector, "enrichWithDependencyInfo")
 		.callsFake((resourceInfo) => {
 			// Simulate enriching resource info with dependency info to test whether it gets shared
-			// with the dbg resource alter on
+			// with the dbg resource later on
 			resourceInfo.dynRequired = true;
 		});
 	await Promise.all([

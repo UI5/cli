@@ -190,7 +190,7 @@ class ResourceCollector {
 
 			if ( /(?:\.js|\.view\.xml|\.control\.xml|\.fragment\.xml)$/.test(name) ) {
 				if ( (!info.isDebug || debugBundleFilter.matches(name)) ) {
-					// Only analyze non-debug files which are not special debug bundles (like sap-ui-core-dbg.js)
+					// Only analyze non-debug files and special debug bundles (like sap-ui-core-dbg.js)
 					promises.push(
 						this.enrichWithDependencyInfo(info)
 					);
@@ -242,8 +242,12 @@ class ResourceCollector {
 			const nonDebugName = ResourceInfoList.getNonDebugName(dbgInfo.name);
 			const nonDbgInfo = this._resources.get(nonDebugName);
 			const newDbgInfo = new ResourceInfo(dbgInfo.name);
+
+			// First copy info of analysis from non-dbg file (included, required, condRequired, ...)
 			newDbgInfo.copyFrom(null, nonDbgInfo);
+			// Then copy over info from dbg file to properly set name, isDebug, etc.
 			newDbgInfo.copyFrom(null, dbgInfo);
+
 			this._resources.set(dbgInfo.name, newDbgInfo);
 		}
 	}
@@ -270,7 +274,7 @@ class ResourceCollector {
 		return filtersByComponent;
 	}
 
-	groupResourcesByComponents(options) {
+	groupResourcesByComponents() {
 		const orphanFilters = this.createOrphanFilters();
 		for (const resource of this._resources.values()) {
 			let contained = false;
