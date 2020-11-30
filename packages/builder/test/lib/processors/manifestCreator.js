@@ -694,8 +694,9 @@ test.serial("manifest creation with embedded component ('embeddedBy' empty strin
 
 	t.is(errorLogStub.callCount, 1);
 	t.deepEqual(errorLogStub.getCall(0).args, [
-		"  component's property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
-		"it won't be listed as 'embedded'"
+		"  component '%s': property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
+		"it won't be listed as 'embedded'",
+		"/resources/sap/lib1/component1"
 	]);
 });
 
@@ -780,8 +781,9 @@ test.serial("manifest creation with embedded component ('embeddedBy' object)", a
 
 	t.is(errorLogStub.callCount, 1);
 	t.deepEqual(errorLogStub.getCall(0).args, [
-		"  component's property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
+		"  component '%s': property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
 		"it won't be listed as 'embedded'",
+		"/resources/sap/lib1/component1",
 		"object"
 	]);
 });

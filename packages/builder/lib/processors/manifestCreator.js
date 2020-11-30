@@ -185,15 +185,15 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			}
 			if (typeof embeddedBy !== "string") {
 				log.error(
-					"  component's property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
-					"it won't be listed as 'embedded'", typeof embeddedBy
+					"  component '%s': property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
+					"it won't be listed as 'embedded'", componentPath, typeof embeddedBy
 				);
 				return false;
 			}
 			if ( !embeddedBy.length ) {
 				log.error(
-					"  component's property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
-					"it won't be listed as 'embedded'"
+					"  component '%s': property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
+					"it won't be listed as 'embedded'", componentPath
 				);
 				return false;
 			}
