@@ -133,7 +133,7 @@
 		{
 			"name": "manifest.json",
 			"module": "library/h/manifest.json",
-			"size": 739
+			"size": 613
 		},
 		{
 			"name": "not.js",

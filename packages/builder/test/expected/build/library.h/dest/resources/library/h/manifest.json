@@ -3,12 +3,7 @@
   "sap.app": {
     "id": "library.h",
     "type": "library",
-    "embeds": [
-      "components",
-      "components/subcomponent1",
-      "components/subcomponent2",
-      "components/subcomponent3"
-    ],
+    "embeds": [],
     "applicationVersion": {
       "version": "1.0.0"
     },

@@ -1,5 +1,6 @@
 "use strict";
 
+const posixPath = require("path").posix;
 const {SemVer: Version} = require("semver");
 const log = require("@ui5/logger").getLogger("builder:processors:manifestCreator");
 const EvoResource = require("@ui5/fs").Resource;
@@ -155,24 +156,80 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		// return undefined
 	}
 
-	function createSapApp() {
-		function findComponentPaths() {
+	async function createSapApp() {
+		async function isEmbeddedByLibrary(componentPath, libraryPathPrefix) {
+			const manifestPath = componentPath + "/manifest.json";
+
+			const manifestResource = libBundle.findResource(manifestPath.substring(libraryPathPrefix.length));
+			if ( manifestResource == null ) {
+				log.verbose("  component has no accompanying manifest.json, don't list it as 'embedded'");
+				return false;
+			}
+			const manifestString = await manifestResource.getString();
+			let manifest;
+			try {
+				manifest = JSON.parse(manifestString);
+			} catch (err) {
+				log.error(
+					"  component '%s': failed to read the component's manifest.json, " +
+					"it won't be listed as 'embedded'.\nError details: %s", componentPath, err.stack);
+				return false;
+			}
+			let embeddedBy;
+			if (manifest && manifest["sap.app"]) {
+				embeddedBy = manifest["sap.app"]["embeddedBy"];
+			}
+			if (typeof embeddedBy === "undefined") {
+				log.verbose("  component doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'");
+				return false;
+			}
+			if (typeof embeddedBy !== "string") {
+				log.error(
+					"  component's property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
+					"it won't be listed as 'embedded'", typeof embeddedBy
+				);
+				return false;
+			}
+			if ( !embeddedBy.length ) {
+				log.error(
+					"  component's property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
+					"it won't be listed as 'embedded'"
+				);
+				return false;
+			}
+			let resolvedEmbeddedBy = posixPath.resolve(componentPath, embeddedBy);
+			if ( resolvedEmbeddedBy && !resolvedEmbeddedBy.endsWith("/") ) {
+				resolvedEmbeddedBy = resolvedEmbeddedBy + "/";
+			}
+			if ( libraryPathPrefix === resolvedEmbeddedBy ) {
+				log.verbose("  component's 'sap.app/embeddedBy' property points to library, list it as 'embedded'");
+				return true;
+			} else {
+				log.verbose(
+					"  component's 'sap.app/embeddedBy' points to '%s', don't list it as 'embedded'", resolvedEmbeddedBy
+				);
+				return false;
+			}
+		}
+
+		async function findEmbeddedComponents() {
 			const result = [];
 			const prefix = libraryResource.getPath().slice(0, - ".library".length);
 			const components = libBundle.getResources(/^\/(?:[^/]+\/)*Component\.js$/);
-			components.forEach((comp) => {
-				const relativePath = comp.getPath().slice(prefix.length);
-				if ( relativePath.lastIndexOf("/") >= 0 ) {
-					result.push( relativePath.slice(0, relativePath.lastIndexOf("/")) );
+			for (const comp of components) {
+				const componentPath = comp.getPath().slice(0, - "Component.js".length - 1);
+				log.verbose("checking component at %s", componentPath);
+				if ( componentPath.startsWith(prefix) && await isEmbeddedByLibrary(componentPath, prefix) ) {
+					result.push( componentPath.substring(prefix.length) );
 				} else if ( prefix === "/resources/sap/apf/" ) {
 					log.verbose("Package %s contains both '*.library' and 'Component.js'. " +
-						"This is a known issue but can't be solved due to backward compatibility.", comp.getPath());
-				} else if ( prefix !== "/resources/sap/ui/core/" ) {
+						"This is a known issue but can't be solved due to backward compatibility.", componentPath);
+				} else if ( prefix === (componentPath + "/") && prefix !== "/resources/sap/ui/core/" ) {
 					log.error("Package %s contains both '*.library' and 'Component.js'. " +
 						"This is not supported by manifests, therefore the component won't be " +
-						"listed in the library's manifest.", comp.getPath());
+						"listed in the library's manifest.", componentPath);
 				}
-			});
+			}
 			return result.sort();
 		}
 
@@ -270,7 +327,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			_version: sectionVersion(APP_DESCRIPTOR_V3_SECTION_SAP_APP),
 			id: library.getName(),
 			type: "library",
-			embeds: findComponentPaths(),
+			embeds: await findEmbeddedComponents(),
 			i18n: getChildTextContent(manifestAppData, "i18n"),
 			applicationVersion: {
 				version: isValid(library.getVersion()) ? library.getVersion() : getProjectVersion()
@@ -544,7 +601,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	return {
 		"_version": descriptorVersion.toString(),
-		"sap.app": createSapApp(),
+		"sap.app": await createSapApp(),
 		"sap.ui": createSapUi(),
 		"sap.ui5": createSapUI5(),
 		"sap.fiori": createSapFiori(),
