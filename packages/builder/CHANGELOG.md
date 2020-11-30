@@ -2,10 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.4.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.4.5...HEAD).
+
+<a name="v2.4.5"></a>
+## [v2.4.5] - 2020-11-30
+### Bug Fixes
+- **generateResourcesJson:** Make resources.json generation deterministic [`41d3335`](https://github.com/SAP/ui5-builder/commit/41d3335bbddaba2e65e3293b37f89010ab0cd6fc)
+- **manifestCreator:** Only list components with corresponding 'embeddedBy' ([#555](https://github.com/SAP/ui5-builder/issues/555)) [`89872d7`](https://github.com/SAP/ui5-builder/commit/89872d79623accad1ed148034c1f2fe46e44eeee)
+
 
 <a name="v2.4.4"></a>
-## [v2.4.4] - 2020-11-24
+## [v2.4.4] - 2020-11-25
 ### Bug Fixes
 - **JSModuleAnalyzer:** Properly handle jQuery.sap.registerPreloadedModules calls [`9433f6a`](https://github.com/SAP/ui5-builder/commit/9433f6a989d6fea46f637ac8ff58c739977f456c)
 
@@ -466,6 +473,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.4.5]: https://github.com/SAP/ui5-builder/compare/v2.4.4...v2.4.5
 [v2.4.4]: https://github.com/SAP/ui5-builder/compare/v2.4.3...v2.4.4
 [v2.4.3]: https://github.com/SAP/ui5-builder/compare/v2.4.2...v2.4.3
 [v2.4.2]: https://github.com/SAP/ui5-builder/compare/v2.4.1...v2.4.2
