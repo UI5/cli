@@ -2,6 +2,7 @@ const test = require("ava");
 const path = require("path");
 const fs = require("graceful-fs");
 const sinon = require("sinon");
+const escapeStringRegexp = require("escape-string-regexp");
 const staticTranslator = require("../../..").translators.static;
 const projectPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
 
@@ -18,13 +19,10 @@ test("Error: Throws if projectDependencies.yaml was not found", async (t) => {
 	const fsStub = sinon.stub(fs, "readFile");
 	fsStub.callsArgWith(1, fsError);
 	const error = await t.throwsAsync(staticTranslator.generateDependencyTree(projectPath));
-	const escapedYamlPath = path.join(projectPath, "projectDependencies.yaml")
-		.replace("\\", "\\\\")
-		.replace("/", "\\/")
-		.replace(".", "\\.");
+	const yamlPath = path.join(projectPath, "projectDependencies.yaml");
 	t.regex(error.message,
 		new RegExp(`\\[static translator\\] Failed to load dependency tree from path ` +
-			`${escapedYamlPath} - Error: ENOENT:`));
+			`${escapeStringRegexp(yamlPath)} - Error: ENOENT:`));
 	fsStub.restore();
 });
 
