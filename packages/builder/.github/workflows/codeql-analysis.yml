@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ master ]
 
+  # Execute at least once per week to get new findings without active development taking place
+  schedule:
+    - cron: '42 18 * * 6'
+
 jobs:
   codeql-analyze:
     name: "CodeQL Analyze"
