@@ -47,12 +47,11 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
 		// No folders at all
 		errorReason = "Could not find 'webapp' or 'src' / 'test' folders.\n";
 	}
-	if (errorReason) {
-		let message = `Could not detect project type: ${errorReason}`;
-		message += "Applications should only have a 'webapp' folder.\n";
-		message += "Libraries should only have a 'src' and (optional) 'test' folder.";
-		throw new Error(message);
-	}
+
+	let message = `Could not detect project type: ${errorReason}`;
+	message += "Applications should only have a 'webapp' folder.\n";
+	message += "Libraries should only have a 'src' and (optional) 'test' folder.";
+	throw new Error(message);
 }
 
 /**

@@ -1,11 +1,18 @@
 const test = require("ava");
 const path = require("path");
 const ui5Cli = require("../../../");
+const sinon = require("sinon");
+const mock = require("mock-require");
 const init = ui5Cli.init;
 
 function getFixturePath(fixtureName) {
 	return path.join(__dirname, "..", "..", "fixtures", "init", fixtureName);
 }
+
+test.afterEach.always(() => {
+	sinon.restore();
+	mock.stopAll();
+});
 
 test("Init for application", async (t) => {
 	const projectConfig = await init({
@@ -90,4 +97,15 @@ test("Init for invalid project (Missing 'name' in package.json)", async (t) => {
 	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-missing-package-name")
 	}), {message: "Initialization not possible: Missing 'name' in package.json"});
+});
+
+test.serial("Init with default arguments (throws fs.readFile error)", async (t) => {
+	sinon.stub(require("fs"), "readFile")
+		.withArgs("package.json", "utf8").callsArgWith(2, new Error("Some error from fs.readFile"));
+
+	const {init} = mock.reRequire("../../../lib/init/init");
+
+	await t.throwsAsync(init(), {
+		message: "Some error from fs.readFile"
+	});
 });

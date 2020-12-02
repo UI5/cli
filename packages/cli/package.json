@@ -57,6 +57,7 @@
 	],
 	"ava": {
 		"files": [
+			"test/bin/**/*.js",
 			"test/lib/**/*.js"
 		]
 	},
