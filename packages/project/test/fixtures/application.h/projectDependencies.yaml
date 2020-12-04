@@ -1,13 +1,8 @@
 ---
-id: testsuite
+id: static-application.a
 version: "0.0.1"
-description: "Sample App"
-main: "index.html"
-path: "./"
+path: "../application.a"
 dependencies:
-- id: sap.f
-  version: "1.56.1"
-  path: "../sap.f"
-- id: sap.m
-  version: "1.61.0"
-  path: "../sap.m"
+- id: static-library.e
+  version: "0.0.1"
+  path: "../library.e"

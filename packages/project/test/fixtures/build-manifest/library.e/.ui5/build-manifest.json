@@ -1,0 +1,43 @@
+{
+	"project": {
+		"specVersion": "2.3",
+		"type": "library",
+		"metadata": {
+			"name": "library.e"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "resources",
+					"test": "test-resources"
+				}
+			}
+		}
+	},
+	"buildManifest": {
+		"manifestVersion": "0.1",
+		"timestamp": "2022-05-06T09:54:29.051Z",
+		"versions": {
+			"builderVersion": "3.0.0",
+			"projectVersion": "3.0.0",
+			"fsVersion": "3.0.0"
+		},
+		"buildConfig": {
+			"selfContained": false,
+			"jsdoc": false,
+			"includedTasks": [],
+			"excludedTasks": []
+		},
+		"id": "library.e",
+		"version": "1.0.0",
+		"namespace": "library/e",
+		"tags": {
+			"/resources/library/e/some.js": {
+				"ui5:HasDebugVariant": true
+			},
+			"/resources/library/e/some-dbg.js": {
+				"ui5:IsDebugVariant": true
+			}
+		}
+	}
+}

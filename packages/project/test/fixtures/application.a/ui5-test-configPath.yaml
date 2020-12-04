@@ -1,0 +1,7 @@
+---
+specVersion: "2.3"
+type: application
+metadata:
+  name: application.a
+customConfiguration:
+  configPathTest: true

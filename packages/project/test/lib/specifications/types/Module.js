@@ -1,0 +1,142 @@
+const test = require("ava");
+const path = require("path");
+const sinon = require("sinon");
+const mock = require("mock-require");
+const Specification = require("../../../../lib/specifications/Specification");
+
+function clone(obj) {
+	return JSON.parse(JSON.stringify(obj));
+}
+
+const moduleA = path.join(__dirname, "..", "..", "..", "fixtures", "module.a");
+const basicProjectInput = {
+	id: "library.d.id",
+	version: "1.0.0",
+	modulePath: moduleA,
+	configuration: {
+		specVersion: "2.3",
+		kind: "project",
+		type: "module",
+		metadata: {
+			name: "module.a",
+			copyright: "Some fancy copyright" // allowed but ignored
+		},
+		resources: {
+			configuration: {
+				paths: {
+					"/": "dist",
+					"/dev/": "dev"
+				}
+			}
+		}
+	}
+};
+
+test.afterEach.always((t) => {
+	sinon.restore();
+	mock.stopAll();
+});
+
+test("Correct class", async (t) => {
+	const Module = mock.reRequire("../../../../lib/specifications/types/Module");
+	const project = await Specification.create(basicProjectInput);
+	t.true(project instanceof Module, `Is an instance of the Module class`);
+});
+
+test("Access project resources via reader", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	const reader = await project.getReader();
+	const resource1 = await reader.byPath("/dev/devTools.js");
+	t.truthy(resource1, "Found the requested resource");
+	t.is(resource1.getPath(), "/dev/devTools.js", "Resource has correct path");
+
+	const resource2 = await reader.byPath("/index.js");
+	t.truthy(resource2, "Found the requested resource");
+	t.is(resource2.getPath(), "/index.js", "Resource has correct path");
+});
+
+test("Modify project resources via workspace and access via reader", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	const workspace = await project.getWorkspace();
+	const workspaceResource = await workspace.byPath("/dev/devTools.js");
+	t.truthy(workspaceResource, "Found resource in workspace");
+
+	const newContent = (await workspaceResource.getString()).replace(/dev/g, "duck duck");
+	workspaceResource.setString(newContent);
+	await workspace.write(workspaceResource);
+
+	const reader = await project.getReader();
+	const readerResource = await reader.byPath("/dev/devTools.js");
+	t.truthy(readerResource, "Found the requested resource byPath");
+	t.is(readerResource.getPath(), "/dev/devTools.js", "Resource (byPath) has correct path");
+	t.is(await readerResource.getString(), newContent,
+		"Found resource (byPath) has expected (changed) content");
+
+	const gGlobResult = await reader.byGlob("**/devTools.js");
+	t.is(gGlobResult.length, 1, "Found the requested resource byGlob");
+	t.is(gGlobResult[0].getPath(), "/dev/devTools.js", "Resource (byGlob) has correct path");
+	t.is(await gGlobResult[0].getString(), newContent,
+		"Found resource (byGlob) has expected (changed) content");
+});
+
+test("Modify project resources via workspace and access via reader for other path mapping", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	const workspace = await project.getWorkspace();
+	const workspaceResource = await workspace.byPath("/index.js");
+	t.truthy(workspaceResource, "Found resource in workspace");
+
+	const newContent = (await workspaceResource.getString()).replace("world", "duck");
+	workspaceResource.setString(newContent);
+	await workspace.write(workspaceResource);
+
+	const reader = await project.getReader();
+	const readerResource = await reader.byPath("/index.js");
+	t.truthy(readerResource, "Found the requested resource byPath");
+	t.is(readerResource.getPath(), "/index.js", "Resource (byPath) has correct path");
+	t.is(await readerResource.getString(), newContent,
+		"Found resource (byPath) has expected (changed) content");
+
+	const gGlobResult = await reader.byGlob("**/index.js");
+	t.is(gGlobResult.length, 1, "Found the requested resource byGlob");
+	t.is(gGlobResult[0].getPath(), "/index.js", "Resource (byGlob) has correct path");
+	t.is(await gGlobResult[0].getString(), newContent,
+		"Found resource (byGlob) has expected (changed) content");
+});
+
+test("_configureAndValidatePaths: Default path mapping", async (t) => {
+	const projectInput = clone(basicProjectInput);
+	projectInput.configuration.resources = {};
+	const project = await Specification.create(projectInput);
+
+	t.is(project._paths.length, 1, "One default path mapping");
+	t.is(project._paths[0].virBasePath, "/", "Default path mapping for /");
+	t.is(project._paths[0].fsBasePath, projectInput.modulePath, "Correct fs path");
+});
+
+test("_configureAndValidatePaths: Configured path mapping", async (t) => {
+	const projectInput = clone(basicProjectInput);
+	const project = await Specification.create(projectInput);
+
+	t.is(project._paths.length, 2, "Two path mappings");
+	t.is(project._paths[0].virBasePath, "/", "Correct virtual base path for /");
+	t.is(project._paths[0].fsBasePath, projectInput.modulePath + "/dist", "Correct fs path");
+	t.is(project._paths[1].virBasePath, "/dev/", "Correct virtual base path for /dev/");
+	t.is(project._paths[1].fsBasePath, projectInput.modulePath + "/dev", "Correct fs path");
+});
+
+test("_configureAndValidatePaths: Default directory does not exist", async (t) => {
+	const projectInput = clone(basicProjectInput);
+	projectInput.configuration.resources = {};
+	projectInput.modulePath = "does/not/exist";
+	const err = await t.throwsAsync(Specification.create(projectInput));
+
+	t.is(err.message, "Unable to find root directory of module project module.a");
+});
+
+test("_configureAndValidatePaths: Directory does not exist", async (t) => {
+	const projectInput = clone(basicProjectInput);
+	projectInput.configuration.resources.configuration.paths.doesNotExist = "does/not/exist";
+	const err = await t.throwsAsync(Specification.create(projectInput));
+
+	t.is(err.message, "Unable to find directory 'does/not/exist' in module project module.a");
+});
