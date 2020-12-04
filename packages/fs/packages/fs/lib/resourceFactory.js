@@ -239,6 +239,29 @@ const resourceFactory = {
 		}
 	},
 
+	/**
+	 * Creates an adapter and wraps it in a ReaderCollection
+	 *
+	 * @public
+	 * @param {object} parameters Parameters
+	 * @param {string} parameters.virBasePath Virtual base path
+	 * @param {string} [parameters.fsBasePath] File system base path
+	 * @param {string} [parameters.name]  Name for the reader collection
+	 * @returns {module:@ui5/fs.ReaderCollection} Reader collection wrapping an adapter
+	 */
+	createReader({fsBasePath, virBasePath, name}) {
+		return new ReaderCollection({
+			name,
+			readers: [resourceFactory.createAdapter({fsBasePath, virBasePath})]
+		});
+	},
+
+	createReaderCollection({name, readers}) {
+		return new ReaderCollection({
+			name,
+			readers
+		});
+	},
 
 	/**
 	 * Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
