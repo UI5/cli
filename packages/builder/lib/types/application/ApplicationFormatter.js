@@ -8,6 +8,16 @@ const AbstractUi5Formatter = require("../AbstractUi5Formatter");
 
 class ApplicationFormatter extends AbstractUi5Formatter {
 	/**
+	 * Constructor
+	 *
+	 * @param {object} parameters
+	 * @param {object} parameters.project Project
+	 */
+	constructor(parameters) {
+		super(parameters);
+		this._pManifests = {};
+	}
+	/**
 	 * Formats and validates the project
 	 *
 	 * @returns {Promise}
@@ -41,14 +51,47 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 	}
 
 	/**
+	 * Determine application namespace either based on a project`s
+	 * manifest.json or manifest.appdescr_variant (fallback if present)
+	 *
+	 * @returns {string} Namespace of the project
+	 * @throws {Error} if namespace can not be determined
+	 */
+	async getNamespace() {
+		try {
+			return await this.getNamespaceFromManifestJson();
+		} catch (manifestJsonError) {
+			if (manifestJsonError.code !== "ENOENT") {
+				throw manifestJsonError;
+			}
+			// No manifest.json present
+			// => attempt fallback to manifest.appdescr_variant (typical for App Variants)
+			try {
+				return await this.getNamespaceFromManifestAppDescVariant();
+			} catch (appDescVarError) {
+				if (appDescVarError.code === "ENOENT") {
+					// Fallback not possible: No manifest.appdescr_variant present
+					// => Throw error indicating missing manifest.json
+					// 	(do not mention manifest.appdescr_variant since it is only
+					// 	relevant for the rather "uncommon" App Variants)
+					throw new Error(
+						`Could not find required manifest.json for project ` +
+						`${this._project.metadata.name}: ${manifestJsonError.message}`);
+				}
+				throw appDescVarError;
+			}
+		}
+	}
+
+	/**
 	 * Determine application namespace by checking manifest.json.
 	 * Any maven placeholders are resolved from the projects pom.xml
 	 *
 	 * @returns {string} Namespace of the project
 	 * @throws {Error} if namespace can not be determined
 	 */
-	async getNamespace() {
-		const {content: manifest} = await this.getManifest();
+	async getNamespaceFromManifestJson() {
+		const {content: manifest} = await this.getJson("manifest.json");
 		let appId;
 		// check for a proper sap.app/id in manifest.json to determine namespace
 		if (manifest["sap.app"] && manifest["sap.app"].id) {
@@ -67,22 +110,47 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 			}
 		}
 		const namespace = appId.replace(/\./g, "/");
-		log.verbose(`Namespace of project ${this._project.metadata.name} is ${namespace}`);
+		log.verbose(
+			`Namespace of project ${this._project.metadata.name} is ${namespace} (from manifest.appdescr_variant)`);
 		return namespace;
 	}
 
 	/**
-	 * Reads the projects manifest.json
+	 * Determine application namespace by checking manifest.appdescr_variant.
 	 *
-	 * @returns {Promise<object>} resolves with an object containing the <code>content</code> (as JSON) and
-	 * 							<code>fsPath</code> (as string) of the manifest.json file
+	 * @returns {string} Namespace of the project
+	 * @throws {Error} if namespace can not be determined
 	 */
-	async getManifest() {
-		if (this._pManifest) {
-			return this._pManifest;
+	async getNamespaceFromManifestAppDescVariant() {
+		const {content: manifest} = await this.getJson("manifest.appdescr_variant");
+		let appId;
+		// check for the id property in manifest.appdescr_variant to determine namespace
+		if (manifest && manifest.id) {
+			appId = manifest.id;
+		} else {
+			throw new Error(
+				`No "id" property found in manifest.appdescr_variant of project ${this._project.metadata.name}`);
 		}
-		const fsPath = path.join(this.getSourceBasePath(), "manifest.json");
-		return this._pManifest = readFile(fsPath)
+
+		const namespace = appId.replace(/\./g, "/");
+		log.verbose(
+			`Namespace of project ${this._project.metadata.name} is ${namespace} (from manifest.appdescr_variant)`);
+		return namespace;
+	}
+
+	/**
+	 * Reads and parses a JSON file with the provided name from the projects source directory
+	 *
+	 * @param {string} fileName Name of the JSON file to read. Typically "manifest.json" or "manifest.appdescr_variant"
+	 * @returns {Promise<object>} resolves with an object containing the <code>content</code> (as JSON) and
+	 * 							<code>fsPath</code> (as string) of the requested file
+	 */
+	async getJson(fileName) {
+		if (this._pManifests[fileName]) {
+			return this._pManifests[fileName];
+		}
+		const fsPath = path.join(this.getSourceBasePath(), fileName);
+		return this._pManifests[fileName] = readFile(fsPath)
 			.then((content) => {
 				return {
 					content: JSON.parse(content),
@@ -90,8 +158,12 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 				};
 			})
 			.catch((err) => {
+				if (err.code === "ENOENT") {
+					throw err;
+				}
 				throw new Error(
-					`Failed to read manifest.json for project ${this._project.metadata.name}: ${err.message}`);
+					`Failed to read ${fileName} for project ` +
+					`${this._project.metadata.name}: ${err.message}`);
 			});
 	}
 

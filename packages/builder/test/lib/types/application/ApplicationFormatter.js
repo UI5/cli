@@ -174,51 +174,142 @@ test("getSourceBasePath: posix", async (t) => {
 	t.is(sourceBasePath, "my/pony/webapp", "correct path");
 });
 
-test("format: No 'sap.app' configuration found", async (t) => {
+test("format", async (t) => {
 	const project = createMockProject();
 	const applicationFormatter = new ApplicationFormatter({project});
-	sinon.stub(applicationFormatter, "validate").resolves();
-	sinon.stub(applicationFormatter, "getManifest").resolves({content: {}, fsPath: {}});
+	const validateStub = sinon.stub(applicationFormatter, "validate").resolves();
+	const getNamespaceStub = sinon.stub(applicationFormatter, "getNamespace").resolves("my/namespace");
 
-	const error = await t.throwsAsync(applicationFormatter.format());
+	await applicationFormatter.format();
+	t.deepEqual(project.resources.pathMappings["/"], "webapp", "path mappings is set");
+	t.deepEqual(project.metadata.namespace, "my/namespace", "correct namespace set");
+	t.deepEqual(validateStub.callCount, 1, "validate called once");
+	t.deepEqual(getNamespaceStub.callCount, 1, "getNamespace called once");
+});
+
+test("getNamespaceFromManifestJson: No 'sap.app' configuration found", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	sinon.stub(applicationFormatter, "getJson").resolves({content: {}, fsPath: {}});
+
+	const error = await t.throwsAsync(applicationFormatter.getNamespaceFromManifestJson());
 	t.deepEqual(error.message, "No sap.app/id configuration found in manifest.json of project projectName",
 		"Rejected with correct error message");
 });
 
-test("format: No application id in 'sap.app' configuration found", async (t) => {
+test("getNamespaceFromManifestJson: No application id in 'sap.app' configuration found", async (t) => {
 	const project = createMockProject();
 	const applicationFormatter = new ApplicationFormatter({project});
-	sinon.stub(applicationFormatter, "validate").resolves();
-	sinon.stub(applicationFormatter, "getManifest").resolves({content: {"sap.app": {}}});
+	sinon.stub(applicationFormatter, "getJson").resolves({content: {"sap.app": {}}});
 
-	const error = await t.throwsAsync(applicationFormatter.format());
+	const error = await t.throwsAsync(applicationFormatter.getNamespaceFromManifestJson());
 	t.deepEqual(error.message, "No sap.app/id configuration found in manifest.json of project projectName");
-	t.deepEqual(project.resources.pathMappings["/"], "webapp", "path mappings is set");
 });
 
-test("format: set namespace to id", async (t) => {
+test("getNamespaceFromManifestJson: set namespace to id", async (t) => {
 	const project = createMockProject();
 	const applicationFormatter = new ApplicationFormatter({project});
-	sinon.stub(applicationFormatter, "validate").resolves();
-	sinon.stub(applicationFormatter, "getManifest").resolves({content: {"sap.app": {id: "my.id"}}});
+	sinon.stub(applicationFormatter, "getJson").resolves({content: {"sap.app": {id: "my.id"}}});
 
-	await applicationFormatter.format();
-	t.deepEqual(project.metadata.namespace, "my/id",
-		"namespace was successfully set since getManifest provides the correct object structure");
+	const namespace = await applicationFormatter.getNamespaceFromManifestJson();
+	t.deepEqual(namespace, "my/id", "Returned correct namespace");
 });
 
-test("getManifest: reads correctly", async (t) => {
+test("getNamespaceFromManifestAppDescVariant: No 'id' property found", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	sinon.stub(applicationFormatter, "getJson").resolves({content: {}, fsPath: {}});
+
+	const error = await t.throwsAsync(applicationFormatter.getNamespaceFromManifestAppDescVariant());
+	t.deepEqual(error.message, `No "id" property found in manifest.appdescr_variant of project projectName`,
+		"Rejected with correct error message");
+});
+
+test("getNamespaceFromManifestAppDescVariant: set namespace to id", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	sinon.stub(applicationFormatter, "getJson").resolves({content: {id: "my.id"}});
+
+	const namespace = await applicationFormatter.getNamespaceFromManifestAppDescVariant();
+	t.deepEqual(namespace, "my/id", "Returned correct namespace");
+});
+
+test("getNamespace: Correct fallback to manifest.appdescr_variant if manifest.json is missing", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	const getJsonStub = sinon.stub(applicationFormatter, "getJson")
+		.onFirstCall().rejects({code: "ENOENT"})
+		.onSecondCall().resolves({content: {id: "my.id"}});
+
+	const namespace = await applicationFormatter.getNamespace();
+	t.deepEqual(namespace, "my/id", "Returned correct namespace");
+	t.is(getJsonStub.callCount, 2, "getJson called exactly twice");
+	t.is(getJsonStub.getCall(0).args[0], "manifest.json", "getJson called for manifest.json first");
+	t.is(getJsonStub.getCall(1).args[0], "manifest.appdescr_variant",
+		"getJson called for manifest.appdescr_variant in fallback");
+});
+
+test("getNamespace: Correct error message if fallback to manifest.appdescr_variant failed", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	const getJsonStub = sinon.stub(applicationFormatter, "getJson")
+		.onFirstCall().rejects({code: "ENOENT"})
+		.onSecondCall().rejects(new Error("EPON: Pony Error"));
+
+	const error = await t.throwsAsync(applicationFormatter.getNamespace());
+	t.deepEqual(error.message, "EPON: Pony Error",
+		"Rejected with correct error message");
+	t.is(getJsonStub.callCount, 2, "getJson called exactly twice");
+	t.is(getJsonStub.getCall(0).args[0], "manifest.json", "getJson called for manifest.json first");
+	t.is(getJsonStub.getCall(1).args[0], "manifest.appdescr_variant",
+		"getJson called for manifest.appdescr_variant in fallback");
+});
+
+test("getNamespace: Correct error message if fallback to manifest.appdescr_variant is not possible", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	const getJsonStub = sinon.stub(applicationFormatter, "getJson")
+		.onFirstCall().rejects({message: "No such stable or directory: manifest.json", code: "ENOENT"})
+		.onSecondCall().rejects({code: "ENOENT"}); // both files are missing
+
+	const error = await t.throwsAsync(applicationFormatter.getNamespace());
+	t.deepEqual(error.message,
+		"Could not find required manifest.json for project projectName: " +
+		"No such stable or directory: manifest.json",
+		"Rejected with correct error message");
+
+	t.is(getJsonStub.callCount, 2, "getJson called exactly twice");
+	t.is(getJsonStub.getCall(0).args[0], "manifest.json", "getJson called for manifest.json first");
+	t.is(getJsonStub.getCall(1).args[0], "manifest.appdescr_variant",
+		"getJson called for manifest.appdescr_variant in fallback");
+});
+
+test("getNamespace: No fallback if manifest.json is present but failed to parse", async (t) => {
+	const project = createMockProject();
+	const applicationFormatter = new ApplicationFormatter({project});
+	const getJsonStub = sinon.stub(applicationFormatter, "getJson")
+		.onFirstCall().rejects(new Error("EPON: Pony Error"));
+
+	const error = await t.throwsAsync(applicationFormatter.getNamespace());
+	t.deepEqual(error.message, "EPON: Pony Error",
+		"Rejected with correct error message");
+
+	t.is(getJsonStub.callCount, 1, "getJson called exactly once");
+	t.is(getJsonStub.getCall(0).args[0], "manifest.json", "getJson called for manifest.json only");
+});
+
+test("getJson: reads correctly", async (t) => {
 	const myProject = clone(applicationBTree);
 
 	const libraryFormatter = new ApplicationFormatter({project: myProject});
 
-	const {content, fsPath} = await libraryFormatter.getManifest();
+	const {content, fsPath} = await libraryFormatter.getJson("manifest.json");
 	t.deepEqual(content._version, "1.1.0", "manifest.json content has been read");
 	const expectedPath = path.join(applicationBPath, "webapp", "manifest.json");
 	t.deepEqual(fsPath, expectedPath, "Correct manifest.json path returned");
 });
 
-test.serial("getManifest: invalid JSON", async (t) => {
+test.serial("getJson: invalid JSON", async (t) => {
 	const myProject = clone(applicationBTree);
 
 	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, undefined, "pony");
@@ -226,7 +317,7 @@ test.serial("getManifest: invalid JSON", async (t) => {
 	const ApplicationFormatter = mock.reRequire("../../../../lib/types/application/ApplicationFormatter");
 	const libraryFormatter = new ApplicationFormatter({project: myProject});
 
-	const error = await t.throwsAsync(libraryFormatter.getManifest());
+	const error = await t.throwsAsync(libraryFormatter.getJson("manifest.json"));
 	t.deepEqual(error.message,
 		"Failed to read manifest.json for project application.b: " +
 		"Unexpected token p in JSON at position 0",
@@ -236,7 +327,7 @@ test.serial("getManifest: invalid JSON", async (t) => {
 	t.deepEqual(readFileStub.getCall(0).args[0], expectedPath, "fs.read got called with the correct argument");
 });
 
-test.serial("getManifest: fs read error", async (t) => {
+test.serial("getJson: fs read error", async (t) => {
 	const myProject = clone(applicationBTree);
 
 	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, new Error("EPON: Pony Error"));
@@ -244,7 +335,7 @@ test.serial("getManifest: fs read error", async (t) => {
 	const ApplicationFormatter = mock.reRequire("../../../../lib/types/application/ApplicationFormatter");
 	const libraryFormatter = new ApplicationFormatter({project: myProject});
 
-	const error = await t.throwsAsync(libraryFormatter.getManifest());
+	const error = await t.throwsAsync(libraryFormatter.getJson("manifest.json"));
 	t.deepEqual(error.message,
 		"Failed to read manifest.json for project application.b: " +
 		"EPON: Pony Error",
@@ -254,7 +345,7 @@ test.serial("getManifest: fs read error", async (t) => {
 	t.deepEqual(readFileStub.getCall(0).args[0], expectedPath, "fs.read got called with the correct argument");
 });
 
-test.serial("getManifest: result is cached", async (t) => {
+test.serial("getJson: result is cached", async (t) => {
 	const myProject = clone(applicationBTree);
 
 	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, undefined,
@@ -263,16 +354,79 @@ test.serial("getManifest: result is cached", async (t) => {
 	const ApplicationFormatter = mock.reRequire("../../../../lib/types/application/ApplicationFormatter");
 	const libraryFormatter = new ApplicationFormatter({project: myProject});
 	const expectedPath = path.join(applicationBPath, "webapp", "manifest.json");
+	const expectedPath2 = path.join(applicationBPath, "webapp", "otherfile.json");
 
-	const {content, fsPath} = await libraryFormatter.getManifest();
+	const {content, fsPath} = await libraryFormatter.getJson("manifest.json");
 	t.deepEqual(content, {pony: "no unicorn"}, "Correct result on first call");
 	t.deepEqual(fsPath, expectedPath, "Correct manifest.json path returned on first call");
 
-	const {content: content2, fsPath: fsPath2} = await libraryFormatter.getManifest();
+	const {content: content2, fsPath: fsPath2} = await libraryFormatter.getJson("otherfile.json");
 	t.deepEqual(content2, {pony: "no unicorn"}, "Correct result on second call");
-	t.deepEqual(fsPath2, expectedPath, "Correct manifest.json path returned on second call");
+	t.deepEqual(fsPath2, expectedPath2, "Correct otherfile.json path returned on second call");
 
-	t.deepEqual(readFileStub.callCount, 1, "fs.read got called exactly once (and then cached)");
+	t.deepEqual(readFileStub.callCount, 2, "fs.read got called exactly twice (and then cached)");
+});
+
+test.serial("getJson: Alternative file names", async (t) => {
+	const myProject = clone(applicationBTree);
+
+	const readFileStub = sinon.stub(fs, "readFile").callsArgWithAsync(1, undefined,
+		`{"pony": "no unicorn"}`);
+
+	const ApplicationFormatter = mock.reRequire("../../../../lib/types/application/ApplicationFormatter");
+	const libraryFormatter = new ApplicationFormatter({project: myProject});
+	const expectedPath = path.join(applicationBPath, "webapp", "manifest.appdescr_variant");
+	const expectedPath2 = path.join(applicationBPath, "webapp", "pony.json");
+
+	const {content, fsPath} = await libraryFormatter.getJson("manifest.appdescr_variant");
+	t.deepEqual(content, {pony: "no unicorn"}, "Correct result on first call");
+	t.deepEqual(fsPath, expectedPath, "Correct manifest.appdescr_variant path returned on first call");
+
+	const {content: content2, fsPath: fsPath2} = await libraryFormatter.getJson("pony.json");
+	t.deepEqual(content2, {pony: "no unicorn"}, "Correct result on second call");
+	t.deepEqual(fsPath2, expectedPath2, "Correct pony.json path returned on second call");
+
+	t.deepEqual(readFileStub.callCount, 2, "fs.read got called exactly twice");
+});
+
+test.serial("getJson: Caches successes and failures", async (t) => {
+	const myProject = clone(applicationBTree);
+
+	const readFileStub = sinon.stub(fs, "readFile")
+		.onFirstCall().callsArgWithAsync(1, new Error("EPON: Pony Error"))
+		.onSecondCall().callsArgWithAsync(1, undefined, `{"pony": "no unicorn"}`);
+
+	const ApplicationFormatter = mock.reRequire("../../../../lib/types/application/ApplicationFormatter");
+	const libraryFormatter = new ApplicationFormatter({project: myProject});
+	const expectedPath = path.join(applicationBPath, "webapp", "manifest.json");
+	const expectedPath2 = path.join(applicationBPath, "webapp", "manifest.appdescr_variant");
+
+	const error = await t.throwsAsync(libraryFormatter.getJson("manifest.json"));
+	t.deepEqual(error.message,
+		"Failed to read manifest.json for project application.b: " +
+		"EPON: Pony Error",
+		"Rejected with correct error message");
+
+	const {content, fsPath} = await libraryFormatter.getJson("manifest.appdescr_variant");
+	t.deepEqual(content, {pony: "no unicorn"}, "Correct result on second call");
+	t.deepEqual(fsPath, expectedPath2, "Correct manifest.appdescr_variant path returned on second call");
+
+	const error2 = await t.throwsAsync(libraryFormatter.getJson("manifest.json"));
+	t.deepEqual(error2.message,
+		"Failed to read manifest.json for project application.b: " +
+		"EPON: Pony Error",
+		"From cache: Rejected with correct error message");
+
+	const {content: content2, fsPath: fsPath2} = await libraryFormatter.getJson("manifest.appdescr_variant");
+	t.deepEqual(content2, {pony: "no unicorn"}, "From cache: Correct result on first call");
+	t.deepEqual(fsPath2, expectedPath2, "From cache: Correct manifest.appdescr_variant path returned on first call");
+
+	t.deepEqual(readFileStub.callCount, 2,
+		"fs.read got called exactly twice (and then cached)");
+	t.deepEqual(readFileStub.getCall(0).args[0], expectedPath,
+		"manifest.json: fs.read got called with the correct argument");
+	t.deepEqual(readFileStub.getCall(1).args[0], expectedPath2,
+		"manifest.appdescr_variant: fs.read got called with the correct argument");
 });
 
 const applicationHPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.h");
@@ -304,7 +458,7 @@ test("namespace: detect namespace from pom.xml via ${project.artifactId}", async
 
 	await applicationFormatter.format();
 	t.deepEqual(myProject.metadata.namespace, "application/h",
-		"namespace was successfully set since getManifest provides the correct object structure");
+		"namespace was successfully set since getJson provides the correct object structure");
 });
 
 test("namespace: detect namespace from pom.xml via ${componentName} from properties", async (t) => {
@@ -314,7 +468,7 @@ test("namespace: detect namespace from pom.xml via ${componentName} from propert
 
 	await applicationFormatter.format();
 	t.deepEqual(myProject.metadata.namespace, "application/h",
-		"namespace was successfully set since getManifest provides the correct object structure");
+		"namespace was successfully set since getJson provides the correct object structure");
 });
 
 test("namespace: detect namespace from pom.xml via ${appId} from properties", async (t) => {
