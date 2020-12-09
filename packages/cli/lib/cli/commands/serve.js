@@ -131,6 +131,20 @@ serve.handler = async function(argv) {
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
+	if (argv.acceptRemoteConnections) {
+		const chalk = require("chalk");
+		console.log("");
+		console.log(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
+		console.log(chalk.dim.underline("Please Note:"));
+		console.log(chalk.bold.dim(
+			"* This server is intended for development purposes only. Do not use it in production."));
+		console.log(chalk.dim(
+			"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
+		console.log(chalk.dim(
+			"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
+			"to a target system for third parties on your network"));
+		console.log("");
+	}
 	console.log("Server started");
 	console.log("URL: " + browserUrl);
 
