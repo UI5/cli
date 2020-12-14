@@ -7,7 +7,7 @@
 	"selector": {
 		"id": "control1"
 	},
-	"layer": "VENDOR",
+	"layer": "CUSTOMER",
 	"texts": {},
 	"namespace": "apps/application.j.Component/changes",
 	"creation": "2025-10-30T13:52:40.4754350Z",

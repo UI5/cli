@@ -289,7 +289,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 		"support": {
 			"generator": "Change.createInitialFileContent",
 			"service": "",
-			"user": ""
+			"user": "SAP"
 		}
 	}];
 	const ctrlVariantChange = [{
@@ -313,7 +313,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 		"support": {
 			"generator": "Change.createInitialFileContent",
 			"service": "",
-			"user": ""
+			"user": "SAP"
 		}
 	}];
 	const ctrlVariantManagementChange = [{
@@ -337,7 +337,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 		"support": {
 			"generator": "Change.createInitialFileContent",
 			"service": "",
-			"user": ""
+			"user": "SAP"
 		}
 	}];
 
@@ -465,7 +465,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = false", asy
 		"support": {
 			"generator": "Change.createInitialFileContent",
 			"service": "",
-			"user": ""
+			"user": "SAP"
 		}
 	}];
 

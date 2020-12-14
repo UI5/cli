@@ -37,6 +37,9 @@ module.exports = function({resources, options: {pathPrefix, hasFlexBundleVersion
 		const variantManagementChanges = [];
 
 		changesContent.forEach(function(content) {
+			if (content.layer === "VENDOR") {
+				content.support.user = "SAP";
+			}
 			switch (content.fileType) {
 			case "change":
 				if (content.appDescriptorChange && (content.appDescriptorChange === "true" ||
