@@ -1,3 +1,7 @@
+function toPosix(inputPath) {
+	return inputPath.replace(/\\/g, "/");
+}
+
 /**
  * Wraps readers to access them through a [Node.js fs]{@link https://nodejs.org/api/fs.html} styled interface.
  *
@@ -12,7 +16,6 @@
  * [<code>mkdir</code>]{@link https://nodejs.org/api/fs.html#fs_fs_mkdir_path_options_callback}
  */
 module.exports = (reader) => {
-	const slash = require("slash");
 	return {
 		readFile(fsPath, options, callback) {
 			if (typeof options === "function") {
@@ -22,7 +25,7 @@ module.exports = (reader) => {
 			if (typeof options === "string") {
 				options = {encoding: options};
 			}
-			const posixPath = slash(fsPath);
+			const posixPath = toPosix(fsPath);
 			reader.byPath(posixPath, {
 				nodir: false
 			}).then(function(resource) {
@@ -47,7 +50,7 @@ module.exports = (reader) => {
 			}).catch(callback);
 		},
 		stat(fsPath, callback) {
-			const posixPath = slash(fsPath);
+			const posixPath = toPosix(fsPath);
 			reader.byPath(posixPath, {
 				nodir: false
 			}).then(function(resource) {
@@ -61,7 +64,7 @@ module.exports = (reader) => {
 			}).catch(callback);
 		},
 		readdir(fsPath, callback) {
-			let posixPath = slash(fsPath);
+			let posixPath = toPosix(fsPath);
 			if (!posixPath.match(/\/$/)) {
 				// Add trailing slash if not present
 				posixPath += "/";
