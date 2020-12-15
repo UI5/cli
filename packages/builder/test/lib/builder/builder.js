@@ -23,6 +23,7 @@ const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
 const libraryIPath = path.join(__dirname, "..", "..", "fixtures", "library.i");
 const libraryJPath = path.join(__dirname, "..", "..", "fixtures", "library.j");
+const libraryØPath = path.join(__dirname, "..", "..", "fixtures", "library.ø");
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
 const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
 
@@ -700,6 +701,26 @@ test.serial("Build theme.j even without an library with resources.json", (t) => 
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build library.ø", (t) => {
+	const destPath = "./test/tmp/build/library.ø/dest";
+	const expectedPath = path.join("test", "expected", "build", "library.ø", "dest");
+
+	return builder.build({
+		tree: libraryØTree,
+		destPath
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		// Check for all file contents
 		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
@@ -1397,6 +1418,60 @@ const libraryJTree = {
 		},
 		"pathMappings": {
 			"/resources/": "main/src"
+		}
+	}
+};
+
+const libraryØTree = {
+	"id": "library.ø",
+	"version": "1.0.0",
+	"path": libraryØPath,
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src"
+				}
+			}
+		}
+	],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "2.0",
+	"type": "library",
+	"metadata": {
+		"name": "library.ø",
+		"namespace": "library/ø",
+		"copyright": "Some fancy copyright"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "máin/ßrc",
+				"test": "máin/吉"
+			},
+			"propertiesFileSourceEncoding": "UTF-8"
+		},
+		"pathMappings": {
+			"/resources/": "máin/ßrc",
+			"/test-resources/": "máin/吉"
 		}
 	}
 };

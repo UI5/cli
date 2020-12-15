@@ -1,0 +1,10 @@
+---
+specVersion: "0.1"
+type: library
+metadata:
+  name: library.ø
+resources:
+  configuration:
+    paths:
+      src: máin/ßrc
+      test: main/吉
