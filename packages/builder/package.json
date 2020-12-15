@@ -122,7 +122,6 @@
 		"replacestream": "^4.0.3",
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.4",
-		"slash": "^3.0.0",
 		"terser": "^5.5.1",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"

@@ -4,7 +4,6 @@ const fs = require("graceful-fs");
 const {promisify} = require("util");
 const readFile = promisify(fs.readFile);
 const glob = require("globby");
-const slash = require("slash");
 const AbstractUi5Formatter = require("../AbstractUi5Formatter");
 
 const SAP_THEMES_NS_EXEMPTIONS = ["themelib_sap_fiori_3", "themelib_sap_bluecrystal", "themelib_sap_belize"];
@@ -67,7 +66,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		let p = path;
 		let projectPath = this._project.path;
 		if (posix) {
-			projectPath = slash(projectPath);
+			projectPath = projectPath.replace(/\\/g, "/");
 			p = path.posix;
 		}
 		return p.join(projectPath, this._project.resources.pathMappings["/resources/"]);
@@ -247,7 +246,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 
 	getNamespaceFromFsPath(fsPath) {
 		// Transform path to POSIX and remove any trailing slashes
-		const posixFsPath = slash(fsPath).replace(/\/$/, "");
+		const posixFsPath = fsPath.replace(/\\/g, "/").replace(/\/$/, "");
 
 		// Remove base path from fsPath
 		const posixBasePath = this.getSourceBasePath(true);
