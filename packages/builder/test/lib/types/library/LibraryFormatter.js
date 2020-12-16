@@ -166,6 +166,69 @@ test("validate: test invalid encoding", async (t) => {
 		`test. Must be either "ISO-8859-1" or "UTF-8".`, "Missing source directory caused error");
 });
 
+test("format and validate non-ASCII project correctly", async (t) => {
+	const libraryØPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.ø");
+	const myProject = {
+		id: "library.ø.id",
+		version: "1.0.0",
+		path: libraryØPath,
+		dependencies: [],
+		_level: 0,
+		_isRoot: true,
+		specVersion: "2.0",
+		type: "library",
+		metadata: {
+			name: "library.ø",
+			namespace: "library/ø",
+			copyright: "Some fancy copyright"
+		},
+		resources: {
+			configuration: {
+				paths: {
+					src: "máin/ßrc",
+					test: "máin/吉"
+				}
+			},
+			pathMappings: {
+				"/resources/": "máin/ßrc",
+				"/test-resources/": "máin/吉"
+			}
+		}
+	};
+	myProject.metadata.copyright = undefined;
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+
+	await libraryFormatter.format();
+	t.deepEqual(myProject, {
+		id: "library.ø.id",
+		version: "1.0.0",
+		path: libraryØPath,
+		dependencies: [],
+		_level: 0,
+		_isRoot: true,
+		specVersion: "2.0",
+		type: "library",
+		metadata: {
+			name: "library.ø",
+			namespace: "library/ø",
+			copyright: "Some fancy copyright"
+		},
+		resources: {
+			configuration: {
+				paths: {
+					src: "máin/ßrc",
+					test: "máin/吉"
+				},
+				propertiesFileSourceEncoding: "UTF-8"
+			},
+			pathMappings: {
+				"/resources/": "máin/ßrc",
+				"/test-resources/": "máin/吉"
+			}
+		}
+	}, "Project got formatted correctly");
+});
+
 test("format: copyright already configured", async (t) => {
 	const myProject = clone(libraryETree);
 	const libraryFormatter = new LibraryFormatter({project: myProject});
