@@ -150,6 +150,61 @@ test("validate: test invalid encoding", async (t) => {
 		`test. Must be either "ISO-8859-1" or "UTF-8".`, "Missing source directory caused error");
 });
 
+test("format and validate non-ASCII project correctly", async (t) => {
+	const applicationØPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.ø");
+	const myProject = {
+		id: "application.ø.id",
+		version: "1.0.0",
+		path: applicationØPath,
+		dependencies: [],
+		_level: 0,
+		_isRoot: true,
+		specVersion: "2.0",
+		type: "application",
+		metadata: {
+			name: "application.ø"
+		},
+		resources: {
+			configuration: {
+				paths: {
+					webapp: "wêbäpp"
+				}
+			},
+			pathMappings: {
+				"/": "wêbäpp"
+			}
+		}
+	};
+	const applicationFormatter = new ApplicationFormatter({project: myProject});
+
+	await applicationFormatter.format();
+	t.deepEqual(myProject, {
+		id: "application.ø.id",
+		version: "1.0.0",
+		path: applicationØPath,
+		dependencies: [],
+		_level: 0,
+		_isRoot: true,
+		specVersion: "2.0",
+		type: "application",
+		metadata: {
+			name: "application.ø",
+			namespace: "application/ø"
+		},
+		resources: {
+			configuration: {
+				paths: {
+					webapp: "wêbäpp"
+				},
+				propertiesFileSourceEncoding: "UTF-8",
+			},
+			pathMappings: {
+				"/": "wêbäpp"
+			}
+		}
+	}, "Project got formatted correctly");
+});
+
 function createMockProject() {
 	return {
 		resources: {
