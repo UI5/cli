@@ -60,6 +60,7 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 	selectedTasks.executeJsdocSdkTransformation = false;
 	selectedTasks.generateCachebusterInfo = false;
 	selectedTasks.generateApiIndex = false;
+	selectedTasks.generateThemeDesignerResources = false;
 
 	// Disable generateResourcesJson due to performance.
 	// When executed it analyzes each module's AST and therefore

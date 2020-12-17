@@ -101,6 +101,10 @@ module.exports = {
 		 */
 		generateStandaloneAppBundle: "./lib/tasks/bundlers/generateStandaloneAppBundle",
 		/**
+		 * @type {import('./lib/tasks/generateThemeDesignerResources')}
+		 */
+		generateThemeDesignerResources: "./lib/tasks/generateThemeDesignerResources",
+		/**
 		 * @type {import('./lib/tasks/bundlers/generateBundle')}
 		 */
 		generateBundle: "./lib/tasks/bundlers/generateBundle",

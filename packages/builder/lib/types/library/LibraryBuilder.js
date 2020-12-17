@@ -164,6 +164,18 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
+		this.addTask("generateThemeDesignerResources", async () => {
+			return getTask("generateThemeDesignerResources").task({
+				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name,
+					version: project.version,
+					namespace: project.metadata.namespace
+				}
+			});
+		});
+
 		this.addTask("createDebugFiles", async () => {
 			return getTask("createDebugFiles").task({
 				workspace: resourceCollections.workspace,

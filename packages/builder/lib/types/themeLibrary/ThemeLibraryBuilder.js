@@ -36,6 +36,17 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 			});
 		});
 
+		this.addTask("generateThemeDesignerResources", async () => {
+			return getTask("generateThemeDesignerResources").task({
+				workspace: resourceCollections.workspace,
+				dependencies: resourceCollections.dependencies,
+				options: {
+					projectName: project.metadata.name,
+					version: project.version
+				}
+			});
+		});
+
 		this.addTask("generateResourcesJson", () => {
 			return getTask("generateResourcesJson").task({
 				workspace: resourceCollections.workspace,

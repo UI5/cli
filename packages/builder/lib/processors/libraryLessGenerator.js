@@ -21,8 +21,8 @@ class LibraryLessGenerator {
 				fileContent
 			});
 	}
-	getPathToRoot(filePath) {
-		return posixPath.relative(posixPath.dirname(filePath), "/");
+	static getPathToRoot(baseDir) {
+		return posixPath.relative(baseDir, "/") + "/";
 	}
 	async resolveLessImports({filePath, fileContent}) {
 		const imports = this.findLessImports(fileContent);
@@ -60,8 +60,9 @@ class LibraryLessGenerator {
 			if (baseLessThemeName === "base") {
 				baseLessThemeName = "baseTheme";
 			}
-			const baseLessPath = this.getPathToRoot(resolvedFilePath) +
-				"/Base/baseLib/" + baseLessThemeName + "/base.less";
+
+			const baseLessPath = LibraryLessGenerator.getPathToRoot(baseDir) +
+				"Base/baseLib/" + baseLessThemeName + "/base.less";
 			return "@import \"" + baseLessPath + "\"; /* ORIGINAL IMPORT PATH: \"" + originalFilePath + "\" */\n";
 		}
 
@@ -99,7 +100,7 @@ class LibraryLessGenerator {
 			if (err.code === "ENOENT") {
 				throw new Error(
 					`libraryLessGenerator: Unable to resolve import '${originalFilePath}' from '${baseDir}'\n` +
-					err
+					err.message
 				);
 			} else {
 				throw err;
@@ -110,7 +111,7 @@ class LibraryLessGenerator {
 				filePath: resolvedFilePath,
 				fileContent: importedFileContent
 			}) +
-			`/* END "${originalFilePath}" */\n`;
+			`\n/* END "${originalFilePath}" */\n`;
 	}
 	findLessImports(fileContent) {
 		const imports = [];

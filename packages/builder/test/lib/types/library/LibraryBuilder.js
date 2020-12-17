@@ -23,6 +23,7 @@ test("Instantiation", (t) => {
 		"generateManifestBundle",
 		"generateLibraryPreload",
 		"buildThemes",
+		"generateThemeDesignerResources",
 		"createDebugFiles",
 		"uglify",
 		"generateResourcesJson"

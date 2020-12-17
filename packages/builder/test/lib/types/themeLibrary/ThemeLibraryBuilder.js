@@ -48,6 +48,7 @@ test("tasks", async (t) => {
 		"replaceCopyright",
 		"replaceVersion",
 		"buildThemes",
+		"generateThemeDesignerResources",
 		"generateResourcesJson",
 	], "Expected tasks have been added");
 

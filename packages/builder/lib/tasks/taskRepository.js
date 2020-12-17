@@ -15,6 +15,7 @@ const taskInfos = {
 	generateFlexChangesBundle: {path: "./bundlers/generateFlexChangesBundle"},
 	generateComponentPreload: {path: "./bundlers/generateComponentPreload"},
 	generateResourcesJson: {path: "./generateResourcesJson"},
+	generateThemeDesignerResources: {path: "./generateThemeDesignerResources"},
 	generateStandaloneAppBundle: {path: "./bundlers/generateStandaloneAppBundle"},
 	generateBundle: {path: "./bundlers/generateBundle"},
 	generateLibraryPreload: {path: "./bundlers/generateLibraryPreload"},

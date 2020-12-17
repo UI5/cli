@@ -24,6 +24,7 @@ test("index.js exports all expected modules", (t) => {
 	t.truthy(index.tasks.generateLibraryPreload, "Module exported");
 	t.truthy(index.tasks.generateManifestBundle, "Module exported");
 	t.truthy(index.tasks.generateStandaloneAppBundle, "Module exported");
+	t.truthy(index.tasks.generateThemeDesignerResources, "Module exported");
 	t.truthy(index.tasks.generateBundle, "Module exported");
 	t.truthy(index.tasks.generateCachebusterInfo, "Module exported");
 	t.truthy(index.tasks.buildThemes, "Module exported");
