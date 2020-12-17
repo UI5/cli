@@ -1,9 +1,0 @@
----
-specVersion: "0.1"
-type: application
-metadata:
-  name: application.c
-resources:
-  configuration:
-    paths:
-      webapp: src
