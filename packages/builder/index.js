@@ -46,6 +46,10 @@ module.exports = {
 		 */
 		debugFileCreator: "./lib/processors/debugFileCreator",
 		/**
+		 * @type {import('./lib/processors/libraryLessGenerator')}
+		 */
+		libraryLessGenerator: "./lib/processors/libraryLessGenerator",
+		/**
 		 * @type {import('./lib/processors/resourceCopier')}
 		 */
 		resourceCopier: "./lib/processors/resourceCopier",
