@@ -17,6 +17,7 @@ const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "applicati
 const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
 const applicationIPath = path.join(__dirname, "..", "..", "fixtures", "application.i");
 const applicationJPath = path.join(__dirname, "..", "..", "fixtures", "application.j");
+const applicationØPath = path.join(__dirname, "..", "..", "fixtures", "application.ø");
 const collectionPath = path.join(__dirname, "..", "..", "fixtures", "collection");
 const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
 const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
@@ -526,6 +527,26 @@ test.serial("Build application.j with resources.json and version info", (t) => {
 		tree: applicationJTree,
 		destPath,
 		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build application.ø", (t) => {
+	const destPath = "./test/tmp/build/application.ø/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.ø", "dest");
+
+	return builder.build({
+		tree: applicationØTree,
+		destPath,
+		excludedTasks: ["generateVersionInfo"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -1190,6 +1211,56 @@ const applicationJTree = {
 	},
 	"builder": {
 		"bundles": []
+	}
+};
+const applicationØTree = {
+	"id": "application.ø",
+	"version": "1.0.0",
+	"path": applicationØPath,
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"_level": 1,
+			"specVersion": "0.1",
+			"type": "library",
+			"metadata": {
+				"name": "sap.ui.core",
+				"namespace": "sap/ui/core",
+				"copyright": "Some fancy copyright"
+			},
+			"resources": {
+				"configuration": {
+					"paths": {
+						"src": "main/src"
+					}
+				},
+				"pathMappings": {
+					"/resources/": "main/src"
+				}
+			}
+		}
+	],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "2.0",
+	"type": "application",
+	"metadata": {
+		"name": "application.ø",
+		"namespace": "application/ø"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				webapp: "wêbäpp"
+			},
+			"propertiesFileSourceEncoding": "UTF-8",
+		},
+		"pathMappings": {
+			"/": "wêbäpp"
+		}
 	}
 };
 
