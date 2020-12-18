@@ -71,9 +71,16 @@ function applyChanges(string, changes) {
 				value: change.value
 			};
 		} else if (change.type === "insert") {
+			let startIndex = positionToIndex(change.parentPosition.end);
+			if (change.parentPosition.end.column > 1) {
+				// When end.column is not 1 we expect it to be the end of the line
+				// so the index needs to be increased by 1 to insert into the next line
+				startIndex++;
+			}
+			const endIndex = startIndex;
 			return {
-				startIndex: positionToIndex(change.parentPosition.end) + 1,
-				endIndex: positionToIndex(change.parentPosition.end) + 1,
+				startIndex,
+				endIndex,
 				value: change.value
 			};
 		}
