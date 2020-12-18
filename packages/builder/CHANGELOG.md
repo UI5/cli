@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.5.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.5.1...HEAD).
+
+<a name="v2.5.1"></a>
+## [v2.5.1] - 2020-12-18
+### Bug Fixes
+- **Windows:** Correctly handle project paths containing non-ASCII characters [`b229bf3`](https://github.com/SAP/ui5-builder/commit/b229bf315097591d2e870b74fb2b92b26b178877)
+
 
 <a name="v2.5.0"></a>
-## [v2.5.0] - 2020-12-14
+## [v2.5.0] - 2020-12-15
 ### Bug Fixes
 - **manifestCreator:** Add component path to error logs [`049b9ee`](https://github.com/SAP/ui5-builder/commit/049b9ee22f8bf6c1bb41f9ba32be65a8fce38f23)
 
@@ -482,6 +488,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.5.1]: https://github.com/SAP/ui5-builder/compare/v2.5.0...v2.5.1
 [v2.5.0]: https://github.com/SAP/ui5-builder/compare/v2.4.5...v2.5.0
 [v2.4.5]: https://github.com/SAP/ui5-builder/compare/v2.4.4...v2.4.5
 [v2.4.4]: https://github.com/SAP/ui5-builder/compare/v2.4.3...v2.4.4
