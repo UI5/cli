@@ -44,21 +44,21 @@ test("MemAdapter: readFile", (t) => {
 	})).then(() => assertReadFile(t, readFile, "", fsPath));
 });
 
-test("FsAdapter: readFile", (t) => {
+test("FsAdapter: readFile with non-ASCII characters in path", (t) => {
 	const fsAdapter = new FsAdapter({
 		virBasePath: "/",
-		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterface")
+		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterfáce")
 	});
 	const fs = fsInterface(fsAdapter);
 	const readFile = promisify(fs.readFile);
 
-	return assertReadFile(t, readFile, "", path.join("/", "foo.txt"), "content");
+	return assertReadFile(t, readFile, "", path.join("/", "bâr.txt"), "content");
 });
 
 test("fs: readFile", (t) => {
 	const readFile = promisify(fs.readFile);
 	return assertReadFile(t, readFile,
-		path.join(__dirname, "..", "fixtures", "fsInterface"), path.join("/", "foo.txt"), "content");
+		path.join(__dirname, "..", "fixtures", "fsInterfáce"), path.join("/", "foo.txt"), "content");
 });
 
 
@@ -92,7 +92,7 @@ test("MemAdapter: stat", (t) => {
 test("FsAdapter: stat", (t) => {
 	const fsAdapter = new FsAdapter({
 		virBasePath: "/",
-		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterface")
+		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterfáce")
 	});
 	const fs = fsInterface(fsAdapter);
 	const stat = promisify(fs.stat);
@@ -102,7 +102,7 @@ test("FsAdapter: stat", (t) => {
 
 test("fs: stat", (t) => {
 	const stat = promisify(fs.stat);
-	return assertStat(t, stat, path.join(__dirname, "..", "fixtures", "fsInterface"), path.join("/", "foo.txt"));
+	return assertStat(t, stat, path.join(__dirname, "..", "fixtures", "fsInterfáce"), path.join("/", "foo.txt"));
 });
 
 test("MemAdapter: mkdir", async (t) => {
