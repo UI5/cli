@@ -1,4 +1,4 @@
-const path = require("path");
+const posixPath = require("path").posix;
 const yazl = require("yazl");
 const resourceFactory = require("@ui5/fs").resourceFactory;
 const log = require("@ui5/logger").getLogger("builder:processors:bundlers:manifestBundler");
@@ -23,7 +23,7 @@ class I18nResourceList {
 	 * @param {module:@ui5/fs.Resource} resource i18n resource
 	 */
 	add(directory, resource) {
-		const normalizedDirectory = path.normalize(directory);
+		const normalizedDirectory = posixPath.normalize(directory);
 		if (!this.propertyFiles.has(normalizedDirectory)) {
 			this.propertyFiles.set(normalizedDirectory, [resource]);
 		} else {
@@ -38,7 +38,7 @@ class I18nResourceList {
 	 * @returns {Array} Array of resources files
 	 */
 	get(directory) {
-		return this.propertyFiles.get(path.normalize(directory)) || [];
+		return this.propertyFiles.get(posixPath.normalize(directory)) || [];
 	}
 }
 
@@ -57,25 +57,63 @@ class I18nResourceList {
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with manifest bundle resources
  */
 module.exports = ({resources, options: {namespace, bundleName, propertiesExtension, descriptor}}) => {
-	function getDescriptorI18nInfo(manifest) {
+	function bundleNameToUrl(bundleName, appId) {
+		if (!bundleName.startsWith(appId)) {
+			return null;
+		}
+		const relativeBundleName = bundleName.substring(appId.length + 1);
+		return relativeBundleName.replace(/\./g, "/") + propertiesExtension;
+	}
+
+	function addDescriptorI18nInfos(descriptorI18nInfos, manifest) {
+		function addI18nInfo(i18nPath) {
+			if (i18nPath.startsWith("ui5:")) {
+				log.warn(`Using the ui5:// protocol for i18n bundles is currently not supported ('${i18nPath}' in ${manifest.path})`);
+				return;
+			}
+			descriptorI18nInfos.set(
+				posixPath.join(posixPath.dirname(manifest.path), posixPath.dirname(i18nPath)),
+				posixPath.basename(i18nPath, propertiesExtension)
+			);
+		}
+
 		const content = JSON.parse(manifest.content);
-		let i18nFullPath = content["sap.app"]["i18n"];
+		const appI18n = content["sap.app"]["i18n"];
+		let bundleUrl;
 		// i18n section in sap.app can be either a string or an object with bundleUrl
-		if (typeof i18nFullPath === "object") {
-			i18nFullPath = i18nFullPath.bundleUrl;
+		if (typeof appI18n === "object") {
+			if (appI18n.bundleUrl) {
+				bundleUrl = appI18n.bundleUrl;
+			} else if (appI18n.bundleName) {
+				bundleUrl = bundleNameToUrl(appI18n.bundleName, content["sap.app"]["id"]);
+			}
+		} else if (typeof appI18n === "string") {
+			bundleUrl = appI18n;
+		} else {
+			bundleUrl = "i18n/i18n.properties";
 		}
-		if (!i18nFullPath) {
-			i18nFullPath = "i18n/i18n.properties";
+		if (bundleUrl) {
+			addI18nInfo(bundleUrl);
 		}
-		return {
-			path: path.join(path.dirname(manifest.path), path.dirname(i18nFullPath)),
-			rootName: path.basename(i18nFullPath, propertiesExtension)
-		};
+
+		if (typeof appI18n === "object" && Array.isArray(appI18n.enhanceWith)) {
+			appI18n.enhanceWith.forEach((enhanceWithEntry) => {
+				let bundleUrl;
+				if (enhanceWithEntry.bundleUrl) {
+					bundleUrl = enhanceWithEntry.bundleUrl;
+				} else if (enhanceWithEntry.bundleName) {
+					bundleUrl = bundleNameToUrl(enhanceWithEntry.bundleName, content["sap.app"]["id"]);
+				}
+				if (bundleUrl) {
+					addI18nInfo(bundleUrl);
+				}
+			});
+		}
 	}
 
 	return Promise.all(resources.map((resource) =>
 		resource.getBuffer().then((content) => {
-			const basename = path.basename(resource.getPath());
+			const basename = posixPath.basename(resource.getPath());
 			return {
 				name: basename,
 				isManifest: basename === descriptor,
@@ -90,19 +128,23 @@ module.exports = ({resources, options: {namespace, bundleName, propertiesExtensi
 
 		resources.forEach((resource) => {
 			if (resource.isManifest) {
-				const descriptorI18nInfo = getDescriptorI18nInfo(resource);
-				descriptorI18nInfos.set(descriptorI18nInfo.path, descriptorI18nInfo.rootName);
+				addDescriptorI18nInfos(descriptorI18nInfos, resource);
 				archiveContent.set(resource.path, resource.content);
 			} else {
-				const directory = path.dirname(resource.path);
+				const directory = posixPath.dirname(resource.path);
 				i18nResourceList.add(directory, resource);
 			}
 		});
 
 		descriptorI18nInfos.forEach((rootName, directory) => {
-			i18nResourceList.get(directory)
-				.filter((resource) => resource.name.startsWith(rootName))
-				.forEach((resource) => archiveContent.set(resource.path, resource.content));
+			const i18nResources = i18nResourceList.get(directory)
+				.filter((resource) => resource.name.startsWith(rootName));
+
+			if (i18nResources.length) {
+				i18nResources.forEach((resource) => archiveContent.set(resource.path, resource.content));
+			} else {
+				log.warn(`Could not find any resources for i18n bundle '${directory}'`);
+			}
 		});
 
 		return archiveContent;
