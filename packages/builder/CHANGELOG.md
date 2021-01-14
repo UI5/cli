@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.5.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.6.0...HEAD).
+
+<a name="v2.6.0"></a>
+## [v2.6.0] - 2021-01-14
+### Features
+- Add 'generateThemeDesignerResources' task [`03241c0`](https://github.com/SAP/ui5-builder/commit/03241c0e2599cb0928cbbf34ddc678634b2d5a93)
+- Add 'libraryLessGenerator' processor ([#560](https://github.com/SAP/ui5-builder/issues/560)) [`a7e1e5c`](https://github.com/SAP/ui5-builder/commit/a7e1e5c0c4b63d9bab3f6645deff8e0f4187d305)
+- **manifestBundler:** Add support for sap.app/i18n/enhanceWith ([#564](https://github.com/SAP/ui5-builder/issues/564)) [`1b7a277`](https://github.com/SAP/ui5-builder/commit/1b7a277aeeba9a43b647a46ae4487878ca2d6219)
+- **manifestCreator:** enrich manifest with supportedLocales in i18n (for libraries) ([#547](https://github.com/SAP/ui5-builder/issues/547)) [`8102034`](https://github.com/SAP/ui5-builder/commit/810203477647c52948eb357ce9679373d32dd9b1)
+
 
 <a name="v2.5.1"></a>
 ## [v2.5.1] - 2020-12-18
@@ -488,6 +497,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.6.0]: https://github.com/SAP/ui5-builder/compare/v2.5.1...v2.6.0
 [v2.5.1]: https://github.com/SAP/ui5-builder/compare/v2.5.0...v2.5.1
 [v2.5.0]: https://github.com/SAP/ui5-builder/compare/v2.4.5...v2.5.0
 [v2.4.5]: https://github.com/SAP/ui5-builder/compare/v2.4.4...v2.4.5
