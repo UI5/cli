@@ -1,5 +1,5 @@
 {
-  "_version": "1.9.0",
+  "_version": "1.21.0",
   "sap.app": {
     "id": "library.k",
     "type": "library",
@@ -22,7 +22,14 @@
       "libs": {}
     },
     "library": {
-      "i18n": "messagebundle.properties",
+      "i18n": {
+        "bundleUrl": "messagebundle.properties",
+        "supportedLocales": [
+          "",
+          "de",
+          "en"
+        ]
+      },
       "content": {
         "controls": [
           "library.k.AnyControl"

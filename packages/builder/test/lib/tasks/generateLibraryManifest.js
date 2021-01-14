@@ -79,7 +79,7 @@ test("integration: Library without i18n bundle file", async (t) => {
 	}));
 
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",
@@ -137,7 +137,7 @@ test("integration: Library with i18n bundle file (messagebundle.properties)", as
 	}));
 
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",
@@ -160,7 +160,10 @@ test("integration: Library with i18n bundle file (messagebundle.properties)", as
 				minUI5Version: "1.0",
 			},
 			library: {
-				i18n: "messagebundle.properties",
+				i18n: {
+					bundleUrl: "messagebundle.properties",
+					supportedLocales: [""]
+				}
 			}
 		},
 	});
@@ -198,9 +201,13 @@ test("integration: Library with i18n=true declared in .library", async (t) => {
 		`,
 		project: t.context.workspace._project
 	}));
+	t.context.resources.push(resourceFactory.createResource({
+		path: "/resources/test/lib/messagebundle.properties",
+		project: t.context.workspace._project
+	}));
 
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",
@@ -223,7 +230,10 @@ test("integration: Library with i18n=true declared in .library", async (t) => {
 				minUI5Version: "1.0",
 			},
 			library: {
-				i18n: "messagebundle.properties",
+				i18n: {
+					bundleUrl: "messagebundle.properties",
+					supportedLocales: [""]
+				}
 			}
 		},
 	});
@@ -263,7 +273,7 @@ test("integration: Library with i18n=false declared in .library", async (t) => {
 	}));
 
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",
@@ -325,8 +335,12 @@ test("integration: Library with i18n=foo.properties declared in .library", async
 		project: t.context.workspace._project
 	}));
 
+	t.context.resources.push(resourceFactory.createResource({
+		path: "/resources/test/lib/foo.properties",
+		project: t.context.workspace._project
+	}));
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",
@@ -349,7 +363,10 @@ test("integration: Library with i18n=foo.properties declared in .library", async
 				minUI5Version: "1.0",
 			},
 			library: {
-				i18n: "foo.properties"
+				i18n: {
+					bundleUrl: "foo.properties",
+					supportedLocales: [""]
+				}
 			}
 		},
 	});
@@ -389,7 +406,7 @@ test("integration: Library with css=true declared in .library", async (t) => {
 	}));
 
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",
@@ -452,7 +469,7 @@ test("integration: Library with css=false declared in .library", async (t) => {
 	}));
 
 	await assertCreatedManifest(t, {
-		"_version": "1.9.0",
+		"_version": "1.21.0",
 		"sap.app": {
 			applicationVersion: {
 				version: "2.0.0",

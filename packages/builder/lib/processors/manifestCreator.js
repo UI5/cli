@@ -21,6 +21,7 @@ const APP_DESCRIPTOR_V3_SECTION_SAP_APP = new Version("1.2.0");
 const APP_DESCRIPTOR_V3_OTHER_SECTIONS = new Version("1.1.0");
 const APP_DESCRIPTOR_V5 = new Version("1.4.0");
 const APP_DESCRIPTOR_V10 = new Version("1.9.0");
+const APP_DESCRIPTOR_V22 = new Version("1.21.0");
 
 // namespaces used in .library files
 const XMLNS_UILIB = "http://www.sap.com/sap.ui.library.xsd";
@@ -114,6 +115,7 @@ class Library {
 			parser.parseString(content, (err, xml) => {
 				if ( err ) {
 					reject(err);
+					return;
 				}
 				resolve(new Library(xml.library));
 			});
@@ -123,13 +125,30 @@ class Library {
 
 
 class LibraryBundle {
+	/**
+	 *
+	 * @param {string} prefix
+	 * @param {module:@ui5/fs.Resource[]} resources
+	 */
 	constructor(prefix, resources) {
 		this.prefix = prefix;
 		this.resources = resources.filter((res) => res.getPath().startsWith(prefix));
 	}
+
+	/**
+	 *
+	 * @param {string} name
+	 * @returns {module:@ui5/fs.Resource}
+	 */
 	findResource(name) {
 		return this.resources.find((res) => res.getPath() === this.prefix + name);
 	}
+
+	/**
+	 *
+	 * @param {RegExp} pattern
+	 * @returns {module:@ui5/fs.Resource[]}
+	 */
 	getResources(pattern) {
 		return this.resources.filter((res) => pattern == null || pattern.test(res.getPath()));
 	}
@@ -144,6 +163,13 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	// collect information from library.js file
 	const libraryJSInfo = await analyzeLibraryJS(libBundle.findResource("library.js"));
+	const includeSupportedLocalesInformation = descriptorVersion.compare(APP_DESCRIPTOR_V22) >= 0;
+	/**
+	 * cache for supported locales
+	 *
+	 * @see createI18nSection
+	 */
+	const i18nToSupportedLocales = new Map();
 
 	const manifestAppData = library.getAppData("manifest", XMLNS_MANIFEST);
 	const sapFioriAppData = findChild(manifestAppData, "sap.fiori");
@@ -322,13 +348,18 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 			return osComponents.length > 0 ? osComponents : undefined;
 		}
-
+		const i18nText = getChildTextContent(manifestAppData, "i18n");
+		let i18n;
+		if (typeof i18nText === "string") {
+			i18n = createI18nSection(i18nText, i18nToSupportedLocales);
+			log.verbose(`sap.app/i18n taken from .library appData: '%s'`, i18nText);
+		}
 		const sapApp = {
 			_version: sectionVersion(APP_DESCRIPTOR_V3_SECTION_SAP_APP),
 			id: library.getName(),
 			type: "library",
 			embeds: await findEmbeddedComponents(),
-			i18n: getChildTextContent(manifestAppData, "i18n"),
+			i18n,
 			applicationVersion: {
 				version: isValid(library.getVersion()) ? library.getVersion() : getProjectVersion()
 			},
@@ -456,25 +487,24 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			// - from .library/appData/manifest/sap.ui5/library/i18n
 			// - from library resources (if "messagebundle.properties" exists)
 			function i18n() {
-				const i18nElement = findChild(libraryAppData, "i18n");
-				if ( i18nElement ) {
-					const i18n = i18nElement._;
+				let i18n = getChildTextContent(libraryAppData, "i18n");
+				if ( typeof i18n === "string") {
 					if ( i18n === "false" ) {
 						return false;
 					} else if ( i18n === "true" ) {
-						return "messagebundle.properties";
-					} else {
-						return i18n;
+						i18n = "messagebundle.properties";
 					}
 					// log.verbose("  sap.ui5/library/i18n property taken from .library appData: '%s'", library.i18n);
 				} else {
 					if ( libBundle.findResource("messagebundle.properties") != null ) {
 						// log.verbose("  sap.ui5/library/i18n property determined from resources: '%s'", library.i18n);
-						return "messagebundle.properties";
+						i18n = "messagebundle.properties";
 					} else {
+						// i18n not defined and no messagebundle.properties
 						return false;
 					}
 				}
+				return createI18nSection(i18n, i18nToSupportedLocales);
 			}
 
 			// css:
@@ -523,6 +553,64 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		};
 
 		return sapUI5;
+	}
+
+	/**
+	 * Creates an i18n section:
+	 * - either using bundleUrl and supportedLocales
+	 * - or the i18n String
+	 *
+	 * @param {string} i18n bundle url, e.g. "messagebundle.properties"
+	 * @param {Map<string, Set<string>>} i18nToSupportedLocales cache to determine the supportedLocales only once
+	 * @returns {{bundleUrl: string, supportedLocales: string[]}|null|string} json structure with bundleUrl and
+	 *   supportedLocales or the i18n String if not a ".properties" file.
+	 *   <code>null</code> if given i18n String is <code>null</code>
+	 */
+	function createI18nSection(i18n, i18nToSupportedLocales) {
+		if (i18n === undefined) {
+			return undefined;
+		}
+		if (!i18n.endsWith(".properties")) {
+			return i18n;
+		}
+
+		// if the supported locales information should not be included use i18n text
+		if (!includeSupportedLocalesInformation) {
+			return i18n;
+		}
+
+		let supportedLocales = i18nToSupportedLocales.get(i18n);
+
+		if (!supportedLocales) {
+			supportedLocales = new Set();
+
+			if (libBundle.findResource(i18n) != null) {
+				supportedLocales.add("");
+			}
+			const i18nPathPrefix = i18n.substring(0, i18n.length - ".properties".length) + "_";
+			// e.g. i18n/i18n_
+
+			libBundle.getResources().forEach((resource) => {
+				const resPath = resource.getPath();
+				// e.g. sap/ui/mine/i18n/i18n_en.properties
+				const indexOfI18nPathPrefix = resPath.lastIndexOf(i18nPathPrefix);
+				if (resPath.endsWith(".properties") && indexOfI18nPathPrefix >= 0) {
+					const i18nPath = resPath.substring(indexOfI18nPathPrefix + i18nPathPrefix.length,
+						resPath.length - ".properties".length);
+					if (!i18nPath.includes(".")) {
+						supportedLocales.add(i18nPath.replace(/_/g, "-"));
+					}
+				}
+			});
+			i18nToSupportedLocales.set(i18n, supportedLocales);
+		}
+
+		const supportedLocalesArray = Array.from(supportedLocales);
+		supportedLocalesArray.sort();
+		return {
+			bundleUrl: i18n,
+			supportedLocales: supportedLocalesArray
+		};
 	}
 
 	function createSapFiori() {
@@ -613,7 +701,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 module.exports = function({libraryResource, resources, options}) {
 	// merge options with defaults
 	options = Object.assign({
-		descriptorVersion: APP_DESCRIPTOR_V10,
+		descriptorVersion: APP_DESCRIPTOR_V22,
 		include3rdParty: true,
 		prettyPrint: true
 	}, options);
