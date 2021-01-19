@@ -95,11 +95,11 @@ class AbstractResolver {
 	 *
 	 * @example
 	 * const libraryMetadataEntry = {
-	 *	"id": "@openui5/sap.ui.core",
-	 *	"version": "1.75.0",
-	 *	"path": "~/.ui5/framework/packages/@openui5/sap.ui.core/1.75.0",
-	 *	"dependencies": [],
-	 *	"optionalDependencies": []
+	 *		"id": "@openui5/sap.ui.core",
+	 *		"version": "1.75.0",
+	 *		"path": "~/.ui5/framework/packages/@openui5/sap.ui.core/1.75.0",
+	 *		"dependencies": [],
+	 *		"optionalDependencies": []
 	 * };
 	 *
 	 * @public
