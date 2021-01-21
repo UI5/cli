@@ -67,7 +67,7 @@ test.serial("generateThemeDesignerResources: Library", async (t) => {
 
 	const workspace = {
 		byGlob: sinon.stub().callsFake(async (globPattern) => {
-			if (globPattern === "/resources/**/themes/*/library.source.less") {
+			if (globPattern === "/resources/sap/ui/demo/lib/themes/*/library.source.less") {
 				return [librarySourceLessResource1, librarySourceLessResource2, librarySourceLessResource3];
 			} else {
 				return [];
@@ -185,7 +185,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => 
 
 	const workspace = {
 		byGlob: sinon.stub().callsFake(async (globPattern) => {
-			if (globPattern === "/resources/**/themes/*/library.source.less") {
+			if (globPattern === "/resources/sap/ui/core/themes/*/library.source.less") {
 				return [librarySourceLessResource];
 			} else {
 				return [];
@@ -418,7 +418,7 @@ test.serial("generateThemeDesignerResources: .theming file missing in sap.ui.cor
 
 	const workspace = {
 		byGlob: sinon.stub().callsFake(async (globPattern) => {
-			if (globPattern === "/resources/**/themes/*/library.source.less") {
+			if (globPattern === "/resources/sap/ui/core/themes/*/library.source.less") {
 				return [librarySourceLessResource];
 			} else {
 				return [];

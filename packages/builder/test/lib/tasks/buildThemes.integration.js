@@ -51,7 +51,7 @@ test("integration: simple", (t) => {
 			workspace: duplexCollection,
 			dependencies: dependencies,
 			options: {
-				inputPattern: "/resources/**/themes/**/library.source.less"
+				inputPattern: "/resources/super/duper/looper/themes/**/library.source.less"
 			}
 		}).then(() => {
 			return Promise.all([
@@ -133,7 +133,7 @@ test("integration: imports", (t) => {
 			workspace: duplexCollection,
 			dependencies: dependencies,
 			options: {
-				inputPattern: "/resources/**/themes/**/library.source.less"
+				inputPattern: "/resources/super/duper/looper/themes/**/library.source.less"
 			}
 		}).then(() => {
 			return Promise.all([

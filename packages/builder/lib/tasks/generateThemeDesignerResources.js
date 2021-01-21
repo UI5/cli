@@ -101,7 +101,16 @@ module.exports = async function({workspace, dependencies, options: {projectName,
 		return;
 	}
 
-	const librarySourceLessResources = await workspace.byGlob("/resources/**/themes/*/library.source.less");
+	let librarySourceLessPattern;
+	if (namespace) {
+		// In case of a library only check for themes directly below the namespace
+		librarySourceLessPattern = `/resources/${namespace}/themes/*/library.source.less`;
+	} else {
+		// In case of a theme-library check for all "themes"
+		librarySourceLessPattern = `/resources/**/themes/*/library.source.less`;
+	}
+
+	const librarySourceLessResources = await workspace.byGlob(librarySourceLessPattern);
 
 	const hasThemes = librarySourceLessResources.length > 0;
 

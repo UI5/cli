@@ -152,6 +152,11 @@ class LibraryBuilder extends AbstractBuilder {
 		}
 
 		this.addTask("buildThemes", async () => {
+			// Only compile themes directly below the lib namespace to be in sync with the theme support at runtime
+			// which only loads themes from that folder.
+			// TODO 3.0: Remove fallback in case of missing namespace
+			const inputPattern = `/resources/${project.metadata.namespace || "**"}/themes/*/library.source.less`;
+
 			return getTask("buildThemes").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
@@ -159,7 +164,7 @@ class LibraryBuilder extends AbstractBuilder {
 					projectName: project.metadata.name,
 					librariesPattern: !taskUtil.isRootProject() ? "/resources/**/*.library" : undefined,
 					themesPattern: !taskUtil.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
-					inputPattern: "/resources/**/themes/*/library.source.less"
+					inputPattern
 				}
 			});
 		});
