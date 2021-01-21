@@ -83,6 +83,9 @@ class AbstractResolver {
 			try {
 				await this._processLibrary(libraryName, libraryMetadata, errors);
 			} catch (err) {
+				log.verbose(`Failed to process library ${libraryName}`);
+				log.verbose(`Error: ${err.message}`);
+				log.verbose(`Call stack: ${err.stack}`);
 				return `Failed to resolve library ${libraryName}: ${err.message}`;
 			}
 		}));

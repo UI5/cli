@@ -3,6 +3,7 @@ const fs = require("graceful-fs");
 const {promisify} = require("util");
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
+const rename = promisify(fs.rename);
 const lockfile = require("lockfile");
 const lock = promisify(lockfile.lock);
 const unlock = promisify(lockfile.unlock);
@@ -18,13 +19,14 @@ class Installer {
 		if (!ui5HomeDir) {
 			throw new Error(`Installer: Missing parameter "ui5HomeDir"`);
 		}
-		this._baseDir = path.join(ui5HomeDir, "framework", "packages");
-		log.verbose(`Installing to: ${this._baseDir}`);
+		this._packagesDir = path.join(ui5HomeDir, "framework", "packages");
+		log.verbose(`Installing to: ${this._packagesDir}`);
 		this._registry = new Registry({
 			cwd,
 			cacheDir: path.join(ui5HomeDir, "framework", "cacache")
 		});
 		this._lockDir = path.join(ui5HomeDir, "framework", "locks");
+		this._stagingDir = path.join(ui5HomeDir, "framework", "staging");
 	}
 
 	async readJson(jsonPath) {
@@ -67,9 +69,21 @@ class Installer {
 				// check again whether package is now installed
 				const installed = await this._packageJsonExists(targetDir);
 				if (!installed) {
+					const stagingDir = this._getStagingDirForPackage({pkgName, version});
 					log.info(`Installing missing package ${pkgName}...`);
-					log.verbose(`Installing ${pkgName} in version ${version} to ${targetDir}...`);
-					await this._registry.extractPackage(pkgName, version, targetDir);
+
+					// Check whether staging dir already exists and remove it
+					if (await this._pathExists(stagingDir)) {
+						const rimraf = promisify(require("rimraf"));
+						log.verbose(`Removing existing staging directory at ${stagingDir}...`);
+						await rimraf(stagingDir);
+					}
+
+					log.verbose(`Installing ${pkgName} in version ${version} to ${stagingDir}...`);
+					await this._registry.extractPackage(pkgName, version, stagingDir);
+					await mkdirp(targetDir);
+					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
+					await rename(stagingDir, targetDir);
 				} else {
 					log.verbose(`Alrady installed: ${pkgName} in version ${version}`);
 				}
@@ -83,8 +97,12 @@ class Installer {
 	}
 
 	async _packageJsonExists(targetDir) {
+		return this._pathExists(path.join(targetDir, "package.json"));
+	}
+
+	async _pathExists(targetPath) {
 		try {
-			await stat(path.join(targetDir, "package.json"));
+			await stat(targetPath);
 			return true;
 		} catch (err) {
 			if (err.code === "ENOENT") { // "File or directory does not exist"
@@ -118,7 +136,11 @@ class Installer {
 	}
 
 	_getTargetDirForPackage({pkgName, version}) {
-		return path.join(this._baseDir, ...pkgName.split("/"), version);
+		return path.join(this._packagesDir, ...pkgName.split("/"), version);
+	}
+
+	_getStagingDirForPackage({pkgName, version}) {
+		return path.join(this._stagingDir, `${pkgName.replace("/", "-")}-${version}`);
 	}
 }
 

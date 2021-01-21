@@ -3,6 +3,7 @@ const sinon = require("sinon");
 const mock = require("mock-require");
 const path = require("path");
 const os = require("os");
+const fs = require("graceful-fs");
 
 const pacote = require("pacote");
 const libnpmconfig = require("libnpmconfig");
@@ -18,6 +19,10 @@ let Installer;
 const fakeBaseDir = path.join(__dirname, "fake-tmp");
 const ui5FrameworkBaseDir = path.join(fakeBaseDir, "homedir", ".ui5", "framework");
 const ui5PackagesBaseDir = path.join(ui5FrameworkBaseDir, "packages");
+
+test.before((t) => {
+	sinon.stub(fs, "rename").yieldsAsync();
+});
 
 test.beforeEach((t) => {
 	sinon.stub(libnpmconfig, "read").returns({
