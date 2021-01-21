@@ -8,6 +8,14 @@ const IMPORT_PATTERN = /@import .*"(.*)";/g;
 const BASE_LESS_PATTERN = /^\/resources\/sap\/ui\/core\/themes\/([^/]+)\/base\.less$/;
 const GLOBAL_LESS_PATTERN = /^\/resources\/sap\/ui\/core\/themes\/([^/]+)\/global\.less$/;
 
+class ImportError extends Error {
+	constructor(message) {
+		super();
+		this.name = "ImportError";
+		this.message = message;
+	}
+}
+
 class LibraryLessGenerator {
 	constructor({fs}) {
 		const readFile = promisify(fs.readFile);
@@ -33,7 +41,17 @@ class LibraryLessGenerator {
 		const replacements = await Promise.all(imports.map(async (importMatch) => {
 			const baseDir = posixPath.dirname(filePath);
 			const resolvedFilePath = posixPath.resolve(baseDir, importMatch.path);
-			importMatch.content = await this.resolveLessImport(importMatch.path, resolvedFilePath, baseDir);
+			try {
+				importMatch.content = await this.resolveLessImport(importMatch.path, resolvedFilePath, baseDir);
+			} catch (error) {
+				if (error instanceof ImportError) {
+					// Add message of import errors after the import statements
+					// Currently those errors should not break the build (see comments in resolveLessImport)
+					importMatch.content = importMatch.fullMatch + ` /* ${error} */`;
+				} else {
+					throw error;
+				}
+			}
 			return importMatch;
 		}));
 
@@ -78,19 +96,26 @@ class LibraryLessGenerator {
 		}
 
 		/*
-		 * Throw error in case of files which are not in the same directory as the current file because
+		 * Log error in case of files which are not in the same directory as the current file because
 		 * inlining them would break relative URLs.
-		 * Keeping the import is also not possible since only "library.less" and "global.less" are
-		 * configured to be available to the Theme Designer (.theming generated in generateThemeDesignerResources).
-		 *
 		 * A possible solution would be to rewrite relative URLs when inlining the content.
+		 *
+		 * Keeping the import will cause errors since only "library.less" and "global.less" are
+		 * configured to be available to the Theme Designer (.theming generated in generateThemeDesignerResources).
+		 * However, the previous implementation did not break the build.
+		 * In many cases the library.less file is currently not relevant so breaking the build would cause
+		 * unnecessary issues.
+		 *
 		 */
 		const relativeFilePath = posixPath.relative(baseDir, resolvedFilePath);
 		if (relativeFilePath.includes(posixPath.sep)) {
-			throw new Error(
-				`libraryLessGenerator: Unsupported import of file '${resolvedFilePath}'. ` +
-				`Stylesheets must be located in the theme directory '${baseDir}' (no sub-directories)`
+			log.error(
+				`Could not inline import '${resolvedFilePath}' outside of theme directory '${baseDir}'. ` +
+				`Stylesheets must be located in the theme directory (no sub-directories). ` +
+				`The generated '${baseDir}/library.less' will cause errors when compiled with the Theme Designer.`
 			);
+			// Throw error to be added as comment to the import statement
+			throw new ImportError("Could not inline import outside of theme directory");
 		}
 
 		let importedFileContent;
@@ -119,6 +144,7 @@ class LibraryLessGenerator {
 		while ((match = IMPORT_PATTERN.exec(fileContent)) !== null) {
 			imports.push({
 				path: match[1],
+				fullMatch: match[0],
 				matchStart: match.index,
 				matchLength: match[0].length
 			});
