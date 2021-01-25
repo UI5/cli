@@ -1,7 +1,7 @@
 /*
  * Node script to preprocess api.json files for use in the UI5 SDKs.
  *
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,9 +35,10 @@ const log = (function() {
  * @param {string} sLibraryFile Path to the .library file of the library, used to extract further documentation information
  * @param {string|string[]} vDependencyAPIFiles Path of folder that contains api.json files of predecessor libs or
  *                 an array of paths of those files
+ * @param {string} sFAQDir Path to the directory containing the sources for the FAQ section in APiRef
  * @returns {Promise} A Promise that resolves after the transformation has been completed
  */
-function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles, options) {
+function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles, sFAQDir, options) {
 	const fs = options && options.fs || require("fs");
 	const returnOutputFiles = options && !!options.returnOutputFiles;
 
@@ -46,6 +47,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 	log.info("  output file: " + sOutputFile);
 	log.info("  library file: " + sLibraryFile);
 	log.info("  dependency dir: " + vDependencyAPIFiles);
+	log.info("  FAQ src dir: " + sFAQDir);
 	if (options && options.fs) {
 		log.info("Using custom fs.");
 	}
@@ -786,6 +788,25 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 	}
 
 	/**
+	 * Check for existence of FAQ data
+	 * (FAQ data must be defined as *.md files in the <code>sFAQDir</code>)
+	 * and add a boolean flag in case it exists
+	 *
+	 * @param oChainObject chain object
+	 */
+	function addFlagsForFAQData(oChainObject) {
+		if (!sFAQDir) {
+			return oChainObject;
+		}
+		oChainObject.fileData.symbols.forEach(function(symbol) {
+			if (fs.existsSync(path.join(sFAQDir, symbol.basename + ".md"))) {
+				symbol.hasFAQ = true;
+			}
+		});
+		return oChainObject;
+	}
+
+	/**
 	 * Create api.json from parsed data
 	 * @param oChainObject chain object
 	 */
@@ -946,6 +967,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 		_sTopicId: "",
 		_oTopicData: {},
 		_baseTypes: [
+			// TODO this list URGENTLY needs to be replaced by the Type parser and a much smaller list
 			"sap.ui.core.any",
 			"sap.ui.core.object",
 			"sap.ui.core.function",
@@ -969,7 +991,9 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 			"object[]",
 			"object|object[]",
 			"[object Object][]",
+			"Array<[object Object]>",
 			"Array.<[object Object]>",
+			"Object<string,string>",
 			"Object.<string,string>",
 			"function",
 			"float",
@@ -1299,7 +1323,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 
 		handleExternalUrl: function (sTarget, sText) {
 			// Check if the external domain is SAP hosted
-			let bSAPHosted = /^https?:\/\/(?:www.)?[\w.]*(?:sap|hana\.ondemand|sapfioritrial)\.com/.test(sTarget);
+			let bSAPHosted = /^https?:\/\/([\w.]*\.)?(?:sap|hana\.ondemand|sapfioritrial)\.com/.test(sTarget);
 
 			return `<a target="_blank" rel="noopener" href="${sTarget}">${sText}</a>
 <img src="./resources/sap/ui/documentation/sdk/images/${bSAPHosted ? 'link-sap' : 'link-external'}.png"
@@ -2016,6 +2040,7 @@ title="Information published on ${bSAPHosted ? '' : 'non '}SAP site" class="sapU
 		.then(getAPIJSONPromise)
 		.then(loadDependencyLibraryFiles)
 		.then(transformApiJson)
+		.then(addFlagsForFAQData)
 		.then(createApiRefApiJson);
 	return p;
 

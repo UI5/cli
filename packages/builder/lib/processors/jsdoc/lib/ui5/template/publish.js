@@ -1,7 +1,7 @@
 /*
  * JSDoc3 template for UI5 documentation generation.
  *
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -92,6 +92,13 @@ function error(msg) {
 	console.log.apply(console, args);
 }
 
+/* errors that might fail the build in future */
+function future(msg) {
+	var args = Array.prototype.slice.apply(arguments);
+	args[0] = "**** future error (ignored for now): " + args[0];
+	console.log.apply(console, args);
+}
+
 function debug() {
 	if ( env.opts.debug ) {
 		console.log.apply(console, arguments);
@@ -144,7 +151,11 @@ function loadExternalSymbols(apiJsonFolder) {
 	try {
 		files = fs.readdirSync(templateConf.apiJsonFolder);
 	} catch (e) {
-		error("failed to list symbol files in folder '" + apiJsonFolder + "': " + (e.message || e));
+		if ( e.code === "ENOENT" ) {
+			warning("folder with external symbols does not exist (ignored)");
+		} else {
+			error("failed to list symbol files in folder '" + apiJsonFolder + "': " + (e.message || e));
+		}
 		return;
 	}
 
@@ -431,7 +442,8 @@ function publish(symbolSet) {
 			var v = {
 				resource: value.resource,
 				module: value.module,
-				stakeholders: value.stakeholders
+				stakeholders: value.stakeholders,
+				globalOnly: value.globalOnly
 			};
 			if ( value.derived ) {
 				v.derived = value.derived.map(function($) { return $.longname; });
@@ -1310,7 +1322,7 @@ function processTemplate(sTemplateName, data) {
 	} catch (e) {
 		if ( e.source ) {
 			var filename = path.join(env.opts.destination, sTemplateName + ".js");
-			error("**** failed to process template, source written to " + filename);
+			error("failed to process template, source written to " + filename);
 			fs.mkPath(path.dirname(filename));
 			fs.writeFileSync(filename, e.source, 'utf8');
 		}
@@ -1658,7 +1670,7 @@ function groupByContributors(symbol, aBorrowedMembers) {
 				mContributors[$.memberof].items.push($);
 			}
 		} else {
-			error("symbol '" + borrowed.longname + "' has 'inherited' flag set,"
+			future("symbol '" + borrowed.longname + "' has 'inherited' flag set,"
 				+ " but inherits missing symbol '" + borrowed.inherits + "' (skipped)");
 		}
 	});
@@ -2009,7 +2021,7 @@ TypeParser.LinkBuilder.prototype = {
 		if ( componentType.needsParenthesis || componentType.simpleComponent === false ) {
 			return {
 				simpleComponent: false,
-				str: "Array.<" + this.safe(componentType) + ">"
+				str: "Array" + this.lt + this.safe(componentType) + this.gt
 			};
 		}
 		return {
@@ -2020,24 +2032,24 @@ TypeParser.LinkBuilder.prototype = {
 		if ( keyType.synthetic ) {
 			return {
 				simpleComponent: false,
-				str: "Object." + this.lt + this.safe(valueType) + this.gt
+				str: "Object" + this.lt + this.safe(valueType) + this.gt
 			};
 		}
 		return {
 			simpleComponent: false,
-			str: "Object." + this.lt + this.safe(keyType) + "," + this.safe(valueType) + this.gt
+			str: "Object" + this.lt + this.safe(keyType) + "," + this.safe(valueType) + this.gt
 		};
 	},
 	set: function(elementType) {
 		return {
 			simpleComponent: false,
-			str: 'Set.' + this.lt + this.safe(elementType) + this.gt
+			str: 'Set' + this.lt + this.safe(elementType) + this.gt
 		};
 	},
 	promise: function(fulfillmentType) {
 		return {
 			simpleComponent: false,
-			str: 'Promise.' + this.lt + this.safe(fulfillmentType) + this.gt
+			str: 'Promise' + this.lt + this.safe(fulfillmentType) + this.gt
 		};
 	},
 	"function": function(paramTypes, returnType) {
@@ -2122,7 +2134,7 @@ function _processTypeString(type, builder) {
 		try {
 			return typeParser.parse( type, builder ).str;
 		} catch (e) {
-			error("failed to parse type string '" + type + "': " + e);
+			future("failed to parse type string '" + type + "': " + e);
 			return type;
 		}
 	}
@@ -2145,7 +2157,7 @@ function isArrayType(type) {
 			var ast = typeParser.parse( type, TypeParser.ASTBuilder );
 			return ( ast.type === 'array' || (ast.type === 'union' && ast.types.some( function(subtype) { return subtype.type === 'array'; })) );
 		} catch (e) {
-			error("failed to parse type string '" + type + "': " + e);
+			future("failed to parse type string '" + type + "': " + e);
 		}
 	}
 	return false;
@@ -2248,6 +2260,8 @@ function createAPIJSON(symbols, filename) {
 	info("  apiJson saved as " + filename);
 }
 
+var GLOBAL_ONLY = {};
+
 function createAPIJSON4Symbol(symbol, omitDefaults) {
 
 	var obj = [];
@@ -2310,6 +2324,17 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 			curr[name] = true;
 		} else {
 			curr[name] = raw ? value : String(value);
+		}
+	}
+
+	function attribSince(since) {
+		if ( since ) {
+			var version = extractVersion(since);
+			if ( version ) {
+				attrib("since", version);
+			} else {
+				future("**** since information not parsable: '" + since + "'");
+			}
 		}
 	}
 
@@ -2386,6 +2411,13 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		}
 	}
 
+	function stakeholders($) {
+		if ( $.access === 'restricted' ) {
+			return $.__ui5.stakeholders;
+		}
+		// return undefined
+	}
+
 	function exceptions(symbol) {
 		var array = symbol.exceptions,
 			j, exception;
@@ -2412,6 +2444,12 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		endCollection("throws");
 	}
 
+	function stakeholderList(tagname, stakeholders) {
+		if ( Array.isArray(stakeholders) && stakeholders.length > 0 ) {
+			curr[tagname] = stakeholders.slice();
+		}
+	}
+
 	function methodList(tagname, methods) {
 		methods = methods && Object.keys(methods).map(function(key) { return methods[key]; });
 		if ( methods != null && methods.length > 0 ) {
@@ -2432,7 +2470,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		if ( $.augments && $.augments.length > 0 ) {
 			var baseSymbol = $.augments[0];
 			if ( visited.hasOwnProperty(baseSymbol) ) {
-				error("detected cyclic inheritance when looking at " + $.longname + ": " + JSON.stringify(visited));
+				future("detected cyclic inheritance when looking at " + $.longname + ": " + JSON.stringify(visited));
 				return false;
 			}
 			visited[baseSymbol] = true;
@@ -2471,9 +2509,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				attrib("name", special.name);
 				attrib("type", special.type);
 				attrib("visibility", special.visibility, 'public');
-				if ( special.since ) {
-					attrib("since", extractVersion(special.since));
-				}
+				attribSince(special.since);
 				tag("description", normalizeWS(special.doc), true);
 				tagWithSince("experimental", special.experimental);
 				tagWithSince("deprecated", special.deprecation);
@@ -2487,15 +2523,18 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 			collection("properties");
 			for ( n in metadata.properties ) {
 				var prop = metadata.properties[n];
+				var defaultValue = prop.defaultValue != null ? prop.defaultValue.value : null;
+				// JSON can't transport a value of undefined, so represent it as string
+				if ( defaultValue === undefined ) {
+					defaultValue = String(defaultValue);
+				}
 				tag("property");
 				attrib("name", prop.name);
 				attrib("type", prop.type, 'string');
-				attrib("defaultValue", prop.defaultValue, null, /* raw = */true);
+				attrib("defaultValue", defaultValue, null, /* raw = */true);
 				attrib("group", prop.group, 'Misc');
 				attrib("visibility", prop.visibility, 'public');
-				if ( prop.since ) {
-					attrib("since", extractVersion(prop.since));
-				}
+				attribSince(prop.since);
 				if ( prop.bindable ) {
 					attrib("bindable", prop.bindable, false, /* raw = */true);
 				}
@@ -2529,9 +2568,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				}
 				attrib("cardinality", aggr.cardinality, '0..n');
 				attrib("visibility", aggr.visibility, 'public');
-				if ( aggr.since ) {
-					attrib("since", extractVersion(aggr.since));
-				}
+				attribSince(aggr.since);
 				if ( aggr.bindable ) {
 					attrib("bindable", aggr.bindable, false, /* raw = */true);
 				}
@@ -2561,9 +2598,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				attrib("type", assoc.type, 'sap.ui.core.Control');
 				attrib("cardinality", assoc.cardinality, '0..1');
 				attrib("visibility", assoc.visibility, 'public');
-				if ( assoc.since ) {
-					attrib("since", extractVersion(assoc.since));
-				}
+				attribSince(assoc.since);
 				tag("description", normalizeWS(assoc.doc), true);
 				tagWithSince("experimental", assoc.experimental);
 				tagWithSince("deprecated", assoc.deprecation);
@@ -2580,9 +2615,13 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				tag("event");
 				attrib("name", event.name);
 				attrib("visibility", event.visibility, 'public');
-				if ( event.since ) {
-					attrib("since", extractVersion(event.since));
+				if ( event.allowPreventDefault ) {
+					attrib("allowPreventDefault", event.allowPreventDefault, false, /* raw = */true);
 				}
+				if ( event.enableEventBubbling ) {
+					attrib("enableEventBubbling", event.enableEventBubbling, false, /* raw = */true);
+				}
+				attribSince(event.since);
 				tag("description", normalizeWS(event.doc), true);
 				tagWithSince("experimental", event.experimental);
 				tagWithSince("deprecated", event.deprecation);
@@ -2594,9 +2633,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 							tag(pn);
 							attrib("name", pn);
 							attrib("type", param.type);
-							if ( param.since ) {
-								attrib("since", extractVersion(param.since));
-							}
+							attribSince(param.since);
 							tag("description", normalizeWS(param.doc), true);
 							tagWithSince("experimental", param.experimental);
 							tagWithSince("deprecated", param.deprecation);
@@ -2626,9 +2663,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				if ( anno.appliesTo && anno.appliesTo.length > 0 ) {
 					curr.appliesTo = anno.appliesTo.slice();
 				}
-				if ( anno.since ) {
-					attrib("since", extractVersion(anno.since));
-				}
+				attribSince(anno.since);
 				tag("description", normalizeWS(anno.doc), true);
 				tagWithSince("deprecated", anno.deprecation);
 				closeTag("annotation");
@@ -2679,9 +2714,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 			if ( params[i].defaultvalue !== undefined ) {
 				attrib("defaultValue", params[i].defaultvalue, undefined, /* raw = */true);
 			}
-			if ( params[i].since ) {
-				attrib("since", extractVersion(params[i].since));
-			}
+			attribSince(params[i].since);
 
 			writeParameterProperties(params[i], params);
 
@@ -2732,9 +2765,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				if ( param.defaultvalue !== undefined ) {
 					attrib("defaultValue", param.defaultvalue, undefined, /* raw = */true);
 				}
-				if ( param.since ) {
-					attrib("since", extractVersion(param.since));
-				}
+				attribSince(param.since);
 				writeParameterProperties(param, member.params);
 				tag("description", normalizeWS(param.description), true);
 				tagWithSince("experimental", param.experimental);
@@ -2758,15 +2789,16 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		attrib("name", name || member.name);
 		if ( member.__ui5.module && member.__ui5.module !== symbol.__ui5.module ) {
 			attrib("module", member.__ui5.module);
-			attrib("export", undefined, '', true);
+			attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : undefined, '', true);
 		}
 		attrib("visibility", visibility(member), 'public');
+		if ( stakeholders(member) ) {
+			stakeholderList("allowedFor", stakeholders(member));
+		}
 		if ( member.scope === 'static' ) {
 			attrib("static", true, false, /* raw = */true);
 		}
-		if ( member.since ) {
-			attrib("since", extractVersion(member.since));
-		}
+		attribSince(member.since);
 		if ( member.tags && member.tags.some(function(tag) { return tag.title === 'ui5-metamodel'; }) ) {
 			attrib('ui5-metamodel', true, false, /* raw = */true);
 		}
@@ -2832,7 +2864,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 	}
 	if ( symbol.__ui5.module ) {
 		attrib("module", symbol.__ui5.module);
-		attrib("export", undefined, '', true);
+		attrib("export", symbol.__ui5.globalOnly ? GLOBAL_ONLY : undefined, '', true);
 	}
 	if ( /* TODO (kind === 'class') && */ symbol.virtual ) {
 		// Note reg. the TODO: only one unexpected occurrence found in DragSession (DragAndDrop.js)
@@ -2846,9 +2878,10 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		attrib("static", true, false, /* raw = */true);
 	}
 	attrib("visibility", visibility(symbol), 'public');
-	if ( symbol.since ) {
-		attrib("since", extractVersion(symbol.since));
+	if ( stakeholders(symbol) ) {
+		stakeholderList("allowedFor", stakeholders(symbol));
 	}
+	attribSince(symbol.since);
 	/* TODO if ( kind === 'class' || kind === 'interface' ) { */
 		// Note reg. the TODO: some objects document that they extend other objects. JSDoc seems to support this use case
 		// (properties show up as 'borrowed') and the borrowed entities also show up in the SDK (but not the 'extends' relationship itself)
@@ -2896,6 +2929,9 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 
 			tag("constructor");
 			attrib("visibility", visibility(symbol));
+			if ( stakeholders(symbol) ) {
+				stakeholderList("allowedFor", stakeholders(symbol));
+			}
 			methodSignature(symbol, /* suppressReturnValue = */ true);
 
 			tag("description", normalizeWS(symbol.description), true);
@@ -2941,6 +2977,9 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				attrib("name", prop.name);
 				attrib("type", listTypes(prop.type));
 				attrib("visibility", visibility(symbol), 'public'); // properties inherit visibility of typedef
+				if ( stakeholders(symbol) ) {
+					stakeholderList("allowedFor", stakeholders(symbol));
+				}
 				tag("description", normalizeWS(prop.description), true);
 				closeTag("property");
 			});
@@ -2967,18 +3006,19 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				attrib("name", member.name);
 				if ( member.__ui5.module && member.__ui5.module !== symbol.__ui5.module ) {
 					attrib("module", member.__ui5.module);
-					attrib("export", undefined, '', true);
+					attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : undefined, '', true);
 				}
 				if ( kind === 'enum' && !standardEnum && member.__ui5.value !== undefined ) {
 					attrib("value", member.__ui5.value, undefined, /* raw = */true);
 				}
 				attrib("visibility", visibility(member), 'public');
+				if ( stakeholders(member) ) {
+					stakeholderList("allowedFor", stakeholders(member));
+				}
 				if ( member.scope === 'static' ) {
 					attrib("static", true, false, /* raw = */true);
 				}
-				if ( member.since ) {
-					attrib("since", extractVersion(member.since));
-				}
+				attribSince(member.since);
 				attrib("type", listTypes(member.type));
 				tag("description", normalizeWS(member.description), true);
 				tagWithSince("experimental", member.experimental);
@@ -3002,15 +3042,16 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				attrib("name", member.name);
 				if ( member.__ui5.module && member.__ui5.module !== symbol.__ui5.module ) {
 					attrib("module", member.__ui5.module);
-					attrib("export", undefined, '', true);
+					attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : undefined, '', true);
 				}
 				attrib("visibility", visibility(member), 'public');
+				if ( stakeholders(member) ) {
+					stakeholderList("allowedFor", stakeholders(member));
+				}
 				if ( member.scope === 'static' ) {
 					attrib("static", true, false, /* raw = */true);
 				}
-				if ( member.since ) {
-					attrib("since", extractVersion(member.since));
-				}
+				attribSince(member.since);
 
 				if ( member.params && member.params.length > 0 ) {
 					collection("parameters");
@@ -3060,7 +3101,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 					member.__ui5.members.forEach(function($) {
 						if ( $.kind === 'function' && $.scope === 'static'
 							 && conf.filter($) && !$.inherited ) {
-							error("exporting nested function '" + member.name + "." + $.name + "'");
+							future("exporting nested function '" + member.name + "." + $.name + "'");
 							writeMethod($, member.name + "." + $.name);
 						}
 					});
@@ -3122,6 +3163,9 @@ function postProcessAPIJSON(api) {
 
 	function guessExports(moduleName, symbols) {
 
+		// a non-stringifiable special value for unresolved exports
+		var UNRESOLVED = function() {};
+
 		symbols = symbols.sort(function(a,b) {
 			if ( a.name === b.name ) {
 				return 0;
@@ -3141,10 +3185,11 @@ function postProcessAPIJSON(api) {
 			defaultExport = moduleName.replace(/\/library$/, "").replace(/\//g, ".");
 		}
 
+		// Pass 1: determine exports where possible, mark others with UNRESOLVED
 		symbols.forEach(function(symbol) {
 			// debug("check ", symbol.name, "against", defaultExport, "and", moduleNamePath);
-			if ( symbol.symbol.kind === "typedef" || symbol.symbol.kind === "interface" ) {
-				// type definitions and interfaces have no representation on module level
+			if ( symbol.symbol.kind === "typedef" || symbol.symbol.kind === "interface" || symbol.symbol.export === GLOBAL_ONLY ) {
+				// type definitions, interfaces and symbols marked with @ui5-global-only have no representation on module level
 				symbol.symbol.export = undefined;
 			} else if ( symbol.name === moduleNamePath ) {
 				// symbol name is the same as the module namepath -> symbol is the default export
@@ -3162,11 +3207,24 @@ function postProcessAPIJSON(api) {
 				//debug("    " + symbol.name.slice(defaultExport.length + 1) + ":" + symbol.name);
 			} else {
 				// default export is not a prefix of the symbol name -> no way to access it in AMD
+				symbol.symbol.export = UNRESOLVED;
+			}
+		});
+
+		// Pass 2: check whether unresolved exports are critical or not
+		symbols.forEach(function(symbol) {
+			if ( symbol.symbol.export === UNRESOLVED ) {
 				symbol.symbol.export = undefined;
+				// an export is expected when a symbol is not a namespace or
+				// when a namespace has children from the same module that are also lacking an export
 				if ( symbol.symbol.kind !== "namespace"
-					 || (symbol.symbol.properties && symbol.symbol.properties.length > 0)
-					 || (symbol.symbol.methods && symbol.symbol.methods.length > 0) ) {
-					error("could not identify export name of '" + symbol.name + "', contained in module '" + moduleName + "'");
+					 || (symbol.symbol.properties && symbol.symbol.properties.some(function(prop) {
+						 return prop.module === symbol.symbol.module && prop.export == null;
+					 }) )
+					 || (symbol.symbol.methods && symbol.symbol.methods.some(function(method) {
+						 return method.module === symbol.symbol.module && method.export == null;
+					 }) ) ) {
+					future("could not identify export name of '" + symbol.name + "', contained in module '" + moduleName + "'");
 				} else {
 					debug("could not identify export name of " + symbol.symbol.kind + " '" + symbol.name + "', contained in module '" + moduleName + "'");
 				}
@@ -3406,7 +3464,7 @@ function validateAPIJSON(api) {
 			var ast = typeParser.parse(type.type);
 			_check(ast);
 		} catch (e) {
-			error(e);
+			future(e);
 			reportError(type.type, "failed to parse type of " + hint);
 		}
 	}
@@ -3441,7 +3499,7 @@ function validateAPIJSON(api) {
 		if ( oIntfAPI.methods ) {
 			oIntfAPI.methods.forEach(function(intfMethod) {
 				// search for method implementation
-				var implMethod = symbol.methods.find(function(candidateMethod) {
+				var implMethod = symbol.methods && symbol.methods.find(function(candidateMethod) {
 					return candidateMethod.name === intfMethod.name && !candidateMethod.static;
 				});
 				if ( !implMethod ) {
@@ -3479,7 +3537,9 @@ function validateAPIJSON(api) {
 	}
 
 	function checkEnum(symbol) {
-		if ( symbol["ui5-metamodel"] && !(symbol["ui5-metadata"] && symbol["ui5-metadata"].stereotype === "enum") ) {
+		if ( symbol["ui5-metamodel"]
+			 && !(symbol["ui5-metadata"] && symbol["ui5-metadata"].stereotype === "enum")
+			 && Array.isArray(symbol.properties) && symbol.properties.length > 0 ) {
 			reportError(symbol.name, "enum is metamodel relevant but keys and values differ");
 		}
 		checkCompoundName(symbol.name, "name of " + symbol.name);
@@ -3548,21 +3608,21 @@ function validateAPIJSON(api) {
 	});
 
 	if ( Object.keys(missing).length > 0 || Object.keys(naming).length > 0 ) {
-		error("API validation errors:");
+		future("API validation errors:");
 
 		Object.keys(missing).forEach(function(type) {
 			if ( Array.isArray(missing[type]) ) {
-				error("type '" + type + "'");
+				future("type '" + type + "'");
 				missing[type].forEach(function(usage) {
-					error("  " + usage);
+					future("  " + usage);
 				});
 			}
 		});
 		Object.keys(naming).forEach(function(name) {
 			if ( Array.isArray(naming[name]) ) {
-				error("invalid name '" + name + "'");
+				future("invalid name '" + name + "'");
 				naming[name].forEach(function(usage) {
-					error("  " + usage);
+					future("  " + usage);
 				});
 			}
 		});
@@ -3728,6 +3788,34 @@ function createAPIXML(symbols, filename, options) {
 		}
 	}
 
+	function isEnum(name) {
+		var symbol = getAPIJSON(name);
+		return !!symbol && symbol.kind === "enum";
+	}
+
+	var replacement = {
+		"\t": "\\t",
+		"\n": "\\n",
+		"\r": "\\r",
+		"\"": "\\\"",
+		"\\": "\\\\"
+	};
+
+	/**
+	 * Converts the given value into its JavaScript source code format.
+	 *
+	 * Strings will be enclosed in double quotes with special chars being escaped,
+	 * all other values will be used 'literally'.
+	 */
+	function toRaw(value, type) {
+		if ( typeof value === "string" && !isEnum(type) ) {
+			return "\"" + value.replace(/[\u0000-\u001f"\\]/g, function(c) {
+				return replacement[c] || "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0");
+			}) + "\"";
+		}
+		return value;
+	}
+
 	function getAsString() {
 		return output.join("");
 	}
@@ -3772,7 +3860,7 @@ function createAPIXML(symbols, filename, options) {
 				attrib("name", prop.name);
 				attrib("type", prop.type, 'string');
 				if ( prop.defaultValue !== null ) {
-					attrib("defaultValue", prop.defaultValue, null);
+					attrib("defaultValue", toRaw(prop.defaultValue, prop.type));
 				}
 				attrib("visibility", prop.visibility, 'public');
 				if ( prop.since ) {
@@ -3943,7 +4031,7 @@ function createAPIXML(symbols, filename, options) {
 				attrib("type", prop.type);
 				attrib("group", prop.group, 'Misc');
 				if ( prop.defaultValue !== null ) {
-					attrib("defaultValue", typeof prop.defaultValue === 'string' ? "\"" + prop.defaultValue + "\"" : prop.defaultValue);
+					attrib("defaultValue", toRaw(prop.defaultValue, prop.type));
 				}
 				attrib("optional");
 				if ( inherited ) {

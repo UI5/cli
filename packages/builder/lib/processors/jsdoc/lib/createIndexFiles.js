@@ -1,7 +1,7 @@
 /*
  * Node script to create cross-library API index files for use in the UI5 SDKs.
  *
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -247,7 +247,7 @@ function createIndexFiles(versionInfoFile, unpackedTestresourcesRoot, targetFile
 	function convertListToTree(symbols) {
 		let aTree = [];
 
-		// Filter out black list libraries
+		// Filter out excluded libraries
 		symbols = symbols.filter(({lib}) => ["sap.ui.documentation"].indexOf(lib) === -1);
 
 		// Create treeName and displayName
