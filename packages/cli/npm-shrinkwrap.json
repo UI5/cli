@@ -602,19 +602,19 @@
 			}
 		},
 		"@ui5/project": {
-			"version": "2.2.4",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.2.4.tgz",
-			"integrity": "sha512-ormY1JnDMdme0l1Y8o6wPSkuiYV3i5hBng/whQsXejfBAZ4kXuKNK8XVp4LQf6ConFYpCb3eea+dfChL2vnNKw==",
+			"version": "2.2.5",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.2.5.tgz",
+			"integrity": "sha512-gjfrHCYDqTlahBl5ECqIqxFme5QCa/pMMjorG/G1cXw/eOmpCgZa53Reub6JHnTPSvtvGuRqFHKU5XyL3zGZPg==",
 			"requires": {
-				"@ui5/builder": "^2.4.3",
+				"@ui5/builder": "^2.6.1",
 				"@ui5/logger": "^2.0.1",
-				"@ui5/server": "^2.2.6",
+				"@ui5/server": "^2.2.7",
 				"ajv": "^6.12.6",
 				"ajv-errors": "^1.0.1",
 				"chalk": "^4.1.0",
 				"escape-string-regexp": "^4.0.0",
 				"graceful-fs": "^4.2.4",
-				"js-yaml": "^3.14.0",
+				"js-yaml": "^3.14.1",
 				"libnpmconfig": "^1.2.1",
 				"lockfile": "^1.0.4",
 				"mkdirp": "^1.0.4",
@@ -622,8 +622,9 @@
 				"pretty-hrtime": "^1.0.3",
 				"read-pkg": "^5.2.0",
 				"read-pkg-up": "^7.0.1",
-				"resolve": "^1.18.1",
-				"semver": "^7.3.2"
+				"resolve": "^1.19.0",
+				"rimraf": "^3.0.2",
+				"semver": "^7.3.4"
 			},
 			"dependencies": {
 				"escape-string-regexp": {
