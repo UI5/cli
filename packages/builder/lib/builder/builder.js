@@ -75,6 +75,8 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 		selectedTasks.generateLibraryPreload = false;
 	}
 
+	// TODO 3.0: exclude generateVersionInfo if not --all is used
+
 	if (jsdoc) {
 		// Include JSDoc tasks
 		selectedTasks.generateJsdoc = true;
