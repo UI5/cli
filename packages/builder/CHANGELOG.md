@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.6.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.7.0...HEAD).
+
+<a name="v2.7.0"></a>
+## [v2.7.0] - 2021-01-26
+### Features
+- Versioninfo enrich with manifest infos ([#554](https://github.com/SAP/ui5-builder/issues/554)) [`7603ece`](https://github.com/SAP/ui5-builder/commit/7603ece36a74592c7756f6147eed91d08a5788a6)
+- Align JSDoc template & plugin with OpenUI5 1.87.0 ([#572](https://github.com/SAP/ui5-builder/issues/572)) [`0cb02ac`](https://github.com/SAP/ui5-builder/commit/0cb02acee2b070889146ef9f725cc139691f0ab2)
+
 
 <a name="v2.6.1"></a>
 ## [v2.6.1] - 2021-01-21
@@ -504,6 +511,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.7.0]: https://github.com/SAP/ui5-builder/compare/v2.6.1...v2.7.0
 [v2.6.1]: https://github.com/SAP/ui5-builder/compare/v2.6.0...v2.6.1
 [v2.6.0]: https://github.com/SAP/ui5-builder/compare/v2.5.1...v2.6.0
 [v2.5.1]: https://github.com/SAP/ui5-builder/compare/v2.5.0...v2.5.1
