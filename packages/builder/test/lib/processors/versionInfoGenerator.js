@@ -293,6 +293,88 @@ test.serial("versionInfoGenerator library infos with embeds", async (t) => {
 	t.is(t.context.warnLogStub.callCount, 0);
 });
 
+test.serial("versionInfoGenerator library infos with no embeds", async (t) => {
+	const libAManifest = {
+		getPath: () => {
+			return "/resources/lib/a/manifest.json";
+		},
+		getString: async () => {
+			return JSON.stringify({
+				"sap.app": {
+					"id": "lib.a"
+				},
+				"sap.ui5": {
+					"dependencies": {
+						"minUI5Version": "1.84",
+						"libs": {
+							"my.dep": {
+								"minVersion": "1.84.0",
+								"lazy": false
+							}
+						}
+					}
+				}
+			});
+		}
+	};
+	const libA = {name: "lib.a", version: "1.2.3", libraryManifest: libAManifest};
+	const myDepManifest = {
+		getPath: () => {
+			return "/resources/my/dep/manifest.json";
+		},
+		getString: async () => {
+			return JSON.stringify({
+				"sap.app": {
+					"id": "my.dep"
+				},
+				"sap.ui5": {
+					"dependencies": {
+						"minUI5Version": "1.84",
+						"libs": {}
+					}
+				}
+			});
+		}
+	};
+	const myDep = {name: "my.dep", version: "1.2.3", libraryManifest: myDepManifest};
+	const options = {
+		rootProjectName: "myname", rootProjectVersion: "1.33.7", libraryInfos: [
+			libA, myDep
+		]};
+	const versionInfos = await versionInfoGenerator({options});
+
+	const resource = versionInfos[0];
+	const result = await resource.getString();
+
+	const oExpected = {
+		"name": "myname",
+		"version": "1.33.7",
+		"scmRevision": "",
+		"libraries": [
+			{
+				"name": "lib.a",
+				"version": "1.2.3",
+				"scmRevision": "",
+				"manifestHints": {
+					"dependencies": {
+						"libs": {
+							"my.dep": {}
+						}
+					}
+				}
+			},
+			{
+				"name": "my.dep",
+				"version": "1.2.3",
+				"scmRevision": ""
+			}
+		]
+	};
+	assertVersionInfoContent(t, oExpected, result);
+	t.is(t.context.infoLogStub.callCount, 0);
+	t.is(t.context.warnLogStub.callCount, 0);
+});
+
 test.serial("versionInfoGenerator library infos with embeds and embeddedBy (hasOwnPreload)", async (t) => {
 	const libAManifest = {
 		getPath: () => {

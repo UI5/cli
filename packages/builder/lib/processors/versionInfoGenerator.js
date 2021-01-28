@@ -299,7 +299,7 @@ const processLibraryInfo = async (libraryInfo) => {
 	const bundledComponents = new Set();
 	libraryArtifactInfo.bundledComponents = bundledComponents;
 
-	const embeds = manifestInfo.embeds; // e.g. ["sub"]
+	const embeds = manifestInfo.embeds||[]; // e.g. ["sub"]
 	// filter only embedded manifests
 	const embeddedPaths = embeds.map((embed) => {
 		return getManifestPath(libraryInfo.libraryManifest.getPath(), embed);
