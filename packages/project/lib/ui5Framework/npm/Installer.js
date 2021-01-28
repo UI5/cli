@@ -79,9 +79,22 @@ class Installer {
 						await rimraf(stagingDir);
 					}
 
+					// Check whether target dir already exists and remove it.
+					// A target directory already existing but missing a package.json should
+					// never happen. However, we want to be *really* sure that there is no target
+					// directory so that the rename operation won't have any no trouble.
+					if (await this._pathExists(targetDir)) {
+						const rimraf = promisify(require("rimraf"));
+						log.verbose(`Removing existing target directory at ${targetDir}...`);
+						await rimraf(targetDir);
+					}
+
 					log.verbose(`Installing ${pkgName} in version ${version} to ${stagingDir}...`);
 					await this._registry.extractPackage(pkgName, version, stagingDir);
-					await mkdirp(targetDir);
+
+					// Do not create target dir itself to prevent EPERM error in following rename operation
+					// (https://github.com/SAP/ui5-tooling/issues/487)
+					await mkdirp(path.dirname(targetDir));
 					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
 					await rename(stagingDir, targetDir);
 				} else {

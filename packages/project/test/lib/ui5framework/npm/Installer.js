@@ -404,8 +404,9 @@ test.serial("Installer: installPackage with new package", async (t) => {
 	t.context.lockStub.yieldsAsync();
 	t.context.unlockStub.yieldsAsync();
 
+	const targetDir = path.join("my", "package", "dir");
 	const getTargetDirForPackageStub = sinon.stub(installer, "_getTargetDirForPackage")
-		.returns("package-dir-path");
+		.returns(targetDir);
 
 	const packageJsonExistsStub = sinon.stub(installer, "_packageJsonExists").resolves(false);
 	const synchronizeSpy = sinon.spy(installer, "_synchronize");
@@ -422,7 +423,7 @@ test.serial("Installer: installPackage with new package", async (t) => {
 	});
 
 	t.deepEqual(res, {
-		pkgPath: "package-dir-path"
+		pkgPath: targetDir
 	}, "Should return correct values");
 
 	t.is(getTargetDirForPackageStub.callCount, 1, "_getTargetDirForPackage should be called once");
@@ -432,9 +433,9 @@ test.serial("Installer: installPackage with new package", async (t) => {
 	}, "_getTargetDirForPackage should be called with the correct arguments");
 
 	t.is(packageJsonExistsStub.callCount, 2, "_packageJsonExists should be called twice");
-	t.is(packageJsonExistsStub.getCall(0).args[0], "package-dir-path",
+	t.is(packageJsonExistsStub.getCall(0).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments on first call");
-	t.is(packageJsonExistsStub.getCall(1).args[0], "package-dir-path",
+	t.is(packageJsonExistsStub.getCall(1).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments on second call");
 
 	t.is(synchronizeSpy.callCount, 1, "_synchronize should be called once");
@@ -451,8 +452,10 @@ test.serial("Installer: installPackage with new package", async (t) => {
 		version: "1.2.3"
 	}, "_getStagingDirForPackage should be called with the correct arguments");
 
-	t.is(pathExistsStub.callCount, 1, "_pathExists should be called once");
+	t.is(pathExistsStub.callCount, 2, "_pathExists should be called twice");
 	t.is(pathExistsStub.getCall(0).args[0], "staging-dir-path",
+		"_packageJsonExists should be called with the correct arguments");
+	t.is(pathExistsStub.getCall(1).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments");
 	t.is(t.context.rimrafStub.callCount, 0, "rimraf should never be called");
 
@@ -461,13 +464,13 @@ test.serial("Installer: installPackage with new package", async (t) => {
 	t.is(t.context.mkdirpStub.callCount, 2, "mkdirp should be called twice");
 	t.is(t.context.mkdirpStub.getCall(0).args[0], path.join("/", "ui5Home", "framework", "locks"),
 		"mkdirp should be called with the correct arguments on first call");
-	t.is(t.context.mkdirpStub.getCall(1).args[0], "package-dir-path",
+	t.is(t.context.mkdirpStub.getCall(1).args[0], path.join("my", "package"),
 		"mkdirp should be called with the correct arguments on second call");
 
 	t.is(t.context.renameStub.callCount, 1, "fs.rename should be called once");
 	t.is(t.context.renameStub.getCall(0).args[0], "staging-dir-path",
 		"fs.rename should be called with the correct first argument");
-	t.is(t.context.renameStub.getCall(0).args[1], "package-dir-path",
+	t.is(t.context.renameStub.getCall(0).args[1], targetDir,
 		"fs.rename should be called with the correct second argument");
 });
 
@@ -583,7 +586,7 @@ test.serial("Installer: installPackage with install already in progress", async 
 	t.is(t.context.renameStub.callCount, 0, "fs.rename should never be called");
 });
 
-test.serial("Installer: installPackage with new package and existing staging", async (t) => {
+test.serial("Installer: installPackage with new package and existing target and staging", async (t) => {
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -592,8 +595,9 @@ test.serial("Installer: installPackage with new package and existing staging", a
 	t.context.lockStub.yieldsAsync();
 	t.context.unlockStub.yieldsAsync();
 
+	const targetDir = path.join("my", "package", "dir");
 	const getTargetDirForPackageStub = sinon.stub(installer, "_getTargetDirForPackage")
-		.returns("package-dir-path");
+		.returns(targetDir);
 
 	const packageJsonExistsStub = sinon.stub(installer, "_packageJsonExists").resolves(false);
 	const synchronizeSpy = sinon.spy(installer, "_synchronize");
@@ -610,7 +614,7 @@ test.serial("Installer: installPackage with new package and existing staging", a
 	});
 
 	t.deepEqual(res, {
-		pkgPath: "package-dir-path"
+		pkgPath: targetDir
 	}, "Should return correct values");
 
 	t.is(getTargetDirForPackageStub.callCount, 1, "_getTargetDirForPackage should be called once");
@@ -620,9 +624,9 @@ test.serial("Installer: installPackage with new package and existing staging", a
 	}, "_getTargetDirForPackage should be called with the correct arguments");
 
 	t.is(packageJsonExistsStub.callCount, 2, "_packageJsonExists should be called twice");
-	t.is(packageJsonExistsStub.getCall(0).args[0], "package-dir-path",
+	t.is(packageJsonExistsStub.getCall(0).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments on first call");
-	t.is(packageJsonExistsStub.getCall(1).args[0], "package-dir-path",
+	t.is(packageJsonExistsStub.getCall(1).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments on second call");
 
 	t.is(synchronizeSpy.callCount, 1, "_synchronize should be called once");
@@ -639,12 +643,16 @@ test.serial("Installer: installPackage with new package and existing staging", a
 		version: "1.2.3"
 	}, "_getStagingDirForPackage should be called with the correct arguments");
 
-	t.is(pathExistsStub.callCount, 1, "_pathExists should be called once");
+	t.is(pathExistsStub.callCount, 2, "_pathExists should be called twice");
 	t.is(pathExistsStub.getCall(0).args[0], "staging-dir-path",
 		"_packageJsonExists should be called with the correct arguments");
+	t.is(pathExistsStub.getCall(1).args[0], targetDir,
+		"_packageJsonExists should be called with the correct arguments");
 
-	t.is(t.context.rimrafStub.callCount, 1, "rimraf should be called once");
+	t.is(t.context.rimrafStub.callCount, 2, "rimraf should be called twice");
 	t.is(t.context.rimrafStub.getCall(0).args[0], "staging-dir-path",
+		"rimraf should be called with the correct arguments");
+	t.is(t.context.rimrafStub.getCall(1).args[0], targetDir,
 		"rimraf should be called with the correct arguments");
 
 	t.is(extractPackageStub.callCount, 1, "_extractPackage should be called once");
@@ -652,13 +660,13 @@ test.serial("Installer: installPackage with new package and existing staging", a
 	t.is(t.context.mkdirpStub.callCount, 2, "mkdirp should be called twice");
 	t.is(t.context.mkdirpStub.getCall(0).args[0], path.join("/", "ui5Home", "framework", "locks"),
 		"mkdirp should be called with the correct arguments on first call");
-	t.is(t.context.mkdirpStub.getCall(1).args[0], "package-dir-path",
+	t.is(t.context.mkdirpStub.getCall(1).args[0], path.join("my", "package"),
 		"mkdirp should be called with the correct arguments on second call");
 
 	t.is(t.context.renameStub.callCount, 1, "fs.rename should be called once");
 	t.is(t.context.renameStub.getCall(0).args[0], "staging-dir-path",
 		"fs.rename should be called with the correct first argument");
-	t.is(t.context.renameStub.getCall(0).args[1], "package-dir-path",
+	t.is(t.context.renameStub.getCall(0).args[1], targetDir,
 		"fs.rename should be called with the correct second argument");
 });
 
