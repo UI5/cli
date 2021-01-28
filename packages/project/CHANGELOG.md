@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.2.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.2.6...HEAD).
+
+<a name="v2.2.6"></a>
+## [v2.2.6] - 2021-01-28
+### Bug Fixes
+- **ui5Framework.Installer:** Ensure target directory does not exist before rename ([#390](https://github.com/SAP/ui5-project/issues/390)) [`f107cdf`](https://github.com/SAP/ui5-project/commit/f107cdf2b1703791c153009150a5e1713e123b73)
+
 
 <a name="v2.2.5"></a>
-## [v2.2.5] - 2021-01-21
+## [v2.2.5] - 2021-01-26
 ### Bug Fixes
 - **ui5Framework.Installer:** Ensure atomic install process [`72568a9`](https://github.com/SAP/ui5-project/commit/72568a990620cee69ffaf2470c684a7ba02c200c)
 
@@ -223,6 +229,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v2.2.6]: https://github.com/SAP/ui5-project/compare/v2.2.5...v2.2.6
 [v2.2.5]: https://github.com/SAP/ui5-project/compare/v2.2.4...v2.2.5
 [v2.2.4]: https://github.com/SAP/ui5-project/compare/v2.2.3...v2.2.4
 [v2.2.3]: https://github.com/SAP/ui5-project/compare/v2.2.2...v2.2.3
