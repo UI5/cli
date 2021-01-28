@@ -602,11 +602,11 @@
 			}
 		},
 		"@ui5/project": {
-			"version": "2.2.5",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.2.5.tgz",
-			"integrity": "sha512-gjfrHCYDqTlahBl5ECqIqxFme5QCa/pMMjorG/G1cXw/eOmpCgZa53Reub6JHnTPSvtvGuRqFHKU5XyL3zGZPg==",
+			"version": "2.2.6",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-2.2.6.tgz",
+			"integrity": "sha512-RgpRsXeGKLbMahAqcGBQJQXkrbv8MTU7Y9RAzk2A2r83G/hrTiG9D4F9RjyQpmy+ZgsXc9OIU4nPfkc7G3Leqw==",
 			"requires": {
-				"@ui5/builder": "^2.6.1",
+				"@ui5/builder": "^2.7.1",
 				"@ui5/logger": "^2.0.1",
 				"@ui5/server": "^2.2.7",
 				"ajv": "^6.12.6",
