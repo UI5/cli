@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.7.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.7.1...HEAD).
+
+<a name="v2.7.1"></a>
+## [v2.7.1] - 2021-01-28
+### Bug Fixes
+- **JSDoc:** adapt sdkTransformer to change in transformApiJson.js ([#574](https://github.com/SAP/ui5-builder/issues/574)) [`655f731`](https://github.com/SAP/ui5-builder/commit/655f731191f1210d9f72bee9f60fcebdc863bc36)
+- **versionInfoGenerator:** manifest without embeds [#486](https://github.com/SAP/ui5-builder/issues/486) ([#576](https://github.com/SAP/ui5-builder/issues/576)) [`4d86226`](https://github.com/SAP/ui5-builder/commit/4d86226abf6ce549f3cf719068270014ddeefb5a)
+
 
 <a name="v2.7.0"></a>
 ## [v2.7.0] - 2021-01-26
@@ -511,6 +518,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.7.1]: https://github.com/SAP/ui5-builder/compare/v2.7.0...v2.7.1
 [v2.7.0]: https://github.com/SAP/ui5-builder/compare/v2.6.1...v2.7.0
 [v2.6.1]: https://github.com/SAP/ui5-builder/compare/v2.6.0...v2.6.1
 [v2.6.0]: https://github.com/SAP/ui5-builder/compare/v2.5.1...v2.6.0
