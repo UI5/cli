@@ -40,10 +40,12 @@ test.serial("sdkTransformer", async (t) => {
 		"/some/path/x/api.json",
 		"/some/path/y/api.json"
 	], "transform-apijson-for-sdk called with correct argument #4");
-	t.deepEqual(transformerStub.getCall(0).args[4], {
+	t.deepEqual(transformerStub.getCall(0).args[4], "",
+		"transform-apijson-for-sdk called with correct argument #5");
+	t.deepEqual(transformerStub.getCall(0).args[5], {
 		fs: "custom fs",
 		returnOutputFiles: true
-	}, "transform-apijson-for-sdk called with correct argument #5");
+	}, "transform-apijson-for-sdk called with correct argument #6");
 
 	t.deepEqual(createResourceStub.callCount, 1, "createResource called once");
 	t.deepEqual(createResourceStub.getCall(0).args[0], {

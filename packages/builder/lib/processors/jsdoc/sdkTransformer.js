@@ -26,7 +26,7 @@ const sdkTransformer = async function({
 		throw new Error("[sdkTransformer]: One or more mandatory parameters not provided");
 	}
 	const fakeTargetPath = "/ignore/this/path/resource/will/be/returned";
-	const apiJsonContent = await transformer(apiJsonPath, fakeTargetPath, dotLibraryPath, dependencyApiJsonPaths, {
+	const apiJsonContent = await transformer(apiJsonPath, fakeTargetPath, dotLibraryPath, dependencyApiJsonPaths, "", {
 		fs,
 		returnOutputFiles: true
 	});
