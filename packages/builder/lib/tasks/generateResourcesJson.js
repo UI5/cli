@@ -108,16 +108,25 @@ function getCreatorOptions(projectName) {
  * @alias module:@ui5/builder.tasks.generateResourcesJson
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {module:@ui5/fs.AbstractReader} [parameters.dependencies] Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, options: {projectName}}) {
+module.exports = async function({workspace, dependencies, options: {projectName}}) {
 	const resources = await workspace.byGlob(["/resources/**/*.*"].concat(DEFAULT_EXCLUDES));
+
+	// TODO 3.0: Make dependencies parameter mandatory
+	let dependencyResources;
+	if (dependencies) {
+		dependencyResources =
+			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library}");
+	}
 
 	const resourceLists = await resourceListCreator({
 		resources,
-		options: getCreatorOptions(projectName)
+		dependencyResources,
+		options: getCreatorOptions(projectName),
 	});
 	await Promise.all(
 		resourceLists.map((resourceList) => workspace.write(resourceList))

@@ -128,3 +128,80 @@ test.serial("components and themes", async (t) => {
 	]
 }`);
 });
+
+test.serial("XML View with control resource as dependency", async (t) => {
+	const myAppManifestJsonResource = resourceFactory.createResource({
+		path: "/resources/my/app/manifest.json",
+		string: JSON.stringify({"sap.app": {"id": "my.app"}})
+	});
+	const myAppXmlViewResource = resourceFactory.createResource({
+		path: "/resources/my/app/view/Main.view.xml",
+		string: `<mvc:View
+			controllerName="my.app.controller.Main"
+			xmlns="my.lib"
+			xmlns:myapp="my.app.controls"
+			xmlns:mvc="sap.ui.core.mvc">
+
+			<!-- Existing control, should be listed as "required" -->
+			<Button></Button>
+
+			<!-- Nonexistent control, should not be listed -->
+			<NonexistentControl></NonexistentControl>
+
+			<!-- Existing control within same project (app), should be listed as "required" -->
+			<myapp:Button></myapp:Button>
+
+			<!-- Nonexistent control within same project (app), should not be listed -->
+			<myapp:NonexistentControl></myapp:NonexistentControl>
+
+		</mvc:View>`
+	});
+	const myAppButtonResource = resourceFactory.createResource({
+		path: "/resources/my/app/controls/Button.js",
+		string: ""
+	});
+	const myLibButtonResource = resourceFactory.createResource({
+		path: "/resources/my/lib/Button.js",
+		string: ""
+	});
+
+	const resourcesJson = await resourceListCreator({
+		resources: [myAppManifestJsonResource, myAppXmlViewResource, myAppButtonResource],
+		dependencyResources: [myLibButtonResource]
+	});
+
+	t.is(resourcesJson.length, 1, "One resources.json should be returned");
+	const myAppResourcesJson = resourcesJson[0];
+	t.is(myAppResourcesJson.getPath(), "/resources/my/app/resources.json");
+	const myAppResourcesJsonContent = await myAppResourcesJson.getString();
+	t.is(myAppResourcesJsonContent, `{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": "controls/Button.js",
+			"module": "my/app/controls/Button.js",
+			"size": 0,
+			"format": "raw"
+		},
+		{
+			"name": "manifest.json",
+			"module": "my/app/manifest.json",
+			"size": 27
+		},
+		{
+			"name": "resources.json",
+			"size": 523
+		},
+		{
+			"name": "view/Main.view.xml",
+			"module": "my/app/view/Main.view.xml",
+			"size": 592,
+			"required": [
+				"my/app/controller/Main.controller.js",
+				"my/app/controls/Button.js",
+				"my/lib/Button.js"
+			]
+		}
+	]
+}`);
+});

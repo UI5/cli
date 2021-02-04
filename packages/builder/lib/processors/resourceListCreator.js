@@ -127,10 +127,11 @@ function makeResourcesJSON(list, prefix) {
  * @private
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources
+ * @param {module:@ui5/fs.Resource[]} [parameters.dependencyResources=[]] List of dependency resources
  * @param {object} [parameters.options] Options
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the resources.json resources
  */
-module.exports = async function({resources, options}) {
+module.exports = async function({resources, dependencyResources = [], options}) {
 	options = Object.assign({
 		failOnOrphans: false,
 		externalResources: undefined,
@@ -143,6 +144,7 @@ module.exports = async function({resources, options}) {
 
 	const pool = new LocatorResourcePool();
 	await pool.prepare( resources );
+	await pool.prepare( dependencyResources );
 
 	const collector = new ResourceCollector(pool);
 	const visitPromises = resources.map((resource) => collector.visitResource(resource));
