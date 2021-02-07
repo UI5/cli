@@ -113,7 +113,7 @@
 		"esprima": "^4.0.1",
 		"estraverse": "5.1.0",
 		"globby": "^11.0.2",
-		"graceful-fs": "^4.2.4",
+		"graceful-fs": "^4.2.5",
 		"jsdoc": "^3.6.6",
 		"less-openui5": "^0.10.0",
 		"make-dir": "^3.1.0",
@@ -128,7 +128,7 @@
 	},
 	"devDependencies": {
 		"ava": "^3.15.0",
-		"chai": "^4.1.2",
+		"chai": "^4.3.0",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",
 		"cross-env": "^7.0.3",
