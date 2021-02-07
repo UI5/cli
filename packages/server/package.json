@@ -116,7 +116,7 @@
 		"etag": "^1.8.1",
 		"express": "^4.17.1",
 		"fresh": "^0.5.2",
-		"graceful-fs": "^4.2.4",
+		"graceful-fs": "^4.2.5",
 		"make-dir": "^3.1.0",
 		"mime-types": "^2.1.28",
 		"parseurl": "^1.3.3",
