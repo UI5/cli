@@ -282,7 +282,8 @@ class ProjectPreprocessor {
 
 		if (project.specVersion !== "0.1" && project.specVersion !== "1.0" &&
 			project.specVersion !== "1.1" && project.specVersion !== "2.0" &&
-			project.specVersion !== "2.1" && project.specVersion !== "2.2") {
+			project.specVersion !== "2.1" && project.specVersion !== "2.2" &&
+			project.specVersion !== "2.3") {
 			throw new Error(
 				`Unsupported specification version ${project.specVersion} defined for project ` +
 				`${project.id}. Your UI5 CLI installation might be outdated. ` +
@@ -359,7 +360,8 @@ class ProjectPreprocessor {
 				extension.specVersion !== "1.1" &&
 				extension.specVersion !== "2.0" &&
 				extension.specVersion !== "2.1" &&
-				extension.specVersion !== "2.2") {
+				extension.specVersion !== "2.2" &&
+				extension.specVersion !== "2.3") {
 			throw new Error(
 				`Unsupported specification version ${extension.specVersion} defined for extension ` +
 				`${extension.metadata.name}. Your UI5 CLI installation might be outdated. ` +

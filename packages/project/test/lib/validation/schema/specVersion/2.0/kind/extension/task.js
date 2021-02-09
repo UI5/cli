@@ -11,6 +11,9 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);

@@ -23,7 +23,7 @@ module.exports = {
 		customConfiguration.defineTests(test, assertValidation, type);
 
 		// version specific tests
-		["2.2", "2.1", "2.0"].forEach((specVersion) => {
+		["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 			// tests for all kinds and version 2.0 and above
 			test(`${type} (specVersion ${specVersion}): No metadata`, async (t) => {
 				await assertValidation(t, {
@@ -35,8 +35,7 @@ module.exports = {
 					message: "should have required property 'metadata'",
 					params: {
 						missingProperty: "metadata",
-					},
-					schemaPath: "#/required",
+					}
 				}]);
 			});
 
@@ -51,8 +50,7 @@ module.exports = {
 					message: "should be object",
 					params: {
 						type: "object",
-					},
-					schemaPath: "../project.json#/definitions/metadata/type",
+					}
 				}]);
 			});
 
@@ -67,8 +65,7 @@ module.exports = {
 					message: "should have required property 'name'",
 					params: {
 						missingProperty: "name",
-					},
-					schemaPath: "../project.json#/definitions/metadata/required",
+					}
 				}]);
 			});
 
@@ -86,8 +83,7 @@ module.exports = {
 						message: "should be string",
 						params: {
 							type: "string"
-						},
-						schemaPath: "../project.json#/definitions/metadata/properties/name/type",
+						}
 					}
 				]);
 			});
@@ -107,8 +103,7 @@ module.exports = {
 						message: "should be string",
 						params: {
 							type: "string"
-						},
-						schemaPath: "../project.json#/definitions/metadata/properties/copyright/type",
+						}
 					}
 				]);
 			});
@@ -128,8 +123,7 @@ module.exports = {
 						message: "should NOT have additional properties",
 						params: {
 							additionalProperty: "copyrihgt"
-						},
-						schemaPath: "../project.json#/definitions/metadata/additionalProperties",
+						}
 					}
 				]);
 			});
@@ -171,8 +165,7 @@ module.exports = {
 						message: "should be boolean",
 						params: {
 							type: "boolean",
-						},
-						schemaPath: "../project.json#/definitions/metadata/properties/deprecated/type",
+						}
 					}
 				]);
 			});
@@ -214,8 +207,7 @@ module.exports = {
 						message: "should be boolean",
 						params: {
 							type: "boolean",
-						},
-						schemaPath: "../project.json#/definitions/metadata/properties/sapInternal/type",
+						}
 					}
 				]);
 			});
@@ -257,8 +249,7 @@ module.exports = {
 						message: "should be boolean",
 						params: {
 							type: "boolean",
-						},
-						schemaPath: "../project.json#/definitions/metadata/properties/allowSapInternal/type",
+						}
 					}
 				]);
 			});
@@ -278,7 +269,6 @@ module.exports = {
 					params: {
 						additionalProperty: "notAllowed",
 					},
-					schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
 				}]);
 			});
 		});

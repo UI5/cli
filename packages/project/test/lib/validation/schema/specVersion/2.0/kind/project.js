@@ -10,6 +10,9 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -131,8 +134,7 @@ test("No type", async (t) => {
 		message: "should have required property 'type'",
 		params: {
 			missingProperty: "type",
-		},
-		schemaPath: "#/required",
+		}
 	}]);
 });
 
@@ -148,8 +150,7 @@ test("No type, no kind", async (t) => {
 		message: "should have required property 'type'",
 		params: {
 			missingProperty: "type",
-		},
-		schemaPath: "#/required",
+		}
 	}]);
 });
 
@@ -172,8 +173,7 @@ test("Invalid type", async (t) => {
 				"theme-library",
 				"module",
 			],
-		},
-		schemaPath: "#/properties/type/enum",
+		}
 	}]);
 });
 
@@ -190,7 +190,6 @@ test("No specVersion", async (t) => {
 		message: "should have required property 'specVersion'",
 		params: {
 			missingProperty: "specVersion",
-		},
-		schemaPath: "#/required",
+		}
 	}]);
 });

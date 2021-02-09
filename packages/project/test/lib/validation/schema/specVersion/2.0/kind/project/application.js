@@ -11,6 +11,14 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+			if (error.params && Array.isArray(error.params.errors)) {
+				error.params.errors.forEach(($) => {
+					delete $.schemaPath;
+				});
+			}
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -28,14 +36,14 @@ test.after.always((t) => {
 	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-application"});
 	const thresholds = {
 		statements: 80,
-		branches: 70,
+		branches: 75,
 		functions: 100,
 		lines: 80
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -220,8 +228,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
-				},
-				schemaPath: "#/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/resources/configuration",
@@ -229,8 +236,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
-				},
-				schemaPath: "#/properties/configuration/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
@@ -241,8 +247,7 @@ test.after.always((t) => {
 						"UTF-8",
 						"ISO-8859-1"
 					],
-				},
-				schemaPath: "../project.json#/definitions/resources-configuration-propertiesFileSourceEncoding/enum"
+				}
 			},
 			{
 				dataPath: "/resources/configuration/paths",
@@ -250,8 +255,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "app",
-				},
-				schemaPath: "#/properties/configuration/properties/paths/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/resources/configuration/paths/webapp",
@@ -259,8 +263,7 @@ test.after.always((t) => {
 				message: "should be string",
 				params: {
 					type: "string"
-				},
-				schemaPath: "#/properties/configuration/properties/paths/properties/webapp/type"
+				}
 			}
 		]);
 		await assertValidation(t, {
@@ -281,8 +284,7 @@ test.after.always((t) => {
 				message: "should be object",
 				params: {
 					type: "object"
-				},
-				schemaPath: "#/properties/configuration/properties/paths/type",
+				}
 			}
 		]);
 	});
@@ -358,7 +360,8 @@ test.after.always((t) => {
 					"path": "some/invalid/path",
 					"paths": "some/invalid/glob/**/pattern/Component.js",
 					"namespaces": "some/invalid/namespace",
-				}
+				},
+				"libraryPreload": {} // Only supported for type library
 			}
 		}, [
 			{
@@ -367,8 +370,15 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "jsdoc"
-				},
-				schemaPath: "#/additionalProperties"
+				}
+			},
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "libraryPreload"
+				}
 			},
 			{
 				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
@@ -376,10 +386,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "declareModules",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/sections/items/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
@@ -387,10 +394,7 @@ test.after.always((t) => {
 				message: "should be string",
 				params: {
 					type: "string",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/sections/items/properties/name/type",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition",
@@ -398,8 +402,7 @@ test.after.always((t) => {
 				message: "should have required property 'name'",
 				params: {
 					missingProperty: "name",
-				},
-				schemaPath: "../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/required",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
@@ -407,10 +410,7 @@ test.after.always((t) => {
 				message: "should be string",
 				params: {
 					type: "string",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/defaultFileTypes/items/type",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
@@ -418,10 +418,7 @@ test.after.always((t) => {
 				message: "should have required property 'mode'",
 				params: {
 					missingProperty: "mode",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/sections/items/required",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
@@ -429,10 +426,7 @@ test.after.always((t) => {
 				message: "should be boolean",
 				params: {
 					type: "boolean",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/sections/items/properties/declareRawModules/type",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
@@ -445,10 +439,7 @@ test.after.always((t) => {
 						"require",
 						"provided",
 					],
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/sections/items/properties/mode/enum",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
@@ -456,10 +447,7 @@ test.after.always((t) => {
 				message: "should be array",
 				params: {
 					type: "array",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleDefinition/" +
-					"properties/sections/items/properties/filters/type",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleOptions",
@@ -467,10 +455,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleOptions/" +
-					"additionalProperties",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleOptions/optimize",
@@ -478,10 +463,7 @@ test.after.always((t) => {
 				message: "should be boolean",
 				params: {
 					type: "boolean",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleOptions/" +
-					"properties/optimize/type",
+				}
 			},
 			{
 				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
@@ -489,10 +471,7 @@ test.after.always((t) => {
 				message: "should be number",
 				params: {
 					type: "number",
-				},
-				schemaPath:
-					"../project.json#/definitions/builder-bundles/items/properties/bundleOptions/" +
-					"properties/numberOfParts/type",
+				}
 			},
 			{
 				dataPath: "/builder/componentPreload",
@@ -500,8 +479,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "path",
-				},
-				schemaPath: "../project.json#/definitions/builder-componentPreload/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/builder/componentPreload/paths",
@@ -509,8 +487,7 @@ test.after.always((t) => {
 				message: "should be array",
 				params: {
 					type: "array",
-				},
-				schemaPath: "../project.json#/definitions/builder-componentPreload/properties/paths/type",
+				}
 			},
 			{
 				dataPath: "/builder/componentPreload/namespaces",
@@ -518,12 +495,137 @@ test.after.always((t) => {
 				message: "should be array",
 				params: {
 					type: "array",
-				},
-				schemaPath: "../project.json#/definitions/builder-componentPreload/properties/namespaces/type",
+				}
 			}
 		]);
 	});
 });
 
+["2.2", "2.1", "2.0"].forEach(function(specVersion) {
+	test(`Unsupported builder/componentPreload/excludes configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"componentPreload": {
+					"excludes": [
+						"some/excluded/files/**",
+						"some/other/excluded/files/**"
+					]
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/componentPreload",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "excludes",
+				},
+			},
+		]);
+	});
+});
+
+["2.3"].forEach(function(specVersion) {
+	test(`application (specVersion ${specVersion}): builder/componentPreload/excludes`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"componentPreload": {
+					"excludes": [
+						"some/excluded/files/**",
+						"some/other/excluded/files/**"
+					]
+				}
+			}
+		});
+	});
+	test(`Invalid builder/componentPreload/excludes configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"componentPreload": {
+					"excludes": "some/excluded/files/**"
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/componentPreload/excludes",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+			},
+		]);
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"componentPreload": {
+					"excludes": [
+						true,
+						1,
+						{}
+					],
+					"notAllowed": true
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/componentPreload",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				},
+			},
+			{
+				dataPath: "/builder/componentPreload/excludes/0",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/componentPreload/excludes/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/componentPreload/excludes/2",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+		]);
+	});
+});
 
 project.defineTests(test, assertValidation, "application");

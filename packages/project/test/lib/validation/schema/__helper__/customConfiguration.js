@@ -30,13 +30,12 @@ module.exports = {
 					message: "should NOT have additional properties",
 					params: {
 						additionalProperty: "customConfiguration",
-					},
-					schemaPath: "#/else/additionalProperties",
+					}
 				}
 			]);
 		});
 
-		["2.2", "2.1"].forEach((specVersion) => {
+		["2.3", "2.2", "2.1"].forEach((specVersion) => {
 			test(`${type}: Valid customConfiguration (specVersion ${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign( {
 					"specVersion": specVersion,

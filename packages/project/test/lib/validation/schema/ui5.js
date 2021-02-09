@@ -10,6 +10,14 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+			if (error.params && Array.isArray(error.params.errors)) {
+				error.params.errors.forEach(($) => {
+					delete $.schemaPath;
+				});
+			}
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -41,8 +49,7 @@ test("Undefined", async (t) => {
 		message: "should be object",
 		params: {
 			type: "object",
-		},
-		schemaPath: "#/type",
+		}
 	}]);
 });
 
@@ -54,8 +61,7 @@ test("Missing specVersion, type", async (t) => {
 			message: "should have required property 'specVersion'",
 			params: {
 				missingProperty: "specVersion",
-			},
-			schemaPath: "#/required",
+			}
 		},
 		{
 			dataPath: "",
@@ -63,8 +69,7 @@ test("Missing specVersion, type", async (t) => {
 			message: "should have required property 'type'",
 			params: {
 				missingProperty: "type",
-			},
-			schemaPath: "#/required",
+			}
 		}
 
 	]);
@@ -80,8 +85,7 @@ test("Missing type", async (t) => {
 			message: "should have required property 'type'",
 			params: {
 				missingProperty: "type",
-			},
-			schemaPath: "#/required",
+			}
 		}
 	]);
 });
@@ -96,7 +100,7 @@ test("Invalid specVersion", async (t) => {
 			message:
 `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
-Supported specification versions: "2.2", "2.1", "2.0", "1.1", "1.0", "0.1"
+Supported specification versions: "2.3", "2.2", "2.1", "2.0", "1.1", "1.0", "0.1"
 For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`,
 			params: {
 				errors: [
@@ -106,6 +110,7 @@ For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specific
 						message: "should be equal to one of the allowed values",
 						params: {
 							allowedValues: [
+								"2.3",
 								"2.2",
 								"2.1",
 								"2.0",
@@ -113,12 +118,10 @@ For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specific
 								"1.0",
 								"0.1",
 							],
-						},
-						schemaPath: "#/properties/specVersion/enum",
+						}
 					},
 				],
-			},
-			schemaPath: "#/properties/specVersion/errorMessage",
+			}
 		}
 	]);
 });
@@ -139,8 +142,7 @@ test("Invalid type", async (t) => {
 					"theme-library",
 					"module"
 				]
-			},
-			schemaPath: "#/properties/type/enum",
+			}
 		}
 	]);
 });
@@ -160,8 +162,7 @@ test("Invalid kind", async (t) => {
 					"extension",
 					null
 				],
-			},
-			schemaPath: "#/properties/kind/enum",
+			}
 		}
 	]);
 });

@@ -5,7 +5,7 @@
 	"type": "object",
 	"required": ["specVersion", "type"],
 	"properties": {
-		"specVersion": { "enum": ["2.2", "2.1", "2.0"] },
+		"specVersion": { "enum": ["2.3", "2.2", "2.1", "2.0"] },
 		"kind": {
 			"enum": ["project", null],
 			"$comment": "Using null to allow not defining 'kind' which defaults to project"
@@ -216,6 +216,42 @@
 					}
 				},
 				"namespaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-componentPreload-specVersion-2.3": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"paths": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"namespaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-libraryPreload": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"excludes": {
 					"type": "array",
 					"items": {
 						"type": "string"

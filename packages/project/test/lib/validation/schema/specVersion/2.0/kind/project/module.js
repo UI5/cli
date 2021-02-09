@@ -11,6 +11,9 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -35,7 +38,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["2.2", "2.1", "2.0"].forEach((specVersion) => {
+["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -69,8 +72,7 @@ test.after.always((t) => {
 			message: "should NOT have additional properties",
 			params: {
 				"additionalProperty": "framework"
-			},
-			schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+			}
 		}]);
 	});
 
@@ -92,8 +94,7 @@ test.after.always((t) => {
 			message: "should NOT have additional properties",
 			params: {
 				"additionalProperty": "propertiesFileSourceEncoding"
-			},
-			schemaPath: "#/definitions/resources/properties/configuration/additionalProperties"
+			}
 		}]);
 	});
 
@@ -112,16 +113,14 @@ test.after.always((t) => {
 			message: "should NOT have additional properties",
 			params: {
 				"additionalProperty": "builder"
-			},
-			schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+			}
 		}, {
 			dataPath: "",
 			keyword: "additionalProperties",
 			message: "should NOT have additional properties",
 			params: {
 				"additionalProperty": "server"
-			},
-			schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+			}
 		}]);
 	});
 });

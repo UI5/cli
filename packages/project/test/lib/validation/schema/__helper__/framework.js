@@ -10,7 +10,7 @@ module.exports = {
 	 * @param {string} type one of "application", "library" and "theme-library"
 	 */
 	defineTests: function(test, assertValidation, type) {
-		["2.2", "2.1", "2.0"].forEach((specVersion) => {
+		["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 			test(`${type} (specVersion ${specVersion}): framework configuration: OpenUI5`, async (t) => {
 				const config = {
 					"specVersion": specVersion,
@@ -89,8 +89,7 @@ module.exports = {
 								"OpenUI5",
 								"SAPUI5",
 							],
-						},
-						schemaPath: "../project.json#/definitions/framework/properties/name/enum",
+						}
 					},
 					{
 						dataPath: "/framework/version",
@@ -110,12 +109,10 @@ module.exports = {
 											"^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*" +
 											"[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-]" +
 											"[0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
-									},
-									schemaPath: "../project.json#/definitions/framework/properties/version/pattern",
+									}
 								}
 							]
-						},
-						schemaPath: "../project.json#/definitions/framework/properties/version/errorMessage",
+						}
 					},
 					{
 						dataPath: "/framework/libraries/0",
@@ -123,8 +120,7 @@ module.exports = {
 						message: "should be object",
 						params: {
 							type: "object",
-						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/type"
+						}
 					},
 					{
 						dataPath: "/framework/libraries/1",
@@ -132,9 +128,7 @@ module.exports = {
 						message: "should NOT have additional properties",
 						params: {
 							additionalProperty: "library",
-						},
-						schemaPath:
-							"../project.json#/definitions/framework/properties/libraries/items/additionalProperties",
+						}
 					},
 					{
 						dataPath: "/framework/libraries/1",
@@ -142,8 +136,7 @@ module.exports = {
 						message: "should have required property 'name'",
 						params: {
 							missingProperty: "name",
-						},
-						schemaPath: "../project.json#/definitions/framework/properties/libraries/items/required",
+						}
 					},
 					{
 						dataPath: "/framework/libraries/2/optional",
@@ -151,10 +144,7 @@ module.exports = {
 						message: "should be boolean",
 						params: {
 							type: "boolean"
-						},
-						schemaPath:
-							"../project.json#/definitions/framework/properties/libraries" +
-							"/items/properties/optional/type",
+						}
 					},
 					{
 						dataPath: "/framework/libraries/3/development",
@@ -162,10 +152,7 @@ module.exports = {
 						message: "should be boolean",
 						params: {
 							type: "boolean"
-						},
-						schemaPath:
-							"../project.json#/definitions/framework/properties/libraries" +
-							"/items/properties/development/type"
+						}
 					}
 				]);
 			});
@@ -185,8 +172,7 @@ module.exports = {
 						message: "should have required property 'name'",
 						params: {
 							missingProperty: "name"
-						},
-						schemaPath: "../project.json#/definitions/framework/required",
+						}
 					}
 				]);
 			});
@@ -229,10 +215,7 @@ module.exports = {
 										message: "should NOT have additional properties",
 										params: {
 											additionalProperty: "development",
-										},
-										schemaPath:
-											"../project.json#/definitions/framework/properties/libraries/items/" +
-											"then/additionalProperties",
+										}
 									},
 									{
 										dataPath: "/framework/libraries/0",
@@ -240,15 +223,10 @@ module.exports = {
 										message: "should NOT have additional properties",
 										params: {
 											additionalProperty: "optional",
-										},
-										schemaPath:
-											"../project.json#/definitions/framework/properties/libraries/items/then/" +
-											"additionalProperties",
+										}
 									},
 								],
-							},
-							schemaPath:
-								"../project.json#/definitions/framework/properties/libraries/items/then/errorMessage",
+							}
 						},
 						{
 							dataPath: "/framework/libraries/1/optional",
@@ -256,10 +234,7 @@ module.exports = {
 							message: "should be boolean",
 							params: {
 								type: "boolean",
-							},
-							schemaPath:
-								"../project.json#/definitions/framework/properties/libraries/items/properties/" +
-								"optional/type",
+							}
 						},
 						{
 							dataPath: "/framework/libraries/1/development",
@@ -267,10 +242,7 @@ module.exports = {
 							message: "should be boolean",
 							params: {
 								type: "boolean",
-							},
-							schemaPath:
-								"../project.json#/definitions/framework/properties/libraries/items/properties/" +
-								"development/type",
+							}
 						},
 					]);
 				});

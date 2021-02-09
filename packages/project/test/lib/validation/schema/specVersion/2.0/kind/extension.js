@@ -10,6 +10,9 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -33,7 +36,7 @@ test.after.always((t) => {
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });
-["2.2", "2.1", "2.0"].forEach((specVersion) => {
+["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 	test(`Type project-shim (${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -87,8 +90,7 @@ test.after.always((t) => {
 			message: "should have required property 'type'",
 			params: {
 				missingProperty: "type",
-			},
-			schemaPath: "#/required",
+			}
 		}]);
 	});
 
@@ -110,8 +112,7 @@ test.after.always((t) => {
 					"server-middleware",
 					"project-shim"
 				],
-			},
-			schemaPath: "#/properties/type/enum",
+			}
 		}]);
 	});
 
@@ -129,8 +130,7 @@ test.after.always((t) => {
 			message: "should have required property 'specVersion'",
 			params: {
 				missingProperty: "specVersion",
-			},
-			schemaPath: "#/required",
+			}
 		}]);
 	});
 
@@ -146,8 +146,7 @@ test.after.always((t) => {
 			message: "should have required property 'metadata'",
 			params: {
 				missingProperty: "metadata",
-			},
-			schemaPath: "#/required",
+			}
 		}]);
 	});
 });

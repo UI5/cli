@@ -11,6 +11,14 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+			if (error.params && Array.isArray(error.params.errors)) {
+				error.params.errors.forEach(($) => {
+					delete $.schemaPath;
+				});
+			}
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -27,16 +35,16 @@ test.before((t) => {
 test.after.always((t) => {
 	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-theme-library"});
 	const thresholds = {
-		statements: 75,
+		statements: 80,
 		branches: 70,
 		functions: 100,
-		lines: 75
+		lines: 80
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });
 
 
-["2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -116,7 +124,11 @@ test.after.always((t) => {
 					"excludes": [
 						"some/project/name/thirdparty/**"
 					]
-				}
+				},
+				// componentPreload is only supported for types application/library
+				"componentPreload": {},
+				// libraryPreload is only supported for type library
+				"libraryPreload": {},
 			}
 		}, [{
 			dataPath: "/builder",
@@ -124,8 +136,7 @@ test.after.always((t) => {
 			message: "should NOT have additional properties",
 			params: {
 				additionalProperty: "cachebuster"
-			},
-			schemaPath: "#/additionalProperties"
+			}
 		},
 		{
 			dataPath: "/builder",
@@ -133,8 +144,23 @@ test.after.always((t) => {
 			message: "should NOT have additional properties",
 			params: {
 				additionalProperty: "jsdoc"
-			},
-			schemaPath: "#/additionalProperties"
+			}
+		},
+		{
+			dataPath: "/builder",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				additionalProperty: "componentPreload"
+			}
+		},
+		{
+			dataPath: "/builder",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				additionalProperty: "libraryPreload"
+			}
 		}]);
 	});
 });

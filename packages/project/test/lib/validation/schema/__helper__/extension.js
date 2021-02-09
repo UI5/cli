@@ -18,7 +18,7 @@ module.exports = {
 
 		customConfiguration.defineTests(test, assertValidation, type, additionalConfiguration);
 
-		["2.2", "2.1", "2.0"].forEach((specVersion) => {
+		["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 			test(`kind: extension / type: ${type} basic (${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign({
 					"specVersion": specVersion,
@@ -43,8 +43,7 @@ module.exports = {
 					message: "should NOT have additional properties",
 					params: {
 						"additionalProperty": "resources"
-					},
-					schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties"
+					}
 				}]);
 			});
 
@@ -63,9 +62,7 @@ module.exports = {
 						message: "should NOT have additional properties",
 						params: {
 							additionalProperty: "notAllowed",
-						},
-						schemaPath:
-							specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties"
+						}
 					}]);
 				});
 		});

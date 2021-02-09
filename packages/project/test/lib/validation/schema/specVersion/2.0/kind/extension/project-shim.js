@@ -11,6 +11,9 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 			instanceOf: ValidationError,
 			name: "ValidationError"
 		});
+		validationError.errors.forEach((error) => {
+			delete error.schemaPath;
+		});
 		t.deepEqual(validationError.errors, expectedErrors);
 	} else {
 		await t.notThrowsAsync(validation);
@@ -79,8 +82,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					"additionalProperty": "middleware"
-				},
-				schemaPath: specVersion !== "2.0" ? "#/then/additionalProperties" : "#/else/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/shims",
@@ -88,8 +90,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
-				},
-				schemaPath: "#/definitions/shims/additionalProperties",
+				}
 			},
 			{
 				dataPath: "/shims/dependencies/my-dependency",
@@ -97,8 +98,7 @@ test.after.always((t) => {
 				message: "should be array",
 				params: {
 					type: "array",
-				},
-				schemaPath: "#/definitions/shims/properties/dependencies/patternProperties/.%2B/type",
+				}
 			},
 			{
 				dataPath: "/shims/collections/foo",
@@ -106,8 +106,7 @@ test.after.always((t) => {
 				message: "should NOT have additional properties",
 				params: {
 					additionalProperty: "notAllowed",
-				},
-				schemaPath: "#/definitions/shims/properties/collections/patternProperties/.%2B/additionalProperties"
+				}
 			},
 			{
 				dataPath: "/shims/collections/foo/modules/lib-1",
@@ -115,10 +114,7 @@ test.after.always((t) => {
 				message: "should be string",
 				params: {
 					type: "string",
-				},
-				schemaPath:
-					"#/definitions/shims/properties/collections/patternProperties/.%2B/properties/" +
-					"modules/patternProperties/.%2B/type"
+				}
 			}
 		]);
 	});
