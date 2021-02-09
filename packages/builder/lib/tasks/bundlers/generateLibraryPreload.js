@@ -1,6 +1,7 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateLibraryPreload");
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
+const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
 
 const DEFAULT_FILE_TYPES = [
 	".js",
@@ -15,8 +16,8 @@ const DEFAULT_FILE_TYPES = [
 	".json"
 ];
 
-function getDefaultLibraryPreloadFilters(namespace) {
-	return [
+function getDefaultLibraryPreloadFilters(namespace, excludes) {
+	const filters = [
 		`${namespace}/`,
 		`!${namespace}/.library`,
 		`!${namespace}/*-preload.js`, // exclude all bundles
@@ -26,9 +27,25 @@ function getDefaultLibraryPreloadFilters(namespace) {
 		`!${namespace}/themes/`,
 		`!${namespace}/messagebundle*`
 	];
+
+	if (Array.isArray(excludes)) {
+		const allFilterExcludes = negateFilters(excludes);
+		// Add configured excludes at the end of filter list
+		allFilterExcludes.forEach((filterExclude) => {
+			// Allow all excludes (!) and limit re-includes (+) to the library namespace
+			if (filterExclude.startsWith("!") || filterExclude.startsWith(`+${namespace}/`)) {
+				filters.push(filterExclude);
+			} else {
+				log.warn(`Configured preload exclude contains invalid re-include: !${filterExclude.substr(1)}. ` +
+				`Re-includes must start with the library's namespace ${namespace}`);
+			}
+		});
+	}
+
+	return filters;
 }
 
-function getBundleDefinition(namespace) {
+function getBundleDefinition(namespace, excludes) {
 	// TODO: move to config of actual core project
 	if (namespace === "sap/ui/core") {
 		return {
@@ -47,6 +64,10 @@ function getBundleDefinition(namespace) {
 				{
 					mode: "preload",
 					filters: [
+						// Note: Don't pass configured preload excludes for sap.ui.core
+						// as they are already hardcoded below.
+						// In future the sap/ui/core/library-preload should be configured
+						// as a custom bundle in the ui5.yaml.
 						...getDefaultLibraryPreloadFilters(namespace),
 
 						`!${namespace}/cldr/`,
@@ -89,7 +110,7 @@ function getBundleDefinition(namespace) {
 		sections: [
 			{
 				mode: "preload",
-				filters: getDefaultLibraryPreloadFilters(namespace),
+				filters: getDefaultLibraryPreloadFilters(namespace, excludes),
 				resolve: false,
 				resolveConditional: false,
 				renderer: true
@@ -140,11 +161,11 @@ function getSupportFilesBundleDefinition(namespace) {
 	};
 }
 
-function createLibraryBundles(libraryNamespace, resources) {
+function createLibraryBundles(libraryNamespace, resources, excludes) {
 	return Promise.all([
 		moduleBundler({
 			options: {
-				bundleDefinition: getBundleDefinition(libraryNamespace),
+				bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
 				bundleOptions: {
 					optimize: true,
 					usePredefineCalls: true,
@@ -259,11 +280,17 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {string[]} [parameters.options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
+ * that should be excluded from the library-preload.js bundle.
+ * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisks,
+ * denote an arbitrary number of characters or folder names.
+ * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant, a later
+ * inclusion overrides an earlier exclusion and vice versa.
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, taskUtil, options: {projectName}}) {
+module.exports = function({workspace, dependencies, taskUtil, options: {projectName, excludes = []}}) {
 	const combo = new ReaderCollectionPrioritized({
 		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
@@ -356,7 +383,7 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					const libraryNamespaceMatch = libraryIndicatorPath.match(libraryNamespacePattern);
 					if (libraryNamespaceMatch && libraryNamespaceMatch[1]) {
 						const libraryNamespace = libraryNamespaceMatch[1];
-						return createLibraryBundles(libraryNamespace, resources)
+						return createLibraryBundles(libraryNamespace, resources, excludes)
 							.then((results) => {
 								const bundles = Array.prototype.concat.apply([], results);
 								return Promise.all(bundles.map((bundle) => {

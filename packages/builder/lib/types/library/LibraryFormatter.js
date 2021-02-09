@@ -8,6 +8,10 @@ const AbstractUi5Formatter = require("../AbstractUi5Formatter");
 
 const SAP_THEMES_NS_EXEMPTIONS = ["themelib_sap_fiori_3", "themelib_sap_bluecrystal", "themelib_sap_belize"];
 
+function isFrameworkProject(project) {
+	return project.id.startsWith("@openui5/") || project.id.startsWith("@sapui5/");
+}
+
 class LibraryFormatter extends AbstractUi5Formatter {
 	/**
 	 * Formats and validates the project
@@ -52,6 +56,27 @@ class LibraryFormatter extends AbstractUi5Formatter {
 			// Catch error because copyright is optional
 			// TODO 2.0: Make copyright mandatory and just let the error throw
 			log.verbose(err.message);
+		}
+
+		if (isFrameworkProject(project)) {
+			if (project.builder && project.builder.libraryPreload && project.builder.libraryPreload.excludes) {
+				log.verbose(
+					`Using preload excludes for framework library ${project.metadata.name} from project configuration`);
+			} else {
+				log.verbose(
+					`No preload excludes defined in project configuration of framework library ` +
+					`${project.metadata.name}. Falling back to .library...`);
+				const excludes = await this.getPreloadExcludesFromDotLibrary();
+				if (excludes) {
+					if (!project.builder) {
+						project.builder = {};
+					}
+					if (!project.builder.libraryPreload) {
+						project.builder.libraryPreload = {};
+					}
+					project.builder.libraryPreload.excludes = excludes;
+				}
+			}
 		}
 	}
 
@@ -225,7 +250,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		try {
 			const {content: dotLibrary, fsPath} = await this.getDotLibrary();
 			if (dotLibrary && dotLibrary.library && dotLibrary.library.name) {
-				const namespace = dotLibrary.library.name;
+				const namespace = dotLibrary.library.name._;
 				log.verbose(`Found namespace ${namespace} in .library file of project ${this._project.metadata.name} ` +
 					`at ${fsPath}`);
 				return {
@@ -283,10 +308,34 @@ class LibraryFormatter extends AbstractUi5Formatter {
 		const {content: dotLibrary} = await this.getDotLibrary();
 		if (dotLibrary && dotLibrary.library && dotLibrary.library.copyright) {
 			log.verbose(`Using copyright from .library for project ${this._project.metadata.name}...`);
-			return dotLibrary.library.copyright;
+			return dotLibrary.library.copyright._;
 		} else {
 			throw new Error(`No copyright configuration found in .library ` +
 				`of project ${this._project.metadata.name}`);
+		}
+	}
+
+	async getPreloadExcludesFromDotLibrary() {
+		const {content: dotLibrary, fsPath} = await this.getDotLibrary();
+		if (dotLibrary && dotLibrary.library && dotLibrary.library.appData &&
+			dotLibrary.library.appData.packaging &&
+			dotLibrary.library.appData.packaging["all-in-one"] &&
+			dotLibrary.library.appData.packaging["all-in-one"].exclude
+		) {
+			let excludes = dotLibrary.library.appData.packaging["all-in-one"].exclude;
+			if (!Array.isArray(excludes)) {
+				excludes = [excludes];
+			}
+			log.verbose(`Found ${excludes.length} preload excludes in .library file of ` +
+				`project ${this._project.metadata.name} at ${fsPath}`);
+			return excludes.map((exclude) => {
+				return exclude.$.name;
+			});
+		} else {
+			log.verbose(
+				`No preload excludes found in .library of project ${this._project.metadata.name} ` +
+				`at ${fsPath}`);
+			return null;
 		}
 	}
 
@@ -353,7 +402,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 			const xml2js = require("xml2js");
 			const parser = new xml2js.Parser({
 				explicitArray: false,
-				ignoreAttrs: true
+				explicitCharkey: true
 			});
 			const readXML = promisify(parser.parseString);
 			const contentJson = await readXML(content);

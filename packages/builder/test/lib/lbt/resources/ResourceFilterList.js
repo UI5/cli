@@ -182,6 +182,43 @@ test("fromString: empty", (t) => {
 	t.true(filterList.matches("foobar"));
 });
 
+
+test("negateFilters", (t) => {
+	const res = ResourceFilterList.negateFilters([
+		"pattern",
+		"+pattern",
+		"!pattern",
+		"-pattern",
+		" pattern",
+		"!!",
+		"++",
+		"--",
+		" ",
+		"+!",
+		"!+",
+		"+-",
+		"! ",
+		undefined
+	]);
+
+	t.deepEqual(res, [
+		"!pattern",
+		"!pattern",
+		"+pattern",
+		"+pattern",
+		"! pattern",
+		"+!", // "!!"
+		"!+", // "++"
+		"+-", // "--"
+		"! ", // " "
+		"!!", // "+!"
+		"++", // "!+"
+		"!-", // "+-"
+		"+ ", // "! "
+		"!undefined"
+	], "Patterns negated as expected");
+});
+
 test("error handling", (t) => {
 	const filterList = new ResourceFilterList();
 

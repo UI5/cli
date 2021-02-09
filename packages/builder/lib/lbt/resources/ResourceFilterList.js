@@ -2,6 +2,8 @@
 
 const log = require("@ui5/logger").getLogger("lbt:resources:ResourceFilterList");
 
+const FILTER_PREFIXES = /^[-!+]/;
+
 function makeFileTypePattern(fileTypes) {
 	if ( fileTypes == null ) {
 		return undefined;
@@ -21,7 +23,7 @@ function makeMatcher(globPattern, fileTypesPattern) {
 	};
 
 	// cut off leading '!', '-' or '+'
-	if ( /^[-!+]/.test(globPattern) ) {
+	if ( FILTER_PREFIXES.test(globPattern) ) {
 		result.include = globPattern[0] === "+";
 		globPattern = globPattern.slice(1);
 	}
@@ -159,6 +161,26 @@ ResourceFilterList.fromString = function(filterStr) {
 		result.addFilters( filterStr.trim().split(/\s*,\s*/).filter(Boolean) );
 	}
 	return result;
+};
+
+ResourceFilterList.negateFilters = function(patterns) {
+	return patterns.map((pattern) => {
+		let include = true;
+
+		// cut off leading '!', '-' or '+'
+		if (FILTER_PREFIXES.test(pattern)) {
+			include = pattern[0] === "+";
+			pattern = pattern.slice(1);
+		}
+
+		if (include) {
+			// include => exclude
+			return "!" + pattern;
+		} else {
+			// exclude => include
+			return "+" + pattern;
+		}
+	});
 };
 
 module.exports = ResourceFilterList;

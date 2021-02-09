@@ -90,7 +90,8 @@ class LibraryBuilder extends AbstractBuilder {
 					options: {
 						projectName: project.metadata.name,
 						paths: componentPreload.paths,
-						namespaces: componentPreload.namespaces
+						namespaces: componentPreload.namespaces,
+						excludes: componentPreload.excludes
 					}
 				});
 			});
@@ -126,7 +127,11 @@ class LibraryBuilder extends AbstractBuilder {
 				dependencies: resourceCollections.dependencies,
 				taskUtil,
 				options: {
-					projectName: project.metadata.name
+					projectName: project.metadata.name,
+					excludes:
+						project.builder &&
+						project.builder.libraryPreload &&
+						project.builder.libraryPreload.excludes
 				}
 			});
 		});

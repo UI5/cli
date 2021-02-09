@@ -68,7 +68,7 @@ class ApplicationBuilder extends AbstractBuilder {
 		}
 
 		const componentPreload = project.builder && project.builder.componentPreload;
-		if (componentPreload) {
+		if (componentPreload && (componentPreload.namespaces || componentPreload.paths)) {
 			this.addTask("generateComponentPreload", async () => {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
@@ -77,7 +77,8 @@ class ApplicationBuilder extends AbstractBuilder {
 					options: {
 						projectName: project.metadata.name,
 						paths: componentPreload.paths,
-						namespaces: componentPreload.namespaces
+						namespaces: componentPreload.namespaces,
+						excludes: componentPreload.excludes
 					}
 				});
 			});
@@ -90,7 +91,8 @@ class ApplicationBuilder extends AbstractBuilder {
 					taskUtil,
 					options: {
 						projectName: project.metadata.name,
-						namespaces: [project.metadata.namespace]
+						namespaces: [project.metadata.namespace],
+						excludes: componentPreload && componentPreload.excludes
 					}
 				});
 			});

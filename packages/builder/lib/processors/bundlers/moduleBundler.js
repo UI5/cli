@@ -1,7 +1,7 @@
 const BundleBuilder = require("../../lbt/bundle/Builder");
 const LocatorResourcePool = require("../../lbt/resources/LocatorResourcePool");
 const EvoResource = require("@ui5/fs").Resource;
-
+const log = require("@ui5/logger").getLogger("builder:processors:bundlers:moduleBundler");
 
 /**
  * A ModuleBundleDefinitionSection specifies the embedding mode ('provided', 'raw', 'preload' or 'require')
@@ -40,9 +40,9 @@ const EvoResource = require("@ui5/fs").Resource;
  * @property {string} mode The embedding mode. Either 'provided', 'raw', 'preload' or 'require'
  * @property {string[]} filters List of modules declared as glob patterns (resource name patterns) that should be
  *		in- or excluded.
- * 		A pattern either contains of a trailing slash '/' or single '*' and double '**' asterisks which denote an
- *		arbitrary number of characters or folder names.
- * 		Exludes should be marked with a leading exclamation mark '!'. The order of filters is relevant, a later
+ * 		A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisks,
+ *		denote an arbitrary number of characters or folder names.
+ * 		Excludes should be marked with a leading exclamation mark '!'. The order of filters is relevant, a later
  *		exclusion overrides an earlier inclusion and vice versa.
  * @example <caption>List of modules as glob patterns that should be in- or excluded</caption>
  * // Includes everything from "some/path/to/module/",
@@ -114,6 +114,12 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions}
 		ignoreMissingModules: bundleOptions.ignoreMissingModules
 	});
 	const builder = new BundleBuilder(pool);
+
+	if (log.isLevelEnabled("verbose")) {
+		log.verbose(`Generating bundle:`);
+		log.verbose(`bundleDefinition: ${JSON.stringify(bundleDefinition, null, 2)}`);
+		log.verbose(`bundleOptions: ${JSON.stringify(bundleOptions, null, 2)}`);
+	}
 
 	return pool.prepare( resources ).
 		then( () => builder.createBundle(bundleDefinition, bundleOptions) ).

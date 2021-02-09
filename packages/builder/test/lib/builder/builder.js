@@ -17,6 +17,7 @@ const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "applicati
 const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
 const applicationIPath = path.join(__dirname, "..", "..", "fixtures", "application.i");
 const applicationJPath = path.join(__dirname, "..", "..", "fixtures", "application.j");
+const applicationKPath = path.join(__dirname, "..", "..", "fixtures", "application.k");
 const applicationØPath = path.join(__dirname, "..", "..", "fixtures", "application.ø");
 const collectionPath = path.join(__dirname, "..", "..", "fixtures", "collection");
 const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
@@ -44,8 +45,12 @@ const findFiles = (folder) => {
 	});
 };
 
+function clone(obj) {
+	return JSON.parse(JSON.stringify(obj));
+}
+
 function cloneProjectTree(tree) {
-	const clone = JSON.parse(JSON.stringify(tree));
+	tree = clone(tree);
 
 	function increaseDepth(node) {
 		node._level++;
@@ -54,8 +59,8 @@ function cloneProjectTree(tree) {
 		}
 	}
 
-	increaseDepth(clone);
-	return clone;
+	increaseDepth(tree);
+	return tree;
 }
 
 async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath) {
@@ -419,7 +424,6 @@ test.serial("Build application.g with excludes", (t) => {
 	return builder.build({
 		tree: applicationGTreeWithExcludes,
 		destPath,
-		includeTasks: ["createDebugFiles"],
 		excludedTasks: ["*"]
 	}).then(() => {
 		return findFiles(expectedPath);
@@ -527,6 +531,48 @@ test.serial("Build application.j with resources.json and version info", (t) => {
 		tree: applicationJTree,
 		destPath,
 		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build application.k (componentPreload excludes)", (t) => {
+	const destPath = "./test/tmp/build/application.k/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.k", "dest");
+
+	return builder.build({
+		tree: applicationKTree,
+		destPath,
+		includedTasks: ["generateComponentPreload"],
+		excludedTasks: ["*"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build application.k (package sub-components / componentPreload excludes)", (t) => {
+	const destPath = "./test/tmp/build/application.k/dest-package-subcomponents";
+	const expectedPath = path.join("test", "expected", "build", "application.k", "dest-package-subcomponents");
+
+	return builder.build({
+		tree: applicationKPackageSubcomponentsTree,
+		destPath,
+		includedTasks: ["generateComponentPreload"],
+		excludedTasks: ["*"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -1213,6 +1259,57 @@ const applicationJTree = {
 		"bundles": []
 	}
 };
+
+const applicationKTree = {
+	"id": "application.k",
+	"version": "1.0.0",
+	"path": applicationKPath,
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "0.1",
+	"type": "application",
+	"metadata": {
+		"name": "application.k",
+		"namespace": "application/k",
+		"copyright": "Some fancy copyright"
+	},
+	"dependencies": [],
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	},
+	"builder": {
+		"componentPreload": {
+			"namespaces": [
+				"application/k",
+				"application/k/subcomponentA",
+				"application/k/subcomponentB"
+			],
+			"excludes": [
+				"application/k/**/thirdparty/",
+				"!application/k/subcomponentB/thirdparty/"
+			]
+		}
+	}
+};
+
+const applicationKPackageSubcomponentsTree = clone(applicationKTree);
+applicationKPackageSubcomponentsTree.builder = {
+	"componentPreload": {
+		"excludes": [
+			"application/k/**/thirdparty/",
+			"!application/k/subcomponentB/thirdparty/"
+		]
+	}
+};
+
 const applicationØTree = {
 	"id": "application.ø",
 	"version": "1.0.0",
