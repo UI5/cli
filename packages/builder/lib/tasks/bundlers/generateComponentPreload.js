@@ -17,10 +17,10 @@ const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
  * @param {string} parameters.options.projectName Project name
  * @param {string[]} [parameters.options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
  * that should be excluded.
- * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisks,
+ * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
  * denote an arbitrary number of characters or folder names.
- * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant, a later
- * inclusion overrides an earlier exclusion and vice versa.
+ * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+ * inclusion overrides an earlier exclusion, and vice versa.
  * @param {string[]} [parameters.options.paths] Array of paths (or glob patterns) for component files
  * @param {string[]} [parameters.options.namespaces] Array of component namespaces
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written

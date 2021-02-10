@@ -40,10 +40,10 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @property {string} mode The embedding mode. Either 'provided', 'raw', 'preload' or 'require'
  * @property {string[]} filters List of modules declared as glob patterns (resource name patterns) that should be
  *		in- or excluded.
- * 		A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisks,
+ * 		A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
  *		denote an arbitrary number of characters or folder names.
- * 		Excludes should be marked with a leading exclamation mark '!'. The order of filters is relevant, a later
- *		exclusion overrides an earlier inclusion and vice versa.
+ * 		Excludes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+ *		exclusion overrides an earlier inclusion, and vice versa.
  * @example <caption>List of modules as glob patterns that should be in- or excluded</caption>
  * // Includes everything from "some/path/to/module/",
  * // but excludes the subfolder "some/path/to/module/to/be/excluded/"

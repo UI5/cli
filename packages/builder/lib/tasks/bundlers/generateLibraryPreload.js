@@ -282,10 +282,10 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {string[]} [parameters.options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
  * that should be excluded from the library-preload.js bundle.
- * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisks,
+ * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
  * denote an arbitrary number of characters or folder names.
- * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant, a later
- * inclusion overrides an earlier exclusion and vice versa.
+ * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+ * inclusion overrides an earlier exclusion, and vice versa.
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
