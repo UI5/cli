@@ -220,6 +220,11 @@ module.exports = {
 		const processedProjects = [];
 		while (queue.length) {
 			const project = queue.shift();
+			if (project.deduped) {
+				// Deduped projects have certainly already been processed
+				// Note: Deduped dependencies don't have any metadata or other configuration.
+				continue;
+			}
 			if (processedProjects.includes(project.id)) {
 				// projectTree must be duplicate free. A second occurrence of the same project
 				//	is always the same object. Therefore a single processing needs to be ensured.

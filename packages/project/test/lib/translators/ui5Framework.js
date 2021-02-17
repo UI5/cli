@@ -708,7 +708,11 @@ test.serial("utils.mergeTrees: Do not abort merge if project has already been pr
 								}
 							]
 						},
-						dependencies: []
+						dependencies: [{
+							id: "test2",
+							deduped: true,
+							dependencies: []
+						}]
 					}
 				]
 			},
@@ -805,6 +809,10 @@ test.serial("utils.mergeTrees: Do not abort merge if project has already been pr
 						},
 						dependencies: [
 							{
+								id: "test2",
+								deduped: true,
+								dependencies: []
+							}, {
 								metadata: {
 									name: "lib1"
 								},
