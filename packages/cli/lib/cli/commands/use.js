@@ -10,13 +10,13 @@ useCommand.builder = function(cli) {
 		.positional("framework-info", {
 			describe: "Framework name, version or both (name@version).\n" +
 			"Name can be \"SAPUI5\" or \"OpenUI5\" (case-insensitive).\n" +
-			"Version can be \"latest\", \"1.xx\" or \"1.xx.x\".",
+			"Version can be \"latest\" (default), \"1.xx\" or \"1.xx.x\".",
 			type: "string"
 		})
 		.example("$0 use sapui5@latest", "Use SAPUI5 in the latest available version")
 		.example("$0 use openui5@1.76", "Use OpenUI5 in the latest available 1.76 patch version")
 		.example("$0 use latest", "Use the latest available version of the configured framework")
-		.example("$0 use openui5", "Use OpenUI5 without a version (or use existing version)");
+		.example("$0 use openui5", "Use OpenUI5 in the latest available version");
 };
 
 function parseFrameworkInfo(frameworkInfo) {
@@ -32,9 +32,10 @@ function parseFrameworkInfo(frameworkInfo) {
 			throw new Error("Invalid framework info: " + frameworkInfo);
 		}
 		if (["sapui5", "openui5"].includes(nameOrVersion.toLowerCase())) {
+			// Framework name without version uses "latest", similar to npm install behavior
 			return {
 				name: nameOrVersion,
-				version: null
+				version: "latest"
 			};
 		} else {
 			return {
