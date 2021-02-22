@@ -712,7 +712,7 @@ module.exports = function({libraryResource, resources, options}) {
 	// check whether a manifest exists already
 	const manifestResource = libBundle.findResource("manifest.json");
 	if ( manifestResource != null ) {
-		log.info("Library manifest already exists at '%s', skipping generation", manifestResource.getPath());
+		log.verbose("Library manifest already exists at '%s', skipping generation", manifestResource.getPath());
 		return Promise.resolve(null); // a fulfillment of null indicates that no manifest has been created
 	}
 
