@@ -177,13 +177,13 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	function sectionVersion(candidateVersion) {
 		// _version property for nested sections became optional with AppDescriptor V5
 		if ( descriptorVersion.compare(APP_DESCRIPTOR_V5) < 0 ) {
-			return candidateVersion;
+			return candidateVersion.toString();
 		}
 		// return undefined
 	}
 
-	async function createSapApp() {
-		async function isEmbeddedByLibrary(componentPath, libraryPathPrefix) {
+	function createSapApp() {
+		function hasManifest(componentPath, libraryPathPrefix) {
 			const manifestPath = componentPath + "/manifest.json";
 
 			const manifestResource = libBundle.findResource(manifestPath.substring(libraryPathPrefix.length));
@@ -191,61 +191,17 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 				log.verbose("  component has no accompanying manifest.json, don't list it as 'embedded'");
 				return false;
 			}
-			const manifestString = await manifestResource.getString();
-			let manifest;
-			try {
-				manifest = JSON.parse(manifestString);
-			} catch (err) {
-				log.error(
-					"  component '%s': failed to read the component's manifest.json, " +
-					"it won't be listed as 'embedded'.\nError details: %s", componentPath, err.stack);
-				return false;
-			}
-			let embeddedBy;
-			if (manifest && manifest["sap.app"]) {
-				embeddedBy = manifest["sap.app"]["embeddedBy"];
-			}
-			if (typeof embeddedBy === "undefined") {
-				log.verbose("  component doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'");
-				return false;
-			}
-			if (typeof embeddedBy !== "string") {
-				log.error(
-					"  component '%s': property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
-					"it won't be listed as 'embedded'", componentPath, typeof embeddedBy
-				);
-				return false;
-			}
-			if ( !embeddedBy.length ) {
-				log.error(
-					"  component '%s': property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
-					"it won't be listed as 'embedded'", componentPath
-				);
-				return false;
-			}
-			let resolvedEmbeddedBy = posixPath.resolve(componentPath, embeddedBy);
-			if ( resolvedEmbeddedBy && !resolvedEmbeddedBy.endsWith("/") ) {
-				resolvedEmbeddedBy = resolvedEmbeddedBy + "/";
-			}
-			if ( libraryPathPrefix === resolvedEmbeddedBy ) {
-				log.verbose("  component's 'sap.app/embeddedBy' property points to library, list it as 'embedded'");
-				return true;
-			} else {
-				log.verbose(
-					"  component's 'sap.app/embeddedBy' points to '%s', don't list it as 'embedded'", resolvedEmbeddedBy
-				);
-				return false;
-			}
+			return true;
 		}
 
-		async function findEmbeddedComponents() {
+		function findEmbeddedComponents() {
 			const result = [];
-			const prefix = libraryResource.getPath().slice(0, - ".library".length);
+			const prefix = posixPath.dirname(libraryResource.getPath()) + "/";
 			const components = libBundle.getResources(/^\/(?:[^/]+\/)*Component\.js$/);
 			for (const comp of components) {
-				const componentPath = comp.getPath().slice(0, - "Component.js".length - 1);
+				const componentPath = posixPath.dirname(comp.getPath());
 				log.verbose("checking component at %s", componentPath);
-				if ( componentPath.startsWith(prefix) && await isEmbeddedByLibrary(componentPath, prefix) ) {
+				if ( componentPath.startsWith(prefix) && hasManifest(componentPath, prefix) ) {
 					result.push( componentPath.substring(prefix.length) );
 				} else if ( prefix === "/resources/sap/apf/" ) {
 					log.verbose("Package %s contains both '*.library' and 'Component.js'. " +
@@ -358,7 +314,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			_version: sectionVersion(APP_DESCRIPTOR_V3_SECTION_SAP_APP),
 			id: library.getName(),
 			type: "library",
-			embeds: await findEmbeddedComponents(),
+			embeds: findEmbeddedComponents(),
 			i18n,
 			applicationVersion: {
 				version: isValid(library.getVersion()) ? library.getVersion() : getProjectVersion()
@@ -429,11 +385,6 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	function createSapUI5() {
 		function getUI5Version() {
-			let ui5Version;
-			if ( ui5Version != null ) {
-				return ui5Version;
-			}
-
 			const dummy = new Dependency({
 				libraryName: [{
 					_: "sap.ui.core"
@@ -689,7 +640,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	return {
 		"_version": descriptorVersion.toString(),
-		"sap.app": await createSapApp(),
+		"sap.app": createSapApp(),
 		"sap.ui": createSapUi(),
 		"sap.ui5": createSapUI5(),
 		"sap.fiori": createSapFiori(),
@@ -701,7 +652,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 module.exports = function({libraryResource, resources, options}) {
 	// merge options with defaults
 	options = Object.assign({
-		descriptorVersion: APP_DESCRIPTOR_V22,
+		descriptorVersion: APP_DESCRIPTOR_V22, // TODO change this to type string instead of a semver object
 		include3rdParty: true,
 		prettyPrint: true
 	}, options);
