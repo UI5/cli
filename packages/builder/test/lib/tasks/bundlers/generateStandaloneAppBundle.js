@@ -53,10 +53,23 @@ test.serial("execute module bundler and write results", async (t) => {
 	], "Correct filter in first bundle definition section");
 	t.deepEqual(options.bundleDefinition.sections[1].filters, [
 		"some/project/namespace/",
+		"some/project/namespace/**/manifest.json",
+		"some/project/namespace/changes/changes-bundle.json",
+		"some/project/namespace/changes/flexibility-bundle.json",
 		"!some/project/namespace/test/",
-		"!some/project/namespace/*.html",
 		"sap/ui/core/Core.js"
 	], "Correct filter in second bundle definition section");
+	t.deepEqual(options.bundleDefinition.defaultFileTypes, [
+		".js",
+		".control.xml",
+		".fragment.html",
+		".fragment.json",
+		".fragment.xml",
+		".view.html",
+		".view.json",
+		".view.xml",
+		".properties"
+	], "Correct default file types in bundle definition");
 });
 
 test.serial("execute module bundler and write results without namespace", async (t) => {
@@ -90,8 +103,10 @@ test.serial("execute module bundler and write results without namespace", async 
 	], "Correct filter in first bundle definition section");
 	t.deepEqual(options.bundleDefinition.sections[1].filters, [
 		"/",
+		"/**/manifest.json",
+		"/changes/changes-bundle.json",
+		"/changes/flexibility-bundle.json",
 		"!/test/",
-		"!/*.html",
 		"sap/ui/core/Core.js"
 	], "Correct filter in second bundle definition section");
 });
@@ -129,8 +144,10 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 	], "Evo mode active - Correct filter in first bundle definition section");
 	t.deepEqual(options.bundleDefinition.sections[1].filters, [
 		"some/project/namespace/",
+		"some/project/namespace/**/manifest.json",
+		"some/project/namespace/changes/changes-bundle.json",
+		"some/project/namespace/changes/flexibility-bundle.json",
 		"!some/project/namespace/test/",
-		"!some/project/namespace/*.html",
 		"sap/ui/core/Core.js"
 	], "Correct filter in second bundle definition section");
 });

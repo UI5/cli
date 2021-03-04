@@ -4,7 +4,17 @@ const moduleBundler = require("../../processors/bundlers/moduleBundler");
 function getBundleDefinition(config) {
 	const bundleDefinition = {
 		name: config.name,
-		defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
+		defaultFileTypes: [
+			".js",
+			".control.xml",
+			".fragment.html",
+			".fragment.json",
+			".fragment.xml",
+			".view.html",
+			".view.json",
+			".view.xml",
+			".properties"
+		],
 		sections: []
 	};
 
@@ -23,9 +33,11 @@ function getBundleDefinition(config) {
 		bundleDefinition.sections.push({
 			mode: "preload",
 			filters: [
-				`${config.namespace|| ""}/`,
+				`${config.namespace || ""}/`,
+				`${config.namespace || ""}/**/manifest.json`,
+				`${config.namespace || ""}/changes/changes-bundle.json`,
+				`${config.namespace || ""}/changes/flexibility-bundle.json`,
 				`!${config.namespace || ""}/test/`,
-				`!${config.namespace || ""}/*.html`,
 				"sap/ui/core/Core.js"
 			],
 			resolve: true,

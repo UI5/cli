@@ -64,30 +64,16 @@ test.serial("generateLibraryPreload", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "my/lib/library-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/lib/",
-							"!my/lib/.library",
+							"my/lib/**/manifest.json",
 							"!my/lib/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
 							"!my/lib/**/*.support.js",
-							"!my/lib/themes/",
-							"!my/lib/messagebundle*",
 						],
 						mode: "preload",
 						renderer: true,
@@ -107,18 +93,6 @@ test.serial("generateLibraryPreload", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "my/lib/designtime/library-preload.designtime.js",
 				sections: [
 					{
@@ -149,18 +123,6 @@ test.serial("generateLibraryPreload", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "my/lib/library-preload.support.js",
 				sections: [
 					{
@@ -387,18 +349,6 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 	t.deepEqual(moduleBundlerStub.getCall(4).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "sap/ui/core/library-preload.js",
 				sections: [
 					{
@@ -412,13 +362,11 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 					{
 						filters: [
 							"sap/ui/core/",
-							"!sap/ui/core/.library",
+							"sap/ui/core/**/manifest.json",
 							"!sap/ui/core/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
-							"!sap/ui/core/themes/",
-							"!sap/ui/core/messagebundle*",
 
 							"!sap/ui/core/cldr/",
 							"*.js",
@@ -662,18 +610,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	t.deepEqual(moduleBundlerStub.getCall(4).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "sap/ui/core/library-preload.js",
 				sections: [
 					{
@@ -687,13 +623,11 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 					{
 						filters: [
 							"sap/ui/core/",
-							"!sap/ui/core/.library",
+							"sap/ui/core/**/manifest.json",
 							"!sap/ui/core/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
-							"!sap/ui/core/themes/",
-							"!sap/ui/core/messagebundle*",
 
 							"!sap/ui/core/cldr/",
 							"*.js",
@@ -735,18 +669,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	t.deepEqual(moduleBundlerStub.getCall(5).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "sap/ui/core/designtime/library-preload.designtime.js",
 				sections: [
 					{
@@ -777,18 +699,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	t.deepEqual(moduleBundlerStub.getCall(6).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "sap/ui/core/library-preload.support.js",
 				sections: [
 					{
@@ -855,30 +765,16 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "my/lib/library-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/lib/",
-							"!my/lib/.library",
+							"my/lib/**/manifest.json",
 							"!my/lib/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
 							"!my/lib/**/*.support.js",
-							"!my/lib/themes/",
-							"!my/lib/messagebundle*",
 
 							// via excludes option
 							"!my/lib/thirdparty/",
@@ -943,30 +839,16 @@ test.serial("generateLibraryPreload with invalid excludes", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition: {
-				defaultFileTypes: [
-					".js",
-					".control.xml",
-					".fragment.html",
-					".fragment.json",
-					".fragment.xml",
-					".view.html",
-					".view.json",
-					".view.xml",
-					".properties",
-					".json"
-				],
 				name: "my/lib/library-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/lib/",
-							"!my/lib/.library",
+							"my/lib/**/manifest.json",
 							"!my/lib/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
-							"!my/lib/**/*.support.js",
-							"!my/lib/themes/",
-							"!my/lib/messagebundle*"
+							"!my/lib/**/*.support.js"
 						],
 						mode: "preload",
 						renderer: true,

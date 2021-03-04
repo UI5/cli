@@ -3,29 +3,14 @@ const moduleBundler = require("../../processors/bundlers/moduleBundler");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
 
-const DEFAULT_FILE_TYPES = [
-	".js",
-	".control.xml", // XMLComposite
-	".fragment.html",
-	".fragment.json",
-	".fragment.xml",
-	".view.html",
-	".view.json",
-	".view.xml",
-	".properties",
-	".json"
-];
-
 function getDefaultLibraryPreloadFilters(namespace, excludes) {
 	const filters = [
 		`${namespace}/`,
-		`!${namespace}/.library`,
+		`${namespace}/**/manifest.json`,
 		`!${namespace}/*-preload.js`, // exclude all bundles
 		`!${namespace}/designtime/`,
 		`!${namespace}/**/*.designtime.js`,
-		`!${namespace}/**/*.support.js`,
-		`!${namespace}/themes/`,
-		`!${namespace}/messagebundle*`
+		`!${namespace}/**/*.support.js`
 	];
 
 	if (Array.isArray(excludes)) {
@@ -50,7 +35,6 @@ function getBundleDefinition(namespace, excludes) {
 	if (namespace === "sap/ui/core") {
 		return {
 			name: `${namespace}/library-preload.js`,
-			defaultFileTypes: DEFAULT_FILE_TYPES,
 			sections: [
 				{
 					// exclude the content of sap-ui-core by declaring it as 'provided'
@@ -106,7 +90,6 @@ function getBundleDefinition(namespace, excludes) {
 	}
 	return {
 		name: `${namespace}/library-preload.js`,
-		defaultFileTypes: DEFAULT_FILE_TYPES,
 		sections: [
 			{
 				mode: "preload",
@@ -122,7 +105,6 @@ function getBundleDefinition(namespace, excludes) {
 function getDesigntimeBundleDefinition(namespace) {
 	return {
 		name: `${namespace}/designtime/library-preload.designtime.js`,
-		defaultFileTypes: DEFAULT_FILE_TYPES,
 		sections: [
 			{
 				mode: "preload",
@@ -145,7 +127,6 @@ function getDesigntimeBundleDefinition(namespace) {
 function getSupportFilesBundleDefinition(namespace) {
 	return {
 		name: `${namespace}/library-preload.support.js`,
-		defaultFileTypes: DEFAULT_FILE_TYPES,
 		sections: [
 			{
 				mode: "preload",

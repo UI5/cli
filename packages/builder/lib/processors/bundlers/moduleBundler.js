@@ -64,16 +64,18 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @property {boolean} [sort=true] Whether the modules should be sorted by their dependencies
  */
 
+/* eslint-disable max-len */
 /**
  * Module bundle definition
  *
  * @public
  * @typedef {object} ModuleBundleDefinition
  * @property {string} name The module bundle name
- * @property {string[]} [defaultFileTypes=[".js", ".fragment.xml", ".view.xml", ".properties", ".json"]]
+ * @property {string[]} [defaultFileTypes=[".js", ".control.xml", ".fragment.html", ".fragment.json", ".fragment.xml", ".view.html", ".view.json", ".view.xml"]]
  *   List of default file types to be included in the bundle
  * @property {ModuleBundleDefinitionSection[]} sections List of module bundle definition sections.
  */
+/* eslint-enable max-len */
 
 /**
  * Module bundle options

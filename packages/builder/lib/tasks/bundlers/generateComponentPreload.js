@@ -67,8 +67,10 @@ module.exports = function({
 			const bundleDefinitions = allNamespaces.map((namespace) => {
 				const filters = [
 					`${namespace}/`,
-					`!${namespace}/test/`,
-					`!${namespace}/*.html`
+					`${namespace}/**/manifest.json`,
+					`${namespace}/changes/changes-bundle.json`,
+					`${namespace}/changes/flexibility-bundle.json`,
+					`!${namespace}/test/`
 				];
 
 				// Add configured excludes for namespace
@@ -85,12 +87,25 @@ module.exports = function({
 				allNamespaces.forEach((ns) => {
 					if (ns !== namespace && ns.startsWith(`${namespace}/`)) {
 						filters.push(`!${ns}/`);
+						// Explicitly exclude manifest.json files of subcomponents since the general exclude above this
+						// comment only applies to the configured default file types, which do not include ".json"
+						filters.push(`!${ns}/**/manifest.json`);
 					}
 				});
 
 				return {
 					name: `${namespace}/Component-preload.js`,
-					defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
+					defaultFileTypes: [
+						".js",
+						".control.xml",
+						".fragment.html",
+						".fragment.json",
+						".fragment.xml",
+						".view.html",
+						".view.json",
+						".view.xml",
+						".properties"
+					],
 					sections: [
 						{
 							mode: "preload",

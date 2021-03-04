@@ -63,18 +63,24 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/app/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/app/",
+							"my/app/**/manifest.json",
+							"my/app/changes/changes-bundle.json",
+							"my/app/changes/flexibility-bundle.json",
 							"!my/app/test/",
-							"!my/app/*.html"
 						],
 						mode: "preload",
 						renderer: false,
@@ -140,18 +146,24 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/app/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/app/",
+							"my/app/**/manifest.json",
+							"my/app/changes/changes-bundle.json",
+							"my/app/changes/flexibility-bundle.json",
 							"!my/app/test/",
-							"!my/app/*.html",
 							"!my/app/thirdparty/",
 							"+my/app/thirdparty/NotExcluded.js"
 						],
@@ -219,18 +231,24 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/app/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/app/",
+							"my/app/**/manifest.json",
+							"my/app/changes/changes-bundle.json",
+							"my/app/changes/flexibility-bundle.json",
 							"!my/app/test/",
-							"!my/app/*.html",
 							"!thirdparty/",
 						],
 						mode: "preload",
@@ -302,18 +320,24 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/app1/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/app1/",
+							"my/app1/**/manifest.json",
+							"my/app1/changes/changes-bundle.json",
+							"my/app1/changes/flexibility-bundle.json",
 							"!my/app1/test/",
-							"!my/app1/*.html",
 							"!my/app1/thirdparty1/",
 							"+my/app1/thirdparty1/NotExcluded.js",
 							"!my/app2/thirdparty2/",
@@ -337,18 +361,24 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/app2/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/app2/",
+							"my/app2/**/manifest.json",
+							"my/app2/changes/changes-bundle.json",
+							"my/app2/changes/flexibility-bundle.json",
 							"!my/app2/test/",
-							"!my/app2/*.html",
 							"!my/app1/thirdparty1/",
 							"!my/app2/thirdparty2/",
 							"+my/app2/thirdparty2/NotExcluded.js"
@@ -469,18 +499,24 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/project/component1/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/project/component1/",
+							"my/project/component1/**/manifest.json",
+							"my/project/component1/changes/changes-bundle.json",
+							"my/project/component1/changes/flexibility-bundle.json",
 							"!my/project/component1/test/",
-							"!my/project/component1/*.html",
 
 							// via excludes config
 							"!my/project/component1/foo/"
@@ -504,18 +540,24 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/project/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/project/",
+							"my/project/**/manifest.json",
+							"my/project/changes/changes-bundle.json",
+							"my/project/changes/flexibility-bundle.json",
 							"!my/project/test/",
-							"!my/project/*.html",
 
 							// via excludes config
 							"!my/project/component1/foo/",
@@ -524,7 +566,9 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 
 							// sub-namespaces are excluded
 							"!my/project/component1/",
+							"!my/project/component1/**/manifest.json",
 							"!my/project/component2/",
+							"!my/project/component2/**/manifest.json",
 						],
 						mode: "preload",
 						renderer: false,
@@ -545,18 +589,24 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
 					".fragment.xml",
+					".view.html",
+					".view.json",
 					".view.xml",
-					".properties",
-					".json",
+					".properties"
 				],
 				name: "my/project/component2/Component-preload.js",
 				sections: [
 					{
 						filters: [
 							"my/project/component2/",
+							"my/project/component2/**/manifest.json",
+							"my/project/component2/changes/changes-bundle.json",
+							"my/project/component2/changes/flexibility-bundle.json",
 							"!my/project/component2/test/",
-							"!my/project/component2/*.html",
 
 							// via excludes config
 							"!my/project/component1/foo/",

@@ -133,7 +133,7 @@ class BundleBuilder {
 	}
 
 	async _createBundle(module, options) {
-		const resolvedModule = await this.resolver.resolve(module, options);
+		const resolvedModule = await this.resolver.resolve(module);
 		if ( options.skipIfEmpty && isEmptyBundle(resolvedModule) ) {
 			log.verbose("  skipping empty bundle " + module.name);
 			return undefined;

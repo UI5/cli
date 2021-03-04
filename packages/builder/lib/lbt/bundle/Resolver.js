@@ -13,6 +13,17 @@ const log = require("@ui5/logger").getLogger("lbt:bundle:Resolver");
 
 let dependencyTracker;
 
+const DEFAULT_FILE_TYPES = [
+	".js",
+	".control.xml", // XMLComposite
+	".fragment.html",
+	".fragment.json",
+	".fragment.xml",
+	".view.html",
+	".view.json",
+	".view.xml"
+];
+
 /**
  * Resolve a bundle definition.
  *
@@ -32,13 +43,11 @@ class BundleResolver {
 
 	/**
 	 * @param {ModuleDefinition} bundle Bundle definition to resolve
-	 * @param {object} [options] Options
-	 * @param {string[]} [options.defaultFileTypes]
 	 			List of default file types to which a prefix pattern shall be expanded.
 	 * @returns {Promise<ResolvedBundleDefinition>}
 	 */
-	resolve(bundle, options) {
-		const fileTypes = (options && options.defaultFileTypes) || undefined;
+	resolve(bundle) {
+		const fileTypes = bundle.defaultFileTypes || DEFAULT_FILE_TYPES;
 		let visitedResources = Object.create(null);
 		let selectedResources = Object.create(null);
 		let selectedResourcesSequence = [];
