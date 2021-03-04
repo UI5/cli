@@ -726,6 +726,7 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 		}],
 		"components": {
 			"lib.a.sub.fold": {
+				"hasOwnPreload": true,
 				"library": "lib.a",
 				"manifestHints": {
 					"dependencies": {
@@ -863,6 +864,7 @@ test.serial("integration: Library with dependencies and subcomponent bigger scen
 		}],
 		"components": {
 			"lib.a.sub.fold": {
+				"hasOwnPreload": true,
 				"library": "lib.a",
 				"manifestHints": {
 					"dependencies": {
@@ -917,7 +919,6 @@ test.serial("integration: Library without dependencies and embeds and embeddedBy
 		}],
 		"components": {
 			"lib.a.sub.fold": {
-				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		},
@@ -964,6 +965,7 @@ test.serial("integration: Library without dependencies and embeddedBy undefined"
 		}],
 		"components": {
 			"lib.a.sub.fold": {
+				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		},
@@ -1014,6 +1016,7 @@ test.serial("integration: Library without dependencies and embeddedBy not a stri
 		}],
 		"components": {
 			"lib.a.sub.fold": {
+				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		},
@@ -1065,6 +1068,7 @@ test.serial("integration: Library without dependencies and embeddedBy empty stri
 		}],
 		"components": {
 			"lib.a.sub.fold": {
+				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		},
@@ -1116,6 +1120,7 @@ test.serial("integration: Library without dependencies and embeddedBy path not c
 		}],
 		"components": {
 			"lib.a.sub.fold": {
+				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		},

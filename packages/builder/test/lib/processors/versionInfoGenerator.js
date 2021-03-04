@@ -284,6 +284,7 @@ test.serial("versionInfoGenerator library infos with embeds", async (t) => {
 		],
 		"components": {
 			"lib.a.sub": {
+				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		}
@@ -439,7 +440,6 @@ test.serial("versionInfoGenerator library infos with embeds and embeddedBy (hasO
 		],
 		"components": {
 			"lib.a.sub": {
-				"hasOwnPreload": true,
 				"library": "lib.a"
 			}
 		}

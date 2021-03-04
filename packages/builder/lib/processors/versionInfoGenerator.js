@@ -254,11 +254,11 @@ const getManifestHints = (dependencyInfo, dependencyInfoMap) => {
 
 /**
  * Common type for Library and Component
- * embeds and bundled components makes only sense for library
+ * embeds and bundled components make only sense for library
  *
  * @typedef {object} ArtifactInfo
  * @property {string} componentName The library name, e.g. "lib.x"
- * @property {Set<string>} bundledComponents The embedded components which have a embeddedBy reference to the library
+ * @property {Set<string>} bundledComponents The embedded components which have an embeddedBy reference to the library
  * @property {DependencyInfo} dependencyInfo The dependency info object
  * @property {ArtifactInfo[]} embeds The embedded artifact infos
  */
@@ -423,18 +423,19 @@ module.exports = async function({options}) {
 	let components;
 	artifactInfos.forEach((artifactInfo) => {
 		artifactInfo.embeds.forEach((embeddedArtifactInfo) => {
-			const componentObject = {
-				library: artifactInfo.componentName
-			};
+			const componentObject = {};
+			const bundledComponents = artifactInfo.bundledComponents;
 			const componentName = embeddedArtifactInfo.componentName;
+			if (!bundledComponents.has(componentName)) {
+				componentObject.hasOwnPreload = true;
+			}
+			componentObject.library = artifactInfo.componentName;
+
 			const manifestHints = getManifestHints(embeddedArtifactInfo.dependencyInfo, dependencyInfoMap);
 			if (manifestHints) {
 				componentObject.manifestHints = manifestHints;
 			}
-			const bundledComponents = artifactInfo.bundledComponents;
-			if (bundledComponents.has(componentName)) {
-				componentObject.hasOwnPreload = true;
-			}
+
 			components = components || {};
 			components[componentName] = componentObject;
 		});
