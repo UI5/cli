@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const {promisify} = require("util");
 const readFile = promisify(fs.readFile);
-const parseYaml = require("js-yaml").safeLoad;
+const parseYaml = require("js-yaml").load;
 
 function resolveProjectPaths(project) {
 	project.path = path.resolve(project.path);

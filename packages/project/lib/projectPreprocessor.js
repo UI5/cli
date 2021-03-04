@@ -412,12 +412,8 @@ class ProjectPreprocessor {
 		let configs;
 
 		try {
-			// Using loadAll with DEFAULT_SAFE_SCHEMA instead of safeLoadAll to pass "filename".
-			// safeLoadAll doesn't handle its parameters properly.
-			// See https://github.com/nodeca/js-yaml/issues/456 and https://github.com/nodeca/js-yaml/pull/381
 			configs = jsyaml.loadAll(configFile, undefined, {
-				filename: configPath,
-				schema: jsyaml.DEFAULT_SAFE_SCHEMA
+				filename: configPath
 			});
 		} catch (err) {
 			if (err.name === "YAMLException") {
