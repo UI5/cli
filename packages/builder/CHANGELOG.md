@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.8.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.8.1...HEAD).
+
+<a name="v2.8.1"></a>
+## [v2.8.1] - 2021-03-04
+### Bug Fixes
+- **generateResourcesJson:** Include dependencies of XML resources [`0fc364d`](https://github.com/SAP/ui5-builder/commit/0fc364ded64eb5bae4085397dc1831e04b19edf4)
+- **manifestCreator:** 'embeds' should list all components ([#575](https://github.com/SAP/ui5-builder/issues/575)) [`11f823a`](https://github.com/SAP/ui5-builder/commit/11f823a77e72cfa4c096e7e8f4277a6a6b9400b8)
+- **moduleBundler:** Apply defaultFileTypes ([#580](https://github.com/SAP/ui5-builder/issues/580)) [`42f6474`](https://github.com/SAP/ui5-builder/commit/42f64744a299e8548f6dbdb7bcbb8b3cef72f1f4)
+- **resourceListCreator:** Include dependencies of subModules ([#588](https://github.com/SAP/ui5-builder/issues/588)) [`fe61d6e`](https://github.com/SAP/ui5-builder/commit/fe61d6eba6671ca31f7c49a7d1281adb6d5f2114)
+- **versionInfoGenerator:** fix hasOwnPreload flag ([#591](https://github.com/SAP/ui5-builder/issues/591)) [`73a0f8b`](https://github.com/SAP/ui5-builder/commit/73a0f8baa0248aef3ac6c2b114082aa120ef6e22)
+
 
 <a name="v2.8.0"></a>
 ## [v2.8.0] - 2021-02-09
@@ -530,6 +540,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.8.1]: https://github.com/SAP/ui5-builder/compare/v2.8.0...v2.8.1
 [v2.8.0]: https://github.com/SAP/ui5-builder/compare/v2.7.2...v2.8.0
 [v2.7.2]: https://github.com/SAP/ui5-builder/compare/v2.7.1...v2.7.2
 [v2.7.1]: https://github.com/SAP/ui5-builder/compare/v2.7.0...v2.7.1
