@@ -23,7 +23,7 @@ test.serial("Writes ui5.yaml to fs", async (t) => {
 	mock("path", {resolve: () => ui5YamlPath});
 	sinon.stub(fsHelper, "exists").resolves(false);
 	sinon.stub(init, "init").resolves({});
-	sinon.stub(jsYaml, "safeDump").returns(ui5Yaml);
+	sinon.stub(jsYaml, "dump").returns(ui5Yaml);
 	const fsWriteFileStub = sinon.stub(fs, "writeFile").callsArgWith(2);
 
 	await initCommand.handler({});

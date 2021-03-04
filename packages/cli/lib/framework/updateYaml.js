@@ -1,20 +1,12 @@
 const path = require("path");
 const log = require("@ui5/logger").getLogger("cli:framework:updateYaml");
-const {loadAll, safeDump, DEFAULT_SAFE_SCHEMA} = require("js-yaml");
+const {loadAll, dump} = require("js-yaml");
 const {fromYaml, getPosition, getValue} = require("data-with-position");
 
-function safeLoadAll({configFile, configPath}) {
-	// Using loadAll with DEFAULT_SAFE_SCHEMA instead of safeLoadAll to pass "filename".
-	// safeLoadAll doesn't handle its parameters properly.
-	// See https://github.com/nodeca/js-yaml/issues/456 and https://github.com/nodeca/js-yaml/pull/381
-	return loadAll(configFile, undefined, {
-		filename: configPath,
-		schema: DEFAULT_SAFE_SCHEMA
-	});
-}
-
 function getProjectYamlDocument({project, configFile, configPath}) {
-	const configs = safeLoadAll({configFile, configPath});
+	const configs = loadAll(configFile, undefined, {
+		filename: configPath
+	});
 
 	const projectDocumentIndex = configs.findIndex((config) => {
 		return config.metadata && config.metadata.name === project.metadata.name;
@@ -138,7 +130,7 @@ function formatValue(value, indent) {
 		return string;
 	} else if (Array.isArray(value)) {
 		const indentString = " ".repeat(indent);
-		const string = safeDump(value);
+		const string = dump(value);
 		const arr = string.split("\n");
 		arr.pop();
 		return "\n" + indentString + arr.join("\n" + indentString) + "\n";
@@ -261,7 +253,7 @@ module.exports = async function({project, data}) {
 
 	// Validate content before writing
 	try {
-		safeLoadAll({configFile: adoptedYaml});
+		loadAll(adoptedYaml);
 	} catch (err) {
 		const error = new Error("Failed to update YAML file: " + err.message);
 		error.name = "FrameworkUpdateYamlFailed";

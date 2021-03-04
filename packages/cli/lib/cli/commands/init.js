@@ -20,7 +20,7 @@ initCommand.handler = async function() {
 	}
 
 	const projectConfig = await init.init();
-	const yaml = jsYaml.safeDump(projectConfig);
+	const yaml = jsYaml.dump(projectConfig);
 
 	await writeFile(yamlPath, yaml);
 	console.log(`Wrote ui5.yaml to ${yamlPath}:\n`);

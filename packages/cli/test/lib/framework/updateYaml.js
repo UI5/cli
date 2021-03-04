@@ -791,9 +791,13 @@ framework: { name: "SAPUI5" }
 	}));
 
 	t.is(error.message,
-		"Failed to update YAML file: bad indentation of a mapping entry at line 5, column 14:\n" +
-		"                 version: \"1.76.0\"\n" +
-		"                 ^"
+		`Failed to update YAML file: bad indentation of a mapping entry (5:14)\n` +
+		`\n` +
+		` 2 | metadata:\n` +
+		` 3 |   name: my-project\n` +
+		` 4 | framework: { name: "SAPUI5" }\n` +
+		` 5 |              version: "1.76.0"\n` +
+		`------------------^`
 	);
 	t.is(t.context.fsWriteFileStub.callCount, 0, "fs.writeFile should not be called");
 });
