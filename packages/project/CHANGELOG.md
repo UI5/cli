@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.3.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v2.3.1...HEAD).
+
+<a name="v2.3.1"></a>
+## [v2.3.1] - 2021-03-04
+### Bug Fixes
+- **ui5Framework:** Don't access metadata of deduped projects [`0255f8f`](https://github.com/SAP/ui5-project/commit/0255f8f628281ecb3cbbdb50192d2d4721bccea2)
+
+### Dependency Updates
+- Bump js-yaml from 3.14.1 to 4.0.0 ([#380](https://github.com/SAP/ui5-project/issues/380)) [`a862186`](https://github.com/SAP/ui5-project/commit/a86218657703a5b607ebd09f8f71dd7ea810c6be)
+
 
 <a name="v2.3.0"></a>
 ## [v2.3.0] - 2021-02-09
@@ -235,6 +244,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v2.3.1]: https://github.com/SAP/ui5-project/compare/v2.3.0...v2.3.1
 [v2.3.0]: https://github.com/SAP/ui5-project/compare/v2.2.6...v2.3.0
 [v2.2.6]: https://github.com/SAP/ui5-project/compare/v2.2.5...v2.2.6
 [v2.2.5]: https://github.com/SAP/ui5-project/compare/v2.2.4...v2.2.5
