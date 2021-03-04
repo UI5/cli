@@ -6,6 +6,9 @@
 			"module": "library/h/components/subcomponent1/Component-preload.js",
 			"size": 279,
 			"merged": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			],
 			"included": [
 				"library/h/components/subcomponent1/Component.js"
 			]
@@ -20,7 +23,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 494
+			"size": 550
 		}
 	]
 }

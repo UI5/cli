@@ -182,10 +182,10 @@ class ResourcePool {
 	async getModuleInfo(name) {
 		let info = this._dependencyInfos.get(name);
 		if ( info == null ) {
-			// console.log("analyzing ", name);
-			const resource = await this.findResource(name);
-			info = await determineDependencyInfo( resource, this._rawModuleInfos.get(name), this );
-			// console.log("finished analyzing ", name);
+			info = Promise.resolve().then(async () => {
+				const resource = await this.findResource(name);
+				return determineDependencyInfo( resource, this._rawModuleInfos.get(name), this );
+			});
 			this._dependencyInfos.set(name, info);
 		}
 		return info;

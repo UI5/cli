@@ -6,6 +6,13 @@
 			"module": "application/j/Component-preload.js",
 			"size": 3682,
 			"merged": true,
+			"required": [
+				"sap/m/library.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/library.js",
+				"sap/ui/fl/library.js",
+				"sap/ui/layout/library.js"
+			],
 			"included": [
 				"application/j/Component.js",
 				"application/j/changes/coding/MyExtension.js",
@@ -80,7 +87,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 1870
+			"size": 2040
 		}
 	]
 }

@@ -109,13 +109,14 @@ class ResourceCollector {
 	}
 
 	async enrichWithDependencyInfo(resourceInfo) {
-		return this._pool.getModuleInfo(resourceInfo.name).then((moduleInfo) => {
+		return this._pool.getModuleInfo(resourceInfo.name).then(async (moduleInfo) => {
 			if ( moduleInfo.name ) {
 				resourceInfo.module = moduleInfo.name;
 			}
 			if ( moduleInfo.dynamicDependencies ) {
 				resourceInfo.dynRequired = true;
 			}
+
 			if ( moduleInfo.dependencies.length > 0 ) {
 				resourceInfo.required = resourceInfo.required || new Set();
 				resourceInfo.condRequired = resourceInfo.condRequired || new Set();
@@ -127,11 +128,51 @@ class ResourceCollector {
 					}
 				});
 			}
+
 			if ( moduleInfo.subModules.length > 0 ) {
 				resourceInfo.included = resourceInfo.included || new Set();
 				moduleInfo.subModules.forEach((mod) => {
 					resourceInfo.included.add(mod);
 				});
+				await Promise.all(moduleInfo.subModules.map(async (subModule) => {
+					// Try to inherit dependency info
+					let subModuleInfo;
+					try {
+						subModuleInfo = await this._pool.getModuleInfo(subModule);
+					} catch (err) {
+						log.verbose(`	missing submodule ${subModule} included by ${moduleInfo.name}`);
+					}
+					if (subModuleInfo) {
+						// Inherit subModule dependencies
+						if ( subModuleInfo.dependencies.length > 0 ) {
+							resourceInfo.required = resourceInfo.required || new Set();
+							resourceInfo.condRequired = resourceInfo.condRequired || new Set();
+							subModuleInfo.dependencies.forEach((dep) => {
+								if (resourceInfo.included.has(dep)) {
+									// Don't add dependency if module is already listed as "included"
+									return;
+								}
+								if ( subModuleInfo.isConditionalDependency(dep) ) {
+									// Avoid having module listed in both required and condRequired
+									if (!resourceInfo.required.has(dep)) {
+										resourceInfo.condRequired.add(dep);
+									}
+								} else if ( !subModuleInfo.isImplicitDependency(dep) ) {
+									// Move module from condRequired to required
+									if (resourceInfo.condRequired.has(dep)) {
+										resourceInfo.condRequired.delete(dep);
+									}
+									resourceInfo.required.add(dep);
+								}
+							});
+						}
+
+						// Inherit dynamicDependencies flag
+						if ( moduleInfo.dynamicDependencies ) {
+							resourceInfo.dynRequired = true;
+						}
+					}
+				}));
 			}
 
 			if (moduleInfo.requiresTopLevelScope) {

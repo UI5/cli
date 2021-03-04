@@ -104,7 +104,7 @@ test("getModuleInfo", async (t) => {
 	const inputJsResource = {name: "a.js", buffer: async () => code};
 	resourcePool.addResource(inputJsResource);
 	const jsResource = await resourcePool.getModuleInfo("a.js");
-	t.is(resourcePool._dependencyInfos.get(inputJsResource.name), jsResource,
+	t.is(await resourcePool._dependencyInfos.get(inputJsResource.name), jsResource,
 		"info has been added to _dependencyInfos map");
 
 	t.deepEqual(jsResource.name, inputJsResource.name, "name should be the same");
@@ -159,7 +159,7 @@ test("getModuleInfo: determineDependencyInfo for js templateAssembler code", asy
 	resourcePool.addResource(inputJsResource);
 
 	const jsResource = await resourcePool.getModuleInfo("a.js");
-	t.is(resourcePool._dependencyInfos.get(inputJsResource.name), jsResource,
+	t.is(await resourcePool._dependencyInfos.get(inputJsResource.name), jsResource,
 		"info has been added to _dependencyInfos map");
 	t.deepEqual(jsResource.size, 372);
 	t.deepEqual(jsResource.format, "ui5-define", "contains sap.ui.define therefore should be a ui5-define format");
@@ -187,7 +187,7 @@ test("getModuleInfo: determineDependencyInfo for xml control and fragment", asyn
 
 
 	const xmlControlResource = await resourcePool.getModuleInfo("a.control.xml");
-	t.is(resourcePool._dependencyInfos.get(inputXmlControlResource.name), xmlControlResource,
+	t.is(await resourcePool._dependencyInfos.get(inputXmlControlResource.name), xmlControlResource,
 		"info has been added to _dependencyInfos map");
 	t.deepEqual(xmlControlResource.size, 298);
 	t.falsy(xmlControlResource.format);
@@ -196,7 +196,7 @@ test("getModuleInfo: determineDependencyInfo for xml control and fragment", asyn
 	t.deepEqual(xmlControlResource.subModules, []);
 
 	const xmlFragmentResource = await resourcePool.getModuleInfo("a.fragment.xml");
-	t.is(resourcePool._dependencyInfos.get(inputXmlFragmentResource.name), xmlFragmentResource,
+	t.is(await resourcePool._dependencyInfos.get(inputXmlFragmentResource.name), xmlFragmentResource,
 		"info has been added to _dependencyInfos map");
 	t.deepEqual(xmlFragmentResource.size, 298);
 	t.falsy(xmlFragmentResource.format);
@@ -220,7 +220,7 @@ test("getModuleInfo: determineDependencyInfo for xml view", async (t) => {
 	resourcePool.addResource(inputXmlViewResource);
 
 	const xmlViewResource = await resourcePool.getModuleInfo("a.view.xml");
-	t.is(resourcePool._dependencyInfos.get(inputXmlViewResource.name), xmlViewResource,
+	t.is(await resourcePool._dependencyInfos.get(inputXmlViewResource.name), xmlViewResource,
 		"info has been added to _dependencyInfos map");
 	t.deepEqual(xmlViewResource.size, 315);
 	t.falsy(xmlViewResource.format);

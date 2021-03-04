@@ -10,6 +10,9 @@
 			"module": "library/h/components/Component-preload.js",
 			"size": 361,
 			"merged": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			],
 			"included": [
 				"library/h/components/Component.js",
 				"library/h/components/TodoComponent.js"
@@ -34,6 +37,9 @@
 			"module": "library/h/components/subcomponent1/Component-preload.js",
 			"size": 279,
 			"merged": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			],
 			"included": [
 				"library/h/components/subcomponent1/Component.js"
 			]
@@ -51,6 +57,9 @@
 			"module": "library/h/components/subcomponent2/Component-preload.js",
 			"size": 279,
 			"merged": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			],
 			"included": [
 				"library/h/components/subcomponent2/Component.js"
 			]
@@ -68,6 +77,9 @@
 			"module": "library/h/components/subcomponent3/Component-preload.js",
 			"size": 279,
 			"merged": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			],
 			"included": [
 				"library/h/components/subcomponent3/Component.js"
 			]
@@ -143,7 +155,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 3500
+			"size": 3724
 		},
 		{
 			"name": "some.js",
