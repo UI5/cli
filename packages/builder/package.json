@@ -128,7 +128,7 @@
 	},
 	"devDependencies": {
 		"ava": "^3.15.0",
-		"chai": "^4.3.0",
+		"chai": "^4.3.3",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^2.1.0",
 		"cross-env": "^7.0.3",
