@@ -110,7 +110,7 @@ class ApplicationFormatter extends AbstractUi5Formatter {
 		}
 		const namespace = appId.replace(/\./g, "/");
 		log.verbose(
-			`Namespace of project ${this._project.metadata.name} is ${namespace} (from manifest.appdescr_variant)`);
+			`Namespace of project ${this._project.metadata.name} is ${namespace} (from manifest.json)`);
 		return namespace;
 	}
 

@@ -36,6 +36,31 @@ const libraryETree = {
 	}
 };
 
+const legacyThemeLibPath = path.join(__dirname, "..", "..", "..", "fixtures", "theme.library.e");
+const legacyThemeLibTree = {
+	id: "@openui5/themelib_sap_bluecrystal",
+	version: "1.0.0",
+	path: legacyThemeLibPath,
+	dependencies: [],
+	_level: 0,
+	_isRoot: true,
+	specVersion: "2.0",
+	type: "library",
+	metadata: {
+		name: "themelib_sap_bluecrystal",
+		copyright: "UI development toolkit for HTML5 (OpenUI5)\n * (c) Copyright 2009-xxx SAP SE or an SAP affiliate " +
+			"company.\n * Licensed under the Apache License, Version 2.0 - see LICENSE.txt."
+	},
+	resources: {
+		configuration: {
+			paths: {
+				src: "src",
+				test: "test"
+			}
+		}
+	}
+};
+
 function clone(o) {
 	return JSON.parse(JSON.stringify(o));
 }
@@ -394,6 +419,15 @@ test.serial("format: namespace resolution fails", async (t) => {
 
 	mock.stop("globby");
 	mock.stop("@ui5/logger");
+});
+
+test("format: legacy OpenUI5 theme library", async (t) => {
+	const myProject = clone(legacyThemeLibTree);
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "validate").resolves();
+
+	await t.notThrowsAsync(libraryFormatter.format(), "Does not throw for missing .library");
+	t.deepEqual(myProject.metadata.copyright, legacyThemeLibTree.metadata.copyright, "Copyright was not altered");
 });
 
 test("format: configuration test path", async (t) => {

@@ -58,7 +58,7 @@ class LibraryFormatter extends AbstractUi5Formatter {
 			log.verbose(err.message);
 		}
 
-		if (isFrameworkProject(project)) {
+		if (isFrameworkProject(project) && !SAP_THEMES_NS_EXEMPTIONS.includes(this._project.metadata.name)) {
 			if (project.builder && project.builder.libraryPreload && project.builder.libraryPreload.excludes) {
 				log.verbose(
 					`Using preload excludes for framework library ${project.metadata.name} from project configuration`);
