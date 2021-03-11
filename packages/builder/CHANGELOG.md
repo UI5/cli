@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.8.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.8.2...HEAD).
+
+<a name="v2.8.2"></a>
+## [v2.8.2] - 2021-03-11
+### Bug Fixes
+- **LibraryFormatter:** Do not throw for missing .library in legacy OpenUI5 theme libraries [`f7e22ba`](https://github.com/SAP/ui5-builder/commit/f7e22ba866bf6a61b0d2932ef18aad53127641fd)
+
+### Dependency Updates
+- Bump less-openui5 from 0.10.0 to 0.11.0 ([#594](https://github.com/SAP/ui5-builder/issues/594)) [`f3d174b`](https://github.com/SAP/ui5-builder/commit/f3d174be1fc2ab66a62632439592b2899680c093)
+
 
 <a name="v2.8.1"></a>
 ## [v2.8.1] - 2021-03-04
@@ -540,6 +549,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.8.2]: https://github.com/SAP/ui5-builder/compare/v2.8.1...v2.8.2
 [v2.8.1]: https://github.com/SAP/ui5-builder/compare/v2.8.0...v2.8.1
 [v2.8.0]: https://github.com/SAP/ui5-builder/compare/v2.7.2...v2.8.0
 [v2.7.2]: https://github.com/SAP/ui5-builder/compare/v2.7.1...v2.7.2
