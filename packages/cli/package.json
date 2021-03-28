@@ -117,7 +117,7 @@
 		"import-local": "^3.0.2",
 		"js-yaml": "^4.0.0",
 		"open": "^7.4.2",
-		"semver": "^7.3.4",
+		"semver": "^7.3.5",
 		"treeify": "^1.0.1",
 		"update-notifier": "^5.1.0",
 		"yargs": "^16.2.0"
@@ -128,7 +128,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.0",
 		"docdash": "^1.2.0",
-		"eslint": "^7.22.0",
+		"eslint": "^7.23.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^32.3.0",
 		"execa": "^5.0.0",
