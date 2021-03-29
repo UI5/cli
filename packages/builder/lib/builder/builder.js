@@ -117,8 +117,10 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 			});
 			break;
 		}
-		if (selectedTasks[taskName] !== false) {
+		if (selectedTasks[taskName] === true) {
 			selectedTasks[taskName] = false;
+		} else if (typeof selectedTasks[taskName] === "undefined") {
+			log.warn(`Unable to exclude task '${taskName}': Task is unknown`);
 		}
 	}
 
@@ -133,6 +135,8 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 		}
 		if (selectedTasks[taskName] === false) {
 			selectedTasks[taskName] = true;
+		} else if (typeof selectedTasks[taskName] === "undefined") {
+			log.warn(`Unable to include task '${taskName}': Task is unknown`);
 		}
 	}
 
@@ -403,3 +407,9 @@ module.exports = {
 		}
 	}
 };
+
+// Export local function for testing only
+/* istanbul ignore else */
+if (process.env.NODE_ENV === "test") {
+	module.exports._composeTaskList = composeTaskList;
+}
