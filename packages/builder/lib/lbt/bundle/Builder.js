@@ -272,7 +272,6 @@ class BundleBuilder {
 
 	async writePreloadFunction(section) {
 		const outW = this.outW;
-		const avoidLazyParsing = section.sectionDefinition.avoidLazyParsing;
 
 		outW.ensureNewLine();
 
@@ -280,7 +279,7 @@ class BundleBuilder {
 
 		this.beforeWriteFunctionPreloadSection(sequence);
 
-		await this.rewriteAMDModules(sequence, avoidLazyParsing);
+		await this.rewriteAMDModules(sequence);
 		if ( sequence.length > 0 ) {
 			this.targetBundleFormat.beforePreloads(outW, section);
 			let i = 0;
@@ -293,7 +292,7 @@ class BundleBuilder {
 					this.beforeWritePreloadModule(module, resource.info, resource);
 					outW.write(`\t"${module.toString()}":`);
 					outW.startSegment(module);
-					await this.writePreloadModule(module, resource.info, resource, avoidLazyParsing);
+					await this.writePreloadModule(module, resource.info, resource);
 					const compressedSize = outW.endSegment();
 					log.verbose("    %s (%d,%d)", module,
 						resource.info != null ? resource.info.size : -1, compressedSize);
@@ -339,7 +338,7 @@ class BundleBuilder {
 		sequence.sort();
 	}
 
-	async rewriteAMDModules(sequence, avoidLazyParsing) {
+	async rewriteAMDModules(sequence) {
 		if ( this.options.usePredefineCalls ) {
 			const outW = this.outW;
 
@@ -349,7 +348,7 @@ class BundleBuilder {
 					// console.log("Processing " + module);
 					const resource = await this.pool.findResourceWithInfo(module);
 					const code = await resource.buffer();
-					const ast = rewriteDefine(this.targetBundleFormat, code, module, avoidLazyParsing);
+					const ast = rewriteDefine(this.targetBundleFormat, code, module);
 					if ( ast ) {
 						outW.startSegment(module);
 						outW.ensureNewLine();
@@ -385,25 +384,18 @@ class BundleBuilder {
 	 * @param {string} module module name
 	 * @param {ModuleInfo} info
 	 * @param {module:@ui5/fs.Resource} resource
-	 * @param {boolean} avoidLazyParsing
 	 * @returns {Promise<boolean>}
 	 */
-	async writePreloadModule(module, info, resource, avoidLazyParsing) {
+	async writePreloadModule(module, info, resource) {
 		const outW = this.outW;
 
 		if ( /\.js$/.test(module) && (info == null || !info.requiresTopLevelScope) ) {
 			const compressedContent = await this.compressJS( await resource.buffer(), resource );
-			if ( avoidLazyParsing ) {
-				outW.write(`(`);
-			}
 			outW.write(`function(){`);
 			outW.write( compressedContent );
 			this.exportGlobalNames(info);
 			outW.ensureNewLine();
 			outW.write(`}`);
-			if ( avoidLazyParsing ) {
-				outW.write(`)`);
-			}
 		} else if ( /\.js$/.test(module) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn("**** warning: module %s requires top level scope" +
 					" and can only be embedded as a string (requires 'eval')", module);
@@ -471,10 +463,9 @@ class BundleBuilder {
 	}
 }
 
-const CALL_DEFINE = ["define"];
 const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
 
-function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
+function rewriteDefine(targetBundleFormat, code, moduleName) {
 	function _injectModuleNameIfNeeded(defineCall) {
 		if ( defineCall.arguments.length == 0 ||
 				defineCall.arguments[0].type !== Syntax.Literal ) {
@@ -484,32 +475,6 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 			});
 		}
 	}
-
-	function enforceEagerParsing(defineCall) {
-		const args = defineCall.arguments;
-		// wrap factory function to avoid lazy parsing (V8 and Chakra)
-		let iFactory = 0;
-		// skip any hard coded module name
-		if ( iFactory < args.length && args[iFactory].type === Syntax.Literal ) {
-			iFactory++;
-		}
-		// skip array of dependencies
-		if ( iFactory < args.length && args[iFactory].type === Syntax.ArrayExpression ) {
-			iFactory++;
-		}
-		// wrap factory
-		if ( iFactory < args.length && args[iFactory].type === Syntax.FunctionExpression ) {
-			/* NODE-TODO
-			Token firstToken = doc.getToken(args.getChild(iFactory).getTokenStartIndex());
-			Token lastToken = doc.getToken(args.getChild(iFactory).getTokenStopIndex());
-			if ( "function".equals(firstToken.getText())
-					 && "}".equals(lastToken.getText()) ) {
-				firstToken.setText("(" + firstToken.getText());
-				lastToken.setText(lastToken.getText() + ")");
-			} */
-		}
-	}
-
 	let ast;
 	try {
 		ast = esprima.parseScript(code.toString(), {loc: true});
@@ -522,49 +487,6 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 			ast.body.length === 1 &&
 			ast.body[0].type === Syntax.ExpressionStatement ) {
 		// rewrite define to require.predefine
-		if ( targetBundleFormat.supportsNativeDefine() && isMethodCall(ast.body[0].expression, CALL_DEFINE) ) {
-			const defineCall = ast.body[0].expression;
-
-			if ( defineCall.callee.type === Syntax.Identifier &&
-					defineCall.callee.name === "define" ) {
-				defineCall.callee.name = "predefine"; // rename method to predefine
-				// add a member expression 'sap.ui.require.'
-				defineCall.callee = {
-					type: Syntax.MemberExpression,
-					object: {
-						type: Syntax.MemberExpression,
-						object: {
-							type: Syntax.MemberExpression,
-							object: {
-								type: Syntax.Identifier,
-								name: "sap"
-							},
-							property: {
-								type: Syntax.Identifier,
-								name: "ui"
-							}
-						},
-						property: {
-							type: Syntax.Identifier,
-							name: "require"
-						}
-					},
-					property: defineCall.callee
-				};
-			}
-
-			_injectModuleNameIfNeeded(defineCall, moduleName);
-
-			if ( avoidLazyParsing ) {
-				enforceEagerParsing(defineCall);
-			}
-
-			// console.log("rewriting %s", module, defineCall);
-
-			return ast;
-		}
-
-
 		if ( isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ) {
 			const defineCall = ast.body[0].expression;
 
@@ -576,10 +498,6 @@ function rewriteDefine(targetBundleFormat, code, moduleName, avoidLazyParsing) {
 			}
 
 			_injectModuleNameIfNeeded(defineCall, moduleName);
-
-			if ( avoidLazyParsing ) {
-				enforceEagerParsing(defineCall);
-			}
 
 			// console.log("rewriting %s", module, defineCall);
 
