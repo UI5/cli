@@ -134,7 +134,7 @@ test.serial("Environment variable UI5_LOG_LVL", (t) => {
 	["silly", "verbose", "info", "warn", "error", "silent"].forEach((level) => {
 		process.env.UI5_LOG_LVL = level;
 		t.context.logger = mock.reRequire("../../lib/logger");
-		t.is(t.context.npmLogStub.level, level, "Level should be set to " + level);
+		t.is(t.context.npmLogStub.level, level, `Level should be set to ${level}`);
 	});
 });
 
