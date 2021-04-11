@@ -108,7 +108,7 @@
 		"globby": "^11.0.3",
 		"graceful-fs": "^4.2.6",
 		"make-dir": "^3.1.0",
-		"micromatch": "^4.0.2",
+		"micromatch": "^4.0.4",
 		"minimatch": "^3.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"random-int": "^2.0.1"
@@ -121,7 +121,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.0",
 		"docdash": "^1.2.0",
-		"eslint": "^7.23.0",
+		"eslint": "^7.24.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^32.3.0",
 		"jsdoc": "^3.6.6",
