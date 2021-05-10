@@ -5,7 +5,6 @@
 const terser = require("terser");
 const {pd} = require("pretty-data");
 const esprima = require("esprima");
-const escodegen = require("escodegen");
 const {Syntax} = esprima;
 // const MOZ_SourceMap = require("source-map");
 
@@ -347,13 +346,12 @@ class BundleBuilder {
 				if ( /\.js$/.test(module) ) {
 					// console.log("Processing " + module);
 					const resource = await this.pool.findResourceWithInfo(module);
-					const code = await resource.buffer();
-					const ast = rewriteDefine(this.targetBundleFormat, code, module);
-					if ( ast ) {
+					let code = await resource.buffer();
+					code = rewriteDefine(this.targetBundleFormat, code, module);
+					if ( code ) {
 						outW.startSegment(module);
 						outW.ensureNewLine();
-						const astAsCode = escodegen.generate(ast);
-						const fileContent = await this.compressJS(astAsCode, resource);
+						const fileContent = await this.compressJS(code, resource);
 						outW.write( fileContent );
 						outW.ensureNewLine();
 						const compressedSize = outW.endSegment();
@@ -466,46 +464,82 @@ class BundleBuilder {
 const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
 
 function rewriteDefine(targetBundleFormat, code, moduleName) {
-	function _injectModuleNameIfNeeded(defineCall) {
-		if ( defineCall.arguments.length == 0 ||
-				defineCall.arguments[0].type !== Syntax.Literal ) {
-			defineCall.arguments.unshift({
-				type: Syntax.Literal,
-				value: ModuleName.toRequireJSName(moduleName)
-			});
-		}
-	}
 	let ast;
+	const codeStr = code.toString();
 	try {
-		ast = esprima.parseScript(code.toString(), {loc: true});
+		ast = esprima.parseScript(codeStr, {range: true});
 	} catch (e) {
 		log.error("error while parsing %s: %s", moduleName, e.message);
 		return;
 	}
 
 	if ( ast.type === Syntax.Program &&
-			ast.body.length === 1 &&
-			ast.body[0].type === Syntax.ExpressionStatement ) {
-		// rewrite define to require.predefine
-		if ( isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ) {
-			const defineCall = ast.body[0].expression;
+			ast.body.length === 1 && ast.body[0].type === Syntax.ExpressionStatement &&
+			isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ) {
+		const changes = [];
+		const defineCall = ast.body[0].expression;
 
-			// rewrite sap.ui.define to sap.ui.predefine
-			if ( defineCall.callee.type === Syntax.MemberExpression &&
-					defineCall.callee.property.type === Syntax.Identifier &&
-					defineCall.callee.property.name === "define" ) {
-				defineCall.callee.property.name = "predefine";
+
+		// Inject module name if missing
+		if ( defineCall.arguments.length == 0 ||
+			defineCall.arguments[0].type !== Syntax.Literal ) {
+			let value = `"${ModuleName.toRequireJSName(moduleName)}"`;
+			let index;
+
+			if (defineCall.arguments.length == 0) {
+				index = defineCall.range[1] - 1;
+			} else {
+				index = defineCall.arguments[0].range[0];
+				value += ", ";
 			}
 
-			_injectModuleNameIfNeeded(defineCall, moduleName);
-
-			// console.log("rewriting %s", module, defineCall);
-
-			return ast;
+			changes.push({
+				index,
+				count: 0,
+				value
+			});
 		}
+
+		// rewrite sap.ui.define to sap.ui.predefine
+		if ( defineCall.callee.type === Syntax.MemberExpression &&
+				defineCall.callee.property.type === Syntax.Identifier &&
+				defineCall.callee.property.name === "define" ) {
+			changes.push({
+				index: defineCall.callee.property.range[0],
+				count: 0,
+				value: "pre"
+			});
+		}
+
+		return applyChanges(codeStr, changes);
 	}
 
 	return false;
+}
+
+function applyChanges(string, changes) {
+	changes.sort((a, b) => {
+		// Sort descending by index
+		// This means replacements are done from bottom to top to not affect length/index of upcoming replacements
+
+		if (a.index < b.index) {
+			return 1;
+		}
+		if (a.index > b.index) {
+			return -1;
+		}
+		return 0;
+	});
+
+	const array = Array.from(string);
+	changes.forEach((change) => {
+		array.splice(
+			change.index,
+			change.count,
+			change.value
+		);
+	});
+	return array.join("");
 }
 
 module.exports = BundleBuilder;
