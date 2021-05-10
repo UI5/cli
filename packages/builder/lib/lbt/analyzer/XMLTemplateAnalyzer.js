@@ -105,8 +105,9 @@ class XMLTemplateAnalyzer {
 	 * Add a dependency if it is new.
 	 *
 	 * @param {string} moduleName
+	 * @param {boolean} conditional
 	 */
-	_addDependency(moduleName) {
+	_addDependency(moduleName, conditional) {
 		// don't add references to 'self'
 		if ( this.info.name === moduleName ) {
 			return;
@@ -117,7 +118,7 @@ class XMLTemplateAnalyzer {
 			return;
 		}
 
-		this.info.addDependency(moduleName, this.conditional);
+		this.info.addDependency(moduleName, conditional);
 	}
 
 	/**
@@ -194,7 +195,7 @@ class XMLTemplateAnalyzer {
 
 		const controllerName = getAttribute(node, XMLVIEW_CONTROLLERNAME_ATTRIBUTE);
 		if ( controllerName ) {
-			this._addDependency( ModuleName.fromUI5LegacyName(controllerName, ".controller.js") );
+			this._addDependency( ModuleName.fromUI5LegacyName(controllerName, ".controller.js"), this.conditional );
 		}
 
 		const resourceBundleName = getAttribute(node, XMLVIEW_RESBUNDLENAME_ATTRIBUTE);
@@ -202,7 +203,7 @@ class XMLTemplateAnalyzer {
 			const resourceBundleModuleName = ModuleName.fromUI5LegacyName(resourceBundleName, ".properties");
 			log.verbose("found dependency to resource bundle %s", resourceBundleModuleName);
 			// TODO locale dependent dependencies: this._addDependency(resourceBundleModuleName);
-			this._addDependency( resourceBundleModuleName );
+			this._addDependency( resourceBundleModuleName, this.conditional );
 		}
 
 		this._analyzeCoreRequire(node);
@@ -233,69 +234,7 @@ class XMLTemplateAnalyzer {
 			// ignore FragmentDefinition (also skipped by runtime XMLTemplateProcessor)
 			if ( FRAGMENTDEFINITION_MODULE !== moduleName ) {
 				this._analyzeCoreRequire(node);
-
-				this.promises.push(
-
-					this._pool.findResource(moduleName).then( () => {
-						this._addDependency(moduleName);
-
-						// handle special controls that reference other entities via name
-						// - (HTML|JS|JSON|XML)View reference another view by 'viewName'
-						// - ComponentContainer reference another component by 'componentName'
-						// - Fragment references a fragment by 'fragmentName' . 'type'
-
-						if ( moduleName === COMPONENTCONTAINER_MODULE ) {
-							const componentName = getAttribute(node, COMPONENTCONTAINER_COMPONENTNAME_ATTRIBUTE);
-							if ( componentName ) {
-								const componentModuleName =
-									ModuleName.fromUI5LegacyName( componentName, "/Component.js" );
-								this._addDependency(componentModuleName);
-							}
-							// TODO what about component.json? handle it transitively via Component.js?
-						} else if ( moduleName === FRAGMENT_MODULE ) {
-							const fragmentName = getAttribute(node, FRAGMENT_FRAGMENTNAME_ATTRIBUTE);
-							const type = getAttribute(node, FRAGMENT_TYPE_ATTRIBUTE);
-							if ( fragmentName && type ) {
-								const fragmentModuleName =
-									ModuleName.fromUI5LegacyName( fragmentName, this._getFragmentExtension(type) );
-								// console.log("child fragment detected %s", fragmentModuleName);
-								this._addDependency(fragmentModuleName);
-							}
-						} else if ( moduleName === HTMLVIEW_MODULE ) {
-							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
-							if ( viewName ) {
-								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.html" );
-								// console.log("child view detected %s", childViewModuleName);
-								this._addDependency(childViewModuleName);
-							}
-						} else if ( moduleName === JSVIEW_MODULE ) {
-							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
-							if ( viewName ) {
-								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.js" );
-								// console.log("child view detected %s", childViewModuleName);
-								this._addDependency(childViewModuleName);
-							}
-						} else if ( moduleName === JSONVIEW_MODULE ) {
-							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
-							if ( viewName ) {
-								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.json" );
-								// console.log("child view detected %s", childViewModuleName);
-								this._addDependency(childViewModuleName);
-							}
-						} else if ( moduleName === XMLVIEW_MODULE ) {
-							const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
-							if ( viewName ) {
-								const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.xml" );
-								// console.log("child view detected %s", childViewModuleName);
-								this._addDependency(childViewModuleName);
-							}
-						}
-					}, (err) => {
-						// ignore missing resources
-						// console.warn( "node not found %s", moduleName);
-					})
-
-				);
+				this.promises.push(this._analyzeModuleDependency(node, moduleName, this.conditional));
 			}
 		}
 
@@ -343,12 +282,75 @@ class XMLTemplateAnalyzer {
 				Object.keys(requireContext).forEach((key) => {
 					const requireJsName = requireContext[key];
 					if ( requireJsName && typeof requireJsName === "string" ) {
-						this._addDependency(ModuleName.fromRequireJSName(requireJsName));
+						this._addDependency(ModuleName.fromRequireJSName(requireJsName), this.conditional);
 					} else {
 						log.error(`Ignoring core:require: '${key}' refers to invalid module name '${requireJsName}'`);
 					}
 				});
 			}
+		}
+	}
+
+	async _analyzeModuleDependency(node, moduleName, conditional) {
+		try {
+			await this._pool.findResource(moduleName);
+
+			this._addDependency(moduleName, conditional);
+
+			// handle special controls that reference other entities via name
+			// - (HTML|JS|JSON|XML)View reference another view by 'viewName'
+			// - ComponentContainer reference another component by 'componentName'
+			// - Fragment references a fragment by 'fragmentName' . 'type'
+
+			if ( moduleName === COMPONENTCONTAINER_MODULE ) {
+				const componentName = getAttribute(node, COMPONENTCONTAINER_COMPONENTNAME_ATTRIBUTE);
+				if ( componentName ) {
+					const componentModuleName =
+						ModuleName.fromUI5LegacyName( componentName, "/Component.js" );
+					this._addDependency(componentModuleName, conditional);
+				}
+				// TODO what about component.json? handle it transitively via Component.js?
+			} else if ( moduleName === FRAGMENT_MODULE ) {
+				const fragmentName = getAttribute(node, FRAGMENT_FRAGMENTNAME_ATTRIBUTE);
+				const type = getAttribute(node, FRAGMENT_TYPE_ATTRIBUTE);
+				if ( fragmentName && type ) {
+					const fragmentModuleName =
+						ModuleName.fromUI5LegacyName( fragmentName, this._getFragmentExtension(type) );
+					// console.log("child fragment detected %s", fragmentModuleName);
+					this._addDependency(fragmentModuleName, conditional);
+				}
+			} else if ( moduleName === HTMLVIEW_MODULE ) {
+				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+				if ( viewName ) {
+					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.html" );
+					// console.log("child view detected %s", childViewModuleName);
+					this._addDependency(childViewModuleName, conditional);
+				}
+			} else if ( moduleName === JSVIEW_MODULE ) {
+				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+				if ( viewName ) {
+					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.js" );
+					// console.log("child view detected %s", childViewModuleName);
+					this._addDependency(childViewModuleName, conditional);
+				}
+			} else if ( moduleName === JSONVIEW_MODULE ) {
+				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+				if ( viewName ) {
+					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.json" );
+					// console.log("child view detected %s", childViewModuleName);
+					this._addDependency(childViewModuleName, conditional);
+				}
+			} else if ( moduleName === XMLVIEW_MODULE ) {
+				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+				if ( viewName ) {
+					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.xml" );
+					// console.log("child view detected %s", childViewModuleName);
+					this._addDependency(childViewModuleName, conditional);
+				}
+			}
+		} catch (err) {
+			// ignore missing resources
+			// console.warn( "node not found %s", moduleName);
 		}
 	}
 

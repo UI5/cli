@@ -106,6 +106,10 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 		], "Dependencies should come from the XML template");
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
 		"Implicit dependency should be added since an XMLView is analyzed");
+	t.true(
+		!moduleInfo.isConditionalDependency("sap/m/Button.js") &&
+		!moduleInfo.isImplicitDependency("sap/m/Button.js"),
+		"A control outside of template:if should become a strict dependency");
 
 	t.is(errorLogStub.callCount, 1, "should be called 1 time");
 	t.deepEqual(errorLogStub.getCall(0).args, [
@@ -156,6 +160,8 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 		], "Dependencies should come from the XML template");
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
 		"Implicit dependency should be added since an XMLView is analyzed");
+	t.true(moduleInfo.isConditionalDependency("sap/m/Button.js"),
+		"A control within template:if or template:repeat should become a conditional dependency");
 
 	t.is(verboseLogStub.callCount, 1, "should be called 1 time");
 	t.deepEqual(verboseLogStub.getCall(0).args, [
@@ -202,6 +208,8 @@ test.serial("integration: Analysis of an xml view with core:require from express
 		], "Dependencies should come from the XML template");
 	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
 		"Implicit dependency should be added since an XMLView is analyzed");
+	t.true(moduleInfo.isConditionalDependency("sap/m/Button.js"),
+		"A control within template:if should become a conditional dependency");
 
 	t.is(verboseLogStub.callCount, 1, "should be called 1 time");
 	t.deepEqual(verboseLogStub.getCall(0).args, [
