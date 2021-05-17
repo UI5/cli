@@ -487,8 +487,10 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 			let index;
 
 			if (defineCall.arguments.length == 0) {
+				// asterisk marks the index: sap.ui.define(*)
 				index = defineCall.range[1] - 1;
 			} else {
+				// asterisk marks the index: sap.ui.define(*argument1)
 				index = defineCall.arguments[0].range[0];
 				value += ", ";
 			}
@@ -505,6 +507,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 				defineCall.callee.property.type === Syntax.Identifier &&
 				defineCall.callee.property.name === "define" ) {
 			changes.push({
+				// asterisk marks the index: sap.ui.*define()
 				index: defineCall.callee.property.range[0],
 				count: 0,
 				value: "pre"
@@ -518,18 +521,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 }
 
 function applyChanges(string, changes) {
-	changes.sort((a, b) => {
-		// Sort descending by index
-		// This means replacements are done from bottom to top to not affect length/index of upcoming replacements
-
-		if (a.index < b.index) {
-			return 1;
-		}
-		if (a.index > b.index) {
-			return -1;
-		}
-		return 0;
-	});
+	// No sorting needed as changes are added in correct order
 
 	const array = Array.from(string);
 	changes.forEach((change) => {
