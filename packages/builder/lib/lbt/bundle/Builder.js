@@ -61,10 +61,6 @@ const UI5BundleFormat = {
 
 	shouldDecorate(resolvedModule) {
 		return resolvedModule.executes(UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL);
-	},
-
-	supportsNativeDefine() {
-		return false;
 	}
 };
 
@@ -90,11 +86,6 @@ const EVOBundleFormat = {
 			resolvedModule.executes(UI5ClientConstants.MODULE__UI5LOADER_AUTOCONFIG) ||
 			resolvedModule.executes(UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL) ||
 			resolvedModule.executes(UI5ClientConstants.MODULE__SAP_UI_CORE_CORE);
-	},
-
-	supportsNativeDefine() {
-		// disabled in 1.54 as the standard global names define/require are not written by the ui5loader
-		return false;
 	}
 };
 
