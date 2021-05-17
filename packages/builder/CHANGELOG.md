@@ -2,10 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.8.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.8.4...HEAD).
+
+<a name="v2.8.4"></a>
+## [v2.8.4] - 2021-05-17
+### Bug Fixes
+- **XMLTemplateAnalyzer:** Properly detect conditional dependencies [`0f56490`](https://github.com/SAP/ui5-builder/commit/0f56490cedcdebc363cc7f1d99f03cfde907804f)
+- **lbt/bundle/Builder:** Preserve comments in bundles [`8dfa919`](https://github.com/SAP/ui5-builder/commit/8dfa9191d36cb60ce44b64536b6f6b2b766b87c2)
+
 
 <a name="v2.8.3"></a>
-## [v2.8.3] - 2021-04-18
+## [v2.8.3] - 2021-04-19
 ### Bug Fixes
 - Emit warning when including/excluding unknown tasks [`854f456`](https://github.com/SAP/ui5-builder/commit/854f456e06e163e8423702e4fe893905e240adfa)
 
@@ -555,6 +562,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.8.4]: https://github.com/SAP/ui5-builder/compare/v2.8.3...v2.8.4
 [v2.8.3]: https://github.com/SAP/ui5-builder/compare/v2.8.2...v2.8.3
 [v2.8.2]: https://github.com/SAP/ui5-builder/compare/v2.8.1...v2.8.2
 [v2.8.1]: https://github.com/SAP/ui5-builder/compare/v2.8.0...v2.8.1
