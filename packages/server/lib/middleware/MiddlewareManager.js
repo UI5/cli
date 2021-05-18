@@ -125,6 +125,19 @@ class MiddlewareManager {
 							"worker-src  'self' blob:; " +
 							"child-src   'self' blob:; " +
 							"connect-src 'self' https: wss:; " +
+							"base-uri    'self';",
+						"sap-target-level-3":
+							"default-src 'self'; " +
+							"script-src  'self'; " +
+							"style-src   'self'; " +
+							"font-src    'self'; " +
+							"img-src     'self' https:; " +
+							"media-src   'self' https:; " +
+							"object-src  'self'; " +
+							"frame-src   'self' https: gap: mailto: tel:; " +
+							"worker-src  'self'; " +
+							"child-src   'self'; " +
+							"connect-src 'self' https: wss:; " +
 							"base-uri    'self';"
 					}
 				};
@@ -132,7 +145,7 @@ class MiddlewareManager {
 					Object.assign(oCspConfig, {
 						defaultPolicy: "sap-target-level-1",
 						defaultPolicyIsReportOnly: true,
-						defaultPolicy2: "sap-target-level-2",
+						defaultPolicy2: "sap-target-level-3",
 						defaultPolicy2IsReportOnly: true,
 						ignorePaths: ["test-resources/sap/ui/qunit/testrunner.html"]
 					});
