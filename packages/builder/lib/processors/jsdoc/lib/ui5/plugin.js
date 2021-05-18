@@ -314,8 +314,8 @@ function collectShortcuts(body) {
 			// console.log(stmt);
 			if ( stmt.type === Syntax.FunctionDeclaration ) {
 				if ( stmt.id && stmt.id.type === Syntax.Identifier && stmt.loc && stmt.loc.start ) {
-					const loc = stmt.loc.start.line + ":" + stmt.loc.start.column; 
-					currentModule.localNamesByLoc[loc] = 
+					const loc = stmt.loc.start.line + ":" + stmt.loc.start.column;
+					currentModule.localNamesByLoc[loc] =
 					currentModule.localNames[stmt.id.name] = {
 						"function": stmt
 					};
@@ -336,7 +336,7 @@ function collectShortcuts(body) {
 				} else if ( stmt.argument && isExtendCall(stmt.argument) ) {
 					debug(`  found default export class definition: return .extend('${stmt.argument.arguments[0].value}', ...)`);
 					currentModule.defaultExportClass = stmt.argument.arguments[0].value;
-				} 
+				}
 			}
 		});
 	}
@@ -963,7 +963,7 @@ function collectClassInfo(extendCall, classDoclet) {
 		// console.log(oClassInfo.name + ":" + JSON.stringify(oClassInfo, null, "  "));
 	}
 
-	if (currentModule.defaultExport 
+	if (currentModule.defaultExport
 		&& currentModule.localNames[currentModule.defaultExport]
 		&& currentModule.localNames[currentModule.defaultExport].class === oClassInfo.name) {
 		// debug("class " + oClassInfo.name + " identified as default export of module " + currentModule.module);
@@ -2348,7 +2348,7 @@ exports.handlers = {
 			if ( localDecl ) {
 				debug("found matching local declaration", e.doclet.longname, "'" + localDecl.export + "'", currentModule.defaultExport);
 				_ui5data.export = localDecl.export;
-			} 
+			}
 		}
 
 
@@ -2435,7 +2435,7 @@ exports.handlers = {
 
 			// add metadata to symbol
 			if ( classInfos[doclet.longname] ) {
-				// debug("class data", doclet.longname, "'" + classInfos[doclet.longname].export + "'"); 
+				// debug("class data", doclet.longname, "'" + classInfos[doclet.longname].export + "'");
 				if ( doclet.__ui5.export === undefined ) {
 					doclet.__ui5.export = classInfos[doclet.longname].export;
 				}
