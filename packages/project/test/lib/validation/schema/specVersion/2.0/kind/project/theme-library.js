@@ -44,7 +44,7 @@ test.after.always((t) => {
 });
 
 
-["2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,

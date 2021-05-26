@@ -18,7 +18,7 @@ module.exports = {
 
 		customConfiguration.defineTests(test, assertValidation, type, additionalConfiguration);
 
-		["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+		["2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 			test(`kind: extension / type: ${type} basic (${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign({
 					"specVersion": specVersion,

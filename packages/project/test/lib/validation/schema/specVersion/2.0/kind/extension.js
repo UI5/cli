@@ -36,7 +36,7 @@ test.after.always((t) => {
 	};
 	t.context.ajvCoverage.verify(thresholds);
 });
-["2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+["2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 	test(`Type project-shim (${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,

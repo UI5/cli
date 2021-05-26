@@ -5,7 +5,7 @@
 	"type": "object",
 	"required": ["specVersion", "type"],
 	"properties": {
-		"specVersion": { "enum": ["2.3", "2.2", "2.1", "2.0"] },
+		"specVersion": { "enum": ["2.4", "2.3", "2.2", "2.1", "2.0"] },
 		"kind": {
 			"enum": ["project", null],
 			"$comment": "Using null to allow not defining 'kind' which defaults to project"
@@ -177,31 +177,105 @@
 						}
 					},
 					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions"
+					}
+				}
+			}
+		},
+		"builder-bundles-2.4": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
 						"type": "object",
 						"additionalProperties": false,
+						"required": ["name"],
 						"properties": {
-							"optimize": {
-								"type": "boolean",
-								"default": false
+							"name": {
+								"type": "string"
 							},
-							"decorateBootstrapModule": {
-								"type": "boolean",
-								"default": true
+							"defaultFileTypes": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
 							},
-							"addTryCatchRestartWrapper": {
-								"type": "boolean",
-								"default": false
-							},
-							"usePredefineCalls": {
-								"type": "boolean",
-								"default": false
-							},
-							"numberOfParts": {
-								"type": "number",
-								"default": 1
+							"sections": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"additionalProperties": false,
+									"required": ["mode", "filters"],
+									"properties": {
+										"name": {
+											"type": "string"
+										},
+										"mode": {
+											"enum": ["raw", "preload", "require", "provided", "bundleInfo"]
+										},
+										"filters": {
+											"type": "array",
+											"items": {
+												"type": "string"
+											}
+										},
+										"resolve": {
+											"type": "boolean",
+											"default": false
+										},
+										"resolveConditional": {
+											"type": "boolean",
+											"default": false
+										},
+										"renderer": {
+											"type": "boolean",
+											"default": false
+										},
+										"sort": {
+											"type": "boolean",
+											"default": true
+										},
+										"declareRawModules": {
+											"type": "boolean",
+											"default": false
+										}
+									}
+								}
 							}
 						}
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions"
 					}
+				}
+			}
+		},
+		"builder-bundles-bundleOptions": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"optimize": {
+					"type": "boolean",
+					"default": false
+				},
+				"decorateBootstrapModule": {
+					"type": "boolean",
+					"default": true
+				},
+				"addTryCatchRestartWrapper": {
+					"type": "boolean",
+					"default": false
+				},
+				"usePredefineCalls": {
+					"type": "boolean",
+					"default": false
+				},
+				"numberOfParts": {
+					"type": "number",
+					"default": 1
 				}
 			}
 		},

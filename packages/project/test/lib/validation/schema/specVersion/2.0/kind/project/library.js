@@ -43,7 +43,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): Valid configuration`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -399,12 +399,18 @@ test.after.always((t) => {
 				keyword: "enum",
 				message: "should be equal to one of the allowed values",
 				params: {
-					allowedValues: [
+					allowedValues: ["2.4"].includes(specVersion) ? [
 						"raw",
 						"preload",
 						"require",
 						"provided",
-					],
+						"bundleInfo"
+					] : [
+						"raw",
+						"preload",
+						"require",
+						"provided"
+					]
 				}
 			},
 			{
@@ -608,7 +614,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.3"].forEach(function(specVersion) {
+["2.4", "2.3"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): builder/libraryPreload/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -799,6 +805,34 @@ test.after.always((t) => {
 			},
 		]);
 	});
+});
+
+["2.4"].forEach(function(specVersion) {
+	// Unsupported cases for older spec-versions already tested via "allowedValues" comparison above
+	test(`library (specVersion ${specVersion}): builder/bundles/bundleDefinition/sections/mode: bundleInfo`,
+		async (t) => {
+			await assertValidation(t, {
+				"specVersion": specVersion,
+				"kind": "project",
+				"type": "library",
+				"metadata": {
+					"name": "com.sap.ui5.test",
+					"copyright": "yes"
+				},
+				"builder": {
+					"bundles": [{
+						"bundleDefinition": {
+							"name": "my-bundle.js",
+							"sections": [{
+								"name": "my-bundle-info",
+								"mode": "bundleInfo",
+								"filters": []
+							}]
+						}
+					}]
+				}
+			});
+		});
 });
 
 project.defineTests(test, assertValidation, "library");
