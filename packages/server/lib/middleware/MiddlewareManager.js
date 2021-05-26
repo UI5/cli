@@ -217,7 +217,8 @@ class MiddlewareManager {
 						const params = {resources, options};
 						if (
 							specVersion === "2.0" || specVersion === "2.1" ||
-							specVersion === "2.2" || specVersion === "2.3"
+							specVersion === "2.2" || specVersion === "2.3" ||
+							specVersion === "2.4"
 						) {
 							// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
 							params.middlewareUtil = middlewareUtil.getInterface(specVersion);

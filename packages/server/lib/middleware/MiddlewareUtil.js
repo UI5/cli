@@ -32,6 +32,7 @@ class MiddlewareUtil {
 		case "2.1":
 		case "2.2":
 		case "2.3":
+		case "2.4":
 			return baseInterface;
 		default:
 			throw new Error(`MiddlewareUtil: Unknown or unsupported Specification Version ${specVersion}`);
