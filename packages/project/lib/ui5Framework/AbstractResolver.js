@@ -131,7 +131,7 @@ class AbstractResolver {
 	 *
 	 * @public
 	 * @typedef {object} ResolverInstallResult
-	 * @property {Object.<string, module:@ui5/project.ui5Framework.LibraryMetadataEntry>} libraryMetadata
+	 * @property {object.<string, module:@ui5/project.ui5Framework.LibraryMetadataEntry>} libraryMetadata
 	 *   Object containing all installed libraries with library name as key
 	 * @memberof module:@ui5/project.ui5Framework
 	 */
