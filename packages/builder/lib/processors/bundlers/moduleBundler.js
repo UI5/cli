@@ -4,8 +4,8 @@ const EvoResource = require("@ui5/fs").Resource;
 const log = require("@ui5/logger").getLogger("builder:processors:bundlers:moduleBundler");
 
 /**
- * A ModuleBundleDefinitionSection specifies the embedding mode ('provided', 'raw', 'preload' or 'require')
- * and lists the resources that should be in- or excluded from the section.
+ * A ModuleBundleDefinitionSection specifies the embedding mode (either 'provided', 'raw', 'preload', 'require'
+ * or 'bundleInfo') and lists the resources that should be in- or excluded from the section.
  * <p>
  * <b>Module bundle section modes</b><br>
  * <ul>
@@ -15,16 +15,16 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * which the bundle module is loaded.
  * 	</li>
  *	<li>
- *		<code>raw</code>: A raw section determines the set of modules that should be embedded, sorts them according
+ *		<code>raw</code>: A 'raw' section determines the set of modules that should be embedded, sorts them according
  *		to their dependencies and writes them out 1:1 without any transformation or wrapping (raw). Only JavaScript
  *		sources can be embedded in a raw section.
  *	</li>
  *	<li>
- *		<code>preload</code>: A preload section packages resources that should be stored in the preload cache in the
+ *		<code>preload</code>: A 'preload' section packages resources that should be stored in the preload cache in the
  *		client. They can embed any textual resource type (JavaScript, XML, JSON and .properties files) that the
  *		bundling supports. UI5 modules are wrapped into a 'sap.ui.predefine' call. Other JavaScript modules will be
- *		embedded into a 'jQuery.sap.registerPreload' call, unless the asynchronous ui5loader is used. With the
- *		ui5loader 'sap.ui.require.preload' is used for other modules.
+ *		embedded into a 'jQuery.sap.registerPreload' call, or in a "sap.ui.require.preload" call when
+ *      the ui5loader is available.
  *	</li>
  *	<li>
  *		<code>require</code>: A 'require' section is transformed into a sequence of jQuery.sap.require calls. The
@@ -32,12 +32,19 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  *		modules, a jQuery.sap.require will be created. In case the ui5loader is available, 'sap.ui.requireSync' is
  *		used instead.
  *	</li>
+ *	<li>
+ *		<code>bundleInfo</code>: A 'bundleInfo' section describes the content of another named bundle. This information
+ *		is transformed into a ui5loader-"bundlesUI5" configuration.
+ *		At runtime, if a module is known to be contained in a bundle, the loader will require that bundle before
+ *		the module itself.
+ *		This requires the ui5loader to be available at build time and UI5 version 1.74.0 or higher at runtime.
+ *	</li>
  * </ul>
  * </p>
  *
  * @public
  * @typedef {object} ModuleBundleDefinitionSection
- * @property {string} mode The embedding mode. Either 'provided', 'raw', 'preload' or 'require'
+ * @property {string} mode The embedding mode. Either 'provided', 'raw', 'preload', 'require' or 'bundleInfo'
  * @property {string[]} filters List of modules declared as glob patterns (resource name patterns) that should be
  *		in- or excluded.
  * 		A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,

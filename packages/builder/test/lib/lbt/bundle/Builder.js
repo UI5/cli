@@ -549,3 +549,73 @@ if (oError.name != "Restart") { throw oError; }
 	t.deepEqual(oResult.bundleInfo.subModules, ["jquery.sap.global.js", "myRawModule.js", "sap/ui/core/Core.js"],
 		"bundle info subModules are correct");
 });
+
+test("integration: createBundle with bundleInfo", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "a.js",
+		buffer: async () => "function One(){return 1;}"
+	});
+	pool.addResource({
+		name: "b.js",
+		buffer: async () => "function Two(){return 2;}"
+	});
+	pool.addResource({
+		name: "ui5loader.js",
+		buffer: async () => ""
+	});
+	pool.addResource({
+		name: "a.library",
+		buffer: async () => `<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+	<appData>
+		<packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0" >
+			  <module-infos>
+				<raw-module name="a.js"
+					requiresTopLevelScope="false" />
+			</module-infos>
+		</packaging>
+	</appData>
+</library>`
+	});
+
+	const bundleDefinition = {
+		name: `library-preload.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "preload",
+			name: "preload-section",
+			filters: ["a.js"]
+		}, {
+			mode: "require",
+			filters: ["ui5loader.js"]
+		}, {
+			mode: "bundleInfo",
+			name: "my-custom-bundle",
+			filters: ["b.js"]
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
+	t.deepEqual(oResult.name, "library-preload.js");
+	const expectedContent = `//@ui5-bundle library-preload.js
+sap.ui.require.preload({
+	"a.js":function(){function One(){return 1;}
+this.One=One;
+}
+},"preload-section");
+sap.ui.requireSync("ui5loader");
+sap.ui.loader.config({bundlesUI5:{
+"my-custom-bundle":['b.js']
+}});
+`;
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
+		"should contain:" +
+		" preload part from a.js" +
+		" require part from ui5loader.js");
+	t.deepEqual(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js"],
+		"bundle info subModules are correct");
+});

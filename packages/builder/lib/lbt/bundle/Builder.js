@@ -55,6 +55,14 @@ const UI5BundleFormat = {
 		outW.writeln(`}});`);
 	},
 
+	beforeBundleInfo(outW) {
+		outW.writeln("\"unsupported\"; /* 'bundleInfo' section mode not supported (requires ui5loader)");
+	},
+
+	afterBundleInfo(outW) {
+		outW.writeln("*/");
+	},
+
 	requireSync(outW, moduleName) {
 		outW.writeln(`sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");`);
 	},
@@ -75,6 +83,14 @@ const EVOBundleFormat = {
 			outW.write(`,"${section.name}"`);
 		}
 		outW.writeln(`);`);
+	},
+
+	beforeBundleInfo(outW) {
+		outW.writeln("sap.ui.loader.config({bundlesUI5:{");
+	},
+
+	afterBundleInfo(outW) {
+		outW.writeln("}});");
 	},
 
 	requireSync(outW, moduleName) {
@@ -141,12 +157,24 @@ class BundleBuilder {
 		// TODO is the following condition ok or should the availability of jquery.sap.global.js be configurable?
 		this.jqglobalAvailable = !resolvedModule.containsGlobal;
 		this.openModule(resolvedModule.name);
-
+		let bundleInfos = [];
 		// create all sections in sequence
 		for ( const section of resolvedModule.sections ) {
 			log.verbose("    adding section%s of type %s",
 				section.name ? " '" + section.name + "'" : "", section.mode);
-			await this.addSection(section);
+			if ( section.mode === SectionType.BundleInfo ) {
+				bundleInfos.push(section);
+			} else {
+				if ( bundleInfos.length > 0 ) {
+					await this.writeBundleInfos(bundleInfos);
+					bundleInfos = [];
+				}
+				await this.addSection(section);
+			}
+		}
+		if ( bundleInfos.length > 0 ) {
+			await this.writeBundleInfos(bundleInfos);
+			bundleInfos = [];
 		}
 
 		this.closeModule(resolvedModule);
@@ -204,6 +232,8 @@ class BundleBuilder {
 			return this.writeRaw(section);
 		case SectionType.Preload:
 			return this.writePreloadFunction(section);
+		case SectionType.BundleInfo:
+			return this.writeBundleInfos([section]);
 		case SectionType.Require:
 			return this.writeRequires(section);
 		default:
@@ -442,6 +472,26 @@ class BundleBuilder {
 			// Note: globalName can be assumed to be a valid identifier as it is used as variable name anyhow
 			this.outW.writeln(`this.${globalName}=${globalName};`);
 		});
+	}
+
+	writeBundleInfos(sections) {
+		this.outW.ensureNewLine();
+
+		if ( sections.length > 0 ) {
+			this.targetBundleFormat.beforeBundleInfo(this.outW);
+			sections.forEach((section, idx) => {
+				if ( idx > 0 ) {
+					this.outW.writeln(",");
+				}
+
+				if (!section.name) {
+					throw new Error(`A 'bundleInfo' section is missing the mandatory 'name' property.` );
+				}
+				this.outW.write(`"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`);
+			});
+			this.outW.writeln();
+			this.targetBundleFormat.afterBundleInfo(this.outW);
+		}
 	}
 
 	writeRequires(section) {
