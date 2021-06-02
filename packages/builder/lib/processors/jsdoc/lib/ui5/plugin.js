@@ -236,8 +236,13 @@ function analyzeModuleDefinition(node) {
 	let arg = 0;
 	if ( arg < args.length
 		 && args[arg].type === Syntax.Literal && typeof args[arg].value === 'string' ) {
-		warning(`module explicitly defined a module name '${args[arg].value}'`);
 		currentModule.name = args[arg].value;
+		warning(`module explicitly defined a module name '${currentModule.name}'`);
+		const resourceModuleName = getModuleName(currentModule.resource);
+		if (currentModule.name !== resourceModuleName) {
+			warning(`explicitly defined module name '${currentModule.name}' ` +
+				`differs from resource name '${resourceModuleName}'`);
+		}
 		arg++;
 	}
 	if ( arg < args.length && args[arg].type === Syntax.ArrayExpression ) {
