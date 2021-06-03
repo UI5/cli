@@ -106,6 +106,7 @@ async function generateJsdocConfig({targetPath, tmpPath, namespace, projectName,
 			"ui5": {
 				"variants": ${JSON.stringify(variants)},
 				"version": "${version}",
+				"uilib": "${projectName}",
 				"jsapiFile": "${jsapiFilePath}",
 				"apiJsonFolder": "${apiJsonFolderPath}",
 				"apiJsonFile": "${apiJsonFilePath}"

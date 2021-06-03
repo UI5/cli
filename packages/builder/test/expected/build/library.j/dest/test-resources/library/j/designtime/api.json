@@ -1,1 +1,1 @@
-{"$schema-ref":"http://schemas.sap.com/sapui5/designtime/api.json/1.0","version":"1.0.0","symbols":[{"kind":"namespace","name":"library.j","basename":"j","resource":"library/j/some.js","module":"library/j/some","static":true,"visibility":"public"}]}
+{"$schema-ref":"http://schemas.sap.com/sapui5/designtime/api.json/1.0","version":"1.0.0","library":"library.j","symbols":[{"kind":"namespace","name":"library.j","basename":"j","resource":"library/j/some.js","module":"library/j/some","static":true,"visibility":"public"}]}

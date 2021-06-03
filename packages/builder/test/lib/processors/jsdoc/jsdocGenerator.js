@@ -50,6 +50,7 @@ test("generateJsdocConfig", async (t) => {
 			"ui5": {
 				"variants": ["apijson"],
 				"version": "1.0.0",
+				"uilib": "some.namespace",
 				"jsapiFile": "${jsapiFilePath}",
 				"apiJsonFolder": "${apiJsonFolderPath}",
 				"apiJsonFile": "${apiJsonFilePath}"
