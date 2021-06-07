@@ -91,6 +91,13 @@ async function generateJsdocConfig({targetPath, tmpPath, namespace, projectName,
 		path.join(targetPath, "test-resources", path.normalize(namespace), "designtime", "api.json")
 			.replace(backslashRegex, "\\\\");
 
+	// Note: While the projectName could also be used here, it is not ensured that it fits to
+	// the library namespace.
+	// As the "uilib" information is used to check for certain constraints it must be aligned with
+	// the technical namespace that is used in the folder-structure, library.js and for the
+	// sap.ui.base.Object based classes.
+	const uilib = namespace.replace(/\//g, ".");
+
 	const config = `{
 		"plugins": ["${pluginPath}"],
 		"opts": {
@@ -106,7 +113,7 @@ async function generateJsdocConfig({targetPath, tmpPath, namespace, projectName,
 			"ui5": {
 				"variants": ${JSON.stringify(variants)},
 				"version": "${version}",
-				"uilib": "${projectName}",
+				"uilib": "${uilib}",
 				"jsapiFile": "${jsapiFilePath}",
 				"apiJsonFolder": "${apiJsonFolderPath}",
 				"apiJsonFile": "${apiJsonFilePath}"

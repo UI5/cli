@@ -10,7 +10,7 @@ test("generateJsdocConfig", async (t) => {
 		targetPath: "/some/target/path",
 		tmpPath: "/some/tm\\p/path",
 		namespace: "some/namespace",
-		projectName: "some.namespace",
+		projectName: "some.projectName",
 		version: "1.0.0",
 		variants: ["apijson"]
 	});
@@ -26,7 +26,7 @@ test("generateJsdocConfig", async (t) => {
 		.replace(backslashRegex, "\\\\");
 	const destinationPath = path.join("/", "some", "tm\\p", "path")
 		.replace(backslashRegex, "\\\\");
-	const jsapiFilePath = path.join("/", "some", "target", "path", "libraries", "some.namespace.js")
+	const jsapiFilePath = path.join("/", "some", "target", "path", "libraries", "some.projectName.js")
 		.replace(backslashRegex, "\\\\");
 	const apiJsonFolderPath = path.join("/", "some", "tm\\p", "path", "dependency-apis")
 		.replace(backslashRegex, "\\\\");
