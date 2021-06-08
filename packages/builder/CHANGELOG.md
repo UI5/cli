@@ -2,10 +2,21 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.9.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.9.1...HEAD).
+
+<a name="v2.9.1"></a>
+## [v2.9.1] - 2021-06-08
+### Bug Fixes
+- **JSDoc:** Use namespace to derive uilib name for jsdoc generator [`2077130`](https://github.com/SAP/ui5-builder/commit/2077130d52305e4f46c3230c94001812beb2eb36)
+- **JSDoc:** add project name to JSDoc configuration and api.json ([#609](https://github.com/SAP/ui5-builder/issues/609)) [`419ce38`](https://github.com/SAP/ui5-builder/commit/419ce3836bce117fb3d5fc05af11caef5c8a432a)
+- **lib/processors/debugFileCreator:** Add -dbg suffix only to files ([#611](https://github.com/SAP/ui5-builder/issues/611)) [`9da2f7b`](https://github.com/SAP/ui5-builder/commit/9da2f7b7b53b41adbce772e9823cee24b50a9aa9)
+
+### Dependency Updates
+- Bump cheerio from 0.22.0 to 1.0.0-rc.9 [`8bdb146`](https://github.com/SAP/ui5-builder/commit/8bdb1462e721127eaf860665a1361b6877e873a1)
+
 
 <a name="v2.9.0"></a>
-## [v2.9.0] - 2021-05-30
+## [v2.9.0] - 2021-06-01
 ### Features
 - Support writing 'bundles' config as part of a bundle ([#396](https://github.com/SAP/ui5-builder/issues/396)) [`b5f372a`](https://github.com/SAP/ui5-builder/commit/b5f372a6ab9c31f3acef41a59e6cecd6681be2dd)
 
@@ -568,6 +579,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.9.1]: https://github.com/SAP/ui5-builder/compare/v2.9.0...v2.9.1
 [v2.9.0]: https://github.com/SAP/ui5-builder/compare/v2.8.4...v2.9.0
 [v2.8.4]: https://github.com/SAP/ui5-builder/compare/v2.8.3...v2.8.4
 [v2.8.3]: https://github.com/SAP/ui5-builder/compare/v2.8.2...v2.8.3
