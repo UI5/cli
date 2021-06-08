@@ -36,16 +36,13 @@ test.serial("Replaces relative bootstrap src with bar.js", async (t) => {
 <body>
 </body>
 </html>`;
-	const expected = `
-<!DOCTYPE html>
-<html>
-<head>
+	const expected = `<!DOCTYPE html><html><head>
 	<script id="sap-ui-bootstrap" src="bar.js">
 	</script>
 </head>
 <body>
-</body>
-</html>`;
+
+</body></html>`;
 
 	const resource = {
 		getString: () => Promise.resolve(input),
@@ -79,16 +76,13 @@ test.serial("Replaces absolute bootstrap src with bar.js", async (t) => {
 <body>
 </body>
 </html>`;
-	const expected = `
-<!DOCTYPE html>
-<html>
-<head>
+	const expected = `<!DOCTYPE html><html><head>
 	<script id="sap-ui-bootstrap" src="bar.js">
 	</script>
 </head>
 <body>
-</body>
-</html>`;
+
+</body></html>`;
 
 	const resource = {
 		getString: () => Promise.resolve(input),
@@ -122,16 +116,13 @@ test.serial("Replaces bootstrap src of multiple resources", async (t) => {
 <body>
 </body>
 </html>`;
-	const expected = `
-<!DOCTYPE html>
-<html>
-<head>
+	const expected = `<!DOCTYPE html><html><head>
 	<script id="sap-ui-bootstrap" src="bar.js">
 	</script>
 </head>
 <body>
-</body>
-</html>`;
+
+</body></html>`;
 
 	const resource = {
 		getString: () => Promise.resolve(input),

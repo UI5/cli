@@ -106,7 +106,7 @@
 	"dependencies": {
 		"@ui5/fs": "^2.0.6",
 		"@ui5/logger": "^2.0.1",
-		"cheerio": "^0.22.0",
+		"cheerio": "1.0.0-rc.9",
 		"escape-unicode": "^0.2.0",
 		"escope": "^3.6.0",
 		"esprima": "^4.0.1",
