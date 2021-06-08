@@ -337,3 +337,83 @@ test("integration: dbg file creation should not overwrite the existing -dbg file
 		});
 	});
 });
+
+test("integration: add '-dbg' suffix only to files and not to the folders in the path", (t) => {
+	const sourceAdapter = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const content = "console.log('Hello World');";
+	const resources = [
+		resourceFactory.createResource({
+			path: "/someFolder/test.js/test.js",
+			string: content
+		}),
+		resourceFactory.createResource({
+			path: "/someFolder/test.view.js/test.view.js",
+			string: content
+		}),
+		resourceFactory.createResource({
+			path: "/someFolder/test.fragment.js/test.fragment.js",
+			string: content
+		}),
+		resourceFactory.createResource({
+			path: "/someFolder/test.controller.js/test.controller.js",
+			string: content
+		}),
+		resourceFactory.createResource({
+			path: "/someFolder/test.designtime.js/test.designtime.js",
+			string: content
+		}),
+		resourceFactory.createResource({
+			path: "/someFolder/test.support.js/test.support.js",
+			string: content
+		})
+	];
+
+	return Promise.all(resources.map((resource) => {
+		return sourceAdapter.write(resource);
+	})).then(() => {
+		return createDebugFiles({
+			workspace: sourceAdapter,
+			options: {
+				pattern: "/**/*.js"
+			}
+		}).then(() => {
+			return Promise.all([
+				sourceAdapter.byPath("/someFolder/test.js/test-dbg.js"),
+				sourceAdapter.byPath("/someFolder/test.view.js/test-dbg.view.js"),
+				sourceAdapter.byPath("/someFolder/test.fragment.js/test-dbg.fragment.js"),
+				sourceAdapter.byPath("/someFolder/test.controller.js/test-dbg.controller.js"),
+				sourceAdapter.byPath("/someFolder/test.designtime.js/test-dbg.designtime.js"),
+				sourceAdapter.byPath("/someFolder/test.support.js/test-dbg.support.js"),
+			]).then((resources) => {
+				if (!resources || resources.length !== 6) {
+					t.fail("Could not find all created debug files in target locator");
+				} else {
+					return Promise.all(resources.map((resource) => {
+						return resource.getBuffer();
+					}));
+				}
+			});
+		}).then((buffers) => {
+			t.deepEqual(buffers[0].toString(), content,
+				"Content of '/someFolder/test.js/test-dbg.js' is correct"
+			);
+			t.deepEqual(buffers[1].toString(), content,
+				"Content of '/someFolder/test.view.js/test-dbg.view.js' is correct"
+			);
+			t.deepEqual(buffers[2].toString(), content,
+				"Content of '/someFolder/test.fragment.js/test-dbg.fragment.js' is correct"
+			);
+			t.deepEqual(buffers[3].toString(), content,
+				"Content of '/someFolder/test.controller.js/test-dbg.controller.js' is correct"
+			);
+			t.deepEqual(buffers[4].toString(), content,
+				"Content of '/someFolder/test.designtime.js/test-dbg.designtime.js' is correct"
+			);
+			t.deepEqual(buffers[5].toString(), content,
+				"Content of '/someFolder/test.support.js/test-dbg.support.js' is correct"
+			);
+		});
+	});
+});

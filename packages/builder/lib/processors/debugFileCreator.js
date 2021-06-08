@@ -14,7 +14,7 @@ const util = require("util");
  */
 module.exports = function({resources, fs}) {
 	const options = {
-		pattern: /((\.view|\.fragment|\.controller|\.designtime|\.support)?\.js)/,
+		pattern: /((?:\.view|\.fragment|\.controller|\.designtime|\.support)?\.js)$/,
 		replacement: "-dbg$1"
 	};
 
