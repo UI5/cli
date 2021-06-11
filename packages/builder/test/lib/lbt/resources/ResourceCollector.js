@@ -73,6 +73,28 @@ test.serial("visitResource: library.source.less", async (t) => {
 	t.is(resourceCollector.themePackages.size, 1, "theme package was added");
 });
 
+test.serial("visitResource: ensure proper matching of indicator files", async (t) => {
+	const resourceCollector = new ResourceCollector();
+	t.is(resourceCollector.components.size, 0, "initially there are no prefixes");
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/projectA/NotComponent.js",
+		getSize: async () => 13
+	});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/projectB/notmanifest.json",
+		getSize: async () => 13
+	});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/projectC/not.library.yaml",
+		getSize: async () => 13
+	});
+	await resourceCollector.visitResource({
+		getPath: () => "/resources/projectD/Component.json",
+		getSize: async () => 13
+	});
+	t.is(resourceCollector.components.size, 0, "No prefixes should be added");
+});
+
 test.serial("groupResourcesByComponents: debugBundles", async (t) => {
 	const resourceCollector = new ResourceCollector();
 	resourceCollector.setExternalResources({

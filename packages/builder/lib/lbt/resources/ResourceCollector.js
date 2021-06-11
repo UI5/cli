@@ -93,7 +93,8 @@ class ResourceCollector {
 			const p = name.lastIndexOf("/");
 			const prefix = name.substring(0, p + 1);
 			const basename = name.substring(p + 1);
-			if ( basename.match("[^/]*\\.library|Component\\.js|manifest\\.json") && !this._components.has(prefix) ) {
+			if ( basename.match("^([^/]*\\.library|Component\\.js|manifest\\.json)$") &&
+					!this._components.has(prefix)) {
 				this._components.set(prefix, new ResourceInfoList(prefix));
 			}
 			// a .theme file within a theme folder indicates a library/theme package
