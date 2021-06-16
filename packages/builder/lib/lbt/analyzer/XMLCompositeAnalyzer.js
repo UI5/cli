@@ -1,7 +1,6 @@
 "use strict";
 
-const esprima = require("esprima");
-const {Syntax} = esprima;
+const {Syntax} = require("../utils/parseUtils");
 const SapUiDefine = require("../calls/SapUiDefine");
 const {getValue, isMethodCall, isString} = require("../utils/ASTUtils");
 const ModuleName = require("../utils/ModuleName");

@@ -1,11 +1,10 @@
 const test = require("ava");
-const esprima = require("esprima");
-const Syntax = esprima.Syntax;
+const {parseJS, Syntax} = require("../../../../lib/lbt/utils/parseUtils");
 
 const SapUiDefineCall = require("../../../../lib/lbt/calls/SapUiDefine");
 
 function parse(code) {
-	const ast = esprima.parseScript(code);
+	const ast = parseJS(code);
 	return ast.body[0].expression;
 }
 

@@ -4,8 +4,7 @@
 
 const terser = require("terser");
 const {pd} = require("pretty-data");
-const esprima = require("esprima");
-const {Syntax} = esprima;
+const {parseJS, Syntax} = require("../utils/parseUtils");
 // const MOZ_SourceMap = require("source-map");
 
 const {isMethodCall} = require("../utils/ASTUtils");
@@ -508,7 +507,7 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 	let ast;
 	const codeStr = code.toString();
 	try {
-		ast = esprima.parseScript(codeStr, {range: true});
+		ast = parseJS(codeStr, {range: true});
 	} catch (e) {
 		log.error("error while parsing %s: %s", moduleName, e.message);
 		return;

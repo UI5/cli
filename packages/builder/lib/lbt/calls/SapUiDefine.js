@@ -1,6 +1,6 @@
 "use strict";
 
-const {Syntax} = require("esprima");
+const {Syntax} = require("../utils/parseUtils");
 const ModuleName = require("../utils/ModuleName");
 const {isString, isBoolean} = require("../utils/ASTUtils");
 

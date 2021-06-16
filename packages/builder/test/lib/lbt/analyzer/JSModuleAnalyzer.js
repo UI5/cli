@@ -1,7 +1,7 @@
 const test = require("ava");
 const fs = require("fs");
 const path = require("path");
-const esprima = require("esprima");
+const {parseJS} = require("../../../../lib/lbt/utils/parseUtils");
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 const JSModuleAnalyzer = require("../../../../lib/lbt/analyzer/JSModuleAnalyzer");
 
@@ -51,7 +51,7 @@ function analyze(file, name) {
 }
 
 function analyzeString(content, name) {
-	const ast = esprima.parseScript(content, {comment: true});
+	const ast = parseJS(content, {comment: true});
 	const info = new ModuleInfo(name);
 	new JSModuleAnalyzer().analyze(ast, name, info);
 	return info;
@@ -594,7 +594,7 @@ test("Toplevel define", (t) => {
 });
 
 test("Invalid ui5 bundle comment", (t) => {
-	const content = `/@ui5-bundles sap/ui/thirdparty/xxx.js
+	const content = `//@ui5-bundles sap/ui/thirdparty/xxx.js
 if(!('xxx'in Node.prototype)){}
 //@ui5-bundle-raw-includes sap/ui/thirdparty/aaa.js
 (function(g,f){g.AAA=f();}(this,(function(){})));

@@ -1,5 +1,5 @@
 const test = require("ava");
-const esprima = require("esprima");
+const {parseJS} = require("../../../../lib/lbt/utils/parseUtils");
 const sinon = require("sinon");
 const XMLCompositeAnalyzer = require("../../../../lib/lbt/analyzer/XMLCompositeAnalyzer");
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
@@ -13,7 +13,7 @@ test("integration: XMLComposite code", async (t) => {
 		return ButtonList;
 	});`;
 
-	const ast = esprima.parse(code);
+	const ast = parseJS(code);
 
 	const analyzer = new XMLCompositeAnalyzer();
 	const name = "composites.ButtonList";
@@ -31,7 +31,7 @@ test("analyze: not an XMLComposite module", async (t) => {
 		return {};
 	});`;
 
-	const ast = esprima.parse(code);
+	const ast = parseJS(code);
 
 	const moduleInfo = {
 		addDependency: function() {}
@@ -55,7 +55,7 @@ test("analyze: XMLComposite VariableDeclaration code", async (t) => {
 		return ButtonList;
 	});`;
 
-	const ast = esprima.parse(code);
+	const ast = parseJS(code);
 
 	const moduleInfo = {
 		addDependency: function() {}
@@ -85,7 +85,7 @@ test("analyze: XMLComposite Expression code", async (t) => {
 		jQuery.sap.test = XMLComposite.extend("composites.ButtonList", {});
 	});`;
 
-	const ast = esprima.parse(code);
+	const ast = parseJS(code);
 
 	const moduleInfo = {
 		addDependency: function() {}
@@ -109,7 +109,7 @@ test("analyze: XMLComposite Expression code", async (t) => {
 test("_checkForXMLCClassDefinition: string argument and object expression", async (t) => {
 	const code = `XMLComposite.extend("composites.ButtonList", {})`;
 
-	const ast = esprima.parse(code);
+	const ast = parseJS(code);
 
 	const analyzer = new XMLCompositeAnalyzer();
 	const stubAnalyzeXMLCClassDefinition = sinon.stub(analyzer, "_analyzeXMLCClassDefinition").returns("cow");
@@ -123,7 +123,7 @@ test("_checkForXMLCClassDefinition: string argument and object expression", asyn
 test("_analyzeXMLCClassDefinition: name retrieval", async (t) => {
 	const code = `test({fragment: "cat"})`;
 
-	const ast = esprima.parse(code);
+	const ast = parseJS(code);
 
 	const analyzer = new XMLCompositeAnalyzer();
 	const result = analyzer._analyzeXMLCClassDefinition(ast.body[0].expression.arguments[0]);

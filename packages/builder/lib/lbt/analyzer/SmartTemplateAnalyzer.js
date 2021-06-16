@@ -27,8 +27,7 @@
 
 const ModuleName = require("../utils/ModuleName");
 const SapUiDefine = require("../calls/SapUiDefine");
-const esprima = require("esprima");
-const {Syntax} = esprima;
+const {parseJS, Syntax} = require("../utils/parseUtils");
 const {getValue, isMethodCall, isString} = require("../utils/ASTUtils");
 const log = require("@ui5/logger").getLogger("lbt:analyzer:SmartTemplateAnalyzer");
 
@@ -109,7 +108,7 @@ class TemplateComponentAnalyzer {
 		try {
 			const resource = await this._pool.findResource(moduleName);
 			const code = await resource.buffer();
-			const ast = esprima.parseScript(code.toString());
+			const ast = parseJS(code);
 			const defaultTemplateName = this._analyzeAST(moduleName, ast);
 			const templateName = (pageConfig.component && pageConfig.component.settings &&
 									pageConfig.component.settings.templateName) || defaultTemplateName;

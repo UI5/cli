@@ -2,7 +2,7 @@ const test = require("ava");
 const SmartTemplateAnalyzer = require("../../../../lib/lbt/analyzer/SmartTemplateAnalyzer");
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 const sinon = require("sinon");
-const esprima = require("esprima");
+const parseJS = require("../../../../lib/lbt/utils/parseUtils");
 
 
 test("analyze: with Component.js", async (t) => {
@@ -210,7 +210,7 @@ test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", a
 	const analyzer = new SmartTemplateAnalyzer(mockPool);
 
 	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("mytpl");
-	const stubParse = sinon.stub(esprima, "parse").returns("");
+	const stubParse = sinon.stub(parseJS, "parseJS").returns("");
 
 	await analyzer._analyzeTemplateComponent("pony",
 		{}, moduleInfo);
@@ -247,7 +247,7 @@ test.serial("_analyzeTemplateComponent: no default template name", async (t) => 
 	const analyzer = new SmartTemplateAnalyzer(mockPool);
 
 	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
-	const stubParse = sinon.stub(esprima, "parse").returns("");
+	const stubParse = sinon.stub(parseJS, "parseJS").returns("");
 
 	await analyzer._analyzeTemplateComponent("pony",
 		{}, moduleInfo);
@@ -279,7 +279,7 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 	const analyzer = new SmartTemplateAnalyzer(mockPool);
 
 	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
-	const stubParse = sinon.stub(esprima, "parse").returns("");
+	const stubParse = sinon.stub(parseJS, "parseJS").returns("");
 
 	await analyzer._analyzeTemplateComponent("pony", {
 		component: {
@@ -316,7 +316,7 @@ test.serial("_analyzeTemplateComponent: dependency not found", async (t) => {
 	const analyzer = new SmartTemplateAnalyzer(mockPool);
 
 	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
-	const stubParse = sinon.stub(esprima, "parse").returns("");
+	const stubParse = sinon.stub(parseJS, "parseJS").returns("");
 
 	const error = await t.throwsAsync(analyzer._analyzeTemplateComponent("pony", {
 		component: {
@@ -353,7 +353,7 @@ test.serial("_analyzeTemplateComponent: dependency not found is ignored", async 
 	const analyzer = new SmartTemplateAnalyzer(mockPool);
 
 	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
-	const stubParse = sinon.stub(esprima, "parse").returns("");
+	const stubParse = sinon.stub(parseJS, "parseJS").returns("");
 
 	await analyzer._analyzeTemplateComponent("pony", {
 		component: {
@@ -385,7 +385,7 @@ test("_analyzeAST: get template name from ast", async (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = esprima.parse(code);
+	const ast = parseJS.parseJS(code);
 
 	const analyzer = new SmartTemplateAnalyzer();
 
@@ -416,7 +416,7 @@ test("_analyzeAST: no template name from ast", async (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = esprima.parse(code);
+	const ast = parseJS.parseJS(code);
 
 	const analyzer = new SmartTemplateAnalyzer();
 
@@ -489,7 +489,7 @@ test("_analyzeTemplateClassDefinition: get template name from metadata", async (
 				"manifest": "json"
 			}
 		};`;
-	const ast = esprima.parse(code);
+	const ast = parseJS.parseJS(code);
 	const expression = ast.body[0].declarations[0].init;
 
 	const analyzer = new SmartTemplateAnalyzer();
@@ -511,7 +511,7 @@ test("_analyzeTemplateClassDefinition: no string template name from metadata", a
 				"manifest": "json"
 			}
 		};`;
-	const ast = esprima.parse(code);
+	const ast = parseJS.parseJS(code);
 	const expression = ast.body[0].declarations[0].init;
 
 	const analyzer = new SmartTemplateAnalyzer();

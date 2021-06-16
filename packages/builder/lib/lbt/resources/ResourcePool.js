@@ -4,7 +4,7 @@
 const fs = require("fs");
 const path = require("path");
 */
-const esprima = require("esprima");
+const {parseJS} = require("../utils/parseUtils");
 const ComponentAnalyzer = require("../analyzer/ComponentAnalyzer");
 const SmartTemplateAnalyzer = require("../analyzer/SmartTemplateAnalyzer");
 const FioriElementsAnalyzer = require("../analyzer/FioriElementsAnalyzer");
@@ -67,7 +67,7 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		const promises = [];
 		let ast;
 		try {
-			ast = esprima.parseScript(code.toString(), {comment: true});
+			ast = parseJS(code, {comment: true});
 		} catch (err) {
 			log.error("failed to parse %s: %s", resource.name, err.message);
 		}

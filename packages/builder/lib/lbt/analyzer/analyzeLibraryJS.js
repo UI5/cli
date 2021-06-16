@@ -1,6 +1,5 @@
 "use strict";
-const esprima = require("esprima");
-const {Syntax} = esprima;
+const {parseJS, Syntax} = require("../utils/parseUtils");
 const {getPropertyKey, isMethodCall, isIdentifier, getStringArray} = require("../utils/ASTUtils");
 const VisitorKeys = require("estraverse").VisitorKeys;
 
@@ -63,7 +62,7 @@ async function analyze(resource) {
 	}
 
 	const code = await resource.getBuffer();
-	visit( esprima.parseScript(code.toString()) );
+	visit( parseJS(code) );
 
 	return libInfo;
 }

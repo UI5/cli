@@ -1,6 +1,6 @@
 "use strict";
 
-const {Syntax} = require("esprima");
+const {Syntax} = require("../utils/parseUtils");
 
 /**
  * Checks whether the given node is a string literal.

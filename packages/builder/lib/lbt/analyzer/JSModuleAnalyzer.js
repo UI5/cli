@@ -1,7 +1,6 @@
 "use strict";
 
-const esprima = require("esprima");
-const {Syntax} = esprima;
+const {Syntax} = require("../utils/parseUtils");
 const escope = require("escope");
 const ModuleName = require("../utils/ModuleName");
 const {Format: ModuleFormat} = require("../resources/ModuleInfo");
