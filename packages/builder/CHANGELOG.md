@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.9.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.9.2...HEAD).
+
+<a name="v2.9.2"></a>
+## [v2.9.2] - 2021-06-16
+### Bug Fixes
+- Switch from esprima to espree ([#615](https://github.com/SAP/ui5-builder/issues/615)) [`c3d50e3`](https://github.com/SAP/ui5-builder/commit/c3d50e36aacf374f7616278aa590a6423c3294fe)
+- **lbt/resources/ResourceCollector:** Ensure proper matching of indicator files ([#614](https://github.com/SAP/ui5-builder/issues/614)) [`2d3a1d8`](https://github.com/SAP/ui5-builder/commit/2d3a1d86f06f0eb223b7ae9843d6479ebb1e14e4)
+
 
 <a name="v2.9.1"></a>
 ## [v2.9.1] - 2021-06-08
@@ -579,6 +586,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.9.2]: https://github.com/SAP/ui5-builder/compare/v2.9.1...v2.9.2
 [v2.9.1]: https://github.com/SAP/ui5-builder/compare/v2.9.0...v2.9.1
 [v2.9.0]: https://github.com/SAP/ui5-builder/compare/v2.8.4...v2.9.0
 [v2.8.4]: https://github.com/SAP/ui5-builder/compare/v2.8.3...v2.8.4
