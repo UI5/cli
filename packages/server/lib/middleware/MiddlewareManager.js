@@ -1,5 +1,6 @@
 const middlewareRepository = require("./middlewareRepository");
 const MiddlewareUtil = require("./MiddlewareUtil");
+const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
 /**
  *
@@ -142,13 +143,25 @@ class MiddlewareManager {
 					}
 				};
 				if (this.options.sendSAPTargetCSP) {
-					Object.assign(oCspConfig, {
+					const defaultSAPTargetConfig = {
 						defaultPolicy: "sap-target-level-1",
 						defaultPolicyIsReportOnly: true,
-						defaultPolicy2: "sap-target-level-3",
+						defaultPolicy2: "sap-target-level-2",
 						defaultPolicy2IsReportOnly: true,
 						ignorePaths: ["test-resources/sap/ui/qunit/testrunner.html"]
-					});
+					};
+					Object.assign(oCspConfig, defaultSAPTargetConfig);
+
+					if (typeof this.options.sendSAPTargetCSP === "object") {
+						for (const [name, value] of Object.entries(this.options.sendSAPTargetCSP)) {
+							if (!hasOwn(defaultSAPTargetConfig, name)) {
+								throw new TypeError(
+									`Unknown SAP Target CSP configuration option '${name}'. Allowed options are ` +
+									`${Object.keys(defaultSAPTargetConfig)}`);
+							}
+							oCspConfig[name] = value;
+						}
+					}
 				}
 				if (this.options.serveCSPReports) {
 					Object.assign(oCspConfig, {

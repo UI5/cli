@@ -88,6 +88,20 @@ function _addSsl({app, key, cert}) {
 	return require("spdy").createServer({cert, key}, app);
 }
 
+
+/**
+ * SAP target CSP middleware options
+ *
+ * @public
+ * @typedef {object} module:@ui5/server.server.SAPTargetCSPOptions
+ * @property {string} [defaultPolicy="sap-target-level-1"]
+ * @property {string} [defaultPolicyIsReportOnly=true]
+ * @property {string} [defaultPolicy2="sap-target-level-2"]
+ * @property {string} [defaultPolicy2IsReportOnly=true]
+ * @property {string[]} [ignorePaths=["test-resources/sap/ui/qunit/testrunner.html"]]
+ */
+
+
 /**
  * @public
  * @namespace
@@ -105,14 +119,15 @@ module.exports = {
 	 * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to <code>http</code>
 	 * @param {string} [options.key] Path to private key to be used for https
 	 * @param {string} [options.cert] Path to certificate to be used for for https
+	 * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
 	 * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and
 	 * 															not only to localhost connections
-	 * @param {boolean} [options.sendSAPTargetCSP=false] If true, then the content security policies that SAP and UI5
-	 * 													aim for (AKA 'target policies'), are send for any requested
-	 * 													<code>*.html</code> file
-	 * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
-	 * @param {boolean} [options.serveCSPReports=false] Enable csp reports serving for request url
-	 * '/.ui5/csp/csp-reports.json'
+	 * @param {boolean|module:@ui5/server.server.SAPTargetCSPOptions} [options.sendSAPTargetCSP=false]
+	 * 										If set to <code>true</code> or an object, then the default (or configured)
+	 * 										set of security policies that SAP and UI5 aim for (AKA 'target policies'),
+	 * 										are send for any requested <code>*.html</code> file
+	 * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
+	 * 										'/.ui5/csp/csp-reports.json'
 	 * @returns {Promise<object>} Promise resolving once the server is listening.
 	 * 							It resolves with an object containing the <code>port</code>,
 	 * 							<code>h2</code>-flag and a <code>close</code> function,

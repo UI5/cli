@@ -598,3 +598,170 @@ test("addCustomMiddleware: wrapperCallback provides middlewareUtil to custom mid
 		middlewareUtil: "interfacedMiddlewareUtil"
 	}, "Middleware module got called with correct arguments");
 });
+
+test("addStandardMiddleware: CSP middleware configured correctly (default)", async (t) => {
+	const middlewareManager = new MiddlewareManager({
+		tree: {},
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addStandardMiddleware();
+
+	const cspCall = addMiddlewareStub.getCalls().find((call) => {
+		if (call.args[0] === "csp") {
+			return true;
+		}
+	});
+	t.truthy(cspCall, "CSP middleware added");
+	const wrapperCallback = cspCall.args[1].wrapperCallback;
+
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const middlewareModuleInfo = {
+		middleware: middlewareModuleStub
+	};
+	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
+	const res = middlewareWrapper();
+	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
+	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
+		"CSP middleware module got called with correct first argument");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[1], {
+		allowDynamicPolicyDefinition: true,
+		allowDynamicPolicySelection: true,
+		definedPolicies: {
+			/* eslint-disable max-len */
+			"sap-target-level-1":
+				`default-src 'self'; script-src  'self' 'unsafe-eval'; style-src   'self' 'unsafe-inline'; font-src    'self' data:; img-src     'self' https: http: data: blob:; media-src   'self' https: http: data: blob:; object-src  blob:; frame-src   'self' https: gap: data: blob: mailto: tel:; worker-src  'self' blob:; child-src   'self' blob:; connect-src 'self' https: wss:; base-uri    'self';`,
+			"sap-target-level-2":
+				`default-src 'self'; script-src  'self'; style-src   'self' 'unsafe-inline'; font-src    'self' data:; img-src     'self' https: http: data: blob:; media-src   'self' https: http: data: blob:; object-src  blob:; frame-src   'self' https: gap: data: blob: mailto: tel:; worker-src  'self' blob:; child-src   'self' blob:; connect-src 'self' https: wss:; base-uri    'self';`,
+			"sap-target-level-3":
+				`default-src 'self'; script-src  'self'; style-src   'self'; font-src    'self'; img-src     'self' https:; media-src   'self' https:; object-src  'self'; frame-src   'self' https: gap: mailto: tel:; worker-src  'self'; child-src   'self'; connect-src 'self' https: wss:; base-uri    'self';`,
+			/* eslint-enable max-len */
+		}
+	}, "CSP middleware module got called with correct second argument");
+});
+
+test("addStandardMiddleware: CSP middleware configured correctly (enabled)", async (t) => {
+	const middlewareManager = new MiddlewareManager({
+		tree: {},
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			sendSAPTargetCSP: true,
+			serveCSPReports: true
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addStandardMiddleware();
+
+	const cspCall = addMiddlewareStub.getCalls().find((call) => {
+		if (call.args[0] === "csp") {
+			return true;
+		}
+	});
+	t.truthy(cspCall, "CSP middleware added");
+	const wrapperCallback = cspCall.args[1].wrapperCallback;
+
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const middlewareModuleInfo = {
+		middleware: middlewareModuleStub
+	};
+	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
+	const res = middlewareWrapper();
+	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
+	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
+		"CSP middleware module got called with correct first argument");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[1], {
+		allowDynamicPolicyDefinition: true,
+		allowDynamicPolicySelection: true,
+		definedPolicies: {
+			/* eslint-disable max-len */
+			"sap-target-level-1":
+				`default-src 'self'; script-src  'self' 'unsafe-eval'; style-src   'self' 'unsafe-inline'; font-src    'self' data:; img-src     'self' https: http: data: blob:; media-src   'self' https: http: data: blob:; object-src  blob:; frame-src   'self' https: gap: data: blob: mailto: tel:; worker-src  'self' blob:; child-src   'self' blob:; connect-src 'self' https: wss:; base-uri    'self';`,
+			"sap-target-level-2":
+				`default-src 'self'; script-src  'self'; style-src   'self' 'unsafe-inline'; font-src    'self' data:; img-src     'self' https: http: data: blob:; media-src   'self' https: http: data: blob:; object-src  blob:; frame-src   'self' https: gap: data: blob: mailto: tel:; worker-src  'self' blob:; child-src   'self' blob:; connect-src 'self' https: wss:; base-uri    'self';`,
+			"sap-target-level-3":
+				`default-src 'self'; script-src  'self'; style-src   'self'; font-src    'self'; img-src     'self' https:; media-src   'self' https:; object-src  'self'; frame-src   'self' https: gap: mailto: tel:; worker-src  'self'; child-src   'self'; connect-src 'self' https: wss:; base-uri    'self';`,
+			/* eslint-enable max-len */
+		},
+		defaultPolicy: "sap-target-level-1",
+		defaultPolicyIsReportOnly: true,
+		defaultPolicy2: "sap-target-level-2",
+		defaultPolicy2IsReportOnly: true,
+		ignorePaths: [
+			"test-resources/sap/ui/qunit/testrunner.html",
+		],
+		serveCSPReports: true
+	}, "CSP middleware module got called with correct second argument");
+});
+
+test("addStandardMiddleware: CSP middleware configured correctly (custom)", async (t) => {
+	const middlewareManager = new MiddlewareManager({
+		tree: {},
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		},
+		options: {
+			sendSAPTargetCSP: {
+				defaultPolicy: "sap-target-level-1",
+				defaultPolicyIsReportOnly: false,
+				defaultPolicy2: "sap-target-level-3",
+				defaultPolicy2IsReportOnly: true,
+				ignorePaths: ["lord/tirek.html"]
+			},
+			serveCSPReports: false
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addStandardMiddleware();
+
+	const cspCall = addMiddlewareStub.getCalls().find((call) => {
+		if (call.args[0] === "csp") {
+			return true;
+		}
+	});
+	t.truthy(cspCall, "CSP middleware added");
+	const wrapperCallback = cspCall.args[1].wrapperCallback;
+
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const middlewareModuleInfo = {
+		middleware: middlewareModuleStub
+	};
+	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
+	const res = middlewareWrapper();
+	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
+	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
+		"CSP middleware module got called with correct first argument");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[1], {
+		allowDynamicPolicyDefinition: true,
+		allowDynamicPolicySelection: true,
+		definedPolicies: {
+			/* eslint-disable max-len */
+			"sap-target-level-1":
+				`default-src 'self'; script-src  'self' 'unsafe-eval'; style-src   'self' 'unsafe-inline'; font-src    'self' data:; img-src     'self' https: http: data: blob:; media-src   'self' https: http: data: blob:; object-src  blob:; frame-src   'self' https: gap: data: blob: mailto: tel:; worker-src  'self' blob:; child-src   'self' blob:; connect-src 'self' https: wss:; base-uri    'self';`,
+			"sap-target-level-2":
+				`default-src 'self'; script-src  'self'; style-src   'self' 'unsafe-inline'; font-src    'self' data:; img-src     'self' https: http: data: blob:; media-src   'self' https: http: data: blob:; object-src  blob:; frame-src   'self' https: gap: data: blob: mailto: tel:; worker-src  'self' blob:; child-src   'self' blob:; connect-src 'self' https: wss:; base-uri    'self';`,
+			"sap-target-level-3":
+				`default-src 'self'; script-src  'self'; style-src   'self'; font-src    'self'; img-src     'self' https:; media-src   'self' https:; object-src  'self'; frame-src   'self' https: gap: mailto: tel:; worker-src  'self'; child-src   'self'; connect-src 'self' https: wss:; base-uri    'self';`,
+			/* eslint-enable max-len */
+		},
+		defaultPolicy: "sap-target-level-1",
+		defaultPolicyIsReportOnly: false,
+		defaultPolicy2: "sap-target-level-3",
+		defaultPolicy2IsReportOnly: true,
+		ignorePaths: [
+			"lord/tirek.html",
+		]
+	}, "CSP middleware module got called with correct second argument");
+});
