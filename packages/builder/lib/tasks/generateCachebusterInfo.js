@@ -1,5 +1,6 @@
-const resourceFactory = require("@ui5/fs").resourceFactory;
 const crypto = require("crypto");
+const resourceFactory = require("@ui5/fs").resourceFactory;
+const log = require("@ui5/logger").getLogger("builder:tasks:generateCachebusterInfo");
 
 async function signByTime(resource) {
 	return resource.getStatInfo().mtime.getTime();
@@ -41,15 +42,22 @@ function getSigner(type) {
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, options: {namespace, signatureType}}) {
+	const basePath = `/resources/${namespace}/`;
 	return workspace.byGlob(`/resources/${namespace}/**/*`)
 		.then(async (resources) => {
 			const cachebusterInfo = {};
-			const regex = new RegExp(`^/resources/${namespace}/`);
 			const signer = getSigner(signatureType);
 
 			await Promise.all(resources.map(async (resource) => {
-				const normalizedPath = resource.getPath().replace(regex, "");
-				cachebusterInfo[normalizedPath] = await signer(resource);
+				let resourcePath = resource.getPath();
+				if (!resourcePath.startsWith(basePath)) {
+					log.verbose(
+						`Ignoring resource with path ${resourcePath} since it is not based on path ${basePath}`);
+					return;
+				}
+				// Remove base path. Absolute paths are not allowed in cachebuster info
+				resourcePath = resourcePath.replace(basePath, "");
+				cachebusterInfo[resourcePath] = await signer(resource);
 			}));
 			const cachebusterInfoResource = resourceFactory.createResource({
 				path: `/resources/${namespace}/sap-ui-cachebuster-info.json`,

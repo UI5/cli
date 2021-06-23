@@ -150,15 +150,14 @@ module.exports = ({resources, options: {namespace, bundleName, propertiesExtensi
 		return archiveContent;
 	}).then((archiveContent) => new Promise((resolve) => {
 		const zip = new yazl.ZipFile();
-		const rBasePath = new RegExp(`^/resources/${namespace}/`);
+		const basePath = `/resources/${namespace}/`;
 		archiveContent.forEach((content, path) => {
-			if (!rBasePath.test(path)) {
-				log.verbose(`Not bundling resource with path ${path} since it is not based on path ` +
-					`/resources/${namespace}/`);
+			if (!path.startsWith(basePath)) {
+				log.verbose(`Not bundling resource with path ${path} since it is not based on path ${basePath}`);
 				return;
 			}
 			// Remove base path. Absolute paths are not allowed in ZIP files
-			const normalizedPath = path.replace(rBasePath, "");
+			const normalizedPath = path.replace(basePath, "");
 			zip.addBuffer(content, normalizedPath);
 		});
 		zip.end();

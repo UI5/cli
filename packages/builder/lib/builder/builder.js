@@ -289,6 +289,7 @@ module.exports = {
 		const buildLogger = log.createTaskLogger("🛠 ", projectCount(tree));
 
 		function buildProject(project) {
+			const projectBasePath = `/resources/${project.metadata.namespace}`;
 			let depPromise;
 			let projectTasks = selectedTasks;
 
@@ -316,7 +317,7 @@ module.exports = {
 					virtualReaders: projectWriters,
 					getVirtualBasePathPrefix: function({project, virBasePath}) {
 						if (project.type === "application" && project.metadata.namespace) {
-							return "/resources/" + project.metadata.namespace;
+							return projectBasePath;
 						}
 					},
 					getProjectExcludes: function(project) {
@@ -382,8 +383,10 @@ module.exports = {
 							if (projectContext.isRootProject() && project.type === "application" &&
 									project.metadata.namespace) {
 								// Root-application projects only: Remove namespace prefix if given
-								resource.setPath(resource.getPath().replace(
-									new RegExp(`^/resources/${project.metadata.namespace}`), ""));
+								const resourcePath = resource.getPath();
+								if (resourcePath.startsWith(projectBasePath)) {
+									resource.setPath(resourcePath.replace(projectBasePath, ""));
+								}
 							}
 							return fsTarget.write(resource);
 						}));
