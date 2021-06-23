@@ -270,26 +270,29 @@ class LibraryFormatter extends AbstractUi5Formatter {
 	}
 
 	getNamespaceFromFsPath(fsPath) {
-		// Transform path to POSIX and remove any trailing slashes
-		const posixFsPath = fsPath.replace(/\\/g, "/").replace(/\/$/, "");
+		// Regex to ensure trailing slash
+		const rOptionalTrailingSlash = /\/?$/;
 
-		// Remove base path from fsPath
-		const posixBasePath = this.getSourceBasePath(true);
+		// Transform path to POSIX and ensure a trailing slash for correct comparison
+		const posixFsPath = fsPath.replace(/\\/g, "/").replace(rOptionalTrailingSlash, "/");
+		const posixBasePath = this.getSourceBasePath(true).replace(rOptionalTrailingSlash, "/");
 
-		// Can match /library/src as well as /library/src/some/namespace
-		const basePathPrefixRegExp = new RegExp(`^${posixBasePath}/?`);
+		if (posixBasePath === posixFsPath) {
+			// The given file system path does not contain a namespace path since it is equal to the source base path
+			// Therefore return an empty namespace
+			return "";
+		}
 
-		if (!basePathPrefixRegExp.test(posixFsPath)) {
-			if (posixBasePath === posixFsPath + "/") {
-				// The given file system path does not contain a namespace path
-				// It is equal to the source base path
-				// Therefore return an empty namespace
-				return "";
-			}
+		if (!posixFsPath.startsWith(posixBasePath)) {
 			throw new Error(`Given file system path ${posixFsPath} is not based on source base ` +
 				`path ${posixBasePath}.`);
 		}
-		const namespacePath = posixFsPath.replace(basePathPrefixRegExp, "");
+
+		// Remove base path from fsPath to get the namespace
+		let namespacePath = posixFsPath.replace(posixBasePath, "");
+
+		// Remove any leading and trailing slash
+		namespacePath = namespacePath.replace(/(?:^\/)|(?:\/$)/g, "");
 		return namespacePath;
 	}
 

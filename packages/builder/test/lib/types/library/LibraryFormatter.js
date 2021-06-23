@@ -1454,9 +1454,23 @@ test("getNamespaceFromFsPath: fsPath is not based on base path", async (t) => {
 
 	const fsPath = "/some/different/path";
 	const err = t.throws(() => libraryFormatter.getNamespaceFromFsPath(fsPath));
-	t.deepEqual(err.message, `Given file system path /some/different/path is not based on source base ` +
-		`path /some/path.`,
+	t.deepEqual(err.message, `Given file system path /some/different/path/ is not based on source base ` +
+		`path /some/path/.`,
 	"Threw with correct error message");
+});
+
+test("getNamespaceFromFsPath: fsPath w/ regex metacharacters", async (t) => {
+	const myProject = clone(libraryETree);
+	myProject.resources.pathMappings = {
+		"/resources/": myProject.resources.configuration.paths.src
+	};
+
+	const libraryFormatter = new LibraryFormatter({project: myProject});
+	sinon.stub(libraryFormatter, "getSourceBasePath").returns("/some/(path");
+
+	const fsPath = "/some/(path/my/namespace";
+	const res = libraryFormatter.getNamespaceFromFsPath(fsPath);
+	t.deepEqual(res, "my/namespace", "Returned correct namespace");
 });
 
 test.serial("getPreloadExcludesFromDotLibrary: No excludes", async (t) => {
