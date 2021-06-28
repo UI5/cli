@@ -114,7 +114,7 @@
 		"globby": "^11.0.4",
 		"graceful-fs": "^4.2.6",
 		"jsdoc": "^3.6.7",
-		"less-openui5": "^0.11.1",
+		"less-openui5": "^0.11.2",
 		"make-dir": "^3.1.0",
 		"pretty-data": "^0.40.0",
 		"pretty-hrtime": "^1.0.3",
