@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.2.10...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.3.0...HEAD).
+
+<a name="v2.3.0"></a>
+## [v2.3.0] - 2021-07-01
+### Features
+- **server:** Expose configuration options for SAP CSP policies [`55d6a96`](https://github.com/SAP/ui5-server/commit/55d6a96cc1a3c762af8173d9fb9588fe742a302d)
+
 
 <a name="v2.2.10"></a>
 ## [v2.2.10] - 2021-06-01
@@ -231,6 +237,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.3.0]: https://github.com/SAP/ui5-server/compare/v2.2.10...v2.3.0
 [v2.2.10]: https://github.com/SAP/ui5-server/compare/v2.2.9...v2.2.10
 [v2.2.9]: https://github.com/SAP/ui5-server/compare/v2.2.8...v2.2.9
 [v2.2.8]: https://github.com/SAP/ui5-server/compare/v2.2.7...v2.2.8
