@@ -5,7 +5,7 @@
 	"type": "object",
 	"required": ["specVersion", "kind", "type", "metadata"],
 	"properties": {
-		"specVersion": { "enum": ["2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"specVersion": { "enum": ["2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
 		"kind": {
 			"enum": ["extension"]
 		},

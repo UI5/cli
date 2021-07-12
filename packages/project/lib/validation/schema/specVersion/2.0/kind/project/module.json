@@ -6,13 +6,13 @@
 	"required": ["specVersion", "type", "metadata"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] }
+			"specVersion": { "enum": ["2.5"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] },
+			"specVersion": { "enum": ["2.5"] },
 			"kind": {
 				"enum": ["project", null]
 			},
@@ -24,6 +24,9 @@
 			},
 			"resources": {
 				"$ref": "#/definitions/resources"
+			},
+			"builder": {
+				"$ref": "#/definitions/builder-specVersion-2.5"
 			},
 			"customConfiguration": {
 				"type": "object",
@@ -32,20 +35,49 @@
 		}
 	},
 	"else": {
-		"additionalProperties": false,
-		"properties": {
-			"specVersion": { "enum": ["2.0"] },
-			"kind": {
-				"enum": ["project", null]
-			},
-			"type": {
-				"enum": ["module"]
-			},
-			"metadata": {
-				"$ref": "../project.json#/definitions/metadata"
-			},
-			"resources": {
-				"$ref": "#/definitions/resources"
+		"if": {
+			"properties": {
+				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] }
+			}
+		},
+		"then": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] },
+				"kind": {
+					"enum": ["project", null]
+				},
+				"type": {
+					"enum": ["module"]
+				},
+				"metadata": {
+					"$ref": "../project.json#/definitions/metadata"
+				},
+				"resources": {
+					"$ref": "#/definitions/resources"
+				},
+				"customConfiguration": {
+					"type": "object",
+					"additionalProperties": true
+				}
+			}
+		},
+		"else": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.0"] },
+				"kind": {
+					"enum": ["project", null]
+				},
+				"type": {
+					"enum": ["module"]
+				},
+				"metadata": {
+					"$ref": "../project.json#/definitions/metadata"
+				},
+				"resources": {
+					"$ref": "#/definitions/resources"
+				}
 			}
 		}
 	},
@@ -69,6 +101,15 @@
 							}
 						}
 					}
+				}
+			}
+		},
+		"builder-specVersion-2.5": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"settings": {
+					"$ref": "../project.json#/definitions/builder-settings"
 				}
 			}
 		}

@@ -43,7 +43,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): Valid configuration`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -399,7 +399,7 @@ test.after.always((t) => {
 				keyword: "enum",
 				message: "should be equal to one of the allowed values",
 				params: {
-					allowedValues: ["2.4"].includes(specVersion) ? [
+					allowedValues: ["2.5", "2.4"].includes(specVersion) ? [
 						"raw",
 						"preload",
 						"require",
@@ -614,7 +614,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.4", "2.3"].forEach(function(specVersion) {
+["2.5", "2.4", "2.3"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): builder/libraryPreload/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -807,7 +807,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.4"].forEach(function(specVersion) {
+["2.5", "2.4"].forEach(function(specVersion) {
 	// Unsupported cases for older spec-versions already tested via "allowedValues" comparison above
 	test(`library (specVersion ${specVersion}): builder/bundles/bundleDefinition/sections/mode: bundleInfo`,
 		async (t) => {
@@ -833,6 +833,187 @@ test.after.always((t) => {
 				}
 			});
 		});
+});
+
+["2.5"].forEach(function(specVersion) {
+	test(`library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"settings": {
+					"includeDependency": [
+						"sap.a",
+						"sap.b"
+					],
+					"includeDependencyRegExp": [
+						".ui.[a-z]+",
+						"^sap.[mf]$"
+					],
+					"includeDependencyTree": [
+						"sap.c",
+						"sap.d"
+					]
+				}
+			}
+		});
+	});
+	test(`Invalid builder/settings/includeDependency* configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"settings": {
+					"includeDependency": "a",
+					"includeDependencyRegExp": "b",
+					"includeDependencyTree": "c"
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/settings/includeDependency",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyRegExp",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyTree",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+			},
+		]);
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"settings": {
+					"includeDependency": [
+						true,
+						1,
+						{}
+					],
+					"includeDependencyRegExp": [
+						true,
+						1,
+						{}
+					],
+					"includeDependencyTree": [
+						true,
+						1,
+						{}
+					],
+					"notAllowed": true
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/settings",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependency/0",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependency/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependency/2",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyRegExp/0",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyRegExp/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyRegExp/2",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyTree/0",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyTree/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/settings/includeDependencyTree/2",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+		]);
+	});
 });
 
 project.defineTests(test, assertValidation, "library");
