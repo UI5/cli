@@ -1,6 +1,6 @@
 "use strict";
 
-const {Syntax} = require("../utils/parseUtils");
+const {Syntax, VisitorKeys} = require("../utils/parseUtils");
 const escope = require("escope");
 const ModuleName = require("../utils/ModuleName");
 const {Format: ModuleFormat} = require("../resources/ModuleInfo");
@@ -11,8 +11,6 @@ const log = require("@ui5/logger").getLogger("lbt:analyzer:JSModuleAnalyzer");
 // ------------------------------------------------------------------------------------------------------------------
 
 const EnrichedVisitorKeys = (function() {
-	const VisitorKeys = require("estraverse").VisitorKeys;
-
 	function toBeDone() {
 		return null;
 	}
@@ -69,12 +67,11 @@ const EnrichedVisitorKeys = (function() {
 		ClassBody: [],
 		ClassDeclaration: [],
 		ClassExpression: [],
-		ComprehensionBlock: toBeDone(["left", "right"]),	// CAUTION: It's deferred to ES7.
-		ComprehensionExpression: toBeDone(),	// CAUTION: It's deferred to ES7.
+		// ComprehensionBlock: toBeDone(["left", "right"]),	// CAUTION: It's deferred to ES7.
+		// ComprehensionExpression: toBeDone(),	// CAUTION: It's deferred to ES7.
 		ConditionalExpression: ["consequent", "alternate"],
 		ContinueStatement: [],
 		DebuggerStatement: [],
-		DirectiveStatement: [],
 		/*
 		 * 'condition' is executed on the same conditions as the surrounding block, potentially repeated,
 		 * 'block' is always entered and might be repeated
@@ -91,7 +88,7 @@ const EnrichedVisitorKeys = (function() {
 		ForOfStatement: ["body"],
 		FunctionDeclaration: ["body"], // a nested function is potentially 'conditional'
 		FunctionExpression: ["body"], // a nested function is potentially 'conditional'
-		GeneratorExpression: toBeDone(["blocks", "filter", "body"]),	// CAUTION: It's deferred to ES7.
+		// GeneratorExpression: toBeDone(["blocks", "filter", "body"]),	// CAUTION: It's deferred to ES7.
 		Identifier: [],
 		IfStatement: ["consequent", "alternate"],
 		/*
@@ -120,7 +117,6 @@ const EnrichedVisitorKeys = (function() {
 		MemberExpression: [],
 		MetaProperty: toBeDone(["meta", "property"]),
 		MethodDefinition: [],
-		ModuleSpecifier: [],
 		NewExpression: [],
 		ObjectExpression: [],
 		/*
@@ -175,6 +171,16 @@ const EnrichedVisitorKeys = (function() {
 
 	// merge with 'official' visitor keys
 	Object.keys(VisitorKeys).forEach( (type) => {
+		// Check if the visitor-key exists in the available Syntax because
+		// the list of visitor-keys does not match the available Syntax.
+		if (!Syntax[type]) {
+			return;
+		}
+		// Ignore JSX visitor-keys because they aren't used.
+		if (type.startsWith("JSX")) {
+			return;
+		}
+
 		const visitorKeys = VisitorKeys[type];
 		const condKeys = TempKeys[type];
 		if ( condKeys === undefined ) {

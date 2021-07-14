@@ -1,7 +1,6 @@
 "use strict";
-const {parseJS, Syntax} = require("../utils/parseUtils");
+const {parseJS, Syntax, VisitorKeys} = require("../utils/parseUtils");
 const {getPropertyKey, isMethodCall, isIdentifier, getStringArray} = require("../utils/ASTUtils");
-const VisitorKeys = require("estraverse").VisitorKeys;
 
 const CALL__SAP_UI_GETCORE = ["sap", "ui", "getCore"];
 

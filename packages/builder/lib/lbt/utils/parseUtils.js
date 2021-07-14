@@ -1,7 +1,7 @@
 "use strict";
 
 const espree = require("espree");
-const {Syntax} = espree;
+const {Syntax, VisitorKeys} = espree;
 
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
@@ -27,5 +27,6 @@ function parseJS(code, userOptions = {}) {
 
 module.exports = {
 	parseJS,
-	Syntax
+	Syntax,
+	VisitorKeys
 };

@@ -110,7 +110,6 @@
 		"escape-unicode": "^0.2.0",
 		"escope": "^3.6.0",
 		"espree": "^6.2.1",
-		"estraverse": "5.1.0",
 		"globby": "^11.0.4",
 		"graceful-fs": "^4.2.6",
 		"jsdoc": "^3.6.7",
