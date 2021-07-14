@@ -26,11 +26,13 @@ build.builder = function(cli) {
 			builder: noop,
 			middlewares: [baseMiddleware]
 		})
-		.command("self-contained", "Build project and create self-contained bundle", {
-			handler: handleBuild,
-			builder: noop,
-			middlewares: [baseMiddleware]
-		})
+		.command("self-contained",
+			"Build project and create self-contained bundle. " +
+			"Recommended to be used in conjunction with --all", {
+				handler: handleBuild,
+				builder: noop,
+				middlewares: [baseMiddleware]
+			})
 		.option("all", {
 			describe: "Include all project dependencies into build process",
 			alias: "a",
@@ -65,7 +67,8 @@ build.builder = function(cli) {
 			describe: "Overrides the framework version defined by the project",
 			type: "string"
 		})
-		.example("ui5 build --all", "Preload build for project and dependencies to \"./dist\"")
+		.example("ui5 build", "Preload build for project without dependencies")
+		.example("ui5 build self-contained --all", "Self-contained build for project including dependencies")
 		.example("ui5 build --all --exclude-task=* --include-task=createDebugFiles generateAppPreload",
 			"Build project and dependencies but only apply the createDebugFiles- and generateAppPreload tasks")
 		.example("ui5 build --all --include-task=createDebugFiles --exclude-task=generateAppPreload",
