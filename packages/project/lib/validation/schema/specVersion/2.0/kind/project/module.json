@@ -28,6 +28,9 @@
 			"builder": {
 				"$ref": "#/definitions/builder-specVersion-2.5"
 			},
+			"server": {
+				"$ref": "../project.json#/definitions/server"
+			},
 			"customConfiguration": {
 				"type": "object",
 				"additionalProperties": true

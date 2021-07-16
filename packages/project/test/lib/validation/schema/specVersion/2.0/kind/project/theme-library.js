@@ -166,7 +166,7 @@ test.after.always((t) => {
 });
 
 ["2.5"].forEach(function(specVersion) {
-	test(`library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
+	test(`theme-library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"kind": "project",

@@ -97,7 +97,9 @@ test.after.always((t) => {
 			}
 		}]);
 	});
+});
 
+["2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 	test(`No server configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -115,9 +117,7 @@ test.after.always((t) => {
 			}
 		}]);
 	});
-});
 
-["2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 	test(`No builder configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -138,7 +138,33 @@ test.after.always((t) => {
 });
 
 ["2.5"].forEach(function(specVersion) {
-	test(`library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
+	test(`Server configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "module",
+			"metadata": {
+				"name": "my-module"
+			},
+			"server": {
+				"settings": {
+					"httpPort": 1337,
+					"httpsPort": 1443
+				},
+				"customMiddleware": [
+					{
+						"name": "myCustomMiddleware",
+						"mountPath": "/myapp",
+						"afterMiddleware": "compression",
+						"configuration": {
+							"debug": true
+						}
+					}
+				]
+			}
+		});
+	});
+
+	test(`module (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"kind": "project",
@@ -164,6 +190,7 @@ test.after.always((t) => {
 			}
 		});
 	});
+
 	test(`Invalid builder/settings/includeDependency* configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
