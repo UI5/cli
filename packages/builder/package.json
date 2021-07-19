@@ -134,7 +134,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.31.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^35.4.3",
+		"eslint-plugin-jsdoc": "^35.4.5",
 		"extract-zip": "^2.0.1",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
