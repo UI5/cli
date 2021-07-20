@@ -146,7 +146,7 @@ class XMLTemplateAnalyzer {
 	_analyze(xml, info, isFragment) {
 		if ( this.busy ) {
 			// TODO delegate to fresh instances instead
-			throw new Error("analyzer is busy");
+			throw new Error("XMLTemplateAnalyzer is unexpectedly busy");
 		}
 
 		this.info = info;
@@ -160,7 +160,7 @@ class XMLTemplateAnalyzer {
 				// parse error
 				if ( err ) {
 					this.busy = false;
-					reject(err);
+					reject(new Error(`Error while parsing XML document ${info.name}: ${err.message}`));
 					return;
 				}
 

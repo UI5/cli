@@ -370,8 +370,11 @@ test("_analyze: parseString error", async (t) => {
 	const analyzer = new XMLTemplateAnalyzer();
 	sinon.stub(analyzer._parser, "parseString").callsArgWith(1, new Error("my-error"), "result");
 
-	const error = await t.throwsAsync(analyzer._analyze());
-	t.deepEqual(error.message, "my-error");
+	const moduleInfo = {
+		name: "my.fragment.xml"
+	};
+	const error = await t.throwsAsync(analyzer._analyze(null, moduleInfo));
+	t.deepEqual(error.message, "Error while parsing XML document my.fragment.xml: my-error");
 	t.false(analyzer.busy, "busy state is restored");
 });
 
@@ -391,7 +394,7 @@ test("_analyze: call twice to simulate busy", async (t) => {
 	const error = t.throws(()=> {
 		analyzer._analyze(null, moduleInfo, true);
 	});
-	t.deepEqual(error.message, "analyzer is busy");
+	t.deepEqual(error.message, "XMLTemplateAnalyzer is unexpectedly busy");
 
 	await resultPromise;
 	t.false(analyzer.busy, "busy state is reset after promise resolves");

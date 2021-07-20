@@ -109,15 +109,15 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 	} else if ( /\.view.xml$/.test(resource.name) ) {
 		const xmlView = await resource.buffer();
 		info.size = xmlView.length;
-		new XMLTemplateAnalyzer(pool).analyzeView(xmlView, info);
+		await new XMLTemplateAnalyzer(pool).analyzeView(xmlView, info);
 	} else if ( /\.control.xml$/.test(resource.name) ) {
 		const xmlView = await resource.buffer();
 		info.size = xmlView.length;
-		new XMLTemplateAnalyzer(pool).analyzeFragment(xmlView, info);
+		await new XMLTemplateAnalyzer(pool).analyzeFragment(xmlView, info);
 	} else if ( /\.fragment.xml$/.test(resource.name) ) {
 		const xmlView = await resource.buffer();
 		info.size = xmlView.length;
-		new XMLTemplateAnalyzer(pool).analyzeFragment(xmlView, info);
+		await new XMLTemplateAnalyzer(pool).analyzeFragment(xmlView, info);
 	}
 
 	return info;
