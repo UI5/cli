@@ -244,7 +244,7 @@ class MiddlewareManager {
 						if (
 							specVersion === "2.0" || specVersion === "2.1" ||
 							specVersion === "2.2" || specVersion === "2.3" ||
-							specVersion === "2.4"
+							specVersion === "2.4" || specVersion === "2.5"
 						) {
 							// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
 							params.middlewareUtil = middlewareUtil.getInterface(specVersion);
