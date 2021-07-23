@@ -1,6 +1,7 @@
 // Build
 
 const baseMiddleware = require("../middlewares/base.js");
+const buildHelper = require("../../utils/buildHelper");
 
 const build = {
 	command: "build",
@@ -38,6 +39,38 @@ build.builder = function(cli) {
 			alias: "a",
 			default: false,
 			type: "boolean"
+		})
+		.option("include-dependency", {
+			describe: "A list of dependencies to be included into the build process. You can use the asterisk '*' as" +
+				" an alias for including all dependencies into the build process. The listed dependencies cannot be" +
+				" overruled by dependencies defined in 'exclude-dependency'.",
+			type: "array"
+		})
+		.option("include-dependency-regexp", {
+			describe: "A list of regular expressions defining dependencies to be included into the build process." +
+				" This list is prioritized like 'include-dependency'.",
+			type: "array"
+		})
+		.option("include-dependency-tree", {
+			describe: "A list of dependencies to be included into the build process. Transitive dependencies are" +
+				" implicitly included and do not need to be part of this list. These dependencies overrule" +
+				" the selection of 'exclude-dependency-tree' but can be overruled by 'exclude-dependency'.",
+			type: "array"
+		})
+		.option("exclude-dependency", {
+			describe: "A list of dependencies to be excluded from the build process. The listed dependencies can" +
+				" be overruled by dependencies defined in 'include-dependency'.",
+			type: "array"
+		})
+		.option("exclude-dependency-regexp", {
+			describe: "A list of regular expressions defining dependencies to be excluded from the build process." +
+				" This list is prioritized like 'exclude-dependency'.",
+			type: "array"
+		})
+		.option("exclude-dependency-tree", {
+			describe: "A list of dependencies to be excluded from the build process. Transitive dependencies are" +
+				" implicitly included and do not need to be part of this list.",
+			type: "array"
 		})
 		.option("dest", {
 			describe: "Path of build destination",
@@ -101,11 +134,29 @@ async function handleBuild(argv) {
 	}
 
 	const tree = await normalizer.generateProjectTree(normalizerOptions);
+	const buildSettings = (tree.builder && tree.builder.settings) || {};
+
+	const {includedDependencies, excludedDependencies} = buildHelper.createDependencyLists({
+		tree: tree,
+		includeDependency: argv["include-dependency"],
+		includeDependencyRegExp: argv["include-dependency-regexp"],
+		includeDependencyTree: argv["include-dependency-tree"],
+		excludeDependency: argv["exclude-dependency"],
+		excludeDependencyRegExp: argv["exclude-dependency-regexp"],
+		excludeDependencyTree: argv["exclude-dependency-tree"],
+		defaultIncludeDependency: buildSettings.includeDependency,
+		defaultIncludeDependencyRegExp: buildSettings.includeDependencyRegExp,
+		defaultIncludeDependencyTree: buildSettings.includeDependencyTree
+	});
+	const buildAll = buildHelper.alignWithBuilderApi(argv.all, includedDependencies, excludedDependencies);
+
 	await builder.build({
 		tree: tree,
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
-		buildDependencies: argv.all,
+		buildDependencies: buildAll,
+		includedDependencies: includedDependencies,
+		excludedDependencies: excludedDependencies,
 		dev: command === "dev",
 		selfContained: command === "self-contained",
 		jsdoc: command === "jsdoc",
