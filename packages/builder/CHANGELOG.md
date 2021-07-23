@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.9.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v2.9.4...HEAD).
+
+<a name="v2.9.4"></a>
+## [v2.9.4] - 2021-07-23
+### Bug Fixes
+- **XMLTemplateAnalyzer:** Include document name for XML parsing errors [`3c88ca4`](https://github.com/SAP/ui5-builder/commit/3c88ca47aae85892360e4e4cf4b50860a0f430e3)
+
 
 <a name="v2.9.3"></a>
-## [v2.9.3] - 2021-06-23
+## [v2.9.3] - 2021-07-01
 ### Bug Fixes
 - **LibraryFormatter:** Fix handling of paths containing special characters [`2093562`](https://github.com/SAP/ui5-builder/commit/2093562adec588a9c1f50125e0b739836e6c76c8)
 
@@ -592,6 +598,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v2.9.4]: https://github.com/SAP/ui5-builder/compare/v2.9.3...v2.9.4
 [v2.9.3]: https://github.com/SAP/ui5-builder/compare/v2.9.2...v2.9.3
 [v2.9.2]: https://github.com/SAP/ui5-builder/compare/v2.9.1...v2.9.2
 [v2.9.1]: https://github.com/SAP/ui5-builder/compare/v2.9.0...v2.9.1
