@@ -146,6 +146,7 @@ class TaskUtil {
 		case "2.2":
 		case "2.3":
 		case "2.4":
+		case "2.5":
 			return baseInterface;
 		default:
 			throw new Error(`TaskUtil: Unknown or unsupported Specification Version ${specVersion}`);

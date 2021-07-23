@@ -198,6 +198,32 @@ test("getInterface: specVersion 2.4", async (t) => {
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
 
+test("getInterface: specVersion 2.5", async (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			STANDARD_TAGS: ["some tag"]
+		}
+	});
+
+	const interfacedTaskUtil = taskUtil.getInterface("2.5");
+
+	t.deepEqual(Object.keys(interfacedTaskUtil), [
+		"STANDARD_TAGS",
+		"setTag",
+		"clearTag",
+		"getTag",
+		"isRootProject",
+		"registerCleanupTask"
+	], "Correct methods are provided");
+
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, ["some tag"], "attribute STANDARD_TAGS is provided");
+	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
+	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
+	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
+	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
+});
+
 test("getInterface: specVersion undefined", async (t) => {
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
