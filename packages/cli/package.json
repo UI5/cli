@@ -130,7 +130,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.31.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^35.4.5",
+		"eslint-plugin-jsdoc": "^35.5.1",
 		"execa": "^5.1.1",
 		"jsdoc": "^3.6.7",
 		"mock-require": "^3.0.3",
