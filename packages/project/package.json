@@ -106,7 +106,7 @@
 		"@ui5/server": "^2.3.1",
 		"ajv": "^6.12.6",
 		"ajv-errors": "^1.0.1",
-		"chalk": "^4.1.1",
+		"chalk": "^4.1.2",
 		"escape-string-regexp": "^4.0.0",
 		"graceful-fs": "^4.2.6",
 		"js-yaml": "^4.1.0",
@@ -127,7 +127,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.2",
 		"docdash": "^1.2.0",
-		"eslint": "^7.31.0",
+		"eslint": "^7.32.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-jsdoc": "^35.5.1",
 		"istanbul-lib-coverage": "^3.0.0",
@@ -139,7 +139,7 @@
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^6.0.1",
-		"sinon": "^11.1.1",
+		"sinon": "^11.1.2",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}
