@@ -108,7 +108,7 @@
 		"ajv-errors": "^1.0.1",
 		"chalk": "^4.1.2",
 		"escape-string-regexp": "^4.0.0",
-		"graceful-fs": "^4.2.6",
+		"graceful-fs": "^4.2.8",
 		"js-yaml": "^4.1.0",
 		"libnpmconfig": "^1.2.1",
 		"lockfile": "^1.0.4",
