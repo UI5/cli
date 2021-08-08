@@ -106,7 +106,7 @@
 		"@ui5/logger": "^2.0.1",
 		"clone": "^2.1.0",
 		"globby": "^11.0.4",
-		"graceful-fs": "^4.2.6",
+		"graceful-fs": "^4.2.8",
 		"make-dir": "^3.1.0",
 		"micromatch": "^4.0.4",
 		"minimatch": "^3.0.3",
