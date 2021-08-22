@@ -143,7 +143,7 @@
 		"open-cli": "^6.0.1",
 		"rimraf": "^3.0.2",
 		"sinon": "^11.1.2",
-		"supertest": "^6.1.5",
+		"supertest": "^6.1.6",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}
