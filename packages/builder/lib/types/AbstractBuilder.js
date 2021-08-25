@@ -190,6 +190,8 @@ class AbstractBuilder {
 	 * @returns {boolean}
 	 */
 	hasTask(taskName) {
+		// TODO 3.0: Check whether this method is still required.
+		// Only usage within #build seems to be unnecessary as all tasks are also added to the taskExecutionOrder
 		return Object.prototype.hasOwnProperty.call(this.tasks, taskName);
 	}
 
@@ -200,21 +202,30 @@ class AbstractBuilder {
 	 * @returns {Promise} Returns promise chain with tasks
 	 */
 	build(tasksToRun) {
-		const allTasksCount = tasksToRun.filter((value) => this.hasTask(value)).length;
-		this.taskLog.addWork(allTasksCount);
+		const allTasks = this.taskExecutionOrder.filter((taskName) => {
+			// There might be a numeric suffix in case a custom task is configured multiple times.
+			// The suffix needs to be removed in order to check against the list of tasks to run.
+			//
+			// Note: The 'tasksToRun' parameter only allows to specify the custom task name
+			// (without suffix), so it executes either all or nothing.
+			// It's currently not possible to just execute some occurrences of a custom task.
+			// This would require a more robust contract to identify task executions
+			// (e.g. via an 'id' that can be assigned to a specific execution in the configuration).
+			const taskWithoutSuffixCounter = taskName.replace(/--\d+$/, "");
+			return this.hasTask(taskName) && tasksToRun.includes(taskWithoutSuffixCounter);
+		});
 
-		let taskChain = Promise.resolve();
-		for (let i = 0; i < this.taskExecutionOrder.length; i++) {
-			const taskName = this.taskExecutionOrder[i];
-			if (this.hasTask(taskName) && tasksToRun.includes(taskName)) {
-				const taskFunction = this.tasks[taskName];
+		this.taskLog.addWork(allTasks.length);
 
-				if (typeof taskFunction === "function") {
-					taskChain = taskChain.then(this.wrapTask(taskName, taskFunction));
-				}
+		return allTasks.reduce((taskChain, taskName) => {
+			const taskFunction = this.tasks[taskName];
+
+			if (typeof taskFunction === "function") {
+				taskChain = taskChain.then(this.wrapTask(taskName, taskFunction));
 			}
-		}
-		return taskChain;
+
+			return taskChain;
+		}, Promise.resolve());
 	}
 
 	/**
