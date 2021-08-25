@@ -173,10 +173,10 @@ test.serial("Build", async (t) => {
 	t.true(appBuildParams.taskUtil instanceof DummyTaskUtil, "Correct taskUtil instance provided to type");
 
 	t.is(getResourceTagCollectionStub.callCount, 1, "getResourceTagCollection called once");
-	t.is(getTagStub.callCount, 2, "getTag called once");
+	t.is(getTagStub.callCount, 3, "getTag called three times");
 	t.deepEqual(getTagStub.getCall(0).args[1], "👻", "First getTag call with expected tag name");
 	t.deepEqual(getTagStub.getCall(1).args[1], "👻", "Second getTag call with expected tag name");
-	t.is(isRootProjectStub.callCount, 2, "isRootProject called once");
+	t.is(isRootProjectStub.callCount, 3, "isRootProject called three times");
 	t.is(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
 });
 

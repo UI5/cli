@@ -372,7 +372,7 @@ module.exports = {
 					log.verbose("Finished building project %s. Writing out files...", project.metadata.name);
 					buildLogger.completeWork(1);
 
-					return workspace.byGlob("/**/*.*").then((resources) => {
+					return workspace.byGlob("/**/*").then((resources) => {
 						const tagCollection = projectContext.getResourceTagCollection();
 						return Promise.all(resources.map((resource) => {
 							if (tagCollection.getTag(resource, projectContext.STANDARD_TAGS.OmitFromBuildResult)) {

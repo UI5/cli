@@ -81,13 +81,17 @@
 			"size": 430
 		},
 		{
+			"name": "fileWithoutExtension",
+			"size": 27
+		},
+		{
 			"name": "manifest.json",
 			"module": "application/j/manifest.json",
 			"size": 423
 		},
 		{
 			"name": "resources.json",
-			"size": 2040
+			"size": 2098
 		}
 	]
 }

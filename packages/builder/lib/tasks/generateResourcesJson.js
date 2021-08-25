@@ -114,7 +114,7 @@ function getCreatorOptions(projectName) {
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = async function({workspace, dependencies, options: {projectName}}) {
-	const resources = await workspace.byGlob(["/resources/**/*.*"].concat(DEFAULT_EXCLUDES));
+	const resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
 
 	// TODO 3.0: Make dependencies parameter mandatory
 	let dependencyResources;
