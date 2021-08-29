@@ -120,7 +120,7 @@
 		"replacestream": "^4.0.3",
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.5",
-		"terser": "^5.7.1",
+		"terser": "^5.7.2",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},
@@ -134,7 +134,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.32.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^36.0.7",
+		"eslint-plugin-jsdoc": "^36.0.8",
 		"extract-zip": "^2.0.1",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
