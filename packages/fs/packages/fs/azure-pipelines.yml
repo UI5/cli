@@ -19,13 +19,13 @@ strategy:
       node_version: 14.x
     linux_node_latest:
       imageName: 'ubuntu-20.04'
-      node_version: 15.x
+      node_version: 16.x
     mac_node_latest:
       imageName: 'macOS-10.15'
-      node_version: 15.x
+      node_version: 16.x
     windows_node_latest:
       imageName: 'windows-2019'
-      node_version: 15.x
+      node_version: 16.x
 
 pool:
   vmImage: $(imageName)
