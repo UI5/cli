@@ -120,7 +120,7 @@
 		"replacestream": "^4.0.3",
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.5",
-		"terser": "^5.8.0",
+		"terser": "^5.9.0",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},
