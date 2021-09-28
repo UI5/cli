@@ -84,7 +84,7 @@ test.serial.cb("Unexpected error handling", (t) => {
 	const yargs = require("yargs");
 
 	yargs.command("foo", "This task fails with a TypeError", () => {}, async () => {
-		null.foo(); // Causes a TypeError
+		throw new TypeError("Cannot do this");
 	});
 
 	processExitStub.callsFake(() => {
@@ -92,11 +92,11 @@ test.serial.cb("Unexpected error handling", (t) => {
 			t.deepEqual(consoleLogStub.getCall(1).args, ["⚠️  Process Failed With Error"], "Correct error log");
 			t.deepEqual(consoleLogStub.getCall(3).args, ["Error Message:"], "Correct error log");
 			t.deepEqual(consoleLogStub.getCall(4).args,
-				["Cannot read property 'foo' of null"], "Correct error log");
+				["Cannot do this"], "Correct error log");
 			t.deepEqual(consoleLogStub.getCall(6).args, ["Stack Trace:"], "Correct error log");
 			t.is(consoleLogStub.getCall(7).args.length, 1);
 			t.true(consoleLogStub.getCall(7).args[0]
-				.startsWith("TypeError: Cannot read property 'foo' of null\n"), "Correct error log");
+				.startsWith("TypeError: Cannot do this"), "Correct error log");
 
 			t.deepEqual(consoleLogStub.getCall(consoleLogStub.callCount - 1).args,
 				["If you think this is an issue of the UI5 Tooling, you might " +
