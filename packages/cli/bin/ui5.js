@@ -14,7 +14,10 @@ try {
 }
 var nodeVersion = process.version;
 /* eslint-enable no-var */
-if (pkg.engines && pkg.engines.node && (!semver || !semver.satisfies(nodeVersion, pkg.engines.node))) {
+if (
+	pkg.engines && pkg.engines.node &&
+	(!semver || !semver.satisfies(nodeVersion, pkg.engines.node, {includePrerelease: true}))
+) {
 	console.log("==================== UNSUPPORTED NODE.JS VERSION ====================");
 	console.log("You are using an unsupported version of Node.js");
 	console.log("Detected version " + nodeVersion + " but " + pkg.name + " requires " + pkg.engines.node);
@@ -23,6 +26,17 @@ if (pkg.engines && pkg.engines.node && (!semver || !semver.satisfies(nodeVersion
 	console.log("=====================================================================");
 	process.exit(1);
 } else {
+	if (semver && semver.prerelease(nodeVersion)) {
+		console.log("====================== UNSTABLE NODE.JS VERSION =====================");
+		console.log("You are using an unstable version of Node.js");
+		console.log("Detected Node.js version " + nodeVersion);
+		console.log("");
+		console.log("=> Please note that an unstable version might cause unexpected");
+		console.log("   behavior. For productive use please consider using a stable");
+		console.log("   version of Node.js! For the release policy of Node.js, see");
+		console.log("   https://nodejs.org/en/about/releases");
+		console.log("=====================================================================");
+	}
 	// Timeout is required to log info when importing from local installation
 	setTimeout(() => {
 		if (!process.env.UI5_CLI_NO_LOCAL) {
