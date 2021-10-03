@@ -2190,9 +2190,9 @@
 			}
 		},
 		"data-with-position": {
-			"version": "0.4.1",
-			"resolved": "https://registry.npmjs.org/data-with-position/-/data-with-position-0.4.1.tgz",
-			"integrity": "sha512-EX8Q0e0DrDFcg0DzHMhkO5vDcm4VKJht/qtQFrhtlzLzAbIHda1lPmw+TaYfrz69+NrhpCbAqYEuy3b+zwpbNA==",
+			"version": "0.5.0",
+			"resolved": "https://registry.npmjs.org/data-with-position/-/data-with-position-0.5.0.tgz",
+			"integrity": "sha512-GhsgEIPWk7WCAisjwBkOjvPqpAlVUOSl1CTmy9KyhVMG1wxl29Zj5+J71WhQ/KgoJS/Psxq6Cnioz3xdBjeIWQ==",
 			"requires": {
 				"yaml-ast-parser": "^0.0.43"
 			}

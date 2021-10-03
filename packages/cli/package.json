@@ -113,7 +113,7 @@
 		"@ui5/project": "^2.5.0",
 		"@ui5/server": "^2.3.1",
 		"chalk": "^4.1.2",
-		"data-with-position": "^0.4.1",
+		"data-with-position": "^0.5.0",
 		"import-local": "^3.0.2",
 		"js-yaml": "^4.1.0",
 		"open": "^7.4.2",
