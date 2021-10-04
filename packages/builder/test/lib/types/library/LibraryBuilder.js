@@ -17,6 +17,7 @@ test("Instantiation", (t) => {
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
+		"replaceBuildtime",
 		"generateJsdoc",
 		"executeJsdocSdkTransformation",
 		"generateLibraryManifest",

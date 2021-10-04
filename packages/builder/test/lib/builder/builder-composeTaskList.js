@@ -30,6 +30,7 @@ test.afterEach.always(() => {
 		}, [
 			"replaceCopyright",
 			"replaceVersion",
+			"replaceBuildtime",
 			"createDebugFiles",
 			"escapeNonAsciiCharacters",
 			"uglify",
@@ -52,6 +53,7 @@ test.afterEach.always(() => {
 		}, [
 			"replaceCopyright",
 			"replaceVersion",
+			"replaceBuildtime",
 			"buildThemes"
 		]],
 	[
@@ -64,6 +66,7 @@ test.afterEach.always(() => {
 		}, [
 			"replaceCopyright",
 			"replaceVersion",
+			"replaceBuildtime",
 			"createDebugFiles",
 			"escapeNonAsciiCharacters",
 			"uglify",
@@ -102,6 +105,7 @@ test.afterEach.always(() => {
 			excludedTasks: ["replaceCopyright", "generateApiIndex"]
 		}, [
 			"replaceVersion",
+			"replaceBuildtime",
 			"createDebugFiles",
 			"escapeNonAsciiCharacters",
 			"uglify",
@@ -125,6 +129,7 @@ test.afterEach.always(() => {
 		}, [
 			"replaceCopyright",
 			"replaceVersion",
+			"replaceBuildtime",
 			"createDebugFiles",
 			"escapeNonAsciiCharacters",
 			"executeJsdocSdkTransformation",
@@ -165,6 +170,7 @@ test.afterEach.always(() => {
 		}, [
 			"replaceCopyright",
 			"replaceVersion",
+			"replaceBuildtime",
 			"createDebugFiles",
 			"escapeNonAsciiCharacters",
 			"uglify",
@@ -196,6 +202,7 @@ test.afterEach.always(() => {
 		}, [
 			"replaceCopyright",
 			"replaceVersion",
+			"replaceBuildtime",
 			"createDebugFiles",
 			"escapeNonAsciiCharacters",
 			"uglify",

@@ -12,6 +12,7 @@ const BuildContext = require("./BuildContext");
 const devTasks = [
 	"replaceCopyright",
 	"replaceVersion",
+	"replaceBuildtime",
 	"buildThemes"
 ];
 
@@ -89,6 +90,7 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 		// Exclude all tasks not relevant to JSDoc generation
 		selectedTasks.replaceCopyright = false;
 		selectedTasks.replaceVersion = false;
+		selectedTasks.replaceBuildtime = false;
 		selectedTasks.generateComponentPreload = false;
 		selectedTasks.generateLibraryPreload = false;
 		selectedTasks.generateLibraryManifest = false;

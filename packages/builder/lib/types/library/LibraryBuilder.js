@@ -43,6 +43,15 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
+		this.addTask("replaceBuildtime", async () => {
+			return getTask("replaceBuildtime").task({
+				workspace: resourceCollections.workspace,
+				options: {
+					pattern: "/resources/sap/ui/Global.js"
+				}
+			});
+		});
+
 		if (project.metadata.namespace) {
 			this.addTask("generateJsdoc", async () => {
 				const patterns = ["/resources/**/*.js"];

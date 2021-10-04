@@ -1,6 +1,7 @@
 const taskInfos = {
 	replaceCopyright: {path: "./replaceCopyright"},
 	replaceVersion: {path: "./replaceVersion"},
+	replaceBuildtime: {path: "./replaceBuildtime"},
 	createDebugFiles: {path: "./createDebugFiles"},
 	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters"},
 	executeJsdocSdkTransformation: {path: "./jsdoc/executeJsdocSdkTransformation"},

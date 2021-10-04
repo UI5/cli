@@ -149,6 +149,10 @@ module.exports = {
 		 */
 		replaceVersion: "./lib/tasks/replaceVersion",
 		/**
+		 * @type {import('./lib/tasks/replaceBuildtime')}
+		 */
+		replaceBuildtime: "./lib/tasks/replaceBuildtime",
+		/**
 		 * @type {import('./lib/tasks/transformBootstrapHtml')}
 		 */
 		transformBootstrapHtml: "./lib/tasks/transformBootstrapHtml",

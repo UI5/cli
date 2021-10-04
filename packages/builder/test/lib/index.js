@@ -36,6 +36,7 @@ test("index.js exports all expected modules", (t) => {
 	t.truthy(index.tasks.escapeNonAsciiCharacters, "Module exported");
 	t.truthy(index.tasks.replaceCopyright, "Module exported");
 	t.truthy(index.tasks.replaceVersion, "Module exported");
+	t.truthy(index.tasks.replaceBuildtime, "Module exported");
 	t.truthy(index.tasks.transformBootstrapHtml, "Module exported");
 	t.truthy(index.tasks.uglify, "Module exported");
 	t.truthy(index.tasks.taskRepository, "Module exported");

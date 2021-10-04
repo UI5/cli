@@ -27,6 +27,7 @@ const libraryIPath = path.join(__dirname, "..", "..", "fixtures", "library.i");
 const libraryJPath = path.join(__dirname, "..", "..", "fixtures", "library.j");
 const libraryØPath = path.join(__dirname, "..", "..", "fixtures", "library.ø");
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
+const libraryCoreBuildtime = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-buildtime");
 const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
 
 const recursive = require("recursive-readdir");
@@ -158,6 +159,7 @@ test.serial("Build", async (t) => {
 	t.deepEqual(appBuildParams.tasks, [
 		"replaceCopyright",
 		"replaceVersion",
+		"replaceBuildtime",
 		"createDebugFiles",
 		"escapeNonAsciiCharacters",
 		"uglify",
@@ -782,6 +784,36 @@ test.serial("Build library.ø", (t) => {
 		tree: libraryØTree,
 		destPath
 	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build library.coreBuildtime: replaceBuildtime", (t) => {
+	const destPath = path.join("test", "tmp", "build", "library.coreBuildtime", "dest");
+	const expectedPath = path.join("test", "expected", "build", "sap.ui.core-buildtime", "dest");
+
+	const dateStubs = [
+		sinon.stub(Date.prototype, "getFullYear").returns(2022),
+		sinon.stub(Date.prototype, "getMonth").returns(5),
+		sinon.stub(Date.prototype, "getDate").returns(20),
+		sinon.stub(Date.prototype, "getHours").returns(16),
+		sinon.stub(Date.prototype, "getMinutes").returns(30),
+	];
+
+	return builder.build({
+		tree: libraryCoreBuildtimeTree,
+		destPath,
+		excludedTasks: ["generateLibraryManifest", "generateLibraryPreload"]
+	}).then(() => {
+		dateStubs.forEach((stub) => stub.restore());
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
 		// Check for all directories and files
@@ -1640,6 +1672,33 @@ const libraryØTree = {
 		"pathMappings": {
 			"/resources/": "máin/ßrc",
 			"/test-resources/": "máin/吉"
+		}
+	}
+};
+
+const libraryCoreBuildtimeTree = {
+	"id": "library.coreBuildtime",
+	"version": "1.0.0",
+	"path": libraryCoreBuildtime,
+	"dependencies": [],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "0.1",
+	"type": "library",
+	"metadata": {
+		"name": "library.coreBuildtime",
+		"namespace": "library/coreBuildtime",
+		"copyright": "Some fancy copyright"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "main/src"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/resources/": "main/src"
 		}
 	}
 };
