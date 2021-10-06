@@ -58,19 +58,7 @@ test.serial("empty resources (sap.ui.core)", async (t) => {
 				"sap/base/",
 				"sap/ui/"
 			]
-		},
-		mergedResourcesFilters: [
-			"jquery-sap*.js",
-			"sap-ui-core*.js",
-			"**/Component-preload.js",
-			"**/library-preload.js",
-			"**/library-preload-dbg.js",
-			"**/library-preload.json",
-			"**/library-all.js",
-			"**/library-all-dbg.js",
-			"**/designtime/library-preload.designtime.js",
-			"**/library-preload.support.js"
-		]
+		}
 	};
 	t.deepEqual(resourceListCreatorStub.getCall(0).args[0].options, expectedOptions, "options match");
 });

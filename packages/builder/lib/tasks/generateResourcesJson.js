@@ -24,19 +24,7 @@ function getCreatorOptions(projectName) {
 					"sap/base/",
 					"sap/ui/"
 				]
-			},
-			mergedResourcesFilters: [
-				"jquery-sap*.js",
-				"sap-ui-core*.js",
-				"**/Component-preload.js",
-				"**/library-preload.js",
-				"**/library-preload-dbg.js",
-				"**/library-preload.json",
-				"**/library-all.js",
-				"**/library-all-dbg.js",
-				"**/designtime/library-preload.designtime.js",
-				"**/library-preload.support.js"
-			]
+			}
 		});
 	} else if ( projectName === "sap.ui.integration" ) {
 		Object.assign(creatorOptions, {
