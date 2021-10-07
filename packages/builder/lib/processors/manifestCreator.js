@@ -161,6 +161,8 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	// create a Library wrapper around the .library XML
 	const library = await Library.from(libraryResource);
 
+	const libraryPathPrefix = posixPath.dirname(libraryResource.getPath()) + "/";
+
 	// collect information from library.js file
 	const libraryJSInfo = await analyzeLibraryJS(libBundle.findResource("library.js"));
 	const includeSupportedLocalesInformation = descriptorVersion.compare(APP_DESCRIPTOR_V22) >= 0;
@@ -183,7 +185,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	}
 
 	function createSapApp() {
-		function hasManifest(componentPath, libraryPathPrefix) {
+		function hasManifest(componentPath) {
 			const manifestPath = componentPath + "/manifest.json";
 
 			const manifestResource = libBundle.findResource(manifestPath.substring(libraryPathPrefix.length));
@@ -196,17 +198,19 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 		function findEmbeddedComponents() {
 			const result = [];
-			const prefix = posixPath.dirname(libraryResource.getPath()) + "/";
 			const components = libBundle.getResources(/^\/(?:[^/]+\/)*Component\.js$/);
 			for (const comp of components) {
 				const componentPath = posixPath.dirname(comp.getPath());
 				log.verbose("checking component at %s", componentPath);
-				if ( componentPath.startsWith(prefix) && hasManifest(componentPath, prefix) ) {
-					result.push( componentPath.substring(prefix.length) );
-				} else if ( prefix === "/resources/sap/apf/" ) {
+				if ( componentPath.startsWith(libraryPathPrefix) && hasManifest(componentPath) ) {
+					result.push( componentPath.substring(libraryPathPrefix.length) );
+				} else if ( libraryPathPrefix === "/resources/sap/apf/" ) {
 					log.verbose("Package %s contains both '*.library' and 'Component.js'. " +
 						"This is a known issue but can't be solved due to backward compatibility.", componentPath);
-				} else if ( prefix === (componentPath + "/") && prefix !== "/resources/sap/ui/core/" ) {
+				} else if (
+					libraryPathPrefix === (componentPath + "/") &&
+					libraryPathPrefix !== "/resources/sap/ui/core/"
+				) {
 					log.error("Package %s contains both '*.library' and 'Component.js'. " +
 						"This is not supported by manifests, therefore the component won't be " +
 						"listed in the library's manifest.", componentPath);
@@ -353,13 +357,17 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 			// find theme resources and determine theme names from their paths
 			libBundle.getResources(/(?:[^/]+\/)*themes\//).forEach((res) => {
+				if ( !res.getPath().startsWith(libraryPathPrefix + "themes/") ) {
+					// only consider themes within direct "themes" sub-directory
+					return;
+				}
 				const match = /\/themes\/([^/]+)\//.exec(res.getPath());
 				if ( match ) {
 					themes[match[1]] = true;
 				}
 			});
 
-			// merge with supporteTheme info from .library file
+			// merge with supportedTheme info from .library file
 			const elems = findChildren(manifestAppData, "supportedTheme");
 			if ( elems ) {
 				elems.forEach((elem) => {
