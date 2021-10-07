@@ -166,6 +166,46 @@ test.serial("generateDependencyTree should throw error when no framework version
 	}, {message: "framework.version is not defined for project test-id"});
 });
 
+test.serial("generateDependencyTree should skip framework project without version", async (t) => {
+	const tree = {
+		id: "@sapui5/project",
+		version: "1.2.3",
+		path: "/sapui5-project/",
+		metadata: {
+			name: "sapui5.project"
+		},
+		framework: {
+			name: "SAPUI5"
+		}
+	};
+
+	const result = await ui5Framework.generateDependencyTree(tree);
+	t.is(result, null, "Framework projects should be skipped");
+});
+
+test.serial("generateDependencyTree should skip framework project with version and framework config", async (t) => {
+	const tree = {
+		id: "@sapui5/project",
+		version: "1.2.3",
+		path: "/sapui5-project/",
+		metadata: {
+			name: "sapui5.project"
+		},
+		framework: {
+			name: "SAPUI5",
+			version: "1.2.3",
+			libraries: [
+				{
+					name: "lib1"
+				}
+			]
+		}
+	};
+
+	const result = await ui5Framework.generateDependencyTree(tree);
+	t.is(result, null, "Framework projects should be skipped");
+});
+
 test.serial("generateDependencyTree should ignore root project without framework configuration", async (t) => {
 	const tree = {
 		id: "test-id",
@@ -227,6 +267,40 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project without dependencies",
 	};
 	const ui5Dependencies = utils.getFrameworkLibrariesFromTree(tree);
 	t.deepEqual(ui5Dependencies, []);
+});
+
+test.serial("utils.getFrameworkLibrariesFromTree: Framework project", (t) => {
+	const tree = {
+		id: "@sapui5/project",
+		metadata: {
+			name: "project"
+		},
+		framework: {
+			libraries: [
+				{
+					name: "lib1"
+				}
+			]
+		},
+		dependencies: [
+			{
+				id: "test1",
+				specVersion: "2.0",
+				metadata: {
+					name: "test1"
+				},
+				framework: {
+					libraries: [
+						{
+							name: "lib2"
+						}
+					]
+				}
+			}
+		]
+	};
+	const ui5Dependencies = utils.getFrameworkLibrariesFromTree(tree);
+	t.deepEqual(ui5Dependencies, []); // Framework projects should be skipped
 });
 
 test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dependency with libraries", (t) => {

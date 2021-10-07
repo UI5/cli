@@ -133,6 +133,13 @@ module.exports = {
 			return null;
 		}
 
+		// Ignoring UI5 Framework libraries
+		if (utils.isFrameworkProject(tree)) {
+			log.verbose(`UI5 framework dependency resolution is currently not supported ` +
+				`for framework libraries. Skipping project "${tree.id}"`);
+			return null;
+		}
+
 		const frameworkName = tree.framework.name;
 		if (frameworkName !== "SAPUI5" && frameworkName !== "OpenUI5") {
 			throw new Error(
