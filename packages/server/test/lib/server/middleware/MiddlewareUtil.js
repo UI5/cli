@@ -149,6 +149,20 @@ test("getInterface: specVersion 2.5", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
+test("getInterface: specVersion 2.6", async (t) => {
+	const middlewareUtil = new MiddlewareUtil();
+
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.6");
+
+	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
+		"getPathname",
+		"getMimeInfo"
+	], "Correct methods are provided");
+
+	t.is(typeof interfacedMiddlewareUtil.getPathname, "function", "function getPathname is provided");
+	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
+});
+
 test("getInterface: specVersion undefined", async (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
