@@ -20,7 +20,7 @@ test("Init for application", async (t) => {
 	});
 
 	t.deepEqual(projectConfig, {
-		specVersion: "2.5",
+		specVersion: "2.6",
 		type: "application",
 		metadata: {
 			name: "init-application"
@@ -34,7 +34,7 @@ test("Init for library", async (t) => {
 	});
 
 	t.deepEqual(projectConfig, {
-		specVersion: "2.5",
+		specVersion: "2.6",
 		type: "library",
 		metadata: {
 			name: "init-library"
