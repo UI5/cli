@@ -10,7 +10,7 @@ module.exports = {
 	 * @param {string} type one of "application", "library" and "theme-library"
 	 */
 	defineTests: function(test, assertValidation, type) {
-		["2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+		["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 			test(`${type} (specVersion ${specVersion}): framework configuration: OpenUI5`, async (t) => {
 				const config = {
 					"specVersion": specVersion,

@@ -6,13 +6,13 @@
 	"required": ["specVersion", "type", "metadata"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.5"] }
+			"specVersion": { "enum": ["2.6"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.5"] },
+			"specVersion": { "enum": ["2.6"] },
 			"kind": {
 				"enum": ["project", null]
 			},
@@ -29,7 +29,7 @@
 				"$ref": "#/definitions/resources"
 			},
 			"builder": {
-				"$ref": "#/definitions/builder-specVersion-2.5"
+				"$ref": "#/definitions/builder-specVersion-2.6"
 			},
 			"server": {
 				"$ref": "../project.json#/definitions/server"
@@ -43,13 +43,13 @@
 	"else": {
 		"if": {
 			"properties": {
-				"specVersion": { "enum": ["2.4"] }
+				"specVersion": { "enum": ["2.5"] }
 			}
 		},
 		"then": {
 			"additionalProperties": false,
 			"properties": {
-				"specVersion": { "enum": ["2.4"] },
+				"specVersion": { "enum": ["2.5"] },
 				"kind": {
 					"enum": ["project", null]
 				},
@@ -66,7 +66,7 @@
 					"$ref": "#/definitions/resources"
 				},
 				"builder": {
-					"$ref": "#/definitions/builder-specVersion-2.4"
+					"$ref": "#/definitions/builder-specVersion-2.5"
 				},
 				"server": {
 					"$ref": "../project.json#/definitions/server"
@@ -80,13 +80,13 @@
 		"else": {
 			"if": {
 				"properties": {
-					"specVersion": { "enum": ["2.3"] }
+					"specVersion": { "enum": ["2.4"] }
 				}
 			},
 			"then": {
 				"additionalProperties": false,
 				"properties": {
-					"specVersion": { "enum": ["2.3"] },
+					"specVersion": { "enum": ["2.4"] },
 					"kind": {
 						"enum": ["project", null]
 					},
@@ -103,7 +103,7 @@
 						"$ref": "#/definitions/resources"
 					},
 					"builder": {
-						"$ref": "#/definitions/builder-specVersion-2.3"
+						"$ref": "#/definitions/builder-specVersion-2.4"
 					},
 					"server": {
 						"$ref": "../project.json#/definitions/server"
@@ -117,13 +117,13 @@
 			"else": {
 				"if": {
 					"properties": {
-						"specVersion": { "enum": ["2.1", "2.2"] }
+						"specVersion": { "enum": ["2.3"] }
 					}
 				},
 				"then": {
 					"additionalProperties": false,
 					"properties": {
-						"specVersion": { "enum": ["2.1", "2.2"] },
+						"specVersion": { "enum": ["2.3"] },
 						"kind": {
 							"enum": ["project", null]
 						},
@@ -140,7 +140,7 @@
 							"$ref": "#/definitions/resources"
 						},
 						"builder": {
-							"$ref": "#/definitions/builder"
+							"$ref": "#/definitions/builder-specVersion-2.3"
 						},
 						"server": {
 							"$ref": "../project.json#/definitions/server"
@@ -152,29 +152,67 @@
 					}
 				},
 				"else": {
-					"additionalProperties": false,
-					"properties": {
-						"specVersion": { "enum": ["2.0"] },
-						"kind": {
-							"enum": ["project", null]
-						},
-						"type": {
-							"enum": ["application"]
-						},
-						"metadata": {
-							"$ref": "../project.json#/definitions/metadata"
-						},
-						"framework": {
-							"$ref": "../project.json#/definitions/framework"
-						},
-						"resources": {
-							"$ref": "#/definitions/resources"
-						},
-						"builder": {
-							"$ref": "#/definitions/builder"
-						},
-						"server": {
-							"$ref": "../project.json#/definitions/server"
+					"if": {
+						"properties": {
+							"specVersion": { "enum": ["2.1", "2.2"] }
+						}
+					},
+					"then": {
+						"additionalProperties": false,
+						"properties": {
+							"specVersion": { "enum": ["2.1", "2.2"] },
+							"kind": {
+								"enum": ["project", null]
+							},
+							"type": {
+								"enum": ["application"]
+							},
+							"metadata": {
+								"$ref": "../project.json#/definitions/metadata"
+							},
+							"framework": {
+								"$ref": "../project.json#/definitions/framework"
+							},
+							"resources": {
+								"$ref": "#/definitions/resources"
+							},
+							"builder": {
+								"$ref": "#/definitions/builder"
+							},
+							"server": {
+								"$ref": "../project.json#/definitions/server"
+							},
+							"customConfiguration": {
+								"type": "object",
+								"additionalProperties": true
+							}
+						}
+					},
+					"else": {
+						"additionalProperties": false,
+						"properties": {
+							"specVersion": { "enum": ["2.0"] },
+							"kind": {
+								"enum": ["project", null]
+							},
+							"type": {
+								"enum": ["application"]
+							},
+							"metadata": {
+								"$ref": "../project.json#/definitions/metadata"
+							},
+							"framework": {
+								"$ref": "../project.json#/definitions/framework"
+							},
+							"resources": {
+								"$ref": "#/definitions/resources"
+							},
+							"builder": {
+								"$ref": "#/definitions/builder"
+							},
+							"server": {
+								"$ref": "../project.json#/definitions/server"
+							}
 						}
 					}
 				}
@@ -314,6 +352,39 @@
 				},
 				"customTasks": {
 					"$ref": "../project.json#/definitions/customTasks"
+				},
+				"settings": {
+					"$ref": "../project.json#/definitions/builder-settings"
+				}
+			}
+		},
+		"builder-specVersion-2.6": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"resources": {
+					"$ref": "../project.json#/definitions/builder-resources"
+				},
+				"cachebuster": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"signatureType": {
+							"enum": ["time", "hash"]
+						}
+					}
+				},
+				"bundles": {
+					"$ref": "../project.json#/definitions/builder-bundles-2.4"
+				},
+				"componentPreload": {
+					"$ref": "../project.json#/definitions/builder-componentPreload-specVersion-2.3"
+				},
+				"customTasks": {
+					"$ref": "../project.json#/definitions/customTasks"
+				},
+				"minification": {
+					"$ref": "../project.json#/definitions/builder-minification"
 				},
 				"settings": {
 					"$ref": "../project.json#/definitions/builder-settings"

@@ -5,7 +5,7 @@
 	"type": "object",
 	"required": ["specVersion", "type"],
 	"properties": {
-		"specVersion": { "enum": ["2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"specVersion": { "enum": ["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
 		"kind": {
 			"enum": ["project", null],
 			"$comment": "Using null to allow not defining 'kind' which defaults to project"
@@ -523,6 +523,18 @@
 					}
 				},
 				"includeDependencyTree": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-minification": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"excludes": {
 					"type": "array",
 					"items": {
 						"type": "string"

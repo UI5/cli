@@ -43,7 +43,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): Valid configuration`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -399,7 +399,7 @@ test.after.always((t) => {
 				keyword: "enum",
 				message: "should be equal to one of the allowed values",
 				params: {
-					allowedValues: ["2.5", "2.4"].includes(specVersion) ? [
+					allowedValues: ["2.6", "2.5", "2.4"].includes(specVersion) ? [
 						"raw",
 						"preload",
 						"require",
@@ -614,7 +614,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.5", "2.4", "2.3"].forEach(function(specVersion) {
+["2.6", "2.5", "2.4", "2.3"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): builder/libraryPreload/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -807,7 +807,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.5", "2.4"].forEach(function(specVersion) {
+["2.6", "2.5", "2.4"].forEach(function(specVersion) {
 	// Unsupported cases for older spec-versions already tested via "allowedValues" comparison above
 	test(`library (specVersion ${specVersion}): builder/bundles/bundleDefinition/sections/mode: bundleInfo`,
 		async (t) => {
@@ -835,7 +835,7 @@ test.after.always((t) => {
 		});
 });
 
-["2.5"].forEach(function(specVersion) {
+["2.6", "2.5"].forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -1006,6 +1006,103 @@ test.after.always((t) => {
 			},
 			{
 				dataPath: "/builder/settings/includeDependencyTree/2",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+		]);
+	});
+});
+
+["2.6"].forEach(function(specVersion) {
+	test(`library (specVersion ${specVersion}): builder/minification/excludes`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"minification": {
+					"excludes": [
+						"some/excluded/files/**",
+						"some/other/excluded/files/**"
+					]
+				}
+			}
+		});
+	});
+	test(`Invalid builder/minification/excludes configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"minification": {
+					"excludes": "some/excluded/files/**"
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/minification/excludes",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				},
+			},
+		]);
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				"minification": {
+					"excludes": [
+						true,
+						1,
+						{}
+					],
+					"notAllowed": true
+				}
+			}
+		}, [
+			{
+				dataPath: "/builder/minification",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				},
+			},
+			{
+				dataPath: "/builder/minification/excludes/0",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/minification/excludes/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				},
+			},
+			{
+				dataPath: "/builder/minification/excludes/2",
 				keyword: "type",
 				message: "should be string",
 				params: {

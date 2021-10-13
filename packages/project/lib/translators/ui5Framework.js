@@ -86,7 +86,8 @@ const utils = {
 		if (
 			project.specVersion !== "2.0" && project.specVersion !== "2.1" &&
 			project.specVersion !== "2.2" && project.specVersion !== "2.3" &&
-			project.specVersion !== "2.4" && project.specVersion !== "2.5"
+			project.specVersion !== "2.4" && project.specVersion !== "2.5" &&
+			project.specVersion !== "2.6"
 		) {
 			log.warn(`Project ${project.metadata.name} defines invalid ` +
 				`specification version ${project.specVersion} for framework.libraries configuration`);
@@ -261,7 +262,8 @@ module.exports = {
 				(
 					project.specVersion === "2.0" || project.specVersion === "2.1" ||
 					project.specVersion === "2.2" || project.specVersion === "2.3" ||
-					project.specVersion === "2.4" || project.specVersion === "2.5"
+					project.specVersion === "2.4" || project.specVersion === "2.5" ||
+					project.specVersion === "2.6"
 				) && project.framework && project.framework.libraries) {
 				const frameworkDeps = project.framework.libraries
 					.filter((dependency) => {

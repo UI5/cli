@@ -6,13 +6,13 @@
 	"required": ["specVersion", "kind", "type", "metadata", "task"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5"] }
+			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5"] },
+			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] },
 			"kind": {
 				"enum": ["extension"]
 			},
