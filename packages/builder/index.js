@@ -50,6 +50,10 @@ module.exports = {
 		 */
 		libraryLessGenerator: "./lib/processors/libraryLessGenerator",
 		/**
+		 * @type {import('./lib/processors/manifestCreator')}
+		 */
+		manifestCreator: "./lib/processors/manifestCreator",
+		/**
 		 * @type {import('./lib/processors/resourceCopier')}
 		 */
 		resourceCopier: "./lib/processors/resourceCopier",

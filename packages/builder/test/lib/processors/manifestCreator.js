@@ -348,6 +348,74 @@ test.serial("default manifest creation no dependency version", async (t) => {
 		"Couldn't find version for library 'my.lib', project dependency missing?", "error message correct");
 });
 
+test.serial("manifest creation omitMinVersions=true", async (t) => {
+	const {manifestCreator, errorLogStub} = t.context;
+
+	const expectedManifestContent = JSON.stringify({
+		"_version": "1.21.0",
+		"sap.app": {
+			"id": "library.e",
+			"type": "library",
+			"embeds": [],
+			"applicationVersion": {},
+			"title": "Library E",
+			"description": "Library E",
+			"resources": "resources.json",
+			"offline": true
+		},
+		"sap.ui": {
+			"technology": "UI5",
+			"supportedThemes": []
+		},
+		"sap.ui5": {
+			"dependencies": {
+				"minUI5Version": "",
+				"libs": {
+					"my.lib": {
+						"minVersion": ""
+					}
+				}
+			},
+			"library": {
+				"i18n": false
+			}
+		}
+	}, null, 2);
+
+	const libraryResource = {
+		getPath: () => {
+			return "/resources/sap/ui/mine/.library";
+		},
+		getString: async () => {
+			return `<?xml version="1.0" encoding="UTF-8" ?>
+				<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+					<name>library.e</name>
+					<vendor>SAP SE</vendor>
+					<documentation>Library E</documentation>
+					<dependencies>
+					    <dependency>
+					      <libraryName>my.lib</libraryName>
+					    </dependency>
+					</dependencies>
+				</library>`;
+		},
+		_project: {
+			dependencies: []
+		}
+	};
+
+	const result = await manifestCreator({
+		libraryResource,
+		resources: [],
+		options: {
+			omitMinVersions: true
+		}
+	});
+
+	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
+});
+
 test.serial("default manifest creation with special characters", async (t) => {
 	const {manifestCreator, errorLogStub} = t.context;
 	const prefix = "/resources/sap/ui/mine/";

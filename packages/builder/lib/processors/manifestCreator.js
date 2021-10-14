@@ -157,7 +157,7 @@ class LibraryBundle {
 /*
  * Creates the library manifest.json file for a UILibrary.
  */
-async function createManifest(libraryResource, libBundle, descriptorVersion, _include3rdParty) {
+async function createManifest(libraryResource, libBundle, descriptorVersion, _include3rdParty, omitMinVersions) {
 	// create a Library wrapper around the .library XML
 	const library = await Library.from(libraryResource);
 
@@ -403,14 +403,14 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 		function dependencies() {
 			const dependencies = {
-				minUI5Version: getUI5Version(),
+				minUI5Version: omitMinVersions ? "" : getUI5Version(),
 				libs: {
 				}
 			};
 			if ( library.getDependencies() != null ) {
 				for (const dep of library.getDependencies()) {
 					dependencies.libs[dep.getLibraryName()] = {
-						minVersion: getVersion(dep),
+						minVersion: omitMinVersions ? "" : getVersion(dep),
 						lazy: dep.isLazy() || undefined // suppress default (false)
 					};
 				}
@@ -660,9 +660,10 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 module.exports = function({libraryResource, resources, options}) {
 	// merge options with defaults
 	options = Object.assign({
-		descriptorVersion: APP_DESCRIPTOR_V22, // TODO change this to type string instead of a semver object
+		descriptorVersion: APP_DESCRIPTOR_V22, // TODO 3.0: change this to type string instead of a semver object
 		include3rdParty: true,
-		prettyPrint: true
+		prettyPrint: true,
+		omitMinVersions: false
 	}, options);
 
 	const resourcePathPrefix = libraryResource.getPath().slice(0, -".library".length);
@@ -675,7 +676,8 @@ module.exports = function({libraryResource, resources, options}) {
 		return Promise.resolve(null); // a fulfillment of null indicates that no manifest has been created
 	}
 
-	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty)
+	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty,
+		options.omitMinVersions)
 		.then((manifest) => {
 			return new EvoResource({
 				path: resourcePathPrefix + "manifest.json",
