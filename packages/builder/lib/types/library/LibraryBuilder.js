@@ -195,11 +195,19 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
+		const minificationPattern = ["/resources/**/*.js"];
+		if (["2.6"].includes(project.specVersion)) {
+			const minificationExcludes = project.builder && project.builder.minification &&
+				project.builder.minification.excludes;
+			if (minificationExcludes) {
+				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/resources/");
+			}
+		}
 		this.addTask("createDebugFiles", async () => {
 			return getTask("createDebugFiles").task({
 				workspace: resourceCollections.workspace,
 				options: {
-					pattern: "/resources/**/*.js"
+					pattern: minificationPattern
 				}
 			});
 		});
@@ -209,7 +217,7 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				taskUtil,
 				options: {
-					pattern: "/resources/**/*.js"
+					pattern: minificationPattern
 				}
 			});
 		});

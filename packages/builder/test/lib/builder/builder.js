@@ -18,6 +18,7 @@ const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "applicati
 const applicationIPath = path.join(__dirname, "..", "..", "fixtures", "application.i");
 const applicationJPath = path.join(__dirname, "..", "..", "fixtures", "application.j");
 const applicationKPath = path.join(__dirname, "..", "..", "fixtures", "application.k");
+const applicationLPath = path.join(__dirname, "..", "..", "fixtures", "application.l");
 const applicationØPath = path.join(__dirname, "..", "..", "fixtures", "application.ø");
 const collectionPath = path.join(__dirname, "..", "..", "fixtures", "collection");
 const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
@@ -25,6 +26,7 @@ const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
 const libraryIPath = path.join(__dirname, "..", "..", "fixtures", "library.i");
 const libraryJPath = path.join(__dirname, "..", "..", "fixtures", "library.j");
+const libraryLPath = path.join(__dirname, "..", "..", "fixtures", "library.l");
 const libraryØPath = path.join(__dirname, "..", "..", "fixtures", "library.ø");
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
 const libraryCoreBuildtime = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-buildtime");
@@ -587,6 +589,26 @@ test.serial("Build application.k (package sub-components / componentPreload excl
 	});
 });
 
+test.serial("Build application.l", (t) => {
+	const destPath = "./test/tmp/build/application.l/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.l", "dest");
+
+	return builder.build({
+		tree: applicationLTree,
+		destPath,
+		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
 test.serial("Build application.ø", (t) => {
 	const destPath = "./test/tmp/build/application.ø/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.ø", "dest");
@@ -730,6 +752,26 @@ test.serial("Build library.j with JSDoc build only", (t) => {
 		// Check for all directories and files
 		assert.directoryDeepEqual(destPath, expectedPath);
 
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build library.l", (t) => {
+	const destPath = path.join("test", "tmp", "build", "library.l", "dest");
+	const expectedPath = path.join("test", "expected", "build", "library.l", "dest");
+
+	return builder.build({
+		tree: libraryLTree,
+		destPath,
+		excludedTasks: ["generateLibraryManifest", "generateLibraryPreload"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
 		// Check for all file contents
 		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
@@ -1342,6 +1384,40 @@ applicationKPackageSubcomponentsTree.builder = {
 	}
 };
 
+const applicationLTree = {
+	"id": "application.l",
+	"version": "1.0.0",
+	"path": applicationLPath,
+	"dependencies": [],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "2.6",
+	"type": "application",
+	"metadata": {
+		"name": "application.l",
+		"namespace": "application/l"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"webapp": "webapp"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/": "webapp"
+		}
+	},
+	"builder": {
+		"minification": {
+			"excludes": [
+				"**/thirdparty/**",
+				"!**/subdir/thirdparty/File1.js"
+			]
+		}
+	}
+};
+
 const applicationØTree = {
 	"id": "application.ø",
 	"version": "1.0.0",
@@ -1618,6 +1694,41 @@ const libraryJTree = {
 		},
 		"pathMappings": {
 			"/resources/": "main/src"
+		}
+	}
+};
+
+const libraryLTree = {
+	"id": "library.l",
+	"version": "1.0.0",
+	"path": libraryLPath,
+	"dependencies": [],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "2.6",
+	"type": "library",
+	"metadata": {
+		"name": "library.l",
+		"namespace": "library/l",
+		"copyright": "Some fancy copyright"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "main/src"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/resources/": "main/src"
+		}
+	},
+	"builder": {
+		"minification": {
+			"excludes": [
+				"**/thirdparty/**",
+				"!**/subdir/thirdparty/File1.js"
+			]
 		}
 	}
 };

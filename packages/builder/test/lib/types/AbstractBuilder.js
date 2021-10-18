@@ -533,3 +533,21 @@ test("addTask: Add task already added to execution order", (t) => {
 	t.deepEqual(error.message, "Builder: Failed to add task myTask for project application.b. " +
 		"It has already been scheduled for execution.", "Correct exception thrown");
 });
+
+test("enhancePatternWithExcludes", (t) => {
+	const project = clone(applicationBTree);
+	const customBuilder = new CustomBuilder({project});
+
+	const patterns = ["/default/pattern"];
+	const excludes = ["a", "!b", "c", "!d"];
+
+	customBuilder.enhancePatternWithExcludes(patterns, excludes, "/prefix/");
+
+	t.deepEqual(patterns, [
+		"/default/pattern",
+		"!/prefix/a",
+		"/prefix/b",
+		"!/prefix/c",
+		"/prefix/d"
+	]);
+});
