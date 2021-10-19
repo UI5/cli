@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.3.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v2.4.0...HEAD).
+
+<a name="v2.4.0"></a>
+## [v2.4.0] - 2021-10-19
+### Features
+- Enhance versionInfo middleware to serve sap-ui-version.json ([#420](https://github.com/SAP/ui5-server/issues/420)) [`c6f83f5`](https://github.com/SAP/ui5-server/commit/c6f83f5472eb2fe6a8d4eca10ecdc5f4b522bc3c)
+
 
 <a name="v2.3.1"></a>
 ## [v2.3.1] - 2021-07-23
@@ -240,6 +246,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v2.4.0]: https://github.com/SAP/ui5-server/compare/v2.3.1...v2.4.0
 [v2.3.1]: https://github.com/SAP/ui5-server/compare/v2.3.0...v2.3.1
 [v2.3.0]: https://github.com/SAP/ui5-server/compare/v2.2.10...v2.3.0
 [v2.2.10]: https://github.com/SAP/ui5-server/compare/v2.2.9...v2.2.10
