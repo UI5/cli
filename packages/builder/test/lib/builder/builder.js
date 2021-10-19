@@ -589,12 +589,32 @@ test.serial("Build application.k (package sub-components / componentPreload excl
 	});
 });
 
-test.serial("Build application.l", (t) => {
+test.serial("Build application.l: minification excludes, w/ namespace", (t) => {
 	const destPath = "./test/tmp/build/application.l/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.l", "dest");
 
 	return builder.build({
 		tree: applicationLTree,
+		destPath,
+		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build application.l: minification excludes, w/o namespace", (t) => {
+	const destPath = "./test/tmp/build/application.l/dest";
+	const expectedPath = path.join("test", "expected", "build", "application.l", "dest");
+
+	return builder.build({
+		tree: applicationLTreeNoNamespace,
 		destPath,
 		excludedTasks: ["generateComponentPreload", "generateStandaloneAppBundle", "generateVersionInfo"]
 	}).then(() => {
@@ -1411,12 +1431,19 @@ const applicationLTree = {
 	"builder": {
 		"minification": {
 			"excludes": [
-				"**/thirdparty/**",
-				"!**/subdir/thirdparty/File1.js"
+				"application/l/**/thirdparty/**",
+				"!application/l/subdir/thirdparty/File1.js"
 			]
 		}
 	}
 };
+
+const applicationLTreeNoNamespace = clone(applicationLTree);
+applicationLTreeNoNamespace.metadata = {"name": "application.l"};
+applicationLTreeNoNamespace.builder.minification.excludes = [
+	"**/thirdparty/**",
+	"!subdir/thirdparty/File1.js"
+];
 
 const applicationØTree = {
 	"id": "application.ø",

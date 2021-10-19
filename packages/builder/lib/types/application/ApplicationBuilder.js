@@ -143,7 +143,9 @@ class ApplicationBuilder extends AbstractBuilder {
 			const minificationExcludes = project.builder && project.builder.minification &&
 				project.builder.minification.excludes;
 			if (minificationExcludes) {
-				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/");
+				// TODO 3.0: namespaces should become mandatory, see existing check above
+				const patternPrefix = project.metadata.namespace ? "/resources/" : "/";
+				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, patternPrefix);
 			}
 		}
 		this.addTask("createDebugFiles", async () => {
