@@ -2,6 +2,7 @@
 // for consistency of write calls, we generally allow template literals
 "use strict";
 
+const path = require("path");
 const terser = require("terser");
 const {pd} = require("pretty-data");
 const {parseJS, Syntax} = require("../utils/parseUtils");
@@ -485,6 +486,11 @@ class BundleBuilder {
 
 				if (!section.name) {
 					throw new Error(`A 'bundleInfo' section is missing the mandatory 'name' property.` );
+				}
+				if (!path.extname(section.name)) {
+					log.warn(`bundleInfo section name '${section.name}' is missing a file extension. ` +
+						`The info might not work as expected. ` +
+						`The name must match the bundle filename (incl. extension such as '.js')`);
 				}
 				this.outW.write(`"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`);
 			});

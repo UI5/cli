@@ -551,6 +551,16 @@ if (oError.name != "Restart") { throw oError; }
 });
 
 test("integration: createBundle with bundleInfo", async (t) => {
+	const logger = require("@ui5/logger");
+	const verboseLogStub = sinon.stub();
+	const warnLogStub = sinon.stub();
+	const myLoggerInstance = {
+		verbose: verboseLogStub,
+		warn: warnLogStub
+	};
+	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
+	const BuilderWithStub = mock.reRequire("../../../../lib/lbt/bundle/Builder");
+
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "a.js",
@@ -559,6 +569,10 @@ test("integration: createBundle with bundleInfo", async (t) => {
 	pool.addResource({
 		name: "b.js",
 		buffer: async () => "function Two(){return 2;}"
+	});
+	pool.addResource({
+		name: "c.js",
+		buffer: async () => "function Three(){return 3;}"
 	});
 	pool.addResource({
 		name: "ui5loader.js",
@@ -591,12 +605,16 @@ test("integration: createBundle with bundleInfo", async (t) => {
 			filters: ["ui5loader.js"]
 		}, {
 			mode: "bundleInfo",
-			name: "my-custom-bundle",
+			name: "my-custom-bundle", // without .js, should emit a warning
 			filters: ["b.js"]
+		}, {
+			mode: "bundleInfo",
+			name: "my-other-custom-bundle.js", // with .js
+			filters: ["c.js"]
 		}]
 	};
 
-	const builder = new Builder(pool);
+	const builder = new BuilderWithStub(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
 	t.deepEqual(oResult.name, "library-preload.js");
 	const expectedContent = `//@ui5-bundle library-preload.js
@@ -607,7 +625,8 @@ this.One=One;
 },"preload-section");
 sap.ui.requireSync("ui5loader");
 sap.ui.loader.config({bundlesUI5:{
-"my-custom-bundle":['b.js']
+"my-custom-bundle":['b.js'],
+"my-other-custom-bundle.js":['c.js']
 }});
 `;
 	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
@@ -616,6 +635,13 @@ sap.ui.loader.config({bundlesUI5:{
 		" require part from ui5loader.js");
 	t.deepEqual(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
-	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js"],
+	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js", "c.js"],
 		"bundle info subModules are correct");
+
+	t.is(warnLogStub.callCount, 1);
+	t.deepEqual(warnLogStub.getCall(0).args, [
+		`bundleInfo section name 'my-custom-bundle' is missing a file extension. ` +
+		`The info might not work as expected. ` +
+		`The name must match the bundle filename (incl. extension such as '.js')`
+	]);
 });
