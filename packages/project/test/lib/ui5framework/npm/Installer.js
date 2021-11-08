@@ -60,7 +60,8 @@ test.serial("Installer: fetchPackageVersions", async (t) => {
 		ui5HomeDir: "/ui5Home/"
 	});
 
-	const requestPackagePackumentStub = sinon.stub(installer._registry, "requestPackagePackument")
+	const registry = installer.getRegistry();
+	const requestPackagePackumentStub = sinon.stub(registry, "requestPackagePackument")
 		.resolves({
 			versions: {
 				"1.0.0": {},
@@ -119,10 +120,11 @@ test.serial("Installer: fetchPackageManifest (without existing package.json)", a
 		}
 	};
 
-	const requestPackageManifestStub = sinon.stub(installer._registry, "requestPackageManifest")
+	const registry = installer.getRegistry();
+	const requestPackageManifestStub = sinon.stub(registry, "requestPackageManifest")
 		.callsFake((pkgName, version) => {
 			throw new Error(
-				"_registry.requestPackageManifest stub called with unknown arguments " +
+				"_cachedRegistry.requestPackageManifest stub called with unknown arguments " +
 				`pkgName: ${pkgName}, version: ${version}}`
 			);
 		})
@@ -187,7 +189,8 @@ test.serial("Installer: fetchPackageManifest (with existing package.json)", asyn
 		}
 	};
 
-	const requestPackageManifestStub = sinon.stub(installer._registry, "requestPackageManifest")
+	const registry = installer.getRegistry();
+	const requestPackageManifestStub = sinon.stub(registry, "requestPackageManifest")
 		.rejects(new Error("Unexpected call"));
 
 	const readJsonStub = sinon.stub(installer, "readJson")
@@ -224,7 +227,8 @@ test.serial("Installer: fetchPackageManifest (readJson throws error)", async (t)
 		ui5HomeDir: "/ui5Home/"
 	});
 
-	const requestPackageManifestStub = sinon.stub(installer._registry, "requestPackageManifest")
+	const registry = installer.getRegistry();
+	const requestPackageManifestStub = sinon.stub(registry, "requestPackageManifest")
 		.rejects(new Error("Unexpected call"));
 
 	const readJsonStub = sinon.stub(installer, "readJson")
@@ -415,7 +419,8 @@ test.serial("Installer: installPackage with new package", async (t) => {
 		.returns("staging-dir-path");
 	const pathExistsStub = sinon.stub(installer, "_pathExists").resolves(false);
 
-	const extractPackageStub = sinon.stub(installer._registry, "extractPackage").resolves();
+	const registry = installer.getRegistry();
+	const extractPackageStub = sinon.stub(registry, "extractPackage").resolves();
 
 	const res = await installer.installPackage({
 		pkgName: "myPackage",
@@ -493,7 +498,8 @@ test.serial("Installer: installPackage with already installed package", async (t
 		.returns("staging-dir-path");
 	const pathExistsStub = sinon.stub(installer, "_pathExists").resolves(false);
 
-	const extractPackageStub = sinon.stub(installer._registry, "extractPackage").resolves();
+	const registry = installer.getRegistry();
+	const extractPackageStub = sinon.stub(registry, "extractPackage").resolves();
 
 	const res = await installer.installPackage({
 		pkgName: "myPackage",
@@ -547,7 +553,8 @@ test.serial("Installer: installPackage with install already in progress", async 
 		.returns("staging-dir-path");
 	const pathExistsStub = sinon.stub(installer, "_pathExists").resolves(false);
 
-	const extractPackageStub = sinon.stub(installer._registry, "extractPackage").resolves();
+	const registry = installer.getRegistry();
+	const extractPackageStub = sinon.stub(registry, "extractPackage").resolves();
 
 	await installer.installPackage({
 		pkgName: "myPackage",
@@ -606,7 +613,8 @@ test.serial("Installer: installPackage with new package and existing target and 
 		.returns("staging-dir-path");
 	const pathExistsStub = sinon.stub(installer, "_pathExists").resolves(true); // Staging dir exists
 
-	const extractPackageStub = sinon.stub(installer._registry, "extractPackage").resolves();
+	const registry = installer.getRegistry();
+	const extractPackageStub = sinon.stub(registry, "extractPackage").resolves();
 
 	const res = await installer.installPackage({
 		pkgName: "myPackage",

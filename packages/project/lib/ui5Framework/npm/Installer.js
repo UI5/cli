@@ -8,7 +8,6 @@ const lockfile = require("lockfile");
 const lock = promisify(lockfile.lock);
 const unlock = promisify(lockfile.unlock);
 const mkdirp = require("mkdirp");
-const Registry = require("./Registry");
 const log = require("@ui5/logger").getLogger("normalizer:ui5Framework:npm:Installer");
 
 class Installer {
@@ -21,12 +20,21 @@ class Installer {
 		}
 		this._packagesDir = path.join(ui5HomeDir, "framework", "packages");
 		log.verbose(`Installing to: ${this._packagesDir}`);
-		this._registry = new Registry({
-			cwd,
-			cacheDir: path.join(ui5HomeDir, "framework", "cacache")
-		});
+		this._cwd = cwd;
+		this._caCacheDir = path.join(ui5HomeDir, "framework", "cacache");
 		this._lockDir = path.join(ui5HomeDir, "framework", "locks");
 		this._stagingDir = path.join(ui5HomeDir, "framework", "staging");
+	}
+
+	getRegistry() {
+		if (this._cachedRegistry) {
+			return this._cachedRegistry;
+		}
+		const Registry = require("./Registry");
+		return this._cachedRegistry = new Registry({
+			cwd: this._cwd,
+			cacheDir: this._caCacheDir
+		});
 	}
 
 	async readJson(jsonPath) {
@@ -34,7 +42,7 @@ class Installer {
 	}
 
 	async fetchPackageVersions({pkgName}) {
-		const packument = await this._registry.requestPackagePackument(pkgName);
+		const packument = await this.getRegistry().requestPackagePackument(pkgName);
 		return Object.keys(packument.versions);
 	}
 
@@ -49,7 +57,7 @@ class Installer {
 			};
 		} catch (err) {
 			if (err.code === "ENOENT") { // "File or directory does not exist"
-				const manifest = await this._registry.requestPackageManifest(pkgName, version);
+				const manifest = await this.getRegistry().requestPackageManifest(pkgName, version);
 				return {
 					name: manifest.name,
 					dependencies: manifest.dependencies,
@@ -90,7 +98,7 @@ class Installer {
 					}
 
 					log.verbose(`Installing ${pkgName} in version ${version} to ${stagingDir}...`);
-					await this._registry.extractPackage(pkgName, version, stagingDir);
+					await this.getRegistry().extractPackage(pkgName, version, stagingDir);
 
 					// Do not create target dir itself to prevent EPERM error in following rename operation
 					// (https://github.com/SAP/ui5-tooling/issues/487)
