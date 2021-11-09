@@ -237,7 +237,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			if ( library.getDocumentation() ) {
 				let desc = library.getDocumentation();
 				// remove all tags
-				desc = desc.replace(/\\s+/g, " ").replace(/<\/?[a-zA-Z][a-zA-Z0-9_$.]*(\s[^>]*)>/g, "");
+				desc = desc.replace(/\s+/g, " ").replace(/<\/?[a-zA-Z][a-zA-Z0-9_$.]*(\s[^>]*)>/g, "");
 				// extract summary (first sentence)
 				const m = /^([\w\W]+?[.;!?])[^a-zA-Z0-9_$]/.exec(desc);
 				return m ? m[1] : desc;

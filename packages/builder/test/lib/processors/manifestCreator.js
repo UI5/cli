@@ -137,6 +137,70 @@ test.serial("default manifest creation", async (t) => {
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 });
 
+test.serial("default manifest creation (multi-line documentation)", async (t) => {
+	const {manifestCreator, errorLogStub} = t.context;
+	const prefix = "/resources/sap/ui/mine/";
+	const libraryResource = {
+		getPath: () => {
+			return prefix + ".library";
+		},
+		getString: async () => {
+			return `<?xml version="1.0" encoding="UTF-8" ?>
+			<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+				<name>library.e</name>
+				<vendor>SAP SE</vendor>
+				<copyright>my copyright</copyright>
+				<version>1.0.0</version>
+				<documentation>Library E
+    uses a multi-line documentation text.</documentation>
+
+				<dependencies>
+					<dependency>
+					  <libraryName>sap.ui.core</libraryName>
+					</dependency>
+				</dependencies>
+
+				<appData>
+					<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
+						<i18n>i18n/i18n.properties</i18n>
+					</manifest>
+				</appData>
+
+			</library>`;
+		},
+		_project: {
+			dependencies: [{
+				metadata: {
+					name: "sap.ui.core"
+				}
+			}]
+		}
+	};
+	const resources = ["", "_en", "_de"].map((lang) => {
+		return {
+			getPath: () => {
+				return `${prefix}i18n/i18n${lang}.properties`;
+			}
+		};
+	});
+
+	const expectedManifestContentObjectMultilineDocumentation = expectedManifestContentObject();
+	expectedManifestContentObjectMultilineDocumentation["sap.app"].title =
+		`Library E uses a multi-line documentation text.`;
+	expectedManifestContentObjectMultilineDocumentation["sap.app"].description =
+		`Library E
+    uses a multi-line documentation text.`;
+
+	const expectedManifestContentMultilineDocumentation =
+		JSON.stringify(expectedManifestContentObjectMultilineDocumentation, null, 2);
+
+	t.is(errorLogStub.callCount, 0);
+
+	const result = await manifestCreator({libraryResource, resources, options: {}});
+	t.is(await result.getString(), expectedManifestContentMultilineDocumentation, "Correct result returned");
+});
+
+
 test.serial("default manifest creation i18n empty string", async (t) => {
 	const {manifestCreator, errorLogStub} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
