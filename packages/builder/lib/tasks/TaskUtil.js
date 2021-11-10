@@ -20,6 +20,8 @@ class TaskUtil {
 	 * @typedef {object} module:@ui5/builder.tasks.TaskUtil~StandardBuildTags
 	 * @property {string} OmitFromBuildResult
 	 * 		Setting this tag to true for a resource will prevent it from being written to the build target
+	 * @property {string} IsBundle
+	 * 		This tag identifies resources that contain (i.e. bundle) multiple other resources
 	 */
 
 	/**

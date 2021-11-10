@@ -1,5 +1,7 @@
 const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 
+// Note: When adding standard tags, always update the public documentation in TaskUtil
+// (Type "module:@ui5/builder.tasks.TaskUtil~StandardBuildTags")
 const STANDARD_TAGS = Object.freeze({
 	OmitFromBuildResult: "ui5:OmitFromBuildResult",
 	IsBundle: "ui5:IsBundle"
