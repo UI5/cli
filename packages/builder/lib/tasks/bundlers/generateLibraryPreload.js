@@ -280,59 +280,59 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 	return combo.byGlob("/**/*.{js,json,xml,html,properties,library}").then((resources) => {
 		// Find all libraries and create a library-preload.js bundle
 
-		let p;
+		let p = Promise.resolve();
 
-		// Create sap-ui-core.js
-		// TODO: move to config of actual core project
+		// Create core bundles for older versions (<1.97.0) which don't define bundle configuration in the ui5.yaml
+		// See: https://github.com/SAP/openui5/commit/ff127fd2d009162ea43ad312dec99d759ebc23a0
 		if (projectName === "sap.ui.core") {
-			// Filter out sap-ui-core.js from further uglification/replacement processors
-			//	to prevent them from overwriting it
-			resources = resources.filter((resource) => {
-				return resource.getPath() !== "/resources/sap-ui-core.js";
-			});
-
-			const isEvo = resources.find((resource) => {
-				return resource.getPath() === "/resources/ui5loader.js";
-			});
-			let filters;
-			if (isEvo) {
-				filters = ["ui5loader-autoconfig.js"];
-			} else {
-				filters = ["jquery.sap.global.js"];
+			const coreProject = resources[0]._project;
+			const coreSpecVersion = coreProject && coreProject.specVersion;
+			// Instead of checking the sap.ui.core library version, the specVersion is checked against all versions
+			// that have been defined for sap.ui.core before the bundle configuration has been introduced.
+			// This is mainly to have an easier check without version parsing or using semver.
+			// If no project/specVersion is available, the bundles should also be created to not break potential
+			// existing use cases without a properly formed/formatted project tree.
+			if (!coreSpecVersion || ["0.1", "1.1", "2.0"].includes(coreSpecVersion)) {
+				const isEvo = resources.find((resource) => {
+					return resource.getPath() === "/resources/ui5loader.js";
+				});
+				let filters;
+				if (isEvo) {
+					filters = ["ui5loader-autoconfig.js"];
+				} else {
+					filters = ["jquery.sap.global.js"];
+				}
+				p = Promise.all([
+					moduleBundler({
+						options: getModuleBundlerOptions({name: "sap-ui-core.js", filters, preload: true}),
+						resources
+					}),
+					moduleBundler({
+						options: getModuleBundlerOptions({name: "sap-ui-core-dbg.js", filters, preload: false}),
+						resources
+					}),
+					moduleBundler({
+						options: getModuleBundlerOptions({
+							name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true
+						}),
+						resources
+					}),
+					moduleBundler({
+						options: getModuleBundlerOptions({
+							name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true
+						}),
+						resources
+					}),
+				]).then((results) => {
+					const bundles = Array.prototype.concat.apply([], results);
+					return Promise.all(bundles.map((bundle) => {
+						if (taskUtil) {
+							taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+						}
+						return workspace.write(bundle);
+					}));
+				});
 			}
-
-			p = Promise.all([
-				moduleBundler({
-					options: getModuleBundlerOptions({name: "sap-ui-core.js", filters, preload: true}),
-					resources
-				}),
-				moduleBundler({
-					options: getModuleBundlerOptions({name: "sap-ui-core-dbg.js", filters, preload: false}),
-					resources
-				}),
-				moduleBundler({
-					options: getModuleBundlerOptions({
-						name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true
-					}),
-					resources
-				}),
-				moduleBundler({
-					options: getModuleBundlerOptions({
-						name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true
-					}),
-					resources
-				}),
-			]).then((results) => {
-				const bundles = Array.prototype.concat.apply([], results);
-				return Promise.all(bundles.map((bundle) => {
-					if (taskUtil) {
-						taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
-					}
-					return workspace.write(bundle);
-				}));
-			});
-		} else {
-			p = Promise.resolve();
 		}
 
 		return p.then(() => {
