@@ -2,9 +2,15 @@ name: REUSE
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - main
+      - next
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - main
+      - next
 
 jobs:
   compliance-check:
