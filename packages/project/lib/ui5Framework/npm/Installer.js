@@ -4,10 +4,6 @@ const {promisify} = require("util");
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
-const lockfile = require("lockfile");
-const lock = promisify(lockfile.lock);
-const unlock = promisify(lockfile.unlock);
-const mkdirp = require("mkdirp");
 const log = require("@ui5/logger").getLogger("normalizer:ui5Framework:npm:Installer");
 
 class Installer {
@@ -102,7 +98,7 @@ class Installer {
 
 					// Do not create target dir itself to prevent EPERM error in following rename operation
 					// (https://github.com/SAP/ui5-tooling/issues/487)
-					await mkdirp(path.dirname(targetDir));
+					await require("mkdirp")(path.dirname(targetDir));
 					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
 					await rename(stagingDir, targetDir);
 				} else {
@@ -135,8 +131,11 @@ class Installer {
 	}
 
 	async _synchronize({pkgName, version}, callback) {
+		const lockfile = require("lockfile");
+		const lock = promisify(lockfile.lock);
+		const unlock = promisify(lockfile.unlock);
 		const lockPath = this._getLockPath({pkgName, version});
-		await mkdirp(this._lockDir);
+		await require("mkdirp")(this._lockDir);
 		log.verbose("Locking " + lockPath);
 		await lock(lockPath, {
 			wait: 10000,
