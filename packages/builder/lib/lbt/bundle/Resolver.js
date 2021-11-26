@@ -289,7 +289,7 @@ class BundleResolver {
 
 				return collectModulesForSection(section).
 					then( (modules) => {
-						if ( section.mode == SectionType.Raw && section.sort ) {
+						if ( section.mode == SectionType.Raw && section.sort !== false ) {
 							// sort the modules in topological order
 							return topologicalSort(pool, modules).then( (modules) => {
 								log.verbose("      resolved modules (sorted): %s", modules);
