@@ -103,7 +103,7 @@
 		"url": "git@github.com:SAP/ui5-fs.git"
 	},
 	"dependencies": {
-		"@ui5/logger": "^2.0.1",
+		"@ui5/logger": "^3.0.0-next.0",
 		"clone": "^2.1.0",
 		"globby": "^11.0.4",
 		"graceful-fs": "^4.2.8",
