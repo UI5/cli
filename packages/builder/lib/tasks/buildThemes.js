@@ -54,8 +54,12 @@ module.exports = async function({
 		*/
 	let availableLibraries;
 	if (pAvailableLibraries) {
-		availableLibraries = (await pAvailableLibraries).map((resource) => {
-			return resource.getPath().replace(/[^/]*\.library/i, "");
+		availableLibraries = [];
+		(await pAvailableLibraries).forEach((resource) => {
+			const library = path.dirname(resource.getPath());
+			if (!availableLibraries.includes(library)) {
+				availableLibraries.push(library);
+			}
 		});
 	}
 	let availableThemes;

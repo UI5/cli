@@ -233,8 +233,11 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 		"sap/ui/lib1/.library": {
 			getPath: sinon.stub().returns("/resources/sap/ui/lib1/.library")
 		},
-		"sap/ui/lib3/.library": {
-			getPath: sinon.stub().returns("/resources/sap/ui/lib3/.library")
+		"sap/ui/lib1/library.js": {
+			getPath: sinon.stub().returns("/resources/sap/ui/lib1/library.js")
+		},
+		"sap/ui/lib3/library.js": {
+			getPath: sinon.stub().returns("/resources/sap/ui/lib3/library.js")
 		}
 	};
 
@@ -252,9 +255,10 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 		]);
 
 	t.context.comboByGlob
-		.withArgs("/resources/**/*.library").resolves([
+		.withArgs("/resources/**/(*.library|library.js)").resolves([
 			dotLibraryResources["sap/ui/lib1/.library"],
-			dotLibraryResources["sap/ui/lib3/.library"]
+			dotLibraryResources["sap/ui/lib1/library.js"],
+			dotLibraryResources["sap/ui/lib3/library.js"]
 		]);
 
 	t.context.themeBuilderStub.returns([{}]);
@@ -264,7 +268,7 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 		options: {
 			projectName: "sap.ui.test.lib1",
 			inputPattern: "/resources/**/themes/*/library.source.less",
-			librariesPattern: "/resources/**/*.library"
+			librariesPattern: "/resources/**/(*.library|library.js)"
 		}
 	});
 
@@ -403,8 +407,11 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		"sap/ui/lib1/.library": {
 			getPath: sinon.stub().returns("/resources/sap/ui/lib1/.library")
 		},
-		"sap/ui/lib3/.library": {
-			getPath: sinon.stub().returns("/resources/sap/ui/lib3/.library")
+		"sap/ui/lib1/library.js": {
+			getPath: sinon.stub().returns("/resources/sap/ui/lib1/library.js")
+		},
+		"sap/ui/lib3/library.js": {
+			getPath: sinon.stub().returns("/resources/sap/ui/lib3/library.js")
 		}
 	};
 
@@ -443,9 +450,10 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		]);
 
 	t.context.comboByGlob
-		.withArgs("/resources/**/*.library").resolves([
+		.withArgs("/resources/**/(*.library|library.js)").resolves([
 			dotLibraryResources["sap/ui/lib1/.library"],
-			dotLibraryResources["sap/ui/lib3/.library"]
+			dotLibraryResources["sap/ui/lib1/library.js"],
+			dotLibraryResources["sap/ui/lib3/library.js"]
 		])
 		.withArgs("/resources/sap/ui/core/themes/*", {nodir: false}).resolves([
 			baseThemes["sap/ui/core/themes/theme1/"],
@@ -459,7 +467,7 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		options: {
 			projectName: "sap.ui.test.lib1",
 			inputPattern: "/resources/**/themes/*/library.source.less",
-			librariesPattern: "/resources/**/*.library",
+			librariesPattern: "/resources/**/(*.library|library.js)",
 			themesPattern: "/resources/sap/ui/core/themes/*"
 		}
 	});
