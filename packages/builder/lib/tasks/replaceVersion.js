@@ -18,7 +18,7 @@ module.exports = function({workspace, options: {pattern, version}}) {
 			return stringReplacer({
 				resources: allResources,
 				options: {
-					pattern: "${version}",
+					pattern: /\$\{(?:project\.)?version\}/g,
 					replacement: version
 				}
 			});

@@ -13,8 +13,8 @@ test("integration: replace version", (t) => {
 		virBasePath: "/"
 	});
 
-	const content = "console.log('${version}');";
-	const expected = "console.log('1.337.0');";
+	const content = "console.log('${version} equals ${project.version}');";
+	const expected = "console.log('1.337.0 equals 1.337.0');";
 
 	const resource = resourceFactory.createResource({
 		path: "/test.js",
