@@ -104,10 +104,10 @@
 		"url": "git@github.com:SAP/ui5-server.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^2.11.2",
+		"@ui5/builder": "^2.11.3",
 		"@ui5/fs": "^2.0.6",
 		"@ui5/logger": "^3.0.0-next.0",
-		"body-parser": "^1.19.0",
+		"body-parser": "^1.19.1",
 		"compression": "^1.7.4",
 		"connect-openui5": "^0.10.2",
 		"cors": "^2.8.5",
@@ -122,7 +122,7 @@
 		"parseurl": "^1.3.3",
 		"portscanner": "^2.1.1",
 		"replacestream": "^4.0.3",
-		"router": "^1.3.5",
+		"router": "^1.3.6",
 		"spdy": "^4.0.2",
 		"treeify": "^1.0.1",
 		"yesno": "^0.3.1"
@@ -136,7 +136,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.32.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^37.0.3",
+		"eslint-plugin-jsdoc": "^37.2.0",
 		"jsdoc": "^3.6.7",
 		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
