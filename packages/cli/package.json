@@ -107,7 +107,7 @@
 		"url": "git@github.com:SAP/ui5-cli.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^2.11.2",
+		"@ui5/builder": "^2.11.3",
 		"@ui5/fs": "^2.0.6",
 		"@ui5/logger": "^3.0.0-next.0",
 		"@ui5/project": "^2.6.0",
@@ -130,7 +130,7 @@
 		"docdash": "^1.2.0",
 		"eslint": "^7.32.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^37.0.3",
+		"eslint-plugin-jsdoc": "^37.2.0",
 		"execa": "^5.1.1",
 		"jsdoc": "^3.6.7",
 		"mock-require": "^3.0.3",
