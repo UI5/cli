@@ -667,6 +667,16 @@
 				"terser": "^5.10.0",
 				"xml2js": "^0.4.23",
 				"yazl": "^2.5.1"
+			},
+			"dependencies": {
+				"@ui5/logger": {
+					"version": "3.0.0-next.0",
+					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0-next.0.tgz",
+					"integrity": "sha512-4c0GuaIpTJCnH+rYUvX8R7z57Xir4RgLGi7onYHFqv6Xcnhbgqkk3hTSSYDnOJ3SxG7Znuk5O4ViHvf4OFnhfQ==",
+					"requires": {
+						"npmlog": "^5.0.1"
+					}
+				}
 			}
 		},
 		"@ui5/fs": {
@@ -683,12 +693,22 @@
 				"minimatch": "^3.0.3",
 				"pretty-hrtime": "^1.0.3",
 				"random-int": "^2.0.1"
+			},
+			"dependencies": {
+				"@ui5/logger": {
+					"version": "3.0.0-next.0",
+					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0-next.0.tgz",
+					"integrity": "sha512-4c0GuaIpTJCnH+rYUvX8R7z57Xir4RgLGi7onYHFqv6Xcnhbgqkk3hTSSYDnOJ3SxG7Znuk5O4ViHvf4OFnhfQ==",
+					"requires": {
+						"npmlog": "^5.0.1"
+					}
+				}
 			}
 		},
 		"@ui5/logger": {
-			"version": "3.0.0-next.0",
-			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0-next.0.tgz",
-			"integrity": "sha512-4c0GuaIpTJCnH+rYUvX8R7z57Xir4RgLGi7onYHFqv6Xcnhbgqkk3hTSSYDnOJ3SxG7Znuk5O4ViHvf4OFnhfQ==",
+			"version": "3.0.1-alpha.0",
+			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.1-alpha.0.tgz",
+			"integrity": "sha512-6UQluslp7N/h9gWsMtyPq3OclE1wiAckkUbIVJZ1deRh/8ARzIKaBRg5jMky+15wQjSsYcWEr7xecBwrtPZQzw==",
 			"requires": {
 				"npmlog": "^5.0.1"
 			}
@@ -719,6 +739,14 @@
 				"semver": "^7.3.5"
 			},
 			"dependencies": {
+				"@ui5/logger": {
+					"version": "3.0.0-next.0",
+					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0-next.0.tgz",
+					"integrity": "sha512-4c0GuaIpTJCnH+rYUvX8R7z57Xir4RgLGi7onYHFqv6Xcnhbgqkk3hTSSYDnOJ3SxG7Znuk5O4ViHvf4OFnhfQ==",
+					"requires": {
+						"npmlog": "^5.0.1"
+					}
+				},
 				"escape-string-regexp": {
 					"version": "4.0.0",
 					"resolved": "https://registry.npmjs.org/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz",
@@ -753,6 +781,16 @@
 				"spdy": "^4.0.2",
 				"treeify": "^1.0.1",
 				"yesno": "^0.3.1"
+			},
+			"dependencies": {
+				"@ui5/logger": {
+					"version": "3.0.0-next.0",
+					"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0-next.0.tgz",
+					"integrity": "sha512-4c0GuaIpTJCnH+rYUvX8R7z57Xir4RgLGi7onYHFqv6Xcnhbgqkk3hTSSYDnOJ3SxG7Znuk5O4ViHvf4OFnhfQ==",
+					"requires": {
+						"npmlog": "^5.0.1"
+					}
+				}
 			}
 		},
 		"@vue/compiler-core": {
