@@ -70,6 +70,39 @@ class AbstractReader {
 		});
 	}
 
+
+	/**
+	 * Create a [Filter-Reader]{@link module:@ui5/fs.readers.Filter} from the current reader
+	 *
+	 * @public
+	 * @param {module:@ui5/fs.readers.Filter~callback} callback
+	 * 				Filter function. Will be called for every resource passed through this reader.
+	 * @returns {module:@ui5/fs.reader.Filter} Filter instance
+	 */
+	filter(callback) {
+		const Filter = require("./readers/Filter");
+		return new Filter({
+			reader: this,
+			callback
+		});
+	}
+
+	/**
+	 * Create a [Transform-Reader]{@link module:@ui5/fs.readers.Transform} from the current reader
+	 *
+	 * @public
+	 * @param {module:@ui5/fs.readers.Transformer~callback} callback
+	 * 				Callback to check and eventually transform any resource passed through the reader
+	 * @returns {module:@ui5/fs.reader.Transformer} Transformer instance
+	 */
+	transformer(callback) {
+		const Transformer = require("./readers/Transformer");
+		return new Transformer({
+			reader: this,
+			callback
+		});
+	}
+
 	/**
 	 * Locates resources by one or more glob patterns.
 	 *

@@ -25,7 +25,7 @@ test("setTag", (t) => {
 		allowedTags: ["abc:MyTag"]
 	});
 
-	const validateResourceSpy = sinon.spy(tagCollection, "_validateResource");
+	const validateResourceSpy = sinon.spy(tagCollection, "_getPath");
 	const validateTagSpy = sinon.spy(tagCollection, "_validateTag");
 	const validateValueSpy = sinon.spy(tagCollection, "_validateValue");
 
@@ -37,9 +37,9 @@ test("setTag", (t) => {
 		}
 	}, "Tag correctly stored");
 
-	t.is(validateResourceSpy.callCount, 1, "_validateResource called once");
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
 	t.is(validateResourceSpy.getCall(0).args[0], resource,
-		"_validateResource called with correct arguments");
+		"_getPath called with correct arguments");
 
 	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
 	t.is(validateTagSpy.getCall(0).args[0], "abc:MyTag",
@@ -75,16 +75,16 @@ test("getTag", (t) => {
 	});
 	tagCollection.setTag(resource, "abc:MyTag", 123);
 
-	const validateResourceSpy = sinon.spy(tagCollection, "_validateResource");
+	const validateResourceSpy = sinon.spy(tagCollection, "_getPath");
 	const validateTagSpy = sinon.spy(tagCollection, "_validateTag");
 
 	const value = tagCollection.getTag(resource, "abc:MyTag");
 
 	t.is(value, 123, "Got correct tag value");
 
-	t.is(validateResourceSpy.callCount, 1, "_validateResource called once");
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
 	t.is(validateResourceSpy.getCall(0).args[0], resource,
-		"_validateResource called with correct arguments");
+		"_getPath called with correct arguments");
 
 	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
 	t.is(validateTagSpy.getCall(0).args[0], "abc:MyTag",
@@ -101,7 +101,7 @@ test("clearTag", (t) => {
 
 	tagCollection.setTag(resource, "abc:MyTag", 123);
 
-	const validateResourceSpy = sinon.spy(tagCollection, "_validateResource");
+	const validateResourceSpy = sinon.spy(tagCollection, "_getPath");
 	const validateTagSpy = sinon.spy(tagCollection, "_validateTag");
 
 	tagCollection.clearTag(resource, "abc:MyTag");
@@ -112,12 +112,120 @@ test("clearTag", (t) => {
 		}
 	}, "Tag value set to undefined");
 
-	t.is(validateResourceSpy.callCount, 1, "_validateResource called once");
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
 	t.is(validateResourceSpy.getCall(0).args[0], resource,
-		"_validateResource called with correct arguments");
+		"_getPath called with correct arguments");
 
 	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
 	t.is(validateTagSpy.getCall(0).args[0], "abc:MyTag",
+		"_validateTag called with correct arguments");
+});
+
+test("superCollection: setTag", (t) => {
+	const resource = new Resource({
+		path: "/some/path"
+	});
+	const superTagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MySuperTag"],
+	});
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"],
+		superCollection: superTagCollection
+	});
+
+	const validateResourceSpy = sinon.spy(superTagCollection, "_getPath");
+	const validateTagSpy = sinon.spy(superTagCollection, "_validateTag");
+	const validateValueSpy = sinon.spy(superTagCollection, "_validateValue");
+
+	tagCollection.setTag(resource, "abc:MySuperTag", "my super value");
+	tagCollection.setTag(resource, "abc:MyTag", "my value");
+
+	t.deepEqual(superTagCollection._pathTags, {
+		"/some/path": {
+			"abc:MySuperTag": "my super value"
+		}
+	}, "Super tag correctly stored");
+	t.deepEqual(tagCollection._pathTags, {
+		"/some/path": {
+			"abc:MyTag": "my value"
+		}
+	}, "Non-super tag correctly stored");
+
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
+	t.is(validateResourceSpy.getCall(0).args[0], resource,
+		"_getPath called with correct arguments");
+
+	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
+	t.is(validateTagSpy.getCall(0).args[0], "abc:MySuperTag",
+		"_validateTag called with correct arguments");
+
+	t.is(validateValueSpy.callCount, 1, "_validateValue called once");
+	t.is(validateValueSpy.getCall(0).args[0], "my super value",
+		"_validateValue called with correct arguments");
+});
+
+test("superCollection: getTag", (t) => {
+	const resource = new Resource({
+		path: "/some/path"
+	});
+	const superTagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MySuperTag"],
+	});
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"],
+		superCollection: superTagCollection
+	});
+
+	tagCollection.setTag(resource, "abc:MySuperTag", 456);
+	tagCollection.setTag(resource, "abc:MyTag", 123);
+
+	const validateResourceSpy = sinon.spy(superTagCollection, "_getPath");
+	const validateTagSpy = sinon.spy(superTagCollection, "_validateTag");
+
+	const value = tagCollection.getTag(resource, "abc:MySuperTag");
+
+	t.is(value, 456, "Got correct tag value");
+
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
+	t.is(validateResourceSpy.getCall(0).args[0], resource,
+		"_getPath called with correct arguments");
+
+	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
+	t.is(validateTagSpy.getCall(0).args[0], "abc:MySuperTag",
+		"_validateTag called with correct arguments");
+});
+
+test("superCollection: clearTag", (t) => {
+	const resource = new Resource({
+		path: "/some/path"
+	});
+	const superTagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MySuperTag"],
+	});
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"],
+		superCollection: superTagCollection
+	});
+
+	tagCollection.setTag(resource, "abc:MySuperTag", 123);
+
+	const validateResourceSpy = sinon.spy(superTagCollection, "_getPath");
+	const validateTagSpy = sinon.spy(superTagCollection, "_validateTag");
+
+	tagCollection.clearTag(resource, "abc:MySuperTag");
+
+	t.deepEqual(superTagCollection._pathTags, {
+		"/some/path": {
+			"abc:MySuperTag": undefined
+		}
+	}, "Tag value set to undefined");
+
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
+	t.is(validateResourceSpy.getCall(0).args[0], resource,
+		"_getPath called with correct arguments");
+
+	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
+	t.is(validateTagSpy.getCall(0).args[0], "abc:MySuperTag",
 		"_validateTag called with correct arguments");
 });
 
@@ -279,12 +387,12 @@ test("_validateValue: Invalid value null", (t) => {
 	});
 });
 
-test("_validateResource: Empty path", (t) => {
+test("_getPath: Empty path", (t) => {
 	const tagCollection = new ResourceTagCollection({
 		allowedTags: ["abc:MyTag"]
 	});
 	t.throws(() => {
-		tagCollection._validateResource({
+		tagCollection._getPath({
 			getPath: () => ""
 		});
 	}, {
