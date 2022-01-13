@@ -23,6 +23,21 @@ module.exports = {
 		Memory: "./lib/adapters/Memory"
 	},
 	/**
+	 * @public
+	 * @alias module:@ui5/fs.readers
+	 * @namespace
+	 */
+	readers: {
+		/**
+		 * @type {typeof import('./lib/readers/Filter')}
+		 */
+		Filter: "./lib/readers/Filter",
+		/**
+		 * @type {typeof import('./lib/readers/Transformer')}
+		 */
+		Transformer: "./lib/readers/Transformer",
+	},
+	/**
 	 * @type {typeof import('./lib/AbstractReader')}
 	 */
 	AbstractReader: "./lib/AbstractReader",

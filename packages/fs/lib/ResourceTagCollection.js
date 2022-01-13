@@ -2,53 +2,77 @@ const tagNamespaceRegExp = new RegExp("^[a-z][a-z0-9]*$"); // part before the co
 const tagNameRegExp = new RegExp("^[A-Z][A-Za-z0-9]+$"); // part after the colon
 
 class ResourceTagCollection {
-	constructor({allowedTags}) {
+	constructor({allowedTags, superCollection}) {
 		if (!allowedTags || !allowedTags.length) {
 			throw new Error(`Missing parameter 'allowedTags'`);
 		}
+
+		if (superCollection) {
+			this._superCollection = superCollection;
+			this._superTags = this._superCollection.getAcceptedTags();
+		} else {
+			this._superTags = [];
+		}
+
 		// No validation of tag names here since we might remove/ignore
 		//	this parameter in the future and generally allow all tags
 		this._allowedTags = Object.freeze(allowedTags);
 		this._pathTags = {};
 	}
 
-	setTag(resource, tag, value = true) {
-		this._validateResource(resource);
+	setTag(resourcePath, tag, value = true) {
+		if (this._superTags.includes(tag)) {
+			return this._superCollection.setTag(resourcePath, tag, value);
+		}
+
+		resourcePath = this._getPath(resourcePath);
 		this._validateTag(tag);
 		this._validateValue(value);
 
-		const resourcePath = resource.getPath();
 		if (!this._pathTags[resourcePath]) {
 			this._pathTags[resourcePath] = {};
 		}
 		this._pathTags[resourcePath][tag] = value;
 	}
 
-	clearTag(resource, tag) {
-		this._validateResource(resource);
+	clearTag(resourcePath, tag) {
+		if (this._superTags.includes(tag)) {
+			return this._superCollection.clearTag(resourcePath, tag);
+		}
+
+		resourcePath = this._getPath(resourcePath);
 		this._validateTag(tag);
 
-		const resourcePath = resource.getPath();
 		if (this._pathTags[resourcePath]) {
 			this._pathTags[resourcePath][tag] = undefined;
 		}
 	}
 
-	getTag(resource, tag) {
-		this._validateResource(resource);
+	getTag(resourcePath, tag) {
+		if (this._superTags.includes(tag)) {
+			return this._superCollection.getTag(resourcePath, tag);
+		}
+
+		resourcePath = this._getPath(resourcePath);
 		this._validateTag(tag);
 
-		const resourcePath = resource.getPath();
 		if (this._pathTags[resourcePath]) {
 			return this._pathTags[resourcePath][tag];
 		}
 	}
 
-	_validateResource(resource) {
-		const path = resource.getPath();
-		if (!path) {
+	getAcceptedTags() {
+		return [...this._allowedTags, ...this._superTags];
+	}
+
+	_getPath(resourcePath) {
+		if (typeof resourcePath !== "string") {
+			resourcePath = resourcePath.getPath();
+		}
+		if (!resourcePath) {
 			throw new Error(`Invalid Resource: Resource path must not be empty`);
 		}
+		return resourcePath;
 	}
 
 	_validateTag(tag) {
