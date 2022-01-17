@@ -85,7 +85,7 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 	const destPath = "./test/tmp/build/sap.ui.core/preload";
 	const expectedPath = "./test/expected/build/sap.ui.core/preload";
 	const excludedTasks = ["*"];
-	const includedTasks = ["generateLibraryPreload"];
+	const includedTasks = ["minify", "generateLibraryPreload"];
 
 	return t.notThrowsAsync(builder.build({
 		tree: sapUiCoreTree,
@@ -99,7 +99,7 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		t.deepEqual(expectedFiles.length, 10, "10 files are expected");
+		t.deepEqual(expectedFiles.length, 23, "23 files are expected");
 		expectedFiles.forEach((expectedFile) => {
 			const relativeFile = path.relative(expectedPath, expectedFile);
 			const destFile = path.join(destPath, relativeFile);

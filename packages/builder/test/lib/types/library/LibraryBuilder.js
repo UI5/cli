@@ -20,13 +20,12 @@ test("Instantiation", (t) => {
 		"replaceBuildtime",
 		"generateJsdoc",
 		"executeJsdocSdkTransformation",
+		"minify",
 		"generateLibraryManifest",
 		"generateManifestBundle",
 		"generateLibraryPreload",
 		"buildThemes",
 		"generateThemeDesignerResources",
-		"createDebugFiles",
-		"uglify",
 		"generateResourcesJson"
 	], "LibraryBuilder is instantiated with standard tasks");
 });

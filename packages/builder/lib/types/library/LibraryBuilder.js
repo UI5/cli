@@ -89,6 +89,26 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		}
 
+		// Support rules should not be minified to have readable code in the Support Assistant
+		const minificationPattern = ["/resources/**/*.js", "!**/*.support.js"];
+		if (["2.6"].includes(project.specVersion)) {
+			const minificationExcludes = project.builder && project.builder.minification &&
+				project.builder.minification.excludes;
+			if (minificationExcludes) {
+				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/resources/");
+			}
+		}
+
+		this.addTask("minify", async () => {
+			return getTask("minify").task({
+				workspace: resourceCollections.workspace,
+				taskUtil,
+				options: {
+					pattern: minificationPattern
+				}
+			});
+		});
+
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
 			this.addTask("generateComponentPreload", async () => {
@@ -191,33 +211,6 @@ class LibraryBuilder extends AbstractBuilder {
 					projectName: project.metadata.name,
 					version: project.version,
 					namespace: project.metadata.namespace
-				}
-			});
-		});
-
-		const minificationPattern = ["/resources/**/*.js"];
-		if (["2.6"].includes(project.specVersion)) {
-			const minificationExcludes = project.builder && project.builder.minification &&
-				project.builder.minification.excludes;
-			if (minificationExcludes) {
-				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/resources/");
-			}
-		}
-		this.addTask("createDebugFiles", async () => {
-			return getTask("createDebugFiles").task({
-				workspace: resourceCollections.workspace,
-				options: {
-					pattern: minificationPattern
-				}
-			});
-		});
-
-		this.addTask("uglify", async () => {
-			return getTask("uglify").task({
-				workspace: resourceCollections.workspace,
-				taskUtil,
-				options: {
-					pattern: minificationPattern
 				}
 			});
 		});

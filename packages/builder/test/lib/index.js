@@ -11,12 +11,10 @@ test("index.js exports all expected modules", (t) => {
 	t.truthy(index.processors.jsdocGenerator, "Module exported");
 	t.truthy(index.processors.sdkTransformer, "Module exported");
 	t.truthy(index.processors.bootstrapHtmlTransformer, "Module exported");
-	t.truthy(index.processors.debugFileCreator, "Module exported");
-	t.truthy(index.processors.resourceCopier, "Module exported");
+	t.truthy(index.processors.minifier, "Module exported");
 	t.truthy(index.processors.nonAsciiEscaper, "Module exported");
 	t.truthy(index.processors.stringReplacer, "Module exported");
 	t.truthy(index.processors.themeBuilder, "Module exported");
-	t.truthy(index.processors.uglifier, "Module exported");
 	t.truthy(index.processors.versionInfoGenerator, "Module exported");
 
 	t.truthy(index.tasks.generateComponentPreload, "Module exported");
@@ -28,7 +26,7 @@ test("index.js exports all expected modules", (t) => {
 	t.truthy(index.tasks.generateBundle, "Module exported");
 	t.truthy(index.tasks.generateCachebusterInfo, "Module exported");
 	t.truthy(index.tasks.buildThemes, "Module exported");
-	t.truthy(index.tasks.createDebugFiles, "Module exported");
+	t.truthy(index.tasks.minify, "Module exported");
 	t.truthy(index.tasks.executeJsdocSdkTransformation, "Module exported");
 	t.truthy(index.tasks.generateApiIndex, "Module exported");
 	t.truthy(index.tasks.generateJsdoc, "Module exported");
@@ -38,7 +36,6 @@ test("index.js exports all expected modules", (t) => {
 	t.truthy(index.tasks.replaceVersion, "Module exported");
 	t.truthy(index.tasks.replaceBuildtime, "Module exported");
 	t.truthy(index.tasks.transformBootstrapHtml, "Module exported");
-	t.truthy(index.tasks.uglify, "Module exported");
 	t.truthy(index.tasks.taskRepository, "Module exported");
 
 	t.truthy(index.types.AbstractBuilder, "Module exported");

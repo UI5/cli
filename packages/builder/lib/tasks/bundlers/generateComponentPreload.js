@@ -28,10 +28,17 @@ const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
 module.exports = function({
 	workspace, dependencies, taskUtil, options: {projectName, paths, namespaces, excludes = []}
 }) {
-	const combo = new ReaderCollectionPrioritized({
+	let combo = new ReaderCollectionPrioritized({
 		name: `generateComponentPreload - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
+
+	if (taskUtil) {
+		combo = combo.filter(function(resource) {
+			// Remove any debug variants
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		});
+	}
 
 	// TODO 3.0: Limit to workspace resources?
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}")

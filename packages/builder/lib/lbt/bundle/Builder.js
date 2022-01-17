@@ -3,7 +3,6 @@
 "use strict";
 
 const path = require("path");
-const terser = require("terser");
 const {pd} = require("pretty-data");
 const {parseJS, Syntax} = require("../utils/parseUtils");
 // const MOZ_SourceMap = require("source-map");
@@ -19,7 +18,6 @@ const {SectionType} = require("./BundleDefinition");
 const BundleWriter = require("./BundleWriter");
 const log = require("@ui5/logger").getLogger("lbt:bundle:Builder");
 
-const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9|^@ui5-bundle-raw-include |^@ui5-bundle /i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 
 const strReplacements = {
@@ -282,12 +280,9 @@ class BundleBuilder {
 	}
 
 	async writeRawModule(module, resource) {
-		let fileContent = await resource.buffer();
-		if ( /\.js$/.test(module) ) {
-			fileContent = await this.compressJS( fileContent, resource );
-		}
+		const fileContent = await resource.string();
 		this.outW.ensureNewLine();
-		this.outW.write( fileContent );
+		this.outW.write(fileContent);
 	}
 
 	async writePreloadFunction(section) {
@@ -331,28 +326,6 @@ class BundleBuilder {
 		// this.afterWriteFunctionPreloadSection();
 	}
 
-	async compressJS(fileContent, resource) {
-		if ( this.optimize ) {
-			const result = await terser.minify({
-				[resource.name]: String(fileContent)
-			}, {
-				compress: false, // TODO configure?
-				output: {
-					comments: copyrightCommentsPattern,
-					wrap_func_args: false
-				}
-				// , outFileName: resource.name
-				// , outSourceMap: true
-			});
-			// console.log(result.map);
-			// const map = new MOZ_SourceMap.SourceMapConsumer(result.map);
-			// map.eachMapping(function (m) { console.log(m); }); // console.log(map);
-			fileContent = result.code;
-			// throw new Error();
-		}
-		return fileContent;
-	}
-
 	beforeWriteFunctionPreloadSection(sequence) {
 		// simple version: just sort alphabetically
 		sequence.sort();
@@ -367,13 +340,12 @@ class BundleBuilder {
 				if ( /\.js$/.test(module) ) {
 					// console.log("Processing " + module);
 					const resource = await this.pool.findResourceWithInfo(module);
-					let code = await resource.buffer();
-					code = rewriteDefine(this.targetBundleFormat, code, module);
-					if ( code ) {
+					let moduleContent = await resource.string();
+					moduleContent = rewriteDefine(this.targetBundleFormat, moduleContent, module);
+					if ( moduleContent ) {
 						outW.startSegment(module);
 						outW.ensureNewLine();
-						const fileContent = await this.compressJS(code, resource);
-						outW.write( fileContent );
+						outW.write(moduleContent);
 						outW.ensureNewLine();
 						const compressedSize = outW.endSegment();
 						log.verbose("    %s (%d,%d)", module,
@@ -409,17 +381,17 @@ class BundleBuilder {
 		const outW = this.outW;
 
 		if ( /\.js$/.test(module) && (info == null || !info.requiresTopLevelScope) ) {
-			const compressedContent = await this.compressJS( await resource.buffer(), resource );
+			const moduleContent = await resource.string();
 			outW.write(`function(){`);
-			outW.write( compressedContent );
+			outW.write(moduleContent);
 			this.exportGlobalNames(info);
 			outW.ensureNewLine();
 			outW.write(`}`);
 		} else if ( /\.js$/.test(module) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn("**** warning: module %s requires top level scope" +
 					" and can only be embedded as a string (requires 'eval')", module);
-			const compressedContent = await this.compressJS( await resource.buffer(), resource );
-			outW.write( makeStringLiteral( compressedContent ) );
+			const moduleContent = await resource.buffer();
+			outW.write(makeStringLiteral(moduleContent));
 		} else if ( /\.html$/.test(module) ) {
 			const fileContent = await resource.buffer();
 			outW.write( makeStringLiteral( fileContent ) );
@@ -435,13 +407,13 @@ class BundleBuilder {
 			}
 			outW.write(makeStringLiteral(fileContent));
 		} else if ( /\.xml$/.test(module) ) {
-			let fileContent = await resource.buffer();
+			let fileContent = await resource.string();
 			if ( this.optimize ) {
 				// For XML we use the pretty data
 				// Do not minify if XML(View) contains an <*:pre> tag,
 				// because whitespace of HTML <pre> should be preserved (should only happen rarely)
-				if (!xmlHtmlPrePattern.test(fileContent.toString())) {
-					fileContent = pd.xmlmin(fileContent.toString(), false);
+				if (!xmlHtmlPrePattern.test(fileContent)) {
+					fileContent = pd.xmlmin(fileContent, false);
 				}
 			}
 			outW.write( makeStringLiteral( fileContent ) );

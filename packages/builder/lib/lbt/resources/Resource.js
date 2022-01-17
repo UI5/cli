@@ -18,6 +18,13 @@ class Resource {
 	async buffer() {
 		return readFile(this.file);
 	}
+
+	/**
+	 * @returns {Promise<string>} String of the file content
+	 */
+	async string() {
+		return (await this.buffer()).toString();
+	}
 }
 
 module.exports = Resource;

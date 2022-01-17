@@ -1,4 +1,5 @@
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
+const ModuleName = require("../../lbt/utils/ModuleName");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 
 /**
@@ -19,10 +20,35 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
 module.exports = function({
 	workspace, dependencies, taskUtil, options: {projectName, bundleDefinition, bundleOptions}
 }) {
-	const combo = new ReaderCollectionPrioritized({
+	let combo = new ReaderCollectionPrioritized({
 		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
+
+	if (taskUtil) {
+		// Omit -dbg files for optimize bundles and vice versa
+		const filterTag = bundleOptions.optimize ?
+			taskUtil.STANDARD_TAGS.IsDebugVariant : taskUtil.STANDARD_TAGS.HasDebugVariant;
+		combo = combo.filter(function(resource) {
+			return !taskUtil.getTag(resource, filterTag);
+		});
+
+		if (!bundleOptions.optimize) {
+			// For "unoptimized" bundles, the non-debug files have already been filtered out
+			// Now rename the debug variants to the same name so that they appear like the original
+			// resource to the bundler
+			combo = combo.transformer(async function(resourcePath, getResource) {
+				if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
+					const resource = await getResource();
+					const nonDbgPath = ModuleName.getNonDebugName(resource.getPath());
+					if (!nonDbgPath) {
+						throw new Error(`Failed to resolve non-debug name for ${resource.getPath()}`);
+					}
+					resource.setPath(nonDbgPath);
+				}
+			});
+		}
+	}
 
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}").then((resources) => {
 		return moduleBundler({

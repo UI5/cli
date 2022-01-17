@@ -30,6 +30,9 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 		write: writeStub
 	};
 	const invalidJsonResource = {
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => {
 			return invalidJsonContent;
 		}
@@ -52,14 +55,23 @@ test("integration: createBundle with exposedGlobals", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "a.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "function One(){return 1;}"
 	});
 	pool.addResource({
 		name: "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => ""
 	});
 	pool.addResource({
 		name: "a.library",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => `<?xml version="1.0" encoding="UTF-8" ?>
 <library xmlns="http://www.sap.com/sap.ui.library.xsd" >
 	<appData>
@@ -111,14 +123,23 @@ test("integration: createBundle EVOBundleFormat (ui5loader.js)", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
 	});
 	pool.addResource({
 		name: "jquery.sap.global-dbg.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([], function(){return {};});"
 	});
 	pool.addResource({
 		name: "myModule.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
 
@@ -153,7 +174,7 @@ sap.ui.require.preload({
 (function(){window.mine = {};}());
 sap.ui.requireSync("ui5loader");
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optomization and " +
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -168,22 +189,37 @@ test("integration: createBundle EVOBundleFormat, using predefine calls", async (
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
 	});
 	pool.addResource({ // the pool must contain this to activate optimization markers
 		name: "jquery.sap.global-dbg.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([], function(){return {};});"
 	});
 	pool.addResource({
 		name: "jquery.sap.global.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([], function(){return {};});"
 	});
 	pool.addResource({
 		name: "jquery.sap.pony1.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define(); // hello"
 	});
 	pool.addResource({
 		name: "jquery.sap.pony2.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => `sap.
 		ui.define
 		/*hello*/
@@ -191,10 +227,16 @@ test("integration: createBundle EVOBundleFormat, using predefine calls", async (
 	});
 	pool.addResource({
 		name: "myRawModule.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
 	pool.addResource({
 		name: "myModuleUsingGlobalScope.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "var magic = {};"
 	});
 
@@ -231,17 +273,20 @@ test("integration: createBundle EVOBundleFormat, using predefine calls", async (
 	t.deepEqual(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 window["sap-ui-optimized"] = true;
-sap.ui.predefine("jquery.sap.global",[],function(){return{}});
-sap.ui.predefine("jquery.sap.pony1");
-sap.ui.predefine("jquery.sap.pony2");
+sap.ui.predefine("jquery.sap.global", [], function(){return {};});
+sap.ui.predefine("jquery.sap.pony1"); // hello
+sap.
+		ui.predefine
+		/*hello*/
+				("jquery.sap.pony2");
 sap.ui.require.preload({
-	"myModuleUsingGlobalScope.js":'var magic={};'
+	"myModuleUsingGlobalScope.js":'var magic = {};'
 },"preload-section");
 //@ui5-bundle-raw-include myRawModule.js
-(function(){window.mine={}})();
+(function(){window.mine = {};}());
 sap.ui.requireSync("ui5loader");
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optomization and " +
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -262,22 +307,37 @@ test("integration: createBundle EVOBundleFormat, using predefine calls, no optim
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
 	});
 	pool.addResource({ // the pool must contain this to activate optimization markers
 		name: "jquery.sap.global-dbg.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([], function(){return {};});"
 	});
 	pool.addResource({
 		name: "jquery.sap.global.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([], function(){return {};});"
 	});
 	pool.addResource({
 		name: "jquery.sap.pony1.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define(); // hello"
 	});
 	pool.addResource({
 		name: "jquery.sap.pony2.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => `sap.
 		ui.define
 		/*hello*/
@@ -285,10 +345,16 @@ test("integration: createBundle EVOBundleFormat, using predefine calls, no optim
 	});
 	pool.addResource({
 		name: "myRawModule.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
 	pool.addResource({
 		name: "myModuleUsingGlobalScope.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "var magic = {};"
 	});
 
@@ -338,7 +404,7 @@ sap.ui.require.preload({
 (function(){window.mine = {};}());
 sap.ui.requireSync("ui5loader");
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optomization and " +
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -359,10 +425,16 @@ test("integration: createBundle (bootstrap bundle)", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
 	});
 	pool.addResource({
 		name: "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([],function(){return {};});"
 	});
 
@@ -397,8 +469,8 @@ test("integration: createBundle (bootstrap bundle)", async (t) => {
 window["sap-ui-optimized"] = true;
 try {
 //@ui5-bundle-raw-include ui5loader.js
-(function(i){sap.ui.require=function(){}})(window);
-sap.ui.predefine("sap/ui/core/Core",[],function(){return{}});
+(function(__global) {sap.ui.require = function(){};}(window));
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
 sap.ui.requireSync("sap/ui/core/Core");
 // as this module contains the Core, we ensure that the Core has been booted
 sap.ui.getCore().boot && sap.ui.getCore().boot();
@@ -406,7 +478,7 @@ sap.ui.getCore().boot && sap.ui.getCore().boot();
 if (oError.name != "Restart") { throw oError; }
 }
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optomization and " +
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -421,14 +493,23 @@ test("integration: createBundle UI5BundleFormat (non ui5loader.js)", async (t) =
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "sap-ui-core.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
 	});
 	pool.addResource({
 		name: "jquery.sap.global-dbg.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([], function(){/* comment */ return {};});"
 	});
 	pool.addResource({
 		name: "myModule.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
 
@@ -480,18 +561,23 @@ test("integration: createBundle (bootstrap bundle, UI5BundleFormat)", async (t) 
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "jquery.sap.global.js",
-		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
-	});
-	pool.addResource({
-		name: "jquery.sap.global-dbg.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
 	});
 	pool.addResource({
 		name: "myRawModule.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
 	pool.addResource({
 		name: "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "sap.ui.define([],function(){return {};});"
 	});
 
@@ -526,12 +612,12 @@ test("integration: createBundle (bootstrap bundle, UI5BundleFormat)", async (t) 
 window["sap-ui-optimized"] = true;
 try {
 //@ui5-bundle-raw-include jquery.sap.global.js
-(function(i){sap.ui.require=function(){}})(window);
+(function(__global) {sap.ui.require = function(){};}(window));
 //@ui5-bundle-raw-include myRawModule.js
-(function(){window.mine={}})();
+(function(){window.mine = {};}());
 jQuery.sap.declare('jquery.sap.global', false);
 jQuery.sap.declare('myRawModule', false);
-sap.ui.predefine("sap/ui/core/Core",[],function(){return{}});
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
 sap.ui.requireSync("sap/ui/core/Core");
 // as this module contains the Core, we ensure that the Core has been booted
 sap.ui.getCore().boot && sap.ui.getCore().boot();
@@ -539,7 +625,7 @@ sap.ui.getCore().boot && sap.ui.getCore().boot();
 if (oError.name != "Restart") { throw oError; }
 }
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optomization and " +
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -564,22 +650,37 @@ test("integration: createBundle with bundleInfo", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "a.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "function One(){return 1;}"
 	});
 	pool.addResource({
 		name: "b.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "function Two(){return 2;}"
 	});
 	pool.addResource({
 		name: "c.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => "function Three(){return 3;}"
 	});
 	pool.addResource({
 		name: "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => ""
 	});
 	pool.addResource({
 		name: "a.library",
+		string: function() {
+			return this.buffer();
+		},
 		buffer: async () => `<?xml version="1.0" encoding="UTF-8" ?>
 <library xmlns="http://www.sap.com/sap.ui.library.xsd" >
 	<appData>

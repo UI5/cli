@@ -2,10 +2,10 @@ const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 
 // Note: When adding standard tags, always update the public documentation in TaskUtil
 // (Type "module:@ui5/builder.tasks.TaskUtil~StandardBuildTags")
-const STANDARD_TAGS = Object.freeze({
+const STANDARD_TAGS = {
 	OmitFromBuildResult: "ui5:OmitFromBuildResult",
-	IsBundle: "ui5:IsBundle"
-});
+	IsBundle: "ui5:IsBundle",
+};
 
 /**
  * Build context of a single project. Always part of an overall
@@ -15,8 +15,8 @@ const STANDARD_TAGS = Object.freeze({
  * @memberof module:@ui5/builder.builder
  */
 class ProjectBuildContext {
-	constructor({buildContext, project, resources}) {
-		if (!buildContext || !project || !resources) {
+	constructor({buildContext, globalTags, project, resources}) {
+		if (!buildContext || !globalTags || !project || !resources) {
 			throw new Error(`One or more mandatory parameters are missing`);
 		}
 		this._buildContext = buildContext;
@@ -26,10 +26,12 @@ class ProjectBuildContext {
 			cleanup: []
 		};
 
-		this.STANDARD_TAGS = STANDARD_TAGS;
+		this.STANDARD_TAGS = Object.assign({}, STANDARD_TAGS, globalTags);
+		Object.freeze(this.STANDARD_TAGS);
 
 		this._resourceTagCollection = new ResourceTagCollection({
-			allowedTags: Object.values(this.STANDARD_TAGS)
+			allowedTags: Object.values(this.STANDARD_TAGS),
+			superCollection: this._buildContext.getResourceTagCollection()
 		});
 	}
 

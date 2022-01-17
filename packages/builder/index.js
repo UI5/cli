@@ -42,9 +42,9 @@ module.exports = {
 		 */
 		bootstrapHtmlTransformer: "./lib/processors/bootstrapHtmlTransformer",
 		/**
-		 * @type {import('./lib/processors/debugFileCreator')}
+		 * @type {import('./lib/processors/minifier')}
 		 */
-		debugFileCreator: "./lib/processors/debugFileCreator",
+		minifier: "./lib/processors/minifier",
 		/**
 		 * @type {import('./lib/processors/libraryLessGenerator')}
 		 */
@@ -53,10 +53,6 @@ module.exports = {
 		 * @type {import('./lib/processors/manifestCreator')}
 		 */
 		manifestCreator: "./lib/processors/manifestCreator",
-		/**
-		 * @type {import('./lib/processors/resourceCopier')}
-		 */
-		resourceCopier: "./lib/processors/resourceCopier",
 		/**
 		 * @type {import('./lib/processors/nonAsciiEscaper')}
 		 */
@@ -69,10 +65,6 @@ module.exports = {
 		 * @type {import('./lib/processors/themeBuilder')}
 		 */
 		themeBuilder: "./lib/processors/themeBuilder",
-		/**
-		 * @type {import('./lib/processors/uglifier')}
-		 */
-		uglifier: "./lib/processors/uglifier",
 		/**
 		 * @type {import('./lib/processors/versionInfoGenerator')}
 		 */
@@ -121,9 +113,9 @@ module.exports = {
 		 */
 		buildThemes: "./lib/tasks/buildThemes",
 		/**
-		 * @type {import('./lib/tasks/createDebugFiles')}
+		 * @type {import('./lib/tasks/minify')}
 		 */
-		createDebugFiles: "./lib/tasks/createDebugFiles",
+		minify: "./lib/tasks/minify",
 		/**
 		 * @type {import('./lib/tasks/jsdoc/executeJsdocSdkTransformation')}
 		 */
@@ -160,10 +152,6 @@ module.exports = {
 		 * @type {import('./lib/tasks/transformBootstrapHtml')}
 		 */
 		transformBootstrapHtml: "./lib/tasks/transformBootstrapHtml",
-		/**
-		 * @type {import('./lib/tasks/uglify')}
-		 */
-		uglify: "./lib/tasks/uglify",
 		/**
 		 * @type {import('./lib/tasks/taskRepository')}
 		 */

@@ -6,9 +6,18 @@
 			"size": 473
 		},
 		{
+			"name": "components/Component-dbg.js",
+			"module": "library/h/components/Component.js",
+			"size": 146,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
 			"name": "components/Component-preload.js",
 			"module": "library/h/components/Component-preload.js",
-			"size": 361,
+			"size": 441,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -21,21 +30,47 @@
 		{
 			"name": "components/Component.js",
 			"module": "library/h/components/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
 		},
 		{
+			"name": "components/Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "components/TodoComponent-dbg.js",
+			"module": "library/h/components/TodoComponent.js",
+			"size": 55,
+			"format": "raw",
+			"isDebug": true
+		},
+		{
 			"name": "components/TodoComponent.js",
 			"module": "library/h/components/TodoComponent.js",
-			"size": 54,
+			"size": 96,
 			"format": "raw"
+		},
+		{
+			"name": "components/TodoComponent.js.map",
+			"size": 133,
+			"isDebug": true
+		},
+		{
+			"name": "components/subcomponent1/Component-dbg.js",
+			"module": "library/h/components/subcomponent1/Component.js",
+			"size": 146,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
 		},
 		{
 			"name": "components/subcomponent1/Component-preload.js",
 			"module": "library/h/components/subcomponent1/Component-preload.js",
-			"size": 279,
+			"size": 317,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -47,7 +82,21 @@
 		{
 			"name": "components/subcomponent1/Component.js",
 			"module": "library/h/components/subcomponent1/Component.js",
-			"size": 115,
+			"size": 153,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "components/subcomponent1/Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "components/subcomponent2/Component-dbg.js",
+			"module": "library/h/components/subcomponent2/Component.js",
+			"size": 146,
+			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
@@ -55,7 +104,7 @@
 		{
 			"name": "components/subcomponent2/Component-preload.js",
 			"module": "library/h/components/subcomponent2/Component-preload.js",
-			"size": 279,
+			"size": 317,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -67,7 +116,21 @@
 		{
 			"name": "components/subcomponent2/Component.js",
 			"module": "library/h/components/subcomponent2/Component.js",
-			"size": 115,
+			"size": 153,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "components/subcomponent2/Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "components/subcomponent3/Component-dbg.js",
+			"module": "library/h/components/subcomponent3/Component.js",
+			"size": 146,
+			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
@@ -75,7 +138,7 @@
 		{
 			"name": "components/subcomponent3/Component-preload.js",
 			"module": "library/h/components/subcomponent3/Component-preload.js",
-			"size": 279,
+			"size": 317,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -87,15 +150,21 @@
 		{
 			"name": "components/subcomponent3/Component.js",
 			"module": "library/h/components/subcomponent3/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
 		},
 		{
-			"name": "customBundle.js",
+			"name": "components/subcomponent3/Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "customBundle-dbg.js",
 			"module": "library/h/customBundle.js",
-			"size": 495,
+			"size": 500,
+			"isDebug": true,
 			"merged": true,
 			"included": [
 				"library/h/file.js",
@@ -106,9 +175,34 @@
 			]
 		},
 		{
+			"name": "customBundle.js",
+			"module": "library/h/customBundle.js",
+			"size": 629,
+			"merged": true,
+			"included": [
+				"library/h/file.js",
+				"library/h/library.js",
+				"library/h/some.js",
+				"library/h/other.js",
+				"library/h/not.js"
+			]
+		},
+		{
+			"name": "designtime/library-dbg.designtime.js",
+			"module": "library/h/designtime/library.designtime.js",
+			"size": 142,
+			"requiresTopLevelScope": true,
+			"exposedGlobalNames": [
+				"myexport"
+			],
+			"format": "raw",
+			"isDebug": true,
+			"designtime": true
+		},
+		{
 			"name": "designtime/library.designtime.js",
 			"module": "library/h/designtime/library.designtime.js",
-			"size": 86,
+			"size": 133,
 			"requiresTopLevelScope": true,
 			"exposedGlobalNames": [
 				"myexport"
@@ -117,10 +211,28 @@
 			"designtime": true
 		},
 		{
+			"name": "designtime/library.designtime.js.map",
+			"size": 167,
+			"isDebug": true,
+			"designtime": true
+		},
+		{
+			"name": "file-dbg.js",
+			"module": "library/h/file.js",
+			"size": 55,
+			"format": "raw",
+			"isDebug": true
+		},
+		{
 			"name": "file.js",
 			"module": "library/h/file.js",
-			"size": 54,
+			"size": 87,
 			"format": "raw"
+		},
+		{
+			"name": "file.js.map",
+			"size": 115,
+			"isDebug": true
 		},
 		{
 			"name": "i18n/messagebundle.properties",
@@ -137,10 +249,22 @@
 			"raw": "i18n/messagebundle.properties"
 		},
 		{
+			"name": "library-dbg.js",
+			"module": "library/h/library.js",
+			"size": 58,
+			"format": "raw",
+			"isDebug": true
+		},
+		{
 			"name": "library.js",
 			"module": "library/h/library.js",
-			"size": 57,
+			"size": 93,
 			"format": "raw"
+		},
+		{
+			"name": "library.js.map",
+			"size": 121,
+			"isDebug": true
 		},
 		{
 			"name": "manifest.json",
@@ -148,24 +272,52 @@
 			"size": 614
 		},
 		{
+			"name": "not-dbg.js",
+			"module": "library/h/not.js",
+			"size": 64,
+			"format": "raw",
+			"isDebug": true
+		},
+		{
 			"name": "not.js",
 			"module": "library/h/not.js",
-			"size": 63,
+			"size": 95,
 			"format": "raw"
 		},
 		{
+			"name": "not.js.map",
+			"size": 113,
+			"isDebug": true
+		},
+		{
 			"name": "resources.json",
-			"size": 3724
+			"size": 6749
+		},
+		{
+			"name": "some-dbg.js",
+			"module": "library/h/some.js",
+			"size": 100,
+			"format": "raw",
+			"isDebug": true,
+			"merged": true,
+			"included": [
+				"library/h/other.js"
+			]
 		},
 		{
 			"name": "some.js",
 			"module": "library/h/some.js",
-			"size": 99,
+			"size": 132,
 			"format": "raw",
 			"merged": true,
 			"included": [
 				"library/h/other.js"
 			]
+		},
+		{
+			"name": "some.js.map",
+			"size": 116,
+			"isDebug": true
 		}
 	]
 }

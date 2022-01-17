@@ -2,6 +2,7 @@ const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateLib
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
+const ModuleName = require("../../lbt/utils/ModuleName");
 
 function getDefaultLibraryPreloadFilters(namespace, excludes) {
 	const filters = [
@@ -272,12 +273,19 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({workspace, dependencies, taskUtil, options: {projectName, excludes = []}}) {
-	const combo = new ReaderCollectionPrioritized({
+	let combo = new ReaderCollectionPrioritized({
 		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 
-	return combo.byGlob("/**/*.{js,json,xml,html,properties,library}").then((resources) => {
+	if (taskUtil) {
+		combo = combo.filter(function(resource) {
+			// Remove any debug variants
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		});
+	}
+
+	return combo.byGlob("/**/*.{js,json,xml,html,properties,library}").then(async (resources) => {
 		// Find all libraries and create a library-preload.js bundle
 
 		let p = Promise.resolve();
@@ -296,6 +304,27 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 				const isEvo = resources.find((resource) => {
 					return resource.getPath() === "/resources/ui5loader.js";
 				});
+
+				let unoptimizedResources = resources;
+				if (taskUtil) {
+					unoptimizedResources = await new ReaderCollectionPrioritized({
+						name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
+						readers: [workspace, dependencies]
+					}).filter(function(resource) {
+						// Remove any non-debug variants
+						return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+					}).transformer(async function(resourcePath, getResource) {
+						if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
+							const resource = await getResource();
+							const nonDbgPath = ModuleName.getNonDebugName(resource.getPath());
+							if (!nonDbgPath) {
+								throw new Error(`Failed to resolve non-debug name for ${resource.getPath()}`);
+							}
+							resource.setPath(nonDbgPath);
+						}
+					}).byGlob("/**/*.{js,json,xml,html,properties,library}");
+				}
+
 				let filters;
 				if (isEvo) {
 					filters = ["ui5loader-autoconfig.js"];
@@ -309,7 +338,7 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					}),
 					moduleBundler({
 						options: getModuleBundlerOptions({name: "sap-ui-core-dbg.js", filters, preload: false}),
-						resources
+						resources: unoptimizedResources
 					}),
 					moduleBundler({
 						options: getModuleBundlerOptions({
@@ -321,7 +350,7 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 						options: getModuleBundlerOptions({
 							name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true
 						}),
-						resources
+						resources: unoptimizedResources
 					}),
 				]).then((results) => {
 					const bundles = Array.prototype.concat.apply([], results);

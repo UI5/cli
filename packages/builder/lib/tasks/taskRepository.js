@@ -2,12 +2,11 @@ const taskInfos = {
 	replaceCopyright: {path: "./replaceCopyright"},
 	replaceVersion: {path: "./replaceVersion"},
 	replaceBuildtime: {path: "./replaceBuildtime"},
-	createDebugFiles: {path: "./createDebugFiles"},
 	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters"},
 	executeJsdocSdkTransformation: {path: "./jsdoc/executeJsdocSdkTransformation"},
 	generateApiIndex: {path: "./jsdoc/generateApiIndex"},
 	generateJsdoc: {path: "./jsdoc/generateJsdoc"},
-	uglify: {path: "./uglify"},
+	minify: {path: "./minify"},
 	buildThemes: {path: "./buildThemes"},
 	transformBootstrapHtml: {path: "./transformBootstrapHtml"},
 	generateLibraryManifest: {path: "./generateLibraryManifest"},
@@ -27,6 +26,11 @@ function getTask(taskName) {
 	const taskInfo = taskInfos[taskName];
 
 	if (!taskInfo) {
+		if (["createDebugFiles", "uglify"].includes(taskName)) {
+			throw new Error(
+				`Standard task ${taskName} has been removed in UI5 Tooling 3.0. ` +
+				`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`);
+		}
 		throw new Error(`taskRepository: Unknown Task ${taskName}`);
 	}
 	try {

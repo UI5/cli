@@ -51,14 +51,14 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource The resource the tag should be stored for
+	 * @param {string|module:@ui5/fs.Resource} resourcePath Path or resource-instance the tag should be stored for
 	 * @param {string} tag Name of the tag.
 	 * 		Currently only the [STANDARD_TAGS]{@link module:@ui5/builder.tasks.TaskUtil#STANDARD_TAGS} are allowed
 	 * @param {string|boolean|integer} [value=true] Tag value. Must be primitive
 	 * @public
 	 */
-	setTag(resource, tag, value) {
-		return this._projectBuildContext.getResourceTagCollection().setTag(resource, tag, value);
+	setTag(resourcePath, tag, value) {
+		return this._projectBuildContext.getResourceTagCollection().setTag(resourcePath, tag, value);
 	}
 
 	/**
@@ -68,14 +68,14 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource The resource the tag should be retrieved for
+	 * @param {string|module:@ui5/fs.Resource} resourcePath Path or resource-instance the tag should be retrieved for
 	 * @param {string} tag Name of the tag
 	 * @returns {string|boolean|integer|undefined} Tag value for the given resource.
 	 * 										<code>undefined</code> if no value is available
 	 * @public
 	 */
-	getTag(resource, tag) {
-		return this._projectBuildContext.getResourceTagCollection().getTag(resource, tag);
+	getTag(resourcePath, tag) {
+		return this._projectBuildContext.getResourceTagCollection().getTag(resourcePath, tag);
 	}
 
 	/**
@@ -86,12 +86,12 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource The resource the tag should be cleared for
+	 * @param {string|module:@ui5/fs.Resource} resourcePath Path or resource-instance the tag should be cleared for
 	 * @param {string} tag Tag
 	 * @public
 	 */
-	clearTag(resource, tag) {
-		return this._projectBuildContext.getResourceTagCollection().clearTag(resource, tag);
+	clearTag(resourcePath, tag) {
+		return this._projectBuildContext.getResourceTagCollection().clearTag(resourcePath, tag);
 	}
 
 	/**

@@ -21,15 +21,19 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test.serial("execute module bundler and write results", async (t) => {
-	const dummyResource = {
+function createDummyResource(id) {
+	return {
 		getPath: function() {
-			return "ponyPath";
+			return "ponyPath" + id;
 		}
 	};
+}
+
+test.serial("execute module bundler and write results", async (t) => {
+	let dummyResourceId = 0;
 	const dummyReaderWriter = {
-		byGlob: async function() {
-			return [dummyResource, dummyResource];
+		_byGlob: async function() {
+			return [createDummyResource(dummyResourceId++), createDummyResource(dummyResourceId++)];
 		},
 		write: function() {}
 	};
@@ -73,14 +77,10 @@ test.serial("execute module bundler and write results", async (t) => {
 });
 
 test.serial("execute module bundler and write results without namespace", async (t) => {
-	const dummyResource = {
-		getPath: function() {
-			return "ponyPath";
-		}
-	};
+	let dummyResourceId = 0;
 	const dummyReaderWriter = {
-		byGlob: async function() {
-			return [dummyResource, dummyResource];
+		_byGlob: async function() {
+			return [createDummyResource(dummyResourceId++), createDummyResource(dummyResourceId++)];
 		},
 		write: function() {}
 	};
@@ -113,14 +113,19 @@ test.serial("execute module bundler and write results without namespace", async 
 
 
 test.serial("execute module bundler and write results in evo mode", async (t) => {
-	const dummyResource = {
+	let dummyResourceId = 0;
+
+	const ui5LoaderDummyResource = {
 		getPath: function() {
 			return "/resources/ui5loader.js"; // Triggers evo mode
 		}
 	};
 	const dummyReaderWriter = {
-		byGlob: async function() {
-			return [dummyResource, dummyResource];
+		_byGlob: async function() {
+			if (dummyResourceId === 0) {
+				return [ui5LoaderDummyResource, createDummyResource(dummyResourceId++)];
+			}
+			return [createDummyResource(dummyResourceId++), createDummyResource(dummyResourceId++)];
 		},
 		write: function() {}
 	};

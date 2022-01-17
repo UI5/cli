@@ -34,7 +34,7 @@ test("integration: build application.b standalone", async (t) => {
 	const destPath = "./test/tmp/build/application.b/standalone";
 	const expectedPath = "./test/expected/build/application.b/standalone";
 	const excludedTasks = ["*"];
-	const includedTasks = ["generateStandaloneAppBundle"];
+	const includedTasks = ["minify", "generateStandaloneAppBundle"];
 
 	return builder.build({
 		tree: applicationBTree,

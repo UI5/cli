@@ -159,14 +159,14 @@ test("Instantiation with custom task and unknown beforeTask", (t) => {
 	const project = clone(applicationBTree);
 	project.builder = {
 		customTasks: [{
-			name: "uglify",
+			name: "minify",
 			beforeTask: "someTask"
 		}]
 	};
 	const error = t.throws(() => {
 		new CustomBuilder({project});
 	});
-	t.deepEqual(error.message, "Could not find task someTask, referenced by custom task uglify, " +
+	t.deepEqual(error.message, "Could not find task someTask, referenced by custom task minify, " +
 		"to be scheduled for project application.b", "Correct exception thrown");
 });
 

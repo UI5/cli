@@ -2,9 +2,22 @@
 	"_version": "1.1.0",
 	"resources": [
 		{
+			"name": "Component-dbg.js",
+			"module": "application/j/Component.js",
+			"size": 184,
+			"isDebug": true,
+			"required": [
+				"sap/m/library.js",
+				"sap/ui/core/UIComponent.js",
+				"sap/ui/core/library.js",
+				"sap/ui/fl/library.js",
+				"sap/ui/layout/library.js"
+			]
+		},
+		{
 			"name": "Component-preload.js",
 			"module": "application/j/Component-preload.js",
-			"size": 3682,
+			"size": 3760,
 			"merged": true,
 			"required": [
 				"sap/m/library.js",
@@ -24,7 +37,7 @@
 		{
 			"name": "Component.js",
 			"module": "application/j/Component.js",
-			"size": 141,
+			"size": 179,
 			"required": [
 				"sap/m/library.js",
 				"sap/ui/core/UIComponent.js",
@@ -34,9 +47,25 @@
 			]
 		},
 		{
+			"name": "Component.js.map",
+			"size": 253,
+			"isDebug": true
+		},
+		{
+			"name": "changes/coding/MyExtension-dbg.js",
+			"module": "application/j/changes/coding/MyExtension.js",
+			"size": 47,
+			"isDebug": true
+		},
+		{
 			"name": "changes/coding/MyExtension.js",
 			"module": "application/j/changes/coding/MyExtension.js",
-			"size": 39
+			"size": 79
+		},
+		{
+			"name": "changes/coding/MyExtension.js.map",
+			"size": 152,
+			"isDebug": true
 		},
 		{
 			"name": "changes/flexibility-bundle.json",
@@ -91,7 +120,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2098
+			"size": 2704
 		}
 	]
 }

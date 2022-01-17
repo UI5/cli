@@ -1,4 +1,12 @@
+const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 const ProjectBuildContext = require("./ProjectBuildContext");
+
+// Note: When adding standard tags, always update the public documentation in TaskUtil
+// (Type "module:@ui5/builder.tasks.TaskUtil~StandardBuildTags")
+const GLOBAL_TAGS = Object.freeze({
+	IsDebugVariant: "ui5:IsDebugVariant",
+	HasDebugVariant: "ui5:HasDebugVariant",
+});
 
 /**
  * Context of a build process
@@ -13,6 +21,10 @@ class BuildContext {
 		}
 		this.rootProject = rootProject;
 		this.projectBuildContexts = [];
+
+		this._resourceTagCollection = new ResourceTagCollection({
+			allowedTags: Object.values(GLOBAL_TAGS)
+		});
 	}
 
 	getRootProject() {
@@ -22,6 +34,7 @@ class BuildContext {
 	createProjectContext({project, resources}) {
 		const projectBuildContext = new ProjectBuildContext({
 			buildContext: this,
+			globalTags: GLOBAL_TAGS,
 			project,
 			resources
 		});
@@ -33,6 +46,10 @@ class BuildContext {
 		await Promise.all(this.projectBuildContexts.map((ctx) => {
 			return ctx.executeCleanupTasks();
 		}));
+	}
+
+	getResourceTagCollection() {
+		return this._resourceTagCollection;
 	}
 }
 

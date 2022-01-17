@@ -62,12 +62,11 @@ test("Instantiation", (t) => {
 		"replaceVersion",
 		"generateFlexChangesBundle",
 		"generateManifestBundle",
+		"minify",
 		"generateComponentPreload",
 		"generateStandaloneAppBundle",
 		"transformBootstrapHtml",
 		"generateBundle",
-		"createDebugFiles",
-		"uglify",
 		"generateVersionInfo",
 		"generateCachebusterInfo",
 		"generateApiIndex",
@@ -86,12 +85,11 @@ test("Instantiation without component preload project configuration", (t) => {
 		"replaceVersion",
 		"generateFlexChangesBundle",
 		"generateManifestBundle",
+		"minify",
 		"generateComponentPreload",
 		"generateStandaloneAppBundle",
 		"transformBootstrapHtml",
 		"generateBundle",
-		"createDebugFiles",
-		"uglify",
 		"generateVersionInfo",
 		"generateCachebusterInfo",
 		"generateApiIndex",
@@ -110,11 +108,10 @@ test("Instantiation without project namespace", (t) => {
 		"replaceCopyright",
 		"replaceVersion",
 		"generateFlexChangesBundle",
+		"minify",
 		"generateStandaloneAppBundle",
 		"transformBootstrapHtml",
 		"generateBundle",
-		"createDebugFiles",
-		"uglify",
 		"generateVersionInfo",
 		"generateApiIndex",
 		"generateResourcesJson"
@@ -124,25 +121,24 @@ test("Instantiation without project namespace", (t) => {
 test("Instantiation with custom tasks", (t) => {
 	const project = clone(applicationBTree);
 	project.builder.customTasks = [
-		{name: "replaceVersion", afterTask: "uglify"},
-		{name: "uglify", beforeTask: "replaceVersion"}
+		{name: "replaceVersion", afterTask: "minify"},
+		{name: "minify", beforeTask: "replaceVersion"}
 	];
 	const appBuilder = new ApplicationBuilder({parentLogger, project});
 	t.truthy(appBuilder);
 	t.deepEqual(appBuilder.taskExecutionOrder, [
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
-		"uglify--1",
+		"minify--1",
 		"replaceVersion",
 		"generateFlexChangesBundle",
 		"generateManifestBundle",
+		"minify",
+		"replaceVersion--1",
 		"generateComponentPreload",
 		"generateStandaloneAppBundle",
 		"transformBootstrapHtml",
 		"generateBundle",
-		"createDebugFiles",
-		"uglify",
-		"replaceVersion--1",
 		"generateVersionInfo",
 		"generateCachebusterInfo",
 		"generateApiIndex",

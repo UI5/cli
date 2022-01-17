@@ -94,8 +94,7 @@ function composeTaskList({dev, selfContained, jsdoc, includedTasks, excludedTask
 		selectedTasks.generateComponentPreload = false;
 		selectedTasks.generateLibraryPreload = false;
 		selectedTasks.generateLibraryManifest = false;
-		selectedTasks.createDebugFiles = false;
-		selectedTasks.uglify = false;
+		selectedTasks.minify = false;
 		selectedTasks.generateFlexChangesBundle = false;
 		selectedTasks.generateManifestBundle = false;
 	}

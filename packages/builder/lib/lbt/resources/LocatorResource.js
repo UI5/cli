@@ -1,10 +1,8 @@
 const Resource = require("./Resource");
 
-
 function extractName(path) {
 	return path.slice( "/resources/".length);
 }
-
 
 class LocatorResource extends Resource {
 	constructor(pool, resource) {

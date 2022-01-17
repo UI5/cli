@@ -67,6 +67,27 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		}
 
+		// Support rules should not be minified to have readable code in the Support Assistant
+		const minificationPattern = ["/**/*.js", "!**/*.support.js"];
+		if (["2.6"].includes(project.specVersion)) {
+			const minificationExcludes = project.builder && project.builder.minification &&
+				project.builder.minification.excludes;
+			if (minificationExcludes) {
+				// TODO 3.0: namespaces should become mandatory, see existing check above
+				const patternPrefix = project.metadata.namespace ? "/resources/" : "/";
+				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, patternPrefix);
+			}
+		}
+		this.addTask("minify", async () => {
+			return getTask("minify").task({
+				workspace: resourceCollections.workspace,
+				taskUtil,
+				options: {
+					pattern: minificationPattern
+				}
+			});
+		});
+
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload && (componentPreload.namespaces || componentPreload.paths)) {
 			this.addTask("generateComponentPreload", async () => {
@@ -137,37 +158,6 @@ class ApplicationBuilder extends AbstractBuilder {
 				}));
 			});
 		}
-
-		const minificationPattern = ["/**/*.js"];
-		if (["2.6"].includes(project.specVersion)) {
-			const minificationExcludes = project.builder && project.builder.minification &&
-				project.builder.minification.excludes;
-			if (minificationExcludes) {
-				// TODO 3.0: namespaces should become mandatory, see existing check above
-				const patternPrefix = project.metadata.namespace ? "/resources/" : "/";
-				this.enhancePatternWithExcludes(minificationPattern, minificationExcludes, patternPrefix);
-			}
-		}
-		this.addTask("createDebugFiles", async () => {
-			const createDebugFiles = getTask("createDebugFiles").task;
-			return createDebugFiles({
-				workspace: resourceCollections.workspace,
-				options: {
-					pattern: minificationPattern
-				}
-			});
-		});
-
-		this.addTask("uglify", async () => {
-			const uglify = getTask("uglify").task;
-			return uglify({
-				workspace: resourceCollections.workspace,
-				taskUtil,
-				options: {
-					pattern: minificationPattern
-				}
-			});
-		});
 
 		this.addTask("generateVersionInfo", async () => {
 			return getTask("generateVersionInfo").task({

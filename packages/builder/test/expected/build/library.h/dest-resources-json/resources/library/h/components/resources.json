@@ -2,9 +2,18 @@
 	"_version": "1.1.0",
 	"resources": [
 		{
+			"name": "Component-dbg.js",
+			"module": "library/h/components/Component.js",
+			"size": 146,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
 			"name": "Component-preload.js",
 			"module": "library/h/components/Component-preload.js",
-			"size": 361,
+			"size": 441,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -17,25 +26,51 @@
 		{
 			"name": "Component.js",
 			"module": "library/h/components/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
 		},
 		{
+			"name": "Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "TodoComponent-dbg.js",
+			"module": "library/h/components/TodoComponent.js",
+			"size": 55,
+			"format": "raw",
+			"isDebug": true
+		},
+		{
 			"name": "TodoComponent.js",
 			"module": "library/h/components/TodoComponent.js",
-			"size": 54,
+			"size": 96,
 			"format": "raw"
 		},
 		{
+			"name": "TodoComponent.js.map",
+			"size": 133,
+			"isDebug": true
+		},
+		{
 			"name": "resources.json",
-			"size": 2128
+			"size": 3509
+		},
+		{
+			"name": "subcomponent1/Component-dbg.js",
+			"module": "library/h/components/subcomponent1/Component.js",
+			"size": 146,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
 		},
 		{
 			"name": "subcomponent1/Component-preload.js",
 			"module": "library/h/components/subcomponent1/Component-preload.js",
-			"size": 279,
+			"size": 317,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -47,7 +82,21 @@
 		{
 			"name": "subcomponent1/Component.js",
 			"module": "library/h/components/subcomponent1/Component.js",
-			"size": 115,
+			"size": 153,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "subcomponent1/Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "subcomponent2/Component-dbg.js",
+			"module": "library/h/components/subcomponent2/Component.js",
+			"size": 146,
+			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
@@ -55,7 +104,7 @@
 		{
 			"name": "subcomponent2/Component-preload.js",
 			"module": "library/h/components/subcomponent2/Component-preload.js",
-			"size": 279,
+			"size": 317,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -67,7 +116,21 @@
 		{
 			"name": "subcomponent2/Component.js",
 			"module": "library/h/components/subcomponent2/Component.js",
-			"size": 115,
+			"size": 153,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "subcomponent2/Component.js.map",
+			"size": 208,
+			"isDebug": true
+		},
+		{
+			"name": "subcomponent3/Component-dbg.js",
+			"module": "library/h/components/subcomponent3/Component.js",
+			"size": 146,
+			"isDebug": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
@@ -75,7 +138,7 @@
 		{
 			"name": "subcomponent3/Component-preload.js",
 			"module": "library/h/components/subcomponent3/Component-preload.js",
-			"size": 279,
+			"size": 317,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -87,10 +150,15 @@
 		{
 			"name": "subcomponent3/Component.js",
 			"module": "library/h/components/subcomponent3/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
+		},
+		{
+			"name": "subcomponent3/Component.js.map",
+			"size": 208,
+			"isDebug": true
 		}
 	]
 }

@@ -162,9 +162,8 @@ test.serial("Build", async (t) => {
 		"replaceCopyright",
 		"replaceVersion",
 		"replaceBuildtime",
-		"createDebugFiles",
 		"escapeNonAsciiCharacters",
-		"uglify",
+		"minify",
 		"buildThemes",
 		"generateLibraryManifest",
 		"generateVersionInfo",
@@ -448,7 +447,28 @@ test.serial("Build application.h", (t) => {
 	return builder.build({
 		tree: applicationHTree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateComponentPreload",
+		excludedTasks: ["generateComponentPreload",
+			"generateStandaloneAppBundle", "generateVersionInfo"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build application.h (no minify)", (t) => {
+	const destPath = "./test/tmp/build/application.h/no-minify";
+	const expectedPath = path.join("test", "expected", "build", "application.h", "no-minify");
+
+	return builder.build({
+		tree: applicationHTree,
+		destPath,
+		excludedTasks: ["minify", "generateComponentPreload",
 			"generateStandaloneAppBundle", "generateVersionInfo"]
 	}).then(() => {
 		return findFiles(expectedPath);
@@ -469,7 +489,7 @@ test.serial("Build application.i", (t) => {
 	return builder.build({
 		tree: applicationITree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle", "generateVersionInfo"]
+		excludedTasks: ["generateStandaloneAppBundle", "generateVersionInfo"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -489,7 +509,7 @@ test.serial("Build application.j", (t) => {
 	return builder.build({
 		tree: applicationJTree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle", "generateVersionInfo"]
+		excludedTasks: ["generateStandaloneAppBundle", "generateVersionInfo"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -534,7 +554,7 @@ test.serial("Build application.j with resources.json and version info", (t) => {
 		],
 		tree: applicationJTree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateStandaloneAppBundle"]
+		excludedTasks: ["generateStandaloneAppBundle"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -698,7 +718,29 @@ test.serial("Build library.h with custom bundles and component-preloads", (t) =>
 	return builder.build({
 		tree: libraryHTree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateLibraryPreload"]
+		excludedTasks: ["generateLibraryPreload"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+
+test.serial("Build library.h with custom bundles and component-preloads (no minify)", (t) => {
+	const destPath = path.join("test", "tmp", "build", "library.h", "no-minify");
+	const expectedPath = path.join("test", "expected", "build", "library.h", "no-minify");
+
+	return builder.build({
+		tree: libraryHTree,
+		destPath,
+		excludedTasks: ["minify", "generateLibraryPreload"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -722,7 +764,7 @@ test.serial("Build library.h with custom bundles and component-preloads with res
 		],
 		tree: libraryHTree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateLibraryPreload"]
+		excludedTasks: ["generateLibraryPreload"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -743,7 +785,7 @@ test.serial("Build library.i with manifest info taken from .library and library.
 	return builder.build({
 		tree: libraryITree,
 		destPath,
-		excludedTasks: ["createDebugFiles", "generateLibraryPreload", "uglify"]
+		excludedTasks: ["generateLibraryPreload", "minify"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
@@ -1289,7 +1331,7 @@ const applicationHTree = {
 				}]
 			},
 			"bundleOptions": {
-				"optimize": true,
+				"optimize": false,
 				"usePredefinedCalls": true
 			}
 		}]
@@ -1613,7 +1655,7 @@ const libraryHTree = {
 					"filters": [
 						"library/h/some.js",
 						"library/h/library.js",
-						"library/h/file.js",
+						"library/h/fi*.js",
 						"!library/h/components/"
 					],
 					"resolve": false,
@@ -1631,6 +1673,35 @@ const libraryHTree = {
 			},
 			"bundleOptions": {
 				"optimize": true,
+				"usePredefinedCalls": true
+			}
+		}, {
+			"bundleDefinition": {
+				"name": "library/h/customBundle-dbg.js",
+				"defaultFileTypes": [".js"],
+				"sections": [{
+					"mode": "preload",
+					"filters": [
+						"library/h/some.js",
+						"library/h/library.js",
+						"library/h/fi*.js",
+						"!library/h/components/"
+					],
+					"resolve": false,
+					"renderer": false
+				}, {
+					"mode": "raw",
+					"filters": [
+						"library/h/not.js"
+					],
+					"resolve": true,
+					"declareModules": false,
+					"sort": true,
+					"renderer": false
+				}]
+			},
+			"bundleOptions": {
+				"optimize": false,
 				"usePredefinedCalls": true
 			}
 		}],

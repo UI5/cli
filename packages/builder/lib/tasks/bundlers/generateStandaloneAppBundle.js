@@ -1,4 +1,5 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
+const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 
 function getBundleDefinition(config) {
@@ -76,12 +77,18 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 			`unable to generate complete bundles for such projects.`);
 	}
 
-	// If an application does not have a namespace, its resources are located at the root. Otherwise in /resources
-	// For dependencies, we do not want to search in their test-resources
-	const results = await Promise.all([
-		workspace.byGlob("/**/*.{js,json,xml,html,properties,library}"),
-		dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library}")
-	]);
+	let combo = new ReaderCollectionPrioritized({
+		name: `generateStandaloneAppBundle - prioritize workspace over dependencies: ${projectName}`,
+		readers: [workspace, dependencies]
+	});
+
+	if (taskUtil) {
+		// Omit -dbg files
+		combo = combo.filter(function(resource) {
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		});
+	}
+	const results = await combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}");
 	const resources = Array.prototype.concat.apply([], results);
 
 	const isEvo = resources.find((resource) => {

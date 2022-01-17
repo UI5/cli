@@ -24,6 +24,24 @@ test("Unknown task retrieval", (t) => {
 	t.deepEqual(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
 });
 
+test("Removed task retrieval", (t) => {
+	const error = t.throws(() => {
+		taskRepository.getTask("createDebugFiles");
+	});
+	t.deepEqual(error.message,
+		`Standard task createDebugFiles has been removed in UI5 Tooling 3.0. ` +
+		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		"Correct exception");
+
+	const error2 = t.throws(() => {
+		taskRepository.getTask("uglify");
+	});
+	t.deepEqual(error2.message,
+		`Standard task uglify has been removed in UI5 Tooling 3.0. ` +
+		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		"Correct exception");
+});
+
 test("Duplicate task", (t) => {
 	const myTask = {};
 	taskRepository.addTask("myOtherTask", myTask);

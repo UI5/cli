@@ -5,6 +5,9 @@ jQuery.sap.registerPreloadedModules({
 	"library/d/some.js":function(){/*!
  * ${copyright}
  */
-(function(){var o="World";console.log("Hello "+o)})();
+(function() {
+	var someNonUglifiedVariable = "World";
+	console.log('Hello ' + someNonUglifiedVariable);
+})();
 }
 }});

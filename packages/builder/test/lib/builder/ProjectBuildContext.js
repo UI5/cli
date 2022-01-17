@@ -1,7 +1,13 @@
 const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
+const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 
+test.beforeEach((t) => {
+	t.context.resourceTagCollection = new ResourceTagCollection({
+		allowedTags: ["me:MyTag"]
+	});
+});
 test.afterEach.always((t) => {
 	sinon.restore();
 	mock.stopAll();
@@ -11,7 +17,12 @@ const ProjectBuildContext = require("../../../lib/builder/ProjectBuildContext");
 
 test("Missing parameters", (t) => {
 	const error = t.throws(() => {
-		new ProjectBuildContext({});
+		new ProjectBuildContext({
+			buildContext: {
+				getResourceTagCollection: () => t.context.resourceTagCollection
+			},
+			globalTags: {MyTag: "me:MyTag"},
+		});
 	});
 
 	t.is(error.message, `One or more mandatory parameters are missing`, "Threw with expected error message");
@@ -20,8 +31,10 @@ test("Missing parameters", (t) => {
 test("isRootProject: true", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
-			getRootProject: () => "root project"
+			getRootProject: () => "root project",
+			getResourceTagCollection: () => t.context.resourceTagCollection
 		},
+		globalTags: {MyTag: "me:MyTag"},
 		project: "root project",
 		resources: "resources"
 	});
@@ -32,8 +45,10 @@ test("isRootProject: true", (t) => {
 test("isRootProject: false", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
-			getRootProject: () => "root project"
+			getRootProject: () => "root project",
+			getResourceTagCollection: () => t.context.resourceTagCollection
 		},
+		globalTags: {MyTag: "me:MyTag"},
 		project: "no root project",
 		resources: "resources"
 	});
@@ -44,8 +59,10 @@ test("isRootProject: false", (t) => {
 test("registerCleanupTask", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
-			getRootProject: () => "root project"
+			getRootProject: () => "root project",
+			getResourceTagCollection: () => t.context.resourceTagCollection
 		},
+		globalTags: {MyTag: "me:MyTag"},
 		project: "no root project",
 		resources: "resources"
 	});
@@ -59,8 +76,10 @@ test("registerCleanupTask", (t) => {
 test("executeCleanupTasks", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
-			getRootProject: () => "root project"
+			getRootProject: () => "root project",
+			getResourceTagCollection: () => t.context.resourceTagCollection
 		},
+		globalTags: {MyTag: "me:MyTag"},
 		project: "no root project",
 		resources: "resources"
 	});
@@ -78,26 +97,33 @@ test("executeCleanupTasks", (t) => {
 test("STANDARD_TAGS constant", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
-			getRootProject: () => "root project"
+			getRootProject: () => "root project",
+			getResourceTagCollection: () => t.context.resourceTagCollection
 		},
+		globalTags: {MyTag: "me:MyTag"},
 		project: "no root project",
 		resources: "resources"
 	});
 
 	t.deepEqual(projectBuildContext.STANDARD_TAGS, {
 		OmitFromBuildResult: "ui5:OmitFromBuildResult",
+		MyTag: "me:MyTag",
 		IsBundle: "ui5:IsBundle"
 	}, "Exposes correct STANDARD_TAGS constant");
 });
 
 test.serial("getResourceTagCollection", (t) => {
 	class DummyResourceTagCollection {
-		constructor({allowedTags}) {
+		constructor({allowedTags, superCollection}) {
 			t.deepEqual(allowedTags, [
 				"ui5:OmitFromBuildResult",
-				"ui5:IsBundle"
+				"ui5:IsBundle",
+				"me:MyTag",
 			],
 			"Correct allowedTags parameter supplied");
+
+			t.is(superCollection, "build context's tag collection",
+				"Correct superCollection parameter supplied");
 		}
 	}
 	mock("@ui5/fs", {
@@ -107,8 +133,10 @@ test.serial("getResourceTagCollection", (t) => {
 	const ProjectBuildContext = mock.reRequire("../../../lib/builder/ProjectBuildContext");
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
-			getRootProject: () => "root project"
+			getRootProject: () => "root project",
+			getResourceTagCollection: () => "build context's tag collection",
 		},
+		globalTags: {MyTag: "me:MyTag"},
 		project: "no root project",
 		resources: "resources"
 	});
