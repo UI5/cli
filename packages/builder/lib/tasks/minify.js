@@ -20,6 +20,7 @@ module.exports = async function({workspace, taskUtil, options: {pattern}}) {
 		if (taskUtil) {
 			taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
 			taskUtil.setTag(dbgResource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+			taskUtil.setTag(sourceMapResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 		}
 		return Promise.all([
 			workspace.write(resource),
