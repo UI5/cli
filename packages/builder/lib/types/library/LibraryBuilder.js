@@ -219,6 +219,7 @@ class LibraryBuilder extends AbstractBuilder {
 			return getTask("generateResourcesJson").task({
 				workspace: resourceCollections.workspace,
 				dependencies: resourceCollections.dependencies,
+				taskUtil,
 				options: {
 					projectName: project.metadata.name
 				}

@@ -51,6 +51,7 @@ test.serial("empty resources (sap.ui.core)", async (t) => {
 	});
 	t.deepEqual(result, undefined, "no resources returned");
 	t.is(resourceListCreatorStub.callCount, 1);
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources, [], "no resources are passed");
 	const expectedOptions = {
 		externalResources: {
 			"sap/ui/core": [
@@ -75,6 +76,7 @@ test.serial("empty resources (my.lib)", async (t) => {
 	});
 	t.deepEqual(result, undefined, "no resources returned");
 	t.is(t.context.resourceListCreatorStub.callCount, 1);
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources, [], "no resources are passed");
 	const expectedOptions = {};
 	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].options, expectedOptions, "options match");
 });
@@ -96,8 +98,73 @@ test.serial("empty resources (my.lib with dependencies)", async (t) => {
 	});
 	t.deepEqual(result, undefined, "no resources returned");
 	t.is(t.context.resourceListCreatorStub.callCount, 1);
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources, [], "no resources are passed");
 	const expectedOptions = {};
 	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].options, expectedOptions, "options match");
 	t.is(t.context.resourceListCreatorStub.getCall(0).args[0].dependencyResources, dependencyResources,
+		"dependencyResources reference should be passed to resourceListCreator");
+});
+
+test.serial("Resources omitted from build result should be ignored", async (t) => {
+	const generateResourcesJson = require("../../../lib/tasks/generateResourcesJson");
+
+	const resource1 = {};
+	const resource2 = {};
+	const resource3 = {};
+
+	const workspace = createWorkspace();
+	workspace.byGlob = sinon.stub().resolves([
+		resource1,
+		resource2,
+		resource3,
+	]);
+
+	const dependencyResource1 = {};
+	const dependencyResource2 = {};
+	const dependencies = {
+		byGlob: sinon.stub().resolves([dependencyResource1, dependencyResource2])
+	};
+
+	const taskUtil = {
+		getTag: sinon.stub(),
+		STANDARD_TAGS: {
+			OmitFromBuildResult: "TEST-OmitFromBuildResult-TEST"
+		}
+	};
+
+	// resources
+	taskUtil.getTag
+		.onCall(0).returns(false)
+		.onCall(1).returns(true) // second resource should be filtered out
+		.onCall(2).returns(false);
+
+	// dependencyResources
+	taskUtil.getTag
+		.onCall(3).returns(true) // first dependencyResource should be filtered out
+		.onCall(4).returns(false);
+
+	const result = await generateResourcesJson({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {
+			projectName: "my.lib"
+		}
+	});
+
+	t.is(taskUtil.getTag.callCount, 5);
+	t.deepEqual(taskUtil.getTag.getCall(0).args, [resource1, "TEST-OmitFromBuildResult-TEST"]);
+	t.deepEqual(taskUtil.getTag.getCall(1).args, [resource2, "TEST-OmitFromBuildResult-TEST"]);
+	t.deepEqual(taskUtil.getTag.getCall(2).args, [resource3, "TEST-OmitFromBuildResult-TEST"]);
+	t.deepEqual(taskUtil.getTag.getCall(3).args, [dependencyResource1, "TEST-OmitFromBuildResult-TEST"]);
+	t.deepEqual(taskUtil.getTag.getCall(4).args, [dependencyResource2, "TEST-OmitFromBuildResult-TEST"]);
+
+	t.deepEqual(result, undefined, "no resources returned");
+	t.is(t.context.resourceListCreatorStub.callCount, 1);
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources,
+		[resource1, resource3], "only resources 1 and 3 are passed");
+	const expectedOptions = {};
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].options, expectedOptions, "options match");
+	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].dependencyResources, [dependencyResource2],
 		"dependencyResources reference should be passed to resourceListCreator");
 });
