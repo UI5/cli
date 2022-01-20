@@ -14,7 +14,7 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {ModuleBundleDefinition} parameters.options.bundleDefinition Module bundle definition
- * @param {ModuleBundleOptions} parameters.options.bundleOptions Module bundle options
+ * @param {ModuleBundleOptions} [parameters.options.bundleOptions] Module bundle options
  * @returns {Promise} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({
@@ -26,14 +26,16 @@ module.exports = function({
 	});
 
 	if (taskUtil) {
+		const optimize = !bundleOptions || bundleOptions.optimize !== false;
+
 		// Omit -dbg files for optimize bundles and vice versa
-		const filterTag = bundleOptions.optimize ?
+		const filterTag = optimize ?
 			taskUtil.STANDARD_TAGS.IsDebugVariant : taskUtil.STANDARD_TAGS.HasDebugVariant;
 		combo = combo.filter(function(resource) {
 			return !taskUtil.getTag(resource, filterTag);
 		});
 
-		if (!bundleOptions.optimize) {
+		if (!optimize) {
 			// For "unoptimized" bundles, the non-debug files have already been filtered out
 			// Now rename the debug variants to the same name so that they appear like the original
 			// resource to the bundler

@@ -89,7 +89,7 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  *
  * @public
  * @typedef {object} ModuleBundleOptions
- * @property {boolean} [optimize=false] If set to 'true' the module bundle gets minified
+ * @property {boolean} [optimize=true] Whether the module bundle gets minified
  * @property {boolean} [decorateBootstrapModule=false] If set to 'false', the module won't be decorated
  *   with an optimization marker
  * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with
@@ -109,15 +109,19 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @param {module:@ui5/fs.Resource[]} parameters.resources Resources
  * @param {object} parameters.options Options
  * @param {ModuleBundleDefinition} parameters.options.bundleDefinition Module bundle definition
- * @param {ModuleBundleOptions} parameters.options.bundleOptions Module bundle options
+ * @param {ModuleBundleOptions} [parameters.options.bundleOptions] Module bundle options
  * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with module bundle resources
  */
 module.exports = function({resources, options: {bundleDefinition, bundleOptions}}) {
-//	console.log("preloadBundler bundleDefinition:");
-//	console.log(JSON.stringify(options.bundleDefinition, null, 4));
-
-	// TODO 3.0: Fix defaulting behavior, align with JSDoc
-	bundleOptions = bundleOptions || {optimize: true};
+	// Apply defaults without modifying the passed object
+	bundleOptions = Object.assign({}, {
+		optimize: true,
+		decorateBootstrapModule: false,
+		addTryCatchRestartWrapper: false,
+		usePredefineCalls: false,
+		numberOfParts: 1,
+		ignoreMissingModules: false
+	}, bundleOptions);
 
 	const pool = new LocatorResourcePool({
 		ignoreMissingModules: bundleOptions.ignoreMissingModules
