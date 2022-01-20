@@ -9,6 +9,11 @@ test("tasks", async (t) => {
 				byGlob: async () => {
 					return [];
 				}
+			},
+			dependencies: {
+				byGlob: async () => {
+					return [];
+				}
 			}
 		},
 		buildContext: {

@@ -26,6 +26,12 @@ function createWorkspace() {
 	});
 }
 
+function createDependencies() {
+	return {
+		byGlob: sinon.stub().resolves([])
+	};
+}
+
 test.beforeEach((t) => {
 	t.context.resourceListCreatorStub = sinon.stub();
 	t.context.resourceListCreatorStub.returns(Promise.resolve([]));
@@ -39,12 +45,26 @@ test.afterEach.always((t) => {
 	mock.stopAll();
 });
 
+test.serial("Missing 'dependencies' parameter", async (t) => {
+	const {generateResourcesJson} = t.context;
+
+	await t.throwsAsync(generateResourcesJson({
+		workspace: createWorkspace(),
+		options: {
+			projectName: "sap.ui.core"
+		}
+	}), {
+		// Not passing dependencies should result into a TypeError
+		name: "TypeError"
+	});
+});
+
 test.serial("empty resources (sap.ui.core)", async (t) => {
 	const {generateResourcesJson, resourceListCreatorStub} = t.context;
 
 	const result = await generateResourcesJson({
 		workspace: createWorkspace(),
-		dependencies: undefined,
+		dependencies: createDependencies(),
 		options: {
 			projectName: "sap.ui.core"
 		}
@@ -69,7 +89,7 @@ test.serial("empty resources (my.lib)", async (t) => {
 
 	const result = await generateResourcesJson({
 		workspace: createWorkspace(),
-		dependencies: undefined,
+		dependencies: createDependencies(),
 		options: {
 			projectName: "my.lib"
 		}

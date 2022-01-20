@@ -96,7 +96,7 @@ function getCreatorOptions(projectName) {
  * @alias module:@ui5/builder.tasks.generateResourcesJson
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} [parameters.dependencies] Reader or Collection to read dependency files
+ * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
@@ -104,24 +104,17 @@ function getCreatorOptions(projectName) {
  */
 module.exports = async function({workspace, dependencies, taskUtil, options: {projectName}}) {
 	let resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
-
-	// TODO 3.0: Make dependencies parameter mandatory
-	let dependencyResources;
-	if (dependencies) {
-		dependencyResources =
+	let dependencyResources =
 			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library}");
-	}
 
 	if (taskUtil) {
 		// Filter out resources that will be omitted from the build results
 		resources = resources.filter((resource) => {
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 		});
-		if (dependencyResources) {
-			dependencyResources = dependencyResources.filter((resource) => {
-				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-			});
-		}
+		dependencyResources = dependencyResources.filter((resource) => {
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+		});
 	}
 
 	const resourceLists = await resourceListCreator({
