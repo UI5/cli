@@ -31,13 +31,8 @@
 			]
 		},
 		{
-			"name": "Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "resources.json",
-			"size": 820
+			"size": 745
 		}
 	]
 }

@@ -36,11 +36,6 @@
 			]
 		},
 		{
-			"name": "components/Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "components/TodoComponent-dbg.js",
 			"module": "library/h/components/TodoComponent.js",
 			"size": 55,
@@ -52,11 +47,6 @@
 			"module": "library/h/components/TodoComponent.js",
 			"size": 96,
 			"format": "raw"
-		},
-		{
-			"name": "components/TodoComponent.js.map",
-			"size": 133,
-			"isDebug": true
 		},
 		{
 			"name": "components/subcomponent1/Component-dbg.js",
@@ -88,11 +78,6 @@
 			]
 		},
 		{
-			"name": "components/subcomponent1/Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "components/subcomponent2/Component-dbg.js",
 			"module": "library/h/components/subcomponent2/Component.js",
 			"size": 146,
@@ -122,11 +107,6 @@
 			]
 		},
 		{
-			"name": "components/subcomponent2/Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "components/subcomponent3/Component-dbg.js",
 			"module": "library/h/components/subcomponent3/Component.js",
 			"size": 146,
@@ -154,11 +134,6 @@
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
-		},
-		{
-			"name": "components/subcomponent3/Component.js.map",
-			"size": 208,
-			"isDebug": true
 		},
 		{
 			"name": "customBundle-dbg.js",
@@ -211,12 +186,6 @@
 			"designtime": true
 		},
 		{
-			"name": "designtime/library.designtime.js.map",
-			"size": 167,
-			"isDebug": true,
-			"designtime": true
-		},
-		{
 			"name": "file-dbg.js",
 			"module": "library/h/file.js",
 			"size": 55,
@@ -228,11 +197,6 @@
 			"module": "library/h/file.js",
 			"size": 87,
 			"format": "raw"
-		},
-		{
-			"name": "file.js.map",
-			"size": 115,
-			"isDebug": true
 		},
 		{
 			"name": "i18n/messagebundle.properties",
@@ -262,11 +226,6 @@
 			"format": "raw"
 		},
 		{
-			"name": "library.js.map",
-			"size": 121,
-			"isDebug": true
-		},
-		{
 			"name": "manifest.json",
 			"module": "library/h/manifest.json",
 			"size": 614
@@ -285,13 +244,8 @@
 			"format": "raw"
 		},
 		{
-			"name": "not.js.map",
-			"size": 113,
-			"isDebug": true
-		},
-		{
 			"name": "resources.json",
-			"size": 6749
+			"size": 5873
 		},
 		{
 			"name": "some-dbg.js",
@@ -313,11 +267,6 @@
 			"included": [
 				"library/h/other.js"
 			]
-		},
-		{
-			"name": "some.js.map",
-			"size": 116,
-			"isDebug": true
 		}
 	]
 }

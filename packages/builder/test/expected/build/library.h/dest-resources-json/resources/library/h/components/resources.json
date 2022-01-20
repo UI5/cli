@@ -32,11 +32,6 @@
 			]
 		},
 		{
-			"name": "Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "TodoComponent-dbg.js",
 			"module": "library/h/components/TodoComponent.js",
 			"size": 55,
@@ -50,13 +45,8 @@
 			"format": "raw"
 		},
 		{
-			"name": "TodoComponent.js.map",
-			"size": 133,
-			"isDebug": true
-		},
-		{
 			"name": "resources.json",
-			"size": 3509
+			"size": 3088
 		},
 		{
 			"name": "subcomponent1/Component-dbg.js",
@@ -88,11 +78,6 @@
 			]
 		},
 		{
-			"name": "subcomponent1/Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "subcomponent2/Component-dbg.js",
 			"module": "library/h/components/subcomponent2/Component.js",
 			"size": 146,
@@ -122,11 +107,6 @@
 			]
 		},
 		{
-			"name": "subcomponent2/Component.js.map",
-			"size": 208,
-			"isDebug": true
-		},
-		{
 			"name": "subcomponent3/Component-dbg.js",
 			"module": "library/h/components/subcomponent3/Component.js",
 			"size": 146,
@@ -154,11 +134,6 @@
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
-		},
-		{
-			"name": "subcomponent3/Component.js.map",
-			"size": 208,
-			"isDebug": true
 		}
 	]
 }

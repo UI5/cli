@@ -15,7 +15,8 @@ test("integration: minify", async (t) => {
 		setTag: sinon.stub(),
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
-			IsDebugVariant: "2️⃣"
+			IsDebugVariant: "2️⃣",
+			OmitFromBuildResult: "3️⃣"
 		}
 	};
 	const reader = resourceFactory.createAdapter({
@@ -69,9 +70,11 @@ test();`;
 	}
 	t.deepEqual(await resSourceMap.getString(), expectedSourceMap, "Correct source map content");
 
-	t.is(taskUtil.setTag.callCount, 2, "taskUtil.setTag was called twice");
+	t.is(taskUtil.setTag.callCount, 3, "taskUtil.setTag was called 3 times");
 	t.deepEqual(taskUtil.setTag.getCall(0).args, [res, "1️⃣"], "First taskUtil.setTag call with expected arguments");
 	t.deepEqual(taskUtil.setTag.getCall(1).args, [resDbg, "2️⃣"],
 		"Second taskUtil.setTag call with expected arguments");
+	t.deepEqual(taskUtil.setTag.getCall(2).args, [resSourceMap, "3️⃣"],
+		"Third taskUtil.setTag call with expected arguments");
 });
 

@@ -99,7 +99,7 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
-		t.deepEqual(expectedFiles.length, 23, "23 files are expected");
+		t.deepEqual(expectedFiles.length, 17, "17 files are expected");
 		expectedFiles.forEach((expectedFile) => {
 			const relativeFile = path.relative(expectedPath, expectedFile);
 			const destFile = path.join(destPath, relativeFile);

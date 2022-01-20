@@ -1,1 +1,0 @@
-{"version":3,"sources":["test-dbg.js"],"names":["sap","ui","define","someObject","test","paramA","variableA","console","log"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CACV,kBACD,SAASC,GACX,SAASC,EAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}

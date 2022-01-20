@@ -47,11 +47,6 @@
 			]
 		},
 		{
-			"name": "Component.js.map",
-			"size": 253,
-			"isDebug": true
-		},
-		{
 			"name": "changes/coding/MyExtension-dbg.js",
 			"module": "application/j/changes/coding/MyExtension.js",
 			"size": 47,
@@ -61,11 +56,6 @@
 			"name": "changes/coding/MyExtension.js",
 			"module": "application/j/changes/coding/MyExtension.js",
 			"size": 79
-		},
-		{
-			"name": "changes/coding/MyExtension.js.map",
-			"size": 152,
-			"isDebug": true
 		},
 		{
 			"name": "changes/flexibility-bundle.json",
@@ -78,38 +68,6 @@
 			"size": 13
 		},
 		{
-			"name": "changes/id_111_appDescriptor.change",
-			"size": 464
-		},
-		{
-			"name": "changes/id_111_compVariants.variant",
-			"size": 466
-		},
-		{
-			"name": "changes/id_111_test.ctrl_variant",
-			"size": 432
-		},
-		{
-			"name": "changes/id_111_test.ctrl_variant_change",
-			"size": 439
-		},
-		{
-			"name": "changes/id_111_test.ctrl_variant_management_change",
-			"size": 450
-		},
-		{
-			"name": "changes/id_111_variantDependentControlChange.change",
-			"size": 489
-		},
-		{
-			"name": "changes/id_123_addField.change",
-			"size": 432
-		},
-		{
-			"name": "changes/id_456_addField.change",
-			"size": 430
-		},
-		{
 			"name": "fileWithoutExtension",
 			"size": 27
 		},
@@ -120,7 +78,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2704
+			"size": 1923
 		}
 	]
 }
