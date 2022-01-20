@@ -193,17 +193,16 @@ class ResourceCollector {
 	}
 
 	async determineResourceDetails({
-		debugResources, mergedResources, designtimeResources, supportResources, debugBundles
+		debugResources, mergedResources, designtimeResources, supportResources
 	}) {
 		const baseNames = new Set();
 		const debugFilter = new ResourceFilterList(debugResources);
 		const mergeFilter = new ResourceFilterList(mergedResources);
 		const designtimeFilter = new ResourceFilterList(designtimeResources);
 		const supportFilter = new ResourceFilterList(supportResources);
-		const debugBundleFilter = new ResourceFilterList(debugBundles);
 
 		const promises = [];
-		const nonBundledDebugResources = [];
+		const debugResourcesInfo = [];
 
 		for (const [name, info] of this._resources.entries()) {
 			if ( debugFilter.matches(name) ) {
@@ -231,13 +230,14 @@ class ResourceCollector {
 			}
 
 			if ( /(?:\.js|\.view\.xml|\.control\.xml|\.fragment\.xml)$/.test(name) ) {
-				if ( (!info.isDebug || debugBundleFilter.matches(name)) ) {
-					// Only analyze non-debug files and special debug bundles (like sap-ui-core-dbg.js)
+				if ( !info.isDebug ) {
+					// Only analyze non-dbg files in first run
 					promises.push(
 						this.enrichWithDependencyInfo(info)
 					);
 				} else {
-					nonBundledDebugResources.push(info);
+					// Collect dbg files to be handled in a second step (see below)
+					debugResourcesInfo.push(info);
 				}
 			}
 
@@ -279,19 +279,37 @@ class ResourceCollector {
 
 		await Promise.all(promises);
 
-		for (let i = nonBundledDebugResources.length - 1; i >= 0; i--) {
-			const dbgInfo = nonBundledDebugResources[i];
+		const debugBundlePromises = [];
+
+		for (let i = debugResourcesInfo.length - 1; i >= 0; i--) {
+			const dbgInfo = debugResourcesInfo[i];
 			const nonDebugName = ResourceInfoList.getNonDebugName(dbgInfo.name);
 			const nonDbgInfo = this._resources.get(nonDebugName);
-			const newDbgInfo = new ResourceInfo(dbgInfo.name);
 
-			// First copy info of analysis from non-dbg file (included, required, condRequired, ...)
-			newDbgInfo.copyFrom(null, nonDbgInfo);
-			// Then copy over info from dbg file to properly set name, isDebug, etc.
-			newDbgInfo.copyFrom(null, dbgInfo);
+			// FIXME: "merged" property is only calculated in ResourceInfo#copyFrom
+			// Therefore using the same logic here to compute it.
+			if (!nonDbgInfo || (nonDbgInfo.included != null && nonDbgInfo.included.size > 0)) {
+				// We need to analyze the dbg resource if there is no non-dbg variant or
+				// it is a bundle because we will (usually) have different content.
+				debugBundlePromises.push(
+					this.enrichWithDependencyInfo(dbgInfo)
+				);
+			} else {
+				// If the non-dbg resource is not a bundle, we can just copy over the info and skip
+				// analyzing the dbg variant as both should have the same info.
 
-			this._resources.set(dbgInfo.name, newDbgInfo);
+				const newDbgInfo = new ResourceInfo(dbgInfo.name);
+
+				// First copy info of analysis from non-dbg file (included, required, condRequired, ...)
+				newDbgInfo.copyFrom(null, nonDbgInfo);
+				// Then copy over info from dbg file to properly set name, isDebug, etc.
+				newDbgInfo.copyFrom(null, dbgInfo);
+
+				this._resources.set(dbgInfo.name, newDbgInfo);
+			}
 		}
+
+		await Promise.all(debugBundlePromises);
 	}
 
 	createOrphanFilters() {

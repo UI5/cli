@@ -67,17 +67,6 @@ const DEFAULT_SUPPORT_RESOURCES_FILTER = [
 ];
 
 /**
- * Hard coded debug bundle, to trigger separate analysis for this filename
- * because sap-ui-core.js and sap-ui-core-dbg.js have different includes
- *
- * @type {string[]}
- */
-const DEBUG_BUNDLES = [
-	"sap-ui-core-dbg.js",
-	"sap-ui-core-nojQuery-dbg.js"
-];
-
-/**
  * Creates and adds resources.json entry (itself) to the list.
  *
  * Retrieves the string content of the overall result and returns it.
@@ -138,8 +127,7 @@ module.exports = async function({resources, dependencyResources = [], options}) 
 		debugResources: DEFAULT_DEBUG_RESOURCES_FILTER,
 		mergedResources: DEFAULT_BUNDLE_RESOURCES_FILTER,
 		designtimeResources: DEFAULT_DESIGNTIME_RESOURCES_FILTER,
-		supportResources: DEFAULT_SUPPORT_RESOURCES_FILTER,
-		debugBundles: DEBUG_BUNDLES
+		supportResources: DEFAULT_SUPPORT_RESOURCES_FILTER
 	}, options);
 
 	const pool = new LocatorResourcePool();
@@ -158,12 +146,10 @@ module.exports = async function({resources, dependencyResources = [], options}) 
 	}
 
 	await collector.determineResourceDetails({
-		pool,
 		debugResources: options.debugResources,
 		mergedResources: options.mergedResources,
 		designtimeResources: options.designtimeResources,
-		supportResources: options.supportResources,
-		debugBundles: options.debugBundles
+		supportResources: options.supportResources
 	});
 
 	// group resources by components and create ResourceInfoLists
