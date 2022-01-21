@@ -98,7 +98,7 @@ test.serial("buildJsdoc", async (t) => {
 	const firstCallArgs = cpStub.getCall(0).args;
 	t.deepEqual(firstCallArgs[0], "node", "Spawn got called with correct process argument");
 	t.deepEqual(firstCallArgs[1], [
-		path.resolve(__dirname, "..", "..", "..", "..", "node_modules", "jsdoc", "jsdoc.js"),
+		require.resolve("jsdoc/jsdoc.js"),
 		"-c",
 		"/some/config/path/jsdoc-config.json",
 		"--verbose",
