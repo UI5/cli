@@ -1,10 +1,7 @@
 module.exports = {
 	"env": {
 		"node": true,
-		"es6": true
-	},
-	"parserOptions": {
-		"ecmaVersion": 8
+		"es2021": true
 	},
 	"extends": ["eslint:recommended", "google"],
 	"plugins": [
@@ -46,7 +43,11 @@ module.exports = {
 		"comma-dangle": "off",
 		"no-tabs": "off",
 		"valid-jsdoc": 0,
-		"jsdoc/check-examples": 2,
+		// jsdoc/check-examples is temporarily set to "warn" as the rule causes issues in our CI
+		// See: https://github.com/gajus/eslint-plugin-jsdoc/issues/508
+		// Starting with ESLint v8, it needs to be disabled as it currently can't be supported
+		// See: https://github.com/eslint/eslint/issues/14745
+		"jsdoc/check-examples": 0,
 		"jsdoc/check-param-names": 2,
 		"jsdoc/check-tag-names": 2,
 		"jsdoc/check-types": 2,
