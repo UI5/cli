@@ -40,4 +40,9 @@ sap.ui.define([
 		await Promise.resolve();
 	};
 
+	// chain expression
+	if (m1?.foo?.bar) {
+		sap.ui.require(["conditional/module4"]);
+	}
+
 });

@@ -493,6 +493,7 @@ test("ES6 Syntax", (t) => {
 			"conditional/module1.js",
 			"conditional/module2.js",
 			"conditional/module3.js",
+			"conditional/module4.js",
 			"static/module1.js",
 			"static/module2.js",
 			"static/module3.js",

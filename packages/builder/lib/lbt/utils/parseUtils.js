@@ -9,7 +9,7 @@ function parseJS(code, userOptions = {}) {
 	// allowed options and their defaults
 	const options = {
 		comment: false,
-		ecmaVersion: 2020,
+		ecmaVersion: 2021,
 		range: false,
 		sourceType: "script",
 	};

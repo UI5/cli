@@ -109,7 +109,7 @@
 		"cheerio": "1.0.0-rc.9",
 		"escape-unicode": "^0.2.0",
 		"escope": "^3.6.0",
-		"espree": "^6.2.1",
+		"espree": "^9.3.0",
 		"globby": "^11.1.0",
 		"graceful-fs": "^4.2.9",
 		"jsdoc": "^3.6.7",

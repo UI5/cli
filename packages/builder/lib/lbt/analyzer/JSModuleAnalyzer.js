@@ -64,6 +64,7 @@ const EnrichedVisitorKeys = (function() {
 		BreakStatement: [],
 		CallExpression: [], // special handling
 		CatchClause: ["param", "body"],
+		ChainExpression: [],
 		ClassBody: [],
 		ClassDeclaration: [],
 		ClassExpression: [],
@@ -125,8 +126,10 @@ const EnrichedVisitorKeys = (function() {
 		 * All properties in an object pattern are executed.
 		 */
 		ObjectPattern: [], // properties
+		// PrivateIdentifier: [], // will come with ES2022
 		Program: [],
 		Property: [],
+		// PropertyDefinition: [], // will come with ES2022
 		/*
 		 * argument of the rest element is always executed under the same condition as the rest element itself
 		 */
@@ -134,6 +137,7 @@ const EnrichedVisitorKeys = (function() {
 		ReturnStatement: [],
 		SequenceExpression: [],
 		SpreadElement: [], // the argument of the spread operator always needs to be evaluated - argument
+		// StaticBlock: [], // will come with ES2022
 		Super: [],
 		SwitchStatement: [],
 		SwitchCase: ["test", "consequent"], // test and consequent are executed only conditionally
@@ -174,6 +178,9 @@ const EnrichedVisitorKeys = (function() {
 		// Check if the visitor-key exists in the available Syntax because
 		// the list of visitor-keys does not match the available Syntax.
 		if (!Syntax[type]) {
+			// Deprecated / removed:
+			// ExperimentalRestProperty
+			// ExperimentalSpreadProperty
 			return;
 		}
 		// Ignore JSX visitor-keys because they aren't used.

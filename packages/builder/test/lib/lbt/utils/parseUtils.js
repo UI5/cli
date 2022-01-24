@@ -18,3 +18,9 @@ test("successful parse step", (t) => {
 	t.true(ast != null && typeof ast === "object");
 	t.is(ast.type, "Program");
 });
+
+test("successful parse step (ES2021 features)", (t) => {
+	const ast = parseJS("const x = 1_000_000_000;"); // numeric separators
+	t.true(ast != null && typeof ast === "object");
+	t.is(ast.type, "Program");
+});
