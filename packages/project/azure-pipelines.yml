@@ -8,24 +8,18 @@ trigger:
 
 strategy:
   matrix:
-    linux_node_10:
+    linux_node_lts_16:
       imageName: 'ubuntu-20.04'
-      node_version: 10.x
-    linux_node_lts_12:
-      imageName: 'ubuntu-20.04'
-      node_version: 12.x
-    linux_node_lts_14:
-      imageName: 'ubuntu-20.04'
-      node_version: 14.x
+      node_version: 16.x
     linux_node_latest:
       imageName: 'ubuntu-20.04'
-      node_version: 16.x
+      node_version: 17.x
     mac_node_latest:
-      imageName: 'macOS-10.15'
-      node_version: 16.x
+      imageName: 'macOS-11'
+      node_version: 17.x
     windows_node_latest:
-      imageName: 'windows-2019'
-      node_version: 16.x
+      imageName: 'windows-2022'
+      node_version: 17.x
 
 pool:
   vmImage: $(imageName)
