@@ -2,7 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.2...HEAD).
+
+<a name="v3.0.0-alpha.2"></a>
+## [v3.0.0-alpha.2] - 2022-01-25
+### Breaking Changes
+- Require Node.js >= 16.13.2 / npm >= 8 [`94029de`](https://github.com/SAP/ui5-fs/commit/94029deea4e85211fb8d84f7b213f1fd0c418240)
+
+### BREAKING CHANGE
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js v16.13.2 and npm v8 or higher are supported.
+
 
 <a name="v3.0.0-alpha.1"></a>
 ## [v3.0.0-alpha.1] - 2022-01-13
@@ -137,6 +148,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v3.0.0-alpha.2]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
 [v3.0.0-alpha.1]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
 [v3.0.0-alpha.0]: https://github.com/SAP/ui5-fs/compare/v2.0.6...v3.0.0-alpha.0
 [v2.0.6]: https://github.com/SAP/ui5-fs/compare/v2.0.5...v2.0.6
