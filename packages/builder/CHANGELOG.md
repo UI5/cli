@@ -2,7 +2,45 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.1...HEAD).
+
+<a name="v3.0.0-alpha.1"></a>
+## [v3.0.0-alpha.1] - 2022-01-25
+### Breaking Changes
+- Require Node.js >= 16.13.2 / npm >= 8 [`dbf6c06`](https://github.com/SAP/ui5-builder/commit/dbf6c0694693070f73e9f96edef90f094d5bf721)
+- **generateResourcesJson:** Make 'dependencies' parameter mandatory [`268dd16`](https://github.com/SAP/ui5-builder/commit/268dd16091c515ec0c922ea23af437d9aa8bf3ea)
+- **moduleBundler:** Always default to `optimize: true` ([#685](https://github.com/SAP/ui5-builder/issues/685)) [`de5837c`](https://github.com/SAP/ui5-builder/commit/de5837c43449ea61deae3b2f02f9973f3fa37992)
+
+### Bug Fixes
+- **Bundler:** Ensure reproducibility for bundles with multiple parts ([#689](https://github.com/SAP/ui5-builder/issues/689)) [`6f4588b`](https://github.com/SAP/ui5-builder/commit/6f4588b3eb687178e557ac4fb36481104f9681a0)
+- **generateResourcesJson:** Don't list resources omitted from build result [`9608c51`](https://github.com/SAP/ui5-builder/commit/9608c5177f86494ba689d2e799b4378fec9ed6fa)
+- **generateResourcesJson:** Analyze debug bundles ([#669](https://github.com/SAP/ui5-builder/issues/669)) [`f27513a`](https://github.com/SAP/ui5-builder/commit/f27513a259b30d39e260790781b6d435b4ab088b)
+
+### Features
+- Support ES2021 language features [`e749b6a`](https://github.com/SAP/ui5-builder/commit/e749b6ae0838f923b27dd0d7d34da2174c433f5f)
+- Add minify task and processor ([#666](https://github.com/SAP/ui5-builder/issues/666)) [`a3af604`](https://github.com/SAP/ui5-builder/commit/a3af604ff0a12fb9241dcd105cf0aec8d718a299)
+
+### BREAKING CHANGE
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js v16.13.2 and npm v8 or higher are supported.
+
+The following tasks have been removed:
+- createDebugFiles
+- uglify
+
+The following processors have been removed:
+- debugFileCreator
+- resourceCopier
+- uglifier
+
+As a replacement, the new 'minify' task and 'minifier' processor can be
+used.
+
+Note: The minify task is executed earlier, before the bundling
+process takes place. Existing 'beforeTask' and 'afterTask' configuration of
+custom tasks might need to be adapted to cater for this change.
+
 
 <a name="v3.0.0-alpha.0"></a>
 ## [v3.0.0-alpha.0] - 2021-12-14
@@ -639,6 +677,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
 [v3.0.0-alpha.0]: https://github.com/SAP/ui5-builder/compare/v2.11.2...v3.0.0-alpha.0
 [v2.11.2]: https://github.com/SAP/ui5-builder/compare/v2.11.1...v2.11.2
 [v2.11.1]: https://github.com/SAP/ui5-builder/compare/v2.11.0...v2.11.1
