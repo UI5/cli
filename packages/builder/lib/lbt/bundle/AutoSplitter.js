@@ -1,6 +1,5 @@
 "use strict";
 
-const terser = require("terser");
 const {pd} = require("pretty-data");
 
 const ModuleName = require("../utils/ModuleName");
@@ -8,7 +7,6 @@ const {SectionType} = require("./BundleDefinition");
 const escapePropertiesFile = require("../utils/escapePropertiesFile");
 const log = require("@ui5/logger").getLogger("lbt:bundle:AutoSplitter");
 
-const copyrightCommentsPattern = /copyright|\(c\)(?:[0-9]+|\s+[0-9A-za-z])|released under|license|\u00a9/i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 
 /**
@@ -112,6 +110,7 @@ class AutoSplitter {
 
 		resolvedModule.sections.forEach( (section) => {
 			let currentSection;
+			let sequence;
 			switch ( section.mode ) {
 			case SectionType.Provided:
 				// 'provided' sections are no longer needed in a fully resolved module
@@ -131,16 +130,20 @@ class AutoSplitter {
 				});
 				break;
 			case SectionType.Preload:
+				sequence = section.modules.slice();
+				// simple version: just sort alphabetically
+				sequence.sort();
+
 				// NODE_TODO: sort by copyright:
-				// sequence = section.modules.slice();
 				// jsBuilder.beforeWriteFunctionPreloadSection((List<ModuleName>) sequence);
+
 				currentSection = {
 					mode: SectionType.Preload,
 					filters: []
 				};
 				currentSection.name = section.name;
 				currentModule.sections.push( currentSection );
-				section.modules.forEach( (module) => {
+				sequence.forEach( (module) => {
 					const moduleSize = moduleSizes[module];
 					if ( part + 1 < numberOfParts && totalSize + moduleSize / 2 > partSize ) {
 						part++;
@@ -195,26 +198,9 @@ class AutoSplitter {
 			}
 
 			if ( /\.js$/.test(module) ) {
-				// console.log("determining compressed size for %s", module);
-				let fileContent = await resource.buffer();
-				if ( this.optimize ) {
-					// console.log("uglify %s start", module);
-					const result = await terser.minify({
-						[resource.name]: String(fileContent)
-					}, {
-						warnings: false, // TODO configure?
-						compress: false, // TODO configure?
-						output: {
-							comments: copyrightCommentsPattern,
-							wrap_func_args: false
-						}
-						// , outFileName: resource.name
-						// , outSourceMap: true
-					});
-					// console.log("uglify %s end", module);
-					fileContent = result.code;
-				}
-				// trace.debug("analyzed %s:%d%n", module, mw.getTargetLength());
+				// No optimize / minify step here as the input should be
+				// either already optimized or not, based on the bundle options
+				const fileContent = await resource.buffer();
 				return fileContent.length;
 			} else if ( /\.properties$/.test(module) ) {
 				/* NODE-TODO minimize *.properties
