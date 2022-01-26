@@ -88,7 +88,7 @@ class AbstractReader {
 	}
 
 	/**
-	 * Create a [Transform-Reader]{@link module:@ui5/fs.readers.Transform} from the current reader
+	 * Create a [Transformer-Reader]{@link module:@ui5/fs.readers.Transformer} from the current reader
 	 *
 	 * @public
 	 * @param {module:@ui5/fs.readers.Transformer~callback} callback
