@@ -46,6 +46,7 @@
 		"depcheck": "depcheck --ignores docdash,@ui5/fs"
 	},
 	"files": [
+		"CHANGELOG.md",
 		"CONTRIBUTING.md",
 		"index.js",
 		"jsdoc.json",
