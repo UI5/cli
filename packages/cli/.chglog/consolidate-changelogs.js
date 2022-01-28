@@ -4,7 +4,7 @@ const fs = require("fs");
 
 function handleDependencyBump(line) {
 	line = line.replace("[@ui5](https://github.com/ui5)", "@ui5");
-	const moduleMatch = line.match(/Bump (@ui5\/[^\s]+).*to ([0-9.]+)/);
+	const moduleMatch = line.match(/Bump (@ui5\/[^\s]+).*to ([^ ]+)/);
 	if (moduleMatch) {
 		const [, moduleName, moduleVersion] = moduleMatch;
 		const moduleDir = path.dirname(require.resolve(moduleName));
