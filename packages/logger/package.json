@@ -44,6 +44,7 @@
 	},
 	"files": [
 		"index.js",
+		"CHANGELOG.md",
 		"CONTRIBUTING.md",
 		"jsdoc.json",
 		"lib/**",
