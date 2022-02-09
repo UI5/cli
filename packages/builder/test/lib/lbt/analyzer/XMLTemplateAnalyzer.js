@@ -326,6 +326,26 @@ test("integration: Analysis of an xml fragment", async (t) => {
 		"Implicit dependency should be added since a fragment is analyzed");
 });
 
+test("integration: Analysis of an xml fragment with core:require", async (t) => {
+	const xml = `
+	<core:FragmentDefinition
+		xmlns:core="sap.ui.core"
+		core:require="{Toast:'sap/m/MessageToast'}">
+	</core:FragmentDefinition>`;
+
+	const moduleInfo = new ModuleInfo();
+
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
+	await analyzer.analyzeFragment(xml, moduleInfo);
+	t.deepEqual(moduleInfo.dependencies,
+		[
+			"sap/ui/core/Fragment.js",
+			"sap/m/MessageToast.js"
+		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/Fragment.js"),
+		"Implicit dependency should be added since an XML Fragment is analyzed");
+});
+
 test("integration: Analysis of an empty xml view", async (t) => {
 	const xml = "";
 

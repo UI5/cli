@@ -231,9 +231,10 @@ class XMLTemplateAnalyzer {
 			// looks like a UI5 library or package name
 			const moduleName = ModuleName.fromUI5LegacyName( (namespace ? namespace + "." : "") + localName );
 
+			this._analyzeCoreRequire(node);
+
 			// ignore FragmentDefinition (also skipped by runtime XMLTemplateProcessor)
 			if ( FRAGMENTDEFINITION_MODULE !== moduleName ) {
-				this._analyzeCoreRequire(node);
 				this.promises.push(this._analyzeModuleDependency(node, moduleName, this.conditional));
 			}
 		}
