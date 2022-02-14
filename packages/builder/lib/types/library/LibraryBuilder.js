@@ -28,7 +28,7 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					copyright: project.metadata.copyright,
-					pattern: "/resources/**/*.{js,library,less,theme}"
+					pattern: "/**/*.{js,library,css,less,theme,html}"
 				}
 			});
 		});
@@ -38,7 +38,7 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
-					pattern: "/resources/**/*.{js,json,library,less,theme}"
+					pattern: "/**/*.{js,json,library,less,theme,html}"
 				}
 			});
 		});
