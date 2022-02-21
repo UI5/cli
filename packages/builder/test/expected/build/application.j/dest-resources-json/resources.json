@@ -17,7 +17,7 @@
 		{
 			"name": "Component-preload.js",
 			"module": "application/j/Component-preload.js",
-			"size": 3730,
+			"size": 3731,
 			"merged": true,
 			"required": [
 				"sap/m/library.js",
@@ -79,7 +79,7 @@
 		{
 			"name": "manifest.json",
 			"module": "application/j/manifest.json",
-			"size": 423
+			"size": 424
 		},
 		{
 			"name": "resources.json",

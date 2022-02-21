@@ -1,5 +1,6 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
 const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler");
+const semver = require("semver");
 
 /**
  * Task to create changesBundle.json file containing all changes stored in the /changes folder for easier consumption
@@ -68,9 +69,9 @@ module.exports = async function({workspace, taskUtil, options: {namespace}}) {
 	const allResources = await workspace.byGlob(
 		`${pathPrefix}/changes/*.{change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`);
 	if (allResources.length > 0) {
-		const version = await readManifestMinUI5Version();
+		const version = semver.coerce(await readManifestMinUI5Version());
 		let hasFlexBundleVersion = false;
-		if (parseFloat(version) >= 1.73) {
+		if (semver.compare(version, "1.73.0") >= 0) {
 			hasFlexBundleVersion = true;
 		}
 		const processedResources = await flexChangesBundler({
