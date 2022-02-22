@@ -175,16 +175,24 @@ const EnrichedVisitorKeys = (function() {
 
 	// merge with 'official' visitor keys
 	Object.keys(VisitorKeys).forEach( (type) => {
-		// Check if the visitor-key exists in the available Syntax because
-		// the list of visitor-keys does not match the available Syntax.
-		if (!Syntax[type]) {
-			// Deprecated / removed:
-			// ExperimentalRestProperty
-			// ExperimentalSpreadProperty
+		// Ignore deprecated keys:
+		// - ExperimentalSpreadProperty => SpreadElement
+		// - ExperimentalRestProperty => RestElement
+		// They are about to be removed, see: https://github.com/eslint/eslint-visitor-keys/pull/36
+		if (type === "ExperimentalSpreadProperty" || type === "ExperimentalRestProperty") {
 			return;
 		}
 		// Ignore JSX visitor-keys because they aren't used.
 		if (type.startsWith("JSX")) {
+			return;
+		}
+
+		// Ignore new ES2022 syntax as we currently use ES2021 (see parseUtils.js)
+		if (
+			type === "PrivateIdentifier" ||
+			type === "PropertyDefinition" ||
+			type === "StaticBlock"
+		) {
 			return;
 		}
 
