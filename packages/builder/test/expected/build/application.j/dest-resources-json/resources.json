@@ -17,7 +17,7 @@
 		{
 			"name": "Component-preload.js",
 			"module": "application/j/Component-preload.js",
-			"size": 3760,
+			"size": 3730,
 			"merged": true,
 			"required": [
 				"sap/m/library.js",
@@ -35,9 +35,14 @@
 			]
 		},
 		{
+			"name": "Component-preload.js.map",
+			"size": 836,
+			"isDebug": true
+		},
+		{
 			"name": "Component.js",
 			"module": "application/j/Component.js",
-			"size": 179,
+			"size": 141,
 			"required": [
 				"sap/m/library.js",
 				"sap/ui/core/UIComponent.js",
@@ -55,7 +60,7 @@
 		{
 			"name": "changes/coding/MyExtension.js",
 			"module": "application/j/changes/coding/MyExtension.js",
-			"size": 79
+			"size": 39
 		},
 		{
 			"name": "changes/flexibility-bundle.json",
@@ -78,7 +83,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 1923
+			"size": 2006
 		}
 	]
 }

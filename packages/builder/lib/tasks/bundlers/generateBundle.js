@@ -25,8 +25,53 @@ module.exports = function({
 		readers: [workspace, dependencies]
 	});
 
+	const optimize = !bundleOptions || bundleOptions.optimize !== false;
 	if (taskUtil) {
-		const optimize = !bundleOptions || bundleOptions.optimize !== false;
+		/* Scenarios
+			1. Optimize bundle with minification already done
+				Workspace:
+					* /resources/my/lib/Control.js 				[ui5:HasDebugVariant]
+					* /resources/my/lib/Control.js.map 			[ui5:HasDebugVariant]
+					* /resources/my/lib/Control-dbg.js 			[ui5:IsDebugVariant]
+
+				Bundler input:
+					* /resources/my/lib/Control.js
+					* /resources/my/lib/Control.js.map
+
+				=> Filter out debug resources
+
+			2. Optimize bundle with no minification
+				* /resources/my/lib/Control.js
+
+				=> No action necessary
+
+			3. Debug-bundle with minification already done
+				Workspace:
+					* /resources/my/lib/Control.js 				[ui5:HasDebugVariant]
+					* /resources/my/lib/Control.js.map 			[ui5:HasDebugVariant]
+					* /resources/my/lib/Control-dbg.js 			[ui5:IsDebugVariant]
+
+				Bundler input:
+					* /resources/my/lib/Control-dbg.js
+					* moduleNameMapping: [{"/resources/my/lib/Control-dbg.js": "my/lib/Control.js"}]
+
+				=> Filter out minified-resources (tagged as "HasDebugVariant", incl. source maps) and rename debug-files
+
+			4. Debug-bundle with no minification
+				* /resources/my/lib/Control.js
+
+				=> No action necessary
+
+			5. Bundle with external input (optimize or not), e.g. TS-project
+				Workspace:
+					* /resources/my/lib/Control.ts
+					* /resources/my/lib/Control.js
+					* /resources/my/lib/Control.js.map
+
+				Bundler input:
+					* /resources/my/lib/Control.js
+					* /resources/my/lib/Control.js.map
+		*/
 
 		// Omit -dbg files for optimize bundles and vice versa
 		const filterTag = optimize ?
@@ -34,37 +79,50 @@ module.exports = function({
 		combo = combo.filter(function(resource) {
 			return !taskUtil.getTag(resource, filterTag);
 		});
-
-		if (!optimize) {
-			// For "unoptimized" bundles, the non-debug files have already been filtered out
-			// Now rename the debug variants to the same name so that they appear like the original
-			// resource to the bundler
-			combo = combo.transformer(async function(resourcePath, getResource) {
-				if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
-					const resource = await getResource();
-					const nonDbgPath = ModuleName.getNonDebugName(resource.getPath());
-					if (!nonDbgPath) {
-						throw new Error(`Failed to resolve non-debug name for ${resource.getPath()}`);
-					}
-					resource.setPath(nonDbgPath);
-				}
-			});
-		}
 	}
 
-	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}").then((resources) => {
+	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}").then((resources) => {
+		const moduleNameMapping = {};
+		if (!optimize && taskUtil) {
+			// For "unoptimized" bundles, the non-debug files have already been filtered out above.
+			// Now we need to create a mapping from the debug-variant resource path to the respective module name,
+			// which is basically the non-debug resource path, minus the "/resources/"" prefix.
+			// This mapping overwrites internal logic of the LocatorResourcePool which would otherwise determine
+			// the module name from the resource path, which would contain "-dbg" in this case. That would be
+			// incorrect since debug-variants should still keep the original module name.
+			for (let i = resources.length - 1; i >= 0; i--) {
+				const resourcePath = resources[i].getPath();
+				if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
+					const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
+					if (!nonDbgPath) {
+						throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);
+					}
+					moduleNameMapping[resourcePath] = nonDbgPath.slice("/resources/".length);
+				}
+			}
+		}
 		return moduleBundler({
 			options: {
 				bundleDefinition,
-				bundleOptions
+				bundleOptions,
+				moduleNameMapping
 			},
 			resources
 		}).then((bundles) => {
-			return Promise.all(bundles.map((bundle) => {
+			return Promise.all(bundles.map(({bundle, sourceMap}) => {
 				if (taskUtil) {
 					taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+					if (sourceMap) {
+						// Clear tag that might have been set by the minify task, in cases where
+						// the bundle name is identical to a source file
+						taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+					}
 				}
-				return workspace.write(bundle);
+				const writes = [workspace.write(bundle)];
+				if (sourceMap) {
+					writes.push(workspace.write(sourceMap));
+				}
+				return Promise.all(writes);
 			}));
 		});
 	});

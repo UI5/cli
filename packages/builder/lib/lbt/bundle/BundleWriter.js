@@ -11,6 +11,8 @@ const SPACES_OR_TABS_ONLY = /^[ \t]+$/;
  *
  * Most methods have been extracted from JSMergeWriter.
  *
+ * columnOffset and lineOffset are used for sourcemap merging as reference to where we are at a given point in time
+ *
  * @author Frank Weigel
  * @since 1.27.0
  * @private
@@ -18,6 +20,8 @@ const SPACES_OR_TABS_ONLY = /^[ \t]+$/;
 class BundleWriter {
 	constructor() {
 		this.buf = "";
+		this.lineOffset = 0;
+		this.columnOffset = 0;
 		this.segments = [];
 		this.currentSegment = null;
 		this.currentSourceIndex = 0;
@@ -28,6 +32,11 @@ class BundleWriter {
 		let writeBuf = "";
 		for ( let i = 0; i < str.length; i++ ) {
 			writeBuf += str[i];
+			if (str[i] != null && str[i].split) {
+				const strSplit = str[i].split(NL);
+				this.lineOffset += strSplit.length - 1;
+				this.columnOffset += strSplit[strSplit.length - 1].length;
+			}
 		}
 		if ( writeBuf.length >= 1 ) {
 			this.buf += writeBuf;
@@ -40,15 +49,23 @@ class BundleWriter {
 	writeln(...str) {
 		for ( let i = 0; i < str.length; i++ ) {
 			this.buf += str[i];
+			if (str[i] != null && str[i].split) {
+				const strSplit = str[i].split(NL);
+				this.lineOffset += strSplit.length - 1;
+			}
 		}
 		this.buf += NL;
 		this.endsWithNewLine = true;
+		this.lineOffset += 1;
+		this.columnOffset = 0;
 	}
 
 	ensureNewLine() {
 		if ( !this.endsWithNewLine ) {
 			this.buf += NL;
 			this.endsWithNewLine = true;
+			this.lineOffset += 1;
+			this.columnOffset = 0;
 		}
 	}
 

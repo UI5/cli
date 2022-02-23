@@ -48,12 +48,12 @@ test("integration: build application.b standalone", async (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
 
 		// Check for all file contents
-		t.deepEqual(expectedFiles.length, 11, "11 files are expected");
 		expectedFiles.forEach((expectedFile) => {
 			const relativeFile = path.relative(expectedPath, expectedFile);
 			const destFile = path.join(destPath, relativeFile);
 			assert.fileEqual(destFile, expectedFile, "Correct file content");
 		});
+		t.pass("No assertion exception");
 	});
 });
 

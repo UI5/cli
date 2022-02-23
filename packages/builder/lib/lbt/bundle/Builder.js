@@ -5,7 +5,7 @@
 const path = require("path");
 const {pd} = require("pretty-data");
 const {parseJS, Syntax} = require("../utils/parseUtils");
-// const MOZ_SourceMap = require("source-map");
+const {encode: encodeMappings, decode: decodeMappings} = require("sourcemap-codec");
 
 const {isMethodCall} = require("../utils/ASTUtils");
 const ModuleName = require("../utils/ModuleName");
@@ -18,6 +18,8 @@ const {SectionType} = require("./BundleDefinition");
 const BundleWriter = require("./BundleWriter");
 const log = require("@ui5/logger").getLogger("lbt:bundle:Builder");
 
+const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(.+)\s*$/;
+const httpPattern = /^https?:\/\//i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 
 const strReplacements = {
@@ -39,30 +41,30 @@ function isEmptyBundle(resolvedBundle) {
 }
 
 const UI5BundleFormat = {
-	beforePreloads(outW, section) {
-		outW.write(`jQuery.sap.registerPreloadedModules(`);
-		outW.writeln(`{`);
+	beforePreloads(section) {
+		let str = `jQuery.sap.registerPreloadedModules({\n`;
 		if ( section.name ) {
-			outW.writeln(`"name":"${section.name}",`);
+			str += `"name":"${section.name}",\n`;
 		}
-		outW.writeln(`"version":"2.0",`);
-		outW.writeln(`"modules":{`);
+		str += `"version":"2.0",\n`;
+		str += `"modules":{\n`;
+		return str;
 	},
 
-	afterPreloads(outW, section) {
-		outW.writeln(`}});`);
+	afterPreloads(section) {
+		return `}});\n`;
 	},
 
-	beforeBundleInfo(outW) {
-		outW.writeln("\"unsupported\"; /* 'bundleInfo' section mode not supported (requires ui5loader)");
+	beforeBundleInfo() {
+		return `"unsupported"; /* 'bundleInfo' section mode not supported (requires ui5loader)\n`;
 	},
 
-	afterBundleInfo(outW) {
-		outW.writeln("*/");
+	afterBundleInfo() {
+		return "*/\n";
 	},
 
-	requireSync(outW, moduleName) {
-		outW.writeln(`sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");`);
+	requireSync(moduleName) {
+		return `sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");\n`;
 	},
 
 	shouldDecorate(resolvedModule) {
@@ -71,28 +73,29 @@ const UI5BundleFormat = {
 };
 
 const EVOBundleFormat = {
-	beforePreloads(outW, section) {
-		outW.writeln(`sap.ui.require.preload({`);
+	beforePreloads(section) {
+		return `sap.ui.require.preload({\n`;
 	},
 
-	afterPreloads(outW, section) {
-		outW.write(`}`);
+	afterPreloads(section) {
+		let str = `}`;
 		if ( section.name ) {
-			outW.write(`,"${section.name}"`);
+			str += `,"${section.name}"`;
 		}
-		outW.writeln(`);`);
+		str += `);\n`;
+		return str;
 	},
 
-	beforeBundleInfo(outW) {
-		outW.writeln("sap.ui.loader.config({bundlesUI5:{");
+	beforeBundleInfo() {
+		return "sap.ui.loader.config({bundlesUI5:{\n";
 	},
 
-	afterBundleInfo(outW) {
-		outW.writeln("}});");
+	afterBundleInfo() {
+		return "}});\n";
 	},
 
-	requireSync(outW, moduleName) {
-		outW.writeln(`sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");`);
+	requireSync(moduleName) {
+		return `sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");\n`;
 	},
 
 	shouldDecorate(resolvedModule) {
@@ -146,6 +149,9 @@ class BundleBuilder {
 
 		this.options = options || {};
 		this.optimize = !!this.options.optimize;
+		if (this.options.sourceMap === undefined) {
+			this.options.sourceMap = true;
+		}
 
 		// when decorateBootstrapModule is set to false, we don't write the optimized flag
 		// and don't write the try catch wrapper
@@ -155,6 +161,15 @@ class BundleBuilder {
 		// TODO is the following condition ok or should the availability of jquery.sap.global.js be configurable?
 		this.jqglobalAvailable = !resolvedModule.containsGlobal;
 		this.openModule(resolvedModule.name);
+
+		this._sourceMap = {
+			version: 3,
+			file: path.posix.basename(resolvedModule.name),
+			sections: [],
+		};
+		this._bundleName = resolvedModule.name;
+		this._inlineContentCounter = 0;
+
 		let bundleInfos = [];
 		// create all sections in sequence
 		for ( const section of resolvedModule.sections ) {
@@ -183,6 +198,7 @@ class BundleBuilder {
 		return {
 			name: module.name,
 			content: this.outW.toString(),
+			sourceMap: this.options.sourceMap ? JSON.stringify(this._sourceMap) : null,
 			bundleInfo: bundleInfo
 		};
 	}
@@ -200,23 +216,36 @@ class BundleBuilder {
 		}
 	}
 
+	writeWithSourceMap(content) {
+		const transientSourceName =
+			`${path.posix.basename(this._bundleName)}?bundle-code-${this._inlineContentCounter++}`;
+		const sourceMap = createTransientSourceMap({
+			moduleName: transientSourceName,
+			moduleContent: content,
+			includeContent: true
+		});
+		this.addSourceMap(this._bundleName, sourceMap);
+		this.outW.write(content);
+		this.outW.ensureNewLine();
+	}
+
 	closeModule(resolvedModule) {
 		if ( resolvedModule.containsCore ) {
 			this.outW.ensureNewLine(); // for clarity and to avoid issues with single line comments
-			this.outW.writeln(`// as this module contains the Core, we ensure that the Core has been booted`);
-			this.outW.writeln(`sap.ui.getCore().boot && sap.ui.getCore().boot();`);
+			this.writeWithSourceMap(
+				`// as this module contains the Core, we ensure that the Core has been booted\n` +
+				`sap.ui.getCore().boot && sap.ui.getCore().boot();`);
 		}
 		if ( this.shouldDecorate && this.options.addTryCatchRestartWrapper ) {
 			this.outW.ensureNewLine(); // for clarity and to avoid issues with single line comments
-			this.outW.writeln(`} catch(oError) {`);
-			this.outW.writeln(`if (oError.name != "Restart") { throw oError; }`);
-			this.outW.writeln(`}`);
+			this.writeWithSourceMap(
+				`} catch(oError) {\n` +
+				`if (oError.name != "Restart") { throw oError; }\n` +
+				`}`);
 		}
-		/* NODE-TODO
-		if ( writeSourceMap && writeSourceMapAnnotation ) {
-			outW.ensureNewLine();
-			outW.write("//# sourceMappingURL=" + moduleName.getBaseName().replaceFirst("\\.js$", ".js.map"));
-		}*/
+		if (this.options.sourceMap) {
+			this.outW.writeln(`//# sourceMappingURL=${path.posix.basename(resolvedModule.name)}.map`);
+		}
 	}
 
 	addSection(section) {
@@ -258,31 +287,43 @@ class BundleBuilder {
 	// TODO check that there are only JS modules contained
 	async writeRaw(section) {
 		// write all modules in sequence
-		for ( const module of section.modules ) {
-			const resource = await this.pool.findResourceWithInfo(module);
+		for ( const moduleName of section.modules ) {
+			const resource = await this.pool.findResourceWithInfo(moduleName);
 			if ( resource != null ) {
-				this.outW.startSegment(module);
+				this.outW.startSegment(moduleName);
 				this.outW.ensureNewLine();
-				this.outW.writeln("//@ui5-bundle-raw-include " + module);
-				await this.writeRawModule(module, resource);
+				this.outW.writeln("//@ui5-bundle-raw-include " + moduleName);
+				await this.writeRawModule(moduleName, resource);
 				const compressedSize = this.outW.endSegment();
-				log.verbose("    %s (%d,%d)", module, resource.info != null ? resource.info.size : -1, compressedSize);
+				log.verbose("    %s (%d,%d)", moduleName,
+					resource.info != null ? resource.info.size : -1, compressedSize);
 				if ( section.declareRawModules ) {
-					this.missingRawDeclarations.push(module);
+					this.missingRawDeclarations.push(moduleName);
 				}
-				if ( module === UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL ) {
+				if ( moduleName === UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL ) {
 					this.jqglobalAvailable = true;
 				}
 			} else {
-				log.error("    couldn't find %s", module);
+				log.error("    couldn't find %s", moduleName);
 			}
 		}
 	}
 
-	async writeRawModule(module, resource) {
-		const fileContent = await resource.string();
+	async writeRawModule(moduleName, resource) {
 		this.outW.ensureNewLine();
-		this.outW.write(fileContent);
+		let moduleContent = (await resource.buffer()).toString();
+		if (this.options.sourceMap) {
+			let moduleSourceMap;
+			({moduleContent, moduleSourceMap} =
+				await this.getSourceMapForModule({
+					moduleName,
+					moduleContent,
+					resourcePath: resource.getPath()
+				}));
+			this.addSourceMap(moduleName, moduleSourceMap);
+		}
+		this.outW.write(moduleContent);
+		this.outW.ensureNewLine();
 	}
 
 	async writePreloadFunction(section) {
@@ -296,7 +337,7 @@ class BundleBuilder {
 
 		await this.rewriteAMDModules(sequence);
 		if ( sequence.length > 0 ) {
-			this.targetBundleFormat.beforePreloads(outW, section);
+			this.writeWithSourceMap(this.targetBundleFormat.beforePreloads(section));
 			let i = 0;
 			for ( const module of sequence ) {
 				const resource = await this.pool.findResourceWithInfo(module);
@@ -304,7 +345,7 @@ class BundleBuilder {
 					if ( i>0 ) {
 						outW.writeln(",");
 					}
-					this.beforeWritePreloadModule(module, resource.info, resource);
+					// this.beforeWritePreloadModule(module, resource.info, resource);
 					outW.write(`\t"${module.toString()}":`);
 					outW.startSegment(module);
 					await this.writePreloadModule(module, resource.info, resource);
@@ -320,7 +361,7 @@ class BundleBuilder {
 			if ( i > 0 ) {
 				outW.writeln();
 			}
-			this.targetBundleFormat.afterPreloads(outW, section);
+			outW.write(this.targetBundleFormat.afterPreloads(section));
 		}
 
 		// this.afterWriteFunctionPreloadSection();
@@ -331,32 +372,72 @@ class BundleBuilder {
 		sequence.sort();
 	}
 
+	addSourceMap(moduleName, map) {
+		if (!map) {
+			throw new Error("No source map provided");
+		}
+
+		if (map.mappings.startsWith(";")) {
+			// If first line is not already mapped (typical for comments or parentheses), add a mapping to
+			// make sure that dev-tools (especially Chrome's) don't choose the end of the preceding module
+			// when the user tries to set a breakpoint from the bundle file
+			map.mappings = "AAAA" + map.mappings;
+		}
+
+		map.sourceRoot = path.posix.relative(
+			path.posix.dirname(this._bundleName), path.posix.dirname(moduleName));
+
+		this._sourceMap.sections.push({
+			offset: {
+				line: this.outW.lineOffset,
+				column: this.outW.columnOffset
+			},
+			map
+		});
+	}
+
 	async rewriteAMDModules(sequence) {
 		if ( this.options.usePredefineCalls ) {
 			const outW = this.outW;
 
 			const remaining = [];
-			for ( const module of sequence ) {
-				if ( /\.js$/.test(module) ) {
-					// console.log("Processing " + module);
-					const resource = await this.pool.findResourceWithInfo(module);
-					let moduleContent = await resource.string();
-					moduleContent = rewriteDefine(this.targetBundleFormat, moduleContent, module);
-					if ( moduleContent ) {
-						outW.startSegment(module);
+			for ( const moduleName of sequence ) {
+				if ( /\.js$/.test(moduleName) ) {
+					// console.log("Processing " + moduleName);
+					const resource = await this.pool.findResourceWithInfo(moduleName);
+					let moduleContent = (await resource.buffer()).toString();
+					let moduleSourceMap;
+					if (this.options.sourceMap) {
+						({moduleContent, moduleSourceMap} =
+							await this.getSourceMapForModule({
+								moduleName,
+								moduleContent,
+								resourcePath: resource.getPath()
+							}));
+					}
+
+					const rewriteRes = await rewriteDefine({
+						moduleName, moduleContent, moduleSourceMap
+					});
+					if (rewriteRes) {
+						const {moduleContent, moduleSourceMap} = rewriteRes;
+						outW.startSegment(moduleName);
 						outW.ensureNewLine();
+						if (moduleSourceMap) {
+							this.addSourceMap(moduleName, moduleSourceMap);
+						}
 						outW.write(moduleContent);
 						outW.ensureNewLine();
 						const compressedSize = outW.endSegment();
-						log.verbose("    %s (%d,%d)", module,
+						log.verbose("    %s (%d,%d)", moduleName,
 							resource.info != null ? resource.info.size : -1, compressedSize);
 					} else {
 						// keep unprocessed modules
-						remaining.push(module);
+						remaining.push(moduleName);
 					}
 				} else {
 					// keep unprocessed modules
-					remaining.push(module);
+					remaining.push(moduleName);
 				}
 			}
 
@@ -372,42 +453,54 @@ class BundleBuilder {
 
 	/**
 	 *
-	 * @param {string} module module name
+	 * @param {string} moduleName module name
 	 * @param {ModuleInfo} info
 	 * @param {module:@ui5/fs.Resource} resource
 	 * @returns {Promise<boolean>}
 	 */
-	async writePreloadModule(module, info, resource) {
+	async writePreloadModule(moduleName, info, resource) {
 		const outW = this.outW;
 
-		if ( /\.js$/.test(module) && (info == null || !info.requiresTopLevelScope) ) {
-			const moduleContent = await resource.string();
-			outW.write(`function(){`);
+		if ( /\.js$/.test(moduleName) && (info == null || !info.requiresTopLevelScope) ) {
+			outW.writeln(`function(){`);
+			// The module should be written to a new line in order for dev-tools to map breakpoints to it
+			outW.ensureNewLine();
+			let moduleContent = (await resource.buffer()).toString();
+			if (this.options.sourceMap) {
+				let moduleSourceMap;
+				({moduleContent, moduleSourceMap} =
+					await this.getSourceMapForModule({
+						moduleName,
+						moduleContent,
+						resourcePath: resource.getPath()
+					}));
+
+				this.addSourceMap(moduleName, moduleSourceMap);
+			}
 			outW.write(moduleContent);
 			this.exportGlobalNames(info);
 			outW.ensureNewLine();
 			outW.write(`}`);
-		} else if ( /\.js$/.test(module) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
+		} else if ( /\.js$/.test(moduleName) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn("**** warning: module %s requires top level scope" +
-					" and can only be embedded as a string (requires 'eval')", module);
-			const moduleContent = await resource.buffer();
-			outW.write(makeStringLiteral(moduleContent));
-		} else if ( /\.html$/.test(module) ) {
-			const fileContent = await resource.buffer();
+					" and can only be embedded as a string (requires 'eval')", moduleName);
+			outW.write( makeStringLiteral( (await resource.buffer()).toString() ) );
+		} else if ( /\.html$/.test(moduleName) ) {
+			const fileContent = (await resource.buffer()).toString();
 			outW.write( makeStringLiteral( fileContent ) );
-		} else if ( /\.json$/.test(module) ) {
-			let fileContent = await resource.buffer();
+		} else if ( /\.json$/.test(moduleName) ) {
+			let fileContent = (await resource.buffer()).toString();
 			if ( this.optimize ) {
 				try {
 					fileContent = JSON.stringify( JSON.parse( fileContent) );
 				} catch (e) {
-					log.verbose("Failed to parse JSON file %s. Ignoring error, skipping compression.", module);
+					log.verbose("Failed to parse JSON file %s. Ignoring error, skipping compression.", moduleName);
 					log.verbose(e);
 				}
 			}
 			outW.write(makeStringLiteral(fileContent));
-		} else if ( /\.xml$/.test(module) ) {
-			let fileContent = await resource.string();
+		} else if ( /\.xml$/.test(moduleName) ) {
+			let fileContent = (await resource.buffer()).toString();
 			if ( this.optimize ) {
 				// For XML we use the pretty data
 				// Do not minify if XML(View) contains an <*:pre> tag,
@@ -417,14 +510,14 @@ class BundleBuilder {
 				}
 			}
 			outW.write( makeStringLiteral( fileContent ) );
-		} else if ( /\.properties$/.test(module) ) {
+		} else if ( /\.properties$/.test(moduleName) ) {
 			// Since the Builder is also used when building non-project resources (e.g. dependencies)
 			// *.properties files should be escaped if encoding option is specified
 			const fileContent = await escapePropertiesFile(resource);
 
 			outW.write( makeStringLiteral( fileContent ) );
 		} else {
-			log.error("don't know how to embed module " + module); // TODO throw?
+			log.error("don't know how to embed module " + moduleName); // TODO throw?
 		}
 
 		return true;
@@ -442,18 +535,19 @@ class BundleBuilder {
 		this.outW.ensureNewLine();
 		info.exposedGlobals.forEach( (globalName) => {
 			// Note: globalName can be assumed to be a valid identifier as it is used as variable name anyhow
-			this.outW.writeln(`this.${globalName}=${globalName};`);
+			this.writeWithSourceMap(`this.${globalName}=${globalName};\n`);
 		});
 	}
 
 	writeBundleInfos(sections) {
 		this.outW.ensureNewLine();
 
+		let bundleInfoStr = "";
 		if ( sections.length > 0 ) {
-			this.targetBundleFormat.beforeBundleInfo(this.outW);
+			bundleInfoStr = this.targetBundleFormat.beforeBundleInfo();
 			sections.forEach((section, idx) => {
 				if ( idx > 0 ) {
-					this.outW.writeln(",");
+					bundleInfoStr += ",\n";
 				}
 
 				if (!section.name) {
@@ -464,31 +558,116 @@ class BundleBuilder {
 						`The info might not work as expected. ` +
 						`The name must match the bundle filename (incl. extension such as '.js')`);
 				}
-				this.outW.write(`"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`);
+				bundleInfoStr += `"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`;
 			});
-			this.outW.writeln();
-			this.targetBundleFormat.afterBundleInfo(this.outW);
+			bundleInfoStr += "\n";
+			bundleInfoStr += this.targetBundleFormat.afterBundleInfo();
+
+			this.writeWithSourceMap(bundleInfoStr);
 		}
 	}
 
 	writeRequires(section) {
 		this.outW.ensureNewLine();
 		section.modules.forEach( (module) => {
-			this.targetBundleFormat.requireSync(this.outW, module);
+			this.writeWithSourceMap(this.targetBundleFormat.requireSync(module));
 		});
+	}
+
+	async getSourceMapForModule({moduleName, moduleContent, resourcePath}) {
+		let moduleSourceMap = null;
+		let newModuleContent = moduleContent;
+
+		const sourceMapUrlMatch = moduleContent.match(sourceMappingUrlPattern);
+		if (sourceMapUrlMatch) {
+			const sourceMapUrl = sourceMapUrlMatch[1];
+			log.verbose(`Found source map reference in content of module ${moduleName}: ${sourceMapUrl}`);
+
+			// Strip sourceMappingURL from module code to be bundled
+			// It has no effect and might be cause for confusion
+			newModuleContent = moduleContent.replace(sourceMappingUrlPattern, "");
+
+			if (sourceMapUrl) {
+				if (sourceMapUrl.startsWith("data:")) {
+					// Data-URI indicates an inline source map
+					const expectedTypeAndEncoding = "data:application/json;charset=utf-8;base64,";
+					if (sourceMapUrl.startsWith(expectedTypeAndEncoding)) {
+						const base64Content = sourceMapUrl.slice(expectedTypeAndEncoding.length);
+						moduleSourceMap = Buffer.from(base64Content, "base64").toString();
+					} else {
+						log.warn(
+							`Source map reference in module ${moduleName} is a data URI but has an unexpected` +
+							`encoding: ${sourceMapUrl}. Expected it to start with ` +
+							`"data:application/json;charset=utf-8;base64,"`);
+					}
+				} else if (httpPattern.test(sourceMapUrl)) {
+					log.warn(`Source map reference in module ${moduleName} is an absolute URL. ` +
+						`Currently, only relative URLs are supported.`);
+				} else if (path.posix.isAbsolute(sourceMapUrl)) {
+					log.warn(`Source map reference in module ${moduleName} is an absolute path. ` +
+						`Currently, only relative paths are supported.`);
+				} else {
+					const sourceMapPath = path.posix.join(path.posix.dirname(moduleName), sourceMapUrl);
+
+					try {
+						const sourceMapResource = await this.pool.findResource(sourceMapPath);
+						moduleSourceMap = (await sourceMapResource.buffer()).toString();
+					} catch (e) {
+						// No input source map
+						log.warn(`Unable to read source map for module ${moduleName}: ${e.message}`);
+					}
+				}
+			}
+		} else {
+			const sourceMapFileCandidate = resourcePath.slice("/resources/".length) + ".map";
+			log.verbose(`Could not find a sourceMappingURL reference in content of module ${moduleName}. ` +
+				`Attempting to find a source map resource based on the module's path: ${sourceMapFileCandidate}`);
+			try {
+				const sourceMapResource = await this.pool.findResource(sourceMapFileCandidate);
+				if (sourceMapResource) {
+					moduleSourceMap = (await sourceMapResource.buffer()).toString();
+				}
+			} catch (e) {
+				// No input source map
+				log.verbose(`Could not find a source map for module ${moduleName}: ${e.message}`);
+			}
+		}
+
+
+		if (moduleSourceMap) {
+			moduleSourceMap = JSON.parse(moduleSourceMap);
+		} else {
+			log.verbose(`No source map available for module ${moduleName}. Creating transient source map...`);
+			moduleSourceMap = createTransientSourceMap({
+				moduleName: path.posix.basename(resourcePath),
+				moduleContent
+			});
+		}
+
+		return {
+			moduleSourceMap,
+			moduleContent: newModuleContent
+		};
 	}
 }
 
 const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
 
-function rewriteDefine(targetBundleFormat, code, moduleName) {
+/*
+ * @param {object} parameters
+ * @param {string} parameters.moduleName
+ * @param {string} parameters.moduleContent
+ * @param {object} [parameters.moduleSourceMap]
+ * @returns {Promise<object|null>} Object containing <code>moduleContent</code> and
+ * 	<code>moduleSourceMap</code> (if one was provided) or <code>null</code> if no rewrite was applicable
+ */
+async function rewriteDefine({moduleName, moduleContent, moduleSourceMap}) {
 	let ast;
-	const codeStr = code.toString();
 	try {
-		ast = parseJS(codeStr, {range: true});
+		ast = parseJS(moduleContent, {range: true});
 	} catch (e) {
 		log.error("error while parsing %s: %s", moduleName, e.message);
-		return;
+		return {};
 	}
 
 	if ( ast.type === Syntax.Program &&
@@ -496,7 +675,6 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 			isMethodCall(ast.body[0].expression, CALL_SAP_UI_DEFINE) ) {
 		const changes = [];
 		const defineCall = ast.body[0].expression;
-
 
 		// Inject module name if missing
 		if ( defineCall.arguments.length == 0 ||
@@ -515,7 +693,6 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 
 			changes.push({
 				index,
-				count: 0,
 				value
 			});
 		}
@@ -527,29 +704,109 @@ function rewriteDefine(targetBundleFormat, code, moduleName) {
 			changes.push({
 				// asterisk marks the index: sap.ui.*define()
 				index: defineCall.callee.property.range[0],
-				count: 0,
 				value: "pre"
 			});
 		}
 
-		return applyChanges(codeStr, changes);
+		return transform(changes, moduleContent, moduleSourceMap);
 	}
 
-	return false;
+	return null;
 }
 
-function applyChanges(string, changes) {
-	// No sorting needed as changes are added in correct order
+/*
+ * @param {object[]} changes Changes that should be applied to the code
+ * @param {string} moduleContent Code to transform
+ * @param {object} [moduleSourceMap] Optional source map that should be aligned with the content change
+ * @returns {Promise<object>} Object containing <code>moduleContent</code> and
+ * 								<code>moduleSourceMap</code> (if one was provided)
+ */
+async function transform(changes, moduleContent, moduleSourceMap) {
+	const mappingChanges = [];
 
-	const array = Array.from(string);
+	const array = Array.from(moduleContent);
+	// No sorting needed as changes are added in correct (reverse) order
 	changes.forEach((change) => {
+		if (moduleSourceMap) {
+			// Compute line and column for given index to re-align source map with inserted characters
+			const precedingCode = array.slice(0, change.index);
+
+			const line = precedingCode.reduce((lineCount, char) => {
+				if (char === "\n") {
+					lineCount++;
+				}
+				return lineCount;
+			}, 0);
+			const lineStartIndex = precedingCode.lastIndexOf("\n") + 1;
+			const column = change.index - lineStartIndex;
+
+			// Source map re-alignment needs to be done from front to back
+			mappingChanges.unshift({
+				line,
+				column,
+				columnDiff: change.value.length
+			});
+		}
+
+		// Apply modification
 		array.splice(
 			change.index,
-			change.count,
+			0,
 			change.value
 		);
 	});
-	return array.join("");
+	const transformedCode = array.join("");
+
+	if (moduleSourceMap) {
+		const mappings = decodeMappings(moduleSourceMap.mappings);
+		mappingChanges.forEach((mappingChange) => {
+			const lineMapping = mappings[mappingChange.line];
+			if (!lineMapping) {
+				// No mapping available that could be transformed
+				return;
+			}
+			// Mapping structure:
+			// [generatedCodeColumn, sourceIndex, sourceCodeLine, sourceCodeColumn, nameIndex]
+			lineMapping.forEach((mapping) => {
+				if (mapping[0] > mappingChange.column) {
+					// All column mappings for the generated code after any change
+					// need to be moved by the amount of inserted characters
+					mapping[0] = mapping[0] + mappingChange.columnDiff;
+				}
+			});
+		});
+
+		moduleSourceMap.mappings = encodeMappings(mappings);
+
+		// No need for file information in source map since the bundled code does not exist in any file anyways
+		delete moduleSourceMap.file;
+	}
+
+	return {
+		moduleContent: transformedCode,
+		moduleSourceMap
+	};
+}
+
+function createTransientSourceMap({moduleName, moduleContent, includeContent = false}) {
+	const sourceMap = {
+		version: 3,
+		sources: [moduleName],
+		// TODO: check whether moduleContent.match() with \n is better w.r.t performance/memory usage
+		mappings: encodeMappings(moduleContent.split("\n").map((line, i) => {
+			return [[0, 0, i, 0]];
+		}))
+	};
+	if (includeContent) {
+		sourceMap.sourcesContent = [moduleContent];
+	}
+	return sourceMap;
 }
 
 module.exports = BundleBuilder;
+
+// Export local functions for testing only
+/* istanbul ignore else */
+if (process.env.NODE_ENV === "test") {
+	module.exports.__localFunctions__ = {rewriteDefine, createTransientSourceMap};
+}

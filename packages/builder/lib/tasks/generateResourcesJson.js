@@ -105,7 +105,7 @@ function getCreatorOptions(projectName) {
 module.exports = async function({workspace, dependencies, taskUtil, options: {projectName}}) {
 	let resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
 	let dependencyResources =
-			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library}");
+			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
 	if (taskUtil) {
 		// Filter out resources that will be omitted from the build results

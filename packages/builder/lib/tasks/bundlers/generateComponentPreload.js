@@ -41,7 +41,7 @@ module.exports = function({
 	}
 
 	// TODO 3.0: Limit to workspace resources?
-	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}")
+	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}")
 		.then(async (resources) => {
 			let allNamespaces = [];
 			if (paths) {
@@ -148,12 +148,19 @@ module.exports = function({
 				});
 			}));
 		})
-		.then((processedResources) => {
-			return Promise.all(processedResources.map((resource) => {
+		.then((results) => {
+			const bundles = Array.prototype.concat.apply([], results);
+			return Promise.all(bundles.map(({bundle, sourceMap}) => {
 				if (taskUtil) {
-					taskUtil.setTag(resource[0], taskUtil.STANDARD_TAGS.IsBundle);
+					taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+					// Clear tag that might have been set by the minify task, in cases where
+					// the bundle name is identical to a source file
+					taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 				}
-				return workspace.write(resource[0]);
+				return Promise.all([
+					workspace.write(bundle),
+					workspace.write(sourceMap)
+				]);
 			}));
 		});
 };

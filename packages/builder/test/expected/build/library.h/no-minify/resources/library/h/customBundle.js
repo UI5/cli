@@ -1,16 +1,19 @@
 //@ui5-bundle library/h/customBundle.js
 sap.ui.require.preload({
-	"library/h/file.js":function(){/*!
+	"library/h/file.js":function(){
+/*!
  * Some fancy copyright
  */
 console.log(' File ');
 },
-	"library/h/library.js":function(){/*!
+	"library/h/library.js":function(){
+/*!
  * Some fancy copyright
  */
 console.log(' Library ');
 },
-	"library/h/some.js":function(){/*!
+	"library/h/some.js":function(){
+/*!
  * Some fancy copyright
  */
 //@ui5-bundle-raw-include library/h/other.js
@@ -22,3 +25,4 @@ console.log(' Some ');
  * Some fancy copyright
  */
 console.log(' Not including ');
+//# sourceMappingURL=customBundle.js.map

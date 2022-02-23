@@ -1,6 +1,7 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
+const ModuleName = require("../../lbt/utils/ModuleName");
 
 function getBundleDefinition(config) {
 	const bundleDefinition = {
@@ -88,8 +89,7 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
 	}
-	const results = await combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library}");
-	const resources = Array.prototype.concat.apply([], results);
+	const resources = await combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
 	const isEvo = resources.find((resource) => {
 		return resource.getPath() === "/resources/ui5loader.js";
@@ -99,6 +99,35 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 		filters = ["ui5loader-autoconfig.js"];
 	} else {
 		filters = ["jquery.sap.global.js"];
+	}
+
+	const unoptimizedModuleNameMapping = {};
+	let unoptimizedResources = resources;
+	if (taskUtil) {
+		unoptimizedResources = await new ReaderCollectionPrioritized({
+			name: `generateStandaloneAppBundle - prioritize workspace over dependencies: ${projectName}`,
+			readers: [workspace, dependencies]
+		}).filter(function(resource) {
+			// Remove any non-debug variants
+			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+		}).byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
+
+		// For "unoptimized" bundles, the non-debug files have already been filtered out above.
+		// Now we need to create a mapping from the debug-variant resource path to the respective module name,
+		// which is basically the non-debug resource path, minus the "/resources/"" prefix.
+		// This mapping overwrites internal logic of the LocatorResourcePool which would otherwise determine
+		// the module name from the resource path, which would contain "-dbg" in this case. That would be
+		// incorrect since debug-variants should still keep the original module name.
+		for (let i = unoptimizedResources.length - 1; i >= 0; i--) {
+			const resourcePath = unoptimizedResources[i].getPath();
+			if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
+				const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
+				if (!nonDbgPath) {
+					throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);
+				}
+				unoptimizedModuleNameMapping[resourcePath] = nonDbgPath.slice("/resources/".length);
+			}
+		}
 	}
 
 	await Promise.all([
@@ -114,7 +143,7 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 			}
 		}),
 		moduleBundler({
-			resources,
+			resources: unoptimizedResources,
 			options: {
 				bundleDefinition: getBundleDefinition({
 					name: "sap-ui-custom-dbg.js",
@@ -123,16 +152,26 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 				}),
 				bundleOptions: {
 					optimize: false
-				}
+				},
+				moduleNameMapping: unoptimizedModuleNameMapping
 			}
 		})
 	]).then((results) => {
 		const bundles = Array.prototype.concat.apply([], results);
-		return Promise.all(bundles.map((resource) => {
+		return Promise.all(bundles.map(({bundle, sourceMap}) => {
 			if (taskUtil) {
-				taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.IsBundle);
+				taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+				if (sourceMap) {
+					// Clear tag that might have been set by the minify task, in cases where
+					// the bundle name is identical to a source file
+					taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+				}
 			}
-			return workspace.write(resource);
+			const writes = [workspace.write(bundle)];
+			if (sourceMap) {
+				writes.push(workspace.write(sourceMap));
+			}
+			return Promise.all(writes);
 		}));
 	});
 };

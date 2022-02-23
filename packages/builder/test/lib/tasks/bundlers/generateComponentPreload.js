@@ -26,7 +26,7 @@ test.beforeEach((t) => {
 		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub
 	});
 
-	t.context.moduleBundlerStub = sinon.stub().resolves([{"fake": "resource"}]);
+	t.context.moduleBundlerStub = sinon.stub().resolves([]);
 	mock("../../../../lib/processors/bundlers/moduleBundler", t.context.moduleBundlerStub);
 
 	t.context.generateComponentPreload = mock.reRequire("../../../../lib/tasks/bundlers/generateComponentPreload");
@@ -47,6 +47,14 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 		{"fake": "resource"}
 	];
 	comboByGlob.resolves(resources);
+
+	moduleBundlerStub.resolves([
+		{
+			name: "my/app/Component-preload.js",
+			bundle: {"fake": "bundle"},
+			sourceMap: {"fake": "sourceMap"}
+		}
+	]);
 
 	await generateComponentPreload({
 		workspace,
@@ -99,7 +107,7 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 
 	t.is(comboByGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library}"],
+	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
 
 	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
@@ -108,11 +116,15 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
-	t.is(workspace.write.callCount, 1,
-		"workspace.write should have been called once");
-	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0]],
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should have been called twice");
+	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0].bundle],
 		"workspace.write should have been called with expected args");
-	t.is(workspace.write.getCall(0).args[0], bundleResources[0],
+	t.is(workspace.write.getCall(0).args[0], bundleResources[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(1).args, [bundleResources[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
 		"workspace.write should have been called with exact resource returned by moduleBundler");
 });
 
@@ -126,6 +138,14 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 		{"fake": "resource"}
 	];
 	comboByGlob.resolves(resources);
+
+	moduleBundlerStub.resolves([
+		{
+			name: "my/app/Component-preload.js",
+			bundle: {"fake": "bundle"},
+			sourceMap: {"fake": "sourceMap"}
+		}
+	]);
 
 	await generateComponentPreload({
 		workspace,
@@ -184,7 +204,7 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 
 	t.is(comboByGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library}"],
+	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
 
 	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
@@ -193,11 +213,15 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
-	t.is(workspace.write.callCount, 1,
-		"workspace.write should have been called once");
-	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0]],
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should have been called twice");
+	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0].bundle],
 		"workspace.write should have been called with expected args");
-	t.is(workspace.write.getCall(0).args[0], bundleResources[0],
+	t.is(workspace.write.getCall(0).args[0], bundleResources[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(1).args, [bundleResources[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
 		"workspace.write should have been called with exact resource returned by moduleBundler");
 });
 
@@ -211,6 +235,14 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 		{"fake": "resource"}
 	];
 	comboByGlob.resolves(resources);
+
+	moduleBundlerStub.resolves([
+		{
+			name: "my/app/Component-preload.js",
+			bundle: {"fake": "bundle"},
+			sourceMap: {"fake": "sourceMap"}
+		}
+	]);
 
 	await generateComponentPreload({
 		workspace,
@@ -268,7 +300,7 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 
 	t.is(comboByGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library}"],
+	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
 
 	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
@@ -277,11 +309,15 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
-	t.is(workspace.write.callCount, 1,
-		"workspace.write should have been called once");
-	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0]],
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should have been called twice");
+	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0].bundle],
 		"workspace.write should have been called with expected args");
-	t.is(workspace.write.getCall(0).args[0], bundleResources[0],
+	t.is(workspace.write.getCall(0).args[0], bundleResources[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(1).args, [bundleResources[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
 		"workspace.write should have been called with exact resource returned by moduleBundler");
 });
 
@@ -295,6 +331,21 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 		{"fake": "resource"}
 	];
 	comboByGlob.resolves(resources);
+
+	moduleBundlerStub.onFirstCall().resolves([
+		{
+			name: "my/app1/Component-preload.js",
+			bundle: {"fake": "bundle1"},
+			sourceMap: {"fake": "sourceMap1"}
+		}
+	]);
+	moduleBundlerStub.onSecondCall().resolves([
+		{
+			name: "my/app2/Component-preload.js",
+			bundle: {"fake": "bundle2"},
+			sourceMap: {"fake": "sourceMap2"}
+		}
+	]);
 
 	await generateComponentPreload({
 		workspace,
@@ -400,7 +451,7 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 
 	t.is(comboByGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library}"],
+	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
 
 	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
@@ -408,17 +459,28 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
 		"ReaderCollectionPrioritized should have been called with 'new'");
 
-	const bundleResources1 = await moduleBundlerStub.getCall(0).returnValue;
-	const bundleResources2 = await moduleBundlerStub.getCall(1).returnValue;
-	t.is(workspace.write.callCount, 2,
-		"workspace.write should have been called twice");
-	t.deepEqual(workspace.write.getCall(0).args, [bundleResources1[0]],
+	const bundleObj1 = await moduleBundlerStub.getCall(0).returnValue;
+	const bundleObj2 = await moduleBundlerStub.getCall(1).returnValue;
+
+	t.is(workspace.write.callCount, 4,
+		"workspace.write should have been called 4 times (2x .js, 2x .js.map)");
+
+	t.deepEqual(workspace.write.getCall(0).args, [bundleObj1[0].bundle],
 		"workspace.write should have been called with expected args");
-	t.is(workspace.write.getCall(0).args[0], bundleResources1[0],
+	t.is(workspace.write.getCall(0).args[0], bundleObj1[0].bundle,
 		"workspace.write should have been called with exact resource returned by moduleBundler");
-	t.deepEqual(workspace.write.getCall(1).args, [bundleResources2[0]],
+	t.deepEqual(workspace.write.getCall(1).args, [bundleObj1[0].sourceMap],
 		"workspace.write should have been called with expected args");
-	t.is(workspace.write.getCall(1).args[0], bundleResources2[0],
+	t.is(workspace.write.getCall(1).args[0], bundleObj1[0].sourceMap,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+
+	t.deepEqual(workspace.write.getCall(2).args, [bundleObj2[0].bundle],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(2).args[0], bundleObj2[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(3).args, [bundleObj2[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(3).args[0], bundleObj2[0].sourceMap,
 		"workspace.write should have been called with exact resource returned by moduleBundler");
 });
 

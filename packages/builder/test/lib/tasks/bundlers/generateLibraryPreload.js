@@ -250,7 +250,8 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -341,7 +342,8 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -510,7 +512,8 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -601,7 +604,8 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -828,7 +832,8 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -919,7 +924,8 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);

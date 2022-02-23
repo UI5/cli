@@ -90,6 +90,8 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @public
  * @typedef {object} ModuleBundleOptions
  * @property {boolean} [optimize=true] Whether the module bundle gets minified
+ * @property {boolean} [sourceMap] Whether to generate a source map file for the bundle.
+ *   Defaults to true if <code>optimize</code> is set to true
  * @property {boolean} [decorateBootstrapModule=false] If set to 'false', the module won't be decorated
  *   with an optimization marker
  * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with
@@ -101,18 +103,30 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  */
 
 /**
- * Legacy preload bundler.
+ * Result set
+ *
+ * @public
+ * @typedef {object} ModuleBundlerResult
+ * @property {module:@ui5/fs.Resource} bundle Bundle resource
+ * @property {module:@ui5/fs.Resource} sourceMap Source Map
+ * @memberof module:@ui5/builder.processors
+ */
+
+/**
+ * Legacy module bundler.
  *
  * @public
  * @alias module:@ui5/builder.processors.moduleBundler
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources Resources
  * @param {object} parameters.options Options
+ * @param {object} [parameters.options.moduleNameMapping]
+ 				Optional mapping of resource paths to module name in order to overwrite the default determination
  * @param {ModuleBundleDefinition} parameters.options.bundleDefinition Module bundle definition
  * @param {ModuleBundleOptions} [parameters.options.bundleOptions] Module bundle options
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with module bundle resources
+ * @returns {Promise<module:@ui5/builder.processors.MinifierResult[]>} Promise resolving with module bundle resources
  */
-module.exports = function({resources, options: {bundleDefinition, bundleOptions}}) {
+module.exports = function({resources, options: {bundleDefinition, bundleOptions, moduleNameMapping}}) {
 	// Apply defaults without modifying the passed object
 	bundleOptions = Object.assign({}, {
 		optimize: true,
@@ -134,7 +148,7 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions}
 		log.verbose(`bundleOptions: ${JSON.stringify(bundleOptions, null, 2)}`);
 	}
 
-	return pool.prepare( resources ).
+	return pool.prepare( resources, moduleNameMapping ).
 		then( () => builder.createBundle(bundleDefinition, bundleOptions) ).
 		then( (results) => {
 			let bundles;
@@ -146,13 +160,20 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions}
 
 			return Promise.all(bundles.map((bundleObj) => {
 				if ( bundleObj ) {
-					const {name, content} = bundleObj;
+					const {name, content, sourceMap} = bundleObj;
 					// console.log("creating bundle as '%s'", "/resources/" + name);
-					const resource = new EvoResource({
+					const res = {};
+					res.bundle = new EvoResource({
 						path: "/resources/" + name,
 						string: content
 					});
-					return resource;
+					if (sourceMap) {
+						res.sourceMap = new EvoResource({
+							path: "/resources/" + name + ".map",
+							string: sourceMap
+						});
+					}
+					return res;
 				}
 			}));
 		});

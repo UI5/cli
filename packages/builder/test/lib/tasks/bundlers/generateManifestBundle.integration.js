@@ -53,7 +53,7 @@ test("integration: Build application.b with manifestBundler", (t) => {
 			const destFile = path.join(destBundle, relativeFile);
 			assert.fileEqual(destFile, expectedFile);
 		});
-		t.pass();
+		t.pass("No assertion exception");
 	});
 });
 

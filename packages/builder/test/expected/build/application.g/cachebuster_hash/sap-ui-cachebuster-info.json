@@ -1,15 +1,16 @@
 {
-  "Component.js": "174e92417f0fa7889c2bdb8a243c4d748d66a4da",
-  "subcomponentB/manifest.json": "3a08d0555e3e49fe683e01205090eed3182b4a9f",
-  "manifest.json": "a867583cff8c3a5135bfbdd97dcb7a9cad4948bd",
-  "subcomponentB/Component.js": "d2a467cc8d05c693b22dbef82c2bff4610611d81",
-  "subcomponentA/Component.js": "37e2d3c99ddf728313ceaddd087c6d547fcbdf8f",
+  "Component-dbg.js": "874c35543ae850262d1552b6c2d00cecaae205a7",
   "subcomponentA/manifest.json": "7dfcdf568dcfb47c74d309e2f00193688b112fb7",
-  "subcomponentB/Component-dbg.js": "c03da2c5ff162c1d9d5e5c4a3edc2cebcda6b0a1",
-  "subcomponentB/Component.js.map": "76cd9820f761dd43fe4b2a6f5397d09625603e0d",
+  "manifest.json": "a867583cff8c3a5135bfbdd97dcb7a9cad4948bd",
+  "subcomponentB/manifest.json": "3a08d0555e3e49fe683e01205090eed3182b4a9f",
+  "subcomponentA/Component.js": "37e2d3c99ddf728313ceaddd087c6d547fcbdf8f",
+  "Component.js": "174e92417f0fa7889c2bdb8a243c4d748d66a4da",
   "subcomponentA/Component-dbg.js": "fef3a5814776e5575302f814e96ae31a13df12b7",
   "subcomponentA/Component.js.map": "76cd9820f761dd43fe4b2a6f5397d09625603e0d",
-  "Component-dbg.js": "874c35543ae850262d1552b6c2d00cecaae205a7",
+  "subcomponentB/Component-dbg.js": "c03da2c5ff162c1d9d5e5c4a3edc2cebcda6b0a1",
+  "subcomponentB/Component.js.map": "76cd9820f761dd43fe4b2a6f5397d09625603e0d",
+  "subcomponentB/Component.js": "d2a467cc8d05c693b22dbef82c2bff4610611d81",
   "Component.js.map": "35e88e40f4933fe235a359361d7bd3459e6f5235",
-  "Component-preload.js": "d55d19cde640e716b1e03fe44d21436d5158db09"
+  "Component-preload.js": "5a4592408148af17538a1ee2c70c310931d2575c",
+  "Component-preload.js.map": "3b5d5de04ca05341ed50444277945dac240505f6"
 }

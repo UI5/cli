@@ -177,6 +177,8 @@ function createLibraryBundles(libraryNamespace, resources, excludes) {
 					ignoreMissingModules: true,
 					skipIfEmpty: true
 				}
+				// Note: Although the bundle uses optimize=false, there is
+				// no moduleNameMapping needed, as support files are excluded from minification.
 			},
 			resources
 		})
@@ -210,6 +212,10 @@ function getModuleBundlerOptions(config) {
 
 	if (config.provided) {
 		moduleBundlerOptions.bundleDefinition.sections.unshift(providedSection);
+	}
+
+	if (config.moduleNameMapping) {
+		moduleBundlerOptions.moduleNameMapping = config.moduleNameMapping;
 	}
 
 	return moduleBundlerOptions;
@@ -285,7 +291,7 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 		});
 	}
 
-	return combo.byGlob("/**/*.{js,json,xml,html,properties,library}").then(async (resources) => {
+	return combo.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}").then(async (resources) => {
 		// Find all libraries and create a library-preload.js bundle
 
 		let p = Promise.resolve();
@@ -305,6 +311,7 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					return resource.getPath() === "/resources/ui5loader.js";
 				});
 
+				const unoptimizedModuleNameMapping = {};
 				let unoptimizedResources = resources;
 				if (taskUtil) {
 					unoptimizedResources = await new ReaderCollectionPrioritized({
@@ -313,16 +320,24 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					}).filter(function(resource) {
 						// Remove any non-debug variants
 						return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-					}).transformer(async function(resourcePath, getResource) {
+					}).byGlob("/**/*.{js,json,xml,html,properties,library,js.map}");
+
+					// For "unoptimized" bundles, the non-debug files have already been filtered out above.
+					// Now we need to create a mapping from the debug-variant resource path to the respective module
+					// name, which is basically the non-debug resource path, minus the "/resources/"" prefix.
+					// This mapping overwrites internal logic of the LocatorResourcePool which would otherwise determine
+					// the module name from the resource path, which would contain "-dbg" in this case. That would be
+					// incorrect since debug-variants should still keep the original module name.
+					for (let i = unoptimizedResources.length - 1; i >= 0; i--) {
+						const resourcePath = unoptimizedResources[i].getPath();
 						if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
-							const resource = await getResource();
-							const nonDbgPath = ModuleName.getNonDebugName(resource.getPath());
+							const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
 							if (!nonDbgPath) {
-								throw new Error(`Failed to resolve non-debug name for ${resource.getPath()}`);
+								throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);
 							}
-							resource.setPath(nonDbgPath);
+							unoptimizedModuleNameMapping[resourcePath] = nonDbgPath.slice("/resources/".length);
 						}
-					}).byGlob("/**/*.{js,json,xml,html,properties,library}");
+					}
 				}
 
 				let filters;
@@ -337,7 +352,10 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 						resources
 					}),
 					moduleBundler({
-						options: getModuleBundlerOptions({name: "sap-ui-core-dbg.js", filters, preload: false}),
+						options: getModuleBundlerOptions({
+							name: "sap-ui-core-dbg.js", filters, preload: false,
+							moduleNameMapping: unoptimizedModuleNameMapping
+						}),
 						resources: unoptimizedResources
 					}),
 					moduleBundler({
@@ -348,17 +366,27 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 					}),
 					moduleBundler({
 						options: getModuleBundlerOptions({
-							name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true
+							name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true,
+							moduleNameMapping: unoptimizedModuleNameMapping
 						}),
 						resources: unoptimizedResources
 					}),
 				]).then((results) => {
 					const bundles = Array.prototype.concat.apply([], results);
-					return Promise.all(bundles.map((bundle) => {
+					return Promise.all(bundles.map(({bundle, sourceMap}) => {
 						if (taskUtil) {
 							taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+							if (sourceMap) {
+								// Clear tag that might have been set by the minify task, in cases where
+								// the bundle name is identical to a source file
+								taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+							}
 						}
-						return workspace.write(bundle);
+						const writes = [workspace.write(bundle)];
+						if (sourceMap) {
+							writes.push(workspace.write(sourceMap));
+						}
+						return Promise.all(writes);
 					}));
 				});
 			}
@@ -396,12 +424,22 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 						return createLibraryBundles(libraryNamespace, resources, excludes)
 							.then((results) => {
 								const bundles = Array.prototype.concat.apply([], results);
-								return Promise.all(bundles.map((bundle) => {
+								return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
 									if (bundle) {
 										if (taskUtil) {
 											taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+											if (sourceMap) {
+												// Clear tag that might have been set by the minify task, in cases where
+												// the bundle name is identical to a source file
+												taskUtil.clearTag(sourceMap,
+													taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+											}
 										}
-										return workspace.write(bundle);
+										const writes = [workspace.write(bundle)];
+										if (sourceMap) {
+											writes.push(workspace.write(sourceMap));
+										}
+										return Promise.all(writes);
 									}
 								}));
 							});

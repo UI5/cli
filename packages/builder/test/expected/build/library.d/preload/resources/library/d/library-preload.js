@@ -2,7 +2,8 @@
 jQuery.sap.registerPreloadedModules({
 "version":"2.0",
 "modules":{
-	"library/d/some.js":function(){/*!
+	"library/d/some.js":function(){
+/*!
  * ${copyright}
  */
 (function() {
@@ -11,3 +12,4 @@ jQuery.sap.registerPreloadedModules({
 })();
 }
 }});
+//# sourceMappingURL=library-preload.js.map

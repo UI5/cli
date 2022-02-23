@@ -901,7 +901,7 @@ test.serial("Build library.ø", (t) => {
 });
 
 test.serial("Build library.coreBuildtime: replaceBuildtime", (t) => {
-	const destPath = path.join("test", "tmp", "build", "library.coreBuildtime", "dest");
+	const destPath = path.join("test", "tmp", "build", "sap.ui.core-buildtime", "dest");
 	const expectedPath = path.join("test", "expected", "build", "sap.ui.core-buildtime", "dest");
 
 	const dateStubs = [

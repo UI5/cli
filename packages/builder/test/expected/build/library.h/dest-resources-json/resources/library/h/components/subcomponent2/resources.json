@@ -13,7 +13,7 @@
 		{
 			"name": "Component-preload.js",
 			"module": "library/h/components/subcomponent2/Component-preload.js",
-			"size": 317,
+			"size": 326,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -23,16 +23,21 @@
 			]
 		},
 		{
+			"name": "Component-preload.js.map",
+			"size": 509,
+			"isDebug": true
+		},
+		{
 			"name": "Component.js",
 			"module": "library/h/components/subcomponent2/Component.js",
-			"size": 153,
+			"size": 115,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
 		},
 		{
 			"name": "resources.json",
-			"size": 745
+			"size": 828
 		}
 	]
 }

@@ -1,9 +1,0 @@
----
-specVersion: "2.0"
-type: application
-metadata:
-  name: application.ø
-resources:
-  configuration:
-    paths:
-      webapp: wêbäpp
