@@ -6,6 +6,22 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
+// Node.js itself tries to parse sourceMappingURLs in all JavaScript files. This is unwanted and might even lead to
+// obscure errors when dynamically generating Data-URI soruceMappingURL values.
+// Therefore use this constant to never write the actual string.
+const SOURCE_MAPPING_URL = "//" + "# sourceMappingURL";
+
+function createWorkspace() {
+	const reader = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const writer = resourceFactory.createAdapter({
+		virBasePath: "/"
+	});
+	const workspace = new DuplexCollection({reader: reader, writer: writer});
+	return {reader, writer, workspace};
+}
+
 test.afterEach.always((t) => {
 	sinon.restore();
 });
@@ -19,13 +35,7 @@ test("integration: minify", async (t) => {
 			OmitFromBuildResult: "3️⃣"
 		}
 	};
-	const reader = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const writer = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const duplexCollection = new DuplexCollection({reader: reader, writer: writer});
+	const {reader, writer, workspace} = createWorkspace();
 	const content = `
 function test(paramA) {
 	var variableA = paramA;
@@ -39,7 +49,7 @@ test();`;
 	await reader.write(testResource);
 
 	await minify({
-		workspace: duplexCollection,
+		workspace,
 		taskUtil,
 		options: {
 			pattern: "/test.js"
@@ -88,13 +98,7 @@ test("integration: minify omitSourceMapResources=false", async (t) => {
 			OmitFromBuildResult: "3️⃣"
 		}
 	};
-	const reader = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const writer = resourceFactory.createAdapter({
-		virBasePath: "/"
-	});
-	const duplexCollection = new DuplexCollection({reader: reader, writer: writer});
+	const {reader, writer, workspace} = createWorkspace();
 	const content = `
 function test(paramA) {
 	var variableA = paramA;
@@ -108,7 +112,7 @@ test();`;
 	await reader.write(testResource);
 
 	await minify({
-		workspace: duplexCollection,
+		workspace,
 		taskUtil,
 		options: {
 			pattern: "/test.js",
@@ -117,7 +121,7 @@ test();`;
 	});
 
 	const expected = `function test(t){var o=t;console.log(o)}test();
-//# sourceMappingURL=test.js.map`;
+${SOURCE_MAPPING_URL}=test.js.map`;
 	const res = await writer.byPath("/test.js");
 	if (!res) {
 		t.fail("Could not find /test.js in target locator");
@@ -148,3 +152,94 @@ test();`;
 		"Third taskUtil.setTag call with expected arguments");
 });
 
+test("integration: minify (without taskUtil)", async (t) => {
+	const {reader, writer, workspace} = createWorkspace();
+	const content = `
+function test(paramA) {
+	var variableA = paramA;
+	console.log(variableA);
+}
+test();`;
+	const testResource = resourceFactory.createResource({
+		path: "/test.js",
+		string: content
+	});
+	await reader.write(testResource);
+
+	await minify({
+		workspace,
+		options: {
+			pattern: "/test.js"
+		}
+	});
+
+	const expected = `function test(t){var o=t;console.log(o)}test();`;
+	const res = await writer.byPath("/test.js");
+	if (!res) {
+		t.fail("Could not find /test.js in target locator");
+	}
+	t.deepEqual(await res.getString(), expected, "Correct file content");
+
+	const resDbg = await writer.byPath("/test-dbg.js");
+	if (!resDbg) {
+		t.fail("Could not find /test-dbg.js in target locator");
+	}
+	t.deepEqual(await resDbg.getString(), content, "Correct debug-file content");
+
+	const expectedSourceMap =
+		`{"version":3,"sources":["test-dbg.js"],"names":["test","paramA","variableA","console","log"],` +
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}`;
+
+	const resSourceMap = await writer.byPath("/test.js.map");
+	if (!resSourceMap) {
+		t.fail("Could not find /test-dbg.js.map in target locator");
+	}
+	t.deepEqual(await resSourceMap.getString(), expectedSourceMap, "Correct source map content");
+});
+
+test("integration: minify omitSourceMapResources=false (without taskUtil)", async (t) => {
+	const {reader, writer, workspace} = createWorkspace();
+	const content = `
+function test(paramA) {
+	var variableA = paramA;
+	console.log(variableA);
+}
+test();`;
+	const testResource = resourceFactory.createResource({
+		path: "/test.js",
+		string: content
+	});
+	await reader.write(testResource);
+
+	await minify({
+		workspace,
+		options: {
+			pattern: "/test.js",
+			omitSourceMapResources: false
+		}
+	});
+
+	const expected = `function test(t){var o=t;console.log(o)}test();
+${SOURCE_MAPPING_URL}=test.js.map`;
+	const res = await writer.byPath("/test.js");
+	if (!res) {
+		t.fail("Could not find /test.js in target locator");
+	}
+	t.deepEqual(await res.getString(), expected, "Correct file content");
+
+	const resDbg = await writer.byPath("/test-dbg.js");
+	if (!resDbg) {
+		t.fail("Could not find /test-dbg.js in target locator");
+	}
+	t.deepEqual(await resDbg.getString(), content, "Correct debug-file content");
+
+	const expectedSourceMap =
+		`{"version":3,"sources":["test-dbg.js"],"names":["test","paramA","variableA","console","log"],` +
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}`;
+
+	const resSourceMap = await writer.byPath("/test.js.map");
+	if (!resSourceMap) {
+		t.fail("Could not find /test-dbg.js.map in target locator");
+	}
+	t.deepEqual(await resSourceMap.getString(), expectedSourceMap, "Correct source map content");
+});
