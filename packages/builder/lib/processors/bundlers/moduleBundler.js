@@ -124,7 +124,8 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  				Optional mapping of resource paths to module name in order to overwrite the default determination
  * @param {ModuleBundleDefinition} parameters.options.bundleDefinition Module bundle definition
  * @param {ModuleBundleOptions} [parameters.options.bundleOptions] Module bundle options
- * @returns {Promise<module:@ui5/builder.processors.MinifierResult[]>} Promise resolving with module bundle resources
+ * @returns {Promise<module:@ui5/builder.processors.ModuleBundlerResult[]>}
+ * Promise resolving with module bundle resources
  */
 module.exports = function({resources, options: {bundleDefinition, bundleOptions, moduleNameMapping}}) {
 	// Apply defaults without modifying the passed object
