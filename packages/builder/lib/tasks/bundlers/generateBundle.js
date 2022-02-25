@@ -21,7 +21,7 @@ module.exports = function({
 	workspace, dependencies, taskUtil, options: {projectName, bundleDefinition, bundleOptions}
 }) {
 	let combo = new ReaderCollectionPrioritized({
-		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
+		name: `generateBundle - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 
