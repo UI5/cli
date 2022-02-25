@@ -90,8 +90,7 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @public
  * @typedef {object} ModuleBundleOptions
  * @property {boolean} [optimize=true] Whether the module bundle gets minified
- * @property {boolean} [sourceMap] Whether to generate a source map file for the bundle.
- *   Defaults to true if <code>optimize</code> is set to true
+ * @property {boolean} [sourceMap=true] Whether to generate a source map file for the bundle
  * @property {boolean} [decorateBootstrapModule=false] If set to 'false', the module won't be decorated
  *   with an optimization marker
  * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with
@@ -131,6 +130,7 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions,
 	// Apply defaults without modifying the passed object
 	bundleOptions = Object.assign({}, {
 		optimize: true,
+		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
 		usePredefineCalls: false,

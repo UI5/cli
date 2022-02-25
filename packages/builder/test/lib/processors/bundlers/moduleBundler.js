@@ -98,6 +98,7 @@ test.serial("Builder returns single bundle", async (t) => {
 	t.deepEqual(builder.createBundle.getCall(0).args[1], {
 		// default bundleOptions
 		optimize: true,
+		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
 		usePredefineCalls: false,
@@ -209,6 +210,7 @@ test.serial("Builder returns multiple bundles", async (t) => {
 	t.deepEqual(builder.createBundle.getCall(0).args[1], {
 		// default bundleOptions
 		optimize: true,
+		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
 		usePredefineCalls: false,
@@ -297,6 +299,7 @@ test.serial("bundleOptions default (no options passed)", async (t) => {
 	t.deepEqual(builder.createBundle.getCall(0).args[1], {
 		// default bundleOptions
 		optimize: true,
+		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
 		usePredefineCalls: false,
@@ -361,6 +364,7 @@ test.serial("bundleOptions default (empty options passed)", async (t) => {
 	t.deepEqual(builder.createBundle.getCall(0).args[1], {
 		// default bundleOptions
 		optimize: true,
+		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
 		usePredefineCalls: false,
@@ -383,6 +387,7 @@ test.serial("bundleOptions (all options passed)", async (t) => {
 	};
 	const bundleOptions = {
 		optimize: false,
+		sourceMap: false,
 		decorateBootstrapModule: true,
 		addTryCatchRestartWrapper: true,
 		usePredefineCalls: true,
@@ -440,6 +445,7 @@ test.serial("Passes ignoreMissingModules bundleOption to LocatorResourcePool", a
 	const effectiveBundleOptions = {
 		// Defaults
 		"optimize": true,
+		"sourceMap": true,
 		"decorateBootstrapModule": false,
 		"addTryCatchRestartWrapper": false,
 		"usePredefineCalls": false,
@@ -527,6 +533,7 @@ test.serial("Verbose Logging", async (t) => {
 	const effectiveBundleOptions = {
 		// Defaults
 		"optimize": true,
+		"sourceMap": true,
 		"decorateBootstrapModule": false,
 		"addTryCatchRestartWrapper": false,
 		"usePredefineCalls": false,
