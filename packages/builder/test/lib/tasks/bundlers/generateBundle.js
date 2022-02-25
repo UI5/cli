@@ -1,6 +1,7 @@
 const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
+const ModuleName = require("../../../../lib/lbt/utils/ModuleName");
 
 test.beforeEach((t) => {
 	t.context.log = {
@@ -524,4 +525,45 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 
 	t.is(workspace.write.callCount, 0,
 		"workspace.write should have been called once");
+});
+
+test.serial("generateBundle: Throws error when non-debug name can't be resolved", async (t) => {
+	const {
+		generateBundle, moduleBundlerStub,
+		workspace, dependencies, combo,
+		taskUtil
+	} = t.context;
+
+	const resources = [
+		{
+			getPath: sinon.stub().returns("/resources/my/app/module.js")
+		}
+	];
+
+	const filteredCombo = {
+		byGlob: sinon.stub().resolves(resources)
+	};
+	combo.filter.returns(filteredCombo);
+
+	moduleBundlerStub.resolves([undefined]);
+
+	// bundleDefinition can be empty here as the moduleBundler is mocked
+	const bundleDefinition = {};
+	const bundleOptions = {optimize: false};
+
+	taskUtil.getTag.returns(true);
+	sinon.stub(ModuleName, "getNonDebugName").returns(false);
+
+	await t.throwsAsync(generateBundle({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {
+			projectName: "Test Application",
+			bundleDefinition,
+			bundleOptions
+		}
+	}), {
+		message: "Failed to resolve non-debug name for /resources/my/app/module.js"
+	});
 });
