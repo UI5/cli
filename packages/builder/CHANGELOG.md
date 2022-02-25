@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.2...HEAD).
+
+<a name="v3.0.0-alpha.2"></a>
+## [v3.0.0-alpha.2] - 2022-02-21
+### Bug Fixes
+- **XMLTemplateAnalyzer:** Analyze core:require of FragmentDefinition [`af075ed`](https://github.com/SAP/ui5-builder/commit/af075edf784d9f1ba162a34f0bf150dbcbc0f479)
+
+### Features
+- Generate source maps for bundles ([#695](https://github.com/SAP/ui5-builder/issues/695)) [`8a20c42`](https://github.com/SAP/ui5-builder/commit/8a20c4257a1ebe4d613b0595be93cd45d900f580)
+- **replaceVersion/Copyright:** Also process test-resources ([#693](https://github.com/SAP/ui5-builder/issues/693)) [`a0d4bc2`](https://github.com/SAP/ui5-builder/commit/a0d4bc2a80d61e042786207af4bdbda6c3ddfe31)
+
 
 <a name="v3.0.0-alpha.1"></a>
 ## [v3.0.0-alpha.1] - 2022-01-25
@@ -677,6 +687,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
 [v3.0.0-alpha.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
 [v3.0.0-alpha.0]: https://github.com/SAP/ui5-builder/compare/v2.11.2...v3.0.0-alpha.0
 [v2.11.2]: https://github.com/SAP/ui5-builder/compare/v2.11.1...v2.11.2
