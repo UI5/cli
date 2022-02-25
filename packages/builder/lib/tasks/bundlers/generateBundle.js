@@ -109,7 +109,11 @@ module.exports = function({
 			},
 			resources
 		}).then((bundles) => {
-			return Promise.all(bundles.map(({bundle, sourceMap}) => {
+			return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
+				if (!bundle) {
+					// Skip empty bundles
+					return;
+				}
 				if (taskUtil) {
 					taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
 					if (sourceMap) {
