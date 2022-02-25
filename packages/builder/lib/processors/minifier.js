@@ -34,12 +34,16 @@ const debugFileRegex = /((?:\.view|\.fragment|\.controller|\.designtime|\.suppor
  * @alias module:@ui5/builder.processors.minifier
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
- * @param {boolean} [parameters.addSourceMappingUrl=true]
+ * @param {object} [parameters.options] Options
+ * @param {boolean} [parameters.options.addSourceMappingUrl=true]
  * 				Whether to add a sourceMappingURL reference to the end of the minified resource
  * @returns {Promise<module:@ui5/builder.processors.MinifierResult[]>}
  * 				Promise resolving with object of resource, dbgResource and sourceMap
  */
-module.exports = async function({resources, addSourceMappingUrl = true}) {
+module.exports = async function({resources, options: {addSourceMappingUrl} = {}}) {
+	if (addSourceMappingUrl === undefined) {
+		addSourceMappingUrl = true;
+	}
 	return Promise.all(resources.map(async (resource) => {
 		const dbgPath = resource.getPath().replace(debugFileRegex, "-dbg$1");
 		const dbgResource = await resource.clone();

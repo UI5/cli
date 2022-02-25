@@ -18,7 +18,9 @@ module.exports = async function({workspace, taskUtil, options: {pattern, omitSou
 	const resources = await workspace.byGlob(pattern);
 	const processedResources = await minifier({
 		resources,
-		addSourceMappingUrl: !omitSourceMapResources
+		options: {
+			addSourceMappingUrl: !omitSourceMapResources
+		}
 	});
 
 	return Promise.all(processedResources.map(async ({resource, dbgResource, sourceMapResource}) => {

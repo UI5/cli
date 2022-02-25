@@ -4,6 +4,12 @@ const minifier = require("../../../lib/processors/minifier");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 
+// Node.js itself tries to parse sourceMappingURLs in all JavaScript files. This is unwanted and might even lead to
+// obscure errors when dynamically generating Data-URI soruceMappingURL values.
+// Therefore use this constant to never write the actual string.
+const SOURCE_MAPPING_URL = "//" + "# sourceMappingURL";
+
+
 test("Basic minifier", async (t) => {
 	const content = `/*!
  * \${copyright}
@@ -26,7 +32,7 @@ myFun();
  * \${copyright}
  */
 function myFunc(e){jQuery.sap.require("something");console.log("Something required")}myFun();
-//# sourceMappingURL=test.controller.js.map`;
+${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
 	const expectedSourceMap = `{"version":3,"sources":["test-dbg.controller.js"],` +
@@ -76,11 +82,11 @@ test3();`;
 	});
 
 	const expectedMinified1 = `function test1(t){var o=t;console.log(o)}test1();
-//# sourceMappingURL=test1.controller.js.map`;
+${SOURCE_MAPPING_URL}=test1.controller.js.map`;
 	const expectedMinified2 = `function test2(t){var o=t;console.log(o)}test2();
-//# sourceMappingURL=test2.fragment.js.map`;
+${SOURCE_MAPPING_URL}=test2.fragment.js.map`;
 	const expectedMinified3 = `function test3(t){var o=t;console.log(o)}test3();
-//# sourceMappingURL=test3.designtime.js.map`;
+${SOURCE_MAPPING_URL}=test3.designtime.js.map`;
 
 	const expectedSourceMap1 =
 		`{"version":3,"sources":["test1-dbg.controller.js"],"names":["test1","paramA","variableA","console","log"],` +
@@ -149,7 +155,7 @@ test();
  * Copyright SAPUI5 Developers and other contributors
  */
 function test(t){var o=t;console.log(o)}test();
-//# sourceMappingURL=test.view.js.map`;
+${SOURCE_MAPPING_URL}=test.view.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
 	const expectedSourceMap =
@@ -177,7 +183,7 @@ test();`;
 
 	const expected = `//@ui5-bundle-raw-include sap/ui/my/module.js
 function test(t){var o=t;console.log(o)}test();
-//# sourceMappingURL=test.js.map`;
+${SOURCE_MAPPING_URL}=test.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 });
 
@@ -200,10 +206,84 @@ test();`;
 
 	const expected = `//@ui5-bundle sap/ui/my/module.js
 function test(t){var o=t;console.log(o)}test();
-//# sourceMappingURL=test.js.map`;
+${SOURCE_MAPPING_URL}=test.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 });
 
+test("addSourceMappingUrl=false", async (t) => {
+	const content = `
+//@ui5-bundle sap/ui/my/module.js
+function test(paramA) {
+	var variableA = paramA;
+	console.log(variableA);
+}
+test();`;
+
+	const testResource = resourceFactory.createResource({
+		path: "/test.js",
+		string: content
+	});
+	const [{resource}] = await minifier({
+		resources: [testResource],
+		options: {
+			addSourceMappingUrl: false
+		}
+	});
+
+	const expected = `//@ui5-bundle sap/ui/my/module.js
+function test(t){var o=t;console.log(o)}test();`;
+	t.deepEqual(await resource.getString(), expected, "Correct minified content");
+});
+
+test("addSourceMappingUrl=true", async (t) => {
+	const content = `
+//@ui5-bundle sap/ui/my/module.js
+function test(paramA) {
+	var variableA = paramA;
+	console.log(variableA);
+}
+test();`;
+
+	const testResource = resourceFactory.createResource({
+		path: "/test.js",
+		string: content
+	});
+	const [{resource}] = await minifier({
+		resources: [testResource],
+		options: {
+			addSourceMappingUrl: true
+		}
+	});
+
+	const expected = `//@ui5-bundle sap/ui/my/module.js
+function test(t){var o=t;console.log(o)}test();
+${SOURCE_MAPPING_URL}=test.js.map`;
+	t.deepEqual(await resource.getString(), expected, "Correct minified content");
+});
+
+test("empty options object (addSourceMappingUrl defaults to true)", async (t) => {
+	const content = `
+//@ui5-bundle sap/ui/my/module.js
+function test(paramA) {
+	var variableA = paramA;
+	console.log(variableA);
+}
+test();`;
+
+	const testResource = resourceFactory.createResource({
+		path: "/test.js",
+		string: content
+	});
+	const [{resource}] = await minifier({
+		resources: [testResource],
+		options: {}
+	});
+
+	const expected = `//@ui5-bundle sap/ui/my/module.js
+function test(t){var o=t;console.log(o)}test();
+${SOURCE_MAPPING_URL}=test.js.map`;
+	t.deepEqual(await resource.getString(), expected, "Correct minified content");
+});
 
 test("minification error", async (t) => {
 	const content = `
