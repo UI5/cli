@@ -18,10 +18,13 @@ test.beforeEach((t) => {
 	t.context.dependencies = {};
 	t.context.comboByGlob = sinon.stub().resolves([]);
 
+	t.context.combo = {
+		byGlob: t.context.comboByGlob,
+	};
+	t.context.combo.filter = sinon.stub().returns(t.context.combo);
+
 	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
-	t.context.ReaderCollectionPrioritizedStub.returns({
-		byGlob: t.context.comboByGlob
-	});
+	t.context.ReaderCollectionPrioritizedStub.returns(t.context.combo);
 	mock("@ui5/fs", {
 		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub
 	});
@@ -1365,6 +1368,46 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		"ReaderCollectionPrioritized should have been called once");
 	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
 		"ReaderCollectionPrioritized should have been called with 'new'");
+});
+
+test.serial("Error: Failed to resolve non-debug name", async (t) => {
+	const {
+		generateLibraryPreload,
+		workspace, dependencies, comboByGlob
+	} = t.context;
+	const resources = [
+		{getPath: sinon.stub().returns("/resources/resource-tagged-as-debug-variant.js")}
+	];
+	comboByGlob.resolves(resources);
+
+	workspace.byGlob.resolves([
+		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
+	]);
+
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		STANDARD_TAGS: {
+			HasDebugVariant: "<HasDebugVariant>",
+			IsDebugVariant: "<IsDebugVariant>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		}
+	};
+	taskUtil.getTag
+		.withArgs("/resources/resource-tagged-as-debug-variant.js", taskUtil.STANDARD_TAGS.IsDebugVariant)
+		.returns(true);
+
+	await t.throwsAsync(generateLibraryPreload({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {
+			projectName: "sap.ui.core",
+			// Should be ignored for hardcoded sap.ui.core bundle configuration
+			excludes: ["sap/ui/core/**"]
+		}
+	}), {
+		message: "Failed to resolve non-debug name for /resources/resource-tagged-as-debug-variant.js"
+	});
 });
 
 test.serial("generateLibraryPreload with excludes", async (t) => {

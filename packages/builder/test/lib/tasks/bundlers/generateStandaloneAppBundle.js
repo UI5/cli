@@ -300,3 +300,35 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 		}
 	});
 });
+
+test.serial("Error: Failed to resolve non-debug name", async (t) => {
+	// NOTE: This scenario is not expected to happen as the "minify" task sets the IsDebugVariant tag
+	// only for resources that adhere to the debug file name pattern
+
+	const {taskUtil} = t.context;
+	const dummyResource1 = createDummyResource("1.js");
+	taskUtil.getTag.withArgs(dummyResource1.getPath(), taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
+
+	const dummyReaderWriter = {
+		_byGlob: async function() {
+			return [
+				dummyResource1,
+			];
+		},
+		write: function() {}
+	};
+	sinon.stub(dummyReaderWriter, "write").resolves();
+	const params = {
+		workspace: dummyReaderWriter,
+		dependencies: dummyReaderWriter,
+		taskUtil,
+		options: {
+			projectName: "some.project.name",
+			namespace: "some/project/namespace"
+		}
+	};
+
+	await t.throwsAsync(generateStandaloneAppBundle(params), {
+		message: "Failed to resolve non-debug name for /resources/ponyPath1.js"
+	});
+});
