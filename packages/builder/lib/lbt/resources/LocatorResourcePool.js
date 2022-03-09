@@ -10,7 +10,7 @@ class LocatorResourcePool extends ResourcePool {
 				if (!moduleName) {
 					moduleName = resource.getPath().slice("/resources/".length);
 				}
-				this.addResource(new LocatorResource(this, resource, moduleName));
+				return this.addResource(new LocatorResource(this, resource, moduleName));
 			}).filter(Boolean)
 		);
 	}
