@@ -1,5 +1,5 @@
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
-const ModuleName = require("../../lbt/utils/ModuleName");
+const createModuleNameMapping = require("./utils/createModuleNameMapping");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 
 /**
@@ -82,33 +82,11 @@ module.exports = function({
 	}
 
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}").then((resources) => {
-		const moduleNameMapping = {};
+		const options = {bundleDefinition, bundleOptions};
 		if (!optimize && taskUtil) {
-			// For "unoptimized" bundles, the non-debug files have already been filtered out above.
-			// Now we need to create a mapping from the debug-variant resource path to the respective module name,
-			// which is basically the non-debug resource path, minus the "/resources/"" prefix.
-			// This mapping overwrites internal logic of the LocatorResourcePool which would otherwise determine
-			// the module name from the resource path, which would contain "-dbg" in this case. That would be
-			// incorrect since debug-variants should still keep the original module name.
-			for (let i = resources.length - 1; i >= 0; i--) {
-				const resourcePath = resources[i].getPath();
-				if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
-					const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
-					if (!nonDbgPath) {
-						throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);
-					}
-					moduleNameMapping[resourcePath] = nonDbgPath.slice("/resources/".length);
-				}
-			}
+			options.moduleNameMapping = createModuleNameMapping({resources, taskUtil});
 		}
-		return moduleBundler({
-			options: {
-				bundleDefinition,
-				bundleOptions,
-				moduleNameMapping
-			},
-			resources
-		}).then((bundles) => {
+		return moduleBundler({options, resources}).then((bundles) => {
 			return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
 				if (!bundle) {
 					// Skip empty bundles

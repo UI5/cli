@@ -83,8 +83,7 @@ test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition,
-			bundleOptions: undefined,
-			moduleNameMapping: {}
+			bundleOptions: undefined
 		},
 		resources
 	}]);
@@ -156,8 +155,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition,
-			bundleOptions: undefined,
-			moduleNameMapping: {}
+			bundleOptions: undefined
 		},
 		resources
 	}]);
@@ -396,8 +394,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition,
-			bundleOptions,
-			moduleNameMapping: {}
+			bundleOptions
 		},
 		resources
 	}]);
@@ -491,8 +488,7 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
 			bundleDefinition,
-			bundleOptions,
-			moduleNameMapping: {}
+			bundleOptions
 		},
 		resources
 	}]);

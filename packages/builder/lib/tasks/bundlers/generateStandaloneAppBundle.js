@@ -1,7 +1,7 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
 const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
-const ModuleName = require("../../lbt/utils/ModuleName");
+const createModuleNameMapping = require("./utils/createModuleNameMapping");
 
 function getBundleDefinition(config) {
 	const bundleDefinition = {
@@ -101,7 +101,7 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 		filters = ["jquery.sap.global.js"];
 	}
 
-	const unoptimizedModuleNameMapping = {};
+	let unoptimizedModuleNameMapping;
 	let unoptimizedResources = resources;
 	if (taskUtil) {
 		unoptimizedResources = await new ReaderCollectionPrioritized({
@@ -112,22 +112,10 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
 		}).byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
-		// For "unoptimized" bundles, the non-debug files have already been filtered out above.
-		// Now we need to create a mapping from the debug-variant resource path to the respective module name,
-		// which is basically the non-debug resource path, minus the "/resources/"" prefix.
-		// This mapping overwrites internal logic of the LocatorResourcePool which would otherwise determine
-		// the module name from the resource path, which would contain "-dbg" in this case. That would be
-		// incorrect since debug-variants should still keep the original module name.
-		for (let i = unoptimizedResources.length - 1; i >= 0; i--) {
-			const resourcePath = unoptimizedResources[i].getPath();
-			if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
-				const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
-				if (!nonDbgPath) {
-					throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);
-				}
-				unoptimizedModuleNameMapping[resourcePath] = nonDbgPath.slice("/resources/".length);
-			}
-		}
+		unoptimizedModuleNameMapping = createModuleNameMapping({
+			resources: unoptimizedResources,
+			taskUtil
+		});
 	}
 
 	await Promise.all([
