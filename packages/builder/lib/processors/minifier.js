@@ -40,10 +40,7 @@ const debugFileRegex = /((?:\.view|\.fragment|\.controller|\.designtime|\.suppor
  * @returns {Promise<module:@ui5/builder.processors.MinifierResult[]>}
  * 				Promise resolving with object of resource, dbgResource and sourceMap
  */
-module.exports = async function({resources, options: {addSourceMappingUrl} = {}}) {
-	if (addSourceMappingUrl === undefined) {
-		addSourceMappingUrl = true;
-	}
+module.exports = async function({resources, options: {addSourceMappingUrl = true} = {}}) {
 	return Promise.all(resources.map(async (resource) => {
 		const dbgPath = resource.getPath().replace(debugFileRegex, "-dbg$1");
 		const dbgResource = await resource.clone();
