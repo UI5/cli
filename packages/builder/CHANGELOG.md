@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.3...HEAD).
+
+<a name="v3.0.0-alpha.3"></a>
+## [v3.0.0-alpha.3] - 2022-03-10
+### Bug Fixes
+- **LocatorResourcePool:** Wait for resources in prepare step ([#719](https://github.com/SAP/ui5-builder/issues/719)) [`1b7f93f`](https://github.com/SAP/ui5-builder/commit/1b7f93f4988340d7a6575be3191a02e6c295ebd0)
+
 
 <a name="v3.0.0-alpha.2"></a>
-## [v3.0.0-alpha.2] - 2022-02-21
+## [v3.0.0-alpha.2] - 2022-02-25
 ### Bug Fixes
 - **XMLTemplateAnalyzer:** Analyze core:require of FragmentDefinition [`af075ed`](https://github.com/SAP/ui5-builder/commit/af075edf784d9f1ba162a34f0bf150dbcbc0f479)
 
@@ -687,6 +693,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.3]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
 [v3.0.0-alpha.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
 [v3.0.0-alpha.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
 [v3.0.0-alpha.0]: https://github.com/SAP/ui5-builder/compare/v2.11.2...v3.0.0-alpha.0
