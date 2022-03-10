@@ -38,7 +38,7 @@ class LibraryBuilder extends AbstractBuilder {
 				workspace: resourceCollections.workspace,
 				options: {
 					version: project.version,
-					pattern: "/**/*.{js,json,library,less,theme,html}"
+					pattern: "/**/*.{js,json,library,css,less,theme,html}"
 				}
 			});
 		});

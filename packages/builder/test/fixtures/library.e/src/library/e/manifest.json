@@ -5,7 +5,7 @@
 		"type": "library",
 		"embeds": [],
 		"applicationVersion": {
-			"version": "1.0.0"
+			"version": "${version}"
 		},
 		"title": "Library E",
 		"description": "Library E",
