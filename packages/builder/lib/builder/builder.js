@@ -224,6 +224,7 @@ module.exports = {
 	 * @param {boolean} [parameters.dev=false]
 	 *			Decides whether a development build should be activated (skips non-essential and time-intensive tasks)
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
+	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
 	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
 	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
 	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
@@ -234,7 +235,7 @@ module.exports = {
 	async build({
 		tree, destPath, cleanDest = false,
 		buildDependencies = false, includedDependencies = [], excludedDependencies = [],
-		dev = false, selfContained = false, jsdoc = false,
+		dev = false, selfContained = false, cssVariables = false, jsdoc = false,
 		includedTasks = [], excludedTasks = [], devExcludeProject = []
 	}) {
 		const startTime = process.hrtime();
@@ -249,7 +250,12 @@ module.exports = {
 			virBasePath: "/"
 		});
 
-		const buildContext = new BuildContext({rootProject: tree});
+		const buildContext = new BuildContext({
+			rootProject: tree,
+			options: {
+				cssVariables: cssVariables
+			}
+		});
 		const cleanupSigHooks = registerCleanupSigHooks(buildContext);
 
 		const projects = {}; // Unique project index to prevent building the same project multiple times

@@ -109,6 +109,18 @@ class TaskUtil {
 	}
 
 	/**
+	 * Retrieves a build option defined by its <code>key</code.
+	 * If no option with the given <code>key</code> is stored, <code>undefined</code> is returned.
+	 *
+	 * @param {string} key The option key
+	 * @returns {any|undefined} The build option (or undefined)
+	 * @private
+	 */
+	getBuildOption(key) {
+		return this._projectBuildContext.getOption(key);
+	}
+
+	/**
 	 * Register a function that must be executed once the build is finished. This can be used to, for example,
 	 * clean up files temporarily created on the file system. If the callback returns a Promise, it will be waited for.
 	 * It will also be executed in cases where the build has failed or has been aborted.

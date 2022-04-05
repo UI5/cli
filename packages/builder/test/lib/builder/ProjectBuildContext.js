@@ -56,6 +56,20 @@ test("isRootProject: false", (t) => {
 	t.false(projectBuildContext.isRootProject(), "Correctly identified non-root project");
 });
 
+test("getBuildOption", (t) => {
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getOption: () => "Pony",
+			getResourceTagCollection: () => t.context.resourceTagCollection
+		},
+		globalTags: {MyTag: "me:MyTag"},
+		project: "my project",
+		resources: "resources"
+	});
+
+	t.deepEqual(projectBuildContext.getOption("a"), "Pony", "Returned value is correct");
+});
+
 test("registerCleanupTask", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {

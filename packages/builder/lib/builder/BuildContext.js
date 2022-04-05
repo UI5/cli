@@ -15,20 +15,24 @@ const GLOBAL_TAGS = Object.freeze({
  * @memberof module:@ui5/builder.builder
  */
 class BuildContext {
-	constructor({rootProject}) {
+	constructor({rootProject, options = {}}) {
 		if (!rootProject) {
 			throw new Error(`Missing parameter 'rootProject'`);
 		}
 		this.rootProject = rootProject;
 		this.projectBuildContexts = [];
-
 		this._resourceTagCollection = new ResourceTagCollection({
 			allowedTags: Object.values(GLOBAL_TAGS)
 		});
+		this.options = options;
 	}
 
 	getRootProject() {
 		return this.rootProject;
+	}
+
+	getOption(key) {
+		return this.options[key];
 	}
 
 	createProjectContext({project, resources}) {

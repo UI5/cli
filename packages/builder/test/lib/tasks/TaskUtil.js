@@ -93,6 +93,21 @@ test("isRootProject", async (t) => {
 	t.is(res, true, "Correct result");
 });
 
+test("getBuildOption", (t) => {
+	const getOptionStub = sinon.stub().returns("Pony");
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			STANDARD_TAGS: ["some tag"],
+			getOption: getOptionStub
+		}
+	});
+
+	const res = taskUtil.getBuildOption("friend");
+
+	t.is(getOptionStub.callCount, 1, "ProjectBuildContext#getBuildOption got called once");
+	t.is(res, "Pony", "Correct result");
+});
+
 test("registerCleanupTask", async (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({

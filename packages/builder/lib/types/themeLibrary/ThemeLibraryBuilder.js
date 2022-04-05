@@ -31,7 +31,8 @@ class ThemeLibraryBuilder extends AbstractBuilder {
 					projectName: project.metadata.name,
 					librariesPattern: !taskUtil.isRootProject() ? "/resources/**/(*.library|library.js)" : undefined,
 					themesPattern: !taskUtil.isRootProject() ? "/resources/sap/ui/core/themes/*" : undefined,
-					inputPattern: "/resources/**/themes/*/library.source.less"
+					inputPattern: "/resources/**/themes/*/library.source.less",
+					cssVariables: taskUtil.getBuildOption("cssVariables")
 				}
 			});
 		});

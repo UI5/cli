@@ -39,6 +39,10 @@ class ProjectBuildContext {
 		return this._project === this._buildContext.getRootProject();
 	}
 
+	getOption(key) {
+		return this._buildContext.getOption(key);
+	}
+
 	registerCleanupTask(callback) {
 		this.queues.cleanup.push(callback);
 	}

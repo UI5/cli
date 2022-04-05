@@ -31,6 +31,7 @@ const libraryØPath = path.join(__dirname, "..", "..", "fixtures", "library.ø")
 const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo");
 const libraryCoreBuildtime = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-buildtime");
 const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
+const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.library.e");
 
 const recursive = require("recursive-readdir");
 
@@ -111,9 +112,11 @@ test.serial("Build", async (t) => {
 		getTag: getTagStub
 	});
 	const isRootProjectStub = sinon.stub().returns(true);
+	const getOptionStub = sinon.stub().returns("Pony");
 	const dummyProjectContext = {
 		getResourceTagCollection: getResourceTagCollectionStub,
 		isRootProject: isRootProjectStub,
+		getOption: getOptionStub,
 		STANDARD_TAGS: {
 			OmitFromBuildResult: "👻"
 		}
@@ -924,6 +927,44 @@ test.serial("Build library.coreBuildtime: replaceBuildtime", (t) => {
 		assert.directoryDeepEqual(destPath, expectedPath);
 
 		// Check for all file contents
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build library with theme configured for CSS variables", (t) => {
+	const destPath = "./test/tmp/build/theme.j/dest-css-variables";
+	const expectedPath = "./test/expected/build/theme.j/dest-css-variables";
+	return builder.build({
+		tree: themeJTree,
+		cssVariables: true,
+		destPath
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build theme-library with CSS variables", (t) => {
+	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables";
+	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables";
+	return builder.build({
+		tree: themeLibraryETree,
+		cssVariables: true,
+		destPath
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
 		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	}).then(() => {
 		t.pass();
@@ -1936,6 +1977,34 @@ const themeJTree = {
 		},
 		"pathMappings": {
 			"/resources/": "main/src"
+		}
+	}
+};
+
+const themeLibraryETree = {
+	"id": "theme.library.e.id",
+	"version": "1.0.0",
+	"path": themeLibraryEPath,
+	"dependencies": [],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "1.1",
+	"type": "theme-library",
+	"metadata": {
+		"name": "theme.library.e",
+		"namespace": "theme/library/e",
+		"copyright": "Some fancy copyright"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "src",
+				"test": "test"
+			}
+		},
+		"pathMappings": {
+			"/resources/": "src",
+			"/test-resources/": "test"
 		}
 	}
 };

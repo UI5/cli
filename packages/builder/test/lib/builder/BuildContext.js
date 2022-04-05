@@ -25,6 +25,25 @@ test("getRootProject", (t) => {
 	t.is(buildContext.getRootProject(), "pony", "Returned correct value");
 });
 
+test("getBuildOption", (t) => {
+	const buildContext = new BuildContext({
+		rootProject: "root_project",
+		options: {
+			a: true,
+			b: "Pony",
+			c: 235,
+			d: {
+				d1: "Bee"
+			}
+		}
+	});
+
+	t.is(buildContext.getOption("a"), true, "Returned 'boolean' value is correct");
+	t.is(buildContext.getOption("b"), "Pony", "Returned 'String' value is correct");
+	t.is(buildContext.getOption("c"), 235, "Returned 'Number' value is correct");
+	t.deepEqual(buildContext.getOption("d"), {d1: "Bee"}, "Returned 'object' value is correct");
+});
+
 test.serial("createProjectContext", (t) => {
 	class DummyProjectContext {
 		constructor({buildContext, project, resources, globalTags}) {
