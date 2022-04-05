@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.4...HEAD).
+
+<a name="v3.0.0-alpha.4"></a>
+## [v3.0.0-alpha.4] - 2022-04-05
+### Features
+- **builder:** Add cssVariables option ([#728](https://github.com/SAP/ui5-builder/issues/728)) [`30d58e1`](https://github.com/SAP/ui5-builder/commit/30d58e1081c1bdc665f13952ecbe5c400b5f4ed7)
+
 
 <a name="v3.0.0-alpha.3"></a>
 ## [v3.0.0-alpha.3] - 2022-03-10
@@ -693,6 +699,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.4]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
 [v3.0.0-alpha.3]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
 [v3.0.0-alpha.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
 [v3.0.0-alpha.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
