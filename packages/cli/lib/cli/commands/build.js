@@ -100,6 +100,13 @@ build.builder = function(cli) {
 			describe: "Overrides the framework version defined by the project",
 			type: "string"
 		})
+		.option("experimental-css-variables", {
+			describe:
+				"If present, the CSS variables (css-variables.css, css-variables.source.less) " +
+				"and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css]) are generated",
+			default: false,
+			type: "boolean"
+		})
 		.example("ui5 build", "Preload build for project without dependencies")
 		.example("ui5 build self-contained --all", "Self-contained build for project including dependencies")
 		.example("ui5 build --all --exclude-task=* --include-task=createDebugFiles generateAppPreload",
@@ -111,7 +118,9 @@ build.builder = function(cli) {
 			"Build project and dependencies in dev mode, except \"sap.ui.core\" and \"sap.m\" " +
 			"(useful in combination with --include-task)")
 		.example("ui5 build dev",
-			"Build project and dependencies in dev mode. Only a set of essential tasks is executed.");
+			"Build project and dependencies in dev mode. Only a set of essential tasks is executed.")
+		.example("ui5 build --experimental-css-variables",
+			"Preload build for project without dependencies but with CSS variable artefacts");
 };
 
 async function handleBuild(argv) {
@@ -162,7 +171,8 @@ async function handleBuild(argv) {
 		jsdoc: command === "jsdoc",
 		devExcludeProject: argv["dev-exclude-project"],
 		includedTasks: argv["include-task"],
-		excludedTasks: argv["exclude-task"]
+		excludedTasks: argv["exclude-task"],
+		cssVariables: argv["experimental-css-variables"]
 	});
 }
 

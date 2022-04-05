@@ -31,7 +31,8 @@ const defaultBuilderArgs = {
 	jsdoc: false,
 	devExcludeProject: undefined,
 	includedTasks: undefined,
-	excludedTasks: undefined
+	excludedTasks: undefined,
+	cssVariables: undefined
 };
 
 test.beforeEach((t) => {
@@ -486,4 +487,22 @@ test.serial("ui5 build --include-dependency (dependency not found)", async (t) =
 	t.deepEqual(log.warn.getCall(0).args,
 		["Could not find dependency \"sap.ui.core\" for project Sample. Dependency filter is ignored"],
 		"logger.warn should be called with expected string");
+});
+
+
+test.serial("ui5 build --experimental-css-variables", async (t) => {
+	normalizerStub.resolves({
+		metadata: {
+			name: "Sample"
+		},
+		dependencies: []
+	});
+	args._ = ["build"];
+	args["experimental-css-variables"] = true;
+	await t.context.build.handler(args);
+	t.deepEqual(
+		builderStub.getCall(0).args[0],
+		Object.assign({}, defaultBuilderArgs, {cssVariables: true}),
+		"Build with activated CSS Variables is called with expected arguments"
+	);
 });
