@@ -11,9 +11,9 @@ function clone(o) {
 
 test("Instantiation", (t) => {
 	const project = clone(libraryETree);
-	const appBuilder = new LibraryBuilder({parentLogger, project});
-	t.truthy(appBuilder);
-	t.deepEqual(appBuilder.taskExecutionOrder, [
+	const libraryBuilder = new LibraryBuilder({parentLogger, project});
+	t.truthy(libraryBuilder);
+	t.deepEqual(libraryBuilder.taskExecutionOrder, [
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
@@ -24,6 +24,29 @@ test("Instantiation", (t) => {
 		"generateLibraryManifest",
 		"generateManifestBundle",
 		"generateLibraryPreload",
+		"buildThemes",
+		"generateThemeDesignerResources",
+		"generateResourcesJson"
+	], "LibraryBuilder is instantiated with standard tasks");
+});
+
+test("Instantiation of project with sub-components and custom bundle", (t) => {
+	const project = clone(libraryHTree);
+	const libraryBuilder = new LibraryBuilder({parentLogger, project});
+	t.truthy(libraryBuilder);
+	t.deepEqual(libraryBuilder.taskExecutionOrder, [
+		"escapeNonAsciiCharacters",
+		"replaceCopyright",
+		"replaceVersion",
+		"replaceBuildtime",
+		"generateJsdoc",
+		"executeJsdocSdkTransformation",
+		"minify",
+		"generateLibraryManifest",
+		"generateManifestBundle",
+		"generateComponentPreload",
+		"generateLibraryPreload",
+		"generateBundle",
 		"buildThemes",
 		"generateThemeDesignerResources",
 		"generateResourcesJson"
@@ -51,6 +74,106 @@ const libraryETree = {
 				src: "src",
 				test: "test"
 			}
+		}
+	}
+};
+
+const libraryHPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.h");
+
+const libraryHTree = {
+	"id": "library.h",
+	"version": "1.0.0",
+	"path": libraryHPath,
+	"dependencies": [],
+	"_level": 0,
+	"_isRoot": true,
+	"specVersion": "0.1",
+	"type": "library",
+	"metadata": {
+		"name": "library.h",
+		"namespace": "library/h",
+		"copyright": "Some fancy copyright"
+	},
+	"resources": {
+		"configuration": {
+			"paths": {
+				"src": "main/src",
+				"test": "main/test"
+			},
+			"propertiesFileSourceEncoding": "ISO-8859-1"
+		},
+		"pathMappings": {
+			"/resources/": "main/src",
+			"/test-resources/": "main/test"
+		}
+	},
+	"builder": {
+		"bundles": [{
+			"bundleDefinition": {
+				"name": "library/h/customBundle.js",
+				"defaultFileTypes": [".js"],
+				"sections": [{
+					"mode": "preload",
+					"filters": [
+						"library/h/some.js",
+						"library/h/library.js",
+						"library/h/fi*.js",
+						"!library/h/components/"
+					],
+					"resolve": false,
+					"renderer": false
+				}, {
+					"mode": "raw",
+					"filters": [
+						"library/h/not.js"
+					],
+					"resolve": true,
+					"declareModules": false,
+					"sort": true,
+					"renderer": false
+				}]
+			},
+			"bundleOptions": {
+				"optimize": true,
+				"usePredefinedCalls": true
+			}
+		}, {
+			"bundleDefinition": {
+				"name": "library/h/customBundle-dbg.js",
+				"defaultFileTypes": [".js"],
+				"sections": [{
+					"mode": "preload",
+					"filters": [
+						"library/h/some.js",
+						"library/h/library.js",
+						"library/h/fi*.js",
+						"!library/h/components/"
+					],
+					"resolve": false,
+					"renderer": false
+				}, {
+					"mode": "raw",
+					"filters": [
+						"library/h/not.js"
+					],
+					"resolve": true,
+					"declareModules": false,
+					"sort": true,
+					"renderer": false
+				}]
+			},
+			"bundleOptions": {
+				"optimize": false,
+				"usePredefinedCalls": true
+			}
+		}],
+		"componentPreload": {
+			"namespaces": [
+				"library/h/components",
+				"library/h/components/subcomponent1",
+				"library/h/components/subcomponent2",
+				"library/h/components/subcomponent3"
+			]
 		}
 	}
 };

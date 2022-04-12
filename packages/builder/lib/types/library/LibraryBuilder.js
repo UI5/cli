@@ -109,23 +109,6 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		});
 
-		const componentPreload = project.builder && project.builder.componentPreload;
-		if (componentPreload) {
-			this.addTask("generateComponentPreload", async () => {
-				return getTask("generateComponentPreload").task({
-					workspace: resourceCollections.workspace,
-					dependencies: resourceCollections.dependencies,
-					taskUtil,
-					options: {
-						projectName: project.metadata.name,
-						paths: componentPreload.paths,
-						namespaces: componentPreload.namespaces,
-						excludes: componentPreload.excludes
-					}
-				});
-			});
-		}
-
 		this.addTask("generateLibraryManifest", async () => {
 			return getTask("generateLibraryManifest").task({
 				workspace: resourceCollections.workspace,
@@ -145,6 +128,23 @@ class LibraryBuilder extends AbstractBuilder {
 					options: {
 						projectName: project.metadata.name,
 						namespace: project.metadata.namespace
+					}
+				});
+			});
+		}
+
+		const componentPreload = project.builder && project.builder.componentPreload;
+		if (componentPreload) {
+			this.addTask("generateComponentPreload", async () => {
+				return getTask("generateComponentPreload").task({
+					workspace: resourceCollections.workspace,
+					dependencies: resourceCollections.dependencies,
+					taskUtil,
+					options: {
+						projectName: project.metadata.name,
+						paths: componentPreload.paths,
+						namespaces: componentPreload.namespaces,
+						excludes: componentPreload.excludes
 					}
 				});
 			});
