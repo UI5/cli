@@ -2,7 +2,22 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.5...HEAD).
+
+<a name="v3.0.0-alpha.5"></a>
+## [v3.0.0-alpha.5] - 2022-04-14
+### Bug Fixes
+- **LibraryBuilder:** Align task order of "generateComponentPreload" [`aea061d`](https://github.com/SAP/ui5-builder/commit/aea061d9d6c2ac0c11484dcc08bdcda23ab62986)
+
+### Features
+- **generateThemeDesignerResources task:** Create css_variables.less ([#730](https://github.com/SAP/ui5-builder/issues/730)) [`34e69be`](https://github.com/SAP/ui5-builder/commit/34e69be95fc8ec1961b24b7e2580c2c993d814d3)
+
+### BREAKING CHANGE
+
+For library projects, the task "generateComponentPreload" is now
+executed after tasks "generateLibraryManifest" and
+"generateManifestBundle" instead of before them.
+
 
 <a name="v3.0.0-alpha.4"></a>
 ## [v3.0.0-alpha.4] - 2022-04-05
@@ -699,6 +714,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.5]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.4...v3.0.0-alpha.5
 [v3.0.0-alpha.4]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
 [v3.0.0-alpha.3]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
 [v3.0.0-alpha.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
