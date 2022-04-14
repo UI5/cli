@@ -3,6 +3,37 @@ const log = require("@ui5/logger").getLogger("builder:tasks:generateThemeDesigne
 const libraryLessGenerator = require("../processors/libraryLessGenerator");
 const {ReaderCollectionPrioritized, Resource, fsInterface} = require("@ui5/fs");
 
+/**
+ * Returns a relative path from the given themeFolder to the root namespace.
+ *
+ * When combining the given themeFolder with the returned relative path it
+ * resolves to "/resources/". However the "/resources/" part is not important
+ * here as it doesn't exist within the theming engine environment where the
+ * UI5 resources are part of a "UI5" folder (e.g. "UI5/sap/ui/core/") that
+ * is next to a "Base" folder.
+ *
+ * @example
+ * getPathToRoot("/resources/sap/ui/foo/themes/base")
+ * > "../../../../../"
+ *
+ * @param {string} themeFolder Virtual path including /resources/
+ * @returns {string} Relative path to root namespace
+ */
+function getPathToRoot(themeFolder) {
+	// -2 for initial "/"" and "resources/"
+	return "../".repeat(themeFolder.split("/").length - 2);
+}
+
+/**
+ * Generates an less import statement for the given <code>filePath</code>
+ *
+ * @param {string} filePath The path to the desired file
+ * @returns {string} The less import statement
+ */
+function lessImport(filePath) {
+	return `@import "${filePath}";\n`;
+}
+
 function generateLibraryDotTheming({namespace, version, hasThemes}) {
 	const dotTheming = {
 		sEntity: "Library",
@@ -78,6 +109,82 @@ async function generateThemeDotTheming({workspace, combo, themeFolder}) {
 		});
 	}
 	return newDotThemingResource;
+}
+
+async function createCssVariablesLessResource({workspace, combo, themeFolder}) {
+	const pathToRoot = getPathToRoot(themeFolder);
+	const cssVariablesSourceLessFile = "css_variables.source.less";
+	const cssVariablesLessFile = "css_variables.less";
+
+	// posix as it is a virtual path (separated with /)
+	const themeName = posixPath.basename(themeFolder);
+	// The "base" theme of the baseLib is called "baseTheme"
+	const baseLibThemeName = themeName === "base" ? "baseTheme" : themeName;
+
+	// Some themes do not have a base.less file (e.g. sap_hcb)
+	const hasBaseLess = !!(await combo.byPath(`/resources/sap/ui/core/themes/${themeName}/base.less`));
+
+	let cssVariablesLess =
+`/* NOTE: This file was generated as an optimized version of "${cssVariablesSourceLessFile}" \
+for the Theme Designer. */\n\n`;
+
+	if (themeName !== "base") {
+		const cssVariablesSourceLessResource = await workspace.byPath(
+			posixPath.join(themeFolder, cssVariablesSourceLessFile)
+		);
+
+		if (!cssVariablesSourceLessResource) {
+			throw new Error(`Could not find file "${cssVariablesSourceLessFile}" in theme "${themeFolder}"`);
+		}
+
+		const cssVariablesSourceLess = await cssVariablesSourceLessResource.getString();
+
+		cssVariablesLess += lessImport(`../base/${cssVariablesLessFile}`);
+		cssVariablesLess += `
+/* START "${cssVariablesSourceLessFile}" */
+${cssVariablesSourceLess}
+/* END "${cssVariablesSourceLessFile}" */
+
+`;
+	}
+
+	if (hasBaseLess) {
+		cssVariablesLess += lessImport(`${pathToRoot}../Base/baseLib/${baseLibThemeName}/base.less`);
+	}
+	cssVariablesLess += lessImport(`${pathToRoot}sap/ui/core/themes/${themeName}/global.less`);
+
+	return new Resource({
+		path: posixPath.join(themeFolder, cssVariablesLessFile),
+		string: cssVariablesLess
+	});
+}
+
+async function generateCssVariablesLess({workspace, combo, namespace}) {
+	let cssVariablesSourceLessResourcePattern;
+	if (namespace) {
+		// In case of a library only check for themes directly below the namespace
+		cssVariablesSourceLessResourcePattern = `/resources/${namespace}/themes/*/css_variables.source.less`;
+	} else {
+		// In case of a theme-library check for all "themes"
+		cssVariablesSourceLessResourcePattern = `/resources/**/themes/*/css_variables.source.less`;
+	}
+
+	const cssVariablesSourceLessResource = await workspace.byGlob(cssVariablesSourceLessResourcePattern);
+
+	const hasCssVariables = cssVariablesSourceLessResource.length > 0;
+
+	if (hasCssVariables) {
+		await Promise.all(
+			cssVariablesSourceLessResource.map(async (cssVariableSourceLess) => {
+				const themeFolder = posixPath.dirname(cssVariableSourceLess.getPath());
+				log.verbose(`Generating css_variables.less for theme ${themeFolder}`);
+				const r = await createCssVariablesLessResource({
+					workspace, combo, themeFolder
+				});
+				return await workspace.write(r);
+			})
+		);
+	}
 }
 
 /**
@@ -163,4 +270,7 @@ module.exports = async function({workspace, dependencies, options: {projectName,
 	await Promise.all(
 		libraryLessResources.map((resource) => workspace.write(resource))
 	);
+
+	// css_variables.less
+	await generateCssVariablesLess({workspace, combo, namespace});
 };

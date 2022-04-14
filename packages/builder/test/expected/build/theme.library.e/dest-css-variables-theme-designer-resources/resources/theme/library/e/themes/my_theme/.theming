@@ -1,0 +1,6 @@
+{
+  "sEntity": "Theme",
+  "sId": "my_theme",
+  "sVendor": "SAP",
+  "oExtends": "base"
+}

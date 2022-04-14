@@ -952,6 +952,26 @@ test.serial("Build library with theme configured for CSS variables", (t) => {
 	});
 });
 
+test.serial("Build library with theme configured for CSS variables and theme designer resources", (t) => {
+	const destPath = "./test/tmp/build/theme.j/dest-css-variables-theme-designer-resources";
+	const expectedPath = "./test/expected/build/theme.j/dest-css-variables-theme-designer-resources";
+	return builder.build({
+		tree: themeJTree,
+		cssVariables: true,
+		destPath,
+		includedTasks: ["generateThemeDesignerResources"]
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
 test.serial("Build theme-library with CSS variables", (t) => {
 	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables";
 	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables";
@@ -959,6 +979,26 @@ test.serial("Build theme-library with CSS variables", (t) => {
 		tree: themeLibraryETree,
 		cssVariables: true,
 		destPath
+	}).then(() => {
+		return findFiles(expectedPath);
+	}).then((expectedFiles) => {
+		// Check for all directories and files
+		assert.directoryDeepEqual(destPath, expectedPath);
+
+		return checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	}).then(() => {
+		t.pass();
+	});
+});
+
+test.serial("Build theme-library with CSS variables and theme designer resources", (t) => {
+	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables-theme-designer-resources";
+	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables-theme-designer-resources";
+	return builder.build({
+		tree: themeLibraryETree,
+		cssVariables: true,
+		destPath,
+		includedTasks: ["generateThemeDesignerResources"]
 	}).then(() => {
 		return findFiles(expectedPath);
 	}).then((expectedFiles) => {
