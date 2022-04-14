@@ -13,6 +13,42 @@ test("Generates dependency tree for project with projectDependencies.yaml", (t) 
 		});
 });
 
+test("Generates dependency tree for project with projectDependencies.yaml (via parameters)", (t) => {
+	return staticTranslator.generateDependencyTree(projectPath, {
+		parameters: [path.join(projectPath, "projectDependencies.yaml")]
+	})
+		.then((parsedTree) => {
+			t.deepEqual(parsedTree, expectedTree, "Parsed correctly");
+		});
+});
+
+test("Generates dependency tree for project by passing tree object", (t) => {
+	return staticTranslator.generateDependencyTree(projectPath, {
+		tree: {
+			id: "testsuite",
+			version: "0.0.1",
+			description: "Sample App",
+			main: "index.html",
+			path: "./",
+			dependencies: [
+				{
+					id: "sap.f",
+					version: "1.56.1",
+					path: "../sap.f"
+				},
+				{
+					id: "sap.m",
+					version: "1.61.0",
+					path: "../sap.m"
+				}
+			]
+		}
+	})
+		.then((parsedTree) => {
+			t.deepEqual(parsedTree, expectedTree, "Parsed correctly");
+		});
+});
+
 test("Error: Throws if projectDependencies.yaml was not found", async (t) => {
 	const projectPath = "notExistingPath";
 	const fsError = new Error("File not found");
@@ -31,17 +67,17 @@ const expectedTree = {
 	version: "0.0.1",
 	description: "Sample App",
 	main: "index.html",
-	path: path.resolve("./"),
+	path: path.resolve(projectPath, "./"),
 	dependencies: [
 		{
 			id: "sap.f",
 			version: "1.56.1",
-			path: path.resolve("../sap.f")
+			path: path.resolve(projectPath, "../sap.f")
 		},
 		{
 			id: "sap.m",
 			version: "1.61.0",
-			path: path.resolve("../sap.m")
+			path: path.resolve(projectPath, "../sap.m")
 		}
 	]
 };
