@@ -102,8 +102,8 @@ build.builder = function(cli) {
 		})
 		.option("experimental-css-variables", {
 			describe:
-				"If present, the CSS variables (css-variables.css, css-variables.source.less) " +
-				"and the skeleton for a theme (library-skeleton.css, [library-skeleton-RTL.css]) are generated",
+				"Generate CSS variables (css-variables.css, css-variables.source.less)" +
+				" and skeleton (library-skeleton(-RTL).css) for all themes",
 			default: false,
 			type: "boolean"
 		})
