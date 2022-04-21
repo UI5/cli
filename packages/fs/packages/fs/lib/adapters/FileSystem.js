@@ -1,11 +1,16 @@
 const log = require("@ui5/logger").getLogger("resources:adapters:FileSystem");
 const path = require("path");
+const {promisify} = require("util");
 const fs = require("graceful-fs");
+const copyFile = promisify(fs.copyFile);
+const chmod = promisify(fs.chmod);
 const globby = require("globby");
 const makeDir = require("make-dir");
 const {PassThrough} = require("stream");
 const Resource = require("../Resource");
 const AbstractAdapter = require("./AbstractAdapter");
+
+const READ_ONLY_MODE = 0o444;
 
 /**
  * File system resource adapter
@@ -26,7 +31,7 @@ class FileSystem extends AbstractAdapter {
 	 */
 	constructor({virBasePath, project, fsBasePath, excludes}) {
 		super({virBasePath, project, excludes});
-		this._fsBasePath = fsBasePath;
+		this._fsBasePath = path.resolve(fsBasePath);
 	}
 
 	/**
@@ -59,6 +64,10 @@ class FileSystem extends AbstractAdapter {
 							project: this._project,
 							statInfo: stat,
 							path: this._virBaseDir,
+							source: {
+								adapter: "FileSystem",
+								fsPath: this._fsBasePath
+							},
 							createStream: () => {
 								return fs.createReadStream(this._fsBasePath);
 							}
@@ -91,6 +100,10 @@ class FileSystem extends AbstractAdapter {
 								project: this._project,
 								statInfo: stat,
 								path: virPath,
+								source: {
+									adapter: "FileSystem",
+									fsPath: fsPath
+								},
 								createStream: () => {
 									return fs.createReadStream(fsPath);
 								}
@@ -157,7 +170,10 @@ class FileSystem extends AbstractAdapter {
 						project: this._project,
 						statInfo: stat,
 						path: virPath,
-						fsPath
+						source: {
+							adapter: "FileSystem",
+							fsPath
+						}
 					};
 
 					if (!stat.isDirectory()) {
@@ -201,13 +217,30 @@ class FileSystem extends AbstractAdapter {
 		const fsPath = path.join(this._fsBasePath, relPath);
 		const dirPath = path.dirname(fsPath);
 
+		await makeDir(dirPath, {fs});
+
+		const resourceSource = resource.getSource();
+		if (!resourceSource.modified && resourceSource.adapter === "FileSystem" && resourceSource.fsPath) {
+			// fs.copyFile can be used when the resource is from FS and hasn't been modified
+			// In addition, nothing needs to be done when src === dest
+			if (resourceSource.fsPath === fsPath) {
+				log.verbose("Skip writing to %s (Resource hasn't been modified)", fsPath);
+			} else {
+				log.verbose("Copying resource from %s to %s", resourceSource.fsPath, fsPath);
+				await copyFile(resourceSource.fsPath, fsPath);
+				if (readOnly) {
+					await chmod(fsPath, READ_ONLY_MODE);
+				}
+			}
+			return;
+		}
+
 		log.verbose("Writing to %s", fsPath);
 
-		await makeDir(dirPath, {fs});
 		return new Promise((resolve, reject) => {
 			let contentStream;
 
-			if (drain || readOnly) {
+			if ((drain || readOnly) && resourceSource.fsPath !== fsPath) {
 				// Stream will be drained
 				contentStream = resource.getStream();
 
@@ -233,7 +266,7 @@ class FileSystem extends AbstractAdapter {
 
 			const writeOptions = {};
 			if (readOnly) {
-				writeOptions.mode = 0o444; // read only
+				writeOptions.mode = READ_ONLY_MODE;
 			}
 
 			const write = fs.createWriteStream(fsPath, writeOptions);

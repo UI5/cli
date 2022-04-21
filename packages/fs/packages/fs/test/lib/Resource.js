@@ -130,18 +130,36 @@ test("Resource: getStream throwing an error", (t) => {
 	});
 });
 
-test("Resource: setString", (t) => {
-	t.plan(1);
-
+test("Resource: setString", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
+		source: {} // Needs to be passed in order to get the "modified" state
 	});
+
+	t.is(resource.getSource().modified, false);
 
 	resource.setString("Content");
 
-	return resource.getString().then(function(value) {
-		t.is(value, "Content", "String set");
+	t.is(resource.getSource().modified, true);
+
+	const value = await resource.getString();
+	t.is(value, "Content", "String set");
+});
+
+test("Resource: setBuffer", async (t) => {
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		source: {} // Needs to be passed in order to get the "modified" state
 	});
+
+	t.is(resource.getSource().modified, false);
+
+	resource.setBuffer(Buffer.from("Content"));
+
+	t.is(resource.getSource().modified, true);
+
+	const value = await resource.getString();
+	t.is(value, "Content", "String set");
 });
 
 test("Resource: size modification", async (t) => {
@@ -204,12 +222,14 @@ test("Resource: size modification", async (t) => {
 	t.is(await streamResource.getSize(), 23, "size for streamResource read again");
 });
 
-test("Resource: setStream", (t) => {
-	t.plan(1);
-
+test("Resource: setStream (Stream)", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
+		source: {} // Needs to be passed in order to get the "modified" state
 	});
+
+	t.is(resource.getSource().modified, false);
+
 	const stream = new Stream.Readable();
 	stream._read = function() {};
 	stream.push("I am a ");
@@ -219,9 +239,34 @@ test("Resource: setStream", (t) => {
 
 	resource.setStream(stream);
 
-	return resource.getString().then(function(value) {
-		t.is(value, "I am a readable stream!", "Stream set correctly");
+	t.is(resource.getSource().modified, true);
+
+	const value = await resource.getString();
+	t.is(value, "I am a readable stream!", "Stream set correctly");
+});
+
+test("Resource: setStream (Create stream callback)", async (t) => {
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		source: {} // Needs to be passed in order to get the "modified" state
 	});
+
+	t.is(resource.getSource().modified, false);
+
+	resource.setStream(() => {
+		const stream = new Stream.Readable();
+		stream._read = function() {};
+		stream.push("I am a ");
+		stream.push("readable ");
+		stream.push("stream!");
+		stream.push(null);
+		return stream;
+	});
+
+	t.is(resource.getSource().modified, true);
+
+	const value = await resource.getString();
+	t.is(value, "I am a readable stream!", "Stream set correctly");
 });
 
 test("Resource: clone resource with buffer", (t) => {
@@ -328,6 +373,29 @@ test("getBuffer from Stream content: Subsequent content requests should not thro
 	// Race condition in _getBufferFromStream used to cause p2
 	// to throw "Content stream of Resource /app/index.html is flagged as drained."
 	await t.notThrowsAsync(p2);
+});
+
+test("Resource: constructor with stream", async (t) => {
+	const stream = new Stream.Readable();
+	stream._read = function() {};
+	stream.push("I am a ");
+	stream.push("readable ");
+	stream.push("stream!");
+	stream.push(null);
+
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		stream,
+		source: {} // Needs to be passed in order to get the "modified" state
+	});
+
+	t.is(resource.getSource().modified, false);
+
+	const value = await resource.getString();
+	t.is(value, "I am a readable stream!");
+
+	// modified should still be false although setBuffer is called internally
+	t.is(resource.getSource().modified, false);
 });
 
 test("integration stat - resource size", async (t) => {
