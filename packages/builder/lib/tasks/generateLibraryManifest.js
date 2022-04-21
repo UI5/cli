@@ -2,7 +2,6 @@
 
 const log = require("@ui5/logger").getLogger("builder:tasks:generateLibraryManifest");
 const manifestCreator = require("../processors/manifestCreator");
-const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 
 
 /**
@@ -12,23 +11,18 @@ const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritiz
  * @alias module:@ui5/builder.tasks.generateLibraryManifest
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options: {projectName}}) {
-	const combo = new ReaderCollectionPrioritized({
-		name: `libraryManifestGenerator - prioritize workspace over dependencies: ${projectName}`,
-		readers: [workspace, dependencies]
-	});
+module.exports = function({workspace, options: {projectName}}) {
 	// Note:
 	// *.library files are needed to identify libraries
 	// *.json files are needed to avoid overwriting them
 	// *.js files are needed to identify nested components
 	// *.less, *.css, *.theming and *.theme files are needed to identify supported themes
 	// *.properties to identify existence of i18n bundles (e.g. messagebundle.properties)
-	return combo.byGlob("/**/*.{js,json,library,less,css,theming,theme,properties}").then((resources) => {
+	return workspace.byGlob("/resources/**/*.{js,json,library,less,css,theming,theme,properties}").then((resources) => {
 		// Find all libraries and create a manifest.json file
 		return workspace.byGlob("/resources/**/.library").then((libraryIndicatorResources) => {
 			if (libraryIndicatorResources.length < 1) {

@@ -1,7 +1,6 @@
 const test = require("ava");
 
 const generateLibraryManifest = require("../../../lib/tasks/generateLibraryManifest");
-const path = require("path");
 const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 
@@ -25,21 +24,13 @@ function createWorkspace() {
 	});
 }
 
-function createDependencies() {
-	return resourceFactory.createAdapter({
-		fsBasePath: path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo", "main", "src"),
-		virBasePath: "/resources"
-	});
-}
-
 async function assertCreatedManifest(t, oExpectedManifest) {
-	const {workspace, dependencies, resources} = t.context;
+	const {workspace, resources} = t.context;
 
 	await Promise.all(resources.map((resource) => workspace.write(resource)));
 
 	await generateLibraryManifest({
 		workspace,
-		dependencies,
 		options: {
 			projectName: "Test Lib"
 		}
@@ -57,8 +48,6 @@ async function assertCreatedManifest(t, oExpectedManifest) {
 
 test("integration: Library without i18n bundle file", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
-
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({
 		path: "/resources/test/lib/.library",
@@ -110,7 +99,6 @@ test("integration: Library without i18n bundle file", async (t) => {
 
 test("integration: Library with i18n bundle file (messagebundle.properties)", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
 
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({
@@ -171,7 +159,6 @@ test("integration: Library with i18n bundle file (messagebundle.properties)", as
 
 test("integration: Library with i18n=true declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
 
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({
@@ -241,7 +228,6 @@ test("integration: Library with i18n=true declared in .library", async (t) => {
 
 test("integration: Library with i18n=false declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
 
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({
@@ -304,7 +290,6 @@ test("integration: Library with i18n=false declared in .library", async (t) => {
 
 test("integration: Library with i18n=foo.properties declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
 
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({
@@ -374,7 +359,6 @@ test("integration: Library with i18n=foo.properties declared in .library", async
 
 test("integration: Library with css=true declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
 
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({
@@ -437,7 +421,6 @@ test("integration: Library with css=true declared in .library", async (t) => {
 
 test("integration: Library with css=false declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
 
 	t.context.resources = [];
 	t.context.resources.push(resourceFactory.createResource({

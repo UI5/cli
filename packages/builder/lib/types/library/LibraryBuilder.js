@@ -112,7 +112,6 @@ class LibraryBuilder extends AbstractBuilder {
 		this.addTask("generateLibraryManifest", async () => {
 			return getTask("generateLibraryManifest").task({
 				workspace: resourceCollections.workspace,
-				dependencies: resourceCollections.dependencies,
 				taskUtil,
 				options: {
 					projectName: project.metadata.name
