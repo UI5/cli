@@ -81,6 +81,35 @@ test("Write resource in drain mode", async (t) => {
 	t.notThrows(() => {
 		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
 	});
+
+	// Should not fail as resource hasn't been modified
+	await t.notThrowsAsync(resource.getBuffer());
+});
+
+test("Write modified resource in drain mode", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Get resource from one readerWriter
+	const resource = await readerWriters.source.byPath("/app/index.html");
+
+	resource.setString(`<!DOCTYPE html>
+<html>
+<head>
+	<title>Application A</title>
+</head>
+<body>
+
+</body>
+</html>`
+	);
+
+	// Write resource content to another readerWriter
+	await readerWriters.dest.write(resource, {drain: true});
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
 	await t.throwsAsync(resource.getBuffer(),
 		{message: /Content of Resource \/app\/index.html has been drained/});
 });

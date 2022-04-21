@@ -38,9 +38,10 @@ class Resource {
 	 *					stream of the content of this resource (cannot be used in conjunction with parameters buffer,
 	 *					string or stream).
 	 *					In some cases this is the most memory-efficient way to supply resource content
+	 * @param {object} [parameters.source] Experimental, internal parameter. Do not use
 	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 */
-	constructor({path, statInfo, buffer, string, createStream, stream, project}) {
+	constructor({path, statInfo, buffer, string, createStream, stream, source, project}) {
 		if (!path) {
 			throw new Error("Cannot create Resource: path parameter missing");
 		}
@@ -53,6 +54,11 @@ class Resource {
 		this._path = path;
 		this._name = this._getNameFromPath(path);
 		this._project = project; // Experimental, internal parameter
+		this._source = source; // Experimental, internal parameter
+		if (this._source) {
+			// Indicator for adapters like FileSystem to detect whether a resource has been changed
+			this._source.modified = false;
+		}
 		this._statInfo = statInfo || { // TODO
 			isFile: fnTrue,
 			isDirectory: fnFalse,
@@ -113,6 +119,9 @@ class Resource {
 	 * @param {Buffer} buffer Buffer instance
 	 */
 	setBuffer(buffer) {
+		if (this._source && !this._source.modified) {
+			this._source.modified = true;
+		}
 		this._createStream = null;
 		// if (this._stream) { // TODO this may cause strange issues
 		// 	this._stream.destroy();
@@ -196,6 +205,9 @@ class Resource {
 	 														callback for dynamic creation of a readable stream
 	 */
 	setStream(stream) {
+		if (this._source && !this._source.modified) {
+			this._source.modified = true;
+		}
 		this._buffer = null;
 		// if (this._stream) { // TODO this may cause strange issues
 		// 	this._stream.destroy();
@@ -323,6 +335,10 @@ class Resource {
 		return tree;
 	}
 
+	getSource() {
+		return this._source || {};
+	}
+
 	/**
 	 * Returns the content as stream.
 	 *
@@ -361,7 +377,15 @@ class Resource {
 			});
 			contentStream.on("end", () => {
 				const buffer = Buffer.concat(buffers);
+				let modified;
+				if (this._source) {
+					modified = this._source.modified;
+				}
 				this.setBuffer(buffer);
+				// Modified flag should be reset as the resource hasn't been modified from the outside
+				if (this._source) {
+					this._source.modified = modified;
+				}
 				this._buffering = null;
 				resolve(buffer);
 			});
