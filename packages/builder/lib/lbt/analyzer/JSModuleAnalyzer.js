@@ -301,6 +301,9 @@ class JSModuleAnalyzer {
 		 */
 		let bIsUi5Module = false;
 
+		// Module name via @ui5-bundle comment in first line. Overrides all other main module candidates.
+		let firstLineBundleName;
+
 		// first analyze the whole AST...
 		visit(ast, false);
 
@@ -314,7 +317,12 @@ class JSModuleAnalyzer {
 						log.verbose(`bundle include directive ${subModule}`);
 					} else if ( comment.value.startsWith("@ui5-bundle ") ) {
 						const bundleName = comment.value.slice("@ui5-bundle ".length);
-						setMainModuleInfo(bundleName, null);
+						if (comment.start === 0) {
+							// Remember the name from the first line to use it as final name
+							firstLineBundleName = bundleName;
+						} else {
+							setMainModuleInfo(bundleName, null);
+						}
 						log.verbose(`bundle name directive ${bundleName}`);
 					} else {
 						log.warn(`unrecognized bundle directive ${comment.value}`);
@@ -324,7 +332,10 @@ class JSModuleAnalyzer {
 		}
 
 		// ...and finally take conclusions about the file's content
-		if ( !mainModuleFound ) {
+		if ( firstLineBundleName ) {
+			// If the first line has a bundle name, use it and override all other found names
+			info.name = firstLineBundleName;
+		} else if ( !mainModuleFound ) {
 			// if there's exactly one module definition in this file but it didn't
 			// immediately qualify as main module, make it now the main module
 			if ( candidateName != null && nModuleDeclarations == 1 ) {

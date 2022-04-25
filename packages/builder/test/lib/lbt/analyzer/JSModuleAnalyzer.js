@@ -684,3 +684,78 @@ jQuery.sap.registerPreloadedModules({
 	t.deepEqual(info.subModules, ["foo/bar.js"],
 		"submodule from jQuery.sap.registerPreloadedModules");
 });
+
+test("Module that contains jQuery.sap.declare should be derived as subModule", (t) => {
+	const content = `
+sap.ui.define([], function() {
+	jQuery.sap.declare("foo.bar");
+});
+`;
+	const info = analyzeString(content, "modules/module-with-jquery-sap-declare.js");
+	t.is(info.name, "modules/module-with-jquery-sap-declare.js");
+	t.is(info.rawModule, false);
+	t.is(info.format, "ui5-declare"); // FIXME: Format should actually be ui5-define
+	t.is(info.requiresTopLevelScope, false);
+	t.deepEqual(info.subModules, ["foo/bar.js"],
+		"jQuery.sap.declare subModule should be detected");
+	t.deepEqual(info.dependencies, ["jquery.sap.global.js"], "Implicit dependency");
+});
+
+test("Bundle that contains jQuery.sap.declare (sap.ui.predefine) should not be derived as module name", (t) => {
+	const content = `//@ui5-bundle test1/library-preload.js
+sap.ui.predefine("test1/module1", [], function() {
+	jQuery.sap.declare("foo.bar");
+});
+`;
+	const info = analyzeString(content, "modules/bundle-with-jquery-sap-declare.js");
+	t.is(info.name, "test1/library-preload.js", "Module name should be taken from @ui5-bundle comment");
+	t.is(info.rawModule, false);
+	t.is(info.format, "ui5-declare"); // FIXME: Format should actually be ui5-define
+	t.is(info.requiresTopLevelScope, false);
+	// Note: foo/bar.js is not listed as the predefine body is not analyzed
+	t.deepEqual(info.subModules, ["test1/module1.js"],
+		"subModule via sap.ui.predefine should be detected");
+	t.deepEqual(info.dependencies, ["jquery.sap.global.js"], "Implicit dependency");
+});
+
+test("Bundle that contains jQuery.sap.declare (sap.ui.require.preload) should not be derived as module name", (t) => {
+	const content = `//@ui5-bundle test1/library-preload.js
+sap.ui.require.preload({
+	"test1/module1.js": function() {
+		sap.ui.define([], function() {
+			jQuery.sap.declare("foo.bar");
+		});
+	}
+});
+
+`;
+	const info = analyzeString(content, "modules/bundle-with-jquery-sap-declare.js");
+	t.is(info.name, "test1/library-preload.js", "Module name should be taken from @ui5-bundle comment");
+	t.is(info.rawModule, false);
+	t.is(info.format, "ui5-define");
+	t.is(info.requiresTopLevelScope, false);
+	// Note: foo/bar.js is not listed as the sap.ui.define body is not analyzed
+	t.deepEqual(info.subModules, ["test1/module1.js"],
+		"subModule via sap.ui.predefine should be detected");
+	t.deepEqual(info.dependencies, ["ui5loader-autoconfig.js"], "Implicit dependency");
+});
+
+test("@ui5-bundle comment: Multiple comments", (t) => {
+	const content = `//@ui5-bundle test/bundle1.js
+//@ui5-bundle test/bundle2.js
+`;
+	const info = analyzeString(content, "modules/ui5-bundle-comments.js");
+	t.is(info.name, "test/bundle1.js", "Comment from first line should be used");
+	t.deepEqual(info.subModules, []);
+	t.deepEqual(info.dependencies, []);
+});
+
+test("@ui5-bundle comment: Multiple comments (Not in first line)", (t) => {
+	const content = `console.log('Foo');
+//@ui5-bundle test/bundle1.js
+//@ui5-bundle test/bundle2.js
+`;
+	t.throws(() => analyzeString(content, "modules/ui5-bundle-comments.js"), {
+		message: "conflicting main modules found (unnamed + named)"
+	});
+});
