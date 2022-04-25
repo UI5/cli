@@ -110,10 +110,11 @@ class ResourceCollector {
 	}
 
 	async enrichWithDependencyInfo(resourceInfo) {
-		return this._pool.getModuleInfo(resourceInfo.name).then(async (moduleInfo) => {
-			if ( moduleInfo.name ) {
+		return this._pool.getModuleInfo(resourceInfo.name, resourceInfo.module).then(async (moduleInfo) => {
+			if ( !resourceInfo.module && moduleInfo.name ) {
 				resourceInfo.module = moduleInfo.name;
 			}
+
 			if ( moduleInfo.dynamicDependencies ) {
 				resourceInfo.dynRequired = true;
 			}
@@ -279,37 +280,43 @@ class ResourceCollector {
 
 		await Promise.all(promises);
 
-		const debugBundlePromises = [];
-
-		for (let i = debugResourcesInfo.length - 1; i >= 0; i--) {
-			const dbgInfo = debugResourcesInfo[i];
-			const nonDebugName = ResourceInfoList.getNonDebugName(dbgInfo.name);
+		await Promise.all(debugResourcesInfo.map(async (dbgInfo) => {
+			const debugName = dbgInfo.name;
+			const nonDebugName = ResourceInfoList.getNonDebugName(debugName);
 			const nonDbgInfo = this._resources.get(nonDebugName);
 
 			// FIXME: "merged" property is only calculated in ResourceInfo#copyFrom
 			// Therefore using the same logic here to compute it.
+
+			// TODO: Idea: Use IsDebugVariant tag to decide whether to analyze the resource
+			// If the tag is set, we don't expect different analysis results so we can copy the info (else-path)
+			// Only when the tag is not set, we analyze the resource with its name (incl. -dbg)
+
 			if (!nonDbgInfo || (nonDbgInfo.included != null && nonDbgInfo.included.size > 0)) {
 				// We need to analyze the dbg resource if there is no non-dbg variant or
 				// it is a bundle because we will (usually) have different content.
-				debugBundlePromises.push(
-					this.enrichWithDependencyInfo(dbgInfo)
-				);
+
+				if (nonDbgInfo) {
+					// Always use the non-debug module name, if available
+					dbgInfo.module = nonDbgInfo.module;
+				}
+				await this.enrichWithDependencyInfo(dbgInfo);
 			} else {
 				// If the non-dbg resource is not a bundle, we can just copy over the info and skip
 				// analyzing the dbg variant as both should have the same info.
 
-				const newDbgInfo = new ResourceInfo(dbgInfo.name);
+				const newDbgInfo = new ResourceInfo(debugName);
 
 				// First copy info of analysis from non-dbg file (included, required, condRequired, ...)
 				newDbgInfo.copyFrom(null, nonDbgInfo);
 				// Then copy over info from dbg file to properly set name, isDebug, etc.
 				newDbgInfo.copyFrom(null, dbgInfo);
+				// Finally, set the module name to the non-dbg name
+				newDbgInfo.module = nonDbgInfo.module;
 
-				this._resources.set(dbgInfo.name, newDbgInfo);
+				this._resources.set(debugName, newDbgInfo);
 			}
-		}
-
-		await Promise.all(debugBundlePromises);
+		}));
 	}
 
 	createOrphanFilters() {

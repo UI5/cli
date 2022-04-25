@@ -1,6 +1,8 @@
 const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
+const {Resource} = require("@ui5/fs");
+const LocatorResourcePool = require("../../../../lib/lbt/resources/LocatorResourcePool");
 
 let ResourceCollector = require("../../../../lib/lbt/resources/ResourceCollector");
 
@@ -285,4 +287,149 @@ test.serial("enrichWithDependencyInfo: add infos to resourceinfo", async (t) => 
 		required: new Set(["mydependency"]),
 		requiresTopLevelScope: true
 	}, "all information gets used for the resourceInfo");
+});
+
+test.serial("integration: Raw Module Info for debug variant", async (t) => {
+	const resources = [
+		new Resource({
+			path: "/resources/mylib/myRawModuleBundle.js",
+			string: `define('a', () => 'a');define('b', ['a'], (a) => a + 'b');`
+		}),
+		new Resource({
+			path: "/resources/mylib/externalDependency.js",
+			string: `console.log('Foo');`
+		}),
+		new Resource({
+			path: "/resources/mylib/myRawModuleBundle-dbg.js",
+			string: `
+define('a', () => 'a');
+define('b', ['a'], (a) => a + 'b');
+`
+		}),
+		new Resource({
+			path: "/resources/mylib/.library",
+			string: `
+			<?xml version="1.0" encoding="UTF-8" ?>
+			<library xmlns="http://www.sap.com/sap.ui.library.xsd">
+				<name>mylib</name>
+				<vendor>Me</vendor>
+				<copyright>mylib</copyright>
+				<version>1.0.0</version>
+				<documentation>mylib</documentation>
+				<dependencies>
+					<dependency>
+						<libraryName>sap.ui.core</libraryName>
+					</dependency>
+				</dependencies>
+				<appData>
+					<packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0">
+						<module-infos>
+							<raw-module
+								name="mylib/myRawModuleBundle.js"
+								depends="mylib/externalDependency.js"
+							/>
+						</module-infos>
+					</packaging>
+				</appData>
+			</library>`
+		}),
+	];
+
+	const pool = new LocatorResourcePool();
+	await pool.prepare( resources );
+
+	const collector = new ResourceCollector(pool);
+	await Promise.all(resources.map((resource) => collector.visitResource(resource)));
+
+	await collector.determineResourceDetails({
+		debugResources: ["**/*-dbg.js"]
+	});
+
+	collector.groupResourcesByComponents();
+
+	const resourceInfoList = collector.components.get("mylib/");
+
+	const myRawModuleBundle = resourceInfoList.resourcesByName.get("myRawModuleBundle.js");
+	t.is(myRawModuleBundle.name, "myRawModuleBundle.js");
+	t.is(myRawModuleBundle.module, "mylib/myRawModuleBundle.js");
+	t.is(myRawModuleBundle.format, "raw");
+	t.is(myRawModuleBundle.requiresTopLevelScope, false);
+	t.deepEqual(myRawModuleBundle.included,
+		new Set(["a.js", "b.js"]));
+	t.deepEqual(myRawModuleBundle.required,
+		new Set(["mylib/externalDependency.js"]));
+
+	const myRawModuleBundleDbg = resourceInfoList.resourcesByName.get("myRawModuleBundle-dbg.js");
+	t.is(myRawModuleBundleDbg.name, "myRawModuleBundle-dbg.js");
+	t.is(myRawModuleBundleDbg.module, "mylib/myRawModuleBundle.js");
+	t.is(myRawModuleBundleDbg.format, "raw");
+	t.is(myRawModuleBundleDbg.requiresTopLevelScope, false);
+	t.deepEqual(myRawModuleBundleDbg.included,
+		new Set(["a.js", "b.js"]));
+	t.deepEqual(myRawModuleBundleDbg.required,
+		new Set(["mylib/externalDependency.js"]));
+});
+
+test.serial("integration: Analyze debug bundle", async (t) => {
+	const resources = [
+		new Resource({
+			path: "/resources/mylib/myBundle.js",
+			string: `sap.ui.predefine('a', () => 'a');sap.ui.predefine('b', ['a'], (a) => a + 'b');`
+		}),
+		new Resource({
+			path: "/resources/mylib/myBundle-dbg.js",
+			string: `sap.ui.predefine('a', () => 'a');`
+		}),
+		new Resource({
+			path: "/resources/mylib/.library",
+			string: `
+			<?xml version="1.0" encoding="UTF-8" ?>
+			<library xmlns="http://www.sap.com/sap.ui.library.xsd">
+				<name>mylib</name>
+				<vendor>Me</vendor>
+				<copyright>mylib</copyright>
+				<version>1.0.0</version>
+				<documentation>mylib</documentation>
+				<dependencies>
+					<dependency>
+						<libraryName>sap.ui.core</libraryName>
+					</dependency>
+				</dependencies>
+			</library>`
+		}),
+	];
+
+	const pool = new LocatorResourcePool();
+	await pool.prepare( resources );
+
+	const collector = new ResourceCollector(pool);
+	await Promise.all(resources.map((resource) => collector.visitResource(resource)));
+
+	await collector.determineResourceDetails({
+		debugResources: ["**/*-dbg.js"]
+	});
+
+	collector.groupResourcesByComponents();
+
+	const resourceInfoList = collector.components.get("mylib/");
+
+	const myRawModuleBundle = resourceInfoList.resourcesByName.get("myBundle.js");
+	t.is(myRawModuleBundle.name, "myBundle.js");
+	t.is(myRawModuleBundle.module, "mylib/myBundle.js");
+	t.is(myRawModuleBundle.format, null);
+	t.is(myRawModuleBundle.requiresTopLevelScope, false);
+	t.deepEqual(myRawModuleBundle.included,
+		new Set(["a.js", "b.js"]));
+	t.deepEqual(myRawModuleBundle.required,
+		new Set([]));
+
+	const myRawModuleBundleDbg = resourceInfoList.resourcesByName.get("myBundle-dbg.js");
+	t.is(myRawModuleBundleDbg.name, "myBundle-dbg.js");
+	t.is(myRawModuleBundleDbg.module, "mylib/myBundle.js");
+	t.is(myRawModuleBundleDbg.format, null);
+	t.is(myRawModuleBundleDbg.requiresTopLevelScope, false);
+	t.deepEqual(myRawModuleBundleDbg.included,
+		new Set(["a.js"]));
+	t.deepEqual(myRawModuleBundleDbg.required,
+		new Set());
 });

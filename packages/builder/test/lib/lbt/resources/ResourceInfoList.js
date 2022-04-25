@@ -36,7 +36,8 @@ test("add: add debug resources", (t) => {
 	t.is(resourceInfoList.resources.length, 1, "one resource added");
 
 	const resultDbg = resourceInfoList.resourcesByName.get("../myfile-dbg.js");
-	t.is(resultDbg.module, "myfile.js", "module is set");
+	// Note: "module" will be set properly for debug resources within ResourceCollector#determineResourceDetails
+	t.is(resultDbg.module, undefined, "module is not set");
 	t.deepEqual(resultDbg.required, new Set(["some-dep.js"]), "module is set");
 });
 

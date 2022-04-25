@@ -176,17 +176,18 @@ class ResourcePool {
 	/**
 	 * Retrieves the module info
 	 *
-	 * @param {string} name module name
+	 * @param {string} resourceName resource/module name
+	 * @param {string} [moduleName] module name, in case it differs from the resource name (e.g. for -dbg resources)
 	 * @returns {Promise<ModuleInfo>}
 	 */
-	async getModuleInfo(name) {
-		let info = this._dependencyInfos.get(name);
+	async getModuleInfo(resourceName, moduleName) {
+		let info = this._dependencyInfos.get(resourceName);
 		if ( info == null ) {
 			info = Promise.resolve().then(async () => {
-				const resource = await this.findResource(name);
-				return determineDependencyInfo( resource, this._rawModuleInfos.get(name), this );
+				const resource = await this.findResource(resourceName);
+				return determineDependencyInfo( resource, this._rawModuleInfos.get(moduleName || resourceName), this );
 			});
-			this._dependencyInfos.set(name, info);
+			this._dependencyInfos.set(resourceName, info);
 		}
 		return info;
 	}

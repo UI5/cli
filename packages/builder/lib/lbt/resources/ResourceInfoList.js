@@ -48,7 +48,6 @@ class ResourceInfoList {
 		if ( myInfo == null ) {
 			myInfo = new ResourceInfo(relativeName);
 			myInfo.size = info.size;
-			myInfo.module = ResourceInfoList.getNonDebugName(info.name);
 			this.resources.push(myInfo);
 			this.resourcesByName.set(relativeName, myInfo);
 		}
