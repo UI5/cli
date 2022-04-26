@@ -9,7 +9,7 @@
 			"version": "3.0.0-alpha.6",
 			"license": "Apache-2.0",
 			"dependencies": {
-				"@ui5/builder": "^3.0.0-alpha.5",
+				"@ui5/builder": "^3.0.0-alpha.6",
 				"@ui5/fs": "^3.0.0-alpha.3",
 				"@ui5/logger": "^3.0.1-alpha.1",
 				"@ui5/project": "^3.0.0-alpha.1",
@@ -818,11 +818,11 @@
 			"dev": true
 		},
 		"node_modules/@ui5/builder": {
-			"version": "3.0.0-alpha.5",
-			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-alpha.5.tgz",
-			"integrity": "sha512-ADO0Grp8sewrlVA4hWNdlJPGOc1xycod0nd7q7VxtlwztJgVNdp0ZL2egK2tPbBnO+nV49cwH7vDLgxceEzv/A==",
+			"version": "3.0.0-alpha.6",
+			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-alpha.6.tgz",
+			"integrity": "sha512-IDPsKT6fShlW0MX+Hr6IifZpSd15BxNv9zZcWvFu3C0RcApHKhEzI7BQZfbRwViFwBlny3mt/TBDmHgrs1yzpg==",
 			"dependencies": {
-				"@ui5/fs": "^3.0.0-alpha.2",
+				"@ui5/fs": "^3.0.0-alpha.3",
 				"@ui5/logger": "^3.0.1-alpha.1",
 				"cheerio": "1.0.0-rc.9",
 				"escape-unicode": "^0.2.0",
@@ -10297,11 +10297,11 @@
 			"dev": true
 		},
 		"@ui5/builder": {
-			"version": "3.0.0-alpha.5",
-			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-alpha.5.tgz",
-			"integrity": "sha512-ADO0Grp8sewrlVA4hWNdlJPGOc1xycod0nd7q7VxtlwztJgVNdp0ZL2egK2tPbBnO+nV49cwH7vDLgxceEzv/A==",
+			"version": "3.0.0-alpha.6",
+			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-alpha.6.tgz",
+			"integrity": "sha512-IDPsKT6fShlW0MX+Hr6IifZpSd15BxNv9zZcWvFu3C0RcApHKhEzI7BQZfbRwViFwBlny3mt/TBDmHgrs1yzpg==",
 			"requires": {
-				"@ui5/fs": "^3.0.0-alpha.2",
+				"@ui5/fs": "^3.0.0-alpha.3",
 				"@ui5/logger": "^3.0.1-alpha.1",
 				"cheerio": "1.0.0-rc.9",
 				"escape-unicode": "^0.2.0",
