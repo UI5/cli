@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.6...HEAD).
+
+<a name="v3.0.0-alpha.6"></a>
+## [v3.0.0-alpha.6] - 2022-04-26
+### Bug Fixes
+- **JSModuleAnalyzer:** Fix detection of bundle name ([#705](https://github.com/SAP/ui5-builder/issues/705)) [`aaeafd4`](https://github.com/SAP/ui5-builder/commit/aaeafd4a1fd194dd08e5ae47c29d90f0b4c7d197)
+- **generateResourcesJson:** Add raw-module info for debug bundles ([#736](https://github.com/SAP/ui5-builder/issues/736)) [`3b918e8`](https://github.com/SAP/ui5-builder/commit/3b918e83bfd38342778ecd4c58e648e99ad7cffc)
+
 
 <a name="v3.0.0-alpha.5"></a>
 ## [v3.0.0-alpha.5] - 2022-04-14
@@ -714,6 +721,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.6]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.5...v3.0.0-alpha.6
 [v3.0.0-alpha.5]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.4...v3.0.0-alpha.5
 [v3.0.0-alpha.4]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
 [v3.0.0-alpha.3]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
