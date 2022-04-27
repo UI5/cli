@@ -1,6 +1,5 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateLibraryPreload");
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
-const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
 const createModuleNameMapping = require("./utils/createModuleNameMapping");
 
@@ -266,7 +265,6 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @alias module:@ui5/builder.tasks.generateLibraryPreload
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {string[]} [parameters.options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
  * that should be excluded from the library-preload.js bundle.
@@ -278,20 +276,16 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, taskUtil, options: {projectName, excludes = []}}) {
-	let combo = new ReaderCollectionPrioritized({
-		name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
-		readers: [workspace, dependencies]
-	});
-
+module.exports = function({workspace, taskUtil, options: {projectName, excludes = []}}) {
+	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
-		combo = combo.filter(function(resource) {
+		nonDbgWorkspace = workspace.filter(function(resource) {
 			// Remove any debug variants
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
 	}
 
-	return combo.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}").then(async (resources) => {
+	return nonDbgWorkspace.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}").then(async (resources) => {
 		// Find all libraries and create a library-preload.js bundle
 
 		let p = Promise.resolve();
@@ -314,10 +308,7 @@ module.exports = function({workspace, dependencies, taskUtil, options: {projectN
 				let unoptimizedModuleNameMapping;
 				let unoptimizedResources = resources;
 				if (taskUtil) {
-					unoptimizedResources = await new ReaderCollectionPrioritized({
-						name: `libraryBundler - prioritize workspace over dependencies: ${projectName}`,
-						readers: [workspace, dependencies]
-					}).filter(function(resource) {
+					unoptimizedResources = await workspace.filter(function(resource) {
 						// Remove any non-debug variants
 						return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
 					}).byGlob("/**/*.{js,json,xml,html,properties,library,js.map}");

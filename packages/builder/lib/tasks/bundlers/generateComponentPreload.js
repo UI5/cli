@@ -1,7 +1,6 @@
 const path = require("path");
 const moduleBundler = require("../../processors/bundlers/moduleBundler");
 const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateComponentPreload");
-const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
 const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
 
 /**
@@ -11,7 +10,6 @@ const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
  * @alias module:@ui5/builder.tasks.generateComponentPreload
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
@@ -26,29 +24,24 @@ const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({
-	workspace, dependencies, taskUtil, options: {projectName, paths, namespaces, excludes = []}
+	workspace, taskUtil, options: {projectName, paths, namespaces, excludes = []}
 }) {
-	let combo = new ReaderCollectionPrioritized({
-		name: `generateComponentPreload - prioritize workspace over dependencies: ${projectName}`,
-		readers: [workspace, dependencies]
-	});
-
+	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
-		combo = combo.filter(function(resource) {
+		nonDbgWorkspace = workspace.filter(function(resource) {
 			// Remove any debug variants
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
 	}
 
-	// TODO 3.0: Limit to workspace resources?
-	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}")
+	return nonDbgWorkspace.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}")
 		.then(async (resources) => {
 			let allNamespaces = [];
 			if (paths) {
 				allNamespaces = await Promise.all(paths.map(async (componentPath) => {
 					const globPath = "/resources/" + componentPath;
 					log.verbose(`Globbing for Components directories with configured path ${globPath}...`);
-					const components = await combo.byGlob(globPath); // TODO 3.0: Limit to workspace resources?
+					const components = await nonDbgWorkspace.byGlob(globPath);
 					return components.map((component) => {
 						const compDir = path.dirname(component.getPath()).replace(/^\/resources\//i, "");
 						log.verbose(`Found component namespace ${compDir}`);

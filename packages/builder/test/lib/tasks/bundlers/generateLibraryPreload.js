@@ -15,19 +15,10 @@ test.beforeEach((t) => {
 		byGlob: sinon.stub().resolves([]),
 		write: sinon.stub().resolves()
 	};
+	t.context.workspace.filter = () => t.context.workspace;
+
 	t.context.dependencies = {};
-	t.context.comboByGlob = sinon.stub().resolves([]);
-
-	t.context.combo = {
-		byGlob: t.context.comboByGlob,
-	};
-	t.context.combo.filter = sinon.stub().returns(t.context.combo);
-
-	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
-	t.context.ReaderCollectionPrioritizedStub.returns(t.context.combo);
-	mock("@ui5/fs", {
-		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub
-	});
+	t.context.firstByGlob = t.context.workspace.byGlob.onFirstCall();
 
 	t.context.moduleBundlerStub = sinon.stub().resolves([]);
 	mock("../../../../lib/processors/bundlers/moduleBundler", t.context.moduleBundlerStub);
@@ -42,14 +33,14 @@ test.afterEach.always(() => {
 
 test.serial("generateLibraryPreload", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const resources = [
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
@@ -150,28 +141,25 @@ test.serial("generateLibraryPreload", async (t) => {
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const resources = [
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
@@ -408,22 +396,19 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 
 test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const resources = [
@@ -431,7 +416,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		{getPath: sinon.stub().returns("/resources/ui5loader.js")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
@@ -724,21 +709,18 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined (/w ui5loader.js)", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const coreProject = {
@@ -749,7 +731,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 		{getPath: sinon.stub().returns("/resources/ui5loader.js")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
@@ -1042,21 +1024,18 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("generateLibraryPreload for sap.ui.core with own bundle configuration (w/o ui5loader.js)", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const coreProject = {
@@ -1066,7 +1045,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library"), _project: coreProject},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
@@ -1197,21 +1176,18 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("generateLibraryPreload for sap.ui.core with own bundle configuration (/w ui5loader.js)", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const coreProject = {
@@ -1222,7 +1198,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		{getPath: sinon.stub().returns("/resources/ui5loader.js")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
@@ -1353,26 +1329,24 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("Error: Failed to resolve non-debug name", async (t) => {
 	const {
 		generateLibraryPreload,
-		workspace, dependencies, comboByGlob
+		workspace, dependencies
 	} = t.context;
 	const resources = [
 		{getPath: sinon.stub().returns("/resources/resource-tagged-as-debug-variant.js")}
 	];
-	comboByGlob.resolves(resources);
+	t.context.workspace.byGlob.onFirstCall().resolves(resources);
+	t.context.workspace.byGlob.onSecondCall().resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
@@ -1406,14 +1380,14 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 
 test.serial("generateLibraryPreload with excludes", async (t) => {
 	const {
-		generateLibraryPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateLibraryPreload, moduleBundlerStub,
+		workspace, dependencies, firstByGlob
 	} = t.context;
 
 	const resources = [
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
@@ -1466,28 +1440,25 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 		resources
 	}]);
 
-	t.is(workspace.byGlob.callCount, 1,
-		"workspace.byGlob should have been called once");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/.library"],
+	t.is(workspace.byGlob.callCount, 2,
+		"workspace.byGlob should have been called twice");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 });
 
 
 test.serial("generateLibraryPreload with invalid excludes", async (t) => {
 	const {
 		generateLibraryPreload, moduleBundlerStub,
-		workspace, dependencies, comboByGlob, log
+		workspace, dependencies, firstByGlob, log
 	} = t.context;
 
 	const resources = [
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}
 	];
-	comboByGlob.resolves(resources);
+	firstByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/my/lib/.library")}

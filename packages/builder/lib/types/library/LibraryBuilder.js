@@ -137,7 +137,6 @@ class LibraryBuilder extends AbstractBuilder {
 			this.addTask("generateComponentPreload", async () => {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
-					dependencies: resourceCollections.dependencies,
 					taskUtil,
 					options: {
 						projectName: project.metadata.name,
@@ -152,7 +151,6 @@ class LibraryBuilder extends AbstractBuilder {
 		this.addTask("generateLibraryPreload", async () => {
 			return getTask("generateLibraryPreload").task({
 				workspace: resourceCollections.workspace,
-				dependencies: resourceCollections.dependencies,
 				taskUtil,
 				options: {
 					projectName: project.metadata.name,

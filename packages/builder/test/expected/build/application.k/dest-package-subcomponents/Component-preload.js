@@ -1,7 +1,5 @@
 //@ui5-bundle application/k/Component-preload.js
-jQuery.sap.registerPreloadedModules({
-"version":"2.0",
-"modules":{
+sap.ui.require.preload({
 	"application/k/Component.js":function(){
 sap.ui.define(["sap/ui/core/UIComponent"], function(UIComponent){
 	"use strict";
@@ -38,5 +36,5 @@ sap.ui.define(["sap/ui/core/UIComponent"], function(UIComponent){
 	"application/k/subcomponentB/thirdparty/lib.js":function(){
 console.log("subcomponentB/thirdparty/lib.js");
 }
-}});
+});
 //# sourceMappingURL=Component-preload.js.map

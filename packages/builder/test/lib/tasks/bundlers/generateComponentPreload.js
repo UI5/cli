@@ -15,16 +15,10 @@ test.beforeEach((t) => {
 		byGlob: sinon.stub().resolves([]),
 		write: sinon.stub().resolves()
 	};
-	t.context.dependencies = {};
-	t.context.comboByGlob = sinon.stub().resolves([]);
+	t.context.workspace.filter = () => t.context.workspace;
 
-	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
-	t.context.ReaderCollectionPrioritizedStub.returns({
-		byGlob: t.context.comboByGlob
-	});
-	mock("@ui5/fs", {
-		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub
-	});
+	t.context.dependencies = {};
+	t.context.byGlob = t.context.workspace.byGlob;
 
 	t.context.moduleBundlerStub = sinon.stub().resolves([]);
 	mock("../../../../lib/processors/bundlers/moduleBundler", t.context.moduleBundlerStub);
@@ -39,14 +33,14 @@ test.afterEach.always(() => {
 
 test.serial("generateComponentPreload - one namespace", async (t) => {
 	const {
-		generateComponentPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateComponentPreload, moduleBundlerStub,
+		workspace, dependencies, byGlob
 	} = t.context;
 
 	const resources = [
 		{"fake": "resource"}
 	];
-	comboByGlob.resolves(resources);
+	byGlob.resolves(resources);
 
 	moduleBundlerStub.resolves([
 		{
@@ -105,15 +99,10 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 		resources
 	}]);
 
-	t.is(comboByGlob.callCount, 1,
+	t.is(byGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
 	t.is(workspace.write.callCount, 2,
@@ -130,14 +119,14 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 
 test.serial("generateComponentPreload - one namespace - excludes", async (t) => {
 	const {
-		generateComponentPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateComponentPreload, moduleBundlerStub,
+		workspace, dependencies, byGlob
 	} = t.context;
 
 	const resources = [
 		{"fake": "resource"}
 	];
-	comboByGlob.resolves(resources);
+	byGlob.resolves(resources);
 
 	moduleBundlerStub.resolves([
 		{
@@ -202,15 +191,10 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 		resources
 	}]);
 
-	t.is(comboByGlob.callCount, 1,
+	t.is(byGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
 	t.is(workspace.write.callCount, 2,
@@ -227,14 +211,14 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 
 test.serial("generateComponentPreload - one namespace - excludes w/o namespace", async (t) => {
 	const {
-		generateComponentPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateComponentPreload, moduleBundlerStub,
+		workspace, dependencies, byGlob
 	} = t.context;
 
 	const resources = [
 		{"fake": "resource"}
 	];
-	comboByGlob.resolves(resources);
+	byGlob.resolves(resources);
 
 	moduleBundlerStub.resolves([
 		{
@@ -298,15 +282,10 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 		resources
 	}]);
 
-	t.is(comboByGlob.callCount, 1,
+	t.is(byGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
 	t.is(workspace.write.callCount, 2,
@@ -323,14 +302,14 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 
 test.serial("generateComponentPreload - multiple namespaces - excludes", async (t) => {
 	const {
-		generateComponentPreload, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, comboByGlob
+		generateComponentPreload, moduleBundlerStub,
+		workspace, dependencies, byGlob
 	} = t.context;
 
 	const resources = [
 		{"fake": "resource"}
 	];
-	comboByGlob.resolves(resources);
+	byGlob.resolves(resources);
 
 	moduleBundlerStub.onFirstCall().resolves([
 		{
@@ -449,15 +428,10 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 		resources
 	}]);
 
-	t.is(comboByGlob.callCount, 1,
+	t.is(byGlob.callCount, 1,
 		"combo.byGlob should have been called once");
-	t.deepEqual(comboByGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
-
-	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
-		"ReaderCollectionPrioritized should have been called once");
-	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
-		"ReaderCollectionPrioritized should have been called with 'new'");
 
 	const bundleObj1 = await moduleBundlerStub.getCall(0).returnValue;
 	const bundleObj2 = await moduleBundlerStub.getCall(1).returnValue;
@@ -487,14 +461,14 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 test.serial("generateComponentPreload - one namespace - invalid exclude", async (t) => {
 	const {
 		generateComponentPreload,
-		workspace, dependencies, comboByGlob,
+		workspace, dependencies, byGlob,
 		log
 	} = t.context;
 
 	const resources = [
 		{"fake": "resource"}
 	];
-	comboByGlob.resolves(resources);
+	byGlob.resolves(resources);
 
 	await generateComponentPreload({
 		workspace,
@@ -525,14 +499,14 @@ test.serial("generateComponentPreload - one namespace - invalid exclude", async 
 test.serial("generateComponentPreload - nested namespaces - excludes", async (t) => {
 	const {
 		generateComponentPreload, moduleBundlerStub,
-		workspace, dependencies, comboByGlob,
+		workspace, dependencies, byGlob,
 		log
 	} = t.context;
 
 	const resources = [
 		{"fake": "resource"}
 	];
-	comboByGlob.resolves(resources);
+	byGlob.resolves(resources);
 
 	await generateComponentPreload({
 		workspace,

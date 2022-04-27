@@ -1,7 +1,5 @@
 //@ui5-bundle application/i/Component-preload.js
-jQuery.sap.registerPreloadedModules({
-"version":"2.0",
-"modules":{
+sap.ui.require.preload({
 	"application/i/Component.js":function(){
 sap.ui.define(["sap/ui/core/UIComponent"],function(n){"use strict";return n.extend("application.i.Component",{metadata:{manifest:"json"}})});
 },
@@ -11,5 +9,5 @@ sap.ui.define([],function(){return{}});
 },
 	"application/i/changes/fragments/MyFragment.fragment.xml":'<xml></xml>',
 	"application/i/manifest.json":'{"_version":"1.1.0","sap.app":{"_version":"1.1.0","id":"application.i","type":"application","applicationVersion":{"version":"1.2.2"},"embeds":["embedded"],"title":"{{title}}"},"sap.ui5":{"dependencies":{"minUI5Version":"1.72","libs":{"sap.ui.layout":{},"sap.ui.core":{},"sap.m":{},"sap.ui.fl":{}}}}}'
-}});
+});
 //# sourceMappingURL=Component-preload.js.map

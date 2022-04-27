@@ -93,7 +93,6 @@ class ApplicationBuilder extends AbstractBuilder {
 			this.addTask("generateComponentPreload", async () => {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
-					dependencies: resourceCollections.dependencies,
 					taskUtil,
 					options: {
 						projectName: project.metadata.name,
@@ -108,7 +107,6 @@ class ApplicationBuilder extends AbstractBuilder {
 			this.addTask("generateComponentPreload", async () => {
 				return getTask("generateComponentPreload").task({
 					workspace: resourceCollections.workspace,
-					dependencies: resourceCollections.dependencies,
 					taskUtil,
 					options: {
 						projectName: project.metadata.name,

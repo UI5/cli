@@ -110,6 +110,7 @@ test("integration: createBundle with exposedGlobals", async (t) => {
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
 	t.deepEqual(oResult.name, "library-preload.js");
 	const expectedContent = `//@ui5-bundle library-preload.js
+window["sap-ui-optimized"] = true;
 sap.ui.require.preload({
 	"a.js":function(){
 function One(){return 1;}
@@ -523,7 +524,7 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 		"bundle info subModules are correct");
 });
 
-test("integration: createBundle UI5BundleFormat (non ui5loader.js)", async (t) => {
+test("integration: Legacy test: createBundle without ui5loader.js presence also uses modern API", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "sap-ui-core.js",
@@ -572,14 +573,11 @@ test("integration: createBundle UI5BundleFormat (non ui5loader.js)", async (t) =
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
 	t.deepEqual(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
-jQuery.sap.registerPreloadedModules({
-"name":"preload-section",
-"version":"2.0",
-"modules":{
+sap.ui.require.preload({
 	"jquery.sap.global-dbg.js":function(){
 sap.ui.define([], function(){/* comment */ return {};});
 }
-}});
+},"preload-section");
 //@ui5-bundle-raw-include myModule.js
 (function(){window.mine = {};}());
 sap.ui.requireSync("sap-ui-core");
@@ -767,6 +765,7 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
 	t.deepEqual(oResult.name, "library-preload.js");
 	const expectedContent = `//@ui5-bundle library-preload.js
+window["sap-ui-optimized"] = true;
 sap.ui.require.preload({
 	"a.js":function(){
 function One(){return 1;}

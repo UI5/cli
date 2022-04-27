@@ -40,38 +40,6 @@ function isEmptyBundle(resolvedBundle) {
 	return resolvedBundle.sections.every((section) => section.modules.length === 0);
 }
 
-const UI5BundleFormat = {
-	beforePreloads(section) {
-		let str = `jQuery.sap.registerPreloadedModules({\n`;
-		if ( section.name ) {
-			str += `"name":"${section.name}",\n`;
-		}
-		str += `"version":"2.0",\n`;
-		str += `"modules":{\n`;
-		return str;
-	},
-
-	afterPreloads(section) {
-		return `}});\n`;
-	},
-
-	beforeBundleInfo() {
-		return `"unsupported"; /* 'bundleInfo' section mode not supported (requires ui5loader)\n`;
-	},
-
-	afterBundleInfo() {
-		return "*/\n";
-	},
-
-	requireSync(moduleName) {
-		return `sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");\n`;
-	},
-
-	shouldDecorate(resolvedModule) {
-		return resolvedModule.executes(UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL);
-	}
-};
-
 const EVOBundleFormat = {
 	beforePreloads(section) {
 		return `sap.ui.require.preload({\n`;
@@ -115,7 +83,6 @@ class BundleBuilder {
 	}
 
 	async createBundle(module, options) {
-		await this._prepare();
 		if ( options.numberOfParts > 1 ) {
 			const bundleInfos = [];
 			const submodules = await this.splitter.run( module, options );
@@ -126,17 +93,6 @@ class BundleBuilder {
 		} else {
 			return this._createBundle(module, options);
 		}
-	}
-
-	_prepare() {
-		return Promise.all([
-			// check whether the resource pool contains debug and optimized sources
-			this.pool.findResource( ModuleName.getDebugName(UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL) ).
-				then( () => this.optimizedSources = true, () => this.optimizedSources = false ),
-			// check whether EVO modules are available. If so, use EVO APIs, else use old UI5 APIs.
-			this.pool.findResource(UI5ClientConstants.EVO_MARKER_RESOURCE).
-				then( () => this.targetBundleFormat = EVOBundleFormat, () => this.targetBundleFormat = UI5BundleFormat )
-		]);
 	}
 
 	async _createBundle(module, options) {
@@ -153,11 +109,13 @@ class BundleBuilder {
 			this.options.sourceMap = true;
 		}
 
-		// when decorateBootstrapModule is set to false, we don't write the optimized flag
-		// and don't write the try catch wrapper
+		// Since UI5 Tooling 3.0: Always use modern API
+		this.targetBundleFormat = EVOBundleFormat;
+
+		// when decorateBootstrapModule is false,
+		// we don't write the optimized flag and don't write the try catch wrapper
 		this.shouldDecorate = this.options.decorateBootstrapModule &&
-			(((this.optimizedSources && !this.options.debugMode) || this.optimize) &&
-				this.targetBundleFormat.shouldDecorate(resolvedModule));
+				this.targetBundleFormat.shouldDecorate(resolvedModule);
 		// TODO is the following condition ok or should the availability of jquery.sap.global.js be configurable?
 		this.jqglobalAvailable = !resolvedModule.containsGlobal;
 		this.openModule(resolvedModule.name);

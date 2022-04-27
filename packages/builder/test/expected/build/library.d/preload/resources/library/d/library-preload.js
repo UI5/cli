@@ -1,7 +1,5 @@
 //@ui5-bundle library/d/library-preload.js
-jQuery.sap.registerPreloadedModules({
-"version":"2.0",
-"modules":{
+sap.ui.require.preload({
 	"library/d/some.js":function(){
 /*!
  * ${copyright}
@@ -11,5 +9,5 @@ jQuery.sap.registerPreloadedModules({
 	console.log('Hello ' + someNonUglifiedVariable);
 })();
 }
-}});
+});
 //# sourceMappingURL=library-preload.js.map

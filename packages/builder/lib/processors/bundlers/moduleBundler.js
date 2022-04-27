@@ -91,9 +91,9 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @typedef {object} ModuleBundleOptions
  * @property {boolean} [optimize=true] Whether the module bundle gets minified
  * @property {boolean} [sourceMap=true] Whether to generate a source map file for the bundle
- * @property {boolean} [decorateBootstrapModule=false] If set to 'false', the module won't be decorated
+ * @property {boolean} [decorateBootstrapModule=false] If set to 'false', bootable bundles won't be decorated
  *   with an optimization marker
- * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable module bundles with
+ * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable bundles with
  *   a try/catch to filter out "Restart" errors
  * @property {boolean} [usePredefineCalls=false] If set to 'true', sap.ui.predefine is used for UI5 modules
  * @property {number} [numberOfParts=1] The number of parts the module bundle should be splitted
