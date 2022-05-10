@@ -201,7 +201,7 @@ class AbstractBuilder {
 	 * @param {Array} tasksToRun List of tasks which should be executed
 	 * @returns {Promise} Returns promise chain with tasks
 	 */
-	build(tasksToRun) {
+	async build(tasksToRun) {
 		const allTasks = this.taskExecutionOrder.filter((taskName) => {
 			// There might be a numeric suffix in case a custom task is configured multiple times.
 			// The suffix needs to be removed in order to check against the list of tasks to run.
@@ -217,15 +217,12 @@ class AbstractBuilder {
 
 		this.taskLog.addWork(allTasks.length);
 
-		return allTasks.reduce((taskChain, taskName) => {
+		for (const taskName of allTasks) {
 			const taskFunction = this.tasks[taskName];
-
 			if (typeof taskFunction === "function") {
-				taskChain = taskChain.then(this.wrapTask(taskName, taskFunction));
+				await this.executeTask(taskName, taskFunction);
 			}
-
-			return taskChain;
-		}, Promise.resolve());
+		}
 	}
 
 	/**
@@ -234,13 +231,16 @@ class AbstractBuilder {
 	 * @private
 	 * @param {string} taskName Name of the task
 	 * @param {Function} taskFunction Function which executed the task
-	 * @returns {Function} Wrapped task function
+	 * @returns {Promise} Resolves when task has finished
 	 */
-	wrapTask(taskName, taskFunction) {
-		return () => {
-			this.taskLog.startWork(`Running task ${taskName}...`);
-			return taskFunction().then(() => this.taskLog.completeWork(1));
-		};
+	async executeTask(taskName, taskFunction) {
+		this.taskLog.startWork(`Running task ${taskName}...`);
+		this._taskStart = performance.now();
+		await taskFunction();
+		this.taskLog.completeWork(1);
+		if (process.env.UI5_PERF_TASK) {
+			this.taskLog.info(`Task succeeded in ${Math.round((performance.now() - this._taskStart))} ms`);
+		}
 	}
 
 	/**
