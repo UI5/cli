@@ -238,7 +238,7 @@ class AbstractBuilder {
 		this._taskStart = performance.now();
 		await taskFunction();
 		this.taskLog.completeWork(1);
-		if (process.env.UI5_PERF_TASK) {
+		if (process.env.UI5_LOG_TASK_PERF) {
 			this.taskLog.info(`Task succeeded in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
 	}
