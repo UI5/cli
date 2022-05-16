@@ -21,10 +21,11 @@ const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
  * inclusion overrides an earlier exclusion, and vice versa.
  * @param {string[]} [parameters.options.paths] Array of paths (or glob patterns) for component files
  * @param {string[]} [parameters.options.namespaces] Array of component namespaces
+ * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = function({
-	workspace, taskUtil, options: {projectName, paths, namespaces, excludes = []}
+	workspace, taskUtil, options: {projectName, paths, namespaces, skipBundles = [], excludes = []}
 }) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
@@ -65,6 +66,12 @@ module.exports = function({
 			const unusedFilterExcludes = new Set(allFilterExcludes);
 
 			const bundleDefinitions = allNamespaces.map((namespace) => {
+				const bundleName = `${namespace}/Component-preload.js`;
+				if (skipBundles.includes(bundleName)) {
+					log.verbose(`Skipping generation of bundle ${bundleName}`);
+					return null;
+				}
+
 				const filters = [
 					`${namespace}/`,
 					`${namespace}/**/manifest.json`,
@@ -94,7 +101,7 @@ module.exports = function({
 				});
 
 				return {
-					name: `${namespace}/Component-preload.js`,
+					name: bundleName,
 					defaultFileTypes: [
 						".js",
 						".control.xml",
@@ -127,7 +134,7 @@ module.exports = function({
 				});
 			}
 
-			return Promise.all(bundleDefinitions.map((bundleDefinition) => {
+			return Promise.all(bundleDefinitions.filter(Boolean).map((bundleDefinition) => {
 				log.verbose(`Generating ${bundleDefinition.name}...`);
 				return moduleBundler({
 					resources,

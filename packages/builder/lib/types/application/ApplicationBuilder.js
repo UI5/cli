@@ -88,6 +88,10 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		}
 
+		const bundles = project.builder?.bundles;
+		const existingBundleDefinitionNames =
+			bundles?.map(({bundleDefinition}) => bundleDefinition.name).filter(Boolean) || [];
+
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload && (componentPreload.namespaces || componentPreload.paths)) {
 			this.addTask("generateComponentPreload", async () => {
@@ -98,7 +102,8 @@ class ApplicationBuilder extends AbstractBuilder {
 						projectName: project.metadata.name,
 						paths: componentPreload.paths,
 						namespaces: componentPreload.namespaces,
-						excludes: componentPreload.excludes
+						excludes: componentPreload.excludes,
+						skipBundles: existingBundleDefinitionNames
 					}
 				});
 			});
@@ -111,7 +116,8 @@ class ApplicationBuilder extends AbstractBuilder {
 					options: {
 						projectName: project.metadata.name,
 						namespaces: [project.metadata.namespace],
-						excludes: componentPreload && componentPreload.excludes
+						excludes: componentPreload && componentPreload.excludes,
+						skipBundles: existingBundleDefinitionNames
 					}
 				});
 			});
@@ -139,7 +145,6 @@ class ApplicationBuilder extends AbstractBuilder {
 			});
 		});
 
-		const bundles = project.builder && project.builder.bundles;
 		if (bundles) {
 			this.addTask("generateBundle", async () => {
 				return Promise.all(bundles.map((bundle) => {

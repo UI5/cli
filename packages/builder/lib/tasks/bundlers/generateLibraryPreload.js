@@ -142,48 +142,6 @@ function getSupportFilesBundleDefinition(namespace) {
 	};
 }
 
-function createLibraryBundles(libraryNamespace, resources, excludes) {
-	return Promise.all([
-		moduleBundler({
-			options: {
-				bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
-				bundleOptions: {
-					optimize: true,
-					usePredefineCalls: true,
-					ignoreMissingModules: true
-				}
-			},
-			resources
-		}),
-		moduleBundler({
-			options: {
-				bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
-				bundleOptions: {
-					optimize: true,
-					usePredefineCalls: true,
-					ignoreMissingModules: true,
-					skipIfEmpty: true
-				}
-			},
-			resources
-		}),
-		moduleBundler({
-			options: {
-				bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
-				bundleOptions: {
-					optimize: false,
-					usePredefineCalls: true,
-					ignoreMissingModules: true,
-					skipIfEmpty: true
-				}
-				// Note: Although the bundle uses optimize=false, there is
-				// no moduleNameMapping needed, as support files are excluded from minification.
-			},
-			resources
-		})
-	]);
-}
-
 function getModuleBundlerOptions(config) {
 	const moduleBundlerOptions = {};
 
@@ -274,9 +232,10 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * inclusion overrides an earlier exclusion, and vice versa.
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
+ * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, taskUtil, options: {projectName, excludes = []}}) {
+module.exports = function({workspace, taskUtil, options: {projectName, skipBundles = [], excludes = []}}) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
 		nonDbgWorkspace = workspace.filter(function(resource) {
@@ -284,6 +243,14 @@ module.exports = function({workspace, taskUtil, options: {projectName, excludes 
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
 	}
+
+	const execModuleBundlerIfNeeded = ({options, resources}) => {
+		if (skipBundles.includes(options.bundleDefinition.name)) {
+			log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
+			return null;
+		}
+		return moduleBundler({options, resources});
+	};
 
 	return nonDbgWorkspace.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}").then(async (resources) => {
 		// Find all libraries and create a library-preload.js bundle
@@ -326,24 +293,24 @@ module.exports = function({workspace, taskUtil, options: {projectName, excludes 
 					filters = ["jquery.sap.global.js"];
 				}
 				p = Promise.all([
-					moduleBundler({
+					execModuleBundlerIfNeeded({
 						options: getModuleBundlerOptions({name: "sap-ui-core.js", filters, preload: true}),
 						resources
 					}),
-					moduleBundler({
+					execModuleBundlerIfNeeded({
 						options: getModuleBundlerOptions({
 							name: "sap-ui-core-dbg.js", filters, preload: false,
 							moduleNameMapping: unoptimizedModuleNameMapping
 						}),
 						resources: unoptimizedResources
 					}),
-					moduleBundler({
+					execModuleBundlerIfNeeded({
 						options: getModuleBundlerOptions({
 							name: "sap-ui-core-nojQuery.js", filters, preload: true, provided: true
 						}),
 						resources
 					}),
-					moduleBundler({
+					execModuleBundlerIfNeeded({
 						options: getModuleBundlerOptions({
 							name: "sap-ui-core-nojQuery-dbg.js", filters, preload: false, provided: true,
 							moduleNameMapping: unoptimizedModuleNameMapping
@@ -351,7 +318,7 @@ module.exports = function({workspace, taskUtil, options: {projectName, excludes 
 						resources: unoptimizedResources
 					}),
 				]).then((results) => {
-					const bundles = Array.prototype.concat.apply([], results);
+					const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
 					return Promise.all(bundles.map(({bundle, sourceMap}) => {
 						if (taskUtil) {
 							taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
@@ -390,7 +357,7 @@ module.exports = function({workspace, taskUtil, options: {projectName, excludes 
 					return;
 				}
 
-				return Promise.all(libraryIndicatorResources.map((libraryIndicatorResource) => {
+				return Promise.all(libraryIndicatorResources.map(async (libraryIndicatorResource) => {
 					// Determine library namespace from library indicator file path
 					// ending with either ".library" or "library.js" (see fallback logic above)
 					// e.g. /resources/sap/foo/.library => sap/foo
@@ -400,28 +367,64 @@ module.exports = function({workspace, taskUtil, options: {projectName, excludes 
 					const libraryNamespaceMatch = libraryIndicatorPath.match(libraryNamespacePattern);
 					if (libraryNamespaceMatch && libraryNamespaceMatch[1]) {
 						const libraryNamespace = libraryNamespaceMatch[1];
-						return createLibraryBundles(libraryNamespace, resources, excludes)
-							.then((results) => {
-								const bundles = Array.prototype.concat.apply([], results);
-								return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
-									if (bundle) {
-										if (taskUtil) {
-											taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
-											if (sourceMap) {
-												// Clear tag that might have been set by the minify task, in cases where
-												// the bundle name is identical to a source file
-												taskUtil.clearTag(sourceMap,
-													taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-											}
-										}
-										const writes = [workspace.write(bundle)];
-										if (sourceMap) {
-											writes.push(workspace.write(sourceMap));
-										}
-										return Promise.all(writes);
+						const results = await Promise.all([
+							execModuleBundlerIfNeeded({
+								options: {
+									bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
+									bundleOptions: {
+										optimize: true,
+										usePredefineCalls: true,
+										ignoreMissingModules: true
 									}
-								}));
-							});
+								},
+								resources
+							}),
+							execModuleBundlerIfNeeded({
+								options: {
+									bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
+									bundleOptions: {
+										optimize: true,
+										usePredefineCalls: true,
+										ignoreMissingModules: true,
+										skipIfEmpty: true
+									}
+								},
+								resources
+							}),
+							execModuleBundlerIfNeeded({
+								options: {
+									bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
+									bundleOptions: {
+										optimize: false,
+										usePredefineCalls: true,
+										ignoreMissingModules: true,
+										skipIfEmpty: true
+									}
+									// Note: Although the bundle uses optimize=false, there is
+									// no moduleNameMapping needed, as support files are excluded from minification.
+								},
+								resources
+							})
+						]);
+						const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
+						return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
+							if (bundle) {
+								if (taskUtil) {
+									taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
+									if (sourceMap) {
+										// Clear tag that might have been set by the minify task, in cases where
+										// the bundle name is identical to a source file
+										taskUtil.clearTag(sourceMap,
+											taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+									}
+								}
+								const writes = [workspace.write(bundle)];
+								if (sourceMap) {
+									writes.push(workspace.write(sourceMap));
+								}
+								return Promise.all(writes);
+							}
+						}));
 					} else {
 						log.verbose(
 							`Could not determine library namespace from file "${libraryIndicatorPath}" ` +

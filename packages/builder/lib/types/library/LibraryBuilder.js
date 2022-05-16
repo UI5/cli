@@ -132,6 +132,10 @@ class LibraryBuilder extends AbstractBuilder {
 			});
 		}
 
+		const bundles = project.builder?.bundles;
+		const existingBundleDefinitionNames =
+			bundles?.map(({bundleDefinition}) => bundleDefinition.name).filter(Boolean) || [];
+
 		const componentPreload = project.builder && project.builder.componentPreload;
 		if (componentPreload) {
 			this.addTask("generateComponentPreload", async () => {
@@ -142,7 +146,8 @@ class LibraryBuilder extends AbstractBuilder {
 						projectName: project.metadata.name,
 						paths: componentPreload.paths,
 						namespaces: componentPreload.namespaces,
-						excludes: componentPreload.excludes
+						excludes: componentPreload.excludes,
+						skipBundles: existingBundleDefinitionNames
 					}
 				});
 			});
@@ -157,12 +162,12 @@ class LibraryBuilder extends AbstractBuilder {
 					excludes:
 						project.builder &&
 						project.builder.libraryPreload &&
-						project.builder.libraryPreload.excludes
+						project.builder.libraryPreload.excludes,
+					skipBundles: existingBundleDefinitionNames
 				}
 			});
 		});
 
-		const bundles = project.builder && project.builder.bundles;
 		if (bundles) {
 			this.addTask("generateBundle", async () => {
 				return bundles.reduce(function(sequence, bundle) {
