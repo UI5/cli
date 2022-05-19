@@ -43,7 +43,7 @@ function getCreatorOptions(projectName) {
  *
  * <p>
  * The detailed structure can be found in the documentation:
- * {@link https://openui5.hana.ondemand.com/#topic/adcbcf8b50924556ab3f321fcd9353ea}
+ * {@link https://sdk.openui5.org/topic/adcbcf8b50924556ab3f321fcd9353ea}
  * </p>
  *
  * <p>
