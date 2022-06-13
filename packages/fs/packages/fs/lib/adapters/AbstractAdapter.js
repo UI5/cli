@@ -27,6 +27,9 @@ class AbstractAdapter extends AbstractReaderWriter {
 			throw new TypeError("Class 'AbstractAdapter' is abstract");
 		}
 		super();
+		if (!virBasePath.endsWith("/")) {
+			throw new Error(`Virtual base path must end with a slash: ${virBasePath}`);
+		}
 		this._virBasePath = virBasePath;
 		this._virBaseDir = virBasePath.slice(0, -1);
 		this._excludes = excludes;

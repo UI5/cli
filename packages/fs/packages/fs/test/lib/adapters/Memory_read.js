@@ -62,7 +62,7 @@ test("glob resources from application.a w/o virtual base path prefix", async (t)
 test("glob virtual directory w/o virtual base path prefix", async (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
 	const readerWriter = resourceFactory.createAdapter({
-		virBasePath: "/app/one/two"
+		virBasePath: "/app/one/two/"
 	});
 
 	const resources = await readerWriter.byGlob("/*", {nodir: false});
@@ -72,7 +72,7 @@ test("glob virtual directory w/o virtual base path prefix", async (t) => {
 test("glob virtual directory w/o virtual base path prefix and multiple patterns", async (t) => {
 	// TODO: Add similar test (globbing on empty directory) for FS RL
 	const readerWriter = resourceFactory.createAdapter({
-		virBasePath: "/app/one/two"
+		virBasePath: "/app/one/two/"
 	});
 
 	const resources = await readerWriter.byGlob([
@@ -94,7 +94,7 @@ test("glob virtual directory w/ virtual base path prefix", async (t) => {
 
 test("glob virtual directory w/o virtual base path prefix and nodir: true", async (t) => {
 	const readerWriter = resourceFactory.createAdapter({
-		virBasePath: "/app/one/two"
+		virBasePath: "/app/one/two/"
 	});
 
 	const resources = await readerWriter.byGlob("/*", {nodir: true});
