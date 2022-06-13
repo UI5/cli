@@ -13,6 +13,9 @@ const hasOwnProperty = Object.prototype.hasOwnProperty;
  */
 class Trace {
 	constructor(name) {
+		if (!log.isLevelEnabled("silly")) {
+			return;
+		}
 		this._name = name;
 		this._startTime = process.hrtime();
 		this._globCalls = 0;
@@ -22,16 +25,25 @@ class Trace {
 	}
 
 	globCall() {
+		if (!log.isLevelEnabled("silly")) {
+			return;
+		}
 		this._globCalls++;
 		summaryTrace.globCall();
 	}
 
 	pathCall() {
+		if (!log.isLevelEnabled("silly")) {
+			return;
+		}
 		this._pathCalls++;
 		summaryTrace.pathCall();
 	}
 
 	collection(name) {
+		if (!log.isLevelEnabled("silly")) {
+			return;
+		}
 		const collection = this._collections[name];
 		if (collection) {
 			this._collections[name].calls++;
@@ -44,6 +56,9 @@ class Trace {
 	}
 
 	printReport() {
+		if (!log.isLevelEnabled("silly")) {
+			return;
+		}
 		let report = "";
 		const timeDiff = process.hrtime(this._startTime);
 		const time = prettyHrtime(timeDiff);
@@ -67,11 +82,11 @@ class Trace {
 		report += "======================]";
 
 		if (this._globCalls && this._pathCalls) {
-			log.verbose(report);
+			log.silly(report);
 		} else if (this._globCalls) {
-			logGlobs.verbose(report);
+			logGlobs.silly(report);
 		} else {
-			logPaths.verbose(report);
+			logPaths.silly(report);
 		}
 
 		summaryTrace.traceEnded();
