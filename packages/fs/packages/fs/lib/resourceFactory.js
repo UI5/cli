@@ -268,9 +268,26 @@ const resourceFactory = {
 	},
 
 	createReaderCollection({name, readers}) {
+		const ReaderCollection = require("./ReaderCollection");
 		return new ReaderCollection({
 			name,
 			readers
+		});
+	},
+
+	createReaderCollectionPrioritized({name, readers}) {
+		const ReaderCollectionPrioritized = require("./ReaderCollectionPrioritized");
+		return new ReaderCollectionPrioritized({
+			name,
+			readers
+		});
+	},
+
+	createWriterCollection({name, writerMapping}) {
+		const WriterCollection = require("./WriterCollection");
+		return new WriterCollection({
+			name,
+			writerMapping
 		});
 	},
 
@@ -313,6 +330,31 @@ const resourceFactory = {
 			writer,
 			name
 		});
+	},
+
+	/**
+	 * Normalizes virtual glob patterns by prefixing them with
+	 * a given virtual base directory path
+	 *
+	 * @param {string} virPattern glob pattern for virtual directory structure
+	 * @param {string} virBaseDir virtual base directory path to prefix the given patterns with
+	 * @returns {string[]} A list of normalized glob patterns
+	 */
+	prefixGlobPattern(virPattern, virBaseDir) {
+		const path = require("path");
+		const minimatch = require("minimatch");
+		const mm = new minimatch.Minimatch(virPattern);
+
+		const resultGlobs = [];
+		for (let i = 0; i < mm.globSet.length; i++) {
+			let resultPattern = path.posix.join(virBaseDir, mm.globSet[i]);
+
+			if (mm.negate) {
+				resultPattern = "!" + resultPattern;
+			}
+			resultGlobs.push(resultPattern);
+		}
+		return Array.prototype.concat.apply([], resultGlobs);
 	}
 };
 
