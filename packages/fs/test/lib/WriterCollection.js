@@ -13,7 +13,21 @@ test("Constructor: Path mapping regex", async (t) => {
 			"/my/": myWriter,
 		}
 	});
-	t.is(writer._basePathRegex.toString(), "^((?:\\/)??(?:\\/my\\/)??(?:\\/my\\/path\\/)??)+.*?$",
+	t.is(writer._basePathRegex.toString(), "^((?:/)??(?:/my/)??(?:/my/path/)??)+.*?$",
+		"Created correct path mapping regular expression");
+});
+
+test("Constructor: Path mapping regex has correct escaping", async (t) => {
+	const myWriter = {};
+	const writer = new WriterCollection({
+		name: "myCollection",
+		writerMapping: {
+			"/My\\Weird.Path/": myWriter,
+			"/my/pa$h/": myWriter,
+			"/my/": myWriter,
+		}
+	});
+	t.is(writer._basePathRegex.toString(), "^((?:/My\\\\Weird\\.Path/)??(?:/my/)??(?:/my/pa\\$h/)??)+.*?$",
 		"Created correct path mapping regular expression");
 });
 

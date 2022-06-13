@@ -1,5 +1,6 @@
 const AbstractReaderWriter = require("./AbstractReaderWriter");
 const ReaderCollection = require("./ReaderCollection");
+const escapeStringRegExp = require("escape-string-regexp");
 
 /**
  * Resource Locator WriterCollection
@@ -45,7 +46,7 @@ class WriterCollection extends AbstractReaderWriter {
 					`Missing trailing slash in path mapping '${basePath}' of WriterCollection ${this._name}`);
 			}
 
-			return `${regex}(?:${basePath.replace(/\//g, "\\/")})??`;
+			return `${regex}(?:${escapeStringRegExp(basePath)})??`;
 		}, "^(") + ")+.*?$";
 
 		this._writerMapping = writerMapping;

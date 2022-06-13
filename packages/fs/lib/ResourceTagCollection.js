@@ -1,5 +1,5 @@
-const tagNamespaceRegExp = new RegExp("^[a-z][a-z0-9]*$"); // part before the colon
-const tagNameRegExp = new RegExp("^[A-Z][A-Za-z0-9]+$"); // part after the colon
+const tagNamespaceRegExp = /^[a-z][a-z0-9]+$/; // part before the colon
+const tagNameRegExp = /^[A-Z][A-Za-z0-9]+$/; // part after the colon
 const ResourceFacade = require("./ResourceFacade");
 
 class ResourceTagCollection {
