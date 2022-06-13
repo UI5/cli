@@ -74,10 +74,10 @@
 			"jsdoc-plugin.js"
 		],
 		"check-coverage": true,
-		"statements": 85,
-		"branches": 75,
-		"functions": 80,
-		"lines": 85,
+		"statements": 76,
+		"branches": 72,
+		"functions": 70,
+		"lines": 76,
 		"watermarks": {
 			"statements": [
 				70,
