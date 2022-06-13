@@ -11,7 +11,7 @@ class LocatorResource extends Resource {
 	}
 
 	getProject() {
-		return this.resource._project;
+		return this.resource.getProject();
 	}
 
 	getPath() {

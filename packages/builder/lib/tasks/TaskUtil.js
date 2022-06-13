@@ -19,9 +19,15 @@ class TaskUtil {
 	 * @public
 	 * @typedef {object} module:@ui5/builder.tasks.TaskUtil~StandardBuildTags
 	 * @property {string} OmitFromBuildResult
-	 * 		Setting this tag to true for a resource will prevent it from being written to the build target
+	 * 		Setting this tag to true will prevent the resource from being written to the build target directory
 	 * @property {string} IsBundle
 	 * 		This tag identifies resources that contain (i.e. bundle) multiple other resources
+	 * @property {string} IsDebugVariant
+	 * 		This tag identifies resources that are a debug variant (typically named with a "-dbg" suffix)
+	 * 		of another resource. This tag is part of the build manifest.
+	 * @property {string} HasDebugVariant
+	 * 		This tag identifies resources for which a debug variant has been created.
+	 * 		This tag is part of the build manifest.
 	 */
 
 	/**
@@ -34,12 +40,22 @@ class TaskUtil {
 	 */
 	constructor({projectBuildContext}) {
 		this._projectBuildContext = projectBuildContext;
-
 		/**
 		 * @member {module:@ui5/builder.tasks.TaskUtil~StandardBuildTags}
 		 * @public
 		*/
-		this.STANDARD_TAGS = this._projectBuildContext.STANDARD_TAGS;
+		this.STANDARD_TAGS = Object.freeze({
+			// "Project" tags:
+			// Will be stored on project instance and are hence part of the build manifest
+			IsDebugVariant: "ui5:IsDebugVariant",
+			HasDebugVariant: "ui5:HasDebugVariant",
+
+			// "Build" tags:
+			// Will be stored on the project build context
+			// They are only available to the build tasks of a single project
+			OmitFromBuildResult: "ui5:OmitFromBuildResult",
+			IsBundle: "ui5:IsBundle"
+		});
 	}
 
 	/**
@@ -51,14 +67,20 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {string|module:@ui5/fs.Resource} resourcePath Path or resource-instance the tag should be stored for
+	 * @param {module:@ui5/fs.Resource} resource Resource-instance the tag should be stored for
 	 * @param {string} tag Name of the tag.
 	 * 		Currently only the [STANDARD_TAGS]{@link module:@ui5/builder.tasks.TaskUtil#STANDARD_TAGS} are allowed
 	 * @param {string|boolean|integer} [value=true] Tag value. Must be primitive
 	 * @public
 	 */
-	setTag(resourcePath, tag, value) {
-		return this._projectBuildContext.getResourceTagCollection().setTag(resourcePath, tag, value);
+	setTag(resource, tag, value) {
+		if (typeof resource === "string") {
+			throw new Error("Deprecated parameter: " +
+				"Since UI5 Tooling 3.0, #setTag requires a resource instance. Strings are no longer accepted");
+		}
+
+		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
+		return collection.setTag(resource, tag, value);
 	}
 
 	/**
@@ -68,14 +90,19 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {string|module:@ui5/fs.Resource} resourcePath Path or resource-instance the tag should be retrieved for
+	 * @param {module:@ui5/fs.Resource} resource Resource-instance the tag should be retrieved for
 	 * @param {string} tag Name of the tag
 	 * @returns {string|boolean|integer|undefined} Tag value for the given resource.
 	 * 										<code>undefined</code> if no value is available
 	 * @public
 	 */
-	getTag(resourcePath, tag) {
-		return this._projectBuildContext.getResourceTagCollection().getTag(resourcePath, tag);
+	getTag(resource, tag) {
+		if (typeof resource === "string") {
+			throw new Error("Deprecated parameter: " +
+				"Since UI5 Tooling 3.0, #getTag requires a resource instance. Strings are no longer accepted");
+		}
+		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
+		return collection.getTag(resource, tag);
 	}
 
 	/**
@@ -86,12 +113,17 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {string|module:@ui5/fs.Resource} resourcePath Path or resource-instance the tag should be cleared for
+	 * @param {module:@ui5/fs.Resource} resource Resource-instance the tag should be cleared for
 	 * @param {string} tag Tag
 	 * @public
 	 */
-	clearTag(resourcePath, tag) {
-		return this._projectBuildContext.getResourceTagCollection().clearTag(resourcePath, tag);
+	clearTag(resource, tag) {
+		if (typeof resource === "string") {
+			throw new Error("Deprecated parameter: " +
+				"Since UI5 Tooling 3.0, #clearTag requires a resource instance. Strings are no longer accepted");
+		}
+		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
+		return collection.clearTag(resource, tag);
 	}
 
 	/**
@@ -137,6 +169,22 @@ class TaskUtil {
 	}
 
 	/**
+	 * Retrieve a single project from the dependency graph
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 2.7 and above</b>.
+	 *
+	 * @param {string} projectName Name of the project to retrieve
+	 * @returns {module:@ui5/project.specifications.Project|undefined}
+	 *					project instance or undefined if the project is unknown to the graph
+	 * @public
+	 */
+	getProject(projectName) {
+		return this._projectBuildContext.getProject(projectName);
+	}
+
+	/**
 	 * Get an interface to an instance of this class that only provides those functions
 	 * that are supported by the given custom task extension specification version.
 	 *
@@ -150,12 +198,10 @@ class TaskUtil {
 
 		const baseInterface = {
 			STANDARD_TAGS: this.STANDARD_TAGS,
-			setTag: this.setTag.bind(this),
-			clearTag: this.clearTag.bind(this),
-			getTag: this.getTag.bind(this),
-			isRootProject: this.isRootProject.bind(this),
-			registerCleanupTask: this.registerCleanupTask.bind(this)
 		};
+		bindFunctions(this, baseInterface, [
+			"setTag", "clearTag", "getTag", "isRootProject", "registerCleanupTask"
+		]);
 		switch (specVersion) {
 		case "2.2":
 		case "2.3":
@@ -163,10 +209,29 @@ class TaskUtil {
 		case "2.5":
 		case "2.6":
 			return baseInterface;
+		case "2.7":
+			baseInterface.getProject = (projectName) => {
+				const project = this.getProject(projectName);
+				const baseProjectInterface = {};
+				bindFunctions(project, baseProjectInterface, [
+					"getName", "getVersion", "getNamespace"
+				]);
+				switch (specVersion) {
+				case "2.7":
+					return baseProjectInterface;
+				}
+			};
+			return baseInterface;
 		default:
 			throw new Error(`TaskUtil: Unknown or unsupported Specification Version ${specVersion}`);
 		}
 	}
+}
+
+function bindFunctions(sourceObject, targetObject, funcNames) {
+	funcNames.forEach((funcName) => {
+		targetObject[funcName] = sourceObject[funcName].bind(sourceObject);
+	});
 }
 
 module.exports = TaskUtil;

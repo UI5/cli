@@ -21,11 +21,7 @@ test.serial("propertiesFileSourceEncoding UTF-8", async (t) => {
 	const lbtResource = {
 		getProject: () => {
 			return {
-				resources: {
-					configuration: {
-						propertiesFileSourceEncoding: "UTF-8"
-					}
-				}
+				getPropertiesFileSourceEncoding: () => "UTF-8"
 			};
 		},
 		resource: "actual resource",
@@ -52,11 +48,7 @@ test.serial("propertiesFileSourceEncoding ISO-8859-1", async (t) => {
 	const lbtResource = {
 		getProject: () => {
 			return {
-				resources: {
-					configuration: {
-						propertiesFileSourceEncoding: "ISO-8859-1"
-					}
-				}
+				getPropertiesFileSourceEncoding: () => "ISO-8859-1"
 			};
 		},
 		resource: "actual resource",
@@ -81,12 +73,7 @@ test.serial("propertiesFileSourceEncoding ISO-8859-1", async (t) => {
 test.serial("propertiesFileSourceEncoding not set", async (t) => {
 	const lbtResource = {
 		getProject: () => {
-			return {
-				resources: {
-					configuration: {
-					}
-				}
-			};
+			return undefined;
 		},
 		resource: "actual resource",
 		buffer: async () => {
@@ -111,7 +98,8 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 0.1", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				specVersion: "0.1"
+				getSpecVersion: () => "0.1",
+				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
 		resource: "actual resource",
@@ -137,7 +125,8 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 1.0", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				specVersion: "1.0"
+				getSpecVersion: () => "1.0",
+				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
 		resource: "actual resource",
@@ -163,7 +152,8 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 1.1", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				specVersion: "1.1"
+				getSpecVersion: () => "1.1",
+				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
 		resource: "actual resource",
@@ -189,7 +179,8 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 2.0", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				specVersion: "2.0"
+				getSpecVersion: () => "2.0",
+				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
 		resource: "actual resource",

@@ -105,19 +105,17 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
-		"@ui5/fs": "^3.0.0-alpha.3",
+		"@ui5/fs": "^3.0.0-alpha.4",
 		"@ui5/logger": "^3.0.1-alpha.1",
 		"cheerio": "1.0.0-rc.9",
 		"escape-unicode": "^0.2.0",
 		"escope": "^3.6.0",
 		"espree": "^9.3.1",
-		"globby": "^11.1.0",
 		"graceful-fs": "^4.2.9",
 		"jsdoc": "^3.6.7",
 		"less-openui5": "^0.11.2",
 		"make-dir": "^3.1.0",
 		"pretty-data": "^0.40.0",
-		"pretty-hrtime": "^1.0.3",
 		"replacestream": "^4.0.3",
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.5",
@@ -127,6 +125,7 @@
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
+		"@ui5/project": "SAP/ui5-project#ui5-project-3.0",
 		"ava": "^3.15.0",
 		"chai": "^4.3.4",
 		"chai-fs": "^2.0.0",

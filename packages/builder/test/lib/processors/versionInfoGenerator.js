@@ -16,10 +16,12 @@ test.beforeEach((t) => {
 	t.context.warnLogStub = sinon.stub();
 	t.context.infoLogStub = sinon.stub();
 	t.context.verboseLogStub = sinon.stub();
+	t.context.sillyLogStub = sinon.stub();
 	sinon.stub(logger, "getLogger").returns({
 		warn: t.context.warnLogStub,
 		info: t.context.infoLogStub,
 		verbose: t.context.verboseLogStub,
+		silly: t.context.sillyLogStub,
 		isLevelEnabled: () => true
 	});
 	versionInfoGenerator = mock.reRequire("../../../lib/processors/versionInfoGenerator");

@@ -168,7 +168,7 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 	], "Correct filter in second bundle definition section");
 });
 
-test.serial("execute module bundler with taskUtil", async (t) => {
+test.serial.only("execute module bundler with taskUtil", async (t) => {
 	const {taskUtil} = t.context;
 
 	const dummyResource1 = createDummyResource("1.js");
@@ -177,7 +177,7 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 	const dummyResource4 = createDummyResource("4-dbg.js");
 
 	taskUtil.getTag.withArgs(dummyResource1, taskUtil.STANDARD_TAGS.HasDebugVariant).returns(true);
-	taskUtil.getTag.withArgs(dummyResource2.getPath(), taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
+	taskUtil.getTag.withArgs(dummyResource2, taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
 
 	const ui5LoaderDummyResource = {
 		getPath: function() {

@@ -4,7 +4,7 @@ const nonAsciiEscaper = require("../../processors/nonAsciiEscaper");
  * Can be used to escape *.properties files.
  *
  * Input encoding is read from project configuration.
- * In case the resource belongs to no project (e.g. bundler is used standalone) the default is "ISO-8859-1".
+ * In case the resource belongs to no project (e.g. bundler is used standalone) the default is "UTF-8".
  *
  * @private
  * @param {Resource} resource the resource for which the content will be escaped
@@ -12,13 +12,10 @@ const nonAsciiEscaper = require("../../processors/nonAsciiEscaper");
  */
 module.exports = async function(resource) {
 	const project = resource.getProject();
-	let propertiesFileSourceEncoding = project &&
-			project.resources &&
-			project.resources.configuration &&
-			project.resources.configuration.propertiesFileSourceEncoding;
+	let propertiesFileSourceEncoding = project && project.getPropertiesFileSourceEncoding();
 
 	if (!propertiesFileSourceEncoding) {
-		if (project && ["0.1", "1.0", "1.1"].includes(project.specVersion)) {
+		if (project && ["0.1", "1.0", "1.1"].includes(project.getSpecVersion())) {
 			// default encoding to "ISO-8859-1" for old specVersions
 			propertiesFileSourceEncoding = "ISO-8859-1";
 		} else {

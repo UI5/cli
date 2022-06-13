@@ -6,14 +6,16 @@ const assert = chai.assert;
 const sinon = require("sinon");
 const mock = require("mock-require");
 
+const {generateProjectGraph} = require("@ui5/project");
+const builder = require("@ui5/project").builder;
+
 test.afterEach.always((t) => {
 	mock.stopAll();
 	sinon.restore();
 });
 
 const recursive = require("recursive-readdir");
-const ui5Builder = require("../../../../");
-const builder = ui5Builder.builder;
+
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
@@ -36,25 +38,28 @@ test("integration: build application.b standalone", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["minify", "generateStandaloneAppBundle"];
 
-	return builder.build({
-		tree: applicationBTree,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: applicationBTree
+	});
+
+	await builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
-
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile, "Correct file content");
-		});
-		t.pass("No assertion exception");
 	});
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
+
+	// Check for all file contents
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		assert.fileEqual(destFile, expectedFile, "Correct file content");
+	});
+	t.pass("No assertion exception");
 });
 
 const applicationBTree = {
@@ -67,98 +72,86 @@ const applicationBTree = {
 			"version": "1.0.0",
 			"path": sapUiCorePath,
 			"dependencies": [],
-			"_level": 1,
-			"specVersion": "0.1",
-			"type": "library",
-			"metadata": {
-				"name": "sap.ui.core",
-				"copyright": "Some fancy copyright"
-			},
-			"resources": {
-				"configuration": {
-					"paths": {
-						"src": "main/src",
-						"test": "main/test"
-					}
+			"configuration": {
+				"specVersion": "2.0",
+				"type": "library",
+				"metadata": {
+					"name": "sap.ui.core",
+					"copyright": "Some fancy copyright"
 				},
-				"pathMappings": {
-					"/resources/": "main/src",
-					"/test-resources/": "main/test"
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "main/src",
+							"test": "main/test"
+						}
+					}
 				}
-			}
+			},
 		},
 		{
 			"id": "library.d",
 			"version": "1.0.0",
 			"path": path.join(applicationBPath, "..", "library.d"),
 			"dependencies": [],
-			"_level": 1,
-			"specVersion": "0.1",
-			"type": "library",
-			"metadata": {
-				"name": "library.d",
-				"copyright": "Some fancy copyright"
-			},
-			"resources": {
-				"configuration": {
-					"paths": {
-						"src": "main/src",
-						"test": "main/test"
-					}
+			"configuration": {
+				"specVersion": "2.0",
+				"type": "library",
+				"metadata": {
+					"name": "library.d",
+					"copyright": "Some fancy copyright"
 				},
-				"pathMappings": {
-					"/resources/": "main/src",
-					"/test-resources/": "main/test"
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "main/src",
+							"test": "main/test"
+						}
+					}
 				}
-			}
+			},
 		},
 		{
 			"id": "library.a",
 			"version": "1.0.0",
 			"path": path.join(applicationBPath, "..", "collection", "library.a"),
 			"dependencies": [],
-			"_level": 1,
-			"specVersion": "0.1",
-			"type": "library",
-			"metadata": {
-				"name": "library.a",
-				"copyright": "${copyright}"
-			},
-			"resources": {
-				"configuration": {
-					"paths": {
-						"src": "src",
-						"test": "test"
-					}
+			"configuration": {
+				"specVersion": "2.0",
+				"type": "library",
+				"metadata": {
+					"name": "library.a",
+					"copyright": "${copyright}"
 				},
-				"pathMappings": {
-					"/resources/": "src",
-					"/test-resources/": "test"
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "src",
+							"test": "test"
+						}
+					}
 				}
-			}
+			},
 		},
 		{
 			"id": "library.b",
 			"version": "1.0.0",
 			"path": path.join(applicationBPath, "..", "collection", "library.b"),
 			"dependencies": [],
-			"_level": 1,
-			"specVersion": "0.1",
-			"type": "library",
-			"metadata": {
-				"name": "library.b",
-				"copyright": "${copyright}"
-			},
-			"resources": {
-				"configuration": {
-					"paths": {
-						"src": "src",
-						"test": "test"
-					}
+			"configuration": {
+				"specVersion": "2.0",
+				"type": "library",
+				"metadata": {
+					"name": "library.b",
+					"copyright": "${copyright}"
 				},
-				"pathMappings": {
-					"/resources/": "src",
-					"/test-resources/": "test"
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "src",
+							"test": "test"
+						}
+					}
 				}
 			}
 		},
@@ -167,45 +160,38 @@ const applicationBTree = {
 			"version": "1.0.0",
 			"path": path.join(applicationBPath, "..", "collection", "library.c"),
 			"dependencies": [],
-			"_level": 1,
-			"specVersion": "0.1",
-			"type": "library",
-			"metadata": {
-				"name": "library.c",
-				"copyright": "${copyright}"
-			},
-			"resources": {
-				"configuration": {
-					"paths": {
-						"src": "src",
-						"test": "test"
-					}
+			"configuration": {
+				"specVersion": "2.0",
+				"type": "library",
+				"metadata": {
+					"name": "library.c",
+					"copyright": "${copyright}"
 				},
-				"pathMappings": {
-					"/resources/": "src",
-					"/test-resources/": "test"
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "src",
+							"test": "test"
+						}
+					}
 				}
-			}
+			},
 		}
 	],
-	"builder": {},
-	"_level": 0,
-	"_isRoot": true,
-	"specVersion": "0.1",
-	"type": "application",
-	"metadata": {
-		"name": "application.b",
-		"namespace": "id1"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"webapp": "webapp"
-			},
-			"propertiesFileSourceEncoding": "ISO-8859-1"
+	"configuration": {
+		"builder": {},
+		"specVersion": "2.0",
+		"type": "application",
+		"metadata": {
+			"name": "application.b"
 		},
-		"pathMappings": {
-			"/": "webapp"
+		"resources": {
+			"configuration": {
+				"paths": {
+					"webapp": "webapp"
+				},
+				"propertiesFileSourceEncoding": "ISO-8859-1"
+			}
 		}
-	}
+	},
 };

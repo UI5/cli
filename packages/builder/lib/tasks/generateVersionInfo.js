@@ -19,7 +19,7 @@ module.exports = async ({workspace, dependencies, options: {rootProject, pattern
 	const resources = await dependencies.byGlob(pattern);
 
 	const libraryInfosPromises = resources.map((dotLibResource) => {
-		const namespace = dotLibResource._project.metadata.namespace;
+		const namespace = dotLibResource.getProject().getNamespace();
 		// pass all required resources to the processor
 		// the processor will then filter
 		return dependencies.byGlob(`/resources/${namespace}/**/${MANIFEST_JSON}`).then((manifestResources) => {
@@ -31,8 +31,8 @@ module.exports = async ({workspace, dependencies, options: {rootProject, pattern
 			return {
 				libraryManifest,
 				embeddedManifests,
-				name: dotLibResource._project.metadata.name,
-				version: dotLibResource._project.version
+				name: dotLibResource.getProject().getName(),
+				version: dotLibResource.getProject().getVersion()
 			};
 		});
 	});
@@ -40,8 +40,8 @@ module.exports = async ({workspace, dependencies, options: {rootProject, pattern
 
 	const [versionInfoResource] = await versionInfoGenerator({
 		options: {
-			rootProjectName: rootProject.metadata.name,
-			rootProjectVersion: rootProject.version,
+			rootProjectName: rootProject.getName(),
+			rootProjectVersion: rootProject.getVersion(),
 			libraryInfos
 		}
 	});

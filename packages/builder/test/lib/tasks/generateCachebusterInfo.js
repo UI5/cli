@@ -5,9 +5,9 @@ const chai = require("chai");
 chai.use(require("chai-fs"));
 const assert = chai.assert;
 
+const {generateProjectGraph} = require("@ui5/project");
+const builder = require("@ui5/project").builder;
 
-const ui5Builder = require("../../../");
-const builder = ui5Builder.builder;
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 
 const recursive = require("recursive-readdir");
@@ -24,70 +24,77 @@ const findFiles = (folder) => {
 	});
 };
 
-test("integration: Build application.g with manifestBundler", (t) => {
+test("integration: Build application.g with manifestBundler", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
 
-	return builder.build({
-		tree: applicationGTree,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: applicationGTree
+	});
+
+	await builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destPath, expectedPath);
-
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
-				const currentContent = JSON.parse(fs.readFileSync(destFile, "utf-8").replace(/(:\s+)(\d+)/g, ": 0"));
-				const expectedContent = JSON.parse(fs.readFileSync(expectedFile, "utf-8").replace(/(:\s+)(\d+)/g, ": 0"));
-				assert.deepEqual(currentContent, expectedContent);
-			} else {
-				assert.fileEqual(destFile, expectedFile);
-			}
-		});
-		t.pass();
 	});
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destPath, expectedPath);
+
+	// Check for all file contents
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
+			const currentContent = JSON.parse(fs.readFileSync(destFile, "utf-8").replace(/(:\s+)(\d+)/g, ": 0"));
+			const expectedContent = JSON.parse(fs.readFileSync(expectedFile, "utf-8").replace(/(:\s+)(\d+)/g, ": 0"));
+			assert.deepEqual(currentContent, expectedContent);
+		} else {
+			assert.fileEqual(destFile, expectedFile);
+		}
+	});
+	t.pass();
 });
 
-test("integration: Build application.g with manifestBundler and cachebuster using hashes", (t) => {
+test("integration: Build application.g with manifestBundler and cachebuster using hashes", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster_hash");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
 
-	return builder.build({
-		tree: applicationGTreeWithCachebusterHash,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: applicationGTreeWithCachebusterHash
+	});
+
+	await builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destPath, expectedPath);
-
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
-				const currentContent = JSON.parse(fs.readFileSync(destFile, "utf-8").replace(/(:\s+)("[^"]+")/g, ": \"\""));
-				const expectedContent = JSON.parse(fs.readFileSync(expectedFile, "utf-8").replace(/(:\s+)(\d+)/g, ": \"\""));
-				assert.deepEqual(currentContent, expectedContent);
-			} else {
-				assert.fileEqual(destFile, expectedFile);
-			}
-		});
-		t.pass();
 	});
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destPath, expectedPath);
+
+	// Check for all file contents
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
+			const currentContent = JSON.parse(fs.readFileSync(destFile, "utf-8").replace(/(:\s+)("[^"]+")/g, ": \"\""));
+			const expectedContent = JSON.parse(fs.readFileSync(expectedFile, "utf-8").replace(/(:\s+)(\d+)/g, ": \"\""));
+			assert.deepEqual(currentContent, expectedContent);
+		} else {
+			assert.fileEqual(destFile, expectedFile);
+		}
+	});
+	t.pass();
 });
 
 const applicationGTree = {
@@ -95,24 +102,20 @@ const applicationGTree = {
 	"version": "1.0.0",
 	"path": applicationGPath,
 	"dependencies": [],
-	"builder": {},
-	"_level": 0,
-	"_isRoot": true,
-	"specVersion": "0.1",
-	"type": "application",
-	"metadata": {
-		"name": "application.g",
-		"namespace": "application/g",
-		"copyright": "Some fancy copyright"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"webapp": "webapp"
-			}
+	"configuration": {
+		"builder": {},
+		"specVersion": "2.0",
+		"type": "application",
+		"metadata": {
+			"name": "application.g",
+			"copyright": "Some fancy copyright"
 		},
-		"pathMappings": {
-			"/": "webapp"
+		"resources": {
+			"configuration": {
+				"paths": {
+					"webapp": "webapp"
+				}
+			}
 		}
 	}
 };
@@ -122,28 +125,24 @@ const applicationGTreeWithCachebusterHash = {
 	"version": "1.0.0",
 	"path": applicationGPath,
 	"dependencies": [],
-	"builder": {
-		"cachebuster": {
-			"signatureType": "hash"
-		}
-	},
-	"_level": 0,
-	"_isRoot": true,
-	"specVersion": "0.1",
-	"type": "application",
-	"metadata": {
-		"name": "application.g",
-		"namespace": "application/g",
-		"copyright": "Some fancy copyright"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"webapp": "webapp"
+	"configuration": {
+		"builder": {
+			"cachebuster": {
+				"signatureType": "hash"
 			}
 		},
-		"pathMappings": {
-			"/": "webapp"
+		"specVersion": "2.0",
+		"type": "application",
+		"metadata": {
+			"name": "application.g",
+			"copyright": "Some fancy copyright"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"webapp": "webapp"
+				}
+			}
 		}
 	}
 };

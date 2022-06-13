@@ -35,10 +35,10 @@ function myFunc(e){jQuery.sap.require("something");console.log("Something requir
 ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"sources":["test-dbg.controller.js"],` +
+	const expectedSourceMap = `{"version":3,"file":"test.controller.js",` +
 		`"names":["myFunc","myArg","jQuery","sap","require","console","log","myFun"],` +
-		`"mappings":";;;AAGC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,sBAEdC",` +
-		`"file":"test.controller.js"}`;
+		`"sources":["test-dbg.controller.js"],` +
+		`"mappings":";;;AAGC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,sBAEdC"}`;
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 });
 
@@ -89,14 +89,17 @@ ${SOURCE_MAPPING_URL}=test2.fragment.js.map`;
 ${SOURCE_MAPPING_URL}=test3.designtime.js.map`;
 
 	const expectedSourceMap1 =
-		`{"version":3,"sources":["test1-dbg.controller.js"],"names":["test1","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test1.controller.js"}`;
+		`{"version":3,"file":"test1.controller.js",` +
+		`"names":["test1","paramA","variableA","console","log"],"sources":["test1-dbg.controller.js"],` +
+		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 	const expectedSourceMap2 =
-		`{"version":3,"sources":["test2-dbg.fragment.js"],"names":["test2","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test2.fragment.js"}`;
+		`{"version":3,"file":"test2.fragment.js",` +
+		`"names":["test2","paramA","variableA","console","log"],"sources":["test2-dbg.fragment.js"],` +
+		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 	const expectedSourceMap3 =
-		`{"version":3,"sources":["test3-dbg.designtime.js"],"names":["test3","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test3.designtime.js"}`;
+		`{"version":3,"file":"test3.designtime.js",` +
+		`"names":["test3","paramA","variableA","console","log"],"sources":["test3-dbg.designtime.js"],` +
+		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 
 	t.deepEqual(resources[0].resource.getPath(), "/test1.controller.js",
 		"Correct resource path for minified content of resource 1");
@@ -159,8 +162,9 @@ ${SOURCE_MAPPING_URL}=test.view.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
 	const expectedSourceMap =
-		`{"version":3,"sources":["test-dbg.view.js"],"names":["test","paramA","variableA","console","log"],` +
-		`"mappings":";;;AAIA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.view.js"}`;
+		`{"version":3,"file":"test.view.js",` +
+		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.view.js"],` +
+		`"mappings":";;;AAIA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 });
 

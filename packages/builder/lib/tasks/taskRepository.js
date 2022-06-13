@@ -36,22 +36,11 @@ function getTask(taskName) {
 	try {
 		const task = require(taskInfo.path);
 		return {
-			task,
-			specVersion: taskInfo.specVersion
+			task
 		};
 	} catch (err) {
 		throw new Error(`taskRepository: Failed to require task module for ${taskName}: ${err.message}`);
 	}
-}
-
-function addTask({name, specVersion, taskPath}) {
-	if (taskInfos[name]) {
-		throw new Error(`taskRepository: A task with the name ${name} has already been registered`);
-	}
-	taskInfos[name] = {
-		path: taskPath,
-		specVersion
-	};
 }
 
 function getAllTaskNames() {
@@ -60,6 +49,5 @@ function getAllTaskNames() {
 
 module.exports = {
 	getTask,
-	addTask,
 	getAllTaskNames
 };

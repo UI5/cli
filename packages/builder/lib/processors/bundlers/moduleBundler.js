@@ -148,7 +148,6 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions,
 		log.verbose(`bundleDefinition: ${JSON.stringify(bundleDefinition, null, 2)}`);
 		log.verbose(`bundleOptions: ${JSON.stringify(bundleOptions, null, 2)}`);
 	}
-
 	return pool.prepare( resources, moduleNameMapping ).
 		then( () => builder.createBundle(bundleDefinition, bundleOptions) ).
 		then( (results) => {

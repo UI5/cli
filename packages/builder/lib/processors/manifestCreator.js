@@ -157,7 +157,9 @@ class LibraryBundle {
 /*
  * Creates the library manifest.json file for a UILibrary.
  */
-async function createManifest(libraryResource, libBundle, descriptorVersion, _include3rdParty, omitMinVersions) {
+async function createManifest(
+	libraryResource, libBundle, descriptorVersion, _include3rdParty, omitMinVersions, getProjectVersion
+) {
 	// create a Library wrapper around the .library XML
 	const library = await Library.from(libraryResource);
 
@@ -221,13 +223,6 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 		function isValid(version) {
 			return version && version !== "@version@" && version !== "${version}";
-		}
-
-		function getProjectVersion() {
-			const project = libraryResource._project;
-			if ( project ) {
-				return project.version;
-			}
 		}
 
 		function getLibraryTitle() {
@@ -321,7 +316,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			embeds: findEmbeddedComponents(),
 			i18n,
 			applicationVersion: {
-				version: isValid(library.getVersion()) ? library.getVersion() : getProjectVersion()
+				version: isValid(library.getVersion()) ? library.getVersion() : getProjectVersion(library.getName())
 			},
 			title: getLibraryTitle(),
 			description: library.getDocumentation(),
@@ -393,12 +388,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 
 	function createSapUI5() {
 		function getUI5Version() {
-			const dummy = new Dependency({
-				libraryName: [{
-					_: "sap.ui.core"
-				}]
-			});
-			return normalizeVersion(getVersion(dummy));
+			return normalizeVersion(getProjectVersion("sap.ui.core"));
 		}
 
 		function dependencies() {
@@ -410,7 +400,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 			if ( library.getDependencies() != null ) {
 				for (const dep of library.getDependencies()) {
 					dependencies.libs[dep.getLibraryName()] = {
-						minVersion: omitMinVersions ? "" : getVersion(dep),
+						minVersion: omitMinVersions ? "" : getProjectVersion(dep.getLibraryName()),
 						lazy: dep.isLazy() || undefined // suppress default (false)
 					};
 				}
@@ -619,33 +609,6 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 		return v.major + "." + v.minor;
 	}
 
-	function getVersion(dependency) {
-		const version = dependency.getVersion();
-		if ( version != null ) {
-			return version;
-		}
-
-		function hasName(entity) {
-			return entity.metadata && entity.metadata.name === dependency.getLibraryName();
-		}
-
-		const project = libraryResource._project;
-		if ( project ) {
-			if ( Array.isArray(project.dependencies) ) {
-				const lib = project.dependencies.find(hasName);
-				if ( lib ) {
-					return lib.version;
-				}
-			}
-			if ( hasName(project) ) {
-				return project.version;
-			}
-		}
-
-		throw new Error(
-			`Couldn't find version for library '${dependency.getLibraryName()}', project dependency missing?`);
-	}
-
 	return {
 		"_version": descriptorVersion.toString(),
 		"sap.app": createSapApp(),
@@ -657,7 +620,7 @@ async function createManifest(libraryResource, libBundle, descriptorVersion, _in
 	};
 }
 
-module.exports = function({libraryResource, resources, options}) {
+module.exports = function({libraryResource, resources, getProjectVersion, options}) {
 	// merge options with defaults
 	options = Object.assign({
 		descriptorVersion: APP_DESCRIPTOR_V22, // TODO 3.0: change this to type string instead of a semver object
@@ -677,7 +640,7 @@ module.exports = function({libraryResource, resources, options}) {
 	}
 
 	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty,
-		options.omitMinVersions)
+		options.omitMinVersions, getProjectVersion)
 		.then((manifest) => {
 			return new EvoResource({
 				path: resourcePathPrefix + "manifest.json",

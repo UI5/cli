@@ -58,6 +58,7 @@ function getBundleDefinition(config) {
 	return bundleDefinition;
 }
 
+/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for bundling standalone applications.
  *
@@ -69,10 +70,14 @@ function getBundleDefinition(config) {
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @param {string} [parameters.options.namespace] Project namespace
+ * @param {string} [parameters.options.projectNamespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, taskUtil, options: {projectName, namespace}}) {
+module.exports = async function({workspace, dependencies, taskUtil, options}) {
+	const {projectName} = options;
+	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
+	const namespace = options.projectNamespace || options.namespace;
+
 	if (!namespace) {
 		log.warn(`Namespace of project ${projectName} is not known. Self contained bundling is currently ` +
 			`unable to generate complete bundles for such projects.`);

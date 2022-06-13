@@ -17,8 +17,9 @@ const ModuleName = require("../../../lbt/utils/ModuleName");
 module.exports = function({resources, taskUtil}) {
 	const moduleNameMapping = {};
 	for (let i = resources.length - 1; i >= 0; i--) {
-		const resourcePath = resources[i].getPath();
-		if (taskUtil.getTag(resourcePath, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
+		const resource = resources[i];
+		if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
+			const resourcePath = resource.getPath();
 			const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
 			if (!nonDbgPath) {
 				throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);

@@ -19,6 +19,7 @@ test.beforeEach((t) => {
 
 	t.context.dependencies = {};
 	t.context.firstByGlob = t.context.workspace.byGlob.onFirstCall();
+	t.context.secondByGlob = t.context.workspace.byGlob.onSecondCall();
 
 	t.context.moduleBundlerStub = sinon.stub().resolves([]);
 	mock("../../../../lib/processors/bundlers/moduleBundler", t.context.moduleBundlerStub);
@@ -408,7 +409,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t) => {
 	const {
 		generateLibraryPreload, moduleBundlerStub,
-		workspace, dependencies, firstByGlob
+		workspace, dependencies, firstByGlob, secondByGlob,
 	} = t.context;
 
 	const resources = [
@@ -417,20 +418,43 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
 	firstByGlob.resolves(resources);
+	secondByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
 	]);
 
+	const coreProject = {
+		getSpecVersion: () => "0.1"
+	};
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		getProject: () => coreProject,
+		STANDARD_TAGS: {
+			HasDebugVariant: "<HasDebugVariant>",
+			IsDebugVariant: "<IsDebugVariant>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		}
+	};
 	await generateLibraryPreload({
 		workspace,
 		dependencies,
+		taskUtil,
 		options: {
 			projectName: "sap.ui.core",
 			// Should be ignored for hardcoded sap.ui.core bundle configuration
 			excludes: ["sap/ui/core/**"]
 		}
 	});
+
+	t.is(workspace.byGlob.callCount, 3,
+		"workspace.byGlob should have been called three");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"workspace.byGlob should have been called with expected pattern");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"workspace.byGlob should have been called with expected pattern");
+	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
@@ -498,7 +522,8 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -589,7 +614,8 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -708,44 +734,61 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		},
 		resources
 	}]);
-
-	t.is(workspace.byGlob.callCount, 2,
-		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
-		"workspace.byGlob should have been called with expected pattern");
-	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
-		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined (/w ui5loader.js)", async (t) => {
 	const {
 		generateLibraryPreload, moduleBundlerStub,
-		workspace, dependencies, firstByGlob
+		workspace, dependencies, firstByGlob, secondByGlob,
 	} = t.context;
 
-	const coreProject = {
-		specVersion: "0.1"
-	};
 	const resources = [
-		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library"), _project: coreProject},
+		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")},
 		{getPath: sinon.stub().returns("/resources/ui5loader.js")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
 	firstByGlob.resolves(resources);
+	secondByGlob.resolves(resources);
 
 	workspace.byGlob.resolves([
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
 	]);
 
+	const coreProject = {
+		getSpecVersion: () => "0.1"
+	};
+
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		getProject: () => coreProject,
+		STANDARD_TAGS: {
+			HasDebugVariant: "<HasDebugVariant>",
+			IsDebugVariant: "<IsDebugVariant>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		}
+	};
+	taskUtil.getTag
+		.withArgs(sinon.match.any, taskUtil.STANDARD_TAGS.HasDebugVariant)
+		.returns(true);
 	await generateLibraryPreload({
 		workspace,
 		dependencies,
+		taskUtil,
 		options: {
 			projectName: "sap.ui.core",
 			// Should be ignored for hardcoded sap.ui.core bundle configuration
 			excludes: ["sap/ui/core/**"]
 		}
 	});
+
+	t.is(workspace.byGlob.callCount, 3,
+		"workspace.byGlob should have been called three times");
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"workspace.byGlob should have been called with expected pattern");
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"workspace.byGlob should have been called with expected pattern");
+	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
+		"workspace.byGlob should have been called with expected pattern");
 
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
@@ -813,7 +856,8 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -904,7 +948,8 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 				decorateBootstrapModule: false,
 				addTryCatchRestartWrapper: false,
 				usePredefineCalls: false
-			}
+			},
+			moduleNameMapping: {}
 		},
 		resources
 	}]);
@@ -1023,13 +1068,6 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 		},
 		resources
 	}]);
-
-	t.is(workspace.byGlob.callCount, 2,
-		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
-		"workspace.byGlob should have been called with expected pattern");
-	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
-		"workspace.byGlob should have been called with expected pattern");
 });
 
 test.serial("generateLibraryPreload for sap.ui.core with own bundle configuration (w/o ui5loader.js)", async (t) => {
@@ -1038,11 +1076,8 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		workspace, dependencies, firstByGlob
 	} = t.context;
 
-	const coreProject = {
-		specVersion: "2.4" // A newer specVersion is the indicator that the hardcoded bundle config should be skipped
-	};
 	const resources = [
-		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library"), _project: coreProject},
+		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
 	firstByGlob.resolves(resources);
@@ -1051,9 +1086,23 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
 	]);
 
+	const coreProject = {
+		// A newer specVersion is the indicator that the hardcoded bundle config should be skipped
+		getSpecVersion: () => "2.4"
+	};
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		getProject: () => coreProject,
+		STANDARD_TAGS: {
+			HasDebugVariant: "<HasDebugVariant>",
+			IsDebugVariant: "<IsDebugVariant>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		}
+	};
 	await generateLibraryPreload({
 		workspace,
 		dependencies,
+		taskUtil,
 		options: {
 			projectName: "sap.ui.core"
 		}
@@ -1190,11 +1239,8 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		workspace, dependencies, firstByGlob
 	} = t.context;
 
-	const coreProject = {
-		specVersion: "2.6" // A newer specVersion is the indicator that the hardcoded bundle config should be skipped
-	};
 	const resources = [
-		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library"), _project: coreProject},
+		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")},
 		{getPath: sinon.stub().returns("/resources/ui5loader.js")},
 		{getPath: sinon.stub().returns("/resources/sap-ui-core.js")}
 	];
@@ -1204,9 +1250,26 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
 	]);
 
+	const coreProject = {
+		// A newer specVersion is the indicator that the hardcoded bundle config should be skipped
+		getSpecVersion: () => "2.6"
+	};
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		getProject: () => coreProject,
+		STANDARD_TAGS: {
+			HasDebugVariant: "<HasDebugVariant>",
+			IsDebugVariant: "<IsDebugVariant>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		}
+	};
+	taskUtil.getTag
+		.withArgs(resources[0], taskUtil.STANDARD_TAGS.HasDebugVariant)
+		.returns(true);
 	await generateLibraryPreload({
 		workspace,
 		dependencies,
+		taskUtil,
 		options: {
 			projectName: "sap.ui.core"
 		}
@@ -1352,8 +1415,12 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 		{getPath: sinon.stub().returns("/resources/sap/ui/core/.library")}
 	]);
 
+	const coreProject = {
+		getSpecVersion: () => "0.1"
+	};
 	const taskUtil = {
 		getTag: sinon.stub().returns(false),
+		getProject: () => coreProject,
 		STANDARD_TAGS: {
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
@@ -1361,7 +1428,7 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 		}
 	};
 	taskUtil.getTag
-		.withArgs("/resources/resource-tagged-as-debug-variant.js", taskUtil.STANDARD_TAGS.IsDebugVariant)
+		.withArgs(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant)
 		.returns(true);
 
 	await t.throwsAsync(generateLibraryPreload({

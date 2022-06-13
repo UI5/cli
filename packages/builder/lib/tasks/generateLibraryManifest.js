@@ -11,11 +11,12 @@ const manifestCreator = require("../processors/manifestCreator");
  * @alias module:@ui5/builder.tasks.generateLibraryManifest
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options: {projectName}}) {
+module.exports = function({workspace, taskUtil, options: {projectName}}) {
 	// Note:
 	// *.library files are needed to identify libraries
 	// *.json files are needed to avoid overwriting them
@@ -45,6 +46,9 @@ module.exports = function({workspace, options: {projectName}}) {
 						libraryResource: libraryIndicatorResource,
 						namespace: libraryNamespace,
 						resources,
+						getProjectVersion: (projectName) => {
+							return taskUtil?.getProject(projectName)?.getVersion();
+						},
 						options: {
 						}
 					}).then((manifest) => {

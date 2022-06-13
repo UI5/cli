@@ -1,9 +1,6 @@
 //@ui5-bundle sap-ui-custom.js
 //@ui5-bundle-raw-include ui5loader-autoconfig.js
-(function () {
-	var thisIsTheUi5LoaderAutoconfig = true;
-	console.log(thisIsTheUi5LoaderAutoconfig);
-})()
+(function(){var o=true;console.log(o)})();
 sap.ui.require.preload({
 	"id1/embedded/i18n/i18n.properties":'title=embedded-i18n',
 	"id1/embedded/i18n/i18n_de.properties":'title=embedded-i18n_de',
@@ -15,10 +12,7 @@ sap.ui.require.preload({
 	"id1/i18n/l10n.properties":'title=app-i18n-wrong\nfame=Stra\\u00dfe',
 	"id1/manifest.json":'{"_version":"1.1.0","sap.app":{"_version":"1.1.0","id":"id1","type":"application","applicationVersion":{"version":"1.2.2"},"embeds":["embedded"],"title":"{{title}}"}}',
 	"sap/ui/core/Core.js":function(){
-(function () {
-	var core = true;
-	console.log(core);
-})()
+(function(){var o=true;console.log(o)})();
 }
 });
 sap.ui.requireSync("sap/ui/core/Core");

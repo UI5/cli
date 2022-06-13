@@ -28,6 +28,7 @@ function getSigner(type) {
 	}
 }
 
+/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task to generate the application cachebuster info file.
  *
@@ -35,13 +36,16 @@ function getSigner(type) {
  * @alias module:@ui5/builder.tasks.generateCachebusterInfo
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
- * @param {string} parameters.options.namespace Namespace of the application
+ * @param {string} parameters.options.projectNamespace Namespace of the application
  * @param {string} [parameters.options.signatureType='time'] Type of signature to be used ('time' or 'hash')
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, dependencies, options: {namespace, signatureType}}) {
+module.exports = function({workspace, options}) {
+	const {signatureType} = options;
+	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
+	const namespace = options.projectNamespace || options.namespace;
+
 	const basePath = `/resources/${namespace}/`;
 	return workspace.byGlob(`/resources/${namespace}/**/*`)
 		.then(async (resources) => {

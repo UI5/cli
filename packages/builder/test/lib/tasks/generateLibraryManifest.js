@@ -8,18 +8,8 @@ function createWorkspace() {
 	return resourceFactory.createAdapter({
 		virBasePath: "/",
 		project: {
-			metadata: {
-				name: "test.lib"
-			},
-			version: "2.0.0",
-			dependencies: [
-				{
-					metadata: {
-						name: "sap.ui.core"
-					},
-					version: "1.0.0"
-				}
-			]
+			getName: () => "test.lib",
+			getVersion: () => "2.0.0",
 		}
 	});
 }
@@ -31,6 +21,13 @@ async function assertCreatedManifest(t, oExpectedManifest) {
 
 	await generateLibraryManifest({
 		workspace,
+		taskUtil: {
+			getProject: () => {
+				return {
+					getVersion: () => "1.0.0"
+				};
+			}
+		},
 		options: {
 			projectName: "Test Lib"
 		}

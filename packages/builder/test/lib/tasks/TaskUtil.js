@@ -6,21 +6,27 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
+const STANDARD_TAGS = Object.freeze({
+	IsDebugVariant: "ui5:IsDebugVariant",
+	HasDebugVariant: "ui5:HasDebugVariant",
+	OmitFromBuildResult: "ui5:OmitFromBuildResult",
+	IsBundle: "ui5:IsBundle"
+});
+
 test("Instantiation", async (t) => {
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag", "some other tag", "Thursday"]
+			// STANDARD_TAGS: ["some tag", "some other tag", "Thursday"]
 		}
 	});
 
-	t.deepEqual(taskUtil.STANDARD_TAGS, ["some tag", "some other tag", "Thursday"], "Correct standard tags exposed");
+	t.deepEqual(taskUtil.STANDARD_TAGS, STANDARD_TAGS, "Correct standard tags exposed");
 });
 
 test("setTag", async (t) => {
 	const setTagStub = sinon.stub();
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"],
 			getResourceTagCollection: () => {
 				return {
 					setTag: setTagStub
@@ -29,10 +35,11 @@ test("setTag", async (t) => {
 		}
 	});
 
-	taskUtil.setTag("my resource", "my tag", "my value");
+	const dummyResource = {};
+	taskUtil.setTag(dummyResource, "my tag", "my value");
 
 	t.is(setTagStub.callCount, 1, "ResourceTagCollection#setTag got called once");
-	t.deepEqual(setTagStub.getCall(0).args[0], "my resource", "Correct resource parameter supplied");
+	t.deepEqual(setTagStub.getCall(0).args[0], dummyResource, "Correct resource parameter supplied");
 	t.deepEqual(setTagStub.getCall(0).args[1], "my tag", "Correct tag parameter supplied");
 	t.deepEqual(setTagStub.getCall(0).args[2], "my value", "Correct value parameter supplied");
 });
@@ -41,7 +48,6 @@ test("getTag", async (t) => {
 	const getTagStub = sinon.stub().returns(42);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"],
 			getResourceTagCollection: () => {
 				return {
 					getTag: getTagStub
@@ -50,10 +56,11 @@ test("getTag", async (t) => {
 		}
 	});
 
-	const res = taskUtil.getTag("my resource", "my tag", "my value");
+	const dummyResource = {};
+	const res = taskUtil.getTag(dummyResource, "my tag", "my value");
 
 	t.is(getTagStub.callCount, 1, "ResourceTagCollection#getTag got called once");
-	t.deepEqual(getTagStub.getCall(0).args[0], "my resource", "Correct resource parameter supplied");
+	t.deepEqual(getTagStub.getCall(0).args[0], dummyResource, "Correct resource parameter supplied");
 	t.deepEqual(getTagStub.getCall(0).args[1], "my tag", "Correct tag parameter supplied");
 	t.is(res, 42, "Correct result");
 });
@@ -62,7 +69,6 @@ test("clearTag", async (t) => {
 	const clearTagStub = sinon.stub();
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"],
 			getResourceTagCollection: () => {
 				return {
 					clearTag: clearTagStub
@@ -71,18 +77,60 @@ test("clearTag", async (t) => {
 		}
 	});
 
-	taskUtil.clearTag("my resource", "my tag", "my value");
+	const dummyResource = {};
+	taskUtil.clearTag(dummyResource, "my tag", "my value");
 
 	t.is(clearTagStub.callCount, 1, "ResourceTagCollection#clearTag got called once");
-	t.deepEqual(clearTagStub.getCall(0).args[0], "my resource", "Correct resource parameter supplied");
+	t.deepEqual(clearTagStub.getCall(0).args[0], dummyResource, "Correct resource parameter supplied");
 	t.deepEqual(clearTagStub.getCall(0).args[1], "my tag", "Correct tag parameter supplied");
+});
+
+test("setTag with resource path is not supported anymore", async (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {}
+	});
+
+	const err = t.throws(() => {
+		taskUtil.setTag("my resource", "my tag", "my value");
+	});
+	t.is(err.message,
+		"Deprecated parameter: Since UI5 Tooling 3.0, #setTag " +
+		"requires a resource instance. Strings are no longer accepted",
+		"Threw with expected error message");
+});
+
+test("getTag with resource path is not supported anymore", async (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {}
+	});
+
+	const err = t.throws(() => {
+		taskUtil.getTag("my resource", "my tag", "my value");
+	});
+	t.is(err.message,
+		"Deprecated parameter: Since UI5 Tooling 3.0, #getTag " +
+		"requires a resource instance. Strings are no longer accepted",
+		"Threw with expected error message");
+});
+
+test("clearTag with resource path is not supported anymore", async (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {}
+	});
+
+	const err = t.throws(() => {
+		taskUtil.clearTag("my resource", "my tag", "my value");
+	});
+	t.is(err.message,
+		"Deprecated parameter: Since UI5 Tooling 3.0, #clearTag " +
+		"requires a resource instance. Strings are no longer accepted",
+		"Threw with expected error message");
 });
 
 test("isRootProject", async (t) => {
 	const isRootProjectStub = sinon.stub().returns(true);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"],
 			isRootProject: isRootProjectStub
 		}
 	});
@@ -97,7 +145,6 @@ test("getBuildOption", (t) => {
 	const getOptionStub = sinon.stub().returns("Pony");
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"],
 			getOption: getOptionStub
 		}
 	});
@@ -108,11 +155,25 @@ test("getBuildOption", (t) => {
 	t.is(res, "Pony", "Correct result");
 });
 
+
+test("getProject", (t) => {
+	const getProjectStub = sinon.stub().returns("Pony farm!");
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getProject: getProjectStub
+		}
+	});
+
+	const res = taskUtil.getProject("pony farm?");
+
+	t.is(getProjectStub.callCount, 1, "ProjectBuildContext#getProject got called once");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
 test("registerCleanupTask", async (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"],
 			registerCleanupTask: registerCleanupTaskStub
 		}
 	});
@@ -125,9 +186,7 @@ test("registerCleanupTask", async (t) => {
 
 test("getInterface: specVersion 1.0", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 
 	const interfacedTaskUtil = taskUtil.getInterface("1.0");
@@ -137,9 +196,7 @@ test("getInterface: specVersion 1.0", async (t) => {
 
 test("getInterface: specVersion 2.2", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 
 	const interfacedTaskUtil = taskUtil.getInterface("2.2");
@@ -153,7 +210,7 @@ test("getInterface: specVersion 2.2", async (t) => {
 		"registerCleanupTask"
 	], "Correct methods are provided");
 
-	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, ["some tag"], "attribute STANDARD_TAGS is provided");
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
@@ -163,9 +220,7 @@ test("getInterface: specVersion 2.2", async (t) => {
 
 test("getInterface: specVersion 2.3", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 
 	const interfacedTaskUtil = taskUtil.getInterface("2.3");
@@ -179,7 +234,7 @@ test("getInterface: specVersion 2.3", async (t) => {
 		"registerCleanupTask"
 	], "Correct methods are provided");
 
-	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, ["some tag"], "attribute STANDARD_TAGS is provided");
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
@@ -189,9 +244,7 @@ test("getInterface: specVersion 2.3", async (t) => {
 
 test("getInterface: specVersion 2.4", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 
 	const interfacedTaskUtil = taskUtil.getInterface("2.4");
@@ -205,7 +258,7 @@ test("getInterface: specVersion 2.4", async (t) => {
 		"registerCleanupTask"
 	], "Correct methods are provided");
 
-	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, ["some tag"], "attribute STANDARD_TAGS is provided");
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
@@ -215,9 +268,7 @@ test("getInterface: specVersion 2.4", async (t) => {
 
 test("getInterface: specVersion 2.5", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 
 	const interfacedTaskUtil = taskUtil.getInterface("2.5");
@@ -231,7 +282,7 @@ test("getInterface: specVersion 2.5", async (t) => {
 		"registerCleanupTask"
 	], "Correct methods are provided");
 
-	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, ["some tag"], "attribute STANDARD_TAGS is provided");
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
@@ -241,9 +292,7 @@ test("getInterface: specVersion 2.5", async (t) => {
 
 test("getInterface: specVersion 2.6", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 
 	const interfacedTaskUtil = taskUtil.getInterface("2.6");
@@ -257,7 +306,7 @@ test("getInterface: specVersion 2.6", async (t) => {
 		"registerCleanupTask"
 	], "Correct methods are provided");
 
-	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, ["some tag"], "attribute STANDARD_TAGS is provided");
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
 	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
 	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
 	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
@@ -265,11 +314,54 @@ test("getInterface: specVersion 2.6", async (t) => {
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
 
-test("getInterface: specVersion undefined", async (t) => {
+test("getInterface: specVersion 2.7", async (t) => {
+	const getProjectStub = sinon.stub().returns({
+		getName: () => "",
+		getVersion: () => "",
+		getNamespace: () => "",
+		hasBuildManifest: () => "", // Should not be exposed
+		getFrameworkVersion: () => "", // Should not be exposed
+	});
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
+			getProject: getProjectStub
 		}
+	});
+
+	const interfacedTaskUtil = taskUtil.getInterface("2.7");
+
+	t.deepEqual(Object.keys(interfacedTaskUtil), [
+		"STANDARD_TAGS",
+		"setTag",
+		"clearTag",
+		"getTag",
+		"isRootProject",
+		"registerCleanupTask",
+		"getProject"
+	], "Correct methods are provided");
+
+	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
+	t.is(typeof interfacedTaskUtil.setTag, "function", "function setTag is provided");
+	t.is(typeof interfacedTaskUtil.clearTag, "function", "function clearTag is provided");
+	t.is(typeof interfacedTaskUtil.getTag, "function", "function getTag is provided");
+	t.is(typeof interfacedTaskUtil.isRootProject, "function", "function isRootProject is provided");
+	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
+	t.is(typeof interfacedTaskUtil.getProject, "function", "function registerCleanupTask is provided");
+
+	const interfacedProject = interfacedTaskUtil.getProject("pony");
+	t.deepEqual(Object.keys(interfacedProject), [
+		"getName",
+		"getVersion",
+		"getNamespace",
+	], "Correct methods are provided");
+	t.is(typeof interfacedProject.getName, "function", "function getName is provided");
+	t.is(typeof interfacedProject.getVersion, "function", "function getVersion is provided");
+	t.is(typeof interfacedProject.getNamespace, "function", "function getNamespace is provided");
+});
+
+test("getInterface: specVersion undefined", async (t) => {
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {}
 	});
 
 	const err = t.throws(() => {
@@ -282,9 +374,7 @@ test("getInterface: specVersion undefined", async (t) => {
 
 test("getInterface: specVersion unknown", async (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			STANDARD_TAGS: ["some tag"]
-		}
+		projectBuildContext: {}
 	});
 	const err = t.throws(() => {
 		taskUtil.getInterface("1.5");

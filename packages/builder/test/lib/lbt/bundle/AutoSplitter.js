@@ -20,11 +20,7 @@ function createMockPool(dependencies) {
 				buffer: async () => Buffer.from(name.padStart(2048, "*")),
 				getProject: () => {
 					return {
-						"resources": {
-							"configuration": {
-								"propertiesFileSourceEncoding": "ISO-8859-1"
-							}
-						}
+						getPropertiesFileSourceEncoding: () => "ISO-8859-1"
 					};
 				},
 				resource: {
@@ -211,11 +207,7 @@ test("_calcMinSize: properties resource", async (t) => {
 				},
 				getProject: () => {
 					return {
-						"resources": {
-							"configuration": {
-								"propertiesFileSourceEncoding": "ISO-8859-1"
-							}
-						}
+						getPropertiesFileSourceEncoding: () => "ISO-8859-1"
 					};
 				}
 			};

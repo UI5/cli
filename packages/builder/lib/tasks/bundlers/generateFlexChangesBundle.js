@@ -2,6 +2,7 @@ const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateFle
 const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler");
 const semver = require("semver");
 
+/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task to create changesBundle.json file containing all changes stored in the /changes folder for easier consumption
  * at runtime.
@@ -16,10 +17,13 @@ const semver = require("semver");
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} [parameters.options] Options
- * @param {string} [parameters.options.namespace] Application Namespace
+ * @param {string} [parameters.options.projectNamespace] Project Namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, taskUtil, options: {namespace}}) {
+module.exports = async function({workspace, taskUtil, options = {}}) {
+	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
+	const namespace = options.projectNamespace || options.namespace;
+
 	// Use the given namespace if available, otherwise use no namespace
 	// (e.g. in case no manifest.json is present)
 	let pathPrefix = "";

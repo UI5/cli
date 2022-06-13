@@ -70,8 +70,9 @@ test();`;
 	t.deepEqual(await resDbg.getString(), content, "Correct debug-file content");
 
 	const expectedSourceMap =
-		`{"version":3,"sources":["test-dbg.js"],"names":["test","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}`;
+		`{"version":3,"file":"test.js",` +
+		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {
@@ -135,8 +136,9 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 	t.deepEqual(await resDbg.getString(), content, "Correct debug-file content");
 
 	const expectedSourceMap =
-		`{"version":3,"sources":["test-dbg.js"],"names":["test","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}`;
+		`{"version":3,"file":"test.js",` +
+		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {
@@ -187,8 +189,9 @@ test();`;
 	t.deepEqual(await resDbg.getString(), content, "Correct debug-file content");
 
 	const expectedSourceMap =
-		`{"version":3,"sources":["test-dbg.js"],"names":["test","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}`;
+		`{"version":3,"file":"test.js",` +
+		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {
@@ -234,8 +237,9 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 	t.deepEqual(await resDbg.getString(), content, "Correct debug-file content");
 
 	const expectedSourceMap =
-		`{"version":3,"sources":["test-dbg.js"],"names":["test","paramA","variableA","console","log"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF","file":"test.js"}`;
+		`{"version":3,"file":"test.js",` +
+		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {

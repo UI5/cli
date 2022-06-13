@@ -4,14 +4,7 @@ const DESCRIPTOR = "manifest.json";
 const PROPERTIES_EXT = ".properties";
 const BUNDLE_NAME = "manifest-bundle.zip";
 
-/**
- *
- * @public
- * @typedef {object} ManifestBundlerOptions
- * @property {string} projectName Project Name
- * @property {string} namespace Namespace
- */
-
+/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for manifestBundler.
  *
@@ -19,11 +12,16 @@ const BUNDLE_NAME = "manifest-bundle.zip";
  * @alias module:@ui5/builder.tasks.generateManifestBundle
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {ManifestBundlerOptions} parameters.options Options
+ * @param {object} parameters.options Options
+ * @param {string} parameters.options.projectName Project name
+ * @param {string} parameters.options.projectNamespace Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 module.exports = async function({workspace, options = {}}) {
-	const {projectName, namespace} = options;
+	const {projectName} = options;
+	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
+	const namespace = options.projectNamespace || options.namespace;
+
 	if (!projectName || !namespace) {
 		throw new Error("[generateManifestBundle]: One or more mandatory options not provided");
 	}

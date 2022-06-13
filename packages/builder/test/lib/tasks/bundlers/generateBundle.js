@@ -239,7 +239,7 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	combo.filter.returns(filteredCombo);
 
 	taskUtil.getTag.returns(false)
-		.withArgs("/resources/my/app/module-dbg.js", taskUtil.STANDARD_TAGS.IsDebugVariant)
+		.withArgs(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant)
 		.returns(true);
 
 	moduleBundlerStub.resolves([
@@ -295,10 +295,10 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 
 	t.is(taskUtil.getTag.callCount, 2);
 	t.deepEqual(taskUtil.getTag.getCall(0).args,
-		["/resources/my/app/Main.view.xml", taskUtil.STANDARD_TAGS.IsDebugVariant],
+		[resources[1], taskUtil.STANDARD_TAGS.IsDebugVariant],
 		"First resource should be checked whether it is a debug variant");
 	t.deepEqual(taskUtil.getTag.getCall(1).args,
-		["/resources/my/app/module-dbg.js", taskUtil.STANDARD_TAGS.IsDebugVariant],
+		[resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant],
 		"Second resource should be checked whether it is a debug variant");
 
 	t.is(taskUtil.clearTag.callCount, 1);
@@ -365,7 +365,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	combo.filter.returns(filteredCombo);
 
 	taskUtil.getTag.returns(false)
-		.withArgs("/resources/my/app/module-dbg.js", taskUtil.STANDARD_TAGS.IsDebugVariant)
+		.withArgs(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant)
 		.returns(true);
 
 	moduleBundlerStub.resolves([

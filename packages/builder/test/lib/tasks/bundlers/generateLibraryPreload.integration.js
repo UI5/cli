@@ -8,9 +8,12 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
+const {generateProjectGraph} = require("@ui5/project");
+const builder = require("@ui5/project").builder;
+
 const ui5Builder = require("../../../../");
-const builder = ui5Builder.builder;
 const {generateLibraryPreload} = ui5Builder.tasks;
+
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
@@ -34,25 +37,29 @@ test("integration: build library.d with library preload", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryPreload"];
 
-	return t.notThrowsAsync(builder.build({
-		tree: libraryDTree,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: libraryDTree
+	});
+
+	await t.notThrowsAsync(builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destPath, expectedPath);
-
-		// Check for all file contents
-		t.deepEqual(expectedFiles.length, 5, "5 files are expected");
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
 	}));
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destPath, expectedPath);
+
+	// Check for all file contents
+	t.deepEqual(expectedFiles.length, 5, "5 files are expected");
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		assert.fileEqual(destFile, expectedFile);
+	});
 });
 
 const libraryDTree = {
@@ -60,23 +67,20 @@ const libraryDTree = {
 	"version": "1.0.0",
 	"path": libraryDPath,
 	"dependencies": [],
-	"_level": 1,
-	"specVersion": "0.1",
-	"type": "library",
-	"metadata": {
-		"name": "library.d",
-		"copyright": "Some fancy copyright"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"src": "main/src",
-				"test": "main/test"
-			}
+	"configuration": {
+		"specVersion": "2.0",
+		"type": "library",
+		"metadata": {
+			"name": "library.d",
+			"copyright": "Some fancy copyright"
 		},
-		"pathMappings": {
-			"/resources/": "main/src",
-			"/test-resources/": "main/test"
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "main/src",
+					"test": "main/test"
+				}
+			}
 		}
 	}
 };
@@ -87,24 +91,28 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["minify", "generateLibraryPreload"];
 
-	return t.notThrowsAsync(builder.build({
-		tree: sapUiCoreTree,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: sapUiCoreTree
+	});
+
+	await t.notThrowsAsync(builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destPath, expectedPath);
-
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destPath, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
 	}));
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destPath, expectedPath);
+
+	// Check for all file contents
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		assert.fileEqual(destFile, expectedFile);
+	});
 });
 
 const sapUiCoreTree = {
@@ -112,23 +120,20 @@ const sapUiCoreTree = {
 	"version": "1.0.0",
 	"path": sapUiCorePath,
 	"dependencies": [],
-	"_level": 1,
-	"specVersion": "0.1",
-	"type": "library",
-	"metadata": {
-		"name": "sap.ui.core",
-		"copyright": "Some fancy copyright"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"src": "main/src",
-				"test": "main/test"
-			}
+	"configuration": {
+		"specVersion": "2.0",
+		"type": "library",
+		"metadata": {
+			"name": "sap.ui.core",
+			"copyright": "Some fancy copyright"
 		},
-		"pathMappings": {
-			"/resources/": "main/src",
-			"/test-resources/": "main/test"
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "main/src",
+					"test": "main/test"
+				}
+			}
 		}
 	}
 };

@@ -2,8 +2,6 @@ const test = require("ava");
 const index = require("../../index");
 
 test("index.js exports all expected modules", (t) => {
-	t.truthy(index.builder, "Module exported");
-
 	t.truthy(index.processors.flexChangesBundler, "Module exported");
 	t.truthy(index.processors.manifestBundler, "Module exported");
 	t.truthy(index.processors.moduleBundler, "Module exported");
@@ -37,12 +35,4 @@ test("index.js exports all expected modules", (t) => {
 	t.truthy(index.tasks.replaceBuildtime, "Module exported");
 	t.truthy(index.tasks.transformBootstrapHtml, "Module exported");
 	t.truthy(index.tasks.taskRepository, "Module exported");
-
-	t.truthy(index.types.AbstractBuilder, "Module exported");
-	t.truthy(index.types.AbstractFormatter, "Module exported");
-	t.truthy(index.types.application, "Module exported");
-	t.truthy(index.types.library, "Module exported");
-	t.truthy(index.types.themeLibrary, "Module exported");
-	t.truthy(index.types.module, "Module exported");
-	t.truthy(index.types.typeRepository, "Module exported");
 });

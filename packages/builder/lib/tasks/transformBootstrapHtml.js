@@ -1,6 +1,7 @@
 const log = require("@ui5/logger").getLogger("builder:tasks:transformBootstrapHtml");
 const bootstrapHtmlTransformer = require("../processors/bootstrapHtmlTransformer");
 
+/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for transforming the application bootstrap HTML file.
  *
@@ -12,7 +13,11 @@ const bootstrapHtmlTransformer = require("../processors/bootstrapHtmlTransformer
  * @param {string} [parameters.options.namespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, options: {projectName, namespace}}) {
+module.exports = async function({workspace, options}) {
+	const {projectName} = options;
+	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
+	const namespace = options.projectNamespace || options.namespace;
+
 	let indexPath;
 	if (namespace) {
 		indexPath = `/resources/${namespace}/index.html`;

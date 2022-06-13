@@ -187,6 +187,7 @@ async function generateCssVariablesLess({workspace, combo, namespace}) {
 	}
 }
 
+/* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Generates resources required for integration with the SAP Theme Designer.
  *
@@ -198,11 +199,16 @@ async function generateCssVariablesLess({workspace, combo, namespace}) {
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.version Project version
- * @param {string} [parameters.options.namespace] If the project is of type <code>library</code>, provide its namespace.
+ * @param {string} [parameters.options.projectNamespace] If the project is of type <code>library</code>,
+ * 														 provide its namespace.
  * Omit for type <code>theme-library</code>
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, options: {projectName, version, namespace}}) {
+module.exports = async function({workspace, dependencies, options}) {
+	const {projectName, version} = options;
+	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
+	const namespace = options.projectNamespace || options.namespace;
+
 	// Skip sap.ui.documentation since it is not intended to be available in SAP Theme Designer to create custom themes
 	if (namespace === "sap/ui/documentation") {
 		return;

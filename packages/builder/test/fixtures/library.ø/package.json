@@ -1,9 +1,0 @@
-{
-  "name": "library.ø",
-  "version": "1.0.0",
-  "description": "SAPUI5 library for unicode testing",
-  "dependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  }
-}

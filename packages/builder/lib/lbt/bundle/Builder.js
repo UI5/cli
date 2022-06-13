@@ -594,6 +594,18 @@ class BundleBuilder {
 
 		if (moduleSourceMap) {
 			moduleSourceMap = JSON.parse(moduleSourceMap);
+
+			// Check for index map, which is currently not supported
+			if (Array.isArray(moduleSourceMap.sections)) {
+				log.warn(
+					`Module ${moduleName} references an index source map which is currently not supported. ` +
+					`A transient source map will be created instead...`
+				);
+				moduleSourceMap = createTransientSourceMap({
+					moduleName: path.posix.basename(resourcePath),
+					moduleContent
+				});
+			}
 		} else {
 			log.verbose(`No source map available for module ${moduleName}. Creating transient source map...`);
 			moduleSourceMap = createTransientSourceMap({

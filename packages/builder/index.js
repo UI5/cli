@@ -4,10 +4,6 @@
  */
 module.exports = {
 	/**
-	 * @type {import('./lib/builder/builder')}
-	 */
-	builder: "./lib/builder/builder",
-	/**
 	 * @public
 	 * @alias module:@ui5/builder.processors
 	 * @namespace
@@ -160,41 +156,6 @@ module.exports = {
 		 * @type {import('./lib/tasks/TaskUtil')}
 		 */
 		TaskUtil: "./lib/tasks/TaskUtil"
-	},
-	/**
-	 * @private
-	 * @alias module:@ui5/builder.types
-	 * @namespace
-	 */
-	types: {
-		/**
-		 * @type {typeof import('./lib/types/AbstractBuilder')}
-		 */
-		AbstractBuilder: "./lib/types/AbstractBuilder",
-		/**
-		 * @type {typeof import('./lib/types/AbstractFormatter')}
-		 */
-		AbstractFormatter: "./lib/types/AbstractFormatter",
-		/**
-		 * @type {import('./lib/types/application/applicationType')}
-		 */
-		application: "./lib/types/application/applicationType",
-		/**
-		 * @type {import('./lib/types/library/libraryType')}
-		 */
-		library: "./lib/types/library/libraryType",
-		/**
-		 * @type {import('./lib/types/themeLibrary/themeLibraryType')}
-		 */
-		themeLibrary: "./lib/types/themeLibrary/themeLibraryType",
-		/**
-		 * @type {import('./lib/types/module/moduleType')}
-		 */
-		module: "./lib/types/module/moduleType",
-		/**
-		 * @type {import('./lib/types/typeRepository')}
-		 */
-		typeRepository: "./lib/types/typeRepository"
 	}
 };
 

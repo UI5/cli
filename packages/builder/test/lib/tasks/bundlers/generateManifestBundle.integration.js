@@ -7,8 +7,8 @@ const assert = chai.assert;
 const extractZip = require("extract-zip");
 const recursive = require("recursive-readdir");
 
-const ui5Builder = require("../../../../");
-const builder = ui5Builder.builder;
+const {generateProjectGraph} = require("@ui5/project");
+const builder = require("@ui5/project").builder;
 
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const libraryCore = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core-evo");
@@ -27,37 +27,40 @@ const findFiles = (folder) => {
 	});
 };
 
-test("integration: Build application.b with manifestBundler", (t) => {
+test("integration: Build application.b with manifestBundler", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.b", "dest");
 	const destBundle = path.resolve(path.join(destPath, "manifest-bundle"));
 	const expectedPath = path.join("test", "expected", "build", "application.b", "dest", "manifest-bundle");
 	const excludedTasks = ["*"];
 	const includedTasks = ["escapeNonAsciiCharacters", "generateManifestBundle"];
 
-	return builder.build({
-		tree: applicationBTree,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: applicationBTree
+	});
+
+	await builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return extractZip(destBundle + ".zip", {dir: destBundle});
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destBundle, expectedPath);
-
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destBundle, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
-		t.pass("No assertion exception");
 	});
+	await extractZip(destBundle + ".zip", {dir: destBundle});
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destBundle, expectedPath);
+
+	// Check for all file contents
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destBundle, relativeFile);
+		assert.fileEqual(destFile, expectedFile);
+	});
+	t.pass("No assertion exception");
 });
 
-test("integration: Build library.k with manifestBundler", (t) => {
+test("integration: Build library.k with manifestBundler", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.k", "dest");
 	const destBundle = path.resolve(path.join(destPath, "resources", "library", "k", "manifest-bundle"));
 	const expectedPath =
@@ -65,27 +68,31 @@ test("integration: Build library.k with manifestBundler", (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryManifest", "generateManifestBundle"];
 
-	return builder.build({
-		tree: libraryKTree,
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: libraryKTree
+	});
+
+	await builder({
+		graph,
 		destPath,
 		excludedTasks,
 		includedTasks
-	}).then(() => {
-		return extractZip(destBundle + ".zip", {dir: destBundle});
-	}).then(() => {
-		return findFiles(expectedPath);
-	}).then((expectedFiles) => {
-		// Check for all directories and files
-		assert.directoryDeepEqual(destBundle, expectedPath);
-
-		// Check for all file contents
-		expectedFiles.forEach((expectedFile) => {
-			const relativeFile = path.relative(expectedPath, expectedFile);
-			const destFile = path.join(destBundle, relativeFile);
-			assert.fileEqual(destFile, expectedFile);
-		});
-		t.pass();
 	});
+
+	await extractZip(destBundle + ".zip", {dir: destBundle});
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destBundle, expectedPath);
+
+	// Check for all file contents
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destBundle, relativeFile);
+		assert.fileEqual(destFile, expectedFile);
+	});
+	t.pass();
 });
 
 const applicationBTree = {
@@ -93,23 +100,19 @@ const applicationBTree = {
 	"version": "1.0.0",
 	"path": applicationBPath,
 	"dependencies": [],
-	"_level": 0,
-	"_isRoot": true,
-	"specVersion": "0.1",
-	"type": "application",
-	"metadata": {
-		"name": "application.b",
-		"namespace": "id1"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"webapp": "webapp"
-			},
-			"propertiesFileSourceEncoding": "ISO-8859-1"
+	"configuration": {
+		"specVersion": "2.0",
+		"type": "application",
+		"metadata": {
+			"name": "application.b"
 		},
-		"pathMappings": {
-			"/": "webapp"
+		"resources": {
+			"configuration": {
+				"paths": {
+					"webapp": "webapp"
+				},
+				"propertiesFileSourceEncoding": "ISO-8859-1"
+			}
 		}
 	}
 };
@@ -124,42 +127,35 @@ const libraryKTree = {
 			"version": "1.0.0",
 			"path": libraryCore,
 			"dependencies": [],
-			"_level": 1,
-			"specVersion": "0.1",
-			"type": "library",
-			"metadata": {
-				"name": "sap.ui.core",
-				"namespace": "sap/ui/core"
-			},
-			"resources": {
-				"configuration": {
-					"paths": {
-						"src": "main/src"
-					}
+			"configuration": {
+				"specVersion": "2.0",
+				"type": "library",
+				"metadata": {
+					"name": "sap.ui.core"
 				},
-				"pathMappings": {
-					"/resources/": "main/src"
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "main/src"
+						}
+					}
 				}
 			}
 		}
 	],
-	"_level": 0,
-	"_isRoot": true,
-	"specVersion": "0.1",
-	"type": "library",
-	"metadata": {
-		"name": "library.k",
-		"namespace": "library/k"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"src": "src",
-				"test": "test"
-			}
+	"configuration": {
+		"specVersion": "2.0",
+		"type": "library",
+		"metadata": {
+			"name": "library.k"
 		},
-		"pathMappings": {
-			"/resources/": "src"
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "src",
+					"test": "test"
+				}
+			}
 		}
 	}
 };

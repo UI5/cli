@@ -223,19 +223,19 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * @alias module:@ui5/builder.tasks.generateLibraryPreload
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {module:@ui5/builder.tasks.TaskUtil} [parameters.taskUtil] TaskUtil
+ * @param {object} parameters.options Options
+ * @param {string} parameters.options.projectName Project name
+ * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
  * @param {string[]} [parameters.options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
  * that should be excluded from the library-preload.js bundle.
  * A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
  * denote an arbitrary number of characters or folder names.
  * Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
  * inclusion overrides an earlier exclusion, and vice versa.
- * @param {object} parameters.options Options
- * @param {string} parameters.options.projectName Project name
- * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, taskUtil, options: {projectName, skipBundles = [], excludes = []}}) {
+module.exports = function({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
 		nonDbgWorkspace = workspace.filter(function(resource) {
@@ -260,14 +260,12 @@ module.exports = function({workspace, taskUtil, options: {projectName, skipBundl
 		// Create core bundles for older versions (<1.97.0) which don't define bundle configuration in the ui5.yaml
 		// See: https://github.com/SAP/openui5/commit/ff127fd2d009162ea43ad312dec99d759ebc23a0
 		if (projectName === "sap.ui.core") {
-			const coreProject = resources[0]._project;
-			const coreSpecVersion = coreProject && coreProject.specVersion;
 			// Instead of checking the sap.ui.core library version, the specVersion is checked against all versions
 			// that have been defined for sap.ui.core before the bundle configuration has been introduced.
 			// This is mainly to have an easier check without version parsing or using semver.
 			// If no project/specVersion is available, the bundles should also be created to not break potential
 			// existing use cases without a properly formed/formatted project tree.
-			if (!coreSpecVersion || ["0.1", "1.1", "2.0"].includes(coreSpecVersion)) {
+			if (!taskUtil || ["0.1", "1.1", "2.0"].includes(taskUtil.getProject().getSpecVersion())) {
 				const isEvo = resources.find((resource) => {
 					return resource.getPath() === "/resources/ui5loader.js";
 				});
@@ -345,7 +343,8 @@ module.exports = function({workspace, taskUtil, options: {projectName, skipBundl
 				} else {
 					// Fallback to "library.js" as library indicator
 					log.verbose(
-						`Could not find a ".library" file for project ${projectName}, falling back to "library.js".`);
+						`Could not find a ".library" file for project ${projectName}, ` +
+						`falling back to "library.js".`);
 					return workspace.byGlob("/resources/**/library.js");
 				}
 			}).then((libraryIndicatorResources) => {

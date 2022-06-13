@@ -17,7 +17,7 @@ const libraryContent = `<?xml version="1.0" encoding="UTF-8" ?>
 	      <libraryName>sap.ui.core</libraryName>
 	    </dependency>
 	</dependencies>
-	
+
 	<appData>
 		<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
 			<i18n>i18n/i18n.properties</i18n>
@@ -38,7 +38,7 @@ const libraryContentSpecialChars = `<?xml version="1.0" encoding="UTF-8" ?>
 	      <libraryName>sap.ui.core</libraryName>
 	    </dependency>
 	</dependencies>
-	
+
 	<appData>
 		<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
 			<i18n>i18n(.*)./i18n(.*).properties</i18n>
@@ -98,6 +98,7 @@ test.beforeEach((t) => {
 		verbose: t.context.verboseLogStub,
 		error: t.context.errorLogStub
 	});
+	t.context.getProjectVersion = sinon.stub();
 	t.context.manifestCreator = mock.reRequire("../../../lib/processors/manifestCreator");
 });
 
@@ -107,7 +108,7 @@ test.afterEach.always((t) => {
 });
 
 test.serial("default manifest creation", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -115,13 +116,6 @@ test.serial("default manifest creation", async (t) => {
 		},
 		getString: async () => {
 			return libraryContent;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 	const resources = ["", "_en", "_de"].map((lang) => {
@@ -131,14 +125,14 @@ test.serial("default manifest creation", async (t) => {
 			}
 		};
 	});
-	t.is(errorLogStub.callCount, 0);
 
-	const result = await manifestCreator({libraryResource, resources, options: {}});
+	const result = await manifestCreator({libraryResource, resources, getProjectVersion, options: {}});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("default manifest creation (multi-line documentation)", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -167,13 +161,6 @@ test.serial("default manifest creation (multi-line documentation)", async (t) =>
 				</appData>
 
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 	const resources = ["", "_en", "_de"].map((lang) => {
@@ -194,15 +181,13 @@ test.serial("default manifest creation (multi-line documentation)", async (t) =>
 	const expectedManifestContentMultilineDocumentation =
 		JSON.stringify(expectedManifestContentObjectMultilineDocumentation, null, 2);
 
-	t.is(errorLogStub.callCount, 0);
-
-	const result = await manifestCreator({libraryResource, resources, options: {}});
+	const result = await manifestCreator({libraryResource, resources, getProjectVersion, options: {}});
 	t.is(await result.getString(), expectedManifestContentMultilineDocumentation, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
-
 test.serial("default manifest creation i18n empty string", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -216,39 +201,32 @@ test.serial("default manifest creation i18n empty string", async (t) => {
 					<copyright>my copyright</copyright>
 					<version>1.0.0</version>
 					<documentation>Library E</documentation>
-				
+
 					<dependencies>
 					    <dependency>
 					      <libraryName>sap.ui.core</libraryName>
 					    </dependency>
 					</dependencies>
-					
+
 					<appData>
 						<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
 							<i18n></i18n>
 						</manifest>
 					</appData>
 				</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
-	t.is(errorLogStub.callCount, 0);
 	const expectedManifestContentObjectModified = expectedManifestContentObject();
 	expectedManifestContentObjectModified["sap.app"]["i18n"] = "";
 	const expectedManifestContent = JSON.stringify(expectedManifestContentObjectModified, null, 2);
-	const result = await manifestCreator({libraryResource, resources: [], options: {}});
+	const result = await manifestCreator({libraryResource, resources: [], getProjectVersion, options: {}});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("default manifest creation with invalid version", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -261,7 +239,7 @@ test.serial("default manifest creation with invalid version", async (t) => {
 					<vendor>SAP SE</vendor>
 					<version>@version@</version>
 					<documentation>Library E</documentation>
-				
+
 					<dependencies>
 					    <dependency>
 					      <libraryName>sap.ui.core</libraryName>
@@ -269,28 +247,22 @@ test.serial("default manifest creation with invalid version", async (t) => {
 					</dependencies>
 
 				</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}],
-			version: "1.2.3"
 		}
 	};
 
-	t.is(errorLogStub.callCount, 0);
+	getProjectVersion.withArgs("library.e").returns("1.2.3");
+
 	const expectedManifestContentObjectModified = expectedManifestContentObject();
 	expectedManifestContentObjectModified["sap.app"]["i18n"] = undefined;
 	expectedManifestContentObjectModified["sap.app"]["applicationVersion"]["version"] = "1.2.3";
 	const expectedManifestContent = JSON.stringify(expectedManifestContentObjectModified, null, 2);
-	const result = await manifestCreator({libraryResource, resources: [], options: {}});
+	const result = await manifestCreator({libraryResource, resources: [], getProjectVersion, options: {}});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("default manifest creation with sourceTemplate and thirdparty", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -303,17 +275,16 @@ test.serial("default manifest creation with sourceTemplate and thirdparty", asyn
 					<vendor>SAP SE</vendor>
 					<version>@version@</version>
 					<documentation>Library E</documentation>
-				
+
 					<dependencies>
 					    <dependency>
 					      <libraryName>sap.ui.core</libraryName>
 					    </dependency>
 					    <dependency>
 					      <libraryName>my.lib</libraryName>
-					      <version>4.5.6</version>
 					    </dependency>
 					</dependencies>
-					
+
 					<appData>
 						<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
 							<sourceTemplate>
@@ -328,22 +299,12 @@ test.serial("default manifest creation with sourceTemplate and thirdparty", asyn
 					</appData>
 
 				</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}, {
-				metadata: {
-					name: "my.lib"
-				}
-			}],
-			version: "1.2.3"
 		}
 	};
 
-	t.is(errorLogStub.callCount, 0);
+	getProjectVersion.withArgs("library.e").returns("1.2.3");
+	getProjectVersion.withArgs("my.lib").returns("4.5.6");
+
 	const expectedManifestContentObjectModified = expectedManifestContentObject();
 	expectedManifestContentObjectModified["sap.app"]["i18n"] = undefined;
 	expectedManifestContentObjectModified["sap.app"]["applicationVersion"]["version"] = "1.2.3";
@@ -364,12 +325,13 @@ test.serial("default manifest creation with sourceTemplate and thirdparty", asyn
 		"minVersion": "4.5.6"
 	};
 	const expectedManifestContent = JSON.stringify(expectedManifestContentObjectModified, null, 2);
-	const result = await manifestCreator({libraryResource, resources: [], options: {}});
+	const result = await manifestCreator({libraryResource, resources: [], getProjectVersion, options: {}});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
-test.serial("default manifest creation no dependency version", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+test.serial("default manifest creation no project versions", async (t) => {
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -381,7 +343,7 @@ test.serial("default manifest creation no dependency version", async (t) => {
 					<name>library.e</name>
 					<vendor>SAP SE</vendor>
 					<documentation>Library E</documentation>
-				
+
 					<dependencies>
 					    <dependency>
 					      <libraryName>sap.ui.core</libraryName>
@@ -392,28 +354,21 @@ test.serial("default manifest creation no dependency version", async (t) => {
 					</dependencies>
 
 				</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
+	const expectedManifestContentObjectModified = expectedManifestContentObject();
+	expectedManifestContentObjectModified["sap.app"]["i18n"] = undefined;
+	expectedManifestContentObjectModified["sap.app"]["applicationVersion"] = {};
+	expectedManifestContentObjectModified["sap.ui5"]["dependencies"]["libs"]["my.lib"] = {};
+	const expectedManifestContent = JSON.stringify(expectedManifestContentObjectModified, null, 2);
+	const result = await manifestCreator({libraryResource, resources: [], getProjectVersion, options: {}});
+	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 	t.is(errorLogStub.callCount, 0);
-
-	const error = await t.throwsAsync(manifestCreator({
-		libraryResource,
-		resources: []
-	}));
-	t.deepEqual(error.message,
-		"Couldn't find version for library 'my.lib', project dependency missing?", "error message correct");
 });
 
 test.serial("manifest creation omitMinVersions=true", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -462,15 +417,13 @@ test.serial("manifest creation omitMinVersions=true", async (t) => {
 					    </dependency>
 					</dependencies>
 				</library>`;
-		},
-		_project: {
-			dependencies: []
 		}
 	};
 
 	const result = await manifestCreator({
 		libraryResource,
 		resources: [],
+		getProjectVersion,
 		options: {
 			omitMinVersions: true
 		}
@@ -481,7 +434,7 @@ test.serial("manifest creation omitMinVersions=true", async (t) => {
 });
 
 test.serial("default manifest creation with special characters", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -489,13 +442,6 @@ test.serial("default manifest creation with special characters", async (t) => {
 		},
 		getString: async () => {
 			return libraryContentSpecialChars;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 	const resources = ["", "_en", "_de"].map((lang) => {
@@ -512,14 +458,14 @@ test.serial("default manifest creation with special characters", async (t) => {
 			return `${prefix}model/data.json`;
 		}
 	});
-	t.is(errorLogStub.callCount, 0);
 
-	const result = await manifestCreator({libraryResource, resources, options: {}});
+	const result = await manifestCreator({libraryResource, resources, getProjectVersion, options: {}});
 	t.is(await result.getString(), expectedManifestContentSpecialChars, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("default manifest creation with special characters small app descriptor version", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -527,13 +473,6 @@ test.serial("default manifest creation with special characters small app descrip
 		},
 		getString: async () => {
 			return libraryContent;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 	const resources = ["", "_en", "_de"].map((lang) => {
@@ -543,19 +482,19 @@ test.serial("default manifest creation with special characters small app descrip
 			}
 		};
 	});
-	t.is(errorLogStub.callCount, 0);
 
 	const options = {descriptorVersion: new Version("1.9.0")};
-	const result = await manifestCreator({libraryResource, resources, options});
+	const result = await manifestCreator({libraryResource, resources, getProjectVersion, options});
 	const expectedManifestContentSmallVersion = expectedManifestContentObject();
 	expectedManifestContentSmallVersion["_version"] = "1.9.0";
 	expectedManifestContentSmallVersion["sap.app"]["i18n"] = "i18n/i18n.properties";
 	const expectedManifestContentSmallVersionString = JSON.stringify(expectedManifestContentSmallVersion, null, 2);
 	t.is(await result.getString(), expectedManifestContentSmallVersionString, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("default manifest creation with special characters very small app descriptor version", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 	const prefix = "/resources/sap/ui/mine/";
 	const libraryResource = {
 		getPath: () => {
@@ -563,19 +502,11 @@ test.serial("default manifest creation with special characters very small app de
 		},
 		getString: async () => {
 			return libraryContent;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
-	t.is(errorLogStub.callCount, 0);
 
 	const options = {descriptorVersion: new Version("1.1.0")};
-	const result = await manifestCreator({libraryResource, resources: [], options});
+	const result = await manifestCreator({libraryResource, resources: [], getProjectVersion, options});
 	const expectedManifestContentSmallVersion = expectedManifestContentObject();
 	expectedManifestContentSmallVersion["_version"] = "1.1.0";
 	expectedManifestContentSmallVersion["sap.app"]["_version"] = "1.2.0";
@@ -584,10 +515,11 @@ test.serial("default manifest creation with special characters very small app de
 	expectedManifestContentSmallVersion["sap.app"]["i18n"] = "i18n/i18n.properties";
 	const sResult = await result.getString();
 	t.deepEqual(JSON.parse(sResult), expectedManifestContentSmallVersion, "Correct result returned");
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("manifest creation with themes", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const prefix = "/resources/sap/ui/test/";
 
@@ -630,13 +562,6 @@ test.serial("manifest creation with themes", async (t) => {
 				<name>sap.ui.test</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -659,7 +584,12 @@ test.serial("manifest creation with themes", async (t) => {
 		}
 	});
 
-	const result = await manifestCreator({libraryResource, resources, options: {}});
+	const result = await manifestCreator({
+		libraryResource,
+		resources,
+		getProjectVersion,
+		options: {}
+	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(errorLogStub.callCount, 0);
@@ -671,7 +601,7 @@ test.serial("manifest creation with themes", async (t) => {
 });
 
 test.serial("manifest creation for sap/apf", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const prefix = "/resources/sap/apf/";
 
@@ -681,13 +611,6 @@ test.serial("manifest creation for sap/apf", async (t) => {
 		},
 		getString: async () => {
 			return libraryContent;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -704,7 +627,12 @@ test.serial("manifest creation for sap/apf", async (t) => {
 		};
 	});
 	resources.push(componentResource);
-	const result = await manifestCreator({libraryResource, resources, options: {}});
+	const result = await manifestCreator({
+		libraryResource,
+		resources,
+		getProjectVersion,
+		options: {}
+	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(errorLogStub.callCount, 0);
@@ -721,7 +649,7 @@ test.serial("manifest creation for sap/apf", async (t) => {
 });
 
 test.serial("manifest creation for sap/ui/core", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -760,11 +688,6 @@ test.serial("manifest creation for sap/ui/core", async (t) => {
 				<name>sap.ui.core</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			metadata: {
-				name: "sap.ui.core"
-			}
 		}
 	};
 
@@ -774,7 +697,12 @@ test.serial("manifest creation for sap/ui/core", async (t) => {
 		}
 	};
 
-	const result = await manifestCreator({libraryResource, resources: [componentResource], options: {}});
+	const result = await manifestCreator({
+		libraryResource,
+		resources: [componentResource],
+		getProjectVersion,
+		options: {}
+	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(errorLogStub.callCount, 0);
@@ -786,7 +714,7 @@ test.serial("manifest creation for sap/ui/core", async (t) => {
 });
 
 test.serial("manifest creation with .library / Component.js at same namespace", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -825,13 +753,6 @@ test.serial("manifest creation with .library / Component.js at same namespace", 
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -841,7 +762,12 @@ test.serial("manifest creation with .library / Component.js at same namespace", 
 		}
 	};
 
-	const result = await manifestCreator({libraryResource, resources: [componentResource], options: {}});
+	const result = await manifestCreator({
+		libraryResource,
+		resources: [componentResource],
+		getProjectVersion,
+		options: {}
+	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(errorLogStub.callCount, 1);
@@ -859,7 +785,7 @@ test.serial("manifest creation with .library / Component.js at same namespace", 
 });
 
 test.serial("manifest creation with embedded component", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -900,13 +826,6 @@ test.serial("manifest creation with embedded component", async (t) => {
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -933,7 +852,8 @@ test.serial("manifest creation with embedded component", async (t) => {
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -949,7 +869,7 @@ test.serial("manifest creation with embedded component", async (t) => {
 });
 
 test.serial("manifest creation with embedded component (Missing 'embeddedBy')", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -990,13 +910,6 @@ test.serial("manifest creation with embedded component (Missing 'embeddedBy')", 
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1019,7 +932,8 @@ test.serial("manifest creation with embedded component (Missing 'embeddedBy')", 
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -1035,7 +949,7 @@ test.serial("manifest creation with embedded component (Missing 'embeddedBy')", 
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' doesn't point to library)", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -1076,13 +990,6 @@ test.serial("manifest creation with embedded component ('embeddedBy' doesn't poi
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1109,7 +1016,8 @@ test.serial("manifest creation with embedded component ('embeddedBy' doesn't poi
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -1125,7 +1033,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' doesn't poi
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' absolute path)", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -1166,13 +1074,6 @@ test.serial("manifest creation with embedded component ('embeddedBy' absolute pa
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1199,7 +1100,8 @@ test.serial("manifest creation with embedded component ('embeddedBy' absolute pa
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -1215,7 +1117,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' absolute pa
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' empty string)", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -1256,13 +1158,6 @@ test.serial("manifest creation with embedded component ('embeddedBy' empty strin
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1289,7 +1184,8 @@ test.serial("manifest creation with embedded component ('embeddedBy' empty strin
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -1297,7 +1193,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' empty strin
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' object)", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -1338,13 +1234,6 @@ test.serial("manifest creation with embedded component ('embeddedBy' object)", a
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1373,7 +1262,8 @@ test.serial("manifest creation with embedded component ('embeddedBy' object)", a
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -1381,7 +1271,7 @@ test.serial("manifest creation with embedded component ('embeddedBy' object)", a
 });
 
 test.serial("manifest creation with embedded component (no manifest.json)", async (t) => {
-	const {manifestCreator, errorLogStub, verboseLogStub} = t.context;
+	const {manifestCreator, errorLogStub, verboseLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -1420,13 +1310,6 @@ test.serial("manifest creation with embedded component (no manifest.json)", asyn
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1440,7 +1323,8 @@ test.serial("manifest creation with embedded component (no manifest.json)", asyn
 		libraryResource,
 		resources: [
 			componentResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
@@ -1457,7 +1341,7 @@ test.serial("manifest creation with embedded component (no manifest.json)", asyn
 });
 
 test.serial("manifest creation with embedded component (invalid manifest.json)", async (t) => {
-	const {manifestCreator, errorLogStub} = t.context;
+	const {manifestCreator, errorLogStub, getProjectVersion} = t.context;
 
 	const expectedManifestContent = JSON.stringify({
 		"_version": "1.21.0",
@@ -1498,13 +1382,6 @@ test.serial("manifest creation with embedded component (invalid manifest.json)",
 				<name>sap.lib1</name>
 				<version>1.0.0</version>
 			</library>`;
-		},
-		_project: {
-			dependencies: [{
-				metadata: {
-					name: "sap.ui.core"
-				}
-			}]
 		}
 	};
 
@@ -1527,7 +1404,8 @@ test.serial("manifest creation with embedded component (invalid manifest.json)",
 		resources: [
 			componentResource,
 			componentManifestResource
-		]
+		],
+		getProjectVersion
 	});
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
