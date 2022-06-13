@@ -1649,6 +1649,6 @@ test("rootConfig", async (t) => {
 		rootConfigPath: "ui5-test-configPath.yaml"
 	});
 	t.deepEqual(projectGraph.getRoot().getCustomConfiguration(), {
-		rootConfigPathTest: true
+		configPathTest: true
 	});
 });
