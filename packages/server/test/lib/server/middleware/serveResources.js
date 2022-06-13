@@ -49,11 +49,7 @@ test.serial("Check if properties file is served properly", (t) => {
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 	const project = {
-		resources: {
-			configuration: {
-				propertiesFileSourceEncoding: "ISO-8859-1"
-			}
-		}
+		getPropertiesFileSourceEncoding: () => "ISO-8859-1"
 	};
 
 	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "latin1", project)
@@ -93,11 +89,7 @@ test.serial("Check if properties file is served properly with UTF-8", (t) => {
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 	const project = {
-		resources: {
-			configuration: {
-				propertiesFileSourceEncoding: "UTF-8"
-			}
-		}
+		getPropertiesFileSourceEncoding: () => "UTF-8"
 	};
 
 	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "utf8", project)
@@ -175,7 +167,8 @@ test.serial("Check if properties file is served properly without property settin
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 	const project = {
-		specVersion: "1.1"
+		getPropertiesFileSourceEncoding: () => "",
+		getSpecVersion: () => "1.1"
 	};
 	return writeResource(readerWriter, "/myFile3.properties",
 		1024 * 1024, "key=titel\nfame=straße", "latin1", project
@@ -215,7 +208,8 @@ test.serial("Check if properties file is served properly without property settin
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 	const project = {
-		specVersion: "2.0"
+		getPropertiesFileSourceEncoding: () => "",
+		getSpecVersion: () => "2.0"
 	};
 	return writeResource(readerWriter, "/myFile3.properties",
 		1024 * 1024, "key=titel\nfame=straße", "utf8", project
@@ -278,8 +272,10 @@ test.serial("Check verbose logging", (t) => {
 			stream.push(null);
 			return stream;
 		},
-		_project: {
-			version: "1.0.0"
+		getProject: () => {
+			return {
+				getVersion: () => "1.0.0"
+			};
 		},
 		getPathTree: () => {
 			return {
@@ -356,8 +352,10 @@ test.serial.cb("Check if version replacement is done", (t) => {
 			stream.push(null);
 			return stream;
 		},
-		_project: {
-			version: "1.0.0"
+		getProject: () => {
+			return {
+				getVersion: () => "1.0.0"
+			};
 		},
 		getPathTree: () => ""
 	};
@@ -433,8 +431,10 @@ test.serial[
 			stream.push(null);
 			return stream;
 		},
-		_project: {
-			version: "1.0.0"
+		getProject: () => {
+			return {
+				getVersion: () => "1.0.0"
+			};
 		},
 		getPathTree: () => ""
 	};

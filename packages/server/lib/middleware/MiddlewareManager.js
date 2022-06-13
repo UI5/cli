@@ -17,14 +17,14 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
  * @memberof module:@ui5/server.middleware
  */
 class MiddlewareManager {
-	constructor({tree, resources, options = {
+	constructor({graph, resources, options = {
 		sendSAPTargetCSP: false,
 		serveCSPReports: false
 	}}) {
-		if (!tree || !resources || !resources.all || !resources.rootProject || !resources.dependencies) {
+		if (!graph || !resources || !resources.all || !resources.rootProject || !resources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
 		}
-		this.tree = tree;
+		this.graph = graph;
 		this.resources = resources;
 		this.options = options;
 
@@ -44,15 +44,19 @@ class MiddlewareManager {
 	}
 
 	async addMiddleware(configuredMiddlewareName, {
-		wrapperCallback, mountPath = "/",
+		customMiddleware, wrapperCallback, mountPath = "/",
 		beforeMiddleware, afterMiddleware
 	} = {}) {
-		const middlewareInfo = middlewareRepository.getMiddleware(configuredMiddlewareName);
 		let middlewareCallback;
-		if (wrapperCallback) {
-			middlewareCallback = wrapperCallback(middlewareInfo);
+		if (customMiddleware) {
+			middlewareCallback = customMiddleware;
 		} else {
-			middlewareCallback = middlewareInfo.middleware;
+			const middlewareInfo = middlewareRepository.getMiddleware(configuredMiddlewareName);
+			if (wrapperCallback) {
+				middlewareCallback = wrapperCallback(middlewareInfo);
+			} else {
+				middlewareCallback = middlewareInfo.middleware;
+			}
 		}
 
 		let middlewareName = configuredMiddlewareName;
@@ -188,7 +192,7 @@ class MiddlewareManager {
 					return versionInfoModule({
 						resources,
 						middlewareUtil,
-						tree: this.tree
+						graph: this.graph
 					});
 				};
 			}
@@ -211,47 +215,46 @@ class MiddlewareManager {
 	}
 
 	async addCustomMiddleware() {
-		const project = this.tree;
-		const projectCustomMiddleware = project.server && project.server.customMiddleware;
-		if (!projectCustomMiddleware || projectCustomMiddleware.length === 0) {
+		const project = this.graph.getRoot();
+		const projectCustomMiddleware = project.getCustomMiddleware();
+		if (!projectCustomMiddleware.length === 0) {
 			return; // No custom middleware defined
 		}
 
 		for (let i = 0; i < projectCustomMiddleware.length; i++) {
 			const middlewareDef = projectCustomMiddleware[i];
 			if (!middlewareDef.name) {
-				throw new Error(`Missing name for custom middleware definition of project ${project.metadata.name} ` +
+				throw new Error(`Missing name for custom middleware definition of project ${project.getName()} ` +
 					`at index ${i}`);
 			}
 			if (middlewareDef.beforeMiddleware && middlewareDef.afterMiddleware) {
 				throw new Error(
-					`Custom middleware definition ${middlewareDef.name} of project ${project.metadata.name} ` +
+					`Custom middleware definition ${middlewareDef.name} of project ${project.getName()} ` +
 					`defines both "beforeMiddleware" and "afterMiddleware" parameters. Only one must be defined.`);
 			}
 			if (!middlewareDef.beforeMiddleware && !middlewareDef.afterMiddleware) {
 				throw new Error(
-					`Custom middleware definition ${middlewareDef.name} of project ${project.metadata.name} ` +
+					`Custom middleware definition ${middlewareDef.name} of project ${project.getName()} ` +
 					`defines neither a "beforeMiddleware" nor an "afterMiddleware" parameter. One must be defined.`);
 			}
-
 			await this.addMiddleware(middlewareDef.name, {
-				wrapperCallback: ({middleware: middleware, specVersion}) => {
-					return ({resources, middlewareUtil}) => {
-						const options = {
-							configuration: middlewareDef.configuration
-						};
-						const params = {resources, options};
-						if (
-							specVersion === "2.0" || specVersion === "2.1" ||
-							specVersion === "2.2" || specVersion === "2.3" ||
-							specVersion === "2.4" || specVersion === "2.5" ||
-							specVersion === "2.6"
-						) {
-							// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
-							params.middlewareUtil = middlewareUtil.getInterface(specVersion);
-						}
-						return middleware(params);
+				customMiddleware: ({resources, middlewareUtil}) => {
+					const customMiddleware = this.graph.getExtension(middlewareDef.name);
+					const specVersion = customMiddleware.getSpecVersion();
+					const options = {
+						configuration: middlewareDef.configuration
 					};
+					const params = {resources, options};
+					if (
+						specVersion === "2.0" || specVersion === "2.1" ||
+						specVersion === "2.2" || specVersion === "2.3" ||
+						specVersion === "2.4" || specVersion === "2.5" ||
+						specVersion === "2.6"
+					) {
+						// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
+						params.middlewareUtil = middlewareUtil.getInterface(specVersion);
+					}
+					return customMiddleware.getMiddleware()(params);
 				},
 				mountPath: middlewareDef.mountPath,
 				beforeMiddleware: middlewareDef.beforeMiddleware,

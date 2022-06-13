@@ -1,4 +1,0 @@
-/*!
- * ${copyright}
- */
-console.log('HelloWorld');

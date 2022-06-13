@@ -54,9 +54,8 @@ function createResourceInfo(resource) {
 		lastModified: new Date(stat.mtime).toLocaleString(),
 		size: formatSize(stat.size),
 		sizeInBytes: stat.size,
-		// TODO: project as public API of FS?
-		project: resource._project ? resource._project.id : "<unknown>",
-		projectPath: resource._project ? resource._project.path : "<unknown>"
+		project: resource.getProject()?.getName() || "<unknown>",
+		projectPath: resource.getProject()?.getPath() || "<unknown>"
 	};
 }
 

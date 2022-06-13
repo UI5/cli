@@ -41,12 +41,11 @@ function createMiddleware({resources, middlewareUtil}) {
 			if (rProperties.test(resourcePath)) {
 				// Special handling for *.properties files escape non ascii characters.
 				const nonAsciiEscaper = require("@ui5/builder").processors.nonAsciiEscaper;
-				const project = resource._project; // _project might not be defined
-				let propertiesFileSourceEncoding = project && project.resources &&
-					project.resources.configuration && project.resources.configuration.propertiesFileSourceEncoding;
+				const project = resource.getProject();
+				let propertiesFileSourceEncoding = project?.getPropertiesFileSourceEncoding();
 
 				if (!propertiesFileSourceEncoding) {
-					if (project && ["0.1", "1.0", "1.1"].includes(project.specVersion)) {
+					if (project && ["0.1", "1.0", "1.1"].includes(project.getSpecVersion())) {
 						// default encoding to "ISO-8859-1" for old specVersions
 						propertiesFileSourceEncoding = "ISO-8859-1";
 					} else {
@@ -84,9 +83,9 @@ function createMiddleware({resources, middlewareUtil}) {
 			// Also, only process .library, *.js and *.json files. Just like it's done in Application-
 			//	and LibraryBuilder
 			if ((!charset || charset === "UTF-8") && rReplaceVersion.test(resourcePath)) {
-				if (resource._project) {
+				if (resource.getProject()) {
 					stream.setEncoding("utf8");
-					stream = stream.pipe(replaceStream("${version}", resource._project.version));
+					stream = stream.pipe(replaceStream("${version}", resource.getProject().getVersion()));
 				} else {
 					log.verbose("Project missing from resource %s", pathname);
 				}

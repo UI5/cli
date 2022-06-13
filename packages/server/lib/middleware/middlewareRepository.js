@@ -21,8 +21,7 @@ function getMiddleware(middlewareName) {
 	try {
 		const middleware = require(middlewareInfo.path);
 		return {
-			middleware,
-			specVersion: middlewareInfo.specVersion
+			middleware
 		};
 	} catch (err) {
 		throw new Error(
@@ -30,17 +29,6 @@ function getMiddleware(middlewareName) {
 	}
 }
 
-function addMiddleware({name, specVersion, middlewarePath}) {
-	if (middlewareInfos[name]) {
-		throw new Error(`middlewareRepository: A middleware with the name ${name} has already been registered`);
-	}
-	middlewareInfos[name] = {
-		path: middlewarePath,
-		specVersion
-	};
-}
-
 module.exports = {
-	getMiddleware: getMiddleware,
-	addMiddleware: addMiddleware
+	getMiddleware: getMiddleware
 };

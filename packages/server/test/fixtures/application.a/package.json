@@ -4,8 +4,10 @@
   "description": "Simple SAPUI5 based application",
   "main": "index.html",
   "dependencies": {
-    "library.d": "file:../library.d",
-    "collection": "file:../collection"
+    "library.a": "file:../library.a",
+    "library.b": "file:../library.b",
+    "library.c": "file:../library.c",
+    "library.d": "file:../library.d"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

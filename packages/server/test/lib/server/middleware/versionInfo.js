@@ -7,34 +7,31 @@ let versionInfoMiddleware = require("../../../../lib/middleware/versionInfo");
 function createWorkspace() {
 	return resourceFactory.createAdapter({
 		virBasePath: "/",
-		project: {
-			metadata: {
-				name: "test.lib"
-			},
-			version: "2.0.0",
-			dependencies: [
-				{
-					metadata: {
-						name: "sap.ui.core"
-					},
-					version: "1.0.0"
-				}
-			]
-		}
+		project: createProjectMetadata(["test", "lib"])
 	});
 }
+
+const projectCache = {};
 
 /**
  *
  * @param {string[]} names e.g. ["lib", "a"]
- * @returns {{metadata: {name, namespace}}}
+ * @param {string} [version="3.0.0-<library name>"] Project version
+ * @returns {object} Project mock
  */
-const createProjectMetadata = (names) => {
-	return {
-		metadata: {
-			name: names.join("."),
-			namespace: names.join("/")
-		}
+const createProjectMetadata = (names, version) => {
+	const key = names.join(".");
+
+	// Cache projects in order to return same object instance
+	// AbstractAdapter will compare the project instances of the adapter
+	// to the resource and denies a write if they don't match
+	if (projectCache[key]) {
+		return projectCache[key];
+	}
+	return projectCache[key] = {
+		getName: () => key,
+		getNamespace: () => names.join("/"),
+		getVersion: () => version || "3.0.0-" + key
 	};
 };
 
@@ -42,9 +39,11 @@ const createProjectMetadata = (names) => {
  * @param {module:@ui5/fs.DuplexCollection} dependencies
  * @param {module:@ui5/fs.resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
+ * @param {string} version Project version to write into to the .library
  * @returns {Promise<void>}
  */
-async function createDotLibrary(dependencies, resourceFactory, names) {
+async function createDotLibrary(dependencies, resourceFactory, names, version) {
+	const versionTag = version ? `<version>${version}</version>` : "";
 	await dependencies.write(resourceFactory.createResource({
 		path: `/resources/${names.join("/")}/.library`,
 		string: `
@@ -53,12 +52,11 @@ async function createDotLibrary(dependencies, resourceFactory, names) {
 				<name>${names.join(".")}</name>
 				<vendor>SAP SE</vendor>
 				<copyright></copyright>
-				<version>2.0.0</version>
+				${versionTag}
 
 				<documentation>Library ${names.slice(1).join(".").toUpperCase()}</documentation>
 			</library>
-		`,
-		project: createProjectMetadata(names)
+		`
 	}));
 }
 
@@ -104,8 +102,7 @@ const createManifestResource = async (dependencies, resourceFactory, names, deps
 	}
 	await dependencies.write(resourceFactory.createResource({
 		path: `/resources/${names.join("/")}/manifest.json`,
-		string: JSON.stringify(content, null, 2),
-		project: createProjectMetadata(names)
+		string: JSON.stringify(content, null, 2)
 	}));
 };
 
@@ -122,15 +119,11 @@ const createResources = async (dependencies, resourceFactory, names, deps, embed
 	await createManifestResource(dependencies, resourceFactory, names, deps, embeds);
 };
 
-function createDependencies(oOptions = {
+function createDepWorkspace(names, oOptions = {
 	virBasePath: "/resources"
 }) {
 	oOptions = Object.assign(oOptions, {
-		project: {
-			metadata: {
-				name: "test.lib3"
-			},
-			version: "3.0.0"}
+		project: createProjectMetadata(names)
 	});
 	return resourceFactory.createAdapter(oOptions);
 }
@@ -178,36 +171,50 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	});
 	versionInfoMiddleware = mock.reRequire("../../../../lib/middleware/versionInfo");
 
-	const dependencies = createDependencies({virBasePath: "/"});
+	const dependenciesA = createDepWorkspace(["lib", "a"], {virBasePath: "/"});
+	const dependenciesB = createDepWorkspace(["lib", "b"], {virBasePath: "/"});
+	const dependenciesC = createDepWorkspace(["lib", "c"], {virBasePath: "/"});
 	// create lib.a without manifest
-	await createDotLibrary(dependencies, resourceFactory, ["lib", "a"], [{name: "lib.b"}, {name: "lib.c"}]);
+	await createDotLibrary(dependenciesA, resourceFactory, ["lib", "a"], [{name: "lib.b"}, {name: "lib.c"}]);
 	// create lib.b with manifest: no manifestCreator call expected
-	await createResources(dependencies, resourceFactory, ["lib", "b"], []);
+	await createResources(dependenciesB, resourceFactory, ["lib", "b"], []);
 	// create lib.c without manifest but with dummy files
-	await createDotLibrary(dependencies, resourceFactory, ["lib", "c"]);
+	await createDotLibrary(dependenciesC, resourceFactory, ["lib", "c"]);
 	[
 		// relevant file extensions for manifest creation
 		"js", "json", "less", "css", "theming", "theme", "properties",
 		// other file extensions are irrelevant
 		"html", "txt", "ts"
 	].forEach(async (extension) => {
-		await dependencies.write(resourceFactory.createResource({path: `/resources/lib/c/foo.${extension}`}));
+		await dependenciesC.write(resourceFactory.createResource({path: `/resources/lib/c/foo.${extension}`}));
 	});
 
-	const resources = {dependencies};
-	const tree = {
-		metadata: {
-			name: "myname"
-		},
-		version: "1.33.7"
+	const resources = {
+		dependencies: resourceFactory.createReaderCollection({
+			name: "dependencies",
+			readers: [dependenciesA, dependenciesB, dependenciesC]
+		})
 	};
-	const middleware = versionInfoMiddleware({resources, tree});
+	const graph = {
+		getRoot: () => createProjectMetadata(["myname"], "1.33.7"),
+		getProject: (projectName) => {
+			if (projectName === "my.project") {
+				return {
+					getVersion: () => "project version"
+				};
+			}
+			return null;
+		}
+	};
+	const middleware = versionInfoMiddleware({resources, graph});
 
 	const endStub = sinon.stub();
 	await middleware(
 		/* req */ undefined,
 		/* res */ {writeHead: function() {}, end: endStub},
-		/* next */ function() {});
+		/* next */ function(err) {
+			throw err;
+		});
 
 	t.is(manifestCreatorStub.callCount, 2);
 	t.is(manifestCreatorStub.getCall(0).args[0].libraryResource.getPath(), "/resources/lib/a/.library");
@@ -231,6 +238,10 @@ test.serial("test all inner API calls within middleware", async (t) => {
 		]);
 	t.deepEqual(manifestCreatorStub.getCall(0).args[0].options, {omitMinVersions: true});
 	t.deepEqual(manifestCreatorStub.getCall(1).args[0].options, {omitMinVersions: true});
+	const projectVersion1 = manifestCreatorStub.getCall(0).args[0].getProjectVersion("my.project");
+	t.is(projectVersion1, "project version", "getProjectVersion callback returned expected project version");
+	const projectVersion2 = manifestCreatorStub.getCall(1).args[0].getProjectVersion("my.other.project");
+	t.is(projectVersion2, undefined, "getProjectVersion callback returned no version of unknown project");
 
 	t.is(versionInfoGeneratorStub.callCount, 1);
 	const versionInfoGeneratorOptions = versionInfoGeneratorStub.getCall(0).args[0].options;
@@ -270,35 +281,42 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 	// lib.a.sub.fold => lib.c, lib.d, lib.e
 
 	// dependencies
-	const dependencies = createDependencies({virBasePath: "/"});
+	const dependenciesA = createDepWorkspace(["lib", "a"], {virBasePath: "/"});
+	const dependenciesB = createDepWorkspace(["lib", "b"], {virBasePath: "/"});
+	const dependenciesC = createDepWorkspace(["lib", "c"], {virBasePath: "/"});
+	const dependenciesD = createDepWorkspace(["lib", "d"], {virBasePath: "/"});
+	const dependenciesE = createDepWorkspace(["lib", "e"], {virBasePath: "/"});
 
 	// lib.a
 	const embeds = ["sub/fold"];
-	await createResources(dependencies, resourceFactory, ["lib", "a"], [{name: "lib.b"}, {name: "lib.c"}], embeds);
+	await createResources(dependenciesA, resourceFactory, ["lib", "a"], [{name: "lib.b"}, {name: "lib.c"}], embeds);
 	// sub
-	await createManifestResource(dependencies, resourceFactory, ["lib", "a", "sub", "fold"], [{name: "lib.c"}]);
+	await createManifestResource(dependenciesA, resourceFactory, ["lib", "a", "sub", "fold"], [{name: "lib.c"}]);
 
 	// lib.b
-	await createResources(dependencies, resourceFactory, ["lib", "b"], [{name: "lib.c", lazy: true}]);
+	await createResources(dependenciesB, resourceFactory, ["lib", "b"], [{name: "lib.c", lazy: true}]);
 
 	// lib.c
-	await createResources(dependencies, resourceFactory, ["lib", "c"], [{name: "lib.d"}, {name: "lib.e", lazy: true}]);
+	await createResources(dependenciesC, resourceFactory, ["lib", "c"], [{name: "lib.d"}, {name: "lib.e", lazy: true}]);
 
 	// lib.d
-	await createResources(dependencies, resourceFactory, ["lib", "d"], [{name: "lib.e"}]);
+	await createResources(dependenciesD, resourceFactory, ["lib", "d"], [{name: "lib.e"}]);
 
 	// lib.e
-	await createResources(dependencies, resourceFactory, ["lib", "e"], []);
+	await createResources(dependenciesE, resourceFactory, ["lib", "e"], []);
 
 	// create middleware
-	const resources = {dependencies};
-	const tree = {
-		metadata: {
-			name: "myname"
-		},
-		version: "1.33.7"
+	const resources = {
+		dependencies: resourceFactory.createReaderCollection({
+			name: "dependencies",
+			readers: [dependenciesA, dependenciesB, dependenciesC, dependenciesD, dependenciesE]
+		})
 	};
-	const middleware = versionInfoMiddleware({resources, tree});
+
+	const graph = {
+		getRoot: () => createProjectMetadata(["myname"], "1.33.7")
+	};
+	const middleware = versionInfoMiddleware({resources, graph});
 
 	const expectedVersionInfo = {
 		"name": "myname",
@@ -317,6 +335,7 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 					}
 				}
 			},
+			"version": "3.0.0-lib.a",
 		},
 		{
 			"name": "lib.b",
@@ -336,6 +355,7 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 					}
 				}
 			},
+			"version": "3.0.0-lib.b",
 		},
 		{
 			"name": "lib.c",
@@ -348,6 +368,7 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 					}
 				}
 			},
+			"version": "3.0.0-lib.c",
 		},
 		{
 			"name": "lib.d",
@@ -359,10 +380,12 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 					}
 				}
 			},
+			"version": "3.0.0-lib.d",
 		},
 		{
 			"name": "lib.e",
 			"scmRevision": "",
+			"version": "3.0.0-lib.e",
 		}],
 		"components": {
 			"lib.a.sub.fold": {
@@ -387,8 +410,8 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 			await assertCreatedVersionInfo(t, expectedVersionInfo, versionInfoContent);
 		}
 	};
-	const next = function() {
-		t.fail("should not be called.");
+	const next = function(err) {
+		throw err;
 	};
 
 	await middleware(undefined, res, next);

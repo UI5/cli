@@ -2,27 +2,26 @@ const test = require("ava");
 const supertest = require("supertest");
 const ui5Server = require("../../../");
 const server = ui5Server.server;
-const normalizer = require("@ui5/project").normalizer;
 const http = require("http");
 const portscanner = require("portscanner");
 const sinon = require("sinon");
+const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
 
 let serve;
 
 // Start server before running tests
-test.before((t) => {
-	return normalizer.generateProjectTree({
+test.before(async (t) => {
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port: 3335
-		}).then((serveResult) => {
-			serve = serveResult;
-		});
+	});
+
+	serve = await server.serve(graph, {
+		port: 3335
 	});
 });
 
 test.after(() => {
+	sinon.restore();
 	return new Promise((resolve, reject) => {
 		serve.close((error) => {
 			if (error) {
@@ -46,13 +45,12 @@ test("Start server - Port is already taken and an error occurs", async (t) => {
 			resolve();
 		});
 		nodeServer.listen(port);
-	}).then(() => {
-		return normalizer.generateProjectTree({
+	}).then(async () => {
+		const graph = await generateProjectGraph({
 			cwd: "./test/fixtures/application.a"
-		}).then((tree) => {
-			return server.serve(tree, {
-				port: port
-			});
+		});
+		await server.serve(graph, {
+			port
 		});
 	});
 
@@ -97,30 +95,29 @@ test("Start server together with node server - Port is already taken and the nex
 			resolve();
 		});
 		nodeServer.listen(port);
-	}).then(() => {
-		return normalizer.generateProjectTree({
+	}).then(async () => {
+		const graph = await generateProjectGraph({
 			cwd: "./test/fixtures/application.a"
-		}).then((tree) => {
-			return server.serve(tree, {
-				port: port,
-				changePortIfInUse: true
-			}).then((serveResult) => {
-				t.deepEqual(serveResult.port, nextFoundPort, "Resolves with correct port");
-				const request = supertest(`http://localhost:${nextFoundPort}`);
-				return request.get("/index.html").then((res) => {
-					if (res.error) {
-						t.fail(res.error.text);
-					}
-					t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-					nodeServer.close();
-					serveResult.close();
-				});
-			});
+		});
+		const serve = await server.serve(graph, {
+			port,
+			changePortIfInUse: true
+		});
+
+		t.deepEqual(serve.port, nextFoundPort, "Resolves with correct port");
+		const request = supertest(`http://localhost:${nextFoundPort}`);
+		return request.get("/index.html").then((res) => {
+			if (res.error) {
+				t.fail(res.error.text);
+			}
+			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
+			nodeServer.close();
+			serve.close();
 		});
 	});
 });
 
-test.serial("Start server - Port can not be determined and an error occurs", (t) => {
+test.serial("Start server - Port can not be determined and an error occurs", async (t) => {
 	t.plan(2);
 	const portscannerFake = function(port, portMax, host, callback) {
 		return new Promise((resolve) => {
@@ -130,10 +127,10 @@ test.serial("Start server - Port can not be determined and an error occurs", (t)
 	};
 	const portScannerStub = sinon.stub(portscanner, "findAPortNotInUse").callsFake(portscannerFake);
 
-	const startServer = normalizer.generateProjectTree({
+	const startServer = generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
+	}).then((graph) => {
+		return server.serve(graph, {
 			port: 3990,
 			changePortIfInUse: true
 		});
@@ -170,10 +167,10 @@ test("Start server - Port is already taken and an error occurs because no other 
 	}
 
 	const startServer = Promise.all(serversStart).then(() => {
-		return normalizer.generateProjectTree({
+		return generateProjectGraph({
 			cwd: "./test/fixtures/application.a"
-		}).then((tree) => {
-			return server.serve(tree, {
+		}).then((graph) => {
+			return server.serve(graph, {
 				port: portStart,
 				changePortIfInUse: true
 			});
@@ -215,19 +212,19 @@ test("Start server twice - Port is already taken and the next one is used", (t) 
 	t.plan(3);
 	const port = 3380;
 	const nextFoundPort = 3381;
-	return normalizer.generateProjectTree({
+	return generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
+	}).then((graph) => {
+		return server.serve(graph, {
 			port: port,
 			changePortIfInUse: true
 		});
 	}).then((serveResult1) => {
 		t.deepEqual(serveResult1.port, port, "Resolves with correct port");
-		return normalizer.generateProjectTree({
+		return generateProjectGraph({
 			cwd: "./test/fixtures/application.a"
-		}).then((tree) =>{
-			return server.serve(tree, {
+		}).then((graph) =>{
+			return server.serve(graph, {
 				port: port,
 				changePortIfInUse: true
 			}).then((serveResult2) => {

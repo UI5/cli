@@ -2,37 +2,31 @@ const test = require("ava");
 const supertest = require("supertest");
 const ui5Server = require("../../../");
 const server = ui5Server.server;
-const normalizer = require("@ui5/project").normalizer;
+const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
 const path = require("path");
 
 let request;
 let serve;
 
 // Start server before running tests
-test.before((t) => {
+test.before(async (t) => {
 	process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
-	return normalizer.generateProjectTree({
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		const sslPath = path.join(process.cwd(), "./test/fixtures/ssl/");
-		return ui5Server.sslUtil.getSslCertificate(
-			path.join(sslPath, "server.key"),
-			path.join(sslPath, "server.crt"),
-		).then(({key, cert}) => {
-			return {tree, key, cert};
-		});
-	}).then((result) => {
-		return server.serve(result.tree, {
-			port: 3366,
-			h2: true,
-			key: result.key,
-			cert: result.cert
-		});
-	}).then((serveResult) => {
-		request = supertest("https://localhost:3366");
-		serve = serveResult;
 	});
+	const sslPath = path.join(process.cwd(), "./test/fixtures/ssl/");
+	const {key, cert} = await ui5Server.sslUtil.getSslCertificate(
+		path.join(sslPath, "server.key"),
+		path.join(sslPath, "server.crt"),
+	);
+	serve = await server.serve(graph, {
+		port: 3366,
+		h2: true,
+		key,
+		cert
+	});
+	request = supertest("https://localhost:3366");
 });
 
 test.after(() => {

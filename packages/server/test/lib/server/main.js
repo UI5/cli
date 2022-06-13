@@ -2,23 +2,21 @@ const test = require("ava");
 const supertest = require("supertest");
 const ui5Server = require("../../../");
 const server = ui5Server.server;
-const normalizer = require("@ui5/project").normalizer;
+const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
 
 let request;
 let serve;
 
 // Start server before running tests
-test.before((t) => {
-	return normalizer.generateProjectTree({
+test.before(async (t) => {
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port: 3333
-		}).then((serveResult) => {
-			request = supertest("http://localhost:3333");
-			serve = serveResult;
-		});
 	});
+
+	serve = await server.serve(graph, {
+		port: 3333
+	});
+	request = supertest("http://localhost:3333");
 });
 
 test.after.always(() => {
@@ -36,7 +34,7 @@ test.after.always(() => {
 test("Get resource from application.a (/index.html)", (t) => {
 	return request.get("/index.html").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /html/, "Correct content type");
@@ -48,7 +46,7 @@ test("Get resource from application.a (/index.html)", (t) => {
 test("Get resource from application.a with not replaced version placeholder(/versionTest.html)", (t) => {
 	return request.get("/versionTest.html").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /html/, "Correct content type");
@@ -59,7 +57,7 @@ test("Get resource from application.a with not replaced version placeholder(/ver
 test("Get resource from application.a with replaced version placeholder (/versionTest.js)", (t) => {
 	return request.get("/versionTest.js").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /application\/javascript/, "Correct content type");
@@ -70,7 +68,7 @@ test("Get resource from application.a with replaced version placeholder (/versio
 test("Get resource from application.a (/i18n/i18n.properties) with correct content-type", (t) => {
 	return request.get("/i18n/i18n.properties").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error.text);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.deepEqual(res.headers["content-type"], "application/octet-stream", "Correct content type");
@@ -83,7 +81,7 @@ test("Get resource from application.a (/i18n/i18n_de.properties) with correct co
 		.responseType("arraybuffer")
 		.then((res) => {
 			if (res.error) {
-				t.fail(res.error.text);
+				throw new Error(res.error);
 			}
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			t.deepEqual(res.headers["content-type"], "application/octet-stream",
@@ -100,7 +98,7 @@ test("Get resource from application.a (/i18n/i18n_de.properties) with correct co
 test("Get resource from library.a (/resources/library/a/.library)", (t) => {
 	return request.get("/resources/library/a/.library").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 	});
@@ -109,7 +107,7 @@ test("Get resource from library.a (/resources/library/a/.library)", (t) => {
 test("Get resource from library.b (/resources/library/b/.library)", (t) => {
 	return request.get("/resources/library/b/.library").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 	});
@@ -118,7 +116,7 @@ test("Get resource from library.b (/resources/library/b/.library)", (t) => {
 test("Get resource from library.c (/resources/library/c/.library)", (t) => {
 	return request.get("/resources/library/c/.library").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 	});
@@ -127,7 +125,7 @@ test("Get resource from library.c (/resources/library/c/.library)", (t) => {
 test("Get resource from library.d (/resources/library/d/.library)", (t) => {
 	return request.get("/resources/library/d/.library").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 	});
@@ -136,7 +134,7 @@ test("Get resource from library.d (/resources/library/d/.library)", (t) => {
 test("Get app_pages from discovery middleware (/discovery/app_pages)", (t) => {
 	return request.get("/discovery/app_pages").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.deepEqual(res.body, {
@@ -155,7 +153,7 @@ test("Get app_pages from discovery middleware (/discovery/app_pages)", (t) => {
 test("Get all_libs from discovery middleware (/discovery/all_libs)", (t) => {
 	return request.get("/discovery/all_libs").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.deepEqual(res.body, {
@@ -180,7 +178,7 @@ test("Get all_libs from discovery middleware (/discovery/all_libs)", (t) => {
 test("Get all_tests from discovery middleware (/discovery/all_tests)", (t) => {
 	return request.get("/discovery/all_tests").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.deepEqual(res.body, {
@@ -208,7 +206,7 @@ test("Get all_tests from discovery middleware (/discovery/all_tests)", (t) => {
 test("Get sap-ui-version.json from versionInfo middleware (/resources/sap-ui-version.json)", (t) => {
 	return request.get("/resources/sap-ui-version.json").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 
@@ -272,7 +270,7 @@ test("Get sap-ui-version.json from versionInfo middleware (/resources/sap-ui-ver
 test("Get library.css from theme middleware (/resources/library/a/themes/base/library.css)", (t) => {
 	return request.get("/resources/library/a/themes/base/library.css").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /css/, "Correct content type");
@@ -290,7 +288,7 @@ test("Get library.css from theme middleware (/resources/library/a/themes/base/li
 test("Get library-RTL.css from theme middleware (/resources/library/a/themes/base/library-RTL.css)", (t) => {
 	return request.get("/resources/library/a/themes/base/library-RTL.css").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /css/, "Correct content type");
@@ -309,7 +307,7 @@ test("Get library-parameters.json from theme middleware (/resources/library/a/th
 	(t) => {
 		return request.get("/resources/library/a/themes/base/library-parameters.json").then((res) => {
 			if (res.error) {
-				t.fail(res.error.text);
+				throw new Error(res.error);
 			}
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			t.regex(res.headers["content-type"], /json/, "Correct content type");
@@ -323,7 +321,7 @@ test("Get css_variables.source.less from theme middleware (/resources/library/a/
 	(t) => {
 		return request.get("/resources/library/a/themes/base/css_variables.source.less").then((res) => {
 			if (res.error) {
-				t.fail(res.error.text);
+				throw new Error(res.error);
 			}
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			t.regex(res.headers["content-type"], /less/, "Correct content type");
@@ -339,7 +337,7 @@ test("Get css_variables.source.less from theme middleware (/resources/library/a/
 test("Get css_variables.css from theme middleware (/resources/library/a/themes/base/css_variables.css)", (t) => {
 	return request.get("/resources/library/a/themes/base/css_variables.css").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /css/, "Correct content type");
@@ -356,7 +354,7 @@ test("Get css_variables.css from theme middleware (/resources/library/a/themes/b
 test("Get library_skeleton.css from theme middleware (/resources/library/a/themes/base/library_skeleton.css)", (t) => {
 	return request.get("/resources/library/a/themes/base/library_skeleton.css").then((res) => {
 		if (res.error) {
-			t.fail(res.error.text);
+			throw new Error(res.error);
 		}
 		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 		t.regex(res.headers["content-type"], /css/, "Correct content type");
@@ -372,7 +370,7 @@ test("Get library_skeleton-RTL.css from theme middleware (/resources/library/a/t
 	(t) => {
 		return request.get("/resources/library/a/themes/base/library_skeleton-RTL.css").then((res) => {
 			if (res.error) {
-				t.fail(res.error.text);
+				throw new Error(res.error);
 			}
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			t.regex(res.headers["content-type"], /css/, "Correct content type");
@@ -384,19 +382,20 @@ test("Get library_skeleton-RTL.css from theme middleware (/resources/library/a/t
 		});
 	});
 
-test("Stop server", (t) => {
+test("Stop server", async (t) => {
 	const port = 3350;
 	const request = supertest(`http://localhost:${port}`);
-	return normalizer.generateProjectTree({
+
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port: port
-		});
+	});
+
+	return server.serve(graph, {
+		port: port
 	}).then((serveResult) => {
 		return request.get("/resources/library/a/themes/base/library-parameters.json").then((res) => {
 			if (res.error) {
-				t.fail(res.error.text);
+				throw new Error(res.error);
 			}
 			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
 			return serveResult;
@@ -490,18 +489,19 @@ test("CSP (defaults)", (t) => {
  * The response object of supertest joins the values of the two headers in a single string, which makes
  * assertions below a bit harder to understand (two checks with different regex on the same header)
  */
-test("CSP (sap policies)", (t) => {
+test("CSP (sap policies)", async (t) => {
 	const port = 3400;
 	const request = supertest(`http://localhost:${port}`);
 	let localServeResult;
-	return normalizer.generateProjectTree({
+
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port,
-			sendSAPTargetCSP: true,
-			simpleIndex: false
-		});
+	});
+
+	return server.serve(graph, {
+		port,
+		sendSAPTargetCSP: true,
+		simpleIndex: false
 	}).then((serveResult) => {
 		localServeResult = serveResult;
 		return Promise.all([
@@ -588,18 +588,19 @@ test("CSP (sap policies)", (t) => {
 	});
 });
 
-test("CSP serveCSPReports", (t) => {
+test("CSP serveCSPReports", async (t) => {
 	const port = 3450;
 	const request = supertest(`http://localhost:${port}`);
 	let localServeResult;
-	return normalizer.generateProjectTree({
+
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port,
-			serveCSPReports: true,
-			simpleIndex: false
-		});
+	});
+
+	return server.serve(graph, {
+		port,
+		serveCSPReports: true,
+		simpleIndex: false
 	}).then((serveResult) => {
 		localServeResult = serveResult;
 		const cspReport = {
@@ -646,10 +647,12 @@ test("CSP serveCSPReports", (t) => {
 test("CSP with ignore paths", async (t) => {
 	const port = 3500;
 	const request = supertest(`http://localhost:${port}`);
-	const tree = await normalizer.generateProjectTree({
+
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
 	});
-	const serveResult = await server.serve(tree, {
+
+	const serveResult = await server.serve(graph, {
 		port,
 		serveCSPReports: true,
 		sendSAPTargetCSP: true,

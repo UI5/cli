@@ -9,21 +9,21 @@ const MANIFEST_JSON = "manifest.json";
  * @module @ui5/server/middleware/versionInfo
  * @param {object} parameters Parameters
  * @param {module:@ui5/server.middleware.MiddlewareManager.middlewareResources} parameters.resources Parameters
- * @param {object} parameters.tree Project tree
+ * @param {module:@ui5/project.graph.ProjectGraph} parameters.graph Project graph
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources, tree: project}) {
+function createMiddleware({resources, graph}) {
 	return async function versionInfo(req, res, next) {
 		try {
 			const dependencies = resources.dependencies;
 			const dotLibResources = await dependencies.byGlob("/resources/**/.library");
 
 			dotLibResources.sort((a, b) => {
-				return a._project.metadata.name.localeCompare(b._project.metadata.name);
+				return a.getProject().getName().localeCompare(b.getProject().getName());
 			});
 
 			const libraryInfosPromises = dotLibResources.map(async (dotLibResource) => {
-				const namespace = dotLibResource._project.metadata.namespace;
+				const namespace = dotLibResource.getProject().getNamespace();
 				const manifestResources = await dependencies.byGlob(`/resources/${namespace}/**/${MANIFEST_JSON}`);
 				let libraryManifest = manifestResources.find((manifestResource) => {
 					return manifestResource.getPath() === `/resources/${namespace}/${MANIFEST_JSON}`;
@@ -40,22 +40,25 @@ function createMiddleware({resources, tree: project}) {
 						resources: libResources,
 						options: {
 							omitMinVersions: true
+						},
+						getProjectVersion: (projectName) => {
+							return graph.getProject(projectName)?.getVersion();
 						}
 					});
 				}
 				return {
 					libraryManifest,
 					embeddedManifests,
-					name: dotLibResource._project.metadata.name,
-					version: dotLibResource._project.version
+					name: dotLibResource.getProject().getName(),
+					version: dotLibResource.getProject().getVersion()
 				};
 			});
+			const rootProject = graph.getRoot();
 			const libraryInfos = await Promise.all(libraryInfosPromises);
-
 			const [versionInfoResource] = await createVersionInfoProcessor({
 				options: {
-					rootProjectName: project.metadata.name,
-					rootProjectVersion: project.version,
+					rootProjectName: rootProject.getName(),
+					rootProjectVersion: rootProject.getVersion(),
 					libraryInfos
 				}
 			});

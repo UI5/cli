@@ -112,7 +112,7 @@ module.exports = {
 	 * Start a server for the given project (sub-)tree.
 	 *
 	 * @public
-	 * @param {object} tree A (sub-)tree
+	 * @param {module:@ui5/project.graph.ProjectGraph} graph Project graph
 	 * @param {object} options Options
 	 * @param {number} options.port Port to listen to
 	 * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
@@ -133,27 +133,41 @@ module.exports = {
 	 * 							<code>h2</code>-flag and a <code>close</code> function,
 	 * 							which can be used to stop the server.
 	 */
-	async serve(tree, {
+	async serve(graph, {
 		port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 		acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
 	}) {
-		const projectResourceCollections = resourceFactory.createCollectionsForTree(tree);
+		const rootProject = graph.getRoot();
 
+		const readers = [];
+		await graph.traverseBreadthFirst(async function({project: dep}) {
+			if (dep.getName() === rootProject.getName()) {
+				// Ignore root project
+				return;
+			}
+			readers.push(dep.getReader({style: "runtime"}));
+		});
+
+		const dependencies = resourceFactory.createReaderCollection({
+			name: `Dependency reader collection for project ${rootProject.getName()}`,
+			readers
+		});
+
+		const rootReader = rootProject.getReader({style: "runtime"});
 
 		// TODO change to ReaderCollection once duplicates are sorted out
 		const combo = new ReaderCollectionPrioritized({
 			name: "server - prioritize workspace over dependencies",
-			readers: [projectResourceCollections.source, projectResourceCollections.dependencies]
+			readers: [rootReader, dependencies]
 		});
-
 		const resources = {
-			rootProject: projectResourceCollections.source,
-			dependencies: projectResourceCollections.dependencies,
+			rootProject: rootReader,
+			dependencies: dependencies,
 			all: combo
 		};
 
 		const middlewareManager = new MiddlewareManager({
-			tree,
+			graph,
 			resources,
 			options: {
 				sendSAPTargetCSP,

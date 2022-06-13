@@ -2,24 +2,23 @@ const test = require("ava");
 const supertest = require("supertest");
 const ui5Server = require("../../../");
 const server = ui5Server.server;
-const normalizer = require("@ui5/project").normalizer;
+const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
 
 let request;
 let serve;
 
 // Start server before running tests
-test.before(() => {
-	return normalizer.generateProjectTree({
+test.before(async () => {
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((tree) => {
-		return server.serve(tree, {
-			port: 3334,
-			acceptRemoteConnections: true
-		}).then((serveResult) => {
-			request = supertest("http://127.0.0.1:3334");
-			serve = serveResult;
-		});
 	});
+
+	serve = await server.serve(graph, {
+		port: 3334,
+		acceptRemoteConnections: true
+	});
+
+	request = supertest("http://127.0.0.1:3334");
 });
 
 test.after(() => {
