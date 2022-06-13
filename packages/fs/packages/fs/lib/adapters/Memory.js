@@ -1,6 +1,5 @@
 const log = require("@ui5/logger").getLogger("resources:adapters:Memory");
 const micromatch = require("micromatch");
-const Resource = require("../Resource");
 const AbstractAdapter = require("./AbstractAdapter");
 
 /**
@@ -39,12 +38,15 @@ class Memory extends AbstractAdapter {
 	async _runGlob(patterns, options = {nodir: true}, trace) {
 		if (patterns[0] === "" && !options.nodir) { // Match virtual root directory
 			return [
-				new Resource({
-					project: this.project,
+				this._createResource({
+					project: this._project,
 					statInfo: { // TODO: make closer to fs stat info
 						isDirectory: function() {
 							return true;
 						}
+					},
+					source: {
+						adapter: "Memory"
 					},
 					path: this._virBasePath.slice(0, -1)
 				})
@@ -113,6 +115,7 @@ class Memory extends AbstractAdapter {
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
+		super._write(resource);
 		return new Promise((resolve, reject) => {
 			const relPath = resource.getPath().substr(this._virBasePath.length);
 			log.verbose("Writing to virtual path %s", resource.getPath());
@@ -133,8 +136,11 @@ class Memory extends AbstractAdapter {
 			for (let i = pathSegments.length - 1; i >= 0; i--) {
 				const segment = pathSegments[i];
 				if (!this._virDirs[segment]) {
-					this._virDirs[segment] = new Resource({
-						project: this.project,
+					this._virDirs[segment] = this._createResource({
+						project: this._project,
+						source: {
+							adapter: "Memory"
+						},
 						statInfo: { // TODO: make closer to fs stat info
 							isDirectory: function() {
 								return true;

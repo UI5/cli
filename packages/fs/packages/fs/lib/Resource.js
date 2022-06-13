@@ -38,10 +38,10 @@ class Resource {
 	 *					stream of the content of this resource (cannot be used in conjunction with parameters buffer,
 	 *					string or stream).
 	 *					In some cases this is the most memory-efficient way to supply resource content
+	 * @param {module:@ui5/project.specifications.Project} [parameters.project] Project this resource is associated with
 	 * @param {object} [parameters.source] Experimental, internal parameter. Do not use
-	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 */
-	constructor({path, statInfo, buffer, string, createStream, stream, source, project}) {
+	constructor({path, statInfo, buffer, string, createStream, stream, project, source}) {
 		if (!path) {
 			throw new Error("Cannot create Resource: path parameter missing");
 		}
@@ -53,12 +53,14 @@ class Resource {
 
 		this._path = path;
 		this._name = this._getNameFromPath(path);
-		this._project = project; // Experimental, internal parameter
+
 		this._source = source; // Experimental, internal parameter
 		if (this._source) {
 			// Indicator for adapters like FileSystem to detect whether a resource has been changed
 			this._source.modified = false;
 		}
+		this.__project = project; // Two underscores since "_project" was widely used in UI5 Tooling 2.0
+
 		this._statInfo = statInfo || { // TODO
 			isFile: fnTrue,
 			isDirectory: fnFalse,
@@ -292,30 +294,61 @@ class Resource {
 	 * @public
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving with the clone
 	 */
-	clone() {
+	async clone() {
+		const options = await this._getCloneOptions();
+		return new Resource(options);
+	}
+
+	async _getCloneOptions() {
 		const options = {
 			path: this._path,
-			statInfo: clone(this._statInfo)
+			statInfo: clone(this._statInfo),
+			source: this._source
 		};
 
-		const addContentOption = () => {
-			if (this._stream) {
-				return this._getBufferFromStream().then(function(buffer) {
-					options.buffer = buffer;
-				});
-			} else {
-				if (this._createStream) {
-					options.createStream = this._createStream;
-				} else if (this._buffer) {
-					options.buffer = this._buffer;
-				}
-				return Promise.resolve();
-			}
-		};
+		if (this._stream) {
+			options.buffer = await this._getBufferFromStream();
+		} else if (this._createStream) {
+			options.createStream = this._createStream;
+		} else if (this._buffer) {
+			options.buffer = this._buffer;
+		}
 
-		return addContentOption().then(() => {
-			return new Resource(options);
-		});
+		return options;
+	}
+
+	/**
+	 * Retrieve the project assigned to the resource
+	 *
+	 * @public
+	 * @returns {module:@ui5/project.specifications.Project} Project this resource is associated with
+	 */
+	getProject() {
+		return this.__project;
+	}
+
+	/**
+	 * Assign a project to the resource
+	 *
+	 * @public
+	 * @param {module:@ui5/project.specifications.Project} project Project this resource is associated with
+	 */
+	setProject(project) {
+		if (this.__project) {
+			throw new Error(`Unable to assign project ${project.getName()} to resource ${this._path}: ` +
+				`Resource is already associated to project ${this.__project}`);
+		}
+		this.__project = project;
+	}
+
+	/**
+	 * Check whether a project has been assigned to the resource
+	 *
+	 * @public
+	 * @returns {boolean} True if the resource is associated with a project
+	 */
+	hasProject() {
+		return !!this.__project;
 	}
 
 	/**

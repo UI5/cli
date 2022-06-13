@@ -8,15 +8,6 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test("Constructor with missing allowedTags parameter", (t) => {
-	t.throws(() => {
-		new ResourceTagCollection({});
-	}, {
-		instanceOf: Error,
-		message: "Missing parameter 'allowedTags'"
-	});
-});
-
 test("setTag", (t) => {
 	const resource = new Resource({
 		path: "/some/path"
@@ -91,6 +82,35 @@ test("getTag", (t) => {
 		"_validateTag called with correct arguments");
 });
 
+test("getTag with prefilled tags", (t) => {
+	const resource = new Resource({
+		path: "/some/path"
+	});
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: ["abc:MyTag"],
+		tags: {
+			"/some/path": {
+				"abc:MyTag": 123
+			}
+		}
+	});
+
+	const validateResourceSpy = sinon.spy(tagCollection, "_getPath");
+	const validateTagSpy = sinon.spy(tagCollection, "_validateTag");
+
+	const value = tagCollection.getTag(resource, "abc:MyTag");
+
+	t.is(value, 123, "Got correct tag value");
+
+	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
+	t.is(validateResourceSpy.getCall(0).args[0], resource,
+		"_getPath called with correct arguments");
+
+	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
+	t.is(validateTagSpy.getCall(0).args[0], "abc:MyTag",
+		"_validateTag called with correct arguments");
+});
+
 test("clearTag", (t) => {
 	const resource = new Resource({
 		path: "/some/path"
@@ -121,114 +141,6 @@ test("clearTag", (t) => {
 		"_validateTag called with correct arguments");
 });
 
-test("superCollection: setTag", (t) => {
-	const resource = new Resource({
-		path: "/some/path"
-	});
-	const superTagCollection = new ResourceTagCollection({
-		allowedTags: ["abc:MySuperTag"],
-	});
-	const tagCollection = new ResourceTagCollection({
-		allowedTags: ["abc:MyTag"],
-		superCollection: superTagCollection
-	});
-
-	const validateResourceSpy = sinon.spy(superTagCollection, "_getPath");
-	const validateTagSpy = sinon.spy(superTagCollection, "_validateTag");
-	const validateValueSpy = sinon.spy(superTagCollection, "_validateValue");
-
-	tagCollection.setTag(resource, "abc:MySuperTag", "my super value");
-	tagCollection.setTag(resource, "abc:MyTag", "my value");
-
-	t.deepEqual(superTagCollection._pathTags, {
-		"/some/path": {
-			"abc:MySuperTag": "my super value"
-		}
-	}, "Super tag correctly stored");
-	t.deepEqual(tagCollection._pathTags, {
-		"/some/path": {
-			"abc:MyTag": "my value"
-		}
-	}, "Non-super tag correctly stored");
-
-	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
-	t.is(validateResourceSpy.getCall(0).args[0], resource,
-		"_getPath called with correct arguments");
-
-	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
-	t.is(validateTagSpy.getCall(0).args[0], "abc:MySuperTag",
-		"_validateTag called with correct arguments");
-
-	t.is(validateValueSpy.callCount, 1, "_validateValue called once");
-	t.is(validateValueSpy.getCall(0).args[0], "my super value",
-		"_validateValue called with correct arguments");
-});
-
-test("superCollection: getTag", (t) => {
-	const resource = new Resource({
-		path: "/some/path"
-	});
-	const superTagCollection = new ResourceTagCollection({
-		allowedTags: ["abc:MySuperTag"],
-	});
-	const tagCollection = new ResourceTagCollection({
-		allowedTags: ["abc:MyTag"],
-		superCollection: superTagCollection
-	});
-
-	tagCollection.setTag(resource, "abc:MySuperTag", 456);
-	tagCollection.setTag(resource, "abc:MyTag", 123);
-
-	const validateResourceSpy = sinon.spy(superTagCollection, "_getPath");
-	const validateTagSpy = sinon.spy(superTagCollection, "_validateTag");
-
-	const value = tagCollection.getTag(resource, "abc:MySuperTag");
-
-	t.is(value, 456, "Got correct tag value");
-
-	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
-	t.is(validateResourceSpy.getCall(0).args[0], resource,
-		"_getPath called with correct arguments");
-
-	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
-	t.is(validateTagSpy.getCall(0).args[0], "abc:MySuperTag",
-		"_validateTag called with correct arguments");
-});
-
-test("superCollection: clearTag", (t) => {
-	const resource = new Resource({
-		path: "/some/path"
-	});
-	const superTagCollection = new ResourceTagCollection({
-		allowedTags: ["abc:MySuperTag"],
-	});
-	const tagCollection = new ResourceTagCollection({
-		allowedTags: ["abc:MyTag"],
-		superCollection: superTagCollection
-	});
-
-	tagCollection.setTag(resource, "abc:MySuperTag", 123);
-
-	const validateResourceSpy = sinon.spy(superTagCollection, "_getPath");
-	const validateTagSpy = sinon.spy(superTagCollection, "_validateTag");
-
-	tagCollection.clearTag(resource, "abc:MySuperTag");
-
-	t.deepEqual(superTagCollection._pathTags, {
-		"/some/path": {
-			"abc:MySuperTag": undefined
-		}
-	}, "Tag value set to undefined");
-
-	t.is(validateResourceSpy.callCount, 1, "_getPath called once");
-	t.is(validateResourceSpy.getCall(0).args[0], resource,
-		"_getPath called with correct arguments");
-
-	t.is(validateTagSpy.callCount, 1, "_validateTag called once");
-	t.is(validateTagSpy.getCall(0).args[0], "abc:MySuperTag",
-		"_validateTag called with correct arguments");
-});
-
 test("_validateTag: Not in list of allowed tags", (t) => {
 	const tagCollection = new ResourceTagCollection({
 		allowedTags: ["abc:MyTag"]
@@ -237,7 +149,22 @@ test("_validateTag: Not in list of allowed tags", (t) => {
 		tagCollection._validateTag("abc:MyOtherTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Not found in list of allowed tags. Allowed tags: abc:MyTag"
+		message: `Tag "abc:MyOtherTag" not accepted by this collection. ` +
+			`Accepted tags are: abc:MyTag. Accepted namespaces are: *none*`
+	});
+});
+
+test("_validateTag: Empty list of tags and namespaces", (t) => {
+	const tagCollection = new ResourceTagCollection({
+		allowedTags: [],
+		allowedNamespaces: []
+	});
+	t.throws(() => {
+		tagCollection._validateTag("abc:MyOtherTag");
+	}, {
+		instanceOf: Error,
+		message: `Tag "abc:MyOtherTag" not accepted by this collection. ` +
+			`Accepted tags are: *none*. Accepted namespaces are: *none*`
 	});
 });
 
@@ -249,7 +176,7 @@ test("_validateTag: Missing colon", (t) => {
 		tagCollection._validateTag("aBcMyTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Colon required after namespace"
+		message: `Invalid Tag "aBcMyTag": Colon required after namespace`
 	});
 });
 
@@ -261,7 +188,7 @@ test("_validateTag: Too many colons", (t) => {
 		tagCollection._validateTag("aBc:My:Tag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Expected exactly one colon but found 2"
+		message: `Invalid Tag "aBc:My:Tag": Expected exactly one colon but found 2`
 	});
 });
 
@@ -273,7 +200,7 @@ test("_validateTag: Invalid namespace with uppercase letter", (t) => {
 		tagCollection._validateTag("aBc:MyTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Namespace part must be alphanumeric, lowercase and start with a letter"
+		message: `Invalid Tag "aBc:MyTag": Namespace part must be alphanumeric, lowercase and start with a letter`
 	});
 });
 
@@ -285,7 +212,7 @@ test("_validateTag: Invalid namespace starting with number", (t) => {
 		tagCollection._validateTag("0abc:MyTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Namespace part must be alphanumeric, lowercase and start with a letter"
+		message: `Invalid Tag "0abc:MyTag": Namespace part must be alphanumeric, lowercase and start with a letter`
 	});
 });
 
@@ -297,7 +224,7 @@ test("_validateTag: Invalid namespace containing an illegal character", (t) => {
 		tagCollection._validateTag("a🦦c:MyTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Namespace part must be alphanumeric, lowercase and start with a letter"
+		message: `Invalid Tag "a🦦c:MyTag": Namespace part must be alphanumeric, lowercase and start with a letter`
 	});
 });
 
@@ -309,7 +236,7 @@ test("_validateTag: Invalid tag name starting with number", (t) => {
 		tagCollection._validateTag("abc:0MyTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Name part must be alphanumeric and start with a capital letter"
+		message: `Invalid Tag "abc:0MyTag": Name part must be alphanumeric and start with a capital letter`
 	});
 });
 
@@ -321,7 +248,7 @@ test("_validateTag: Invalid tag name starting with lowercase letter", (t) => {
 		tagCollection._validateTag("abc:myTag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Name part must be alphanumeric and start with a capital letter"
+		message: `Invalid Tag "abc:myTag": Name part must be alphanumeric and start with a capital letter`
 	});
 });
 
@@ -333,7 +260,7 @@ test("_validateTag: Invalid tag name containing an illegal character", (t) => {
 		tagCollection._validateTag("abc:My/Tag");
 	}, {
 		instanceOf: Error,
-		message: "Invalid Tag: Name part must be alphanumeric and start with a capital letter"
+		message: `Invalid Tag "abc:My/Tag": Name part must be alphanumeric and start with a capital letter`
 	});
 });
 

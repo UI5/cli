@@ -67,12 +67,14 @@ class AbstractAdapter extends AbstractReaderWriter {
 					if (patterns[i] && idx !== -1 && idx < this._virBaseDir.length) {
 						const subPath = patterns[i];
 						return Promise.resolve([
-							new Resource({
-								project: this.project,
+							this._createResource({
 								statInfo: { // TODO: make closer to fs stat info
 									isDirectory: function() {
 										return true;
 									}
+								},
+								source: {
+									adapter: "Abstract"
 								},
 								path: subPath
 							})
@@ -115,7 +117,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 					if (globPart === undefined) {
 						log.verbose("Ran out of glob parts to match (this should not happen):");
 						if (that._project) { // project is optional
-							log.verbose(`Project: ${that._project.metadata.name}`);
+							log.verbose(`Project: ${that._project.getName()}`);
 						}
 						log.verbose(`Virtual base path: ${that._virBaseDir}`);
 						log.verbose(`Pattern to match: ${virPattern}`);
@@ -169,6 +171,32 @@ class AbstractAdapter extends AbstractReaderWriter {
 			}
 			return resultGlobs;
 		});
+	}
+
+	_createResource(parameters) {
+		if (this._project) {
+			parameters.project = this._project;
+		}
+		return new Resource(parameters);
+	}
+
+	_write(resource) {
+		if (!this._project) {
+			return;
+		}
+
+		// Assign project to resource if necessary
+		if (resource.hasProject()) {
+			if (resource.getProject() !== this._project) {
+				throw new Error(
+					`Unable to write resource associated with project ` +
+					`${resource.getProject().getName()} into adapter of project ${this._project.getName()}: ` +
+					resource.getPath());
+			}
+			return;
+		}
+		log.verbose(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
+		resource.setProject(this._project);
 	}
 }
 
