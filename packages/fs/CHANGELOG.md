@@ -2,10 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.4...HEAD).
+
+<a name="v3.0.0-alpha.4"></a>
+## [v3.0.0-alpha.4] - 2022-06-13
+### Breaking Changes
+- **AbstractAdapter:** Virtual base path must end with slash [`6d1f411`](https://github.com/SAP/ui5-fs/commit/6d1f4117a2b8bb1226540fafeec8341e4966177d)
+- **resourceFactory:** Remove #createCollectionsForTree [`a4d15f6`](https://github.com/SAP/ui5-fs/commit/a4d15f61ae0416051658280bfd2f8635c7ddf44e)
+
+### Features
+- Add Link-reader and WriterCollection [`a0e5cf3`](https://github.com/SAP/ui5-fs/commit/a0e5cf3ef86a4b0cdc817d08963ed6574740f1bc)
+
 
 <a name="v3.0.0-alpha.3"></a>
-## [v3.0.0-alpha.3] - 2022-04-21
+## [v3.0.0-alpha.3] - 2022-04-26
 ### Bug Fixes
 - **FileSystem Adapter:** Use native fs.copy / Skip writing when resource is unchanged ([#370](https://github.com/SAP/ui5-fs/issues/370)) [`9ac6a39`](https://github.com/SAP/ui5-fs/commit/9ac6a39f3cb72e02c2a1298b07c4676a0ee92377)
 
@@ -154,6 +164,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v3.0.0-alpha.4]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
 [v3.0.0-alpha.3]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
 [v3.0.0-alpha.2]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
 [v3.0.0-alpha.1]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
