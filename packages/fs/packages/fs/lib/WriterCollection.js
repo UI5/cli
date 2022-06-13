@@ -14,7 +14,7 @@ class WriterCollection extends AbstractReaderWriter {
 	 * The constructor.
 	 *
 	 * @param {object} parameters Parameters
-	 * @param {object[]<string,module:@ui5/fs.AbstractReaderWriter[]>} parameters.writerMapping
+	 * @param {Array<object.<string, module:@ui5/fs.AbstractReaderWriter>>} parameters.writerMapping
 	 * 	Mapping of virtual base paths to writers. Path are matched greedy
 	 * @param {string} parameters.name The collection name
 	 */

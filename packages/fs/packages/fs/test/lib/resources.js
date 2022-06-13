@@ -5,6 +5,7 @@ const assert = chai.assert;
 const sinon = require("sinon");
 
 const ui5Fs = require("../../");
+require("@ui5/logger").setLevel("silly");
 
 // Create readerWriters before running tests
 test.beforeEach((t) => {

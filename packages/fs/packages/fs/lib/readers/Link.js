@@ -15,17 +15,18 @@ class Link extends AbstractReader {
 	 * Path mapping for a [Link]{@link module:@ui5/fs.readers.Link}
 	 *
 	 * @public
-	 * @typedef {object} PathMapping
-	 * @property {string} pathMapping.linkPath Input path to rewrite
-	 * @property {string} pathMapping.targetPath Path to rewrite to
+	 * @typedef {object} mapping module:@ui5/fs.readers.Link.PathMapping
+	 * @property {string} linkPath Input path to rewrite
+	 * @property {string} targetPath Path to rewrite to
 	 */
+
 	/**
 	 * Constructor
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {module:@ui5/fs.AbstractReader} parameters.reader The resource reader to wrap
-	 * @param {PathMapping} parameters.pathMapping
+	 * @param {Array<object.<string, module:@ui5/fs.AbstractReaderWriter>>} parameters.pathMapping
 	 */
 	constructor({reader, pathMapping}) {
 		super();
