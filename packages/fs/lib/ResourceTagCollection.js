@@ -1,30 +1,31 @@
 const tagNamespaceRegExp = new RegExp("^[a-z][a-z0-9]*$"); // part before the colon
 const tagNameRegExp = new RegExp("^[A-Z][A-Za-z0-9]+$"); // part after the colon
+const ResourceFacade = require("./ResourceFacade");
 
 class ResourceTagCollection {
-	constructor({allowedTags, superCollection}) {
-		if (!allowedTags || !allowedTags.length) {
-			throw new Error(`Missing parameter 'allowedTags'`);
-		}
+	constructor({allowedTags = [], allowedNamespaces = [], tags}) {
+		this._allowedTags = allowedTags; // Allowed tags are validated during use
+		this._allowedNamespaces = allowedNamespaces;
 
-		if (superCollection) {
-			this._superCollection = superCollection;
-			this._superTags = this._superCollection.getAcceptedTags();
+		if (allowedNamespaces.length) {
+			let allowedNamespacesRegExp = allowedNamespaces.reduce((regex, tagNamespace, idx) => {
+				// Ensure alphanum namespace to ensure working regex
+				if (!tagNamespaceRegExp.test(tagNamespace)) {
+					throw new Error(`Invalid namespace ${tagNamespace}: ` +
+						`Namespace must be alphanumeric, lowercase and start with a letter`);
+				}
+				return `${regex}${idx === 0 ? "" : "|"}${tagNamespace}`;
+			}, "^(?:");
+			allowedNamespacesRegExp += "):.+$";
+			this._allowedNamespacesRegExp = new RegExp(allowedNamespacesRegExp);
 		} else {
-			this._superTags = [];
+			this._allowedNamespacesRegExp = null;
 		}
 
-		// No validation of tag names here since we might remove/ignore
-		//	this parameter in the future and generally allow all tags
-		this._allowedTags = Object.freeze(allowedTags);
-		this._pathTags = {};
+		this._pathTags = tags || {};
 	}
 
 	setTag(resourcePath, tag, value = true) {
-		if (this._superTags.includes(tag)) {
-			return this._superCollection.setTag(resourcePath, tag, value);
-		}
-
 		resourcePath = this._getPath(resourcePath);
 		this._validateTag(tag);
 		this._validateValue(value);
@@ -36,10 +37,6 @@ class ResourceTagCollection {
 	}
 
 	clearTag(resourcePath, tag) {
-		if (this._superTags.includes(tag)) {
-			return this._superCollection.clearTag(resourcePath, tag);
-		}
-
 		resourcePath = this._getPath(resourcePath);
 		this._validateTag(tag);
 
@@ -49,10 +46,6 @@ class ResourceTagCollection {
 	}
 
 	getTag(resourcePath, tag) {
-		if (this._superTags.includes(tag)) {
-			return this._superCollection.getTag(resourcePath, tag);
-		}
-
 		resourcePath = this._getPath(resourcePath);
 		this._validateTag(tag);
 
@@ -61,13 +54,24 @@ class ResourceTagCollection {
 		}
 	}
 
-	getAcceptedTags() {
-		return [...this._allowedTags, ...this._superTags];
+	getAllTags() {
+		return this._pathTags;
+	}
+
+	acceptsTag(tag) {
+		if (this._allowedTags.includes(tag) || this._allowedNamespacesRegExp?.test(tag)) {
+			return true;
+		}
+		return false;
 	}
 
 	_getPath(resourcePath) {
 		if (typeof resourcePath !== "string") {
-			resourcePath = resourcePath.getPath();
+			if (resourcePath instanceof ResourceFacade) {
+				resourcePath = resourcePath.getConcealedResource().getPath();
+			} else {
+				resourcePath = resourcePath.getPath();
+			}
 		}
 		if (!resourcePath) {
 			throw new Error(`Invalid Resource: Resource path must not be empty`);
@@ -76,26 +80,28 @@ class ResourceTagCollection {
 	}
 
 	_validateTag(tag) {
-		if (!this._allowedTags.includes(tag)) {
-			throw new Error(`Invalid Tag: Not found in list of allowed tags. Allowed tags: ` +
-				this._allowedTags.join(", "));
-		}
-
 		if (!tag.includes(":")) {
-			throw new Error(`Invalid Tag: Colon required after namespace`);
+			throw new Error(`Invalid Tag "${tag}": Colon required after namespace`);
 		}
 		const parts = tag.split(":");
 		if (parts.length > 2) {
-			throw new Error(`Invalid Tag: Expected exactly one colon but found ${parts.length - 1}`);
+			throw new Error(`Invalid Tag "${tag}": Expected exactly one colon but found ${parts.length - 1}`);
 		}
 
 		const [tagNamespace, tagName] = parts;
 		if (!tagNamespaceRegExp.test(tagNamespace)) {
 			throw new Error(
-				`Invalid Tag: Namespace part must be alphanumeric, lowercase and start with a letter`);
+				`Invalid Tag "${tag}": Namespace part must be alphanumeric, lowercase and start with a letter`);
 		}
 		if (!tagNameRegExp.test(tagName)) {
-			throw new Error(`Invalid Tag: Name part must be alphanumeric and start with a capital letter`);
+			throw new Error(`Invalid Tag "${tag}": Name part must be alphanumeric and start with a capital letter`);
+		}
+
+		if (!this.acceptsTag(tag)) {
+			throw new Error(
+				`Tag "${tag}" not accepted by this collection. Accepted tags are: ` +
+				`${this._allowedTags.join(", ") || "*none*"}. Accepted namespaces are: ` +
+				`${this._allowedNamespaces.join(", ") || "*none*"}`);
 		}
 	}
 

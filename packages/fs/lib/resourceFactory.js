@@ -246,13 +246,24 @@ const resourceFactory = {
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} [parameters.fsBasePath] File system base path
+	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
+	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {string} [parameters.name]  Name for the reader collection
 	 * @returns {module:@ui5/fs.ReaderCollection} Reader collection wrapping an adapter
 	 */
-	createReader({fsBasePath, virBasePath, name}) {
+	createReader({fsBasePath, virBasePath, project, excludes = [], name}) {
+		const normalizedExcludes = excludes.map((pattern) => {
+			return resourceFactory.prefixGlobPattern(pattern, virBasePath);
+		});
+		const ReaderCollection = require("./ReaderCollection");
 		return new ReaderCollection({
 			name,
-			readers: [resourceFactory.createAdapter({fsBasePath, virBasePath})]
+			readers: [resourceFactory.createAdapter({
+				fsBasePath,
+				virBasePath,
+				project,
+				excludes: normalizedExcludes
+			})]
 		});
 	},
 

@@ -7,7 +7,6 @@ const chmod = promisify(fs.chmod);
 const globby = require("globby");
 const makeDir = require("make-dir");
 const {PassThrough} = require("stream");
-const Resource = require("../Resource");
 const AbstractAdapter = require("./AbstractAdapter");
 
 const READ_ONLY_MODE = 0o444;
@@ -60,7 +59,7 @@ class FileSystem extends AbstractAdapter {
 					if (err) {
 						reject(err);
 					} else {
-						resolve(new Resource({
+						resolve(this._createResource({
 							project: this._project,
 							statInfo: stat,
 							path: this._virBaseDir,
@@ -96,7 +95,7 @@ class FileSystem extends AbstractAdapter {
 						if (err) {
 							reject(err);
 						} else {
-							resolve(new Resource({
+							resolve(this._createResource({
 								project: this._project,
 								statInfo: stat,
 								path: virPath,
@@ -137,7 +136,7 @@ class FileSystem extends AbstractAdapter {
 			if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
 				// Neither starts with basePath, nor equals baseDirectory
 				if (!options.nodir && this._virBasePath.startsWith(virPath)) {
-					resolve(new Resource({
+					resolve(this._createResource({
 						project: this._project,
 						statInfo: { // TODO: make closer to fs stat info
 							isDirectory: function() {
@@ -183,7 +182,7 @@ class FileSystem extends AbstractAdapter {
 						};
 					}
 
-					resolve(new Resource(options));
+					resolve(this._createResource(options));
 				}
 			});
 		});
@@ -208,6 +207,7 @@ class FileSystem extends AbstractAdapter {
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	async _write(resource, {drain, readOnly}) {
+		super._write(resource);
 		if (drain && readOnly) {
 			throw new Error(`Error while writing resource ${resource.getPath()}: ` +
 				"Do not use options 'drain' and 'readOnly' at the same time.");
