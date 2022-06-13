@@ -309,7 +309,7 @@ test.serial("_createFsAdapterForVirtualBasePath: library", (t) => {
 
 test("_prefixGlobPattern", (t) => {
 	t.deepEqual(
-		ui5Fs.resourceFactory._prefixGlobPattern("{/sub-directory-1/,/sub-directory-2/}**", "/pony/path/a"),
+		ui5Fs.resourceFactory.prefixGlobPattern("{/sub-directory-1/,/sub-directory-2/}**", "/pony/path/a"),
 		[
 			"/pony/path/a/sub-directory-1/**",
 			"/pony/path/a/sub-directory-2/**"
@@ -317,27 +317,27 @@ test("_prefixGlobPattern", (t) => {
 		"GLOBs correctly prefixed");
 
 	t.deepEqual(
-		ui5Fs.resourceFactory._prefixGlobPattern("/pony-path/**", "/pony/path/a"),
+		ui5Fs.resourceFactory.prefixGlobPattern("/pony-path/**", "/pony/path/a"),
 		["/pony/path/a/pony-path/**"],
 		"GLOBs correctly prefixed");
 
 	t.deepEqual(
-		ui5Fs.resourceFactory._prefixGlobPattern("!/duck*path/**", "/pony/path/a"),
+		ui5Fs.resourceFactory.prefixGlobPattern("!/duck*path/**", "/pony/path/a"),
 		["!/pony/path/a/duck*path/**"],
 		"GLOBs correctly prefixed");
 
 	t.deepEqual(
-		ui5Fs.resourceFactory._prefixGlobPattern("!**.json", "/pony/path/a"),
+		ui5Fs.resourceFactory.prefixGlobPattern("!**.json", "/pony/path/a"),
 		["!/pony/path/a/**.json"],
 		"GLOBs correctly prefixed");
 
 	t.deepEqual(
-		ui5Fs.resourceFactory._prefixGlobPattern("!**.json", "/pony/path/a/"), // trailing slash
+		ui5Fs.resourceFactory.prefixGlobPattern("!**.json", "/pony/path/a/"), // trailing slash
 		["!/pony/path/a/**.json"],
 		"GLOBs correctly prefixed");
 
 	t.deepEqual(
-		ui5Fs.resourceFactory._prefixGlobPattern("pony-path/**", "/pony/path/a/"), // trailing slash
+		ui5Fs.resourceFactory.prefixGlobPattern("pony-path/**", "/pony/path/a/"), // trailing slash
 		["/pony/path/a/pony-path/**"],
 		"GLOBs correctly prefixed");
 });

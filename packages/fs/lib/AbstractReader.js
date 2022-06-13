@@ -102,6 +102,20 @@ class AbstractReader {
 			callback
 		});
 	}
+	/**
+	 * Create a [Link-Reader]{@link module:@ui5/fs.readers.Link} from the current reader
+	 *
+	 * @public
+	 * @param {module:@ui5/fs.reader.Link.PathMapping} pathMapping Link configuration
+	 * @returns {module:@ui5/fs.reader.Link} Link instance
+	 */
+	link(pathMapping) {
+		const Link = require("./readers/Link");
+		return new Link({
+			reader: this,
+			pathMapping
+		});
+	}
 
 	/**
 	 * Locates resources by one or more glob patterns.
