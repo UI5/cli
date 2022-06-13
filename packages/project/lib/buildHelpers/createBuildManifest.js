@@ -41,7 +41,7 @@ module.exports = async function(project, buildConfig) {
 			timestamp: new Date().toISOString(),
 			versions: {
 				builderVersion: getVersion("@ui5/builder"),
-				projectVersion: getVersion("@ui5/project"),
+				projectVersion: getVersion("../../"),
 				fsVersion: getVersion("@ui5/fs"),
 			},
 			buildConfig,

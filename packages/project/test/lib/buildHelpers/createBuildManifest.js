@@ -71,7 +71,7 @@ test("Create application from project with build manifest", async (t) => {
 			versions: {
 				builderVersion: require("@ui5/builder/package.json").version,
 				fsVersion: require("@ui5/fs/package.json").version,
-				projectVersion: require("@ui5/project/package.json").version,
+				projectVersion: require("../../../package.json").version,
 			},
 			tags: {
 				"/resources/id1/foo.js": {
@@ -115,7 +115,7 @@ test("Create library from project with build manifest", async (t) => {
 			versions: {
 				builderVersion: require("@ui5/builder/package.json").version,
 				fsVersion: require("@ui5/fs/package.json").version,
-				projectVersion: require("@ui5/project/package.json").version,
+				projectVersion: require("../../../package.json").version,
 			},
 			tags: {
 				"/resources/library/d/foo.js": {
