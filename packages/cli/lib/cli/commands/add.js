@@ -41,9 +41,9 @@ addCommand.handler = async function(argv) {
 		throw new Error("Options 'development' and 'optional' cannot be combined");
 	}
 
-	const normalizerOptions = {
-		translatorName: argv.translator,
-		configPath: argv.config
+	const projectGraphOptions = {
+		dependencyDefinition: argv.dependencyDefinition,
+		config: argv.config
 	};
 
 	const libraries = libraryNames.map((name) => {
@@ -57,7 +57,7 @@ addCommand.handler = async function(argv) {
 	});
 
 	const {yamlUpdated} = await require("../../framework/add")({
-		normalizerOptions,
+		projectGraphOptions,
 		libraries
 	});
 

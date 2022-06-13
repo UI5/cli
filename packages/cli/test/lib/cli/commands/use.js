@@ -18,9 +18,9 @@ async function assertUseHandler(t, {argv, expectedFrameworkOptions}) {
 	t.deepEqual(frameworkUseStub.getCall(0).args, [
 		{
 			frameworkOptions: expectedFrameworkOptions,
-			normalizerOptions: {
-				configPath: undefined,
-				translatorName: undefined
+			projectGraphOptions: {
+				dependencyDefinition: undefined,
+				config: undefined
 			}
 		}],
 	"Use function should be called with expected args");

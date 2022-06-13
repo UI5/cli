@@ -1,371 +1,637 @@
 const test = require("ava");
 const sinon = require("sinon");
-const path = require("path");
-const os = require("os");
-const normalizer = require("@ui5/project").normalizer;
-const serve = require("../../../../lib/cli/commands/serve");
-const ui5Server = require("@ui5/server");
-const server = ui5Server.server;
-const mockRequire = require("mock-require");
-const defaultInitialHandlerArgs = Object.freeze({
-	accessRemoteConnections: false,
-	cert: path.join(os.homedir(), ".ui5", "server", "server.crt"),
-	h2: false,
-	key: path.join(os.homedir(), ".ui5", "server", "server.key"),
-	loglevel: "info",
-	t8r: "npm",
-	translator: "npm",
-	simpleIndex: false
-});
+const mock = require("mock-require");
 
-const projectTree = {
-	metadata: {
-		name: "Sample"
-	}
-};
-
-let normalizerStub = null;
-let serverStub = null;
-let sslUtilStub = null;
+function getDefaultArgv() {
+	// This has been taken from the actual argv object yargs provides
+	return {
+		"_": ["serve"],
+		"loglevel": "info",
+		"log-level": "info",
+		"logLevel": "info",
+		"x-perf": false,
+		"xPerf": false,
+		"h2": false,
+		"simple-index": false,
+		"simpleIndex": false,
+		"accept-remote-connections": false,
+		"acceptRemoteConnections": false,
+		"key": "/home/.ui5/server/server.key",
+		"cert": "/home/.ui5/server/server.crt",
+		"sap-csp-policies": false,
+		"sapCspPolicies": false,
+		"serve-csp-reports": false,
+		"serveCspReports": false,
+		"$0": "ui5"
+	};
+}
 
 test.beforeEach((t) => {
-	normalizerStub = sinon.stub(normalizer, "generateProjectTree");
-	serverStub = sinon.stub(server, "serve");
-	sslUtilStub = sinon.stub(ui5Server.sslUtil, "getSslCertificate");
+	const server = require("@ui5/server");
+	const project = require("@ui5/project");
+
+	t.context.argv = getDefaultArgv();
+
+	t.context.server = server.server;
+	sinon.stub(t.context.server, "serve").returns({
+		h2: false,
+		port: 8080
+	});
+
+	t.context.sslUtil = server.sslUtil;
+	sinon.stub(t.context.sslUtil, "getSslCertificate");
+
+	sinon.stub(project.generateProjectGraph, "usingStaticFile").resolves();
+	sinon.stub(project.generateProjectGraph, "usingNodePackageDependencies").resolves();
+	t.context.generateProjectGraph = project.generateProjectGraph;
+
+	// Create basic mocking objects
+	t.context.getServerSettings = sinon.stub().returns({});
+	t.context.fakeGraph = {
+		getRoot: () => {
+			return {
+				getServerSettings: t.context.getServerSettings
+			};
+		}
+	};
+	t.context.generateProjectGraph.usingStaticFile.resolves(t.context.fakeGraph);
+	t.context.generateProjectGraph.usingNodePackageDependencies.resolves(t.context.fakeGraph);
+
+	t.context.consoleOutput = "";
+	t.context.consoleLog = sinon.stub(console, "log").callsFake((message) => {
+		// NOTE: This fake impl only supports one string arg passed to console.log
+		t.context.consoleOutput += message + "\n";
+	});
+
+	t.context.open = sinon.stub();
+	mock("open", t.context.open);
+
+	t.context.serve = mock.reRequire("../../../../lib/cli/commands/serve");
 });
 
 test.afterEach.always((t) => {
 	sinon.restore();
+	mock.stopAll();
 });
 
 test.serial("ui5 serve: default", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: false, port: 8080});
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
 
-	// loads project tree
-	const pPrepareServerConfig = await serve.handler(defaultInitialHandlerArgs);
-	// preprocess project config, skipping cert load
-	const pServeServer = await pPrepareServerConfig;
-	// serve server using config
-	await pServeServer;
+	await serve.handler(argv);
 
-	const injectedProjectTree = serverStub.getCall(0).args[0];
-	const injectedServerConfig = serverStub.getCall(0).args[1];
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
 
-	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
-	t.deepEqual(injectedServerConfig, {
-		changePortIfInUse: true,
-		acceptRemoteConnections: false,
-		h2: false,
-		simpleIndex: false,
-		port: 8080,
-		cert: undefined,
-		key: undefined,
-		sendSAPTargetCSP: false,
-		serveCSPReports: false
-	}, "Starting server with specific server config");
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
 });
 
 test.serial("ui5 serve --h2", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: true, port: 8443});
-	sslUtilStub.resolves({
+	const {argv, serve, generateProjectGraph, server, fakeGraph, sslUtil} = t.context;
+
+	sslUtil.getSslCertificate.resolves({
 		key: "randombyte-likes-ponies-key",
 		cert: "randombyte-likes-ponies-cert"
 	});
 
-	// loads project tree using http 2
-	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {h2: true}));
-	// preprocess project config
-	const pFetchSSLCert = await pPrepareServerConfig;
-	// Fetching ssl certificate
-	const pServeServer = await pFetchSSLCert;
-	// serve server using config
-	await pServeServer;
-
-	const injectedProjectTree = serverStub.getCall(0).args[0];
-	const injectedServerConfig = serverStub.getCall(0).args[1];
-
-	t.is(sslUtilStub.getCall(0).args[0], path.join(os.homedir(), ".ui5", "server", "server.key"),
-		"Load ssl key from default path");
-	t.is(sslUtilStub.getCall(0).args[1], path.join(os.homedir(), ".ui5", "server", "server.crt"),
-		"Load ssl cert from default path");
-	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
-	t.is(injectedServerConfig.port === 8443, true, "http2 default port was auto set");
-
-	t.deepEqual(injectedServerConfig, {
-		changePortIfInUse: true,
-		acceptRemoteConnections: false,
+	server.serve.returns({
 		h2: true,
-		simpleIndex: false,
-		port: 8443,
-		key: "randombyte-likes-ponies-key",
-		cert: "randombyte-likes-ponies-cert",
-		sendSAPTargetCSP: false,
-		serveCSPReports: false
-	}, "Starting server with specific server config");
+		port: 8443
+	});
+
+	argv.h2 = true;
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: https://localhost:8443
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			changePortIfInUse: true,
+			h2: true,
+			key: "randombyte-likes-ponies-key",
+			cert: "randombyte-likes-ponies-cert",
+			port: 8443,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+
+	t.is(sslUtil.getSslCertificate.callCount, 1);
+	t.deepEqual(sslUtil.getSslCertificate.getCall(0).args, [
+		"/home/.ui5/server/server.key",
+		"/home/.ui5/server/server.crt"
+	]);
 });
 
 test.serial("ui5 serve --accept-remote-connections", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({port: 8080});
-	const pPrepareServerConfig = await serve.handler(
-		Object.assign({}, defaultInitialHandlerArgs, {acceptRemoteConnections: true})
-	);
-	const pServeServer = await pPrepareServerConfig;
-	await pServeServer;
-	const injectedServerConfig = serverStub.getCall(0).args[1];
-	t.is(injectedServerConfig.acceptRemoteConnections, true, "Remove connections are accepted");
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+
+	argv.acceptRemoteConnections = true;
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `
+⚠️  This server is accepting connections from all hosts on your network
+Please Note:
+* This server is intended for development purposes only. Do not use it in production.
+* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network
+* The use of proxy-middleware with preconfigured credentials might enable unauthorized access to a target \
+system for third parties on your network
+
+Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: true,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
 });
 
 test.serial("ui5 serve --open", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({port: 8080});
-	mockRequire("open", function(openedUrl) {
-		t.is(openedUrl, "http://localhost:8080/webapp/index.html", `Opens url: ${openedUrl}`);
-		mockRequire.stop("open");
-	});
-	await serve.handler(
-		Object.assign({}, defaultInitialHandlerArgs, {open: "webapp/index.html"})
-	);
+	const {argv, serve, generateProjectGraph, server, fakeGraph, open} = t.context;
+
+	argv.open = "index.html";
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+
+	t.is(open.callCount, 1);
+	t.deepEqual(open.getCall(0).args, [
+		"http://localhost:8080/index.html",
+		{
+			url: true
+		}
+	]);
 });
 
 test.serial("ui5 serve --open (opens default url)", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({port: 8080});
-	mockRequire("open", function(openedUrl) {
-		t.is(openedUrl, "http://localhost:8080", `Opens url: ${openedUrl}`);
-		mockRequire.stop("open");
-	});
-	await serve.handler(
-		Object.assign({}, defaultInitialHandlerArgs, {open: true})
-	);
+	const {argv, serve, generateProjectGraph, server, fakeGraph, open} = t.context;
+
+	argv.open = true;
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+
+	t.is(open.callCount, 1);
+	t.deepEqual(open.getCall(0).args, [
+		"http://localhost:8080",
+		{
+			url: true
+		}
+	]);
 });
 
-test.serial("ui5 serve --key --cert", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: true, port: 8443});
-	sslUtilStub.resolves({
-		key: "ponies-loaded-from-custompath-key",
-		cert: "ponies-loaded-from-custompath-crt"
-	});
+test.serial("ui5 serve --config", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
 
-	// loads project tree using http 2
-	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {
-		h2: true,
-		key: "server/randombyte-likes-ponies.key",
-		cert: "server/randombyte-likes-ponies.crt"
-	}));
-	// preprocess project config
-	const pFetchSSLCert = await pPrepareServerConfig;
-	// Fetching ssl certificate
-	const pServeServer = await pFetchSSLCert;
-	// serve server using config
-	await pServeServer;
+	argv.config = "/path/to/ui5.yaml";
 
-	const injectedServerConfig = serverStub.getCall(0).args[1];
-	t.is(sslUtilStub.getCall(0).args[0], "server/randombyte-likes-ponies.key", "Loading key from specified path");
-	t.is(sslUtilStub.getCall(0).args[1], "server/randombyte-likes-ponies.crt", "Loading cert from specified path");
-	t.deepEqual(injectedServerConfig, {
-		changePortIfInUse: true,
-		acceptRemoteConnections: false,
-		h2: true,
-		simpleIndex: false,
-		port: 8443,
-		key: "ponies-loaded-from-custompath-key",
-		cert: "ponies-loaded-from-custompath-crt",
-		sendSAPTargetCSP: false,
-		serveCSPReports: false
-	}, "Starting server with specific server config");
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: "/path/to/ui5.yaml", versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
 });
 
+test.serial("ui5 serve --dependency-definition", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
 
-test.serial("ui5 serve --translator --config", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: false, port: 8080});
+	argv.dependencyDefinition = "/path/to/dependencies.yaml";
 
-	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {
-		translator: "static",
-		config: "path/to/my/config.json"
-	}));
-	const pServeServer = await pPrepareServerConfig;
-	await pServeServer;
+	await serve.handler(argv);
 
-	t.deepEqual(normalizerStub.getCall(0).args[0], {
-		translatorName: "static",
-		configPath: "path/to/my/config.json"
-	}, "CLI was called with static translator");
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 0);
+	t.is(generateProjectGraph.usingStaticFile.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingStaticFile.getCall(0).args, [
+		{filePath: "/path/to/dependencies.yaml", versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+});
+
+test.serial("ui5 serve --framework-version", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+
+	argv.frameworkVersion = "1.234.5";
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: "1.234.5"}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
 });
 
 test.serial("ui5 serve --sap-csp-policies", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({});
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
 
-	// loads project tree using http 2
-	const pPrepareServerConfig = await serve.handler(
-		Object.assign({}, defaultInitialHandlerArgs, {sapCspPolicies: true}));
-	// preprocess project config
-	const pServeServer = await pPrepareServerConfig;
-	// serve server using config
-	await pServeServer;
+	argv.sapCspPolicies = true;
 
-	const injectedProjectTree = serverStub.getCall(0).args[0];
-	const injectedServerConfig = serverStub.getCall(0).args[1];
+	await serve.handler(argv);
 
-	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
-	t.deepEqual(injectedServerConfig, {
-		changePortIfInUse: true,
-		acceptRemoteConnections: false,
-		h2: false,
-		simpleIndex: false,
-		port: 8080,
-		cert: undefined,
-		key: undefined,
-		sendSAPTargetCSP: true,
-		serveCSPReports: false
-	}, "Starting server with specific server config");
-});
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
 
-test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
-	const projectTree = {
-		metadata: {
-			name: "Sample"
-		},
-		server: {
-			settings: {
-				httpPort: 1337
-			}
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: true,
+			serveCSPReports: false,
+			simpleIndex: false,
 		}
-	};
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: false, port: 1});
-	// loads project tree using http 2
-	const pPrepareServerConfig = await serve.handler(defaultInitialHandlerArgs);
-	// preprocess project config, skipping cert load
-	const pServeServer = await pPrepareServerConfig;
-	// serve server using config
-	await pServeServer;
-
-	const injectedProjectTree = serverStub.getCall(0).args[0];
-	const injectedServerConfig = serverStub.getCall(0).args[1];
-
-	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
-	t.deepEqual(injectedServerConfig.port, 1337, "http port setting from project tree was used");
-	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
-});
-
-test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
-	const projectTree = {
-		metadata: {
-			name: "Sample"
-		},
-		server: {
-			settings: {
-				httpsPort: 1443
-			}
-		}
-	};
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: true, port: 1});
-	sslUtilStub.resolves({
-		key: "randombyte-likes-ponies-key",
-		cert: "randombyte-likes-ponies-cert"
-	});
-
-	// loads project tree using http 2
-	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {h2: true}));
-	// preprocess project config
-	const pFetchSSLCert = await pPrepareServerConfig;
-	// Fetching ssl certificate
-	const pServeServer = await pFetchSSLCert;
-	// serve server using config
-	await pServeServer;
-
-	const injectedProjectTree = serverStub.getCall(0).args[0];
-	const injectedServerConfig = serverStub.getCall(0).args[1];
-
-	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
-	t.deepEqual(injectedServerConfig.port, 1443, "https port setting from project tree was used");
-	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
-});
-
-test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", async (t) => {
-	const projectTree = {
-		metadata: {
-			name: "Sample"
-		},
-		server: {
-			settings: {
-				httpPort: 1337,
-				httpsPort: 1443
-			}
-		}
-	};
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: true, port: 1});
-	sslUtilStub.resolves({
-		key: "randombyte-likes-ponies-key",
-		cert: "randombyte-likes-ponies-cert"
-	});
-
-	// loads project tree using http 2
-	const pPrepareServerConfig = await serve.handler(Object.assign({}, defaultInitialHandlerArgs, {
-		h2: true,
-		port: 5555
-	}));
-	// preprocess project config
-	const pFetchSSLCert = await pPrepareServerConfig;
-	// Fetching ssl certificate
-	const pServeServer = await pFetchSSLCert;
-	// serve server using config
-	await pServeServer;
-
-	const injectedProjectTree = serverStub.getCall(0).args[0];
-	const injectedServerConfig = serverStub.getCall(0).args[1];
-
-	t.deepEqual(injectedProjectTree, projectTree, "Starting server with given project tree");
-	t.deepEqual(injectedServerConfig.port, 5555, "https port setting from CLI argument was used");
-	t.deepEqual(injectedServerConfig.changePortIfInUse, false, "changePortIfInUse is set to false");
-});
-
-test.serial("ui5 serve: --framework-version", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: false, port: 8080});
-
-	// loads project tree
-	const pPrepareServerConfig = await serve.handler(
-		Object.assign({}, defaultInitialHandlerArgs, {frameworkVersion: "1.2.3"})
-	);
-	// preprocess project config, skipping cert load
-	const pServeServer = await pPrepareServerConfig;
-	// serve server using config
-	await pServeServer;
-
-	t.is(normalizerStub.called, true);
-	t.deepEqual(normalizerStub.getCall(0).args, [{
-		configPath: undefined,
-		translatorName: "npm",
-		frameworkOptions: {
-			versionOverride: "1.2.3"
-		}
-	}]);
+	]);
 });
 
 test.serial("ui5 serve --serve-csp-reports", async (t) => {
-	normalizerStub.resolves(projectTree);
-	serverStub.resolves({h2: false, port: 8080});
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
 
-	// loads project tree
-	const pPrepareServerConfig = await serve.handler(
-		Object.assign({}, defaultInitialHandlerArgs, {serveCspReports: true})
-	);
-	// preprocess project config, skipping cert load
-	const pServeServer = await pPrepareServerConfig;
-	// serve server using config
-	await pServeServer;
+	argv.serveCspReports = true;
 
-	const injectedServerConfig = serverStub.getCall(0).args[1];
+	await serve.handler(argv);
 
-	t.is(normalizerStub.called, true);
-	t.deepEqual(injectedServerConfig.serveCSPReports, true, "serveCSPReports value set");
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: true,
+			simpleIndex: false,
+		}
+	]);
+});
+
+test.serial("ui5 serve --simple-index", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+
+	argv.simpleIndex = true;
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: true,
+		}
+	]);
+});
+
+test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph, getServerSettings} = t.context;
+
+	getServerSettings.returns({
+		httpPort: 3333
+	});
+
+	server.serve.returns({
+		h2: false,
+		port: 3333
+	});
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:3333
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: false,
+			h2: false,
+			key: undefined,
+			port: 3333,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+});
+
+test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph, sslUtil, getServerSettings} = t.context;
+
+	sslUtil.getSslCertificate.resolves({
+		key: "randombyte-likes-ponies-key",
+		cert: "randombyte-likes-ponies-cert"
+	});
+
+	getServerSettings.returns({
+		httpsPort: 4444
+	});
+
+	server.serve.returns({
+		h2: true,
+		port: 4444
+	});
+
+	argv.h2 = true;
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: https://localhost:4444
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			changePortIfInUse: false,
+			h2: true,
+			key: "randombyte-likes-ponies-key",
+			cert: "randombyte-likes-ponies-cert",
+			port: 4444,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+
+	t.is(sslUtil.getSslCertificate.callCount, 1);
+	t.deepEqual(sslUtil.getSslCertificate.getCall(0).args, [
+		"/home/.ui5/server/server.key",
+		"/home/.ui5/server/server.crt"
+	]);
+});
+
+test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", async (t) => {
+	const {argv, serve, generateProjectGraph, server, fakeGraph, sslUtil, getServerSettings} = t.context;
+
+	sslUtil.getSslCertificate.resolves({
+		key: "randombyte-likes-ponies-key",
+		cert: "randombyte-likes-ponies-cert"
+	});
+
+	getServerSettings.returns({
+		httpsPort: 4444
+	});
+
+	server.serve.returns({
+		h2: true,
+		port: 5555
+	});
+
+	argv.h2 = true;
+	argv.port = 5555;
+
+	await serve.handler(argv);
+
+	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
+	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
+	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+		{rootConfigPath: undefined, versionOverride: undefined}
+	]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: https://localhost:5555
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			changePortIfInUse: false,
+			h2: true,
+			key: "randombyte-likes-ponies-key",
+			cert: "randombyte-likes-ponies-cert",
+			port: 5555,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false,
+		}
+	]);
+
+	t.is(sslUtil.getSslCertificate.callCount, 1);
+	t.deepEqual(sslUtil.getSslCertificate.getCall(0).args, [
+		"/home/.ui5/server/server.key",
+		"/home/.ui5/server/server.crt"
+	]);
 });

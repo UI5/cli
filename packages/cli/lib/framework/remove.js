@@ -6,39 +6,39 @@ const log = require("@ui5/logger").getLogger("cli:framework:remove");
  * Removes the given set of libraries from the framework libraries section in the ui5.yaml
  *
  * @param {object} parameters Parameters
- * @param {object} parameters.normalizerOptions
+ * @param {object} parameters.projectGraphOptions
  * @param {object} parameters.libraries
  */
-module.exports = async function({normalizerOptions, libraries}) {
-	const project = await getRootProjectConfiguration({normalizerOptions});
+module.exports = async function({projectGraphOptions, libraries}) {
+	const project = await getRootProjectConfiguration(projectGraphOptions);
 
-	if (!isValidSpecVersion(project.specVersion)) {
+	if (!isValidSpecVersion(project.getSpecVersion())) {
 		throw new Error(
 			`ui5 remove command requires specVersion "2.0" or higher. ` +
-			`Project ${project.metadata.name} uses specVersion "${project.specVersion}"`
+			`Project ${project.getName()} uses specVersion "${project.getSpecVersion()}"`
 		);
 	}
 
-	if (!project.framework) {
+	if (!project.getFrameworkName()) {
 		throw new Error(
-			`Project ${project.metadata.name} is missing a framework configuration. ` +
+			`Project ${project.getName()} is missing a framework configuration. ` +
 			`Please use "ui5 use" to configure a framework and version.`
 		);
 	}
-	if (!project.framework.version) {
+	if (!project.getFrameworkVersion()) {
 		throw new Error(
-			`Project ${project.metadata.name} does not define a framework version configuration. ` +
+			`Project ${project.getName()} does not define a framework version configuration. ` +
 			`Please use "ui5 use" to configure a version.`
 		);
 	}
 
-	if (!project.framework.libraries) {
+	if (!project.getFrameworkDependencies().length) {
 		throw new Error(
-			`Project ${project.metadata.name} does not define framework libraries.`
+			`Project ${project.getName()} does not define framework libraries.`
 		);
 	}
 
-	const allLibraries = [...project.framework.libraries];
+	const allLibraries = [...project.getFrameworkDependencies()];
 
 	libraries.forEach((library) => {
 		const iIndexToRemove = allLibraries.findIndex(($) => $.name === library.name);
@@ -46,7 +46,7 @@ module.exports = async function({normalizerOptions, libraries}) {
 			// do not fail here just log, because the framework library is not present afterwards
 			log.warn(
 				`Failed to remove framework library ${library.name} from project ` +
-				`${project.metadata.name} because it is not present.`
+				`${project.getName()} because it is not present.`
 			);
 		} else {
 			allLibraries.splice(iIndexToRemove, 1);
@@ -63,6 +63,7 @@ module.exports = async function({normalizerOptions, libraries}) {
 	try {
 		await require("./updateYaml")({
 			project,
+			configPathOverride: projectGraphOptions.config,
 			data: {
 				framework: {
 					libraries: allLibraries

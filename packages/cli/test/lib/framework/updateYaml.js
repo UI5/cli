@@ -31,8 +31,8 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -75,8 +75,8 @@ shims:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -131,8 +131,8 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -173,8 +173,8 @@ metadata:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -201,8 +201,8 @@ metadata:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -234,8 +234,8 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -267,8 +267,8 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -301,14 +301,14 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
-					{name: "sap.m"}
+					{name: "sap.m"},
 				]
 			}
 		}
@@ -342,14 +342,14 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
-					{name: "sap.m"}
+					{name: "sap.m"},
 				]
 			}
 		}
@@ -386,8 +386,8 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -424,8 +424,8 @@ resources:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -462,14 +462,14 @@ resources:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
-					{name: "sap.m"}
+					{name: "sap.m"},
 				]
 			}
 		}
@@ -507,14 +507,14 @@ resources:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
-					{name: "sap.m"}
+					{name: "sap.m"},
 				]
 			}
 		}
@@ -552,14 +552,14 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
-					{name: "sap.m"}
+					{name: "sap.m"},
 				]
 			}
 		}
@@ -593,15 +593,15 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
 					{name: "sap.m"},
-					{name: "sap.ui.layout"}
+					{name: "sap.ui.layout"},
 				]
 			}
 		}
@@ -639,15 +639,15 @@ resources:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
 					{name: "sap.m"},
-					{name: "sap.ui.layout"}
+					{name: "sap.ui.layout"},
 				]
 			}
 		}
@@ -690,15 +690,15 @@ resources:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core"},
 					{name: "sap.m"},
-					{name: "sap.ui.layout"}
+					{name: "sap.ui.layout"},
 				]
 			}
 		}
@@ -737,15 +737,15 @@ framework:
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
 				libraries: [
 					{name: "sap.ui.core", optional: true},
 					{name: "sap.m", optional: true},
-					{name: "sap.ui.layout", optional: true}
+					{name: "sap.ui.layout", optional: true},
 				]
 			}
 		}
@@ -779,8 +779,8 @@ framework: { name: "SAPUI5" }
 
 	const error = await t.throwsAsync(updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -813,14 +813,14 @@ metadata:
 
 	const error = await t.throwsAsync(updateYaml({
 		project: {
-			path: "my-project",
-			configPath: "ui5.yaml",
-			metadata: {"name": "my-project-3"}
+			getPath: () => "my-project",
+			getName: () => "my-project-3"
 		},
+		configPathOverride: "ui5.yaml",
 		data: {}
 	}));
 
-	t.is(error.message, "Could not find project with name my-project-3 in YAML: ui5.yaml");
+	t.is(error.message, "Could not find project with name my-project-3 in YAML: my-project/ui5.yaml");
 	t.is(t.context.fsWriteFileStub.callCount, 0, "fs.writeFile should not be called");
 });
 
@@ -837,8 +837,8 @@ something: else
 
 	await updateYaml({
 		project: {
-			path: "my-project",
-			metadata: {"name": "my-project"}
+			getPath: () => "my-project",
+			getName: () => "my-project"
 		},
 		data: {
 			framework: {
@@ -859,5 +859,85 @@ framework:
     - name: sap.ui.core
   version: "1.85.0"
 something: else
+`, "writeFile should be called with expected content");
+});
+
+test.serial("Relative configPathOverride", async (t) => {
+	t.context.fsReadFileStub.yieldsAsync(null, `
+---
+metadata:
+  name: my-project
+framework:
+  name: SAPUI5
+  version: 1.0.0
+`);
+
+	await updateYaml({
+		project: {
+			getPath: () => "my-project",
+			getName: () => "my-project"
+		},
+		configPathOverride: "dir/other-file.yaml",
+		data: {
+			framework: {
+				name: "OpenUI5",
+				version: "1.76.0"
+			}
+		}
+	});
+
+	t.is(t.context.fsReadFileStub.callCount, 1, "fs.readFile should be called once");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "dir", "other-file.yaml"),
+		"readFile should be called with expected path");
+	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "dir", "other-file.yaml"),
+		"writeFile should be called with expected path");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+---
+metadata:
+  name: my-project
+framework:
+  name: OpenUI5
+  version: "1.76.0"
+`, "writeFile should be called with expected content");
+});
+
+test.serial("Absolute configPathOverride", async (t) => {
+	t.context.fsReadFileStub.yieldsAsync(null, `
+---
+metadata:
+  name: my-project
+framework:
+  name: SAPUI5
+  version: 1.0.0
+`);
+
+	await updateYaml({
+		project: {
+			getPath: () => "my-project",
+			getName: () => "my-project"
+		},
+		configPathOverride: "/dir/other-file.yaml",
+		data: {
+			framework: {
+				name: "OpenUI5",
+				version: "1.76.0"
+			}
+		}
+	});
+
+	t.is(t.context.fsReadFileStub.callCount, 1, "fs.readFile should be called once");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("/", "dir", "other-file.yaml"),
+		"readFile should be called with expected path");
+	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("/", "dir", "other-file.yaml"),
+		"writeFile should be called with expected path");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+---
+metadata:
+  name: my-project
+framework:
+  name: OpenUI5
+  version: "1.76.0"
 `, "writeFile should be called with expected content");
 });

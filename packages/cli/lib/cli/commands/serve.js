@@ -73,30 +73,32 @@ serve.builder = function(cli) {
 };
 
 serve.handler = async function(argv) {
-	const normalizer = require("@ui5/project").normalizer;
+	const {generateProjectGraph} = require("@ui5/project");
 	const ui5Server = require("@ui5/server");
 	const server = ui5Server.server;
 
-	const normalizerOptions = {
-		translatorName: argv.translator,
-		configPath: argv.config
-	};
-
-	if (argv.frameworkVersion) {
-		normalizerOptions.frameworkOptions = {
+	let graph;
+	if (argv.dependencyDefinition) {
+		graph = await generateProjectGraph.usingStaticFile({
+			filePath: argv.dependencyDefinition,
 			versionOverride: argv.frameworkVersion
-		};
+		});
+	} else {
+		graph = await generateProjectGraph.usingNodePackageDependencies({
+			rootConfigPath: argv.config,
+			versionOverride: argv.frameworkVersion
+		});
 	}
 
-	const tree = await normalizer.generateProjectTree(normalizerOptions);
 	let port = argv.port;
 	let changePortIfInUse = false;
 
-	if (!port && tree.server && tree.server.settings) {
+	if (!port && graph.getRoot().getServerSettings()) {
+		const serverSettings = graph.getRoot().getServerSettings();
 		if (argv.h2) {
-			port = tree.server.settings.httpsPort;
+			port = serverSettings.httpsPort;
 		} else {
-			port = tree.server.settings.httpPort;
+			port = serverSettings.httpPort;
 		}
 	}
 
@@ -127,7 +129,7 @@ serve.handler = async function(argv) {
 		serverConfig.cert = cert;
 	}
 
-	const {h2, port: actualPort} = await server.serve(tree, serverConfig);
+	const {h2, port: actualPort} = await server.serve(graph, serverConfig);
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;

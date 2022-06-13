@@ -19,8 +19,8 @@
 				"import-local": "^3.1.0",
 				"js-yaml": "^4.1.0",
 				"open": "^7.4.2",
+				"pretty-hrtime": "^1.0.3",
 				"semver": "^7.3.5",
-				"treeify": "^1.0.1",
 				"update-notifier": "^5.1.0",
 				"yargs": "^16.2.0"
 			},

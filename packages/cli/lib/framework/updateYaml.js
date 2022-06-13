@@ -9,11 +9,11 @@ function getProjectYamlDocument({project, configFile, configPath}) {
 	});
 
 	const projectDocumentIndex = configs.findIndex((config) => {
-		return config.metadata && config.metadata.name === project.metadata.name;
+		return config.metadata && config.metadata.name === project.getName();
 	});
 	if (projectDocumentIndex === -1) {
 		throw new Error(
-			`Could not find project with name ${project.metadata.name} in YAML: ${configPath}`
+			`Could not find project with name ${project.getName()} in YAML: ${configPath}`
 		);
 	}
 
@@ -137,13 +137,23 @@ function formatValue(value, indent) {
 	}
 }
 
-module.exports = async function({project, data}) {
+module.exports = async function({project, configPathOverride, data}) {
 	const {promisify} = require("util");
 	const fs = require("fs");
 	const readFile = promisify(fs.readFile);
 	const writeFile = promisify(fs.writeFile);
 
-	const configPath = project.configPath || path.join(project.path, "ui5.yaml");
+	let configPath;
+	if (configPathOverride) {
+		if (path.isAbsolute(configPathOverride)) {
+			configPath = configPathOverride;
+		} else {
+			configPath = path.join(project.getPath(), configPathOverride);
+		}
+	} else {
+		configPath = path.join(project.getPath(), "ui5.yaml");
+	}
+
 	const configFile = await readFile(configPath, {encoding: "utf8"});
 
 	let {

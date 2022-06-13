@@ -1,7 +1,6 @@
 // Build
 
 const baseMiddleware = require("../middlewares/base.js");
-const buildHelper = require("../../utils/buildHelper");
 
 const build = {
 	command: "build",
@@ -12,11 +11,6 @@ const build = {
 
 build.builder = function(cli) {
 	return cli
-		.command("dev", "Dev build: Skips non-essential and time-intensive tasks during build", {
-			handler: handleBuild,
-			builder: noop,
-			middlewares: [baseMiddleware]
-		})
 		.command("jsdoc", "Build JSDoc resources", {
 			handler: handleBuild,
 			builder: noop,
@@ -29,46 +23,46 @@ build.builder = function(cli) {
 		})
 		.command("self-contained",
 			"Build project and create self-contained bundle. " +
-			"Recommended to be used in conjunction with --all", {
+			"Recommended to be used in conjunction with --include-dependencies", {
 				handler: handleBuild,
 				builder: noop,
 				middlewares: [baseMiddleware]
 			})
-		.option("all", {
-			describe: "Include all project dependencies into build process",
-			alias: "a",
+		.option("include-all-dependencies", {
+			describe: "Include all dependencies in the build result",
+			alias: ["all", "a"],
 			default: false,
 			type: "boolean"
 		})
 		.option("include-dependency", {
-			describe: "A list of dependencies to be included into the build process. You can use the asterisk '*' as" +
-				" an alias for including all dependencies into the build process. The listed dependencies cannot be" +
+			describe: "A list of dependencies to be included in the build result. You can use the asterisk '*' as" +
+				" an alias for including all dependencies in the build result. The listed dependencies cannot be" +
 				" overruled by dependencies defined in 'exclude-dependency'.",
 			type: "array"
 		})
 		.option("include-dependency-regexp", {
-			describe: "A list of regular expressions defining dependencies to be included into the build process." +
+			describe: "A list of regular expressions defining dependencies to be included in the build result." +
 				" This list is prioritized like 'include-dependency'.",
 			type: "array"
 		})
 		.option("include-dependency-tree", {
-			describe: "A list of dependencies to be included into the build process. Transitive dependencies are" +
+			describe: "A list of dependencies to be included in the build result. Transitive dependencies are" +
 				" implicitly included and do not need to be part of this list. These dependencies overrule" +
 				" the selection of 'exclude-dependency-tree' but can be overruled by 'exclude-dependency'.",
 			type: "array"
 		})
 		.option("exclude-dependency", {
-			describe: "A list of dependencies to be excluded from the build process. The listed dependencies can" +
+			describe: "A list of dependencies to be excluded from the build result. The listed dependencies can" +
 				" be overruled by dependencies defined in 'include-dependency'.",
 			type: "array"
 		})
 		.option("exclude-dependency-regexp", {
-			describe: "A list of regular expressions defining dependencies to be excluded from the build process." +
+			describe: "A list of regular expressions defining dependencies to be excluded from the build result." +
 				" This list is prioritized like 'exclude-dependency'.",
 			type: "array"
 		})
 		.option("exclude-dependency-tree", {
-			describe: "A list of dependencies to be excluded from the build process. Transitive dependencies are" +
+			describe: "A list of dependencies to be excluded from the build result. Transitive dependencies are" +
 				" implicitly included and do not need to be part of this list.",
 			type: "array"
 		})
@@ -82,18 +76,19 @@ build.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
-		.option("dev-exclude-project", {
-			describe:
-				"A list of specific projects to be excluded from dev mode " +
-				"(dev mode must be active for this to be effective)",
-			type: "array"
+		.option("create-build-manifest", {
+			describe: "Store build metadata in a '.ui5' directory in the build destination, " +
+				"allowing reuse of the build result in other builds",
+			default: false,
+			type: "boolean"
 		})
 		.option("include-task", {
-			describe: "A list of specific tasks to be included to the default/dev set",
+			describe: "A list of tasks to be added to the default execution set. " +
+				"This option takes precedence over any excludes.",
 			type: "array"
 		})
 		.option("exclude-task", {
-			describe: "A list of specific tasks to be excluded from default/dev set",
+			describe: "A list of tasks to be excluded from the default task execution set",
 			type: "array"
 		})
 		.option("framework-version", {
@@ -108,6 +103,8 @@ build.builder = function(cli) {
 			type: "boolean"
 		})
 		.example("ui5 build", "Preload build for project without dependencies")
+
+		// TODO 3.0: Update examples
 		.example("ui5 build self-contained --all", "Self-contained build for project including dependencies")
 		.example("ui5 build --all --exclude-task=* --include-task=createDebugFiles generateAppPreload",
 			"Build project and dependencies but only apply the createDebugFiles- and generateAppPreload tasks")
@@ -120,56 +117,49 @@ build.builder = function(cli) {
 		.example("ui5 build dev",
 			"Build project and dependencies in dev mode. Only a set of essential tasks is executed.")
 		.example("ui5 build --experimental-css-variables",
-			"Preload build for project without dependencies but with CSS variable artefacts");
+			"Preload build for project without dependencies but with CSS variable artifacts");
 };
 
 async function handleBuild(argv) {
-	const normalizer = require("@ui5/project").normalizer;
-	const builder = require("@ui5/builder").builder;
 	const logger = require("@ui5/logger");
+	const {generateProjectGraph, builder} = require("@ui5/project");
 
 	const command = argv._[argv._.length - 1];
 	logger.setShowProgress(true);
 
-	const normalizerOptions = {
-		translatorName: argv.translator,
-		configPath: argv.config
-	};
-
-	if (argv.frameworkVersion) {
-		normalizerOptions.frameworkOptions = {
+	let graph;
+	if (argv.dependencyDefinition) {
+		graph = await generateProjectGraph.usingStaticFile({
+			filePath: argv.dependencyDefinition,
+			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion
-		};
+		});
+	} else {
+		graph = await generateProjectGraph.usingNodePackageDependencies({
+			rootConfigPath: argv.config,
+			versionOverride: argv.frameworkVersion
+		});
 	}
-
-	const tree = await normalizer.generateProjectTree(normalizerOptions);
-	const buildSettings = (tree.builder && tree.builder.settings) || {};
-
-	const {includedDependencies, excludedDependencies} = buildHelper.createDependencyLists({
-		tree: tree,
-		includeDependency: argv["include-dependency"],
-		includeDependencyRegExp: argv["include-dependency-regexp"],
-		includeDependencyTree: argv["include-dependency-tree"],
-		excludeDependency: argv["exclude-dependency"],
-		excludeDependencyRegExp: argv["exclude-dependency-regexp"],
-		excludeDependencyTree: argv["exclude-dependency-tree"],
-		defaultIncludeDependency: buildSettings.includeDependency,
-		defaultIncludeDependencyRegExp: buildSettings.includeDependencyRegExp,
-		defaultIncludeDependencyTree: buildSettings.includeDependencyTree
-	});
-	const buildAll = buildHelper.alignWithBuilderApi(argv.all, includedDependencies, excludedDependencies);
-
-	await builder.build({
-		tree: tree,
+	const buildSettings = graph.getRoot().getBuilderSettings() || {};
+	await builder({
+		graph,
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
-		buildDependencies: buildAll,
-		includedDependencies: includedDependencies,
-		excludedDependencies: excludedDependencies,
-		dev: command === "dev",
+		createBuildManifest: argv["create-build-manifest"],
+		complexDependencyIncludes: {
+			includeAllDependencies: argv["include-all-dependencies"],
+			includeDependency: argv["include-dependency"],
+			includeDependencyRegExp: argv["include-dependency-regexp"],
+			includeDependencyTree: argv["include-dependency-tree"],
+			excludeDependency: argv["exclude-dependency"],
+			excludeDependencyRegExp: argv["exclude-dependency-regexp"],
+			excludeDependencyTree: argv["exclude-dependency-tree"],
+			defaultIncludeDependency: buildSettings.includeDependency,
+			defaultIncludeDependencyRegExp: buildSettings.includeDependencyRegExp,
+			defaultIncludeDependencyTree: buildSettings.includeDependencyTree
+		},
 		selfContained: command === "self-contained",
 		jsdoc: command === "jsdoc",
-		devExcludeProject: argv["dev-exclude-project"],
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
 		cssVariables: argv["experimental-css-variables"]

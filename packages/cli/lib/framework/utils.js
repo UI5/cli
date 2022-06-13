@@ -1,17 +1,21 @@
 module.exports = {
-	getRootProjectConfiguration: async function({normalizerOptions}) {
-		const {normalizer, projectPreprocessor} = require("@ui5/project");
+	getRootProjectConfiguration: async function(projectGraphOptions) {
+		const {generateProjectGraph} = require("@ui5/project");
 
-		const tree = await normalizer.generateDependencyTree(normalizerOptions);
-
-		if (normalizerOptions.configPath) {
-			tree.configPath = normalizerOptions.configPath;
+		let graph;
+		if (projectGraphOptions.dependencyDefinition) {
+			graph = await generateProjectGraph.usingStaticFile({
+				filePath: projectGraphOptions.dependencyDefinition,
+				resolveFrameworkDependencies: false
+			});
+		} else {
+			graph = await generateProjectGraph.usingNodePackageDependencies({
+				rootConfigPath: projectGraphOptions.config,
+				resolveFrameworkDependencies: false
+			});
 		}
 
-		// Prevent dependencies from being processed
-		tree.dependencies = [];
-
-		return projectPreprocessor.processTree(tree);
+		return graph.getRoot();
 	},
 	getFrameworkResolver: function(frameworkName) {
 		if (frameworkName === "SAPUI5") {

@@ -16,9 +16,9 @@ async function assertRemoveHandler(t, {argv, expectedLibraries, expectedConsoleL
 	t.deepEqual(frameworkRemoveStub.getCall(0).args, [
 		{
 			libraries: expectedLibraries,
-			normalizerOptions: {
-				configPath: undefined,
-				translatorName: undefined
+			projectGraphOptions: {
+				dependencyDefinition: undefined,
+				config: undefined
 			}
 		}],
 	"Remove function should be called with expected args");

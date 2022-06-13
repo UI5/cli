@@ -5,13 +5,10 @@ async function resolveVersion({frameworkName, frameworkVersion}, resolverOptions
 }
 
 function getEffectiveFrameworkName({project, frameworkOptions}) {
-	if (!project.framework && !frameworkOptions.name) {
+	if (!project.getFrameworkName() && !frameworkOptions.name) {
 		throw new Error("No framework configuration defined. Make sure to also provide the framework name.");
 	}
-	if (project.framework && !project.framework.name) {
-		// This should not happen as the configuration should have been validated against the schema
-		throw new Error(`Project ${project.metadata.name} does not define a framework name configuration`);
-	}
+
 	if (frameworkOptions.name) {
 		if (frameworkOptions.name.toLowerCase() === "openui5") {
 			return "OpenUI5";
@@ -21,17 +18,17 @@ function getEffectiveFrameworkName({project, frameworkOptions}) {
 			throw new Error("Invalid framework name: " + frameworkOptions.name);
 		}
 	} else {
-		return project.framework.name;
+		return project.getFrameworkName();
 	}
 }
 
-module.exports = async function({normalizerOptions, frameworkOptions}) {
-	const project = await getRootProjectConfiguration({normalizerOptions});
+module.exports = async function({projectGraphOptions, frameworkOptions}) {
+	const project = await getRootProjectConfiguration(projectGraphOptions);
 
-	if (!isValidSpecVersion(project.specVersion)) {
+	if (!isValidSpecVersion(project.getSpecVersion())) {
 		throw new Error(
 			`ui5 use command requires specVersion "2.0" or higher. ` +
-			`Project ${project.metadata.name} uses specVersion "${project.specVersion}"`
+			`Project ${project.getName()} uses specVersion "${project.getSpecVersion()}"`
 		);
 	}
 
@@ -39,13 +36,13 @@ module.exports = async function({normalizerOptions, frameworkOptions}) {
 		name: getEffectiveFrameworkName({project, frameworkOptions})
 	};
 
-	const frameworkVersion = frameworkOptions.version || (project.framework && project.framework.version);
+	const frameworkVersion = frameworkOptions.version || project.getFrameworkVersion();
 	if (frameworkVersion) {
 		framework.version = await resolveVersion({
 			frameworkName: framework.name,
 			frameworkVersion
 		}, {
-			cwd: project.path
+			cwd: project.getPath()
 		});
 	}
 
@@ -54,6 +51,7 @@ module.exports = async function({normalizerOptions, frameworkOptions}) {
 	try {
 		await require("./updateYaml")({
 			project,
+			configPathOverride: projectGraphOptions.config,
 			data: {
 				framework: framework
 			}

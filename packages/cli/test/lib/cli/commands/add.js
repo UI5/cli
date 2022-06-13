@@ -16,9 +16,9 @@ async function assertAddHandler(t, {argv, expectedLibraries, expectedConsoleLog}
 	t.deepEqual(frameworkAddStub.getCall(0).args, [
 		{
 			libraries: expectedLibraries,
-			normalizerOptions: {
-				configPath: undefined,
-				translatorName: undefined
+			projectGraphOptions: {
+				dependencyDefinition: undefined,
+				config: undefined
 			}
 		}],
 	"Add function should be called with expected args");

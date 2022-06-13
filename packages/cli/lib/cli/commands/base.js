@@ -3,13 +3,12 @@ const cli = require("yargs");
 cli.usage("Usage: ui5 <command> [options]")
 	.demandCommand(1, "Command required! Please have a look at the help documentation above.")
 	.option("config", {
-		describe: "Path to configuration file",
+		describe: "Path to project configuration file in YAML format",
 		type: "string"
 	})
-	.option("translator", {
-		describe: "Translator to use. Including optional colon separated translator parameters.",
-		alias: "t8r",
-		default: "npm",
+	.option("dependency-definition", {
+		describe: "Path to a YAML file containing the project's dependency tree. " +
+			"This option will disable resolution of node package dependencies.",
 		type: "string"
 	})
 	.option("verbose", {
@@ -21,6 +20,11 @@ cli.usage("Usage: ui5 <command> [options]")
 		describe: "Set the logging level (error|warn|info|verbose|silly).",
 		default: "info",
 		type: "string"
+	})
+	.option("x-perf", {
+		describe: "Outputs performance measurements",
+		default: false,
+		type: "boolean"
 	})
 	.showHelpOnFail(true)
 	.strict(true)

@@ -27,9 +27,9 @@ removeCommand.handler = async function(argv) {
 		return libraryNames.indexOf(libraryName) === index;
 	});
 
-	const normalizerOptions = {
-		translatorName: argv.translator,
-		configPath: argv.config
+	const projectGraphOptions = {
+		dependencyDefinition: argv.dependencyDefinition,
+		config: argv.config
 	};
 
 	const libraries = libraryNames.map((name) => {
@@ -38,7 +38,7 @@ removeCommand.handler = async function(argv) {
 	});
 
 	const {yamlUpdated} = await require("../../framework/remove")({
-		normalizerOptions,
+		projectGraphOptions,
 		libraries
 	});
 

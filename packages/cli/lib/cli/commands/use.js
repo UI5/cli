@@ -55,13 +55,13 @@ function parseFrameworkInfo(frameworkInfo) {
 useCommand.handler = async function(argv) {
 	const frameworkOptions = parseFrameworkInfo(argv["framework-info"]);
 
-	const normalizerOptions = {
-		translatorName: argv.translator,
-		configPath: argv.config
+	const projectGraphOptions = {
+		dependencyDefinition: argv.dependencyDefinition,
+		config: argv.config
 	};
 
 	const {usedFramework, usedVersion, yamlUpdated} = await require("../../framework/use")({
-		normalizerOptions,
+		projectGraphOptions,
 		frameworkOptions
 	});
 
