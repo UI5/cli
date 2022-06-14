@@ -2,7 +2,27 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.6...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.7...HEAD).
+
+<a name="v3.0.0-alpha.7"></a>
+## [v3.0.0-alpha.7] - 2022-06-14
+### Breaking Changes
+- Remove build execution ([#740](https://github.com/SAP/ui5-builder/issues/740)) [`af2e956`](https://github.com/SAP/ui5-builder/commit/af2e956f6cba1275669160328e32df3fffa782d0)
+
+### Bug Fixes
+- Avoid redundant bundle creation ([#741](https://github.com/SAP/ui5-builder/issues/741)) [`13c8405`](https://github.com/SAP/ui5-builder/commit/13c840585946401d238936dfa38a6f70a73e9ed0)
+
+### Features
+- Enable modern preload bundles without dependencies ([#739](https://github.com/SAP/ui5-builder/issues/739)) [`97cfa6c`](https://github.com/SAP/ui5-builder/commit/97cfa6cd3eadff57bcc18816534c7751551ebdb8)
+
+### BREAKING CHANGE
+
+* builder.js has been removed. Use ui5-project builder instead
+* Tasks now rely on Project instances being available on Resources (see https://github.com/SAP/ui5-fs/pull/381)
+* TaskRepository#addTask has been removed. Custom tasks need to be added to the project graph instead
+* TaskUtil#get/set/clearTag now requires a Project instance to be provided. Path strings are no longer sufficient
+  and will cause an exception to be thrown
+
 
 <a name="v3.0.0-alpha.6"></a>
 ## [v3.0.0-alpha.6] - 2022-04-26
@@ -721,6 +741,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.7]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.6...v3.0.0-alpha.7
 [v3.0.0-alpha.6]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.5...v3.0.0-alpha.6
 [v3.0.0-alpha.5]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.4...v3.0.0-alpha.5
 [v3.0.0-alpha.4]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
