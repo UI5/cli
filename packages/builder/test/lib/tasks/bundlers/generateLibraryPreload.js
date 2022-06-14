@@ -65,7 +65,7 @@ test.serial("generateLibraryPreload", async (t) => {
 						filters: [
 							"my/lib/",
 							"my/lib/**/manifest.json",
-							"!my/lib/*-preload.js",
+							"!my/lib/**/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
 							"!my/lib/**/*.support.js",
@@ -354,7 +354,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 						filters: [
 							"sap/ui/core/",
 							"sap/ui/core/**/manifest.json",
-							"!sap/ui/core/*-preload.js",
+							"!sap/ui/core/**/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -636,7 +636,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 						filters: [
 							"sap/ui/core/",
 							"sap/ui/core/**/manifest.json",
-							"!sap/ui/core/*-preload.js",
+							"!sap/ui/core/**/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -970,7 +970,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 						filters: [
 							"sap/ui/core/",
 							"sap/ui/core/**/manifest.json",
-							"!sap/ui/core/*-preload.js",
+							"!sap/ui/core/**/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -1126,7 +1126,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 						filters: [
 							"sap/ui/core/",
 							"sap/ui/core/**/manifest.json",
-							"!sap/ui/core/*-preload.js",
+							"!sap/ui/core/**/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -1293,7 +1293,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 						filters: [
 							"sap/ui/core/",
 							"sap/ui/core/**/manifest.json",
-							"!sap/ui/core/*-preload.js",
+							"!sap/ui/core/**/*-preload.js",
 							"!sap/ui/core/designtime/",
 							"!sap/ui/core/**/*.designtime.js",
 							"!sap/ui/core/**/*.support.js",
@@ -1482,7 +1482,7 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 						filters: [
 							"my/lib/",
 							"my/lib/**/manifest.json",
-							"!my/lib/*-preload.js",
+							"!my/lib/**/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
 							"!my/lib/**/*.support.js",
@@ -1553,7 +1553,7 @@ test.serial("generateLibraryPreload with invalid excludes", async (t) => {
 						filters: [
 							"my/lib/",
 							"my/lib/**/manifest.json",
-							"!my/lib/*-preload.js",
+							"!my/lib/**/*-preload.js",
 							"!my/lib/designtime/",
 							"!my/lib/**/*.designtime.js",
 							"!my/lib/**/*.support.js"

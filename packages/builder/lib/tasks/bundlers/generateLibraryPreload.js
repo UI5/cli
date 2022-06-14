@@ -7,7 +7,7 @@ function getDefaultLibraryPreloadFilters(namespace, excludes) {
 	const filters = [
 		`${namespace}/`,
 		`${namespace}/**/manifest.json`,
-		`!${namespace}/*-preload.js`, // exclude all bundles
+		`!${namespace}/**/*-preload.js`, // exclude all bundles
 		`!${namespace}/designtime/`,
 		`!${namespace}/**/*.designtime.js`,
 		`!${namespace}/**/*.support.js`
