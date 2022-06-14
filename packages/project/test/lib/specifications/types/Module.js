@@ -119,9 +119,9 @@ test("_configureAndValidatePaths: Configured path mapping", async (t) => {
 
 	t.is(project._paths.length, 2, "Two path mappings");
 	t.is(project._paths[0].virBasePath, "/", "Correct virtual base path for /");
-	t.is(project._paths[0].fsBasePath, projectInput.modulePath + "/dist", "Correct fs path");
+	t.is(project._paths[0].fsBasePath, path.join(projectInput.modulePath, "dist"), "Correct fs path");
 	t.is(project._paths[1].virBasePath, "/dev/", "Correct virtual base path for /dev/");
-	t.is(project._paths[1].fsBasePath, projectInput.modulePath + "/dev", "Correct fs path");
+	t.is(project._paths[1].fsBasePath, path.join(projectInput.modulePath, "dev"), "Correct fs path");
 });
 
 test("_configureAndValidatePaths: Default directory does not exist", async (t) => {

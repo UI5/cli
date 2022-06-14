@@ -37,8 +37,9 @@ test("Throws error if file not found", async (t) => {
 		cwd: notExistingPath
 	}));
 	t.is(err.message,
-		`Failed to load dependency tree configuration from path ${notExistingPath}/projectDependencies.yaml: ` +
-		`ENOENT: no such file or directory, open '${notExistingPath}/projectDependencies.yaml'`,
+		`Failed to load dependency tree configuration from path ` +
+		`${path.join(notExistingPath, "projectDependencies.yaml")}: ` +
+		`ENOENT: no such file or directory, open '${path.join(notExistingPath, "projectDependencies.yaml")}'`,
 		"Correct error message");
 });
 
