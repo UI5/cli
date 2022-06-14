@@ -8,7 +8,6 @@ const readFile = promisify(fs.readFile);
 const assert = chai.assert;
 const sinon = require("sinon");
 const mock = require("mock-require");
-const resourceFactory = require("@ui5/fs").resourceFactory;
 
 const {generateProjectGraph} = require("@ui5/project");
 const builder = require("@ui5/project").builder;
@@ -513,27 +512,11 @@ test.serial("Build application.j with resources.json and version info", async (t
 	const destPath = "./test/tmp/build/application.j/dest-resources-json";
 	const expectedPath = path.join("test", "expected", "build", "application.j", "dest-resources-json");
 
-
-	const dummyVersionInfoGenerator = () => {
-		const versionJson = {
-			"name": "application.j",
-			"version": "1.0.0",
-			"buildTimestamp": "202008120917",
-			"scmRevision": "",
-			"libraries": []
-		};
-
-		return [resourceFactory.createResource({
-			path: "/resources/sap-ui-version.json",
-			string: JSON.stringify(versionJson, null, "\t")
-		})];
-	};
-
-	mock("../../../lib/processors/versionInfoGenerator", dummyVersionInfoGenerator);
-	mock.reRequire("../../../lib/tasks/generateVersionInfo");
-
-	// TODO: Is this still required? If so, the @ui5/project build needs to be re-required
-	// const builder = mock.reRequire("../../../lib/builder/builder");
+	sinon.stub(Date.prototype, "getFullYear").returns(2020);
+	sinon.stub(Date.prototype, "getMonth").returns(7);
+	sinon.stub(Date.prototype, "getDate").returns(12);
+	sinon.stub(Date.prototype, "getHours").returns(9);
+	sinon.stub(Date.prototype, "getMinutes").returns(17);
 
 	const graph = await generateProjectGraph.usingObject({
 		dependencyTree: applicationJTree

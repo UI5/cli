@@ -120,7 +120,7 @@
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.5",
 		"sourcemap-codec": "^1.4.8",
-		"terser": "^5.10.0",
+		"terser": "^5.14.1",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},
