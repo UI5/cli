@@ -820,7 +820,8 @@ metadata:
 		data: {}
 	}));
 
-	t.is(error.message, "Could not find project with name my-project-3 in YAML: my-project/ui5.yaml");
+	t.is(error.message,
+		`Could not find project with name my-project-3 in YAML: ${path.join("my-project", "ui5.yaml")}`);
 	t.is(t.context.fsWriteFileStub.callCount, 0, "fs.writeFile should not be called");
 });
 
@@ -877,7 +878,7 @@ framework:
 			getPath: () => "my-project",
 			getName: () => "my-project"
 		},
-		configPathOverride: "dir/other-file.yaml",
+		configPathOverride: path.join("dir", "other-file.yaml"),
 		data: {
 			framework: {
 				name: "OpenUI5",
@@ -917,7 +918,7 @@ framework:
 			getPath: () => "my-project",
 			getName: () => "my-project"
 		},
-		configPathOverride: "/dir/other-file.yaml",
+		configPathOverride: path.join("/", "dir", "other-file.yaml"),
 		data: {
 			framework: {
 				name: "OpenUI5",
