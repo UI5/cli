@@ -2,7 +2,26 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.3...HEAD).
+
+<a name="v3.0.0-alpha.3"></a>
+## [v3.0.0-alpha.3] - 2022-06-14
+### Breaking Changes
+- Implement Project Graph, build execution [`161f462`](https://github.com/SAP/ui5-project/commit/161f462cf6a9955337fff512007125128c6c39dd)
+
+### BREAKING CHANGE
+
+* normalizer and projectTree APIs have been removed. Use
+generateProjectGraph instead
+* Going forward only specification versions 2.0 and higher are supported
+    * In case a legacy specification version is detected, an automatic,
+      transparent migration is attempted.
+* Build:
+    * The "dev" build mode has been removed
+    * The task "generateVersionInfo" is no longer executed for
+      application projects by default. You may enable it again using the
+      includedTasks parameter
+
 
 <a name="v3.0.0-alpha.2"></a>
 ## [v3.0.0-alpha.2] - 2022-04-26
@@ -282,6 +301,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v3.0.0-alpha.3]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
 [v3.0.0-alpha.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
 [v3.0.0-alpha.1]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
 [v3.0.0-alpha.0]: https://github.com/SAP/ui5-project/compare/v2.6.0...v3.0.0-alpha.0
