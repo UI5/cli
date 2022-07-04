@@ -14,6 +14,10 @@ class Module extends Project {
 	/**
 	* @public
 	*/
+	getSourcePath() {
+		throw new Error(`Projects of type module have more than one source path`);
+	}
+
 
 	/* === Resource Access === */
 	/**
@@ -74,7 +78,6 @@ class Module extends Project {
 		this._log.verbose(`Path mapping for library project ${this.getName()}:`);
 		this._log.verbose(`  Physical root path: ${this.getPath()}`);
 		this._log.verbose(`  Mapped to:`);
-		this._log.verbose(`    /resources/ => ${this._srcPath}`);
 
 		if (config.resources?.configuration?.paths) {
 			this._paths = await Promise.all(Object.entries(config.resources.configuration.paths)

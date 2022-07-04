@@ -30,6 +30,10 @@ class Library extends ComponentProject {
 			this._config.builder.libraryPreload.excludes || [];
 	}
 
+	getSourcePath() {
+		return fsPath.join(this.getPath(), this._srcPath);
+	}
+
 	/* === Resource Access === */
 	_getSourceReader() {
 		// TODO: Throw for libraries with additional namespaces like sap.ui.core?
@@ -40,7 +44,7 @@ class Library extends ComponentProject {
 			virBasePath += `${this._namespace}/`;
 		}
 		return resourceFactory.createReader({
-			fsBasePath: fsPath.join(this.getPath(), this._srcPath),
+			fsBasePath: this.getSourcePath(),
 			virBasePath,
 			name: `Source reader for library project ${this.getName()}`,
 			project: this,
@@ -77,7 +81,7 @@ class Library extends ComponentProject {
 	*/
 	_getRawSourceReader() {
 		return resourceFactory.createReader({
-			fsBasePath: fsPath.join(this.getPath(), this._srcPath),
+			fsBasePath: this.getSourcePath(),
 			virBasePath: "/",
 			name: `Source reader for library project ${this.getName()}`,
 			project: this

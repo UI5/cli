@@ -20,6 +20,10 @@ class ThemeLibrary extends Project {
 		return this._config.metadata.copyright;
 	}
 
+	getSourcePath() {
+		return fsPath.join(this.getPath(), this._srcPath);
+	}
+
 	/* === Resource Access === */
 	/**
 	 * Get a [ReaderCollection]{@link module:@ui5/fs.ReaderCollection} for accessing all resources of the
@@ -32,7 +36,7 @@ class ThemeLibrary extends Project {
 	 */
 	getReader() {
 		let reader = resourceFactory.createReader({
-			fsBasePath: fsPath.join(this.getPath(), this._srcPath),
+			fsBasePath: this.getSourcePath(),
 			virBasePath: "/resources/",
 			name: `Runtime resources reader for theme-library project ${this.getName()}`,
 			project: this,

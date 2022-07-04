@@ -26,6 +26,10 @@ class Application extends ComponentProject {
 			this._config.builder.cachebuster.signatureType || "time";
 	}
 
+	getSourcePath() {
+		return fsPath.join(this.getPath(), this._webappPath);
+	}
+
 	/* === Resource Access === */
 	/**
 	* Get a resource reader for the sources of the project (excluding any test resources)
@@ -34,7 +38,7 @@ class Application extends ComponentProject {
 	*/
 	_getSourceReader() {
 		return resourceFactory.createReader({
-			fsBasePath: fsPath.join(this.getPath(), this._webappPath),
+			fsBasePath: this.getSourcePath(),
 			virBasePath: `/resources/${this._namespace}/`,
 			name: `Source reader for application project ${this.getName()}`,
 			project: this,
@@ -48,7 +52,7 @@ class Application extends ComponentProject {
 
 	_getRawSourceReader() {
 		return resourceFactory.createReader({
-			fsBasePath: fsPath.join(this.getPath(), this._webappPath),
+			fsBasePath: this.getSourcePath(),
 			virBasePath: "/",
 			name: `Source reader for application project ${this.getName()}`,
 			project: this
@@ -70,7 +74,7 @@ class Application extends ComponentProject {
 
 		this._log.verbose(`Path mapping for application project ${this.getName()}:`);
 		this._log.verbose(`  Physical root path: ${this.getPath()}`);
-		this._log.verbose(`  Mapped to: ${this._srcPath}`);
+		this._log.verbose(`  Mapped to: ${this._webappPath}`);
 
 		if (!await this._dirExists("/" + this._webappPath)) {
 			throw new Error(

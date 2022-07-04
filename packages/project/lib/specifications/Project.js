@@ -48,6 +48,15 @@ class Project extends Specification {
 	}
 
 	/**
+	* Path of project's sources. This might not be POSIX.
+	*
+	* @public
+	*/
+	getSourcePath() {
+		throw new Error(`getSourcePath must be implemented by subclass ${this.constructor.name}`);
+	}
+
+	/**
 	* @private
 	*/
 	getFrameworkName() {
