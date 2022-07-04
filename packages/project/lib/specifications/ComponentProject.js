@@ -117,19 +117,13 @@ class ComponentProject extends Project {
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = this._getReader().link({
-				linkPath: `/`,
-				targetPath: `/resources/${this._namespace}/`
-			});
+			reader = this._getReader().flatten(this._namespace);
 			break;
 		case "flat":
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = this._getReader().link({
-				linkPath: `/`,
-				targetPath: `/resources/${this._namespace}/`
-			});
+			reader = this._getReader().flatten(this._namespace);
 			break;
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
@@ -232,20 +226,14 @@ class ComponentProject extends Project {
 		}
 		case "runtime": {
 			// Runtime is not namespaced: link namespace to /
-			readers.push(namespaceWriter.link({
-				linkPath: `/`,
-				targetPath: `/resources/${this._namespace}/`
-			}));
+			readers.push(namespaceWriter.flatten(this._namespace));
 			// Add general writer as is
 			readers.push(generalWriter);
 			break;
 		}
 		case "flat": {
 			// Rewrite paths from "flat" to "buildtime"
-			readers.push(namespaceWriter.link({
-				linkPath: `/`,
-				targetPath: `/resources/${this._namespace}/`
-			}));
+			readers.push(namespaceWriter.flatten(this._namespace));
 			// General writer resources can't be flattened, so they are not available
 			break;
 		}
