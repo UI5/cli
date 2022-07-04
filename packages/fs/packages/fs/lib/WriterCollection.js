@@ -14,11 +14,20 @@ class WriterCollection extends AbstractReaderWriter {
 	 * The constructor.
 	 *
 	 * @param {object} parameters Parameters
-	 * @param {Array<object.<string, module:@ui5/fs.AbstractReaderWriter>>} parameters.writerMapping
-	 * 	Mapping of virtual base paths to writers. Path are matched greedy
 	 * @param {string} parameters.name The collection name
+	 * @param {object.<string, module:@ui5/fs.AbstractReaderWriter>} parameters.writerMapping
+	 * 	Mapping of virtual base paths to writers. Path are matched greedy
+	 *
+	 * @example
+	 * new WriterCollection({
+	 *     name: "Writer Collection",
+	 *     writerMapping: {
+	 *	       "/": writerA,
+	 *	       "/my/path/": writerB,
+	 *     }
+	 * });
 	 */
-	constructor({writerMapping, name}) {
+	constructor({name, writerMapping}) {
 		super();
 		this._name = name;
 
@@ -102,20 +111,6 @@ class WriterCollection extends AbstractReaderWriter {
 		}
 		const writer = this._writerMapping[basePathMatch[1]];
 		return writer._write(resource, options);
-	}
-
-	_validateBasePath(writerMapping) {
-		Object.keys(writerMapping).forEach((path) => {
-			if (!path) {
-				throw new Error(`Empty path in path mapping of WriterCollection ${this._name}`);
-			}
-			if (!path.startsWith("/")) {
-				throw new Error(`Missing leading slash in path mapping '${path}' of WriterCollection ${this._name}`);
-			}
-			if (!path.endsWith("/")) {
-				throw new Error(`Missing trailing slash in path mapping '${path}' of WriterCollection ${this._name}`);
-			}
-		});
 	}
 }
 

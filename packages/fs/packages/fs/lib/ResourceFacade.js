@@ -41,7 +41,7 @@ class ResourceFacade {
 	 * @param {string} path (Virtual) path of the resource
 	 */
 	setPath(path) {
-		throw new Error(`The path of a ResourceFacade can't be changed at the moment`);
+		throw new Error(`The path of a ResourceFacade can't be changed`);
 	}
 
 	/**
@@ -177,6 +177,10 @@ class ResourceFacade {
 
 	getProject() {
 		return this._resource.getProject();
+	}
+
+	setProject(project) {
+		return this._resource.setProject(project);
 	}
 
 	hasProject() {

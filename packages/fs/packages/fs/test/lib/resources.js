@@ -5,21 +5,6 @@ const assert = chai.assert;
 const sinon = require("sinon");
 
 const ui5Fs = require("../../");
-require("@ui5/logger").setLevel("silly");
-
-// Create readerWriters before running tests
-test.beforeEach((t) => {
-	t.context.readerWriters = {
-		source: ui5Fs.resourceFactory.createAdapter({
-			fsBasePath: "./test/fixtures/application.a/webapp",
-			virBasePath: "/app/"
-		}),
-		dest: ui5Fs.resourceFactory.createAdapter({
-			fsBasePath: "./test/tmp/readerWriters/application.a",
-			virBasePath: "/dest/"
-		})
-	};
-});
 
 test.afterEach.always((t) => {
 	sinon.restore();
@@ -28,54 +13,79 @@ test.afterEach.always((t) => {
 /* BEWARE:
 	Always make sure that every test writes to a separate file! By default, tests are running concurrent.
 */
-test("Get resource from application.a (/index.html) and write it to /dest/ using a ReadableStream", (t) => {
-	const readerWriters = t.context.readerWriters;
+test("Get resource from application.a (/index.html) and write it to /dest/ using a ReadableStream", async (t) => {
+	const source = ui5Fs.resourceFactory.createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/"
+	});
+	const dest = ui5Fs.resourceFactory.createAdapter({
+		fsBasePath: "./test/tmp/readerWriters/application.a/simple-read-write",
+		virBasePath: "/dest/"
+	});
 	// Get resource from one readerWriter
-	return t.notThrowsAsync(readerWriters.source.byPath("/app/index.html")
-		.then(function(resource) {
-			return resource.clone();
-		})
-		.then(function(newResource) {
-			// Write resource content to another readerWriter
-			newResource.setPath("/dest/index_readableStreamTest.html");
-			return readerWriters.dest.write(newResource);
-		}).then(() => {
-			assert.fileEqual("./test/tmp/readerWriters/application.a/index_readableStreamTest.html",
-				"./test/fixtures/application.a/webapp/index.html");
-		}));
+	const resource = await source.byPath("/app/index.html");
+
+	const clonedResource = await resource.clone();
+
+	// Write resource content to another readerWriter
+	clonedResource.setPath("/dest/index_readableStreamTest.html");
+	await dest.write(clonedResource);
+
+	t.notThrows(() => {
+		assert.fileEqual("./test/tmp/readerWriters/application.a/simple-read-write/index_readableStreamTest.html",
+			"./test/fixtures/application.a/webapp/index.html");
+	});
 });
 
-test("prefixGlobPattern", (t) => {
-	t.deepEqual(
-		ui5Fs.resourceFactory.prefixGlobPattern("{/sub-directory-1/,/sub-directory-2/}**", "/pony/path/a"),
-		[
-			"/pony/path/a/sub-directory-1/**",
-			"/pony/path/a/sub-directory-2/**"
-		],
-		"GLOBs correctly prefixed");
+test("Filter resources", async (t) => {
+	const source = ui5Fs.resourceFactory.createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/"
+	});
+	const filteredSource = source.filter((resource) => {
+		return resource.getPath().endsWith(".js");
+	});
+	const sourceResources = await source.byGlob("**");
+	t.is(sourceResources.length, 2, "Found two resources in source");
 
-	t.deepEqual(
-		ui5Fs.resourceFactory.prefixGlobPattern("/pony-path/**", "/pony/path/a"),
-		["/pony/path/a/pony-path/**"],
-		"GLOBs correctly prefixed");
+	const resources = await filteredSource.byGlob("**");
 
-	t.deepEqual(
-		ui5Fs.resourceFactory.prefixGlobPattern("!/duck*path/**", "/pony/path/a"),
-		["!/pony/path/a/duck*path/**"],
-		"GLOBs correctly prefixed");
+	t.is(resources.length, 1, "Found exactly one resource via filter");
+	t.is(resources[0].getPath(), "/app/test.js", "Found correct resource");
+});
 
-	t.deepEqual(
-		ui5Fs.resourceFactory.prefixGlobPattern("!**.json", "/pony/path/a"),
-		["!/pony/path/a/**.json"],
-		"GLOBs correctly prefixed");
+test("Transform resources", async (t) => {
+	const source = ui5Fs.resourceFactory.createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/"
+	});
+	const transformedSource = source.transform(async (resourcePath, getResource) => {
+		if (resourcePath === "/app/test.js") {
+			const resource = await getResource();
+			resource.setPath("/app/transformed-test.js");
+		}
+	});
 
-	t.deepEqual(
-		ui5Fs.resourceFactory.prefixGlobPattern("!**.json", "/pony/path/a/"), // trailing slash
-		["!/pony/path/a/**.json"],
-		"GLOBs correctly prefixed");
+	const resources = await transformedSource.byGlob("**/*.js");
+	t.is(resources.length, 1, "Found one resource via transformer");
+	t.is(resources[0].getPath(), "/app/transformed-test.js", "Found correct resource");
 
-	t.deepEqual(
-		ui5Fs.resourceFactory.prefixGlobPattern("pony-path/**", "/pony/path/a/"), // trailing slash
-		["/pony/path/a/pony-path/**"],
-		"GLOBs correctly prefixed");
+	const sourceResources = await source.byGlob("**/*.js");
+	t.is(sourceResources.length, 1, "Found one resource via source");
+	t.is(sourceResources[0].getPath(), "/app/test.js", "Found resource with original path");
+
+	t.is(await resources[0].getString(), await sourceResources[0].getString(),
+		"Resources have identical content");
+});
+
+test("Flatten resources", async (t) => {
+	const source = ui5Fs.resourceFactory.createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+	const transformedSource = source.flatten("app");
+
+	const resources = await transformedSource.byGlob("**/*.js");
+	t.is(resources.length, 1, "Found one resource via transformer");
+	t.is(resources[0].getPath(), "/test.js", "Found correct resource");
 });

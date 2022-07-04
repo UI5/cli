@@ -12,10 +12,10 @@ class ReaderCollection extends AbstractReader {
 	 * The constructor.
 	 *
 	 * @param {object} parameters Parameters
-	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
 	 * @param {string} parameters.name The collection name
+	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
 	 */
-	constructor({readers, name}) {
+	constructor({name, readers}) {
 		super();
 		this._name = name;
 		this._readers = readers;

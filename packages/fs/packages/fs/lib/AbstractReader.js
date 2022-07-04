@@ -90,12 +90,12 @@ class AbstractReader {
 	/**
 	 * Create a [Transformer-Reader]{@link module:@ui5/fs.readers.Transformer} from the current reader
 	 *
-	 * @public
+	 * @private
 	 * @param {module:@ui5/fs.readers.Transformer~callback} callback
 	 * 				Callback to check and eventually transform any resource passed through the reader
 	 * @returns {module:@ui5/fs.reader.Transformer} Transformer instance
 	 */
-	transformer(callback) {
+	transform(callback) {
 		const Transformer = require("./readers/Transformer");
 		return new Transformer({
 			reader: this,
@@ -103,17 +103,24 @@ class AbstractReader {
 		});
 	}
 	/**
-	 * Create a [Link-Reader]{@link module:@ui5/fs.readers.Link} from the current reader
+	 * Create an abstraction of this reader instance where all requests are prefixed with
+	 * <code>/resources/<namespace></code>.
+	 *
+	 * This simulates "flat" resource access, which is for example common for projects of type
+	 * "application"
 	 *
 	 * @public
-	 * @param {module:@ui5/fs.reader.Link.PathMapping} pathMapping Link configuration
-	 * @returns {module:@ui5/fs.reader.Link} Link instance
+	 * @param {string} namespace Project namespace
+	 * @returns {module:@ui5/fs.reader.AbstractReader} Reader instance
 	 */
-	link(pathMapping) {
+	flatten(namespace) {
 		const Link = require("./readers/Link");
 		return new Link({
 			reader: this,
-			pathMapping
+			pathMapping: {
+				linkPath: `/`,
+				targetPath: `/resources/${namespace}/`
+			}
 		});
 	}
 
@@ -129,7 +136,7 @@ class AbstractReader {
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(virPattern, options, trace) {
-		throw new Error("Not implemented");
+		throw new Error("Function '_byGlob' is not implemented");
 	}
 
 	/**
@@ -143,7 +150,7 @@ class AbstractReader {
 	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
 	 */
 	_runGlob(pattern, options, trace) {
-		throw new Error("Not implemented");
+		throw new Error("Function '_runGlob' is not implemented");
 	}
 
 	/**
@@ -157,7 +164,7 @@ class AbstractReader {
 	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
-		throw new Error("Not implemented");
+		throw new Error("Function '_byPath' is not implemented");
 	}
 }
 

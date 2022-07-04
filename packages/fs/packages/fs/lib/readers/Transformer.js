@@ -13,7 +13,7 @@ class Transformer extends AbstractReader {
 	*
 	* @public
 	* @callback module:@ui5/fs.readers.Transformer~callback
-	* @param {module:@ui5/fs.Resource} resourcePath Path of the resource to process.
+	* @param {string} resourcePath Path of the resource to process.
 	* 			This can be used to decide whether the resource should be transformed
 	* @param {module:@ui5/fs.readers.Transformer~getResource}
 	* 			Function to retrieve the given resource instance in order to transform it
