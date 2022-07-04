@@ -6,7 +6,7 @@ const log = require("@ui5/logger").getLogger("resources:readers:Link");
 /**
  * A reader that allows modification of all resources passed through it.
  *
- * @public
+ * @private
  * @memberof module:@ui5/fs.readers
  * @augments module:@ui5/fs.AbstractReader
  */
@@ -14,8 +14,8 @@ class Link extends AbstractReader {
 	/**
 	 * Path mapping for a [Link]{@link module:@ui5/fs.readers.Link}
 	 *
-	 * @public
-	 * @typedef {object} mapping module:@ui5/fs.readers.Link.PathMapping
+	 * @private
+	 * @typedef {object} module:@ui5/fs.readers.Link.PathMapping
 	 * @property {string} linkPath Input path to rewrite
 	 * @property {string} targetPath Path to rewrite to
 	 */
@@ -23,10 +23,10 @@ class Link extends AbstractReader {
 	/**
 	 * Constructor
 	 *
-	 * @public
+	 * @private
 	 * @param {object} parameters Parameters
 	 * @param {module:@ui5/fs.AbstractReader} parameters.reader The resource reader to wrap
-	 * @param {Array<object.<string, module:@ui5/fs.AbstractReaderWriter>>} parameters.pathMapping
+	 * @param {module:@ui5/fs.readers.Link.PathMapping} parameters.pathMapping
 	 */
 	constructor({reader, pathMapping}) {
 		super();
@@ -38,7 +38,7 @@ class Link extends AbstractReader {
 		}
 		this._reader = reader;
 		this._pathMapping = pathMapping;
-		this._validatePathMapping(pathMapping);
+		Link._validatePathMapping(pathMapping);
 	}
 
 	/**
@@ -104,7 +104,7 @@ class Link extends AbstractReader {
 		return null;
 	}
 
-	_validatePathMapping({linkPath, targetPath}) {
+	static _validatePathMapping({linkPath, targetPath}) {
 		if (!linkPath) {
 			throw new Error(`Path mapping is missing attribute "linkPath"`);
 		}

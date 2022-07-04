@@ -36,7 +36,7 @@ const resourceFactory = {
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
-	 * @param {string} [parameters.fsBasePath] File system base path
+	 * @param {string} parameters.fsBasePath File system base path
 	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {string} [parameters.name]  Name for the reader collection
@@ -46,6 +46,11 @@ const resourceFactory = {
 		const normalizedExcludes = excludes.map((pattern) => {
 			return resourceFactory.prefixGlobPattern(pattern, virBasePath);
 		});
+		if (!fsBasePath) {
+			// Creating a reader with a memory adapter seems pointless right now
+			// since there would be no way to fill the adapter with resources
+			throw new Error(`Missing parameter "fsBasePath"`);
+		}
 		const ReaderCollection = require("./ReaderCollection");
 		return new ReaderCollection({
 			name,
@@ -58,6 +63,14 @@ const resourceFactory = {
 		});
 	},
 
+	/**
+	 * Creates a ReaderCollection
+	 *
+	 * @public
+	 * @param {object} parameters Parameters
+	 * @param {string} parameters.name The collection name
+	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
+	 */
 	createReaderCollection({name, readers}) {
 		const ReaderCollection = require("./ReaderCollection");
 		return new ReaderCollection({
@@ -66,6 +79,15 @@ const resourceFactory = {
 		});
 	},
 
+	/**
+	 * Creates a ReaderCollection
+	 *
+	 * @public
+	 * @param {object} parameters
+	 * @param {string} parameters.name The collection name
+	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers Prioritized list of resource readers
+	 * 																(first is tried first)
+	 */
 	createReaderCollectionPrioritized({name, readers}) {
 		const ReaderCollectionPrioritized = require("./ReaderCollectionPrioritized");
 		return new ReaderCollectionPrioritized({
