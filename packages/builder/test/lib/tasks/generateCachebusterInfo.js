@@ -6,7 +6,6 @@ chai.use(require("chai-fs"));
 const assert = chai.assert;
 
 const {generateProjectGraph} = require("@ui5/project");
-const builder = require("@ui5/project").builder;
 
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 
@@ -34,8 +33,7 @@ test("integration: Build application.g with manifestBundler", async (t) => {
 		dependencyTree: applicationGTree
 	});
 
-	await builder({
-		graph,
+	await graph.build({
 		destPath,
 		excludedTasks,
 		includedTasks
@@ -70,8 +68,7 @@ test("integration: Build application.g with manifestBundler and cachebuster usin
 		dependencyTree: applicationGTreeWithCachebusterHash
 	});
 
-	await builder({
-		graph,
+	await graph.build({
 		destPath,
 		excludedTasks,
 		includedTasks

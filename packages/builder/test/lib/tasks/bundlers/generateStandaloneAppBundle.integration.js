@@ -7,7 +7,6 @@ const sinon = require("sinon");
 const mock = require("mock-require");
 
 const {generateProjectGraph} = require("@ui5/project");
-const builder = require("@ui5/project").builder;
 
 test.afterEach.always((t) => {
 	mock.stopAll();
@@ -42,8 +41,7 @@ test("integration: build application.b standalone", async (t) => {
 		dependencyTree: applicationBTree
 	});
 
-	await builder({
-		graph,
+	await graph.build({
 		destPath,
 		excludedTasks,
 		includedTasks
