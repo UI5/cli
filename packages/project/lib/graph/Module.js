@@ -138,19 +138,19 @@ class Module {
 			configs = configs.filter((configuration) => {
 				return configuration.kind !== "project";
 			});
-		}
-
-		// Patch configs
-		configs.forEach((configuration) => {
-			if (configuration.kind === "project" && configuration.type === "library" &&
-				configuration.metadata && configuration.metadata.name) {
-				const libraryName = configuration.metadata.name;
-				// Old theme-libraries where configured as type "library"
-				if (SAP_THEMES_NS_EXEMPTIONS.includes(libraryName)) {
-					configuration.type = "theme-library";
+		} else {
+			// Patch configs
+			configs.forEach((configuration) => {
+				if (configuration.kind === "project" && configuration.type === "library" &&
+					configuration.metadata && configuration.metadata.name) {
+					const libraryName = configuration.metadata.name;
+					// Old theme-libraries where configured as type "library"
+					if (SAP_THEMES_NS_EXEMPTIONS.includes(libraryName)) {
+						configuration.type = "theme-library";
+					}
 				}
-			}
-		});
+			});
+		}
 
 		const specs = await Promise.all(configs.map(async (configuration) => {
 			const buildManifest = configuration._buildManifest;
@@ -212,7 +212,7 @@ class Module {
 	_normalizeAndApplyShims(config) {
 		this._normalizeConfig(config);
 
-		if (config.kind !== "project") { // TODO 3.0: Shouldn't this be '==='?
+		if (config.kind === "project") {
 			this._applyProjectShims(config);
 		}
 		return config;
@@ -285,9 +285,9 @@ class Module {
 			try {
 				configFile = await readFile(configPath, {encoding: "utf8"});
 			} catch (err) {
-				// TODO: Caller might want to ignore this exception for ENOENT errors if non-root projects
+				// TODO: Caller might wants to ignore exceptions for ENOENT errors for non-root projects
 				// However, this decision should not be made here
-				throw new Error("Failed to read configuration for project " +
+				throw new Error("Failed to read configuration for module " +
 						`${this.getId()} at '${configPath}'. Error: ${err.message}`);
 			}
 		} else {
@@ -395,40 +395,6 @@ class Module {
 			config.kind = "project"; // default
 		}
 		return config;
-	}
-
-	_isConfigValid(project) {
-		if (!project.type) {
-			if (project._isRoot) {
-				throw new Error(`No type configured for root project ${project.id}`);
-			}
-			log.verbose(`No type configured for project ${project.id}`);
-			return false; // ignore this project
-		}
-
-		if (project.kind !== "project" && project._isRoot) {
-			// This is arguable. It is not the concern of ui5-project to define the entry point of a project tree
-			// On the other hand, there is no known use case for anything else right now and failing early here
-			//	makes sense in that regard
-			throw new Error(`Root project needs to be of kind "project". ${project.id} is of kind ${project.kind}`);
-		}
-
-		if (project.kind === "project" && project.type === "application") {
-			// There must be exactly one application project per dependency tree
-			// If multiple are found, all but the one closest to the root are rejected (ignored)
-			// If there are two projects equally close to the root, an error is being thrown
-			if (!this.qualifiedApplicationProject) {
-				this.qualifiedApplicationProject = project;
-			} else if (this.qualifiedApplicationProject._level === project._level) {
-				throw new Error(`Found at least two projects ${this.qualifiedApplicationProject.id} and ` +
-					`${project.id} of type application with the same distance to the root project. ` +
-					"Only one project of type application can be used. Failed to decide which one to ignore.");
-			} else {
-				return false; // ignore this project
-			}
-		}
-
-		return true;
 	}
 
 	/**

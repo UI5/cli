@@ -1,6 +1,15 @@
 const log = require("@ui5/logger").getLogger("graph:ShimCollection");
 
 function addToMap(name, fromMap, toMap) {
+	/* Dynamically populate the given map "toMap" with the following structure:
+		<module-id>: [{
+			name: <shim-name>,
+			shim: <shim-configuration>
+		}, {
+			name: <shim-name>,
+			shim: <shim-configuration>
+		}, ...]
+	*/
 	for (const [moduleId, shim] of Object.entries(fromMap)) {
 		if (!toMap[moduleId]) {
 			toMap[moduleId] = [];
@@ -41,12 +50,12 @@ class ShimCollection {
 		return this._projectConfigShims[moduleId];
 	}
 
-	getAllDependencyShims() {
-		return this._dependencyShims;
-	}
-
 	getCollectionShims(moduleId) {
 		return this._collectionShims[moduleId];
+	}
+
+	getAllDependencyShims() {
+		return this._dependencyShims;
 	}
 }
 

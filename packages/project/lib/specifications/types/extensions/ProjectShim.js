@@ -27,6 +27,23 @@ class ProjectShim extends Extension {
 	getCollectionShims() {
 		return this._config.shims.collections;
 	}
+
+	/* === Internals === */
+	/**
+	 * @private
+	*/
+	async _validateConfig() {
+		if (this._config.shims.collections) {
+			const path = require("path");
+			for (const dependencyDefinition of Object.values(this._config.shims.collections)) {
+				Object.values(dependencyDefinition.modules).forEach((depPath) => {
+					if (path.isAbsolute(depPath)) {
+						throw new Error("All module paths of collections defined in a project-shim must be relative");
+					}
+				});
+			}
+		}
+	}
 }
 
 module.exports = ProjectShim;

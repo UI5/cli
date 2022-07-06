@@ -27,14 +27,14 @@ function validateNode(node) {
 	if (node.specVersion) {
 		throw new Error(
 			`Provided node with ID ${node.id} contains a top-level 'specVersion' property. ` +
-			`With UI5 Tooling 3.0, project configuration needs to be provided in a dedicated` +
-			`'configuration' object.`);
+			`With UI5 Tooling 3.0, project configuration needs to be provided in a dedicated ` +
+			`'configuration' object`);
 	}
 	if (node.metadata) {
 		throw new Error(
 			`Provided node with ID ${node.id} contains a top-level 'metadata' property. ` +
-			`With UI5 Tooling 3.0, project configuration needs to be provided in a dedicated` +
-			`'configuration' object.`);
+			`With UI5 Tooling 3.0, project configuration needs to be provided in a dedicated ` +
+			`'configuration' object`);
 	}
 }
 
@@ -133,7 +133,7 @@ module.exports = async function(nodeProvider) {
 
 	const rootDependencies = await nodeProvider.getDependencies(rootNode);
 
-	if (rootDependencies.length) {
+	if (rootDependencies && rootDependencies.length) {
 		queue.push({
 			nodes: rootDependencies,
 			parentProjectName: rootProjectName
@@ -198,8 +198,7 @@ module.exports = async function(nodeProvider) {
 						return {
 							id: shimModuleId,
 							version: node.version,
-							path: shimModulePath,
-							configuration: project && project.getConfigurationObject()
+							path: shimModulePath
 						};
 					});
 				});
@@ -244,11 +243,6 @@ module.exports = async function(nodeProvider) {
 					projectGraph.addProject(project);
 				}
 
-				// if (!node.deduped) {
-				// Even if not deduped, the node might occur multiple times in the tree (on separate branches).
-				// Therefore still supplying the ignore duplicates parameter here (true)
-				// }
-
 				if (parentProjectName) {
 					if (node.optional) {
 						projectGraph.declareOptionalDependency(parentProjectName, projectName);
@@ -271,7 +265,7 @@ module.exports = async function(nodeProvider) {
 			}
 
 			const nodeDependencies = await nodeProvider.getDependencies(node);
-			if (nodeDependencies) {
+			if (nodeDependencies && nodeDependencies.length) {
 				queue.push({
 					// copy array, so that the queue is stable while ignored project dependencies are removed
 					nodes: [...nodeDependencies],
