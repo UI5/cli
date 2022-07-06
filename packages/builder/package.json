@@ -125,7 +125,7 @@
 		"yazl": "^2.5.1"
 	},
 	"devDependencies": {
-		"@ui5/project": "^3.0.0-alpha.3",
+		"@ui5/project": "github:SAP/ui5-project#178dedbfe80ab890d134ce12ccb29fc709595a52",
 		"ava": "^3.15.0",
 		"chai": "^4.3.4",
 		"chai-fs": "^2.0.0",
