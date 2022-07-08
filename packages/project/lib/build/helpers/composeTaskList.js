@@ -1,4 +1,4 @@
-const log = require("@ui5/logger").getLogger("buildHelpers:composeTaskList");
+const log = require("@ui5/logger").getLogger("build:helpers:composeTaskList");
 
 /**
  * Creates the list of tasks to be executed by the build process

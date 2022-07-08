@@ -1,10 +1,10 @@
 const {promisify} = require("util");
 const rimraf = promisify(require("rimraf"));
 const resourceFactory = require("@ui5/fs").resourceFactory;
-const log = require("@ui5/logger").getGroupLogger("builder");
-const BuildContext = require("./buildHelpers/BuildContext");
-const composeProjectList = require("./buildHelpers/composeProjectList");
-const getBuildDefinitionInstance = require("./buildDefinitions/getInstance");
+const log = require("@ui5/logger").getGroupLogger("build");
+const composeProjectList = require("./helpers/composeProjectList");
+const BuildContext = require("./helpers/BuildContext");
+const ProjectBuilder = require("./ProjectBuilder");
 
 async function executeCleanupTasks(buildContext) {
 	log.info("Executing cleanup tasks...");
@@ -74,8 +74,8 @@ function getElapsedTime(startTime) {
  * Configures the project build and starts it.
  *
  * @public
+ * @param {module:@ui5/project.graph.ProjectGraph} graph Project graph
  * @param {object} parameters Parameters
- * @param {module:@ui5/project.graph.ProjectGraph} parameters.graph Project graph
  * @param {string} parameters.destPath Target path
  * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
  * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]]
@@ -94,8 +94,8 @@ function getElapsedTime(startTime) {
  * 							If the wildcard '*' is provided, only the included tasks will be executed.
  * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
  */
-module.exports = async function({
-	graph, destPath, cleanDest = false,
+module.exports = async function(graph, {
+	destPath, cleanDest = false,
 	includedDependencies = [], excludedDependencies = [],
 	complexDependencyIncludes,
 	selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
@@ -107,9 +107,9 @@ module.exports = async function({
 	if (!destPath) {
 		throw new Error(`Missing parameter 'destPath'`);
 	}
-	if (graph.isSealed()) {
+	if (!graph.isSealed()) {
 		throw new Error(
-			`Can not build project graph with root node ${this._rootProjectName}: Graph has already been sealed`);
+			`Can not build project graph with root node ${graph.getRoot().getName()}: Graph is not sealed`);
 	}
 
 	if (complexDependencyIncludes) {
@@ -203,7 +203,7 @@ module.exports = async function({
 			log.verbose(`Preparing project ${projectName}...`);
 
 			const taskUtil = projectContext.getTaskUtil();
-			const builder = getBuildDefinitionInstance({
+			const builder = new ProjectBuilder({
 				graph,
 				project,
 				taskUtil,
@@ -291,7 +291,7 @@ module.exports = async function({
 
 			if (taskUtil.isRootProject() && createBuildManifest) {
 				// Create and write a build manifest metadata file
-				const createBuildManifest = require("./buildHelpers/createBuildManifest");
+				const createBuildManifest = require("./build/helpers/createBuildManifest");
 				const metadata = await createBuildManifest(project, buildConfig);
 				await fsTarget.write(resourceFactory.createResource({
 					path: `/.ui5/build-manifest.json`,

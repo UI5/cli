@@ -1,4 +1,4 @@
-const log = require("@ui5/logger").getLogger("buildHelpers:composeProjectList");
+const log = require("@ui5/logger").getLogger("build:helpers:composeProjectList");
 
 /**
  * Creates an object containing the flattened project dependency tree. Each dependency is defined as an object key while

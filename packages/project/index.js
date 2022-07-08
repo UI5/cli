@@ -4,10 +4,6 @@
  */
 module.exports = {
 	/**
-	 * @type {import('./lib/builder')}
-	 */
-	builder: "./lib/builder",
-	/**
 	 * @type {import('./lib/generateProjectGraph')}
 	 */
 	generateProjectGraph: "./lib/generateProjectGraph",

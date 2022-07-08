@@ -1,11 +1,12 @@
 const test = require("ava");
 const path = require("path");
-const createBuildManifest = require("../../../lib/buildHelpers/createBuildManifest");
-const Module = require("../../../lib/graph/Module");
-const Specification = require("../../../lib/specifications/Specification");
+const createBuildManifest = require("../../../../lib/build/helpers/createBuildManifest");
+const Module = require("../../../../lib/graph/Module");
+const Specification = require("../../../../lib/specifications/Specification");
 
-const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
-const buildDescrApplicationAPath = path.join(__dirname, "..", "..", "fixtures", "build-manifest", "application.a");
+const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
+const buildDescrApplicationAPath =
+	path.join(__dirname, "..", "..", "..", "fixtures", "build-manifest", "application.a");
 const applicationAConfig = {
 	id: "application.a.id",
 	version: "1.0.0",
@@ -17,8 +18,8 @@ const applicationAConfig = {
 		metadata: {name: "application.a"}
 	}
 };
-const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
-const buildDescrLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "build-manifest", "library.e");
+const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");
+const buildDescrLibraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "build-manifest", "library.e");
 const libraryEConfig = {
 	id: "library.e.id",
 	version: "1.0.0",

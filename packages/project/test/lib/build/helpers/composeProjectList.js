@@ -3,21 +3,21 @@ const sinon = require("sinon");
 const mock = require("mock-require");
 const path = require("path");
 const logger = require("@ui5/logger");
-const generateProjectGraph = require("../../../lib/generateProjectGraph");
+const generateProjectGraph = require("../../../../lib/generateProjectGraph");
 
-const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
-const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
-const libraryFPath = path.join(__dirname, "..", "..", "fixtures", "library.f");
-const libraryGPath = path.join(__dirname, "..", "..", "fixtures", "library.g");
-const libraryDDependerPath = path.join(__dirname, "..", "..", "fixtures", "library.d-depender");
+const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
+const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");
+const libraryFPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.f");
+const libraryGPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.g");
+const libraryDDependerPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-depender");
 
 test.beforeEach((t) => {
 	t.context.log = {
 		warn: sinon.stub()
 	};
 	sinon.stub(logger, "getLogger").callThrough()
-		.withArgs("buildHelpers:composeProjectList").returns(t.context.log);
-	t.context.composeProjectList = mock.reRequire("../../../lib/buildHelpers/composeProjectList");
+		.withArgs("build:helpers:composeProjectList").returns(t.context.log);
+	t.context.composeProjectList = mock.reRequire("../../../../lib/build/helpers/composeProjectList");
 });
 
 test.afterEach.always((t) => {

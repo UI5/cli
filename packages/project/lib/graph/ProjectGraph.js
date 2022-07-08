@@ -446,6 +446,7 @@ class ProjectGraph {
 		try {
 			this._checkSealed();
 			if (!projectGraph.isSealed()) {
+				// Seal input graph to prevent further modification
 				log.verbose(
 					`Sealing project graph with root project ${projectGraph._rootProjectName} ` +
 					`before joining it into project graph with root project ${this._rootProjectName}...`);
@@ -493,6 +494,43 @@ class ProjectGraph {
 	}
 
 	// TODO: introduce function to check for dangling nodes/consistency in general?
+
+	/**
+	 * Executes a build on the graph
+	 *
+	 * @public
+	 * @param {object} parameters Parameters
+	 * @param {module:@ui5/project.graph.ProjectGraph} parameters.graph Project graph
+	 * @param {string} parameters.destPath Target path
+	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
+	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]]
+	 *			List of names of projects to include in the build result
+	 *			If the wildcard '*' is provided, all dependencies will be included in the build result.
+	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]]
+	 *			List of names of projects to exclude from the build result.
+	 * @param {object} [parameters.complexDependencyIncludes] TODO 3.0
+	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
+	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
+	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
+	 * @param {boolean} [parameters.createBuildManifest=false]
+	 * 			Whether to create a build manifest file for the root project.
+	 *			This is currently only supported for projects of type 'library' and 'theme-library'
+	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
+	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
+	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
+	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
+	 */
+	async build(parameters) {
+		this.seal();
+		if (this._built) {
+			throw new Error(
+				`Project graph with root node ${this._rootProjectName} has already been built. ` +
+				`Each graph can only be built once`);
+		}
+		this._built = true;
+		const runBuild = require("../build/runBuild");
+		return runBuild(this, parameters);
+	}
 }
 
 function mergeMap(target, source) {

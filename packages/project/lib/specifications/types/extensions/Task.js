@@ -14,6 +14,15 @@ class Task extends Extension {
 		const taskPath = path.join(this.getPath(), this._config.task.path);
 		return require(taskPath);
 	}
+	/* === Internals === */
+	/**
+	 * @private
+	*/
+	async _validateConfig() {
+		if (/--\d$/.test(this.getName())) {
+			throw new Error(`Task name must not end with "--<number>"`);
+		}
+	}
 }
 
 module.exports = Task;

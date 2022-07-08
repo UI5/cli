@@ -7,9 +7,9 @@ test.beforeEach((t) => {
 	t.context.log = {
 		warn: sinon.stub()
 	};
-	sinon.stub(logger, "getLogger").withArgs("buildHelpers:composeTaskList").returns(t.context.log);
+	sinon.stub(logger, "getLogger").withArgs("build:helpers:composeTaskList").returns(t.context.log);
 
-	t.context.composeTaskList = mock.reRequire("../../../lib/buildHelpers/composeTaskList");
+	t.context.composeTaskList = mock.reRequire("../../../../lib/build/helpers/composeTaskList");
 });
 
 test.afterEach.always(() => {

@@ -7,7 +7,7 @@ test.afterEach.always((t) => {
 	mock.stopAll();
 });
 
-const BuildContext = require("../../../lib/buildHelpers/BuildContext");
+const BuildContext = require("../../../../lib/build/helpers/BuildContext");
 
 test("Missing parameters", (t) => {
 	const error = t.throws(() => {
@@ -65,9 +65,9 @@ test.serial("createProjectContext", (t) => {
 			t.is(log, "log", "Correct log parameter");
 		}
 	}
-	mock("../../../lib/buildHelpers/ProjectBuildContext", DummyProjectContext);
+	mock("../../../../lib/build/helpers/ProjectBuildContext", DummyProjectContext);
 
-	const BuildContext = mock.reRequire("../../../lib/buildHelpers/BuildContext");
+	const BuildContext = mock.reRequire("../../../../lib/build/helpers/BuildContext");
 	const testBuildContext = new BuildContext({
 		graph: "graph"
 	});

@@ -66,10 +66,26 @@ test("_dirExists: Directory is a file", async (t) => {
 	t.false(bExists, "directory is a file");
 });
 
-
 test("_dirExists: Directory does not exist", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 
 	const bExists = await project._dirExists("/w");
 	t.false(bExists, "directory does not exist");
+});
+
+test("Project with incorrect name", async (t) => {
+	const project = await Specification.create({
+		id: "application.a.id",
+		version: "1.0.0",
+		modulePath: applicationAPath,
+		configuration: {
+			specVersion: "2.3",
+			kind: "project",
+			type: "application",
+			metadata: {name: "application a"}
+		}
+	});
+	t.is(project.getName(), "application a", "Returned correct name");
+	t.is(project.getVersion(), "1.0.0", "Returned correct version");
+	t.is(project.getPath(), applicationAPath, "Returned correct project path");
 });

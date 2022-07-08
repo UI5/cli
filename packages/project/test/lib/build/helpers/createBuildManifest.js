@@ -1,9 +1,9 @@
 const test = require("ava");
 const path = require("path");
-const createBuildManifest = require("../../../lib/buildHelpers/createBuildManifest");
-const Specification = require("../../../lib/specifications/Specification");
+const createBuildManifest = require("../../../../lib/build/helpers/createBuildManifest");
+const Specification = require("../../../../lib/specifications/Specification");
 
-const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
+const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const applicationProjectInput = {
 	id: "application.a.id",
 	version: "1.0.0",
@@ -16,7 +16,7 @@ const applicationProjectInput = {
 	}
 };
 
-const libraryDPath = path.join(__dirname, "..", "..", "fixtures", "library.d");
+const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryProjectInput = {
 	id: "library.d.id",
 	version: "1.0.0",
@@ -71,7 +71,7 @@ test("Create application from project with build manifest", async (t) => {
 			versions: {
 				builderVersion: require("@ui5/builder/package.json").version,
 				fsVersion: require("@ui5/fs/package.json").version,
-				projectVersion: require("../../../package.json").version,
+				projectVersion: require("../../../../package.json").version,
 			},
 			tags: {
 				"/resources/id1/foo.js": {
@@ -115,7 +115,7 @@ test("Create library from project with build manifest", async (t) => {
 			versions: {
 				builderVersion: require("@ui5/builder/package.json").version,
 				fsVersion: require("@ui5/fs/package.json").version,
-				projectVersion: require("../../../package.json").version,
+				projectVersion: require("../../../../package.json").version,
 			},
 			tags: {
 				"/resources/library/d/foo.js": {

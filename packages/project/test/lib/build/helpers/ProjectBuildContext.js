@@ -13,7 +13,7 @@ test.afterEach.always((t) => {
 	mock.stopAll();
 });
 
-const ProjectBuildContext = require("../../../lib/buildHelpers/ProjectBuildContext");
+const ProjectBuildContext = require("../../../../lib/build/helpers/ProjectBuildContext");
 
 test("Missing parameters", (t) => {
 	t.throws(() => {
@@ -140,7 +140,7 @@ test.serial("getResourceTagCollection", (t) => {
 		ResourceTagCollection: DummyResourceTagCollection
 	});
 
-	const ProjectBuildContext = mock.reRequire("../../../lib/buildHelpers/ProjectBuildContext");
+	const ProjectBuildContext = mock.reRequire("../../../../lib/build/helpers/ProjectBuildContext");
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {},
 		project: "project",

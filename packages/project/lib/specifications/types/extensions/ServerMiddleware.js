@@ -14,6 +14,15 @@ class ServerMiddleware extends Extension {
 		const middlewarePath = path.join(this.getPath(), this._config.middleware.path);
 		return require(middlewarePath);
 	}
+	/* === Internals === */
+	/**
+	 * @private
+	*/
+	async _validateConfig() {
+		if (/--\d$/.test(this.getName())) {
+			throw new Error(`Server middleware name must not end with "--<number>"`);
+		}
+	}
 }
 
 module.exports = ServerMiddleware;
