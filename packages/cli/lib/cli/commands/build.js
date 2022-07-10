@@ -122,7 +122,7 @@ build.builder = function(cli) {
 
 async function handleBuild(argv) {
 	const logger = require("@ui5/logger");
-	const {generateProjectGraph, builder} = require("@ui5/project");
+	const {generateProjectGraph} = require("@ui5/project");
 
 	const command = argv._[argv._.length - 1];
 	logger.setShowProgress(true);
@@ -141,7 +141,7 @@ async function handleBuild(argv) {
 		});
 	}
 	const buildSettings = graph.getRoot().getBuilderSettings() || {};
-	await builder({
+	await graph.build({
 		graph,
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],

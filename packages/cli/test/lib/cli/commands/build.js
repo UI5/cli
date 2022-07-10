@@ -62,21 +62,13 @@ test.beforeEach((t) => {
 
 	t.context.builder = sinon.stub().resolves();
 
-	// NOTE: project.builder needs to be re-defined via defineProperty.
-	// Sinon is unable to create a stub for the property because of the lazy-loading
-	// mechanism in @ui5/project index.js
-	Object.defineProperty(project, "builder", {
-		get() {
-			return t.context.builder;
-		}
-	});
-
 	// Create basic mocking objects
 	t.context.getBuilderSettings = sinon.stub().returns(undefined);
 	const fakeGraph = {
 		getRoot: sinon.stub().returns({
 			getBuilderSettings: t.context.getBuilderSettings
-		})
+		}),
+		build: t.context.builder
 	};
 	t.context.generateProjectGraph.usingNodePackageDependencies.resolves(fakeGraph);
 	t.context.expectedBuilderArgs.graph = fakeGraph;
