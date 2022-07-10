@@ -83,10 +83,10 @@ class ProjectGraph {
 	}
 
 	/**
-	 * Get all projects as a nested array containing pairs of project name and -instance.
+	 * Get all projects in the graph
 	 *
 	 * @public
-	 * @returns {Array<Array<string,module:@ui5/project.specifications.Project>>}
+	 * @returns {module:@ui5/project.specifications.Project[]}
 	 */
 	getAllProjects() {
 		return Object.values(this._projects);
@@ -126,10 +126,10 @@ class ProjectGraph {
 	}
 
 	/**
-	 * Get all extensions as a nested array containing pairs of extension name and -instance.
+	 * Get all extensions in the graph
 	 *
 	 * @public
-	 * @returns {Array<Array<string,module:@ui5/project.specifications.Extension>>}
+	 * @returns {module:@ui5/project.specifications.Extension[]}
 	 */
 	getAllExtensions() {
 		return Object.values(this._extensions);
@@ -215,7 +215,7 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @param {string} projectName Name of the project to retrieve the dependencies of
-	 * @returns {module:@ui5/project.specifications.Project[]} Project instances of the given project's dependencies
+	 * @returns {string[]} Project names
 	 */
 	getDependencies(projectName) {
 		const adjacencies = this._adjList[projectName];
@@ -425,16 +425,6 @@ class ProjectGraph {
 		})();
 	}
 
-	_checkCycle(predecessors, projectName) {
-		if (predecessors.includes(projectName)) {
-			// We start to run in circles. That's neither expected nor something we can deal with
-
-			// Mark first and last occurrence in chain with an asterisk
-			predecessors[predecessors.indexOf(projectName)] = `${projectName}*`;
-			throw new Error(`Detected cyclic dependency chain: ${predecessors.join(" -> ")} -> ${projectName}*`);
-		}
-	}
-
 	/**
 	 * Join another project graph into this one.
 	 * Projects and extensions which already exist in this graph will cause an error to be thrown
@@ -460,6 +450,57 @@ class ProjectGraph {
 				`Failed to join project graph with root project ${projectGraph._rootProjectName} into ` +
 				`project graph with root project ${this._rootProjectName}: ${err.message}`);
 		}
+	}
+
+	/**
+	 * Executes a build on the graph
+	 *
+	 * @public
+	 * @param {object} parameters Build parameters
+	 * @param {string} parameters.destPath Target path
+	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
+	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]]
+	 *			List of names of projects to include in the build result
+	 *			If the wildcard '*' is provided, all dependencies will be included in the build result.
+	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]]
+	 *			List of names of projects to exclude from the build result.
+	 * @param {object} [parameters.complexDependencyIncludes] TODO 3.0
+	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
+	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
+	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
+	 * @param {boolean} [parameters.createBuildManifest=false]
+	 * 			Whether to create a build manifest file for the root project.
+	 *			This is currently only supported for projects of type 'library' and 'theme-library'
+	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
+	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
+	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
+	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
+	 */
+	async build({
+		destPath, cleanDest = false,
+		includedDependencies = [], excludedDependencies = [],
+		complexDependencyIncludes,
+		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
+		includedTasks = [], excludedTasks = [],
+	}) {
+		this.seal();
+		if (this._built) {
+			throw new Error(
+				`Project graph with root node ${this._rootProjectName} has already been built. ` +
+				`Each graph can only be built once`);
+		}
+		this._built = true;
+		const ProjectBuilder = require("../build/ProjectBuilder");
+		const builder = new ProjectBuilder(this, {
+			selfContained, cssVariables, jsdoc,
+			createBuildManifest,
+			includedTasks, excludedTasks,
+		});
+		await builder.build({
+			destPath, cleanDest,
+			includedDependencies, excludedDependencies,
+			complexDependencyIncludes,
+		});
 	}
 
 	/**
@@ -493,44 +534,17 @@ class ProjectGraph {
 		}
 	}
 
-	// TODO: introduce function to check for dangling nodes/consistency in general?
+	_checkCycle(predecessors, projectName) {
+		if (predecessors.includes(projectName)) {
+			// We start to run in circles. That's neither expected nor something we can deal with
 
-	/**
-	 * Executes a build on the graph
-	 *
-	 * @public
-	 * @param {object} parameters Parameters
-	 * @param {module:@ui5/project.graph.ProjectGraph} parameters.graph Project graph
-	 * @param {string} parameters.destPath Target path
-	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
-	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]]
-	 *			List of names of projects to include in the build result
-	 *			If the wildcard '*' is provided, all dependencies will be included in the build result.
-	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]]
-	 *			List of names of projects to exclude from the build result.
-	 * @param {object} [parameters.complexDependencyIncludes] TODO 3.0
-	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
-	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
-	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
-	 * @param {boolean} [parameters.createBuildManifest=false]
-	 * 			Whether to create a build manifest file for the root project.
-	 *			This is currently only supported for projects of type 'library' and 'theme-library'
-	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
-	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
-	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
-	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
-	 */
-	async build(parameters) {
-		this.seal();
-		if (this._built) {
-			throw new Error(
-				`Project graph with root node ${this._rootProjectName} has already been built. ` +
-				`Each graph can only be built once`);
+			// Mark first and last occurrence in chain with an asterisk
+			predecessors[predecessors.indexOf(projectName)] = `${projectName}*`;
+			throw new Error(`Detected cyclic dependency chain: ${predecessors.join(" -> ")} -> ${projectName}*`);
 		}
-		this._built = true;
-		const runBuild = require("../build/runBuild");
-		return runBuild(this, parameters);
 	}
+
+	// TODO: introduce function to check for dangling nodes/consistency in general?
 }
 
 function mergeMap(target, source) {

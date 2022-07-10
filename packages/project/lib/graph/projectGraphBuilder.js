@@ -256,7 +256,7 @@ module.exports = async function(nodeProvider) {
 				// Module provided neither a project nor an extension
 				// => Do not follow its dependencies
 				log.verbose(
-					`Module ${node.id} neither provided a project nor an extension. Skipping dependency resolution.`);
+					`Module ${node.id} neither provides a project nor an extension. Skipping dependency resolution`);
 				skipDependencies = true;
 			}
 

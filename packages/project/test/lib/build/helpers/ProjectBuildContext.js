@@ -204,3 +204,66 @@ test("getResourceTagCollection: Assigns project to resource if necessary", (t) =
 	t.is(setProjectStub.callCount, 1, "setProject got called once");
 	t.is(setProjectStub.getCall(0).args[0], fakeProject, "setProject got called with correct argument");
 });
+
+test("getProject", (t) => {
+	const getProjectStub = sinon.stub().returns("pony");
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getGraph: () => {
+				return {
+					getProject: getProjectStub
+				};
+			}
+		},
+		project: "project",
+		log: "log"
+	});
+
+	t.is(projectBuildContext.getProject("pony project"), "pony", "Returned correct value");
+	t.is(getProjectStub.getCall(0).args[0], "pony project", "getProject got called with correct argument");
+});
+
+test("getTaskUtil", (t) => {
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {},
+		project: "project",
+		log: "log"
+	});
+
+	t.truthy(projectBuildContext.getTaskUtil(), "Returned a TaskUtil instance");
+	t.is(projectBuildContext.getTaskUtil(), projectBuildContext.getTaskUtil(), "Caches TaskUtil instance");
+});
+
+test.serial("getTaskRunner", (t) => {
+	class DummyTaskRunner {
+		constructor(params) {
+			t.deepEqual(params, {
+				graph: "graph",
+				project: "project",
+				taskUtil: "taskUtil",
+				parentLogger: "log",
+				buildConfig: "buildConfig",
+			}, "Created TaskRunner instance with correct parameters");
+		}
+	}
+	mock("../../../../lib/build/TaskRunner", DummyTaskRunner);
+
+	const ProjectBuildContext = mock.reRequire("../../../../lib/build/helpers/ProjectBuildContext");
+
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getGraph: () => "graph",
+			getBuildConfig: () => "buildConfig"
+		},
+		project: "project",
+		log: "log",
+	});
+
+	sinon.stub(projectBuildContext, "getTaskUtil").returns("taskUtil");
+
+	t.true(projectBuildContext.getTaskRunner() instanceof DummyTaskRunner,
+		"Returned a TaskRunner instance");
+	t.is(projectBuildContext.getTaskRunner(), projectBuildContext.getTaskRunner(),
+		"Caches TaskRunner instance");
+});
+

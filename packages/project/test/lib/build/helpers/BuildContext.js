@@ -11,7 +11,7 @@ const BuildContext = require("../../../../lib/build/helpers/BuildContext");
 
 test("Missing parameters", (t) => {
 	const error = t.throws(() => {
-		new BuildContext({});
+		new BuildContext();
 	});
 
 	t.is(error.message, `Missing parameter 'graph'`, "Threw with expected error message");
@@ -19,42 +19,84 @@ test("Missing parameters", (t) => {
 
 test("getRootProject", (t) => {
 	const buildContext = new BuildContext({
-		graph: {
-			getRoot: () => "pony"
-		}
+		getRoot: () => "pony"
 	});
 
 	t.is(buildContext.getRootProject(), "pony", "Returned correct value");
 });
-test("getProject", (t) => {
-	const getProjectStub = sinon.stub().returns("pony");
+
+test("getGraph", (t) => {
+	const buildContext = new BuildContext("graph");
+
+	t.is(buildContext.getGraph(), "graph", "Returned correct value");
+});
+
+test("getBuildConfig: Default values", (t) => {
+	const buildContext = new BuildContext("graph");
+
+	t.deepEqual(buildContext.getBuildConfig(), {
+		selfContained: false,
+		cssVariables: false,
+		jsdoc: false,
+		createBuildManifest: false,
+		includedTasks: [],
+		excludedTasks: [],
+	}, "Returned correct value");
+});
+
+test("getBuildConfig: Custom values", (t) => {
 	const buildContext = new BuildContext({
-		graph: {
-			getProject: getProjectStub
+		getRoot: () => {
+			return {
+				getType: () => "library"
+			};
 		}
+	}, {
+		selfContained: true,
+		cssVariables: true,
+		jsdoc: true,
+		createBuildManifest: true,
+		includedTasks: ["included tasks"],
+		excludedTasks: ["excluded tasks"],
 	});
 
-	t.is(buildContext.getProject("pony project"), "pony", "Returned correct value");
-	t.is(getProjectStub.getCall(0).args[0], "pony project", "getProject got called with correct argument");
+	t.deepEqual(buildContext.getBuildConfig(), {
+		selfContained: true,
+		cssVariables: true,
+		jsdoc: true,
+		createBuildManifest: true,
+		includedTasks: ["included tasks"],
+		excludedTasks: ["excluded tasks"],
+	}, "Returned correct value");
+});
+
+test("createBuildManifest not supported", (t) => {
+	const err = t.throws(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "pony"
+				};
+			}
+		}, {
+			createBuildManifest: true
+		});
+	});
+	t.is(err.message,
+		"Build manifest creation is currently not supported for projects of type pony",
+		"Threw with expected error message");
 });
 
 test("getBuildOption", (t) => {
-	const buildContext = new BuildContext({
-		graph: "graph",
-		options: {
-			a: true,
-			b: "Pony",
-			c: 235,
-			d: {
-				d1: "Bee"
-			}
-		}
+	const buildContext = new BuildContext("graph", {
+		cssVariables: "value",
 	});
 
-	t.is(buildContext.getOption("a"), true, "Returned 'boolean' value is correct");
-	t.is(buildContext.getOption("b"), "Pony", "Returned 'String' value is correct");
-	t.is(buildContext.getOption("c"), 235, "Returned 'Number' value is correct");
-	t.deepEqual(buildContext.getOption("d"), {d1: "Bee"}, "Returned 'object' value is correct");
+	t.is(buildContext.getOption("cssVariables"), "value",
+		"Returned correct value for build configuration 'cssVariables'");
+	t.is(buildContext.getOption("selfContained"), undefined,
+		"Returned undefined for build configuration 'selfContained' " +
+		"(not exposed as buold option)");
 });
 
 test.serial("createProjectContext", (t) => {
@@ -68,9 +110,8 @@ test.serial("createProjectContext", (t) => {
 	mock("../../../../lib/build/helpers/ProjectBuildContext", DummyProjectContext);
 
 	const BuildContext = mock.reRequire("../../../../lib/build/helpers/BuildContext");
-	const testBuildContext = new BuildContext({
-		graph: "graph"
-	});
+	const testBuildContext = new BuildContext("graph"
+	);
 
 	const projectContext = testBuildContext.createProjectContext({
 		project: "project",
@@ -84,9 +125,8 @@ test.serial("createProjectContext", (t) => {
 });
 
 test("executeCleanupTasks", async (t) => {
-	const buildContext = new BuildContext({
-		graph: "graph"
-	});
+	const buildContext = new BuildContext("graph"
+	);
 
 	const executeCleanupTasks = sinon.stub().resolves();
 

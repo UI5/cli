@@ -50,6 +50,20 @@ class ProjectBuildContext {
 		}));
 	}
 
+	/**
+	 * Retrieve a single project from the dependency graph
+	 *
+	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
+	 * @returns {module:@ui5/project.specifications.Project|undefined}
+	 *					project instance or undefined if the project is unknown to the graph
+	 */
+	getProject(projectName) {
+		if (projectName) {
+			return this._buildContext.getGraph().getProject(projectName);
+		}
+		return this._project;
+	}
+
 	getResourceTagCollection(resource, tag) {
 		if (!resource.hasProject()) {
 			this._log.verbose(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
@@ -78,18 +92,20 @@ class ProjectBuildContext {
 		return this._taskUtil;
 	}
 
-	/**
-	 * Retrieve a single project from the dependency graph
-	 *
-	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
-	 * @returns {module:@ui5/project.specifications.Project|undefined}
-	 *					project instance or undefined if the project is unknown to the graph
-	 */
-	getProject(projectName) {
-		if (projectName) {
-			return this._buildContext.getProject(projectName);
+	getTaskRunner() {
+		if (this._taskRunner) {
+			return this._taskRunner;
 		}
-		return this._project;
+
+		const TaskRunner = require("../TaskRunner");
+		this._taskRunner = new TaskRunner({
+			graph: this._buildContext.getGraph(),
+			project: this._project,
+			taskUtil: this.getTaskUtil(),
+			parentLogger: this._log,
+			buildConfig: this._buildContext.getBuildConfig()
+		});
+		return this._taskRunner;
 	}
 }
 

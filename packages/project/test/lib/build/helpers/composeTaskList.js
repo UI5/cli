@@ -204,13 +204,7 @@ const allTasks = [
 			"generateLibraryPreload",
 		], (t) => {
 			const {log} = t.context;
-			t.is(log.warn.callCount, 2);
-			t.deepEqual(log.warn.getCall(0).args, [
-				"Unable to include task 'foo': Task is unknown"
-			]);
-			t.deepEqual(log.warn.getCall(1).args, [
-				"Unable to include task 'bar': Task is unknown"
-			]);
+			t.is(log.warn.callCount, 0);
 		}
 	],
 	[
@@ -234,13 +228,7 @@ const allTasks = [
 			"generateLibraryPreload",
 		], (t) => {
 			const {log} = t.context;
-			t.is(log.warn.callCount, 2);
-			t.deepEqual(log.warn.getCall(0).args, [
-				"Unable to exclude task 'foo': Task is unknown"
-			]);
-			t.deepEqual(log.warn.getCall(1).args, [
-				"Unable to exclude task 'bar': Task is unknown"
-			]);
+			t.is(log.warn.callCount, 0);
 		}
 	],
 ].forEach(([testTitle, args, expectedTaskList, assertCb]) => {

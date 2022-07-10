@@ -4,16 +4,40 @@ const ProjectBuildContext = require("./ProjectBuildContext");
  * Context of a build process
  *
  * @private
- * @memberof module:@ui5/builder.builder
+ * @memberof module:@ui5/project.build.helpers
  */
 class BuildContext {
-	constructor({graph, options = {}}) {
+	constructor(graph, {
+		selfContained = false,
+		cssVariables = false,
+		jsdoc = false,
+		createBuildManifest = false,
+		includedTasks = [], excludedTasks = [],
+	} = {}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}
+
+		if (createBuildManifest && !["library", "theme-library"].includes(graph.getRoot().getType())) {
+			throw new Error(
+				`Build manifest creation is currently not supported for projects of type ` +
+				graph.getRoot().getType());
+		}
+
 		this._graph = graph;
+		this._buildConfig = {
+			selfContained,
+			cssVariables,
+			jsdoc,
+			createBuildManifest,
+			includedTasks,
+			excludedTasks,
+		};
+
+		this._options = {
+			cssVariables: cssVariables
+		};
 		this._projectBuildContexts = [];
-		this._options = options;
 	}
 
 	getRootProject() {
@@ -22,6 +46,14 @@ class BuildContext {
 
 	getOption(key) {
 		return this._options[key];
+	}
+
+	getBuildConfig() {
+		return this._buildConfig;
+	}
+
+	getGraph() {
+		return this._graph;
 	}
 
 	createProjectContext({project, log}) {
@@ -38,17 +70,6 @@ class BuildContext {
 		await Promise.all(this._projectBuildContexts.map((ctx) => {
 			return ctx.executeCleanupTasks();
 		}));
-	}
-
-	/**
-	 * Retrieve a single project from the dependency graph
-	 *
-	 * @param {string} projectName Name of the project to retrieve
-	 * @returns {module:@ui5/project.specifications.Project|undefined}
-	 *					project instance or undefined if the project is unknown to the graph
-	 */
-	getProject(projectName) {
-		return this._graph.getProject(projectName);
 	}
 }
 
