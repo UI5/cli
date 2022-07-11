@@ -20,7 +20,7 @@ class Task extends Extension {
 	*/
 	async _validateConfig() {
 		if (/--\d$/.test(this.getName())) {
-			throw new Error(`Task name must not end with "--<number>"`);
+			throw new Error(`Task name must not end with '--<number>'`);
 		}
 	}
 }

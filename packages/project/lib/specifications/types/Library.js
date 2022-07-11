@@ -30,6 +30,13 @@ class Library extends ComponentProject {
 			this._config.builder.libraryPreload.excludes || [];
 	}
 
+	/**
+	* @private
+	*/
+	getJsdocExcludes() {
+		return this._config.builder && this._config.builder.jsdoc && this._config.builder.jsdoc.excludes || [];
+	}
+
 	getSourcePath() {
 		return fsPath.join(this.getPath(), this._srcPath);
 	}

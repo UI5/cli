@@ -22,7 +22,7 @@ class Extension extends Specification {
 			await this._validateConfig();
 		} catch (err) {
 			throw new Error(
-				`Failed to validate configuration of ${this.getType()} extension ${this.getName()}:` +
+				`Failed to validate configuration of ${this.getType()} extension ${this.getName()}: ` +
 				err.message);
 		}
 

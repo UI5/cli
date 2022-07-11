@@ -1,6 +1,5 @@
 const Specification = require("./Specification");
 
-
 /**
  * Project
  *
@@ -92,7 +91,7 @@ class Project extends Specification {
 	}
 
 	getCustomMiddleware() {
-		return this._config.builder?.customMiddleware || [];
+		return this._config.server?.customMiddleware || [];
 	}
 
 	getServerSettings() {

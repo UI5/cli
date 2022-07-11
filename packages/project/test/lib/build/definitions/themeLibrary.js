@@ -22,7 +22,6 @@ function getMockProject() {
 		getLibraryPreloadExcludes: emptyarray,
 		getBundles: emptyarray,
 		getCachebusterSignatureType: () => "PONY",
-		getJsdocExcludes: () => ["**.html"],
 		getCustomTasks: emptyarray,
 	};
 }

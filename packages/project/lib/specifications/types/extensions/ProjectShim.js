@@ -11,21 +11,21 @@ class ProjectShim extends Extension {
 	* @public
 	*/
 	getDependencyShims() {
-		return this._config.shims.dependencies;
+		return this._config.shims.dependencies || {};
 	}
 
 	/**
 	* @public
 	*/
 	getConfigurationShims() {
-		return this._config.shims.configurations;
+		return this._config.shims.configurations || {};
 	}
 
 	/**
 	* @public
 	*/
 	getCollectionShims() {
-		return this._config.shims.collections;
+		return this._config.shims.collections || {};
 	}
 
 	/* === Internals === */

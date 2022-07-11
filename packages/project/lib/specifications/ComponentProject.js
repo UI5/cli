@@ -60,13 +60,6 @@ class ComponentProject extends Project {
 	/**
 	* @private
 	*/
-	getJsdocExcludes() {
-		return this._config.builder && this._config.builder.jsdoc && this._config.builder.jsdoc.excludes || [];
-	}
-
-	/**
-	* @private
-	*/
 	getMinificationExcludes() {
 		return this._config.builder && this._config.builder.minification &&
 			this._config.builder.minification.excludes || [];

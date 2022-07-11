@@ -77,6 +77,24 @@ test("getPropertiesFileSourceEncoding: Configuration", async (t) => {
 		"Returned correct default propertiesFileSourceEncoding configuration");
 });
 
+test("getJsdocExcludes", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.builder = {
+		jsdoc: {
+			excludes: ["excludes"]
+		}
+	};
+	const project = await Specification.create(customProjectInput);
+	t.deepEqual(project.getJsdocExcludes(), ["excludes"],
+		"Returned correct jsdocExcludes configuration");
+});
+
+test("getJsdocExcludes: default", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.deepEqual(project.getJsdocExcludes(), [],
+		"Returned correct jsdocExcludes configuration");
+});
+
 test("Access project resources via reader: buildtime style", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 	const reader = await project.getReader();

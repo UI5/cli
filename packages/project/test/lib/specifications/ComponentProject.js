@@ -13,7 +13,7 @@ const basicProjectInput = {
 	version: "1.0.0",
 	modulePath: applicationAPath,
 	configuration: {
-		specVersion: "2.3",
+		specVersion: "2.6",
 		kind: "project",
 		type: "application",
 		metadata: {name: "application.a"}
@@ -24,13 +24,25 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test("getPropertiesFileSourceEncoding: Default", async (t) => {
+test("Default getters", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 	t.is(project.getPropertiesFileSourceEncoding(), "UTF-8",
 		"Returned correct default propertiesFileSourceEncoding configuration");
+	t.is(project.getCopyright(), undefined,
+		"Returned correct default copyright configuration");
+	t.deepEqual(project.getComponentPreloadPaths(), [],
+		"Returned correct default componentPreloadPaths configuration");
+	t.deepEqual(project.getComponentPreloadNamespaces(), [],
+		"Returned correct default componentPreloadNamespaces configuration");
+	t.deepEqual(project.getComponentPreloadExcludes(), [],
+		"Returned correct default componentPreloadExcludes configuration");
+	t.deepEqual(project.getMinificationExcludes(), [],
+		"Returned correct default minificationExcludes configuration");
+	t.deepEqual(project.getBundles(), [],
+		"Returned correct default bundles configuration");
 });
 
-test("getPropertiesFileSourceEncoding: Configuration", async (t) => {
+test("getPropertiesFileSourceEncoding", async (t) => {
 	const customProjectInput = clone(basicProjectInput);
 	customProjectInput.configuration.resources = {
 		configuration: {
@@ -39,7 +51,73 @@ test("getPropertiesFileSourceEncoding: Configuration", async (t) => {
 	};
 	const project = await Specification.create(customProjectInput);
 	t.is(project.getPropertiesFileSourceEncoding(), "ISO-8859-1",
-		"Returned correct default propertiesFileSourceEncoding configuration");
+		"Returned correct propertiesFileSourceEncoding configuration");
+});
+
+test("getCopyright", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.metadata.copyright = "copyright";
+	const project = await Specification.create(customProjectInput);
+	t.is(project.getCopyright(), "copyright",
+		"Returned correct copyright configuration");
+});
+
+test("getComponentPreloadPaths", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.builder = {
+		componentPreload: {
+			paths: ["paths"]
+		}
+	};
+	const project = await Specification.create(customProjectInput);
+	t.deepEqual(project.getComponentPreloadPaths(), ["paths"],
+		"Returned correct componentPreloadPaths configuration");
+});
+
+test("getComponentPreloadNamespaces", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.builder = {
+		componentPreload: {
+			namespaces: ["namespaces"]
+		}
+	};
+	const project = await Specification.create(customProjectInput);
+	t.deepEqual(project.getComponentPreloadNamespaces(), ["namespaces"],
+		"Returned correct componentPreloadNamespaces configuration");
+});
+
+test("getComponentPreloadExcludes", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.builder = {
+		componentPreload: {
+			excludes: ["excludes"]
+		}
+	};
+	const project = await Specification.create(customProjectInput);
+	t.deepEqual(project.getComponentPreloadExcludes(), ["excludes"],
+		"Returned correct componentPreloadExcludes configuration");
+});
+
+test("getMinificationExcludes", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.builder = {
+		minification: {
+			excludes: ["excludes"]
+		}
+	};
+	const project = await Specification.create(customProjectInput);
+	t.deepEqual(project.getMinificationExcludes(), ["excludes"],
+		"Returned correct minificationExcludes configuration");
+});
+
+test("getBundles", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.builder = {
+		bundles: [{bundleDefinition: {name: "bundle"}}]
+	};
+	const project = await Specification.create(customProjectInput);
+	t.deepEqual(project.getBundles(), [{bundleDefinition: {name: "bundle"}}],
+		"Returned correct bundles configuration");
 });
 
 test("hasMavenPlaceholder: has maven placeholder", async (t) => {
