@@ -243,6 +243,7 @@ class ProjectBuilder {
 		const project = projectBuildContext.getProject();
 		const taskRunner = projectBuildContext.getTaskRunner();
 
+		// Create readers for all dependencies
 		const readers = [];
 		await this._graph.traverseBreadthFirst(project.getName(), async function({project: dep}) {
 			if (dep.getName() === project.getName()) {
