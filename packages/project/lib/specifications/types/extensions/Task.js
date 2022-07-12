@@ -19,7 +19,8 @@ class Task extends Extension {
 	 * @private
 	*/
 	async _validateConfig() {
-		if (/--\d$/.test(this.getName())) {
+		// TODO: Move to validator
+		if (/--\d+$/.test(this.getName())) {
 			throw new Error(`Task name must not end with '--<number>'`);
 		}
 	}

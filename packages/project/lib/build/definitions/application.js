@@ -1,7 +1,7 @@
 const {enhancePatternWithExcludes} = require("./_utils");
 
 /**
- * Get tasks.set(and ,ir configuration for a given application project
+ * Get tasks and their configuration for a given application project
  *
  * @private
  * @param {object} parameters
