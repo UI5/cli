@@ -314,7 +314,7 @@ test("getInterface: specVersion 2.6", async (t) => {
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 });
 
-test("getInterface: specVersion 2.7", async (t) => {
+test("getInterface: specVersion 3.0", async (t) => {
 	const getProjectStub = sinon.stub().returns({
 		getName: () => "",
 		getVersion: () => "",
@@ -328,7 +328,7 @@ test("getInterface: specVersion 2.7", async (t) => {
 		}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("2.7");
+	const interfacedTaskUtil = taskUtil.getInterface("3.0");
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",

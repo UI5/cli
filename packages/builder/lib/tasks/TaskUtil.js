@@ -173,7 +173,7 @@ class TaskUtil {
 	 *
 	 * </br></br>
 	 * This method is only available to custom task extensions defining
-	 * <b>Specification Version 2.7 and above</b>.
+	 * <b>Specification Version 3.0 and above</b>.
 	 *
 	 * @param {string} projectName Name of the project to retrieve
 	 * @returns {module:@ui5/project.specifications.Project|undefined}
@@ -209,7 +209,7 @@ class TaskUtil {
 		case "2.5":
 		case "2.6":
 			return baseInterface;
-		case "2.7":
+		case "3.0":
 			baseInterface.getProject = (projectName) => {
 				const project = this.getProject(projectName);
 				const baseProjectInterface = {};
@@ -217,7 +217,7 @@ class TaskUtil {
 					"getName", "getVersion", "getNamespace"
 				]);
 				switch (specVersion) {
-				case "2.7":
+				case "3.0":
 					return baseProjectInterface;
 				}
 			};
