@@ -262,7 +262,7 @@ class TaskRunner {
 					params.dependencies = dependencies;
 				}
 
-				if (task.getSpecVersion() === "2.7") {
+				if (task.getSpecVersion() === "3.0") {
 					params.log = log;
 					params.taskName = newTaskName;
 				}

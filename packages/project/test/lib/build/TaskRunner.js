@@ -444,12 +444,12 @@ test("Custom task with legacy spec version", async (t) => {
 		"taskUtil#getInterface got called with correct argument");
 });
 
-test("Custom task with specVersion 2.7", async (t) => {
+test("Custom task with specVersion 3.0", async (t) => {
 	const {graph, taskUtil} = t.context;
 	const taskStub = sinon.stub();
 	graph.getExtension.returns({
 		getTask: () => taskStub,
-		getSpecVersion: () => "2.7"
+		getSpecVersion: () => "3.0"
 	});
 	t.context.taskUtil.getInterface.returns(undefined); // simulating no taskUtil for old specVersion
 	const project = getMockProject("module");
@@ -473,8 +473,8 @@ test("Custom task with specVersion 2.7", async (t) => {
 	t.deepEqual(taskStub.getCall(0).args[0], {
 		workspace: "workspace",
 		dependencies: "dependencies",
-		taskName: "myTask", // specVersion 2.7 feature
-		log: "log", // specVersion 2.7 feature
+		taskName: "myTask", // specVersion 3.0 feature
+		log: "log", // specVersion 3.0 feature
 		options: {
 			projectName: "project.b",
 			projectNamespace: "project/b",
@@ -483,7 +483,7 @@ test("Custom task with specVersion 2.7", async (t) => {
 	}, "Task got called with one argument");
 
 	t.is(taskUtil.getInterface.callCount, 1, "taskUtil#getInterface got called once");
-	t.is(taskUtil.getInterface.getCall(0).args[0], "2.7",
+	t.is(taskUtil.getInterface.getCall(0).args[0], "3.0",
 		"taskUtil#getInterface got called with correct argument");
 });
 
@@ -502,7 +502,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	});
 	graph.getExtension.onThirdCall().returns({
 		getTask: () => taskStub3,
-		getSpecVersion: () => "2.7"
+		getSpecVersion: () => "3.0"
 	});
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
@@ -574,7 +574,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.is(taskUtil.getInterface.callCount, 3, "taskUtil#getInterface got called once");
 	t.is(taskUtil.getInterface.getCall(0).args[0], "2.5",
 		"taskUtil#getInterface got called with correct argument");
-	t.is(taskUtil.getInterface.getCall(1).args[0], "2.7",
+	t.is(taskUtil.getInterface.getCall(1).args[0], "3.0",
 		"taskUtil#getInterface got called with correct argument");
 	t.is(taskUtil.getInterface.getCall(2).args[0], "2.6",
 		"taskUtil#getInterface got called with correct argument");
