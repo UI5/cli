@@ -54,6 +54,7 @@ function getMockProject(type) {
 		}],
 		getCachebusterSignatureType: noop,
 		getCustomTasks: () => [],
+		hasBuildManifest: () => false
 	};
 }
 
@@ -76,10 +77,10 @@ test.beforeEach((t) => {
 
 test("Project of type 'application'", (t) => {
 	const {graph, taskUtil} = t.context;
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project: getMockProject("application"), graph, taskUtil, parentLogger, buildConfig
 	});
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
@@ -99,11 +100,11 @@ test("Project of type 'application'", (t) => {
 
 test("Project of type 'library'", (t) => {
 	const {graph, taskUtil} = t.context;
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project: getMockProject("library"), graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
@@ -124,11 +125,11 @@ test("Project of type 'library'", (t) => {
 
 test("Project of type 'theme-library'", (t) => {
 	const {graph, taskUtil} = t.context;
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project: getMockProject("theme-library"), graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"replaceCopyright",
 		"replaceVersion",
 		"buildThemes",
@@ -139,11 +140,22 @@ test("Project of type 'theme-library'", (t) => {
 
 test("Project of type 'module'", (t) => {
 	const {graph, taskUtil} = t.context;
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project: getMockProject("module"), graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.deepEqual(builder._taskExecutionOrder, [], "Correct standard tasks");
+	t.deepEqual(taskRunner._taskExecutionOrder, [], "Correct standard tasks");
+});
+
+test("Unknown project type", (t) => {
+	const {graph, taskUtil} = t.context;
+	const err = t.throws(() => {
+		new TaskRunner({
+			project: getMockProject("pony"), graph, taskUtil, parentLogger, buildConfig
+		});
+	});
+
+	t.is(err.message, "Unknown project type pony", "Threw with expected error message");
 });
 
 test("Custom tasks", (t) => {
@@ -153,10 +165,10 @@ test("Custom tasks", (t) => {
 		{name: "myTask", afterTask: "minify"},
 		{name: "myOtherTask", beforeTask: "replaceVersion"}
 	];
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"myOtherTask",
@@ -183,10 +195,10 @@ test("Custom tasks with no standard tasks", (t) => {
 		{name: "myTask"},
 		{name: "myOtherTask", beforeTask: "myTask"}
 	];
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"myOtherTask",
 		"myTask",
 	], "ApplicationBuilder is still instantiated with standard tasks");
@@ -285,10 +297,10 @@ test("Multiple custom tasks with same name", (t) => {
 		{name: "myTask", afterTask: "myTask"},
 		{name: "myTask", afterTask: "minify"}
 	];
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"escapeNonAsciiCharacters",
 		"replaceCopyright",
 		"replaceVersion",
@@ -374,13 +386,13 @@ test("Custom task is called correctly", async (t) => {
 		{name: "myTask", configuration: "configuration"}
 	];
 
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.truthy(builder._tasks["myTask"], "Custom tasks has been added to task map");
-	t.true(builder._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
-	await builder._tasks["myTask"].task({
+	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
+	t.true(taskRunner._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
+	await taskRunner._tasks["myTask"].task({
 		workspace: "workspace",
 		dependencies: "dependencies"
 	});
@@ -416,13 +428,13 @@ test("Custom task with legacy spec version", async (t) => {
 		{name: "myTask", configuration: "configuration"}
 	];
 
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.truthy(builder._tasks["myTask"], "Custom tasks has been added to task map");
-	t.true(builder._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
-	await builder._tasks["myTask"].task({
+	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
+	t.true(taskRunner._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
+	await taskRunner._tasks["myTask"].task({
 		workspace: "workspace",
 		dependencies: "dependencies"
 	});
@@ -457,13 +469,13 @@ test("Custom task with specVersion 3.0", async (t) => {
 		{name: "myTask", configuration: "configuration"}
 	];
 
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.truthy(builder._tasks["myTask"], "Custom tasks has been added to task map");
-	t.true(builder._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
-	await builder._tasks["myTask"].task({
+	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
+	t.true(taskRunner._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
+	await taskRunner._tasks["myTask"].task({
 		workspace: "workspace",
 		dependencies: "dependencies"
 	}, "log");
@@ -510,25 +522,25 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		{name: "myTask", afterTask: "myTask", configuration: "dog"},
 		{name: "myTask", afterTask: "myTask", configuration: "bird"}
 	];
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	t.truthy(builder._tasks["myTask"], "Custom tasks has been added to task map");
-	t.truthy(builder._tasks["myTask--2"], "Custom tasks has been added to task map");
-	t.truthy(builder._tasks["myTask--3"], "Custom tasks has been added to task map");
-	t.true(builder._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
-	t.true(builder._tasks["myTask--2"].requiresDependencies, "Custom tasks requires dependencies by default");
-	t.true(builder._tasks["myTask--3"].requiresDependencies, "Custom tasks requires dependencies by default");
+	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
+	t.truthy(taskRunner._tasks["myTask--2"], "Custom tasks has been added to task map");
+	t.truthy(taskRunner._tasks["myTask--3"], "Custom tasks has been added to task map");
+	t.true(taskRunner._tasks["myTask"].requiresDependencies, "Custom tasks requires dependencies by default");
+	t.true(taskRunner._tasks["myTask--2"].requiresDependencies, "Custom tasks requires dependencies by default");
+	t.true(taskRunner._tasks["myTask--3"].requiresDependencies, "Custom tasks requires dependencies by default");
 
 	// "Last in is the first out"
-	t.deepEqual(builder._taskExecutionOrder, [
+	t.deepEqual(taskRunner._taskExecutionOrder, [
 		"myTask",
 		"myTask--3",
 		"myTask--2",
 	], "Correct order of custom tasks");
 
-	await builder.runTasks({
+	await taskRunner.runTasks({
 		workspace: "workspace",
 		dependencies: "dependencies"
 	});
@@ -562,7 +574,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.deepEqual(taskStub3.getCall(0).args[0], {
 		workspace: "workspace",
 		dependencies: "dependencies",
-		log: builder._taskLog,
+		log: taskRunner._taskLog,
 		taskName: "myTask--3",
 		options: {
 			projectName: "project.b",
@@ -589,18 +601,18 @@ test.serial("_addTask", async (t) => {
 
 	const {graph, taskUtil} = t.context;
 	const project = getMockProject("module");
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	builder._addTask("standardTask");
+	taskRunner._addTask("standardTask");
 
-	t.truthy(builder._tasks["standardTask"], "Task has been added to task map");
-	t.false(builder._tasks["standardTask"].requiresDependencies, "requiresDependencies defaults to false");
-	t.truthy(builder._tasks["standardTask"].task, "Task function got set correctly");
-	t.deepEqual(builder._taskExecutionOrder, ["standardTask"], "Task got added to execution order");
+	t.truthy(taskRunner._tasks["standardTask"], "Task has been added to task map");
+	t.false(taskRunner._tasks["standardTask"].requiresDependencies, "requiresDependencies defaults to false");
+	t.truthy(taskRunner._tasks["standardTask"].task, "Task function got set correctly");
+	t.deepEqual(taskRunner._taskExecutionOrder, ["standardTask"], "Task got added to execution order");
 
-	await builder._tasks["standardTask"].task({
+	await taskRunner._tasks["standardTask"].task({
 		workspace: "workspace",
 		dependencies: "dependencies",
 	});
@@ -630,11 +642,11 @@ test.serial("_addTask with options", async (t) => {
 
 	const {graph, taskUtil} = t.context;
 	const project = getMockProject("module");
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	builder._addTask("standardTask", {
+	taskRunner._addTask("standardTask", {
 		requiresDependencies: true,
 		options: {
 			myTaskOption: "cat",
@@ -642,12 +654,12 @@ test.serial("_addTask with options", async (t) => {
 		taskFunction: taskStub
 	});
 
-	t.truthy(builder._tasks["standardTask"], "Task has been added to task map");
-	t.true(builder._tasks["standardTask"].requiresDependencies, "requiresDependencies set to true");
-	t.truthy(builder._tasks["standardTask"].task, "Task function got set correctly");
-	t.deepEqual(builder._taskExecutionOrder, ["standardTask"], "Task got added to execution order");
+	t.truthy(taskRunner._tasks["standardTask"], "Task has been added to task map");
+	t.true(taskRunner._tasks["standardTask"].requiresDependencies, "requiresDependencies set to true");
+	t.truthy(taskRunner._tasks["standardTask"].task, "Task function got set correctly");
+	t.deepEqual(taskRunner._taskExecutionOrder, ["standardTask"], "Task got added to execution order");
 
-	await builder._tasks["standardTask"].task({
+	await taskRunner._tasks["standardTask"].task({
 		workspace: "workspace",
 		dependencies: "dependencies",
 	});
@@ -673,16 +685,16 @@ test.serial("_addTask with options", async (t) => {
 test("_addTask: Duplicate task", async (t) => {
 	const {graph, taskUtil} = t.context;
 	const project = getMockProject("module");
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	builder._addTask("standardTask", {
+	taskRunner._addTask("standardTask", {
 		taskFunction: () => {}
 	});
 
 	const err = t.throws(() => {
-		builder._addTask("standardTask", {
+		taskRunner._addTask("standardTask", {
 			taskFunction: () => {}
 		});
 	});
@@ -693,17 +705,90 @@ test("_addTask: Duplicate task", async (t) => {
 test("_addTask: Task already added to execution order", async (t) => {
 	const {graph, taskUtil} = t.context;
 	const project = getMockProject("module");
-	const builder = new TaskRunner({
+	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, parentLogger, buildConfig
 	});
 
-	builder._taskExecutionOrder.push("standardTask");
+	taskRunner._taskExecutionOrder.push("standardTask");
 	const err = t.throws(() => {
-		builder._addTask("standardTask", {
+		taskRunner._addTask("standardTask", {
 			taskFunction: () => {}
 		});
 	});
 	t.is(err.message,
 		"Failed to add task standardTask for project project.b. It has already been scheduled for execution",
 		"Threw with expected error message");
+});
+
+test("requiresDependencies: Custom Task", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("module");
+	project.getCustomTasks = () => [
+		{name: "myTask"}
+	];
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.true(taskRunner.requiresDependencies(), "Project with custom task requires dependencies");
+});
+
+test("requiresDependencies: Default application", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("application");
+	project.getBundles = () => [];
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.false(taskRunner.requiresDependencies(), "Default application project does not require dependencies");
+});
+
+test("requiresDependencies: Default library", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("library");
+	project.getBundles = () => [];
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.true(taskRunner.requiresDependencies(), "Default library project requires dependencies");
+});
+
+test("requiresDependencies: Default theme-library", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("theme-library");
+
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.true(taskRunner.requiresDependencies(), "Default theme-library project requires dependencies");
+});
+
+test("requiresDependencies: Default module", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("module");
+
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.false(taskRunner.requiresDependencies(), "Default module project does not require dependencies");
+});
+
+test("requiresBuild: has no build-manifest", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("library");
+
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.true(taskRunner.requiresBuild(), "Project without build-manifest requires to be build");
+});
+
+test("requiresBuild: has build-manifest", (t) => {
+	const {graph, taskUtil} = t.context;
+	const project = getMockProject("library");
+	project.hasBuildManifest = () => true;
+
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, parentLogger, buildConfig
+	});
+	t.false(taskRunner.requiresBuild(), "Project with build-manifest does not require to be build");
 });
