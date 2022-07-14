@@ -121,92 +121,6 @@ test.afterEach.always((t) => {
 	mock.stopAll();
 });
 
-// TODO: FIX
-test.serial.skip("Build", async (t) => {
-	class DummyBuildContext {
-		constructor({rootProject}) {
-			t.deepEqual(rootProject, applicationATree, "Correct rootProject parameter");
-		}
-	}
-	const getTagStub = sinon.stub().returns();
-	const getResourceTagCollectionStub = sinon.stub().returns({
-		getTag: getTagStub
-	});
-	const isRootProjectStub = sinon.stub().returns(true);
-	const getOptionStub = sinon.stub().returns("Pony");
-	const dummyProjectContext = {
-		getResourceTagCollection: getResourceTagCollectionStub,
-		isRootProject: isRootProjectStub,
-		getOption: getOptionStub,
-		STANDARD_TAGS: {
-			OmitFromBuildResult: "👻"
-		}
-	};
-	const createProjectContextStub = sinon.stub().returns(dummyProjectContext);
-	const executeCleanupTasksStub = sinon.stub().resolves();
-	DummyBuildContext.prototype.createProjectContext = createProjectContextStub;
-	DummyBuildContext.prototype.executeCleanupTasks = executeCleanupTasksStub;
-	mock("../../../lib/builder/BuildContext", DummyBuildContext);
-
-	class DummyTaskUtil {
-		constructor({projectBuildContext}) {
-			t.is(projectBuildContext, dummyProjectContext, "Correct projectBuildContext parameter");
-		}
-	}
-	mock("../../../lib/tasks/TaskUtil", DummyTaskUtil);
-
-	const applicationType = require("../../../lib/types/application/applicationType");
-	const appBuildStub = sinon.stub(applicationType, "build").resolves();
-
-	const builder = mock.reRequire("../../../lib/builder/builder");
-
-	const destPath = "./test/tmp/build/build";
-	await builder.build({
-		tree: applicationATree,
-		destPath
-	});
-
-	t.is(createProjectContextStub.callCount, 1, "One project context got created");
-	const createProjectContextParams = createProjectContextStub.getCall(0).args[0];
-	t.is(createProjectContextParams.project, applicationATree, "Correct project provided to projectContext");
-	t.truthy(createProjectContextParams.resources.workspace, "resources.workspace object provided to projectContext");
-	t.truthy(createProjectContextParams.resources.dependencies,
-		"resources.dependencies object provided to projectContext");
-	t.deepEqual(Object.keys(createProjectContextParams), ["project", "resources"],
-		"resource and project parameters provided");
-
-	t.is(appBuildStub.callCount, 1, "Build called once");
-	const appBuildParams = appBuildStub.getCall(0).args[0];
-	t.is(Object.keys(appBuildParams).length, 5, "Five parameters provided to types build function");
-	t.is(appBuildParams.project, applicationATree, "Correct project provided to type");
-	t.truthy(appBuildParams.resourceCollections, "resourceCollections object provided to type");
-	t.truthy(appBuildParams.resourceCollections.workspace, "resources.workspace object provided to type");
-	t.truthy(appBuildParams.resourceCollections.dependencies, "resources.dependencies object provided to type");
-	t.deepEqual(appBuildParams.tasks, [
-		"replaceCopyright",
-		"replaceVersion",
-		"replaceBuildtime",
-		"escapeNonAsciiCharacters",
-		"minify",
-		"buildThemes",
-		"generateLibraryManifest",
-		"generateVersionInfo",
-		"generateFlexChangesBundle",
-		"generateComponentPreload",
-		"generateBundle",
-		"generateLibraryPreload"
-	], "Correct tasks provided to type");
-	t.truthy(appBuildParams.parentLogger, "parentLogger object provided to type");
-	t.true(appBuildParams.taskUtil instanceof DummyTaskUtil, "Correct taskUtil instance provided to type");
-
-	t.is(getResourceTagCollectionStub.callCount, 1, "getResourceTagCollection called once");
-	t.is(getTagStub.callCount, 3, "getTag called three times");
-	t.deepEqual(getTagStub.getCall(0).args[1], "👻", "First getTag call with expected tag name");
-	t.deepEqual(getTagStub.getCall(1).args[1], "👻", "Second getTag call with expected tag name");
-	t.is(isRootProjectStub.callCount, 3, "isRootProject called three times");
-	t.is(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
-});
-
 test.serial("Build application.a", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
@@ -937,62 +851,6 @@ test.serial("Build theme-library with CSS variables and theme designer resources
 	t.pass();
 });
 
-// TODO: FIX
-test.serial.skip("Cleanup", async (t) => {
-	const BuildContext = require("../../../lib/builder/BuildContext");
-	const createProjectContextStub = sinon.spy(BuildContext.prototype, "createProjectContext");
-	const executeCleanupTasksStub = sinon.stub(BuildContext.prototype, "executeCleanupTasks").resolves();
-	const applicationType = require("../../../lib/types/application/applicationType");
-	const appBuildStub = sinon.stub(applicationType, "build").resolves();
-
-	const builder = mock.reRequire("../../../lib/builder/builder");
-
-	function getProcessListenerCount() {
-		return ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"].map((eventName) => {
-			return process.listenerCount(eventName);
-		});
-	}
-
-	const listenersBefore = getProcessListenerCount();
-
-	const destPath = "./test/tmp/build/cleanup";
-	// Success case
-	const pBuildSuccess = builder.build({
-		tree: applicationATree,
-		destPath
-	});
-	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
-		"Per signal, one new listener registered");
-
-	await pBuildSuccess;
-	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
-
-	t.deepEqual(appBuildStub.callCount, 1, "Build called once");
-	t.deepEqual(createProjectContextStub.callCount, 1, "One project context got created");
-	const createProjectContextParams = createProjectContextStub.getCall(0).args[0];
-	t.truthy(createProjectContextParams.project, "project object provided");
-	t.truthy(createProjectContextParams.resources.workspace, "resources.workspace object provided");
-	t.truthy(createProjectContextParams.resources.dependencies, "resources.dependencies object provided");
-	t.deepEqual(Object.keys(createProjectContextParams), ["project", "resources"],
-		"resource and project parameters provided");
-	t.deepEqual(executeCleanupTasksStub.callCount, 1, "Cleanup called once");
-
-	// Error case
-	const pBuildError = builder.build({
-		tree: applicationATreeBadType,
-		destPath
-	});
-	t.deepEqual(getProcessListenerCount(), listenersBefore.map((x) => x+1),
-		"Per signal, one new listener registered");
-
-	const error = await t.throwsAsync(pBuildError);
-	t.deepEqual(error.message, `Unknown type 'non existent'`);
-	t.deepEqual(getProcessListenerCount(), listenersBefore, "All signal listeners got deregistered");
-
-	t.deepEqual(executeCleanupTasksStub.callCount, 2, "Cleanup called twice");
-});
-
-
 const libraryDTree = {
 	"id": "library.d",
 	"version": "1.0.0",
@@ -1125,28 +983,6 @@ const applicationATree = {
 				},
 				"propertiesFileSourceEncoding": "ISO-8859-1"
 			}
-		}
-	}
-};
-
-const applicationATreeBadType = {
-	"id": "application.a",
-	"version": "1.0.0",
-	"path": applicationAPath,
-	"specVersion": "2.6",
-	"type": "non existent",
-	"metadata": {
-		"name": "application.a"
-	},
-	"resources": {
-		"configuration": {
-			"paths": {
-				"webapp": "webapp"
-			},
-			"propertiesFileSourceEncoding": "ISO-8859-1"
-		},
-		"pathMappings": {
-			"/": "webapp"
 		}
 	}
 };
