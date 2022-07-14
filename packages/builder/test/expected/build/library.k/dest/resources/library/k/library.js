@@ -10,7 +10,7 @@ sap.ui.define([
 	sap.ui.getCore().initLibrary({
 		name : "library.k",
 		version: "1.0.0",
-		dependencies : ["sap.ui.core"],
+		dependencies : [],
 		types: [
 			"library.k.AnyType"
 		],

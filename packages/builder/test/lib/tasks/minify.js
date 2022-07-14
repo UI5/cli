@@ -72,7 +72,7 @@ test();`;
 	const expectedSourceMap =
 		`{"version":3,"file":"test.js",` +
 		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {
@@ -138,7 +138,7 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 	const expectedSourceMap =
 		`{"version":3,"file":"test.js",` +
 		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {
@@ -191,7 +191,7 @@ test();`;
 	const expectedSourceMap =
 		`{"version":3,"file":"test.js",` +
 		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {
@@ -239,7 +239,7 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 	const expectedSourceMap =
 		`{"version":3,"file":"test.js",` +
 		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.js"],` +
-		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,GAEbF"}`;
+		`"mappings":"AACA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
 
 	const resSourceMap = await writer.byPath("/test.js.map");
 	if (!resSourceMap) {

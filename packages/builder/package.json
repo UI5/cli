@@ -105,6 +105,7 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
+		"@jridgewell/sourcemap-codec": "^1.4.14",
 		"@ui5/fs": "^3.0.0-alpha.5",
 		"@ui5/logger": "^3.0.1-alpha.1",
 		"cheerio": "1.0.0-rc.9",
@@ -119,8 +120,7 @@
 		"replacestream": "^4.0.3",
 		"rimraf": "^3.0.2",
 		"semver": "^7.3.5",
-		"sourcemap-codec": "^1.4.8",
-		"terser": "^5.14.1",
+		"terser": "^5.14.2",
 		"xml2js": "^0.4.23",
 		"yazl": "^2.5.1"
 	},

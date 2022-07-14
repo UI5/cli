@@ -1652,7 +1652,7 @@ test("rewriteDefine (without moduleSourceMap)", async (t) => {
 
 test("rewriteDefine (with moduleSourceMap)", async (t) => {
 	const {rewriteDefine} = Builder.__localFunctions__;
-	const {encode: encodeMappings, decode: decodeMappings} = require("sourcemap-codec");
+	const {encode: encodeMappings, decode: decodeMappings} = require("@jridgewell/sourcemap-codec");
 
 	const inputMappings = [
 		[
@@ -1707,7 +1707,7 @@ test("rewriteDefine (with moduleSourceMap)", async (t) => {
 
 test("rewriteDefine (with empty moduleSourceMap)", async (t) => {
 	const {rewriteDefine} = Builder.__localFunctions__;
-	const {encode: encodeMappings, decode: decodeMappings} = require("sourcemap-codec");
+	const {encode: encodeMappings, decode: decodeMappings} = require("@jridgewell/sourcemap-codec");
 
 	const inputMappings = [
 		[

@@ -5,7 +5,7 @@
 const path = require("path");
 const {pd} = require("pretty-data");
 const {parseJS, Syntax} = require("../utils/parseUtils");
-const {encode: encodeMappings, decode: decodeMappings} = require("sourcemap-codec");
+const {encode: encodeMappings, decode: decodeMappings} = require("@jridgewell/sourcemap-codec");
 
 const {isMethodCall} = require("../utils/ASTUtils");
 const ModuleName = require("../utils/ModuleName");

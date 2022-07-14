@@ -1,16 +1,16 @@
 {
-  "Component-dbg.js": "874c35543ae850262d1552b6c2d00cecaae205a7",
+  "subcomponentB/Component.js": "8d21f8ab86d26da1758a55d49779d64c6e469e54",
   "subcomponentA/manifest.json": "7dfcdf568dcfb47c74d309e2f00193688b112fb7",
   "manifest.json": "a867583cff8c3a5135bfbdd97dcb7a9cad4948bd",
   "subcomponentB/manifest.json": "3a08d0555e3e49fe683e01205090eed3182b4a9f",
-  "subcomponentA/Component.js": "37e2d3c99ddf728313ceaddd087c6d547fcbdf8f",
-  "Component.js": "174e92417f0fa7889c2bdb8a243c4d748d66a4da",
+  "subcomponentA/Component.js": "6182eab4f507255e4ceb6275325ae84b0e58cd20",
+  "Component.js": "9812808a09dfbc3c7dd5e41e0b6faa3320f67ff9",
+  "Component-dbg.js": "874c35543ae850262d1552b6c2d00cecaae205a7",
+  "Component.js.map": "f20221563528aeb044a47fc8a3787e7a7a0636a7",
   "subcomponentA/Component-dbg.js": "fef3a5814776e5575302f814e96ae31a13df12b7",
-  "subcomponentA/Component.js.map": "76cd9820f761dd43fe4b2a6f5397d09625603e0d",
+  "subcomponentA/Component.js.map": "03f57fa13b37175d2ebda02e67443f32ce45a643",
   "subcomponentB/Component-dbg.js": "c03da2c5ff162c1d9d5e5c4a3edc2cebcda6b0a1",
-  "subcomponentB/Component.js.map": "76cd9820f761dd43fe4b2a6f5397d09625603e0d",
-  "subcomponentB/Component.js": "d2a467cc8d05c693b22dbef82c2bff4610611d81",
-  "Component.js.map": "35e88e40f4933fe235a359361d7bd3459e6f5235",
-  "Component-preload.js": "5a4592408148af17538a1ee2c70c310931d2575c",
-  "Component-preload.js.map": "3b5d5de04ca05341ed50444277945dac240505f6"
+  "subcomponentB/Component.js.map": "03f57fa13b37175d2ebda02e67443f32ce45a643",
+  "Component-preload.js": "300e005e16a9a3d641ca6b02e9cd5135f4a2bc7c",
+  "Component-preload.js.map": "46b2eb04f4d7707bab262e54d258ad414eaf909b"
 }

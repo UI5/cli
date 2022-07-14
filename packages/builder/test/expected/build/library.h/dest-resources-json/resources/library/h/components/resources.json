@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "Component-preload.js.map",
-			"size": 702,
+			"size": 713,
 			"isDebug": true
 		},
 		{
@@ -76,7 +76,7 @@
 		},
 		{
 			"name": "subcomponent1/Component-preload.js.map",
-			"size": 509,
+			"size": 520,
 			"isDebug": true
 		},
 		{
@@ -110,7 +110,7 @@
 		},
 		{
 			"name": "subcomponent2/Component-preload.js.map",
-			"size": 509,
+			"size": 520,
 			"isDebug": true
 		},
 		{
@@ -144,7 +144,7 @@
 		},
 		{
 			"name": "subcomponent3/Component-preload.js.map",
-			"size": 509,
+			"size": 520,
 			"isDebug": true
 		},
 		{

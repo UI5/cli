@@ -4,40 +4,32 @@
     "id": "library.k",
     "type": "library",
     "embeds": [],
-    "i18n": "messagebundle.properties",
     "applicationVersion": {
       "version": "1.0.0"
     },
     "title": "{{title}}",
     "description": "{{description}}",
-    "ach": "NOT-ME",
     "resources": "resources.json",
-    "offline": false
+    "offline": true
   },
   "sap.ui": {
     "technology": "UI5",
-    "deviceTypes": {
-      "desktop": true,
-      "tablet": true,
-      "phone": true
-    },
     "supportedThemes": []
   },
   "sap.ui5": {
     "dependencies": {
       "minUI5Version": "1.0",
-      "libs": {
-        "sap.ui.core": {
-          "minVersion": "1.0.0"
-        }
-      }
-    },
-    "contentDensities": {
-      "cozy": true,
-      "compact": false
+      "libs": {}
     },
     "library": {
-      "i18n": true,
+      "i18n": {
+        "bundleUrl": "messagebundle.properties",
+        "supportedLocales": [
+          "",
+          "de",
+          "en"
+        ]
+      },
       "content": {
         "controls": [
           "library.k.AnyControl"
