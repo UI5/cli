@@ -1,7 +1,7 @@
 /*
  * JSDoc3 plugin for UI5 documentation generation.
  *
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -288,10 +288,11 @@ function collectShortcuts(body) {
 		} else if ( valueNode.type === Syntax.MemberExpression ) {
 			const _import = getLeftmostName(valueNode);
 			const local = _import && currentModule.localNames[_import];
-			if ( typeof local === 'object' && local.module ) {
+			const objectName = getObjectName(valueNode);
+			if ( objectName && typeof local === 'object' && local.module ) {
 				currentModule.localNames[name] = {
 					module: local.module,
-					path: getObjectName(valueNode).split('.').slice(1).join('.') // TODO chaining if local has path
+					path: objectName.split('.').slice(1).join('.') // TODO chaining if local has path
 				};
 				debug(`  found local shortcut: ${name} ${currentModule.localNames[name]}`);
 			}
@@ -1617,7 +1618,7 @@ function createAutoDoc(oClassInfo, classComment, doclet, node, parser, filename,
 				"Removes a " + n1 + " from the aggregation " + link + ".",
 				"",
 				"@param {int | string | " + makeTypeString(info, true) + "} " + varname(n1, "variant") + " The " + n1 + " to remove or its index or id",
-				"@returns {" + makeTypeString(info, true) + "} The removed " + n1 + " or <code>null</code>",
+				"@returns {" + makeTypeString(info, true) + "|null} The removed " + n1 + " or <code>null</code>",
 				info.since ? "@since " + info.since : "",
 				info.deprecation ? "@deprecated " + info.deprecation : "",
 				info.experimental ? "@experimental " + info.experimental : "",
@@ -1812,7 +1813,7 @@ function createAutoDoc(oClassInfo, classComment, doclet, node, parser, filename,
 			"",
 			"@param {object}",
 			"           [oData] An application-specific payload object that will be passed to the event handler along with the event object when firing the event",
-			"@param {function}",
+			"@param {function(sap.ui.base.Event):void}",
 			"           fnFunction The function to be called when the event occurs",
 			"@param {object}",
 			"           [oListener] Context object to call the event handler with. Defaults to this <code>" + oClassInfo.name + "</code> itself",
@@ -1830,7 +1831,7 @@ function createAutoDoc(oClassInfo, classComment, doclet, node, parser, filename,
 			"",
 			"The passed function and listener object must match the ones used for event registration.",
 			"",
-			"@param {function}",
+			"@param {function(sap.ui.base.Event):void}",
 			"           fnFunction The function to be called, when the event occurs",
 			"@param {object}",
 			"           [oListener] Context object on which the given function had to be called",
@@ -2677,3 +2678,107 @@ exports.astNodeVisitor = {
 	}
 
 };
+
+(function() {
+	const jsdocType = require("jsdoc/lib/jsdoc/tag/type");
+	const catharsis = require('catharsis');
+	const TYPES = catharsis.Types;
+
+	const toTypeString = (type) => getTypeStrings(type).join("|");
+
+	/*
+	 * This function has been copied from jsdoc/lib/jsdoc/tag/type (version 3.6.7)
+	 * The copy has been enhanced with the changes from https://github.com/jsdoc/jsdoc/pull/1735
+	 * to retain the full function signature for function types.
+	 *
+	 * JSDoc is copyright (c) 2011-present Michael Mathews micmath@gmail.com and the contributors to JSDoc.
+	 */ 
+	function getTypeStrings(parsedType, isOutermostType) {
+		let applications;
+		let typeString;
+		let types = [];
+		switch (parsedType.type) {
+			case TYPES.AllLiteral:
+				types.push('*');
+				break;
+			case TYPES.FunctionType:
+				typeString = 'function';
+				// #### BEGIN: MODIFIED BY SAP
+				const paramTypes = [];
+				if (parsedType.new) {
+					paramTypes.push(toTypeString(parsedType.new));
+				}
+				if (Array.isArray(parsedType.params)) {
+					paramTypes.push(...parsedType.params.map(toTypeString));
+				}
+				if (paramTypes.length || parsedType.result) {
+					typeString += `(${paramTypes.join(", ")})`;
+				}
+				if (parsedType.result) {
+					typeString += `:${toTypeString(parsedType.result)}`;
+				}
+				types.push(typeString);
+				// #### END: MODIFIED BY SAP
+				break;
+			 case TYPES.NameExpression:
+				 types.push(parsedType.name);
+				break;
+			case TYPES.NullLiteral:
+				types.push('null');
+				break;
+			case TYPES.RecordType:
+				// #### BEGIN: MODIFIED BY SAP
+				// types.push('Object');
+				if (Array.isArray(parsedType.fields)) {
+					typeString = `{${parsedType.fields.map(
+						({key,value}) => `${catharsis.stringify(key)}: ${toTypeString(value)}`
+					).join(', ')}}`;
+					types.push(typeString);
+				} else {
+					types.push('Object');
+				}
+				// #### END: MODIFIED BY SAP
+				break;
+			case TYPES.TypeApplication:
+				// if this is the outermost type, we strip the modifiers; otherwise, we keep them
+				if (isOutermostType) {
+					applications = parsedType.applications.map(application =>
+						catharsis.stringify(application)).join(', ');
+					typeString = `${getTypeStrings(parsedType.expression)[0]}.<${applications}>`;
+					types.push(typeString);
+				}
+				else {
+					types.push( catharsis.stringify(parsedType) );
+				}
+				break;
+			case TYPES.TypeUnion:
+				parsedType.elements.forEach(element => {
+					types = types.concat( getTypeStrings(element) );
+				});
+				break;
+			case TYPES.UndefinedLiteral:
+				types.push('undefined');
+				break;
+			case TYPES.UnknownLiteral:
+				types.push('?');
+				break;
+			default:
+				// this shouldn't happen
+				throw new Error(`unrecognized type ${parsedType.type} in parsed type: ${parsedType}`);
+		}
+		return types;
+	}
+
+	const origParse = jsdocType.parse;
+	jsdocType.parse = function() {
+		const tagInfo = origParse.apply(this, arguments);
+		if ( tagInfo && /function/.test(tagInfo.typeExpression) && tagInfo.parsedType ) {
+			// console.info("old typeExpression", tagInfo.typeExpression); 
+			// console.info("old parse tree", tagInfo.parsedType); 
+			// console.info("old parse result", tagInfo.type); 
+			tagInfo.type = getTypeStrings(tagInfo.parsedType);
+			// console.info("new parse result", tagInfo.type); 
+		}
+		return tagInfo;
+	}
+}());

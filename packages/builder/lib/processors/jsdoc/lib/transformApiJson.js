@@ -1,7 +1,7 @@
 /*
  * Node script to preprocess api.json files for use in the UI5 SDKs.
  *
- * (c) Copyright 2009-2021 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1154,7 +1154,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 		},
 
 		formatMethodCode: function (sName, aParams, aReturnValue) {
-			var result = '<pre class="prettyprint">' + sName + '(';
+			var result = '<pre>' + sName + '(';
 
 			if (aParams && aParams.length > 0) {
 				/* We consider only root level parameters so we get rid of all that are not on the root level */
@@ -1258,7 +1258,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 		 * @returns string - The code needed to create an object of that class
 		 */
 		formatConstructor: function (name, params) {
-			var result = '<pre class="prettyprint">new ';
+			var result = '<pre>new ';
 
 			if (name) {
 				result += name + '(';
@@ -1508,8 +1508,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 						name: oResult.static ? [self.name, oResult.name].join(".") : oResult.name,
 						type: "methods",
 						className: className,
-						text: text,
-						local: true
+						text: text
 					});
 				}
 			}
@@ -1549,7 +1548,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 		 * @param {string} [hrefAppend=""]
 		 * @returns {string} link
 		 */
-		createLink: function ({name, type, className, text=name, local=false, hrefAppend=""}) {
+		createLink: function ({name, type, className, text=name, hrefAppend=""}) {
 			let sLink;
 
 			// handling module's
@@ -1564,12 +1563,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 				sLink += hrefAppend;
 			}
 
-			if (local) {
-			  	let sScrollClass = "scrollTo" + type[0].toUpperCase() + type.slice(1, -1);
-				return `<a target="_self" class="jsdoclink ${sScrollClass}" data-target="${name}" href="api/${sLink}">${text}</a>`;
-			}
-
-			return `<a target="_self" class="jsdoclink" href="api/${sLink}">${text}</a>`;
+			return `<a target="_self" href="api/${sLink}">${text}</a>`;
 		},
 
 		/**
@@ -1597,7 +1591,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 						}
 
 						// topic:xxx Topic
-						aMatch = sTarget.match(/^topic:(\w{32})$/);
+						aMatch = sTarget.match(/^topic:(\w{32}(?:#\w*)?(?:\/\w*)?)$/);
 						if (aMatch) {
 							return '<a target="_self" href="topic/' + aMatch[1] + '">' + sText + '</a>';
 						}
@@ -1665,7 +1659,6 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 								name: aMatch[1] ? `${oSelf.name}.${aMatch[2]}` : aMatch[2],
 								type: "methods",
 								className: oSelf.name,
-								local: true,
 								text: sText
 							});
 						}
@@ -1677,7 +1670,6 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 								name: aMatch[1],
 								type: "annotations",
 								className: oSelf.name,
-								local: true,
 								text: sText
 							});
 						}
@@ -1704,7 +1696,6 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 								name: aMatch[1],
 								type: "events",
 								className: oSelf.name,
-								local: true,
 								text: sText
 							});
 						}
