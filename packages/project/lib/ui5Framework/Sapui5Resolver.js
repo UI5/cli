@@ -2,7 +2,7 @@ const path = require("path");
 const semver = require("semver");
 const AbstractResolver = require("./AbstractResolver");
 const Installer = require("./npm/Installer");
-const log = require("@ui5/logger").getLogger("normalizer:ui5Framework:Sapui5Resolver");
+const log = require("@ui5/logger").getLogger("ui5Framework:Sapui5Resolver");
 
 const DIST_PKG_NAME = "@sapui5/distribution-metadata";
 

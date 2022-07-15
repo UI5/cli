@@ -4,7 +4,7 @@ const {promisify} = require("util");
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
-const log = require("@ui5/logger").getLogger("normalizer:ui5Framework:npm:Installer");
+const log = require("@ui5/logger").getLogger("ui5Framework:npm:Installer");
 
 class Installer {
 	constructor({cwd, ui5HomeDir}) {

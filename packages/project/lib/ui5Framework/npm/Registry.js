@@ -1,4 +1,4 @@
-const log = require("@ui5/logger").getLogger("normalizer:ui5Framework:npm:Registry");
+const log = require("@ui5/logger").getLogger("ui5Framework:npm:Registry");
 
 function logConfig(config, configName) {
 	const configValue = config[configName];
