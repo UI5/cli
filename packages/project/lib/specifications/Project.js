@@ -78,6 +78,17 @@ class Project extends Specification {
 		return this.__id.startsWith("@openui5/") || this.__id.startsWith("@sapui5/");
 	}
 
+	getDeprecated() {
+		return !!this._config.metadata.deprecated;
+	}
+
+	getSapInternal() {
+		return !!this._config.metadata.sapInternal;
+	}
+	getAllowSapInternal() {
+		return !!this._config.metadata.allowSapInternal;
+	}
+
 	getCustomConfiguration() {
 		return this._config.customConfiguration;
 	}

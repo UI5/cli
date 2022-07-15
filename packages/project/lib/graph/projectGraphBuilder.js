@@ -136,13 +136,13 @@ module.exports = async function(nodeProvider) {
 	if (rootDependencies && rootDependencies.length) {
 		queue.push({
 			nodes: rootDependencies,
-			parentProjectName: rootProjectName
+			parentProject: rootProject
 		});
 	}
 
 	// Breadth-first search
 	while (queue.length) {
-		const {nodes, parentProjectName} = queue.shift(); // Get and remove first entry from queue
+		const {nodes, parentProject} = queue.shift(); // Get and remove first entry from queue
 		const res = await Promise.all(nodes.map(async (node) => {
 			let ui5Module = moduleCollection[node.id];
 			if (!ui5Module) {
@@ -158,9 +158,9 @@ module.exports = async function(nodeProvider) {
 				});
 			} else if (ui5Module.getPath() !== node.path) {
 				log.verbose(
-					`Inconsistency detected: Tree contains multiple nodes with ID ${node.id} and different paths:` +
-					`\nPath of already added node (this one will be used): ${ui5Module.getPath()}` +
-					`\nPath of additional node (this one will be ignored in favor of the other): ${node.path}`);
+					`Possible inconsistency detected: Dependency ${node.id} is available at multiple paths:` +
+					`\nLocation of the already added module (this one will be used): ${ui5Module.getPath()}` +
+					`\nAdditional location (this one will be ignored): ${node.path}`);
 			}
 
 			const {project, extensions} = await ui5Module.getSpecifications();
@@ -205,7 +205,7 @@ module.exports = async function(nodeProvider) {
 
 				queue.push({
 					nodes: Array.prototype.concat.apply([], shimmedNodes),
-					parentProjectName,
+					parentProject,
 				});
 				// Skip collection node
 				continue;
@@ -243,11 +243,28 @@ module.exports = async function(nodeProvider) {
 					projectGraph.addProject(project);
 				}
 
-				if (parentProjectName) {
+				if (parentProject) {
 					if (node.optional) {
-						projectGraph.declareOptionalDependency(parentProjectName, projectName);
+						projectGraph.declareOptionalDependency(parentProject.getName(), projectName);
 					} else {
-						projectGraph.declareDependency(parentProjectName, projectName);
+						projectGraph.declareDependency(parentProject.getName(), projectName);
+					}
+
+					if (project.getDeprecated() && parentProject === rootProject &&
+							!parentProject.getName().endsWith("/testsuite")) {
+						// Only warn for direct dependencies of the root project
+						// No warning for testsuite projects
+						log.warn(
+							`Dependency ${project.getName()} is deprecated and should not be used for new projects!`);
+					}
+
+					if (project.getSapInternal() && parentProject === rootProject &&
+						!parentProject.getAllowSapInternal()) {
+						// Only warn for direct dependencies of the root project, except it defines "allowSapInternal"
+						log.warn(
+							`Dependency ${project.getName()} is restricted for use by SAP internal projects only! ` +
+							`If the project ${parentProject.getName()} is an SAP internal project, add the attribute ` +
+							`"allowSapInternal: true" to its metadata configuration`);
 					}
 				}
 			}
@@ -269,7 +286,7 @@ module.exports = async function(nodeProvider) {
 				queue.push({
 					// copy array, so that the queue is stable while ignored project dependencies are removed
 					nodes: [...nodeDependencies],
-					parentProjectName: project ? project.getName() : parentProjectName,
+					parentProject: project ? project : parentProject,
 				});
 			}
 		}

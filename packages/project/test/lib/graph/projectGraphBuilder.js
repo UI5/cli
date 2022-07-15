@@ -1,6 +1,7 @@
 const test = require("ava");
 const path = require("path");
 const sinonGlobal = require("sinon");
+const mock = require("mock-require");
 
 const projectGraphBuilder = require("../../../lib/graph/projectGraphBuilder");
 
@@ -77,6 +78,120 @@ test("Basic graph creation", async (t) => {
 
 	t.is(t.context.getRootNode.callCount, 1, "NodeProvider#getRoodNode got called once");
 	t.is(t.context.getDependencies.callCount, 1, "NodeProvider#getDependencies got called once");
+});
+
+test("Basic graph with dependencies", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([createNode({
+		id: "id2",
+		name: "project-2"
+	})]);
+	t.context.getDependencies.onSecondCall().resolves([createNode({
+		id: "id3",
+		name: "project-3"
+	})]);
+	const graph = await projectGraphBuilder(t.context.provider);
+
+	await traverseBreadthFirst(t, graph, [
+		"project-1",
+		"project-2",
+		"project-3"
+	]);
+
+	const p = graph.getProject("project-1");
+	t.is(p.getPath(), libraryEPath, "Project returned correct path");
+
+	t.is(t.context.getRootNode.callCount, 1, "NodeProvider#getRoodNode got called once");
+	t.is(t.context.getDependencies.callCount, 3, "NodeProvider#getDependencies got called once");
+});
+
+test.serial("Correct warnings logged", async (t) => {
+	const logWarnStub = t.context.sinon.stub();
+	t.context.sinon.stub(require("@ui5/logger"), "getLogger")
+		.callThrough()
+		.withArgs("graph:projectGraphBuilder").returns({
+			warn: logWarnStub,
+			verbose: () => "",
+		});
+	const projectGraphBuilder = mock.reRequire("../../../lib/graph/projectGraphBuilder");
+
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	const node2 = createNode({
+		id: "id2",
+		name: "project-2"
+	});
+	node2.configuration.metadata.deprecated = true;
+	node2.configuration.metadata.sapInternal = true;
+	t.context.getDependencies.onFirstCall().resolves([node2]);
+	const node3 = createNode({
+		id: "id3",
+		name: "project-3"
+	});
+	node3.configuration.metadata.deprecated = true;
+	node3.configuration.metadata.sapInternal = true;
+	t.context.getDependencies.onSecondCall().resolves([node3]);
+	const graph = await projectGraphBuilder(t.context.provider);
+
+	await traverseBreadthFirst(t, graph, [
+		"project-1",
+		"project-2",
+		"project-3"
+	]);
+
+	t.is(logWarnStub.callCount, 2, "Two warnings logged");
+	t.is(logWarnStub.getCall(0).args[0], "Dependency project-2 is deprecated and should not be used for new projects!",
+		"Correct deprecation warning logged");
+	t.is(logWarnStub.getCall(1).args[0],
+		`Dependency project-2 is restricted for use by SAP internal projects only! If the project project-1 is an ` +
+		`SAP internal project, add the attribute "allowSapInternal: true" to its metadata configuration`,
+		"Correct SAP-internal project warning logged");
+});
+
+test.serial("No warnings logged", async (t) => {
+	const logWarnStub = t.context.sinon.stub();
+	t.context.sinon.stub(require("@ui5/logger"), "getLogger")
+		.callThrough()
+		.withArgs("graph:projectGraphBuilder").returns({
+			warn: logWarnStub,
+			verbose: () => "",
+		});
+	const projectGraphBuilder = mock.reRequire("../../../lib/graph/projectGraphBuilder");
+
+	const node1 = createNode({
+		id: "id1",
+		name: "@my-comp/testsuite" // "/testsuite" suffix should suppress deprecation warnings
+	});
+	node1.configuration.metadata.allowSapInternal = true;
+	t.context.getRootNode.resolves(node1);
+	const node2 = createNode({
+		id: "id2",
+		name: "project-2"
+	});
+	node2.configuration.metadata.deprecated = true;
+	node2.configuration.metadata.sapInternal = true;
+	t.context.getDependencies.onFirstCall().resolves([node2]);
+	const node3 = createNode({
+		id: "id3",
+		name: "project-3"
+	});
+	node3.configuration.metadata.deprecated = true;
+	node3.configuration.metadata.sapInternal = true;
+	t.context.getDependencies.onSecondCall().resolves([node3]);
+	const graph = await projectGraphBuilder(t.context.provider);
+
+	await traverseBreadthFirst(t, graph, [
+		"@my-comp/testsuite",
+		"project-2",
+		"project-3"
+	]);
+
+	t.is(logWarnStub.callCount, 0, "No warnings logged");
 });
 
 test("Legacy node with specVersion attribute as root", async (t) => {
