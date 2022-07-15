@@ -192,7 +192,9 @@ class AbstractResolver {
 						`starting with OpenUI5 v1.52.5`);
 				}
 			}
-			throw new Error(`Could not resolve framework version ${version}`);
+			throw new Error(
+				`Could not resolve framework version ${version}. ` +
+				`Make sure the version is valid and available in the configured registry.`);
 		}
 		return resolvedVersion;
 	}

@@ -490,7 +490,8 @@ test.serial("AbstractResolver: Static resolveVersion throws error for version no
 		ui5HomeDir: "/ui5HomeDir"
 	}));
 
-	t.is(error.message, `Could not resolve framework version 1.74.0`);
+	t.is(error.message, `Could not resolve framework version 1.74.0. ` +
+		`Make sure the version is valid and available in the configured registry.`);
 });
 
 test.serial(
@@ -545,7 +546,8 @@ test.serial(
 			ui5HomeDir: "/ui5HomeDir"
 		}));
 
-		t.is(error.message, `Could not resolve framework version latest`);
+		t.is(error.message, `Could not resolve framework version latest. ` +
+			`Make sure the version is valid and available in the configured registry.`);
 	});
 
 test.serial(
@@ -562,7 +564,8 @@ test.serial(
 			ui5HomeDir: "/ui5HomeDir"
 		}));
 
-		t.is(error.message, `Could not resolve framework version latest`);
+		t.is(error.message, `Could not resolve framework version latest. ` +
+			`Make sure the version is valid and available in the configured registry.`);
 	});
 
 test.serial(
@@ -579,7 +582,8 @@ test.serial(
 			ui5HomeDir: "/ui5HomeDir"
 		}));
 
-		t.is(error.message, `Could not resolve framework version 1.99`);
+		t.is(error.message, `Could not resolve framework version 1.99. ` +
+			`Make sure the version is valid and available in the configured registry.`);
 	});
 
 test.serial(
@@ -596,7 +600,8 @@ test.serial(
 			ui5HomeDir: "/ui5HomeDir"
 		}));
 
-		t.is(error.message, `Could not resolve framework version 1.99`);
+		t.is(error.message, `Could not resolve framework version 1.99. ` +
+			`Make sure the version is valid and available in the configured registry.`);
 	});
 
 test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
