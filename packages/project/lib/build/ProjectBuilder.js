@@ -275,7 +275,7 @@ class ProjectBuilder {
 
 		if (taskUtil.isRootProject() && buildConfig.createBuildManifest) {
 			// Create and write a build manifest metadata file
-			const createBuildManifest = require("./build/helpers/createBuildManifest");
+			const createBuildManifest = require("./helpers/createBuildManifest");
 			const metadata = await createBuildManifest(project, buildConfig);
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
