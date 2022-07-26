@@ -133,11 +133,13 @@ class ProjectBuilder {
 
 			for (const projectBuildContext of buildQueue) {
 				const projectName = projectBuildContext.getProject().getName();
-				buildLogger.startWork(`Building project ${projectName}...`);
-				await this._buildProject(projectBuildContext);
-				buildLogger.completeWork(1);
+				if (projectBuildContext.getTaskRunner().requiresBuild()) {
+					buildLogger.startWork(`Building project ${projectName}...`);
+					await this._buildProject(projectBuildContext);
+					buildLogger.completeWork(1);
 
-				log.verbose(`Finished building project ${projectName}`);
+					log.verbose(`Finished building project ${projectName}`);
+				}
 				if (!requestedProjects.includes(projectName)) {
 					// Project has not been requested
 					//	=> Its resources shall not be part of the build result

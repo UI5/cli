@@ -126,7 +126,7 @@ test("build", async (t) => {
 		"project.a", "project.b", "project.c"
 	], "_createRequiredBuildContexts got called with correct arguments");
 
-	t.is(requiresBuildStub.callCount, 1, "TaskRunner#requiresBuild got called once");
+	t.is(requiresBuildStub.callCount, 2, "TaskRunner#requiresBuild got called twice");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
 	t.is(buildProjectStub.callCount, 1, "_buildProject got called once");
@@ -225,11 +225,13 @@ test.serial("build: Multiple projects", async (t) => {
 	const filterProjectStub = sinon.stub().returns(true).onFirstCall().returns(false);
 	const getProjectFilterStub = sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
 
-	const requiresBuildStub = sinon.stub().returns(true);
+	const requiresBuildAStub = sinon.stub().returns(true);
+	const requiresBuildBStub = sinon.stub().returns(false);
+	const requiresBuildCStub = sinon.stub().returns(true);
 	const projectBuildContextMockA = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildStub
+				requiresBuild: requiresBuildAStub
 			};
 		},
 		getProject: sinon.stub().returns(getMockProject("library", "a"))
@@ -237,7 +239,7 @@ test.serial("build: Multiple projects", async (t) => {
 	const projectBuildContextMockB = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildStub
+				requiresBuild: requiresBuildBStub
 			};
 		},
 		getProject: sinon.stub().returns(getMockProject("library", "b"))
@@ -245,7 +247,7 @@ test.serial("build: Multiple projects", async (t) => {
 	const projectBuildContextMockC = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildStub
+				requiresBuild: requiresBuildCStub
 			};
 		},
 		getProject: sinon.stub().returns(getMockProject("library", "c"))
@@ -280,18 +282,18 @@ test.serial("build: Multiple projects", async (t) => {
 		"project.b", "project.c"
 	], "_createRequiredBuildContexts got called with correct arguments");
 
-	t.is(requiresBuildStub.callCount, 3, "TaskRunner#requiresBuild got called three times");
+	t.is(requiresBuildAStub.callCount, 2, "TaskRunner#requiresBuild got called twice times for library.a");
+	t.is(requiresBuildBStub.callCount, 2, "TaskRunner#requiresBuild got called twice times for library.b");
+	t.is(requiresBuildCStub.callCount, 2, "TaskRunner#requiresBuild got called twice times for library.c");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
-	t.is(buildProjectStub.callCount, 3, "_buildProject got called three times");
+	t.is(buildProjectStub.callCount, 2, "_buildProject got called three times"); // library.b does not require a build
 	t.is(buildProjectStub.getCall(0).args[0], projectBuildContextMockA,
 		"_buildProject got called with correct arguments");
-	t.is(buildProjectStub.getCall(1).args[0], projectBuildContextMockB,
-		"_buildProject got called with correct arguments");
-	t.is(buildProjectStub.getCall(2).args[0], projectBuildContextMockC,
+	t.is(buildProjectStub.getCall(1).args[0], projectBuildContextMockC,
 		"_buildProject got called with correct arguments");
 
-	t.is(writeResultsStub.callCount, 2, "_writeResults got called twice"); // not all projects have been requested
+	t.is(writeResultsStub.callCount, 2, "_writeResults got called twice"); // library.a has not been requested
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMockB,
 		"_writeResults got called with correct first argument");
 	t.is(writeResultsStub.getCall(0).args[1]._fsBasePath, path.resolve("dest/path"),
