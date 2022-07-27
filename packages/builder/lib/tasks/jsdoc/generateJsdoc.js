@@ -28,7 +28,7 @@ const {resourceFactory} = require("@ui5/fs");
  * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {GenerateJsdocOptions} parameters.options Options
- * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} [parameters.buildContext] Internal, deprecated parameter
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */

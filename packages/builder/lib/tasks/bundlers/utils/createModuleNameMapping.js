@@ -11,7 +11,7 @@ const ModuleName = require("../../../lbt/utils/ModuleName");
  * @private
  * @param {object} parameters Parameters
  * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources
- * @param {module:@ui5/builder.tasks.TaskUtil|object} parameters.taskUtil TaskUtil
+ * @param {module:@ui5/project.build.helpers.TaskUtil|object} parameters.taskUtil TaskUtil
  * @returns {object} Module name mapping
  */
 module.exports = function({resources, taskUtil}) {
