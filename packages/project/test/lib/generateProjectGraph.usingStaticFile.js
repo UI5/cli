@@ -5,6 +5,7 @@ const sinonGlobal = require("sinon");
 const projectGraphFromStaticFile = require("../../lib/generateProjectGraph").usingStaticFile;
 
 const applicationHPath = path.join(__dirname, "..", "fixtures", "application.h");
+const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
 const notExistingPath = path.join(__dirname, "..", "fixtures", "does_not_exist");
 
 test.beforeEach((t) => {
@@ -40,6 +41,42 @@ test("Throws error if file not found", async (t) => {
 		`Failed to load dependency tree configuration from path ` +
 		`${path.join(notExistingPath, "projectDependencies.yaml")}: ` +
 		`ENOENT: no such file or directory, open '${path.join(notExistingPath, "projectDependencies.yaml")}'`,
+		"Correct error message");
+});
+
+test("Throws for missing id", async (t) => {
+	const err = await t.throwsAsync(projectGraphFromStaticFile({
+		cwd: applicationHPath,
+		filePath: "projectDependencies-missing-id.yaml"
+	}));
+	t.is(err.message,
+		`Failed to load dependency tree configuration from path ` +
+		`${path.join(applicationHPath, "projectDependencies-missing-id.yaml")}: ` +
+		`Missing or empty attribute 'id' for project with path ${applicationAPath}`,
+		"Correct error message");
+});
+
+test("Throws for missing version", async (t) => {
+	const err = await t.throwsAsync(projectGraphFromStaticFile({
+		cwd: applicationHPath,
+		filePath: "projectDependencies-missing-version.yaml"
+	}));
+	t.is(err.message,
+		`Failed to load dependency tree configuration from path ` +
+		`${path.join(applicationHPath, "projectDependencies-missing-version.yaml")}: ` +
+		`Missing or empty attribute 'version' for project static-application.a`,
+		"Correct error message");
+});
+
+test("Throws for missing path", async (t) => {
+	const err = await t.throwsAsync(projectGraphFromStaticFile({
+		cwd: applicationHPath,
+		filePath: "projectDependencies-missing-path.yaml"
+	}));
+	t.is(err.message,
+		`Failed to load dependency tree configuration from path ` +
+		`${path.join(applicationHPath, "projectDependencies-missing-path.yaml")}: ` +
+		`Missing or empty attribute 'path' for project static-library.e`,
 		"Correct error message");
 });
 

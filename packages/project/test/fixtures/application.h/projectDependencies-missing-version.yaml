@@ -1,0 +1,7 @@
+---
+id: static-application.a
+path: "../application.a"
+dependencies:
+- id: static-library.e
+  version: "0.0.1"
+  path: "../library.e"

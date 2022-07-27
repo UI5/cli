@@ -4,7 +4,18 @@ const ui5Framework = require("./graph/helpers/ui5Framework");
 const log = require("@ui5/logger").getLogger("generateProjectGraph");
 
 function resolveProjectPaths(cwd, project) {
+	if (!project.path) {
+		throw new Error(`Missing or empty attribute 'path' for project ${project.id}`);
+	}
 	project.path = path.resolve(cwd, project.path);
+
+	if (!project.id) {
+		throw new Error(`Missing or empty attribute 'id' for project with path ${project.path}`);
+	}
+	if (!project.version) {
+		throw new Error(`Missing or empty attribute 'version' for project ${project.id}`);
+	}
+
 	if (project.dependencies) {
 		project.dependencies.forEach((project) => resolveProjectPaths(cwd, project));
 	}
@@ -159,11 +170,11 @@ const generateProjectGraph = {
 			dependencyTree = parseYaml(contents, {
 				filename: filePath
 			});
+			resolveProjectPaths(cwd, dependencyTree);
 		} catch (err) {
 			throw new Error(
 				`Failed to load dependency tree configuration from path ${filePath}: ${err.message}`);
 		}
-		resolveProjectPaths(cwd, dependencyTree);
 		return dependencyTree;
 	}
 };
