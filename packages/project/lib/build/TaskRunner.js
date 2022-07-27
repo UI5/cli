@@ -242,7 +242,7 @@ class TaskRunner {
 						{module:@ui5/fs.AbstractReader} parameters.dependencies
 							Reader or Collection to read dependency files
 						{Object} parameters.taskUtil Specification Version dependent interface to a
-							[TaskUtil]{@link module:@ui5/builder.tasks.TaskUtil} instance
+							[TaskUtil]{@link module:@ui5/project.build.helpers.TaskUtil} instance
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name
 						{string} [parameters.options.projectNamespace] Project namespace if available
