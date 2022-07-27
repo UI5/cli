@@ -235,6 +235,9 @@ test.serial("build: Multiple projects", async (t) => {
 	const requiresBuildAStub = sinon.stub().returns(true);
 	const requiresBuildBStub = sinon.stub().returns(false);
 	const requiresBuildCStub = sinon.stub().returns(true);
+	const getFormattedBuildMetadataStub = sinon.stub().returns({
+		age: "xx days"
+	});
 	const projectBuildContextMockA = {
 		getTaskRunner: () => {
 			return {
@@ -246,7 +249,8 @@ test.serial("build: Multiple projects", async (t) => {
 	const projectBuildContextMockB = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildBStub
+				requiresBuild: requiresBuildBStub,
+				getFormattedBuildMetadata: getFormattedBuildMetadataStub
 			};
 		},
 		getProject: sinon.stub().returns(getMockProject("library", "b"))

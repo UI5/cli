@@ -94,25 +94,41 @@ class ProjectBuilder {
 		});
 
 		const projectBuildContexts = this._createRequiredBuildContexts(requestedProjects);
-
-		// Collect all projects that need to be built (i.e. do not have a matching build manifest)
-		const projectsToBuild = [];
-		projectBuildContexts.forEach((projectBuildContext, projectName) => {
-			if (projectBuildContext.getTaskRunner().requiresBuild()) {
-				projectsToBuild.push(projectName);
-			}
-		});
-
 		const cleanupSigHooks = this._registerCleanupSigHooks();
-		const buildLogger = log.createTaskLogger("🛠 ");
-		buildLogger.addWork(projectsToBuild.length);
-		log.info(`  Projects required to build: `);
-		log.info(`    > ${projectsToBuild.join("\n    > ")}`);
-
 		const fsTarget = resourceFactory.createAdapter({
 			fsBasePath: destPath,
 			virBasePath: "/"
 		});
+
+		const buildQueue = [];
+
+		// Create build queue based on graph depth-first search to ensure correct build order
+		await this._graph.traverseDepthFirst(async ({project}) => {
+			const projectName = project.getName();
+			const projectBuildContext = projectBuildContexts.get(projectName);
+			if (projectBuildContext) {
+				// Build context exists
+				//	=> This project shall be built
+				buildQueue.push(projectBuildContext);
+			}
+		});
+		const buildLogger = log.createTaskLogger("🛠 ");
+		buildLogger.addWork(buildQueue.length);
+		log.info(`  Projects required:`);
+		log.info(`    ${buildQueue
+			.map((projectBuildContext) => {
+				const projectName = projectBuildContext.getProject().getName();
+				const taskRunner = projectBuildContext.getTaskRunner();
+				let msg;
+				if (taskRunner.requiresBuild()) {
+					msg = `=> ${projectName}`;
+				} else {
+					const buildMetadata = taskRunner.getFormattedBuildMetadata();
+					msg = `*> ${projectName} /// already built ${buildMetadata.age} ago`;
+				}
+				return msg;
+			})
+			.join("\n    ")}`);
 
 		if (cleanDest) {
 			log.info(`Cleaning target directory...`);
@@ -121,22 +137,10 @@ class ProjectBuilder {
 		const startTime = process.hrtime();
 		try {
 			const pWrites = [];
-			const buildQueue = [];
-
-
-			// Create build queue based on graph depth-first search to ensure correct build order
-			await this._graph.traverseDepthFirst(async ({project}) => {
-				const projectName = project.getName();
-				const projectBuildContext = projectBuildContexts.get(projectName);
-				if (projectBuildContext) {
-					// Build context exists
-					//	=> This project shall be built
-					buildQueue.push(projectBuildContext);
-				}
-			});
-
 			for (const projectBuildContext of buildQueue) {
 				const projectName = projectBuildContext.getProject().getName();
+
+				// Only build projects that are not already build (i.e. provide a matching build manifest)
 				if (projectBuildContext.getTaskRunner().requiresBuild()) {
 					buildLogger.startWork(`Building project ${projectName}...`);
 					await this._buildProject(projectBuildContext);
