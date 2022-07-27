@@ -13,7 +13,7 @@
 				"@ui5/fs": "^3.0.0-alpha.5",
 				"@ui5/logger": "^3.0.1-alpha.1",
 				"@ui5/project": "^3.0.0-alpha.5",
-				"@ui5/server": "^3.0.0-alpha.2",
+				"@ui5/server": "^3.0.0-alpha.3",
 				"chalk": "^4.1.2",
 				"data-with-position": "^0.5.0",
 				"import-local": "^3.1.0",
@@ -949,12 +949,12 @@
 			}
 		},
 		"node_modules/@ui5/server": {
-			"version": "3.0.0-alpha.2",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-alpha.2.tgz",
-			"integrity": "sha512-MCmKXCgqJRAQxbiU014nZ/RL9M+UOzXqNRpb8Dd4mphs9/oNkpekb3vB2hjAz3owaFebFNQlQ11aKu/oqz8rJQ==",
+			"version": "3.0.0-alpha.3",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-alpha.3.tgz",
+			"integrity": "sha512-xp/IfDYpmk58szkPtMhZxM06qIGg5FYCXVf8kki9Vs3qlrYvmqr76lj4lJqTYvVuCdyBasYZTl+FzDT72DcGjg==",
 			"dependencies": {
-				"@ui5/builder": "^3.0.0-alpha.7",
-				"@ui5/fs": "^3.0.0-alpha.4",
+				"@ui5/builder": "^3.0.0-alpha.9",
+				"@ui5/fs": "^3.0.0-alpha.5",
 				"@ui5/logger": "^3.0.1-alpha.1",
 				"body-parser": "^1.19.1",
 				"compression": "^1.7.4",
@@ -10301,12 +10301,12 @@
 			}
 		},
 		"@ui5/server": {
-			"version": "3.0.0-alpha.2",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-alpha.2.tgz",
-			"integrity": "sha512-MCmKXCgqJRAQxbiU014nZ/RL9M+UOzXqNRpb8Dd4mphs9/oNkpekb3vB2hjAz3owaFebFNQlQ11aKu/oqz8rJQ==",
+			"version": "3.0.0-alpha.3",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-alpha.3.tgz",
+			"integrity": "sha512-xp/IfDYpmk58szkPtMhZxM06qIGg5FYCXVf8kki9Vs3qlrYvmqr76lj4lJqTYvVuCdyBasYZTl+FzDT72DcGjg==",
 			"requires": {
-				"@ui5/builder": "^3.0.0-alpha.7",
-				"@ui5/fs": "^3.0.0-alpha.4",
+				"@ui5/builder": "^3.0.0-alpha.9",
+				"@ui5/fs": "^3.0.0-alpha.5",
 				"@ui5/logger": "^3.0.1-alpha.1",
 				"body-parser": "^1.19.1",
 				"compression": "^1.7.4",
