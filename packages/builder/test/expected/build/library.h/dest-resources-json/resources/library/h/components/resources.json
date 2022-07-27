@@ -31,10 +31,15 @@
 		{
 			"name": "Component.js",
 			"module": "library/h/components/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
+		},
+		{
+			"name": "Component.js.map",
+			"size": 219,
+			"isDebug": true
 		},
 		{
 			"name": "TodoComponent-dbg.js",
@@ -46,12 +51,17 @@
 		{
 			"name": "TodoComponent.js",
 			"module": "library/h/components/TodoComponent.js",
-			"size": 54,
+			"size": 96,
 			"format": "raw"
 		},
 		{
+			"name": "TodoComponent.js.map",
+			"size": 133,
+			"isDebug": true
+		},
+		{
 			"name": "resources.json",
-			"size": 3462
+			"size": 3883
 		},
 		{
 			"name": "subcomponent1/Component-dbg.js",
@@ -82,10 +92,15 @@
 		{
 			"name": "subcomponent1/Component.js",
 			"module": "library/h/components/subcomponent1/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
+		},
+		{
+			"name": "subcomponent1/Component.js.map",
+			"size": 219,
+			"isDebug": true
 		},
 		{
 			"name": "subcomponent2/Component-dbg.js",
@@ -116,10 +131,15 @@
 		{
 			"name": "subcomponent2/Component.js",
 			"module": "library/h/components/subcomponent2/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
+		},
+		{
+			"name": "subcomponent2/Component.js.map",
+			"size": 219,
+			"isDebug": true
 		},
 		{
 			"name": "subcomponent3/Component-dbg.js",
@@ -150,10 +170,15 @@
 		{
 			"name": "subcomponent3/Component.js",
 			"module": "library/h/components/subcomponent3/Component.js",
-			"size": 115,
+			"size": 153,
 			"required": [
 				"sap/ui/core/UIComponent.js"
 			]
+		},
+		{
+			"name": "subcomponent3/Component.js.map",
+			"size": 219,
+			"isDebug": true
 		}
 	]
 }

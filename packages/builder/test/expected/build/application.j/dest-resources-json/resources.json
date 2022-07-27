@@ -42,7 +42,7 @@
 		{
 			"name": "Component.js",
 			"module": "application/j/Component.js",
-			"size": 141,
+			"size": 179,
 			"required": [
 				"sap/m/library.js",
 				"sap/ui/core/UIComponent.js",
@@ -50,6 +50,11 @@
 				"sap/ui/fl/library.js",
 				"sap/ui/layout/library.js"
 			]
+		},
+		{
+			"name": "Component.js.map",
+			"size": 258,
+			"isDebug": true
 		},
 		{
 			"name": "changes/coding/MyExtension-dbg.js",
@@ -60,7 +65,12 @@
 		{
 			"name": "changes/coding/MyExtension.js",
 			"module": "application/j/changes/coding/MyExtension.js",
-			"size": 39
+			"size": 79
+		},
+		{
+			"name": "changes/coding/MyExtension.js.map",
+			"size": 162,
+			"isDebug": true
 		},
 		{
 			"name": "changes/flexibility-bundle.json",
@@ -83,7 +93,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 2006
+			"size": 2173
 		}
 	]
 }

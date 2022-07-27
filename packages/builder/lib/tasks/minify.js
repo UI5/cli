@@ -10,11 +10,11 @@ const minifier = require("../processors/minifier");
  * @param {module:@ui5/builder.tasks.TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
- * @param {boolean} [parameters.options.omitSourceMapResources=true] Whether source map resources shall
+ * @param {boolean} [parameters.options.omitSourceMapResources=false] Whether source map resources shall
  * 		be tagged as "OmitFromBuildResult" and no sourceMappingURL shall be added to the minified resource
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, taskUtil, options: {pattern, omitSourceMapResources = true}}) {
+module.exports = async function({workspace, taskUtil, options: {pattern, omitSourceMapResources = false}}) {
 	const resources = await workspace.byGlob(pattern);
 	const processedResources = await minifier({
 		resources,

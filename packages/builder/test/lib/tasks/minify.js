@@ -26,7 +26,7 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test("integration: minify", async (t) => {
+test("integration: minify omitSourceMapResources=true", async (t) => {
 	const taskUtil = {
 		setTag: sinon.stub(),
 		STANDARD_TAGS: {
@@ -52,7 +52,8 @@ test();`;
 		workspace,
 		taskUtil,
 		options: {
-			pattern: "/test.js"
+			pattern: "/test.js",
+			omitSourceMapResources: true
 		}
 	});
 
@@ -116,8 +117,7 @@ test();`;
 		workspace,
 		taskUtil,
 		options: {
-			pattern: "/test.js",
-			omitSourceMapResources: false
+			pattern: "/test.js"
 		}
 	});
 
@@ -154,7 +154,7 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 		"Third taskUtil.setTag call with expected arguments");
 });
 
-test("integration: minify (without taskUtil)", async (t) => {
+test("integration: minify omitSourceMapResources=true (without taskUtil)", async (t) => {
 	const {reader, writer, workspace} = createWorkspace();
 	const content = `
 function test(paramA) {
@@ -171,7 +171,8 @@ test();`;
 	await minify({
 		workspace,
 		options: {
-			pattern: "/test.js"
+			pattern: "/test.js",
+			omitSourceMapResources: true
 		}
 	});
 
