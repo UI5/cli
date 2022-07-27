@@ -1,4 +1,3 @@
-const {getTask} = require("@ui5/builder").tasks.taskRepository;
 const composeTaskList = require("./helpers/composeTaskList");
 
 class TaskRunner {
@@ -9,17 +8,19 @@ class TaskRunner {
 	 * @param {object} parameters.graph
 	 * @param {object} parameters.project
 	 * @param {GroupLogger} parameters.parentLogger Logger to use
-	 * @param {module:@ui5/builder.tasks.TaskUtil} parameters.taskUtil TaskUtil instance
+	 * @param {module:@ui5/project.build.helpers.TaskUtil} parameters.taskUtil TaskUtil instance
+	 * @param {module:@ui5/builder.tasks.taskRepository} parameters.taskRepository Task repository
 	 * @param {module:@ui5/project.build.ProjectBuilder.BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
 	 */
-	constructor({graph, project, parentLogger, taskUtil, buildConfig}) {
+	constructor({graph, project, parentLogger, taskUtil, taskRepository, buildConfig}) {
 		if (!graph || !project || !parentLogger || !taskUtil || !buildConfig) {
 			throw new Error("One or more mandatory parameters not provided");
 		}
 		this._project = project;
 		this._graph = graph;
 		this._taskUtil = taskUtil;
+		this._taskRepository = taskRepository;
 		this._buildConfig = buildConfig;
 
 		this._log = parentLogger.createSubLogger(project.getType() + " " + project.getName(), 0.2);
@@ -49,7 +50,7 @@ class TaskRunner {
 		const standardTasks = buildDefinition({
 			project,
 			taskUtil,
-			getTask
+			getTask: taskRepository.getTask
 		});
 
 		for (const [taskName, params] of standardTasks) {
@@ -165,7 +166,7 @@ class TaskRunner {
 			}
 
 			if (!taskFunction) {
-				taskFunction = getTask(taskName).task;
+				taskFunction = this._taskRepository.getTask(taskName).task;
 			}
 			return taskFunction(params);
 		};
@@ -206,7 +207,7 @@ class TaskRunner {
 			}
 			let standardTask;
 			try {
-				standardTask = getTask(taskDef.name);
+				standardTask = this._taskRepository.getTask(taskDef.name);
 			} catch (e) {/* We expect this to fail with an "Unknown Task" error */}
 			if (standardTask) {
 				throw new Error(

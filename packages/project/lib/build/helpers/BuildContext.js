@@ -7,7 +7,7 @@ const ProjectBuildContext = require("./ProjectBuildContext");
  * @memberof module:@ui5/project.build.helpers
  */
 class BuildContext {
-	constructor(graph, {
+	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
 		cssVariables = false,
 		jsdoc = false,
@@ -16,6 +16,9 @@ class BuildContext {
 	} = {}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
+		}
+		if (!taskRepository) {
+			throw new Error(`Missing parameter 'taskRepository'`);
 		}
 
 		if (createBuildManifest && !["library", "theme-library"].includes(graph.getRoot().getType())) {
@@ -34,6 +37,8 @@ class BuildContext {
 			excludedTasks,
 		};
 
+		this._taskRepository = taskRepository;
+
 		this._options = {
 			cssVariables: cssVariables
 		};
@@ -50,6 +55,10 @@ class BuildContext {
 
 	getBuildConfig() {
 		return this._buildConfig;
+	}
+
+	getTaskRepository() {
+		return this._taskRepository;
 	}
 
 	getGraph() {

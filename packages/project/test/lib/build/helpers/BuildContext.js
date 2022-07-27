@@ -10,29 +10,41 @@ test.afterEach.always((t) => {
 const BuildContext = require("../../../../lib/build/helpers/BuildContext");
 
 test("Missing parameters", (t) => {
-	const error = t.throws(() => {
+	const error1 = t.throws(() => {
 		new BuildContext();
 	});
 
-	t.is(error.message, `Missing parameter 'graph'`, "Threw with expected error message");
+	t.is(error1.message, `Missing parameter 'graph'`, "Threw with expected error message");
+
+	const error2 = t.throws(() => {
+		new BuildContext("graph");
+	});
+
+	t.is(error2.message, `Missing parameter 'taskRepository'`, "Threw with expected error message");
 });
 
 test("getRootProject", (t) => {
 	const buildContext = new BuildContext({
 		getRoot: () => "pony"
-	});
+	}, "taskRepository");
 
 	t.is(buildContext.getRootProject(), "pony", "Returned correct value");
 });
 
 test("getGraph", (t) => {
-	const buildContext = new BuildContext("graph");
+	const buildContext = new BuildContext("graph", "taskRepository");
 
 	t.is(buildContext.getGraph(), "graph", "Returned correct value");
 });
 
+test("getTaskRepository", (t) => {
+	const buildContext = new BuildContext("graph", "taskRepository");
+
+	t.is(buildContext.getTaskRepository(), "taskRepository", "Returned correct value");
+});
+
 test("getBuildConfig: Default values", (t) => {
-	const buildContext = new BuildContext("graph");
+	const buildContext = new BuildContext("graph", "taskRepository");
 
 	t.deepEqual(buildContext.getBuildConfig(), {
 		selfContained: false,
@@ -51,7 +63,7 @@ test("getBuildConfig: Custom values", (t) => {
 				getType: () => "library"
 			};
 		}
-	}, {
+	}, "taskRepository", {
 		selfContained: true,
 		cssVariables: true,
 		jsdoc: true,
@@ -78,7 +90,7 @@ test("createBuildManifest not supported", (t) => {
 					getType: () => "pony"
 				};
 			}
-		}, {
+		}, "taskRepository", {
 			createBuildManifest: true
 		});
 	});
@@ -88,7 +100,7 @@ test("createBuildManifest not supported", (t) => {
 });
 
 test("getBuildOption", (t) => {
-	const buildContext = new BuildContext("graph", {
+	const buildContext = new BuildContext("graph", "taskRepository", {
 		cssVariables: "value",
 	});
 
@@ -110,8 +122,7 @@ test.serial("createProjectContext", (t) => {
 	mock("../../../../lib/build/helpers/ProjectBuildContext", DummyProjectContext);
 
 	const BuildContext = mock.reRequire("../../../../lib/build/helpers/BuildContext");
-	const testBuildContext = new BuildContext("graph"
-	);
+	const testBuildContext = new BuildContext("graph", "taskRepository");
 
 	const projectContext = testBuildContext.createProjectContext({
 		project: "project",
@@ -125,8 +136,7 @@ test.serial("createProjectContext", (t) => {
 });
 
 test("executeCleanupTasks", async (t) => {
-	const buildContext = new BuildContext("graph"
-	);
+	const buildContext = new BuildContext("graph", "taskRepository");
 
 	const executeCleanupTasks = sinon.stub().resolves();
 

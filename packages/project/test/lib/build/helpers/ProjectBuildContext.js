@@ -241,6 +241,7 @@ test.serial("getTaskRunner", (t) => {
 				graph: "graph",
 				project: "project",
 				taskUtil: "taskUtil",
+				taskRepository: "taskRepository",
 				parentLogger: "log",
 				buildConfig: "buildConfig",
 			}, "Created TaskRunner instance with correct parameters");
@@ -253,7 +254,8 @@ test.serial("getTaskRunner", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
 			getGraph: () => "graph",
-			getBuildConfig: () => "buildConfig"
+			getBuildConfig: () => "buildConfig",
+			getTaskRepository: () => "taskRepository",
 		},
 		project: "project",
 		log: "log",

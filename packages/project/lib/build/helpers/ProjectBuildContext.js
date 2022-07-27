@@ -1,12 +1,12 @@
 const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
-const TaskUtil = require("@ui5/builder").tasks.TaskUtil;
+const TaskUtil = require("./TaskUtil");
 
 /**
  * Build context of a single project. Always part of an overall
- * [Build Context]{@link module:@ui5/builder.builder.BuildContext}
+ * [Build Context]{@link module:@ui5/project.build.helpers.BuildContext}
  *
  * @private
- * @memberof module:@ui5/builder.builder
+ * @memberof module:@ui5/project.build.helpers
  */
 class ProjectBuildContext {
 	constructor({buildContext, log, project}) {
@@ -102,6 +102,7 @@ class ProjectBuildContext {
 			graph: this._buildContext.getGraph(),
 			project: this._project,
 			taskUtil: this.getTaskUtil(),
+			taskRepository: this._buildContext.getTaskRepository(),
 			parentLogger: this._log,
 			buildConfig: this._buildContext.getBuildConfig()
 		});

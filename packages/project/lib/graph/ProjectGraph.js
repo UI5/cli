@@ -452,6 +452,14 @@ class ProjectGraph {
 		}
 	}
 
+	setTaskRepository(taskRepository) {
+		this._taskRepository = taskRepository;
+	}
+
+	getTaskRepository() {
+		return this._taskRepository || require("@ui5/builder").tasks.taskRepository;
+	}
+
 	/**
 	 * Executes a build on the graph
 	 *
@@ -481,7 +489,7 @@ class ProjectGraph {
 		includedDependencies = [], excludedDependencies = [],
 		complexDependencyIncludes,
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
-		includedTasks = [], excludedTasks = [],
+		includedTasks = [], excludedTasks = []
 	}) {
 		this.seal();
 		if (this._built) {
@@ -491,7 +499,7 @@ class ProjectGraph {
 		}
 		this._built = true;
 		const ProjectBuilder = require("../build/ProjectBuilder");
-		const builder = new ProjectBuilder(this, {
+		const builder = new ProjectBuilder(this, this.getTaskRepository(), {
 			selfContained, cssVariables, jsdoc,
 			createBuildManifest,
 			includedTasks, excludedTasks,

@@ -47,7 +47,7 @@ module.exports = async function(project, buildConfig) {
 			buildConfig,
 			version: project.getVersion(),
 			namespace: project.getNamespace(),
-			tags: project.getResourceTagCollection().getAllTags()
+			tags: Object.fromEntries(Object.entries(project.getResourceTagCollection().getAllTags()).sort())
 		}
 	};
 

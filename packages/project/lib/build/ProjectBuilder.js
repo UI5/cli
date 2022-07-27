@@ -27,11 +27,15 @@ class ProjectBuilder {
 	 *
 	 * @public
 	 * @param {module:@ui5/project.graph.ProjectGraph} graph Project graph
+	 * @param {module:@ui5/builder.tasks.taskRepository} taskRepository Task Repository module
 	 * @param {module:@ui5/project.build.ProjectBuilder.BuildConfiguration} [buildConfig] Build configuration
 	 */
-	constructor(graph, buildConfig) {
+	constructor(graph, taskRepository, buildConfig) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
+		}
+		if (!taskRepository) {
+			throw new Error(`Missing parameter 'taskRepository'`);
 		}
 		if (!graph.isSealed()) {
 			throw new Error(
@@ -39,7 +43,7 @@ class ProjectBuilder {
 		}
 
 		this._graph = graph;
-		this._buildContext = new BuildContext(graph, buildConfig);
+		this._buildContext = new BuildContext(graph, taskRepository, buildConfig);
 	}
 
 	/**
