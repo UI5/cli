@@ -11,7 +11,7 @@ const DuplexCollection = ui5Fs.DuplexCollection;
 const {generateProjectGraph} = require("@ui5/project");
 
 const ui5Builder = require("../../../../");
-const {generateLibraryPreload} = ui5Builder.tasks;
+const {generateLibraryPreload, taskRepository} = ui5Builder.tasks;
 
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
@@ -39,7 +39,7 @@ test("integration: build library.d with library preload", async (t) => {
 	const graph = await generateProjectGraph.usingObject({
 		dependencyTree: libraryDTree
 	});
-
+	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
 		destPath,
 		excludedTasks,
@@ -92,7 +92,7 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 	const graph = await generateProjectGraph.usingObject({
 		dependencyTree: sapUiCoreTree
 	});
-
+	graph.setTaskRepository(taskRepository);
 	await t.notThrowsAsync(graph.build({
 		destPath,
 		excludedTasks,

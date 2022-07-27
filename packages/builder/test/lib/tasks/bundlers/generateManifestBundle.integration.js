@@ -8,6 +8,7 @@ const extractZip = require("extract-zip");
 const recursive = require("recursive-readdir");
 
 const {generateProjectGraph} = require("@ui5/project");
+const taskRepository = require("../../../../lib/tasks/taskRepository");
 
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const libraryCore = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core-evo");
@@ -37,6 +38,7 @@ test("integration: Build application.b with manifestBundler", async (t) => {
 		dependencyTree: applicationBTree
 	});
 
+	graph.setTaskRepository(taskRepository);
 	await graph.build({
 		destPath,
 		excludedTasks,
@@ -70,6 +72,7 @@ test("integration: Build library.k with manifestBundler", async (t) => {
 		dependencyTree: libraryKTree
 	});
 
+	graph.setTaskRepository(taskRepository);
 	await graph.build({
 		destPath,
 		excludedTasks,
