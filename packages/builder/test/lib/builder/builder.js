@@ -579,6 +579,85 @@ test.serial("Build library.e with copyright from metadata configuration of tree"
 	t.pass();
 });
 
+test.serial("Build library.e with build manifest", async (t) => {
+	const destPath = path.join("test", "tmp", "build", "library.e", "build-manifest");
+	const expectedPath = path.join("test", "expected", "build", "library.e", "build-manifest");
+	const resultBuildManifestPath = path.join(__dirname,
+		"..", "..", "tmp", "build", "library.e", "build-manifest", ".ui5", "build-manifest.json");
+
+	// Stub date because of timestamp in build-manifest.json
+	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: libraryETree
+	});
+	graph.setTaskRepository(taskRepository);
+	await graph.build({
+		destPath,
+		createBuildManifest: true
+	});
+	toISOStringStub.restore();
+
+	let expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	directoryDeepEqual(t, destPath, expectedPath);
+	// Filter out build-manifest.json for manual comparison
+	expectedFiles = expectedFiles.filter((filePath) => {
+		return !filePath.endsWith("build-manifest.json");
+	});
+
+	// Check for all file contents
+	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+
+	const manifest = require(resultBuildManifestPath);
+
+	t.deepEqual(manifest.project, {
+		"metadata": {
+			"name": "library.e"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "resources",
+					"test": "test-resources"
+				}
+			}
+		},
+		"specVersion": "2.6",
+		"type": "library"
+	}, "Build manifest contains expected project configuration");
+
+	t.deepEqual(manifest.buildManifest.tags, {
+		"/resources/library/e/library-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/e/library.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/e/library.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/e/some-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/e/some.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/e/some.js.map": {
+			"ui5:HasDebugVariant": true
+		}
+	}, "Build manifest contains expected tags");
+
+	t.deepEqual(manifest.buildManifest.namespace, "library/e",
+		"Build manifest contains expected namespace");
+
+	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+		"Build manifest contains expected timestamp");
+
+	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+		"Build manifest contains expected version");
+});
+
 test.serial("Build library.h with custom bundles and component-preloads", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.h", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest");
@@ -621,26 +700,157 @@ test.serial("Build library.h with custom bundles and component-preloads (no mini
 	t.pass();
 });
 
-test.serial("Build library.h with custom bundles and component-preloads with resources.json", async (t) => {
+test.serial("Build library.h w/ custom bundles, component-preloads, resources.json and build manifest", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.h", "dest-resources-json");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest-resources-json");
+	const resultBuildManifestPath = path.join(__dirname,
+		"..", "..", "tmp", "build", "library.h", "dest-resources-json", ".ui5", "build-manifest.json");
 
+	// Stub date because of timestamp in build-manifest.json
+	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
 	const graph = await generateProjectGraph.usingObject({
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
 	await graph.build({
 		destPath,
+		createBuildManifest: true,
 		includedTasks: ["generateResourcesJson"],
 		excludedTasks: ["generateLibraryPreload"]
 	});
+	toISOStringStub.restore();
 
-	const expectedFiles = await findFiles(expectedPath);
+	let expectedFiles = await findFiles(expectedPath);
+	// Filter out build-manifest.json for manual comparison
+	expectedFiles = expectedFiles.filter((filePath) => {
+		return !filePath.endsWith("build-manifest.json");
+	});
+
 	// Check for all directories and files
 	directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
-	t.pass();
+
+
+	const manifest = require(resultBuildManifestPath);
+
+	t.deepEqual(manifest.project, {
+		"metadata": {
+			"name": "library.h"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "resources",
+					"test": "test-resources"
+				}
+			}
+		},
+		"specVersion": "2.6",
+		"type": "library"
+	}, "Build manifest contains expected project configuration");
+
+	t.deepEqual(manifest.buildManifest.tags, {
+		"/resources/library/h/components/Component-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/components/Component.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/Component.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/TodoComponent-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/components/TodoComponent.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/TodoComponent.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent1/Component-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent1/Component.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent1/Component.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent2/Component-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent2/Component.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent2/Component.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent3/Component-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent3/Component.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/components/subcomponent3/Component.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/designtime/library-dbg.designtime.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/designtime/library.designtime.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/designtime/library.designtime.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/file-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/file.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/file.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/library-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/library.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/library.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/not-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/not.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/not.js.map": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/some-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/h/some.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/h/some.js.map": {
+			"ui5:HasDebugVariant": true
+		}
+	}, "Build manifest contains expected tags");
+
+	t.deepEqual(manifest.buildManifest.namespace, "library/h",
+		"Build manifest contains expected namespace");
+
+	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+		"Build manifest contains expected timestamp");
+
+	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+		"Build manifest contains expected version");
 });
 
 test.serial("Build library.i with manifest info taken from .library and library.js", async (t) => {
@@ -684,6 +894,110 @@ test.serial("Build library.j with JSDoc build only", async (t) => {
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
+});
+
+test.serial("Build library.i, bundling library.h", async (t) => {
+	const destPath = path.join("test", "tmp", "build", "library.i", "bundle-library.h");
+	const expectedPath = path.join("test", "expected", "build", "library.i", "bundle-library.h");
+
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: libraryIBundlingHTree
+	});
+	graph.setTaskRepository(taskRepository);
+	await graph.build({
+		destPath,
+		excludedTasks: ["generateLibraryPreload"]
+	});
+
+	const expectedFiles = await findFiles(expectedPath);
+	// Check for all directories and files
+	directoryDeepEqual(t, destPath, expectedPath);
+	// Check for all file contents
+	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+	t.pass();
+});
+
+test.serial("Build library.i, bundling library.h with build manifest", async (t) => {
+	const libraryHDestPath = path.join("test", "tmp", "intermediate", "library.h-for-library.i");
+	const destPath = path.join("test", "tmp", "build", "library.i", "bundle-library.h-build-manifest");
+	const expectedPath = path.join("test", "expected", "build", "library.i", "bundle-library.h-build-manifest");
+	const resultBuildManifestPath = path.join(__dirname,
+		"..", "..", "tmp", "build", "library.i", "bundle-library.h-build-manifest", ".ui5", "build-manifest.json");
+
+	const graph1 = await generateProjectGraph.usingObject({
+		dependencyTree: libraryHTree
+	});
+	graph1.setTaskRepository(taskRepository);
+	await graph1.build({
+		destPath: libraryHDestPath,
+		createBuildManifest: true
+	});
+
+	const projectTree = cloneProjectTree(libraryIBundlingHTree);
+	projectTree.dependencies[1].path = libraryHDestPath;
+	delete projectTree.dependencies[1].configuration;
+
+	// Stub date because of timestamp in build-manifest.json
+	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
+	const graph2 = await generateProjectGraph.usingObject({
+		dependencyTree: projectTree
+	});
+	graph2.setTaskRepository(taskRepository);
+	await graph2.build({
+		destPath,
+		createBuildManifest: true
+	});
+	toISOStringStub.restore();
+
+	let expectedFiles = await findFiles(expectedPath);
+	// Filter out build-manifest.json for manual comparison
+	expectedFiles = expectedFiles.filter((filePath) => {
+		return !filePath.endsWith("build-manifest.json");
+	});
+
+	// Check for all directories and files
+	directoryDeepEqual(t, destPath, expectedPath);
+	// Check for all file contents
+	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+
+	const manifest = require(resultBuildManifestPath);
+
+	t.deepEqual(manifest.project, {
+		"metadata": {
+			"name": "library.i"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "resources",
+					"test": "test-resources"
+				}
+			}
+		},
+		"specVersion": "2.6",
+		"type": "library"
+	}, "Build manifest contains expected project configuration");
+
+	t.deepEqual(manifest.buildManifest.tags, {
+		"/resources/library/i/library-dbg.js": {
+			"ui5:IsDebugVariant": true
+		},
+		"/resources/library/i/library.js": {
+			"ui5:HasDebugVariant": true
+		},
+		"/resources/library/i/library.js.map": {
+			"ui5:HasDebugVariant": true
+		}
+	}, "Build manifest contains expected tags");
+
+	t.deepEqual(manifest.buildManifest.namespace, "library/i",
+		"Build manifest contains expected namespace");
+
+	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+		"Build manifest contains expected timestamp");
+
+	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+		"Build manifest contains expected version");
 });
 
 test.serial("Build library.l", async (t) => {
@@ -748,6 +1062,66 @@ test.serial("Build theme.j even without an library with resources.json", async (
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
+});
+
+test.serial("Build theme.j with build manifest", async (t) => {
+	const destPath = path.join("test", "tmp", "build", "theme.j", "build-manifest");
+	const expectedPath = path.join("test", "expected", "build", "theme.j", "build-manifest");
+	const resultBuildManifestPath = path.join(__dirname,
+		"..", "..", "tmp", "build", "theme.j", "build-manifest", ".ui5", "build-manifest.json");
+
+	// Stub date because of timestamp in build-manifest.json
+	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
+	const graph = await generateProjectGraph.usingObject({
+		dependencyTree: themeJTree
+	});
+	graph.setTaskRepository(taskRepository);
+	await graph.build({
+		destPath,
+		createBuildManifest: true
+	});
+	toISOStringStub.restore();
+
+	let expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	directoryDeepEqual(t, destPath, expectedPath);
+	// Filter out build-manifest.json for manual comparison
+	expectedFiles = expectedFiles.filter((filePath) => {
+		return !filePath.endsWith("build-manifest.json");
+	});
+
+	// Check for all file contents
+	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
+
+	const manifest = require(resultBuildManifestPath);
+
+	t.deepEqual(manifest.project, {
+		"metadata": {
+			"name": "theme.j"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "resources",
+					"test": "test-resources"
+				}
+			}
+		},
+		"specVersion": "2.6",
+		"type": "theme-library"
+	}, "Build manifest contains expected project configuration");
+
+	t.deepEqual(manifest.buildManifest.tags, {}, "Build manifest contains expected tags");
+
+	t.deepEqual(manifest.buildManifest.namespace, null,
+		"Build manifest contains expected namespace");
+
+	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+		"Build manifest contains expected timestamp");
+
+	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+		"Build manifest contains expected version");
 });
 
 test.serial("Build library.ø", async (t) => {
@@ -1544,6 +1918,109 @@ const libraryITree = {
 				},
 				"propertiesFileSourceEncoding": "ISO-8859-1"
 			}
+		}
+	}
+};
+const libraryIBundlingHTree = {
+	"id": "library.i",
+	"version": "1.0.0",
+	"path": libraryIPath,
+	"dependencies": [
+		{
+			"id": "sap.ui.core-evo",
+			"version": "1.0.0",
+			"path": libraryCore,
+			"dependencies": [],
+			"configuration": {
+				"specVersion": "2.6",
+				"type": "library",
+				"metadata": {
+					"name": "sap.ui.core",
+					"copyright": "Some fancy copyright"
+				},
+				"resources": {
+					"configuration": {
+						"paths": {
+							"src": "main/src"
+						}
+					}
+				}
+			}
+		},
+		cloneProjectTree(libraryHTree)
+	],
+	"configuration": {
+		"specVersion": "2.6",
+		"type": "library",
+		"metadata": {
+			"name": "library.i",
+			"copyright": "Some fancy copyright"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "main/src",
+					"test": "main/test"
+				},
+				"propertiesFileSourceEncoding": "ISO-8859-1"
+			}
+		},
+		"builder": {
+			"bundles": [{
+				"bundleDefinition": {
+					"name": "library/i/customLibraryHBundle.js",
+					"defaultFileTypes": [".js"],
+					"sections": [{
+						"mode": "preload",
+						"filters": [
+							"library/h/some.js",
+							"library/h/library.js",
+							"library/h/fi*.js",
+							"!library/h/components/"
+						],
+						"resolve": false,
+						"renderer": false
+					}, {
+						"mode": "raw",
+						"filters": [
+							"library/h/not.js"
+						],
+						"resolve": true,
+						"sort": true,
+						"renderer": false
+					}]
+				},
+				"bundleOptions": {
+					"optimize": true
+				}
+			}, {
+				"bundleDefinition": {
+					"name": "library/i/customLibraryHBundle-dbg.js",
+					"defaultFileTypes": [".js"],
+					"sections": [{
+						"mode": "preload",
+						"filters": [
+							"library/h/some.js",
+							"library/h/library.js",
+							"library/h/fi*.js",
+							"!library/h/components/"
+						],
+						"resolve": false,
+						"renderer": false
+					}, {
+						"mode": "raw",
+						"filters": [
+							"library/h/not.js"
+						],
+						"resolve": true,
+						"sort": true,
+						"renderer": false
+					}]
+				},
+				"bundleOptions": {
+					"optimize": false
+				}
+			}]
 		}
 	}
 };
