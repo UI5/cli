@@ -315,8 +315,8 @@ class TaskRunner {
 		this._taskStart = performance.now();
 		await taskFunction(taskParams, this._taskLog);
 		this._taskLog.completeWork(1);
-		if (process.env.UI5_LOG_TASK_PERF) {
-			this._taskLog.info(`Task succeeded in ${Math.round((performance.now() - this._taskStart))} ms`);
+		if (this._taskLog.isLevelEnabled("perf")) {
+			this._taskLog.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
 	}
 }
