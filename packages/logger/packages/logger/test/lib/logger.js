@@ -11,6 +11,7 @@ function getNpmLogStub() {
 		finish: sinon.stub(),
 		silly: sinon.stub(),
 		verbose: sinon.stub(),
+		perf: sinon.stub(),
 		info: sinon.stub(),
 		warn: sinon.stub(),
 		error: sinon.stub()
@@ -25,8 +26,10 @@ test.beforeEach((t) => {
 		on: sinon.stub(),
 		newGroup: sinon.stub().callsFake(() => getNpmLogStub()),
 		newItem: sinon.stub().callsFake(() => getNpmLogStub()),
+		addLevel: sinon.stub(),
 		silly: sinon.stub(),
 		verbose: sinon.stub(),
+		perf: sinon.stub(),
 		info: sinon.stub(),
 		warn: sinon.stub(),
 		error: sinon.stub()
@@ -75,6 +78,7 @@ test.serial("isLevelEnabled", (t) => {
 	logger.setLevel("silly");
 	t.true(logger.isLevelEnabled("silly"));
 	t.true(logger.isLevelEnabled("verbose"));
+	t.true(logger.isLevelEnabled("perf"));
 	t.true(logger.isLevelEnabled("info"));
 	t.true(logger.isLevelEnabled("warn"));
 	t.true(logger.isLevelEnabled("error"));
@@ -84,6 +88,7 @@ test.serial("isLevelEnabled", (t) => {
 	logger.setLevel("silent");
 	t.false(logger.isLevelEnabled("silly"));
 	t.false(logger.isLevelEnabled("verbose"));
+	t.false(logger.isLevelEnabled("perf"));
 	t.false(logger.isLevelEnabled("info"));
 	t.false(logger.isLevelEnabled("warn"));
 	t.false(logger.isLevelEnabled("error"));
@@ -93,6 +98,7 @@ test.serial("isLevelEnabled", (t) => {
 	logger.setLevel("info");
 	t.false(logger.isLevelEnabled("silly"));
 	t.false(logger.isLevelEnabled("verbose"));
+	t.false(logger.isLevelEnabled("perf"));
 	t.true(logger.isLevelEnabled("info"));
 	t.true(logger.isLevelEnabled("warn"));
 	t.true(logger.isLevelEnabled("error"));
@@ -131,7 +137,7 @@ test.serial("npmlog.level default", (t) => {
 });
 
 test.serial("Environment variable UI5_LOG_LVL", (t) => {
-	["silly", "verbose", "info", "warn", "error", "silent"].forEach((level) => {
+	["silly", "verbose", "perf", "info", "warn", "error", "silent"].forEach((level) => {
 		process.env.UI5_LOG_LVL = level;
 		t.context.logger = mock.reRequire("../../lib/logger");
 		t.is(t.context.npmLogStub.level, level, `Level should be set to ${level}`);
@@ -144,7 +150,7 @@ test.serial("Environment variable UI5_LOG_LVL (invalid)", (t) => {
 		mock.reRequire("../../lib/logger");
 	}, {
 		message: `UI5 Logger: Environment variable UI5_LOG_LVL is set to an unknown log level "all". ` +
-			`Valid levels are silly, verbose, info, warn, error, silent`
+			`Valid levels are silly, verbose, perf, info, warn, error, silent`
 	});
 });
 
@@ -162,7 +168,7 @@ test.serial("Logger", (t) => {
 	const _logger = myLogger._getLogger();
 	t.is(_logger, npmLogStub, "_getLogger should return npmlog");
 
-	["silly", "verbose", "info", "warn", "error"].forEach((level) => {
+	["silly", "verbose", "perf", "info", "warn", "error"].forEach((level) => {
 		myLogger[level]("Message 1", "Message 2", "Message 3");
 		t.true(_logger[level].calledOnce, `npmlog.${level} should be called`);
 		t.deepEqual(_logger[level].getCall(0).args, [
@@ -187,7 +193,7 @@ test.serial("GroupLogger", (t) => {
 
 	const _logger = myLogger._getLogger();
 
-	["silly", "verbose", "info", "warn", "error"].forEach((level) => {
+	["silly", "verbose", "perf", "info", "warn", "error"].forEach((level) => {
 		myLogger[level]("Message 1", "Message 2", "Message 3");
 		t.true(_logger[level].calledOnce, `npmlog.${level} should be called`);
 		t.deepEqual(_logger[level].getCall(0).args, [
@@ -232,7 +238,7 @@ test.serial("TaskLogger", (t) => {
 
 	const _logger = myLogger._getLogger();
 
-	["silly", "verbose", "info", "warn", "error"].forEach((level) => {
+	["silly", "verbose", "perf", "info", "warn", "error"].forEach((level) => {
 		myLogger[level]("Message 1", "Message 2", "Message 3");
 		t.true(_logger[level].calledOnce, `npmlog.${level} should be called`);
 		t.deepEqual(_logger[level].getCall(0).args, [
