@@ -1,6 +1,6 @@
 const npmlog = require("npmlog");
 
-const levels = ["silly", "verbose", "info", "warn", "error", "silent"];
+const levels = ["silly", "verbose", "perf", "info", "warn", "error", "silent"];
 if (process.env.UI5_LOG_LVL) {
 	const logLvl = process.env.UI5_LOG_LVL;
 	if (!levels.includes(logLvl)) {
@@ -12,7 +12,12 @@ if (process.env.UI5_LOG_LVL) {
 	npmlog.level = "info"; // Our default
 }
 
-npmlog.enableUnicode();
+npmlog.enableUnicode(); // TODO: Check whether unicode is actually supported
+npmlog.prefixStyle = {fg: "blue"};
+npmlog.headingStyle = {fg: "white", bg: "black"};
+
+// Verbose is at level 1000, info at 2000
+npmlog.addLevel("perf", 1500, {fg: "white", bg: "red"}, "PERF");
 
 npmlog.on("error", (err) => {
 	console.log(err);
@@ -50,6 +55,10 @@ class Logger {
 
 	verbose(...messages) {
 		return this._logger.verbose(this._moduleName, ...messages);
+	}
+
+	perf(...messages) {
+		return this._logger.perf(this._moduleName, ...messages);
 	}
 
 	info(...messages) {
