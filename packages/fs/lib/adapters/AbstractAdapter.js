@@ -198,7 +198,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 			}
 			return;
 		}
-		log.verbose(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
+		log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
 		resource.setProject(this._project);
 	}
 }

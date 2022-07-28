@@ -224,9 +224,9 @@ class FileSystem extends AbstractAdapter {
 			// fs.copyFile can be used when the resource is from FS and hasn't been modified
 			// In addition, nothing needs to be done when src === dest
 			if (resourceSource.fsPath === fsPath) {
-				log.verbose("Skip writing to %s (Resource hasn't been modified)", fsPath);
+				log.silly("Skip writing to %s (Resource hasn't been modified)", fsPath);
 			} else {
-				log.verbose("Copying resource from %s to %s", resourceSource.fsPath, fsPath);
+				log.silly("Copying resource from %s to %s", resourceSource.fsPath, fsPath);
 				await copyFile(resourceSource.fsPath, fsPath);
 				if (readOnly) {
 					await chmod(fsPath, READ_ONLY_MODE);
@@ -235,7 +235,7 @@ class FileSystem extends AbstractAdapter {
 			return;
 		}
 
-		log.verbose("Writing to %s", fsPath);
+		log.silly("Writing to %s", fsPath);
 
 		return new Promise((resolve, reject) => {
 			let contentStream;

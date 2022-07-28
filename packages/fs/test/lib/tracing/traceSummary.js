@@ -11,7 +11,7 @@ test.serial("traceSummary", async (t) => {
 	t.plan(2);
 
 	const myLoggerInstance = {
-		verbose: sinon.stub(),
+		silly: sinon.stub(),
 		isLevelEnabled: () => {
 			return true;
 		}
@@ -51,15 +51,15 @@ test.serial("traceSummary", async (t) => {
 	// Print reporting and reset tracing
 	await traceSummary.traceEnded();
 
-	t.deepEqual(myLoggerInstance.verbose.callCount, 1, "Logger has been called exactly once");
-	t.deepEqual(myLoggerInstance.verbose.getCall(0).args[0], expectedReport, "Correct report logged to the console");
+	t.deepEqual(myLoggerInstance.silly.callCount, 1, "Logger has been called exactly once");
+	t.deepEqual(myLoggerInstance.silly.getCall(0).args[0], expectedReport, "Correct report logged to the console");
 });
 
-test.serial("traceSummary no verbose logging", async (t) => {
+test.serial("traceSummary no silly logging", async (t) => {
 	t.plan(1);
 
 	const myLoggerInstance = {
-		verbose: sinon.stub(),
+		silly: sinon.stub(),
 		isLevelEnabled: () => {
 			return false;
 		}
@@ -88,5 +88,5 @@ test.serial("traceSummary no verbose logging", async (t) => {
 	// Print reporting and reset tracing
 	await traceSummary.traceEnded();
 
-	t.deepEqual(myLoggerInstance.verbose.callCount, 0, "Logger has not been called (due to disabled verbose logging)");
+	t.deepEqual(myLoggerInstance.silly.callCount, 0, "Logger has not been called (due to disabled silly logging)");
 });

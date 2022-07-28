@@ -118,7 +118,7 @@ class Memory extends AbstractAdapter {
 		super._write(resource);
 		return new Promise((resolve, reject) => {
 			const relPath = resource.getPath().substr(this._virBasePath.length);
-			log.verbose("Writing to virtual path %s", resource.getPath());
+			log.silly("Writing to virtual path %s", resource.getPath());
 			this._virFiles[relPath] = resource;
 
 			// Add virtual directories for all path segments of the written resource

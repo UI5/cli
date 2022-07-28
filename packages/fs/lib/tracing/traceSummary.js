@@ -44,11 +44,11 @@ function report() {
 		}
 	}
 	report += "======================]";
-	log.verbose(report);
+	log.silly(report);
 }
 
 function someTraceStarted() {
-	if (!log.isLevelEnabled("verbose")) {
+	if (!log.isLevelEnabled("silly")) {
 		return;
 	}
 	if (!traceData) {
