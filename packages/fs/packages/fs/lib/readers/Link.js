@@ -92,7 +92,7 @@ class Link extends AbstractReader {
 			return null;
 		}
 		const targetPath = this._pathMapping.targetPath + virPath.substr(this._pathMapping.linkPath.length);
-		log.verbose(`byPath: Rewriting virtual path ${virPath} to ${targetPath}`);
+		log.silly(`byPath: Rewriting virtual path ${virPath} to ${targetPath}`);
 
 		const resource = await this._reader._byPath(targetPath, options, trace);
 		if (resource) {
