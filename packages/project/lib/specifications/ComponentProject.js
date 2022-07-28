@@ -276,7 +276,7 @@ class ComponentProject extends Project {
 		const parts = value && value.match(/^\$\{(.*)\}$/);
 		if (parts) {
 			this._log.verbose(
-				`"${value} contains a maven placeholder "${parts[1]}". Resolving from projects pom.xml...`);
+				`"${value}" contains a maven placeholder "${parts[1]}". Resolving from projects pom.xml...`);
 			const pom = await this._getPom();
 			let mvnValue;
 			if (pom.project && pom.project.properties && pom.project.properties[parts[1]]) {

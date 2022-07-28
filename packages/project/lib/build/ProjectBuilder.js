@@ -295,7 +295,7 @@ class ProjectBuilder {
 
 		await Promise.all(resources.map((resource) => {
 			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
-				log.verbose(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
+				log.silly(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
 					resource.getPath());
 				return; // Skip target write for this resource
 			}

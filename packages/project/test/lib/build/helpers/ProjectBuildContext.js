@@ -181,7 +181,7 @@ test("getResourceTagCollection: Assigns project to resource if necessary", (t) =
 		buildContext: {},
 		project: fakeProject,
 		log: {
-			verbose: () => {}
+			silly: () => {}
 		}
 	});
 

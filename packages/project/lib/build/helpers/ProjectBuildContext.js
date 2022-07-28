@@ -66,7 +66,7 @@ class ProjectBuildContext {
 
 	getResourceTagCollection(resource, tag) {
 		if (!resource.hasProject()) {
-			this._log.verbose(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
+			this._log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
 			resource.setProject(this._project);
 			// throw new Error(
 			// 	`Unable to get tag collection for resource ${resource.getPath()}: ` +
