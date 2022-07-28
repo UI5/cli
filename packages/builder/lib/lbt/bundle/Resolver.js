@@ -292,12 +292,12 @@ class BundleResolver {
 						if ( section.mode == SectionType.Raw && section.sort !== false ) {
 							// sort the modules in topological order
 							return topologicalSort(pool, modules).then( (modules) => {
-								log.verbose("      resolved modules (sorted): %s", modules);
+								log.silly("      resolved modules (sorted): %s", modules);
 								return modules;
 							});
 						}
 
-						log.verbose("      resolved modules: %s", modules);
+						log.silly("      resolved modules: %s", modules);
 						return modules;
 					}).then( function(modules) {
 						resolvedSection.modules = modules;

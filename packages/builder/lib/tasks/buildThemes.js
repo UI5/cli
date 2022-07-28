@@ -97,7 +97,7 @@ module.exports = async function({
 
 		if (log.isLevelEnabled("verbose")) {
 			if (!libraryAvailable) {
-				log.verbose(`Skipping ${resourcePath}: Library is not available`);
+				log.silly(`Skipping ${resourcePath}: Library is not available`);
 			}
 			if (!themeAvailable) {
 				log.verbose(`Skipping ${resourcePath}: sap.ui.core theme '${themeName}' is not available. ` +

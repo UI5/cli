@@ -539,7 +539,7 @@ class BundleBuilder {
 		const sourceMapUrlMatch = moduleContent.match(sourceMappingUrlPattern);
 		if (sourceMapUrlMatch) {
 			const sourceMapUrl = sourceMapUrlMatch[1];
-			log.verbose(`Found source map reference in content of module ${moduleName}: ${sourceMapUrl}`);
+			log.silly(`Found source map reference in content of module ${moduleName}: ${sourceMapUrl}`);
 
 			// Strip sourceMappingURL from module code to be bundled
 			// It has no effect and might be cause for confusion
