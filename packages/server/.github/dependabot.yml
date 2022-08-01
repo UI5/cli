@@ -12,6 +12,6 @@ updates:
     time: "10:00"
     timezone: Etc/UCT
   reviewers:
+  - RandomByte
   - matz3
-  - svbender
   versioning-strategy: increase
