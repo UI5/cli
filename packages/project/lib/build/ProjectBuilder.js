@@ -100,7 +100,8 @@ class ProjectBuilder {
 			virBasePath: "/"
 		});
 
-		const buildQueue = [];
+		const queue = [];
+		const alreadyBuilt = [];
 
 		// Create build queue based on graph depth-first search to ensure correct build order
 		await this._graph.traverseDepthFirst(async ({project}) => {
@@ -108,27 +109,41 @@ class ProjectBuilder {
 			const projectBuildContext = projectBuildContexts.get(projectName);
 			if (projectBuildContext) {
 				// Build context exists
-				//	=> This project shall be built
-				buildQueue.push(projectBuildContext);
+				//	=> This project needs to be built or, in case it has already
+				//		been built, it's build result needs to be written out (if requested)
+				queue.push(projectBuildContext);
+				if (!projectBuildContext.getTaskRunner().requiresBuild()) {
+					alreadyBuilt.push(projectName);
+				}
 			}
 		});
 		const buildLogger = log.createTaskLogger("🛠 ");
-		buildLogger.addWork(buildQueue.length);
-		log.info(`  Projects required:`);
-		log.info(`    ${buildQueue
-			.map((projectBuildContext) => {
-				const projectName = projectBuildContext.getProject().getName();
-				const taskRunner = projectBuildContext.getTaskRunner();
-				let msg;
-				if (taskRunner.requiresBuild()) {
-					msg = `=> ${projectName}`;
-				} else {
-					const buildMetadata = taskRunner.getFormattedBuildMetadata();
-					msg = `*> ${projectName} /// already built ${buildMetadata.age} ago`;
-				}
-				return msg;
-			})
-			.join("\n    ")}`);
+		buildLogger.addWork(queue.length - alreadyBuilt.length);
+		if (queue.length > 1) { // Do not log if only the root project is being built
+			log.info(`Processing ${queue.length} projects`);
+			if (alreadyBuilt.length) {
+				log.info(`  Reusing built results of ${alreadyBuilt.length} projects`);
+				log.info(`  Building ${queue.length - alreadyBuilt.length} projects`);
+			}
+
+			if (log.isLevelEnabled("verbose")) {
+				log.verbose(`  Required projects:`);
+				log.verbose(`    ${queue
+					.map((projectBuildContext) => {
+						const projectName = projectBuildContext.getProject().getName();
+						let msg;
+						if (alreadyBuilt.includes(projectName)) {
+							const buildMetadata = projectBuildContext.getTaskRunner().getFormattedBuildMetadata();
+							const ts = new Date(buildMetadata.timestamp).toUTCString();
+							msg = `*> ${projectName} /// already built at ${ts}`;
+						} else {
+							msg = `=> ${projectName}`;
+						}
+						return msg;
+					})
+					.join("\n    ")}`);
+			}
+		}
 
 		if (cleanDest) {
 			log.info(`Cleaning target directory...`);
@@ -137,11 +152,12 @@ class ProjectBuilder {
 		const startTime = process.hrtime();
 		try {
 			const pWrites = [];
-			for (const projectBuildContext of buildQueue) {
+			for (const projectBuildContext of queue) {
 				const projectName = projectBuildContext.getProject().getName();
+				log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
-				if (projectBuildContext.getTaskRunner().requiresBuild()) {
+				if (!alreadyBuilt.includes(projectName)) {
 					buildLogger.startWork(`Building project ${projectName}...`);
 					await this._buildProject(projectBuildContext);
 					buildLogger.completeWork(1);
@@ -217,8 +233,12 @@ class ProjectBuilder {
 		);
 
 		if (includedDependencies.length) {
-			log.info(`  Requested dependencies:`);
-			log.info(`    + ${includedDependencies.join("\n    + ")}`);
+			if (includedDependencies.length === this._graph.getAllProjects().length - 1) {
+				log.info(`  Including all dependencies`);
+			} else {
+				log.info(`  Requested dependencies:`);
+				log.info(`    + ${includedDependencies.join("\n    + ")}`);
+			}
 		}
 		if (excludedDependencies.length) {
 			log.info(`  Excluded dependencies:`);

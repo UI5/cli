@@ -796,7 +796,7 @@ test("requiresBuild: has build-manifest", (t) => {
 	t.false(taskRunner.requiresBuild(), "Project with build-manifest does not require to be build");
 });
 
-test.serial("getFormattedBuildMetadata", (t) => {
+test.serial("getBuildMetadata", (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 	project.hasBuildManifest = () => true;
@@ -810,18 +810,19 @@ test.serial("getFormattedBuildMetadata", (t) => {
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
-	t.deepEqual(taskRunner.getFormattedBuildMetadata(), {
+	t.deepEqual(taskRunner.getBuildMetadata(), {
+		timestamp: "2022-07-28T12:00:00.000Z",
 		age: "7200 seconds"
 	}, "Project with build-manifest does not require to be build");
 	getTimeStub.restore();
 });
 
-test("getFormattedBuildMetadata: has no build-manifest", (t) => {
+test("getBuildMetadata: has no build-manifest", (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 
 	const taskRunner = new TaskRunner({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
-	t.is(taskRunner.getFormattedBuildMetadata(), null, "Project has no build manifest");
+	t.is(taskRunner.getBuildMetadata(), null, "Project has no build manifest");
 });

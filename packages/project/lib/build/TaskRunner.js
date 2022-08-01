@@ -131,13 +131,14 @@ class TaskRunner {
 		return !this._project.hasBuildManifest();
 	}
 
-	getFormattedBuildMetadata() {
+	getBuildMetadata() {
 		if (this._project.hasBuildManifest()) {
 			const buildManifest = this._project.getBuildManifest();
 			const timeDiff = (new Date().getTime() - new Date(buildManifest.timestamp).getTime());
 
 			// TODO: Format age properly via a new @ui5/logger util module
 			return {
+				timestamp: buildManifest.timestamp,
 				age: timeDiff / 1000 + " seconds"
 			};
 		} else {

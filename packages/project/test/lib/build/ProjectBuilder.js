@@ -133,7 +133,7 @@ test("build", async (t) => {
 		"project.a", "project.b", "project.c"
 	], "_createRequiredBuildContexts got called with correct arguments");
 
-	t.is(requiresBuildStub.callCount, 2, "TaskRunner#requiresBuild got called twice");
+	t.is(requiresBuildStub.callCount, 1, "TaskRunner#requiresBuild got called twice");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
 	t.is(buildProjectStub.callCount, 1, "_buildProject got called once");
@@ -236,6 +236,7 @@ test.serial("build: Multiple projects", async (t) => {
 	const requiresBuildBStub = sinon.stub().returns(false);
 	const requiresBuildCStub = sinon.stub().returns(true);
 	const getFormattedBuildMetadataStub = sinon.stub().returns({
+		timestamp: "2022-07-28T12:00:00.000Z",
 		age: "xx days"
 	});
 	const projectBuildContextMockA = {
@@ -276,10 +277,13 @@ test.serial("build: Multiple projects", async (t) => {
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
 
+	const log = require("@ui5/logger");
+	log.setLevel("verbose");
 	await builder.build({
 		destPath: "dest/path",
 		complexDependencyIncludes: "complexDependencyIncludes"
 	});
+	log.setLevel("info");
 
 	t.is(getProjectFilterStub.callCount, 1, "_getProjectFilter got called once");
 	t.deepEqual(getProjectFilterStub.getCall(0).args[0], {
@@ -293,9 +297,9 @@ test.serial("build: Multiple projects", async (t) => {
 		"project.b", "project.c"
 	], "_createRequiredBuildContexts got called with correct arguments");
 
-	t.is(requiresBuildAStub.callCount, 2, "TaskRunner#requiresBuild got called twice times for library.a");
-	t.is(requiresBuildBStub.callCount, 2, "TaskRunner#requiresBuild got called twice times for library.b");
-	t.is(requiresBuildCStub.callCount, 2, "TaskRunner#requiresBuild got called twice times for library.c");
+	t.is(requiresBuildAStub.callCount, 1, "TaskRunner#requiresBuild got called twice times for library.a");
+	t.is(requiresBuildBStub.callCount, 1, "TaskRunner#requiresBuild got called twice times for library.b");
+	t.is(requiresBuildCStub.callCount, 1, "TaskRunner#requiresBuild got called twice times for library.c");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
 	t.is(buildProjectStub.callCount, 2, "_buildProject got called three times"); // library.b does not require a build
