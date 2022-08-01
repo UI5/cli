@@ -13,5 +13,5 @@ updates:
     timezone: Etc/UCT
   reviewers:
   - RandomByte
-  - svbender
+  - matz3
   versioning-strategy: increase
