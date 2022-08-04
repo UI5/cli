@@ -175,9 +175,11 @@ class Specification {
 	_migrateLegacyProject(config) {
 		config.specVersion = "2.6";
 
-		// propertiesFileSourceEncoding default has been changed to UTF-8 with specVersion 2.0
+		// propertiesFileSourceEncoding (relevant for applications and libraries) default
+		// has been changed to UTF-8 with specVersion 2.0
 		// Adding back the old default if no configuration is provided.
-		if (!config.resources?.configuration?.propertiesFileSourceEncoding) {
+		if (config.kind === "project" && ["application", "library"].includes(config.type) &&
+				!config.resources?.configuration?.propertiesFileSourceEncoding) {
 			config.resources = config.resources || {};
 			config.resources.configuration = config.resources.configuration || {};
 			config.resources.configuration.propertiesFileSourceEncoding = "ISO-8859-1";
