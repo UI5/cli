@@ -10,7 +10,7 @@ function clone(obj) {
 
 const genericExtensionPath = path.join(__dirname, "..", "..", "..", "..", "fixtures", "extension.a");
 const basicTaskInput = {
-	id: "shim.a",
+	id: "task.a",
 	version: "1.0.0",
 	modulePath: genericExtensionPath,
 	configuration: {

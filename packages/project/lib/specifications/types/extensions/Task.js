@@ -23,6 +23,7 @@ class Task extends Extension {
 		if (/--\d+$/.test(this.getName())) {
 			throw new Error(`Task name must not end with '--<number>'`);
 		}
+		// TODO: Check that paths exist
 	}
 }
 

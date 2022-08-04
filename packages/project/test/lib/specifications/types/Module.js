@@ -8,11 +8,11 @@ function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
-const moduleA = path.join(__dirname, "..", "..", "..", "fixtures", "module.a");
+const moduleAPath = path.join(__dirname, "..", "..", "..", "fixtures", "module.a");
 const basicProjectInput = {
-	id: "library.d.id",
+	id: "module.a.id",
 	version: "1.0.0",
-	modulePath: moduleA,
+	modulePath: moduleAPath,
 	configuration: {
 		specVersion: "2.3",
 		kind: "project",

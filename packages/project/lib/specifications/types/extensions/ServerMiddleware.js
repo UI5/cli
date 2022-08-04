@@ -23,6 +23,7 @@ class ServerMiddleware extends Extension {
 		if (/--\d+$/.test(this.getName())) {
 			throw new Error(`Server middleware name must not end with '--<number>'`);
 		}
+		// TODO: Check that paths exist
 	}
 }
 
