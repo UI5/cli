@@ -297,9 +297,9 @@ test.serial("build: Multiple projects", async (t) => {
 		"project.b", "project.c"
 	], "_createRequiredBuildContexts got called with correct arguments");
 
-	t.is(requiresBuildAStub.callCount, 1, "TaskRunner#requiresBuild got called twice times for library.a");
-	t.is(requiresBuildBStub.callCount, 1, "TaskRunner#requiresBuild got called twice times for library.b");
-	t.is(requiresBuildCStub.callCount, 1, "TaskRunner#requiresBuild got called twice times for library.c");
+	t.is(requiresBuildAStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.a");
+	t.is(requiresBuildBStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.b");
+	t.is(requiresBuildCStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.c");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
 	t.is(buildProjectStub.callCount, 2, "_buildProject got called three times"); // library.b does not require a build
