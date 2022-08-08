@@ -151,8 +151,8 @@ test.serial("integration: Library without i18n bundle file", async (t) => {
 		"version": "1.33.7",
 	}, oOptions);
 
-	t.is(t.context.verboseLogStub.callCount, 4);
-	t.is(t.context.verboseLogStub.getCall(1).args[0],
+	t.is(t.context.verboseLogStub.callCount, 1);
+	t.is(t.context.verboseLogStub.getCall(0).args[0],
 		"Cannot add meta information for library 'test.lib3'. The manifest.json file cannot be found");
 });
 
