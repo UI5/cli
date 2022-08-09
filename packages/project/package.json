@@ -102,7 +102,7 @@
 		"url": "git@github.com:SAP/ui5-project.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^3.0.0-alpha.9",
+		"@ui5/builder": "^3.0.0-alpha.10",
 		"@ui5/fs": "^3.0.0-alpha.6",
 		"@ui5/logger": "^3.0.1-alpha.2",
 		"ajv": "^6.12.6",
