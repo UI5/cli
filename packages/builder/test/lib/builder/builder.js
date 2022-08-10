@@ -924,10 +924,13 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 	const resultBuildManifestPath = path.join(__dirname,
 		"..", "..", "tmp", "build", "library.i", "bundle-library.h-build-manifest", ".ui5", "build-manifest.json");
 
+	const log = require("@ui5/logger");
+	log.setLevel("verbose");
 	const graph1 = await generateProjectGraph.usingObject({
 		dependencyTree: libraryHTree
 	});
 	graph1.setTaskRepository(taskRepository);
+
 	await graph1.build({
 		destPath: libraryHDestPath,
 		createBuildManifest: true
@@ -947,6 +950,7 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 		destPath,
 		createBuildManifest: true
 	});
+	log.setLevel("info");
 	toISOStringStub.restore();
 
 	let expectedFiles = await findFiles(expectedPath);
