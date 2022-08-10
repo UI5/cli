@@ -364,6 +364,7 @@ class Module {
 			throw validationErrors[0];
 		}
 
+		log.verbose(`Configuration for module ${this.getId()} is provided in YAML file at ${configPath}`);
 		return configs;
 	}
 
@@ -374,6 +375,7 @@ class Module {
 			log.verbose(`Could not find any build manifest in module ${this.getId()}`);
 			return [];
 		}
+		log.verbose(`Configuration for module ${this.getId()} is provided in build manifest`);
 
 		// This function is expected to return the configuration of a project, so we add the buildManifest metadata
 		// to a temporary attribute of the project configuration and retrieve it later for Specification creation
