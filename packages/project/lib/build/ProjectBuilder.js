@@ -133,7 +133,7 @@ class ProjectBuilder {
 						const projectName = projectBuildContext.getProject().getName();
 						let msg;
 						if (alreadyBuilt.includes(projectName)) {
-							const buildMetadata = projectBuildContext.getTaskRunner().getFormattedBuildMetadata();
+							const buildMetadata = projectBuildContext.getTaskRunner().getBuildMetadata();
 							const ts = new Date(buildMetadata.timestamp).toUTCString();
 							msg = `*> ${projectName} /// already built at ${ts}`;
 						} else {
