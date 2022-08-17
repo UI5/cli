@@ -168,7 +168,7 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 	], "Correct filter in second bundle definition section");
 });
 
-test.serial.only("execute module bundler with taskUtil", async (t) => {
+test.serial("execute module bundler with taskUtil", async (t) => {
 	const {taskUtil} = t.context;
 
 	const dummyResource1 = createDummyResource("1.js");
@@ -307,7 +307,7 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 
 	const {taskUtil} = t.context;
 	const dummyResource1 = createDummyResource("1.js");
-	taskUtil.getTag.withArgs(dummyResource1.getPath(), taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
+	taskUtil.getTag.withArgs(dummyResource1, taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
 
 	const dummyReaderWriter = {
 		_byGlob: async function() {
