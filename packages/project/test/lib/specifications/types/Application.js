@@ -196,7 +196,7 @@ test("_getNamespaceFromManifestJson: No 'sap.app' configuration found", async (t
 	sinon.stub(project, "_getManifest").resolves({});
 
 	const error = await t.throwsAsync(project._getNamespaceFromManifestJson());
-	t.deepEqual(error.message, "No sap.app/id configuration found in manifest.json of project application.a",
+	t.is(error.message, "No sap.app/id configuration found in manifest.json of project application.a",
 		"Rejected with correct error message");
 });
 
@@ -205,7 +205,7 @@ test("_getNamespaceFromManifestJson: No application id in 'sap.app' configuratio
 	sinon.stub(project, "_getManifest").resolves({"sap.app": {}});
 
 	const error = await t.throwsAsync(project._getNamespaceFromManifestJson());
-	t.deepEqual(error.message, "No sap.app/id configuration found in manifest.json of project application.a");
+	t.is(error.message, "No sap.app/id configuration found in manifest.json of project application.a");
 });
 
 test("_getNamespaceFromManifestJson: set namespace to id", async (t) => {
@@ -213,7 +213,7 @@ test("_getNamespaceFromManifestJson: set namespace to id", async (t) => {
 	sinon.stub(project, "_getManifest").resolves({"sap.app": {id: "my.id"}});
 
 	const namespace = await project._getNamespaceFromManifestJson();
-	t.deepEqual(namespace, "my/id", "Returned correct namespace");
+	t.is(namespace, "my/id", "Returned correct namespace");
 });
 
 test("_getNamespaceFromManifestAppDescVariant: No 'id' property found", async (t) => {
@@ -221,7 +221,7 @@ test("_getNamespaceFromManifestAppDescVariant: No 'id' property found", async (t
 	sinon.stub(project, "_getManifest").resolves({});
 
 	const error = await t.throwsAsync(project._getNamespaceFromManifestAppDescVariant());
-	t.deepEqual(error.message, `No "id" property found in manifest.appdescr_variant of project application.a`,
+	t.is(error.message, `No "id" property found in manifest.appdescr_variant of project application.a`,
 		"Rejected with correct error message");
 });
 
@@ -230,7 +230,7 @@ test("_getNamespaceFromManifestAppDescVariant: set namespace to id", async (t) =
 	sinon.stub(project, "_getManifest").resolves({id: "my.id"});
 
 	const namespace = await project._getNamespaceFromManifestAppDescVariant();
-	t.deepEqual(namespace, "my/id", "Returned correct namespace");
+	t.is(namespace, "my/id", "Returned correct namespace");
 });
 
 test("_getNamespace: Correct fallback to manifest.appdescr_variant if manifest.json is missing", async (t) => {
@@ -240,7 +240,7 @@ test("_getNamespace: Correct fallback to manifest.appdescr_variant if manifest.j
 		.onSecondCall().resolves({id: "my.id"});
 
 	const namespace = await project._getNamespace();
-	t.deepEqual(namespace, "my/id", "Returned correct namespace");
+	t.is(namespace, "my/id", "Returned correct namespace");
 	t.is(_getManifestStub.callCount, 2, "_getManifest called exactly twice");
 	t.is(_getManifestStub.getCall(0).args[0], "/manifest.json", "_getManifest called for manifest.json first");
 	t.is(_getManifestStub.getCall(1).args[0], "/manifest.appdescr_variant",
@@ -254,7 +254,7 @@ test("_getNamespace: Correct error message if fallback to manifest.appdescr_vari
 		.onSecondCall().rejects(new Error("EPON: Pony Error"));
 
 	const error = await t.throwsAsync(project._getNamespace());
-	t.deepEqual(error.message, "EPON: Pony Error",
+	t.is(error.message, "EPON: Pony Error",
 		"Rejected with correct error message");
 	t.is(_getManifestStub.callCount, 2, "_getManifest called exactly twice");
 	t.is(_getManifestStub.getCall(0).args[0], "/manifest.json", "_getManifest called for manifest.json first");
@@ -286,7 +286,7 @@ test("_getNamespace: No fallback if manifest.json is present but failed to parse
 		.onFirstCall().rejects(new Error("EPON: Pony Error"));
 
 	const error = await t.throwsAsync(project._getNamespace());
-	t.deepEqual(error.message, "EPON: Pony Error",
+	t.is(error.message, "EPON: Pony Error",
 		"Rejected with correct error message");
 
 	t.is(_getManifestStub.callCount, 1, "_getManifest called exactly once");
@@ -297,7 +297,7 @@ test("_getManifest: reads correctly", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 
 	const content = await project._getManifest("/manifest.json");
-	t.deepEqual(content._version, "1.1.0", "manifest.json content has been read");
+	t.is(content._version, "1.1.0", "manifest.json content has been read");
 });
 
 test("_getManifest: invalid JSON", async (t) => {
@@ -318,8 +318,8 @@ test("_getManifest: invalid JSON", async (t) => {
 		"Failed to read /some-manifest.json for project application.a: " +
 		"Unexpected token o in JSON at position 1",
 		"Rejected with correct error message");
-	t.deepEqual(byPathStub.callCount, 1, "byPath got called once");
-	t.deepEqual(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
+	t.is(byPathStub.callCount, 1, "byPath got called once");
+	t.is(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
 });
 
 test.serial("_getManifest: File does not exist", async (t) => {
@@ -351,7 +351,7 @@ test.serial("_getManifest: result is cached", async (t) => {
 	const content2 = await project._getManifest("/some-other-manifest.json");
 	t.deepEqual(content2, {pony: "no unicorn"}, "Correct result on second call");
 
-	t.deepEqual(byPathStub.callCount, 2, "byPath got called exactly twice (and then cached)");
+	t.is(byPathStub.callCount, 2, "byPath got called exactly twice (and then cached)");
 });
 
 test.serial("_getManifest: Caches successes and failures", async (t) => {
@@ -388,7 +388,7 @@ test.serial("_getManifest: Caches successes and failures", async (t) => {
 	const content2 = await project._getManifest("/some-other.manifest.json");
 	t.deepEqual(content2, {pony: "no unicorn"}, "From cache: Correct result on first call");
 
-	t.deepEqual(byPathStub.callCount, 2,
+	t.is(byPathStub.callCount, 2,
 		"byPath got called exactly twice (and then cached)");
 });
 
@@ -417,7 +417,7 @@ test("namespace: detect namespace from pom.xml via ${project.artifactId}", async
 	myProject.configuration.resources.configuration.paths.webapp = "webapp-project.artifactId";
 	const project = await Specification.create(myProject);
 
-	t.deepEqual(project.getNamespace(), "application/h",
+	t.is(project.getNamespace(), "application/h",
 		"namespace was successfully set since getJson provides the correct object structure");
 });
 
@@ -426,7 +426,7 @@ test("namespace: detect namespace from pom.xml via ${componentName} from propert
 	myProject.configuration.resources.configuration.paths.webapp = "webapp-properties.componentName";
 	const project = await Specification.create(myProject);
 
-	t.deepEqual(project.getNamespace(), "application/h",
+	t.is(project.getNamespace(), "application/h",
 		"namespace was successfully set since getJson provides the correct object structure");
 });
 

@@ -37,7 +37,7 @@ test("Correct class", async (t) => {
 
 test("getMiddleware", async (t) => {
 	const extension = await Specification.create(clone(basicServerMiddlewareInput));
-	t.deepEqual(extension.getMiddleware(), "extension module",
+	t.is(extension.getMiddleware(), "extension module",
 		"Returned correct module");
 });
 

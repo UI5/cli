@@ -81,7 +81,7 @@ test.afterEach.always((t) => {
 	t.context.sinon.restore();
 });
 
-test("Instantiate a basic project graph", async (t) => {
+test("Instantiate a basic project graph", (t) => {
 	const {ProjectGraph} = t.context;
 	t.notThrows(() => {
 		new ProjectGraph({
@@ -90,7 +90,7 @@ test("Instantiate a basic project graph", async (t) => {
 	}, "Should not throw");
 });
 
-test("Instantiate a basic project with missing parameter rootProjectName", async (t) => {
+test("Instantiate a basic project with missing parameter rootProjectName", (t) => {
 	const {ProjectGraph} = t.context;
 	const error = t.throws(() => {
 		new ProjectGraph({});
@@ -110,7 +110,7 @@ test("getRoot", async (t) => {
 	t.is(res, project, "Should return correct root project");
 });
 
-test("getRoot: Root not added to graph", async (t) => {
+test("getRoot: Root not added to graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "application.a"
@@ -187,7 +187,7 @@ test("addProject: Add project with integer-like name", async (t) => {
 		"Should throw with expected error message");
 });
 
-test("getProject: Project is not in graph", async (t) => {
+test("getProject: Project is not in graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "my root project"
@@ -259,7 +259,7 @@ test("addExtension: Add extension with integer-like name", async (t) => {
 		"Should throw with expected error message");
 });
 
-test("getExtension: Project is not in graph", async (t) => {
+test("getExtension: Project is not in graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "my root project"
@@ -449,7 +449,7 @@ test("getDependencies: Project without dependencies", async (t) => {
 		"Should return an empty array for project without dependencies");
 });
 
-test("getDependencies: Unknown project", async (t) => {
+test("getDependencies: Unknown project", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "my root project"
@@ -1035,7 +1035,7 @@ test("join", async (t) => {
 	t.is(graph1.getExtension("extension.b"), extensionB, "Should return correct joined extension");
 });
 
-test("join: Seals incoming graph", async (t) => {
+test("join: Seals incoming graph", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
 		rootProjectName: "library.a"
@@ -1051,7 +1051,7 @@ test("join: Seals incoming graph", async (t) => {
 	t.is(sealSpy.callCount, 1, "Should call seal() on incoming graph once");
 });
 
-test("join: Incoming graph already sealed", async (t) => {
+test("join: Incoming graph already sealed", (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({
 		rootProjectName: "library.a"

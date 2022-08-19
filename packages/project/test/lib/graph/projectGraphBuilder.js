@@ -449,7 +449,7 @@ test("Project defining a collection shim for itself should be ignored", async (t
 		"library.c"
 	]);
 	const p = graph.getProject("library.a");
-	t.deepEqual(p.getCustomConfiguration(), undefined,
+	t.is(p.getCustomConfiguration(), undefined,
 		"No configuration from collection project has been applied");
 });
 

@@ -37,7 +37,7 @@ test.beforeEach((t) => {
 	t.context.getTask = sinon.stub();
 });
 
-test("Standard build", async (t) => {
+test("Standard build", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 
 	const tasks = themeLibrary({
@@ -82,7 +82,7 @@ test("Standard build", async (t) => {
 		"taskUtil#getBuildOption got called with correct argument");
 });
 
-test("Standard build for non root project", async (t) => {
+test("Standard build for non root project", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	taskUtil.isRootProject.returns(false);
 
@@ -128,7 +128,7 @@ test("Standard build for non root project", async (t) => {
 		"taskUtil#getBuildOption got called with correct argument");
 });
 
-test("CSS variables enabled", async (t) => {
+test("CSS variables enabled", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	taskUtil.getBuildOption.returns(true);
 

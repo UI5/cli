@@ -218,7 +218,7 @@ test("_configureAndValidatePaths: Source directory does not exist", async (t) =>
 test("_parseConfiguration: Get copyright", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 
-	t.deepEqual(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
+	t.is(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
 });
 
 test("_parseConfiguration: Copyright already configured", async (t) => {
@@ -226,7 +226,7 @@ test("_parseConfiguration: Copyright already configured", async (t) => {
 	projectInput.configuration.metadata.copyright = "My copyright";
 	const project = await Specification.create(projectInput);
 
-	t.deepEqual(project.getCopyright(), "My copyright", "Copyright was not altered");
+	t.is(project.getCopyright(), "My copyright", "Copyright was not altered");
 });
 
 test.serial("_parseConfiguration: Copyright retrieval fails", async (t) => {
@@ -235,7 +235,7 @@ test.serial("_parseConfiguration: Copyright retrieval fails", async (t) => {
 	sinon.stub(Library.prototype, "_getCopyrightFromDotLibrary").resolves(null);
 	const project = await Specification.create(basicProjectInput);
 
-	t.deepEqual(project.getCopyright(), undefined, "Copyright was not altered");
+	t.is(project.getCopyright(), undefined, "Copyright was not altered");
 });
 
 test.serial("_parseConfiguration: Preload excludes from .library", async (t) => {
@@ -464,7 +464,7 @@ test("_getManifest: Multiple manifest.json files", async (t) => {
 	};
 	project._pManifest = null; // Clear cache from instantiation
 	const error = await t.throwsAsync(project._getManifest());
-	t.deepEqual(error.message, "Found multiple (2) manifest.json files for project library.d",
+	t.is(error.message, "Found multiple (2) manifest.json files for project library.d",
 		"Rejected with correct error message");
 });
 
@@ -585,7 +585,7 @@ test("_getDotLibrary: Multiple .library files", async (t) => {
 	};
 	project._pDotLibrary = null; // Clear cache from instantiation
 	const error = await t.throwsAsync(project._getDotLibrary());
-	t.deepEqual(error.message, "Found multiple (2) .library files for project library.d",
+	t.is(error.message, "Found multiple (2) .library files for project library.d",
 		"Rejected with correct error message");
 });
 
@@ -628,7 +628,7 @@ test("_getLibraryJsPath: Reads correctly", async (t) => {
 	};
 	project._pLibraryJs = null; // Clear cache from instantiation
 	const filePath = await project._getLibraryJsPath();
-	t.deepEqual(filePath, "some path", "Expected library.js path");
+	t.is(filePath, "some path", "Expected library.js path");
 	t.is(byGlobStub.callCount, 1, "byGlob got called once");
 	t.is(byGlobStub.getCall(0).args[0], "**/library.js", "byGlob got called with the expected arguments");
 });
@@ -680,7 +680,7 @@ test("_getLibraryJsPath: Multiple library.js files", async (t) => {
 	};
 	project._pLibraryJs = null; // Clear cache from instantiation
 	const error = await t.throwsAsync(project._getLibraryJsPath());
-	t.deepEqual(error.message, "Found multiple (2) library.js files for project library.d",
+	t.is(error.message, "Found multiple (2) library.js files for project library.d",
 		"Rejected with correct error message");
 });
 
@@ -697,12 +697,12 @@ test("_getLibraryJsPath: Result is cached", async (t) => {
 	};
 	project._pLibraryJs = null; // Clear cache from instantiation
 	const filePath1 = await project._getLibraryJsPath();
-	t.deepEqual(filePath1, "some path", "Expected library.js path");
+	t.is(filePath1, "some path", "Expected library.js path");
 	t.is(byGlobStub.callCount, 1, "byGlob got called once");
 	t.is(byGlobStub.getCall(0).args[0], "**/library.js", "byGlob got called with the expected arguments");
 
 	const filePath2 = await project._getLibraryJsPath();
-	t.deepEqual(filePath2, "some path", "Expected library.js path");
+	t.is(filePath2, "some path", "Expected library.js path");
 	t.is(filePath2, "some path", "Correct path");
 	t.is(byGlobStub.callCount, 1, "byGlob got called once");
 	t.is(byGlobStub.getCall(0).args[0], "**/library.js", "byGlob got called with the expected arguments");
@@ -729,7 +729,7 @@ test.serial("_getNamespace: namespace resolution fails", async (t) => {
 	t.deepEqual(error.message, "Failed to detect namespace or namespace is empty for project library.d." +
 		" Check verbose log for details.");
 
-	t.deepEqual(loggerVerboseSpy.callCount, 2, "2 calls to log.verbose should be done");
+	t.is(loggerVerboseSpy.callCount, 2, "2 calls to log.verbose should be done");
 	const logVerboseCalls = loggerVerboseSpy.getCalls().map((call) => call.args[0]);
 
 	t.true(logVerboseCalls.includes(
@@ -872,7 +872,7 @@ test.serial("_getNamespace: from manifest.json without sap.app id", async (t) =>
 	const loggerSpy = sinon.spy(loggerInstance, "verbose");
 	const err = await t.throwsAsync(project._getNamespace());
 
-	t.deepEqual(err.message,
+	t.is(err.message,
 		`Failed to detect namespace or namespace is empty for project library.d. Check verbose log for details.`,
 		"Rejected with correct error message");
 	t.is(loggerSpy.callCount, 4, "calls to verbose");
@@ -895,7 +895,7 @@ test("_getNamespace: from .library", async (t) => {
 		filePath: "/dot-pony/.library"
 	});
 	const res = await project._getNamespace();
-	t.deepEqual(res, "dot-pony", "Returned correct namespace");
+	t.is(res, "dot-pony", "Returned correct namespace");
 	t.true(project._isSourceNamespaced, "Project still flagged as namespaced source structure");
 });
 
@@ -916,7 +916,7 @@ test("_getNamespace: from .library with ignored manifest.json on lower level", a
 		filePath: "/dot-pony/.library"
 	});
 	const res = await project._getNamespace();
-	t.deepEqual(res, "dot-pony", "Returned correct namespace");
+	t.is(res, "dot-pony", "Returned correct namespace");
 	t.true(project._isSourceNamespaced, "Project still flagged as namespaced source structure");
 });
 
@@ -965,9 +965,9 @@ test("_getNamespace: from .library with maven placeholder", async (t) => {
 		sinon.stub(project, "_resolveMavenPlaceholder").resolves("mvn-unicorn");
 	const res = await project._getNamespace();
 
-	t.deepEqual(resolveMavenPlaceholderStub.getCall(0).args[0], "${mvn-pony}",
+	t.is(resolveMavenPlaceholderStub.getCall(0).args[0], "${mvn-pony}",
 		"resolveMavenPlaceholder called with correct argument");
-	t.deepEqual(res, "mvn-unicorn", "Returned correct namespace");
+	t.is(res, "mvn-unicorn", "Returned correct namespace");
 	t.true(project._isSourceNamespaced, "Project still flagged as namespaced source structure");
 });
 
@@ -994,7 +994,7 @@ test("_getNamespace: from library.js", async (t) => {
 	sinon.stub(project, "_getDotLibrary").resolves({});
 	sinon.stub(project, "_getLibraryJsPath").resolves("/my/namespace/library.js");
 	const res = await project._getNamespace();
-	t.deepEqual(res, "my/namespace", "Returned correct namespace");
+	t.is(res, "my/namespace", "Returned correct namespace");
 	t.true(project._isSourceNamespaced, "Project still flagged as namespaced source structure");
 });
 
@@ -1016,7 +1016,7 @@ test.serial("_getNamespace: from project root level library.js", async (t) => {
 	sinon.stub(project, "_getLibraryJsPath").resolves("/library.js");
 	const err = await t.throwsAsync(project._getNamespace());
 
-	t.deepEqual(err.message,
+	t.is(err.message,
 		"Failed to detect namespace or namespace is empty for project library.d. Check verbose log for details.",
 		"Rejected with correct error message");
 
@@ -1034,7 +1034,7 @@ test("_getNamespace: neither manifest nor .library or library.js path contain it
 	sinon.stub(project, "_getDotLibrary").resolves({});
 	sinon.stub(project, "_getLibraryJsPath").rejects(new Error("Not found bla"));
 	const err = await t.throwsAsync(project._getNamespace());
-	t.deepEqual(err.message,
+	t.is(err.message,
 		"Failed to detect namespace or namespace is empty for project library.d. Check verbose log for details.",
 		"Rejected with correct error message");
 });
@@ -1054,10 +1054,10 @@ test("_getNamespace: maven placeholder resolution fails", async (t) => {
 		sinon.stub(project, "_resolveMavenPlaceholder")
 			.rejects(new Error("because squirrel"));
 	const err = await t.throwsAsync(project._getNamespace());
-	t.deepEqual(err.message,
+	t.is(err.message,
 		"Failed to resolve namespace maven placeholder of project library.d: because squirrel",
 		"Rejected with correct error message");
-	t.deepEqual(resolveMavenPlaceholderStub.getCall(0).args[0], "${mvn-pony}",
+	t.is(resolveMavenPlaceholderStub.getCall(0).args[0], "${mvn-pony}",
 		"resolveMavenPlaceholder called with correct argument");
 });
 

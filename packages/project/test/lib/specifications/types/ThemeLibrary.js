@@ -38,7 +38,7 @@ test("Correct class", async (t) => {
 test("getCopyright", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 
-	t.deepEqual(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
+	t.is(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
 });
 
 test("Access project resources via reader", async (t) => {

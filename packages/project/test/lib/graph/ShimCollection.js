@@ -2,7 +2,7 @@ const test = require("ava");
 
 const ShimCollection = require("../../../lib/graph/ShimCollection");
 
-test("Add shims", async (t) => {
+test("Add shims", (t) => {
 	const collection = new ShimCollection();
 	collection.addProjectShim({
 		getName: () => "shim-1",

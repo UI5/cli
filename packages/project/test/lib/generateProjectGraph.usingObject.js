@@ -369,7 +369,7 @@ test("Missing second-level dependencies", async (t) => {
 			path: path.join(applicationAPath, "node_modules", "library.d")
 		}]
 	});
-	return t.notThrowsAsync(projectGraphFromTree({dependencyTree: tree}),
+	await t.notThrowsAsync(projectGraphFromTree({dependencyTree: tree}),
 		"Gracefully accepted project with no dependencies attribute");
 });
 
@@ -1427,6 +1427,7 @@ test("Project with project-shim extension with collection", async (t) => {
 });
 
 // TODO: Fixme
+// eslint-disable-next-line ava/no-skip-test
 test.skip("Project with project-shim extension with self-containing collection shim", async (t) => {
 	const tree = {
 		id: "application.a.id",

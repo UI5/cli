@@ -206,6 +206,7 @@ function defineTest(testName, {
 
 		sinon.stub(Module.prototype, "_readConfigFile")
 			.callsFake(async function() {
+				// eslint-disable-next-line no-invalid-this
 				switch (this.getPath()) {
 				case path.join(ui5PackagesBaseDir, npmScope, "sap.ui.lib1",
 					frameworkName === "SAPUI5" ? "1.75.1" : "1.75.0"):
@@ -275,6 +276,7 @@ function defineTest(testName, {
 				default:
 					throw new Error(
 						"Module#_readConfigFile stub called with unknown project: " +
+						// eslint-disable-next-line no-invalid-this
 						(this.getId())
 					);
 				}

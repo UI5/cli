@@ -685,7 +685,7 @@ test.serial("_addTask with options", async (t) => {
 	mock.stopAll();
 });
 
-test("_addTask: Duplicate task", async (t) => {
+test("_addTask: Duplicate task", (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
 	const taskRunner = new TaskRunner({
@@ -705,7 +705,7 @@ test("_addTask: Duplicate task", async (t) => {
 		"Threw with expected error message");
 });
 
-test("_addTask: Task already added to execution order", async (t) => {
+test("_addTask: Task already added to execution order", (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
 	const taskRunner = new TaskRunner({

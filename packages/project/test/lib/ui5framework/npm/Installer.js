@@ -79,7 +79,7 @@ test.serial("Installer: fetchPackageVersions", async (t) => {
 		"requestPackagePackument should be called with pkgName");
 });
 
-test.serial("Installer: _getLockPath", async (t) => {
+test.serial("Installer: _getLockPath", (t) => {
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -281,13 +281,13 @@ test.serial("Installer: _synchronize", async (t) => {
 		"_mkdirp should be called with expected args");
 
 	t.is(t.context.lockStub.callCount, 1, "lock should be called once");
-	t.deepEqual(t.context.lockStub.getCall(0).args[0], "/locks/lockfile.lock",
+	t.is(t.context.lockStub.getCall(0).args[0], "/locks/lockfile.lock",
 		"lock should be called with expected path");
 	t.deepEqual(t.context.lockStub.getCall(0).args[1], {wait: 10000, stale: 60000, retries: 10},
 		"lock should be called with expected options");
 
 	t.is(t.context.unlockStub.callCount, 1, "unlock should be called once");
-	t.deepEqual(t.context.unlockStub.getCall(0).args[0], "/locks/lockfile.lock",
+	t.is(t.context.unlockStub.getCall(0).args[0], "/locks/lockfile.lock",
 		"unlock should be called with expected path");
 
 	t.is(callback.callCount, 1, "callback should be called once");
@@ -309,12 +309,11 @@ test.serial("Installer: _synchronize should unlock when callback promise has res
 
 	sinon.stub(installer, "_getLockPath").returns("/locks/lockfile.lock");
 
-	const callback = sinon.stub().callsFake(() => {
+	const callback = sinon.stub().callsFake(async () => {
 		t.is(t.context.lockStub.callCount, 1, "lock should have been called when the callback is invoked");
-		return Promise.resolve().then(() => {
-			t.is(t.context.unlockStub.callCount, 0,
-				"unlock should not be called when the callback did not fully resolve, yet");
-		});
+		await Promise.resolve();
+		t.is(t.context.unlockStub.callCount, 0,
+			"unlock should not be called when the callback did not fully resolve, yet");
 	});
 
 	await installer._synchronize({

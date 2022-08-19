@@ -29,7 +29,7 @@ const archiveLibProjectInput = {
 	modulePath: buildDescriptionLibraryAPath
 };
 
-test("Instantiate a basic module", async (t) => {
+test("Instantiate a basic module", (t) => {
 	const ui5Module = new Module(basicModuleInput);
 	t.is(ui5Module.getId(), "application.a.id", "Should return correct ID");
 	t.is(ui5Module.getVersion(), "1.0.0", "Should return correct version");
@@ -147,7 +147,7 @@ test("Use configuration from absolute configPath", async (t) => {
 	t.is(extensions.length, 0, "Should return no extensions");
 });
 
-test("configuration and configPath must not be provided together", async (t) => {
+test("configuration and configPath must not be provided together", (t) => {
 	// 'configuration' as object
 	t.throws(() => {
 		new Module({

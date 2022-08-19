@@ -37,7 +37,7 @@ test.beforeEach((t) => {
 	t.context.getTask = sinon.stub();
 });
 
-test("Standard build", async (t) => {
+test("Standard build", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	const tasks = application({
 		project, taskUtil, getTask
@@ -103,7 +103,7 @@ test("Standard build", async (t) => {
 	t.is(taskUtil.getBuildOption.callCount, 0, "taskUtil#getBuildOption has not been called");
 });
 
-test("Standard build with legacy spec version", async (t) => {
+test("Standard build with legacy spec version", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getSpecVersion = () => "0.1";
 	const generateBundleTaskStub = sinon.stub();
@@ -346,7 +346,7 @@ test("Custom bundles", async (t) => {
 	}, "generateBundle task got called with correct arguments");
 });
 
-test("Minification excludes", async (t) => {
+test("Minification excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getMinificationExcludes = () => ["**.html"];
 
@@ -366,7 +366,7 @@ test("Minification excludes", async (t) => {
 	}, "Correct minify task definition");
 });
 
-test("Minification excludes not applied for legacy specVersion", async (t) => {
+test("Minification excludes not applied for legacy specVersion", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getSpecVersion = () => "2.5";
 	project.getMinificationExcludes = () => ["**.html"];
@@ -386,7 +386,7 @@ test("Minification excludes not applied for legacy specVersion", async (t) => {
 	}, "Correct minify task definition");
 });
 
-test("generateComponentPreload with custom paths, excludes and custom bundle", async (t) => {
+test("generateComponentPreload with custom paths, excludes and custom bundle", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getBundles = () => [{
 		bundleDefinition: {
@@ -433,7 +433,7 @@ test("generateComponentPreload with custom paths, excludes and custom bundle", a
 	}, "Correct generateComponentPreload task definition");
 });
 
-test("generateComponentPreload with custom namespaces and excludes", async (t) => {
+test("generateComponentPreload with custom namespaces and excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getComponentPreloadNamespaces = () => [
 		"project/b/componentA",
@@ -459,7 +459,7 @@ test("generateComponentPreload with custom namespaces and excludes", async (t) =
 	}, "Correct generateComponentPreload task definition");
 });
 
-test("generateComponentPreload with excludes", async (t) => {
+test("generateComponentPreload with excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getComponentPreloadExcludes = () => ["project/b/componentA/dir/**"];
 

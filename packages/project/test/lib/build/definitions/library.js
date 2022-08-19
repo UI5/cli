@@ -151,7 +151,7 @@ test("Standard build", async (t) => {
 		"taskUtil#getBuildOption got called with correct argument");
 });
 
-test("Standard build with legacy spec version", async (t) => {
+test("Standard build with legacy spec version", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getSpecVersion = () => "0.1";
 
@@ -414,7 +414,7 @@ test("Custom bundles", async (t) => {
 	}, "generateBundle task got called with correct arguments");
 });
 
-test("Minification excludes", async (t) => {
+test("Minification excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getMinificationExcludes = () => ["**.html"];
 
@@ -434,7 +434,7 @@ test("Minification excludes", async (t) => {
 	}, "Correct minify task definition");
 });
 
-test("Minification excludes not applied for legacy specVersion", async (t) => {
+test("Minification excludes not applied for legacy specVersion", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getSpecVersion = () => "2.5";
 	project.getMinificationExcludes = () => ["**.html"];
@@ -454,7 +454,7 @@ test("Minification excludes not applied for legacy specVersion", async (t) => {
 	}, "Correct minify task definition");
 });
 
-test("generateComponentPreload with custom paths, excludes and custom bundle", async (t) => {
+test("generateComponentPreload with custom paths, excludes and custom bundle", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getBundles = () => [{
 		bundleDefinition: {
@@ -501,7 +501,7 @@ test("generateComponentPreload with custom paths, excludes and custom bundle", a
 	}, "Correct generateComponentPreload task definition");
 });
 
-test("generateComponentPreload with custom namespaces and excludes", async (t) => {
+test("generateComponentPreload with custom namespaces and excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getComponentPreloadNamespaces = () => [
 		"project/b/componentA",
@@ -527,7 +527,7 @@ test("generateComponentPreload with custom namespaces and excludes", async (t) =
 	}, "Correct generateComponentPreload task definition");
 });
 
-test("generateLibraryPreload with excludes", async (t) => {
+test("generateLibraryPreload with excludes", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	project.getLibraryPreloadExcludes = () => ["project/b/dir/**"];
 
@@ -544,7 +544,7 @@ test("generateLibraryPreload with excludes", async (t) => {
 	}, "Correct generateLibraryPreload task definition");
 });
 
-test("buildThemes: Project is not root", async (t) => {
+test("buildThemes: Project is not root", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	taskUtil.isRootProject.returns(false);
 
@@ -564,7 +564,7 @@ test("buildThemes: Project is not root", async (t) => {
 		}
 	}, "Correct buildThemes task definition");
 });
-test("buildThemes: CSS Variables enabled", async (t) => {
+test("buildThemes: CSS Variables enabled", (t) => {
 	const {project, taskUtil, getTask} = t.context;
 	taskUtil.getBuildOption.returns(true);
 

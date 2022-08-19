@@ -37,7 +37,7 @@ test("Correct class", async (t) => {
 
 test("getTask", async (t) => {
 	const extension = await Specification.create(clone(basicTaskInput));
-	t.deepEqual(extension.getTask(), "extension module",
+	t.is(extension.getTask(), "extension module",
 		"Returned correct module");
 });
 

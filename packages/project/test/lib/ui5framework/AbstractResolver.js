@@ -604,7 +604,7 @@ test.serial(
 			`Make sure the version is valid and available in the configured registry.`);
 	});
 
-test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
+test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", (t) => {
 	const projectSchema = require("../../../lib/validation/schema/specVersion/2.0/kind/project.json");
 	const schemaPattern = projectSchema.definitions.framework.properties.version.pattern;
 	t.is(schemaPattern, AbstractResolver._SEMVER_VERSION_REGEXP.source);

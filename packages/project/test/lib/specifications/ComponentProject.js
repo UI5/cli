@@ -144,7 +144,7 @@ test("_resolveMavenPlaceholder: resolves maven placeholder from first POM level"
 	});
 
 	const res = await project._resolveMavenPlaceholder("${mvn-pony}");
-	t.deepEqual(res, "unicorn", "Resolved placeholder correctly");
+	t.is(res, "unicorn", "Resolved placeholder correctly");
 });
 
 test("_resolveMavenPlaceholder: resolves maven placeholder from deeper POM level", async (t) => {
@@ -158,7 +158,7 @@ test("_resolveMavenPlaceholder: resolves maven placeholder from deeper POM level
 	});
 
 	const res = await project._resolveMavenPlaceholder("${mvn-pony.some.id}");
-	t.deepEqual(res, "unicorn", "Resolved placeholder correctly");
+	t.is(res, "unicorn", "Resolved placeholder correctly");
 });
 
 test("_resolveMavenPlaceholder: can't resolve from POM", async (t) => {
@@ -176,7 +176,7 @@ test("_resolveMavenPlaceholder: provided value is no placeholder", async (t) => 
 	const project = await Specification.create(basicProjectInput);
 
 	const err = await t.throwsAsync(project._resolveMavenPlaceholder("My ${mvn-pony}"));
-	t.deepEqual(err.message,
+	t.is(err.message,
 		`"My \${mvn-pony}" is not a maven placeholder`,
 		"Rejected with correct error message");
 });
@@ -190,7 +190,7 @@ test("_getPom: reads correctly", async (t) => {
 	const project = await Specification.create(projectInput);
 
 	const res = await project._getPom();
-	t.deepEqual(res.project.modelVersion, "4.0.0", "pom.xml content has been read");
+	t.is(res.project.modelVersion, "4.0.0", "pom.xml content has been read");
 });
 
 test.serial("_getPom: fs read error", async (t) => {
@@ -227,5 +227,5 @@ test.serial("_getPom: result is cached", async (t) => {
 	res = await project._getPom();
 	t.deepEqual(res, {pony: "no unicorn"}, "Correct result on second call");
 
-	t.deepEqual(byPathStub.callCount, 1, "getRootReader().byPath got called exactly once (and then cached)");
+	t.is(byPathStub.callCount, 1, "getRootReader().byPath got called exactly once (and then cached)");
 });
