@@ -151,7 +151,7 @@ test("_calcMinSize: compressedSize", async (t) => {
 		}
 	};
 	const autoSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.js"), 123);
+	t.is(await autoSplitter._calcMinSize("mymodule.js"), 123);
 });
 
 test("_calcMinSize: js resource (optimize=false)", async (t) => {
@@ -168,7 +168,7 @@ test("_calcMinSize: js resource (optimize=false)", async (t) => {
 		}
 	};
 	const autoSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.js"), 13);
+	t.is(await autoSplitter._calcMinSize("mymodule.js"), 13);
 });
 
 test.serial("_calcMinSize: js resource (optimize=true)", async (t) => {
@@ -190,7 +190,7 @@ test.serial("_calcMinSize: js resource (optimize=true)", async (t) => {
 	// should not get optimized by the AutoSplitter.
 	autoSplitter.optimize = true;
 
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.js"), 13);
+	t.is(await autoSplitter._calcMinSize("mymodule.js"), 13);
 });
 
 test("_calcMinSize: properties resource", async (t) => {
@@ -214,7 +214,7 @@ test("_calcMinSize: properties resource", async (t) => {
 		}
 	};
 	const autoSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.properties"), 10, "length of 1234\\u00df");
+	t.is(await autoSplitter._calcMinSize("mymodule.properties"), 10, "length of 1234\\u00df");
 });
 
 test("_calcMinSize: xml view resource", async (t) => {
@@ -228,7 +228,7 @@ test("_calcMinSize: xml view resource", async (t) => {
 	};
 	const autoSplitter = new AutoSplitter(pool);
 	autoSplitter.optimizeXMLViews = true;
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.view.xml"), 5);
+	t.is(await autoSplitter._calcMinSize("mymodule.view.xml"), 5);
 });
 
 test("_calcMinSize: xml view resource without optimizeXMLViews", async (t) => {
@@ -241,7 +241,7 @@ test("_calcMinSize: xml view resource without optimizeXMLViews", async (t) => {
 		}
 	};
 	const autoSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.view.xml"), 6);
+	t.is(await autoSplitter._calcMinSize("mymodule.view.xml"), 6);
 });
 
 test.serial("_calcMinSize: optimize xml view resource", async (t) => {
@@ -257,7 +257,7 @@ test.serial("_calcMinSize: optimize xml view resource", async (t) => {
 	const autoSplitter = new AutoSplitter(pool);
 	autoSplitter.optimizeXMLViews = true;
 	autoSplitter.optimize = true;
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.view.xml"), 6);
+	t.is(await autoSplitter._calcMinSize("mymodule.view.xml"), 6);
 	stubXmlmin.restore();
 });
 
@@ -275,7 +275,7 @@ test.serial("_calcMinSize: optimize xml view resource and pre tag", async (t) =>
 	autoSplitter.optimizeXMLViews = true;
 	autoSplitter.optimize = true;
 	t.false(stubXmlmin.called, "xmlmin should not be called");
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.view.xml"), 19);
+	t.is(await autoSplitter._calcMinSize("mymodule.view.xml"), 19);
 	stubXmlmin.restore();
 });
 
@@ -286,7 +286,7 @@ test("_calcMinSize: no resource", async (t) => {
 		}
 	};
 	const autoSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.properties"), 0);
+	t.is(await autoSplitter._calcMinSize("mymodule.properties"), 0);
 });
 
 test("_calcMinSize: unknown resource with info", async (t) => {
@@ -300,5 +300,5 @@ test("_calcMinSize: unknown resource with info", async (t) => {
 		}
 	};
 	const autoSplitter = new AutoSplitter(pool);
-	t.deepEqual(await autoSplitter._calcMinSize("mymodule.mjs"), 47);
+	t.is(await autoSplitter._calcMinSize("mymodule.mjs"), 47);
 });

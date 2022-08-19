@@ -35,7 +35,7 @@ test("generateJsdocConfig", async (t) => {
 			.replace(backslashRegex, "\\\\");
 
 
-	t.deepEqual(res, `{
+	t.is(res, `{
 		"plugins": ["${pluginPath}"],
 		"opts": {
 			"recurse": true,
@@ -64,7 +64,7 @@ test.serial("writeJsdocConfig", async (t) => {
 		writeFile: (configPath, configContent, callback) => {
 			t.deepEqual(configPath, path.join("/", "some", "path", "jsdoc-config.json"),
 				"Correct config path supplied");
-			t.deepEqual(configContent, "some config", "Correct config content supplied");
+			t.is(configContent, "some config", "Correct config content supplied");
 			callback();
 		}
 	});
@@ -93,10 +93,10 @@ test.serial("buildJsdoc", async (t) => {
 		sourcePath: "/some/path",
 		configPath: "/some/config/path/jsdoc-config.json"
 	});
-	t.deepEqual(cpStub.callCount, 1, "Spawn got called");
+	t.is(cpStub.callCount, 1, "Spawn got called");
 
 	const firstCallArgs = cpStub.getCall(0).args;
-	t.deepEqual(firstCallArgs[0], "node", "Spawn got called with correct process argument");
+	t.is(firstCallArgs[0], "node", "Spawn got called with correct process argument");
 	t.deepEqual(firstCallArgs[1], [
 		require.resolve("jsdoc/jsdoc.js"),
 		"-c",
@@ -119,7 +119,7 @@ test.serial("buildJsdoc", async (t) => {
 		sourcePath: "/some/path",
 		configPath: "/some/config/path/jsdoc-config.json"
 	}));
-	t.deepEqual(error.message, "JSDoc child process closed with code 2");
+	t.is(error.message, "JSDoc child process closed with code 2");
 });
 
 test.serial("jsdocGenerator", async (t) => {
@@ -142,10 +142,10 @@ test.serial("jsdocGenerator", async (t) => {
 		}
 	});
 
-	t.deepEqual(res.length, 1, "Returned 1 resource");
-	t.deepEqual(res[0], "some resource", "Returned 1 resource");
+	t.is(res.length, 1, "Returned 1 resource");
+	t.is(res[0], "some resource", "Returned 1 resource");
 
-	t.deepEqual(generateJsdocConfigStub.callCount, 1, "generateJsdocConfig called once");
+	t.is(generateJsdocConfigStub.callCount, 1, "generateJsdocConfig called once");
 	t.deepEqual(generateJsdocConfigStub.getCall(0).args[0], {
 		targetPath: "/some/target/path",
 		tmpPath: "/some/tmp/path",
@@ -155,13 +155,13 @@ test.serial("jsdocGenerator", async (t) => {
 		variants: ["apijson"]
 	}, "generateJsdocConfig called with correct arguments");
 
-	t.deepEqual(writeJsdocConfigStub.callCount, 1, "writeJsdocConfig called once");
-	t.deepEqual(writeJsdocConfigStub.getCall(0).args[0], "/some/tmp/path",
+	t.is(writeJsdocConfigStub.callCount, 1, "writeJsdocConfig called once");
+	t.is(writeJsdocConfigStub.getCall(0).args[0], "/some/tmp/path",
 		"writeJsdocConfig called with correct tmpPath argument");
-	t.deepEqual(writeJsdocConfigStub.getCall(0).args[1], "some config",
+	t.is(writeJsdocConfigStub.getCall(0).args[1], "some config",
 		"writeJsdocConfig called with correct config argument");
 
-	t.deepEqual(buildJsdocStub.callCount, 1, "buildJsdoc called once");
+	t.is(buildJsdocStub.callCount, 1, "buildJsdoc called once");
 	t.deepEqual(buildJsdocStub.getCall(0).args[0], {
 		sourcePath: "/some/source/path",
 		configPath: "/some/config/path"
@@ -171,7 +171,7 @@ test.serial("jsdocGenerator", async (t) => {
 		fsBasePath: "/some/target/path",
 		virBasePath: "/"
 	}, "createAdapter called with correct arguments");
-	t.deepEqual(byPathStub.getCall(0).args[0], "/test-resources/some/project/name/designtime/api.json",
+	t.is(byPathStub.getCall(0).args[0], "/test-resources/some/project/name/designtime/api.json",
 		"byPath called with correct path for api.json");
 
 

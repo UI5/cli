@@ -5,7 +5,7 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
-test("integration: simple", (t) => {
+test("integration: simple", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -46,38 +46,36 @@ test("integration: simple", (t) => {
 		path: lessPath,
 		string: content
 	});
-	return reader.write(resource).then(() => {
-		return buildThemes({
-			workspace: duplexCollection,
-			dependencies: dependencies,
-			options: {
-				inputPattern: "/resources/super/duper/looper/themes/**/library.source.less"
-			}
-		}).then(() => {
-			return Promise.all([
-				writer.byPath(cssPath),
-				writer.byPath(cssRtlPath),
-				writer.byPath(parametersPath)
-			]);
-		}).then(([cssResource, cssRtlResource, parametersResource]) => {
-			t.truthy(cssResource, "CSS resource has been created");
-			t.truthy(cssRtlResource, "CSS right-to-left resource has been created");
-			t.truthy(parametersResource, "Parameters JSON resource has been created");
-
-			return Promise.all([
-				cssResource.getBuffer(),
-				cssRtlResource.getBuffer(),
-				parametersResource.getBuffer()
-			]);
-		}).then(([cssBuffer, cssRtlBuffer, parametersBuffer]) => {
-			t.deepEqual(cssBuffer.toString(), cssExpected, "Correct CSS content");
-			t.deepEqual(cssRtlBuffer.toString(), cssRtlExpected, "Correct CSS right-to-left content");
-			t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
-		});
+	await reader.write(resource);
+	await buildThemes({
+		workspace: duplexCollection,
+		dependencies: dependencies,
+		options: {
+			inputPattern: "/resources/super/duper/looper/themes/**/library.source.less"
+		}
 	});
-});
 
-test("integration: imports", (t) => {
+	const [cssResource, cssRtlResource, parametersResource] = await Promise.all([
+		writer.byPath(cssPath),
+		writer.byPath(cssRtlPath),
+		writer.byPath(parametersPath)
+	]);
+
+	t.truthy(cssResource, "CSS resource has been created");
+	t.truthy(cssRtlResource, "CSS right-to-left resource has been created");
+	t.truthy(parametersResource, "Parameters JSON resource has been created");
+
+	const [cssBuffer, cssRtlBuffer, parametersBuffer] = await Promise.all([
+		cssResource.getBuffer(),
+		cssRtlResource.getBuffer(),
+		parametersResource.getBuffer()
+	]);
+
+	t.deepEqual(cssBuffer.toString(), cssExpected, "Correct CSS content");
+	t.deepEqual(cssRtlBuffer.toString(), cssRtlExpected, "Correct CSS right-to-left content");
+	t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
+});
+test("integration: imports", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -126,35 +124,35 @@ test("integration: imports", (t) => {
 		string: lessVariablesContent
 	});
 
-	return Promise.all([lessResource, lessVariablesResource].map((resource) => {
+	await Promise.all([lessResource, lessVariablesResource].map((resource) => {
 		return reader.write(resource);
-	})).then(() => {
-		return buildThemes({
-			workspace: duplexCollection,
-			dependencies: dependencies,
-			options: {
-				inputPattern: "/resources/super/duper/looper/themes/**/library.source.less"
-			}
-		}).then(() => {
-			return Promise.all([
-				writer.byPath(cssPath),
-				writer.byPath(cssRtlPath),
-				writer.byPath(parametersPath)
-			]);
-		}).then(([cssResource, cssRtlResource, parametersResource]) => {
-			t.truthy(cssResource, "CSS resource has been created");
-			t.truthy(cssRtlResource, "CSS right-to-left resource has been created");
-			t.truthy(parametersResource, "Parameters JSON resource has been created");
+	}));
 
-			return Promise.all([
-				cssResource.getBuffer(),
-				cssRtlResource.getBuffer(),
-				parametersResource.getBuffer()
-			]);
-		}).then(([cssBuffer, cssRtlBuffer, parametersBuffer]) => {
-			t.deepEqual(cssBuffer.toString(), cssExpected, "Correct CSS content");
-			t.deepEqual(cssRtlBuffer.toString(), cssRtlExpected, "Correct CSS right-to-left content");
-			t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
-		});
+	await buildThemes({
+		workspace: duplexCollection,
+		dependencies: dependencies,
+		options: {
+			inputPattern: "/resources/super/duper/looper/themes/**/library.source.less"
+		}
 	});
+
+	const [cssResource, cssRtlResource, parametersResource] = await Promise.all([
+		writer.byPath(cssPath),
+		writer.byPath(cssRtlPath),
+		writer.byPath(parametersPath)
+	]);
+
+	t.truthy(cssResource, "CSS resource has been created");
+	t.truthy(cssRtlResource, "CSS right-to-left resource has been created");
+	t.truthy(parametersResource, "Parameters JSON resource has been created");
+
+	const [cssBuffer, cssRtlBuffer, parametersBuffer] = await Promise.all([
+		cssResource.getBuffer(),
+		cssRtlResource.getBuffer(),
+		parametersResource.getBuffer()
+	]);
+
+	t.deepEqual(cssBuffer.toString(), cssExpected, "Correct CSS content");
+	t.deepEqual(cssRtlBuffer.toString(), cssRtlExpected, "Correct CSS right-to-left content");
+	t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
 });

@@ -279,7 +279,7 @@ test("routing with targets with local config", async (t) => {
 	], "dependencies should be correct");
 });
 
-test("rootView with object", (t) => {
+test("rootView with object", async (t) => {
 	const mockManifest = {
 		"sap.ui5": {
 			rootView: {
@@ -300,14 +300,12 @@ test("rootView with object", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo).then( () => {
-		t.deepEqual(mockInfo.deps, [
-			"test/view/App.view.js",
-		], "dependencies should be correct");
-	});
+
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, ["test/view/App.view.js"], "dependencies should be correct");
 });
 
-test("rootView with string", (t) => {
+test("rootView with string", async (t) => {
 	const mockManifest = {
 		"sap.ui5": {
 			rootView: "test.view.App"
@@ -324,11 +322,8 @@ test("rootView with string", (t) => {
 	};
 
 	const subject = new ComponentAnalyzer(mockPool);
-	return subject.analyze({name: path.join("test", "Component.js")}, mockInfo).then( () => {
-		t.deepEqual(mockInfo.deps, [
-			"test/view/App.view.xml",
-		], "dependencies should be correct");
-	});
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, ["test/view/App.view.xml"], "dependencies should be correct");
 });
 
 
@@ -437,10 +432,10 @@ test("_analyzeManifest: Manifest with routing and routes array", async (t) => {
 
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
-	t.deepEqual(stubAddDependency.callCount, 2, "addDependency was called twice");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
+	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
 		"addDependency should be called with the router dependency name");
-	t.deepEqual(stubAddDependency.getCall(1).args[0], "test/view/App.view.xml",
+	t.is(stubAddDependency.getCall(1).args[0], "test/view/App.view.xml",
 		"addDependency should be called with the app dependency name");
 });
 
@@ -473,10 +468,10 @@ test("_analyzeManifest: Manifest with routing and routes object", async (t) => {
 
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
-	t.deepEqual(stubAddDependency.callCount, 2, "addDependency was called twice");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
+	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
 		"addDependency should be called with the router dependency name");
-	t.deepEqual(stubAddDependency.getCall(1).args[0], "test/view/App.view.xml",
+	t.is(stubAddDependency.getCall(1).args[0], "test/view/App.view.xml",
 		"addDependency should be called with the app dependency name");
 });
 
@@ -511,7 +506,7 @@ test("_analyzeManifest: Manifest with legacy routes object", async (t) => {
 
 	// Note: Dependencies to views within legacy routes are not collected
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
 		"addDependency should be called with the router dependency name");
 });
 
@@ -538,7 +533,7 @@ test("_analyzeManifest: Manifest with empty routes array", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/core/routing/Router.js",
 		"addDependency should be called with the router dependency name");
 });
 
@@ -563,7 +558,7 @@ test("_analyzeManifest: Manifest with rootview object", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "test/view/App.view.js",
+	t.is(stubAddDependency.getCall(0).args[0], "test/view/App.view.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -583,7 +578,7 @@ test("_analyzeManifest: Manifest with rootview string", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "test/view/App.view.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "test/view/App.view.xml",
 		"addDependency should be called with the dependency name");
 });
 
@@ -607,7 +602,7 @@ test("_analyzeManifest: Manifest with dependency libs", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/core/library.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/core/library.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -631,7 +626,7 @@ test("_analyzeManifest: Manifest with dependency components", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/test/manifestload/Component.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/test/manifestload/Component.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -655,7 +650,7 @@ test("_analyzeManifest: Manifest with models", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/resource/ResourceModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/resource/ResourceModel.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -690,7 +685,7 @@ test("_analyzeManifest: Manifest with V2 OData model via dataSources", async (t)
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -721,7 +716,7 @@ test("_analyzeManifest: Manifest with V2 OData model via dataSources (default ty
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -753,7 +748,7 @@ test("_analyzeManifest: Manifest with V2 OData model via dataSources with settin
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v2/ODataModel.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -788,7 +783,7 @@ test("_analyzeManifest: Manifest with V4 OData model via dataSources", async (t)
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v4/ODataModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/odata/v4/ODataModel.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -854,7 +849,7 @@ test("_analyzeManifest: Manifest with JSON model via dataSources", async (t) => 
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/json/JSONModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/json/JSONModel.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -886,7 +881,7 @@ test("_analyzeManifest: Manifest with XML model via dataSources", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/ui/model/xml/XMLModel.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/ui/model/xml/XMLModel.js",
 		"addDependency should be called with the dependency name");
 });
 

@@ -38,7 +38,7 @@ test("basic dominator tree test", async (t) => {
 	}];
 	const graph = await dependencyGraph(pool, roots);
 	const result = dominatorTree(graph);
-	t.deepEqual(result.name, "");
+	t.is(result.name, "");
 	t.deepEqual(getNamesFromSet(result.dominators), [""], "There should be just the temp node as dominator");
 	t.deepEqual(getNamesFromSet(result.pred), [], "There should be no predecessor");
 	t.deepEqual(getNamesFromSet(result.succ), ["myroot"], "There should be the myroot node as successor");

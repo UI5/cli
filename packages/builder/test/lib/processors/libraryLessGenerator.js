@@ -567,7 +567,7 @@ test.serial("LibraryLessGenerator: Throw error when readFile fails", async (t) =
 	t.is(log.error.callCount, 0);
 });
 
-test.serial("LibraryLessGenerator.getPathToRoot", async (t) => {
+test.serial("LibraryLessGenerator.getPathToRoot", (t) => {
 	const {LibraryLessGenerator, log} = t.context;
 
 	t.is(

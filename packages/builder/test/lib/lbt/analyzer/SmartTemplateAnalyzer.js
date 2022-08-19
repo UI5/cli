@@ -81,7 +81,7 @@ test("_analyzeManifest: with manifest with recursive pages (as array)", async (t
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.is(stubAnalyzeTemplateComponent.callCount, 2, "_analyzeTemplateComponent was called twice");
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[0], "test/mycomp/Component.js",
+	t.is(stubAnalyzeTemplateComponent.getCall(0).args[0], "test/mycomp/Component.js",
 		"_analyzeTemplateComponent should be called with the component");
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[1], {
 		"component": {
@@ -100,7 +100,7 @@ test("_analyzeManifest: with manifest with recursive pages (as array)", async (t
 		}]
 	}, "_analyzeTemplateComponent should be called with the page");
 
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[0], "test/mycomp2/Component.js",
+	t.is(stubAnalyzeTemplateComponent.getCall(1).args[0], "test/mycomp2/Component.js",
 		"_analyzeTemplateComponent should be called with the component");
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[1], {
 		"component": {
@@ -112,7 +112,7 @@ test("_analyzeManifest: with manifest with recursive pages (as array)", async (t
 	}, "_analyzeTemplateComponent should be called with the page");
 
 	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "test/mycomp/Component.js",
+	t.is(stubAddDependency.getCall(0).args[0], "test/mycomp/Component.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -153,7 +153,7 @@ test("_analyzeManifest: with manifest with recursive pages (as object)", async (
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.is(stubAnalyzeTemplateComponent.callCount, 2, "_analyzeTemplateComponent was called twice");
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[0], "test/mycomp/Component.js",
+	t.is(stubAnalyzeTemplateComponent.getCall(0).args[0], "test/mycomp/Component.js",
 		"_analyzeTemplateComponent should be called with the component");
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[1], {
 		"component": {
@@ -174,7 +174,7 @@ test("_analyzeManifest: with manifest with recursive pages (as object)", async (
 		}
 	}, "_analyzeTemplateComponent should be called with the page");
 
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[0], "test/mycomp2/Component.js",
+	t.is(stubAnalyzeTemplateComponent.getCall(1).args[0], "test/mycomp2/Component.js",
 		"_analyzeTemplateComponent should be called with the component");
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(1).args[1], {
 		"component": {
@@ -186,7 +186,7 @@ test("_analyzeManifest: with manifest with recursive pages (as object)", async (
 	}, "_analyzeTemplateComponent should be called with the page");
 
 	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "test/mycomp/Component.js",
+	t.is(stubAddDependency.getCall(0).args[0], "test/mycomp/Component.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -216,12 +216,12 @@ test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", a
 		{}, moduleInfo);
 
 	t.true(stubAnalyzeAST.calledOnce, "_analyzeManifest was called once");
-	t.deepEqual(stubAnalyzeAST.getCall(0).args[0], "pony",
+	t.is(stubAnalyzeAST.getCall(0).args[0], "pony",
 		"_analyzeManifest should be called with the module name");
 
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "mytpl.view.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "mytpl.view.xml",
 		"addDependency should be called with the dependency name");
 	stubAnalyzeAST.restore();
 	stubParse.restore();
@@ -292,7 +292,7 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 	t.true(stubAnalyzeAST.calledOnce, "_analyzeManifest was called once");
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "donkey.view.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "donkey.view.xml",
 		"addDependency should be called with the dependency name");
 	stubAnalyzeAST.restore();
 	stubParse.restore();
@@ -326,7 +326,7 @@ test.serial("_analyzeTemplateComponent: dependency not found", async (t) => {
 		}
 	}, moduleInfo));
 
-	t.deepEqual(error.message, `resource not found in pool: 'pony'`);
+	t.is(error.message, `resource not found in pool: 'pony'`);
 
 	t.is(stubAnalyzeAST.callCount, 0, "_analyzeManifest was not called");
 
@@ -398,7 +398,7 @@ test("_analyzeAST: get template name from ast", async (t) => {
 	t.true(stubAnalyzeTemplateClassDefinition.calledOnce, "_analyzeTemplateClassDefinition was called once");
 
 	stubAnalyzeTemplateClassDefinition.restore();
-	t.deepEqual(result, "donkey");
+	t.is(result, "donkey");
 });
 
 test("_analyzeAST: no template name from ast", async (t) => {
@@ -429,7 +429,7 @@ test("_analyzeAST: no template name from ast", async (t) => {
 	t.true(stubAnalyzeTemplateClassDefinition.calledOnce, "_analyzeTemplateClassDefinition was called once");
 
 	stubAnalyzeTemplateClassDefinition.restore();
-	t.deepEqual(result, "");
+	t.is(result, "");
 });
 
 test("Analysis of Manifest and TemplateAssembler code", async (t) => {
@@ -496,7 +496,7 @@ test("_analyzeTemplateClassDefinition: get template name from metadata", async (
 
 	const result = await analyzer._analyzeTemplateClassDefinition(expression);
 
-	t.deepEqual(result, "sap.fe.templates.Page.view.Page", "defaultValue is retrieved");
+	t.is(result, "sap.fe.templates.Page.view.Page", "defaultValue is retrieved");
 });
 
 test("_analyzeTemplateClassDefinition: no string template name from metadata", async (t) => {

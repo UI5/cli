@@ -23,12 +23,12 @@ test.serial("createTmpDir successful", async (t) => {
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
-	t.deepEqual(makeDirStub.callCount, 1, "One directory got created");
+	t.is(makeDirStub.callCount, 1, "One directory got created");
 	t.deepEqual(makeDirStub.getCall(0).args[0], tmpRootPath, "Correct tmp root dir got created");
 
-	t.deepEqual(mkdtempStub.callCount, 1, "mkdtemp is called once");
+	t.is(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenam3space-"));
-	t.deepEqual(res, "some/path", "Correct path returned");
+	t.is(res, "some/path", "Correct path returned");
 
 	mock.stop("make-dir");
 });
@@ -44,12 +44,12 @@ test.serial("createTmpDir error", async (t) => {
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
-	t.deepEqual(makeDirStub.callCount, 1, "One directory got created");
+	t.is(makeDirStub.callCount, 1, "One directory got created");
 	t.deepEqual(makeDirStub.getCall(0).args[0], tmpRootPath, "Correct tmp root dir got created");
 
-	t.deepEqual(mkdtempStub.callCount, 1, "mkdtemp is called once");
+	t.is(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenamespace-"));
-	t.deepEqual(res.message, "Dir creation failed", "Dir creation failed");
+	t.is(res.message, "Dir creation failed", "Dir creation failed");
 
 	mock.stop("make-dir");
 });
@@ -66,10 +66,10 @@ test.serial("createTmpDirs", async (t) => {
 
 	const res = await generateJsdoc._createTmpDirs("some.namespace");
 
-	t.deepEqual(createTmpDirStub.callCount, 1, "creteTmpDir called once");
-	t.deepEqual(createTmpDirStub.getCall(0).args[0], "some.namespace", "creteTmpDir called with correct argument");
+	t.is(createTmpDirStub.callCount, 1, "creteTmpDir called once");
+	t.is(createTmpDirStub.getCall(0).args[0], "some.namespace", "creteTmpDir called with correct argument");
 
-	t.deepEqual(makeDirStub.callCount, 3, "Three directory got created");
+	t.is(makeDirStub.callCount, 3, "Three directory got created");
 	t.deepEqual(makeDirStub.getCall(0).args[0], path.join("/", "some", "path", "src"),
 		"Correct srcdir path got created");
 	t.deepEqual(makeDirStub.getCall(1).args[0], path.join("/", "some", "path", "target"),
@@ -82,7 +82,7 @@ test.serial("createTmpDirs", async (t) => {
 	t.deepEqual(res.tmpPath, path.join("/", "some", "path", "tmp"), "Correct temporary tmp dir path returned");
 
 	res.cleanup();
-	t.deepEqual(rimrafStub.callCount, 1, "Cleanup callback: rimraf called once");
+	t.is(rimrafStub.callCount, 1, "Cleanup callback: rimraf called once");
 	t.deepEqual(rimrafStub.getCall(0).args[0], path.join("/", "some", "path"),
 		"Cleanup callback: rimraf called with correct path");
 
@@ -100,7 +100,7 @@ test.serial("writeResourcesToDir with byGlobSource", async (t) => {
 		workspace: {
 			// stub byGlobSource
 			byGlobSource: (pattern) => {
-				t.deepEqual(pattern, "some pattern", "Glob with correct pattern");
+				t.is(pattern, "some pattern", "Glob with correct pattern");
 				return Promise.resolve(["resource A", "resource B"]);
 			}
 		},
@@ -113,9 +113,9 @@ test.serial("writeResourcesToDir with byGlobSource", async (t) => {
 		virBasePath: "/resources/"
 	}, "createAdapter called with correct arguments");
 
-	t.deepEqual(writeStub.callCount, 2, "Write got called four times");
-	t.deepEqual(writeStub.getCall(0).args[0], "resource A", "Write got called for resource A");
-	t.deepEqual(writeStub.getCall(1).args[0], "resource B", "Write got called for resource B");
+	t.is(writeStub.callCount, 2, "Write got called four times");
+	t.is(writeStub.getCall(0).args[0], "resource A", "Write got called for resource A");
+	t.is(writeStub.getCall(1).args[0], "resource B", "Write got called for resource B");
 });
 
 test.serial("writeResourcesToDir with byGlob", async (t) => {
@@ -127,7 +127,7 @@ test.serial("writeResourcesToDir with byGlob", async (t) => {
 	await generateJsdoc._writeResourcesToDir({
 		workspace: {
 			byGlob: (pattern) => {
-				t.deepEqual(pattern, "some pattern", "Glob with correct pattern");
+				t.is(pattern, "some pattern", "Glob with correct pattern");
 				return Promise.resolve(["resource A", "resource B"]);
 			}
 		},
@@ -140,9 +140,9 @@ test.serial("writeResourcesToDir with byGlob", async (t) => {
 		virBasePath: "/resources/"
 	}, "createAdapter called with correct arguments");
 
-	t.deepEqual(writeStub.callCount, 2, "Write got called four times");
-	t.deepEqual(writeStub.getCall(0).args[0], "resource A", "Write got called for resource A");
-	t.deepEqual(writeStub.getCall(1).args[0], "resource B", "Write got called for resource B");
+	t.is(writeStub.callCount, 2, "Write got called four times");
+	t.is(writeStub.getCall(0).args[0], "resource A", "Write got called for resource A");
+	t.is(writeStub.getCall(1).args[0], "resource B", "Write got called for resource B");
 });
 
 test.serial("writeDependencyApisToDir with byGlob", async (t) => {
@@ -176,7 +176,7 @@ test.serial("writeDependencyApisToDir with byGlob", async (t) => {
 	await generateJsdoc._writeDependencyApisToDir({
 		dependencies: {
 			byGlob: (pattern) => {
-				t.deepEqual(pattern, "/test-resources/**/designtime/api.json",
+				t.is(pattern, "/test-resources/**/designtime/api.json",
 					"Dependency api.json glob with correct pattern");
 				return Promise.resolve([initialResourceA, initialResourceB]);
 			}
@@ -184,23 +184,23 @@ test.serial("writeDependencyApisToDir with byGlob", async (t) => {
 		targetPath: path.join("/", "some", "target", "path")
 	});
 
-	t.deepEqual(cloneStubA.callCount, 1, "resource A got cloned once");
-	t.deepEqual(cloneStubB.callCount, 1, "resource B got cloned once");
+	t.is(cloneStubA.callCount, 1, "resource A got cloned once");
+	t.is(cloneStubB.callCount, 1, "resource B got cloned once");
 
-	t.deepEqual(setPathStubA.callCount, 1, "Path of cloned resource A got changed");
-	t.deepEqual(setPathStubA.getCall(0).args[0], "/api-0.json", "Path of cloned resource A got changed correctly");
+	t.is(setPathStubA.callCount, 1, "Path of cloned resource A got changed");
+	t.is(setPathStubA.getCall(0).args[0], "/api-0.json", "Path of cloned resource A got changed correctly");
 
-	t.deepEqual(setPathStubB.callCount, 1, "Path of cloned resource B got changed");
-	t.deepEqual(setPathStubB.getCall(0).args[0], "/api-1.json", "Path of cloned resource B got changed correctly");
+	t.is(setPathStubB.callCount, 1, "Path of cloned resource B got changed");
+	t.is(setPathStubB.getCall(0).args[0], "/api-1.json", "Path of cloned resource B got changed correctly");
 
 	t.deepEqual(createAdapterStub.getCall(0).args[0], {
 		fsBasePath: path.join("/", "some", "target", "path"),
 		virBasePath: "/"
 	}, "createAdapter called with correct arguments");
 
-	t.deepEqual(writeStub.callCount, 2, "Write got called four times");
-	t.deepEqual(writeStub.getCall(0).args[0].id, "resource A", "Write got called for resource A");
-	t.deepEqual(writeStub.getCall(1).args[0].id, "resource B", "Write got called for resource B");
+	t.is(writeStub.callCount, 2, "Write got called four times");
+	t.is(writeStub.getCall(0).args[0].id, "resource A", "Write got called for resource A");
+	t.is(writeStub.getCall(1).args[0].id, "resource B", "Write got called for resource B");
 });
 
 test.serial("generateJsdoc", async (t) => {
@@ -239,28 +239,28 @@ test.serial("generateJsdoc", async (t) => {
 		}
 	});
 
-	t.deepEqual(createTmpDirsStub.callCount, 1, "createTmpDirs got called once");
-	t.deepEqual(createTmpDirsStub.getCall(0).args[0], "some.project",
+	t.is(createTmpDirsStub.callCount, 1, "createTmpDirs got called once");
+	t.is(createTmpDirsStub.getCall(0).args[0], "some.project",
 		"createTmpDirs got called with correct arguments");
 
-	t.deepEqual(registerCleanupTaskStub.callCount, 1, "registerCleanupTask called once");
+	t.is(registerCleanupTaskStub.callCount, 1, "registerCleanupTask called once");
 	t.deepEqual(registerCleanupTaskStub.getCall(0).args[0], cleanupStub,
 		"registerCleanupTask called with correct argument");
 
-	t.deepEqual(writeResourcesToDirStub.callCount, 1, "writeResourcesToDir got called once");
+	t.is(writeResourcesToDirStub.callCount, 1, "writeResourcesToDir got called once");
 	t.deepEqual(writeResourcesToDirStub.getCall(0).args[0], {
 		workspace,
 		pattern: "some pattern",
 		targetPath: path.join("/", "some", "source", "path") // one's target is another one's source
 	}, "writeResourcesToDir got called with correct arguments");
 
-	t.deepEqual(writeDependencyApisToDirStub.callCount, 1, "writeDependencyApisToDir got called once");
+	t.is(writeDependencyApisToDirStub.callCount, 1, "writeDependencyApisToDir got called once");
 	t.deepEqual(writeDependencyApisToDirStub.getCall(0).args[0], {
 		dependencies: "dependencies",
 		targetPath: path.join("/", "some", "tmp", "path", "dependency-apis")
 	}, "writeDependencyApisToDir got called with correct arguments");
 
-	t.deepEqual(jsdocGeneratorStub.callCount, 1, "jsdocGenerator processor got called once");
+	t.is(jsdocGeneratorStub.callCount, 1, "jsdocGenerator processor got called once");
 	t.deepEqual(jsdocGeneratorStub.getCall(0).args[0], {
 		sourcePath: path.join("/", "some", "source", "path"),
 		targetPath: path.join("/", "some", "target", "path"),
@@ -273,9 +273,9 @@ test.serial("generateJsdoc", async (t) => {
 		}
 	}, "jsdocGenerator got called with correct arguments");
 
-	t.deepEqual(writeStub.callCount, 2, "Write got called twice");
-	t.deepEqual(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
-	t.deepEqual(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
+	t.is(writeStub.callCount, 2, "Write got called twice");
+	t.is(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
+	t.is(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
 
 	mock.stop("../../../../lib/processors/jsdoc/jsdocGenerator");
 });
@@ -321,16 +321,16 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 		}
 	});
 
-	t.deepEqual(registerCleanupTaskStub.callCount, 1, "registerCleanupTask called once");
+	t.is(registerCleanupTaskStub.callCount, 1, "registerCleanupTask called once");
 	t.deepEqual(registerCleanupTaskStub.getCall(0).args[0], cleanupStub,
 		"registerCleanupTask called with correct argument");
 
-	t.deepEqual(infoLogStub.callCount, 1, "One message has been logged");
+	t.is(infoLogStub.callCount, 1, "One message has been logged");
 	t.deepEqual(infoLogStub.getCall(0).args[0], "Failed to find any input resources for project some.project " +
 		"using pattern some pattern. Skipping JSDoc generation...",
 	"Correct message has been logged");
 
-	t.deepEqual(jsdocGeneratorStub.callCount, 0, "jsdocGenerator processor has *not* been called");
+	t.is(jsdocGeneratorStub.callCount, 0, "jsdocGenerator processor has *not* been called");
 
 	mock.stop("../../../../lib/processors/jsdoc/jsdocGenerator");
 });
@@ -343,6 +343,6 @@ test.serial("generateJsdoc no parameters", async (t) => {
 
 test.serial("generateJsdoc missing parameters", async (t) => {
 	const error = await t.throwsAsync(generateJsdoc({}));
-	t.deepEqual(error.message, "[generateJsdoc]: One or more mandatory options not provided",
+	t.is(error.message, "[generateJsdoc]: One or more mandatory options not provided",
 		"Correct error message thrown");
 });

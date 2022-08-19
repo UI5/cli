@@ -5,7 +5,7 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
-test("integration: replace version", (t) => {
+test("integration: replace version", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -22,23 +22,20 @@ test("integration: replace version", (t) => {
 	});
 
 	const workspace = new DuplexCollection({reader, writer});
-	return reader.write(resource).then(() => {
-		return replaceVersion({
-			workspace,
-			options: {
-				pattern: "/test.js",
-				version: "1.337.0"
-			}
-		}).then(() => {
-			return writer.byPath("/test.js").then((resource) => {
-				if (!resource) {
-					t.fail("Could not find /test.js in target");
-				} else {
-					return resource.getBuffer();
-				}
-			});
-		}).then((buffer) => {
-			return t.deepEqual(buffer.toString(), expected);
-		});
+	await reader.write(resource);
+	await replaceVersion({
+		workspace,
+		options: {
+			pattern: "/test.js",
+			version: "1.337.0"
+		}
 	});
+
+	const transformedResource = await writer.byPath("/test.js");
+	if (!transformedResource) {
+		t.fail("Could not find /test.js in target");
+	} else {
+		const buffer = await transformedResource.getBuffer();
+		t.deepEqual(buffer.toString(), expected);
+	}
 });

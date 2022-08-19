@@ -42,12 +42,12 @@ test.serial("Resource: string", async (t) => {
 	t.is(res, "content", "File content returned correctly");
 });
 
-test.serial("Resource: constructor", async (t) => {
+test.serial("Resource: constructor", (t) => {
 	const resource = new Resource({}, "name", "file");
 	t.is(resource.fileSize, -1, "called once");
 });
 
-test.serial("Resource: constructor with stat", async (t) => {
+test.serial("Resource: constructor with stat", (t) => {
 	const resource = new Resource({}, "name", "file", {size: 47});
 	t.is(resource.fileSize, 47, "called once");
 });

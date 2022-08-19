@@ -41,7 +41,7 @@ test("Unknown task retrieval", (t) => {
 	const error = t.throws(() => {
 		taskRepository.getTask("not-existing");
 	});
-	t.deepEqual(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
+	t.is(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
 });
 
 test("Removed task retrieval", (t) => {

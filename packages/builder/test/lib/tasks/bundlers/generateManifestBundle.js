@@ -26,11 +26,11 @@ test.serial("generateManifestBundle", async (t) => {
 			namespace: "some/project"
 		}
 	});
-	t.deepEqual(byGlobStub.callCount, 1, "workspace.byGlob got called once");
-	t.deepEqual(byGlobStub.getCall(0).args[0], "/resources/some/project/**/{manifest.json,*.properties}",
+	t.is(byGlobStub.callCount, 1, "workspace.byGlob got called once");
+	t.is(byGlobStub.getCall(0).args[0], "/resources/some/project/**/{manifest.json,*.properties}",
 		"workspace.byGlob got called with the correct arguments");
 
-	t.deepEqual(manifestBundlerStub.callCount, 1, "manifestBundler got called once");
+	t.is(manifestBundlerStub.callCount, 1, "manifestBundler got called once");
 	t.deepEqual(manifestBundlerStub.getCall(0).args[0], {
 		resources: ["some resource", "some other resource"],
 		options: {
@@ -41,10 +41,10 @@ test.serial("generateManifestBundle", async (t) => {
 		}
 	}, "manifestBundler got called with the correct arguments");
 
-	t.deepEqual(writeStub.callCount, 2, "workspace.write got called twice");
-	t.deepEqual(writeStub.getCall(0).args[0], "some new resource",
+	t.is(writeStub.callCount, 2, "workspace.write got called twice");
+	t.is(writeStub.getCall(0).args[0], "some new resource",
 		"workspace.write got called with the correct arguments");
-	t.deepEqual(writeStub.getCall(1).args[0], "some other new resource",
+	t.is(writeStub.getCall(1).args[0], "some other new resource",
 		"workspace.write got called with the correct arguments");
 
 	mock.stop("../../../../lib/processors/bundlers/manifestBundler");
@@ -68,17 +68,17 @@ test.serial("generateManifestBundle with no resources", async (t) => {
 			namespace: "some/project"
 		}
 	});
-	t.deepEqual(byGlobStub.callCount, 1, "workspace.byGlob got called once");
-	t.deepEqual(byGlobStub.getCall(0).args[0], "/resources/some/project/**/{manifest.json,*.properties}",
+	t.is(byGlobStub.callCount, 1, "workspace.byGlob got called once");
+	t.is(byGlobStub.getCall(0).args[0], "/resources/some/project/**/{manifest.json,*.properties}",
 		"workspace.byGlob got called with the correct arguments");
 
-	t.deepEqual(manifestBundlerStub.callCount, 0, "manifestBundler not called");
+	t.is(manifestBundlerStub.callCount, 0, "manifestBundler not called");
 
 	mock.stop("../../../../lib/processors/bundlers/manifestBundler");
 });
 
 test("generateManifestBundle with missing parameters", async (t) => {
 	const error = await t.throwsAsync(generateManifestBundle({}));
-	t.deepEqual(error.message, "[generateManifestBundle]: One or more mandatory options not provided",
+	t.is(error.message, "[generateManifestBundle]: One or more mandatory options not provided",
 		"Rejected with correct error message");
 });

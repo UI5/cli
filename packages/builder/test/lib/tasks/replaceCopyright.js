@@ -5,7 +5,7 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
-test("integration: replace copyright", (t) => {
+test("integration: replace copyright", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -38,29 +38,27 @@ console.log('HelloWorld');`;
 		string: content
 	});
 
-	return workspace.write(resource).then(() => {
-		return replaceCopyright({
-			workspace,
-			options: {
-				copyright: copyright,
-				pattern: "/**/*.js"
-			}
-		}).then(() => {
-			return writer.byPath("/test.js").then((resource) => {
-				if (!resource) {
-					t.fail("Could not find /test.js in target");
-				} else {
-					return resource.getString();
-				}
-			});
-		}).then((result) => {
-			return t.deepEqual(result, expected);
-		});
+	await workspace.write(resource);
+
+	await replaceCopyright({
+		workspace,
+		options: {
+			copyright: copyright,
+			pattern: "/**/*.js"
+		}
 	});
+
+	const transformedResource = await writer.byPath("/test.js");
+
+	if (!transformedResource) {
+		t.fail("Could not find /test.js in target");
+	} else {
+		t.deepEqual(await transformedResource.getString(), expected);
+	}
 });
 
 
-test("test.xml: replace @copyright@", (t) => {
+test("test.xml: replace @copyright@", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -90,23 +88,19 @@ test("test.xml: replace @copyright@", (t) => {
 		string: content
 	});
 
-	return reader.write(resource).then(() => {
-		return replaceCopyright({
-			workspace,
-			options: {
-				pattern: "/**/*.xml",
-				copyright: copyright
-			}
-		}).then(() => {
-			return writer.byPath("/test.xml").then((resource) => {
-				if (!resource) {
-					t.fail("Could not find /test.xml in target");
-				} else {
-					return resource.getString();
-				}
-			});
-		}).then((result) => {
-			return t.deepEqual(result, expected);
-		});
+	await reader.write(resource);
+	await replaceCopyright({
+		workspace,
+		options: {
+			pattern: "/**/*.xml",
+			copyright: copyright
+		}
 	});
+	const transformedResource = await writer.byPath("/test.xml");
+
+	if (!transformedResource) {
+		t.fail("Could not find /test.xml in target");
+	} else {
+		t.deepEqual(await transformedResource.getString(), expected);
+	}
 });

@@ -91,28 +91,28 @@ test("getStringArray", (t) => {
 		ASTUtils.getStringArray(array);
 	}, {instanceOf: TypeError}, "array contains a number");
 
-	t.deepEqual(error.message, "array element is not a string literal:Literal");
+	t.is(error.message, "array element is not a string literal:Literal");
 
 	const stringArray = parseJS("['a', 'x']").body[0].expression;
 	t.deepEqual(ASTUtils.getStringArray(stringArray), ["a", "x"], "array contains only strings");
 });
 
 test("getLocation", (t) => {
-	t.deepEqual(ASTUtils.getLocation([{value: "module/name"}]), "module/name");
+	t.is(ASTUtils.getLocation([{value: "module/name"}]), "module/name");
 });
 
 test("getPropertyKey", (t) => {
 	// quoted key
 	const quotedProperties = parseJS("var myVar = {'a':'x'}").body[0].declarations[0].init.properties;
-	t.deepEqual(ASTUtils.getPropertyKey(quotedProperties[0]), "a", "sole property key is 'a'");
+	t.is(ASTUtils.getPropertyKey(quotedProperties[0]), "a", "sole property key is 'a'");
 
 	// unquoted key
 	const unQuotedProperties = parseJS("var myVar = {a:'x'}").body[0].declarations[0].init.properties;
-	t.deepEqual(ASTUtils.getPropertyKey(unQuotedProperties[0]), "a", "sole property key is 'a'");
+	t.is(ASTUtils.getPropertyKey(unQuotedProperties[0]), "a", "sole property key is 'a'");
 
 	// quoted key with dash
 	const dashedProperties = parseJS("var myVar = {'my-var': 47}").body[0].declarations[0].init.properties;
-	t.deepEqual(ASTUtils.getPropertyKey(dashedProperties[0]), "my-var", "sole property key is 'my-var'");
+	t.is(ASTUtils.getPropertyKey(dashedProperties[0]), "my-var", "sole property key is 'my-var'");
 });
 
 test("findOwnProperty", (t) => {

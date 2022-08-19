@@ -42,16 +42,16 @@ test("findResources: based on ResourceFilterList", async (t) => {
 	t.deepEqual(resources, [resourceA], "resource a is found");
 });
 
-test("size", async (t) => {
+test("size", (t) => {
 	const resourcePool = new ResourcePool();
-	t.deepEqual(resourcePool.size, 0, "size of empty pool is 0");
+	t.is(resourcePool.size, 0, "size of empty pool is 0");
 
 	const resourceA = {name: "a"};
 	resourcePool.addResource(resourceA);
-	t.deepEqual(resourcePool.size, 1, "size of pool is 1");
+	t.is(resourcePool.size, 1, "size of pool is 1");
 });
 
-test("resources", async (t) => {
+test("resources", (t) => {
 	const resourcePool = new ResourcePool();
 	t.deepEqual(resourcePool.resources, [], "no resources in empty pool");
 
@@ -60,14 +60,14 @@ test("resources", async (t) => {
 	t.deepEqual(resourcePool.resources, [resourceA], "resource a in pool");
 });
 
-test("getIgnoreMissingModules", async (t) => {
+test("getIgnoreMissingModules", (t) => {
 	let resourcePool = new ResourcePool({});
-	t.deepEqual(resourcePool.getIgnoreMissingModules(), false, "returned expected value");
+	t.is(resourcePool.getIgnoreMissingModules(), false, "returned expected value");
 
 	resourcePool = new ResourcePool({
 		ignoreMissingModules: true
 	});
-	t.deepEqual(resourcePool.getIgnoreMissingModules(), true, "returned expected value");
+	t.is(resourcePool.getIgnoreMissingModules(), true, "returned expected value");
 });
 
 
@@ -94,7 +94,7 @@ test.serial("findResourceWithInfo", async (t) => {
 	sinon.stub(resourcePool, "getModuleInfo").resolves("myInfo");
 
 	const resource = await resourcePool.findResourceWithInfo("a");
-	t.deepEqual(resource.info, "myInfo", "info is set correctly");
+	t.is(resource.info, "myInfo", "info is set correctly");
 	sinon.restore();
 });
 
@@ -161,9 +161,9 @@ test("getModuleInfo: determineDependencyInfo for js templateAssembler code", asy
 	const jsResource = await resourcePool.getModuleInfo("a.js");
 	t.is(await resourcePool._dependencyInfos.get(inputJsResource.name), jsResource,
 		"info has been added to _dependencyInfos map");
-	t.deepEqual(jsResource.size, 372);
-	t.deepEqual(jsResource.format, "ui5-define", "contains sap.ui.define therefore should be a ui5-define format");
-	t.deepEqual(jsResource.name, "a.js");
+	t.is(jsResource.size, 372);
+	t.is(jsResource.format, "ui5-define", "contains sap.ui.define therefore should be a ui5-define format");
+	t.is(jsResource.name, "a.js");
 	t.false(jsResource.rawModule);
 	t.deepEqual(jsResource.subModules, []);
 });
@@ -189,18 +189,18 @@ test("getModuleInfo: determineDependencyInfo for xml control and fragment", asyn
 	const xmlControlResource = await resourcePool.getModuleInfo("a.control.xml");
 	t.is(await resourcePool._dependencyInfos.get(inputXmlControlResource.name), xmlControlResource,
 		"info has been added to _dependencyInfos map");
-	t.deepEqual(xmlControlResource.size, 298);
+	t.is(xmlControlResource.size, 298);
 	t.falsy(xmlControlResource.format);
-	t.deepEqual(xmlControlResource.name, "a.control.xml");
+	t.is(xmlControlResource.name, "a.control.xml");
 	t.false(xmlControlResource.rawModule);
 	t.deepEqual(xmlControlResource.subModules, []);
 
 	const xmlFragmentResource = await resourcePool.getModuleInfo("a.fragment.xml");
 	t.is(await resourcePool._dependencyInfos.get(inputXmlFragmentResource.name), xmlFragmentResource,
 		"info has been added to _dependencyInfos map");
-	t.deepEqual(xmlFragmentResource.size, 298);
+	t.is(xmlFragmentResource.size, 298);
 	t.falsy(xmlFragmentResource.format);
-	t.deepEqual(xmlFragmentResource.name, "a.fragment.xml");
+	t.is(xmlFragmentResource.name, "a.fragment.xml");
 	t.false(xmlFragmentResource.rawModule);
 	t.deepEqual(xmlFragmentResource.subModules, []);
 });
@@ -222,15 +222,15 @@ test("getModuleInfo: determineDependencyInfo for xml view", async (t) => {
 	const xmlViewResource = await resourcePool.getModuleInfo("a.view.xml");
 	t.is(await resourcePool._dependencyInfos.get(inputXmlViewResource.name), xmlViewResource,
 		"info has been added to _dependencyInfos map");
-	t.deepEqual(xmlViewResource.size, 315);
+	t.is(xmlViewResource.size, 315);
 	t.falsy(xmlViewResource.format);
-	t.deepEqual(xmlViewResource.name, "a.view.xml");
+	t.is(xmlViewResource.name, "a.view.xml");
 	t.false(xmlViewResource.rawModule);
 	t.deepEqual(xmlViewResource.subModules, []);
 });
 
 
-test("addResource twice", async (t) => {
+test("addResource twice", (t) => {
 	const resourcePool = new ResourcePool();
 	const resourceA = {name: "a"};
 

@@ -116,7 +116,7 @@ test("Invalid encoding", async (t) => {
 
 
 test("getEncodingFromAlias", (t) => {
-	t.is("utf8", nonAsciiEscaper.getEncodingFromAlias("UTF-8"));
+	t.is(nonAsciiEscaper.getEncodingFromAlias("UTF-8"), "utf8");
 });
 
 test("getEncodingFromAlias invalid", (t) => {

@@ -648,13 +648,13 @@ test.serial("Build library.e with build manifest", async (t) => {
 		}
 	}, "Build manifest contains expected tags");
 
-	t.deepEqual(manifest.buildManifest.namespace, "library/e",
+	t.is(manifest.buildManifest.namespace, "library/e",
 		"Build manifest contains expected namespace");
 
-	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+	t.is(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
 		"Build manifest contains expected timestamp");
 
-	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+	t.is(manifest.buildManifest.version, "1.0.0",
 		"Build manifest contains expected version");
 });
 
@@ -843,13 +843,13 @@ test.serial("Build library.h w/ custom bundles, component-preloads, resources.js
 		}
 	}, "Build manifest contains expected tags");
 
-	t.deepEqual(manifest.buildManifest.namespace, "library/h",
+	t.is(manifest.buildManifest.namespace, "library/h",
 		"Build manifest contains expected namespace");
 
-	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+	t.is(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
 		"Build manifest contains expected timestamp");
 
-	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+	t.is(manifest.buildManifest.version, "1.0.0",
 		"Build manifest contains expected version");
 });
 
@@ -994,13 +994,13 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 		}
 	}, "Build manifest contains expected tags");
 
-	t.deepEqual(manifest.buildManifest.namespace, "library/i",
+	t.is(manifest.buildManifest.namespace, "library/i",
 		"Build manifest contains expected namespace");
 
-	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+	t.is(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
 		"Build manifest contains expected timestamp");
 
-	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+	t.is(manifest.buildManifest.version, "1.0.0",
 		"Build manifest contains expected version");
 });
 
@@ -1118,13 +1118,13 @@ test.serial("Build theme.j with build manifest", async (t) => {
 
 	t.deepEqual(manifest.buildManifest.tags, {}, "Build manifest contains expected tags");
 
-	t.deepEqual(manifest.buildManifest.namespace, null,
+	t.is(manifest.buildManifest.namespace, null,
 		"Build manifest contains expected namespace");
 
-	t.deepEqual(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
+	t.is(manifest.buildManifest.timestamp, "2022-07-27T09:00:00.000Z",
 		"Build manifest contains expected timestamp");
 
-	t.deepEqual(manifest.buildManifest.version, "1.0.0",
+	t.is(manifest.buildManifest.version, "1.0.0",
 		"Build manifest contains expected version");
 });
 

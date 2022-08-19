@@ -2,7 +2,7 @@ const test = require("ava");
 
 const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
 
-test("ModuleInfo: constructor", async (t) => {
+test("ModuleInfo: constructor", (t) => {
 	const moduleInfo = new ModuleInfo("myName");
 	t.falsy(moduleInfo.exposedGlobals, "exposedGlobals is not set");
 	t.falsy(moduleInfo.format, "format is not set");
@@ -13,7 +13,7 @@ test("ModuleInfo: constructor", async (t) => {
 	t.deepEqual(moduleInfo.subModules, [], "submodules are empty");
 });
 
-test("ModuleInfo: addSubModule", async (t) => {
+test("ModuleInfo: addSubModule", (t) => {
 	// setup
 	const moduleInfo = new ModuleInfo("myName");
 	moduleInfo.addDependency("otherModule", false);
@@ -30,7 +30,7 @@ test("ModuleInfo: addSubModule", async (t) => {
 	t.deepEqual(moduleInfo.dependencies, ["unknownModule"], "unknownModule dependency is copied over");
 });
 
-test("ModuleInfo: name", async (t) => {
+test("ModuleInfo: name", (t) => {
 	// setup
 	const moduleInfo = new ModuleInfo("myName");
 
@@ -47,7 +47,7 @@ test("ModuleInfo: name", async (t) => {
 	t.is(moduleInfo.name, "newName2", "name was set");
 });
 
-test("ModuleInfo: toString", async (t) => {
+test("ModuleInfo: toString", (t) => {
 	// setup
 	const moduleInfo = new ModuleInfo("myName");
 

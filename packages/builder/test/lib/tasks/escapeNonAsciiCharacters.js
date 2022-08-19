@@ -5,7 +5,7 @@ const ui5Fs = require("@ui5/fs");
 const resourceFactory = ui5Fs.resourceFactory;
 const DuplexCollection = ui5Fs.DuplexCollection;
 
-test("integration: escape non ascii characters (utf8, default)", (t) => {
+test("integration: escape non ascii characters (utf8, default)", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -33,28 +33,25 @@ city=Ort:`;
 		string: content
 	});
 
-	return workspace.write(resource).then(() => {
-		return escapeNonAsciiCharacters({
-			workspace,
-			options: {
-				encoding: "UTF-8",
-				pattern: "/**/*.properties"
-			}
-		}).then(() => {
-			return writer.byPath("/i18n.properties").then((resource) => {
-				if (!resource) {
-					t.fail("Could not find /i18n.properties in target");
-				} else {
-					return resource.getString();
-				}
-			});
-		}).then((result) => {
-			return t.deepEqual(result, expected);
-		});
+	await workspace.write(resource);
+	await escapeNonAsciiCharacters({
+		workspace,
+		options: {
+			encoding: "UTF-8",
+			pattern: "/**/*.properties"
+		}
 	});
+
+	const escapedResource = await writer.byPath("/i18n.properties");
+
+	if (!escapedResource) {
+		t.fail("Could not find /i18n.properties in target");
+	} else {
+		t.deepEqual(await escapedResource.getString(), expected);
+	}
 });
 
-test("integration: escape non ascii characters source encoding being (ISO-8859-1)", (t) => {
+test("integration: escape non ascii characters source encoding being (ISO-8859-1)", async (t) => {
 	const reader = resourceFactory.createAdapter({
 		virBasePath: "/"
 	});
@@ -83,25 +80,22 @@ city=Ort:`;
 		buffer: content
 	});
 
-	return workspace.write(resource).then(() => {
-		return escapeNonAsciiCharacters({
-			workspace,
-			options: {
-				encoding: "ISO-8859-1",
-				pattern: "/**/*.properties"
-			}
-		}).then(() => {
-			return writer.byPath("/i18n.properties").then((resource) => {
-				if (!resource) {
-					t.fail("Could not find /i18n.properties in target");
-				} else {
-					return resource.getString();
-				}
-			});
-		}).then((result) => {
-			return t.deepEqual(result, expected);
-		});
+	await workspace.write(resource);
+	await escapeNonAsciiCharacters({
+		workspace,
+		options: {
+			encoding: "ISO-8859-1",
+			pattern: "/**/*.properties"
+		}
 	});
+
+	const escapedResource = await writer.byPath("/i18n.properties");
+
+	if (!escapedResource) {
+		t.fail("Could not find /i18n.properties in target");
+	} else {
+		t.deepEqual(await escapedResource.getString(), expected);
+	}
 });
 
 test("integration: escape non ascii characters source encoding being empty", async (t) => {

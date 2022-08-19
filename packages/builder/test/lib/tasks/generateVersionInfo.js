@@ -158,6 +158,7 @@ test.serial("integration: Library without i18n bundle file", async (t) => {
 
 // MB: No idea what the below test is supposed to check, but apparently
 // I fixed the missing options parameter
+// eslint-disable-next-line ava/no-skip-test
 test.serial.skip("integration: Library without i18n bundle file failure", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.dependencies = createDependencies();

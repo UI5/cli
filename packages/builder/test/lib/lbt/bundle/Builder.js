@@ -108,7 +108,7 @@ test("integration: createBundle with exposedGlobals", async (t) => {
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
-	t.deepEqual(oResult.name, "library-preload.js");
+	t.is(oResult.name, "library-preload.js");
 	const expectedContent = `//@ui5-bundle library-preload.js
 window["sap-ui-optimized"] = true;
 sap.ui.require.preload({
@@ -124,7 +124,7 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 		"should contain:" +
 		" preload part from a.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["a.js"],
 		"bundle info subModules are correct");
@@ -177,7 +177,7 @@ test("integration: createBundle EVOBundleFormat (ui5loader.js)", async (t) => {
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 window["sap-ui-optimized"] = true;
 sap.ui.require.preload({
@@ -195,7 +195,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["jquery.sap.global-dbg.js", "myModule.js"],
 		"bundle info subModules are correct");
@@ -293,7 +293,7 @@ test("integration: createBundle EVOBundleFormat, using predefine calls", async (
 		decorateBootstrapModule: true,
 		optimize: true
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 window["sap-ui-optimized"] = true;
 sap.ui.predefine("jquery.sap.global", [], function(){return {};});
@@ -315,7 +315,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -419,7 +419,7 @@ test("integration: createBundle EVOBundleFormat, using predefine calls, no optim
 		decorateBootstrapModule: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 window["sap-ui-optimized"] = true;
 sap.ui.predefine("jquery.sap.global", [], function(){return {};});
@@ -441,7 +441,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -498,7 +498,7 @@ test("integration: createBundle (bootstrap bundle)", async (t) => {
 		optimize: true,
 		usePredefineCalls: true
 	});
-	t.deepEqual(oResult.name, "bootstrap.js");
+	t.is(oResult.name, "bootstrap.js");
 	const expectedContent = `//@ui5-bundle bootstrap.js
 window["sap-ui-optimized"] = true;
 try {
@@ -518,7 +518,7 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
 		"bundle info subModules are correct");
@@ -571,7 +571,7 @@ test("integration: Legacy test: createBundle without ui5loader.js presence also 
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 sap.ui.require.preload({
 	"jquery.sap.global-dbg.js":function(){
@@ -588,7 +588,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
 		" require part from sap-ui-core.js");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["jquery.sap.global-dbg.js", "myModule.js"],
 		"bundle info subModules are correct");
@@ -647,7 +647,7 @@ test("integration: createBundle (bootstrap bundle, UI5BundleFormat)", async (t) 
 		optimize: true,
 		usePredefineCalls: true
 	});
-	t.deepEqual(oResult.name, "bootstrap.js");
+	t.is(oResult.name, "bootstrap.js");
 	const expectedContent = `//@ui5-bundle bootstrap.js
 window["sap-ui-optimized"] = true;
 try {
@@ -671,7 +671,7 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["jquery.sap.global.js", "myRawModule.js", "sap/ui/core/Core.js"],
 		"bundle info subModules are correct");
@@ -763,7 +763,7 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 
 	const builder = new BuilderWithStub(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
-	t.deepEqual(oResult.name, "library-preload.js");
+	t.is(oResult.name, "library-preload.js");
 	const expectedContent = `//@ui5-bundle library-preload.js
 window["sap-ui-optimized"] = true;
 sap.ui.require.preload({
@@ -783,7 +783,7 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 		"should contain:" +
 		" preload part from a.js" +
 		" require part from ui5loader.js");
-	t.deepEqual(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js", "c.js"],
 		"bundle info subModules are correct");
@@ -852,13 +852,13 @@ ${SOURCE_MAPPING_URL}=jquery.sap.global.js.map`
 		usePredefineCalls: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 sap.ui.predefine("jquery.sap.global", [],function(){console.log("Put me on a map!");return{}});
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "Correct bundle content");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -953,13 +953,13 @@ ${SOURCE_MAPPING_URL}=jquery.sap.global.js.map`
 		decorateBootstrapModule: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 sap.ui.predefine("jquery.sap.global", [],function(){console.log("Put me on a map!");return{}});
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "Correct bundle content");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -1068,7 +1068,7 @@ ${SOURCE_MAPPING_URL}=jquery.sap.global.js.map`
 		decorateBootstrapModule: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 /*!
  * OpenUI5
@@ -1079,7 +1079,7 @@ sap.ui.predefine("jquery.sap.global", ["sap/base/util/now","sap/base/util/Versio
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "Correct bundle content");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -1288,7 +1288,7 @@ ${SOURCE_MAPPING_URL}=jquery.sap.dom.js.map`
 		decorateBootstrapModule: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 /*!
  * OpenUI5
@@ -1305,7 +1305,7 @@ sap.ui.predefine("jquery.sap.global", ["sap/base/util/now","sap/base/util/Versio
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "Correct bundle content");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -1468,7 +1468,7 @@ sap.ui.define(function() {
 		decorateBootstrapModule: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 /*!
  * OpenUI5
@@ -1487,7 +1487,7 @@ sap.ui.predefine("jquery.sap.xom", function() {
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "Correct bundle content");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -1591,7 +1591,7 @@ ${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjo
 		decorateBootstrapModule: true,
 		optimize: false
 	});
-	t.deepEqual(oResult.name, "Component-preload.js");
+	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 /*!
  * OpenUI5
@@ -1602,7 +1602,7 @@ sap.ui.predefine("jquery.sap.global", ["sap/base/util/now","sap/base/util/Versio
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "Correct bundle content");
-	t.deepEqual(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules,
 		[
@@ -1962,7 +1962,7 @@ ${SOURCE_MAPPING_URL}=data:application/pony;charset=utf-8;base64,AAAA`
 	}, "Expected transitive source map has been generated");
 });
 
-test("createTransientSourceMap: includeContent=false", async (t) => {
+test("createTransientSourceMap: includeContent=false", (t) => {
 	const {createTransientSourceMap} = Builder.__localFunctions__;
 
 	const res = createTransientSourceMap({
@@ -1980,7 +1980,7 @@ Lines`,
 	}, "Expected source map has been created");
 });
 
-test("createTransientSourceMap: includeContent=true", async (t) => {
+test("createTransientSourceMap: includeContent=true", (t) => {
 	const {createTransientSourceMap} = Builder.__localFunctions__;
 
 	const moduleContent = `Some content

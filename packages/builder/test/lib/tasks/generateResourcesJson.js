@@ -69,7 +69,7 @@ test.serial("empty resources (sap.ui.core)", async (t) => {
 			projectName: "sap.ui.core"
 		}
 	});
-	t.deepEqual(result, undefined, "no resources returned");
+	t.is(result, undefined, "no resources returned");
 	t.is(resourceListCreatorStub.callCount, 1);
 	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources, [], "no resources are passed");
 	const expectedOptions = {
@@ -94,7 +94,7 @@ test.serial("empty resources (my.lib)", async (t) => {
 			projectName: "my.lib"
 		}
 	});
-	t.deepEqual(result, undefined, "no resources returned");
+	t.is(result, undefined, "no resources returned");
 	t.is(t.context.resourceListCreatorStub.callCount, 1);
 	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources, [], "no resources are passed");
 	const expectedOptions = {};
@@ -116,7 +116,7 @@ test.serial("empty resources (my.lib with dependencies)", async (t) => {
 			projectName: "my.lib"
 		}
 	});
-	t.deepEqual(result, undefined, "no resources returned");
+	t.is(result, undefined, "no resources returned");
 	t.is(t.context.resourceListCreatorStub.callCount, 1);
 	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources, [], "no resources are passed");
 	const expectedOptions = {};
@@ -179,7 +179,7 @@ test.serial("Resources omitted from build result should be ignored", async (t) =
 	t.deepEqual(taskUtil.getTag.getCall(3).args, [dependencyResource1, "TEST-OmitFromBuildResult-TEST"]);
 	t.deepEqual(taskUtil.getTag.getCall(4).args, [dependencyResource2, "TEST-OmitFromBuildResult-TEST"]);
 
-	t.deepEqual(result, undefined, "no resources returned");
+	t.is(result, undefined, "no resources returned");
 	t.is(t.context.resourceListCreatorStub.callCount, 1);
 	t.deepEqual(t.context.resourceListCreatorStub.getCall(0).args[0].resources,
 		[resource1, resource3], "only resources 1 and 3 are passed");

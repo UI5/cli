@@ -2,14 +2,14 @@ const test = require("ava");
 
 const ResourceInfo = require("../../../../lib/lbt/resources/ResourceInfo");
 
-test("ResourceInfo: constructor", async (t) => {
+test("ResourceInfo: constructor", (t) => {
 	const resourceInfo = new ResourceInfo("myName");
 	t.falsy(resourceInfo.module, "module not set");
 	t.falsy(resourceInfo.format, "format not set");
 	t.is(resourceInfo.size, -1, "size not set");
 });
 
-test("ResourceInfo: copyFrom", async (t) => {
+test("ResourceInfo: copyFrom", (t) => {
 	// setup
 	const resourceInfo = new ResourceInfo("myName");
 	const origResourceInfo = new ResourceInfo("origMyName");
@@ -52,7 +52,7 @@ test("ResourceInfo: copyFrom", async (t) => {
 	t.is(resourceInfo.size, 13, "value is copied over");
 });
 
-test("ResourceInfo: toJSON", async (t) => {
+test("ResourceInfo: toJSON", (t) => {
 	const resourceInfo = new ResourceInfo("myName");
 	resourceInfo.i18nName = "i18nName";
 	resourceInfo.i18nLocale = "i18nLocale";

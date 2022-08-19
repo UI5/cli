@@ -95,7 +95,7 @@ test("_analyzeManifest: Manifest with TemplateAssembler code", async (t) => {
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
 	t.true(stubAnalyzeTemplateComponent.calledOnce, "_analyzeManifest was called once");
-	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[0], "sap/fe/templates/MyTmpl/Component.js",
+	t.is(stubAnalyzeTemplateComponent.getCall(0).args[0], "sap/fe/templates/MyTmpl/Component.js",
 		"_analyzeManifest should be called with the module name");
 
 	t.deepEqual(stubAnalyzeTemplateComponent.getCall(0).args[1], {
@@ -106,7 +106,7 @@ test("_analyzeManifest: Manifest with TemplateAssembler code", async (t) => {
 		"_analyzeManifest should be called with moduleInfo");
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "sap/fe/templates/MyTmpl/Component.js",
+	t.is(stubAddDependency.getCall(0).args[0], "sap/fe/templates/MyTmpl/Component.js",
 		"addDependency should be called with the dependency name");
 });
 
@@ -149,12 +149,12 @@ test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", a
 		{}, moduleInfo);
 
 	t.true(stubAnalyzeAST.calledOnce, "_analyzeManifest was called once");
-	t.deepEqual(stubAnalyzeAST.getCall(0).args[0], "pony",
+	t.is(stubAnalyzeAST.getCall(0).args[0], "pony",
 		"_analyzeManifest should be called with the module name");
 
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "mytpl.view.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "mytpl.view.xml",
 		"addDependency should be called with the dependency name");
 	stubAnalyzeAST.restore();
 	stubParse.restore();
@@ -219,7 +219,7 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 	t.true(stubAnalyzeAST.calledOnce, "_analyzeManifest was called once");
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "donkey.view.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "donkey.view.xml",
 		"addDependency should be called with the dependency name");
 	stubAnalyzeAST.restore();
 	stubParse.restore();
@@ -252,7 +252,7 @@ test("_analyzeAST: get template name from ast", async (t) => {
 	t.true(stubAnalyzeTemplateClassDefinition.calledOnce, "_analyzeTemplateClassDefinition was called once");
 
 	stubAnalyzeTemplateClassDefinition.restore();
-	t.deepEqual(result, "donkey");
+	t.is(result, "donkey");
 });
 
 test("_analyzeAST: no template name from ast", async (t) => {
@@ -282,7 +282,7 @@ test("_analyzeAST: no template name from ast", async (t) => {
 	t.true(stubAnalyzeTemplateClassDefinition.calledOnce, "_analyzeTemplateClassDefinition was called once");
 
 	stubAnalyzeTemplateClassDefinition.restore();
-	t.deepEqual(result, "");
+	t.is(result, "");
 });
 
 test("_analyzeTemplateClassDefinition: get template name from metadata", async (t) => {
@@ -304,7 +304,7 @@ test("_analyzeTemplateClassDefinition: get template name from metadata", async (
 
 	const result = await analyzer._analyzeTemplateClassDefinition(expression);
 
-	t.deepEqual(result, "sap.fe.templates.Page.view.Page", "defaultValue is retrieved");
+	t.is(result, "sap.fe.templates.Page.view.Page", "defaultValue is retrieved");
 });
 
 test("_analyzeTemplateClassDefinition: no string template name from metadata", async (t) => {

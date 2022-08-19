@@ -61,21 +61,21 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 			dotLibraryPattern: "some .library pattern"
 		}
 	});
-	t.deepEqual(byGlobWorkspaceStub.callCount, 2, "workspace.byGlob got called twice");
-	t.deepEqual(byGlobWorkspaceStub.getCall(0).args[0], "/test-resources/**/designtime/api.json",
+	t.is(byGlobWorkspaceStub.callCount, 2, "workspace.byGlob got called twice");
+	t.is(byGlobWorkspaceStub.getCall(0).args[0], "/test-resources/**/designtime/api.json",
 		"first workspace.byGlob call with correct arguments");
-	t.deepEqual(byGlobWorkspaceStub.getCall(1).args[0], "some .library pattern",
+	t.is(byGlobWorkspaceStub.getCall(1).args[0], "some .library pattern",
 		"second workspace.byGlob call with correct arguments");
 
-	t.deepEqual(byGlobDependenciesStub.callCount, 1, "dependencies.byGlob got called once");
-	t.deepEqual(byGlobDependenciesStub.getCall(0).args[0], "/test-resources/**/designtime/api.json",
+	t.is(byGlobDependenciesStub.callCount, 1, "dependencies.byGlob got called once");
+	t.is(byGlobDependenciesStub.getCall(0).args[0], "/test-resources/**/designtime/api.json",
 		"dependencies.byGlob got called with correct arguments");
 
-	t.deepEqual(fsInterfaceStub.callCount, 1, "fsInterface got called once");
+	t.is(fsInterfaceStub.callCount, 1, "fsInterface got called once");
 	t.true(fsInterfaceStub.getCall(0).args[0] instanceof ReaderCollectionPrioritizedStubClass,
 		"fsInterface got called with an instance of ReaderCollectionPrioritizedStubClass");
 
-	t.deepEqual(sdkTransformerStub.callCount, 1, "sdkTransformer processor got called once");
+	t.is(sdkTransformerStub.callCount, 1, "sdkTransformer processor got called once");
 	t.deepEqual(sdkTransformerStub.getCall(0).args[0], {
 		apiJsonPath: "workspace/api.json",
 		dotLibraryPath: "workspace/.library",
@@ -87,9 +87,9 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 		fs: "custom fs"
 	}, "sdkTransformer got called with correct arguments");
 
-	t.deepEqual(writeStub.callCount, 2, "Write got called twice");
-	t.deepEqual(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
-	t.deepEqual(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
+	t.is(writeStub.callCount, 2, "Write got called twice");
+	t.is(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
+	t.is(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
 });
 
 test("executeJsdocSdkTransformation with missing parameters", async (t) => {
@@ -134,8 +134,8 @@ test.serial("executeJsdocSdkTransformation with missing project api.json (skips 
 		}
 	});
 
-	t.deepEqual(infoLogStub.callCount, 1, "One message has been logged");
-	t.deepEqual(infoLogStub.getCall(0).args[0],
+	t.is(infoLogStub.callCount, 1, "One message has been logged");
+	t.is(infoLogStub.getCall(0).args[0],
 		"Failed to locate api.json resource for project some.project. Skipping SDK Transformation...",
 		"Correct message has been logged");
 });
@@ -171,7 +171,7 @@ test("executeJsdocSdkTransformation too many project api.json resources", async 
 			dotLibraryPattern: "some .library pattern"
 		}
 	}));
-	t.deepEqual(error.message,
+	t.is(error.message,
 		"[executeJsdocSdkTransformation]: Found more than one api.json resources for project some.project.",
 		"Correct error message thrown");
 });
@@ -203,7 +203,7 @@ test("executeJsdocSdkTransformation missing project .library", async (t) => {
 			dotLibraryPattern: "some .library pattern"
 		}
 	}));
-	t.deepEqual(error.message,
+	t.is(error.message,
 		"[executeJsdocSdkTransformation]: Failed to locate .library resource for project some.project.",
 		"Correct error message thrown");
 });
@@ -239,7 +239,7 @@ test("executeJsdocSdkTransformation too many project .library resources", async 
 			dotLibraryPattern: "some .library pattern"
 		}
 	}));
-	t.deepEqual(error.message,
+	t.is(error.message,
 		"[executeJsdocSdkTransformation]: Found more than one .library resources for project some.project.",
 		"Correct error message thrown");
 });

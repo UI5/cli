@@ -50,6 +50,7 @@ test.serial("Replaces string pattern from resource stream", async (t) => {
 
 // Skip test in Node v8 as unicode handling of streams seems to be broken
 test[
+	// eslint-disable-next-line ava/no-unknown-modifiers
 	process.version.startsWith("v8.") ? "skip" : "serial"
 ]("Correctly processes utf8 characters within separate chunks", async (t) => {
 	const utf8string = "Κυ";

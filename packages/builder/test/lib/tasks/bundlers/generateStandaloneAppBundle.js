@@ -59,10 +59,10 @@ test.serial("execute module bundler and write results", async (t) => {
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.deepEqual(t.context.moduleBundlerStub.callCount, 2);
+	t.is(t.context.moduleBundlerStub.callCount, 2);
 
 	const {resources, options} = t.context.moduleBundlerStub.getCall(0).args[0];
-	t.deepEqual(resources.length, 4, "moduleBundler got supplied with 4 resources");
+	t.is(resources.length, 4, "moduleBundler got supplied with 4 resources");
 	t.deepEqual(options.bundleDefinition.sections[0].filters, [
 		"jquery.sap.global.js"
 	], "Correct filter in first bundle definition section");
@@ -105,10 +105,10 @@ test.serial("execute module bundler and write results without namespace", async 
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.deepEqual(t.context.moduleBundlerStub.callCount, 2);
+	t.is(t.context.moduleBundlerStub.callCount, 2);
 
 	const {resources, options} = t.context.moduleBundlerStub.getCall(0).args[0];
-	t.deepEqual(resources.length, 4, "moduleBundler got supplied with 4 resources");
+	t.is(resources.length, 4, "moduleBundler got supplied with 4 resources");
 	t.deepEqual(options.bundleDefinition.sections[0].filters, [
 		"jquery.sap.global.js"
 	], "Correct filter in first bundle definition section");
@@ -151,10 +151,10 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.deepEqual(t.context.moduleBundlerStub.callCount, 2);
+	t.is(t.context.moduleBundlerStub.callCount, 2);
 
 	const {resources, options} = t.context.moduleBundlerStub.getCall(0).args[0];
-	t.deepEqual(resources.length, 4, "moduleBundler got supplied with 4 resources");
+	t.is(resources.length, 4, "moduleBundler got supplied with 4 resources");
 	t.deepEqual(options.bundleDefinition.sections[0].filters, [
 		"ui5loader-autoconfig.js"
 	], "Evo mode active - Correct filter in first bundle definition section");

@@ -382,7 +382,7 @@ test("_addDependency: add dependency", (t) => {
 	analyzer.info = moduleInfo;
 	analyzer._addDependency("new");
 	t.true(stubAddDependency.calledOnce, "addDependency was called");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "new",
+	t.is(stubAddDependency.getCall(0).args[0], "new",
 		"addDependency should be called with the dependency name");
 });
 
@@ -394,7 +394,7 @@ test("_analyze: parseString error", async (t) => {
 		name: "my.fragment.xml"
 	};
 	const error = await t.throwsAsync(analyzer._analyze(null, moduleInfo));
-	t.deepEqual(error.message, "Error while parsing XML document my.fragment.xml: my-error");
+	t.is(error.message, "Error while parsing XML document my.fragment.xml: my-error");
 	t.false(analyzer.busy, "busy state is restored");
 });
 
@@ -414,7 +414,7 @@ test("_analyze: call twice to simulate busy", async (t) => {
 	const error = t.throws(()=> {
 		analyzer._analyze(null, moduleInfo, true);
 	});
-	t.deepEqual(error.message, "XMLTemplateAnalyzer is unexpectedly busy");
+	t.is(error.message, "XMLTemplateAnalyzer is unexpectedly busy");
 
 	await resultPromise;
 	t.false(analyzer.busy, "busy state is reset after promise resolves");
@@ -433,11 +433,11 @@ test("_analyze: node", async (t) => {
 	await analyzer._analyze(null, moduleInfo, true);
 
 	t.true(stubAnalyzeNode.calledOnce, "_analyzeNode was called");
-	t.deepEqual(stubAnalyzeNode.getCall(0).args[0], "parse-result",
+	t.is(stubAnalyzeNode.getCall(0).args[0], "parse-result",
 		"_analyzeNode should be called with the result");
 
 	t.true(stubAddImplicitDependency.calledOnce, "addImplicitDependency was called once");
-	t.deepEqual(stubAddImplicitDependency.getCall(0).args[0], "sap/ui/core/Fragment.js",
+	t.is(stubAddImplicitDependency.getCall(0).args[0], "sap/ui/core/Fragment.js",
 		"addImplicitDependency should be called with the dependency name");
 });
 
@@ -450,7 +450,7 @@ test("_analyze: viewRootNode", async (t) => {
 	await analyzer._analyze(null, null, false);
 
 	t.true(stubAnalyzeViewRootNode.calledOnce, "_analyzeViewRootNode was called");
-	t.deepEqual(stubAnalyzeViewRootNode.getCall(0).args[0], "parse-result",
+	t.is(stubAnalyzeViewRootNode.getCall(0).args[0], "parse-result",
 		"_analyzeViewRootNode should be called with the result");
 });
 
@@ -483,13 +483,13 @@ test("_analyzeViewRootNode: process node", async (t) => {
 		"_analyzeChildren should be called with the result");
 
 	t.true(stubAddImplicitDependency.calledOnce, "addImplicitDependency was called");
-	t.deepEqual(stubAddImplicitDependency.getCall(0).args[0], "sap/ui/core/mvc/XMLView.js",
+	t.is(stubAddImplicitDependency.getCall(0).args[0], "sap/ui/core/mvc/XMLView.js",
 		"addImplicitDependency should be called with the dependency name");
 
-	t.deepEqual(stubAddDependency.callCount, 2, "addDependency was called twice");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "myController.controller.js",
+	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
+	t.is(stubAddDependency.getCall(0).args[0], "myController.controller.js",
 		"addDependency should be called with the dependency name");
-	t.deepEqual(stubAddDependency.getCall(1).args[0], "myResourceBundleName.properties",
+	t.is(stubAddDependency.getCall(1).args[0], "myResourceBundleName.properties",
 		"addDependency should be called with the dependency name");
 });
 

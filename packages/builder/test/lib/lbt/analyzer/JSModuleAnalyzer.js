@@ -1,3 +1,7 @@
+/* eslint-disable ava/no-unknown-modifiers */
+/* Test modifier `cb` was deprecated with ava version
+3 and removed with ava version 4. Therefore, tests using `cb` has to be rewritten, when upgrade to ava version 4 */
+
 const test = require("ava");
 const fs = require("fs");
 const path = require("path");
@@ -199,15 +203,15 @@ test.cb("AMDMultipleNamedModulesOneMatchingFileName", (t) => {
 	);
 });
 
-test("AMDMultipleUnnamedModules", (t) =>
-	analyze("modules/amd_multiple_unnamed_modules.js")
-		.then(() => {
-			t.fail("parsing a file with multiple unnamed modules shouldn't succeed");
-		}, (err) => {
-			t.true(/only one of them/.test(err.message),
-				"Exception message should contain a hint on multiple unnamed modules");
-		})
-);
+test("AMDMultipleUnnamedModules", async (t) => {
+	try {
+		await analyze("modules/amd_multiple_unnamed_modules.js");
+		t.fail("parsing a file with multiple unnamed modules shouldn't succeed");
+	} catch (error) {
+		t.regex(error.message, /only one of them/,
+			"Exception message should contain a hint on multiple unnamed modules");
+	}
+});
 
 test.cb("AMDSingleNamedModule", (t) => {
 	analyzeModule(t,
@@ -230,35 +234,35 @@ test.cb("AMDSingleUnnamedModule", (t) => {
 });
 
 
-test("AMDMultipleModulesWithConflictBetweenNamedAndUnnamed", (t) =>
-	analyze("modules/amd_multiple_modules_with_conflict_between_named_and_unnamed.js")
-		.then(() => {
-			t.fail("parsing a file with conflicting modules shouldn't succeed");
-		}, (err) => {
-			t.is(err.message, "conflicting main modules found (unnamed + named)",
-				"Exception message should contain a hint on conflicting modules");
-		})
-);
+test("AMDMultipleModulesWithConflictBetweenNamedAndUnnamed", async (t) => {
+	try {
+		await analyze("modules/amd_multiple_modules_with_conflict_between_named_and_unnamed.js");
+		t.fail("parsing a file with conflicting modules shouldn't succeed");
+	} catch (error) {
+		t.is(error.message, "conflicting main modules found (unnamed + named)",
+			"Exception message should contain a hint on conflicting modules");
+	}
+});
 
-test("AMDMultipleModulesWithConflictBetweenUnnamedAndNamed", (t) =>
-	analyze("modules/amd_multiple_modules_with_conflict_between_unnamed_and_named.js")
-		.then(() => {
-			t.fail("parsing a file with conflicting modules shouldn't succeed");
-		}, (err) => {
-			t.is(err.message, "conflicting main modules found (unnamed + named)",
-				"Exception message should contain a hint on conflicting modules");
-		})
-);
+test("AMDMultipleModulesWithConflictBetweenUnnamedAndNamed", async (t) => {
+	try {
+		await analyze("modules/amd_multiple_modules_with_conflict_between_unnamed_and_named.js");
+		t.fail("parsing a file with conflicting modules shouldn't succeed");
+	} catch (error) {
+		t.is(error.message, "conflicting main modules found (unnamed + named)",
+			"Exception message should contain a hint on conflicting modules");
+	}
+});
 
-test("AMDMultipleModulesWithConflictBetweenTwoNamed", (t) =>
-	analyze("modules/amd_multiple_modules_with_conflict_between_two_named.js")
-		.then(() => {
-			t.fail("parsing a file with conflicting modules shouldn't succeed");
-		}, (err) => {
-			t.is(err.message, "conflicting main modules found (unnamed + named)",
-				"Exception message should contain a hint on conflicting modules");
-		})
-);
+test("AMDMultipleModulesWithConflictBetweenTwoNamed", async (t) => {
+	try {
+		await analyze("modules/amd_multiple_modules_with_conflict_between_two_named.js");
+		t.fail("parsing a file with conflicting modules shouldn't succeed");
+	} catch (error) {
+		t.is(error.message, "conflicting main modules found (unnamed + named)",
+			"Exception message should contain a hint on conflicting modules");
+	}
+});
 
 test.cb("OldStyleBundle", (t) => {
 	analyzeModule(t,
@@ -467,82 +471,77 @@ test.cb("EvoBundle", (t) => {
 	);
 });
 
-test("Bundle", (t) => {
-	return analyze("modules/bundle.js").then( (info) => {
-		const expected = [
-			"sap/m/CheckBox.js",
-			"sap/ui/core/Core.js",
-			"todo/Component.js",
-			"todo/controller/App.controller.js",
-			"sap/m/messagebundle.properties",
-			"todo/manifest.json",
-			"todo/model/todoitems.json",
-			"todo/view/App.view.xml"
-		];
-		t.deepEqual(info.subModules, expected, "module dependencies should match");
-		t.truthy(info.dependencies.every((dep) => !info.isConditionalDependency(dep)),
-			"none of the dependencies must be 'conditional'");
+test("Bundle", async (t) => {
+	const info = await analyze("modules/bundle.js");
+	const expected = [
+		"sap/m/CheckBox.js",
+		"sap/ui/core/Core.js",
+		"todo/Component.js",
+		"todo/controller/App.controller.js",
+		"sap/m/messagebundle.properties",
+		"todo/manifest.json",
+		"todo/model/todoitems.json",
+		"todo/view/App.view.xml"
+	];
+	t.deepEqual(info.subModules, expected, "module dependencies should match");
+	t.truthy(info.dependencies.every((dep) => !info.isConditionalDependency(dep)),
+		"none of the dependencies must be 'conditional'");
+	t.false(info.rawModule,
+		"ui5 module");
+});
+
+test("ES6 Syntax", async (t) => {
+	const info = await analyze("modules/es6-syntax.js", "modules/es6-syntax.js");
+	const expected = [
+		"conditional/module1.js",
+		"conditional/module2.js",
+		"conditional/module3.js",
+		"conditional/module4.js",
+		"static/module1.js",
+		"static/module2.js",
+		"static/module3.js",
+		"static/module4.js",
+		"static/module5.js",
+		"static/module6.js",
+		"static/module7.js",
+		"ui5loader-autoconfig.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			"only dependencies to 'conditional/*' modules should be conditional");
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			"all dependencies other than 'conditional/*' and 'static/*' should be implicit");
+		t.false(info.dynamicDependencies,
+			"no use of dynamic dependencies should have been detected");
 		t.false(info.rawModule,
 			"ui5 module");
 	});
 });
 
-test("ES6 Syntax", (t) => {
-	return analyze("modules/es6-syntax.js", "modules/es6-syntax.js").then( (info) => {
-		const expected = [
-			"conditional/module1.js",
-			"conditional/module2.js",
-			"conditional/module3.js",
-			"conditional/module4.js",
-			"static/module1.js",
-			"static/module2.js",
-			"static/module3.js",
-			"static/module4.js",
-			"static/module5.js",
-			"static/module6.js",
-			"static/module7.js",
-			"ui5loader-autoconfig.js"
-		];
-		const actual = info.dependencies.sort();
-		t.deepEqual(actual, expected, "module dependencies should match");
-		expected.forEach((dep) => {
-			t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
-				"only dependencies to 'conditional/*' modules should be conditional");
-			t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
-				"all dependencies other than 'conditional/*' and 'static/*' should be implicit");
-			t.false(info.dynamicDependencies,
-				"no use of dynamic dependencies should have been detected");
-			t.false(info.rawModule,
-				"ui5 module");
-		});
-	});
+test("Dynamic import (declare/require)", async (t) => {
+	const info = await analyze("modules/declare_dynamic_require.js");
+	t.true(info.dynamicDependencies,
+		"the use of dynamic dependencies should have been detected");
+	t.false(info.rawModule,
+		"ui5 module");
 });
 
-test("Dynamic import (declare/require)", (t) => {
-	return analyze("modules/declare_dynamic_require.js").then((info) => {
-		t.true(info.dynamicDependencies,
-			"the use of dynamic dependencies should have been detected");
-		t.false(info.rawModule,
-			"ui5 module");
-	});
+test("Dynamic import (define/require)", async (t) => {
+	const info = await analyze("modules/amd_dynamic_require.js");
+	t.true(info.dynamicDependencies,
+		"the use of dynamic dependencies should have been detected");
+	t.false(info.rawModule,
+		"ui5 module");
 });
 
-test("Dynamic import (define/require)", (t) => {
-	return analyze("modules/amd_dynamic_require.js").then((info) => {
-		t.true(info.dynamicDependencies,
-			"the use of dynamic dependencies should have been detected");
-		t.false(info.rawModule,
-			"ui5 module");
-	});
-});
-
-test("Dynamic import (define/requireSync)", (t) => {
-	return analyze("modules/amd_dynamic_require_sync.js").then((info) => {
-		t.true(info.dynamicDependencies,
-			"the use of dynamic dependencies should have been detected");
-		t.false(info.rawModule,
-			"ui5 module");
-	});
+test("Dynamic import (define/requireSync)", async (t) => {
+	const info = await analyze("modules/amd_dynamic_require_sync.js");
+	t.true(info.dynamicDependencies,
+		"the use of dynamic dependencies should have been detected");
+	t.false(info.rawModule,
+		"ui5 module");
 });
 
 test("Nested require", (t) => {

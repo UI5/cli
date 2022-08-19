@@ -67,12 +67,12 @@ test("analyze: XMLComposite VariableDeclaration code", async (t) => {
 	const name = "composites.ButtonList";
 	await analyzer.analyze(ast, name, moduleInfo);
 	t.true(stubCheckForXMLCClassDefinition.calledOnce, "_checkForXMLCClassDefinition was called once");
-	t.deepEqual(stubCheckForXMLCClassDefinition.getCall(0).args[0], "XMLComposite",
+	t.is(stubCheckForXMLCClassDefinition.getCall(0).args[0], "XMLComposite",
 		"_checkForXMLCClassDefinition should be called with the name");
 
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "cow.control.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "cow.control.xml",
 		"addDependency should be called with the dependency name");
 });
 
@@ -97,16 +97,16 @@ test("analyze: XMLComposite Expression code", async (t) => {
 	const name = "composites.ButtonList";
 	await analyzer.analyze(ast, name, moduleInfo);
 	t.true(stubCheckForXMLCClassDefinition.calledOnce, "_checkForXMLCClassDefinition was called once");
-	t.deepEqual(stubCheckForXMLCClassDefinition.getCall(0).args[0], "XMLComposite",
+	t.is(stubCheckForXMLCClassDefinition.getCall(0).args[0], "XMLComposite",
 		"_checkForXMLCClassDefinition should be called with the name");
 
 
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
-	t.deepEqual(stubAddDependency.getCall(0).args[0], "cow.control.xml",
+	t.is(stubAddDependency.getCall(0).args[0], "cow.control.xml",
 		"addDependency should be called with the dependency name");
 });
 
-test("_checkForXMLCClassDefinition: string argument and object expression", async (t) => {
+test("_checkForXMLCClassDefinition: string argument and object expression", (t) => {
 	const code = `XMLComposite.extend("composites.ButtonList", {})`;
 
 	const ast = parseJS(code);
@@ -116,11 +116,11 @@ test("_checkForXMLCClassDefinition: string argument and object expression", asyn
 	const result = analyzer._checkForXMLCClassDefinition("XMLComposite", ast.body[0].expression);
 	t.true(stubAnalyzeXMLCClassDefinition.calledOnce, "_checkForXMLCClassDefinition was called once");
 
-	t.deepEqual(result, "cow",
+	t.is(result, "cow",
 		"addDependency should be called with the dependency name");
 });
 
-test("_analyzeXMLCClassDefinition: name retrieval", async (t) => {
+test("_analyzeXMLCClassDefinition: name retrieval", (t) => {
 	const code = `test({fragment: "cat"})`;
 
 	const ast = parseJS(code);
@@ -128,6 +128,6 @@ test("_analyzeXMLCClassDefinition: name retrieval", async (t) => {
 	const analyzer = new XMLCompositeAnalyzer();
 	const result = analyzer._analyzeXMLCClassDefinition(ast.body[0].expression.arguments[0]);
 
-	t.deepEqual(result, "cat",
+	t.is(result, "cat",
 		"addDependency should be called with the dependency name");
 });

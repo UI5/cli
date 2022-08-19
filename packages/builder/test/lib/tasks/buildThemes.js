@@ -10,11 +10,6 @@ test.before(() => {
 	require("@ui5/logger").setLevel("verbose");
 });
 
-test.afterEach.always((t) => {
-	mock.stopAll();
-	sinon.restore();
-});
-
 test.beforeEach((t) => {
 	// Stubbing processors/themeBuilder
 	t.context.themeBuilderStub = sinon.stub();
@@ -74,7 +69,7 @@ test.serial("buildThemes", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+	t.is(t.context.themeBuilderStub.callCount, 1,
 		"Processor should be called once");
 
 	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
@@ -86,7 +81,7 @@ test.serial("buildThemes", async (t) => {
 		}
 	}, "Processor should be called with expected arguments");
 
-	t.deepEqual(workspace.write.callCount, 3,
+	t.is(workspace.write.callCount, 3,
 		"workspace.write should be called 3 times");
 	t.true(workspace.write.calledWithExactly(cssResource));
 	t.true(workspace.write.calledWithExactly(cssRtlResource));
@@ -129,7 +124,7 @@ test.serial("buildThemes (compress = false)", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+	t.is(t.context.themeBuilderStub.callCount, 1,
 		"Processor should be called once");
 
 	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
@@ -141,7 +136,7 @@ test.serial("buildThemes (compress = false)", async (t) => {
 		}
 	}, "Processor should be called with expected arguments");
 
-	t.deepEqual(workspace.write.callCount, 3,
+	t.is(workspace.write.callCount, 3,
 		"workspace.write should be called 3 times");
 	t.true(workspace.write.calledWithExactly(cssResource));
 	t.true(workspace.write.calledWithExactly(cssRtlResource));
@@ -191,7 +186,7 @@ test.serial("buildThemes (cssVariables = true)", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+	t.is(t.context.themeBuilderStub.callCount, 1,
 		"Processor should be called once");
 
 	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
@@ -203,7 +198,7 @@ test.serial("buildThemes (cssVariables = true)", async (t) => {
 		}
 	}, "Processor should be called with expected arguments");
 
-	t.deepEqual(workspace.write.callCount, 7,
+	t.is(workspace.write.callCount, 7,
 		"workspace.write should be called 7 times");
 	t.true(workspace.write.calledWithExactly(cssResource));
 	t.true(workspace.write.calledWithExactly(cssRtlResource));
@@ -272,7 +267,7 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+	t.is(t.context.themeBuilderStub.callCount, 1,
 		"Processor should be called once");
 
 	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
@@ -287,7 +282,7 @@ test.serial("buildThemes (filtering libraries)", async (t) => {
 		}
 	}, "Processor should be called with expected arguments");
 
-	t.deepEqual(workspace.write.callCount, 1,
+	t.is(workspace.write.callCount, 1,
 		"workspace.write should be called once");
 });
 
@@ -351,7 +346,7 @@ test.serial("buildThemes (filtering themes)", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+	t.is(t.context.themeBuilderStub.callCount, 1,
 		"Processor should be called once");
 
 	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
@@ -366,7 +361,7 @@ test.serial("buildThemes (filtering themes)", async (t) => {
 		}
 	}, "Processor should be called with expected arguments");
 
-	t.deepEqual(workspace.write.callCount, 1,
+	t.is(workspace.write.callCount, 1,
 		"workspace.write should be called once");
 });
 
@@ -472,7 +467,7 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.themeBuilderStub.callCount, 1,
+	t.is(t.context.themeBuilderStub.callCount, 1,
 		"Processor should be called once");
 
 	t.deepEqual(t.context.themeBuilderStub.getCall(0).args[0], {
@@ -489,6 +484,6 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 		}
 	}, "Processor should be called with expected arguments");
 
-	t.deepEqual(workspace.write.callCount, 1,
+	t.is(workspace.write.callCount, 1,
 		"workspace.write should be called once");
 });

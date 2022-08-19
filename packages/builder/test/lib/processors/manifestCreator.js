@@ -1429,7 +1429,7 @@ test.serial("manifest creation for invalid .library content", async (t) => {
 		libraryResource,
 		resources: []
 	}));
-	t.deepEqual(error.message, `Unencoded <
+	t.is(error.message, `Unencoded <
 Line: 1
 Column: 5
 Char: <`, "error message for unencoded <");

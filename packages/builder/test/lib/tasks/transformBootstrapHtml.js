@@ -35,7 +35,7 @@ test.serial("Transforms index.html resource", async (t) => {
 
 	const workspace = {
 		byPath: (actualPath) => {
-			t.deepEqual(actualPath, "/resources/sap/ui/demo/app/index.html",
+			t.is(actualPath, "/resources/sap/ui/demo/app/index.html",
 				"Reads index.html file from application namespace.");
 			return Promise.resolve(resource);
 		},
@@ -55,7 +55,7 @@ test.serial("Transforms index.html resource", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.bootstrapHtmlTransformerStub.callCount, 1,
+	t.is(t.context.bootstrapHtmlTransformerStub.callCount, 1,
 		"Processor should be called once");
 
 	t.true(t.context.bootstrapHtmlTransformerStub.calledWithExactly({
@@ -75,7 +75,7 @@ test.serial("Transforms index.html resource without namespace", async (t) => {
 
 	const workspace = {
 		byPath: (actualPath) => {
-			t.deepEqual(actualPath, "/index.html",
+			t.is(actualPath, "/index.html",
 				"Reads index.html file from application namespace.");
 			return Promise.resolve(resource);
 		},
@@ -94,7 +94,7 @@ test.serial("Transforms index.html resource without namespace", async (t) => {
 		}
 	});
 
-	t.deepEqual(t.context.bootstrapHtmlTransformerStub.callCount, 1,
+	t.is(t.context.bootstrapHtmlTransformerStub.callCount, 1,
 		"Processor should be called once");
 
 	t.true(t.context.bootstrapHtmlTransformerStub.calledWithExactly({
@@ -112,7 +112,7 @@ test.serial("No index.html resource exists", async (t) => {
 
 	const workspace = {
 		byPath: (actualPath) => {
-			t.deepEqual(actualPath, "/resources/sap/ui/demo/app/index.html",
+			t.is(actualPath, "/resources/sap/ui/demo/app/index.html",
 				"Reads index.html file from application namespace.");
 			return Promise.resolve(null);
 		},
@@ -132,7 +132,7 @@ test.serial("No index.html resource exists", async (t) => {
 	t.true(t.context.bootstrapHtmlTransformerStub.notCalled,
 		"Processor should not be called");
 
-	t.deepEqual(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
+	t.is(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
 	t.true(
 		t.context.logWarnSpy.calledWith(
 			`Skipping bootstrap transformation due to missing index.html in project "sap.ui.demo.app".`),

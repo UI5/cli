@@ -502,7 +502,7 @@ sap.ui.require.preload({
 
 	// XMLTemplateAnalyzer should only be called once, which means that the view was only analyzed once
 	t.is(XMLTemplateAnalyzerAnalyzeViewSpy.callCount, 1);
-	t.deepEqual(XMLTemplateAnalyzerAnalyzeViewSpy.getCall(0).args[1]._name,
+	t.is(XMLTemplateAnalyzerAnalyzeViewSpy.getCall(0).args[1]._name,
 		"my/app/View1.view.xml");
 
 	t.is(resourcesJson.length, 1, "One resources.json should be returned");

@@ -58,7 +58,7 @@ test.serial("manifestBundler with manifest path not starting with '/resources'",
 
 	await manifestBundler({resources, options});
 
-	t.deepEqual(t.context.addBufferSpy.callCount, 0, "should not be called");
+	t.is(t.context.addBufferSpy.callCount, 0, "should not be called");
 
 	t.is(t.context.logVerboseSpy.callCount, 1);
 	t.deepEqual(t.context.logVerboseSpy.getCall(0).args,
@@ -120,7 +120,7 @@ test.serial("manifestBundler with manifest with i18n string", async (t) => {
 
 	await manifestBundler({resources, options});
 
-	t.deepEqual(t.context.addBufferSpy.callCount, 2);
+	t.is(t.context.addBufferSpy.callCount, 2);
 	t.deepEqual(t.context.addBufferSpy.getCall(0).args,
 		["{\"sap.app\":{\"i18n\":\"i18n-bundle/i18n.properties\"}}", "manifest.json"],
 		"should be called with correct arguments");

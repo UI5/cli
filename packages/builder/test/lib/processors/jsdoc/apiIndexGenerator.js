@@ -33,31 +33,31 @@ test.serial("apiIndexGenerator", async (t) => {
 		fs: "custom fs"
 	});
 
-	t.deepEqual(res.length, 4, "Returned one resource");
-	t.deepEqual(res[0], "result resource A", "Returned correct resource");
-	t.deepEqual(res[1], "result resource B", "Returned correct resource");
-	t.deepEqual(res[2], "result resource C", "Returned correct resource");
-	t.deepEqual(res[3], "result resource D", "Returned correct resource");
+	t.is(res.length, 4, "Returned one resource");
+	t.is(res[0], "result resource A", "Returned correct resource");
+	t.is(res[1], "result resource B", "Returned correct resource");
+	t.is(res[2], "result resource C", "Returned correct resource");
+	t.is(res[3], "result resource D", "Returned correct resource");
 
-	t.deepEqual(createApiIndexStub.callCount, 1, "createIndexFiles called once");
-	t.deepEqual(createApiIndexStub.getCall(0).args[0], "/some/path/sap-ui-version.json",
+	t.is(createApiIndexStub.callCount, 1, "createIndexFiles called once");
+	t.is(createApiIndexStub.getCall(0).args[0], "/some/path/sap-ui-version.json",
 		"createIndexFiles called with correct argument #1");
-	t.deepEqual(createApiIndexStub.getCall(0).args[1], "/some/test-resources/path",
+	t.is(createApiIndexStub.getCall(0).args[1], "/some/test-resources/path",
 		"createIndexFiles called with correct argument #2");
-	t.deepEqual(createApiIndexStub.getCall(0).args[2], "/some/path/api-index.json",
+	t.is(createApiIndexStub.getCall(0).args[2], "/some/path/api-index.json",
 		"createIndexFiles called with correct argument #3");
-	t.deepEqual(createApiIndexStub.getCall(0).args[3], "/some/path/api-index-deprecated.json",
+	t.is(createApiIndexStub.getCall(0).args[3], "/some/path/api-index-deprecated.json",
 		"createIndexFiles called with correct argument #4");
-	t.deepEqual(createApiIndexStub.getCall(0).args[4], "/some/path/api-index-experimental.json",
+	t.is(createApiIndexStub.getCall(0).args[4], "/some/path/api-index-experimental.json",
 		"createIndexFiles called with correct argument #5");
-	t.deepEqual(createApiIndexStub.getCall(0).args[5], "/some/path/api-index-since.json",
+	t.is(createApiIndexStub.getCall(0).args[5], "/some/path/api-index-since.json",
 		"createIndexFiles called with correct argument #6");
 	t.deepEqual(createApiIndexStub.getCall(0).args[6], {
 		fs: "custom fs",
 		returnOutputFiles: true
 	}, "createIndexFiles called with correct argument #7");
 
-	t.deepEqual(createResourceStub.callCount, 4, "createResource called once");
+	t.is(createResourceStub.callCount, 4, "createResource called once");
 	t.deepEqual(createResourceStub.getCall(0).args[0], {
 		path: "/some/path/api-index.json",
 		string: "resource content A"
@@ -80,6 +80,6 @@ test.serial("apiIndexGenerator", async (t) => {
 
 test("apiIndexGenerator missing parameters", async (t) => {
 	const error = await t.throwsAsync(apiIndexGenerator());
-	t.deepEqual(error.message, "[apiIndexGenerator]: One or more mandatory parameters not provided",
+	t.is(error.message, "[apiIndexGenerator]: One or more mandatory parameters not provided",
 		"Correct error message thrown");
 });

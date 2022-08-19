@@ -7,11 +7,6 @@ const logger = require("@ui5/logger");
 let versionInfoGenerator = require("../../../lib/processors/versionInfoGenerator");
 
 
-test("versionInfoGenerator missing parameters", async (t) => {
-	const error = await t.throwsAsync(versionInfoGenerator({options: {}}));
-	t.deepEqual(error.message, "[versionInfoGenerator]: Missing options parameters");
-});
-
 test.beforeEach((t) => {
 	t.context.warnLogStub = sinon.stub();
 	t.context.infoLogStub = sinon.stub();
@@ -30,6 +25,11 @@ test.beforeEach((t) => {
 test.afterEach.always((t) => {
 	mock.stopAll();
 	sinon.restore();
+});
+
+test("versionInfoGenerator missing parameters", async (t) => {
+	const error = await t.throwsAsync(versionInfoGenerator({options: {}}));
+	t.is(error.message, "[versionInfoGenerator]: Missing options parameters");
 });
 
 const assertVersionInfoContent = (t, oExpectedVersionInfo, sActualContent) => {
