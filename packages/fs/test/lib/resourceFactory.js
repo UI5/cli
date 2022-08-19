@@ -7,7 +7,7 @@ const ReaderCollection = require("../../lib/ReaderCollection");
 // Set log level to silly to activate tracing
 require("@ui5/logger").setLevel("silly");
 
-test("prefixGlobPattern", async (t) => {
+test("prefixGlobPattern", (t) => {
 	t.deepEqual(
 		resourceFactory.prefixGlobPattern("{/sub-directory-1/,/sub-directory-2/}**", "/pony/path/a"),
 		[

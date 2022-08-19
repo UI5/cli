@@ -85,9 +85,8 @@ test("Resource: getStream", async (t) => {
 		buffer: Buffer.from("Content")
 	});
 
-	return readStream(resource.getStream()).then((result) => {
-		t.is(result, "Content", "Stream has been read correctly");
-	});
+	const result = await readStream(resource.getStream());
+	t.is(result, "Content", "Stream has been read correctly");
 });
 
 test("Resource: getStream for empty string", async (t) => {
@@ -98,9 +97,8 @@ test("Resource: getStream for empty string", async (t) => {
 		string: ""
 	});
 
-	return readStream(resource.getStream()).then((result) => {
-		t.is(result, "", "Stream has been read correctly for empty string");
-	});
+	const result = await readStream(resource.getStream());
+	t.is(result, "", "Stream has been read correctly for empty string");
 });
 
 test("Resource: getStream for empty string instance", async (t) => {
@@ -112,9 +110,8 @@ test("Resource: getStream for empty string instance", async (t) => {
 		string: new String("")
 	});
 
-	return readStream(resource.getStream()).then((result) => {
-		t.is(result, "", "Stream has been read correctly for empty string");
-	});
+	const result = await readStream(resource.getStream());
+	t.is(result, "", "Stream has been read correctly for empty string");
 });
 
 test("Resource: getStream throwing an error", (t) => {
@@ -269,7 +266,7 @@ test("Resource: setStream (Create stream callback)", async (t) => {
 	t.is(value, "I am a readable stream!", "Stream set correctly");
 });
 
-test("Resource: clone resource with buffer", (t) => {
+test("Resource: clone resource with buffer", async (t) => {
 	t.plan(2);
 
 	const resource = new Resource({
@@ -277,15 +274,14 @@ test("Resource: clone resource with buffer", (t) => {
 		buffer: Buffer.from("Content")
 	});
 
-	return resource.clone().then(function(clonedResource) {
-		t.pass("Resource cloned");
-		return clonedResource.getString().then(function(value) {
-			t.is(value, "Content", "Cloned resource has correct content string");
-		});
-	});
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceContent = await clonedResource.getString();
+	t.is(clonedResourceContent, "Content", "Cloned resource has correct content string");
 });
 
-test("Resource: clone resource with stream", (t) => {
+test("Resource: clone resource with stream", async (t) => {
 	t.plan(2);
 
 	const resource = new Resource({
@@ -298,12 +294,11 @@ test("Resource: clone resource with stream", (t) => {
 
 	resource.setStream(stream);
 
-	return resource.clone().then(function(clonedResource) {
-		t.pass("Resource cloned");
-		return clonedResource.getString().then(function(value) {
-			t.is(value, "Content", "Cloned resource has correct content string");
-		});
-	});
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceContent = await clonedResource.getString();
+	t.is(clonedResourceContent, "Content", "Cloned resource has correct content string");
 });
 
 test("getStream with createStream callback content: Subsequent content requests should throw error due " +

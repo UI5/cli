@@ -8,7 +8,7 @@ test("glob resources from application.a w/ virtual base path prefix", async (t) 
 	});
 
 	const resources = await readerWriter.byGlob("/app/**/*.html");
-	t.deepEqual(resources.length, 1, "Found exactly one resource");
+	t.is(resources.length, 1, "Found exactly one resource");
 });
 
 test("glob resources from application.a w/o virtual base path prefix", async (t) => {
@@ -18,7 +18,7 @@ test("glob resources from application.a w/o virtual base path prefix", async (t)
 	});
 
 	const resources = await readerWriter.byGlob("/**/*.html");
-	t.deepEqual(resources.length, 1, "Found exactly one resource");
+	t.is(resources.length, 1, "Found exactly one resource");
 });
 
 test("glob virtual directory w/o virtual base path prefix", async (t) => {
@@ -28,7 +28,7 @@ test("glob virtual directory w/o virtual base path prefix", async (t) => {
 	});
 
 	const resources = await readerWriter.byGlob("/*", {nodir: false});
-	t.deepEqual(resources.length, 1, "Found exactly one resource");
+	t.is(resources.length, 1, "Found exactly one resource");
 });
 
 test("glob virtual directory w/o virtual base path prefix and multiple patterns", async (t) => {
@@ -41,7 +41,7 @@ test("glob virtual directory w/o virtual base path prefix and multiple patterns"
 		"/*",
 		"/*"
 	], {nodir: false});
-	t.deepEqual(resources.length, 1, "Found exactly one resource");
+	t.is(resources.length, 1, "Found exactly one resource");
 });
 
 test("glob virtual directory w/ virtual base path prefix", async (t) => {
@@ -51,7 +51,7 @@ test("glob virtual directory w/ virtual base path prefix", async (t) => {
 	});
 
 	const resources = await readerWriter.byGlob("/app/*", {nodir: false});
-	t.deepEqual(resources.length, 1, "Found exactly one resource");
+	t.is(resources.length, 1, "Found exactly one resource");
 });
 
 test("glob virtual directory w/o virtual base path prefix and nodir: true", async (t) => {
@@ -61,7 +61,7 @@ test("glob virtual directory w/o virtual base path prefix and nodir: true", asyn
 	});
 
 	const resources = await readerWriter.byGlob("/*", {nodir: true});
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("glob virtual directory w/o virtual base path prefix and nodir: true and multiple patterns", async (t) => {
@@ -74,7 +74,7 @@ test("glob virtual directory w/o virtual base path prefix and nodir: true and mu
 		"/*",
 		"/*"
 	], {nodir: true});
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("glob virtual directory w/ virtual base path prefix and nodir: true", async (t) => {
@@ -84,7 +84,7 @@ test("glob virtual directory w/ virtual base path prefix and nodir: true", async
 	});
 
 	const resources = await readerWriter.byGlob("/app/*", {nodir: true});
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("glob resources from application.a with directory exclude", async (t) => {
@@ -94,7 +94,7 @@ test("glob resources from application.a with directory exclude", async (t) => {
 	});
 
 	await readerWriter.byGlob("/!(pony,unicorn)/**").then(function(resources) {
-		t.deepEqual(resources.length, 2, "Found exactly two resource");
+		t.is(resources.length, 2, "Found exactly two resource");
 	});
 });
 
@@ -136,12 +136,12 @@ test("static excludes: glob library src and test", async (t) => {
 	const srcResources = await srcReader.byGlob("/**/*", {nodir: true});
 	const testResources = await testReader.byGlob("/**/*", {nodir: true});
 
-	t.deepEqual(srcResources.length, 1, "Found one src resource");
+	t.is(srcResources.length, 1, "Found one src resource");
 	t.deepEqual(srcResources.map(getPathFromResource), [
 		"/resources/library/l/.library"
 	], "Found expected src resources");
 
-	t.deepEqual(testResources.length, 0, "Found no test resources");
+	t.is(testResources.length, 0, "Found no test resources");
 });
 
 test("static excludes: glob library src and test with double negation", async (t) => {
@@ -167,12 +167,12 @@ test("static excludes: glob library src and test with double negation", async (t
 	const srcResources = await srcReader.byGlob("/**/*", {nodir: true});
 	const testResources = await testReader.byGlob("/**/*", {nodir: true});
 
-	t.deepEqual(srcResources.length, 1, "Found one src resource");
+	t.is(srcResources.length, 1, "Found one src resource");
 	t.deepEqual(srcResources.map(getPathFromResource), [
 		"/resources/library/l/.library"
 	], "Found expected src resources");
 
-	t.deepEqual(testResources.length, 1, "Found one test resource");
+	t.is(testResources.length, 1, "Found one test resource");
 	t.deepEqual(testResources.map(getPathFromResource), [
 		"/test-resources/library/l/Test2.html"
 	], "Found expected test resources");
@@ -194,7 +194,7 @@ test("static excludes: glob library test with double negation", async (t) => {
 
 	const testResources = await testReader.byGlob("/**/*", {nodir: true});
 
-	t.deepEqual(testResources.length, 1, "Found one test resource");
+	t.is(testResources.length, 1, "Found one test resource");
 	t.deepEqual(testResources.map(getPathFromResource), [
 		"/test-resources/library/l/Test2.html"
 	], "Found expected test resources");
@@ -211,7 +211,7 @@ test("static excludes: glob with virtual root exclude", async (t) => {
 
 	const resources = await srcReader.byGlob("/**/*", {nodir: true});
 
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("static excludes: glob with negated directory exclude, excluding resources", async (t) => {
@@ -225,7 +225,7 @@ test("static excludes: glob with negated directory exclude, excluding resources"
 
 	const resources = await srcReader.byGlob("/**/*", {nodir: true});
 
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("static excludes: glob with negated directory exclude, not excluding resources", async (t) => {
@@ -239,7 +239,7 @@ test("static excludes: glob with negated directory exclude, not excluding resour
 
 	const resources = await srcReader.byGlob("/**/*", {nodir: true});
 
-	t.deepEqual(resources.length, 2, "Found two resources");
+	t.is(resources.length, 2, "Found two resources");
 });
 
 test("static excludes: byPath exclude everything in sub-directory", async (t) => {
@@ -250,7 +250,7 @@ test("static excludes: byPath exclude everything in sub-directory", async (t) =>
 	});
 
 	const resource = await readerWriter.byPath("/resources/app/index.html", {nodir: true});
-	t.deepEqual(resource, null, "Found no resource");
+	t.is(resource, null, "Found no resource");
 });
 
 test("static excludes: byPath exclude with negation", async (t) => {
@@ -278,7 +278,7 @@ test("static excludes: byPath exclude with unused negation", async (t) => {
 	});
 
 	const resource = await readerWriter.byPath("/resources/app/index.html", {nodir: true});
-	t.deepEqual(resource, null, "Resource is excluded");
+	t.is(resource, null, "Resource is excluded");
 });
 
 test("static excludes: byPath exclude with negated directory pattern, excluding resources", async (t) => {
@@ -291,7 +291,7 @@ test("static excludes: byPath exclude with negated directory pattern, excluding 
 	});
 
 	const resource = await readerWriter.byPath("/resources/app/index.html", {nodir: true});
-	t.deepEqual(resource, null, "Found no resource");
+	t.is(resource, null, "Found no resource");
 });
 
 test("static excludes: byPath exclude with negated directory pattern, not excluding resources", async (t) => {
@@ -324,8 +324,8 @@ test("byPath: exclude with unused negation", async (t) => {
 		readerWriter.byPath("/resources/app/i18n/i18n.properties", {nodir: true})
 	]);
 	t.truthy(manifest, "Found manifest.json resource");
-	t.deepEqual(i18n, null, "i18n resource is excluded");
-	t.deepEqual(i18ni18n, null, "i18n in i18n directory resource is excluded");
+	t.is(i18n, null, "i18n resource is excluded");
+	t.is(i18ni18n, null, "i18n in i18n directory resource is excluded");
 });
 
 test("static excludes: glob library src and test with double negation (nodir: false)", async (t) => {
@@ -351,9 +351,9 @@ test("static excludes: glob library src and test with double negation (nodir: fa
 	const srcResources = await srcReader.byGlob("/**/*", {nodir: false});
 	const testResources = await testReader.byGlob("/**/*", {nodir: false});
 
-	t.deepEqual(srcResources.length, 3, "Found one src resource and two directories");
+	t.is(srcResources.length, 3, "Found one src resource and two directories");
 
-	t.deepEqual(testResources.length, 1, "Found one test resource");
+	t.is(testResources.length, 1, "Found one test resource");
 	t.deepEqual(testResources.map(getPathFromResource), [
 		"/test-resources/library/l/Test2.html"
 	], "Found expected test resources");
@@ -370,7 +370,7 @@ test("static excludes: glob with virtual root exclude (nodir: false)", async (t)
 
 	const resources = await srcReader.byGlob("/**/*", {nodir: false});
 
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 test("static excludes: glob with negated directory exclude, excluding resources (nodir: false)", async (t) => {
 	const srcReader = resourceFactory.createAdapter({
@@ -383,7 +383,7 @@ test("static excludes: glob with negated directory exclude, excluding resources 
 
 	const resources = await srcReader.byGlob("/**/*", {nodir: false});
 
-	t.deepEqual(resources.length, 0, "Found no resources");
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("static excludes: glob with negated directory exclude, not excluding resources (nodir: false)", async (t) => {
@@ -397,5 +397,5 @@ test("static excludes: glob with negated directory exclude, not excluding resour
 
 	const resources = await srcReader.byGlob("/**/*", {nodir: false});
 
-	t.deepEqual(resources.length, 4, "Found two resources and two directories");
+	t.is(resources.length, 4, "Found two resources and two directories");
 });
