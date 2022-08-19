@@ -35,11 +35,11 @@ test("_byGlob: Basic transformation", async (t) => {
 	});
 
 	const resources = await readerCollection._byGlob("anyPattern", {}, trace);
-	t.deepEqual(resources.length, 2, "Still two resources in result set");
-	t.deepEqual(resources[0].name, "transformed resource.a", "resource.a has been transformed in result");
-	t.deepEqual(resources[1].name, "resource.b", "resource.b has not been transformed");
+	t.is(resources.length, 2, "Still two resources in result set");
+	t.is(resources[0].name, "transformed resource.a", "resource.a has been transformed in result");
+	t.is(resources[1].name, "resource.b", "resource.b has not been transformed");
 	t.is(resources[1], resourceB, "resource.b instance has not been cloned");
-	t.deepEqual(resourceA.name, "resource.a", "Original resource.a has not been transformed");
+	t.is(resourceA.name, "resource.a", "Original resource.a has not been transformed");
 });
 
 test("_byPath: Basic transformation", async (t) => {
@@ -62,8 +62,8 @@ test("_byPath: Basic transformation", async (t) => {
 
 	const resource = await readerCollection._byPath("anyPattern", {}, trace);
 
-	t.deepEqual(resource.name, "transformed resource.a", "resource.a has been transformed in result");
-	t.deepEqual(resourceA.name, "resource.a", "Original resource.a has not been transformed");
+	t.is(resource.name, "transformed resource.a", "resource.a has been transformed in result");
+	t.is(resourceA.name, "resource.a", "Original resource.a has not been transformed");
 });
 
 test("_byPath: No transformation", async (t) => {
@@ -82,6 +82,6 @@ test("_byPath: No transformation", async (t) => {
 	});
 
 	const resource = await readerCollection._byPath("anyPattern", {}, trace);
-	t.deepEqual(resource.name, "resource.b", "Correct resource in result");
+	t.is(resource.name, "resource.b", "Correct resource in result");
 	t.is(resource, resourceB, "resource.b instance has not been cloned");
 });

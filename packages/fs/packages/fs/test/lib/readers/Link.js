@@ -155,7 +155,7 @@ test("_byPath: Basic Link", async (t) => {
 	t.is(resource.getPath(), "/dir/File.js", "First resource has correct rewritten path");
 
 	t.is(abstractReader._byPath.callCount, 1, "Mocked _byPath got called once");
-	t.deepEqual(abstractReader._byPath.getCall(0).args[0], "/resources/some/lib/dir/File.js",
+	t.is(abstractReader._byPath.getCall(0).args[0], "/resources/some/lib/dir/File.js",
 		"Mocked _byPath got called with expected patterns");
 	t.is(abstractReader._byPath.getCall(0).args[1], options,
 		"Mocked _byPath got called with expected options");
@@ -188,7 +188,7 @@ test("_byPath: Rewrite on same level", async (t) => {
 	t.is(resource.getPath(), "/my/lib/dir/File.js", "First resource has correct rewritten path");
 
 	t.is(abstractReader._byPath.callCount, 1, "Mocked _byPath got called once");
-	t.deepEqual(abstractReader._byPath.getCall(0).args[0], "/some/lib/dir/File.js",
+	t.is(abstractReader._byPath.getCall(0).args[0], "/some/lib/dir/File.js",
 		"Mocked _byPath got called with expected patterns");
 	t.is(abstractReader._byPath.getCall(0).args[1], options,
 		"Mocked _byPath got called with expected options");
@@ -216,7 +216,7 @@ test("_byPath: No resource found", async (t) => {
 	t.is(resource, null, "No resource returned");
 
 	t.is(abstractReader._byPath.callCount, 1, "Mocked _byPath got called once");
-	t.deepEqual(abstractReader._byPath.getCall(0).args[0], "/some/lib/dir/File.js",
+	t.is(abstractReader._byPath.getCall(0).args[0], "/some/lib/dir/File.js",
 		"Mocked _byPath got called with expected patterns");
 	t.is(abstractReader._byPath.getCall(0).args[1], options,
 		"Mocked _byPath got called with expected options");
@@ -245,7 +245,7 @@ test("_byPath: Request different prefix", async (t) => {
 	t.is(abstractReader._byPath.callCount, 0, "Mocked _byPath never got called");
 });
 
-test("Missing attributes", async (t) => {
+test("Missing attributes", (t) => {
 	const abstractReader = {};
 	let err = t.throws(() => {
 		new Link({

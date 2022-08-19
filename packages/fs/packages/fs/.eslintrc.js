@@ -3,9 +3,10 @@ module.exports = {
 		"node": true,
 		"es2021": true
 	},
-	"extends": ["eslint:recommended", "google"],
+	"extends": ["eslint:recommended", "plugin:ava/recommended", "google"],
 	"plugins": [
-		"jsdoc"
+		"jsdoc",
+		"ava"
 	],
 	"rules": {
 		"indent": [
@@ -64,7 +65,10 @@ module.exports = {
 		"jsdoc/require-returns": 0,
 		"jsdoc/require-returns-description": 0,
 		"jsdoc/require-returns-type": 2,
-		"jsdoc/valid-types": 0
+		"jsdoc/valid-types": 0,
+		// ava/assertion-arguments reports concatenated strings in a assertion message as an issue
+		// See: https://github.com/avajs/eslint-plugin-ava/issues/332
+		"ava/assertion-arguments": 0
 	},
 	"settings": {
 		"jsdoc": {

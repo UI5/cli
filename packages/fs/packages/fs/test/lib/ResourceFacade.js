@@ -3,11 +3,11 @@ const sinon = require("sinon");
 const Resource = require("../../lib/Resource");
 const ResourceFacade = require("../../lib/ResourceFacade");
 
-test.afterEach.always(async (t) => {
+test.afterEach.always( (t) => {
 	sinon.restore();
 });
 
-test("Create instance", async (t) => {
+test("Create instance", (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
 		string: "my content"
@@ -20,7 +20,7 @@ test("Create instance", async (t) => {
 	t.is(resourceFacade.getConcealedResource(), resource, "Returns correct concealed resource");
 });
 
-test("Create instance: Missing parameters", async (t) => {
+test("Create instance: Missing parameters", (t) => {
 	t.throws(() => {
 		new ResourceFacade({
 			path: "my/path",
@@ -54,7 +54,7 @@ test("ResourceFacade #clone", async (t) => {
 	t.is(clone.getPath(), "my/path", "Cloned resource has path of resource facade");
 });
 
-test("ResourceFacade #setPath", async (t) => {
+test("ResourceFacade #setPath", (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
 		string: "my content"
@@ -70,7 +70,7 @@ test("ResourceFacade #setPath", async (t) => {
 	t.is(err.message, "The path of a ResourceFacade can't be changed", "Threw with expected error message");
 });
 
-test("ResourceFacade provides same public functions as Resource", async (t) => {
+test("ResourceFacade provides same public functions as Resource", (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
 		string: "my content"

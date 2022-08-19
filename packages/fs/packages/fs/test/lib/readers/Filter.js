@@ -41,7 +41,7 @@ test("_byPath: Negative filter", async (t) => {
 	});
 
 	const resource = await readerCollection._byPath("anyPattern", {}, trace);
-	t.deepEqual(resource, null, "Correct empty result");
+	t.is(resource, null, "Correct empty result");
 });
 
 test("_byPath: Positive filter", async (t) => {
@@ -62,5 +62,5 @@ test("_byPath: Positive filter", async (t) => {
 	});
 
 	const resource = await readerCollection._byPath("anyPattern", {}, trace);
-	t.deepEqual(resource, "resource b", "Correct resource in result");
+	t.is(resource, "resource b", "Correct resource in result");
 });

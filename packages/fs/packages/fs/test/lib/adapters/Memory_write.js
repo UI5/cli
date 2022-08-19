@@ -12,7 +12,7 @@ test("glob resources from application.a w/ virtual base path prefix", async (t) 
 	await dest.write(res)
 		.then(() => dest.byGlob("/app/*.html"))
 		.then((resources) => {
-			t.deepEqual(resources.length, 1, "Found exactly one resource");
+			t.is(resources.length, 1, "Found exactly one resource");
 		});
 });
 
@@ -27,7 +27,7 @@ test("glob resources from application.a w/o virtual base path prefix", async (t)
 	await dest.write(res)
 		.then(() => dest.byGlob("/**/*.html"))
 		.then((resources) => {
-			t.deepEqual(resources.length, 1, "Found exactly one resource");
+			t.is(resources.length, 1, "Found exactly one resource");
 		});
 });
 
@@ -69,8 +69,8 @@ test("Write resource w/o virtual base path", async (t) => {
 	], "Adapter added correct virtual directories");
 
 	const dirRes = readerWriter._virDirs["one/two/three"];
-	t.deepEqual(dirRes.getStatInfo().isDirectory(), true, "Directory resource is a directory");
-	t.deepEqual(dirRes.getPath(), "/one/two/three", "Directory resource has correct path");
+	t.is(dirRes.getStatInfo().isDirectory(), true, "Directory resource is a directory");
+	t.is(dirRes.getPath(), "/one/two/three", "Directory resource has correct path");
 });
 
 test("Write resource w/ deep virtual base path", async (t) => {
@@ -94,8 +94,8 @@ test("Write resource w/ deep virtual base path", async (t) => {
 	], "Adapter added correct virtual directories");
 
 	const dirRes = readerWriter._virDirs["one/two/three"];
-	t.deepEqual(dirRes.getStatInfo().isDirectory(), true, "Directory resource is a directory");
-	t.deepEqual(dirRes.getPath(), "/app/a/one/two/three", "Directory resource has correct path");
+	t.is(dirRes.getStatInfo().isDirectory(), true, "Directory resource is a directory");
+	t.is(dirRes.getPath(), "/app/a/one/two/three", "Directory resource has correct path");
 });
 
 test("Write resource w/ crazy virtual base path", async (t) => {

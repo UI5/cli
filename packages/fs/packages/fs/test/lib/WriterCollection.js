@@ -3,7 +3,7 @@ const sinon = require("sinon");
 const WriterCollection = require("../../lib/WriterCollection");
 const Resource = require("../../lib/Resource");
 
-test("Constructor: Path mapping regex", async (t) => {
+test("Constructor: Path mapping regex", (t) => {
 	const myWriter = {};
 	const writer = new WriterCollection({
 		name: "myCollection",
@@ -17,7 +17,7 @@ test("Constructor: Path mapping regex", async (t) => {
 		"Created correct path mapping regular expression");
 });
 
-test("Constructor: Path mapping regex has correct escaping", async (t) => {
+test("Constructor: Path mapping regex has correct escaping", (t) => {
 	const myWriter = {};
 	const writer = new WriterCollection({
 		name: "myCollection",
@@ -31,7 +31,7 @@ test("Constructor: Path mapping regex has correct escaping", async (t) => {
 		"Created correct path mapping regular expression");
 });
 
-test("Constructor: Throws for missing path mapping", async (t) => {
+test("Constructor: Throws for missing path mapping", (t) => {
 	const err = t.throws(() => {
 		new WriterCollection({
 			name: "myCollection"
@@ -40,7 +40,7 @@ test("Constructor: Throws for missing path mapping", async (t) => {
 	t.is(err.message, "Missing parameter 'writerMapping'", "Threw with expected error message");
 });
 
-test("Constructor: Throws for empty path mapping", async (t) => {
+test("Constructor: Throws for empty path mapping", (t) => {
 	const err = t.throws(() => {
 		new WriterCollection({
 			name: "myCollection",
@@ -50,7 +50,7 @@ test("Constructor: Throws for empty path mapping", async (t) => {
 	t.is(err.message, "Empty parameter 'writerMapping'", "Threw with expected error message");
 });
 
-test("Constructor: Throws for empty path", async (t) => {
+test("Constructor: Throws for empty path", (t) => {
 	const myWriter = {
 		_write: sinon.stub()
 	};
@@ -66,7 +66,7 @@ test("Constructor: Throws for empty path", async (t) => {
 		"Threw with expected error message");
 });
 
-test("Constructor: Throws for missing leading slash", async (t) => {
+test("Constructor: Throws for missing leading slash", (t) => {
 	const myWriter = {
 		_write: sinon.stub()
 	};
@@ -82,7 +82,7 @@ test("Constructor: Throws for missing leading slash", async (t) => {
 		"Threw with expected error message");
 });
 
-test("Constructor: Throws for missing trailing slash", async (t) => {
+test("Constructor: Throws for missing trailing slash", (t) => {
 	const myWriter = {
 		_write: sinon.stub()
 	};
