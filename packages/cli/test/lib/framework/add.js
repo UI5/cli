@@ -68,7 +68,7 @@ test.serial("Add without existing libraries in config", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
@@ -121,7 +121,7 @@ test.serial("Add with existing libraries in config", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.is(getLibraryMetadataStub.callCount, 2, "Resolver.getLibraryMetadata should be called twice");
@@ -184,7 +184,7 @@ test.serial("Add optional with existing libraries in config", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.is(getLibraryMetadataStub.callCount, 2, "Resolver.getLibraryMetadata should be called twice");
@@ -349,7 +349,7 @@ test.serial("Add with failing library metadata call", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
@@ -395,7 +395,7 @@ test.serial("Add with failing YAML update", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
@@ -448,7 +448,7 @@ test.serial("Add with failing YAML update (unexpected error)", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
@@ -493,7 +493,7 @@ test.serial("Add should not modify input parameters", async (t) => {
 	});
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 
 	t.deepEqual(libraries, [{name: "sap.ui.lib2"}], "libraries array should not be changed");
@@ -530,7 +530,7 @@ test.serial("Add with projectGraphOptions.config", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],

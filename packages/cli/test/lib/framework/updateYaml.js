@@ -45,7 +45,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 ---
 metadata:
   name: my-project
@@ -89,7 +89,7 @@ shims:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 specVersion: "2.0"
 metadata:
   name: my-project
@@ -145,7 +145,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 specVersion: "1.0"
 kind: extension
 metadata:
@@ -186,7 +186,7 @@ metadata:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -215,7 +215,7 @@ metadata:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -248,7 +248,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -281,7 +281,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -317,7 +317,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -358,7 +358,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -399,7 +399,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -437,7 +437,7 @@ resources:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -478,7 +478,7 @@ resources:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -523,7 +523,7 @@ resources:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -568,7 +568,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -610,7 +610,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -656,7 +656,7 @@ resources:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -707,7 +707,7 @@ resources:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -754,7 +754,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -851,7 +851,7 @@ something: else
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 metadata:
   name: my-project
 framework:
@@ -893,7 +893,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "dir", "other-file.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 ---
 metadata:
   name: my-project
@@ -933,7 +933,7 @@ framework:
 	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
 	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("/", "dir", "other-file.yaml"),
 		"writeFile should be called with expected path");
-	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[1], `
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
 ---
 metadata:
   name: my-project

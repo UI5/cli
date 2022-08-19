@@ -71,7 +71,7 @@ test.serial("Use with name and version (OpenUI5)", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
@@ -128,7 +128,7 @@ test.serial("Use with name and version (SAPUI5)", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
@@ -186,7 +186,7 @@ test.serial("Use with version only (OpenUI5)", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
@@ -244,7 +244,7 @@ test.serial("Use with version only (SAPUI5)", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
@@ -354,7 +354,7 @@ test.serial("Use with name only (existing framework configuration)", async (t) =
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["1.76.0", {cwd: "my-project-path"}],
@@ -411,7 +411,7 @@ test.serial("Use with projectGraphOptions.config", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
@@ -581,7 +581,7 @@ test.serial("Use with name and version (YAML update fails)", async (t) => {
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
@@ -636,7 +636,7 @@ test.serial("Use with name and version (YAML update fails with unexpected error)
 		"generateProjectGraph should be called with expected args");
 
 	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.deepEqual(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
+	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
 		"getFrameworkResolver called with expected framework");
 	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
 	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],

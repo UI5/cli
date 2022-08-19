@@ -11,7 +11,7 @@ test.afterEach("Stubs Cleanup", (t) => {
 	sinon.restore();
 });
 
-test.serial("uses default middleware", async (t) => {
+test.serial("uses default middleware", (t) => {
 	baseMiddleware({loglevel: 1});
 	t.is(logger.init.called, true, "Logger middleware initialized");
 });

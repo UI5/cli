@@ -27,5 +27,5 @@ test.serial("Error: returns not installed if version was not found", (t) => {
 test.serial("Error: throws with error if error occurred while processing", async (t) => {
 	sinon.stub(versions, "getVersion").throws(new Error("Error occurred"));
 	const error = await t.throwsAsync(versions.handler({}));
-	t.deepEqual(error.message, "Error occurred", "Correct error message thrown");
+	t.is(error.message, "Error occurred", "Correct error message thrown");
 });

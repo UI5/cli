@@ -1,3 +1,7 @@
+/* eslint-disable ava/no-unknown-modifiers */
+/* Test modifier `cb` was deprecated with ava version
+3 and removed with ava version 4. Therefore, tests using `cb` has to be rewritten, when upgrade to ava version 4 */
+
 const test = require("ava");
 const path = require("path");
 const execa = require("execa");
@@ -29,12 +33,12 @@ test.serial("Yargs error handling", async (t) => {
 	const err = await t.throwsAsync(ui5(["invalidcomands"]));
 
 	const stdoutLines = err.stdout.split("\n");
-	t.deepEqual(stdoutLines[0], "Command Failed:", "Correct first log line");
+	t.is(stdoutLines[0], "Command Failed:", "Correct first log line");
 	// Error message itself originates from yargs and is therefore not asserted
-	t.deepEqual(stdoutLines[stdoutLines.length - 1], `See 'ui5 --help' or 'ui5 build --help' for help`,
+	t.is(stdoutLines[stdoutLines.length - 1], `See 'ui5 --help' or 'ui5 build --help' for help`,
 		"Correct last log line");
 
-	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
+	t.is(err.exitCode, 1, "Process was exited with code 1");
 });
 
 test.serial("Exception error handling", async (t) => {
@@ -45,14 +49,14 @@ test.serial("Exception error handling", async (t) => {
 	}));
 
 	const stdoutLines = err.stdout.split("\n");
-	t.deepEqual(stdoutLines[1], "⚠️  Process Failed With Error", "Correct error log");
-	t.deepEqual(stdoutLines[3], "Error Message:", "Correct error log");
-	t.deepEqual(stdoutLines[4], "Initialization not possible: ui5.yaml already exists", "Correct error log");
-	t.deepEqual(stdoutLines[stdoutLines.length - 1],
+	t.is(stdoutLines[1], "⚠️  Process Failed With Error", "Correct error log");
+	t.is(stdoutLines[3], "Error Message:", "Correct error log");
+	t.is(stdoutLines[4], "Initialization not possible: ui5.yaml already exists", "Correct error log");
+	t.is(stdoutLines[stdoutLines.length - 1],
 		"For details, execute the same command again with an additional '--verbose' parameter",
 		"Correct last log line");
 
-	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
+	t.is(err.exitCode, 1, "Process was exited with code 1");
 });
 
 test.serial("Exception error handling with verbose logging", async (t) => {
@@ -63,18 +67,18 @@ test.serial("Exception error handling with verbose logging", async (t) => {
 	}));
 
 	const stdoutLines = err.stdout.split("\n");
-	t.deepEqual(stdoutLines[1], "⚠️  Process Failed With Error", "Correct error log");
-	t.deepEqual(stdoutLines[3], "Error Message:", "Correct error log");
-	t.deepEqual(stdoutLines[4], "Initialization not possible: ui5.yaml already exists", "Correct error log");
-	t.deepEqual(stdoutLines[6], "Stack Trace:", "Correct error log");
-	t.deepEqual(stdoutLines[7], "Error: Initialization not possible: ui5.yaml already exists", "Correct error log");
+	t.is(stdoutLines[1], "⚠️  Process Failed With Error", "Correct error log");
+	t.is(stdoutLines[3], "Error Message:", "Correct error log");
+	t.is(stdoutLines[4], "Initialization not possible: ui5.yaml already exists", "Correct error log");
+	t.is(stdoutLines[6], "Stack Trace:", "Correct error log");
+	t.is(stdoutLines[7], "Error: Initialization not possible: ui5.yaml already exists", "Correct error log");
 
 	t.deepEqual(stdoutLines[stdoutLines.length - 1],
 		"If you think this is an issue of the UI5 Tooling, you might " +
 		"report it using the following URL: https://github.com/SAP/ui5-tooling/issues/new/choose",
 		"Correct last log line");
 
-	t.deepEqual(err.exitCode, 1, "Process was exited with code 1");
+	t.is(err.exitCode, 1, "Process was exited with code 1");
 });
 
 test.serial.cb("Unexpected error handling", (t) => {
