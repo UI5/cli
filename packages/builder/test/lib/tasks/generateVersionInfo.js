@@ -156,45 +156,6 @@ test.serial("integration: Library without i18n bundle file", async (t) => {
 		"Cannot add meta information for library 'test.lib3'. The manifest.json file cannot be found");
 });
 
-// MB: No idea what the below test is supposed to check, but apparently
-// I fixed the missing options parameter
-// eslint-disable-next-line ava/no-skip-test
-test.serial.skip("integration: Library without i18n bundle file failure", async (t) => {
-	t.context.workspace = createWorkspace();
-	t.context.dependencies = createDependencies();
-
-	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
-		path: "/resources/test/lib/.library",
-		string: `
-			<?xml version="1.0" encoding="UTF-8" ?>
-			<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
-
-				<name>test.lib</name>
-				<vendor>SAP SE</vendor>
-				<copyright></copyright>
-				<version>2.0.0</version>
-
-				<documentation>Test Lib</documentation>
-
-			</library>
-		`,
-		project: t.context.workspace._project
-	}));
-
-	const options = {
-		projectName: "Test Lib",
-		pattern: "/**/*.js",
-		rootProject: createProjectMetadata(["myname"], "1.33.7")
-	};
-
-
-	const oOptions = await createOptions(t, options);
-	await generateVersionInfo(oOptions).catch((error) => {
-		t.is(error.message, "[versionInfoGenerator]: Missing options parameters");
-	});
-});
-
 /**
  *
  * @param {module:@ui5/fs.DuplexCollection} dependencies
