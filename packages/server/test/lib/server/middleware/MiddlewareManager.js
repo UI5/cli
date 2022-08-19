@@ -3,18 +3,18 @@ const sinon = require("sinon");
 const MiddlewareManager = require("../../../../lib/middleware/MiddlewareManager");
 const middlewareRepository = require("../../../../lib/middleware/middlewareRepository");
 
-test("Missing parameters", async (t) => {
+test("Missing parameters", (t) => {
 	const err = t.throws(() => {
 		new MiddlewareManager({
 			graph: {},
 			resources: {}
 		});
 	});
-	t.deepEqual(err.message, "[MiddlewareManager]: One or more mandatory parameters not provided",
+	t.is(err.message, "[MiddlewareManager]: One or more mandatory parameters not provided",
 		"Threw error with correct message");
 });
 
-test("Correct parameters", async (t) => {
+test("Correct parameters", (t) => {
 	t.notThrows(() => {
 		new MiddlewareManager({
 			graph: {},
@@ -51,11 +51,11 @@ test("applyMiddleware", async (t) => {
 	};
 
 	await middlewareManager.applyMiddleware(app);
-	t.deepEqual(addStandardMiddlewareStub.callCount, 1, "addStandardMiddleware got called once");
-	t.deepEqual(addCustomMiddlewareStub.callCount, 1, "addCustomMiddleware got called once");
-	t.deepEqual(appUseStub.callCount, 1, "app.use got called once");
-	t.deepEqual(appUseStub.getCall(0).args[0], "/myMountPath", "app.use got called with correct mount path parameter");
-	t.deepEqual(appUseStub.getCall(0).args[1], "myMiddleware", "app.use got called with correct middleware parameter");
+	t.is(addStandardMiddlewareStub.callCount, 1, "addStandardMiddleware got called once");
+	t.is(addCustomMiddlewareStub.callCount, 1, "addCustomMiddleware got called once");
+	t.is(appUseStub.callCount, 1, "app.use got called once");
+	t.is(appUseStub.getCall(0).args[0], "/myMountPath", "app.use got called with correct mount path parameter");
+	t.is(appUseStub.getCall(0).args[1], "myMiddleware", "app.use got called with correct middleware parameter");
 });
 
 test("addMiddleware: Adding already added middleware produces unique middleware name", async (t) => {
@@ -78,13 +78,13 @@ test("addMiddleware: Adding already added middleware produces unique middleware 
 		mountPath: "/goose"
 	});
 	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map with unique name");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].mountPath, "/pony",
+	t.is(middlewareManager.middleware["serveIndex"].mountPath, "/pony",
 		"Middleware got added correct mount path");
 	t.truthy(middlewareManager.middleware["serveIndex--1"], "Middleware got added to internal map with unique name");
-	t.deepEqual(middlewareManager.middleware["serveIndex--1"].mountPath, "/seagull",
+	t.is(middlewareManager.middleware["serveIndex--1"].mountPath, "/seagull",
 		"Middleware got added correct mount path");
 	t.truthy(middlewareManager.middleware["serveIndex--2"], "Middleware got added to internal map with unique name");
-	t.deepEqual(middlewareManager.middleware["serveIndex--2"].mountPath, "/goose",
+	t.is(middlewareManager.middleware["serveIndex--2"].mountPath, "/goose",
 		"Middleware got added correct mount path");
 
 	t.deepEqual(middlewareManager.middlewareExecutionOrder, [
@@ -109,7 +109,7 @@ test("addMiddleware: Adding middleware already added to middlewareExecutionOrder
 	const err = await t.throwsAsync(() => {
 		return middlewareManager.addMiddleware("serveIndex");
 	});
-	t.deepEqual(err.message,
+	t.is(err.message,
 		"Middleware serveIndex already added to execution order. This should not happen.",
 		"Rejected with correct error message");
 });
@@ -129,11 +129,11 @@ test("addMiddleware: Add middleware", async (t) => {
 	await middlewareManager.addMiddleware("serveIndex"); // Add middleware to test for
 	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map");
 	t.truthy(middlewareManager.middleware["serveIndex"].middleware, "Middleware module is given");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].mountPath, "/", "Correct default mount path set");
+	t.is(middlewareManager.middleware["serveIndex"].mountPath, "/", "Correct default mount path set");
 
-	t.deepEqual(middlewareManager.middlewareExecutionOrder.length, 2,
+	t.is(middlewareManager.middlewareExecutionOrder.length, 2,
 		"Two middleware got added to middleware execution order");
-	t.deepEqual(middlewareManager.middlewareExecutionOrder[1], "serveIndex",
+	t.is(middlewareManager.middlewareExecutionOrder[1], "serveIndex",
 		"Last added middleware was added to the end of middleware execution order array");
 });
 
@@ -155,11 +155,11 @@ test("addMiddleware: Add middleware with beforeMiddleware and mountPath paramete
 	});
 	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map");
 	t.truthy(middlewareManager.middleware["serveIndex"].middleware, "Middleware module is given");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].mountPath, "/pony", "Correct mount path set");
+	t.is(middlewareManager.middleware["serveIndex"].mountPath, "/pony", "Correct mount path set");
 
-	t.deepEqual(middlewareManager.middlewareExecutionOrder.length, 2,
+	t.is(middlewareManager.middlewareExecutionOrder.length, 2,
 		"Two middleware got added to middleware execution order");
-	t.deepEqual(middlewareManager.middlewareExecutionOrder[0], "serveIndex",
+	t.is(middlewareManager.middlewareExecutionOrder[0], "serveIndex",
 		"Middleware was inserted at correct position of middleware execution order array");
 });
 
@@ -181,11 +181,11 @@ test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) =
 	});
 	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map");
 	t.truthy(middlewareManager.middleware["serveIndex"].middleware, "Middleware module is given");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].mountPath, "/", "Correct default mount path set");
+	t.is(middlewareManager.middleware["serveIndex"].mountPath, "/", "Correct default mount path set");
 
-	t.deepEqual(middlewareManager.middlewareExecutionOrder.length, 3,
+	t.is(middlewareManager.middlewareExecutionOrder.length, 3,
 		"Three middleware got added to middleware execution order");
-	t.deepEqual(middlewareManager.middlewareExecutionOrder[1], "serveIndex",
+	t.is(middlewareManager.middlewareExecutionOrder[1], "serveIndex",
 		"Middleware was inserted at correct position of middleware execution order array");
 });
 
@@ -206,10 +206,10 @@ test("addMiddleware: Add middleware with invalid afterMiddleware parameter", asy
 			afterMiddleware: "🦆"
 		});
 	});
-	t.deepEqual(err.message, "Could not find middleware 🦆, referenced by custom middleware serveIndex");
+	t.is(err.message, "Could not find middleware 🦆, referenced by custom middleware serveIndex");
 
 	t.falsy(middlewareManager.middleware["serveIndex"], "Middleware did not get added to internal map");
-	t.deepEqual(middlewareManager.middlewareExecutionOrder.length, 1,
+	t.is(middlewareManager.middlewareExecutionOrder.length, 1,
 		"No new middleware got added to middleware execution order array");
 });
 
@@ -229,10 +229,10 @@ test("addMiddleware: Add middleware with rapperCallback parameter", async (t) =>
 	await middlewareManager.addMiddleware("serveIndex", { // Add middleware to test for
 		wrapperCallback: wrapperCallbackStub
 	});
-	t.deepEqual(wrapperCallbackStub.callCount, 1, "Wrapper callback got called once");
+	t.is(wrapperCallbackStub.callCount, 1, "Wrapper callback got called once");
 	t.deepEqual(wrapperCallbackStub.getCall(0).args[0], serveIndexMiddlewareInfo,
 		"Wrapper callback got called with correct module");
-	t.deepEqual(moduleStub.callCount, 1, "Wrapper callback got called once");
+	t.is(moduleStub.callCount, 1, "Wrapper callback got called once");
 	t.deepEqual(moduleStub.getCall(0).args[0].resources, {
 		all: "I",
 		rootProject: "like",
@@ -240,13 +240,13 @@ test("addMiddleware: Add middleware with rapperCallback parameter", async (t) =>
 	}, "Wrapper callback got called with correct arguments");
 
 	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].middleware, "🍅",
+	t.is(middlewareManager.middleware["serveIndex"].middleware, "🍅",
 		"Middleware module is given");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].mountPath, "/", "Correct default mount path set");
+	t.is(middlewareManager.middleware["serveIndex"].mountPath, "/", "Correct default mount path set");
 
-	t.deepEqual(middlewareManager.middlewareExecutionOrder.length, 1,
+	t.is(middlewareManager.middlewareExecutionOrder.length, 1,
 		"One middleware got added to middleware execution order");
-	t.deepEqual(middlewareManager.middlewareExecutionOrder[0], "serveIndex",
+	t.is(middlewareManager.middlewareExecutionOrder[0], "serveIndex",
 		"Middleware was inserted at correct position of middleware execution order array");
 });
 
@@ -266,7 +266,7 @@ test("addMiddleware: Add middleware with async wrapperCallback", async (t) => {
 	});
 
 	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map");
-	t.deepEqual(middlewareManager.middleware["serveIndex"].middleware, "🍅",
+	t.is(middlewareManager.middleware["serveIndex"].middleware, "🍅",
 		"Middleware module is given");
 });
 
@@ -282,7 +282,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addStandardMiddleware();
 
-	t.deepEqual(addMiddlewareStub.callCount, 11, "Expected count of middleware got added");
+	t.is(addMiddlewareStub.callCount, 11, "Expected count of middleware got added");
 	const addedMiddlewareNames = [];
 	for (let i = 0; i < addMiddlewareStub.callCount; i++) {
 		addedMiddlewareNames.push(addMiddlewareStub.getCall(i).args[0]);
@@ -322,7 +322,7 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addCustomMiddleware();
 
-	t.deepEqual(addMiddlewareStub.callCount, 0, "addMiddleware was not called");
+	t.is(addMiddlewareStub.callCount, 0, "addMiddleware was not called");
 });
 
 test("addCustomMiddleware: Custom middleware got added", async (t) => {
@@ -352,25 +352,25 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addCustomMiddleware();
 
-	t.deepEqual(addMiddlewareStub.callCount, 2, "addMiddleware was called twice");
-	t.deepEqual(addMiddlewareStub.getCall(0).args[0], "my custom middleware A",
+	t.is(addMiddlewareStub.callCount, 2, "addMiddleware was called twice");
+	t.is(addMiddlewareStub.getCall(0).args[0], "my custom middleware A",
 		"addMiddleware was called with correct middleware name");
 	const middlewareOptionsA = addMiddlewareStub.getCall(0).args[1];
-	t.deepEqual(middlewareOptionsA.mountPath, "/pony",
+	t.is(middlewareOptionsA.mountPath, "/pony",
 		"addMiddleware was called with correct mountPath option");
-	t.deepEqual(middlewareOptionsA.beforeMiddleware, "cors",
+	t.is(middlewareOptionsA.beforeMiddleware, "cors",
 		"addMiddleware was called with correct beforeMiddleware option");
-	t.deepEqual(middlewareOptionsA.afterMiddleware, undefined,
+	t.is(middlewareOptionsA.afterMiddleware, undefined,
 		"addMiddleware was called with correct afterMiddleware option");
 
-	t.deepEqual(addMiddlewareStub.getCall(1).args[0], "my custom middleware B",
+	t.is(addMiddlewareStub.getCall(1).args[0], "my custom middleware B",
 		"addMiddleware was called with correct middleware name");
 	const middlewareOptionsB = addMiddlewareStub.getCall(1).args[1];
-	t.deepEqual(middlewareOptionsB.mountPath, undefined,
+	t.is(middlewareOptionsB.mountPath, undefined,
 		"addMiddleware was called with correct mountPath option");
-	t.deepEqual(middlewareOptionsB.beforeMiddleware, undefined,
+	t.is(middlewareOptionsB.beforeMiddleware, undefined,
 		"addMiddleware was called with correct beforeMiddleware option");
-	t.deepEqual(middlewareOptionsB.afterMiddleware, "my custom middleware A",
+	t.is(middlewareOptionsB.afterMiddleware, "my custom middleware A",
 		"addMiddleware was called with correct afterMiddleware option");
 });
 
@@ -398,8 +398,8 @@ test("addCustomMiddleware: No special handling for custom middleware with duplic
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addCustomMiddleware();
 
-	t.deepEqual(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
-	t.deepEqual(addMiddlewareStub.getCall(0).args[0], "my custom middleware A",
+	t.is(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
+	t.is(addMiddlewareStub.getCall(0).args[0], "my custom middleware A",
 		"addMiddleware was called with correct middleware name");
 });
 
@@ -426,7 +426,7 @@ test("addCustomMiddleware: Missing name configuration", async (t) => {
 		return middlewareManager.addCustomMiddleware();
 	});
 
-	t.deepEqual(err.message, "Missing name for custom middleware definition of project my project at index 0",
+	t.is(err.message, "Missing name for custom middleware definition of project my project at index 0",
 		"Rejected with correct error message");
 });
 
@@ -521,7 +521,7 @@ test("addCustomMiddleware", async (t) => {
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addCustomMiddleware();
 
-	t.deepEqual(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
+	t.is(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
 
 	const customMiddleware = addMiddlewareStub.getCall(0).args[1].customMiddleware;
 	const middlewareUtil = {
@@ -532,11 +532,11 @@ test("addCustomMiddleware", async (t) => {
 		middlewareUtil
 	});
 
-	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
+	t.is(res, "ok", "Wrapper callback returned expected value");
 	t.is(middlewareUtil.getInterface.callCount, 1, "middlewareUtil.getInterface got called once");
-	t.deepEqual(middlewareUtil.getInterface.getCall(0).args[0], "2.6",
+	t.is(middlewareUtil.getInterface.getCall(0).args[0], "2.6",
 		"middlewareUtil.getInterface got called correct arguments");
-	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
 	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
 		resources: "resources",
 		options: {
@@ -574,9 +574,9 @@ test("addStandardMiddleware: CSP middleware configured correctly (default)", asy
 	};
 	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
 	const res = middlewareWrapper();
-	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
-	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
-	t.deepEqual(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.is(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
 		"CSP middleware module got called with correct first argument");
 	t.deepEqual(middlewareModuleStub.getCall(0).args[1], {
 		allowDynamicPolicyDefinition: true,
@@ -624,9 +624,9 @@ test("addStandardMiddleware: CSP middleware configured correctly (enabled)", asy
 	};
 	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
 	const res = middlewareWrapper();
-	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
-	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
-	t.deepEqual(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.is(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
 		"CSP middleware module got called with correct first argument");
 	t.deepEqual(middlewareModuleStub.getCall(0).args[1], {
 		allowDynamicPolicyDefinition: true,
@@ -688,9 +688,9 @@ test("addStandardMiddleware: CSP middleware configured correctly (custom)", asyn
 	};
 	const middlewareWrapper = wrapperCallback(middlewareModuleInfo);
 	const res = middlewareWrapper();
-	t.deepEqual(res, "ok", "Wrapper callback returned expected value");
-	t.deepEqual(middlewareModuleStub.callCount, 1, "Middleware module got called once");
-	t.deepEqual(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.is(middlewareModuleStub.getCall(0).args[0], "sap-ui-xx-csp-policy",
 		"CSP middleware module got called with correct first argument");
 	t.deepEqual(middlewareModuleStub.getCall(0).args[1], {
 		allowDynamicPolicyDefinition: true,

@@ -256,7 +256,7 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	t.is(versionInfoGeneratorOptions.libraryInfos[2].libraryManifest, "stubbed manifest 1");
 
 	t.is(endStub.callCount, 1);
-	t.deepEqual(endStub.getCall(0).args[0], "stubbed version info");
+	t.is(endStub.getCall(0).args[0], "stubbed version info");
 });
 
 // test case taken from: ui5-builder/test/lib/tasks/generateVersionInfo.js

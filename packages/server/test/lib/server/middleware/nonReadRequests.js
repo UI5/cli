@@ -31,7 +31,7 @@ test("Non read requests results in status 404 and an error message", (t) => {
 		res = {
 			statusCode: 200,
 			end: function(message) {
-				t.deepEqual(res.statusCode, 404, "Status should be 404");
+				t.is(res.statusCode, 404, "Status should be 404");
 				t.deepEqual(message, "Cannot " + method + " /somePath", "Finished with error message.");
 			}
 		};

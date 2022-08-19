@@ -41,13 +41,12 @@ test.after(() => {
 	});
 });
 
-test("Get resource from application.a (/index.html)", (t) => {
-	return request.get("/index.html").then((res) => {
-		if (res.error) {
-			t.fail(res.error.text);
-		}
-		t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-		t.regex(res.headers["content-type"], /html/, "Correct content type");
-		t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
-	});
+test("Get resource from application.a (/index.html)", async (t) => {
+	const res = await request.get("/index.html");
+	if (res.error) {
+		t.fail(res.error.text);
+	}
+	t.is(res.statusCode, 200, "Correct HTTP status code");
+	t.regex(res.headers["content-type"], /html/, "Correct content type");
+	t.regex(res.text, /<title>Application A<\/title>/, "Correct response");
 });

@@ -1,3 +1,7 @@
+/* eslint-disable ava/no-unknown-modifiers */
+/* Test modifier `cb` was deprecated with ava version
+3 and removed with ava version 4. Therefore, tests using `cb` has to be rewritten, when upgrade to ava version 4 */
+
 const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");

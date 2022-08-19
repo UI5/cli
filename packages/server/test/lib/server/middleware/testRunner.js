@@ -118,5 +118,5 @@ test.serial("Request path variations that should *not* work", async (t) => {
 test.serial("Error should be thrown correctly", async (t) => {
 	t.context.readFileStub.yieldsAsync(new Error("My Error"));
 	const error = await t.throwsAsync(callMiddleware("/test-resources/sap/ui/qunit/testrunner.html"));
-	t.deepEqual(error.message, "My Error");
+	t.is(error.message, "My Error");
 });

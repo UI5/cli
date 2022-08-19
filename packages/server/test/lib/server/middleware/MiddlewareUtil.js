@@ -8,7 +8,7 @@ test.afterEach.always((t) => {
 	mock.stopAll();
 });
 
-test.serial("getPathname", async (t) => {
+test.serial("getPathname", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 	const parseurlStub = sinon.stub().returns({pathname: "path%20name"});
 	mock("parseurl", parseurlStub);
@@ -19,7 +19,7 @@ test.serial("getPathname", async (t) => {
 	t.is(pathname, "path name", "Correct pathname returned");
 });
 
-test.serial("getMimeInfo", async (t) => {
+test.serial("getMimeInfo", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 	const mime = require("mime-types");
 	const lookupStub = sinon.stub(mime, "lookup").returns("mytype");
@@ -38,7 +38,7 @@ test.serial("getMimeInfo", async (t) => {
 	}, "Correct pathname returned");
 });
 
-test.serial("getMimeInfo: unknown type", async (t) => {
+test.serial("getMimeInfo: unknown type", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 	const mime = require("mime-types");
 	const lookupStub = sinon.stub(mime, "lookup");
@@ -57,7 +57,7 @@ test.serial("getMimeInfo: unknown type", async (t) => {
 	}, "Correct pathname returned");
 });
 
-test("getInterface: specVersion 1.0", async (t) => {
+test("getInterface: specVersion 1.0", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("1.0");
@@ -65,7 +65,7 @@ test("getInterface: specVersion 1.0", async (t) => {
 	t.is(interfacedMiddlewareUtil, undefined, "no interface provided");
 });
 
-test("getInterface: specVersion 2.0", async (t) => {
+test("getInterface: specVersion 2.0", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.0");
@@ -79,7 +79,7 @@ test("getInterface: specVersion 2.0", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion 2.1", async (t) => {
+test("getInterface: specVersion 2.1", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.1");
@@ -93,7 +93,7 @@ test("getInterface: specVersion 2.1", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion 2.2", async (t) => {
+test("getInterface: specVersion 2.2", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.2");
@@ -107,7 +107,7 @@ test("getInterface: specVersion 2.2", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion 2.3", async (t) => {
+test("getInterface: specVersion 2.3", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.3");
@@ -121,7 +121,7 @@ test("getInterface: specVersion 2.3", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion 2.4", async (t) => {
+test("getInterface: specVersion 2.4", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.4");
@@ -135,7 +135,7 @@ test("getInterface: specVersion 2.4", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion 2.5", async (t) => {
+test("getInterface: specVersion 2.5", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.5");
@@ -149,7 +149,7 @@ test("getInterface: specVersion 2.5", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion 2.6", async (t) => {
+test("getInterface: specVersion 2.6", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.6");
@@ -163,7 +163,7 @@ test("getInterface: specVersion 2.6", async (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion undefined", async (t) => {
+test("getInterface: specVersion undefined", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 
 	const err = t.throws(() => {
@@ -174,7 +174,7 @@ test("getInterface: specVersion undefined", async (t) => {
 		"Throw with correct error message");
 });
 
-test("getInterface: specVersion unknown", async (t) => {
+test("getInterface: specVersion unknown", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
 	const err = t.throws(() => {
 		middlewareUtil.getInterface("1.5");

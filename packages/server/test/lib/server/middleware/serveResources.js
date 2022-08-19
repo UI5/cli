@@ -1,3 +1,7 @@
+/* eslint-disable ava/no-unknown-modifiers */
+/* Test modifier `cb` was deprecated with ava version
+3 and removed with ava version 4. Therefore, tests using `cb` has to be rewritten, when upgrade to ava version 4 */
+
 const test = require("ava");
 const sinon = require("sinon");
 const mock = require("mock-require");
@@ -44,7 +48,7 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test.serial("Check if properties file is served properly", (t) => {
+test.serial("Check if properties file is served properly", async (t) => {
 	t.plan(4);
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
@@ -52,39 +56,39 @@ test.serial("Check if properties file is served properly", (t) => {
 		getPropertiesFileSourceEncoding: () => "ISO-8859-1"
 	};
 
-	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "latin1", project)
-		.then((resource) => {
-			const setStringSpy = sinon.spy(resource, "setString");
-			const middleware = serveResourcesMiddleware({
-				middlewareUtil: new MiddlewareUtil(),
-				resources: {
-					all: readerWriter
-				}
-			});
+	const resource = await writeResource(readerWriter, "/myFile3.properties", 1024 * 1024,
+		"key=titel\nfame=straße", "latin1", project);
 
-			const response = fakeResponse;
+	const setStringSpy = sinon.spy(resource, "setString");
+	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil(),
+		resources: {
+			all: readerWriter
+		}
+	});
 
-			const setHeaderSpy = sinon.spy(response, "setHeader");
-			const req = {
-				url: "/myFile3.properties",
-				headers: {}
-			};
-			const next = function(err) {
-				throw new Error(`Next callback called with error: ${err.message}`);
-			};
-			return middleware(req, response, next).then((o) => {
-				return resource.getString();
-			}).then((content) => {
-				t.is(content, `key=titel
+	const response = fakeResponse;
+
+	const setHeaderSpy = sinon.spy(response, "setHeader");
+	const req = {
+		url: "/myFile3.properties",
+		headers: {}
+	};
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.message}`);
+	};
+	const content = await middleware(req, response, next).then((o) => {
+		return resource.getString();
+	});
+
+	t.is(content, `key=titel
 fame=stra\\u00dfe`);
-				t.is(setHeaderSpy.callCount, 2);
-				t.is(setStringSpy.callCount, 1);
-				t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
-			});
-		});
+	t.is(setHeaderSpy.callCount, 2);
+	t.is(setStringSpy.callCount, 1);
+	t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
 });
 
-test.serial("Check if properties file is served properly with UTF-8", (t) => {
+test.serial("Check if properties file is served properly with UTF-8", async (t) => {
 	t.plan(4);
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
@@ -92,87 +96,86 @@ test.serial("Check if properties file is served properly with UTF-8", (t) => {
 		getPropertiesFileSourceEncoding: () => "UTF-8"
 	};
 
-	return writeResource(readerWriter, "/myFile3.properties", 1024 * 1024, "key=titel\nfame=straße", "utf8", project)
-		.then((resource) => {
-			const setStringSpy = sinon.spy(resource, "setString");
-			const middleware = serveResourcesMiddleware({
-				middlewareUtil: new MiddlewareUtil(),
-				resources: {
-					all: readerWriter
-				}
-			});
+	const resource = await writeResource(readerWriter, "/myFile3.properties", 1024 * 1024,
+		"key=titel\nfame=straße", "utf8", project);
 
-			const response = fakeResponse;
-
-			const setHeaderSpy = sinon.spy(response, "setHeader");
-			const req = {
-				url: "/myFile3.properties",
-				headers: {}
-			};
-			const next = function(err) {
-				throw new Error(`Next callback called with error: ${err.message}`);
-			};
-			return middleware(req, response, next).then((o) => {
-				return resource.getString();
-			}).then((content) => {
-				t.is(content, `key=titel
-fame=stra\\u00dfe`);
-				t.is(setHeaderSpy.callCount, 2);
-				t.is(setStringSpy.callCount, 1);
-				t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
-			});
-		});
-});
-
-test.serial("Check if properties file is served properly without property setting", (t) => {
-	t.plan(4);
-
-	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
-
-	return writeResource(readerWriter, "/myFile3.properties",
-		1024 * 1024, "key=titel\nfame=straße", "utf8"
-	).then((resource) => {
-		const setStringSpy = sinon.spy(resource, "setString");
-		const middleware = serveResourcesMiddleware({
-			middlewareUtil: new MiddlewareUtil(),
-			resources: {
-				all: readerWriter
-			}
-		});
-
-		const response = fakeResponse;
-
-		const setHeaderSpy = sinon.spy(response, "setHeader");
-		const req = {
-			url: "/myFile3.properties",
-			headers: {}
-		};
-		const next = function(err) {
-			throw new Error(`Next callback called with error: ${err.stack}`);
-		};
-		return middleware(req, response, next).then((o) => {
-			return resource.getString();
-		}).then((content) => {
-			t.is(content, `key=titel
-fame=stra\\u00dfe`);
-			t.is(setHeaderSpy.callCount, 2);
-			t.is(setStringSpy.callCount, 1);
-			t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
-		});
+	const setStringSpy = sinon.spy(resource, "setString");
+	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil(),
+		resources: {
+			all: readerWriter
+		}
 	});
-});
 
-test.serial("Check if properties file is served properly without property setting but legacy spec version", (t) => {
-	t.plan(4);
+	const response = fakeResponse;
 
-	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
-	const project = {
-		getPropertiesFileSourceEncoding: () => "",
-		getSpecVersion: () => "1.1"
+	const setHeaderSpy = sinon.spy(response, "setHeader");
+	const req = {
+		url: "/myFile3.properties",
+		headers: {}
 	};
-	return writeResource(readerWriter, "/myFile3.properties",
-		1024 * 1024, "key=titel\nfame=straße", "latin1", project
-	).then((resource) => {
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.message}`);
+	};
+	await middleware(req, response, next);
+	const content = await resource.getString();
+
+	t.is(content, `key=titel
+fame=stra\\u00dfe`);
+	t.is(setHeaderSpy.callCount, 2);
+	t.is(setStringSpy.callCount, 1);
+	t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
+});
+
+test.serial("Check if properties file is served properly without property setting", async (t) => {
+	t.plan(4);
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
+
+	const resource = await writeResource(readerWriter, "/myFile3.properties",
+		1024 * 1024, "key=titel\nfame=straße", "utf8"
+	);
+	const setStringSpy = sinon.spy(resource, "setString");
+	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil(),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const response = fakeResponse;
+
+	const setHeaderSpy = sinon.spy(response, "setHeader");
+	const req = {
+		url: "/myFile3.properties",
+		headers: {}
+	};
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.stack}`);
+	};
+
+	await middleware(req, response, next);
+	const content = await resource.getString();
+
+	t.is(content, `key=titel
+fame=stra\\u00dfe`);
+	t.is(setHeaderSpy.callCount, 2);
+	t.is(setStringSpy.callCount, 1);
+	t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
+});
+
+test.serial("Check if properties file is served properly without property setting but legacy spec version",
+	async (t) => {
+		t.plan(4);
+
+		const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
+		const project = {
+			getPropertiesFileSourceEncoding: () => "",
+			getSpecVersion: () => "1.1"
+		};
+		const resource = await writeResource(readerWriter, "/myFile3.properties",
+			1024 * 1024, "key=titel\nfame=straße", "latin1", project
+		);
 		const setStringSpy = sinon.spy(resource, "setString");
 		const middleware = serveResourcesMiddleware({
 			middlewareUtil: new MiddlewareUtil(),
@@ -191,19 +194,16 @@ test.serial("Check if properties file is served properly without property settin
 		const next = function(err) {
 			throw new Error(`Next callback called with error: ${err.stack}`);
 		};
-		return middleware(req, response, next).then((o) => {
-			return resource.getString();
-		}).then((content) => {
-			t.is(content, `key=titel
+		await middleware(req, response, next);
+		const content = await resource.getString();
+		t.is(content, `key=titel
 fame=stra\\u00dfe`);
-			t.is(setHeaderSpy.callCount, 2);
-			t.is(setStringSpy.callCount, 1);
-			t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
-		});
+		t.is(setHeaderSpy.callCount, 2);
+		t.is(setStringSpy.callCount, 1);
+		t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
 	});
-});
 
-test.serial("Check if properties file is served properly without property setting but spec version", (t) => {
+test.serial("Check if properties file is served properly without property setting but spec version", async (t) => {
 	t.plan(4);
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
@@ -211,37 +211,35 @@ test.serial("Check if properties file is served properly without property settin
 		getPropertiesFileSourceEncoding: () => "",
 		getSpecVersion: () => "2.0"
 	};
-	return writeResource(readerWriter, "/myFile3.properties",
+	const resource = await writeResource(readerWriter, "/myFile3.properties",
 		1024 * 1024, "key=titel\nfame=straße", "utf8", project
-	).then((resource) => {
-		const setStringSpy = sinon.spy(resource, "setString");
-		const middleware = serveResourcesMiddleware({
-			middlewareUtil: new MiddlewareUtil(),
-			resources: {
-				all: readerWriter
-			}
-		});
-
-		const response = fakeResponse;
-
-		const setHeaderSpy = sinon.spy(response, "setHeader");
-		const req = {
-			url: "/myFile3.properties",
-			headers: {}
-		};
-		const next = function(err) {
-			throw new Error(`Next callback called with error: ${err.stack}`);
-		};
-		return middleware(req, response, next).then((o) => {
-			return resource.getString();
-		}).then((content) => {
-			t.is(content, `key=titel
-fame=stra\\u00dfe`);
-			t.is(setHeaderSpy.callCount, 2);
-			t.is(setStringSpy.callCount, 1);
-			t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
-		});
+	);
+	const setStringSpy = sinon.spy(resource, "setString");
+	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil(),
+		resources: {
+			all: readerWriter
+		}
 	});
+
+	const response = fakeResponse;
+
+	const setHeaderSpy = sinon.spy(response, "setHeader");
+	const req = {
+		url: "/myFile3.properties",
+		headers: {}
+	};
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.stack}`);
+	};
+	await middleware(req, response, next);
+	const content = await resource.getString();
+
+	t.is(content, `key=titel
+fame=stra\\u00dfe`);
+	t.is(setHeaderSpy.callCount, 2);
+	t.is(setStringSpy.callCount, 1);
+	t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
 });
 
 test.serial("Check verbose logging", (t) => {
@@ -402,6 +400,7 @@ test.serial.cb("Check if version replacement is done", (t) => {
 
 // Skip test in Node v8 as unicode handling of streams seems to be broken
 test.serial[
+	// eslint-disable-next-line ava/no-unknown-modifiers
 	process.version.startsWith("v8.") ? "skip" : "cb"
 ]("Check if utf8 characters are correctly processed in version replacement", (t) => {
 	const utf8string = "Κυ";

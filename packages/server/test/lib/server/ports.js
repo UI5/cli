@@ -40,81 +40,80 @@ test("Start server - Port is already taken and an error occurs", async (t) => {
 		res.end();
 	});
 
-	const startServer = new Promise((resolve) => {
+	await new Promise((resolve) => {
 		nodeServer.on("listening", () => {
 			resolve();
 		});
 		nodeServer.listen(port);
-	}).then(async () => {
-		const graph = await generateProjectGraph({
-			cwd: "./test/fixtures/application.a"
-		});
-		await server.serve(graph, {
-			port
-		});
 	});
 
-	return t.throwsAsync(startServer).then((error) => {
-		t.deepEqual(
-			error.message,
-			"EADDRINUSE: Port 3360 is already in use.",
-			"Correct error message"
-		);
-		t.deepEqual(
-			error.code,
-			"EADDRINUSE",
-			"Correct error code"
-		);
-		t.deepEqual(
-			error.errno,
-			"EADDRINUSE",
-			"Correct error number"
-		);
-		t.deepEqual(
-			error.address,
-			"localhost",
-			"Correct error address"
-		);
-		t.deepEqual(
-			error.port,
-			3360,
-			"Correct error port"
-		);
+	const graph = await generateProjectGraph({
+		cwd: "./test/fixtures/application.a"
 	});
+
+	const startServer = server.serve(graph, {
+		port
+	});
+
+	const error = await t.throwsAsync(startServer);
+	t.is(
+		error.message,
+		"EADDRINUSE: Port 3360 is already in use.",
+		"Correct error message"
+	);
+	t.is(
+		error.code,
+		"EADDRINUSE",
+		"Correct error code"
+	);
+	t.is(
+		error.errno,
+		"EADDRINUSE",
+		"Correct error number"
+	);
+	t.is(
+		error.address,
+		"localhost",
+		"Correct error address"
+	);
+	t.is(
+		error.port,
+		3360,
+		"Correct error port"
+	);
 });
 
-test("Start server together with node server - Port is already taken and the next one is used", (t) => {
+test("Start server together with node server - Port is already taken and the next one is used", async (t) => {
 	t.plan(2);
 	const port = 3370;
 	const nextFoundPort = 3371;
 	const nodeServer = http.createServer((req, res) => {
 		res.end();
 	});
-	return new Promise((resolve) => {
+	await new Promise((resolve) => {
 		nodeServer.on("listening", () => {
 			resolve();
 		});
 		nodeServer.listen(port);
-	}).then(async () => {
-		const graph = await generateProjectGraph({
-			cwd: "./test/fixtures/application.a"
-		});
-		const serve = await server.serve(graph, {
-			port,
-			changePortIfInUse: true
-		});
-
-		t.deepEqual(serve.port, nextFoundPort, "Resolves with correct port");
-		const request = supertest(`http://localhost:${nextFoundPort}`);
-		return request.get("/index.html").then((res) => {
-			if (res.error) {
-				t.fail(res.error.text);
-			}
-			t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-			nodeServer.close();
-			serve.close();
-		});
 	});
+
+	const graph = await generateProjectGraph({
+		cwd: "./test/fixtures/application.a"
+	});
+	const serve = await server.serve(graph, {
+		port,
+		changePortIfInUse: true
+	});
+
+	t.deepEqual(serve.port, nextFoundPort, "Resolves with correct port");
+	const request = supertest(`http://localhost:${nextFoundPort}`);
+	const result = await request.get("/index.html");
+	if (result.error) {
+		t.fail(result.error.text);
+	}
+	t.is(result.statusCode, 200, "Correct HTTP status code");
+	nodeServer.close();
+	serve.close();
 });
 
 test.serial("Start server - Port can not be determined and an error occurs", async (t) => {
@@ -127,24 +126,22 @@ test.serial("Start server - Port can not be determined and an error occurs", asy
 	};
 	const portScannerStub = sinon.stub(portscanner, "findAPortNotInUse").callsFake(portscannerFake);
 
-	const startServer = generateProjectGraph({
+	const graph = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((graph) => {
-		return server.serve(graph, {
-			port: 3990,
-			changePortIfInUse: true
-		});
+	});
+	const startServer = server.serve(graph, {
+		port: 3990,
+		changePortIfInUse: true
 	});
 
-	return t.throwsAsync(startServer).then((error) => {
-		t.deepEqual(error.message, "testError",
-			"Server could not start, port is already taken and no other port is used.");
-		portScannerStub.restore();
-	});
+	const error = await t.throwsAsync(startServer);
+	t.is(error.message, "testError",
+		"Server could not start, port is already taken and no other port is used.");
+	portScannerStub.restore();
 });
 
 
-test("Start server - Port is already taken and an error occurs because no other port can be determined", (t) => {
+test("Start server - Port is already taken and an error occurs because no other port can be determined", async (t) => {
 	t.plan(6);
 	const portStart = 4000;
 	const portRange = 31;
@@ -166,79 +163,75 @@ test("Start server - Port is already taken and an error occurs because no other 
 		}));
 	}
 
-	const startServer = Promise.all(serversStart).then(() => {
-		return generateProjectGraph({
-			cwd: "./test/fixtures/application.a"
-		}).then((graph) => {
-			return server.serve(graph, {
-				port: portStart,
-				changePortIfInUse: true
-			});
-		});
+	await Promise.all(serversStart);
+	const graph = await generateProjectGraph({
+		cwd: "./test/fixtures/application.a"
 	});
-	return t.throwsAsync(startServer).then((error) => {
-		for (let i = 0; i < servers.length; i++) {
-			servers[i].close();
-		}
-		t.deepEqual(
-			error.message,
-			"EADDRINUSE: Could not find available ports between 4000 and 4030.",
-			"Server could not start, port is already taken and no other port is used."
-		);
-		t.deepEqual(
-			error.code,
-			"EADDRINUSE",
-			"Correct error code"
-		);
-		t.deepEqual(
-			error.errno,
-			"EADDRINUSE",
-			"Correct error number"
-		);
-		t.deepEqual(
-			error.address,
-			"localhost",
-			"Correct error address"
-		);
-		t.deepEqual(
-			error.port,
-			4030,
-			"Correct error port"
-		);
+
+	const startServer = server.serve(graph, {
+		port: portStart,
+		changePortIfInUse: true
 	});
+
+	const error = await t.throwsAsync(startServer);
+	for (let i = 0; i < servers.length; i++) {
+		servers[i].close();
+	}
+	t.is(
+		error.message,
+		"EADDRINUSE: Could not find available ports between 4000 and 4030.",
+		"Server could not start, port is already taken and no other port is used."
+	);
+	t.is(
+		error.code,
+		"EADDRINUSE",
+		"Correct error code"
+	);
+	t.is(
+		error.errno,
+		"EADDRINUSE",
+		"Correct error number"
+	);
+	t.is(
+		error.address,
+		"localhost",
+		"Correct error address"
+	);
+	t.is(
+		error.port,
+		4030,
+		"Correct error port"
+	);
 });
 
-test("Start server twice - Port is already taken and the next one is used", (t) => {
+test("Start server twice - Port is already taken and the next one is used", async (t) => {
 	t.plan(3);
 	const port = 3380;
 	const nextFoundPort = 3381;
-	return generateProjectGraph({
+	const graph1 = await generateProjectGraph({
 		cwd: "./test/fixtures/application.a"
-	}).then((graph) => {
-		return server.serve(graph, {
-			port: port,
-			changePortIfInUse: true
-		});
-	}).then((serveResult1) => {
-		t.deepEqual(serveResult1.port, port, "Resolves with correct port");
-		return generateProjectGraph({
-			cwd: "./test/fixtures/application.a"
-		}).then((graph) =>{
-			return server.serve(graph, {
-				port: port,
-				changePortIfInUse: true
-			}).then((serveResult2) => {
-				t.deepEqual(serveResult2.port, nextFoundPort, "Resolves with correct port");
-				const request = supertest(`http://localhost:${nextFoundPort}`);
-				return request.get("/index.html").then((res) => {
-					if (res.error) {
-						t.fail(res.error.text);
-					}
-					t.deepEqual(res.statusCode, 200, "Correct HTTP status code");
-					serveResult1.close();
-					serveResult2.close();
-				});
-			});
-		});
 	});
+	const serveResult1 = await server.serve(graph1, {
+		port: port,
+		changePortIfInUse: true
+	});
+	t.deepEqual(serveResult1.port, port, "Resolves with correct port");
+
+	const graph2 = await generateProjectGraph({
+		cwd: "./test/fixtures/application.a"
+	});
+	const serveResult2 = await server.serve(graph2, {
+		port: port,
+		changePortIfInUse: true
+	});
+	t.deepEqual(serveResult2.port, nextFoundPort, "Resolves with correct port");
+
+	const request = supertest(`http://localhost:${nextFoundPort}`);
+	const result = await request.get("/index.html");
+	if (result.error) {
+		t.fail(result.error.text);
+	}
+	t.is(result.statusCode, 200, "Correct HTTP status code");
+	serveResult1.close();
+	serveResult2.close();
 });
