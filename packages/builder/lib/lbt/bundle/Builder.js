@@ -648,7 +648,7 @@ async function rewriteDefine({moduleName, moduleContent, moduleSourceMap}) {
 
 		// Inject module name if missing
 		if ( defineCall.arguments.length == 0 ||
-			defineCall.arguments[0].type !== Syntax.Literal ) {
+			![Syntax.Literal, Syntax.TemplateLiteral].includes(defineCall.arguments[0].type)) {
 			let value = `"${ModuleName.toRequireJSName(moduleName)}"`;
 			let index;
 

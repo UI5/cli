@@ -1,6 +1,7 @@
 "use strict";
 const {parseJS, Syntax, VisitorKeys} = require("../utils/parseUtils");
 const {getPropertyKey, isMethodCall, isIdentifier, getStringArray} = require("../utils/ASTUtils");
+const log = require("@ui5/logger").getLogger("lbt:analyzer:LibraryJS");
 
 const CALL__SAP_UI_GETCORE = ["sap", "ui", "getCore"];
 
@@ -25,8 +26,14 @@ async function analyze(resource) {
 				node.arguments.length === 1 &&
 				node.arguments[0].type === Syntax.ObjectExpression ) {
 			node.arguments[0].properties.forEach( (prop) => {
+				if (prop.type === Syntax.SpreadElement) {
+					// SpreadElements are currently not supported
+					return;
+				}
+
 				const key = getPropertyKey(prop);
 				const value = prop.value;
+
 				if ( key === "noLibraryCSS" &&
 						(value.type === Syntax.Literal && typeof value.value === "boolean") ) {
 					libInfo.noLibraryCSS = value.value;
@@ -38,6 +45,14 @@ async function analyze(resource) {
 					libInfo.controls = getStringArray(value, true);
 				} else if ( key === "elements" && value.type == Syntax.ArrayExpression ) {
 					libInfo.elements = getStringArray(value, true);
+				} else if ( ["designtime", "dependencies", "extensions", "name", "version"].includes(key) ) {
+					// do nothing, for all other supported properties
+				} else {
+					log.error(
+						"Unexpected property '" + key +
+						"' or wrong type for '" + key +
+						"' in sap.ui.getCore().initLibrary call in '" + resource.getPath() + "'"
+					);
 				}
 			});
 

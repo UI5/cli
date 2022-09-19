@@ -1,12 +1,31 @@
 const test = require("ava");
 const {parseJS, Syntax} = require("../../../../lib/lbt/utils/parseUtils");
-
 const SapUiDefineCall = require("../../../../lib/lbt/calls/SapUiDefine");
+const logger = require("@ui5/logger");
+const loggerInstance = logger.getLogger();
+const sinonGlobal = require("sinon");
+const mock = require("mock-require");
 
 function parse(code) {
 	const ast = parseJS(code);
 	return ast.body[0].expression;
 }
+
+function setupSapUiDefineCallWithStubbedLogger({context}) {
+	const {sinon} = context;
+	context.warningLogSpy = sinon.spy(loggerInstance, "warn");
+	sinon.stub(logger, "getLogger").returns(loggerInstance);
+	context.SapUiDefineCallWithStubbedLogger = mock.reRequire("../../../../lib/lbt/calls/SapUiDefine");
+}
+
+test.beforeEach((t) => {
+	t.context.sinon = sinonGlobal.createSandbox();
+});
+
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
+	mock.stopAll();
+});
 
 test("Empty Define", (t) => {
 	const ast = parse("sap.ui.define();");
@@ -16,6 +35,12 @@ test("Empty Define", (t) => {
 
 test("Named Define", (t) => {
 	const ast = parse("sap.ui.define('HardcodedName', [], function() {});");
+	const call = new SapUiDefineCall(ast, "FileSystemName");
+	t.is(call.name, "HardcodedName");
+});
+
+test("Named Define (template literal)", (t) => {
+	const ast = parse("sap.ui.define(`HardcodedName`, [], function() {});");
 	const call = new SapUiDefineCall(ast, "FileSystemName");
 	t.is(call.name, "HardcodedName");
 });
@@ -70,6 +95,47 @@ test("Find Import Name (no dependencies)", (t) => {
 	const ast = parse("sap.ui.define(function() {});");
 	const call = new SapUiDefineCall(ast, "FileSystemName");
 	t.is(call.findImportName("wanted.js"), null);
+});
+
+test("Find Import Name (template literal)", (t) => {
+	const ast = parse("sap.ui.define([`wanted`], function(johndoe) {});");
+	const call = new SapUiDefineCall(ast, "FileSystemName");
+	t.is(call.findImportName("wanted.js"), "johndoe");
+});
+
+test("Find Import Name (destructuring)", (t) => {
+	const ast = parse("sap.ui.define(['invalid', 'wanted', 'invalid1'], function({inv}, johndoe, [inv1]) {});");
+	const call = new SapUiDefineCall(ast, "FileSystemName");
+	t.is(call.findImportName("invalid.js"), null);
+	t.is(call.findImportName("wanted.js"), "johndoe");
+	t.is(call.findImportName("invalid1.js"), null);
+});
+
+test.serial("Find Import Name (async function)", (t) => {
+	setupSapUiDefineCallWithStubbedLogger(t);
+	const {SapUiDefineCallWithStubbedLogger, warningLogSpy} = t.context;
+	const ast = parse("sap.ui.define(['wanted'], async function(johndoe) {});");
+	const call = new SapUiDefineCallWithStubbedLogger(ast, "FileSystemName");
+	t.is(call.findImportName("wanted.js"), "johndoe");
+	t.is(warningLogSpy.callCount, 0, "Warning log is not called");
+});
+
+test.serial("Find Import Name (async arrow function)", (t) => {
+	setupSapUiDefineCallWithStubbedLogger(t);
+	const {SapUiDefineCallWithStubbedLogger, warningLogSpy} = t.context;
+	const ast = parse("sap.ui.define(['wanted'], async (johndoe) => {return johndoe});");
+	const call = new SapUiDefineCallWithStubbedLogger(ast, "FileSystemName");
+	t.is(call.findImportName("wanted.js"), "johndoe");
+	t.is(warningLogSpy.callCount, 0, "Warning log is not called");
+});
+
+test.serial("Find Import Name (async arrow function with implicit return)", (t) => {
+	setupSapUiDefineCallWithStubbedLogger(t);
+	const {SapUiDefineCallWithStubbedLogger, warningLogSpy} = t.context;
+	const ast = parse("sap.ui.define(['wanted'], async (johndoe) => johndoe);");
+	const call = new SapUiDefineCallWithStubbedLogger(ast, "FileSystemName");
+	t.is(call.findImportName("wanted.js"), "johndoe");
+	t.is(warningLogSpy.callCount, 0, "Warning log is not called");
 });
 
 test("Export as Global: omitted", (t) => {

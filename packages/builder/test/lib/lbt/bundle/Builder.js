@@ -1744,6 +1744,58 @@ test("rewriteDefine (with empty moduleSourceMap)", async (t) => {
 	});
 });
 
+test("rewriteDefine (with same module name)", async (t) => {
+	const {rewriteDefine} = Builder.__localFunctions__;
+
+	const {moduleContent, moduleSourceMap} = await rewriteDefine({
+		moduleName: "my/test/module.js",
+		moduleContent: "sap.ui.define(\"my/test/module\", [],(()=>1));",
+		moduleSourceMap: undefined
+	});
+
+	t.is(moduleContent, `sap.ui.predefine("my/test/module", [],(()=>1));`);
+	t.is(moduleSourceMap, undefined);
+});
+
+test("rewriteDefine (with other module name)", async (t) => {
+	const {rewriteDefine} = Builder.__localFunctions__;
+
+	const {moduleContent, moduleSourceMap} = await rewriteDefine({
+		moduleName: "my/test/module1.js",
+		moduleContent: "sap.ui.define(\"my/test/module\", [],(()=>1));",
+		moduleSourceMap: undefined
+	});
+
+	t.is(moduleContent, `sap.ui.predefine("my/test/module", [],(()=>1));`);
+	t.is(moduleSourceMap, undefined);
+});
+
+test("rewriteDefine (with same module name as template literal)", async (t) => {
+	const {rewriteDefine} = Builder.__localFunctions__;
+
+	const {moduleContent, moduleSourceMap} = await rewriteDefine({
+		moduleName: "my/test/module.js",
+		moduleContent: "sap.ui.define(`my/test/module`, [],(()=>1));",
+		moduleSourceMap: undefined
+	});
+
+	t.is(moduleContent, "sap.ui.predefine(`my/test/module`, [],(()=>1));");
+	t.is(moduleSourceMap, undefined);
+});
+
+test("rewriteDefine (with other module name as template literal)", async (t) => {
+	const {rewriteDefine} = Builder.__localFunctions__;
+
+	const {moduleContent, moduleSourceMap} = await rewriteDefine({
+		moduleName: "my/test/module1.js",
+		moduleContent: "sap.ui.define(`my/test/module`, [],(()=>1));",
+		moduleSourceMap: undefined
+	});
+
+	t.is(moduleContent, "sap.ui.predefine(`my/test/module`, [],(()=>1));");
+	t.is(moduleSourceMap, undefined);
+});
+
 test("getSourceMapForModule: Source map resource named after module resource (no sourceMappingURL)", async (t) => {
 	const originalSourceMap = {
 		"version": 3,

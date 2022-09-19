@@ -5,7 +5,9 @@ const escope = require("escope");
 const ModuleName = require("../utils/ModuleName");
 const {Format: ModuleFormat} = require("../resources/ModuleInfo");
 const UI5ClientConstants = require("../UI5ClientConstants");
-const {findOwnProperty, getLocation, getPropertyKey, isMethodCall, isString} = require("../utils/ASTUtils");
+const {
+	findOwnProperty, getLocation, getPropertyKey,
+	isMethodCall, isString, getStringValue} = require("../utils/ASTUtils");
 const log = require("@ui5/logger").getLogger("lbt:analyzer:JSModuleAnalyzer");
 
 // ------------------------------------------------------------------------------------------------------------------
@@ -64,7 +66,7 @@ const EnrichedVisitorKeys = (function() {
 		BreakStatement: [],
 		CallExpression: [], // special handling
 		CatchClause: ["param", "body"],
-		ChainExpression: [],
+		ChainExpression: ["expression"],
 		ClassBody: [],
 		ClassDeclaration: [],
 		ClassExpression: [],
@@ -114,7 +116,7 @@ const EnrichedVisitorKeys = (function() {
 		ImportSpecifier: [], // imported, local
 		Literal: [],
 		LabeledStatement: [],
-		LogicalExpression: [],
+		LogicalExpression: ["right"],
 		MemberExpression: [],
 		MetaProperty: toBeDone(["meta", "property"]),
 		MethodDefinition: [],
@@ -541,21 +543,27 @@ class JSModuleAnalyzer {
 
 		function onDeclare(node) {
 			const args = node.arguments;
-			if ( args.length > 0 && isString(args[0]) ) {
-				const name = ModuleName.fromUI5LegacyName( args[0].value );
-				if ( nModuleDeclarations === 1 && !mainModuleFound) {
-					// if this is the first declaration, then this is the main module declaration
-					// note that this overrides an already given name
-					setMainModuleInfo(name, getDocumentation(node));
-				} else if ( nModuleDeclarations > 1 && name === info.name ) {
-					// ignore duplicate declarations (e.g. in behavior file of design time controls)
-					log.warn(`duplicate declaration of module name at ${getLocation(args)} in ${name}`);
+			if (args.length > 0) {
+				const value = getStringValue(args[0]);
+				if (value !== undefined) {
+					const name = ModuleName.fromUI5LegacyName(value);
+					if ( nModuleDeclarations === 1 && !mainModuleFound) {
+						// if this is the first declaration, then this is the main module declaration
+						// note that this overrides an already given name
+						setMainModuleInfo(name, getDocumentation(node));
+					} else if ( nModuleDeclarations > 1 && name === info.name ) {
+						// ignore duplicate declarations (e.g. in behavior file of design time controls)
+						log.warn(`duplicate declaration of module name at ${getLocation(args)} in ${name}`);
+					} else {
+						// otherwise it is just a submodule declaration
+						info.addSubModule(name);
+					}
+					return;
 				} else {
-					// otherwise it is just a submodule declaration
-					info.addSubModule(name);
+					log.error("jQuery.sap.declare: module name could not be determined from first argument:", args[0]);
 				}
 			} else {
-				log.error("jQuery.sap.declare: module name could not be determined from first argument:", args[0]);
+				log.error("jQuery.sap.declare: module name could not be determined, no arguments are given");
 			}
 		}
 
@@ -569,20 +577,26 @@ class JSModuleAnalyzer {
 
 			// determine the name of the module
 			let name = null;
-			if ( i < nArgs && isString(args[i]) ) {
-				name = ModuleName.fromRequireJSName( args[i++].value );
-				if ( name === defaultName ) {
-					// hardcoded name equals the file name, so this definition qualifies as main module definition
-					setMainModuleInfo(name, desc);
-				} else {
-					info.addSubModule(name);
-					if ( candidateName == null ) {
-						// remember the name and description in case no other module qualifies as main module
-						candidateName = name;
-						candidateDescription = desc;
+			if ( i < nArgs ) {
+				const value = getStringValue( args[i] );
+				if ( value !== undefined ) {
+					name = ModuleName.fromRequireJSName(value);
+					if ( name === defaultName ) {
+						// hardcoded name equals the file name, so this definition qualifies as main module definition
+						setMainModuleInfo(name, desc);
+					} else {
+						info.addSubModule(name);
+						if ( candidateName == null ) {
+							// remember the name and description in case no other module qualifies as main module
+							candidateName = name;
+							candidateDescription = desc;
+						}
 					}
+					i++;
 				}
-			} else {
+			}
+
+			if ( !name ) {
 				nUnnamedDefines++;
 				if ( nUnnamedDefines > 1 ) {
 					throw new Error(
@@ -614,15 +628,25 @@ class JSModuleAnalyzer {
 				// UI5 signature with one or many required modules
 				for (let i = 0; i < nArgs; i++) {
 					const arg = args[i];
-					if ( isString(arg) ) {
-						const requiredModuleName = ModuleName.fromUI5LegacyName( arg.value );
+					const value = getStringValue(arg);
+					if ( value !== undefined ) {
+						const requiredModuleName = ModuleName.fromUI5LegacyName( value );
 						info.addDependency(requiredModuleName, conditional);
-					} else if ( arg.type == Syntax.ConditionalExpression &&
-									isString(arg.consequent) && isString(arg.alternate) ) {
-						const requiredModuleName1 = ModuleName.fromUI5LegacyName( arg.consequent.value );
-						info.addDependency(requiredModuleName1, true);
-						const requiredModuleName2 = ModuleName.fromUI5LegacyName( arg.alternate.value );
-						info.addDependency(requiredModuleName2, true);
+					} else if ( arg.type == Syntax.ConditionalExpression) {
+						const consequentValue = getStringValue(arg.consequent);
+						const alternateValue = getStringValue(arg.alternate);
+						if ( consequentValue !== undefined ) {
+							const requiredModuleName1 = ModuleName.fromUI5LegacyName( consequentValue );
+							info.addDependency(requiredModuleName1, true);
+						}
+						if ( alternateValue !== undefined ) {
+							const requiredModuleName2 = ModuleName.fromUI5LegacyName( alternateValue );
+							info.addDependency(requiredModuleName2, true);
+						}
+						if ( consequentValue === undefined || alternateValue === undefined ) {
+							log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg && arg.type);
+							info.dynamicDependencies = true;
+						}
 					} else {
 						log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg && arg.type);
 						info.dynamicDependencies = true;
@@ -637,9 +661,10 @@ class JSModuleAnalyzer {
 			const i = 0;
 
 			if ( i < nArgs ) {
-				if ( isString(args[i]) ) {
+				const value = getStringValue(args[i]);
+				if ( value !== undefined ) {
 					// sap.ui.requireSync does not support relative dependencies
-					const moduleName = ModuleName.fromRequireJSName( args[i].value );
+					const moduleName = ModuleName.fromRequireJSName( value );
 					info.addDependency(moduleName, conditional);
 				} else {
 					log.verbose("sap.ui.requireSync: cannot evaluate dynamic arguments: ", args[i] && args[i].type);
@@ -654,18 +679,24 @@ class JSModuleAnalyzer {
 			let i = 0;
 
 			// determine the name of the module
-			if ( i < nArgs && isString(args[i]) ) {
-				const moduleName = ModuleName.fromRequireJSName( args[i++].value );
-				info.addSubModule(moduleName);
+			if ( i < nArgs ) {
+				const value = getStringValue(args[i++]);
+				if ( value !== undefined ) {
+					const moduleName = ModuleName.fromRequireJSName( value );
+					info.addSubModule(moduleName);
 
-				// add dependencies
-				// to correctly identify dependencies e.g. of a library-preload
-				const elementArg = args[i++];
-				if (elementArg && elementArg.type === Syntax.ArrayExpression) {
-					elementArg.elements.forEach((element) => {
-						const dependencyName = ModuleName.resolveRelativeRequireJSName(moduleName, element.value);
-						info.addDependency(dependencyName, conditional);
-					});
+					// add dependencies
+					// to correctly identify dependencies e.g. of a library-preload
+					const elementArg = args[i++];
+					if (elementArg && elementArg.type === Syntax.ArrayExpression) {
+						elementArg.elements.forEach((element) => {
+							const dependencyName = ModuleName.resolveRelativeRequireJSName(moduleName,
+								getStringValue(element));
+							info.addDependency(dependencyName, conditional);
+						});
+					}
+				} else {
+					log.warn("sap.ui.predefine call has a non supported type for module name (ignored)");
 				}
 			} else {
 				log.warn("sap.ui.predefine call is missing a module name (ignored)");
@@ -692,6 +723,9 @@ class JSModuleAnalyzer {
 			if ( modules && modules.type == Syntax.ObjectExpression ) {
 				modules.properties.forEach( function(property) {
 					let	moduleName = getPropertyKey(property);
+					if ( !moduleName ) {
+						return;
+					}
 					if ( namesUseLegacyNotation ) {
 						moduleName = ModuleName.fromUI5LegacyName(moduleName);
 					}
@@ -705,16 +739,17 @@ class JSModuleAnalyzer {
 		function analyzeDependencyArray(array, conditional, name) {
 			// console.log(array);
 			array.forEach( (item) => {
-				if ( isString(item) ) {
+				const value = getStringValue(item);
+				if ( value !== undefined ) {
 					// ignore special AMD dependencies (require, exports, module)
-					if ( SPECIAL_AMD_DEPENDENCIES.indexOf(item.value) >= 0 ) {
+					if ( SPECIAL_AMD_DEPENDENCIES.indexOf(value) >= 0 ) {
 						return;
 					}
 					let requiredModule;
 					if (name == null) {
-						requiredModule = ModuleName.fromRequireJSName( item.value );
+						requiredModule = ModuleName.fromRequireJSName( value );
 					} else {
-						requiredModule = ModuleName.resolveRelativeRequireJSName(name, item.value);
+						requiredModule = ModuleName.resolveRelativeRequireJSName(name, value);
 					}
 					info.addDependency( requiredModule, conditional );
 				} else {

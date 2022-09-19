@@ -2,7 +2,7 @@
 
 const {Syntax} = require("../utils/parseUtils");
 const SapUiDefine = require("../calls/SapUiDefine");
-const {getValue, isMethodCall, isString} = require("../utils/ASTUtils");
+const {getValue, isMethodCall, getStringValue} = require("../utils/ASTUtils");
 const ModuleName = require("../utils/ModuleName");
 const log = require("@ui5/logger").getLogger("lbt:analyzer:XMLCompositeAnalyzer");
 
@@ -19,18 +19,30 @@ class XMLCompositeAnalyzer {
 			const XMLC = defineCall.findImportName("sap/ui/core/XMLComposite.js");
 			// console.log("local name for XMLComposite: %s", XMLC);
 			if ( XMLC && defineCall.factory ) {
-				defineCall.factory.body.body.forEach( (stmt) => {
-					if ( stmt.type === Syntax.VariableDeclaration ) {
-						stmt.declarations.forEach( (decl) => {
-							fragmentName = this._checkForXMLCClassDefinition( XMLC, decl.init ) || fragmentName;
-						});
-					} else if ( stmt.type === Syntax.ExpressionStatement &&
-								stmt.expression.type === Syntax.AssignmentExpression ) {
-						fragmentName = this._checkForXMLCClassDefinition( XMLC, stmt.expression.right ) || fragmentName;
-					}
-				});
-				if ( fragmentName ) {
-					const fragmentModule = ModuleName.fromUI5LegacyName( fragmentName, ".control.xml" );
+				if (defineCall.factory.type === Syntax.ArrowFunctionExpression &&
+					defineCall.factory.expression === true) {
+					fragmentName = this._checkForXMLCClassDefinition(XMLC, defineCall.factory.body);
+				} else {
+					defineCall.factory.body.body.forEach((stmt) => {
+						if (stmt.type === Syntax.VariableDeclaration) {
+							stmt.declarations.forEach((decl) => {
+								fragmentName = this._checkForXMLCClassDefinition(XMLC, decl.init) || fragmentName;
+							});
+						} else if (
+							stmt.type === Syntax.ReturnStatement &&
+							( stmt?.argument?.type === Syntax.CallExpression && stmt.argument.arguments?.length > 1 &&
+								stmt.argument.arguments[1].type === Syntax.ObjectExpression)) {
+							fragmentName =
+								this._checkForXMLCClassDefinition(XMLC, stmt.argument) || fragmentName;
+						} else if (stmt.type === Syntax.ExpressionStatement &&
+							stmt.expression.type === Syntax.AssignmentExpression) {
+							fragmentName =
+								this._checkForXMLCClassDefinition(XMLC, stmt.expression.right) || fragmentName;
+						}
+					});
+				}
+				if (fragmentName) {
+					const fragmentModule = ModuleName.fromUI5LegacyName(fragmentName, ".control.xml");
 					log.verbose("fragment control: add dependency to template fragment %s", fragmentModule);
 					info.addDependency(fragmentModule);
 				}
@@ -42,8 +54,9 @@ class XMLCompositeAnalyzer {
 		let fragmentName;
 		if ( isMethodCall(stmt, [XMLC, "extend"]) ) {
 			// log.verbose(stmt);
-			if ( stmt.arguments.length > 0 && isString(stmt.arguments[0]) ) {
-				fragmentName = stmt.arguments[0].value;
+			const value = getStringValue(stmt.arguments[0]);
+			if ( stmt.arguments.length > 0 && value ) {
+				fragmentName = value;
 			}
 			if ( stmt.arguments.length > 1 && stmt.arguments[1].type === Syntax.ObjectExpression ) {
 				fragmentName = this._analyzeXMLCClassDefinition(stmt.arguments[1]) || fragmentName;
@@ -54,10 +67,7 @@ class XMLCompositeAnalyzer {
 
 	_analyzeXMLCClassDefinition(clazz) {
 		// log.verbose(clazz);
-		const fragmentName = getValue(clazz, ["fragment"]);
-		if ( isString(fragmentName) ) {
-			return fragmentName.value;
-		}
+		return getStringValue(getValue(clazz, ["fragment"]));
 	}
 }
 

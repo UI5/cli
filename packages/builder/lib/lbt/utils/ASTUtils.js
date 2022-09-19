@@ -13,10 +13,31 @@ const {Syntax} = require("../utils/parseUtils");
  * @returns {boolean} Whether the node is a literal and whether its value matches the given string
  */
 function isString(node, literal) {
-	if ( node == null || node.type !== Syntax.Literal || typeof node.value !== "string" ) {
+	const value = getStringValue(node);
+	if (value === undefined) {
 		return false;
 	}
-	return literal == null ? true : node.value === literal;
+	return literal == null ? true: value === literal;
+}
+
+function getStringValue(node) {
+	if (isLiteral(node)) {
+		return node.value;
+	} else if (isTemplateLiteralWithoutExpression(node)) {
+		return node?.quasis?.[0]?.value?.cooked;
+	} else {
+		return undefined;
+	}
+}
+
+function isLiteral(node) {
+	return node && node.type === Syntax.Literal && typeof node.value === "string";
+}
+
+function isTemplateLiteralWithoutExpression(node) {
+	return node?.type === Syntax.TemplateLiteral &&
+		node?.expressions?.length === 0 &&
+		node?.quasis?.length === 1;
 }
 
 function isBoolean(node, literal) {
@@ -47,27 +68,27 @@ function isNamedObject(node, objectPath, length) {
 }
 
 function isIdentifier(node, name) {
-	if ( node.type != Syntax.Identifier ) {
+	if ( node.type === Syntax.Identifier && typeof name == "string" ) {
+		return name === node.name;
+	} else if ( node.type === Syntax.Identifier && Array.isArray(name) ) {
+		return name.find((name) => name === node.name || name === "*") !== undefined;
+	} else if ( node.type === Syntax.ObjectPattern ) {
+		return node.properties.filter((childnode) => isIdentifier(childnode.key, name)).length > 0;
+	} else if ( node.type === Syntax.ArrayPattern ) {
+		return node.elements.filter((childnode) => isIdentifier(childnode, name)).length > 0;
+	} else {
 		return false;
 	}
-	if ( typeof name == "string" ) {
-		return name === node.name;
-	}
-	for (let i = 0; i < name.length; i++) {
-		if ( name[i] === node.name || name[i] === "*" ) {
-			return true;
-		}
-	}
-	return false;
 }
 
 function getPropertyKey(property) {
-	if ( property.key.type === Syntax.Identifier ) {
+	if ( property.type === Syntax.SpreadElement ) {
+		// TODO: Support interpreting SpreadElements
+		return;
+	} else if ( property.key.type === Syntax.Identifier && property.computed !== true ) {
 		return property.key.name;
 	} else if ( property.key.type === Syntax.Literal ) {
 		return String(property.key.value);
-	} else {
-		throw new Error();
 	}
 }
 
@@ -102,10 +123,15 @@ function getValue(obj, names) {
  */
 function getStringArray(array, skipNonStringLiterals) {
 	return array.elements.reduce( (result, item) => {
-		if ( isString(item) ) {
-			result.push(item.value);
+		const value = getStringValue(item);
+		if ( value !== undefined ) {
+			result.push(value);
 		} else if ( !skipNonStringLiterals ) {
-			throw new TypeError("array element is not a string literal:" + item.type);
+			if (item.type === Syntax.TemplateLiteral) {
+				throw new TypeError("array element is a template literal with expressions");
+			} else {
+				throw new TypeError("array element is not a string literal: " + item.type);
+			}
 		}
 		return result;
 	}, []);
@@ -113,6 +139,7 @@ function getStringArray(array, skipNonStringLiterals) {
 
 module.exports = {
 	isString,
+	getStringValue,
 	isBoolean,
 	isMethodCall,
 	isNamedObject,

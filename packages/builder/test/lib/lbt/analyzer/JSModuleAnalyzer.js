@@ -492,32 +492,227 @@ test("Bundle", async (t) => {
 
 test("ES6 Syntax", async (t) => {
 	const info = await analyze("modules/es6-syntax.js", "modules/es6-syntax.js");
+
 	const expected = [
 		"conditional/module1.js",
+		"conditional/module10.js",
+		"conditional/module11.js",
 		"conditional/module2.js",
 		"conditional/module3.js",
 		"conditional/module4.js",
+		"conditional/module6.js",
+		"conditional/module7.js",
+		"conditional/module8.js",
+		"conditional/module9.js",
 		"static/module1.js",
+		"static/module11.js",
+		"static/module12.js",
+		"static/module13.js",
+		"static/module14.js",
 		"static/module2.js",
 		"static/module3.js",
 		"static/module4.js",
 		"static/module5.js",
 		"static/module6.js",
 		"static/module7.js",
+		"static/module8.js",
 		"ui5loader-autoconfig.js"
 	];
 	const actual = info.dependencies.sort();
 	t.deepEqual(actual, expected, "module dependencies should match");
 	expected.forEach((dep) => {
 		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
-			"only dependencies to 'conditional/*' modules should be conditional");
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
 		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
-			"all dependencies other than 'conditional/*' and 'static/*' should be implicit");
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
 		t.false(info.dynamicDependencies,
-			"no use of dynamic dependencies should have been detected");
+			`no use of dynamic dependencies should have been detected (${dep})`);
 		t.false(info.rawModule,
-			"ui5 module");
+			`ui5 module (${dep})`);
 	});
+});
+
+test("ES6 Syntax (with dynamic dependencies)", async (t) => {
+	const info = await analyze(
+		"modules/es6-syntax-dynamic-dependencies.js",
+		"modules/es6-syntax-dynamic-dependencies.js");
+	const expected = [
+		"static/module1.js",
+		"ui5loader-autoconfig.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.true(info.dynamicDependencies,
+			`use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
+});
+
+test("ES6 Async Module", async (t) => {
+	const info = await analyze("modules/es6-async-module.js", "modules/es6-async-module.js");
+	const expected = [
+		"static/module1.js",
+		"ui5loader-autoconfig.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.false(info.dynamicDependencies,
+			`no use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
+});
+
+test("ES6 Template Literal", async (t) => {
+	const info = await analyze("modules/es6-template-literal.js", "modules/es6-template-literal.js");
+	const expected = [
+		"static/module1.js",
+		"static/module2.js",
+		"static/module3.js",
+		"ui5loader-autoconfig.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.false(info.dynamicDependencies,
+			`no use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
+});
+
+test("ES6 Template Literal with Expression", async (t) => {
+	const info = await analyze("modules/es6-template-literal-with-expression.js",
+		"modules/es6-template-literal-with-expression.js");
+	const expected = [
+		"static/module1.js",
+		"static/module2.js",
+		"static/module3.js",
+		"ui5loader-autoconfig.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.true(info.dynamicDependencies,
+			`use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
+});
+
+test("ES6 Template Literal in sap.ui.predefine", async (t) => {
+	const info = await analyze("modules/es6-template-literal-predefine.js",
+		"modules/es6-template-literal-predefine.js");
+	const expected = [
+		"static/module1.js",
+		"static/module2.js",
+		"static/module3.js",
+		"ui5loader-autoconfig.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.false(info.dynamicDependencies,
+			`no use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
+});
+
+test("ChainExpression", (t) => {
+	const content = `
+	sap.ui.define(['require', 'static/module1'], (require) => {
+		sap?.ui?.require?.(['conditional/module2']);
+		sap?.ui?.requireSync?.('conditional/module3');
+		jQuery?.sap?.require?.('conditional.module4');
+		require?.(['conditional/module5']);
+	});`;
+	const info = analyzeString(content, "modules/ChainExpression.js");
+
+	const expected = [
+		"conditional/module2.js",
+		"conditional/module3.js",
+		"conditional/module4.js",
+		"conditional/module5.js",
+		"jquery.sap.global.js",
+		"static/module1.js",
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+	});
+	t.false(info.dynamicDependencies,
+		`no use of dynamic dependencies should have been detected`);
+	t.false(info.rawModule,
+		`ui5 module`);
+});
+
+test("LogicalExpression", (t) => {
+	const content = `
+	sap.ui.define(['require', 'static/module1'], (require, module1) => {
+		module1 && sap.ui.require(['conditional/module2']);
+		module1 || sap.ui.requireSync('conditional/module3');
+		module1 ?? jQuery.sap.require('conditional.module4');
+		!module1 && require(['conditional/module5']);
+
+		sap.ui.require(['static/module2']) && module1;
+		sap.ui.requireSync('static/module3') || module1;
+		jQuery.sap.require('static.module4') ?? module1;
+		require(['static/module5']) && module1;
+	});`;
+	const info = analyzeString(content, "modules/LogicalExpression.js");
+
+	const expected = [
+		"conditional/module2.js",
+		"conditional/module3.js",
+		"conditional/module4.js",
+		"conditional/module5.js",
+		"jquery.sap.global.js",
+		"static/module1.js",
+		"static/module2.js",
+		"static/module3.js",
+		"static/module4.js",
+		"static/module5.js",
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+	});
+	t.false(info.dynamicDependencies,
+		`no use of dynamic dependencies should have been detected`);
+	t.false(info.rawModule,
+		`ui5 module`);
 });
 
 test("Dynamic import (declare/require)", async (t) => {
@@ -526,6 +721,49 @@ test("Dynamic import (declare/require)", async (t) => {
 		"the use of dynamic dependencies should have been detected");
 	t.false(info.rawModule,
 		"ui5 module");
+});
+
+test("Conditional import (declare/require)", async (t) => {
+	const info = await analyze("modules/declare_require_conditional.js",
+		"modules/declare_require_conditional.js");
+	const expected = [
+		"conditional/module1.js",
+		"conditional/module2.js",
+		"jquery.sap.global.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.false(info.dynamicDependencies,
+			`no use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
+});
+
+test("Dynamic import (declare/require/conditional)", async (t) => {
+	const info = await analyze("modules/declare_dynamic_require_conditional.js",
+		"modules/declare_dynamic_require_conditional.js");
+	const expected = [
+		"conditional/module1.js",
+		"jquery.sap.global.js"
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+		t.true(info.dynamicDependencies,
+			`use of dynamic dependencies should have been detected (${dep})`);
+		t.false(info.rawModule,
+			`ui5 module (${dep})`);
+	});
 });
 
 test("Dynamic import (define/require)", async (t) => {
@@ -670,6 +908,20 @@ jQuery.sap.registerPreloadedModules({
 		"submodule from jQuery.sap.registerPreloadedModules");
 });
 
+test("jQuery.sap.registerPreloadedModules (with ObjectExpression, version 1.0 and SpreadExpression)", (t) => {
+	const content = `
+jQuery.sap.registerPreloadedModules({
+	"modules": {
+		...foo
+	},
+	"version": "1.0"
+});
+`;
+	const info = analyzeString(content, "modules/registerPreloadedModules-ObjectExpression.js");
+	t.deepEqual(info.subModules, [],
+		"submodule from jQuery.sap.registerPreloadedModules are empty");
+});
+
 test("jQuery.sap.registerPreloadedModules (with ObjectExpression, version 2.0)", (t) => {
 	const content = `
 jQuery.sap.registerPreloadedModules({
@@ -682,6 +934,20 @@ jQuery.sap.registerPreloadedModules({
 	const info = analyzeString(content, "modules/registerPreloadedModules-ObjectExpression.js");
 	t.deepEqual(info.subModules, ["foo/bar.js"],
 		"submodule from jQuery.sap.registerPreloadedModules");
+});
+
+test("jQuery.sap.registerPreloadedModules (with ObjectExpression, version 2.0 and SpreadExpression)", (t) => {
+	const content = `
+jQuery.sap.registerPreloadedModules({
+	"modules": {
+		...foo
+	},
+	"version": "2.0"
+});
+`;
+	const info = analyzeString(content, "modules/registerPreloadedModules-ObjectExpression.js");
+	t.deepEqual(info.subModules, [],
+		"submodule from jQuery.sap.registerPreloadedModules are empty");
 });
 
 test("Module that contains jQuery.sap.declare should be derived as subModule", (t) => {

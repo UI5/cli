@@ -61,7 +61,7 @@
 const ModuleName = require("../utils/ModuleName");
 const SapUiDefine = require("../calls/SapUiDefine");
 const {parseJS, Syntax} = require("../utils/parseUtils");
-const {getValue, isMethodCall, isString} = require("../utils/ASTUtils");
+const {getValue, isMethodCall, getStringValue} = require("../utils/ASTUtils");
 const log = require("@ui5/logger").getLogger("lbt:analyzer:FioriElementAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
@@ -165,24 +165,35 @@ class FioriElementsAnalyzer {
 			const TA = defineCall.findImportName("sap/fe/core/TemplateAssembler.js");
 			// console.log("local name for TemplateAssembler: %s", TA);
 			if ( TA && defineCall.factory ) {
-				defineCall.factory.body.body.forEach( (stmt) => {
-					if ( stmt.type === Syntax.ReturnStatement &&
-							isMethodCall(stmt.argument, [TA, "getTemplateComponent"]) &&
-							stmt.argument.arguments.length > 2 &&
-							stmt.argument.arguments[2].type === "ObjectExpression" ) {
-						templateName = this._analyzeTemplateClassDefinition(stmt.argument.arguments[2]) || templateName;
+				if (defineCall.factory.type === Syntax.ArrowFunctionExpression &&
+					defineCall.factory.expression === true) {
+					if ( this._isTemplateClassDefinition(TA, defineCall.factory.body) ) {
+						templateName =
+							this._analyzeTemplateClassDefinition(defineCall.factory.body.arguments[2]) || templateName;
 					}
-				});
+				} else {
+					defineCall.factory.body.body.forEach( (stmt) => {
+						if ( stmt.type === Syntax.ReturnStatement &&
+							this._isTemplateClassDefinition(TA, stmt.argument)
+						) {
+							templateName =
+								this._analyzeTemplateClassDefinition(stmt.argument.arguments[2]) || templateName;
+						}
+					});
+				}
 			}
 		}
 		return templateName;
 	}
 
+	_isTemplateClassDefinition(TA, node) {
+		return isMethodCall(node, [TA, "getTemplateComponent"]) &&
+			node.arguments.length > 2 &&
+			node.arguments[2].type === "ObjectExpression";
+	}
+
 	_analyzeTemplateClassDefinition(clazz) {
-		const defaultValue = getValue(clazz, ["metadata", "properties", "templateName", "defaultValue"]);
-		if ( isString(defaultValue) ) {
-			return defaultValue.value;
-		}
+		return getStringValue(getValue(clazz, ["metadata", "properties", "templateName", "defaultValue"]));
 	}
 }
 

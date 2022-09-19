@@ -2,7 +2,7 @@
 
 const {Syntax} = require("../utils/parseUtils");
 const ModuleName = require("../utils/ModuleName");
-const {isString, isBoolean} = require("../utils/ASTUtils");
+const {isBoolean, getStringValue} = require("../utils/ASTUtils");
 
 class SapUiDefineCall {
 	constructor(node, moduleName) {
@@ -11,6 +11,7 @@ class SapUiDefineCall {
 		this.dependencyArray = null;
 		this.factory = null;
 		this.exportAsGlobal = false;
+		this.paramNames = null;
 
 		const args = node.arguments;
 		if ( args == null ) {
@@ -27,28 +28,33 @@ class SapUiDefineCall {
 		let i = 0;
 		let params;
 
-		if ( i < args.length && isString(args[i]) ) {
+		const name = getStringValue(args[i]);
+		if ( i < args.length && name ) {
 			// assert(String)
-			this.name = args[i++].value;
+			this.name = name;
+			i++;
 		}
 
 		if ( i < args.length && args[i].type === Syntax.ArrayExpression ) {
 			this.dependencyArray = args[i++];
 			this.dependencies = this.dependencyArray.elements.map( (elem) => {
-				if ( !isString(elem) ) {
+				const value = getStringValue(elem);
+				if ( !value ) {
 					throw new TypeError();
 				}
-				return ModuleName.resolveRelativeRequireJSName(this.name, elem.value);
+				return ModuleName.resolveRelativeRequireJSName(this.name, value);
 			});
 			this.dependencyInsertionIdx = this.dependencyArray.elements.length;
 		}
 
-		if ( i < args.length && args[i].type === Syntax.FunctionExpression ) {
+		if ( i < args.length && (
+			args[i].type === Syntax.FunctionExpression || args[i].type === Syntax.ArrowFunctionExpression)
+		) {
 			this.factory = args[i++];
 			params = this.factory.params;
 			this.paramNames = params.map( (param) => {
 				if ( param.type !== Syntax.Identifier ) {
-					throw new TypeError();
+					return null;
 				}
 				return param.name;
 			});
