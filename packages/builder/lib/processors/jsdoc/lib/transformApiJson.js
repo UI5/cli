@@ -25,6 +25,11 @@ const log = (function() {
 	}
 }());
 
+function replaceLastPathSegment(p, replacement) {
+	// Note: path.join also correctly normalizes any POSIX paths on Windows
+	return path.join(path.dirname(p), replacement);
+}
+
 /*
  * Transforms the api.json as created by the JSDoc build into a pre-processed api.json file suitable for the SDK.
  *
@@ -698,7 +703,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 							oMethod.returnValue.types.forEach(oType => {
 
 								// Link Enabled
-								if (!isBuiltInType(oType.value)) {
+								if (!isBuiltInType(oType.value) && possibleUI5Symbol(oType.value)) {
 									oType.href = "api/" + oType.value.replace("[]", "");
 									oType.linkEnabled = true;
 								}
@@ -981,6 +986,57 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 			// Normalize path to resolve relative path
 			sPath = path.normalize(sPath);
 
+			const {sources} = options;
+			let {librarySrcDir, libraryTestDir} = options;
+
+			// Using path.join to normalize POSIX paths to Windows paths on Windows
+			librarySrcDir = path.join(librarySrcDir);
+			libraryTestDir = path.join(libraryTestDir);
+
+			if (Array.isArray(sources) && typeof librarySrcDir === "string" && typeof libraryTestDir === "string") {
+				/**
+				 * Calculate prefix to check
+				 *
+				 * Example 1:
+				 * - sSource: /path/to/project/src
+				 * - sLibrarySrcDir: src
+				 *
+				 * Prefix: /path/to/project/test-resources
+				 *
+				 * Example 2:
+				 * - sSource: /path/to/project/src/main/js
+				 * - sLibrarySrcDir: src/main/js
+				 *
+				 * Prefix: /path/to/project/src/main/test-resources
+				 */
+				const librarySrcDirWithTestResources = replaceLastPathSegment(librarySrcDir, "test-resources");
+
+				for (const sourcePath of sources) {
+					/**
+					 * Replace prefix with file system path
+					 *
+					 * Example 1:
+					 * - sPath: /path/to/project/test-resources/sap/test/demokit/docuindex.json
+					 *
+					 * New sPath: /path/to/project/test/sap/test/demokit/docuindex.json
+					 *
+					 * Example 2:
+					 * - sPath: /path/to/project/src/main/test-resources/sap/test/demokit/docuindex.json
+					 *
+					 * New sPath: /path/to/project/src/main/test/sap/test/demokit/docuindex.json
+					 */
+					if (!sourcePath.endsWith(librarySrcDir)) {
+						continue;
+					}
+					const libraryDir = sourcePath.substring(0, sourcePath.lastIndexOf(librarySrcDir) - 1);
+					const prefix = path.join(libraryDir, librarySrcDirWithTestResources);
+					if (sPath.startsWith(prefix)) {
+						sPath = path.join(libraryDir, libraryTestDir, sPath.substring(prefix.length));
+						break;
+					}
+				}
+			}
+
 			fs.readFile(sPath, 'utf8', (oError, oFileData) => {
 				if (!oError) {
 					oFileData = JSON.parse(oFileData);
@@ -991,7 +1047,7 @@ function transformer(sInputFile, sOutputFile, sLibraryFile, vDependencyAPIFiles,
 						});
 					}
 				}
-				// We aways resolve as this data is not mandatory
+				// We always resolve as this data is not mandatory
 				oResolve(oChainObject);
 			});
 
