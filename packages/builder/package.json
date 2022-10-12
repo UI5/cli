@@ -40,7 +40,7 @@
 		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"postversion": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version",
-		"depcheck": "depcheck --ignores docdash --ignore-patterns lib/processors/jsdoc/lib/ui5"
+		"depcheck": "depcheck --ignores docdash,es5-ext,es6-set --ignore-patterns lib/processors/jsdoc/lib/ui5"
 	},
 	"files": [
 		"index.js",
@@ -109,6 +109,8 @@
 		"@ui5/fs": "^3.0.0-alpha.6",
 		"@ui5/logger": "^3.0.1-alpha.2",
 		"cheerio": "1.0.0-rc.9",
+		"es5-ext": "<=0.10.53",
+		"es6-set": "<=0.1.5",
 		"escape-unicode": "^0.2.0",
 		"escope": "^3.6.0",
 		"espree": "^9.3.1",
