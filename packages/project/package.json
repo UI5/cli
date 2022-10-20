@@ -102,7 +102,7 @@
 		"url": "git@github.com:SAP/ui5-project.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^3.0.0-alpha.10",
+		"@ui5/builder": "^3.0.0-alpha.11",
 		"@ui5/fs": "^3.0.0-alpha.6",
 		"@ui5/logger": "^3.0.1-alpha.2",
 		"ajv": "^6.12.6",
@@ -131,8 +131,8 @@
 		"docdash": "^1.2.0",
 		"eslint": "^8.7.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-jsdoc": "^37.6.3",
 		"eslint-plugin-ava": "^13.0.2",
+		"eslint-plugin-jsdoc": "^37.6.3",
 		"istanbul-lib-coverage": "^3.2.0",
 		"istanbul-lib-instrument": "^4.0.3",
 		"istanbul-lib-report": "^3.0.0",
