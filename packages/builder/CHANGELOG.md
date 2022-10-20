@@ -2,10 +2,26 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.10...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.11...HEAD).
+
+<a name="v3.0.0-alpha.11"></a>
+## [v3.0.0-alpha.11] - 2022-10-12
+### Bug Fixes
+- **package.json:** Downgrade es5-ext dependency [`2b71707`](https://github.com/SAP/ui5-builder/commit/2b71707683480b26aab9957c09e5d22bce8a6450)
+
+### Dependency Updates
+- Bump escope from 3.6.0 to 4.0.0 [`e25af0d`](https://github.com/SAP/ui5-builder/commit/e25af0d9c1184916aa037b4b4ca23d15c5f2a408)
+
+### Features
+- **builder:** Improve support for ES6+ syntax  ([#774](https://github.com/SAP/ui5-builder/issues/774)) [`90385fe`](https://github.com/SAP/ui5-builder/commit/90385feb7cea1e5b864cff035b01263a492972a9)
+- **jsdoc:** Improve support for ES6+ syntax  ([#785](https://github.com/SAP/ui5-builder/issues/785)) [`187a6a3`](https://github.com/SAP/ui5-builder/commit/187a6a35000145d70bf41e0d8b724e5ea8d8dc78)
+
+### Reverts
+- [FIX] package.json: Downgrade es5-ext dependency
+
 
 <a name="v3.0.0-alpha.10"></a>
-## [v3.0.0-alpha.10] - 2022-08-08
+## [v3.0.0-alpha.10] - 2022-08-09
 
 <a name="v3.0.0-alpha.9"></a>
 ## [v3.0.0-alpha.9] - 2022-07-27
@@ -753,6 +769,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.11]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.10...v3.0.0-alpha.11
 [v3.0.0-alpha.10]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.9...v3.0.0-alpha.10
 [v3.0.0-alpha.9]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.8...v3.0.0-alpha.9
 [v3.0.0-alpha.8]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.7...v3.0.0-alpha.8
