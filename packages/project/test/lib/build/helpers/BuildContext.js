@@ -1,13 +1,12 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
-const BuildContext = require("../../../../lib/build/helpers/BuildContext");
+import BuildContext from "../../../../lib/build/helpers/BuildContext.js";
 
 test("Missing parameters", (t) => {
 	const error1 = t.throws(() => {
@@ -111,21 +110,37 @@ test("getBuildOption", (t) => {
 		"(not exposed as buold option)");
 });
 
-test.serial("createProjectContext", (t) => {
+test.serial("createProjectContext", async (t) => {
+	t.plan(6);
+
+	const project = {
+		getType: sinon.stub().returns("foo")
+	};
+	const taskRunner = {"task": "runner"};
 	class DummyProjectContext {
 		constructor({buildContext, project, log}) {
 			t.is(buildContext, testBuildContext, "Correct buildContext parameter");
-			t.is(project, "project", "Correct project parameter");
+			t.is(project, project, "Correct project parameter");
 			t.is(log, "log", "Correct log parameter");
 		}
+		getTaskUtil() {
+			return "taskUtil";
+		}
+		setTaskRunner(_taskRunner) {
+			t.is(_taskRunner, taskRunner);
+		}
 	}
-	mock("../../../../lib/build/helpers/ProjectBuildContext", DummyProjectContext);
+	const BuildContext = await esmock("../../../../lib/build/helpers/BuildContext.js", {
+		"../../../../lib/build/helpers/ProjectBuildContext.js": DummyProjectContext,
+		"../../../../lib/build/TaskRunner.js": {
+			create: sinon.stub().resolves(taskRunner)
+		},
 
-	const BuildContext = mock.reRequire("../../../../lib/build/helpers/BuildContext");
+	});
 	const testBuildContext = new BuildContext("graph", "taskRepository");
 
-	const projectContext = testBuildContext.createProjectContext({
-		project: "project",
+	const projectContext = await testBuildContext.createProjectContext({
+		project,
 		log: "log"
 	});
 

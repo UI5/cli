@@ -1,20 +1,21 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const logger = require("@ui5/logger");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import logger from "@ui5/logger";
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.log = {
 		warn: sinon.stub()
 	};
-	sinon.stub(logger, "getLogger").withArgs("build:helpers:composeTaskList").returns(t.context.log);
+	const logStub = sinon.stub(logger, "getLogger").withArgs("build:helpers:composeTaskList").returns(t.context.log);
 
-	t.context.composeTaskList = mock.reRequire("../../../../lib/build/helpers/composeTaskList");
+	t.context.composeTaskList = await esmock("../../../../lib/build/helpers/composeTaskList.js", {
+		"@ui5/logger": logStub
+	});
 });
 
 test.afterEach.always(() => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 const allTasks = [

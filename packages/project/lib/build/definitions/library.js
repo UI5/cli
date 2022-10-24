@@ -1,4 +1,4 @@
-const {enhancePatternWithExcludes} = require("./_utils");
+import {enhancePatternWithExcludes} from "./_utils.js";
 
 /**
  * Get tasks and their configuration for a given application project
@@ -9,7 +9,7 @@ const {enhancePatternWithExcludes} = require("./_utils");
  * @param {object} parameters.taskUtil
  * @param {Function} parameters.getTask
  */
-module.exports = function({project, taskUtil, getTask}) {
+export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("escapeNonAsciiCharacters", {
 		options: {
@@ -49,8 +49,8 @@ module.exports = function({project, taskUtil, getTask}) {
 					return `!/resources/${pattern}`;
 				}));
 			}
-
-			return getTask("generateJsdoc").task({
+			const generateJsdocTask = await getTask("generateJsdoc");
+			return generateJsdocTask.task({
 				workspace,
 				dependencies,
 				taskUtil,
@@ -117,9 +117,10 @@ module.exports = function({project, taskUtil, getTask}) {
 		tasks.set("generateBundle", {
 			requiresDependencies: true,
 			taskFunction: async ({workspace, dependencies, taskUtil, options}) => {
+				const generateBundleTask = await getTask("generateBundle");
 				return bundles.reduce(function(sequence, bundle) {
 					return sequence.then(function() {
-						return getTask("generateBundle").task({
+						return generateBundleTask.task({
 							workspace,
 							dependencies,
 							taskUtil,
@@ -158,4 +159,4 @@ module.exports = function({project, taskUtil, getTask}) {
 	});
 
 	return tasks;
-};
+}

@@ -7,11 +7,11 @@
  *
  * @private
  * @param {string[]} allTasks
- * @param {module:@ui5/project.build.ProjectBuilder.BuildConfiguration} buildConfig
+ * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} buildConfig
  * 			Build configuration
  * @returns {Array} List of tasks to be executed
  */
-module.exports = function composeTaskList(allTasks, {selfContained, jsdoc, includedTasks, excludedTasks}) {
+export default function composeTaskList(allTasks, {selfContained, jsdoc, includedTasks, excludedTasks}) {
 	let selectedTasks = allTasks.reduce((list, key) => {
 		list[key] = true;
 		return list;
@@ -94,4 +94,4 @@ module.exports = function composeTaskList(allTasks, {selfContained, jsdoc, inclu
 	selectedTasks = Object.keys(selectedTasks).filter((task) => selectedTasks[task]);
 
 	return selectedTasks;
-};
+}

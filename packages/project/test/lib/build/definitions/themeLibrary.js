@@ -1,7 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-
-const themeLibrary = require("../../../../lib/build/definitions/themeLibrary");
+import test from "ava";
+import sinon from "sinon";
+import themeLibrary from "../../../../lib/build/definitions/themeLibrary.js";
 
 function emptyarray() {
 	return [];

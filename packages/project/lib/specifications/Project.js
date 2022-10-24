@@ -1,11 +1,15 @@
-const Specification = require("./Specification");
+import Specification from "./Specification.js";
+import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 
 /**
  * Project
  *
  * @public
- * @memberof module:@ui5/project.specifications
- * @augments  module:@ui5/project.specifications.Specification
+ * @abstract
+ * @class
+ * @alias @ui5/project/specifications/Project
+ * @extends @ui5/project/specifications/Specification
+ * @hideconstructor
  */
 class Project extends Specification {
 	constructor(parameters) {
@@ -123,7 +127,7 @@ class Project extends Specification {
 
 	/* === Resource Access === */
 	/**
-	 * Get a [ReaderCollection]{@link module:@ui5/fs.ReaderCollection} for accessing all resources of the
+	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
 	 * project in the specified "style":
 	 *
 	 * <ul>
@@ -137,15 +141,15 @@ class Project extends Specification {
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources. Can be "buildtime", "runtime" or "flat"
 	 *											This parameter might be ignored by some project types
-	 * @returns {module:@ui5/fs.ReaderCollection} Reader collection allowing access to all resources of the project
+	 * @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection allowing access to all resources of the
+	 *                                                     project
 	 */
-	getReader(options) {
+	async getReader(options) {
 		throw new Error(`getReader must be implemented by subclass ${this.constructor.name}`);
 	}
 
 	getResourceTagCollection() {
 		if (!this._resourceTagCollection) {
-			const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
 			this._resourceTagCollection = new ResourceTagCollection({
 				allowedTags: ["ui5:IsDebugVariant", "ui5:HasDebugVariant"],
 				allowedNamespaces: ["project"],
@@ -156,13 +160,13 @@ class Project extends Specification {
 	}
 
 	/**
-	* Get a [DuplexCollection]{@link module:@ui5/fs.DuplexCollection} for accessing and modifying a
+	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
 	* project's resources. This is always of style <code>buildtime</code>.
 	*
 	* @public
-	* @returns {module:@ui5/fs.DuplexCollection} DuplexCollection
+	* @returns {Promise<@ui5/fs/DuplexCollection>} DuplexCollection
 	*/
-	getWorkspace() {
+	async getWorkspace() {
 		throw new Error(`getWorkspace must be implemented by subclass ${this.constructor.name}`);
 	}
 
@@ -180,4 +184,4 @@ class Project extends Specification {
 	async _parseConfiguration(config) {}
 }
 
-module.exports = Project;
+export default Project;

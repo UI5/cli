@@ -1,13 +1,15 @@
-const fs = require("graceful-fs");
-const path = require("path");
-const {promisify} = require("util");
+import fs from "graceful-fs";
+import path from "node:path";
+import {promisify} from "node:util";
 const readFile = promisify(fs.readFile);
-const jsyaml = require("js-yaml");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const Specification = require("../specifications/Specification");
-const {validate} = require("../validation/validator");
+import jsyaml from "js-yaml";
+import {createReader} from "@ui5/fs/resourceFactory";
+import Specification from "../specifications/Specification.js";
+import {validate} from "../validation/validator.js";
 
-const log = require("@ui5/logger").getLogger("graph:Module");
+import logger from "@ui5/logger";
+
+const log = logger.getLogger("graph:Module");
 
 const DEFAULT_CONFIG_PATH = "ui5.yaml";
 const SAP_THEMES_NS_EXEMPTIONS = ["themelib_sap_fiori_3", "themelib_sap_bluecrystal", "themelib_sap_belize"];
@@ -18,10 +20,11 @@ function clone(obj) {
 /**
  * Raw representation of a UI5 Project. A module can contain zero to one projects and n extensions.
  * This class is intended for private use by the
- * [@ui5/project.graph.projectGraphFromTree]{@link module:@ui5/project.graph.projectGraphFromTree} module
+ * [@ui5/project/graph/ProjectGraphFromTree]{@link @ui5/project/graph/ProjectGraphFromTree} module
  *
  * @private
- * @memberof module:@ui5/project.graph
+ * @class
+ * @alias @ui5/project/graph/Module
  */
 class Module {
 	/**
@@ -35,7 +38,7 @@ class Module {
 	 * @param {object|object[]} [parameters.configuration]
 	 * 						Configuration object or array of objects to use. If supplied, no configuration files
 	 * 						will be read and the `configPath` option must not be provided.
-	 * @param {@ui5/project.graph.ShimCollection} [parameters.shimCollection]
+	 * @param {@ui5/project/graph.ShimCollection} [parameters.shimCollection]
 	 *						Collection of shims that might be relevant for this module
 	 */
 	constructor({id, version, modulePath, configPath, configuration = [], shimCollection}) {
@@ -95,17 +98,17 @@ class Module {
 	/**
 	 * Specifications found in the module
 	 *
-	 * @public
-	 * @typedef {object} SpecificationsResult
-	 * @property {@ui5/project.specifications.Project|undefined} Project found in the module (if one is found)
-	 * @property {@ui5/project.specifications.Extension[]} Array of extensions found in the module
+	 * @private
+	 * @typedef {object} @ui5/project/graph/Module~SpecificationsResult
+	 * @property {@ui5/project/specifications/Project|undefined} Project found in the module (if one is found)
+	 * @property {@ui5/project/specifications/Extension[]} Array of extensions found in the module
 	 *
 	 */
 
 	/**
 	 * Get any available project and extensions of the module
 	 *
-	 * @returns {SpecificationsResult} Project and extensions found in the module
+	 * @returns {@ui5/project/graph/Module~SpecificationsResult} Project and extensions found in the module
 	 */
 	async getSpecifications() {
 		if (this._pGetSpecifications) {
@@ -403,7 +406,7 @@ class Module {
 	* Resource Access
 	*/
 	async getReader() {
-		return resourceFactory.createReader({
+		return createReader({
 			fsBasePath: this.getPath(),
 			virBasePath: "/",
 			name: `Reader for module ${this.getId()}`
@@ -411,4 +414,4 @@ class Module {
 	}
 }
 
-module.exports = Module;
+export default Module;

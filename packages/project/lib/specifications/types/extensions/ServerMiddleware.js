@@ -1,6 +1,16 @@
-const path = require("path");
-const Extension = require("../../Extension");
+import path from "node:path";
+import Extension from "../../Extension.js";
+import {pathToFileURL} from "node:url";
 
+/**
+ * ServerMiddleware
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/extensions/ServerMiddleware
+ * @extends @ui5/project/specifications/Extension
+ * @hideconstructor
+ */
 class ServerMiddleware extends Extension {
 	constructor(parameters) {
 		super(parameters);
@@ -10,9 +20,10 @@ class ServerMiddleware extends Extension {
 	/**
 	* @public
 	*/
-	getMiddleware() {
+	async getMiddleware() {
 		const middlewarePath = path.join(this.getPath(), this._config.middleware.path);
-		return require(middlewarePath);
+		const {default: middleware} = await import(pathToFileURL(middlewarePath));
+		return middleware;
 	}
 	/* === Internals === */
 	/**
@@ -27,4 +38,4 @@ class ServerMiddleware extends Extension {
 	}
 }
 
-module.exports = ServerMiddleware;
+export default ServerMiddleware;

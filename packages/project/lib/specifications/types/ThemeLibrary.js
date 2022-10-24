@@ -1,7 +1,16 @@
-const fsPath = require("path");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const Project = require("../Project");
+import Project from "../Project.js";
+import fsPath from "node:path";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
 
+/**
+ * ThemeLibrary
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/ThemeLibrary
+ * @extends @ui5/project/specifications/Project
+ * @hideconstructor
+ */
 class ThemeLibrary extends Project {
 	constructor(parameters) {
 		super(parameters);
@@ -26,15 +35,16 @@ class ThemeLibrary extends Project {
 
 	/* === Resource Access === */
 	/**
-	 * Get a [ReaderCollection]{@link module:@ui5/fs.ReaderCollection} for accessing all resources of the
+	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
 	 * project.
 	 * This is always of style <code>buildtime</code>, wich for theme libraries is identical to style
 	 * <code>runtime</code>.
 	 *
 	 * @public
-	 * @returns {module:@ui5/fs.ReaderCollection} Reader collection allowing access to all resources of the project
+	 * @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection allowing access to all resources of
+	 *                                                     the project
 	 */
-	getReader() {
+	async getReader() {
 		let reader = resourceFactory.createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: "/resources/",
@@ -64,17 +74,17 @@ class ThemeLibrary extends Project {
 	}
 
 	/**
-	* Get a [DuplexCollection]{@link module:@ui5/fs.DuplexCollection} for accessing and modifying a
+	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
 	* project's resources.
 	*
 	* This is always of style <code>buildtime</code>, wich for theme libraries is identical to style
 	* <code>runtime</code>.
 	*
 	* @public
-	* @returns {module:@ui5/fs.DuplexCollection} DuplexCollection
+	* @returns {Promise<@ui5/fs/DuplexCollection>} DuplexCollection
 	*/
-	getWorkspace() {
-		const reader = this.getReader();
+	async getWorkspace() {
+		const reader = await this.getReader();
 
 		const writer = this._getWriter();
 		return resourceFactory.createWorkspace({
@@ -117,11 +127,11 @@ class ThemeLibrary extends Project {
 		this._log.verbose(`    /resources/ => ${this._srcPath}`);
 		this._log.verbose(`    /test-resources/ => ${this._testPath}`);
 
-		if (!await this._dirExists("/" + this._srcPath)) {
+		if (!(await this._dirExists("/" + this._srcPath))) {
 			throw new Error(
 				`Unable to find directory '${this._srcPath}' in theme-library project ${this.getName()}`);
 		}
-		if (!await this._dirExists("/" + this._testPath)) {
+		if (!(await this._dirExists("/" + this._testPath))) {
 			this._log.verbose(`    (/test-resources/ target does not exist)`);
 		} else {
 			this._testPathExists = true;
@@ -129,4 +139,4 @@ class ThemeLibrary extends Project {
 	}
 }
 
-module.exports = ThemeLibrary;
+export default ThemeLibrary;

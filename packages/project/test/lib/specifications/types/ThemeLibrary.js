@@ -1,12 +1,14 @@
-const test = require("ava");
-const path = require("path");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const Specification = require("../../../../lib/specifications/Specification");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinon from "sinon";
+import Specification from "../../../../lib/specifications/Specification.js";
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const themeLibraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "theme.library.e");
 const basicProjectInput = {
@@ -26,11 +28,10 @@ const basicProjectInput = {
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test("Correct class", async (t) => {
-	const ThemeLibrary = mock.reRequire("../../../../lib/specifications/types/ThemeLibrary");
+	const {default: ThemeLibrary} = await import("../../../../lib/specifications/types/ThemeLibrary.js");
 	const project = await Specification.create(basicProjectInput);
 	t.true(project instanceof ThemeLibrary, `Is an instance of the ThemeLibrary class`);
 });

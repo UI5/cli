@@ -1,12 +1,15 @@
-const test = require("ava");
-const path = require("path");
-const sinonGlobal = require("sinon");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinonGlobal from "sinon";
 
-const projectGraphFromStaticFile = require("../../lib/generateProjectGraph").usingStaticFile;
+import {graphFromStaticFile} from "../../../lib/graph/graph.js";
 
-const applicationHPath = path.join(__dirname, "..", "fixtures", "application.h");
-const applicationAPath = path.join(__dirname, "..", "fixtures", "application.a");
-const notExistingPath = path.join(__dirname, "..", "fixtures", "does_not_exist");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
+const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
+const notExistingPath = path.join(__dirname, "..", "..", "fixtures", "does_not_exist");
 
 test.beforeEach((t) => {
 	t.context.sinon = sinonGlobal.createSandbox();
@@ -17,7 +20,7 @@ test.afterEach.always((t) => {
 });
 
 test("Application H: Traverse project graph breadth first", async (t) => {
-	const projectGraph = await projectGraphFromStaticFile({
+	const projectGraph = await graphFromStaticFile({
 		cwd: applicationHPath
 	});
 	const callbackStub = t.context.sinon.stub().resolves();
@@ -34,7 +37,7 @@ test("Application H: Traverse project graph breadth first", async (t) => {
 });
 
 test("Throws error if file not found", async (t) => {
-	const err = await t.throwsAsync(projectGraphFromStaticFile({
+	const err = await t.throwsAsync(graphFromStaticFile({
 		cwd: notExistingPath
 	}));
 	t.is(err.message,
@@ -45,7 +48,7 @@ test("Throws error if file not found", async (t) => {
 });
 
 test("Throws for missing id", async (t) => {
-	const err = await t.throwsAsync(projectGraphFromStaticFile({
+	const err = await t.throwsAsync(graphFromStaticFile({
 		cwd: applicationHPath,
 		filePath: "projectDependencies-missing-id.yaml"
 	}));
@@ -57,7 +60,7 @@ test("Throws for missing id", async (t) => {
 });
 
 test("Throws for missing version", async (t) => {
-	const err = await t.throwsAsync(projectGraphFromStaticFile({
+	const err = await t.throwsAsync(graphFromStaticFile({
 		cwd: applicationHPath,
 		filePath: "projectDependencies-missing-version.yaml"
 	}));
@@ -69,7 +72,7 @@ test("Throws for missing version", async (t) => {
 });
 
 test("Throws for missing path", async (t) => {
-	const err = await t.throwsAsync(projectGraphFromStaticFile({
+	const err = await t.throwsAsync(graphFromStaticFile({
 		cwd: applicationHPath,
 		filePath: "projectDependencies-missing-path.yaml"
 	}));
@@ -81,7 +84,7 @@ test("Throws for missing path", async (t) => {
 });
 
 test("rootConfiguration", async (t) => {
-	const projectGraph = await projectGraphFromStaticFile({
+	const projectGraph = await graphFromStaticFile({
 		cwd: applicationHPath,
 		rootConfiguration: {
 			specVersion: "2.6",
@@ -100,7 +103,7 @@ test("rootConfiguration", async (t) => {
 });
 
 test("rootConfig", async (t) => {
-	const projectGraph = await projectGraphFromStaticFile({
+	const projectGraph = await graphFromStaticFile({
 		cwd: applicationHPath,
 		rootConfigPath: "ui5-test-configPath.yaml"
 	});

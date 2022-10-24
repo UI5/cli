@@ -1,9 +1,9 @@
-const customConfiguration = require("./customConfiguration");
+import customConfiguration from "./customConfiguration.js";
 
 /**
  * Common test functionality to be able to run the same tests for different types of kind "extension"
  */
-module.exports = {
+export default {
 	/**
 	 * Executes the tests for different types of kind extension, e.g. "project-shim", "server-middleware" and "task"
 	 *

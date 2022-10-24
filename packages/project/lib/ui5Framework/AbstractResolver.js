@@ -1,6 +1,8 @@
-const path = require("path");
-const log = require("@ui5/logger").getLogger("ui5Framework:AbstractResolver");
-const semver = require("semver");
+import path from "node:path";
+import os from "node:os";
+import logger from "@ui5/logger";
+const log = logger.getLogger("ui5Framework:AbstractResolver");
+import semver from "semver";
 
 // Matches Semantic Versioning 2.0.0 versions
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
@@ -18,9 +20,11 @@ const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 /**
  * Abstract Resolver
  *
- * @public
  * @abstract
- * @memberof module:@ui5/project.ui5Framework
+ * @public
+ * @class
+ * @alias @ui5/project/ui5Framework/AbstractResolver
+ * @hideconstructor
  */
 class AbstractResolver {
 	/**
@@ -39,7 +43,7 @@ class AbstractResolver {
 			throw new Error(`AbstractResolver: Missing parameter "version"`);
 		}
 
-		this._ui5HomeDir = ui5HomeDir ? path.resolve(ui5HomeDir) : path.join(require("os").homedir(), ".ui5");
+		this._ui5HomeDir = ui5HomeDir ? path.resolve(ui5HomeDir) : path.join(os.homedir(), ".ui5");
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
 	}
@@ -106,14 +110,14 @@ class AbstractResolver {
 	 * };
 	 *
 	 * @public
-	 * @typedef {object} LibraryMetadataEntry
+	 * @typedef {object} @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry
 	 * @property {string} id Identifier
 	 * @property {string} version Version
 	 * @property {string} path Path
 	 * @property {string[]} dependencies List of dependency ids
 	 * @property {string[]} optionalDependencies List of optional dependency ids
-	 * @memberof module:@ui5/project.ui5Framework
 	 */
+
 	/**
 	 * Install result
 	 *
@@ -130,11 +134,12 @@ class AbstractResolver {
 	 * };
 	 *
 	 * @public
-	 * @typedef {object} ResolverInstallResult
-	 * @property {object.<string, module:@ui5/project.ui5Framework.LibraryMetadataEntry>} libraryMetadata
+	 * @typedef {object} @ui5/project/ui5Framework/AbstractResolver~ResolverInstallResult
+	 * @property {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} libraryMetadata
 	 *   Object containing all installed libraries with library name as key
-	 * @memberof module:@ui5/project.ui5Framework
 	 */
+
+	/* eslint-enable max-len */
 	/**
 	 * Installs the provided libraries and their dependencies
 	 *
@@ -151,7 +156,7 @@ class AbstractResolver {
 	 *
 	 * @public
 	 * @param {string[]} libraryNames List of library names to be installed
-	 * @returns {module:@ui5/project.ui5Framework.ResolverInstallResult}
+	 * @returns {@ui5/project/ui5Framework/AbstractResolver~ResolverInstallResult}
 	 *   Resolves with an object containing the <code>libraryMetadata</code>
 	 */
 	async install(libraryNames) {
@@ -211,9 +216,10 @@ class AbstractResolver {
 	}
 }
 
+/* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
 	// Export pattern for testing to be checked against JSON schema pattern
 	AbstractResolver._SEMVER_VERSION_REGEXP = SEMVER_VERSION_REGEXP;
 }
 
-module.exports = AbstractResolver;
+export default AbstractResolver;

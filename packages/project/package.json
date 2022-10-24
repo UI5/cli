@@ -16,7 +16,17 @@
 		"development",
 		"tool"
 	],
-	"main": "index.js",
+	"type": "module",
+	"exports": {
+		"./ui5Framework/Openui5Resolver": "./lib/ui5Framework/Openui5Resolver.js",
+		"./ui5Framework/Sapui5Resolver": "./lib/ui5Framework/Sapui5Resolver.js",
+		"./validation/validator": "./lib/validation/validator.js",
+		"./validation/ValidationError": "./lib/validation/ValidationError.js",
+		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
+		"./graph/projectGraphBuilder": "./lib/graph/projectGraphBuilder.js",
+		"./graph": "./lib/graph/graph.js",
+		"./package.json": "./package.json"
+	},
 	"engines": {
 		"node": ">= 16.13.2",
 		"npm": ">= 8"
@@ -27,11 +37,11 @@
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
-		"unit-watch": "rimraf test/tmp && ava --watch",
-		"unit-nyan": "rimraf test/tmp && ava --tap | tnyan",
-		"unit-xunit": "rimraf test/tmp && ava --tap --timeout=1m | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
+		"unit-watch": "npm run unit -- --watch",
+		"unit-nyan": "npm run unit -- --tap | tnyan",
+		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
-		"coverage": "nyc npm run unit",
+		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
 		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
 		"jsdoc-generate": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
@@ -40,10 +50,9 @@
 		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"postversion": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version",
-		"depcheck": "depcheck --ignores docdash"
+		"depcheck": "depcheck --ignores @ui5/project,docdash,@istanbuljs/esm-loader-hook"
 	},
 	"files": [
-		"index.js",
 		"CHANGELOG.md",
 		"CONTRIBUTING.md",
 		"jsdoc.json",
@@ -55,6 +64,10 @@
 		"files": [
 			"test/lib/**/*.js",
 			"!test/**/__helper__/**"
+		],
+		"nodeArguments": [
+			"--loader=esmock",
+			"--no-warnings"
 		]
 	},
 	"nyc": {
@@ -68,8 +81,8 @@
 			"jsdocs/**",
 			"coverage/**",
 			"test/**",
-			".eslintrc.js",
-			"jsdoc-plugin.js"
+			".eslintrc.cjs",
+			"jsdoc-plugin.cjs"
 		],
 		"check-coverage": true,
 		"statements": 90,
@@ -102,9 +115,9 @@
 		"url": "git@github.com:SAP/ui5-project.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^3.0.0-alpha.11",
-		"@ui5/fs": "^3.0.0-alpha.6",
-		"@ui5/logger": "^3.0.1-alpha.2",
+		"@ui5/builder": "^3.0.0-alpha.12",
+		"@ui5/fs": "^3.0.0-alpha.7",
+		"@ui5/logger": "^3.0.1-alpha.3",
 		"ajv": "^6.12.6",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^4.1.2",
@@ -124,7 +137,8 @@
 		"xml2js": "^0.4.23"
 	},
 	"devDependencies": {
-		"ava": "^3.15.0",
+		"@istanbuljs/esm-loader-hook": "^0.2.0",
+		"ava": "^4.3.3",
 		"chokidar-cli": "^2.1.0",
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.3",
@@ -133,16 +147,16 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^13.0.2",
 		"eslint-plugin-jsdoc": "^37.6.3",
+		"esmock": "^2.0.0",
 		"istanbul-lib-coverage": "^3.2.0",
 		"istanbul-lib-instrument": "^4.0.3",
 		"istanbul-lib-report": "^3.0.0",
 		"istanbul-reports": "^3.1.3",
 		"js-beautify": "^1.14.0",
 		"jsdoc": "^3.6.7",
-		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^6.0.1",
-		"sinon": "^11.1.2",
+		"sinon": "^14.0.0",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}

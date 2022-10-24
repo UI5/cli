@@ -1,8 +1,11 @@
-const test = require("ava");
-const path = require("path");
-const createBuildManifest = require("../../../../lib/build/helpers/createBuildManifest");
-const Module = require("../../../../lib/graph/Module");
-const Specification = require("../../../../lib/specifications/Specification");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import createBuildManifest from "../../../../lib/build/helpers/createBuildManifest.js";
+import Module from "../../../../lib/graph/Module.js";
+import Specification from "../../../../lib/specifications/Specification.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const buildDescrApplicationAPath =
@@ -61,7 +64,8 @@ test("Create project from application project providing a build manifest", async
 		"Archive project has correct tag");
 	t.is(project.getVersion(), "2.0.0", "Archive project has version from archive module");
 
-	const resources = await project.getReader().byGlob("**/test.js");
+	const reader = await project.getReader();
+	const resources = await reader.byGlob("**/test.js");
 	t.is(resources.length, 1,
 		"Found requested resource in archive project");
 	t.is(resources[0].getPath(), "/resources/id1/test.js",
@@ -88,7 +92,8 @@ test("Create project from library project providing a build manifest", async (t)
 		"Archive project has correct tag");
 	t.is(project.getVersion(), "2.0.0", "Archive project has version from archive module");
 
-	const resources = await project.getReader().byGlob("**/some.js");
+	const reader = await project.getReader();
+	const resources = await reader.byGlob("**/some.js");
 	t.is(resources.length, 1,
 		"Found requested resource in archive project");
 	t.is(resources[0].getPath(), "/resources/library/e/some.js",

@@ -1,12 +1,12 @@
-const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
-const TaskUtil = require("./TaskUtil");
+import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
+import TaskUtil from "./TaskUtil.js";
 
 /**
  * Build context of a single project. Always part of an overall
- * [Build Context]{@link module:@ui5/project.build.helpers.BuildContext}
+ * [Build Context]{@link @ui5/project/build/helpers/BuildContext}
  *
  * @private
- * @memberof module:@ui5/project.build.helpers
+ * @memberof @ui5/project/build/helpers
  */
 class ProjectBuildContext {
 	constructor({buildContext, log, project}) {
@@ -54,7 +54,7 @@ class ProjectBuildContext {
 	 * Retrieve a single project from the dependency graph
 	 *
 	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
-	 * @returns {module:@ui5/project.specifications.Project|undefined}
+	 * @returns {@ui5/project/specifications/Project|undefined}
 	 *					project instance or undefined if the project is unknown to the graph
 	 */
 	getProject(projectName) {
@@ -93,21 +93,12 @@ class ProjectBuildContext {
 	}
 
 	getTaskRunner() {
-		if (this._taskRunner) {
-			return this._taskRunner;
-		}
-
-		const TaskRunner = require("../TaskRunner");
-		this._taskRunner = new TaskRunner({
-			graph: this._buildContext.getGraph(),
-			project: this._project,
-			taskUtil: this.getTaskUtil(),
-			taskRepository: this._buildContext.getTaskRepository(),
-			parentLogger: this._log,
-			buildConfig: this._buildContext.getBuildConfig()
-		});
 		return this._taskRunner;
+	}
+
+	setTaskRunner(taskRunner) {
+		this._taskRunner = taskRunner;
 	}
 }
 
-module.exports = ProjectBuildContext;
+export default ProjectBuildContext;

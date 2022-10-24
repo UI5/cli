@@ -1,7 +1,7 @@
 /**
  * Common test functionality for framework section in config
  */
-module.exports = {
+export default {
 	/**
 	 * Executes the tests for different types of kind project, e.g. "application", "library" and "theme-library"
 	 *

@@ -1,10 +1,15 @@
-const path = require("path");
-const fs = require("graceful-fs");
-const {promisify} = require("util");
+import path from "node:path";
+import mkdirp from "mkdirp";
+import fs from "graceful-fs";
+import {promisify} from "node:util";
+import Registry from "./Registry.js";
+import _rimraf from "rimraf";
+const rimraf = promisify(_rimraf);
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
-const log = require("@ui5/logger").getLogger("ui5Framework:npm:Installer");
+import logger from "@ui5/logger";
+const log = logger.getLogger("ui5Framework:npm:Installer");
 
 class Installer {
 	constructor({cwd, ui5HomeDir}) {
@@ -26,7 +31,6 @@ class Installer {
 		if (this._cachedRegistry) {
 			return this._cachedRegistry;
 		}
-		const Registry = require("./Registry");
 		return this._cachedRegistry = new Registry({
 			cwd: this._cwd,
 			cacheDir: this._caCacheDir
@@ -78,7 +82,6 @@ class Installer {
 
 					// Check whether staging dir already exists and remove it
 					if (await this._pathExists(stagingDir)) {
-						const rimraf = promisify(require("rimraf"));
 						log.verbose(`Removing existing staging directory at ${stagingDir}...`);
 						await rimraf(stagingDir);
 					}
@@ -88,7 +91,6 @@ class Installer {
 					// never happen. However, we want to be *really* sure that there is no target
 					// directory so that the rename operation won't have any no trouble.
 					if (await this._pathExists(targetDir)) {
-						const rimraf = promisify(require("rimraf"));
 						log.verbose(`Removing existing target directory at ${targetDir}...`);
 						await rimraf(targetDir);
 					}
@@ -98,7 +100,7 @@ class Installer {
 
 					// Do not create target dir itself to prevent EPERM error in following rename operation
 					// (https://github.com/SAP/ui5-tooling/issues/487)
-					await require("mkdirp")(path.dirname(targetDir));
+					await mkdirp(path.dirname(targetDir));
 					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
 					await rename(stagingDir, targetDir);
 				} else {
@@ -131,11 +133,13 @@ class Installer {
 	}
 
 	async _synchronize({pkgName, version}, callback) {
-		const lockfile = require("lockfile");
+		const {
+			default: lockfile
+		} = await import("lockfile");
 		const lock = promisify(lockfile.lock);
 		const unlock = promisify(lockfile.unlock);
 		const lockPath = this._getLockPath({pkgName, version});
-		await require("mkdirp")(this._lockDir);
+		await mkdirp(this._lockDir);
 		log.verbose("Locking " + lockPath);
 		await lock(lockPath, {
 			wait: 10000,
@@ -164,4 +168,4 @@ class Installer {
 	}
 }
 
-module.exports = Installer;
+export default Installer;

@@ -1,8 +1,10 @@
-const test = require("ava");
-const sinon = require("sinon");
-const path = require("path");
-
-const AbstractResolver = require("../../../lib/ui5Framework/AbstractResolver");
+import test from "ava";
+import sinon from "sinon";
+import path from "node:path";
+import os from "node:os";
+import {fileURLToPath} from "node:url";
+import {readFile} from "node:fs/promises";
+import AbstractResolver from "../../../lib/ui5Framework/AbstractResolver.js";
 
 class MyResolver extends AbstractResolver {
 	static async fetchAllVersions() {}
@@ -81,7 +83,7 @@ test("AbstractResolver: Defaults 'ui5HomeDir' to ~/.ui5", (t) => {
 		version: "1.75.0",
 		cwd: "/test-project/"
 	});
-	t.is(resolver._ui5HomeDir, path.join(require("os").homedir(), ".ui5"), "Should default to ~/.ui5");
+	t.is(resolver._ui5HomeDir, path.join(os.homedir(), ".ui5"), "Should default to ~/.ui5");
 });
 
 test("AbstractResolver: getLibraryMetadata should throw an Error when not implemented", async (t) => {
@@ -604,8 +606,12 @@ test.serial(
 			`Make sure the version is valid and available in the configured registry.`);
 	});
 
-test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", (t) => {
-	const projectSchema = require("../../../lib/validation/schema/specVersion/2.0/kind/project.json");
+test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
+	const projectSchema = JSON.parse(
+		await readFile(fileURLToPath(
+			new URL("../../../lib/validation/schema/specVersion/2.0/kind/project.json", import.meta.url)
+		), {encoding: "utf-8"})
+	);
 	const schemaPattern = projectSchema.definitions.framework.properties.version.pattern;
 	t.is(schemaPattern, AbstractResolver._SEMVER_VERSION_REGEXP.source);
 });

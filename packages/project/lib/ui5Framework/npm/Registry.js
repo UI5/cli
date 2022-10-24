@@ -1,4 +1,5 @@
-const log = require("@ui5/logger").getLogger("ui5Framework:npm:Registry");
+import logger from "@ui5/logger";
+const log = logger.getLogger("ui5Framework:npm:Registry");
 
 function logConfig(config, configName) {
 	const configValue = config[configName];
@@ -9,26 +10,34 @@ function logConfig(config, configName) {
 
 class Registry {
 	constructor({cwd, cacheDir}) {
-		this._pacote = require("pacote");
 		this._cwd = cwd;
 		this._cacheDir = cacheDir;
 	}
-	requestPackagePackument(pkgName) {
-		return this._pacote.packument(pkgName, this._getPacoteOptions());
+	async requestPackagePackument(pkgName) {
+		const {pacote, pacoteOptions} = await this._getPacote();
+		return pacote.packument(pkgName, pacoteOptions);
 	}
-	requestPackageManifest(pkgName, version) {
-		return this._pacote.manifest(`${pkgName}@${version}`, this._getPacoteOptions());
+	async requestPackageManifest(pkgName, version) {
+		const {pacote, pacoteOptions} = await this._getPacote();
+		return pacote.manifest(`${pkgName}@${version}`, pacoteOptions);
 	}
 	async extractPackage(pkgName, version, targetDir) {
+		const {pacote, pacoteOptions} = await this._getPacote();
 		try {
-			await this._pacote.extract(`${pkgName}@${version}`, targetDir, this._getPacoteOptions());
+			await pacote.extract(`${pkgName}@${version}`, targetDir, pacoteOptions);
 		} catch (err) {
 			throw new Error(`Failed to extract package ${pkgName}@${version}: ${err.message}`);
 		}
 	}
-	_getPacoteOptions() {
+	async _getPacote() {
+		return {
+			pacote: (await import("pacote")).default,
+			pacoteOptions: await this._getPacoteOptions()
+		};
+	}
+	async _getPacoteOptions() {
 		if (!this._npmConfig) {
-			const libnpmconfig = require("libnpmconfig");
+			const {default: libnpmconfig} = await import("libnpmconfig");
 			const opts = {
 				cache: this._cacheDir
 			};
@@ -58,4 +67,4 @@ class Registry {
 	}
 }
 
-module.exports = Registry;
+export default Registry;

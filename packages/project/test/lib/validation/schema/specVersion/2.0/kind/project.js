@@ -1,7 +1,9 @@
-const test = require("ava");
-const AjvCoverage = require("../../../../../../utils/AjvCoverage");
-const {_Validator: Validator} = require("../../../../../../../lib/validation/validator");
-const ValidationError = require("../../../../../../../lib/validation/ValidationError");
+import test from "ava";
+import Ajv from "ajv";
+import ajvErrors from "ajv-errors";
+import AjvCoverage from "../../../../../../utils/AjvCoverage.js";
+import {_Validator as Validator} from "../../../../../../../lib/validation/validator.js";
+import ValidationError from "../../../../../../../lib/validation/ValidationError.js";
 
 async function assertValidation(t, config, expectedErrors = undefined) {
 	const validation = t.context.validator.validate({config, project: {id: "my-project"}});
@@ -20,7 +22,7 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 }
 
 test.before((t) => {
-	t.context.validator = new Validator();
+	t.context.validator = new Validator({Ajv, ajvErrors});
 	t.context.ajvCoverage = new AjvCoverage(t.context.validator.ajv, {
 		includes: ["schema/specVersion/2.0/kind/project.json"]
 	});

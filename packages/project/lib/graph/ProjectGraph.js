@@ -1,9 +1,13 @@
-const log = require("@ui5/logger").getLogger("graph:ProjectGraph");
+import * as taskRepository from "@ui5/builder/internal/taskRepository";
+import logger from "@ui5/logger";
+const log = logger.getLogger("graph:ProjectGraph");
+
 /**
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions
  *
  * @public
- * @memberof module:@ui5/project.graph
+ * @class
+ * @alias @ui5/project/graph/ProjectGraph
  */
 class ProjectGraph {
 	/**
@@ -16,6 +20,8 @@ class ProjectGraph {
 			throw new Error(`Could not create ProjectGraph: Missing or empty parameter 'rootProjectName'`);
 		}
 		this._rootProjectName = rootProjectName;
+
+		this._taskRepository = taskRepository;
 
 		this._projects = {}; // maps project name to instance
 		this._adjList = {}; // maps project name to edges/dependencies
@@ -31,7 +37,7 @@ class ProjectGraph {
 	 * Get the root project of the graph
 	 *
 	 * @public
-	 * @returns {module:@ui5/project.specifications.Project} Root project
+	 * @returns {@ui5/project/specifications/Project} Root project
 	 */
 	getRoot() {
 		const rootProject = this._projects[this._rootProjectName];
@@ -45,7 +51,7 @@ class ProjectGraph {
 	 * Add a project to the graph
 	 *
 	 * @public
-	 * @param {module:@ui5/project.specifications.Project} project Project which should be added to the graph
+	 * @param {@ui5/project/specifications/Project} project Project which should be added to the graph
 	 * @param {boolean} [ignoreDuplicates=false] Whether an error should be thrown when a duplicate project is added
 	 */
 	addProject(project, ignoreDuplicates) {
@@ -75,7 +81,7 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @param {string} projectName Name of the project to retrieve
-	 * @returns {module:@ui5/project.specifications.Project|undefined}
+	 * @returns {@ui5/project/specifications/Project|undefined}
 	 *					project instance or undefined if the project is unknown to the graph
 	 */
 	getProject(projectName) {
@@ -86,7 +92,7 @@ class ProjectGraph {
 	 * Get all projects in the graph
 	 *
 	 * @public
-	 * @returns {module:@ui5/project.specifications.Project[]}
+	 * @returns {@ui5/project/specifications/Project[]}
 	 */
 	getAllProjects() {
 		return Object.values(this._projects);
@@ -96,7 +102,7 @@ class ProjectGraph {
 	 * Add an extension to the graph
 	 *
 	 * @public
-	 * @param {module:@ui5/project.specification.Extension} extension Extension which should be available in the graph
+	 * @param {@ui5/project/specifications/Extension} extension Extension which should be available in the graph
 	 */
 	addExtension(extension) {
 		this._checkSealed();
@@ -118,7 +124,7 @@ class ProjectGraph {
 	/**
 	 * @public
 	 * @param {string} extensionName Name of the extension to retrieve
-	 * @returns {module:@ui5/project.specification.Extension|undefined}
+	 * @returns {@ui5/project/specifications/Extension|undefined}
 	 *					Extension instance or undefined if the extension is unknown to the graph
 	 */
 	getExtension(extensionName) {
@@ -129,7 +135,7 @@ class ProjectGraph {
 	 * Get all extensions in the graph
 	 *
 	 * @public
-	 * @returns {module:@ui5/project.specifications.Extension[]}
+	 * @returns {@ui5/project/specifications/Extension[]}
 	 */
 	getAllExtensions() {
 		return Object.values(this._extensions);
@@ -301,25 +307,25 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @async
-	 * @callback module:@ui5/project.graph.ProjectGraph~traversalCallback
+	 * @callback @ui5/project/graph/ProjectGraph~traversalCallback
 	 * @param {object} parameters Parameters passed to the callback
-	 * @param {module:@ui5/project.specifications.Project} parameters.project The project that is currently visited
-	 * @param {module:@ui5/project.graph.ProjectGraph~getDependencies} parameters.getDependencies
+	 * @param {@ui5/project/specifications/Project} parameters.project The project that is currently visited
+	 * @param {@ui5/project/graph/ProjectGraph~getDependencies} parameters.getDependencies
 	 * 				Function to access the dependencies of the project that is currently visited.
 	 * @returns {Promise} Must return a promise on which the graph traversal will wait
 	 */
 
 	/**
 	 * Helper function available in the
-	 * [traversalCallback]{@link module:@ui5/project.graph.ProjectGraph~traversalCallback} to access the
+	 * [traversalCallback]{@link @ui5/project/graph/ProjectGraph~traversalCallback} to access the
 	 * dependencies of the corresponding project in the current graph.
 	 * <br><br>
 	 * Note that transitive dependencies can't be accessed this way. Projects should rather add a direct
 	 * dependency to projects they need access to.
 	 *
 	 * @public
-	 * @function module:@ui5/project.graph.ProjectGraph~getDependencies
-	 * @returns {Array.<module:@ui5/project.specifications.Project>} Direct dependencies of the visited project
+	 * @function @ui5/project/graph/ProjectGraph~getDependencies
+	 * @returns {Array.<@ui5/project/specifications/Project>} Direct dependencies of the visited project
 	 */
 
 
@@ -331,7 +337,7 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @param {string} [startName] Name of the project to start the traversal at. Defaults to the graph's root project
-	 * @param {module:@ui5/project.graph.ProjectGraph~traversalCallback} callback Will be called
+	 * @param {@ui5/project/graph/ProjectGraph~traversalCallback} callback Will be called
 	 */
 	async traverseBreadthFirst(startName, callback) {
 		if (!callback) {
@@ -388,7 +394,7 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @param {string} [startName] Name of the project to start the traversal at. Defaults to the graph's root project
-	 * @param {module:@ui5/project.graph.ProjectGraph~traversalCallback} callback Will be called
+	 * @param {@ui5/project/graph/ProjectGraph~traversalCallback} callback Will be called
 	 */
 	async traverseDepthFirst(startName, callback) {
 		if (!callback) {
@@ -430,7 +436,7 @@ class ProjectGraph {
 	 * Projects and extensions which already exist in this graph will cause an error to be thrown
 	 *
 	 * @public
-	 * @param {module:@ui5/project.graph.ProjectGraph} projectGraph Project Graph to merge into this one
+	 * @param {@ui5/project/graph/ProjectGraph} projectGraph Project Graph to merge into this one
 	 */
 	join(projectGraph) {
 		try {
@@ -452,12 +458,13 @@ class ProjectGraph {
 		}
 	}
 
-	setTaskRepository(taskRepository) {
-		this._taskRepository = taskRepository;
+	// Only to be used by @ui5/builder tests to inject its version of the taskRepository
+	setTaskRepository(taskRepo) {
+		this._taskRepository = taskRepo;
 	}
 
 	getTaskRepository() {
-		return this._taskRepository || require("@ui5/builder").tasks.taskRepository;
+		return this._taskRepository;
 	}
 
 	/**
@@ -498,7 +505,9 @@ class ProjectGraph {
 				`Each graph can only be built once`);
 		}
 		this._built = true;
-		const ProjectBuilder = require("../build/ProjectBuilder");
+		const {
+			default: ProjectBuilder
+		} = await import("../build/ProjectBuilder.js");
 		const builder = new ProjectBuilder(this, this.getTaskRepository(), {
 			selfContained, cssVariables, jsdoc,
 			createBuildManifest,
@@ -564,4 +573,4 @@ function mergeMap(target, source) {
 	}
 }
 
-module.exports = ProjectGraph;
+export default ProjectGraph;

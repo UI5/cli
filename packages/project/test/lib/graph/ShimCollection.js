@@ -1,6 +1,5 @@
-const test = require("ava");
-
-const ShimCollection = require("../../../lib/graph/ShimCollection");
+import test from "ava";
+import ShimCollection from "../../../lib/graph/ShimCollection.js";
 
 test("Add shims", (t) => {
 	const collection = new ShimCollection();

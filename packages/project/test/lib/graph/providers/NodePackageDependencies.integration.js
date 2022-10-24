@@ -1,6 +1,10 @@
-const test = require("ava");
-const path = require("path");
-const sinonGlobal = require("sinon");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinonGlobal from "sinon";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const applicationCPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.c");
 const applicationC2Path = path.join(__dirname, "..", "..", "..", "fixtures", "application.c2");
@@ -11,8 +15,8 @@ const applicationGPath = path.join(__dirname, "..", "..", "..", "fixtures", "app
 const errApplicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "err.application.a");
 const cycleDepsBasePath = path.join(__dirname, "..", "..", "..", "fixtures", "cyclic-deps", "node_modules");
 
-const projectGraphBuilder = require("../../../../lib/graph/projectGraphBuilder");
-const NodePackageDependenciesProvider = require("../../../../lib/graph/providers/NodePackageDependencies");
+import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
+import NodePackageDependenciesProvider from "../../../../lib/graph/providers/NodePackageDependencies.js";
 
 test.beforeEach((t) => {
 	t.context.sinon = sinonGlobal.createSandbox();

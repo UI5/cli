@@ -1,11 +1,8 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-const parentLogger = require("@ui5/logger").getGroupLogger("mygroup");
-const taskRepository = require("@ui5/builder").tasks.taskRepository;
-
-const TaskRunner = require("../../../lib/build/TaskRunner");
+import test from "ava";
+import sinonGlobal from "sinon";
+import logger from "@ui5/logger";
+const parentLogger = logger.getGroupLogger("mygroup");
+import TaskRunner from "../../../lib/build/TaskRunner.js";
 
 function noop() {}
 function emptyarray() {
@@ -60,13 +57,20 @@ function getMockProject(type) {
 }
 
 test.beforeEach((t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+
 	t.context.taskUtil = {
 		isRootProject: sinon.stub().returns(true),
 		getBuildOption: sinon.stub(),
 		getInterface: sinon.stub()
 	};
 
-	t.context.taskRepository = taskRepository; // TODO: Mock?
+	t.context.taskRepository = {
+		getTask: sinon.stub().callsFake(async (taskName) => {
+			throw new Error(`taskRepository: Unknown Task ${taskName}`);
+		}),
+		getAllTaskNames: sinon.stub().returns(["replaceVersion"])
+	};
 
 	t.context.graph = {
 		getRoot: () => {
@@ -78,9 +82,13 @@ test.beforeEach((t) => {
 	};
 });
 
-test("Project of type 'application'", (t) => {
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
+});
+
+test("Project of type 'application'", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project: getMockProject("application"), graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -101,9 +109,9 @@ test("Project of type 'application'", (t) => {
 	], "Correct standard tasks");
 });
 
-test("Project of type 'library'", (t) => {
+test("Project of type 'library'", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project: getMockProject("library"), graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -126,9 +134,9 @@ test("Project of type 'library'", (t) => {
 	], "Correct standard tasks");
 });
 
-test("Project of type 'theme-library'", (t) => {
+test("Project of type 'theme-library'", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project: getMockProject("theme-library"), graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -141,19 +149,19 @@ test("Project of type 'theme-library'", (t) => {
 	], "Correct standard tasks");
 });
 
-test("Project of type 'module'", (t) => {
+test("Project of type 'module'", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project: getMockProject("module"), graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
 	t.deepEqual(taskRunner._taskExecutionOrder, [], "Correct standard tasks");
 });
 
-test("Unknown project type", (t) => {
+test("Unknown project type", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project: getMockProject("pony"), graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -161,14 +169,14 @@ test("Unknown project type", (t) => {
 	t.is(err.message, "Unknown project type pony", "Threw with expected error message");
 });
 
-test("Custom tasks", (t) => {
+test("Custom tasks", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "minify"},
 		{name: "myOtherTask", beforeTask: "replaceVersion"}
 	];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -191,14 +199,14 @@ test("Custom tasks", (t) => {
 	], "Custom tasks are inserted correctly");
 });
 
-test("Custom tasks with no standard tasks", (t) => {
+test("Custom tasks with no standard tasks", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask"},
 		{name: "myOtherTask", beforeTask: "myTask"}
 	];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -207,15 +215,15 @@ test("Custom tasks with no standard tasks", (t) => {
 	], "ApplicationBuilder is still instantiated with standard tasks");
 });
 
-test("Custom tasks with no standard tasks and second task defining no before-/afterTask", (t) => {
+test("Custom tasks with no standard tasks and second task defining no before-/afterTask", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask"},
 		{name: "myOtherTask"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -225,14 +233,14 @@ test("Custom tasks with no standard tasks and second task defining no before-/af
 		"Threw with expected error message");
 });
 
-test("Custom tasks with both, before- and afterTask reference", (t) => {
+test("Custom tasks with both, before- and afterTask reference", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", beforeTask: "minify", afterTask: "replaceVersion"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -242,14 +250,14 @@ test("Custom tasks with both, before- and afterTask reference", (t) => {
 		"Threw with expected error message");
 });
 
-test("Custom tasks with no before-/afterTask reference", (t) => {
+test("Custom tasks with no before-/afterTask reference", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -259,14 +267,14 @@ test("Custom tasks with no before-/afterTask reference", (t) => {
 		"Threw with expected error message");
 });
 
-test("Custom tasks without name", (t) => {
+test("Custom tasks without name", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: ""}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -275,14 +283,14 @@ test("Custom tasks without name", (t) => {
 		"Threw with expected error message");
 });
 
-test("Custom task with name of standard tasks", (t) => {
+test("Custom task with name of standard tasks", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "replaceVersion", afterTask: "minify"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -292,7 +300,7 @@ test("Custom task with name of standard tasks", (t) => {
 		"Threw with expected error message");
 });
 
-test("Multiple custom tasks with same name", (t) => {
+test("Multiple custom tasks with same name", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
@@ -300,7 +308,7 @@ test("Multiple custom tasks with same name", (t) => {
 		{name: "myTask", afterTask: "myTask"},
 		{name: "myTask", afterTask: "minify"}
 	];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.deepEqual(taskRunner._taskExecutionOrder, [
@@ -324,14 +332,14 @@ test("Multiple custom tasks with same name", (t) => {
 	], "Custom tasks are inserted correctly");
 });
 
-test("Custom tasks with unknown beforeTask", (t) => {
+test("Custom tasks with unknown beforeTask", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", beforeTask: "unknownTask"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -341,14 +349,14 @@ test("Custom tasks with unknown beforeTask", (t) => {
 		"Threw with expected error message");
 });
 
-test("Custom tasks with unknown afterTask", (t) => {
+test("Custom tasks with unknown afterTask", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "unknownTask"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -358,15 +366,15 @@ test("Custom tasks with unknown afterTask", (t) => {
 		"Threw with expected error message");
 });
 
-test("Custom tasks is unknown", (t) => {
+test("Custom tasks is unknown", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	graph.getExtension.returns(undefined);
 	const project = getMockProject("application");
 	project.getCustomTasks = () => [
 		{name: "myTask", afterTask: "minify"}
 	];
-	const err = t.throws(() => {
-		new TaskRunner({
+	const err = await t.throwsAsync(async () => {
+		await TaskRunner.create({
 			project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 		});
 	});
@@ -377,7 +385,7 @@ test("Custom tasks is unknown", (t) => {
 });
 
 test("Custom task is called correctly", async (t) => {
-	const {graph, taskUtil, taskRepository} = t.context;
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
 	const taskStub = sinon.stub();
 	graph.getExtension.returns({
 		getTask: () => taskStub,
@@ -389,7 +397,7 @@ test("Custom task is called correctly", async (t) => {
 		{name: "myTask", configuration: "configuration"}
 	];
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -419,7 +427,7 @@ test("Custom task is called correctly", async (t) => {
 });
 
 test("Custom task with legacy spec version", async (t) => {
-	const {graph, taskUtil, taskRepository} = t.context;
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
 	const taskStub = sinon.stub();
 	graph.getExtension.returns({
 		getTask: () => taskStub,
@@ -431,7 +439,7 @@ test("Custom task with legacy spec version", async (t) => {
 		{name: "myTask", configuration: "configuration"}
 	];
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -460,7 +468,7 @@ test("Custom task with legacy spec version", async (t) => {
 });
 
 test("Custom task with specVersion 3.0", async (t) => {
-	const {graph, taskUtil, taskRepository} = t.context;
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
 	const taskStub = sinon.stub();
 	graph.getExtension.returns({
 		getTask: () => taskStub,
@@ -472,7 +480,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 		{name: "myTask", configuration: "configuration"}
 	];
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -503,7 +511,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 });
 
 test("Multiple custom tasks with same name are called correctly", async (t) => {
-	const {graph, taskUtil, taskRepository} = t.context;
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
 	const taskStub1 = sinon.stub();
 	const taskStub2 = sinon.stub();
 	const taskStub3 = sinon.stub();
@@ -525,7 +533,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		{name: "myTask", afterTask: "myTask", configuration: "dog"},
 		{name: "myTask", afterTask: "myTask", configuration: "bird"}
 	];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -596,15 +604,15 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 });
 
 test.serial("_addTask", async (t) => {
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
+
 	const taskStub = sinon.stub();
-	const getTaskStub = sinon.stub(require("@ui5/builder").tasks.taskRepository, "getTask").returns({
+	taskRepository.getTask.withArgs("standardTask").resolves({
 		task: taskStub
 	});
-	const TaskRunner = mock.reRequire("../../../lib/build/TaskRunner");
 
-	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -620,9 +628,9 @@ test.serial("_addTask", async (t) => {
 		dependencies: "dependencies",
 	});
 
-	t.is(getTaskStub.callCount, 1, "taskRepository#getTask got called once");
-	t.is(getTaskStub.getCall(0).args[0], "standardTask", "taskRepository#getTask got called with correct argument");
-
+	t.is(taskRepository.getTask.callCount, 1, "taskRepository#getTask got called once");
+	t.is(taskRepository.getTask.getCall(0).args[0], "standardTask",
+		"taskRepository#getTask got called with correct argument");
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.deepEqual(taskStub.getCall(0).args[0], {
 		workspace: "workspace",
@@ -633,19 +641,14 @@ test.serial("_addTask", async (t) => {
 		},
 		taskUtil
 	}, "Task got called with correct arguments");
-
-	getTaskStub.restore();
-	mock.stopAll();
 });
 
 test.serial("_addTask with options", async (t) => {
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
 	const taskStub = sinon.stub();
-	const getTaskStub = sinon.stub(require("@ui5/builder").tasks.taskRepository, "getTask").returns({});
-	const TaskRunner = mock.reRequire("../../../lib/build/TaskRunner");
-
-	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
-	const taskRunner = new TaskRunner({
+
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -667,7 +670,7 @@ test.serial("_addTask with options", async (t) => {
 		dependencies: "dependencies",
 	});
 
-	t.is(getTaskStub.callCount, 0, "taskRepository#getTask did not get called");
+	t.is(taskRepository.getTask.callCount, 0, "taskRepository#getTask did not get called");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.deepEqual(taskStub.getCall(0).args[0], {
@@ -680,15 +683,12 @@ test.serial("_addTask with options", async (t) => {
 		},
 		taskUtil
 	}, "Task got called with correct arguments");
-
-	getTaskStub.restore();
-	mock.stopAll();
 });
 
-test("_addTask: Duplicate task", (t) => {
+test("_addTask: Duplicate task", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -705,10 +705,10 @@ test("_addTask: Duplicate task", (t) => {
 		"Threw with expected error message");
 });
 
-test("_addTask: Task already added to execution order", (t) => {
+test("_addTask: Task already added to execution order", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -723,81 +723,81 @@ test("_addTask: Task already added to execution order", (t) => {
 		"Threw with expected error message");
 });
 
-test("requiresDependencies: Custom Task", (t) => {
+test("requiresDependencies: Custom Task", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
 	project.getCustomTasks = () => [
 		{name: "myTask"}
 	];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.true(taskRunner.requiresDependencies(), "Project with custom task requires dependencies");
 });
 
-test("requiresDependencies: Default application", (t) => {
+test("requiresDependencies: Default application", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("application");
 	project.getBundles = () => [];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.false(taskRunner.requiresDependencies(), "Default application project does not require dependencies");
 });
 
-test("requiresDependencies: Default library", (t) => {
+test("requiresDependencies: Default library", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 	project.getBundles = () => [];
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.true(taskRunner.requiresDependencies(), "Default library project requires dependencies");
 });
 
-test("requiresDependencies: Default theme-library", (t) => {
+test("requiresDependencies: Default theme-library", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("theme-library");
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.true(taskRunner.requiresDependencies(), "Default theme-library project requires dependencies");
 });
 
-test("requiresDependencies: Default module", (t) => {
+test("requiresDependencies: Default module", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("module");
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.false(taskRunner.requiresDependencies(), "Default module project does not require dependencies");
 });
 
-test("requiresBuild: has no build-manifest", (t) => {
+test("requiresBuild: has no build-manifest", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.true(taskRunner.requiresBuild(), "Project without build-manifest requires to be build");
 });
 
-test("requiresBuild: has build-manifest", (t) => {
+test("requiresBuild: has build-manifest", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 	project.hasBuildManifest = () => true;
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.false(taskRunner.requiresBuild(), "Project with build-manifest does not require to be build");
 });
 
-test.serial("getBuildMetadata", (t) => {
-	const {graph, taskUtil, taskRepository} = t.context;
+test.serial("getBuildMetadata", async (t) => {
+	const {sinon, graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 	project.hasBuildManifest = () => true;
 	project.getBuildManifest = () => {
@@ -806,7 +806,7 @@ test.serial("getBuildMetadata", (t) => {
 		};
 	};
 	const getTimeStub = sinon.stub(Date.prototype, "getTime").callThrough().onFirstCall().returns(1659016800000);
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 
@@ -817,11 +817,11 @@ test.serial("getBuildMetadata", (t) => {
 	getTimeStub.restore();
 });
 
-test("getBuildMetadata: has no build-manifest", (t) => {
+test("getBuildMetadata: has no build-manifest", async (t) => {
 	const {graph, taskUtil, taskRepository} = t.context;
 	const project = getMockProject("library");
 
-	const taskRunner = new TaskRunner({
+	const taskRunner = await TaskRunner.create({
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	t.is(taskRunner.getBuildMetadata(), null, "Project has no build manifest");

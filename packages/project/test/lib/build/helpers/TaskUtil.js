@@ -1,6 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const TaskUtil = require("../../../../lib/build/helpers/TaskUtil");
+import test from "ava";
+import sinon from "sinon";
+import TaskUtil from "../../../../lib/build/helpers/TaskUtil.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();

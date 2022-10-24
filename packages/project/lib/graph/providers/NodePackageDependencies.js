@@ -1,17 +1,23 @@
-const path = require("path");
-const readPkgUp = require("read-pkg-up");
-const readPkg = require("read-pkg");
-const {promisify} = require("util");
-const fs = require("graceful-fs");
+import path from "node:path";
+import readPkgUp from "read-pkg-up";
+import readPkg from "read-pkg";
+import {promisify} from "node:util";
+import fs from "graceful-fs";
 const realpath = promisify(fs.realpath);
-const resolveModulePath = promisify(require("resolve"));
-const log = require("@ui5/logger").getLogger("graph:providers:NodePackageDependencies");
+import resolve from "resolve";
+const resolveModulePath = promisify(resolve);
+import logger from "@ui5/logger";
+const log = logger.getLogger("graph:providers:NodePackageDependencies");
 
 // Packages to consider:
 // * https://github.com/npm/read-package-json-fast
 // * https://github.com/npm/name-from-folder ?
 
-
+/**
+ * @public
+ * @class
+ * @alias @ui5/project/graph/providers/NodePackageDependencies
+ */
 class NodePackageDependencies {
 	/**
 	 * Generates a project graph from npm modules
@@ -149,4 +155,4 @@ class NodePackageDependencies {
 	}
 }
 
-module.exports = NodePackageDependencies;
+export default NodePackageDependencies;

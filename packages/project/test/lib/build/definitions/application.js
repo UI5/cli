@@ -1,7 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-
-const application = require("../../../../lib/build/definitions/application");
+import test from "ava";
+import sinon from "sinon";
+import application from "../../../../lib/build/definitions/application.js";
 
 function emptyarray() {
 	return [];

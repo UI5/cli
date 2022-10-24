@@ -1,10 +1,10 @@
-const framework = require("./framework");
-const customConfiguration = require("./customConfiguration");
+import framework from "./framework.js";
+import customConfiguration from "./customConfiguration.js";
 
 /**
  * Common test functionality to be able to run the same tests for different types of kind "project"
  */
-module.exports = {
+export default {
 	/**
 	 * Executes the tests for different types of kind project,
 	 *  e.g. "application", "library", "theme-library" and "module"

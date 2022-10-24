@@ -1,26 +1,21 @@
-const path = require("path");
-const {promisify} = require("util");
-const readFile = promisify(require("fs").readFile);
+import {fileURLToPath} from "node:url";
+import {readFile} from "node:fs/promises";
 
 async function loadSchema(schemaPath) {
 	const filePath = schemaPath.replace("http://ui5.sap/schema/", "");
-	const schemaFile = await readFile(path.join(__dirname, "schema", filePath), {encoding: "utf8"});
+	const schemaFile = await readFile(
+		fileURLToPath(new URL(`./schema/${filePath}`, import.meta.url)), {encoding: "utf8"}
+	);
 	return JSON.parse(schemaFile);
 }
 
-/**
- * @private
- * @memberof module:@ui5/project.validation
- */
 class Validator {
-	constructor() {
-		const Ajv = require("ajv");
+	constructor({Ajv, ajvErrors}) {
 		this.ajv = new Ajv({
 			allErrors: true,
 			jsonPointers: true,
 			loadSchema
 		});
-		const ajvErrors = require("ajv-errors");
 		ajvErrors(this.ajv);
 	}
 
@@ -39,10 +34,13 @@ class Validator {
 		const fnValidate = await this._compileSchema();
 		const valid = fnValidate(config);
 		if (!valid) {
-			const ValidationError = require("./ValidationError");
+			// Read errors/schema from fnValidate before lazy loading ValidationError module.
+			// Otherwise they might be cleared already.
+			const {errors, schema} = fnValidate;
+			const {default: ValidationError} = await import("./ValidationError.js");
 			throw new ValidationError({
-				errors: fnValidate.errors,
-				schema: fnValidate.schema,
+				errors,
+				schema,
 				project,
 				yaml
 			});
@@ -53,33 +51,44 @@ class Validator {
 let validator;
 
 /**
+ * @module @ui5/project/validation/validator
+ * @description A collection of validation related APIs
  * @public
- * @namespace
- * @alias module:@ui5/project.validation.validator
  */
-module.exports = {
+
+/**
+ * Validates the given configuration.
+ *
+ * @public
+ * @function
+ * @static
+ * @param {object} options
+ * @param {object} options.config UI5 Configuration to validate
+ * @param {object} options.project Project information
+ * @param {string} options.project.id ID of the project
+ * @param {object} [options.yaml] YAML information
+ * @param {string} options.yaml.path Path of the YAML file
+ * @param {string} options.yaml.source Content of the YAML file
+ * @param {number} [options.yaml.documentIndex=0] Document index in case the YAML file contains multiple documents
+ * @throws {@ui5/project/validation/ValidationError}
+ *   Rejects with a {@link @ui5/project/validation/ValidationError ValidationError}
+ *   when the validation fails.
+ * @returns {Promise<undefined>} Returns a Promise that resolves when the validation succeeds
+ */
+export async function validate(options) {
+	if (!validator) {
+		const {default: Ajv} = await import("ajv");
+		const {default: ajvErrors} = await import("ajv-errors");
+		validator = new Validator({Ajv, ajvErrors});
+	}
+	await validator.validate(options);
+}
+
+export {
 	/**
-	 * Validates the given configuration.
+	 * For testing only!
 	 *
-	 * @param {object} options
-	 * @param {object} options.config UI5 Configuration to validate
-	 * @param {object} options.project Project information
-	 * @param {string} options.project.id ID of the project
-	 * @param {object} [options.yaml] YAML information
-	 * @param {string} options.yaml.path Path of the YAML file
-	 * @param {string} options.yaml.source Content of the YAML file
-	 * @param {number} [options.yaml.documentIndex=0] Document index in case the YAML file contains multiple documents
-	 * @throws {module:@ui5/project.validation.ValidationError}
-	 *   Rejects with a {@link module:@ui5/project.validation.ValidationError ValidationError}
-	 *   when the validation fails.
-	 * @returns {Promise<undefined>} Returns a Promise that resolves when the validation succeeds
-	 * @public
+	 * @private
 	 */
-	validate: async (options) => {
-		if (!validator) {
-			validator = new Validator();
-		}
-		await validator.validate(options);
-	},
-	_Validator: Validator // For testing only
+	Validator as _Validator
 };

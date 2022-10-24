@@ -1,7 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const ResourceTagCollection = require("@ui5/fs").ResourceTagCollection;
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 
 test.beforeEach((t) => {
 	t.context.resourceTagCollection = new ResourceTagCollection({
@@ -10,10 +10,9 @@ test.beforeEach((t) => {
 });
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
-const ProjectBuildContext = require("../../../../lib/build/helpers/ProjectBuildContext");
+import ProjectBuildContext from "../../../../lib/build/helpers/ProjectBuildContext.js";
 
 test("Missing parameters", (t) => {
 	t.throws(() => {
@@ -112,7 +111,7 @@ test("executeCleanupTasks", (t) => {
 	t.is(task2.callCount, 1, "my task 2", "Cleanup task 2 got called");
 });
 
-test.serial("getResourceTagCollection", (t) => {
+test.serial("getResourceTagCollection", async (t) => {
 	const projectAcceptsTagStub = sinon.stub().returns(false);
 	projectAcceptsTagStub.withArgs("project-tag").returns(true);
 	const projectContextAcceptsTagStub = sinon.stub().returns(false);
@@ -136,11 +135,10 @@ test.serial("getResourceTagCollection", (t) => {
 			return projectContextAcceptsTagStub(tag);
 		}
 	}
-	mock("@ui5/fs", {
-		ResourceTagCollection: DummyResourceTagCollection
-	});
 
-	const ProjectBuildContext = mock.reRequire("../../../../lib/build/helpers/ProjectBuildContext");
+	const ProjectBuildContext = await esmock("../../../../lib/build/helpers/ProjectBuildContext.js", {
+		"@ui5/fs/internal/ResourceTagCollection": DummyResourceTagCollection
+	});
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {},
 		project: "project",
@@ -206,6 +204,7 @@ test("getResourceTagCollection: Assigns project to resource if necessary", (t) =
 });
 
 test("getProject", (t) => {
+	const project = "project";
 	const getProjectStub = sinon.stub().returns("pony");
 	const projectBuildContext = new ProjectBuildContext({
 		buildContext: {
@@ -215,12 +214,16 @@ test("getProject", (t) => {
 				};
 			}
 		},
-		project: "project",
+		project,
 		log: "log"
 	});
 
 	t.is(projectBuildContext.getProject("pony project"), "pony", "Returned correct value");
+	t.is(getProjectStub.callCount, 1);
 	t.is(getProjectStub.getCall(0).args[0], "pony project", "getProject got called with correct argument");
+
+	t.is(projectBuildContext.getProject(), project);
+	t.is(getProjectStub.callCount, 1, "getProject is not called again when requesting current project");
 });
 
 test("getTaskUtil", (t) => {
@@ -234,38 +237,18 @@ test("getTaskUtil", (t) => {
 	t.is(projectBuildContext.getTaskUtil(), projectBuildContext.getTaskUtil(), "Caches TaskUtil instance");
 });
 
-test.serial("getTaskRunner", (t) => {
-	class DummyTaskRunner {
-		constructor(params) {
-			t.deepEqual(params, {
-				graph: "graph",
-				project: "project",
-				taskUtil: "taskUtil",
-				taskRepository: "taskRepository",
-				parentLogger: "log",
-				buildConfig: "buildConfig",
-			}, "Created TaskRunner instance with correct parameters");
-		}
-	}
-	mock("../../../../lib/build/TaskRunner", DummyTaskRunner);
-
-	const ProjectBuildContext = mock.reRequire("../../../../lib/build/helpers/ProjectBuildContext");
-
+test.serial("setTaskRunner / getTaskRunner", (t) => {
 	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {
-			getGraph: () => "graph",
-			getBuildConfig: () => "buildConfig",
-			getTaskRepository: () => "taskRepository",
-		},
+		buildContext: {},
 		project: "project",
-		log: "log",
+		log: "log"
 	});
 
-	sinon.stub(projectBuildContext, "getTaskUtil").returns("taskUtil");
+	t.is(projectBuildContext.getTaskRunner(), undefined, "No taskRunner assigned / created by default");
 
-	t.true(projectBuildContext.getTaskRunner() instanceof DummyTaskRunner,
-		"Returned a TaskRunner instance");
-	t.is(projectBuildContext.getTaskRunner(), projectBuildContext.getTaskRunner(),
-		"Caches TaskRunner instance");
+	const taskRunner = {"task": "runner"};
+	projectBuildContext.setTaskRunner(taskRunner);
+
+	t.is(projectBuildContext.getTaskRunner(), taskRunner, "getter returns previously set object");
 });
 

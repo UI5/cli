@@ -1,8 +1,9 @@
-const path = require("path");
-const Module = require("./Module");
-const ProjectGraph = require("./ProjectGraph");
-const ShimCollection = require("./ShimCollection");
-const log = require("@ui5/logger").getLogger("graph:projectGraphBuilder");
+import path from "node:path";
+import Module from "./Module.js";
+import ProjectGraph from "./ProjectGraph.js";
+import ShimCollection from "./ShimCollection.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("graph:projectGraphBuilder");
 
 function _handleExtensions(graph, shimCollection, extensions) {
 	extensions.forEach((extension) => {
@@ -39,10 +40,15 @@ function validateNode(node) {
 }
 
 /**
+ * @public
+ * @module @ui5/project/graph/ProjectGraphBuilder
+ */
+
+/**
  * Dependency graph node representing a module
  *
  * @public
- * @typedef {object} Node
+ * @typedef {object} @ui5/project/graph/ProjectGraphBuilder~Node
  * @property {string} node.id Unique ID for the project
  * @property {string} node.version Version of the project
  * @property {string} node.path File System path to access the projects resources
@@ -58,36 +64,40 @@ function validateNode(node) {
 /**
  * Node Provider interface
  *
- * @interface NodeProvider
+ * @public
+ * @interface @ui5/project/graph/ProjectGraphBuilder~NodeProvider
  */
 
 /**
  * Retrieve information on the root module
  *
+ * @public
  * @function
- * @name NodeProvider#getRootNode
+ * @name @ui5/project/graph/ProjectGraphBuilder~NodeProvider#getRootNode
  * @returns {Node} The root node of the dependency graph
  */
 
 /**
  * Retrieve information on given a nodes dependencies
  *
+ * @public
  * @function
- * @name NodeProvider#getDependencies
+ * @name @ui5/project/graph/ProjectGraphBuilder~NodeProvider#getDependencies
  * @param {Node} The root node of the dependency graph
  * @returns {Node[]} Array of nodes which are direct dependencies of the given node
  */
 
 /**
- * Generic helper module to create a [@ui5/project.graph.ProjectGraph]{@link module:@ui5/project.graph.ProjectGraph}.
+ * Generic helper module to create a [@ui5/project/graph/ProjectGraph]{@link @ui5/project/graph/ProjectGraph}.
  * For example from a dependency tree as returned by the legacy "translators".
  *
  * @public
- * @alias module:@ui5/project.graph.projectGraphBuilder
- * @param {NodeProvider} nodeProvider
- * @returns {module:@ui5/project.graph.ProjectGraph} A new project graph instance
+ * @function default
+ * @static
+ * @param {@ui5/project/graph/ProjectGraphBuilder~NodeProvider} nodeProvider
+ * @returns {@ui5/project/graph/ProjectGraph} A new project graph instance
  */
-module.exports = async function(nodeProvider) {
+async function projectGraphBuilder(nodeProvider) {
 	const shimCollection = new ShimCollection();
 	const moduleCollection = {};
 
@@ -330,4 +340,6 @@ module.exports = async function(nodeProvider) {
 	await projectGraph.resolveOptionalDependencies();
 
 	return projectGraph;
-};
+}
+
+export default projectGraphBuilder;

@@ -1,9 +1,12 @@
-const path = require("path");
-const test = require("ava");
-const sinonGlobal = require("sinon");
-const mock = require("mock-require");
-const logger = require("@ui5/logger");
-const Specification = require("../../../lib/specifications/Specification");
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
+import Specification from "../../../lib/specifications/Specification.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 
 async function createProject(name) {
@@ -61,7 +64,7 @@ async function _traverse(t, graph, expectedOrder, bfs) {
 	t.deepEqual(callbackCalls, expectedOrder, "Traversed graph in correct order");
 }
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.log = {
@@ -71,14 +74,17 @@ test.beforeEach((t) => {
 		info: sinon.stub(),
 		isLevelEnabled: () => true
 	};
-	sinon.stub(logger, "getLogger").callThrough()
-		.withArgs("graph:ProjectGraph").returns(t.context.log);
-	t.context.ProjectGraph = mock.reRequire("../../../lib/graph/ProjectGraph");
-	logger.getLogger.restore(); // Immediately restore global stub for following tests
+
+	t.context.ProjectGraph = await esmock.p("../../../lib/graph/ProjectGraph.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("graph:ProjectGraph").returns(t.context.log)
+		}
+	});
 });
 
 test.afterEach.always((t) => {
 	t.context.sinon.restore();
+	esmock.purge(t.context.ProjectGraph);
 });
 
 test("Instantiate a basic project graph", (t) => {

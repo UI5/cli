@@ -1,12 +1,11 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const path = require("path");
-const os = require("os");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "node:path";
+import os from "node:os";
+import Openui5Resolver from "../../../lib/ui5Framework/Openui5Resolver.js";
 
-let Sapui5Resolver;
-
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.InstallerStub = sinon.stub();
 	t.context.fetchPackageVersionsStub = sinon.stub();
 	t.context.installPackageStub = sinon.stub();
@@ -21,18 +20,19 @@ test.beforeEach((t) => {
 		};
 	});
 
-	mock("../../../lib/ui5Framework/npm/Installer", t.context.InstallerStub);
-
-	Sapui5Resolver = mock.reRequire("../../../lib/ui5Framework/Sapui5Resolver");
+	t.context.Sapui5Resolver = await esmock("../../../lib/ui5Framework/Sapui5Resolver.js", {
+		"../../../lib/ui5Framework/npm/Installer": t.context.InstallerStub
+	});
 });
 
 test.afterEach.always(() => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial(
 	"Sapui5Resolver: loadDistMetadata loads metadata once from @sapui5/distribution-metadata package", async (t) => {
+		const {Sapui5Resolver} = t.context;
+
 		const resolver = new Sapui5Resolver({
 			cwd: "/test-project/",
 			version: "1.75.0"
@@ -82,6 +82,8 @@ test.serial(
 	});
 
 test.serial("Sapui5Resolver: handleLibrary", async (t) => {
+	const {Sapui5Resolver} = t.context;
+
 	const resolver = new Sapui5Resolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -124,6 +126,8 @@ test.serial("Sapui5Resolver: handleLibrary", async (t) => {
 });
 
 test.serial("Sapui5Resolver: Static fetchAllVersions", async (t) => {
+	const {Sapui5Resolver} = t.context;
+
 	const expectedVersions = ["1.75.0", "1.75.1", "1.76.0"];
 	const options = {
 		cwd: "/cwd",
@@ -149,6 +153,8 @@ test.serial("Sapui5Resolver: Static fetchAllVersions", async (t) => {
 });
 
 test.serial("Sapui5Resolver: Static fetchAllVersions without options", async (t) => {
+	const {Sapui5Resolver} = t.context;
+
 	const expectedVersions = ["1.75.0", "1.75.1", "1.76.0"];
 
 	t.context.fetchPackageVersionsStub.returns(expectedVersions);
@@ -171,6 +177,8 @@ test.serial("Sapui5Resolver: Static fetchAllVersions without options", async (t)
 
 test.serial(
 	"Sapui5Resolver: getLibraryMetadata should use Openui5Resolver for @openui5/ modules in 1.77.x", async (t) => {
+		const {Sapui5Resolver} = t.context;
+
 		const resolver = new Sapui5Resolver({
 			cwd: "/test-project/",
 			version: "1.77.7"
@@ -197,7 +205,6 @@ test.serial(
 			]
 		};
 
-		const Openui5Resolver = require("../../../lib/ui5Framework/Openui5Resolver");
 		const openui5GetLibraryMetadataStub = sinon.stub(Openui5Resolver.prototype, "getLibraryMetadata");
 		openui5GetLibraryMetadataStub.resolves(openui5LibraryMetadata);
 

@@ -1,13 +1,14 @@
-const chalk = require("chalk");
-const escapeStringRegExp = require("escape-string-regexp");
+import chalk from "chalk";
+import escapeStringRegExp from "escape-string-regexp";
 
 /**
  * Error class for validation of project configuration.
  *
  * @public
+ * @class
+ * @alias @ui5/project/validation/ValidationError
+ * @extends Error
  * @hideconstructor
- * @augments Error
- * @memberof module:@ui5/project.validation
  */
 class ValidationError extends Error {
 	constructor({errors, project, yaml}) {
@@ -272,4 +273,4 @@ class ValidationError extends Error {
 	}
 }
 
-module.exports = ValidationError;
+export default ValidationError;

@@ -1,5 +1,14 @@
-const Extension = require("../../Extension");
+import Extension from "../../Extension.js";
 
+/**
+ * ProjectShim
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/extensions/ProjectShim
+ * @extends @ui5/project/specifications/Extension
+ * @hideconstructor
+ */
 class ProjectShim extends Extension {
 	constructor(parameters) {
 		super(parameters);
@@ -34,7 +43,9 @@ class ProjectShim extends Extension {
 	*/
 	async _validateConfig() {
 		if (this._config.shims.collections) {
-			const path = require("path");
+			const {
+				default: path
+			} = await import("path");
 			for (const dependencyDefinition of Object.values(this._config.shims.collections)) {
 				Object.values(dependencyDefinition.modules).forEach((depPath) => {
 					if (path.isAbsolute(depPath)) {
@@ -46,4 +57,4 @@ class ProjectShim extends Extension {
 	}
 }
 
-module.exports = ProjectShim;
+export default ProjectShim;

@@ -1,6 +1,16 @@
-const path = require("path");
-const Extension = require("../../Extension");
+import path from "node:path";
+import Extension from "../../Extension.js";
+import {pathToFileURL} from "node:url";
 
+/**
+ * Task
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/extensions/Task
+ * @extends @ui5/project/specifications/Extension
+ * @hideconstructor
+ */
 class Task extends Extension {
 	constructor(parameters) {
 		super(parameters);
@@ -10,9 +20,10 @@ class Task extends Extension {
 	/**
 	* @public
 	*/
-	getTask() {
+	async getTask() {
 		const taskPath = path.join(this.getPath(), this._config.task.path);
-		return require(taskPath);
+		const {default: task} = await import(pathToFileURL(taskPath));
+		return task;
 	}
 	/* === Internals === */
 	/**
@@ -27,4 +38,4 @@ class Task extends Extension {
 	}
 }
 
-module.exports = Task;
+export default Task;

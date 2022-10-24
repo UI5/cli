@@ -1,6 +1,5 @@
-const test = require("ava");
-
-const moduleDefinition = require("../../../../lib/build/definitions/module");
+import test from "ava";
+import moduleDefinition from "../../../../lib/build/definitions/module.js";
 
 test("Standard build", (t) => {
 	const tasks = moduleDefinition({});

@@ -1,7 +1,16 @@
-const fsPath = require("path");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const ComponentProject = require("../ComponentProject");
+import fsPath from "node:path";
+import ComponentProject from "../ComponentProject.js";
+import {createReader} from "@ui5/fs/resourceFactory";
 
+/**
+ * Application
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/Application
+ * @extends @ui5/project/specifications/ComponentProject
+ * @hideconstructor
+ */
 class Application extends ComponentProject {
 	constructor(parameters) {
 		super(parameters);
@@ -34,10 +43,10 @@ class Application extends ComponentProject {
 	/**
 	* Get a resource reader for the sources of the project (excluding any test resources)
 	*
-	* @returns {module:@ui5/fs.ReaderCollection} Reader collection
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
 	_getSourceReader() {
-		return resourceFactory.createReader({
+		return createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: `/resources/${this._namespace}/`,
 			name: `Source reader for application project ${this.getName()}`,
@@ -51,7 +60,7 @@ class Application extends ComponentProject {
 	}
 
 	_getRawSourceReader() {
-		return resourceFactory.createReader({
+		return createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: "/",
 			name: `Source reader for application project ${this.getName()}`,
@@ -76,7 +85,7 @@ class Application extends ComponentProject {
 		this._log.verbose(`  Physical root path: ${this.getPath()}`);
 		this._log.verbose(`  Mapped to: ${this._webappPath}`);
 
-		if (!await this._dirExists("/" + this._webappPath)) {
+		if (!(await this._dirExists("/" + this._webappPath))) {
 			throw new Error(
 				`Unable to find directory '${this._webappPath}' in application project ${this.getName()}`);
 		}
@@ -210,4 +219,4 @@ class Application extends ComponentProject {
 	}
 }
 
-module.exports = Application;
+export default Application;

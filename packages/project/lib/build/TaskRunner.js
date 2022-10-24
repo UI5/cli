@@ -1,5 +1,11 @@
-const composeTaskList = require("./helpers/composeTaskList");
+import composeTaskList from "./helpers/composeTaskList.js";
 
+/**
+ * TaskRunner
+ *
+ * @private
+ * @hideconstructor
+ */
 class TaskRunner {
 	/**
 	 * Constructor
@@ -7,14 +13,15 @@ class TaskRunner {
 	 * @param {object} parameters
 	 * @param {object} parameters.graph
 	 * @param {object} parameters.project
-	 * @param {GroupLogger} parameters.parentLogger Logger to use
-	 * @param {module:@ui5/project.build.helpers.TaskUtil} parameters.taskUtil TaskUtil instance
-	 * @param {module:@ui5/builder.tasks.taskRepository} parameters.taskRepository Task repository
-	 * @param {module:@ui5/project.build.ProjectBuilder.BuildConfiguration} parameters.buildConfig
+	 * @param {@ui5/logger/GroupLogger} parameters.parentLogger Logger to use
+	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
+	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
+	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
+	 * @param {Map<string, object>} parameters.standardTasks Standard tasks
 	 */
-	constructor({graph, project, parentLogger, taskUtil, taskRepository, buildConfig}) {
-		if (!graph || !project || !parentLogger || !taskUtil || !buildConfig) {
+	constructor({graph, project, parentLogger, taskUtil, taskRepository, buildConfig, standardTasks}) {
+		if (!graph || !project || !parentLogger || !taskUtil || !buildConfig || !standardTasks) {
 			throw new Error("One or more mandatory parameters not provided");
 		}
 		this._project = project;
@@ -29,30 +36,6 @@ class TaskRunner {
 		this._tasks = {};
 		this._taskExecutionOrder = [];
 
-		let buildDefinition;
-		switch (project.getType()) {
-		case "application":
-			buildDefinition = require("./definitions/application");
-			break;
-		case "library":
-			buildDefinition = require("./definitions/library");
-			break;
-		case "module":
-			buildDefinition = require("./definitions/module");
-			break;
-		case "theme-library":
-			buildDefinition = require("./definitions/themeLibrary");
-			break;
-		default:
-			throw new Error(`Unknown project type ${project.getType()}`);
-		}
-
-		const standardTasks = buildDefinition({
-			project,
-			taskUtil,
-			getTask: taskRepository.getTask
-		});
-
 		for (const [taskName, params] of standardTasks) {
 			this._addTask(taskName, params);
 		}
@@ -65,11 +48,54 @@ class TaskRunner {
 	}
 
 	/**
+	 * Creates a new TaskRunner Instance
+	 *
+	 * @param {object} parameters
+	 * @param {object} parameters.graph
+	 * @param {object} parameters.project
+	 * @param {@ui5/logger/GroupLogger} parameters.parentLogger Logger to use
+	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
+	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
+	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
+	 * 			Build configuration
+	 */
+	static async create({graph, project, parentLogger, taskUtil, taskRepository, buildConfig}) {
+		let buildDefinition;
+
+		switch (project.getType()) {
+		case "application":
+			buildDefinition = "./definitions/application.js";
+			break;
+		case "library":
+			buildDefinition = "./definitions/library.js";
+			break;
+		case "module":
+			buildDefinition = "./definitions/module.js";
+			break;
+		case "theme-library":
+			buildDefinition = "./definitions/themeLibrary.js";
+			break;
+		default:
+			throw new Error(`Unknown project type ${project.getType()}`);
+		}
+
+		const {default: getStandardTasks} = await import(buildDefinition);
+
+		const standardTasks = getStandardTasks({
+			project,
+			taskUtil,
+			getTask: taskRepository.getTask
+		});
+
+		return new TaskRunner({graph, project, parentLogger, taskUtil, taskRepository, buildConfig, standardTasks});
+	}
+
+	/**
 	 * Takes a list of tasks which should be executed from the available task list of the current builder
 	 *
 	 * @param {object} buildParams
-	 * @param {module:@ui5/fs.DuplexCollection} buildParams.workspace Workspace of the current project
-	 * @param {module:@ui5/fs.ReaderCollection} buildParams.dependencies Dependencies reader collection
+	 * @param {@ui5/fs/DuplexCollection} buildParams.workspace Workspace of the current project
+	 * @param {@ui5/fs/ReaderCollection} buildParams.dependencies Dependencies reader collection
 	 * @returns {Promise} Returns promise chain with tasks
 	 */
 	async runTasks(buildParams) {
@@ -181,7 +207,7 @@ class TaskRunner {
 			}
 
 			if (!taskFunction) {
-				taskFunction = this._taskRepository.getTask(taskName).task;
+				taskFunction = (await this._taskRepository.getTask(taskName)).task;
 			}
 			return taskFunction(params);
 		};
@@ -220,11 +246,8 @@ class TaskRunner {
 				throw new Error(`Custom task definition ${taskDef.name} of project ${project.getName()} ` +
 					`defines neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`);
 			}
-			let standardTask;
-			try {
-				standardTask = this._taskRepository.getTask(taskDef.name);
-			} catch (e) {/* We expect this to fail with an "Unknown Task" error */}
-			if (standardTask) {
+			const standardTasks = this._taskRepository.getAllTaskNames();
+			if (standardTasks.includes(taskDef.name)) {
 				throw new Error(
 					`Custom task configuration of project ${project.getName()} ` +
 					`references standard task ${taskDef.name}. Only custom tasks must be provided here.`);
@@ -253,11 +276,11 @@ class TaskRunner {
 				/* Custom Task Interface
 					Parameters:
 						{Object} parameters Parameters
-						{module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
-						{module:@ui5/fs.AbstractReader} parameters.dependencies
+						{@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+						{@ui5/fs/AbstractReader} parameters.dependencies
 							Reader or Collection to read dependency files
 						{Object} parameters.taskUtil Specification Version dependent interface to a
-							[TaskUtil]{@link module:@ui5/project.build.helpers.TaskUtil} instance
+							[TaskUtil]{@link @ui5/project/build/helpers/TaskUtil} instance
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name
 						{string} [parameters.options.projectNamespace] Project namespace if available
@@ -288,7 +311,7 @@ class TaskRunner {
 				if (taskUtilInterface) {
 					params.taskUtil = taskUtilInterface;
 				}
-				return task.getTask()(params);
+				return (await task.getTask())(params);
 			};
 
 			this._tasks[newTaskName] = {
@@ -336,4 +359,4 @@ class TaskRunner {
 	}
 }
 
-module.exports = TaskRunner;
+export default TaskRunner;

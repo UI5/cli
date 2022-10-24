@@ -1,9 +1,13 @@
-function getVersion(pkg) {
-	const packageInfo = require(`${pkg}/package.json`);
-	return packageInfo.version;
+import {createRequire} from "node:module";
+
+// Using CommonsJS require as importing json files causes an ExperimentalWarning
+const require = createRequire(import.meta.url);
+
+async function getVersion(pkg) {
+	return require(`${pkg}/package.json`).version;
 }
 
-module.exports = async function(project, buildConfig) {
+export default async function(project, buildConfig) {
 	const projectName = project.getName();
 	const type = project.getType();
 
@@ -40,9 +44,9 @@ module.exports = async function(project, buildConfig) {
 			manifestVersion: "0.1",
 			timestamp: new Date().toISOString(),
 			versions: {
-				builderVersion: getVersion("@ui5/builder"),
-				projectVersion: getVersion("../../../"),
-				fsVersion: getVersion("@ui5/fs"),
+				builderVersion: await getVersion("@ui5/builder"),
+				projectVersion: await getVersion("@ui5/project"),
+				fsVersion: await getVersion("@ui5/fs"),
 			},
 			buildConfig,
 			version: project.getVersion(),
@@ -52,4 +56,4 @@ module.exports = async function(project, buildConfig) {
 	};
 
 	return metadata;
-};
+}

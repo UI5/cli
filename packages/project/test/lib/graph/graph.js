@@ -1,9 +1,11 @@
-const test = require("ava");
-const path = require("path");
-const sinonGlobal = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import {fileURLToPath} from "node:url";
+import path from "node:path";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.npmProviderConstructorStub = sinon.stub();
@@ -12,8 +14,8 @@ test.beforeEach((t) => {
 			t.context.npmProviderConstructorStub(params);
 		}
 	}
+
 	t.context.DummyNpmProvider = DummyNpmProvider;
-	mock("../../lib/graph/providers/NodePackageDependencies", DummyNpmProvider);
 
 	t.context.dependencyTreeProviderStub = sinon.stub();
 	class DummyDependencyTreeProvider {
@@ -22,29 +24,32 @@ test.beforeEach((t) => {
 		}
 	}
 	t.context.DummyDependencyTreeProvider = DummyDependencyTreeProvider;
-	mock("../../lib/graph/providers/DependencyTree", DummyDependencyTreeProvider);
 
 	t.context.projectGraphBuilderStub = sinon.stub().resolves("graph");
-	mock("../../lib/graph/projectGraphBuilder", t.context.projectGraphBuilderStub);
-
-	const ui5Framework = require("../../lib/graph/helpers/ui5Framework");
-	t.context.enrichProjectGraphStub = sinon.stub(ui5Framework, "enrichProjectGraph");
-
-	t.context.generateProjectGraph = mock.reRequire("../../lib/generateProjectGraph");
+	t.context.enrichProjectGraphStub = sinon.stub();
+	t.context.graph = await esmock.p("../../../lib/graph/graph.js", {
+		"../../../lib/graph/providers/NodePackageDependencies.js": t.context.DummyNpmProvider,
+		"../../../lib/graph/providers/DependencyTree.js": t.context.DummyDependencyTreeProvider,
+		"../../../lib/graph/projectGraphBuilder.js": t.context.projectGraphBuilderStub,
+		"../../../lib/graph/helpers/ui5Framework.js": {
+			enrichProjectGraph: t.context.enrichProjectGraphStub
+		}
+	});
 });
 
 test.afterEach.always((t) => {
 	t.context.sinon.restore();
-	mock.stopAll();
+	esmock.purge(t.context.graph);
 });
 
-test.serial("usingNodePackageDependencies", async (t) => {
+test.serial("graphFromPackageDependencies", async (t) => {
 	const {
-		generateProjectGraph, npmProviderConstructorStub,
+		npmProviderConstructorStub,
 		projectGraphBuilderStub, enrichProjectGraphStub, DummyNpmProvider
 	} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
 
-	const res = await generateProjectGraph.usingNodePackageDependencies({
+	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "rootConfigPath",
@@ -55,7 +60,7 @@ test.serial("usingNodePackageDependencies", async (t) => {
 
 	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
-		cwd: path.join(__dirname, "..", "..", "cwd"),
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
@@ -72,10 +77,11 @@ test.serial("usingNodePackageDependencies", async (t) => {
 	}, "enrichProjectGraph got called with correct options");
 });
 
-test.serial("usingNodePackageDependencies: Do not resolve framework dependencies", async (t) => {
-	const {generateProjectGraph, enrichProjectGraphStub} = t.context;
+test.serial("graphFromPackageDependencies: Do not resolve framework dependencies", async (t) => {
+	const {enrichProjectGraphStub} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
 
-	const res = await generateProjectGraph.usingNodePackageDependencies({
+	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "rootConfigPath",
@@ -87,16 +93,17 @@ test.serial("usingNodePackageDependencies: Do not resolve framework dependencies
 	t.is(enrichProjectGraphStub.callCount, 0, "enrichProjectGraph did not get called");
 });
 
-test.serial("usingStaticFile", async (t) => {
+test.serial("graphFromStaticFile", async (t) => {
 	const {
-		generateProjectGraph, dependencyTreeProviderStub,
+		dependencyTreeProviderStub,
 		projectGraphBuilderStub, enrichProjectGraphStub, DummyDependencyTreeProvider
 	} = t.context;
+	const {graphFromStaticFile} = t.context.graph;
 
-	const readDependencyConfigFileStub = t.context.sinon.stub(generateProjectGraph, "_readDependencyConfigFile")
+	const readDependencyConfigFileStub = t.context.sinon.stub(graphFromStaticFile._utils, "readDependencyConfigFile")
 		.resolves("dependencyTree");
 
-	const res = await generateProjectGraph.usingStaticFile({
+	const res = await graphFromStaticFile({
 		cwd: "cwd",
 		filePath: "file/path",
 		rootConfiguration: "rootConfiguration",
@@ -107,7 +114,7 @@ test.serial("usingStaticFile", async (t) => {
 	t.is(res, "graph");
 
 	t.is(readDependencyConfigFileStub.callCount, 1, "_readDependencyConfigFile got called once");
-	t.is(readDependencyConfigFileStub.getCall(0).args[0], path.join(__dirname, "..", "..", "cwd"),
+	t.is(readDependencyConfigFileStub.getCall(0).args[0], path.join(__dirname, "..", "..", "..", "cwd"),
 		"_readDependencyConfigFile got called with correct directory");
 	t.is(readDependencyConfigFileStub.getCall(0).args[1], "file/path",
 		"_readDependencyConfigFile got called with correct file path");
@@ -131,13 +138,14 @@ test.serial("usingStaticFile", async (t) => {
 	}, "enrichProjectGraph got called with correct options");
 });
 
-test.serial("usingStaticFile: Do not resolve framework dependencies", async (t) => {
-	const {generateProjectGraph, enrichProjectGraphStub} = t.context;
+test.serial("graphFromStaticFile: Do not resolve framework dependencies", async (t) => {
+	const {enrichProjectGraphStub} = t.context;
+	const {graphFromStaticFile} = t.context.graph;
 
-	t.context.sinon.stub(generateProjectGraph, "_readDependencyConfigFile")
+	t.context.sinon.stub(graphFromStaticFile._utils, "readDependencyConfigFile")
 		.resolves("dependencyTree");
 
-	const res = await generateProjectGraph.usingStaticFile({
+	const res = await graphFromStaticFile({
 		cwd: "cwd",
 		filePath: "filePath",
 		rootConfiguration: "rootConfiguration",
@@ -152,11 +160,12 @@ test.serial("usingStaticFile: Do not resolve framework dependencies", async (t) 
 
 test.serial("usingObject", async (t) => {
 	const {
-		generateProjectGraph, dependencyTreeProviderStub,
+		dependencyTreeProviderStub,
 		projectGraphBuilderStub, enrichProjectGraphStub, DummyDependencyTreeProvider
 	} = t.context;
+	const {graphFromObject} = t.context.graph;
 
-	const res = await generateProjectGraph.usingObject({
+	const res = await graphFromObject({
 		dependencyTree: "dependencyTree",
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "rootConfigPath",
@@ -185,8 +194,9 @@ test.serial("usingObject", async (t) => {
 });
 
 test.serial("usingObject: Do not resolve framework dependencies", async (t) => {
-	const {generateProjectGraph, enrichProjectGraphStub} = t.context;
-	const res = await generateProjectGraph.usingObject({
+	const {enrichProjectGraphStub} = t.context;
+	const {graphFromObject} = t.context.graph;
+	const res = await graphFromObject({
 		cwd: "cwd",
 		filePath: "filePath",
 		rootConfiguration: "rootConfiguration",

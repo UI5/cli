@@ -2,24 +2,30 @@
  * Tree node
  *
  * @public
- * @typedef {object} TreeNode
+ * @class
+ * @typedef {object} @ui5/project/graph/providers/DependencyTree~TreeNode
  * @property {string} node.id Unique ID for the project
  * @property {string} node.version Version of the project
  * @property {string} node.path File System path to access the projects resources
  * @property {object|object[]} [node.configuration]
  *	Configuration object or array of objects to use instead of reading from a configuration file
  * @property {string} [node.configPath] Configuration file to use instead the default ui5.yaml
- * @property {TreeNode[]} dependencies
+ * @property {@ui5/project/graph/providers/DependencyTree~TreeNode[]} dependencies
+ */
+
+/**
+ * Helper module to create a [@ui5/project/graph/ProjectGraph]{@link @ui5/project/graph/ProjectGraph}
+ * from a dependency tree as returned by translators.
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/graph/providers/DependencyTree
  */
 class DependencyTree {
 	/**
-	 * Helper module to create a [@ui5/project.graph.ProjectGraph]{@link module:@ui5/project.graph.ProjectGraph}
-	 * from a dependency tree as returned by translators.
-	 *
-	 * @public
-	 * @alias module:@ui5/project.graph.providers.DependencyTree
 	 * @param {object} options
-	 * @param {TreeNode} options.dependencyTree Dependency tree as returned by a translator
+	 * @param {@ui5/project/graph/providers/DependencyTree~TreeNode} options.dependencyTree
+ 	 * 		Dependency tree as returned by a translator
 	 * @param {object} [options.rootConfiguration]
 	 *		Configuration object to use for the root module instead of reading from a configuration file
 	 * @param {string} [options.rootConfigPath]
@@ -50,4 +56,4 @@ class DependencyTree {
 	}
 }
 
-module.exports = DependencyTree;
+export default DependencyTree;

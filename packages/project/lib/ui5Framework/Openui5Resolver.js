@@ -1,17 +1,17 @@
-const path = require("path");
-
-const AbstractResolver = require("./AbstractResolver");
-const Installer = require("./npm/Installer");
+import path from "node:path";
+import os from "node:os";
+import AbstractResolver from "./AbstractResolver.js";
+import Installer from "./npm/Installer.js";
 
 const OPENUI5_CORE_PACKAGE = "@openui5/sap.ui.core";
-
 
 /**
  * Resolver for the OpenUI5 framework
  *
  * @public
- * @memberof module:@ui5/project.ui5Framework
- * @augments  module:@ui5/project.ui5Framework.AbstractResolver
+ * @class
+ * @alias @ui5/project/ui5Framework/Openui5Resolver
+ * @extends @ui5/project/ui5Framework/AbstractResolver
  */
 class Openui5Resolver extends AbstractResolver {
 	/**
@@ -83,10 +83,10 @@ class Openui5Resolver extends AbstractResolver {
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
 			ui5HomeDir:
 				ui5HomeDir ? path.resolve(ui5HomeDir) :
-					path.join(require("os").homedir(), ".ui5")
+					path.join(os.homedir(), ".ui5")
 		});
 		return await installer.fetchPackageVersions({pkgName: OPENUI5_CORE_PACKAGE});
 	}
 }
 
-module.exports = Openui5Resolver;
+export default Openui5Resolver;

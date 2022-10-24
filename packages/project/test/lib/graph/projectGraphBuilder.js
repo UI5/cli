@@ -1,9 +1,11 @@
-const test = require("ava");
-const path = require("path");
-const sinonGlobal = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
+import projectGraphBuilder from "../../../lib/graph/projectGraphBuilder.js";
 
-const projectGraphBuilder = require("../../../lib/graph/projectGraphBuilder");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const collectionPath = path.join(__dirname, "..", "..", "fixtures", "collection");
@@ -109,16 +111,20 @@ test("Basic graph with dependencies", async (t) => {
 });
 
 test.serial("Correct warnings logged", async (t) => {
-	const logWarnStub = t.context.sinon.stub();
-	t.context.sinon.stub(require("@ui5/logger"), "getLogger")
-		.callThrough()
-		.withArgs("graph:projectGraphBuilder").returns({
-			warn: logWarnStub,
-			verbose: () => "",
-		});
-	const projectGraphBuilder = mock.reRequire("../../../lib/graph/projectGraphBuilder");
+	const {sinon, getRootNode, getDependencies, provider} = t.context;
+	const logWarnStub = sinon.stub();
 
-	t.context.getRootNode.resolves(createNode({
+	const projectGraphBuilder = await esmock("../../../lib/graph/projectGraphBuilder.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub()
+				.withArgs("graph:projectGraphBuilder").returns({
+					warn: logWarnStub,
+					verbose: () => "",
+				})
+		}
+	});
+
+	getRootNode.resolves(createNode({
 		id: "id1",
 		name: "project-1"
 	}));
@@ -128,15 +134,15 @@ test.serial("Correct warnings logged", async (t) => {
 	});
 	node2.configuration.metadata.deprecated = true;
 	node2.configuration.metadata.sapInternal = true;
-	t.context.getDependencies.onFirstCall().resolves([node2]);
+	getDependencies.onFirstCall().resolves([node2]);
 	const node3 = createNode({
 		id: "id3",
 		name: "project-3"
 	});
 	node3.configuration.metadata.deprecated = true;
 	node3.configuration.metadata.sapInternal = true;
-	t.context.getDependencies.onSecondCall().resolves([node3]);
-	const graph = await projectGraphBuilder(t.context.provider);
+	getDependencies.onSecondCall().resolves([node3]);
+	const graph = await projectGraphBuilder(provider);
 
 	await traverseBreadthFirst(t, graph, [
 		"project-1",
@@ -154,35 +160,39 @@ test.serial("Correct warnings logged", async (t) => {
 });
 
 test.serial("No warnings logged", async (t) => {
-	const logWarnStub = t.context.sinon.stub();
-	t.context.sinon.stub(require("@ui5/logger"), "getLogger")
-		.callThrough()
-		.withArgs("graph:projectGraphBuilder").returns({
-			warn: logWarnStub,
-			verbose: () => "",
-		});
-	const projectGraphBuilder = mock.reRequire("../../../lib/graph/projectGraphBuilder");
+	const {sinon, getRootNode, getDependencies} = t.context;
+	const logWarnStub = sinon.stub();
+
+	const projectGraphBuilder = await esmock("../../../lib/graph/projectGraphBuilder.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub()
+				.withArgs("graph:projectGraphBuilder").returns({
+					warn: logWarnStub,
+					verbose: () => "",
+				})
+		}
+	});
 
 	const node1 = createNode({
 		id: "id1",
 		name: "@my-comp/testsuite" // "/testsuite" suffix should suppress deprecation warnings
 	});
 	node1.configuration.metadata.allowSapInternal = true;
-	t.context.getRootNode.resolves(node1);
+	getRootNode.resolves(node1);
 	const node2 = createNode({
 		id: "id2",
 		name: "project-2"
 	});
 	node2.configuration.metadata.deprecated = true;
 	node2.configuration.metadata.sapInternal = true;
-	t.context.getDependencies.onFirstCall().resolves([node2]);
+	getDependencies.onFirstCall().resolves([node2]);
 	const node3 = createNode({
 		id: "id3",
 		name: "project-3"
 	});
 	node3.configuration.metadata.deprecated = true;
 	node3.configuration.metadata.sapInternal = true;
-	t.context.getDependencies.onSecondCall().resolves([node3]);
+	getDependencies.onSecondCall().resolves([node3]);
 	const graph = await projectGraphBuilder(t.context.provider);
 
 	await traverseBreadthFirst(t, graph, [

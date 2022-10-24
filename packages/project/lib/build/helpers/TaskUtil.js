@@ -8,7 +8,9 @@
  * version defined for the extension.
  *
  * @public
- * @memberof module:@ui5/project.build.helpers
+ * @class
+ * @alias @ui5/project/build/helpers/TaskUtil
+ * @hideconstructor
  */
 class TaskUtil {
 	/**
@@ -17,7 +19,7 @@ class TaskUtil {
 	 * for details.
 	 *
 	 * @public
-	 * @typedef {object} module:@ui5/project.build.helpers.TaskUtil~StandardBuildTags
+	 * @typedef {object} @ui5/project/build/helpers/TaskUtil~StandardBuildTags
 	 * @property {string} OmitFromBuildResult
 	 * 		Setting this tag to true will prevent the resource from being written to the build target directory
 	 * @property {string} IsBundle
@@ -31,17 +33,17 @@ class TaskUtil {
 	 */
 
 	/**
-	 * Since <code>@ui5/project.build.helpers.ProjectBuildContext</code> is a private class, TaskUtil must not be
+	 * Since <code>@ui5/project/build/helpers/ProjectBuildContext</code> is a private class, TaskUtil must not be
 	 * instantiated by modules other than @ui5/project itself.
 	 *
 	 * @param {object} parameters
-	 * @param {module:@ui5/project.build.helpers.ProjectBuildContext} parameters.projectBuildContext ProjectBuildContext
+	 * @param {@ui5/project/build/helpers/ProjectBuildContext} parameters.projectBuildContext ProjectBuildContext
 	 * @public
 	 */
 	constructor({projectBuildContext}) {
 		this._projectBuildContext = projectBuildContext;
 		/**
-		 * @member {module:@ui5/project.build.helpers.TaskUtil~StandardBuildTags}
+		 * @member {@ui5/project/build/helpers/TaskUtil~StandardBuildTags}
 		 * @public
 		*/
 		this.STANDARD_TAGS = Object.freeze({
@@ -67,9 +69,9 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource Resource-instance the tag should be stored for
+	 * @param {@ui5/fs/Resource} resource Resource-instance the tag should be stored for
 	 * @param {string} tag Name of the tag. Currently only the
-	 * 	[STANDARD_TAGS]{@link module:@ui5/project.build.helpers.TaskUtil#STANDARD_TAGS} are allowed
+	 * 	[STANDARD_TAGS]{@link @ui5/project/build/helpers/TaskUtil#STANDARD_TAGS} are allowed
 	 * @param {string|boolean|integer} [value=true] Tag value. Must be primitive
 	 * @public
 	 */
@@ -90,7 +92,7 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource Resource-instance the tag should be retrieved for
+	 * @param {@ui5/fs/Resource} resource Resource-instance the tag should be retrieved for
 	 * @param {string} tag Name of the tag
 	 * @returns {string|boolean|integer|undefined} Tag value for the given resource.
 	 * 										<code>undefined</code> if no value is available
@@ -113,7 +115,7 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {module:@ui5/fs.Resource} resource Resource-instance the tag should be cleared for
+	 * @param {@ui5/fs/Resource} resource Resource-instance the tag should be cleared for
 	 * @param {string} tag Tag
 	 * @public
 	 */
@@ -176,7 +178,7 @@ class TaskUtil {
 	 * <b>Specification Version 3.0 and above</b>.
 	 *
 	 * @param {string} projectName Name of the project to retrieve
-	 * @returns {module:@ui5/project.specifications.Project|undefined}
+	 * @returns {@ui5/project/specifications/Project|undefined}
 	 *					project instance or undefined if the project is unknown to the graph
 	 * @public
 	 */
@@ -234,4 +236,4 @@ function bindFunctions(sourceObject, targetObject, funcNames) {
 	});
 }
 
-module.exports = TaskUtil;
+export default TaskUtil;

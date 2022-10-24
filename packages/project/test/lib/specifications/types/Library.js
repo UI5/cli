@@ -1,12 +1,14 @@
-const test = require("ava");
-const path = require("path");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const Specification = require("../../../../lib/specifications/Specification");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinonGlobal from "sinon";
+import Library from "../../../../lib/specifications/types/Library.js";
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const basicProjectInput = {
@@ -46,25 +48,22 @@ const flatProjectInput = {
 	}
 };
 
-test.afterEach.always((t) => {
-	sinon.restore();
-	mock.stopAll();
+test.beforeEach((t) => {
+	t.context.sinon = sinonGlobal.createSandbox();
 });
 
-test("Correct class", async (t) => {
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
-	const project = await Specification.create(basicProjectInput);
-	t.true(project instanceof Library, `Is an instance of the Library class`);
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
 });
 
 test("getNamespace", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	t.is(project.getNamespace(), "library/d",
 		"Returned correct namespace");
 });
 
 test("getPropertiesFileSourceEncoding: Default", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	t.is(project.getPropertiesFileSourceEncoding(), "UTF-8",
 		"Returned correct default propertiesFileSourceEncoding configuration");
 });
@@ -72,7 +71,7 @@ test("getPropertiesFileSourceEncoding: Default", async (t) => {
 test("getPropertiesFileSourceEncoding: Configuration", async (t) => {
 	const customProjectInput = clone(basicProjectInput);
 	customProjectInput.configuration.resources.configuration.propertiesFileSourceEncoding = "ISO-8859-1";
-	const project = await Specification.create(customProjectInput);
+	const project = await (new Library().init(customProjectInput));
 	t.is(project.getPropertiesFileSourceEncoding(), "ISO-8859-1",
 		"Returned correct default propertiesFileSourceEncoding configuration");
 });
@@ -84,19 +83,19 @@ test("getJsdocExcludes", async (t) => {
 			excludes: ["excludes"]
 		}
 	};
-	const project = await Specification.create(customProjectInput);
+	const project = await (new Library().init(customProjectInput));
 	t.deepEqual(project.getJsdocExcludes(), ["excludes"],
 		"Returned correct jsdocExcludes configuration");
 });
 
 test("getJsdocExcludes: default", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	t.deepEqual(project.getJsdocExcludes(), [],
 		"Returned correct jsdocExcludes configuration");
 });
 
 test("Access project resources via reader: buildtime style", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	const reader = await project.getReader();
 	const resource = await reader.byPath("/resources/library/d/.library");
 	t.truthy(resource, "Found the requested resource");
@@ -104,7 +103,7 @@ test("Access project resources via reader: buildtime style", async (t) => {
 });
 
 test("Access project resources via reader: flat style", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	const reader = await project.getReader({style: "flat"});
 	const resource = await reader.byPath("/.library");
 	t.truthy(resource, "Found the requested resource");
@@ -112,7 +111,7 @@ test("Access project resources via reader: flat style", async (t) => {
 });
 
 test("Access project test-resources via reader: buildtime style", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	const reader = await project.getReader({style: "buildtime"});
 	const resource = await reader.byPath("/test-resources/library/d/Test.html");
 	t.truthy(resource, "Found the requested resource");
@@ -120,7 +119,7 @@ test("Access project test-resources via reader: buildtime style", async (t) => {
 });
 
 test("Access project test-resources via reader: runtime style", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	const reader = await project.getReader({style: "runtime"});
 	const resource = await reader.byPath("/test-resources/library/d/Test.html");
 	t.truthy(resource, "Found the requested resource");
@@ -128,7 +127,7 @@ test("Access project test-resources via reader: runtime style", async (t) => {
 });
 
 test("Modify project resources via workspace and access via flat and runtime reader", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	const workspace = await project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/resources/library/d/.library");
 	t.truthy(workspaceResource, "Found resource in workspace");
@@ -167,7 +166,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 });
 
 test("Access flat project resources via reader: buildtime style", async (t) => {
-	const project = await Specification.create(flatProjectInput);
+	const project = await (new Library().init(flatProjectInput));
 	const reader = await project.getReader({style: "buildtime"});
 	const resource = await reader.byPath("/resources/library/h/some.js");
 	t.truthy(resource, "Found the requested resource");
@@ -190,7 +189,7 @@ test("_configureAndValidatePaths: Default paths", async (t) => {
 		}
 	};
 
-	const project = await Specification.create(projectInput);
+	const project = await (new Library().init(projectInput));
 
 	t.is(project._srcPath, "src", "Correct default path for src");
 	t.is(project._testPath, "test", "Correct default path for test");
@@ -200,7 +199,7 @@ test("_configureAndValidatePaths: Default paths", async (t) => {
 test("_configureAndValidatePaths: Test directory does not exist", async (t) => {
 	const projectInput = clone(basicProjectInput);
 	projectInput.configuration.resources.configuration.paths.test = "does/not/exist";
-	const project = await Specification.create(projectInput);
+	const project = await (new Library().init(projectInput));
 
 	t.is(project._srcPath, "main/src", "Correct path for src");
 	t.is(project._testPath, "does/not/exist", "Correct path for test");
@@ -210,13 +209,13 @@ test("_configureAndValidatePaths: Test directory does not exist", async (t) => {
 test("_configureAndValidatePaths: Source directory does not exist", async (t) => {
 	const projectInput = clone(basicProjectInput);
 	projectInput.configuration.resources.configuration.paths.src = "does/not/exist";
-	const err = await t.throwsAsync(Specification.create(projectInput));
+	const err = await t.throwsAsync(new Library().init(projectInput));
 
 	t.is(err.message, "Unable to find directory 'does/not/exist' in library project library.d");
 });
 
 test("_parseConfiguration: Get copyright", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 
 	t.is(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
 });
@@ -224,35 +223,31 @@ test("_parseConfiguration: Get copyright", async (t) => {
 test("_parseConfiguration: Copyright already configured", async (t) => {
 	const projectInput = clone(basicProjectInput);
 	projectInput.configuration.metadata.copyright = "My copyright";
-	const project = await Specification.create(projectInput);
+	const project = await (new Library().init(projectInput));
 
 	t.is(project.getCopyright(), "My copyright", "Copyright was not altered");
 });
 
 test.serial("_parseConfiguration: Copyright retrieval fails", async (t) => {
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
+	const {sinon} = t.context;
 
 	sinon.stub(Library.prototype, "_getCopyrightFromDotLibrary").resolves(null);
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 
 	t.is(project.getCopyright(), undefined, "Copyright was not altered");
 });
 
 test.serial("_parseConfiguration: Preload excludes from .library", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
-
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	const loggerVerboseSpy = sinon.spy(loggerInstance, "verbose");
-
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
+	const {sinon} = t.context;
 
 	sinon.stub(Library.prototype, "isFrameworkProject").returns(true);
 	sinon.stub(Library.prototype, "_getPreloadExcludesFromDotLibrary").resolves(["test/exclude/**"]);
-	const project = await Specification.create(basicProjectInput);
+
+	const project = new Library();
+
+	const loggerVerboseSpy = sinon.spy(project._log, "verbose");
+
+	await project.init(basicProjectInput);
 
 	t.deepEqual(project.getLibraryPreloadExcludes(), ["test/exclude/**"],
 		"Correct library preload excludes have been set");
@@ -270,27 +265,23 @@ test("_parseConfiguration: Preload excludes from project configuration (non-fram
 			excludes: ["test/exclude/**"]
 		}
 	};
-	const project = await Specification.create(projectInput);
+	const project = await (new Library().init(projectInput));
 
 	t.deepEqual(project.getLibraryPreloadExcludes(), ["test/exclude/**"],
 		"Correct library preload excludes have been set");
 });
 
 test.serial("_parseConfiguration: Preload exclude fallback to .library (framework libraries only)", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
-
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	const loggerVerboseSpy = sinon.spy(loggerInstance, "verbose");
-
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
+	const {sinon} = t.context;
 
 	sinon.stub(Library.prototype, "isFrameworkProject").returns(true);
 	sinon.stub(Library.prototype, "_getPreloadExcludesFromDotLibrary").resolves(["test/exclude/**"]);
-	const project = await Specification.create(basicProjectInput);
+
+	const project = new Library();
+
+	const loggerVerboseSpy = sinon.spy(project._log, "verbose");
+
+	await project.init(basicProjectInput);
 
 	t.deepEqual(project.getLibraryPreloadExcludes(), ["test/exclude/**"],
 		"Correct library preload excludes have been set");
@@ -302,20 +293,16 @@ test.serial("_parseConfiguration: Preload exclude fallback to .library (framewor
 });
 
 test.serial("_parseConfiguration: No preload excludes from .library", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
-
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	const loggerVerboseSpy = sinon.spy(loggerInstance, "verbose");
-
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
+	const {sinon} = t.context;
 
 	sinon.stub(Library.prototype, "isFrameworkProject").returns(true);
 	sinon.stub(Library.prototype, "_getPreloadExcludesFromDotLibrary").resolves(null);
-	const project = await Specification.create(basicProjectInput);
+
+	const project = new Library();
+
+	const loggerVerboseSpy = sinon.spy(project._log, "verbose");
+
+	await project.init(basicProjectInput);
 
 	t.deepEqual(project.getLibraryPreloadExcludes(), [],
 		"No library preload excludes have been set");
@@ -327,16 +314,7 @@ test.serial("_parseConfiguration: No preload excludes from .library", async (t) 
 });
 
 test.serial("_parseConfiguration: Preload excludes from project configuration (framework library)", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
-
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	const loggerVerboseSpy = sinon.spy(loggerInstance, "verbose");
-
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
+	const {sinon} = t.context;
 
 	sinon.stub(Library.prototype, "isFrameworkProject").returns(true);
 	const getPreloadExcludesFromDotLibraryStub =
@@ -348,7 +326,11 @@ test.serial("_parseConfiguration: Preload excludes from project configuration (f
 			excludes: ["test/exclude/**"]
 		}
 	};
-	const project = await Specification.create(projectInput);
+	const project = new Library();
+
+	const loggerVerboseSpy = sinon.spy(project._log, "verbose");
+
+	await project.init(projectInput);
 
 	t.deepEqual(project.getLibraryPreloadExcludes(), ["test/exclude/**"],
 		"Correct library preload excludes have been set");
@@ -361,12 +343,12 @@ test.serial("_parseConfiguration: Preload excludes from project configuration (f
 });
 
 test.serial("_parseConfiguration: No preload exclude fallback for non-framework libraries", async (t) => {
-	const Library = mock.reRequire("../../../../lib/specifications/types/Library");
+	const {sinon} = t.context;
 
 	sinon.stub(Library.prototype, "isFrameworkProject").returns(false);
 	const getPreloadExcludesFromDotLibraryStub = sinon.stub(Library.prototype, "_getPreloadExcludesFromDotLibrary")
 		.resolves(["test/exclude/**"]);
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 
 	t.deepEqual(project.getLibraryPreloadExcludes(), [],
 		"No library preload excludes have been set");
@@ -374,7 +356,9 @@ test.serial("_parseConfiguration: No preload exclude fallback for non-framework 
 });
 
 test("_getManifest: Reads correctly", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `{"pony": "no unicorn"}`,
 		getPath: () => "some path"
@@ -394,7 +378,9 @@ test("_getManifest: Reads correctly", async (t) => {
 });
 
 test("_getManifest: No manifest.json", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([]);
 
 	project._getRawSourceReader = () => {
@@ -410,7 +396,9 @@ test("_getManifest: No manifest.json", async (t) => {
 });
 
 test("_getManifest: Invalid JSON", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `no pony`,
 		getPath: () => "some path"
@@ -432,7 +420,9 @@ test("_getManifest: Invalid JSON", async (t) => {
 });
 
 test("_getManifest: Propagates exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().rejects(new Error("because shark"));
 
 	project._getRawSourceReader = () => {
@@ -448,7 +438,9 @@ test("_getManifest: Propagates exception", async (t) => {
 });
 
 test("_getManifest: Multiple manifest.json files", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `{"pony": "no unicorn"}`,
 		getPath: () => "some path"
@@ -469,7 +461,9 @@ test("_getManifest: Multiple manifest.json files", async (t) => {
 });
 
 test("_getManifest: Result is cached", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `{"pony": "no unicorn"}`,
 		getPath: () => "some path"
@@ -495,7 +489,9 @@ test("_getManifest: Result is cached", async (t) => {
 });
 
 test("_getDotLibrary: Reads correctly", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `<chicken>Fancy</chicken>`,
 		getPath: () => "some path"
@@ -515,7 +511,9 @@ test("_getDotLibrary: Reads correctly", async (t) => {
 });
 
 test("_getDotLibrary: No .library file", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([]);
 
 	project._getRawSourceReader = () => {
@@ -531,7 +529,9 @@ test("_getDotLibrary: No .library file", async (t) => {
 });
 
 test("_getDotLibrary: Invalid XML", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `no pony`,
 		getPath: () => "some path"
@@ -553,7 +553,9 @@ test("_getDotLibrary: Invalid XML", async (t) => {
 });
 
 test("_getDotLibrary: Propagates exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().rejects(new Error("because shark"));
 
 	project._getRawSourceReader = () => {
@@ -569,7 +571,9 @@ test("_getDotLibrary: Propagates exception", async (t) => {
 });
 
 test("_getDotLibrary: Multiple .library files", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `<chicken>Fancy</chicken>`,
 		getPath: () => "some path"
@@ -590,7 +594,9 @@ test("_getDotLibrary: Multiple .library files", async (t) => {
 });
 
 test("_getDotLibrary: Result is cached", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getString: async () => `<chicken>Fancy</chicken>`,
 		getPath: () => "some path"
@@ -616,7 +622,9 @@ test("_getDotLibrary: Result is cached", async (t) => {
 });
 
 test("_getLibraryJsPath: Reads correctly", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getPath: () => "some path"
 	}]);
@@ -634,7 +642,9 @@ test("_getLibraryJsPath: Reads correctly", async (t) => {
 });
 
 test("_getLibraryJsPath: No library.js file", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([]);
 
 	project._getRawSourceReader = () => {
@@ -650,7 +660,9 @@ test("_getLibraryJsPath: No library.js file", async (t) => {
 });
 
 test("_getLibraryJsPath: Propagates exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().rejects(new Error("because shark"));
 
 	project._getRawSourceReader = () => {
@@ -666,7 +678,9 @@ test("_getLibraryJsPath: Propagates exception", async (t) => {
 });
 
 test("_getLibraryJsPath: Multiple library.js files", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getPath: () => "some path"
 	}, {
@@ -685,7 +699,9 @@ test("_getLibraryJsPath: Multiple library.js files", async (t) => {
 });
 
 test("_getLibraryJsPath: Result is cached", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	const byGlobStub = sinon.stub().resolves([{
 		getPath: () => "some path"
 	}]);
@@ -709,21 +725,15 @@ test("_getLibraryJsPath: Result is cached", async (t) => {
 });
 
 test.serial("_getNamespace: namespace resolution fails", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
+	const {sinon} = t.context;
 
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	mock.reRequire("../../../../lib/specifications/types/Library");
+	const project = await (new Library().init(basicProjectInput));
 
-	const project = await Specification.create(basicProjectInput);
+	const loggerVerboseSpy = sinon.stub(project._log, "verbose");
 
 	sinon.stub(project, "_getNamespaceFromManifest").resolves({});
 	sinon.stub(project, "_getNamespaceFromDotLibrary").resolves({});
 	sinon.stub(project, "_getLibraryJsPath").rejects(new Error("pony error"));
-	const loggerVerboseSpy = sinon.spy(loggerInstance, "verbose");
 
 	const error = await t.throwsAsync(project._getNamespace());
 	t.deepEqual(error.message, "Failed to detect namespace or namespace is empty for project library.d." +
@@ -743,7 +753,9 @@ test.serial("_getNamespace: namespace resolution fails", async (t) => {
 });
 
 test("_getNamespace: from manifest.json with .library on same level", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -764,7 +776,9 @@ test("_getNamespace: from manifest.json with .library on same level", async (t) 
 });
 
 test("_getNamespace: from manifest.json for flat project", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -785,7 +799,9 @@ test("_getNamespace: from manifest.json for flat project", async (t) => {
 });
 
 test("_getNamespace: from .library for flat project", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").rejects("No manifest aint' here");
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
@@ -799,7 +815,9 @@ test("_getNamespace: from .library for flat project", async (t) => {
 });
 
 test("_getNamespace: from manifest.json with .library on same level but different directory", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -827,7 +845,9 @@ test("_getNamespace: from manifest.json with .library on same level but differen
 });
 
 test("_getNamespace: from manifest.json with not matching file path", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -849,16 +869,10 @@ test("_getNamespace: from manifest.json with not matching file path", async (t) 
 });
 
 test.serial("_getNamespace: from manifest.json without sap.app id", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
+	const {sinon} = t.context;
 
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	mock.reRequire("../../../../lib/specifications/types/Library");
+	const project = await (new Library().init(basicProjectInput));
 
-	const project = await Specification.create(basicProjectInput);
 	const manifestPath = "/different/namespace/manifest.json";
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
@@ -869,16 +883,17 @@ test.serial("_getNamespace: from manifest.json without sap.app id", async (t) =>
 	});
 	sinon.stub(project, "_getDotLibrary").resolves({});
 
-	const loggerSpy = sinon.spy(loggerInstance, "verbose");
+	const loggerStub = sinon.stub(project._log, "verbose");
+
 	const err = await t.throwsAsync(project._getNamespace());
 
 	t.is(err.message,
 		`Failed to detect namespace or namespace is empty for project library.d. Check verbose log for details.`,
 		"Rejected with correct error message");
-	t.is(loggerSpy.callCount, 4, "calls to verbose");
+	t.is(loggerStub.callCount, 4, "calls to verbose");
 
 
-	t.is(loggerSpy.getCall(0).args[0],
+	t.is(loggerStub.getCall(0).args[0],
 		`Namespace resolution from manifest.json failed for project library.d: ` +
 		`No sap.app/id configuration found in manifest.json of project library.d at ${manifestPath}`,
 		"correct verbose message");
@@ -886,7 +901,9 @@ test.serial("_getNamespace: from manifest.json without sap.app id", async (t) =>
 });
 
 test("_getNamespace: from .library", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").rejects("No manifest aint' here");
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
@@ -900,7 +917,9 @@ test("_getNamespace: from .library", async (t) => {
 });
 
 test("_getNamespace: from .library with ignored manifest.json on lower level", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -921,10 +940,12 @@ test("_getNamespace: from .library with ignored manifest.json on lower level", a
 });
 
 test("_getNamespace: manifest.json on higher level than .library", async (t) => {
+	const {sinon} = t.context;
+
 	const manifestFsPath = "/namespace/manifest.json";
 	const dotLibraryFsPath = "/namespace/morenamespace/.library";
 
-	const project = await Specification.create(basicProjectInput);
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -953,7 +974,9 @@ test("_getNamespace: manifest.json on higher level than .library", async (t) => 
 });
 
 test("_getNamespace: from .library with maven placeholder", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").rejects("No manifest aint' here");
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
@@ -972,7 +995,9 @@ test("_getNamespace: from .library with maven placeholder", async (t) => {
 });
 
 test("_getNamespace: from .library with not matching file path", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").rejects("No manifest aint' here");
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
@@ -989,7 +1014,9 @@ test("_getNamespace: from .library with not matching file path", async (t) => {
 });
 
 test("_getNamespace: from library.js", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({});
 	sinon.stub(project, "_getDotLibrary").resolves({});
 	sinon.stub(project, "_getLibraryJsPath").resolves("/my/namespace/library.js");
@@ -998,19 +1025,15 @@ test("_getNamespace: from library.js", async (t) => {
 	t.true(project._isSourceNamespaced, "Project still flagged as namespaced source structure");
 });
 
-test.serial("_getNamespace: from project root level library.js", async (t) => {
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("specifications:types:Library");
+test("_getNamespace: from project root level library.js", async (t) => {
+	const {sinon} = t.context;
 
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	const loggerSpy = sinon.spy(loggerInstance, "verbose");
+	const project = new Library();
 
-	mock.reRequire("../../../../lib/specifications/types/Library");
+	const loggerStub = sinon.stub(project._log, "verbose");
 
-	const project = await Specification.create(basicProjectInput);
+	await project.init(basicProjectInput);
+
 	sinon.stub(project, "_getManifest").resolves({});
 	sinon.stub(project, "_getDotLibrary").resolves({});
 	sinon.stub(project, "_getLibraryJsPath").resolves("/library.js");
@@ -1020,7 +1043,7 @@ test.serial("_getNamespace: from project root level library.js", async (t) => {
 		"Failed to detect namespace or namespace is empty for project library.d. Check verbose log for details.",
 		"Rejected with correct error message");
 
-	const logCalls = loggerSpy.getCalls().map((call) => call.args[0]);
+	const logCalls = loggerStub.getCalls().map((call) => call.args[0]);
 	t.true(logCalls.includes(
 		"Namespace resolution from library.js file path failed for project library.d: " +
 		"Found library.js file in root directory. " +
@@ -1029,7 +1052,9 @@ test.serial("_getNamespace: from project root level library.js", async (t) => {
 });
 
 test("_getNamespace: neither manifest nor .library or library.js path contain it", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({});
 	sinon.stub(project, "_getDotLibrary").resolves({});
 	sinon.stub(project, "_getLibraryJsPath").rejects(new Error("Not found bla"));
@@ -1040,7 +1065,9 @@ test("_getNamespace: neither manifest nor .library or library.js path contain it
 });
 
 test("_getNamespace: maven placeholder resolution fails", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -1062,7 +1089,9 @@ test("_getNamespace: maven placeholder resolution fails", async (t) => {
 });
 
 test("_getCopyrightFromDotLibrary", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {
@@ -1077,7 +1106,9 @@ test("_getCopyrightFromDotLibrary", async (t) => {
 });
 
 test("_getCopyrightFromDotLibrary: No copyright in .library file", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {}
@@ -1089,7 +1120,9 @@ test("_getCopyrightFromDotLibrary: No copyright in .library file", async (t) => 
 });
 
 test("_getCopyrightFromDotLibrary: Propagates exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 
 	sinon.stub(project, "_getDotLibrary").rejects(new Error("because shark"));
 	const err = await t.throwsAsync(project._getCopyrightFromDotLibrary());
@@ -1098,7 +1131,9 @@ test("_getCopyrightFromDotLibrary: Propagates exception", async (t) => {
 });
 
 test("_getPreloadExcludesFromDotLibrary: Single exclude", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {
@@ -1123,7 +1158,9 @@ test("_getPreloadExcludesFromDotLibrary: Single exclude", async (t) => {
 });
 
 test("_getPreloadExcludesFromDotLibrary: Multiple excludes", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {
@@ -1162,7 +1199,9 @@ test("_getPreloadExcludesFromDotLibrary: Multiple excludes", async (t) => {
 });
 
 test("_getPreloadExcludesFromDotLibrary: No excludes in .library file", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {}
@@ -1174,7 +1213,9 @@ test("_getPreloadExcludesFromDotLibrary: No excludes in .library file", async (t
 });
 
 test("_getPreloadExcludesFromDotLibrary: Propagates exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 
 	sinon.stub(project, "_getDotLibrary").rejects(new Error("because shark"));
 	const err = await t.throwsAsync(project._getPreloadExcludesFromDotLibrary());
@@ -1183,7 +1224,9 @@ test("_getPreloadExcludesFromDotLibrary: Propagates exception", async (t) => {
 });
 
 test("_getNamespaceFromManifest", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {
@@ -1198,7 +1241,9 @@ test("_getNamespaceFromManifest", async (t) => {
 });
 
 test("_getNamespaceFromManifest: No ID in manifest.json file", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getManifest").resolves({
 		content: {
 			"sap.app": {}
@@ -1210,7 +1255,9 @@ test("_getNamespaceFromManifest: No ID in manifest.json file", async (t) => {
 });
 
 test("_getNamespaceFromManifest: Does not propagate exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 
 	sinon.stub(project, "_getManifest").rejects(new Error("because shark"));
 	const res = await project._getNamespaceFromManifest();
@@ -1218,7 +1265,9 @@ test("_getNamespaceFromManifest: Does not propagate exception", async (t) => {
 });
 
 test("_getNamespaceFromDotLibrary", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {
@@ -1237,7 +1286,9 @@ test("_getNamespaceFromDotLibrary", async (t) => {
 });
 
 test("_getNamespaceFromDotLibrary: No library name in .library file", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 	sinon.stub(project, "_getDotLibrary").resolves({
 		content: {
 			library: {}
@@ -1249,7 +1300,9 @@ test("_getNamespaceFromDotLibrary: No library name in .library file", async (t) 
 });
 
 test("_getNamespaceFromDotLibrary: Does not propagate exception", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {sinon} = t.context;
+
+	const project = await (new Library().init(basicProjectInput));
 
 	sinon.stub(project, "_getDotLibrary").rejects(new Error("because shark"));
 	const res = await project._getNamespaceFromDotLibrary();

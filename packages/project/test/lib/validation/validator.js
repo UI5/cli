@@ -1,6 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const {validate, _Validator: Validator} = require("../../../lib/validation/validator");
+import test from "ava";
+import sinon from "sinon";
+import {validate, _Validator as Validator} from "../../../lib/validation/validator.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();

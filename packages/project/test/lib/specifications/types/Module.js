@@ -1,12 +1,14 @@
-const test = require("ava");
-const path = require("path");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const Specification = require("../../../../lib/specifications/Specification");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinon from "sinon";
+import Specification from "../../../../lib/specifications/Specification.js";
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const moduleAPath = path.join(__dirname, "..", "..", "..", "fixtures", "module.a");
 const basicProjectInput = {
@@ -34,11 +36,10 @@ const basicProjectInput = {
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test("Correct class", async (t) => {
-	const Module = mock.reRequire("../../../../lib/specifications/types/Module");
+	const {default: Module} = await import("../../../../lib/specifications/types/Module.js");
 	const project = await Specification.create(basicProjectInput);
 	t.true(project instanceof Module, `Is an instance of the Module class`);
 });

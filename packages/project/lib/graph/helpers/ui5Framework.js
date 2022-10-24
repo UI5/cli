@@ -1,6 +1,7 @@
-const Module = require("../Module");
-const ProjectGraph = require("../ProjectGraph");
-const log = require("@ui5/logger").getLogger("graph:helpers:ui5Framework");
+import Module from "../Module.js";
+import ProjectGraph from "../ProjectGraph.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("graph:helpers:ui5Framework");
 
 class ProjectProcessor {
 	constructor({libraryMetadata}) {
@@ -119,19 +120,18 @@ const utils = {
  *
  *
  * @private
- * @namespace
- * @alias module:@ui5/project.translators.ui5Framework
+ * @module @ui5/project/translators/ui5Framework
  */
-module.exports = {
+export default {
 	/**
 	 *
 	 *
 	 * @public
-	 * @param {module:@ui5/project.graph.ProjectGraph} projectGraph
+	 * @param {@ui5/project/graph/ProjectGraph} projectGraph
 	 * @param {object} [options]
 	 * @param {string} [options.versionOverride] Framework version to use instead of the root projects framework
 	 *   version from the provided <code>tree</code>
-	 * @returns {Promise<module:@ui5/project.graph.ProjectGraph>}
+	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
@@ -164,9 +164,9 @@ module.exports = {
 
 		let Resolver;
 		if (frameworkName === "OpenUI5") {
-			Resolver = require("../../ui5Framework/Openui5Resolver");
+			Resolver = (await import("../../ui5Framework/Openui5Resolver.js")).default;
 		} else if (frameworkName === "SAPUI5") {
-			Resolver = require("../../ui5Framework/Sapui5Resolver");
+			Resolver = (await import("../../ui5Framework/Sapui5Resolver.js")).default;
 		}
 
 		let version;
@@ -205,7 +205,7 @@ module.exports = {
 
 		if (log.isLevelEnabled("verbose")) {
 			const timeDiff = process.hrtime(startTime);
-			const prettyHrtime = require("pretty-hrtime");
+			const {default: prettyHrtime} = await import("pretty-hrtime");
 			log.verbose(
 				`${frameworkName} dependencies ${referencedLibraries.join(", ")} ` +
 				`resolved in ${prettyHrtime(timeDiff)}`);
@@ -229,5 +229,5 @@ module.exports = {
 	},
 
 	// Export for testing only
-	_utils: process.env.NODE_ENV === "test" ? utils : undefined
+	_utils: process.env.NODE_ENV === "test" ? utils : /* istanbul ignore next */ undefined
 };

@@ -1,8 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const chalk = require("chalk");
-
-const ValidationError = require("../../../lib/validation/ValidationError");
+import test from "ava";
+import sinon from "sinon";
+import chalk from "chalk";
+import ValidationError from "../../../lib/validation/ValidationError.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();

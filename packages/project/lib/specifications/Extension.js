@@ -1,5 +1,15 @@
-const Specification = require("./Specification");
+import Specification from "./Specification.js";
 
+/**
+ * Extension
+ *
+ * @public
+ * @abstract
+ * @class
+ * @alias @ui5/project/specifications/Extension
+ * @extends @ui5/project/specifications/Specification
+ * @hideconstructor
+ */
 class Extension extends Specification {
 	constructor(parameters) {
 		super(parameters);
@@ -32,4 +42,4 @@ class Extension extends Specification {
 	async _validateConfig() {}
 }
 
-module.exports = Extension;
+export default Extension;

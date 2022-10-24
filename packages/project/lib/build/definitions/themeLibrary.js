@@ -8,7 +8,7 @@
  * @param {object} parameters.taskUtil
  * @param {Function} parameters.getTask
  */
-module.exports = function({project, taskUtil, getTask}) {
+export default function({project, taskUtil, getTask}) {
 	const tasks = new Map();
 	tasks.set("replaceCopyright", {
 		options: {
@@ -44,4 +44,4 @@ module.exports = function({project, taskUtil, getTask}) {
 
 	tasks.set("generateResourcesJson", {requiresDependencies: true});
 	return tasks;
-};
+}

@@ -1,9 +1,18 @@
-const fsPath = require("path");
-const posixPath = require("path").posix;
-const {promisify} = require("util");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const ComponentProject = require("../ComponentProject");
+import fsPath from "node:path";
+import posixPath from "node:path/posix";
+import {promisify} from "node:util";
+import ComponentProject from "../ComponentProject.js";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
 
+/**
+ * Library
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/Library
+ * @extends @ui5/project/specifications/ComponentProject
+ * @hideconstructor
+ */
 class Library extends ComponentProject {
 	constructor(parameters) {
 		super(parameters);
@@ -84,7 +93,7 @@ class Library extends ComponentProject {
 	 * Get a resource reader for the sources of the project (excluding any test resources)
 	 * In the future the path structure can be flat or namespaced depending on the project
 	 *
-	 * @returns {module:@ui5/fs.ReaderCollection} Reader collection
+	 * @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
 	_getRawSourceReader() {
 		return resourceFactory.createReader({
@@ -118,11 +127,11 @@ class Library extends ComponentProject {
 		this._log.verbose(`    /resources/ => ${this._srcPath}`);
 		this._log.verbose(`    /test-resources/ => ${this._testPath}`);
 
-		if (!await this._dirExists("/" + this._srcPath)) {
+		if (!(await this._dirExists("/" + this._srcPath))) {
 			throw new Error(
 				`Unable to find directory '${this._srcPath}' in library project ${this.getName()}`);
 		}
-		if (!await this._dirExists("/" + this._testPath)) {
+		if (!(await this._dirExists("/" + this._testPath))) {
 			this._log.verbose(`    (/test-resources/ target does not exist)`);
 		} else {
 			this._testPathExists = true;
@@ -461,7 +470,9 @@ class Library extends ComponentProject {
 				const content = await resource.getString();
 
 				try {
-					const xml2js = require("xml2js");
+					const {
+						default: xml2js
+					} = await import("xml2js");
 					const parser = new xml2js.Parser({
 						explicitArray: false,
 						explicitCharkey: true
@@ -503,4 +514,4 @@ class Library extends ComponentProject {
 	}
 }
 
-module.exports = Library;
+export default Library;

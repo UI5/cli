@@ -1,15 +1,29 @@
-const path = require("path");
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
+import DependencyTreeProvider from "../../../../lib/graph/providers/DependencyTree.js";
+import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
 
-const DependencyTreeProvider = require("../../../../lib/graph/providers/DependencyTree");
-const projectGraphBuilder = require("../../../../lib/graph/projectGraphBuilder");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+
+	const logStub = {
+		info: sinon.stub(),
+		verbose: sinon.stub(),
+		isLevelEnabled: sinon.stub().returns(false),
+		_getLogger: sinon.stub()
+	};
+	const ui5Logger = {
+		getLogger: sinon.stub().returns(logStub)
+	};
+
 	t.context.Sapui5ResolverStub = sinon.stub();
 	t.context.Sapui5ResolverInstallStub = sinon.stub();
 	t.context.Sapui5ResolverStub.callsFake(() => {
@@ -19,23 +33,22 @@ test.beforeEach((t) => {
 	});
 	t.context.Sapui5ResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5ResolverStub.resolveVersion = t.context.Sapui5ResolverResolveVersionStub;
-	mock("../../../../lib/ui5Framework/Sapui5Resolver", t.context.Sapui5ResolverStub);
 
-	t.context.Openui5ResolverStub = sinon.stub();
-	mock("../../../../lib/ui5Framework/Openui5Resolver", t.context.Openui5ResolverStub);
-
-	// Re-require to ensure that mocked modules are used
-	t.context.ui5Framework = mock.reRequire("../../../../lib/graph/helpers/ui5Framework");
+	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
+		"@ui5/logger": ui5Logger,
+		"../../../../lib/ui5Framework/Openui5Resolver.js": t.context.Openui5ResolverStub,
+		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
+	});
 	t.context.utils = t.context.ui5Framework._utils;
 });
 
 test.afterEach.always((t) => {
-	sinon.restore();
-	mock.stopAll();
+	t.context.sinon.restore();
+	esmock.purge(t.context.ui5Framework);
 });
 
 test.serial("ui5Framework translator should throw an error when framework version is not defined", async (t) => {
-	const {ui5Framework, utils, Sapui5ResolverInstallStub} = t.context;
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub} = t.context;
 
 	const dependencyTree = {
 		id: "test1",
@@ -115,7 +128,7 @@ test.serial("ui5Framework translator should throw an error when framework versio
 
 test.serial("generateDependencyTree (with versionOverride)", async (t) => {
 	const {
-		ui5Framework, utils,
+		sinon, ui5Framework, utils,
 		Sapui5ResolverStub, Sapui5ResolverResolveVersionStub, Sapui5ResolverInstallStub
 	} = t.context;
 

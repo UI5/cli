@@ -1,11 +1,21 @@
-const resourceFactory = require("@ui5/fs").resourceFactory;
+import logger from "@ui5/logger";
+import {createReader} from "@ui5/fs/resourceFactory";
 
+/**
+ * Specification
+ *
+ * @public
+ * @abstract
+ * @class
+ * @alias @ui5/project/specifications/Specification
+ * @hideconstructor
+ */
 class Specification {
 	constructor() {
 		if (new.target === Specification) {
 			throw new TypeError("Class 'Specification' is abstract. Please use one of the 'types' subclasses");
 		}
-		this._log = require("@ui5/logger").getLogger(`specifications:types:${this.constructor.name}`);
+		this._log = logger.getLogger(`specifications:types:${this.constructor.name}`);
 	}
 
 	/**
@@ -38,7 +48,7 @@ class Specification {
 
 		// Deep clone config to prevent changes by reference
 		const config = JSON.parse(JSON.stringify(configuration));
-		const {validate} = require("../validation/validator");
+		const {validate} = await import("../validation/validator.js");
 
 		if (config.specVersion === "0.1" || config.specVersion === "1.0" ||
 			config.specVersion === "1.1") {
@@ -148,10 +158,10 @@ class Specification {
 	* Get a resource reader for the root directory of the project
 	*
 	* @public
-	* @returns {module:@ui5/fs.ReaderCollection} Reader collection
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
 	getRootReader() {
-		return resourceFactory.createReader({
+		return createReader({
 			fsBasePath: this.getPath(),
 			virBasePath: "/",
 			name: `Root reader for ${this.getType()} ${this.getKind()} ${this.getName()}`
@@ -198,25 +208,25 @@ class Specification {
 
 		switch (type) {
 		case "application": {
-			return createAndInitializeSpec("Application", params);
+			return createAndInitializeSpec("Application.js", params);
 		}
 		case "library": {
-			return createAndInitializeSpec("Library", params);
+			return createAndInitializeSpec("Library.js", params);
 		}
 		case "theme-library": {
-			return createAndInitializeSpec("ThemeLibrary", params);
+			return createAndInitializeSpec("ThemeLibrary.js", params);
 		}
 		case "module": {
-			return createAndInitializeSpec("Module", params);
+			return createAndInitializeSpec("Module.js", params);
 		}
 		case "task": {
-			return createAndInitializeSpec("extensions/Task", params);
+			return createAndInitializeSpec("extensions/Task.js", params);
 		}
 		case "server-middleware": {
-			return createAndInitializeSpec("extensions/ServerMiddleware", params);
+			return createAndInitializeSpec("extensions/ServerMiddleware.js", params);
 		}
 		case "project-shim": {
-			return createAndInitializeSpec("extensions/ProjectShim", params);
+			return createAndInitializeSpec("extensions/ProjectShim.js", params);
 		}
 		default:
 			throw new Error(
@@ -225,9 +235,9 @@ class Specification {
 	}
 }
 
-function createAndInitializeSpec(moduleName, params) {
-	const Spec = require(`./types/${moduleName}`);
+async function createAndInitializeSpec(moduleName, params) {
+	const {default: Spec} = await import(`./types/${moduleName}`);
 	return new Spec().init(params);
 }
 
-module.exports = Specification;
+export default Specification;

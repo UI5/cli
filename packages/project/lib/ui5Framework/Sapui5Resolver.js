@@ -1,8 +1,10 @@
-const path = require("path");
-const semver = require("semver");
-const AbstractResolver = require("./AbstractResolver");
-const Installer = require("./npm/Installer");
-const log = require("@ui5/logger").getLogger("ui5Framework:Sapui5Resolver");
+import path from "node:path";
+import os from "node:os";
+import semver from "semver";
+import AbstractResolver from "./AbstractResolver.js";
+import Installer from "./npm/Installer.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("ui5Framework:Sapui5Resolver");
 
 const DIST_PKG_NAME = "@sapui5/distribution-metadata";
 
@@ -10,8 +12,9 @@ const DIST_PKG_NAME = "@sapui5/distribution-metadata";
  * Resolver for the SAPUI5 framework
  *
  * @public
- * @memberof module:@ui5/project.ui5Framework
- * @augments  module:@ui5/project.ui5Framework.AbstractResolver
+ * @class
+ * @alias @ui5/project/ui5Framework/Sapui5Resolver
+ * @extends @ui5/project/ui5Framework/AbstractResolver
  */
 class Sapui5Resolver extends AbstractResolver {
 	/**
@@ -62,7 +65,7 @@ class Sapui5Resolver extends AbstractResolver {
 			//	dependency information for all OpenUI5 libraries.
 			// Therefore we need to request those from the registry like it is done
 			//	for OpenUI5 projects.
-			const Openui5Resolver = require("./Openui5Resolver");
+			const {default: Openui5Resolver} = await import("./Openui5Resolver.js");
 			const openui5Resolver = new Openui5Resolver({
 				cwd: this._cwd,
 				version: metadata.version
@@ -100,10 +103,10 @@ class Sapui5Resolver extends AbstractResolver {
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
 			ui5HomeDir:
 				ui5HomeDir ? path.resolve(ui5HomeDir) :
-					path.join(require("os").homedir(), ".ui5")
+					path.join(os.homedir(), ".ui5")
 		});
 		return await installer.fetchPackageVersions({pkgName: DIST_PKG_NAME});
 	}
 }
 
-module.exports = Sapui5Resolver;
+export default Sapui5Resolver;

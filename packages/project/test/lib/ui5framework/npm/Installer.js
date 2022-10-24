@@ -1,35 +1,42 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const path = require("path");
-const fs = require("graceful-fs");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
 
-const lockfile = require("lockfile");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-let Installer;
-
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.mkdirpStub = sinon.stub().resolves();
-	mock("mkdirp", t.context.mkdirpStub);
-
 	t.context.rimrafStub = sinon.stub().yieldsAsync();
-	mock("rimraf", t.context.rimrafStub);
 
-	t.context.lockStub = sinon.stub(lockfile, "lock");
-	t.context.unlockStub = sinon.stub(lockfile, "unlock");
-	t.context.renameStub = sinon.stub(fs, "rename").yieldsAsync();
-	t.context.statStub = sinon.stub(fs, "stat").callThrough();
+	t.context.lockStub = sinon.stub();
+	t.context.unlockStub = sinon.stub();
+	t.context.renameStub = sinon.stub().yieldsAsync();
+	t.context.statStub = sinon.stub().yieldsAsync();
 
-	// Re-require to ensure that mocked modules are used
-	Installer = mock.reRequire("../../../../lib/ui5Framework/npm/Installer");
+	t.context.Installer = await esmock.p("../../../../lib/ui5Framework/npm/Installer.js", {
+		"mkdirp": t.context.mkdirpStub,
+		"rimraf": t.context.rimrafStub,
+		"lockfile": {
+			lock: t.context.lockStub,
+			unlock: t.context.unlockStub
+		},
+		"graceful-fs": {
+			rename: t.context.renameStub,
+			stat: t.context.statStub
+		}
+	});
 });
 
-test.afterEach.always(() => {
+test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
+	esmock.purge(t.context.Installer);
 });
 
 test.serial("Installer: constructor", (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -41,12 +48,16 @@ test.serial("Installer: constructor", (t) => {
 });
 
 test.serial("Installer: constructor requires 'cwd'", (t) => {
+	const {Installer} = t.context;
+
 	t.throws(() => {
 		new Installer({});
 	}, {message: `Installer: Missing parameter "cwd"`});
 });
 
 test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
+	const {Installer} = t.context;
+
 	t.throws(() => {
 		new Installer({
 			cwd: "/cwd/"
@@ -55,6 +66,8 @@ test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
 });
 
 test.serial("Installer: fetchPackageVersions", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -80,6 +93,8 @@ test.serial("Installer: fetchPackageVersions", async (t) => {
 });
 
 test.serial("Installer: _getLockPath", (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -94,6 +109,8 @@ test.serial("Installer: _getLockPath", (t) => {
 });
 
 test.serial("Installer: fetchPackageManifest (without existing package.json)", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -163,6 +180,8 @@ test.serial("Installer: fetchPackageManifest (without existing package.json)", a
 });
 
 test.serial("Installer: fetchPackageManifest (with existing package.json)", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -222,6 +241,8 @@ test.serial("Installer: fetchPackageManifest (with existing package.json)", asyn
 });
 
 test.serial("Installer: fetchPackageManifest (readJson throws error)", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -255,6 +276,8 @@ test.serial("Installer: fetchPackageManifest (readJson throws error)", async (t)
 });
 
 test.serial("Installer: _synchronize", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -297,6 +320,8 @@ test.serial("Installer: _synchronize", async (t) => {
 });
 
 test.serial("Installer: _synchronize should unlock when callback promise has resolved", async (t) => {
+	const {Installer} = t.context;
+
 	t.plan(4);
 
 	const installer = new Installer({
@@ -326,6 +351,8 @@ test.serial("Installer: _synchronize should unlock when callback promise has res
 });
 
 test.serial("Installer: _synchronize should throw when locking fails", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -349,6 +376,8 @@ test.serial("Installer: _synchronize should throw when locking fails", async (t)
 });
 
 test.serial("Installer: _synchronize should still unlock when callback throws an error", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -374,6 +403,8 @@ test.serial("Installer: _synchronize should still unlock when callback throws an
 });
 
 test.serial("Installer: _synchronize should still unlock when callback rejects with error", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -399,6 +430,8 @@ test.serial("Installer: _synchronize should still unlock when callback rejects w
 });
 
 test.serial("Installer: installPackage with new package", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -479,6 +512,8 @@ test.serial("Installer: installPackage with new package", async (t) => {
 });
 
 test.serial("Installer: installPackage with already installed package", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -531,6 +566,8 @@ test.serial("Installer: installPackage with already installed package", async (t
 });
 
 test.serial("Installer: installPackage with install already in progress", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -593,6 +630,8 @@ test.serial("Installer: installPackage with install already in progress", async 
 });
 
 test.serial("Installer: installPackage with new package and existing target and staging", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -678,6 +717,8 @@ test.serial("Installer: installPackage with new package and existing target and 
 });
 
 test.serial("Installer: _pathExists - exists", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -691,6 +732,8 @@ test.serial("Installer: _pathExists - exists", async (t) => {
 });
 
 test.serial("Installer: _pathExists - does not exist", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"
@@ -708,6 +751,8 @@ test.serial("Installer: _pathExists - does not exist", async (t) => {
 });
 
 test.serial("Installer: _pathExists - re-throws unexpected errors", async (t) => {
+	const {Installer} = t.context;
+
 	const installer = new Installer({
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/"

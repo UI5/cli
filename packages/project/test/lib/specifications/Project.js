@@ -1,10 +1,14 @@
-const test = require("ava");
-const path = require("path");
-const Specification = require("../../../lib/specifications/Specification");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import chalk from "chalk";
+import Specification from "../../../lib/specifications/Specification.js";
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const basicProjectInput = {
@@ -27,9 +31,11 @@ test("Invalid configuration", async (t) => {
 		}
 	};
 	const error = await t.throwsAsync(Specification.create(customProjectInput));
-	t.is(error.message, `Invalid ui5.yaml configuration for project application.a.id
+	t.is(error.message, `${chalk.red("Invalid ui5.yaml configuration for project application.a.id")}
 
-Configuration resources/configuration/propertiesFileSourceEncoding must be equal to one of the allowed values
+Configuration \
+${chalk.underline(chalk.red("resources/configuration/propertiesFileSourceEncoding"))} \
+must be equal to one of the allowed values
 Allowed values: UTF-8, ISO-8859-1`, "Threw with validation error");
 });
 

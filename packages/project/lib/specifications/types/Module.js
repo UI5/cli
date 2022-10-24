@@ -1,7 +1,16 @@
-const fsPath = require("path");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const Project = require("../Project");
+import fsPath from "node:path";
+import Project from "../Project.js";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
 
+/**
+ * Module
+ *
+ * @public
+ * @class
+ * @alias @ui5/project/specifications/types/Module
+ * @extends @ui5/project/specifications/Project
+ * @hideconstructor
+ */
 class Module extends Project {
 	constructor(parameters) {
 		super(parameters);
@@ -24,9 +33,9 @@ class Module extends Project {
 	* Get a resource reader for accessing the project resources
 	*
 	* @public
-	* @returns {module:@ui5/fs.ReaderCollection} Reader collection
+	* @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection
 	*/
-	getReader() {
+	async getReader() {
 		const readers = this._paths.map((readerArgs) => resourceFactory.createReader(readerArgs));
 		if (readers.length === 1) {
 			return readers[0];
@@ -45,10 +54,10 @@ class Module extends Project {
 	 * Get a resource reader/writer for accessing and modifying a project's resources
 	 *
 	 * @public
-	 * @returns {module:@ui5/fs.ReaderCollection} A reader collection instance
+	 * @returns {Promise<@ui5/fs/ReaderCollection>} A reader collection instance
 	 */
-	getWorkspace() {
-		const reader = this.getReader();
+	async getWorkspace() {
+		const reader = await this.getReader();
 
 		const writer = this._getWriter();
 		return resourceFactory.createWorkspace({
@@ -83,7 +92,7 @@ class Module extends Project {
 			this._paths = await Promise.all(Object.entries(config.resources.configuration.paths)
 				.map(async ([virBasePath, relFsPath]) => {
 					this._log.verbose(`    ${virBasePath} => ${relFsPath}`);
-					if (!await this._dirExists("/" + relFsPath)) {
+					if (!(await this._dirExists("/" + relFsPath))) {
 						throw new Error(
 							`Unable to find directory '${relFsPath}' in module project ${this.getName()}`);
 					}
@@ -96,7 +105,7 @@ class Module extends Project {
 					};
 				}));
 		} else {
-			if (!await this._dirExists("/")) {
+			if (!(await this._dirExists("/"))) {
 				throw new Error(
 					`Unable to find root directory of module project ${this.getName()}`);
 			}
@@ -112,4 +121,4 @@ class Module extends Project {
 	}
 }
 
-module.exports = Module;
+export default Module;

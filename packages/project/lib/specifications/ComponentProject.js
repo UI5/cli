@@ -1,11 +1,17 @@
-const {promisify} = require("util");
-const Project = require("./Project");
-const resourceFactory = require("@ui5/fs").resourceFactory;
+import {promisify} from "node:util";
+import Project from "./Project.js";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
 
-/*
-* Subclass for projects potentially containing Components
-*/
-
+/**
+ * Subclass for projects potentially containing Components
+ *
+ * @public
+ * @abstract
+ * @class
+ * @alias @ui5/project/specifications/ComponentProject
+ * @extends @ui5/project/specifications/Project
+ * @hideconstructor
+ */
 class ComponentProject extends Project {
 	constructor(parameters) {
 		super(parameters);
@@ -91,9 +97,9 @@ class ComponentProject extends Project {
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources. Can be "buildtime", "runtime" or "flat"
 	 * 												TODO: describe styles
-	 * @returns {module:@ui5/fs.ReaderCollection} A reader collection instance
+	 * @returns {Promise<@ui5/fs/ReaderCollection>} A reader collection instance
 	 */
-	getReader({style = "buildtime"} = {}) {
+	async getReader({style = "buildtime"} = {}) {
 		// TODO: Additional style 'ABAP' using "sap.platform.abap".uri from manifest.json?
 
 		if (style === "runtime" && this._isRuntimeNamespaced) {
@@ -101,35 +107,34 @@ class ComponentProject extends Project {
 			// "runtime" style paths are identical to "buildtime" style paths
 			style = "buildtime";
 		}
-		let reader;
+		let reader = this._getReader();
 		switch (style) {
 		case "buildtime":
-			reader = this._getReader();
 			break;
 		case "runtime":
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = this._getReader().flatten(this._namespace);
+			reader = await reader.flatten(this._namespace);
 			break;
 		case "flat":
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = this._getReader().flatten(this._namespace);
+			reader = await reader.flatten(this._namespace);
 			break;
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
 
-		reader = this._addWriter(reader, style);
+		reader = await this._addWriter(reader, style);
 		return reader;
 	}
 
 	/**
 	* Get a resource reader for the resources of the project
 	*
-	* @returns {module:@ui5/fs.ReaderCollection} Reader collection
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
 	_getSourceReader() {
 		throw new Error(`_getSourceReader must be implemented by subclass ${this.constructor.name}`);
@@ -138,7 +143,7 @@ class ComponentProject extends Project {
 	/**
 	* Get a resource reader for the test resources of the project
 	*
-	* @returns {module:@ui5/fs.ReaderCollection} Reader collection
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
 	_getTestReader() {
 		throw new Error(`_getTestReader must be implemented by subclass ${this.constructor.name}`);
@@ -148,9 +153,9 @@ class ComponentProject extends Project {
 	 * Get a resource reader/writer for accessing and modifying a project's resources
 	 *
 	 * @public
-	 * @returns {module:@ui5/fs.ReaderCollection} A reader collection instance
+	 * @returns {Promise<@ui5/fs/ReaderCollection>} A reader collection instance
 	 */
-	getWorkspace() {
+	async getWorkspace() {
 		// Workspace is always of style "buildtime"
 		return resourceFactory.createWorkspace({
 			name: `Workspace for project ${this.getName()}`,
@@ -202,7 +207,7 @@ class ComponentProject extends Project {
 		return reader;
 	}
 
-	_addWriter(reader, style) {
+	async _addWriter(reader, style) {
 		const {namespaceWriter, generalWriter} = this._getWriter();
 
 		if (style === "runtime" && this._isRuntimeNamespaced) {
@@ -219,14 +224,14 @@ class ComponentProject extends Project {
 		}
 		case "runtime": {
 			// Runtime is not namespaced: link namespace to /
-			readers.push(namespaceWriter.flatten(this._namespace));
+			readers.push(await namespaceWriter.flatten(this._namespace));
 			// Add general writer as is
 			readers.push(generalWriter);
 			break;
 		}
 		case "flat": {
 			// Rewrite paths from "flat" to "buildtime"
-			readers.push(namespaceWriter.flatten(this._namespace));
+			readers.push(await namespaceWriter.flatten(this._namespace));
 			// General writer resources can't be flattened, so they are not available
 			break;
 		}
@@ -315,7 +320,9 @@ class ComponentProject extends Project {
 						`Could not find pom.xml in project ${this.getName()}`);
 				}
 				const content = await resource.getString();
-				const xml2js = require("xml2js");
+				const {
+					default: xml2js
+				} = await import("xml2js");
 				const parser = new xml2js.Parser({
 					explicitArray: false,
 					ignoreAttrs: true
@@ -329,4 +336,4 @@ class ComponentProject extends Project {
 	}
 }
 
-module.exports = ComponentProject;
+export default ComponentProject;

@@ -1,9 +1,21 @@
-const test = require("ava");
-const path = require("path");
-const sinon = require("sinon");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import sinon from "sinon";
+import Specification from "../../../lib/specifications/Specification.js";
+import Application from "../../../lib/specifications/types/Application.js";
+import Library from "../../../lib/specifications/types/Library.js";
+import ThemeLibrary from "../../../lib/specifications/types/ThemeLibrary.js";
+import Module from "../../../lib/specifications/types/Module.js";
+import Task from "../../../lib/specifications/types/extensions/Task.js";
+import ProjectShim from "../../../lib/specifications/types/extensions/ProjectShim.js";
+import ServerMiddleware from "../../../lib/specifications/types/extensions/ServerMiddleware.js";
 
-const Specification = require("../../../lib/specifications/Specification");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
+const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");
+const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.library.e");
 const genericExtensionPath = path.join(__dirname, "..", "..", "fixtures", "extension.a");
 const moduleAPath = path.join(__dirname, "..", "..", "fixtures", "module.a");
 
@@ -160,4 +172,97 @@ test("Migrate legacy extension", async (t) => {
 	});
 
 	t.is(project.getSpecVersion(), "2.6", "Project got migrated to latest specVersion");
+});
+
+[{
+	kind: "project",
+	type: "application",
+	modulePath: applicationAPath,
+	SpecificationClass: Application
+}, {
+	kind: "project",
+	type: "library",
+	modulePath: libraryHPath,
+	SpecificationClass: Library
+}, {
+	kind: "project",
+	type: "theme-library",
+	modulePath: themeLibraryEPath,
+	SpecificationClass: ThemeLibrary
+}, {
+	kind: "project",
+	type: "module",
+	modulePath: moduleAPath,
+	SpecificationClass: Module
+}, {
+	kind: "extension",
+	type: "task",
+	modulePath: genericExtensionPath,
+	SpecificationClass: Task
+}, {
+	kind: "extension",
+	type: "project-shim",
+	modulePath: genericExtensionPath,
+	SpecificationClass: ProjectShim
+}, {
+	kind: "extension",
+	type: "server-middleware",
+	modulePath: genericExtensionPath,
+	SpecificationClass: ServerMiddleware
+}].forEach(({kind, type, modulePath, SpecificationClass}) => {
+	test(`create: kind '${kind}', type '${type}'`, async (t) => {
+		const additionalConfiguration = {};
+		if (type === "task") {
+			additionalConfiguration.task = {path: "lib/middleware.js"};
+		} else if (type === "server-middleware") {
+			additionalConfiguration.middleware = {path: "lib/middleware.js"};
+		} else if (type === "project-shim") {
+			additionalConfiguration.shims = {};
+		}
+		const project = await Specification.create({
+			id: `${type}.a.id`,
+			version: "1.0.0",
+			modulePath,
+			configuration: {
+				specVersion: "2.6",
+				kind,
+				type,
+				metadata: {
+					name: `${type}.a`
+				},
+				...additionalConfiguration
+			}
+		});
+		t.true(project instanceof SpecificationClass);
+	});
+});
+
+test("create: Missing configuration", async (t) => {
+	await t.throwsAsync(Specification.create({
+		id: "application.a.id",
+		version: "1.0.0",
+	}), {
+		message: "Unable to create Specification instance: Missing configuration parameter"
+	});
+});
+
+test("create: Unknown kind", async (t) => {
+	await t.throwsAsync(Specification.create({
+		configuration: {
+			kind: "foo",
+		}
+	}), {
+		message: "Unable to create Specification instance: Unknown kind 'foo'"
+	});
+});
+
+test("create: Unknown type", async (t) => {
+	await t.throwsAsync(Specification.create({
+		configuration: {
+			kind: "project",
+			type: "foo"
+		}
+	}), {
+		message: "Unable to create Specification instance: Unknown specification type 'foo'"
+	});
 });

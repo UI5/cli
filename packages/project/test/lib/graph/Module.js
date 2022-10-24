@@ -1,7 +1,10 @@
-const test = require("ava");
-const sinon = require("sinon");
-const path = require("path");
-const Module = require("../../../lib/graph/Module");
+import test from "ava";
+import sinon from "sinon";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import Module from "../../../lib/graph/Module.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const buildDescriptionApplicationAPath =
@@ -369,7 +372,7 @@ test("Invalid configuration in file", async (t) => {
 	});
 	const err = await t.throwsAsync(ui5Module.getSpecifications());
 
-	t.true(err.message.startsWith("Invalid ui5.yaml configuration"), "Threw with validation error");
+	t.true(err.message.includes("Invalid ui5.yaml configuration"), "Threw with validation error");
 	// Check that config file name is referenced. This validates that the error was not produced by
 	// the Specification instance but the Module
 	t.true(err.message.includes("ui5-test-error.yaml"), "Error message references file name");

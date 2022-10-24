@@ -1,24 +1,32 @@
-const {promisify} = require("util");
-const rimraf = promisify(require("rimraf"));
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const log = require("@ui5/logger").getGroupLogger("build");
-const composeProjectList = require("./helpers/composeProjectList");
-const BuildContext = require("./helpers/BuildContext");
+import {promisify} from "node:util";
+import rimraf from "rimraf";
+const rimrafp = promisify(rimraf);
+import * as resourceFactory from "@ui5/fs/resourceFactory";
+import logger from "@ui5/logger";
+const log = logger.getGroupLogger("build");
+import composeProjectList from "./helpers/composeProjectList.js";
+import BuildContext from "./helpers/BuildContext.js";
+import prettyHrtime from "pretty-hrtime";
 
+/**
+ * @public
+ * @class
+ * @alias @ui5/project/build/ProjectBuilder
+ */
 class ProjectBuilder {
 	/**
 	 * Build Configuration
 	 *
 	 * @public
-	 * @typedef {object} BuildConfiguration
-	 * @param {boolean} [selfContained=false] Flag to activate self contained build
-	 * @param {boolean} [cssVariables=false] Flag to activate CSS variables generation
-	 * @param {boolean} [jsdoc=false] Flag to activate JSDoc build
-	 * @param {boolean} [createBuildManifest=false]
+	 * @typedef {object} @ui5/project/build/ProjectBuilder~BuildConfiguration
+	 * @property {boolean} [selfContained=false] Flag to activate self contained build
+	 * @property {boolean} [cssVariables=false] Flag to activate CSS variables generation
+	 * @property {boolean} [jsdoc=false] Flag to activate JSDoc build
+	 * @property {boolean} [createBuildManifest=false]
 	 * 			Whether to create a build manifest file for the root project.
 	 *			This is currently only supported for projects of type 'library' and 'theme-library'
-	 * @param {Array.<string>} [includedTasks=[]] List of tasks to be included
-	 * @param {Array.<string>} [excludedTasks=[]] List of tasks to be excluded.
+	 * @property {Array.<string>} [includedTasks=[]] List of tasks to be included
+	 * @property {Array.<string>} [excludedTasks=[]] List of tasks to be excluded.
 	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
 	 */
 
@@ -26,9 +34,9 @@ class ProjectBuilder {
 	 * Executes a project build, including all necessary or requested dependencies
 	 *
 	 * @public
-	 * @param {module:@ui5/project.graph.ProjectGraph} graph Project graph
-	 * @param {module:@ui5/builder.tasks.taskRepository} taskRepository Task Repository module
-	 * @param {module:@ui5/project.build.ProjectBuilder.BuildConfiguration} [buildConfig] Build configuration
+	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph
+	 * @param {@ui5/builder/tasks/taskRepository} taskRepository Task Repository module
+	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} [buildConfig] Build configuration
 	 */
 	constructor(graph, taskRepository, buildConfig) {
 		if (!graph) {
@@ -93,7 +101,7 @@ class ProjectBuilder {
 			return filterProject(projectName);
 		});
 
-		const projectBuildContexts = this._createRequiredBuildContexts(requestedProjects);
+		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
 		const cleanupSigHooks = this._registerCleanupSigHooks();
 		const fsTarget = resourceFactory.createAdapter({
 			fsBasePath: destPath,
@@ -147,7 +155,7 @@ class ProjectBuilder {
 
 		if (cleanDest) {
 			log.info(`Cleaning target directory...`);
-			await rimraf(destPath);
+			await rimrafp(destPath);
 		}
 		const startTime = process.hrtime();
 		try {
@@ -184,17 +192,18 @@ class ProjectBuilder {
 		}
 	}
 
-	_createRequiredBuildContexts(requestedProjects) {
+	async _createRequiredBuildContexts(requestedProjects) {
 		const allProjects = this._graph.getAllProjects();
 		const requiredProjects = new Set(allProjects.filter((project) => {
 			return requestedProjects.includes(project.getName());
 		}));
 
 		const projectBuildContexts = new Map();
-		requiredProjects.forEach((project) => {
+
+		for (const project of requiredProjects) {
 			const projectName = project.getName();
 			log.verbose(`Creating build context for project ${projectName}...`);
-			const projectBuildContext = this._buildContext.createProjectContext({
+			const projectBuildContext = await this._buildContext.createProjectContext({
 				project,
 				log
 			});
@@ -215,7 +224,8 @@ class ProjectBuilder {
 					requiredProjects.add(depProject);
 				});
 			}
-		});
+		}
+
 		return projectBuildContexts;
 	}
 
@@ -280,7 +290,7 @@ class ProjectBuilder {
 				// Ignore project itself
 				return;
 			}
-			readers.push(dep.getReader());
+			readers.push(await dep.getReader());
 		});
 
 		const dependencies = resourceFactory.createReaderCollection({
@@ -289,7 +299,7 @@ class ProjectBuilder {
 		});
 
 		await taskRunner.runTasks({
-			workspace: project.getWorkspace(),
+			workspace: await project.getWorkspace(),
 			dependencies,
 		});
 	}
@@ -298,14 +308,17 @@ class ProjectBuilder {
 		const project = projectBuildContext.getProject();
 		const taskUtil = projectBuildContext.getTaskUtil();
 		const buildConfig = this._buildContext.getBuildConfig();
-		const resources = await project.getReader({
+		const reader = await project.getReader({
 			// Force buildtime (=namespaced) style when writing with a build manifest
 			style: taskUtil.isRootProject() && buildConfig.createBuildManifest ? "buildtime" : "runtime"
-		}).byGlob("/**/*");
+		});
+		const resources = await reader.byGlob("/**/*");
 
 		if (taskUtil.isRootProject() && buildConfig.createBuildManifest) {
 			// Create and write a build manifest metadata file
-			const createBuildManifest = require("./helpers/createBuildManifest");
+			const {
+				default: createBuildManifest
+			} = await import("./helpers/createBuildManifest.js");
 			const metadata = await createBuildManifest(project, buildConfig);
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
@@ -383,10 +396,9 @@ class ProjectBuilder {
 	 * @returns {string} Difference between now and the provided time array as formatted string
 	 */
 	_getElapsedTime(startTime) {
-		const prettyHrtime = require("pretty-hrtime");
 		const timeDiff = process.hrtime(startTime);
 		return prettyHrtime(timeDiff);
 	}
 }
 
-module.exports = ProjectBuilder;
+export default ProjectBuilder;
