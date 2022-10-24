@@ -1,4 +1,4 @@
-const npmlog = require("npmlog");
+import npmlog from "npmlog";
 
 const levels = ["silly", "verbose", "perf", "info", "warn", "error", "silent"];
 if (process.env.UI5_LOG_LVL) {
@@ -160,10 +160,11 @@ const logger = {
 };
 
 // Export internal classes for testing only
+/* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
 	logger.__test__ = {
 		Logger, GroupLogger, TaskLogger
 	};
 }
 
-module.exports = logger;
+export default logger;

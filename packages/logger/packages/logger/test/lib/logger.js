@@ -1,6 +1,6 @@
-const test = require("ava");
-const mock = require("mock-require");
-const sinon = require("sinon");
+import test from "ava";
+import esmock from "esmock";
+import sinon from "sinon";
 
 function getNpmLogStub() {
 	return {
@@ -18,12 +18,15 @@ function getNpmLogStub() {
 	};
 }
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.npmLogStub = {
 		enableProgress: sinon.stub(),
 		disableProgress: sinon.stub(),
 		enableUnicode: sinon.stub(),
-		on: sinon.stub(),
+		on: sinon.stub().onFirstCall().callsFake((name, fn) => {
+			t.context.npmLogOnEventName = name;
+			t.context.npmLogOnEventFn = fn;
+		}),
 		newGroup: sinon.stub().callsFake(() => getNpmLogStub()),
 		newItem: sinon.stub().callsFake(() => getNpmLogStub()),
 		addLevel: sinon.stub(),
@@ -34,13 +37,15 @@ test.beforeEach((t) => {
 		warn: sinon.stub(),
 		error: sinon.stub()
 	};
-	mock("npmlog", t.context.npmLogStub);
 
-	t.context.logger = mock.reRequire("../../lib/logger");
+	t.context.consoleLog = sinon.stub(console, "log");
+
+	t.context.logger = await esmock("../../lib/logger", {
+		npmlog: t.context.npmLogStub
+	});
 });
 
 test.afterEach.always((t) => {
-	mock.stopAll();
 	sinon.restore();
 	delete process.env.UI5_LOG_LVL;
 });
@@ -136,19 +141,21 @@ test.serial("npmlog.level default", (t) => {
 	t.is(t.context.npmLogStub.level, "info", "Default level should be info");
 });
 
-test.serial("Environment variable UI5_LOG_LVL", (t) => {
-	["silly", "verbose", "perf", "info", "warn", "error", "silent"].forEach((level) => {
+test.serial("Environment variable UI5_LOG_LVL", async (t) => {
+	const levels = ["silly", "verbose", "perf", "info", "warn", "error", "silent"];
+
+	for (const level of levels) {
 		process.env.UI5_LOG_LVL = level;
-		t.context.logger = mock.reRequire("../../lib/logger");
+		t.context.logger = await esmock("../../lib/logger", {
+			npmlog: t.context.npmLogStub
+		});
 		t.is(t.context.npmLogStub.level, level, `Level should be set to ${level}`);
-	});
+	}
 });
 
-test.serial("Environment variable UI5_LOG_LVL (invalid)", (t) => {
+test.serial("Environment variable UI5_LOG_LVL (invalid)", async (t) => {
 	process.env.UI5_LOG_LVL = "all";
-	t.throws(() => {
-		mock.reRequire("../../lib/logger");
-	}, {
+	await t.throwsAsync(esmock("../../lib/logger"), {
 		message: `UI5 Logger: Environment variable UI5_LOG_LVL is set to an unknown log level "all". ` +
 			`Valid levels are silly, verbose, perf, info, warn, error, silent`
 	});
@@ -310,4 +317,16 @@ test.serial("TaskLogger#finish", (t) => {
 	myLogger.finish();
 
 	t.true(_logger.finish.calledOnce, "finished should call npmlog.finish");
+});
+
+test.serial("npmlog errors are send to console", (t) => {
+	const {npmLogOnEventName, npmLogOnEventFn, consoleLog} = t.context;
+
+	t.is(consoleLog.callCount, 0);
+	t.is(npmLogOnEventName, "error", "npmlog.on should be called with event name 'error'");
+
+	npmLogOnEventFn("some message");
+
+	t.is(consoleLog.callCount, 1);
+	t.deepEqual(consoleLog.getCall(0).args, ["some message"]);
 });
