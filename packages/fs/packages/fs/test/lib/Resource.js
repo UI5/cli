@@ -1,17 +1,15 @@
-const test = require("ava");
-const Stream = require("stream");
-const fs = require("fs");
-const path = require("path");
-const {promisify} = require("util");
-const stat = promisify(fs.stat);
-const Resource = require("../../lib/Resource");
+import test from "ava";
+import {Stream, Transform} from "node:stream";
+import {promises as fs, createReadStream} from "node:fs";
+import path from "node:path";
+import Resource from "../../lib/Resource.js";
 
 function createBasicResource() {
 	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
 	const resource = new Resource({
 		path: "/app/index.html",
 		createStream: function() {
-			return fs.createReadStream(fsPath);
+			return createReadStream(fsPath);
 		},
 		project: {},
 		statInfo: {},
@@ -174,7 +172,6 @@ test("Resource: size modification", async (t) => {
 		string: "Content"
 	}).getSize(), 7, "size when passing string to constructor");
 
-
 	// buffer
 	resource.setBuffer(Buffer.from("Super"));
 
@@ -182,7 +179,6 @@ test("Resource: size modification", async (t) => {
 
 	const clonedResource1 = await resource.clone();
 	t.is(await clonedResource1.getSize(), 5, "size after cloning the resource");
-
 
 	// buffer with alloc
 	const buf = Buffer.alloc(1234);
@@ -327,7 +323,6 @@ test("getStream with Buffer content: Subsequent content requests should throw er
 test("getStream with Stream content: Subsequent content requests should throw error due to drained " +
 		"content", async (t) => {
 	const resource = createBasicResource();
-	const {Transform} = require("stream");
 	const tStream = new Transform({
 		transform(chunk, encoding, callback) {
 			this.push(chunk.toString());
@@ -349,7 +344,6 @@ test("getStream with Stream content: Subsequent content requests should throw er
 test("getBuffer from Stream content: Subsequent content requests should not throw error due to drained " +
 		"content", async (t) => {
 	const resource = createBasicResource();
-	const {Transform} = require("stream");
 	const tStream = new Transform({
 		transform(chunk, encoding, callback) {
 			this.push(chunk.toString());
@@ -368,6 +362,38 @@ test("getBuffer from Stream content: Subsequent content requests should not thro
 	// Race condition in _getBufferFromStream used to cause p2
 	// to throw "Content stream of Resource /app/index.html is flagged as drained."
 	await t.notThrowsAsync(p2);
+});
+
+test("Resource: getProject", (t) => {
+	t.plan(1);
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		project: {getName: () => "Mock Project"}
+	});
+	const project = resource.getProject();
+	t.is(project.getName(), "Mock Project");
+});
+
+test("Resource: setProject", (t) => {
+	t.plan(1);
+	const resource = new Resource({
+		path: "my/path/to/resource"
+	});
+	const project = {getName: () => "Mock Project"};
+	resource.setProject(project);
+	t.is(resource.getProject().getName(), "Mock Project");
+});
+
+test("Resource: reassign with setProject", (t) => {
+	t.plan(2);
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		project: {getName: () => "Mock Project"}
+	});
+	const project = {getName: () => "New Mock Project"};
+	const error = t.throws(() => resource.setProject(project));
+	t.is(error.message, "Unable to assign project New Mock Project to resource my/path/to/resource: " +
+		"Resource is already associated to project " + project);
 });
 
 test("Resource: constructor with stream", async (t) => {
@@ -395,13 +421,13 @@ test("Resource: constructor with stream", async (t) => {
 
 test("integration stat - resource size", async (t) => {
 	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
-	const statInfo = await stat(fsPath);
+	const statInfo = await fs.stat(fsPath);
 
 	const resource = new Resource({
 		path: fsPath,
 		statInfo,
 		createStream: () => {
-			return fs.createReadStream(fsPath);
+			return createReadStream(fsPath);
 		}
 	});
 	t.is(await resource.getSize(), 91);

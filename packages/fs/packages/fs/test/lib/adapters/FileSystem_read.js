@@ -1,8 +1,8 @@
-const test = require("ava");
-const {resourceFactory} = require("../../../");
+import test from "ava";
+import {createAdapter} from "../../../lib/resourceFactory.js";
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -12,7 +12,7 @@ test("glob resources from application.a w/ virtual base path prefix", async (t) 
 });
 
 test("glob resources from application.a w/o virtual base path prefix", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -22,7 +22,7 @@ test("glob resources from application.a w/o virtual base path prefix", async (t)
 });
 
 test("glob virtual directory w/o virtual base path prefix", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -32,7 +32,7 @@ test("glob virtual directory w/o virtual base path prefix", async (t) => {
 });
 
 test("glob virtual directory w/o virtual base path prefix and multiple patterns", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -45,7 +45,7 @@ test("glob virtual directory w/o virtual base path prefix and multiple patterns"
 });
 
 test("glob virtual directory w/ virtual base path prefix", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/one/two/"
 	});
@@ -55,7 +55,7 @@ test("glob virtual directory w/ virtual base path prefix", async (t) => {
 });
 
 test("glob virtual directory w/o virtual base path prefix and nodir: true", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -65,7 +65,7 @@ test("glob virtual directory w/o virtual base path prefix and nodir: true", asyn
 });
 
 test("glob virtual directory w/o virtual base path prefix and nodir: true and multiple patterns", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -78,7 +78,7 @@ test("glob virtual directory w/o virtual base path prefix and nodir: true and mu
 });
 
 test("glob virtual directory w/ virtual base path prefix and nodir: true", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/one/two/"
 	});
@@ -88,7 +88,7 @@ test("glob virtual directory w/ virtual base path prefix and nodir: true", async
 });
 
 test("glob resources from application.a with directory exclude", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
@@ -99,7 +99,7 @@ test("glob resources from application.a with directory exclude", async (t) => {
 });
 
 test("byPath virtual directory", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/"
 	});
@@ -121,13 +121,13 @@ test("static excludes: glob library src and test", async (t) => {
 
 		"/test-resources/**",
 	];
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes
 	});
 
-	const testReader = resourceFactory.createAdapter({
+	const testReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/test",
 		virBasePath: "/test-resources/",
 		excludes
@@ -152,13 +152,13 @@ test("static excludes: glob library src and test with double negation", async (t
 		// double negation has effect over preceding "/test-resources/**" exclude
 		"!/test-resources/library/l/Test2.html",
 	];
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes
 	});
 
-	const testReader = resourceFactory.createAdapter({
+	const testReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/test",
 		virBasePath: "/test-resources/",
 		excludes
@@ -186,7 +186,7 @@ test("static excludes: glob library test with double negation", async (t) => {
 		"!/test-resources/library/l/Test2.html",
 	];
 
-	const testReader = resourceFactory.createAdapter({
+	const testReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/test",
 		virBasePath: "/test-resources/",
 		excludes
@@ -201,7 +201,7 @@ test("static excludes: glob library test with double negation", async (t) => {
 });
 
 test("static excludes: glob with virtual root exclude", async (t) => {
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes: [
@@ -215,7 +215,7 @@ test("static excludes: glob with virtual root exclude", async (t) => {
 });
 
 test("static excludes: glob with negated directory exclude, excluding resources", async (t) => {
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes: [
@@ -229,7 +229,7 @@ test("static excludes: glob with negated directory exclude, excluding resources"
 });
 
 test("static excludes: glob with negated directory exclude, not excluding resources", async (t) => {
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes: [
@@ -243,7 +243,7 @@ test("static excludes: glob with negated directory exclude, not excluding resour
 });
 
 test("static excludes: byPath exclude everything in sub-directory", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/",
 		excludes: ["/resources/app/**"]
@@ -254,7 +254,7 @@ test("static excludes: byPath exclude everything in sub-directory", async (t) =>
 });
 
 test("static excludes: byPath exclude with negation", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/",
 		excludes: [
@@ -268,7 +268,7 @@ test("static excludes: byPath exclude with negation", async (t) => {
 });
 
 test("static excludes: byPath exclude with unused negation", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/",
 		excludes: [
@@ -282,7 +282,7 @@ test("static excludes: byPath exclude with unused negation", async (t) => {
 });
 
 test("static excludes: byPath exclude with negated directory pattern, excluding resources", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/",
 		excludes: [
@@ -295,7 +295,7 @@ test("static excludes: byPath exclude with negated directory pattern, excluding 
 });
 
 test("static excludes: byPath exclude with negated directory pattern, not excluding resources", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/",
 		excludes: [
@@ -308,7 +308,7 @@ test("static excludes: byPath exclude with negated directory pattern, not exclud
 });
 
 test("byPath: exclude with unused negation", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.b/webapp",
 		virBasePath: "/resources/app/",
 		excludes: [
@@ -336,13 +336,13 @@ test("static excludes: glob library src and test with double negation (nodir: fa
 		// double negation has effect over preceding "/test-resources/**" exclude
 		"!/test-resources/library/l/Test2.html",
 	];
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes
 	});
 
-	const testReader = resourceFactory.createAdapter({
+	const testReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/test",
 		virBasePath: "/test-resources/",
 		excludes
@@ -360,7 +360,7 @@ test("static excludes: glob library src and test with double negation (nodir: fa
 });
 
 test("static excludes: glob with virtual root exclude (nodir: false)", async (t) => {
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes: [
@@ -373,7 +373,7 @@ test("static excludes: glob with virtual root exclude (nodir: false)", async (t)
 	t.is(resources.length, 0, "Found no resources");
 });
 test("static excludes: glob with negated directory exclude, excluding resources (nodir: false)", async (t) => {
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes: [
@@ -387,7 +387,7 @@ test("static excludes: glob with negated directory exclude, excluding resources 
 });
 
 test("static excludes: glob with negated directory exclude, not excluding resources (nodir: false)", async (t) => {
-	const srcReader = resourceFactory.createAdapter({
+	const srcReader = createAdapter({
 		fsBasePath: "./test/fixtures/library.l/src",
 		virBasePath: "/resources/",
 		excludes: [

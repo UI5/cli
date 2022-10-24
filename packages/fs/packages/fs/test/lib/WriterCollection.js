@@ -1,7 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const WriterCollection = require("../../lib/WriterCollection");
-const Resource = require("../../lib/Resource");
+import test from "ava";
+import sinon from "sinon";
+import WriterCollection from "../../lib/WriterCollection.js";
+import Resource from "../../lib/Resource.js";
 
 test("Constructor: Path mapping regex", (t) => {
 	const myWriter = {};

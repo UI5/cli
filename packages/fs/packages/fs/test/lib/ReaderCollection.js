@@ -1,7 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const ReaderCollection = require("../../lib/ReaderCollection");
-const Resource = require("../../lib/Resource");
+import test from "ava";
+import sinon from "sinon";
+import ReaderCollection from "../../lib/ReaderCollection.js";
+import Resource from "../../lib/Resource.js";
 
 test("ReaderCollection: constructor", (t) => {
 	const readerCollection = new ReaderCollection({

@@ -1,13 +1,15 @@
-const log = require("@ui5/logger").getLogger("resources:adapters:Memory");
-const micromatch = require("micromatch");
-const AbstractAdapter = require("./AbstractAdapter");
+import logger from "@ui5/logger";
+const log = logger.getLogger("resources:adapters:Memory");
+import micromatch from "micromatch";
+import AbstractAdapter from "./AbstractAdapter.js";
 
 /**
  * Virtual resource Adapter
  *
  * @public
- * @memberof module:@ui5/fs.adapters
- * @augments module:@ui5/fs.adapters.AbstractAdapter
+ * @class
+ * @alias @ui5/fs/adapters/Memory
+ * @extends @ui5/fs/adapters/AbstractAdapter
  */
 class Memory extends AbstractAdapter {
 	/**
@@ -32,8 +34,8 @@ class Memory extends AbstractAdapter {
 	 * @param {Array} patterns array of glob patterns
 	 * @param {object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	async _runGlob(patterns, options = {nodir: true}, trace) {
 		if (patterns[0] === "" && !options.nodir) { // Match virtual root directory
@@ -80,8 +82,8 @@ class Memory extends AbstractAdapter {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		if (this.isPathExcluded(virPath)) {
@@ -111,7 +113,7 @@ class Memory extends AbstractAdapter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {module:@ui5/fs.Resource} resource The Resource to write
+	 * @param {@ui5/fs/Resource} resource The Resource to write
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
@@ -155,4 +157,4 @@ class Memory extends AbstractAdapter {
 	}
 }
 
-module.exports = Memory;
+export default Memory;

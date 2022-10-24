@@ -1,14 +1,15 @@
-const log = require("@ui5/logger").getLogger("resources:tracing:Trace");
-const logGlobs = require("@ui5/logger").getLogger("resources:tracing:Trace:globs");
-const logPaths = require("@ui5/logger").getLogger("resources:tracing:Trace:paths");
-const prettyHrtime = require("pretty-hrtime");
-const summaryTrace = require("./traceSummary");
+import logger from "@ui5/logger";
+const log = logger.getLogger("resources:tracing:Trace");
+const logGlobs = logger.getLogger("resources:tracing:Trace:globs");
+const logPaths = logger.getLogger("resources:tracing:Trace:paths");
+import prettyHrtime from "pretty-hrtime";
+import summaryTrace from "./traceSummary.js";
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 /**
  * Trace
  *
- * @memberof module:@ui5/fs.tracing
+ * @private
  * @class
  */
 class Trace {
@@ -93,4 +94,4 @@ class Trace {
 	}
 }
 
-module.exports = Trace;
+export default Trace;

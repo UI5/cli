@@ -1,11 +1,12 @@
-const AbstractReader = require("./AbstractReader");
+import AbstractReader from "./AbstractReader.js";
 
 /**
  * Resource Locator ReaderCollection
  *
  * @public
- * @memberof module:@ui5/fs
- * @augments module:@ui5/fs.AbstractReader
+ * @class
+ * @alias @ui5/fs/ReaderCollection
+ * @extends @ui5/fs/AbstractReader
  */
 class ReaderCollection extends AbstractReader {
 	/**
@@ -13,7 +14,7 @@ class ReaderCollection extends AbstractReader {
 	 *
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
+	 * @param {@ui5/fs/AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
 	 */
 	constructor({name, readers}) {
 		super();
@@ -28,8 +29,8 @@ class ReaderCollection extends AbstractReader {
 	 * @param {string|string[]} pattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(pattern, options, trace) {
 		return Promise.all(this._readers.map(function(resourceLocator) {
@@ -46,8 +47,8 @@ class ReaderCollection extends AbstractReader {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;
@@ -79,4 +80,4 @@ class ReaderCollection extends AbstractReader {
 	}
 }
 
-module.exports = ReaderCollection;
+export default ReaderCollection;

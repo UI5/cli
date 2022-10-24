@@ -1,12 +1,12 @@
-const test = require("ava");
-const {resourceFactory} = require("../../../");
+import test from "ava";
+import {createAdapter, createResource} from "../../../lib/resourceFactory.js";
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
-	const dest = resourceFactory.createAdapter({
+	const dest = createAdapter({
 		virBasePath: "/app/"
 	});
 
-	const res = resourceFactory.createResource({
+	const res = createResource({
 		path: "/app/index.html"
 	});
 	await dest.write(res)
@@ -17,11 +17,11 @@ test("glob resources from application.a w/ virtual base path prefix", async (t) 
 });
 
 test("glob resources from application.a w/o virtual base path prefix", async (t) => {
-	const dest = resourceFactory.createAdapter({
+	const dest = createAdapter({
 		virBasePath: "/app/"
 	});
 
-	const res = resourceFactory.createResource({
+	const res = createResource({
 		path: "/app/index.html"
 	});
 	await dest.write(res)
@@ -32,11 +32,11 @@ test("glob resources from application.a w/o virtual base path prefix", async (t)
 });
 
 test("Write resource w/ virtual base path", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		virBasePath: "/app/"
 	});
 
-	const res = resourceFactory.createResource({
+	const res = createResource({
 		path: "/app/test.html"
 	});
 	await readerWriter.write(res);
@@ -49,11 +49,11 @@ test("Write resource w/ virtual base path", async (t) => {
 });
 
 test("Write resource w/o virtual base path", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		virBasePath: "/"
 	});
 
-	const res = resourceFactory.createResource({
+	const res = createResource({
 		path: "/one/two/three/test.html"
 	});
 	await readerWriter.write(res);
@@ -74,11 +74,11 @@ test("Write resource w/o virtual base path", async (t) => {
 });
 
 test("Write resource w/ deep virtual base path", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		virBasePath: "/app/a/"
 	});
 
-	const res = resourceFactory.createResource({
+	const res = createResource({
 		path: "/app/a/one/two/three/test.html"
 	});
 	await readerWriter.write(res);
@@ -99,11 +99,11 @@ test("Write resource w/ deep virtual base path", async (t) => {
 });
 
 test("Write resource w/ crazy virtual base path", async (t) => {
-	const readerWriter = resourceFactory.createAdapter({
+	const readerWriter = createAdapter({
 		virBasePath: "/app/🐛/"
 	});
 
-	const res = resourceFactory.createResource({
+	const res = createResource({
 		path: "/app/🐛/one\\/2/3️⃣/test"
 	});
 	await readerWriter.write(res);

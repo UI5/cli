@@ -1,16 +1,18 @@
-const log = require("@ui5/logger").getLogger("resources:adapters:AbstractAdapter");
-const minimatch = require("minimatch");
-const micromatch = require("micromatch");
-const AbstractReaderWriter = require("../AbstractReaderWriter");
-const Resource = require("../Resource");
+import logger from "@ui5/logger";
+const log = logger.getLogger("resources:adapters:AbstractAdapter");
+import minimatch from "minimatch";
+import micromatch from "micromatch";
+import AbstractReaderWriter from "../AbstractReaderWriter.js";
+import Resource from "../Resource.js";
 
 /**
  * Abstract Resource Adapter
  *
  * @abstract
  * @public
- * @memberof module:@ui5/fs.adapters
- * @augments module:@ui5/fs.AbstractReaderWriter
+ * @class
+ * @alias @ui5/fs/adapters/AbstractAdapter
+ * @extends @ui5/fs/AbstractReaderWriter
  */
 class AbstractAdapter extends AbstractReaderWriter {
 	/**
@@ -45,8 +47,8 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 *         glob patterns for virtual directory structure
 	 * @param {object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(virPattern, options = {nodir: true}, trace) {
 		const excludes = this._excludesNegated;
@@ -203,4 +205,4 @@ class AbstractAdapter extends AbstractReaderWriter {
 	}
 }
 
-module.exports = AbstractAdapter;
+export default AbstractAdapter;

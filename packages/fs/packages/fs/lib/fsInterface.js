@@ -3,11 +3,17 @@ function toPosix(inputPath) {
 }
 
 /**
+ * @public
+ * @module @ui5/fs/fsInterface
+ */
+
+/**
  * Wraps readers to access them through a [Node.js fs]{@link https://nodejs.org/api/fs.html} styled interface.
  *
  * @public
- * @alias module:@ui5/fs.fsInterface
- * @param {module:@ui5/fs.AbstractReader} reader Resource Reader or Collection
+ * @function default
+ * @static
+ * @param {@ui5/fs/AbstractReader} reader Resource Reader or Collection
  *
  * @returns {object} Object with [Node.js fs]{@link https://nodejs.org/api/fs.html} styled functions
  * [<code>readFile</code>]{@link https://nodejs.org/api/fs.html#fs_fs_readfile_path_options_callback},
@@ -15,7 +21,7 @@ function toPosix(inputPath) {
  * [<code>readdir</code>]{@link https://nodejs.org/api/fs.html#fs_fs_readdir_path_options_callback} and
  * [<code>mkdir</code>]{@link https://nodejs.org/api/fs.html#fs_fs_mkdir_path_options_callback}
  */
-module.exports = (reader) => {
+function fsInterface(reader) {
 	return {
 		readFile(fsPath, options, callback) {
 			if (typeof options === "function") {
@@ -82,4 +88,5 @@ module.exports = (reader) => {
 			setTimeout(callback, 0);
 		}
 	};
-};
+}
+export default fsInterface;

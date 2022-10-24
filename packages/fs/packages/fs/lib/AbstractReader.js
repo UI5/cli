@@ -1,12 +1,13 @@
-const randomInt = require("random-int");
-const Trace = require("./tracing/Trace");
+import randomInt from "random-int";
+import Trace from "./tracing/Trace.js";
 
 /**
  * Abstract resource locator
  *
- * @public
  * @abstract
- * @memberof module:@ui5/fs
+ * @public
+ * @class
+ * @alias @ui5/fs/AbstractReader
  */
 class AbstractReader {
 	/**
@@ -33,7 +34,7 @@ class AbstractReader {
 	 * 										virtual directory structure
 	 * @param {object} [options] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	byGlob(virPattern, options = {nodir: true}) {
 		const trace = new Trace(virPattern);
@@ -60,7 +61,7 @@ class AbstractReader {
 	 * @param {string} virPath Virtual path
 	 * @param {object} [options] Options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	byPath(virPath, options = {nodir: true}) {
 		const trace = new Trace(virPath);
@@ -70,17 +71,16 @@ class AbstractReader {
 		});
 	}
 
-
 	/**
-	 * Create a [Filter-Reader]{@link module:@ui5/fs.readers.Filter} from the current reader
+	 * Create a [Filter-Reader]{@link @ui5/fs/readers/Filter} from the current reader.
 	 *
 	 * @public
-	 * @param {module:@ui5/fs.readers.Filter~callback} callback
+	 * @param {@ui5/fs/readers/Filter~callback} callback
 	 * 				Filter function. Will be called for every resource passed through this reader.
-	 * @returns {module:@ui5/fs.reader.Filter} Filter instance
+	 * @returns {Promise<@ui5/fs/readers/Filter>} Promise resolving with filter instance
 	 */
-	filter(callback) {
-		const Filter = require("./readers/Filter");
+	async filter(callback) {
+		const {default: Filter} = await import("./readers/Filter.js");
 		return new Filter({
 			reader: this,
 			callback
@@ -88,33 +88,34 @@ class AbstractReader {
 	}
 
 	/**
-	 * Create a [Transformer-Reader]{@link module:@ui5/fs.readers.Transformer} from the current reader
+	 * Create a [Transformer-Reader]{@link @ui5/fs/readers/Transformer} from the current reader.
 	 *
 	 * @private
-	 * @param {module:@ui5/fs.readers.Transformer~callback} callback
+	 * @param {@ui5/fs/readers/Transformer~callback} callback
 	 * 				Callback to check and eventually transform any resource passed through the reader
-	 * @returns {module:@ui5/fs.reader.Transformer} Transformer instance
+	 * @returns {Promise<@ui5/fs/readers/Transformer>} Promise resolving with transformer instance
 	 */
-	transform(callback) {
-		const Transformer = require("./readers/Transformer");
+	async transform(callback) {
+		const {default: Transformer} = await import("./readers/Transformer.js");
 		return new Transformer({
 			reader: this,
 			callback
 		});
 	}
+
 	/**
-	 * Create an abstraction of this reader instance where all requests are prefixed with
+	 * Create a [Link-Reader]{@link @ui5/fs/readers/Link} where all requests are prefixed with
 	 * <code>/resources/<namespace></code>.
 	 *
 	 * This simulates "flat" resource access, which is for example common for projects of type
-	 * "application"
+	 * "application".
 	 *
 	 * @public
 	 * @param {string} namespace Project namespace
-	 * @returns {module:@ui5/fs.reader.AbstractReader} Reader instance
+	 * @returns {Promise<@ui5/fs/readers/Link>} Promise resolving with reader instance
 	 */
-	flatten(namespace) {
-		const Link = require("./readers/Link");
+	async flatten(namespace) {
+		const {default: Link} = await import("./readers/Link.js");
 		return new Link({
 			reader: this,
 			pathMapping: {
@@ -132,8 +133,8 @@ class AbstractReader {
 	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(virPattern, options, trace) {
 		throw new Error("Function '_byGlob' is not implemented");
@@ -146,8 +147,8 @@ class AbstractReader {
 	 * @protected
 	 * @param {string} pattern glob pattern
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	_runGlob(pattern, options, trace) {
 		throw new Error("Function '_runGlob' is not implemented");
@@ -160,12 +161,12 @@ class AbstractReader {
 	 * @protected
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		throw new Error("Function '_byPath' is not implemented");
 	}
 }
 
-module.exports = AbstractReader;
+export default AbstractReader;

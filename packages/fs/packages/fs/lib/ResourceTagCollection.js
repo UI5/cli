@@ -1,7 +1,14 @@
 const tagNamespaceRegExp = /^[a-z][a-z0-9]+$/; // part before the colon
 const tagNameRegExp = /^[A-Z][A-Za-z0-9]+$/; // part after the colon
-const ResourceFacade = require("./ResourceFacade");
+import ResourceFacade from "./ResourceFacade.js";
 
+/**
+ * A ResourceTagCollection
+ *
+ * @private
+ * @class
+ * @alias @ui5/fs/internal/ResourceTagCollection
+ */
 class ResourceTagCollection {
 	constructor({allowedTags = [], allowedNamespaces = [], tags}) {
 		this._allowedTags = allowedTags; // Allowed tags are validated during use
@@ -114,4 +121,4 @@ class ResourceTagCollection {
 	}
 }
 
-module.exports = ResourceTagCollection;
+export default ResourceTagCollection;

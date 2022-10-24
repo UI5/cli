@@ -1,13 +1,14 @@
-const log = require("@ui5/logger").getLogger("resources:adapters:FileSystem");
-const path = require("path");
-const {promisify} = require("util");
-const fs = require("graceful-fs");
+import logger from "@ui5/logger";
+const log = logger.getLogger("resources:adapters:FileSystem");
+import path from "node:path";
+import {promisify} from "node:util";
+import fs from "graceful-fs";
 const copyFile = promisify(fs.copyFile);
 const chmod = promisify(fs.chmod);
-const globby = require("globby");
-const makeDir = require("make-dir");
-const {PassThrough} = require("stream");
-const AbstractAdapter = require("./AbstractAdapter");
+import globby from "globby";
+import makeDir from "make-dir";
+import {PassThrough} from "node:stream";
+import AbstractAdapter from "./AbstractAdapter.js";
 
 const READ_ONLY_MODE = 0o444;
 
@@ -15,8 +16,9 @@ const READ_ONLY_MODE = 0o444;
  * File system resource adapter
  *
  * @public
- * @alias module:@ui5/fs.adapters.FileSystem
- * @augments module:@ui5/fs.adapters.AbstractAdapter
+ * @class
+ * @alias @ui5/fs/adapters/FileSystem
+ * @extends @ui5/fs/adapters/AbstractAdapter
  */
 class FileSystem extends AbstractAdapter {
 	/**
@@ -40,8 +42,8 @@ class FileSystem extends AbstractAdapter {
 	 * @param {Array} patterns Array of glob patterns
 	 * @param {object} [options={}] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	async _runGlob(patterns, options = {nodir: true}, trace) {
 		const opt = {
@@ -124,8 +126,8 @@ class FileSystem extends AbstractAdapter {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource or null if not found
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource or null if not found
 	 */
 	_byPath(virPath, options, trace) {
 		if (this.isPathExcluded(virPath)) {
@@ -192,7 +194,7 @@ class FileSystem extends AbstractAdapter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {module:@ui5/fs.Resource} resource Resource to write
+	 * @param {@ui5/fs/Resource} resource Resource to write
 	 * @param {object} [options]
 	 * @param {boolean} [options.readOnly] Whether the resource content shall be written read-only
 	 *						Do not use in conjunction with the <code>drain</code> option.
@@ -287,4 +289,4 @@ class FileSystem extends AbstractAdapter {
 	}
 }
 
-module.exports = FileSystem;
+export default FileSystem;

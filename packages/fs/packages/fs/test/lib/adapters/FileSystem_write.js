@@ -1,27 +1,32 @@
-const path = require("path");
-const {promisify} = require("util");
-const fs = require("fs");
+import path from "node:path";
+import {promisify} from "node:util";
+import fs from "node:fs";
+import {fileURLToPath} from "node:url";
 const fsAccess = promisify(fs.access);
-const test = require("ava");
-const rimraf = promisify(require("rimraf"));
-const chai = require("chai");
-chai.use(require("chai-fs"));
+import makeDir from "make-dir";
+import test from "ava";
+import rimraf from "rimraf";
+const rimrafp = promisify(rimraf);
+import chai from "chai";
+import chaifs from "chai-fs";
+chai.use(chaifs);
 const assert = chai.assert;
 
-const ui5Fs = require("../../../");
+import {createAdapter} from "../../../lib/resourceFactory.js";
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	const tmpDirName = t.title.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase(); // Generate tmp dir name from test name
 
 	// Create a tmp directory for every test
-	t.context.tmpDirPath = path.join(__dirname, "..", "..", "tmp", "adapters", "FileSystemWrite", tmpDirName);
+	t.context.tmpDirPath = fileURLToPath(new URL("../../tmp/adapters/FileSystemWrite/" + tmpDirName, import.meta.url));
+	await makeDir(t.context.tmpDirPath);
 
 	t.context.readerWriters = {
-		source: ui5Fs.resourceFactory.createAdapter({
+		source: createAdapter({
 			fsBasePath: "./test/fixtures/application.a/webapp",
 			virBasePath: "/app/"
 		}),
-		dest: ui5Fs.resourceFactory.createAdapter({
+		dest: createAdapter({
 			fsBasePath: "./test/tmp/adapters/FileSystemWrite/" + tmpDirName,
 			virBasePath: "/app/"
 		})
@@ -30,9 +35,8 @@ test.beforeEach((t) => {
 
 test.afterEach.always((t) => {
 	// Cleanup tmp directory
-	return rimraf(t.context.tmpDirPath);
+	return rimrafp(t.context.tmpDirPath);
 });
-
 
 test("Write resource", async (t) => {
 	const readerWriters = t.context.readerWriters;

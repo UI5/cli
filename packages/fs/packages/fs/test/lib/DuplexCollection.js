@@ -1,8 +1,8 @@
-const test = require("ava");
-const sinon = require("sinon");
-const DuplexCollection = require("../../lib/DuplexCollection");
-const ReaderCollectionPrioritized = require("../../lib/ReaderCollectionPrioritized");
-const Resource = require("../../lib/Resource");
+import test from "ava";
+import sinon from "sinon";
+import DuplexCollection from "../../lib/DuplexCollection.js";
+import ReaderCollectionPrioritized from "../../lib/ReaderCollectionPrioritized.js";
+import Resource from "../../lib/Resource.js";
 
 test("DuplexCollection: constructor", (t) => {
 	const duplexCollection = new DuplexCollection({

@@ -1,20 +1,21 @@
-const AbstractReaderWriter = require("./AbstractReaderWriter");
-const ReaderCollectionPrioritized = require("./ReaderCollectionPrioritized");
+import AbstractReaderWriter from "./AbstractReaderWriter.js";
+import ReaderCollectionPrioritized from "./ReaderCollectionPrioritized.js";
 
 /**
  * Wrapper to keep readers and writers together
  *
  * @public
- * @memberof module:@ui5/fs
- * @augments module:@ui5/fs.AbstractReaderWriter
+ * @class
+ * @alias @ui5/fs/DuplexCollection
+ * @extends @ui5/fs/AbstractReaderWriter
  */
 class DuplexCollection extends AbstractReaderWriter {
 	/**
 	 * The Constructor.
 	 *
 	 * @param {object} parameters
-	 * @param {module:@ui5/fs.AbstractReader} parameters.reader Single reader or collection of readers
-	 * @param {module:@ui5/fs.AbstractReaderWriter} parameters.writer
+	 * @param {@ui5/fs/AbstractReader} parameters.reader Single reader or collection of readers
+	 * @param {@ui5/fs/AbstractReaderWriter} parameters.writer
 	 *			A ReaderWriter instance which is only used for writing files
 	 * @param {string} [parameters.name=""] The collection name
 	 */
@@ -39,8 +40,8 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @param {string|string[]} virPattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with a list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with a list of resources
 	 */
 	_byGlob(virPattern, options, trace) {
 		return this._combo._byGlob(virPattern, options, trace);
@@ -53,7 +54,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @param {string} virPattern glob pattern for virtual directory structure
 	 * @param {object} [options] glob options
 	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	byGlobSource(virPattern, options = {nodir: true}) {
 		return this._reader.byGlob(virPattern, options).then((resources) => {
@@ -71,8 +72,8 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		return this._combo._byPath(virPath, options, trace);
@@ -82,7 +83,7 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {module:@ui5/fs.Resource} resource The Resource to write
+	 * @param {@ui5/fs/Resource} resource The Resource to write
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	_write(resource) {
@@ -90,4 +91,4 @@ class DuplexCollection extends AbstractReaderWriter {
 	}
 }
 
-module.exports = DuplexCollection;
+export default DuplexCollection;

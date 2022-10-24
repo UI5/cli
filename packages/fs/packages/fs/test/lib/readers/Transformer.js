@@ -1,6 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const Transformer = require("../../../lib/readers/Transformer");
+import test from "ava";
+import sinon from "sinon";
+import Transformer from "../../../lib/readers/Transformer.js";
 
 function getDummyResource(name) {
 	return {

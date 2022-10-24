@@ -1,6 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const Filter = require("../../../lib/readers/Filter");
+import test from "ava";
+import sinon from "sinon";
+import Filter from "../../../lib/readers/Filter.js";
 
 test("_byGlob: Basic filter", async (t) => {
 	const abstractReader = {

@@ -1,13 +1,14 @@
-const AbstractReaderWriter = require("./AbstractReaderWriter");
-const ReaderCollection = require("./ReaderCollection");
-const escapeStringRegExp = require("escape-string-regexp");
+import AbstractReaderWriter from "./AbstractReaderWriter.js";
+import ReaderCollection from "./ReaderCollection.js";
+import escapeStringRegExp from "escape-string-regexp";
 
 /**
  * Resource Locator WriterCollection
  *
  * @public
- * @memberof module:@ui5/fs
- * @augments module:@ui5/fs.AbstractReaderWriter
+ * @class
+ * @alias @ui5/fs/WriterCollection
+ * @extends @ui5/fs/AbstractReaderWriter
  */
 class WriterCollection extends AbstractReaderWriter {
 	/**
@@ -15,7 +16,7 @@ class WriterCollection extends AbstractReaderWriter {
 	 *
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {object.<string, module:@ui5/fs.AbstractReaderWriter>} parameters.writerMapping
+	 * @param {object.<string, @ui5/fs/AbstractReaderWriter>} parameters.writerMapping
 	 * 	Mapping of virtual base paths to writers. Path are matched greedy
 	 *
 	 * @example
@@ -72,8 +73,8 @@ class WriterCollection extends AbstractReaderWriter {
 	 * @param {string|string[]} pattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(pattern, options, trace) {
 		return this._readerCollection._byGlob(pattern, options, trace);
@@ -85,8 +86,8 @@ class WriterCollection extends AbstractReaderWriter {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		return this._readerCollection._byPath(virPath, options, trace);
@@ -96,7 +97,7 @@ class WriterCollection extends AbstractReaderWriter {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @private
-	 * @param {module:@ui5/fs.Resource} resource The Resource to write
+	 * @param {@ui5/fs/Resource} resource The Resource to write
 	 * @param {object} [options] Write options, see above
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
@@ -114,4 +115,4 @@ class WriterCollection extends AbstractReaderWriter {
 	}
 }
 
-module.exports = WriterCollection;
+export default WriterCollection;
