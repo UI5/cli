@@ -2,7 +2,22 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v3.0.1-alpha.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v3.0.1-alpha.3...HEAD).
+
+<a name="v3.0.1-alpha.3"></a>
+## [v3.0.1-alpha.3] - 2022-10-24
+### Breaking Changes
+- Transform to native ESM ([#306](https://github.com/SAP/ui5-logger/issues/306)) [`c79608b`](https://github.com/SAP/ui5-logger/commit/c79608b0e432168ca8570530b63a456b9ddd12cb)
+
+### BREAKING CHANGE
+
+This package has been transformed to native ESM. Therefore it no longer provides a CommonJS export.
+If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import.
+
+For more information see also:
+- https://sap.github.io/ui5-tooling/updates/migrate-v3/
+- https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
+
 
 <a name="v3.0.1-alpha.2"></a>
 ## [v3.0.1-alpha.2] - 2022-07-28
@@ -77,6 +92,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.1-alpha.3]: https://github.com/SAP/ui5-logger/compare/v3.0.1-alpha.2...v3.0.1-alpha.3
 [v3.0.1-alpha.2]: https://github.com/SAP/ui5-logger/compare/v3.0.1-alpha.1...v3.0.1-alpha.2
 [v3.0.1-alpha.1]: https://github.com/SAP/ui5-logger/compare/v3.0.1-alpha.0...v3.0.1-alpha.1
 [v3.0.1-alpha.0]: https://github.com/SAP/ui5-logger/compare/v3.0.0-next.0...v3.0.1-alpha.0
