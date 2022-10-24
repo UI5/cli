@@ -116,7 +116,8 @@ class Memory extends AbstractAdapter {
 	 * @param {@ui5/fs/Resource} resource The Resource to write
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
-	_write(resource) {
+	async _write(resource) {
+		resource = await this._migrateResource(resource);
 		super._write(resource);
 		return new Promise((resolve, reject) => {
 			const relPath = resource.getPath().substr(this._virBasePath.length);
