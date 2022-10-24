@@ -1,24 +1,18 @@
-"use strict";
-
+import {parseJS} from "../utils/parseUtils.js";
+import ComponentAnalyzer from "../analyzer/ComponentAnalyzer.js";
+import SmartTemplateAnalyzer from "../analyzer/SmartTemplateAnalyzer.js";
+import FioriElementsAnalyzer from "../analyzer/FioriElementsAnalyzer.js";
+import XMLCompositeAnalyzer from "../analyzer/XMLCompositeAnalyzer.js";
+import JSModuleAnalyzer from "../analyzer/JSModuleAnalyzer.js";
+import XMLTemplateAnalyzer from "../analyzer/XMLTemplateAnalyzer.js";
+import {getDependencyInfos} from "./LibraryFileAnalyzer.js";
+import ModuleInfo from "./ModuleInfo.js";
+import ResourceFilterList from "./ResourceFilterList.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:resources:ResourcePool");
 /*
-const fs = require("fs");
-const path = require("path");
-*/
-const {parseJS} = require("../utils/parseUtils");
-const ComponentAnalyzer = require("../analyzer/ComponentAnalyzer");
-const SmartTemplateAnalyzer = require("../analyzer/SmartTemplateAnalyzer");
-const FioriElementsAnalyzer = require("../analyzer/FioriElementsAnalyzer");
-const XMLCompositeAnalyzer = require("../analyzer/XMLCompositeAnalyzer");
-const JSModuleAnalyzer = require("../analyzer/JSModuleAnalyzer");
-const XMLTemplateAnalyzer = require("../analyzer/XMLTemplateAnalyzer");
-
-const LibraryFileAnalyzer = require("./LibraryFileAnalyzer");
-const ModuleInfo = require("./ModuleInfo");
-const ResourceFilterList = require("./ResourceFilterList");
-/*
-const Resource = require("./Resource");
+import Resource from "./Resource";
  */
-const log = require("@ui5/logger").getLogger("lbt:resources:ResourcePool");
 
 const jsAnalyzer = new JSModuleAnalyzer();
 
@@ -165,7 +159,7 @@ class ResourcePool {
 		if ( /\.library$/.test(resource.name) ) {
 			// read raw-module info from .library files
 			return resource.buffer().then( (buffer) => {
-				const infos = LibraryFileAnalyzer.getDependencyInfos( resource.name, buffer );
+				const infos = getDependencyInfos( resource.name, buffer );
 				for ( const name of Object.keys(infos) ) {
 					this._rawModuleInfos.set(name, infos[name]);
 				}
@@ -238,5 +232,5 @@ class ResourcePool {
 	}
 }
 
-module.exports = ResourcePool;
+export default ResourcePool;
 

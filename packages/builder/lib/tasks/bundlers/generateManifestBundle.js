@@ -1,23 +1,32 @@
-const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateManifestBundle");
-const manifestBundler = require("../../processors/bundlers/manifestBundler");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:bundlers:generateManifestBundle");
+import manifestBundler from "../../processors/bundlers/manifestBundler.js";
+
 const DESCRIPTOR = "manifest.json";
 const PROPERTIES_EXT = ".properties";
 const BUNDLE_NAME = "manifest-bundle.zip";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateManifestBundle
+ */
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for manifestBundler.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateManifestBundle
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.projectNamespace Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, options = {}}) {
+export default async function({workspace, options = {}}) {
 	const {projectName} = options;
 	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
 	const namespace = options.projectNamespace || options.namespace;
@@ -46,4 +55,4 @@ module.exports = async function({workspace, options = {}}) {
 	await Promise.all(processedResources.map((resource) => {
 		return workspace.write(resource);
 	}));
-};
+}

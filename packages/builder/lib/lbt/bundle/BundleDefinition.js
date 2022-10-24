@@ -1,6 +1,4 @@
-"use strict";
-
-const SectionType = {
+export const SectionType = {
 	/**
 	 * The modules are assumed to exist already in the loading environment.
 	 */
@@ -31,5 +29,3 @@ const SectionType = {
 	 */
 	Require: "require"
 };
-
-module.exports.SectionType = SectionType;

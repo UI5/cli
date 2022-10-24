@@ -1,15 +1,27 @@
-const spawn = require("child_process").spawn;
-const fs = require("graceful-fs");
-const path = require("path");
-const {promisify} = require("util");
+import {spawn} from "node:child_process";
+import fs from "graceful-fs";
+import path from "node:path";
+import {promisify} from "node:util";
 const writeFile = promisify(fs.writeFile);
-const {resourceFactory} = require("@ui5/fs");
+import {createAdapter} from "@ui5/fs/resourceFactory";
+import {createRequire} from "node:module";
+import {fileURLToPath} from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+
+/**
+ * @public
+ * @module @ui5/builder/processors/jsdocGenerator
+ */
 
 /**
  * JSDoc generator
  *
  * @public
- * @alias module:@ui5/builder.processors.jsdocGenerator
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
  * @param {string} parameters.sourcePath Path of the source files to be processed
  * @param {string} parameters.targetPath Path to write any output files
@@ -19,9 +31,9 @@ const {resourceFactory} = require("@ui5/fs");
  * @param {string} parameters.options.namespace Namespace to build (e.g. <code>some/project/name</code>)
  * @param {string} parameters.options.version Project version
  * @param {Array} [parameters.options.variants=["apijson"]] JSDoc variants to be built
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with newly created resources
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with newly created resources
  */
-const jsdocGenerator = async function(
+export default async function jsdocGenerator(
 	{sourcePath, targetPath, tmpPath, options: {projectName, namespace, version, variants}} = {}
 ) {
 	if (!sourcePath || !targetPath || !tmpPath || !projectName || !namespace || !version) {
@@ -48,7 +60,7 @@ const jsdocGenerator = async function(
 		configPath
 	});
 
-	const fsTarget = resourceFactory.createAdapter({
+	const fsTarget = createAdapter({
 		fsBasePath: targetPath,
 		virBasePath: "/"
 	});
@@ -58,7 +70,7 @@ const jsdocGenerator = async function(
 		fsTarget.byPath(`/test-resources/${namespace}/designtime/api.json`)
 		// fsTarget.byPath(`/libraries/${options.projectName}.js`)
 	]).then((res) => res.filter(($)=>$));
-};
+}
 
 
 /**
@@ -82,8 +94,11 @@ async function generateJsdocConfig({targetPath, tmpPath, namespace, projectName,
 
 	// Resolve path to this script to get the path to the JSDoc extensions folder
 	const jsdocPath = path.normalize(__dirname);
-	const pluginPath = path.join(jsdocPath, "lib", "ui5", "plugin.js").replace(backslashRegex, "\\\\");
-	const templatePath = path.join(jsdocPath, "lib", "ui5", "template").replace(backslashRegex, "\\\\");
+	const pluginPath = path.join(jsdocPath, "lib", "ui5", "plugin.cjs").replace(backslashRegex, "\\\\");
+	// Using export via package.json to allow loading the CJS template.
+	// jsdoc appends /publish to the provided path but doesn't allow to
+	// add the .cjs extension, so loading won't work otherwise.
+	const templatePath = "@ui5/builder/internal/jsdoc/template";
 	const destinationPath = path.normalize(tmpPath).replace(backslashRegex, "\\\\");
 	const jsapiFilePath = path.join(targetPath, "libraries", projectName + ".js").replace(backslashRegex, "\\\\");
 	const apiJsonFolderPath = path.join(tmpPath, "dependency-apis").replace(backslashRegex, "\\\\");
@@ -157,7 +172,7 @@ async function buildJsdoc({sourcePath, configPath}) {
 	];
 	return new Promise((resolve, reject) => {
 		const child = spawn("node", args, {
-			stdio: ["ignore", "ignore", process.stderr]
+			stdio: ["ignore", "ignore", "inherit"]
 		});
 		child.on("close", function(code) {
 			if (code === 0 || code === 1) {
@@ -169,7 +184,6 @@ async function buildJsdoc({sourcePath, configPath}) {
 	});
 }
 
-module.exports = jsdocGenerator;
-module.exports._generateJsdocConfig = generateJsdocConfig;
-module.exports._writeJsdocConfig = writeJsdocConfig;
-module.exports._buildJsdoc = buildJsdoc;
+jsdocGenerator._generateJsdocConfig = generateJsdocConfig;
+jsdocGenerator._writeJsdocConfig = writeJsdocConfig;
+jsdocGenerator._buildJsdoc = buildJsdoc;

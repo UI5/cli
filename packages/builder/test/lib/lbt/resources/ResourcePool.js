@@ -1,12 +1,26 @@
-const test = require("ava");
-const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
-const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
-const ResourceFilterList = require("../../../../lib/lbt/resources/ResourceFilterList");
+import test from "ava";
+import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
+import ResourceFilterList from "../../../../lib/lbt/resources/ResourceFilterList.js";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 
-const LibraryFileAnalyzer = require("../../../../lib/lbt/resources/LibraryFileAnalyzer");
-const sinon = require("sinon");
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+	t.context.LibraryFileAnalyzerGetDependencyInfosStub = sinon.stub().returns({});
+	t.context.ResourcePool = await esmock("../../../../lib/lbt/resources/ResourcePool.js", {
+		"../../../../lib/lbt/resources/LibraryFileAnalyzer.js": {
+			getDependencyInfos: t.context.LibraryFileAnalyzerGetDependencyInfosStub
+		}
+	});
+});
+
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
+});
 
 test("findResources: based on pattern", async (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 
 	const resourceB = {name: "b"};
@@ -25,6 +39,8 @@ test("findResources: based on pattern", async (t) => {
 });
 
 test("findResources: based on ResourceFilterList", async (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 
 	const resourceB = {name: "b"};
@@ -43,6 +59,8 @@ test("findResources: based on ResourceFilterList", async (t) => {
 });
 
 test("size", (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	t.is(resourcePool.size, 0, "size of empty pool is 0");
 
@@ -52,6 +70,8 @@ test("size", (t) => {
 });
 
 test("resources", (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	t.deepEqual(resourcePool.resources, [], "no resources in empty pool");
 
@@ -61,6 +81,8 @@ test("resources", (t) => {
 });
 
 test("getIgnoreMissingModules", (t) => {
+	const {ResourcePool} = t.context;
+
 	let resourcePool = new ResourcePool({});
 	t.is(resourcePool.getIgnoreMissingModules(), false, "returned expected value");
 
@@ -70,15 +92,11 @@ test("getIgnoreMissingModules", (t) => {
 	t.is(resourcePool.getIgnoreMissingModules(), true, "returned expected value");
 });
 
-
-class ResourcePoolWithRejectingModuleInfo extends ResourcePool {
-	async getModuleInfo(name) {
-		throw new Error("myerror");
-	}
-}
-
 test("findResourceWithInfo: rejecting getModuleInfo", async (t) => {
-	const resourcePool = new ResourcePoolWithRejectingModuleInfo();
+	const {sinon, ResourcePool} = t.context;
+
+	const resourcePool = new ResourcePool();
+	resourcePool.getModuleInfo = sinon.stub().rejects(new Error("myerror"));
 	const resourceA = {name: "a"};
 	resourcePool.addResource(resourceA);
 	const resource = await resourcePool.findResourceWithInfo("a");
@@ -87,6 +105,8 @@ test("findResourceWithInfo: rejecting getModuleInfo", async (t) => {
 });
 
 test.serial("findResourceWithInfo", async (t) => {
+	const {sinon, ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const resourceA = {name: "a"};
 	resourcePool.addResource(resourceA);
@@ -95,10 +115,11 @@ test.serial("findResourceWithInfo", async (t) => {
 
 	const resource = await resourcePool.findResourceWithInfo("a");
 	t.is(resource.info, "myInfo", "info is set correctly");
-	sinon.restore();
 });
 
 test("getModuleInfo", async (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const code = "var test = 47;";
 	const inputJsResource = {name: "a.js", buffer: async () => code};
@@ -114,6 +135,8 @@ test("getModuleInfo", async (t) => {
 });
 
 test("getModuleInfo: determineDependencyInfo for raw js resources", async (t) => {
+	const {ResourcePool, LibraryFileAnalyzerGetDependencyInfosStub} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const code = `function One() {return 1;}`;
 	const inputJsResource = {name: "a.js", buffer: async () => code};
@@ -123,7 +146,7 @@ test("getModuleInfo: determineDependencyInfo for raw js resources", async (t) =>
 	const infoA = new ModuleInfo("a.js");
 	infoA.requiresTopLevelScope = false;
 
-	const stubGetDependencyInfos = sinon.stub(LibraryFileAnalyzer, "getDependencyInfos").returns({
+	LibraryFileAnalyzerGetDependencyInfosStub.returns({
 		"a.js": infoA
 	});
 
@@ -135,11 +158,11 @@ test("getModuleInfo: determineDependencyInfo for raw js resources", async (t) =>
 
 	const jsResource = await resourcePool.getModuleInfo("a.js");
 	t.false(jsResource.requiresTopLevelScope);
-
-	stubGetDependencyInfos.restore();
 });
 
 test("getModuleInfo: determineDependencyInfo for js templateAssembler code", async (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 	return TemplateAssembler.getTemplateComponent(getMethods,
@@ -169,6 +192,8 @@ test("getModuleInfo: determineDependencyInfo for js templateAssembler code", asy
 });
 
 test("getModuleInfo: determineDependencyInfo for xml control and fragment", async (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const xmlFragment = `<HBox xmlns:m="sap.m" xmlns:l="sap.ui.layout" controllerName="myController">
 		<items>
@@ -206,6 +231,8 @@ test("getModuleInfo: determineDependencyInfo for xml control and fragment", asyn
 });
 
 test("getModuleInfo: determineDependencyInfo for xml view", async (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const xmlView = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:m="sap.m" xmlns:l="sap.ui.layout"
 		controllerName="myController">
@@ -231,6 +258,8 @@ test("getModuleInfo: determineDependencyInfo for xml view", async (t) => {
 
 
 test("addResource twice", (t) => {
+	const {ResourcePool} = t.context;
+
 	const resourcePool = new ResourcePool();
 	const resourceA = {name: "a"};
 
@@ -242,6 +271,8 @@ test("addResource twice", (t) => {
 });
 
 test.serial("addResource: library and eval raw module info", async (t) => {
+	const {ResourcePool, LibraryFileAnalyzerGetDependencyInfosStub} = t.context;
+
 	const resourcePool = new ResourcePool();
 
 	const infoA = {};
@@ -254,7 +285,7 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 	infoB.rawModule = true;
 	infoB.dependencies = ["456.js"];
 
-	const stubGetDependencyInfos = sinon.stub(LibraryFileAnalyzer, "getDependencyInfos").returns({
+	LibraryFileAnalyzerGetDependencyInfosStub.returns({
 		"moduleA.js": infoA,
 		"moduleB.js": infoB
 	});
@@ -299,7 +330,5 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 	t.true(actualResourceB.info.requiresTopLevelScope);
 	t.deepEqual(actualResourceB.info.exposedGlobals, ["foo", "bar", "some"],
 		"global names should be known from analsyis step");
-
-	stubGetDependencyInfos.restore();
 });
 

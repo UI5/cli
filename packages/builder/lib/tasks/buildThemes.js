@@ -1,17 +1,24 @@
-const path = require("path");
-const themeBuilder = require("../processors/themeBuilder");
-const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
-const fsInterface = require("@ui5/fs").fsInterface;
-const log = require("@ui5/logger").getLogger("builder:tasks:buildThemes");
+import path from "node:path";
+import themeBuilder from "../processors/themeBuilder.js";
+import fsInterface from "@ui5/fs/fsInterface";
+import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:buildThemes");
 
+/**
+ * @public
+ * @module @ui5/builder/tasks/buildThemes
+ */
 /**
  * Task to build a library theme.
  *
  * @public
- * @alias module:@ui5/builder.tasks.buildThemes
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.inputPattern Search pattern for *.less files to be built
@@ -21,7 +28,7 @@ const log = require("@ui5/logger").getLogger("builder:tasks:buildThemes");
  * @param {boolean} [parameters.options.cssVariables=false]
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({
+export default async function({
 	workspace, dependencies,
 	options: {
 		projectName, inputPattern, librariesPattern, themesPattern, compress, cssVariables
@@ -136,4 +143,4 @@ module.exports = async function({
 	await Promise.all(processedResources.map((resource) => {
 		return workspace.write(resource);
 	}));
-};
+}

@@ -1,5 +1,6 @@
-const log = require("@ui5/logger").getLogger("builder:tasks:transformBootstrapHtml");
-const bootstrapHtmlTransformer = require("../processors/bootstrapHtmlTransformer");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:transformBootstrapHtml");
+import bootstrapHtmlTransformer from "../processors/bootstrapHtmlTransformer.js";
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
@@ -7,13 +8,13 @@ const bootstrapHtmlTransformer = require("../processors/bootstrapHtmlTransformer
  *
  * @module builder/tasks/transformBootstrapHtml
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} [parameters.options.namespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, options}) {
+export default async function({workspace, options}) {
 	const {projectName} = options;
 	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
 	const namespace = options.projectNamespace || options.namespace;
@@ -36,4 +37,4 @@ module.exports = async function({workspace, options}) {
 		}
 	});
 	await Promise.all(processedResources.map((resource) => workspace.write(resource)));
-};
+}

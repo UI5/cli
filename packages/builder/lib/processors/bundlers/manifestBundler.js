@@ -1,7 +1,8 @@
-const posixPath = require("path").posix;
-const yazl = require("yazl");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const log = require("@ui5/logger").getLogger("builder:processors:bundlers:manifestBundler");
+import posixPath from "node:path/posix";
+import yazl from "yazl";
+import {createResource} from "@ui5/fs/resourceFactory";
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:bundlers:manifestBundler");
 
 /**
  * Repository to handle i18n resource files
@@ -20,7 +21,7 @@ class I18nResourceList {
 	 * Adds a i18n resource to the repository
 	 *
 	 * @param {string} directory Path to the i18n resource
-	 * @param {module:@ui5/fs.Resource} resource i18n resource
+	 * @param {@ui5/fs/Resource} resource i18n resource
 	 */
 	add(directory, resource) {
 		const normalizedDirectory = posixPath.normalize(directory);
@@ -42,21 +43,29 @@ class I18nResourceList {
 	}
 }
 
+
+/**
+ * @public
+ * @module @ui5/builder/processors/manifestBundler
+ */
+
 /**
  * Creates a manifest bundle from the provided resources.
  *
- * @alias module:@ui5/builder.processors.manifestBundler
  * @public
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @param {@ui5/fs/Resource[]} parameters.resources List of resources to be processed
  * @param {object} parameters.options Options
  * @param {string} parameters.options.namespace Namespace of the project
  * @param {string} parameters.options.bundleName Name of the bundled zip file
  * @param {string} parameters.options.propertiesExtension Extension name of the properties files, e.g. ".properties"
  * @param {string} parameters.options.descriptor Descriptor name
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with manifest bundle resources
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with manifest bundle resources
  */
-module.exports = ({resources, options: {namespace, bundleName, propertiesExtension, descriptor}}) => {
+export default ({resources, options: {namespace, bundleName, propertiesExtension, descriptor}}) => {
 	function bundleNameToUrl(bundleName, appId) {
 		if (!bundleName.startsWith(appId)) {
 			return null;
@@ -163,7 +172,7 @@ module.exports = ({resources, options: {namespace, bundleName, propertiesExtensi
 		zip.end();
 
 		const pathPrefix = "/resources/" + namespace + "/";
-		const res = resourceFactory.createResource({
+		const res = createResource({
 			path: pathPrefix + bundleName,
 			stream: zip.outputStream
 		});

@@ -1,13 +1,9 @@
-const test = require("ava");
-const sinon = require("sinon");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import logger from "@ui5/logger";
 
-const mock = require("mock-require");
-const logger = require("@ui5/logger");
-
-let versionInfoGenerator = require("../../../lib/processors/versionInfoGenerator");
-
-
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.warnLogStub = sinon.stub();
 	t.context.infoLogStub = sinon.stub();
 	t.context.verboseLogStub = sinon.stub();
@@ -19,15 +15,15 @@ test.beforeEach((t) => {
 		silly: t.context.sillyLogStub,
 		isLevelEnabled: () => true
 	});
-	versionInfoGenerator = mock.reRequire("../../../lib/processors/versionInfoGenerator");
+	t.context.versionInfoGenerator = await esmock("../../../lib/processors/versionInfoGenerator.js");
 });
 
 test.afterEach.always((t) => {
-	mock.stopAll();
 	sinon.restore();
 });
 
 test("versionInfoGenerator missing parameters", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const error = await t.throwsAsync(versionInfoGenerator({options: {}}));
 	t.is(error.message, "[versionInfoGenerator]: Missing options parameters");
 });
@@ -48,6 +44,7 @@ const assertVersionInfoContent = (t, oExpectedVersionInfo, sActualContent) => {
 };
 
 test.serial("versionInfoGenerator empty libraryInfos parameter", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const versionInfos = await versionInfoGenerator({options: {
 		rootProjectName: "myname", rootProjectVersion: "1.33.7", libraryInfos: []}});
 
@@ -65,6 +62,7 @@ test.serial("versionInfoGenerator empty libraryInfos parameter", async (t) => {
 
 
 test.serial("versionInfoGenerator simple library infos", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const options = {
 		rootProjectName: "myname", rootProjectVersion: "1.33.7", libraryInfos: [
 			{name: "my.lib", version: "1.2.3"}
@@ -93,6 +91,7 @@ test.serial("versionInfoGenerator simple library infos", async (t) => {
 });
 
 test.serial("versionInfoGenerator manifest without libs", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const libAManifest = {
 		getPath: () => {
 			return "/resources/lib/a/manifest.json";
@@ -140,6 +139,7 @@ test.serial("versionInfoGenerator manifest without libs", async (t) => {
 });
 
 test.serial("versionInfoGenerator library infos with dependencies", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const libAManifest = {
 		getPath: () => {
 			return "/resources/lib/a/manifest.json";
@@ -224,6 +224,7 @@ test.serial("versionInfoGenerator library infos with dependencies", async (t) =>
 });
 
 test.serial("versionInfoGenerator library infos with dependencies; w/o minVersion and minUI5Version", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const libAManifest = {
 		getPath: () => {
 			return "/resources/lib/a/manifest.json";
@@ -285,6 +286,7 @@ test.serial("versionInfoGenerator library infos with dependencies; w/o minVersio
 });
 
 test.serial("versionInfoGenerator library infos with embeds", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const libAManifest = {
 		getPath: () => {
 			return "/resources/lib/a/manifest.json";
@@ -358,6 +360,7 @@ test.serial("versionInfoGenerator library infos with embeds", async (t) => {
 });
 
 test.serial("versionInfoGenerator library infos with no embeds", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const libAManifest = {
 		getPath: () => {
 			return "/resources/lib/a/manifest.json";
@@ -440,6 +443,7 @@ test.serial("versionInfoGenerator library infos with no embeds", async (t) => {
 });
 
 test.serial("versionInfoGenerator library infos with embeds and embeddedBy (hasOwnPreload)", async (t) => {
+	const {versionInfoGenerator} = t.context;
 	const libAManifest = {
 		getPath: () => {
 			return "/resources/lib/a/manifest.json";

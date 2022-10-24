@@ -1,14 +1,21 @@
-"use strict";
+import {Syntax, VisitorKeys} from "../utils/parseUtils.js";
+import escope from "escope";
+import {fromUI5LegacyName, fromRequireJSName, resolveRelativeRequireJSName} from "../utils/ModuleName.js";
+import moduleInfo from "../resources/ModuleInfo.js";
+const ModuleFormat = moduleInfo.Format;
+import {MODULE__JQUERY_SAP_GLOBAL, MODULE__UI5LOADER_AUTOCONFIG} from "../UI5ClientConstants.js";
+import {
+	findOwnProperty,
+	getLocation,
+	getPropertyKey,
+	isMethodCall,
+	isString,
+	getStringValue,
+} from "../utils/ASTUtils.js";
 
-const {Syntax, VisitorKeys} = require("../utils/parseUtils");
-const escope = require("escope");
-const ModuleName = require("../utils/ModuleName");
-const {Format: ModuleFormat} = require("../resources/ModuleInfo");
-const UI5ClientConstants = require("../UI5ClientConstants");
-const {
-	findOwnProperty, getLocation, getPropertyKey,
-	isMethodCall, isString, getStringValue} = require("../utils/ASTUtils");
-const log = require("@ui5/logger").getLogger("lbt:analyzer:JSModuleAnalyzer");
+import logger from "@ui5/logger";
+
+const log = logger.getLogger("lbt:analyzer:JSModuleAnalyzer");
 
 // ------------------------------------------------------------------------------------------------------------------
 
@@ -352,13 +359,13 @@ class JSModuleAnalyzer {
 
 		// depending on the used module APIs, add an implicit dependency to the loader entry module
 		if ( info.format === ModuleFormat.UI5_LEGACY ) {
-			info.addImplicitDependency(UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL);
+			info.addImplicitDependency(MODULE__JQUERY_SAP_GLOBAL);
 		} else if ( info.format === ModuleFormat.UI5_DEFINE ) {
 			// Note: the implicit dependency for sap.ui.define modules points to the standard UI5
 			// loader config module. A more general approach would be to add a dependency to the loader
 			// only, but then standard configuration would be missed by dependency resolution
 			// (to be clarified)
-			info.addImplicitDependency(UI5ClientConstants.MODULE__UI5LOADER_AUTOCONFIG);
+			info.addImplicitDependency(MODULE__UI5LOADER_AUTOCONFIG);
 		}
 
 		if ( !bIsUi5Module ) {
@@ -546,7 +553,7 @@ class JSModuleAnalyzer {
 			if (args.length > 0) {
 				const value = getStringValue(args[0]);
 				if (value !== undefined) {
-					const name = ModuleName.fromUI5LegacyName(value);
+					const name = fromUI5LegacyName(value);
 					if ( nModuleDeclarations === 1 && !mainModuleFound) {
 						// if this is the first declaration, then this is the main module declaration
 						// note that this overrides an already given name
@@ -580,7 +587,7 @@ class JSModuleAnalyzer {
 			if ( i < nArgs ) {
 				const value = getStringValue( args[i] );
 				if ( value !== undefined ) {
-					name = ModuleName.fromRequireJSName(value);
+					name = fromRequireJSName(value);
 					if ( name === defaultName ) {
 						// hardcoded name equals the file name, so this definition qualifies as main module definition
 						setMainModuleInfo(name, desc);
@@ -630,17 +637,17 @@ class JSModuleAnalyzer {
 					const arg = args[i];
 					const value = getStringValue(arg);
 					if ( value !== undefined ) {
-						const requiredModuleName = ModuleName.fromUI5LegacyName( value );
+						const requiredModuleName = fromUI5LegacyName( value );
 						info.addDependency(requiredModuleName, conditional);
 					} else if ( arg.type == Syntax.ConditionalExpression) {
 						const consequentValue = getStringValue(arg.consequent);
 						const alternateValue = getStringValue(arg.alternate);
 						if ( consequentValue !== undefined ) {
-							const requiredModuleName1 = ModuleName.fromUI5LegacyName( consequentValue );
+							const requiredModuleName1 = fromUI5LegacyName( consequentValue );
 							info.addDependency(requiredModuleName1, true);
 						}
 						if ( alternateValue !== undefined ) {
-							const requiredModuleName2 = ModuleName.fromUI5LegacyName( alternateValue );
+							const requiredModuleName2 = fromUI5LegacyName( alternateValue );
 							info.addDependency(requiredModuleName2, true);
 						}
 						if ( consequentValue === undefined || alternateValue === undefined ) {
@@ -664,7 +671,7 @@ class JSModuleAnalyzer {
 				const value = getStringValue(args[i]);
 				if ( value !== undefined ) {
 					// sap.ui.requireSync does not support relative dependencies
-					const moduleName = ModuleName.fromRequireJSName( value );
+					const moduleName = fromRequireJSName( value );
 					info.addDependency(moduleName, conditional);
 				} else {
 					log.verbose("sap.ui.requireSync: cannot evaluate dynamic arguments: ", args[i] && args[i].type);
@@ -682,7 +689,7 @@ class JSModuleAnalyzer {
 			if ( i < nArgs ) {
 				const value = getStringValue(args[i++]);
 				if ( value !== undefined ) {
-					const moduleName = ModuleName.fromRequireJSName( value );
+					const moduleName = fromRequireJSName( value );
 					info.addSubModule(moduleName);
 
 					// add dependencies
@@ -690,7 +697,7 @@ class JSModuleAnalyzer {
 					const elementArg = args[i++];
 					if (elementArg && elementArg.type === Syntax.ArrayExpression) {
 						elementArg.elements.forEach((element) => {
-							const dependencyName = ModuleName.resolveRelativeRequireJSName(moduleName,
+							const dependencyName = resolveRelativeRequireJSName(moduleName,
 								getStringValue(element));
 							info.addDependency(dependencyName, conditional);
 						});
@@ -727,7 +734,7 @@ class JSModuleAnalyzer {
 						return;
 					}
 					if ( namesUseLegacyNotation ) {
-						moduleName = ModuleName.fromUI5LegacyName(moduleName);
+						moduleName = fromUI5LegacyName(moduleName);
 					}
 					info.addSubModule(moduleName);
 				});
@@ -747,9 +754,9 @@ class JSModuleAnalyzer {
 					}
 					let requiredModule;
 					if (name == null) {
-						requiredModule = ModuleName.fromRequireJSName( value );
+						requiredModule = fromRequireJSName( value );
 					} else {
-						requiredModule = ModuleName.resolveRelativeRequireJSName(name, value);
+						requiredModule = resolveRelativeRequireJSName(name, value);
 					}
 					info.addDependency( requiredModule, conditional );
 				} else {
@@ -801,4 +808,4 @@ class JSModuleAnalyzer {
 }
 
 
-module.exports = JSModuleAnalyzer;
+export default JSModuleAnalyzer;

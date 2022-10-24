@@ -1,6 +1,6 @@
-const test = require("ava");
-const LocatorResourcePool = require("../../../../lib/lbt/resources/LocatorResourcePool");
-const Resource = require("@ui5/fs").Resource;
+import test from "ava";
+import LocatorResourcePool from "../../../../lib/lbt/resources/LocatorResourcePool.js";
+import Resource from "@ui5/fs/Resource";
 
 test("getIgnoreMissingModules", (t) => {
 	const resourcePool = new LocatorResourcePool({ignoreMissingModules: true});

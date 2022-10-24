@@ -1,10 +1,9 @@
-const test = require("ava");
+import test from "ava";
+import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
+import fsInterface from "@ui5/fs/fsInterface";
 
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const fsInterface = require("@ui5/fs").fsInterface;
-
-const themeBuilderProcessor = require("../../../lib/processors/themeBuilder");
-const ThemeBuilder = require("../../../lib/processors/themeBuilder").ThemeBuilder;
+import themeBuilderProcessor from "../../../lib/processors/themeBuilder.js";
+import {ThemeBuilder} from "../../../lib/processors/themeBuilder.js";
 
 function prepareResources({library} = {}) {
 	const input =
@@ -14,7 +13,7 @@ function prepareResources({library} = {}) {
 	padding: 1px 2px 3px 4px;
 }`;
 
-	const memoryAdapter = resourceFactory.createAdapter({
+	const memoryAdapter = createAdapter({
 		virBasePath: "/"
 	});
 
@@ -25,7 +24,7 @@ function prepareResources({library} = {}) {
 		lessFilePath = "/resources/sap/ui/foo/themes/base/library.source.less";
 	}
 
-	const resource = resourceFactory.createResource({
+	const resource = createResource({
 		path: lessFilePath,
 		string: input
 	});

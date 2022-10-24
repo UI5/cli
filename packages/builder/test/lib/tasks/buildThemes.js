@@ -1,38 +1,33 @@
-const test = require("ava");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+let buildThemes;
 
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-let buildThemes = require("../../../lib/tasks/buildThemes");
-
-test.before(() => {
+test.before(async () => {
 	// Enable verbose logging to also cover verbose logging code
-	require("@ui5/logger").setLevel("verbose");
+	const {default: logger} = await import("@ui5/logger");
+	logger.setLevel("verbose");
 });
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	// Stubbing processors/themeBuilder
 	t.context.themeBuilderStub = sinon.stub();
-	t.context.fsInterfaceStub = sinon.stub(require("@ui5/fs"), "fsInterface");
+	t.context.fsInterfaceStub = sinon.stub();
 	t.context.fsInterfaceStub.returns({});
 
-	t.context.ReaderCollectionPrioritizedStub = sinon.stub(require("@ui5/fs"), "ReaderCollectionPrioritized");
+	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
 	t.context.comboByGlob = sinon.stub();
 	t.context.ReaderCollectionPrioritizedStub.returns({byGlob: t.context.comboByGlob});
 
-	mock("@ui5/fs", {
-		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub,
-		fsInterface: t.context.fsInterfaceStub
+	buildThemes = await esmock("../../../lib/tasks/buildThemes.js", {
+		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
+		"@ui5/fs/ReaderCollectionPrioritized": t.context.ReaderCollectionPrioritizedStub,
+		"../../../lib/processors/themeBuilder": t.context.themeBuilderStub
 	});
-	mock("../../../lib/processors/themeBuilder", t.context.themeBuilderStub);
-
-	// Re-require tested module
-	buildThemes = mock.reRequire("../../../lib/tasks/buildThemes");
 });
 
-test.afterEach.always((t) => {
+test.afterEach.always(() => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial("buildThemes", async (t) => {

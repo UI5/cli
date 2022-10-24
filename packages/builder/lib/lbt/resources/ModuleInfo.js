@@ -1,4 +1,3 @@
-"use strict";
 
 /**
  * A strict dependency always has to be fulfilled and is declared as part of the module's definition.
@@ -250,4 +249,4 @@ public class ModuleInfo {
 
 } */
 
-module.exports = ModuleInfo;
+export default ModuleInfo;

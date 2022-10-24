@@ -1,15 +1,13 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const logger = require("@ui5/logger");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.log = {
 		warn: sinon.stub(),
 		verbose: sinon.stub(),
 		error: sinon.stub()
 	};
-	sinon.stub(logger, "getLogger").withArgs("builder:tasks:bundlers:generateLibraryPreload").returns(t.context.log);
 
 	t.context.workspace = {
 		byGlob: sinon.stub().resolves([]),
@@ -22,14 +20,17 @@ test.beforeEach((t) => {
 	t.context.secondByGlob = t.context.workspace.byGlob.onSecondCall();
 
 	t.context.moduleBundlerStub = sinon.stub().resolves([]);
-	mock("../../../../lib/processors/bundlers/moduleBundler", t.context.moduleBundlerStub);
 
-	t.context.generateLibraryPreload = mock.reRequire("../../../../lib/tasks/bundlers/generateLibraryPreload");
+	t.context.generateLibraryPreload = await esmock("../../../../lib/tasks/bundlers/generateLibraryPreload.js", {
+		"../../../../lib/processors/bundlers/moduleBundler.js": t.context.moduleBundlerStub,
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:tasks:bundlers:generateLibraryPreload").returns(t.context.log)
+		}
+	});
 });
 
 test.afterEach.always(() => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial("generateLibraryPreload", async (t) => {

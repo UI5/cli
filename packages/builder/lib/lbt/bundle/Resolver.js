@@ -1,15 +1,14 @@
 /**
  * Takes a bundle definition and resolves it against the given pool.
  */
-"use strict";
 
-const topologicalSort = require("../graph/topologicalSort");
-const UI5ClientConstants = require("../UI5ClientConstants");
-const ResourceFilterList = require("../resources/ResourceFilterList");
-
-const {SectionType} = require("./BundleDefinition");
-const ResolvedBundleDefinition = require("./ResolvedBundleDefinition");
-const log = require("@ui5/logger").getLogger("lbt:bundle:Resolver");
+import topologicalSort from "../graph/topologicalSort.js";
+import {getRendererName} from "../UI5ClientConstants.js";
+import ResourceFilterList from "../resources/ResourceFilterList.js";
+import {SectionType} from "./BundleDefinition.js";
+import ResolvedBundleDefinition from "./ResolvedBundleDefinition.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:bundle:Resolver");
 
 let dependencyTracker;
 
@@ -144,7 +143,7 @@ class BundleResolver {
 
 								// add renderer, if 'renderer' is configured and if it exists
 								if ( section.renderer ) {
-									const rendererModuleName = UI5ClientConstants.getRendererName( resourceName );
+									const rendererModuleName = getRendererName( resourceName );
 									promises.push( checkAndAddResource( rendererModuleName, depth + 1) );
 								}
 							}
@@ -324,5 +323,5 @@ class BundleResolver {
 }
 
 
-module.exports = BundleResolver;
+export default BundleResolver;
 

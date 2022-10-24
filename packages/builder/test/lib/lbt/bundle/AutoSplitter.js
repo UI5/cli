@@ -1,9 +1,9 @@
-const test = require("ava");
-const sinon = require("sinon");
-const {pd} = require("pretty-data");
-const BundleResolver = require("../../../../lib/lbt/bundle/Resolver");
-const AutoSplitter = require("../../../../lib/lbt/bundle/AutoSplitter");
-const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
+import test from "ava";
+import sinon from "sinon";
+import {pd} from "pretty-data";
+import BundleResolver from "../../../../lib/lbt/bundle/Resolver.js";
+import AutoSplitter from "../../../../lib/lbt/bundle/AutoSplitter.js";
+import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 
 function createMockPool(dependencies) {
 	return {

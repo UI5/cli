@@ -18,10 +18,10 @@
  * This class can handle multiple concurrent analysis calls, it has no instance state
  * other than the pool (which is readonly).
  */
-"use strict";
 
-const ModuleName = require("../utils/ModuleName");
-const log = require("@ui5/logger").getLogger("lbt:analyzer:ComponentAnalyzer");
+import {fromUI5LegacyName} from "../utils/ModuleName.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:analyzer:ComponentAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ class ComponentAnalyzer {
 			} else {
 				rootView = ui5.rootView;
 			}
-			const module = ModuleName.fromUI5LegacyName(
+			const module = fromUI5LegacyName(
 				rootView.viewName,
 				".view." + rootView.type.toLowerCase() );
 			log.verbose("adding root view dependency ", module);
@@ -105,13 +105,13 @@ class ComponentAnalyzer {
 		}
 
 		each( ui5.dependencies && ui5.dependencies.libs, (options, lib) => {
-			const module = ModuleName.fromUI5LegacyName(lib, "/library.js");
+			const module = fromUI5LegacyName(lib, "/library.js");
 			log.verbose("adding library dependency ", module, options.lazy || false);
 			info.addDependency( module, options.lazy ); // lazy -> conditional dependency
 		});
 
 		each( ui5.dependencies && ui5.dependencies.components, (options, component) => {
-			const module = ModuleName.fromUI5LegacyName(component, "/Component.js");
+			const module = fromUI5LegacyName(component, "/Component.js");
 			log.verbose("adding component dependency ", module, options.lazy || false);
 			info.addDependency( module, options.lazy ); // lazy -> conditional dependency
 		});
@@ -163,7 +163,7 @@ class ComponentAnalyzer {
 				log.warn(`Neither a type nor a dataSource has been defined for model "${model}".`);
 				return;
 			}
-			const module = ModuleName.fromUI5LegacyName( modelType );
+			const module = fromUI5LegacyName( modelType );
 			log.verbose("derived model implementation dependency ", module);
 			info.addDependency(module);
 		});
@@ -175,7 +175,7 @@ class ComponentAnalyzer {
 			// See sap/ui/core/UIComponent#init
 			if (routing.routes) {
 				const routerClassName = routingConfig.routerClass || "sap.ui.core.routing.Router";
-				const routerClassModule = ModuleName.fromUI5LegacyName(routerClassName);
+				const routerClassModule = fromUI5LegacyName(routerClassName);
 				log.verbose(`adding router dependency '${routerClassModule}'`);
 				info.addDependency(routerClassModule);
 			} else if (routing.targets) {
@@ -194,7 +194,7 @@ class ComponentAnalyzer {
 					if (target && target.viewName) {
 						// merge target config with default config
 						const config = Object.assign({}, routing.config, target);
-						const module = ModuleName.fromUI5LegacyName(
+						const module = fromUI5LegacyName(
 							(config.viewPath ? config.viewPath + "." : "") +
 							config.viewName, ".view." + config.viewType.toLowerCase() );
 						log.verbose("converting routing target '%s' to view dependency '%s'", targetName, module);
@@ -209,4 +209,4 @@ class ComponentAnalyzer {
 	}
 }
 
-module.exports = ComponentAnalyzer;
+export default ComponentAnalyzer;

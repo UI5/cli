@@ -1,22 +1,28 @@
-"use strict";
 
-const log = require("@ui5/logger").getLogger("builder:tasks:generateLibraryManifest");
-const manifestCreator = require("../processors/manifestCreator");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:generateLibraryManifest");
+import manifestCreator from "../processors/manifestCreator.js";
 
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateLibraryManifest
+ */
 
 /**
  * Task for creating a library manifest.json from its .library file.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateLibraryManifest
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, taskUtil, options: {projectName}}) {
+export default function({workspace, taskUtil, options: {projectName}}) {
 	// Note:
 	// *.library files are needed to identify libraries
 	// *.json files are needed to avoid overwriting them
@@ -64,4 +70,4 @@ module.exports = function({workspace, taskUtil, options: {projectName}}) {
 			}));
 		});
 	});
-};
+}

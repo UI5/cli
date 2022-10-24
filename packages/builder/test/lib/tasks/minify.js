@@ -1,10 +1,8 @@
-const test = require("ava");
-const sinon = require("sinon");
-
-const minify = require("../../../lib/tasks/minify");
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
-const DuplexCollection = ui5Fs.DuplexCollection;
+import test from "ava";
+import sinon from "sinon";
+import minify from "../../../lib/tasks/minify.js";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
+import DuplexCollection from "@ui5/fs/DuplexCollection";
 
 // Node.js itself tries to parse sourceMappingURLs in all JavaScript files. This is unwanted and might even lead to
 // obscure errors when dynamically generating Data-URI soruceMappingURL values.

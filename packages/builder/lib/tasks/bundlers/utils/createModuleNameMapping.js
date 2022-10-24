@@ -1,4 +1,4 @@
-const ModuleName = require("../../../lbt/utils/ModuleName");
+import {getNonDebugName} from "../../../lbt/utils/ModuleName.js";
 
 /**
  * For "unoptimized" bundles, the non-debug files have already been filtered out above.
@@ -10,17 +10,17 @@ const ModuleName = require("../../../lbt/utils/ModuleName");
  *
  * @private
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} parameters.taskUtil TaskUtil
+ * @param {@ui5/fs/Resource[]} parameters.resources List of resources
+ * @param {@ui5/project/build/helpers/TaskUtil|object} parameters.taskUtil TaskUtil
  * @returns {object} Module name mapping
  */
-module.exports = function({resources, taskUtil}) {
+export default function({resources, taskUtil}) {
 	const moduleNameMapping = {};
 	for (let i = resources.length - 1; i >= 0; i--) {
 		const resource = resources[i];
 		if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
 			const resourcePath = resource.getPath();
-			const nonDbgPath = ModuleName.getNonDebugName(resourcePath);
+			const nonDbgPath = getNonDebugName(resourcePath);
 			if (!nonDbgPath) {
 				throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);
 			}
@@ -28,4 +28,4 @@ module.exports = function({resources, taskUtil}) {
 		}
 	}
 	return moduleNameMapping;
-};
+}

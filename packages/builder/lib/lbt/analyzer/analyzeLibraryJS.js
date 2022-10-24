@@ -1,7 +1,8 @@
-"use strict";
-const {parseJS, Syntax, VisitorKeys} = require("../utils/parseUtils");
-const {getPropertyKey, isMethodCall, isIdentifier, getStringArray} = require("../utils/ASTUtils");
-const log = require("@ui5/logger").getLogger("lbt:analyzer:LibraryJS");
+
+import {parseJS, Syntax, VisitorKeys} from "../utils/parseUtils.js";
+import {getPropertyKey, isMethodCall, isIdentifier, getStringArray} from "../utils/ASTUtils.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:analyzer:LibraryJS");
 
 const CALL__SAP_UI_GETCORE = ["sap", "ui", "getCore"];
 
@@ -96,12 +97,12 @@ async function analyze(resource) {
  *
  * Note: only the first initLibrary() call that is found with a DFS on the AST, will be evaluated.
  *
- * @param {module:@ui5/fs.Resource} resource library.js resource whose content should be analyzed
+ * @param {@ui5/fs/Resource} resource library.js resource whose content should be analyzed
  * @returns {Promise<object>} A Promise on the extract info object
  */
-module.exports = function(resource) {
+export default function(resource) {
 	if ( resource == null ) {
 		return Promise.resolve({});
 	}
 	return analyze(resource);
-};
+}

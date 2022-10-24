@@ -1,6 +1,12 @@
-const crypto = require("crypto");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const log = require("@ui5/logger").getLogger("builder:tasks:generateCachebusterInfo");
+import crypto from "node:crypto";
+import {createResource} from "@ui5/fs/resourceFactory";
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:generateCachebusterInfo");
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateCachebusterInfo
+ */
 
 async function signByTime(resource) {
 	return resource.getStatInfo().mtime.getTime();
@@ -33,15 +39,17 @@ function getSigner(type) {
  * Task to generate the application cachebuster info file.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateCachebusterInfo
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectNamespace Namespace of the application
  * @param {string} [parameters.options.signatureType='time'] Type of signature to be used ('time' or 'hash')
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options}) {
+export default function({workspace, options}) {
 	const {signatureType} = options;
 	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
 	const namespace = options.projectNamespace || options.namespace;
@@ -63,10 +71,10 @@ module.exports = function({workspace, options}) {
 				resourcePath = resourcePath.replace(basePath, "");
 				cachebusterInfo[resourcePath] = await signer(resource);
 			}));
-			const cachebusterInfoResource = resourceFactory.createResource({
+			const cachebusterInfoResource = createResource({
 				path: `/resources/${namespace}/sap-ui-cachebuster-info.json`,
 				string: JSON.stringify(cachebusterInfo, null, 2)
 			});
 			return workspace.write(cachebusterInfoResource);
 		});
-};
+}

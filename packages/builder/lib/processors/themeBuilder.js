@@ -1,23 +1,29 @@
-const log = require("@ui5/logger").getLogger("builder:processors:themeBuilder");
-const path = require("path");
-const less = require("less-openui5");
-const Resource = require("@ui5/fs").Resource;
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:themeBuilder");
+import posixPath from "node:path/posix";
+import less from "less-openui5";
+import Resource from "@ui5/fs/Resource";
 
 const libraryMatchPattern = /^\/resources\/(.*)\/themes\/[^/]*\/library\.source\.less$/i;
+
+/**
+ * @public
+ * @module @ui5/builder/processors/ThemeBuilder
+ */
 
 /**
  * Builds a library theme
  *
  * @public
- * @memberof module:@ui5/builder.processors
+ * @class
  */
-class ThemeBuilder {
+export class ThemeBuilder {
 	/**
 	 * Constructor
 	 *
 	 * @public
-	 * @param {fs|module:@ui5/fs.fsInterface} fs Node fs or custom
-	 * 		[fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
+	 * @param {fs|module:@ui5/fs/fsInterface} fs Node fs or custom
+	 * 		[fs interface]{@link module:@ui5/fs/fsInterface}
 	 */
 	constructor({fs}) {
 		this.builder = new less.Builder({fs});
@@ -27,13 +33,13 @@ class ThemeBuilder {
 	 * Starts the theme build
 	 *
 	 * @public
-	 * @param {module:@ui5/fs.Resource[]} resources Library files
+	 * @param {@ui5/fs/Resource[]} resources Library files
 	 * @param {object} [options] Build options
 	 * @param {boolean} [options.compress=false] Compress build output (CSS / JSON)
 	 * @param {boolean} [options.cssVariables=false] Generates the CSS variables
 	 *   (css-variables.css, css-variables.source.less) and the skeleton for a theme
 	 *   (library-skeleton.css, [library-skeleton-RTL.css])
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Resolving with array of created files
+	 * @returns {Promise<@ui5/fs/Resource[]>} Resolving with array of created files
 	 */
 	build(resources, {compress = false, cssVariables = false} = {}) {
 		const files = [];
@@ -57,7 +63,7 @@ class ThemeBuilder {
 				},
 				cssVariables
 			}).then((result) => {
-				const themeDir = path.dirname(resource.getPath());
+				const themeDir = posixPath.dirname(resource.getPath());
 
 				const libCss = new Resource({
 					path: themeDir + "/library.css",
@@ -132,21 +138,25 @@ class ThemeBuilder {
  * Builds a library theme.
  *
  * @public
- * @alias module:@ui5/builder.processors.themeBuilder
+ * @function default
+ * @static
+ *
+ * @alias @ui5/builder/processors/themeBuilder
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code>
+ * @param {@ui5/fs/Resource[]} parameters.resources List of <code>library.source.less</code>
  *   resources to be processed
- * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom
- *   [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
- * @param {ThemeBuilderOptions} [parameters.options] Options
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with theme resources
+ * @param {fs|module:@ui5/fs/fsInterface} parameters.fs Node fs or custom
+ *   [fs interface]{@link module:@ui5/fs/fsInterface}
+ * @param {module:@ui5/builder/processors/ThemeBuilder~ThemeBuilderOptions} [parameters.options] Options
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with theme resources
  */
-module.exports = async function({
+export default async function({
 	resources,
 	fs,
 	options = {}
 }) {
-	const {compress, cssVariables} = /** @type {ThemeBuilderOptions} */ (options);
+	const {compress, cssVariables} =
+	/** @type {module:@ui5/builder/processors/ThemeBuilder~ThemeBuilderOptions} */ (options);
 	const themeBuilder = new ThemeBuilder({fs});
 	return themeBuilder.build(resources, {
 		compress,
@@ -155,6 +165,4 @@ module.exports = async function({
 		themeBuilder.clearCache();
 		return files;
 	});
-};
-
-module.exports.ThemeBuilder = ThemeBuilder;
+}

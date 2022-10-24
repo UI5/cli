@@ -1,11 +1,12 @@
-"use strict";
 
-const posixPath = require("path").posix;
-const {SemVer: Version} = require("semver");
-const log = require("@ui5/logger").getLogger("builder:processors:manifestCreator");
-const EvoResource = require("@ui5/fs").Resource;
-const xml2js = require("xml2js");
-const analyzeLibraryJS = require("../lbt/analyzer/analyzeLibraryJS");
+import posixPath from "node:path/posix";
+import semver from "semver";
+const {SemVer: Version} = semver;
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:manifestCreator");
+import Resource from "@ui5/fs/Resource";
+import xml2js from "xml2js";
+import analyzeLibraryJS from "../lbt/analyzer/analyzeLibraryJS.js";
 
 /*
  * A single parse instance to be used by all invocations (TODO check reentrance capa of xml2js)
@@ -128,7 +129,7 @@ class LibraryBundle {
 	/**
 	 *
 	 * @param {string} prefix
-	 * @param {module:@ui5/fs.Resource[]} resources
+	 * @param {@ui5/fs/Resource[]} resources
 	 */
 	constructor(prefix, resources) {
 		this.prefix = prefix;
@@ -138,7 +139,7 @@ class LibraryBundle {
 	/**
 	 *
 	 * @param {string} name
-	 * @returns {module:@ui5/fs.Resource}
+	 * @returns {@ui5/fs/Resource}
 	 */
 	findResource(name) {
 		return this.resources.find((res) => res.getPath() === this.prefix + name);
@@ -147,7 +148,7 @@ class LibraryBundle {
 	/**
 	 *
 	 * @param {RegExp} pattern
-	 * @returns {module:@ui5/fs.Resource[]}
+	 * @returns {@ui5/fs/Resource[]}
 	 */
 	getResources(pattern) {
 		return this.resources.filter((res) => pattern == null || pattern.test(res.getPath()));
@@ -620,7 +621,7 @@ async function createManifest(
 	};
 }
 
-module.exports = function({libraryResource, resources, getProjectVersion, options}) {
+export default function({libraryResource, resources, getProjectVersion, options}) {
 	// merge options with defaults
 	options = Object.assign({
 		descriptorVersion: APP_DESCRIPTOR_V22, // TODO 3.0: change this to type string instead of a semver object
@@ -642,9 +643,9 @@ module.exports = function({libraryResource, resources, getProjectVersion, option
 	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty,
 		options.omitMinVersions, getProjectVersion)
 		.then((manifest) => {
-			return new EvoResource({
+			return new Resource({
 				path: resourcePathPrefix + "manifest.json",
 				string: JSON.stringify(manifest, null, options.prettyPrint ? "  " : undefined)
 			});
 		});
-};
+}

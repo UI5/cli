@@ -177,4 +177,4 @@ class ResourceInfo {
 	}
 }
 
-module.exports = ResourceInfo;
+export default ResourceInfo;

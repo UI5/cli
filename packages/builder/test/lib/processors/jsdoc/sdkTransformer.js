@@ -1,19 +1,29 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const sdkTransformer = require("../../../../lib/processors/jsdoc/sdkTransformer");
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
+import sdkTransformer from "../../../../lib/processors/jsdoc/sdkTransformer.js";
+
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+
+	t.context.transformApiJsonStub = sinon.stub().resolves("api.json content");
+
+	t.context.createResourceStub = sinon.stub().returns("result resource");
+
+	t.context.sdkTransformer = await esmock("../../../../lib/processors/jsdoc/sdkTransformer.js", {
+		"../../../../lib/processors/jsdoc/lib/transformApiJson.cjs": t.context.transformApiJsonStub,
+		"@ui5/fs/resourceFactory": {
+			createResource: t.context.createResourceStub
+		}
+	});
+});
 
 test.afterEach.always((t) => {
-	sinon.restore();
+	t.context.sinon.restore();
 });
 
 test.serial("sdkTransformer", async (t) => {
-	const transformerStub = sinon.stub().resolves("api.json content");
-	mock("../../../../lib/processors/jsdoc/lib/transformApiJson", transformerStub);
-	const createResourceStub = sinon.stub(require("@ui5/fs").resourceFactory, "createResource")
-		.returns("result resource");
-
-	const sdkTransformer = mock.reRequire("../../../../lib/processors/jsdoc/sdkTransformer");
+	const {sdkTransformer, transformApiJsonStub, createResourceStub} = t.context;
 
 	const res = await sdkTransformer({
 		apiJsonPath: "/some/path/api.json",
@@ -29,20 +39,20 @@ test.serial("sdkTransformer", async (t) => {
 	t.is(res.length, 1, "Returned one resource");
 	t.is(res[0], "result resource", "Returned one resource");
 
-	t.is(transformerStub.callCount, 1, "generateJsdocConfig called once");
-	t.is(transformerStub.getCall(0).args[0], "/some/path/api.json",
+	t.is(transformApiJsonStub.callCount, 1, "generateJsdocConfig called once");
+	t.is(transformApiJsonStub.getCall(0).args[0], "/some/path/api.json",
 		"transform-apijson-for-sdk called with correct argument #1");
-	t.is(transformerStub.getCall(0).args[1], "/ignore/this/path/resource/will/be/returned",
+	t.is(transformApiJsonStub.getCall(0).args[1], "/ignore/this/path/resource/will/be/returned",
 		"transform-apijson-for-sdk called with correct argument #2");
-	t.is(transformerStub.getCall(0).args[2], "/some/path/.library",
+	t.is(transformApiJsonStub.getCall(0).args[2], "/some/path/.library",
 		"transform-apijson-for-sdk called with correct argument #3");
-	t.deepEqual(transformerStub.getCall(0).args[3], [
+	t.deepEqual(transformApiJsonStub.getCall(0).args[3], [
 		"/some/path/x/api.json",
 		"/some/path/y/api.json"
 	], "transform-apijson-for-sdk called with correct argument #4");
-	t.is(transformerStub.getCall(0).args[4], "",
+	t.is(transformApiJsonStub.getCall(0).args[4], "",
 		"transform-apijson-for-sdk called with correct argument #5");
-	t.deepEqual(transformerStub.getCall(0).args[5], {
+	t.deepEqual(transformApiJsonStub.getCall(0).args[5], {
 		fs: "custom fs",
 		returnOutputFiles: true
 	}, "transform-apijson-for-sdk called with correct argument #6");
@@ -52,8 +62,6 @@ test.serial("sdkTransformer", async (t) => {
 		path: "/some/other/path/api.json",
 		string: "api.json content"
 	}, "createResource called with correct arguments");
-
-	mock.stop("../../../../lib/processors/jsdoc/lib/transformApiJson");
 });
 
 test("sdkTransformer missing parameters", async (t) => {

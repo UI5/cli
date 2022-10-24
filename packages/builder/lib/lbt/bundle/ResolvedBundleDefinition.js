@@ -1,8 +1,7 @@
-"use strict";
 
-const UI5ClientConstants = require("../UI5ClientConstants");
-const ModuleInfo = require("../resources/ModuleInfo");
-const {SectionType} = require("./BundleDefinition");
+import {MODULE__JQUERY_SAP_GLOBAL, MODULE__SAP_UI_CORE_CORE} from "../UI5ClientConstants.js";
+import ModuleInfo from "../resources/ModuleInfo.js";
+import {SectionType} from "./BundleDefinition.js";
 
 class ResolvedBundleDefinition {
 	constructor( bundleDefinition /* , vars*/) {
@@ -18,7 +17,7 @@ class ResolvedBundleDefinition {
 		return this.sections.some(
 			(section) =>
 				(section.mode === SectionType.Raw || section.mode === SectionType.Require) &&
-				section.modules.some((module) => module === UI5ClientConstants.MODULE__SAP_UI_CORE_CORE)
+				section.modules.some((module) => module === MODULE__SAP_UI_CORE_CORE)
 		);
 	}
 
@@ -26,7 +25,7 @@ class ResolvedBundleDefinition {
 		return this.sections.some(
 			(section) =>
 				section.mode === SectionType.Raw &&
-				section.modules.some((module) => module === UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL)
+				section.modules.some((module) => module === MODULE__JQUERY_SAP_GLOBAL)
 		);
 	}
 
@@ -108,4 +107,4 @@ class ResolvedSection {
 	}
 }
 
-module.exports = ResolvedBundleDefinition;
+export default ResolvedBundleDefinition;

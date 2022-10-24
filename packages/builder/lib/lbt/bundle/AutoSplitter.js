@@ -1,11 +1,10 @@
-"use strict";
 
-const {pd} = require("pretty-data");
-
-const ModuleName = require("../utils/ModuleName");
-const {SectionType} = require("./BundleDefinition");
-const escapePropertiesFile = require("../utils/escapePropertiesFile");
-const log = require("@ui5/logger").getLogger("lbt:bundle:AutoSplitter");
+import {pd} from "pretty-data";
+import {toRequireJSName} from "../utils/ModuleName.js";
+import {SectionType} from "./BundleDefinition.js";
+import escapePropertiesFile from "../utils/escapePropertiesFile.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:bundle:AutoSplitter");
 
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 
@@ -72,7 +71,7 @@ class AutoSplitter {
 				break;
 			case SectionType.Require:
 				section.modules.forEach( (module) => {
-					totalSize += "sap.ui.requireSync('');".length + ModuleName.toRequireJSName(module).length;
+					totalSize += "sap.ui.requireSync('');".length + toRequireJSName(module).length;
 				});
 				break;
 			default:
@@ -90,7 +89,7 @@ class AutoSplitter {
 		const splittedModules = [];
 		let moduleNameWithPart = moduleDef.name;
 		if ( !/__part__/.test(moduleNameWithPart) ) {
-			moduleNameWithPart = ModuleName.toRequireJSName(moduleNameWithPart) + "-__part__.js";
+			moduleNameWithPart = toRequireJSName(moduleNameWithPart) + "-__part__.js";
 		}
 		// vars = Object.create(null);
 
@@ -177,7 +176,7 @@ class AutoSplitter {
 				currentModule.sections.push( currentSection );
 				section.modules.forEach( (module) => {
 					currentSection.filters.push( module );
-					totalSize += 21 + ModuleName.toRequireJSName(module).length;
+					totalSize += 21 + toRequireJSName(module).length;
 				});
 				break;
 			default:
@@ -257,4 +256,4 @@ class AutoSplitter {
 	} */
 }
 
-module.exports = AutoSplitter;
+export default AutoSplitter;

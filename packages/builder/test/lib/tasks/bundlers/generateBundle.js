@@ -1,9 +1,8 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const ModuleName = require("../../../../lib/lbt/utils/ModuleName");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.log = {
 		warn: sinon.stub(),
 		verbose: sinon.stub(),
@@ -31,21 +30,26 @@ test.beforeEach((t) => {
 		filter: sinon.stub()
 	};
 
-	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
-	t.context.ReaderCollectionPrioritizedStub.returns(t.context.combo);
-	mock("@ui5/fs", {
-		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub
+	t.context.ReaderCollectionPrioritizedStub = sinon.stub().returns(t.context.combo);
+	t.context.moduleBundlerStub = sinon.stub().resolves([]);
+
+	const ModuleName = await esmock("../../../../lib/lbt/utils/ModuleName.js");
+	t.context.getNonDebugName = sinon.stub().callsFake((...args) => {
+		return ModuleName.getNonDebugName(...args);
 	});
 
-	t.context.moduleBundlerStub = sinon.stub().resolves([]);
-	mock("../../../../lib/processors/bundlers/moduleBundler", t.context.moduleBundlerStub);
-
-	t.context.generateBundle = mock.reRequire("../../../../lib/tasks/bundlers/generateBundle");
+	t.context.generateBundle = await esmock("../../../../lib/tasks/bundlers/generateBundle.js", {
+		"@ui5/fs/ReaderCollectionPrioritized": t.context.ReaderCollectionPrioritizedStub,
+		"../../../../lib/processors/bundlers/moduleBundler": t.context.moduleBundlerStub
+	}, {
+		"../../../../lib/lbt/utils/ModuleName.js": {
+			getNonDebugName: t.context.getNonDebugName
+		}
+	});
 });
 
 test.afterEach.always(() => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
@@ -527,7 +531,7 @@ test.serial("generateBundle: Throws error when non-debug name can't be resolved"
 	const {
 		generateBundle, moduleBundlerStub,
 		workspace, dependencies, combo,
-		taskUtil
+		taskUtil, getNonDebugName
 	} = t.context;
 
 	const resources = [
@@ -548,7 +552,7 @@ test.serial("generateBundle: Throws error when non-debug name can't be resolved"
 	const bundleOptions = {optimize: false};
 
 	taskUtil.getTag.returns(true);
-	sinon.stub(ModuleName, "getNonDebugName").returns(false);
+	getNonDebugName.returns(false);
 
 	await t.throwsAsync(generateBundle({
 		workspace,

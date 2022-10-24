@@ -1,17 +1,18 @@
-const test = require("ava");
+import test from "ava";
+import {getTask, getAllTaskNames} from "../../../lib/tasks/taskRepository.js";
 
-const taskRepository = require("../../../lib/tasks/taskRepository");
-
-test("Task retrieval", (t) => {
-	const escapeNonAsciiCharacters = require("../../../lib/tasks/escapeNonAsciiCharacters");
-	const taskInfo = taskRepository.getTask("escapeNonAsciiCharacters");
+test("Task retrieval", async (t) => {
+	const escapeNonAsciiCharacters = (await import("../../../lib/tasks/escapeNonAsciiCharacters.js")).default;
+	const taskInfoPromise = getTask("escapeNonAsciiCharacters");
+	t.true(taskInfoPromise instanceof Promise);
+	const taskInfo = await taskInfoPromise;
 	t.deepEqual(taskInfo, {
 		task: escapeNonAsciiCharacters
 	}, "Expected task retrieved");
 });
 
 test("getAllTaskNames", (t) => {
-	const taskNames = taskRepository.getAllTaskNames();
+	const taskNames = getAllTaskNames();
 	t.deepEqual(taskNames, [
 		"replaceCopyright",
 		"replaceVersion",
@@ -37,25 +38,19 @@ test("getAllTaskNames", (t) => {
 	], "Returned list of all standard tasks");
 });
 
-test("Unknown task retrieval", (t) => {
-	const error = t.throws(() => {
-		taskRepository.getTask("not-existing");
-	});
+test("Unknown task retrieval", async (t) => {
+	const error = await t.throwsAsync(getTask("not-existing"));
 	t.is(error.message, "taskRepository: Unknown Task not-existing", "Correct exception");
 });
 
-test("Removed task retrieval", (t) => {
-	const error = t.throws(() => {
-		taskRepository.getTask("createDebugFiles");
-	});
+test("Removed task retrieval", async (t) => {
+	const error = await t.throwsAsync(getTask("createDebugFiles"));
 	t.deepEqual(error.message,
 		`Standard task createDebugFiles has been removed in UI5 Tooling 3.0. ` +
 		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
 		"Correct exception");
 
-	const error2 = t.throws(() => {
-		taskRepository.getTask("uglify");
-	});
+	const error2 = await t.throwsAsync(getTask("uglify"));
 	t.deepEqual(error2.message,
 		`Standard task uglify has been removed in UI5 Tooling 3.0. ` +
 		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,

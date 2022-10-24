@@ -1,4 +1,4 @@
-const Resource = require("./Resource");
+import Resource from "./Resource.js";
 
 class LocatorResource extends Resource {
 	constructor(pool, resource, moduleName) {
@@ -19,4 +19,4 @@ class LocatorResource extends Resource {
 	}
 }
 
-module.exports = LocatorResource;
+export default LocatorResource;

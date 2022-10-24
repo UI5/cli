@@ -1,22 +1,22 @@
 /* eslint quotes: ["error", "double", { "allowTemplateLiterals": true }] */
 // for consistency of write calls, we generally allow template literals
-"use strict";
 
-const path = require("path");
-const {pd} = require("pretty-data");
-const {parseJS, Syntax} = require("../utils/parseUtils");
-const {encode: encodeMappings, decode: decodeMappings} = require("@jridgewell/sourcemap-codec");
-
-const {isMethodCall} = require("../utils/ASTUtils");
-const ModuleName = require("../utils/ModuleName");
-const UI5ClientConstants = require("../UI5ClientConstants");
-const escapePropertiesFile = require("../utils/escapePropertiesFile");
-
-const BundleResolver = require("./Resolver");
-const BundleSplitter = require("./AutoSplitter");
-const {SectionType} = require("./BundleDefinition");
-const BundleWriter = require("./BundleWriter");
-const log = require("@ui5/logger").getLogger("lbt:bundle:Builder");
+import path from "node:path";
+import {pd} from "pretty-data";
+import {parseJS, Syntax} from "../utils/parseUtils.js";
+import {encode as encodeMappings, decode as decodeMappings} from "@jridgewell/sourcemap-codec";
+import {isMethodCall} from "../utils/ASTUtils.js";
+import {toUI5LegacyName, toRequireJSName} from "../utils/ModuleName.js";
+import {
+	MODULE__UI5LOADER, MODULE__UI5LOADER_AUTOCONFIG,
+	MODULE__JQUERY_SAP_GLOBAL, MODULE__SAP_UI_CORE_CORE} from "../UI5ClientConstants.js";
+import escapePropertiesFile from "../utils/escapePropertiesFile.js";
+import BundleResolver from "./Resolver.js";
+import BundleSplitter from "./AutoSplitter.js";
+import {SectionType} from "./BundleDefinition.js";
+import BundleWriter from "./BundleWriter.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:bundle:Builder");
 
 const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(.+)\s*$/;
 const httpPattern = /^https?:\/\//i;
@@ -63,14 +63,14 @@ const EVOBundleFormat = {
 	},
 
 	requireSync(moduleName) {
-		return `sap.ui.requireSync("${ModuleName.toRequireJSName(moduleName)}");\n`;
+		return `sap.ui.requireSync("${toRequireJSName(moduleName)}");\n`;
 	},
 
 	shouldDecorate(resolvedModule) {
-		return resolvedModule.executes(UI5ClientConstants.MODULE__UI5LOADER) ||
-			resolvedModule.executes(UI5ClientConstants.MODULE__UI5LOADER_AUTOCONFIG) ||
-			resolvedModule.executes(UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL) ||
-			resolvedModule.executes(UI5ClientConstants.MODULE__SAP_UI_CORE_CORE);
+		return resolvedModule.executes(MODULE__UI5LOADER) ||
+			resolvedModule.executes(MODULE__UI5LOADER_AUTOCONFIG) ||
+			resolvedModule.executes(MODULE__JQUERY_SAP_GLOBAL) ||
+			resolvedModule.executes(MODULE__SAP_UI_CORE_CORE);
 	}
 };
 
@@ -232,11 +232,11 @@ class BundleBuilder {
 			/* NODE-TODO, moduleName is not defined
 				It should contain the name of the module which is currently build (1st parameter of _createBundle).
 				But when the ui5loader is present, declareRawModules should be forced to false anyhow.
-			this.outW.writeln("jQuery.sap.declare('", ModuleName.toUI5LegacyName(moduleName), "');");
+			this.outW.writeln("jQuery.sap.declare('", toUI5LegacyName(moduleName), "');");
 			*/
 			this.missingRawDeclarations.forEach( (module) => {
 				// 2nd parameter set to 'false': do not create namespaces - they nevertheless would come too late
-				this.outW.writeln(`jQuery.sap.declare('${ModuleName.toUI5LegacyName(module)}', false);`);
+				this.outW.writeln(`jQuery.sap.declare('${toUI5LegacyName(module)}', false);`);
 			});
 			this.missingRawDeclarations = [];
 		}
@@ -258,7 +258,7 @@ class BundleBuilder {
 				if ( section.declareRawModules ) {
 					this.missingRawDeclarations.push(moduleName);
 				}
-				if ( moduleName === UI5ClientConstants.MODULE__JQUERY_SAP_GLOBAL ) {
+				if ( moduleName === MODULE__JQUERY_SAP_GLOBAL ) {
 					this.jqglobalAvailable = true;
 				}
 			} else {
@@ -413,7 +413,7 @@ class BundleBuilder {
 	 *
 	 * @param {string} moduleName module name
 	 * @param {ModuleInfo} info
-	 * @param {module:@ui5/fs.Resource} resource
+	 * @param {@ui5/fs/Resource} resource
 	 * @returns {Promise<boolean>}
 	 */
 	async writePreloadModule(moduleName, info, resource) {
@@ -649,7 +649,7 @@ async function rewriteDefine({moduleName, moduleContent, moduleSourceMap}) {
 		// Inject module name if missing
 		if ( defineCall.arguments.length == 0 ||
 			![Syntax.Literal, Syntax.TemplateLiteral].includes(defineCall.arguments[0].type)) {
-			let value = `"${ModuleName.toRequireJSName(moduleName)}"`;
+			let value = `"${toRequireJSName(moduleName)}"`;
 			let index;
 
 			if (defineCall.arguments.length == 0) {
@@ -773,10 +773,7 @@ function createTransientSourceMap({moduleName, moduleContent, includeContent = f
 	return sourceMap;
 }
 
-module.exports = BundleBuilder;
+export default BundleBuilder;
 
-// Export local functions for testing only
-/* istanbul ignore else */
-if (process.env.NODE_ENV === "test") {
-	module.exports.__localFunctions__ = {rewriteDefine, createTransientSourceMap};
-}
+export const __localFunctions__ = (process.env.NODE_ENV === "test") ?
+	{rewriteDefine, createTransientSourceMap} : undefined;

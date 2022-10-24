@@ -1,6 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
 function createMockResource(content, path) {
 	return {
@@ -14,7 +14,6 @@ function createMockResource(content, path) {
 }
 
 test.afterEach.always((t) => {
-	mock.stopAll();
 	sinon.restore();
 });
 
@@ -59,13 +58,15 @@ sap.ui.define([
 });`;
 
 	const librayJSPath = "library/test/library.js";
-	const logger = require("@ui5/logger");
 	const errorLogStub = sinon.stub();
 	const myLoggerInstance = {
 		error: errorLogStub
 	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const analyzeLibraryJSWithStubbedLogger = mock.reRequire("../../../../lib/lbt/analyzer/analyzeLibraryJS");
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub().returns(myLoggerInstance)
+		}
+	});
 
 	const mockResource = createMockResource(libraryJS, librayJSPath);
 
@@ -102,13 +103,13 @@ sap.ui.define([
 });`;
 
 	const librayJSPath = "library/test/library.js";
-	const logger = require("@ui5/logger");
+	const logger = await esmock("@ui5/logger");
 	const errorLogStub = sinon.stub();
 	const myLoggerInstance = {
 		error: errorLogStub
 	};
 	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const analyzeLibraryJSWithStubbedLogger = mock.reRequire("../../../../lib/lbt/analyzer/analyzeLibraryJS");
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS");
 
 	const mockResource = createMockResource(libraryJS, librayJSPath);
 
@@ -136,13 +137,13 @@ sap.ui.define([
 });`;
 
 	const librayJSPath = "library/test/library.js";
-	const logger = require("@ui5/logger");
+	const logger = await esmock("@ui5/logger");
 	const errorLogStub = sinon.stub();
 	const myLoggerInstance = {
 		error: errorLogStub
 	};
 	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const analyzeLibraryJSWithStubbedLogger = mock.reRequire("../../../../lib/lbt/analyzer/analyzeLibraryJS");
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS");
 
 	const mockResource = createMockResource(libraryJS, librayJSPath);
 

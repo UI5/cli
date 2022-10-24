@@ -1,10 +1,17 @@
-const path = require("path");
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const jsdocGenerator = require("../../../../lib/processors/jsdoc/jsdocGenerator");
+import path from "node:path";
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import jsdocGenerator from "../../../../lib/processors/jsdoc/jsdocGenerator.js";
+import {createRequire} from "node:module";
 
-test("generateJsdocConfig", async (t) => {
+const require = createRequire(import.meta.url);
+
+import {fileURLToPath} from "node:url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+test.serial("generateJsdocConfig", async (t) => {
 	const res = await jsdocGenerator._generateJsdocConfig({
 		sourcePath: "/some/source/path",
 		targetPath: "/some/target/path",
@@ -20,10 +27,9 @@ test("generateJsdocConfig", async (t) => {
 
 	const backslashRegex = /\\/g;
 
-	const pluginPath = path.join(jsdocGeneratorPath, "lib", "ui5", "plugin.js")
+	const pluginPath = path.join(jsdocGeneratorPath, "lib", "ui5", "plugin.cjs")
 		.replace(backslashRegex, "\\\\");
-	const templatePath = path.join(jsdocGeneratorPath, "lib", "ui5", "template")
-		.replace(backslashRegex, "\\\\");
+	const templatePath = "@ui5/builder/internal/jsdoc/template";
 	const destinationPath = path.join("/", "some", "tm\\p", "path")
 		.replace(backslashRegex, "\\\\");
 	const jsapiFilePath = path.join("/", "some", "target", "path", "libraries", "some.projectName.js")
@@ -60,34 +66,34 @@ test("generateJsdocConfig", async (t) => {
 });
 
 test.serial("writeJsdocConfig", async (t) => {
-	mock("graceful-fs", {
-		writeFile: (configPath, configContent, callback) => {
-			t.deepEqual(configPath, path.join("/", "some", "path", "jsdoc-config.json"),
-				"Correct config path supplied");
-			t.is(configContent, "some config", "Correct config content supplied");
-			callback();
-		}
-	});
-	mock.reRequire("graceful-fs");
+	const jsdocGenerator = await esmock("../../../../lib/processors/jsdoc/jsdocGenerator.js", {
+		"graceful-fs": {
+			writeFile: (configPath, configContent, callback) => {
+				t.deepEqual(configPath, path.join("/", "some", "path", "jsdoc-config.json"),
+					"Correct config path supplied");
+				t.is(configContent, "some config", "Correct config content supplied");
+				callback();
+			}
+		}});
 
-	// Re-require tested module
-	const jsdocGenerator = mock.reRequire("../../../../lib/processors/jsdoc/jsdocGenerator");
 	const res = await jsdocGenerator._writeJsdocConfig("/some/path", "some config");
 
 	t.deepEqual(res, path.join("/", "some", "path", "jsdoc-config.json"), "Correct config path returned");
-
-	mock.stop("graceful-fs");
 });
 
 test.serial("buildJsdoc", async (t) => {
-	const childProcess = require("child_process");
 	let exitCode = 0;
-	const cpStub = sinon.stub(childProcess, "spawn").returns({
+	const cpStub = sinon.stub().returns({
 		on: (event, callback) => {
 			callback(exitCode);
 		}
 	});
-	const jsdocGenerator = mock.reRequire("../../../../lib/processors/jsdoc/jsdocGenerator");
+
+	const jsdocGenerator = await esmock("../../../../lib/processors/jsdoc/jsdocGenerator.js", {
+		"node:child_process": {
+			spawn: cpStub
+		}
+	});
 
 	await jsdocGenerator._buildJsdoc({
 		sourcePath: "/some/path",
@@ -123,13 +129,20 @@ test.serial("buildJsdoc", async (t) => {
 });
 
 test.serial("jsdocGenerator", async (t) => {
+	const byPathStub = sinon.stub().resolves("some resource");
+	const createAdapterStub = sinon.stub().returns({
+		byPath: byPathStub
+	});
+
+	const jsdocGenerator = await esmock("../../../../lib/processors/jsdoc/jsdocGenerator.js", {
+		"@ui5/fs/resourceFactory": {
+			createAdapter: createAdapterStub
+		}
+	});
+
 	const generateJsdocConfigStub = sinon.stub(jsdocGenerator, "_generateJsdocConfig").resolves("some config");
 	const writeJsdocConfigStub = sinon.stub(jsdocGenerator, "_writeJsdocConfig").resolves("/some/config/path");
 	const buildJsdocStub = sinon.stub(jsdocGenerator, "_buildJsdoc").resolves();
-	const byPathStub = sinon.stub().resolves("some resource");
-	const createAdapterStub = sinon.stub(require("@ui5/fs").resourceFactory, "createAdapter").returns({
-		byPath: byPathStub
-	});
 
 	const res = await jsdocGenerator({
 		sourcePath: "/some/source/path",

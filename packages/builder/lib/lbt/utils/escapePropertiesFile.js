@@ -1,4 +1,4 @@
-const nonAsciiEscaper = require("../../processors/nonAsciiEscaper");
+import nonAsciiEscaper from "../../processors/nonAsciiEscaper.js";
 
 /**
  * Can be used to escape *.properties files.
@@ -10,7 +10,7 @@ const nonAsciiEscaper = require("../../processors/nonAsciiEscaper");
  * @param {Resource} resource the resource for which the content will be escaped
  * @returns {Promise<string>} resolves with the escaped string content of the given Resource
  */
-module.exports = async function(resource) {
+export default async function(resource) {
 	const project = resource.getProject();
 	let propertiesFileSourceEncoding = project && project.getPropertiesFileSourceEncoding();
 
@@ -34,4 +34,4 @@ module.exports = async function(resource) {
 	const fileContent = await resource.buffer();
 
 	return fileContent.toString();
-};
+}

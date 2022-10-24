@@ -1,10 +1,10 @@
-"use strict";
 
-const {Syntax} = require("../utils/parseUtils");
-const SapUiDefine = require("../calls/SapUiDefine");
-const {getValue, isMethodCall, getStringValue} = require("../utils/ASTUtils");
-const ModuleName = require("../utils/ModuleName");
-const log = require("@ui5/logger").getLogger("lbt:analyzer:XMLCompositeAnalyzer");
+import {Syntax} from "../utils/parseUtils.js";
+import SapUiDefine from "../calls/SapUiDefine.js";
+import {getValue, isMethodCall, getStringValue} from "../utils/ASTUtils.js";
+import {fromUI5LegacyName} from "../utils/ModuleName.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:analyzer:XMLCompositeAnalyzer");
 
 const CALL_DEFINE = ["define"];
 const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
@@ -42,7 +42,7 @@ class XMLCompositeAnalyzer {
 					});
 				}
 				if (fragmentName) {
-					const fragmentModule = ModuleName.fromUI5LegacyName(fragmentName, ".control.xml");
+					const fragmentModule = fromUI5LegacyName(fragmentName, ".control.xml");
 					log.verbose("fragment control: add dependency to template fragment %s", fragmentModule);
 					info.addDependency(fragmentModule);
 				}
@@ -72,4 +72,4 @@ class XMLCompositeAnalyzer {
 }
 
 
-module.exports = XMLCompositeAnalyzer;
+export default XMLCompositeAnalyzer;

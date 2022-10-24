@@ -1,8 +1,6 @@
-const test = require("ava");
-
-const topologicalSort = require("../../../../lib/lbt/graph/topologicalSort");
-
-const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
+import test from "ava";
+import topologicalSort from "../../../../lib/lbt/graph/topologicalSort.js";
+import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 
 function createMockPool(dependencyMapping) {
 	return {

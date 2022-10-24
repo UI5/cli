@@ -1,20 +1,28 @@
-const log = require("@ui5/logger").getLogger("builder:processors:bundlers:flexChangesBundler");
-const resourceFactory = require("@ui5/fs").resourceFactory;
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:bundlers:flexChangesBundler");
+import {createResource} from "@ui5/fs/resourceFactory";
+
+/**
+ * @public
+ * @module @ui5/builder/processors/flexChangesBundler
+ */
 
 /**
  * Bundles all supplied changes.
  *
  * @public
- * @alias module:@ui5/builder.processors.flexChangesBundler
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @param {@ui5/fs/Resource[]} parameters.resources List of resources to be processed
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
  * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73 than
  *															create flexibility-bundle.json
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with flex changes bundle resources
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with flex changes bundle resources
  */
-module.exports = function({resources, options: {pathPrefix, hasFlexBundleVersion}}) {
+export default function({resources, options: {pathPrefix, hasFlexBundleVersion}}) {
 	let bundleName = "changes-bundle.json";
 
 	function sortByTimeStamp(a, b) {
@@ -101,11 +109,11 @@ module.exports = function({resources, options: {pathPrefix, hasFlexBundleVersion
 		const result = [];
 		if (nNumberOfChanges > 0) {
 			changesContent = sortAndStringifyInFlexFormat(changesContent);
-			result.push(resourceFactory.createResource({
+			result.push(createResource({
 				path: `${pathPrefix}/changes/${bundleName}`,
 				string: changesContent
 			}));
 		}
 		return result;
 	});
-};
+}

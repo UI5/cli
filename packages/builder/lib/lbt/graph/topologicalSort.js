@@ -1,6 +1,6 @@
-"use strict";
 
-const log = require("@ui5/logger").getLogger("lbt:graph:topologicalSort");
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:graph:topologicalSort");
 
 /**
  * Represents a module and its dependencies in a dependency graph.
@@ -186,4 +186,4 @@ function topologicalSort(pool, moduleNames) {
 		});
 }
 
-module.exports = topologicalSort;
+export default topologicalSort;

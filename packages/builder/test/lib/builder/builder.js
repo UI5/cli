@@ -1,16 +1,23 @@
-const test = require("ava");
-const path = require("path");
-const chai = require("chai");
-chai.use(require("chai-fs"));
-const fs = require("graceful-fs");
-const {promisify} = require("util");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import {createRequire} from "node:module";
+import chai from "chai";
+import chaiFs from "chai-fs";
+chai.use(chaiFs);
+import fs from "graceful-fs";
+import {promisify} from "node:util";
 const readFile = promisify(fs.readFile);
 const assert = chai.assert;
-const sinon = require("sinon");
-const mock = require("mock-require");
+import sinon from "sinon";
+import {graphFromObject, graphFromPackageDependencies} from "@ui5/project/graph";
+import * as taskRepository from "../../../lib/tasks/taskRepository.js";
+import logger from "@ui5/logger";
 
-const {generateProjectGraph} = require("@ui5/project");
-const taskRepository = require("../../../lib/tasks/taskRepository");
+// Using CommonsJS require as importing json files causes an ExperimentalWarning
+const require = createRequire(import.meta.url);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
@@ -33,7 +40,7 @@ const libraryCoreBuildtime = path.join(__dirname, "..", "..", "fixtures", "sap.u
 const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
 const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.library.e");
 
-const recursive = require("recursive-readdir");
+import recursive from "recursive-readdir";
 
 const newLineRegexp = /\r?\n|\r/g;
 
@@ -119,14 +126,13 @@ async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, 
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial("Build application.a", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest");
 
-	const graph = await generateProjectGraph.usingNodePackageDependencies({
+	const graph = await graphFromPackageDependencies({
 		cwd: applicationAPath
 	});
 	graph.setTaskRepository(taskRepository);
@@ -147,7 +153,7 @@ test.serial("Build application.a with dependencies", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-deps";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -172,7 +178,7 @@ test.serial("Build application.a with dependencies exclude", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-deps-excl";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-deps-excl");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -198,7 +204,7 @@ test.serial("Build application.a self-contained", async (t) => {
 	const destPath = "./test/tmp/build/application.a/dest-self";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-self");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -220,7 +226,7 @@ test.serial("Build application.a with dependencies self-contained", async (t) =>
 	const destPath = "./test/tmp/build/application.a/dest-depself";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-depself");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationATree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -247,10 +253,10 @@ test.serial("Build application.a and clean target path", async (t) => {
 	const destPathRubbishSubFolder = destPath + "/rubbish-should-be-deleted";
 	const expectedPath = path.join("test", "expected", "build", "application.a", "dest-clean");
 
-	const graph1 = await generateProjectGraph.usingObject({
+	const graph1 = await graphFromObject({
 		dependencyTree: applicationATree
 	});
-	const graph2 = await generateProjectGraph.usingObject({
+	const graph2 = await graphFromObject({
 		dependencyTree: applicationATree
 	});
 	graph1.setTaskRepository(taskRepository);
@@ -279,7 +285,7 @@ test.serial("Build application.g", async (t) => {
 	const destPath = "./test/tmp/build/application.g/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationGTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -300,7 +306,7 @@ test.serial("Build application.g with component preload paths", async (t) => {
 	const destPath = "./test/tmp/build/application.g/dest2";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationGTreeComponentPreloadPaths
 	});
 	graph.setTaskRepository(taskRepository);
@@ -321,7 +327,7 @@ test.serial("Build application.g with excludes", async (t) => {
 	const destPath = "./test/tmp/build/application.g/excludes";
 	const expectedPath = path.join("test", "expected", "build", "application.g", "excludes");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationGTreeWithExcludes
 	});
 	graph.setTaskRepository(taskRepository);
@@ -342,7 +348,7 @@ test.serial("Build application.h", async (t) => {
 	const destPath = "./test/tmp/build/application.h/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.h", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -364,7 +370,7 @@ test.serial("Build application.h (no minify)", async (t) => {
 	const destPath = "./test/tmp/build/application.h/no-minify";
 	const expectedPath = path.join("test", "expected", "build", "application.h", "no-minify");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -386,7 +392,7 @@ test.serial("Build application.i", async (t) => {
 	const destPath = "./test/tmp/build/application.i/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.i", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationITree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -407,7 +413,7 @@ test.serial("Build application.j", async (t) => {
 	const destPath = "./test/tmp/build/application.j/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.j", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -434,7 +440,7 @@ test.serial("Build application.j with resources.json and version info", async (t
 	sinon.stub(Date.prototype, "getHours").returns(9);
 	sinon.stub(Date.prototype, "getMinutes").returns(17);
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -455,7 +461,7 @@ test.serial("Build application.k (componentPreload excludes)", async (t) => {
 	const destPath = "./test/tmp/build/application.k/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.k", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationKTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -477,7 +483,7 @@ test.serial("Build application.k (package sub-components / componentPreload excl
 	const destPath = "./test/tmp/build/application.k/dest-package-subcomponents";
 	const expectedPath = path.join("test", "expected", "build", "application.k", "dest-package-subcomponents");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationKPackageSubcomponentsTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -499,7 +505,7 @@ test.serial("Build application.l: minification excludes, w/ namespace", async (t
 	const destPath = "./test/tmp/build/application.l/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.l", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationLTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -520,7 +526,7 @@ test.serial("Build application.ø", async (t) => {
 	const destPath = "./test/tmp/build/application.ø/dest";
 	const expectedPath = path.join("test", "expected", "build", "application.ø", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationØTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -541,7 +547,7 @@ test.serial("Build library.d with copyright from .library file", async (t) => {
 	const destPath = "./test/tmp/build/library.d/dest";
 	const expectedPath = path.join("test", "expected", "build", "library.d", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryDTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -562,7 +568,7 @@ test.serial("Build library.e with copyright from metadata configuration of tree"
 	const destPath = path.join("test", "tmp", "build", "library.e", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.e", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -587,7 +593,7 @@ test.serial("Build library.e with build manifest", async (t) => {
 
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -662,7 +668,7 @@ test.serial("Build library.h with custom bundles and component-preloads", async 
 	const destPath = path.join("test", "tmp", "build", "library.h", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -683,7 +689,7 @@ test.serial("Build library.h with custom bundles and component-preloads (no mini
 	const destPath = path.join("test", "tmp", "build", "library.h", "no-minify");
 	const expectedPath = path.join("test", "expected", "build", "library.h", "no-minify");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -708,7 +714,7 @@ test.serial("Build library.h w/ custom bundles, component-preloads, resources.js
 
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -857,7 +863,7 @@ test.serial("Build library.i with manifest info taken from .library and library.
 	const destPath = path.join("test", "tmp", "build", "library.i", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.i", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryITree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -878,7 +884,7 @@ test.serial("Build library.j with JSDoc build only", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.j", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.j", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -900,7 +906,7 @@ test.serial("Build library.i, bundling library.h", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.i", "bundle-library.h");
 	const expectedPath = path.join("test", "expected", "build", "library.i", "bundle-library.h");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryIBundlingHTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -924,9 +930,9 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 	const resultBuildManifestPath = path.join(__dirname,
 		"..", "..", "tmp", "build", "library.i", "bundle-library.h-build-manifest", ".ui5", "build-manifest.json");
 
-	const log = require("@ui5/logger");
-	log.setLevel("verbose");
-	const graph1 = await generateProjectGraph.usingObject({
+
+	logger.setLevel("verbose");
+	const graph1 = await graphFromObject({
 		dependencyTree: libraryHTree
 	});
 	graph1.setTaskRepository(taskRepository);
@@ -942,7 +948,7 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
-	const graph2 = await generateProjectGraph.usingObject({
+	const graph2 = await graphFromObject({
 		dependencyTree: projectTree
 	});
 	graph2.setTaskRepository(taskRepository);
@@ -950,7 +956,7 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 		destPath,
 		createBuildManifest: true
 	});
-	log.setLevel("info");
+	logger.setLevel("info");
 	toISOStringStub.restore();
 
 	let expectedFiles = await findFiles(expectedPath);
@@ -1008,7 +1014,7 @@ test.serial("Build library.l", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "library.l", "dest");
 	const expectedPath = path.join("test", "expected", "build", "library.l", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryLTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1029,7 +1035,7 @@ test.serial("Build theme.j even without an library", async (t) => {
 	const destPath = "./test/tmp/build/theme.j/dest";
 	const expectedPath = "./test/expected/build/theme.j/dest";
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1049,7 +1055,7 @@ test.serial("Build theme.j even without an library with resources.json", async (
 	const destPath = "./test/tmp/build/theme.j/dest-resources-json";
 	const expectedPath = "./test/expected/build/theme.j/dest-resources-json";
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1076,7 +1082,7 @@ test.serial("Build theme.j with build manifest", async (t) => {
 
 	// Stub date because of timestamp in build-manifest.json
 	const toISOStringStub = sinon.stub(Date.prototype, "toISOString").returns("2022-07-27T09:00:00.000Z");
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1132,7 +1138,7 @@ test.serial("Build library.ø", async (t) => {
 	const destPath = "./test/tmp/build/library.ø/dest";
 	const expectedPath = path.join("test", "expected", "build", "library.ø", "dest");
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryØTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1160,7 +1166,7 @@ test.serial("Build library.coreBuildtime: replaceBuildtime", async (t) => {
 		sinon.stub(Date.prototype, "getMinutes").returns(30),
 	];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryCoreBuildtimeTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1183,7 +1189,7 @@ test.serial("Build library with theme configured for CSS variables", async (t) =
 	const destPath = "./test/tmp/build/theme.j/dest-css-variables";
 	const expectedPath = "./test/expected/build/theme.j/dest-css-variables";
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1204,7 +1210,7 @@ test.serial("Build library with theme configured for CSS variables and theme des
 	const destPath = "./test/tmp/build/theme.j/dest-css-variables-theme-designer-resources";
 	const expectedPath = "./test/expected/build/theme.j/dest-css-variables-theme-designer-resources";
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeJTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1226,7 +1232,7 @@ test.serial("Build theme-library with CSS variables", async (t) => {
 	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables";
 	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables";
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeLibraryETree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -1247,7 +1253,7 @@ test.serial("Build theme-library with CSS variables and theme designer resources
 	const destPath = "./test/tmp/build/theme.library.e/dest-css-variables-theme-designer-resources";
 	const expectedPath = "./test/expected/build/theme.library.e/dest-css-variables-theme-designer-resources";
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: themeLibraryETree
 	});
 	graph.setTaskRepository(taskRepository);

@@ -1,4 +1,5 @@
-"use strict";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:graph:dominatorTree");
 
 /**
  * Creates a dependency graph starting from the given set of root modules.
@@ -16,7 +17,6 @@
  * @private
  */
 function calculateDominatorTree({n0, nodes}) {
-	const log = require("@ui5/logger").getLogger("lbt:graph:dominatorTree");
 	// initialize set of dominators for each node
 	for ( const n of nodes.values() ) {
 		if ( n === n0 ) {
@@ -113,4 +113,4 @@ function calculateDominatorTree({n0, nodes}) {
 	return n0;
 }
 
-module.exports = calculateDominatorTree;
+export default calculateDominatorTree;

@@ -1,31 +1,26 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
-let bootstrapHtmlTransformer = require("../../../lib/processors/bootstrapHtmlTransformer");
-
-test.beforeEach((t) => {
-	// Spying logger of processors/bootstrapHtmlTransformer
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("builder:processors:bootstrapHtmlTransformer");
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
+test.beforeEach(async (t) => {
+	t.context.logWarnSpy = sinon.spy();
+	const loggerStub = {
+		warn: t.context.logWarnSpy
+	};
+	t.context.bootstrapHtmlTransformer = await esmock("../../../lib/processors/bootstrapHtmlTransformer.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:processors:bootstrapHtmlTransformer").returns(loggerStub)
+		}
 	});
-	mock.reRequire("@ui5/logger");
-	t.context.logWarnSpy = sinon.spy(loggerInstance, "warn");
-
-	// Re-require tested module
-	bootstrapHtmlTransformer = mock.reRequire("../../../lib/processors/bootstrapHtmlTransformer");
 });
 
 test.afterEach.always((t) => {
-	mock.stop("@ui5/logger");
-	t.context.logWarnSpy.restore();
+	sinon.restore();
 });
 
 test.serial("Replaces relative bootstrap src with bar.js", async (t) => {
 	t.plan(3);
-
+	const {bootstrapHtmlTransformer} = t.context;
 	const input = `
 <!DOCTYPE html>
 <html>
@@ -65,7 +60,7 @@ test.serial("Replaces relative bootstrap src with bar.js", async (t) => {
 
 test.serial("Replaces absolute bootstrap src with bar.js", async (t) => {
 	t.plan(3);
-
+	const {bootstrapHtmlTransformer} = t.context;
 	const input = `
 <!DOCTYPE html>
 <html>
@@ -105,7 +100,7 @@ test.serial("Replaces absolute bootstrap src with bar.js", async (t) => {
 
 test.serial("Replaces bootstrap src of multiple resources", async (t) => {
 	t.plan(4);
-
+	const {bootstrapHtmlTransformer} = t.context;
 	const input = `
 <!DOCTYPE html>
 <html>
@@ -144,6 +139,7 @@ test.serial("Replaces bootstrap src of multiple resources", async (t) => {
 });
 
 test.serial("Logs warning when bootstrap script can't be found due to missing ID", async (t) => {
+	const {bootstrapHtmlTransformer} = t.context;
 	// Processor should only detect script tags with id=sap-ui-bootstrap
 	// even when a script with sap-ui-core.js could be found.
 	const input = `
@@ -181,6 +177,7 @@ test.serial("Logs warning when bootstrap script can't be found due to missing ID
 });
 
 test.serial("Logs warning when bootstrap script can't be found due to wrong tag", async (t) => {
+	const {bootstrapHtmlTransformer} = t.context;
 	// Processor should only detect script tags with id=sap-ui-bootstrap
 	// even when a script with sap-ui-core.js could be found.
 	const input = `
@@ -218,6 +215,7 @@ test.serial("Logs warning when bootstrap script can't be found due to wrong tag"
 });
 
 test.serial("Logs warning when input is not valid HTML", async (t) => {
+	const {bootstrapHtmlTransformer} = t.context;
 	const input = `
 console.log("This is not HTML!")`;
 
@@ -245,6 +243,7 @@ console.log("This is not HTML!")`;
 });
 
 test.serial("Logs warning when multiple bootstrap scripts are found", async (t) => {
+	const {bootstrapHtmlTransformer} = t.context;
 	const input = `
 <!DOCTYPE html>
 <html>

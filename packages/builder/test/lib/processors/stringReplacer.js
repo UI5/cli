@@ -1,6 +1,6 @@
-const test = require("ava");
-const {Readable} = require("stream");
-const stringReplacer = require("../../../lib/processors/stringReplacer");
+import test from "ava";
+import {Readable} from "node:stream";
+import stringReplacer from "../../../lib/processors/stringReplacer.js";
 
 const getStringFromStream = (stream) => {
 	return new Promise((resolve, reject) => {

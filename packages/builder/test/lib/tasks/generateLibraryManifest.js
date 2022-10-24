@@ -1,11 +1,9 @@
-const test = require("ava");
-
-const generateLibraryManifest = require("../../../lib/tasks/generateLibraryManifest");
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
+import test from "ava";
+import generateLibraryManifest from "../../../lib/tasks/generateLibraryManifest.js";
+import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 
 function createWorkspace() {
-	return resourceFactory.createAdapter({
+	return createAdapter({
 		virBasePath: "/",
 		project: {
 			getName: () => "test.lib",
@@ -46,7 +44,7 @@ async function assertCreatedManifest(t, oExpectedManifest) {
 test("integration: Library without i18n bundle file", async (t) => {
 	t.context.workspace = createWorkspace();
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>
@@ -98,12 +96,12 @@ test("integration: Library with i18n bundle file (messagebundle.properties)", as
 	t.context.workspace = createWorkspace();
 
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/messagebundle.properties",
 		string: "KEY=VALUE",
 		project: t.context.workspace._project
 	}));
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>
@@ -158,7 +156,7 @@ test("integration: Library with i18n=true declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>
@@ -185,7 +183,7 @@ test("integration: Library with i18n=true declared in .library", async (t) => {
 		`,
 		project: t.context.workspace._project
 	}));
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/messagebundle.properties",
 		project: t.context.workspace._project
 	}));
@@ -227,7 +225,7 @@ test("integration: Library with i18n=false declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>
@@ -289,7 +287,7 @@ test("integration: Library with i18n=foo.properties declared in .library", async
 	t.context.workspace = createWorkspace();
 
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>
@@ -317,7 +315,7 @@ test("integration: Library with i18n=foo.properties declared in .library", async
 		project: t.context.workspace._project
 	}));
 
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/foo.properties",
 		project: t.context.workspace._project
 	}));
@@ -358,7 +356,7 @@ test("integration: Library with css=true declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>
@@ -420,7 +418,7 @@ test("integration: Library with css=false declared in .library", async (t) => {
 	t.context.workspace = createWorkspace();
 
 	t.context.resources = [];
-	t.context.resources.push(resourceFactory.createResource({
+	t.context.resources.push(createResource({
 		path: "/resources/test/lib/.library",
 		string: `
 			<?xml version="1.0" encoding="UTF-8" ?>

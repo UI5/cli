@@ -1,7 +1,6 @@
-const test = require("ava");
-
-const dependencyGraph = require("../../../../lib/lbt/graph/dependencyGraph");
-const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
+import test from "ava";
+import dependencyGraph from "../../../../lib/lbt/graph/dependencyGraph.js";
+import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 
 function createMockPool(dependencyMapping) {
 	return {

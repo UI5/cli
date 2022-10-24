@@ -1,9 +1,7 @@
-const test = require("ava");
-
-const dominatorTree = require("../../../../lib/lbt/graph/dominatorTree");
-const dependencyGraph = require("../../../../lib/lbt/graph/dependencyGraph");
-
-const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
+import test from "ava";
+import dominatorTree from "../../../../lib/lbt/graph/dominatorTree.js";
+import dependencyGraph from "../../../../lib/lbt/graph/dependencyGraph.js";
+import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 
 function createMockPool(dependencyMapping) {
 	return {

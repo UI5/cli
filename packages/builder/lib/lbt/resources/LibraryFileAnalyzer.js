@@ -1,11 +1,10 @@
 /**
- * Used by the ResourcePool to read raw module info as stored in the .liubrary files.
+ * Used by the ResourcePool to read raw module info as stored in the .library files.
  * It does not (yet) analyze dependencies of the library and therefore isn't part of the analyzer package (yet).
  */
-"use strict";
-
-const xml2js = require("xml2js");
-const log = require("@ui5/logger").getLogger("lbt:resources:LibraryFileAnalyzer");
+import xml2js from "xml2js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:resources:LibraryFileAnalyzer");
 
 const parser = new xml2js.Parser({
 	// explicitChildren: true,
@@ -49,7 +48,7 @@ function createRawInfo(rawModule) {
 	}
 }
 
-function getDependencyInfos( name, content ) {
+export function getDependencyInfos( name, content ) {
 	const infos = {};
 	parser.parseString(content, (err, result) => {
 		if ( result &&
@@ -77,5 +76,3 @@ function getDependencyInfos( name, content ) {
 	// console.log("done", infos);
 	return infos;
 }
-
-module.exports.getDependencyInfos = getDependencyInfos;

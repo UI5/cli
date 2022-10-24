@@ -1,15 +1,16 @@
-const test = require("ava");
-const path = require("path");
-
-const chai = require("chai");
-chai.use(require("chai-fs"));
+import test from "ava";
+import {fileURLToPath} from "node:url";
+import path from "node:path";
+import chai from "chai";
+import chaiFs from "chai-fs";
+chai.use(chaiFs);
 const assert = chai.assert;
-const extractZip = require("extract-zip");
-const recursive = require("recursive-readdir");
+import extractZip from "extract-zip";
+import recursive from "recursive-readdir";
+import {graphFromObject} from "@ui5/project/graph";
+import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 
-const {generateProjectGraph} = require("@ui5/project");
-const taskRepository = require("../../../../lib/tasks/taskRepository");
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const libraryCore = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core-evo");
 const libraryKPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.k");
@@ -34,7 +35,7 @@ test("integration: Build application.b with manifestBundler", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["escapeNonAsciiCharacters", "generateManifestBundle"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationBTree
 	});
 
@@ -68,7 +69,7 @@ test("integration: Build library.k with manifestBundler", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryManifest", "generateManifestBundle"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryKTree
 	});
 

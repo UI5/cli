@@ -1,36 +1,39 @@
-const test = require("ava");
-const sinon = require("sinon");
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 
-const mock = require("mock-require");
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
-const executeJsdocSdkTransformation = require("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
+	t.context.log = {
+		info: sinon.stub()
+	};
+
+	t.context.ReaderCollectionPrioritizedStubClass = sinon.stub();
+	t.context.fsInterfaceStub = sinon.stub().returns("custom fs");
+
+	t.context.sdkTransformerStub = sinon.stub().resolves(["resource A", "resource B"]);
+
+	t.context.executeJsdocSdkTransformation =
+		await esmock("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation.js", {
+			"@ui5/fs/ReaderCollectionPrioritized": t.context.ReaderCollectionPrioritizedStubClass,
+			"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
+			"@ui5/logger": {
+				getLogger: sinon.stub().returns(t.context.log)
+			},
+			"../../../../lib/processors/jsdoc/sdkTransformer.js": t.context.sdkTransformerStub
+		});
+});
 
 test.afterEach.always((t) => {
-	mock.stopAll();
-	sinon.restore();
+	t.context.sinon.restore();
 });
 
 test.serial("executeJsdocSdkTransformation", async (t) => {
-	t.plan(13);
-	const sdkTransformerStub = sinon.stub().resolves(["resource A", "resource B"]);
-	const fsInterfaceStub = sinon.stub().returns("custom fs");
-	mock("../../../../lib/processors/jsdoc/sdkTransformer", sdkTransformerStub);
-
-	class ReaderCollectionPrioritizedStubClass {
-		constructor(parameters) {
-			t.deepEqual(parameters, {
-				name: "executeJsdocSdkTransformation - custom workspace + dependencies FS: some.project",
-				readers: [workspace, dependencies]
-			}, "ReaderCollectionPrioritized got called with the correct arguments");
-		}
-	}
-
-	mock("@ui5/fs", {
-		ReaderCollectionPrioritized: ReaderCollectionPrioritizedStubClass,
-		fsInterface: fsInterfaceStub
-	});
-
-	const executeJsdocSdkTransformation = mock.reRequire("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
+	const {
+		sinon, executeJsdocSdkTransformation, ReaderCollectionPrioritizedStubClass,
+		fsInterfaceStub, sdkTransformerStub
+	} = t.context;
 
 	const writeStub = sinon.stub().resolves();
 	const byGlobWorkspaceStub = sinon.stub()
@@ -71,6 +74,14 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 	t.is(byGlobDependenciesStub.getCall(0).args[0], "/test-resources/**/designtime/api.json",
 		"dependencies.byGlob got called with correct arguments");
 
+
+	t.is(ReaderCollectionPrioritizedStubClass.callCount, 1);
+	t.true(ReaderCollectionPrioritizedStubClass.calledWithNew());
+	t.deepEqual(ReaderCollectionPrioritizedStubClass.getCall(0).args, [{
+		name: "executeJsdocSdkTransformation - custom workspace + dependencies FS: some.project",
+		readers: [workspace, dependencies]
+	}], "ReaderCollectionPrioritized got called with the correct arguments");
+
 	t.is(fsInterfaceStub.callCount, 1, "fsInterface got called once");
 	t.true(fsInterfaceStub.getCall(0).args[0] instanceof ReaderCollectionPrioritizedStubClass,
 		"fsInterface got called with an instance of ReaderCollectionPrioritizedStubClass");
@@ -93,19 +104,14 @@ test.serial("executeJsdocSdkTransformation", async (t) => {
 });
 
 test("executeJsdocSdkTransformation with missing parameters", async (t) => {
+	const {executeJsdocSdkTransformation} = t.context;
 	await t.throwsAsync(executeJsdocSdkTransformation(), {
 		instanceOf: TypeError
 	}, "TypeError thrown");
 });
 
 test.serial("executeJsdocSdkTransformation with missing project api.json (skips processing)", async (t) => {
-	const logger = require("@ui5/logger");
-	const infoLogStub = sinon.stub();
-	const myLoggerInstance = {
-		info: infoLogStub
-	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const executeJsdocSdkTransformation = mock.reRequire("../../../../lib/tasks/jsdoc/executeJsdocSdkTransformation");
+	const {sinon, executeJsdocSdkTransformation, log} = t.context;
 
 	const byGlobWorkspaceStub = sinon.stub()
 		.onFirstCall().resolves([])
@@ -134,13 +140,14 @@ test.serial("executeJsdocSdkTransformation with missing project api.json (skips 
 		}
 	});
 
-	t.is(infoLogStub.callCount, 1, "One message has been logged");
-	t.is(infoLogStub.getCall(0).args[0],
+	t.is(log.info.callCount, 1, "One message has been logged");
+	t.is(log.info.getCall(0).args[0],
 		"Failed to locate api.json resource for project some.project. Skipping SDK Transformation...",
 		"Correct message has been logged");
 });
 
 test("executeJsdocSdkTransformation too many project api.json resources", async (t) => {
+	const {sinon, executeJsdocSdkTransformation} = t.context;
 	const byGlobWorkspaceStub = sinon.stub()
 		.onFirstCall().resolves([{
 			getPath: () => "workspace/a/api.json"
@@ -177,6 +184,7 @@ test("executeJsdocSdkTransformation too many project api.json resources", async 
 });
 
 test("executeJsdocSdkTransformation missing project .library", async (t) => {
+	const {sinon, executeJsdocSdkTransformation} = t.context;
 	const byGlobWorkspaceStub = sinon.stub()
 		.onFirstCall().resolves([{
 			getPath: () => "workspace/api.json"
@@ -209,6 +217,7 @@ test("executeJsdocSdkTransformation missing project .library", async (t) => {
 });
 
 test("executeJsdocSdkTransformation too many project .library resources", async (t) => {
+	const {sinon, executeJsdocSdkTransformation} = t.context;
 	const byGlobWorkspaceStub = sinon.stub()
 		.onFirstCall().resolves([{
 			getPath: () => "workspace/a/api.json"

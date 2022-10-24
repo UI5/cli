@@ -1,4 +1,9 @@
-const stringReplacer = require("../processors/stringReplacer");
+import stringReplacer from "../processors/stringReplacer.js";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/replaceCopyright
+ */
 
 /**
  * Task to to replace the copyright.
@@ -14,15 +19,17 @@ const stringReplacer = require("../processors/stringReplacer");
  * If no copyright string is given, no replacement is being done.
  *
  * @public
- * @alias module:@ui5/builder.tasks.replaceCopyright
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.copyright Replacement copyright
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, options: {copyright, pattern}}) {
+export default function({workspace, options: {copyright, pattern}}) {
 	if (!copyright) {
 		return Promise.resolve();
 	}
@@ -45,4 +52,4 @@ module.exports = function({workspace, options: {copyright, pattern}}) {
 				return workspace.write(resource);
 			}));
 		});
-};
+}

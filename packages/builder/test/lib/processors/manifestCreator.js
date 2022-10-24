@@ -1,8 +1,8 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const logger = require("@ui5/logger");
-const {SemVer: Version} = require("semver");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import semver from "semver";
+const Version = semver.SemVer;
 
 const libraryContent = `<?xml version="1.0" encoding="UTF-8" ?>
 <library xmlns="http://www.sap.com/sap.ui.library.xsd" >
@@ -91,19 +91,23 @@ const expectedManifestContentSpecialCharsObject = expectedManifestContentObject(
 expectedManifestContentSpecialCharsObject["sap.app"]["i18n"]["bundleUrl"] = "i18n(.*)./i18n(.*).properties";
 const expectedManifestContentSpecialChars = JSON.stringify(expectedManifestContentSpecialCharsObject, null, 2);
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.verboseLogStub = sinon.stub();
 	t.context.errorLogStub = sinon.stub();
-	sinon.stub(logger, "getLogger").returns({
-		verbose: t.context.verboseLogStub,
-		error: t.context.errorLogStub
-	});
+
+	t.context.loggerStub = {
+		error: t.context.errorLogStub,
+		verbose: t.context.verboseLogStub
+	};
 	t.context.getProjectVersion = sinon.stub();
-	t.context.manifestCreator = mock.reRequire("../../../lib/processors/manifestCreator");
+	t.context.manifestCreator = await esmock("../../../lib/processors/manifestCreator.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:processors:manifestCreator").returns(t.context.loggerStub)
+		}
+	});
 });
 
 test.afterEach.always((t) => {
-	mock.stopAll();
 	sinon.restore();
 });
 

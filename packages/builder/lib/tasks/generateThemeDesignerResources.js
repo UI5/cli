@@ -1,7 +1,10 @@
-const posixPath = require("path").posix;
-const log = require("@ui5/logger").getLogger("builder:tasks:generateThemeDesignerResources");
-const libraryLessGenerator = require("../processors/libraryLessGenerator");
-const {ReaderCollectionPrioritized, Resource, fsInterface} = require("@ui5/fs");
+import posixPath from "node:path/posix";
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:generateThemeDesignerResources");
+import libraryLessGenerator from "../processors/libraryLessGenerator.js";
+import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
+import Resource from "@ui5/fs/Resource";
+import fsInterface from "@ui5/fs/fsInterface";
 
 /**
  * Returns a relative path from the given themeFolder to the root namespace.
@@ -187,15 +190,22 @@ async function generateCssVariablesLess({workspace, combo, namespace}) {
 	}
 }
 
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateThemeDesignerResources
+ */
+
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Generates resources required for integration with the SAP Theme Designer.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateThemeDesignerResources
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.version Project version
@@ -204,7 +214,7 @@ async function generateCssVariablesLess({workspace, combo, namespace}) {
  * Omit for type <code>theme-library</code>
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, options}) {
+export default async function({workspace, dependencies, options}) {
 	const {projectName, version} = options;
 	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
 	const namespace = options.projectNamespace || options.namespace;
@@ -279,4 +289,4 @@ module.exports = async function({workspace, dependencies, options}) {
 
 	// css_variables.less
 	await generateCssVariablesLess({workspace, combo, namespace});
-};
+}

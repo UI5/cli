@@ -1,6 +1,6 @@
-const test = require("ava");
-const {parseJS} = require("../../../../lib/lbt/utils/parseUtils");
-const ASTUtils = require("../../../../lib/lbt/utils/ASTUtils");
+import test from "ava";
+import {parseJS} from "../../../../lib/lbt/utils/parseUtils.js";
+import * as ASTUtils from "../../../../lib/lbt/utils/ASTUtils.js";
 
 /*
  * remove start/end properties before comparing AST nodes

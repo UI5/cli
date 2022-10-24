@@ -1,7 +1,8 @@
-const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateLibraryPreload");
-const moduleBundler = require("../../processors/bundlers/moduleBundler");
-const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
-const createModuleNameMapping = require("./utils/createModuleNameMapping");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:bundlers:generateLibraryPreload");
+import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
+import createModuleNameMapping from "./utils/createModuleNameMapping.js";
 
 function getDefaultLibraryPreloadFilters(namespace, excludes) {
 	const filters = [
@@ -217,13 +218,20 @@ function getSapUiCoreBunDef(name, filters, preload) {
 }
 
 /**
+ * @public
+ * @module @ui5/builder/tasks/generateLibraryPreload
+ */
+
+/**
  * Task for library bundling.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateLibraryPreload
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/project.build.helpers.TaskUtil} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/project/build/helpers/TaskUtil} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
@@ -235,10 +243,10 @@ function getSapUiCoreBunDef(name, filters, preload) {
  * inclusion overrides an earlier exclusion, and vice versa.
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
+export default async function({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
-		nonDbgWorkspace = workspace.filter(function(resource) {
+		nonDbgWorkspace = await workspace.filter(function(resource) {
 			// Remove any debug variants
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
@@ -273,10 +281,12 @@ module.exports = function({workspace, taskUtil, options: {skipBundles = [], excl
 				let unoptimizedModuleNameMapping;
 				let unoptimizedResources = resources;
 				if (taskUtil) {
-					unoptimizedResources = await workspace.filter(function(resource) {
+					const unoptimizedWorkspace = await workspace.filter(function(resource) {
 						// Remove any non-debug variants
 						return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-					}).byGlob("/**/*.{js,json,xml,html,properties,library,js.map}");
+					});
+					unoptimizedResources =
+						await unoptimizedWorkspace.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}");
 
 					unoptimizedModuleNameMapping = createModuleNameMapping({
 						resources: unoptimizedResources,
@@ -434,4 +444,4 @@ module.exports = function({workspace, taskUtil, options: {skipBundles = [], excl
 			});
 		});
 	});
-};
+}

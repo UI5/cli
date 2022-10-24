@@ -1,21 +1,16 @@
-const test = require("ava");
-const path = require("path");
-const chai = require("chai");
-chai.use(require("chai-fs"));
+import test from "ava";
+import {fileURLToPath} from "node:url";
+import path from "node:path";
+import chai from "chai";
+import chaiFs from "chai-fs";
+chai.use(chaiFs);
 const assert = chai.assert;
-const sinon = require("sinon");
-const mock = require("mock-require");
+import sinon from "sinon";
+import {graphFromObject} from "@ui5/project/graph";
+import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
+import recursive from "recursive-readdir";
 
-const {generateProjectGraph} = require("@ui5/project");
-const taskRepository = require("../../../../lib/tasks/taskRepository");
-
-test.afterEach.always((t) => {
-	mock.stopAll();
-	sinon.restore();
-});
-
-const recursive = require("recursive-readdir");
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
@@ -31,14 +26,17 @@ const findFiles = (folder) => {
 	});
 };
 
+test.afterEach.always((t) => {
+	sinon.restore();
+});
+
 test("integration: build application.b standalone", async (t) => {
-	// beforeEach mocks do not apply to this test as all modules have already been required via ui5Builder require above
 	const destPath = "./test/tmp/build/application.b/standalone";
 	const expectedPath = "./test/expected/build/application.b/standalone";
 	const excludedTasks = ["*"];
 	const includedTasks = ["minify", "generateStandaloneAppBundle"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationBTree
 	});
 

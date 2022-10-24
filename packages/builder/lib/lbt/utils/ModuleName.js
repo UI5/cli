@@ -1,4 +1,3 @@
-"use strict";
 
 /**
  * Creates a ModuleName from a string in UI5 module name syntax.
@@ -8,7 +7,7 @@
  * @param {string} [suffix='.js'] Suffix to add to the resulting resource name
  * @returns {string} URN representing the same resource
  */
-function fromUI5LegacyName(name, suffix) {
+export function fromUI5LegacyName(name, suffix) {
 	// UI5 only supports a few names with dots in them, anything else will be converted to slashes
 	if ( name.startsWith("sap.ui.thirdparty.jquery.jquery-") ) {
 		name = "sap/ui/thirdparty/jquery/jquery-" + name.slice("sap.ui.thirdparty.jquery.jquery-".length);
@@ -20,7 +19,7 @@ function fromUI5LegacyName(name, suffix) {
 	return name + (suffix || ".js");
 }
 
-function toUI5LegacyName(path) {
+export function toUI5LegacyName(path) {
 	if ( !path.endsWith(".js") ) {
 		throw new Error("can't convert a non-JS resource name " + path + " to a UI5 module name");
 	}
@@ -34,11 +33,11 @@ function toUI5LegacyName(path) {
 	}
 }
 
-function fromRequireJSName(name) {
+export function fromRequireJSName(name) {
 	return name + ".js";
 }
 
-function toRequireJSName(path) {
+export function toRequireJSName(path) {
 	if ( !path.endsWith(".js") ) {
 		throw new Error("can't convert a non-JS resource name " + path + " to a requireJS module name");
 	}
@@ -47,7 +46,7 @@ function toRequireJSName(path) {
 
 const KNOWN_TYPES = /\.(properties|css|(?:(?:view\.|fragment\.)?(?:html|json|xml|js))|(?:(?:controller\.|designtime\.|support\.)?js))$/;
 
-function getDebugName(name) {
+export function getDebugName(name) {
 	const m = KNOWN_TYPES.exec(name);
 	if ( m && ( m[0].endsWith(".css") || m[0].endsWith(".js") ) && !name.slice(0, m.index).endsWith("-dbg") ) {
 		return name.slice(0, m.index) + "-dbg" + m[0];
@@ -55,7 +54,7 @@ function getDebugName(name) {
 	return null;
 }
 
-function getNonDebugName(name) {
+export function getNonDebugName(name) {
 	const m = KNOWN_TYPES.exec(name);
 	if ( m && ( m[0].endsWith(".css") || m[0].endsWith(".js") ) && name.slice(0, m.index).endsWith("-dbg") ) {
 		return name.slice(0, m.index - "-dbg".length) + m[0];
@@ -66,7 +65,7 @@ function getNonDebugName(name) {
 const ANY_SPECIAL_PATH_SEGMENT = /(?:^|\/)\.+\//;
 const SPECIAL_PATH_SEGMENT = /^\.+$/;
 
-function resolveRelativePath(path, relativePath) {
+export function resolveRelativePath(path, relativePath) {
 	// while has segment
 	//	 if ( segment == . )
 	//			ignore segment
@@ -117,16 +116,7 @@ function resolveRelativePath(path, relativePath) {
 	return relativePath;
 }
 
-module.exports = {
-	getDebugName,
-	getNonDebugName,
-	fromUI5LegacyName,
-	fromRequireJSName,
-	resolveRelativePath,
-	resolveRelativeRequireJSName: function(path, relativeName) {
-		return resolveRelativePath(path, relativeName + ".js");
-	},
-	toUI5LegacyName,
-	toRequireJSName
-};
+export function resolveRelativeRequireJSName(path, relativeName) {
+	return resolveRelativePath(path, relativeName + ".js");
+}
 

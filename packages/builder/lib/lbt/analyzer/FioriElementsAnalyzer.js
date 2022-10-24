@@ -56,13 +56,13 @@
  * This class can handle multiple concurrent analysis calls, it has no instance state other than the pool
  * (which is readonly).
  */
-"use strict";
 
-const ModuleName = require("../utils/ModuleName");
-const SapUiDefine = require("../calls/SapUiDefine");
-const {parseJS, Syntax} = require("../utils/parseUtils");
-const {getValue, isMethodCall, getStringValue} = require("../utils/ASTUtils");
-const log = require("@ui5/logger").getLogger("lbt:analyzer:FioriElementAnalyzer");
+import {fromUI5LegacyName} from "../utils/ModuleName.js";
+import SapUiDefine from "../calls/SapUiDefine.js";
+import {parseJS, Syntax} from "../utils/parseUtils.js";
+import {getValue, isMethodCall, getStringValue} from "../utils/ASTUtils.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:analyzer:FioriElementAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 
@@ -129,7 +129,7 @@ class FioriElementsAnalyzer {
 				}
 				each(activityCfg, (actionCfg) => {
 					if ( actionCfg.template ) {
-						const module = ModuleName.fromUI5LegacyName( "sap.fe.templates." +
+						const module = fromUI5LegacyName( "sap.fe.templates." +
 										actionCfg.template + ".Component" );
 						log.verbose("template app: add dependency to template component %s", module);
 						info.addDependency(module);
@@ -151,7 +151,7 @@ class FioriElementsAnalyzer {
 		const templateName = (pageConfig.component && pageConfig.component.settings &&
 								pageConfig.component.settings.templateName) || defaultTemplateName;
 		if ( templateName ) {
-			const templateModuleName = ModuleName.fromUI5LegacyName( templateName, ".view.xml" );
+			const templateModuleName = fromUI5LegacyName( templateName, ".view.xml" );
 			log.verbose("template app: add dependency to template view %s", templateModuleName);
 			appInfo.addDependency(templateModuleName);
 		}
@@ -197,4 +197,4 @@ class FioriElementsAnalyzer {
 	}
 }
 
-module.exports = FioriElementsAnalyzer;
+export default FioriElementsAnalyzer;

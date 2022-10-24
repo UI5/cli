@@ -1,19 +1,17 @@
-const test = require("ava");
-
-const buildThemes = require("../../../lib/tasks/buildThemes");
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
-const DuplexCollection = ui5Fs.DuplexCollection;
+import test from "ava";
+import buildThemes from "../../../lib/tasks/buildThemes.js";
+import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
+import DuplexCollection from "@ui5/fs/DuplexCollection";
 
 test("integration: simple", async (t) => {
-	const reader = resourceFactory.createAdapter({
+	const reader = createAdapter({
 		virBasePath: "/"
 	});
-	const writer = resourceFactory.createAdapter({
+	const writer = createAdapter({
 		virBasePath: "/"
 	});
 	const duplexCollection = new DuplexCollection({reader, writer});
-	const dependencies = resourceFactory.createAdapter({
+	const dependencies = createAdapter({
 		virBasePath: "/"
 	});
 
@@ -42,7 +40,7 @@ test("integration: simple", async (t) => {
 	const cssRtlPath = "/resources/super/duper/looper/themes/brightlight/library-RTL.css";
 	const parametersPath = "/resources/super/duper/looper/themes/brightlight/library-parameters.json";
 
-	const resource = resourceFactory.createResource({
+	const resource = createResource({
 		path: lessPath,
 		string: content
 	});
@@ -76,14 +74,14 @@ test("integration: simple", async (t) => {
 	t.deepEqual(parametersBuffer.toString(), parametersExpected, "Correct parameters JSON content");
 });
 test("integration: imports", async (t) => {
-	const reader = resourceFactory.createAdapter({
+	const reader = createAdapter({
 		virBasePath: "/"
 	});
-	const writer = resourceFactory.createAdapter({
+	const writer = createAdapter({
 		virBasePath: "/"
 	});
 	const duplexCollection = new DuplexCollection({reader, writer});
-	const dependencies = resourceFactory.createAdapter({
+	const dependencies = createAdapter({
 		virBasePath: "/"
 	});
 	const lessContent =
@@ -114,12 +112,12 @@ test("integration: imports", async (t) => {
 	const cssRtlPath = "/resources/super/duper/looper/themes/brightlight/library-RTL.css";
 	const parametersPath = "/resources/super/duper/looper/themes/brightlight/library-parameters.json";
 
-	const lessResource = resourceFactory.createResource({
+	const lessResource = createResource({
 		path: lessPath,
 		string: lessContent
 	});
 
-	const lessVariablesResource = resourceFactory.createResource({
+	const lessVariablesResource = createResource({
 		path: lessVariablesPath,
 		string: lessVariablesContent
 	});

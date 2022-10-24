@@ -3,13 +3,13 @@
 		"allowUnknownTags": false
 	},
 	"source": {
-		"include": ["README.md", "index.js"],
+		"include": ["README.md"],
 		"exclude": ["lib/lbt/utils/JSTokenizer.js"],
 		"includePattern": ".+\\.js$",
 		"excludePattern": "(node_modules(\\\\|/))"
 	},
 	"plugins": [
-		"./jsdoc-plugin"
+		"./jsdoc-plugin.cjs"
 	],
 	"opts": {
 		"encoding": "utf8",

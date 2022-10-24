@@ -1,28 +1,28 @@
 const taskInfos = {
-	replaceCopyright: {path: "./replaceCopyright"},
-	replaceVersion: {path: "./replaceVersion"},
-	replaceBuildtime: {path: "./replaceBuildtime"},
-	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters"},
-	executeJsdocSdkTransformation: {path: "./jsdoc/executeJsdocSdkTransformation"},
-	generateApiIndex: {path: "./jsdoc/generateApiIndex"},
-	generateJsdoc: {path: "./jsdoc/generateJsdoc"},
-	minify: {path: "./minify"},
-	buildThemes: {path: "./buildThemes"},
-	transformBootstrapHtml: {path: "./transformBootstrapHtml"},
-	generateLibraryManifest: {path: "./generateLibraryManifest"},
-	generateVersionInfo: {path: "./generateVersionInfo"},
-	generateManifestBundle: {path: "./bundlers/generateManifestBundle"},
-	generateFlexChangesBundle: {path: "./bundlers/generateFlexChangesBundle"},
-	generateComponentPreload: {path: "./bundlers/generateComponentPreload"},
-	generateResourcesJson: {path: "./generateResourcesJson"},
-	generateThemeDesignerResources: {path: "./generateThemeDesignerResources"},
-	generateStandaloneAppBundle: {path: "./bundlers/generateStandaloneAppBundle"},
-	generateBundle: {path: "./bundlers/generateBundle"},
-	generateLibraryPreload: {path: "./bundlers/generateLibraryPreload"},
-	generateCachebusterInfo: {path: "./generateCachebusterInfo"}
+	replaceCopyright: {path: "./replaceCopyright.js"},
+	replaceVersion: {path: "./replaceVersion.js"},
+	replaceBuildtime: {path: "./replaceBuildtime.js"},
+	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters.js"},
+	executeJsdocSdkTransformation: {path: "./jsdoc/executeJsdocSdkTransformation.js"},
+	generateApiIndex: {path: "./jsdoc/generateApiIndex.js"},
+	generateJsdoc: {path: "./jsdoc/generateJsdoc.js"},
+	minify: {path: "./minify.js"},
+	buildThemes: {path: "./buildThemes.js"},
+	transformBootstrapHtml: {path: "./transformBootstrapHtml.js"},
+	generateLibraryManifest: {path: "./generateLibraryManifest.js"},
+	generateVersionInfo: {path: "./generateVersionInfo.js"},
+	generateManifestBundle: {path: "./bundlers/generateManifestBundle.js"},
+	generateFlexChangesBundle: {path: "./bundlers/generateFlexChangesBundle.js"},
+	generateComponentPreload: {path: "./bundlers/generateComponentPreload.js"},
+	generateResourcesJson: {path: "./generateResourcesJson.js"},
+	generateThemeDesignerResources: {path: "./generateThemeDesignerResources.js"},
+	generateStandaloneAppBundle: {path: "./bundlers/generateStandaloneAppBundle.js"},
+	generateBundle: {path: "./bundlers/generateBundle.js"},
+	generateLibraryPreload: {path: "./bundlers/generateLibraryPreload.js"},
+	generateCachebusterInfo: {path: "./generateCachebusterInfo.js"}
 };
 
-function getTask(taskName) {
+export async function getTask(taskName) {
 	const taskInfo = taskInfos[taskName];
 
 	if (!taskInfo) {
@@ -34,7 +34,7 @@ function getTask(taskName) {
 		throw new Error(`taskRepository: Unknown Task ${taskName}`);
 	}
 	try {
-		const task = require(taskInfo.path);
+		const {default: task} = await import(taskInfo.path);
 		return {
 			task
 		};
@@ -43,11 +43,6 @@ function getTask(taskName) {
 	}
 }
 
-function getAllTaskNames() {
+export function getAllTaskNames() {
 	return Object.keys(taskInfos);
 }
-
-module.exports = {
-	getTask,
-	getAllTaskNames
-};

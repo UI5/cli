@@ -1,12 +1,11 @@
-const test = require("ava");
+import test from "ava";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
+import sinon from "sinon";
+import esmock from "esmock";
 
-let generateVersionInfo = require("../../../lib/tasks/generateVersionInfo");
-const path = require("path");
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
-const sinon = require("sinon");
-const mock = require("mock-require");
-const logger = require("@ui5/logger");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const projectCache = {};
 
@@ -67,6 +66,8 @@ async function createOptions(t, options) {
 }
 
 async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
+	const {generateVersionInfo} = t.context;
+
 	await generateVersionInfo(oOptions);
 
 	const resource = await oOptions.workspace.byPath("/resources/sap-ui-version.json");
@@ -93,26 +94,31 @@ async function assertCreatedVersionInfo(t, oExpectedVersionInfo, oOptions) {
 	t.deepEqual(currentVersionInfo, oExpectedVersionInfo, "Correct content");
 }
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.verboseLogStub = sinon.stub();
 	t.context.errorLogStub = sinon.stub();
 	t.context.warnLogStub = sinon.stub();
 	t.context.infoLogStub = sinon.stub();
 	t.context.sillyLogStub = sinon.stub();
-	sinon.stub(logger, "getLogger").returns({
+	t.context.log = {
 		verbose: t.context.verboseLogStub,
 		error: t.context.errorLogStub,
 		warn: t.context.warnLogStub,
 		info: t.context.infoLogStub,
 		silly: t.context.sillyLogStub,
 		isLevelEnabled: () => true
+	};
+
+	t.context.generateVersionInfo = await esmock("../../../lib/tasks/generateVersionInfo.js", {
+
+	}, {
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:processors:versionInfoGenerator").returns(t.context.log)
+		}
 	});
-	mock.reRequire("../../../lib/processors/versionInfoGenerator");
-	generateVersionInfo = mock.reRequire("../../../lib/tasks/generateVersionInfo");
 });
 
 test.afterEach.always((t) => {
-	mock.stopAll();
 	sinon.restore();
 });
 
@@ -158,8 +164,8 @@ test.serial("integration: Library without i18n bundle file", async (t) => {
 
 /**
  *
- * @param {module:@ui5/fs.DuplexCollection} dependencies
- * @param {module:@ui5/fs.resourceFactory} resourceFactory
+ * @param {@ui5/fs/DuplexCollection} dependencies
+ * @param {@ui5/fs/resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {object[]} deps
  * @param {string[]} [embeds]
@@ -203,8 +209,8 @@ const createManifestResource = async (dependencies, resourceFactory, names, deps
 };
 
 /**
- * @param {module:@ui5/fs.DuplexCollection} dependencies
- * @param {module:@ui5/fs.resourceFactory} resourceFactory
+ * @param {@ui5/fs/DuplexCollection} dependencies
+ * @param {@ui5/fs/resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
  * @returns {Promise<void>}
  */
@@ -227,8 +233,8 @@ async function createDotLibrary(dependencies, resourceFactory, names) {
 
 /**
  *
- * @param {module:@ui5/fs.DuplexCollection} dependencies
- * @param {module:@ui5/fs.resourceFactory} resourceFactory
+ * @param {@ui5/fs/DuplexCollection} dependencies
+ * @param {@ui5/fs/resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {object[]} deps
  * @param {string[]} [embeds]

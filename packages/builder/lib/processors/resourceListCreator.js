@@ -1,11 +1,11 @@
-"use strict";
 
-const log = require("@ui5/logger").getLogger("builder:processors:resourceListCreator");
-const ResourceCollector = require("../lbt/resources/ResourceCollector");
-const LocatorResourcePool = require("../lbt/resources/LocatorResourcePool");
-const ResourceInfo = require("../lbt/resources/ResourceInfo");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:resourceListCreator");
+import ResourceCollector from "../lbt/resources/ResourceCollector.js";
+import LocatorResourcePool from "../lbt/resources/LocatorResourcePool.js";
+import ResourceInfo from "../lbt/resources/ResourceInfo.js";
+import Resource from "@ui5/fs/Resource";
 
-const EvoResource = require("@ui5/fs").Resource;
 
 /**
  * List of resource patterns that describe all debug resources.
@@ -115,12 +115,12 @@ function makeResourcesJSON(list, prefix) {
  *
  * @private
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources
- * @param {module:@ui5/fs.Resource[]} [parameters.dependencyResources=[]] List of dependency resources
+ * @param {@ui5/fs/Resource[]} parameters.resources List of resources
+ * @param {@ui5/fs/Resource[]} [parameters.dependencyResources=[]] List of dependency resources
  * @param {object} [parameters.options] Options
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the resources.json resources
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with the resources.json resources
  */
-module.exports = async function({resources, dependencyResources = [], options}) {
+export default async function({resources, dependencyResources = [], options}) {
 	options = Object.assign({
 		failOnOrphans: false,
 		externalResources: undefined,
@@ -163,7 +163,7 @@ module.exports = async function({resources, dependencyResources = [], options}) 
 
 		const contentString = makeResourcesJSON(list, prefix);
 
-		resourceLists.push(new EvoResource({
+		resourceLists.push(new Resource({
 			path: `/resources/${prefix}resources.json`,
 			string: contentString
 		}));
@@ -173,7 +173,7 @@ module.exports = async function({resources, dependencyResources = [], options}) 
 
 		const contentString = makeResourcesJSON(list, prefix);
 
-		resourceLists.push(new EvoResource({
+		resourceLists.push(new Resource({
 			path: `/resources/${prefix}resources.json`,
 			string: contentString
 		}));
@@ -187,4 +187,4 @@ module.exports = async function({resources, dependencyResources = [], options}) 
 	}
 
 	return resourceLists;
-};
+}

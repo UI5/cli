@@ -1,16 +1,24 @@
-const path = require("path");
-const moduleBundler = require("../../processors/bundlers/moduleBundler");
-const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateComponentPreload");
-const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
+import path from "node:path";
+import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:bundlers:generateComponentPreload");
+import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateComponentPreload
+ */
 
 /**
  * Task to for application bundling.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateComponentPreload
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string[]} [parameters.options.excludes=[]] List of modules declared as glob patterns (resource name patterns)
@@ -24,12 +32,12 @@ const {negateFilters} = require("../../lbt/resources/ResourceFilterList");
  * @param {string[]} [parameters.options.skipBundles] Names of bundles that should not be created
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = function({
+export default async function({
 	workspace, taskUtil, options: {projectName, paths, namespaces, skipBundles = [], excludes = []}
 }) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
-		nonDbgWorkspace = workspace.filter(function(resource) {
+		nonDbgWorkspace = await workspace.filter(function(resource) {
 			// Remove any debug variants
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
@@ -163,4 +171,4 @@ module.exports = function({
 				]);
 			}));
 		});
-};
+}

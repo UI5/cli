@@ -1,7 +1,6 @@
-const test = require("ava");
-
-const nonAsciiEscaper = require("../../../lib/processors/nonAsciiEscaper");
-const Resource = require("@ui5/fs").Resource;
+import test from "ava";
+import nonAsciiEscaper from "../../../lib/processors/nonAsciiEscaper.js";
+import Resource from "@ui5/fs/Resource";
 
 /**
  * Executes string escaping. Returns <code>undefined</code> if nothing was escaped.

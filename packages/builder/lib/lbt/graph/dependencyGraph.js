@@ -1,6 +1,5 @@
-"use strict";
-
-const log = require("@ui5/logger").getLogger("lbt:graph:dependencyGraph");
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:graph:dependencyGraph");
 
 class Node {
 	constructor(name) {
@@ -64,7 +63,7 @@ async function createDependencyGraph(pool, roots, options) {
 	});
 }
 
-module.exports = createDependencyGraph;
+export default createDependencyGraph;
 
 // TODO introduce class Graph
 // TODO remove n0 here, only introduce it in dominator tree (using the Graph API)

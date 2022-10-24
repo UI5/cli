@@ -1,8 +1,9 @@
-const log = require("@ui5/logger").getLogger("builder:processors:libraryLessGenerator");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:libraryLessGenerator");
 
-const {promisify} = require("util");
-const posixPath = require("path").posix;
-const Resource = require("@ui5/fs").Resource;
+import {promisify} from "node:util";
+import posixPath from "node:path/posix";
+import Resource from "@ui5/fs/Resource";
 
 const IMPORT_PATTERN = /@import .*"(.*)";/g;
 const BASE_LESS_PATTERN = /^\/resources\/sap\/ui\/core\/themes\/([^/]+)\/base\.less$/;
@@ -24,10 +25,10 @@ class LibraryLessGenerator {
 	async generate({filePath, fileContent}) {
 		return `/* NOTE: This file was generated as an optimized version of ` +
 			`"library.source.less" for the Theme Designer. */\n\n` +
-			await this.resolveLessImports({
+			(await this.resolveLessImports({
 				filePath,
 				fileContent
-			});
+			}));
 	}
 	static getPathToRoot(baseDir) {
 		return posixPath.relative(baseDir, "/") + "/";
@@ -132,10 +133,10 @@ class LibraryLessGenerator {
 			}
 		}
 		return `/* START "${originalFilePath}" */\n` +
-			await this.resolveLessImports({
+			(await this.resolveLessImports({
 				filePath: resolvedFilePath,
 				fileContent: importedFileContent
-			}) +
+			})) +
 			`\n/* END "${originalFilePath}" */\n`;
 	}
 	findLessImports(fileContent) {
@@ -154,6 +155,11 @@ class LibraryLessGenerator {
 }
 
 /**
+ * @public
+ * @module @ui5/builder/processors/libraryLessGenerator
+ */
+
+/**
  * Creates a "library.less" file for the SAP Theme Designer based on a "library.source.less" file.
  *
  * <ul>
@@ -165,15 +171,17 @@ class LibraryLessGenerator {
  * </ul>
  *
  * @public
- * @alias module:@ui5/builder.processors.libraryLessGenerator
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of <code>library.source.less</code>
+ * @param {@ui5/fs/Resource[]} parameters.resources List of <code>library.source.less</code>
  * resources
- * @param {fs|module:@ui5/fs.fsInterface} parameters.fs Node fs or custom
- * [fs interface]{@link module:resources/module:@ui5/fs.fsInterface}
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with library.less resources
+ * @param {fs|module:@ui5/fs/fsInterface} parameters.fs Node fs or custom
+ * [fs interface]{@link module:resources/module:@ui5/fs/fsInterface}
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with library.less resources
  */
-module.exports = async function({resources, fs}) {
+async function createLibraryLess({resources, fs}) {
 	const generator = new LibraryLessGenerator({fs});
 	return Promise.all(resources.map(async (librarySourceLessResource) => {
 		const filePath = librarySourceLessResource.getPath();
@@ -189,10 +197,14 @@ module.exports = async function({resources, fs}) {
 			string: libraryLessFileContent
 		});
 	}));
-};
+}
 
+export default createLibraryLess;
+
+let myLibraryLessGenerator;
 // Export class for testing only
 /* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
-	module.exports._LibraryLessGenerator = LibraryLessGenerator;
+	myLibraryLessGenerator = LibraryLessGenerator;
 }
+export const _LibraryLessGenerator = myLibraryLessGenerator;

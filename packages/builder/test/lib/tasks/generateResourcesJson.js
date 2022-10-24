@@ -1,13 +1,10 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import {createAdapter} from "@ui5/fs/resourceFactory";
 
 function createWorkspace() {
-	return resourceFactory.createAdapter({
+	return createAdapter({
 		virBasePath: "/",
 		project: {
 			metadata: {
@@ -32,17 +29,17 @@ function createDependencies() {
 	};
 }
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.resourceListCreatorStub = sinon.stub();
 	t.context.resourceListCreatorStub.returns(Promise.resolve([]));
-	mock("../../../lib/processors/resourceListCreator", t.context.resourceListCreatorStub);
 
-	t.context.generateResourcesJson = mock.reRequire("../../../lib/tasks/generateResourcesJson");
+	t.context.generateResourcesJson = await esmock("../../../lib/tasks/generateResourcesJson.js", {
+		"../../../lib/processors/resourceListCreator": t.context.resourceListCreatorStub
+	});
 });
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial("Missing 'dependencies' parameter", async (t) => {
@@ -85,7 +82,7 @@ test.serial("empty resources (sap.ui.core)", async (t) => {
 });
 
 test.serial("empty resources (my.lib)", async (t) => {
-	const generateResourcesJson = require("../../../lib/tasks/generateResourcesJson");
+	const {generateResourcesJson} = t.context;
 
 	const result = await generateResourcesJson({
 		workspace: createWorkspace(),
@@ -102,7 +99,7 @@ test.serial("empty resources (my.lib)", async (t) => {
 });
 
 test.serial("empty resources (my.lib with dependencies)", async (t) => {
-	const generateResourcesJson = require("../../../lib/tasks/generateResourcesJson");
+	const {generateResourcesJson} = t.context;
 
 	const dependencyResources = [{"dependency": "resources"}];
 	const dependencies = {
@@ -126,7 +123,7 @@ test.serial("empty resources (my.lib with dependencies)", async (t) => {
 });
 
 test.serial("Resources omitted from build result should be ignored", async (t) => {
-	const generateResourcesJson = require("../../../lib/tasks/generateResourcesJson");
+	const {generateResourcesJson} = t.context;
 
 	const resource1 = {};
 	const resource2 = {};

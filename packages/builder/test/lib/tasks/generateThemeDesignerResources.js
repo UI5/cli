@@ -1,42 +1,33 @@
-const test = require("ava");
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 
-const sinon = require("sinon");
-const mock = require("mock-require");
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
-test.beforeEach((t) => {
-	const ui5Fs = require("@ui5/fs");
+	t.context.fsInterfaceStub = sinon.stub().returns({});
 
-	t.context.fsInterfaceStub = sinon.stub(ui5Fs, "fsInterface");
-	t.context.fsInterfaceStub.returns({});
-
-	t.context.ReaderCollectionPrioritizedStub = sinon.stub(ui5Fs, "ReaderCollectionPrioritized");
-	t.context.ReaderCollectionPrioritizedStub.returns({
+	t.context.ReaderCollectionPrioritizedStub = sinon.stub().returns({
 		byPath: sinon.stub()
 	});
 
 	t.context.ResourceStub = sinon.stub();
-
-	mock("@ui5/fs", {
-		ReaderCollectionPrioritized: t.context.ReaderCollectionPrioritizedStub,
-		fsInterface: t.context.fsInterfaceStub,
-		Resource: t.context.ResourceStub
-	});
-
 	t.context.libraryLessGeneratorStub = sinon.stub();
 
-	mock("../../../lib/processors/libraryLessGenerator", t.context.libraryLessGeneratorStub);
-
-	// Re-require tested module
-	t.context.generateThemeDesignerResources = mock.reRequire("../../../lib/tasks/generateThemeDesignerResources");
+	t.context.generateThemeDesignerResources = await esmock("../../../lib/tasks/generateThemeDesignerResources", {
+		"../../../lib/processors/libraryLessGenerator": t.context.libraryLessGeneratorStub,
+		"@ui5/fs/ReaderCollectionPrioritized": t.context.ReaderCollectionPrioritizedStub,
+		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
+		"@ui5/fs/Resource": t.context.ResourceStub,
+	});
 });
 
 test.afterEach.always((t) => {
-	sinon.restore();
-	mock.stopAll();
+	t.context.sinon.restore();
 });
 
 test.serial("generateThemeDesignerResources: Library", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub,
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub,
 		ReaderCollectionPrioritizedStub} = t.context;
 
 	const librarySourceLessResource1 = {
@@ -177,7 +168,7 @@ test.serial("generateThemeDesignerResources: Library", async (t) => {
 });
 
 test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
 
 	const librarySourceLessResource = {
 		getPath: sinon.stub().returns("/resources/sap/ui/core/themes/base/library.source.less")
@@ -264,7 +255,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => 
 });
 
 test.serial("generateThemeDesignerResources: Library sap.ui.documentation is skipped", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
 
 	const workspace = {
 		byGlob: sinon.stub(),
@@ -290,7 +281,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.documentation is ski
 });
 
 test.serial("generateThemeDesignerResources: Library without themes", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
 
 	const workspace = {
 		byGlob: sinon.stub().callsFake(async () => {
@@ -335,7 +326,7 @@ test.serial("generateThemeDesignerResources: Library without themes", async (t) 
 });
 
 test.serial("generateThemeDesignerResources: Theme-Library", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, fsInterfaceStub, ResourceStub} = t.context;
 
 	const librarySourceLessResource = {
 		getPath: sinon.stub().returns("/resources/sap/ui/demo/lib/themes/my_theme/library.source.less")
@@ -410,7 +401,7 @@ test.serial("generateThemeDesignerResources: Theme-Library", async (t) => {
 });
 
 test.serial("generateThemeDesignerResources: Theme-Library with CSS Variables", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, ResourceStub} = t.context;
 
 	const librarySourceLessResource = {
 		getPath: sinon.stub().returns("/resources/sap/ui/demo/lib/themes/my_theme/library.source.less")
@@ -485,7 +476,7 @@ My Content
 });
 
 test.serial("generateThemeDesignerResources: Theme-Library with CSS Variables with namespace", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, ResourceStub} = t.context;
 
 	const librarySourceLessResource = {
 		getPath: sinon.stub().returns("/resources/sap/ui/demo/lib/themes/my_theme/library.source.less")
@@ -568,6 +559,7 @@ My Content from Namespace
 
 test.serial("generateThemeDesignerResources: Theme-Library with CSS Variables with base theme", async (t) => {
 	const {
+		sinon,
 		generateThemeDesignerResources,
 		libraryLessGeneratorStub,
 		ResourceStub,
@@ -661,6 +653,7 @@ My Content with Base Theme
 
 test.serial("generateThemeDesignerResources: Base Theme-Library with CSS Variables", async (t) => {
 	const {
+		sinon,
 		generateThemeDesignerResources,
 		libraryLessGeneratorStub,
 		ResourceStub
@@ -733,7 +726,7 @@ test.serial("generateThemeDesignerResources: Base Theme-Library with CSS Variabl
 });
 
 test.serial("generateThemeDesignerResources: .theming file missing in sap.ui.core library source`", async (t) => {
-	const {generateThemeDesignerResources, libraryLessGeneratorStub, ResourceStub} = t.context;
+	const {sinon, generateThemeDesignerResources, libraryLessGeneratorStub, ResourceStub} = t.context;
 
 	const librarySourceLessResource = {
 		getPath: sinon.stub().returns("/resources/sap/ui/core/themes/base/library.source.less")
@@ -796,7 +789,7 @@ test.serial("generateThemeDesignerResources: .theming file missing in sap.ui.cor
 });
 
 test.serial("generateThemeDesignerResources: Failed to extract library name from theme folder path", async (t) => {
-	const {generateThemeDesignerResources} = t.context;
+	const {sinon, generateThemeDesignerResources} = t.context;
 
 	const librarySourceLessResource = {
 		getPath: sinon.stub().returns("/resources/foo/library.source.less")

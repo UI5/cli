@@ -1,18 +1,26 @@
-const log = require("@ui5/logger").getLogger("builder:tasks:jsdoc:executeJsdocSdkTransformation");
-const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
-const fsInterface = require("@ui5/fs").fsInterface;
-const sdkTransformer = require("../../processors/jsdoc/sdkTransformer");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:jsdoc:executeJsdocSdkTransformation");
+import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
+import fsInterface from "@ui5/fs/fsInterface";
+import sdkTransformer from "../../processors/jsdoc/sdkTransformer.js";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/executeJsdocSdkTransformation
+ */
 
 /**
  * Task to transform the api.json file as created by the
- * [generateJsdoc]{@link module:@ui5/builder.tasks.generateJsdoc} task into a pre-processed api.json
+ * [generateJsdoc]{@link @ui5/builder/tasks/generateJsdoc} task into a pre-processed api.json
  * file suitable for the SDK.
  *
  * @public
- * @alias module:@ui5/builder.tasks.executeJsdocSdkTransformation
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string|Array} parameters.options.dotLibraryPattern Pattern to locate the .library resource to be processed
  * @param {string} parameters.options.projectName Project name
@@ -73,4 +81,4 @@ const executeJsdocSdkTransformation = async function(
 	}));
 };
 
-module.exports = executeJsdocSdkTransformation;
+export default executeJsdocSdkTransformation;

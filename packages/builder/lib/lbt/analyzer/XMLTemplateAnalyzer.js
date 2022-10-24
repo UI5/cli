@@ -1,4 +1,11 @@
-"use strict";
+
+import xml2js from "xml2js";
+import {fromUI5LegacyName, fromRequireJSName} from "../utils/ModuleName.js";
+import JSTokenizer from "../utils/JSTokenizer.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:analyzer:XMLTemplateAnalyzer");
+
+// ---------------------------------------------------------------------------------------------------------
 
 /*
  * TODOS
@@ -9,11 +16,6 @@
  * - plugin mechanism to support other special controls
  * - move UI5 specific constants to UI5ClientConstants?
  */
-
-const xml2js = require("xml2js");
-const ModuleName = require("../utils/ModuleName");
-const JSTokenizer = require("../utils/JSTokenizer");
-const log = require("@ui5/logger").getLogger("lbt:analyzer:XMLTemplateAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 
@@ -195,12 +197,12 @@ class XMLTemplateAnalyzer {
 
 		const controllerName = getAttribute(node, XMLVIEW_CONTROLLERNAME_ATTRIBUTE);
 		if ( controllerName ) {
-			this._addDependency( ModuleName.fromUI5LegacyName(controllerName, ".controller.js"), this.conditional );
+			this._addDependency( fromUI5LegacyName(controllerName, ".controller.js"), this.conditional );
 		}
 
 		const resourceBundleName = getAttribute(node, XMLVIEW_RESBUNDLENAME_ATTRIBUTE);
 		if ( resourceBundleName ) {
-			const resourceBundleModuleName = ModuleName.fromUI5LegacyName(resourceBundleName, ".properties");
+			const resourceBundleModuleName = fromUI5LegacyName(resourceBundleName, ".properties");
 			log.verbose("found dependency to resource bundle %s", resourceBundleModuleName);
 			// TODO locale dependent dependencies: this._addDependency(resourceBundleModuleName);
 			this._addDependency( resourceBundleModuleName, this.conditional );
@@ -229,7 +231,7 @@ class XMLTemplateAnalyzer {
 
 		} else if ( PATTERN_LIBRARY_NAMESPACES.test(namespace) ) {
 			// looks like a UI5 library or package name
-			const moduleName = ModuleName.fromUI5LegacyName( (namespace ? namespace + "." : "") + localName );
+			const moduleName = fromUI5LegacyName( (namespace ? namespace + "." : "") + localName );
 
 			this._analyzeCoreRequire(node);
 
@@ -283,7 +285,7 @@ class XMLTemplateAnalyzer {
 				Object.keys(requireContext).forEach((key) => {
 					const requireJsName = requireContext[key];
 					if ( requireJsName && typeof requireJsName === "string" ) {
-						this._addDependency(ModuleName.fromRequireJSName(requireJsName), this.conditional);
+						this._addDependency(fromRequireJSName(requireJsName), this.conditional);
 					} else {
 						log.error(`Ignoring core:require: '${key}' refers to invalid module name '${requireJsName}'`);
 					}
@@ -307,7 +309,7 @@ class XMLTemplateAnalyzer {
 				const componentName = getAttribute(node, COMPONENTCONTAINER_COMPONENTNAME_ATTRIBUTE);
 				if ( componentName ) {
 					const componentModuleName =
-						ModuleName.fromUI5LegacyName( componentName, "/Component.js" );
+						fromUI5LegacyName( componentName, "/Component.js" );
 					this._addDependency(componentModuleName, conditional);
 				}
 				// TODO what about component.json? handle it transitively via Component.js?
@@ -316,35 +318,35 @@ class XMLTemplateAnalyzer {
 				const type = getAttribute(node, FRAGMENT_TYPE_ATTRIBUTE);
 				if ( fragmentName && type ) {
 					const fragmentModuleName =
-						ModuleName.fromUI5LegacyName( fragmentName, this._getFragmentExtension(type) );
+						fromUI5LegacyName( fragmentName, this._getFragmentExtension(type) );
 					// console.log("child fragment detected %s", fragmentModuleName);
 					this._addDependency(fragmentModuleName, conditional);
 				}
 			} else if ( moduleName === HTMLVIEW_MODULE ) {
 				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 				if ( viewName ) {
-					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.html" );
+					const childViewModuleName = fromUI5LegacyName( viewName, ".view.html" );
 					// console.log("child view detected %s", childViewModuleName);
 					this._addDependency(childViewModuleName, conditional);
 				}
 			} else if ( moduleName === JSVIEW_MODULE ) {
 				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 				if ( viewName ) {
-					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.js" );
+					const childViewModuleName = fromUI5LegacyName( viewName, ".view.js" );
 					// console.log("child view detected %s", childViewModuleName);
 					this._addDependency(childViewModuleName, conditional);
 				}
 			} else if ( moduleName === JSONVIEW_MODULE ) {
 				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 				if ( viewName ) {
-					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.json" );
+					const childViewModuleName = fromUI5LegacyName( viewName, ".view.json" );
 					// console.log("child view detected %s", childViewModuleName);
 					this._addDependency(childViewModuleName, conditional);
 				}
 			} else if ( moduleName === XMLVIEW_MODULE ) {
 				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
 				if ( viewName ) {
-					const childViewModuleName = ModuleName.fromUI5LegacyName( viewName, ".view.xml" );
+					const childViewModuleName = fromUI5LegacyName( viewName, ".view.xml" );
 					// console.log("child view detected %s", childViewModuleName);
 					this._addDependency(childViewModuleName, conditional);
 				}
@@ -361,4 +363,4 @@ class XMLTemplateAnalyzer {
 }
 
 
-module.exports = XMLTemplateAnalyzer;
+export default XMLTemplateAnalyzer;

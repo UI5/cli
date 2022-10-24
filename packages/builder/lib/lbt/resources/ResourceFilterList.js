@@ -1,6 +1,6 @@
-"use strict";
 
-const log = require("@ui5/logger").getLogger("lbt:resources:ResourceFilterList");
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:resources:ResourceFilterList");
 
 const FILTER_PREFIXES = /^[-!+]/;
 
@@ -95,7 +95,7 @@ function makeMatcher(globPattern, fileTypesPattern) {
  * @since 1.16.2
  * @private
  */
-class ResourceFilterList {
+export default class ResourceFilterList {
 	constructor(filters, fileTypes) {
 		this.matchers = [];
 		this.matchByDefault = true;
@@ -127,43 +127,43 @@ class ResourceFilterList {
 	toString() {
 		return this.matchers.map((matcher) => matcher.pattern).join(",");
 	}
+
+	/**
+	 * Each filter entry can be a comma separated list of simple filters. Each simple filter
+	 * can be a pattern in resource name pattern syntax: A double asterisk '&0x2a;&0x2a;/' denotes an arbitrary
+	 * number of resource name segments (folders) incl. a trailing slash, whereas a simple asterisk '*'
+	 * denotes an arbitrary number of resource name characters, but not the segment separator '/'.
+	 * A dot is interpreted as a dot, all other special regular expression characters keep their
+	 * special meaning. This is a mixture of ANT-style path patterns and regular expressions.
+	 *
+	 * Excludes can be denoted by a leading '-' or '!', includes optionally by a leading '+'.
+	 * Order of filters is significant, a later exclusion overrides an earlier inclusion
+	 * and vice versa.
+	 *
+	 * Example:
+	 * <pre>
+	 *	 !sap/ui/core/
+	*	 +sap/ui/core/utils/
+	* </pre>
+	* excludes everything from sap/ui/core, but includes everything from the subpackage sap/ui/core/utils/.
+	*
+	* Note that the filter operates on the full name of each resource. If a resource name
+	* <code>prefix</code> is configured for a resource set, the filter will be applied
+	* to the combination of prefix and local file path and not only to the local file path.
+	*
+	* @param {string} filterStr comma separated list of simple filters
+	* @returns {ResourceFilterList}
+	*/
+	static fromString(filterStr) {
+		const result = new ResourceFilterList();
+		if ( filterStr != null ) {
+			result.addFilters( filterStr.trim().split(/\s*,\s*/).filter(Boolean) );
+		}
+		return result;
+	}
 }
 
-/**
- * Each filter entry can be a comma separated list of simple filters. Each simple filter
- * can be a pattern in resource name pattern syntax: A double asterisk '&0x2a;&0x2a;/' denotes an arbitrary
- * number of resource name segments (folders) incl. a trailing slash, whereas a simple asterisk '*'
- * denotes an arbitrary number of resource name characters, but not the segment separator '/'.
- * A dot is interpreted as a dot, all other special regular expression characters keep their
- * special meaning. This is a mixture of ANT-style path patterns and regular expressions.
- *
- * Excludes can be denoted by a leading '-' or '!', includes optionally by a leading '+'.
- * Order of filters is significant, a later exclusion overrides an earlier inclusion
- * and vice versa.
- *
- * Example:
- * <pre>
- *	 !sap/ui/core/
- *	 +sap/ui/core/utils/
- * </pre>
- * excludes everything from sap/ui/core, but includes everything from the subpackage sap/ui/core/utils/.
- *
- * Note that the filter operates on the full name of each resource. If a resource name
- * <code>prefix</code> is configured for a resource set, the filter will be applied
- * to the combination of prefix and local file path and not only to the local file path.
- *
- * @param {string} filterStr comma separated list of simple filters
- * @returns {ResourceFilterList}
- */
-ResourceFilterList.fromString = function(filterStr) {
-	const result = new ResourceFilterList();
-	if ( filterStr != null ) {
-		result.addFilters( filterStr.trim().split(/\s*,\s*/).filter(Boolean) );
-	}
-	return result;
-};
-
-ResourceFilterList.negateFilters = function(patterns) {
+export function negateFilters(patterns) {
 	return patterns.map((pattern) => {
 		let include = true;
 
@@ -181,6 +181,4 @@ ResourceFilterList.negateFilters = function(patterns) {
 			return "+" + pattern;
 		}
 	});
-};
-
-module.exports = ResourceFilterList;
+}

@@ -1,4 +1,4 @@
-const ResourceInfo = require("./ResourceInfo");
+import ResourceInfo from "./ResourceInfo.js";
 
 const DEBUG_RESOURCES_PATTERN = /-dbg((?:\.view|\.fragment|\.controller|\.designtime|\.support)?\.js|\.css)$/;
 
@@ -114,4 +114,4 @@ class ResourceInfoList {
 	}
 }
 
-module.exports = ResourceInfoList;
+export default ResourceInfoList;

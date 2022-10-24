@@ -1,6 +1,12 @@
-const log = require("@ui5/logger").getLogger("builder:processors:versionInfoGenerator");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-const posixPath = require("path").posix;
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:versionInfoGenerator");
+import {createResource} from "@ui5/fs/resourceFactory";
+import posixPath from "node:path/posix";
+
+/**
+ * @public
+ * @module @ui5/builder/processors/versionInfoGenerator
+ */
 
 function pad(v) {
 	return String(v).padStart(2, "0");
@@ -40,15 +46,16 @@ function getTimestamp() {
  * @property {string} id The library name, e.g. "lib.x"
  * @property {string} embeddedBy the library this component is embedded in, e.g. "lib.x"
  * @property {string[]} embeds the embedded component names, e.g. ["lib.x.sub"]
- * @property {ManifestLibraries} libs the dependencies, e.g. {"sap.chart":{"lazy": true}, "sap.f":{}}
+ * @property {module:@ui5/builder/processors/versionInfoGenerator~ManifestLibraries} libs the dependencies, e.g.
+ * 				{"sap.chart":{"lazy": true}, "sap.f":{}}
  */
 
 
 /**
  * Processes manifest resource and extracts information.
  *
- * @param {module:@ui5/fs.Resource} manifestResource
- * @returns {Promise<ManifestInfo>}
+ * @param {@ui5/fs/Resource} manifestResource
+ * @returns {Promise<module:@ui5/builder/processors/versionInfoGenerator~ManifestInfo>}
  */
 const processManifest = async (manifestResource) => {
 	const manifestContent = await manifestResource.getString();
@@ -145,7 +152,7 @@ const getManifestPath = (filePath, subPath) => {
 class DependencyInfo {
 	/**
 	 *
-	 * @param {ManifestLibraries} libs
+	 * @param {module:@ui5/builder/processors/versionInfoGenerator~ManifestLibraries} libs
 	 * @param {string} name library name, e.g. "lib.x"
 	 */
 	constructor(libs, name) {
@@ -182,7 +189,7 @@ class DependencyInfo {
 	 * - resolved children become lazy if their parent is lazy
 	 *
 	 * @param {Map<string,DependencyInfo>} dependencyInfoMap
-	 * @returns {ManifestLibraries} resolved libraries
+	 * @returns {module:@ui5/builder/processors/versionInfoGenerator~ManifestLibraries} resolved libraries
 	 */
 	getResolvedLibraries(dependencyInfoMap) {
 		if (!this._libsResolved) {
@@ -260,14 +267,14 @@ const getManifestHints = (dependencyInfo, dependencyInfoMap) => {
  * @property {string} componentName The library name, e.g. "lib.x"
  * @property {Set<string>} bundledComponents The embedded components which have an embeddedBy reference to the library
  * @property {DependencyInfo} dependencyInfo The dependency info object
- * @property {ArtifactInfo[]} embeds The embedded artifact infos
+ * @property {module:@ui5/builder/processors/versionInfoGenerator~ArtifactInfo[]} embeds The embedded artifact infos
  */
 
 
 /**
  * Processes the manifest and creates a ManifestInfo and an ArtifactInfo.
  *
- * @param {module:@ui5/fs.Resource} libraryManifest
+ * @param {@ui5/fs/Resource} libraryManifest
  * @param {string} [name] library name, if not provided using the ManifestInfo's id
  * @returns {Promise<{manifestInfo: ManifestInfo, libraryArtifactInfo: ArtifactInfo}>}
  */
@@ -283,8 +290,8 @@ async function processManifestAndGetArtifactInfo(libraryManifest, name) {
 /**
  * Processes the library info and fills the maps <code>dependencyInfoMap</code> and <code>embeddedInfoMap</code>.
  *
- * @param {LibraryInfo} libraryInfo
- * @returns {Promise<ArtifactInfo|undefined>}
+ * @param {module:@ui5/builder/processors/versionInfoGenerator~LibraryInfo} libraryInfo
+ * @returns {Promise<module:@ui5/builder/processors/versionInfoGenerator~ArtifactInfo|undefined>}
  */
 const processLibraryInfo = async (libraryInfo) => {
 	if (!libraryInfo.libraryManifest) {
@@ -338,38 +345,41 @@ const processLibraryInfo = async (libraryInfo) => {
  *
  * contains information about the name and the version of the library and its manifest, as well as the nested manifests.
  *
+ * @public
  * @typedef {object} LibraryInfo
  * @property {string} name The library name, e.g. "lib.x"
  * @property {string} version The library version, e.g. "1.0.0"
- * @property {module:@ui5/fs.Resource} libraryManifest library manifest resource,
+ * @property {@ui5/fs/Resource} libraryManifest library manifest resource,
  *  e.g. resource with path "lib/x/manifest.json"
- * @property {module:@ui5/fs.Resource[]} embeddedManifests list of embedded manifest resources,
+ * @property {@ui5/fs/Resource[]} embeddedManifests list of embedded manifest resources,
  *  e.g. resource with path "lib/x/sub/manifest.json"
- * @public
  */
 
 /**
  * Creates sap-ui-version.json.
  *
  * @public
- * @alias module:@ui5/builder.processors.versionInfoGenerator
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
  * @param {object} parameters.options Options
  * @param {string} parameters.options.rootProjectName Name of the root project
  * @param {string} parameters.options.rootProjectVersion Version of the root project
- * @param {LibraryInfo[]} parameters.options.libraryInfos Array of objects representing libraries,
+ * @param {module:@ui5/builder/processors/versionInfoGenerator~LibraryInfo[]} parameters.options.libraryInfos Array of
+ *				objects representing libraries,
  *  e.g. <pre>
  *   {
  *      name: "lib.x",
  *      version: "1.0.0",
- *      libraryManifest: module:@ui5/fs.Resource,
- *      embeddedManifests: module:@ui5/fs.Resource[]
+ *      libraryManifest: @ui5/fs/Resource,
+ *      embeddedManifests: @ui5/fs/Resource[]
  *   }
  * </pre>
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with an array containing the versionInfo resource
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with an array containing the versionInfo resource
  */
 
-module.exports = async function({options}) {
+export default async function({options}) {
 	if (!options.rootProjectName || options.rootProjectVersion === undefined || options.libraryInfos === undefined) {
 		throw new Error("[versionInfoGenerator]: Missing options parameters");
 	}
@@ -454,8 +464,8 @@ module.exports = async function({options}) {
 		components
 	};
 
-	return [resourceFactory.createResource({
+	return [createResource({
 		path: "/resources/sap-ui-version.json",
 		string: JSON.stringify(versionJson, null, "\t")
 	})];
-};
+}

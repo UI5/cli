@@ -1,22 +1,21 @@
-const test = require("ava");
-const path = require("path");
-const chai = require("chai");
-chai.use(require("chai-fs"));
+import test from "ava";
+import {fileURLToPath} from "node:url";
+import path from "node:path";
+import chai from "chai";
+import chaiFs from "chai-fs";
+chai.use(chaiFs);
 const assert = chai.assert;
+import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
+import DuplexCollection from "@ui5/fs/DuplexCollection";
+import {graphFromObject} from "@ui5/project/graph";
+import generateLibraryPreload from "../../../../lib/tasks/bundlers/generateLibraryPreload.js";
+import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
-const DuplexCollection = ui5Fs.DuplexCollection;
-
-const {generateProjectGraph} = require("@ui5/project");
-
-const ui5Builder = require("../../../../");
-const {generateLibraryPreload, taskRepository} = ui5Builder.tasks;
-
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
-const recursive = require("recursive-readdir");
+import recursive from "recursive-readdir";
 
 const findFiles = (folder) => {
 	return new Promise((resolve, reject) => {
@@ -36,7 +35,7 @@ test("integration: build library.d with library preload", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["generateLibraryPreload"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: libraryDTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -89,7 +88,7 @@ test("integration: build sap.ui.core with library preload", async (t) => {
 	const excludedTasks = ["*"];
 	const includedTasks = ["minify", "generateLibraryPreload"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: sapUiCoreTree
 	});
 	graph.setTaskRepository(taskRepository);
@@ -137,19 +136,19 @@ const sapUiCoreTree = {
 
 
 test("integration: generateLibraryPreload", async (t) => {
-	const reader = resourceFactory.createAdapter({
+	const reader = createAdapter({
 		virBasePath: "/"
 	});
-	await reader.write(resourceFactory.createResource({
+	await reader.write(createResource({
 		path: "/resources/my/test/lib/library.js",
 		string: ""
 	}));
 
-	const writer = resourceFactory.createAdapter({
+	const writer = createAdapter({
 		virBasePath: "/"
 	});
 	const duplexCollection = new DuplexCollection({reader, writer});
-	const dependencies = resourceFactory.createAdapter({
+	const dependencies = createAdapter({
 		virBasePath: "/"
 	});
 
@@ -183,39 +182,39 @@ test("integration: generateLibraryPreload", async (t) => {
 });
 
 test("integration: generateLibraryPreload with designtime and support files", async (t) => {
-	const reader = resourceFactory.createAdapter({
+	const reader = createAdapter({
 		virBasePath: "/"
 	});
-	await reader.write(resourceFactory.createResource({
+	await reader.write(createResource({
 		path: "/resources/my/test/lib/library.js",
 		string: ""
 	}));
 
 	// designtime
-	await reader.write(resourceFactory.createResource({
+	await reader.write(createResource({
 		path: "/resources/my/test/lib/designtime/foo.js",
 		string: ""
 	}));
-	await reader.write(resourceFactory.createResource({
+	await reader.write(createResource({
 		path: "/resources/my/test/lib/some.designtime.js",
 		string: ""
 	}));
 
 	// support
-	await reader.write(resourceFactory.createResource({
+	await reader.write(createResource({
 		path: "/resources/my/test/lib/some.support.js",
 		string: ""
 	}));
-	await reader.write(resourceFactory.createResource({
+	await reader.write(createResource({
 		path: "/resources/my/test/lib/support/foo.support.js",
 		string: ""
 	}));
 
-	const writer = resourceFactory.createAdapter({
+	const writer = createAdapter({
 		virBasePath: "/"
 	});
 	const duplexCollection = new DuplexCollection({reader, writer});
-	const dependencies = resourceFactory.createAdapter({
+	const dependencies = createAdapter({
 		virBasePath: "/"
 	});
 

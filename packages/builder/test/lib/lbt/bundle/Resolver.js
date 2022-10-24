@@ -1,7 +1,6 @@
-const test = require("ava");
-
-const Resolver = require("../../../../lib/lbt/bundle/Resolver");
-const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
+import test from "ava";
+import Resolver from "../../../../lib/lbt/bundle/Resolver.js";
+import ResourcePool from "../../../../lib/lbt/resources/ResourcePool.js";
 
 const sortedCopy = (array) => array.slice().sort();
 

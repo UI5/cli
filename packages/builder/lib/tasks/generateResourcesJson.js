@@ -1,6 +1,5 @@
-"use strict";
 
-const resourceListCreator = require("../processors/resourceListCreator");
+import resourceListCreator from "../processors/resourceListCreator.js";
 
 const DEFAULT_EXCLUDES = [
 	/*
@@ -39,6 +38,11 @@ function getCreatorOptions(projectName) {
 }
 
 /**
+ * @public
+ * @module @ui5/builder/tasks/generateResourcesJson
+ */
+
+/**
  * Task for creating a resources.json file, describing all productive build resources.
  *
  * <p>
@@ -47,7 +51,7 @@ function getCreatorOptions(projectName) {
  * </p>
  *
  * <p>
- * Not supported in combination with task {@link module:@ui5/builder.tasks.generateStandaloneAppBundle}.
+ * Not supported in combination with task {@link @ui5/builder/tasks/generateStandaloneAppBundle}.
  * Therefore it is also not supported in combination with self-contained build.
  * </p>
  *
@@ -93,16 +97,18 @@ function getCreatorOptions(projectName) {
  * };
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateResourcesJson
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, taskUtil, options: {projectName}}) {
+export default async function({workspace, dependencies, taskUtil, options: {projectName}}) {
 	let resources = await workspace.byGlob(["/resources/**/*"].concat(DEFAULT_EXCLUDES));
 	let dependencyResources =
 			await dependencies.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
@@ -125,4 +131,4 @@ module.exports = async function({workspace, dependencies, taskUtil, options: {pr
 	await Promise.all(
 		resourceLists.map((resourceList) => workspace.write(resourceList))
 	);
-};
+}

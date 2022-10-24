@@ -1,16 +1,20 @@
-const test = require("ava");
-const fs = require("fs");
-const path = require("path");
-const chai = require("chai");
-chai.use(require("chai-fs"));
+import test from "ava";
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import chai from "chai";
+import chaiFs from "chai-fs";
+chai.use(chaiFs);
 const assert = chai.assert;
 
-const {generateProjectGraph} = require("@ui5/project");
-const taskRepository = require("../../../lib/tasks/taskRepository");
+import {graphFromObject} from "@ui5/project/graph";
+import * as taskRepository from "../../../lib/tasks/taskRepository.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 
-const recursive = require("recursive-readdir");
+import recursive from "recursive-readdir";
 
 const findFiles = (folder) => {
 	return new Promise((resolve, reject) => {
@@ -30,7 +34,7 @@ test("integration: Build application.g with manifestBundler", async (t) => {
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationGTree
 	});
 
@@ -66,7 +70,7 @@ test("integration: Build application.g with manifestBundler and cachebuster usin
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
 
-	const graph = await generateProjectGraph.usingObject({
+	const graph = await graphFromObject({
 		dependencyTree: applicationGTreeWithCachebusterHash
 	});
 

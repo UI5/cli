@@ -1,12 +1,11 @@
-const ResourceInfoList = require("./ResourceInfoList");
-const ResourceFilterList = require("./ResourceFilterList");
-const ResourceInfo = require("./ResourceInfo");
-
+import ResourceInfoList from "./ResourceInfoList.js";
+import ResourceFilterList from "./ResourceFilterList.js";
+import ResourceInfo from "./ResourceInfo.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("lbt:resources:ResourceCollector");
 
 const LOCALE = /^((?:[^/]+\/)*[^/]+?)_([A-Z]{2}(?:_[A-Z]{2}(?:_[A-Z0-9_]+)?)?)(\.properties|\.hdbtextbundle)$/i;
 const THEME = /^((?:[^/]+\/)*)themes\/([^/]+)\//;
-
-const log = require("@ui5/logger").getLogger("lbt:resources:ResourceCollector");
 
 /**
  * Collects all resources in a set of resource folders or from an archive
@@ -76,7 +75,7 @@ class ResourceCollector {
 	/**
 	 * Processes a resource
 	 *
-	 * @param {module:@ui5/fs.Resource} resource
+	 * @param {@ui5/fs/Resource} resource
 	 */
 	async visitResource(resource) {
 		const virPath = resource.getPath();
@@ -400,4 +399,4 @@ class ResourceCollector {
 	}
 }
 
-module.exports = ResourceCollector;
+export default ResourceCollector;

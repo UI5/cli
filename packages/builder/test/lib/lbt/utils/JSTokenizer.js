@@ -1,5 +1,5 @@
-const test = require("ava");
-const JSTokenizer = require("../../../../lib/lbt/utils/JSTokenizer");
+import test from "ava";
+import JSTokenizer from "../../../../lib/lbt/utils/JSTokenizer.js";
 
 test("valid expressions", function(t) {
 	const list = [

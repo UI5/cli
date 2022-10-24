@@ -1,39 +1,38 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+
 	t.context.log = {
 		verbose: sinon.stub(),
 		isLevelEnabled: sinon.stub().returns(false)
 	};
-	const logger = require("@ui5/logger");
-	sinon.stub(logger, "getLogger").withArgs("builder:processors:bundlers:moduleBundler").returns(t.context.log);
-
 	t.context.pool = {
 		prepare: sinon.stub().resolves()
 	};
 	t.context.LocatorResourcePool = sinon.stub().returns(t.context.pool);
-	mock("../../../../lib/lbt/resources/LocatorResourcePool", t.context.LocatorResourcePool);
 
 	t.context.Resource = sinon.stub();
-	mock("@ui5/fs", {
-		Resource: t.context.Resource
-	});
 
 	t.context.builder = {
 		createBundle: sinon.stub().resolves([])
 	};
 	t.context.BundleBuilder = sinon.stub().returns(t.context.builder);
-	mock("../../../../lib/lbt/bundle/Builder", t.context.BundleBuilder);
 
-	const processor = mock.reRequire("../../../../lib/processors/bundlers/moduleBundler");
-	t.context.processor = processor;
+	t.context.processor = await esmock("../../../../lib/processors/bundlers/moduleBundler.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:processors:bundlers:moduleBundler").returns(t.context.log)
+		},
+		"@ui5/fs/Resource": t.context.Resource,
+		"../../../../lib/lbt/resources/LocatorResourcePool": t.context.LocatorResourcePool,
+		"../../../../lib/lbt/bundle/Builder": t.context.BundleBuilder
+	});
 });
 
-test.afterEach.always(() => {
-	sinon.restore();
-	mock.stopAll();
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
 });
 
 test.serial("Builder returns single bundle", async (t) => {

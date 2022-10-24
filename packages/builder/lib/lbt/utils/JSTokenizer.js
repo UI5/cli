@@ -13,7 +13,7 @@
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
  */
 //sap.ui.define([], function() {
-	"use strict";
+	//"use strict";
 
 	/*
 	 * The following code has been taken from the component JSON in JavaScript
@@ -25,7 +25,7 @@
 	 */
 
 	/**
-	 * @class Tokenizer for JS values.
+	 * Tokenizer for JS values.
 	 *
 	 * Contains functions to consume tokens on an input string.
 	 *
@@ -34,7 +34,7 @@
 	 *      JSTokenizer().parseJS("{test:'123'}"); // {test:'123'}
 	 * });
 	 *
-	 * @alias module:sap/base/util/JSTokenizer
+	 * @class sap/base/util/JSTokenizer
 	 * @since 1.58
 	 * @private
 	 * @ui5-restricted sap.ui.core
@@ -384,4 +384,4 @@
 //	return JSTokenizer;
 //});
 
-module.exports = JSTokenizer;
+export default JSTokenizer;

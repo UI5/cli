@@ -1,34 +1,31 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 
-let transformBootstrapHtml = require("../../../lib/tasks/transformBootstrapHtml");
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
-test.beforeEach((t) => {
-	// Spying logger of tasks/transformBootstrapHtml
-	const log = require("@ui5/logger");
-	const loggerInstance = log.getLogger("builder:tasks:transformBootstrapHtml");
-	mock("@ui5/logger", {
-		getLogger: () => loggerInstance
-	});
-	mock.reRequire("@ui5/logger");
-	t.context.logWarnSpy = sinon.spy(loggerInstance, "warn");
+	t.context.log = {
+		warn: sinon.stub()
+	};
 
-	// Stubbing processors/bootstrapHtmlTransformer
 	t.context.bootstrapHtmlTransformerStub = sinon.stub();
-	mock("../../../lib/processors/bootstrapHtmlTransformer", t.context.bootstrapHtmlTransformerStub);
 
-	// Re-require tested module
-	transformBootstrapHtml = mock.reRequire("../../../lib/tasks/transformBootstrapHtml");
+	t.context.transformBootstrapHtml = await esmock("../../../lib/tasks/transformBootstrapHtml.js", {
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:tasks:transformBootstrapHtml").returns(t.context.log)
+		},
+		"../../../lib/processors/bootstrapHtmlTransformer": t.context.bootstrapHtmlTransformerStub,
+	});
 });
 
 test.afterEach.always((t) => {
-	mock.stop("@ui5/logger");
-	mock.stop("../../../lib/processors/bootstrapHtmlTransformer");
-	t.context.logWarnSpy.restore();
+	t.context.sinon.restore();
 });
 
 test.serial("Transforms index.html resource", async (t) => {
+	const {transformBootstrapHtml, log} = t.context;
+
 	t.plan(5);
 
 	const resource = {};
@@ -65,10 +62,12 @@ test.serial("Transforms index.html resource", async (t) => {
 		}
 	}), "Processor should be called with expected arguments");
 
-	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.true(log.warn.notCalled, "No warnings should be logged");
 });
 
 test.serial("Transforms index.html resource without namespace", async (t) => {
+	const {transformBootstrapHtml, log} = t.context;
+
 	t.plan(5);
 
 	const resource = {};
@@ -104,10 +103,12 @@ test.serial("Transforms index.html resource without namespace", async (t) => {
 		}
 	}), "Processor should be called with expected arguments");
 
-	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.true(log.warn.notCalled, "No warnings should be logged");
 });
 
 test.serial("No index.html resource exists", async (t) => {
+	const {transformBootstrapHtml, log} = t.context;
+
 	t.plan(4);
 
 	const workspace = {
@@ -132,9 +133,9 @@ test.serial("No index.html resource exists", async (t) => {
 	t.true(t.context.bootstrapHtmlTransformerStub.notCalled,
 		"Processor should not be called");
 
-	t.is(t.context.logWarnSpy.callCount, 1, "One warning should be logged");
+	t.is(log.warn.callCount, 1, "One warning should be logged");
 	t.true(
-		t.context.logWarnSpy.calledWith(
+		log.warn.calledWith(
 			`Skipping bootstrap transformation due to missing index.html in project "sap.ui.demo.app".`),
 		"Warning about missing index.html file should be logged");
 });

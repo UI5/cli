@@ -1,5 +1,5 @@
-const ResourcePool = require("./ResourcePool");
-const LocatorResource = require("./LocatorResource");
+import ResourcePool from "./ResourcePool.js";
+import LocatorResource from "./LocatorResource.js";
 
 class LocatorResourcePool extends ResourcePool {
 	prepare(resources, moduleNameMapping) {
@@ -16,4 +16,4 @@ class LocatorResourcePool extends ResourcePool {
 	}
 }
 
-module.exports = LocatorResourcePool;
+export default LocatorResourcePool;

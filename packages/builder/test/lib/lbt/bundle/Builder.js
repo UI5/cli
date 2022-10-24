@@ -1,10 +1,11 @@
 /* eslint-disable max-len */
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
 
-const Builder = require("../../../../lib/lbt/bundle/Builder");
-const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
+import sinon from "sinon";
+import esmock from "esmock";
+import Builder from "../../../../lib/lbt/bundle/Builder.js";
+import {__localFunctions__} from "../../../../lib/lbt/bundle/Builder.js";
+import ResourcePool from "../../../../lib/lbt/resources/ResourcePool.js";
 
 // Node.js itself tries to parse sourceMappingURLs in all JavaScript files. This is unwanted and might even lead to
 // obscure errors when dynamically generating Data-URI soruceMappingURL values.
@@ -12,19 +13,20 @@ const ResourcePool = require("../../../../lib/lbt/resources/ResourcePool");
 const SOURCE_MAPPING_URL = "//" + "# sourceMappingURL";
 
 test.afterEach.always((t) => {
-	mock.stopAll();
 	sinon.restore();
 });
 
 test.serial("writePreloadModule: with invalid json content", async (t) => {
 	const writeStub = sinon.stub();
-	const logger = require("@ui5/logger");
 	const verboseLogStub = sinon.stub();
 	const myLoggerInstance = {
 		verbose: verboseLogStub
 	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const BuilderWithStub = mock.reRequire("../../../../lib/lbt/bundle/Builder");
+	const BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
+		"@ui5/logger": {
+			getLogger: () => myLoggerInstance
+		}
+	});
 	const invalidJsonContent = `{
 	"a": 47,
 	"b": {{include: asd}}
@@ -678,15 +680,17 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 });
 
 test.serial("integration: createBundle with bundleInfo", async (t) => {
-	const logger = require("@ui5/logger");
 	const verboseLogStub = sinon.stub();
 	const warnLogStub = sinon.stub();
 	const myLoggerInstance = {
 		verbose: verboseLogStub,
 		warn: warnLogStub
 	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const BuilderWithStub = mock.reRequire("../../../../lib/lbt/bundle/Builder");
+	const BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
+		"@ui5/logger": {
+			getLogger: () => myLoggerInstance
+		}
+	});
 
 	const pool = new ResourcePool();
 	pool.addResource({
@@ -1638,7 +1642,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 });
 
 test("rewriteDefine (without moduleSourceMap)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
+	const {rewriteDefine} = __localFunctions__;
 
 	const {moduleContent, moduleSourceMap} = await rewriteDefine({
 		moduleName: "my/test/module.js",
@@ -1651,8 +1655,8 @@ test("rewriteDefine (without moduleSourceMap)", async (t) => {
 });
 
 test("rewriteDefine (with moduleSourceMap)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
-	const {encode: encodeMappings, decode: decodeMappings} = require("@jridgewell/sourcemap-codec");
+	const {rewriteDefine} = __localFunctions__;
+	const {encode: encodeMappings, decode: decodeMappings} = await import("@jridgewell/sourcemap-codec");
 
 	const inputMappings = [
 		[
@@ -1706,8 +1710,8 @@ test("rewriteDefine (with moduleSourceMap)", async (t) => {
 });
 
 test("rewriteDefine (with empty moduleSourceMap)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
-	const {encode: encodeMappings, decode: decodeMappings} = require("@jridgewell/sourcemap-codec");
+	const {rewriteDefine} = __localFunctions__;
+	const {encode: encodeMappings, decode: decodeMappings} = await import("@jridgewell/sourcemap-codec");
 
 	const inputMappings = [
 		[
@@ -1745,7 +1749,7 @@ test("rewriteDefine (with empty moduleSourceMap)", async (t) => {
 });
 
 test("rewriteDefine (with same module name)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
+	const {rewriteDefine} = __localFunctions__;
 
 	const {moduleContent, moduleSourceMap} = await rewriteDefine({
 		moduleName: "my/test/module.js",
@@ -1758,7 +1762,7 @@ test("rewriteDefine (with same module name)", async (t) => {
 });
 
 test("rewriteDefine (with other module name)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
+	const {rewriteDefine} = __localFunctions__;
 
 	const {moduleContent, moduleSourceMap} = await rewriteDefine({
 		moduleName: "my/test/module1.js",
@@ -1771,7 +1775,7 @@ test("rewriteDefine (with other module name)", async (t) => {
 });
 
 test("rewriteDefine (with same module name as template literal)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
+	const {rewriteDefine} = __localFunctions__;
 
 	const {moduleContent, moduleSourceMap} = await rewriteDefine({
 		moduleName: "my/test/module.js",
@@ -1784,7 +1788,7 @@ test("rewriteDefine (with same module name as template literal)", async (t) => {
 });
 
 test("rewriteDefine (with other module name as template literal)", async (t) => {
-	const {rewriteDefine} = Builder.__localFunctions__;
+	const {rewriteDefine} = __localFunctions__;
 
 	const {moduleContent, moduleSourceMap} = await rewriteDefine({
 		moduleName: "my/test/module1.js",
@@ -2015,7 +2019,7 @@ ${SOURCE_MAPPING_URL}=data:application/pony;charset=utf-8;base64,AAAA`
 });
 
 test("createTransientSourceMap: includeContent=false", (t) => {
-	const {createTransientSourceMap} = Builder.__localFunctions__;
+	const {createTransientSourceMap} = __localFunctions__;
 
 	const res = createTransientSourceMap({
 		moduleName: "my/test/module.js",
@@ -2033,7 +2037,7 @@ Lines`,
 });
 
 test("createTransientSourceMap: includeContent=true", (t) => {
-	const {createTransientSourceMap} = Builder.__localFunctions__;
+	const {createTransientSourceMap} = __localFunctions__;
 
 	const moduleContent = `Some content
 With

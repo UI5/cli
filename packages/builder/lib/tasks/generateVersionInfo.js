@@ -1,21 +1,28 @@
-const versionInfoGenerator = require("../processors/versionInfoGenerator");
+import versionInfoGenerator from "../processors/versionInfoGenerator.js";
 
 const MANIFEST_JSON = "manifest.json";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateVersionInfo
+ */
 
 /**
  * Task to create sap-ui-version.json
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateVersionInfo
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Glob pattern for .library resources
  * @param {object} parameters.options.rootProject DuplexCollection to read and write files
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async ({workspace, dependencies, options: {rootProject, pattern}}) => {
+export default async ({workspace, dependencies, options: {rootProject, pattern}}) => {
 	const resources = await dependencies.byGlob(pattern);
 
 	const libraryInfosPromises = resources.map((dotLibResource) => {

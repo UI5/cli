@@ -1,8 +1,7 @@
-const test = require("ava");
-const path = require("path");
-const ComponentAnalyzer = require("../../../../lib/lbt/analyzer/ComponentAnalyzer");
-
-const sinon = require("sinon");
+import test from "ava";
+import path from "node:path";
+import ComponentAnalyzer from "../../../../lib/lbt/analyzer/ComponentAnalyzer.js";
+import sinon from "sinon";
 
 function createMockPool(relPath, manifest) {
 	const expectedPath = path.join(relPath, "manifest.json");

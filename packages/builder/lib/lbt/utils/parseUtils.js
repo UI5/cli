@@ -1,11 +1,9 @@
-"use strict";
 
-const espree = require("espree");
-const {Syntax, VisitorKeys} = espree;
+import {parse} from "espree";
 
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
-function parseJS(code, userOptions = {}) {
+export function parseJS(code, userOptions = {}) {
 	// allowed options and their defaults
 	const options = {
 		comment: false,
@@ -22,11 +20,7 @@ function parseJS(code, userOptions = {}) {
 		options[name] = value;
 	}
 
-	return espree.parse(code, options);
+	return parse(code, options);
 }
 
-module.exports = {
-	parseJS,
-	Syntax,
-	VisitorKeys
-};
+export {Syntax, VisitorKeys} from "espree";

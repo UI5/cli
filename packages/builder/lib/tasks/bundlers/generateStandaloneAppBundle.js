@@ -1,7 +1,8 @@
-const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
-const ReaderCollectionPrioritized = require("@ui5/fs").ReaderCollectionPrioritized;
-const moduleBundler = require("../../processors/bundlers/moduleBundler");
-const createModuleNameMapping = require("./utils/createModuleNameMapping");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
+import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
+import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import createModuleNameMapping from "./utils/createModuleNameMapping.js";
 
 function getBundleDefinition(config) {
 	const bundleDefinition = {
@@ -58,22 +59,29 @@ function getBundleDefinition(config) {
 	return bundleDefinition;
 }
 
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateStandaloneAppBundle
+ */
+
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
  * Task for bundling standalone applications.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateStandaloneAppBundle
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} [parameters.options.projectNamespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, dependencies, taskUtil, options}) {
+export default async function({workspace, dependencies, taskUtil, options}) {
 	const {projectName} = options;
 	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
 	const namespace = options.projectNamespace || options.namespace;
@@ -90,7 +98,7 @@ module.exports = async function({workspace, dependencies, taskUtil, options}) {
 
 	if (taskUtil) {
 		// Omit -dbg files
-		combo = combo.filter(function(resource) {
+		combo = await combo.filter(function(resource) {
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 		});
 	}
@@ -109,13 +117,13 @@ module.exports = async function({workspace, dependencies, taskUtil, options}) {
 	let unoptimizedModuleNameMapping;
 	let unoptimizedResources = resources;
 	if (taskUtil) {
-		unoptimizedResources = await new ReaderCollectionPrioritized({
+		unoptimizedResources = await (await new ReaderCollectionPrioritized({
 			name: `generateStandaloneAppBundle - prioritize workspace over dependencies: ${projectName}`,
 			readers: [workspace, dependencies]
 		}).filter(function(resource) {
 			// Remove any non-debug variants
 			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-		}).byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
+		})).byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
 		unoptimizedModuleNameMapping = createModuleNameMapping({
 			resources: unoptimizedResources,
@@ -167,4 +175,4 @@ module.exports = async function({workspace, dependencies, taskUtil, options}) {
 			return Promise.all(writes);
 		}));
 	});
-};
+}

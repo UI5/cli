@@ -1,6 +1,5 @@
-"use strict";
 
-const {Syntax} = require("../utils/parseUtils");
+import {Syntax} from "../utils/parseUtils.js";
 
 /**
  * Checks whether the given node is a string literal.
@@ -12,7 +11,7 @@ const {Syntax} = require("../utils/parseUtils");
  * @param {string} [literal]
  * @returns {boolean} Whether the node is a literal and whether its value matches the given string
  */
-function isString(node, literal) {
+export function isString(node, literal) {
 	const value = getStringValue(node);
 	if (value === undefined) {
 		return false;
@@ -20,7 +19,7 @@ function isString(node, literal) {
 	return literal == null ? true: value === literal;
 }
 
-function getStringValue(node) {
+export function getStringValue(node) {
 	if (isLiteral(node)) {
 		return node.value;
 	} else if (isTemplateLiteralWithoutExpression(node)) {
@@ -30,24 +29,24 @@ function getStringValue(node) {
 	}
 }
 
-function isLiteral(node) {
+export function isLiteral(node) {
 	return node && node.type === Syntax.Literal && typeof node.value === "string";
 }
 
-function isTemplateLiteralWithoutExpression(node) {
+export function isTemplateLiteralWithoutExpression(node) {
 	return node?.type === Syntax.TemplateLiteral &&
 		node?.expressions?.length === 0 &&
 		node?.quasis?.length === 1;
 }
 
-function isBoolean(node, literal) {
+export function isBoolean(node, literal) {
 	if ( node == null || node.type !== Syntax.Literal || typeof node.value !== "boolean" ) {
 		return false;
 	}
 	return literal == null ? true : node.value === literal;
 }
 
-function isMethodCall(node, methodPath) {
+export function isMethodCall(node, methodPath) {
 	if ( node.type !== Syntax.CallExpression ) {
 		return false;
 	}
@@ -56,7 +55,7 @@ function isMethodCall(node, methodPath) {
 	return isNamedObject(node.callee, methodPath, methodPath.length);
 }
 
-function isNamedObject(node, objectPath, length) {
+export function isNamedObject(node, objectPath, length) {
 	// console.log("checking for named object ", node, objectPath, length);
 	while ( length > 1 &&
 			node.type === Syntax.MemberExpression &&
@@ -67,7 +66,7 @@ function isNamedObject(node, objectPath, length) {
 	return length === 1 && isIdentifier(node, objectPath[0]);
 }
 
-function isIdentifier(node, name) {
+export function isIdentifier(node, name) {
 	if ( node.type === Syntax.Identifier && typeof name == "string" ) {
 		return name === node.name;
 	} else if ( node.type === Syntax.Identifier && Array.isArray(name) ) {
@@ -81,7 +80,7 @@ function isIdentifier(node, name) {
 	}
 }
 
-function getPropertyKey(property) {
+export function getPropertyKey(property) {
 	if ( property.type === Syntax.SpreadElement ) {
 		// TODO: Support interpreting SpreadElements
 		return;
@@ -92,12 +91,12 @@ function getPropertyKey(property) {
 	}
 }
 
-function findOwnProperty(obj, name) {
+export function findOwnProperty(obj, name) {
 	const property = obj && obj.properties.find((property) => getPropertyKey(property) === name);
 	return property && property.value;
 }
 
-function getValue(obj, names) {
+export function getValue(obj, names) {
 	let i = 0;
 	while ( i < names.length ) {
 		if ( obj == null || obj.type !== Syntax.ObjectExpression ) {
@@ -121,7 +120,7 @@ function getValue(obj, names) {
  * @throws {TypeError}
  * @returns {string[]}
  */
-function getStringArray(array, skipNonStringLiterals) {
+export function getStringArray(array, skipNonStringLiterals) {
 	return array.elements.reduce( (result, item) => {
 		const value = getStringValue(item);
 		if ( value !== undefined ) {
@@ -137,19 +136,7 @@ function getStringArray(array, skipNonStringLiterals) {
 	}, []);
 }
 
-module.exports = {
-	isString,
-	getStringValue,
-	isBoolean,
-	isMethodCall,
-	isNamedObject,
-	isIdentifier,
-	getLocation: function(args) {
-		// NODE-TODO include line information in future
-		return args[0].value;
-	},
-	getPropertyKey,
-	findOwnProperty,
-	getValue,
-	getStringArray
-};
+export function	getLocation(args) {
+	// NODE-TODO include line information in future
+	return args[0].value;
+}

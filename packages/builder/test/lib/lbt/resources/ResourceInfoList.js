@@ -1,6 +1,5 @@
-const test = require("ava");
-
-const ResourceInfoList = require("../../../../lib/lbt/resources/ResourceInfoList");
+import test from "ava";
+import ResourceInfoList from "../../../../lib/lbt/resources/ResourceInfoList.js";
 
 test("add: add new resources", (t) => {
 	const resourceInfoList = new ResourceInfoList("prefix");

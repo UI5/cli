@@ -1,20 +1,27 @@
-const minifier = require("../processors/minifier");
+import minifier from "../processors/minifier.js";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/minify
+ */
 
 /**
  * Task to minify resources.
  *
  * @public
- * @alias module:@ui5/builder.tasks.minify
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @param {boolean} [parameters.options.omitSourceMapResources=false] Whether source map resources shall
  * 		be tagged as "OmitFromBuildResult" and no sourceMappingURL shall be added to the minified resource
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, taskUtil, options: {pattern, omitSourceMapResources = false}}) {
+export default async function({workspace, taskUtil, options: {pattern, omitSourceMapResources = false}}) {
 	const resources = await workspace.byGlob(pattern);
 	const processedResources = await minifier({
 		resources,
@@ -38,4 +45,4 @@ module.exports = async function({workspace, taskUtil, options: {pattern, omitSou
 			workspace.write(sourceMapResource)
 		]);
 	}));
-};
+}

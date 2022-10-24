@@ -1,17 +1,25 @@
-const log = require("@ui5/logger").getLogger("builder:processors:bootstrapHtmlTransformer");
-const cheerio = require("cheerio");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:bootstrapHtmlTransformer");
+import cheerio from "cheerio";
+
+/**
+ * @module @ui5/builder/processors/bootstrapHtmlTransformer
+ */
 
 /**
  * Transforms the UI5 bootstrap of a HTML resource files.
  *
- * @module builder/processors/bootstrapHtmlTransformer
+ * @public
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @param {@ui5/fs/Resource[]} parameters.resources List of resources to be processed
  * @param {object} parameters.options Options
  * @param {string} parameters.options.src Bootstrap "src" that should be used
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the cloned resources
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with the cloned resources
  */
-module.exports = function({resources, options: {src}}) {
+export default function({resources, options: {src}}) {
 	async function processResource(resource) {
 		const content = await resource.getString();
 		const $ = cheerio.load(content);
@@ -30,4 +38,4 @@ module.exports = function({resources, options: {src}}) {
 	}
 
 	return Promise.all(resources.map(processResource));
-};
+}

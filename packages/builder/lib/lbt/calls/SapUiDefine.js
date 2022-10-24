@@ -1,8 +1,7 @@
-"use strict";
 
-const {Syntax} = require("../utils/parseUtils");
-const ModuleName = require("../utils/ModuleName");
-const {isBoolean, getStringValue} = require("../utils/ASTUtils");
+import {Syntax} from "../utils/parseUtils.js";
+import {resolveRelativeRequireJSName} from "../utils/ModuleName.js";
+import {isBoolean, getStringValue} from "../utils/ASTUtils.js";
 
 class SapUiDefineCall {
 	constructor(node, moduleName) {
@@ -42,7 +41,7 @@ class SapUiDefineCall {
 				if ( !value ) {
 					throw new TypeError();
 				}
-				return ModuleName.resolveRelativeRequireJSName(this.name, value);
+				return resolveRelativeRequireJSName(this.name, value);
 			});
 			this.dependencyInsertionIdx = this.dependencyArray.elements.length;
 		}
@@ -94,4 +93,4 @@ class SapUiDefineCall {
 	}
 }
 
-module.exports = SapUiDefineCall;
+export default SapUiDefineCall;

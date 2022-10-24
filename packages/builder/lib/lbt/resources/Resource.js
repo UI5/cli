@@ -1,7 +1,6 @@
-"use strict";
 
-const {promisify} = require("util");
-const fs = require("graceful-fs");
+import {promisify} from "node:util";
+import fs from "graceful-fs";
 const readFile = promisify(fs.readFile);
 
 class Resource {
@@ -27,4 +26,4 @@ class Resource {
 	}
 }
 
-module.exports = Resource;
+export default Resource;

@@ -1,29 +1,19 @@
-const test = require("ava");
-const FioriElementsAnalyzer = require("../../../../lib/lbt/analyzer/FioriElementsAnalyzer");
-const parseUtils = require("../../../../lib/lbt/utils/parseUtils");
-const sinonGlobal = require("sinon");
-const logger = require("@ui5/logger");
-const loggerInstance = logger.getLogger();
-const mock = require("mock-require");
+import test from "ava";
+import {parseJS} from "../../../../lib/lbt/utils/parseUtils.js";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.sinon = sinonGlobal.createSandbox();
+	t.context.FioriElementsAnalyzer = await esmock("../../../../lib/lbt/analyzer/FioriElementsAnalyzer.js");
 });
 
 test.afterEach.always((t) => {
 	t.context.sinon.restore();
-	mock.stopAll();
 });
 
-function setupFioriElementsAnalyzerWithStubbedLogger({context}) {
-	const {sinon} = context;
-	context.warningLogSpy = sinon.spy(loggerInstance, "warn");
-	sinon.stub(logger, "getLogger").returns(loggerInstance);
-	context.FioriElementsAnalyzerWithStubbedLogger =
-		mock.reRequire("../../../../lib/lbt/analyzer/FioriElementsAnalyzer");
-}
-
 test("analyze: with Component.js", async (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const emptyPool = {};
 	const analyzer = new FioriElementsAnalyzer(emptyPool);
 	const name = "sap/ui/core/Component.js";
@@ -33,6 +23,8 @@ test("analyze: with Component.js", async (t) => {
 });
 
 test("analyze: without manifest", async (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
+
 	const mockPool = {
 		async findResource() {
 			return {
@@ -47,7 +39,7 @@ test("analyze: without manifest", async (t) => {
 
 	const analyzer = new FioriElementsAnalyzer(mockPool);
 
-	const stubAnalyzeManifest = t.context.sinon.stub(analyzer, "_analyzeManifest").resolves();
+	const stubAnalyzeManifest = sinon.stub(analyzer, "_analyzeManifest").resolves();
 
 	const name = "MyComponent.js";
 	const result = await analyzer.analyze({name}, moduleInfo);
@@ -57,6 +49,8 @@ test("analyze: without manifest", async (t) => {
 });
 
 test("analyze: with manifest", async (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
+
 	const manifest = {
 		"sap.fe": {
 			"entitySets": [{
@@ -80,7 +74,7 @@ test("analyze: with manifest", async (t) => {
 
 	const analyzer = new FioriElementsAnalyzer(mockPool);
 
-	const stubAnalyzeManifest = t.context.sinon.stub(analyzer, "_analyzeManifest").resolves();
+	const stubAnalyzeManifest = sinon.stub(analyzer, "_analyzeManifest").resolves();
 
 	const name = "MyComponent.js";
 	await analyzer.analyze({name}, moduleInfo);
@@ -91,6 +85,8 @@ test("analyze: with manifest", async (t) => {
 });
 
 test("_analyzeManifest: Manifest with TemplateAssembler code", async (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
+
 	const manifest = {
 		"sap.fe": {
 			"entitySets": [{
@@ -106,11 +102,11 @@ test("_analyzeManifest: Manifest with TemplateAssembler code", async (t) => {
 	const moduleInfo = {
 		addDependency: function() {}
 	};
-	const stubAddDependency = t.context.sinon.spy(moduleInfo, "addDependency");
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
 
 	const analyzer = new FioriElementsAnalyzer();
 
-	const stubAnalyzeTemplateComponent = t.context.sinon.stub(analyzer, "_analyzeTemplateComponent").resolves();
+	const stubAnalyzeTemplateComponent = sinon.stub(analyzer, "_analyzeTemplateComponent").resolves();
 
 	await analyzer._analyzeManifest(manifest, moduleInfo);
 
@@ -131,6 +127,8 @@ test("_analyzeManifest: Manifest with TemplateAssembler code", async (t) => {
 });
 
 test("_analyzeManifest: Manifest with entitySet key", async (t) => {
+	const {FioriElementsAnalyzer} = t.context;
+
 	const manifest = {
 		"sap.fe": {
 			"entitySets": [{
@@ -147,10 +145,12 @@ test("_analyzeManifest: Manifest with entitySet key", async (t) => {
 
 
 test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", async (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
+
 	const moduleInfo = {
 		addDependency: function() {}
 	};
-	const stubAddDependency = t.context.sinon.spy(moduleInfo, "addDependency");
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
 
 	const mockPool = {
 		async findResource() {
@@ -162,8 +162,7 @@ test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", a
 
 	const analyzer = new FioriElementsAnalyzer(mockPool);
 
-	const stubAnalyzeAST = t.context.sinon.stub(analyzer, "_analyzeAST").returns("mytpl");
-	const stubParse = t.context.sinon.stub(parseUtils, "parseJS").returns("");
+	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("mytpl");
 
 	await analyzer._analyzeTemplateComponent("pony",
 		{}, moduleInfo);
@@ -176,15 +175,15 @@ test.serial("_analyzeTemplateComponent: Manifest with TemplateAssembler code", a
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
 	t.is(stubAddDependency.getCall(0).args[0], "mytpl.view.xml",
 		"addDependency should be called with the dependency name");
-	stubAnalyzeAST.restore();
-	stubParse.restore();
 });
 
 test.serial("_analyzeTemplateComponent: no default template name", async (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
+
 	const moduleInfo = {
 		addDependency: function() {}
 	};
-	const stubAddDependency = t.context.sinon.spy(moduleInfo, "addDependency");
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
 
 	const mockPool = {
 		async findResource() {
@@ -196,8 +195,7 @@ test.serial("_analyzeTemplateComponent: no default template name", async (t) => 
 
 	const analyzer = new FioriElementsAnalyzer(mockPool);
 
-	const stubAnalyzeAST = t.context.sinon.stub(analyzer, "_analyzeAST").returns("");
-	const stubParse = t.context.sinon.stub(parseUtils, "parseJS").returns("");
+	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
 
 	await analyzer._analyzeTemplateComponent("pony",
 		{}, moduleInfo);
@@ -205,15 +203,15 @@ test.serial("_analyzeTemplateComponent: no default template name", async (t) => 
 	t.true(stubAnalyzeAST.calledOnce, "_analyzeManifest was called once");
 
 	t.true(stubAddDependency.notCalled, "addDependency was not called");
-	stubAnalyzeAST.restore();
-	stubParse.restore();
 });
 
 test.serial("_analyzeTemplateComponent: with template name from pageConfig", async (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
+
 	const moduleInfo = {
 		addDependency: function() {}
 	};
-	const stubAddDependency = t.context.sinon.spy(moduleInfo, "addDependency");
+	const stubAddDependency = sinon.spy(moduleInfo, "addDependency");
 
 	const mockPool = {
 		async findResource() {
@@ -225,8 +223,7 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 
 	const analyzer = new FioriElementsAnalyzer(mockPool);
 
-	const stubAnalyzeAST = t.context.sinon.stub(analyzer, "_analyzeAST").returns("");
-	const stubParse = t.context.sinon.stub(parseUtils, "parseJS").returns("");
+	const stubAnalyzeAST = sinon.stub(analyzer, "_analyzeAST").returns("");
 
 	await analyzer._analyzeTemplateComponent("pony", {
 		component: {
@@ -241,11 +238,10 @@ test.serial("_analyzeTemplateComponent: with template name from pageConfig", asy
 	t.true(stubAddDependency.calledOnce, "addDependency was called once");
 	t.is(stubAddDependency.getCall(0).args[0], "donkey.view.xml",
 		"addDependency should be called with the dependency name");
-	stubAnalyzeAST.restore();
-	stubParse.restore();
 });
 
 test("_analyzeAST: get template name from ast", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -259,13 +255,14 @@ test("_analyzeAST: get template name from ast", (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test("_analyzeAST: get template name from ast (AMD define)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -279,13 +276,14 @@ test("_analyzeAST: get template name from ast (AMD define)", (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test("_analyzeAST: unable to get template name from ast (no TemplateAssembler import)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a"], // import missing
 		function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
@@ -300,13 +298,14 @@ test("_analyzeAST: unable to get template name from ast (no TemplateAssembler im
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "");
 });
 
 test("_analyzeAST: unable to get template name from ast (no module definition)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `myDefine(["a", "sap/fe/core/TemplateAssembler"], // unsupported module definition
 		function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
@@ -321,13 +320,14 @@ test("_analyzeAST: unable to get template name from ast (no module definition)",
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "");
 });
 
 test("_analyzeAST: unable to get template name from ast (ArrowFunction with implicit return #1)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"],
 	(a, TemplateAssembler) => TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -336,13 +336,14 @@ test("_analyzeAST: unable to get template name from ast (ArrowFunction with impl
 				"manifest": "json"
 			}
 		}));`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "");
 });
 
 test("_analyzeAST: unable to get template name from ast (ArrowFunction with implicit return #2)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"],
 	(a, TemplateAssembler) => TemplateAssembler.extend(getMethods, // wrong call. should be 'getTemplateComponent'
 		"sap.fe.templates.Page.Component", {
@@ -356,13 +357,14 @@ test("_analyzeAST: unable to get template name from ast (ArrowFunction with impl
 				"manifest": "json"
 			}
 		}));`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "");
 });
 
 test.serial("_analyzeAST: get template name from ast (async function)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], async function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -376,15 +378,14 @@ test.serial("_analyzeAST: get template name from ast (async function)", (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	setupFioriElementsAnalyzerWithStubbedLogger(t);
-	const {FioriElementsAnalyzerWithStubbedLogger} = t.context;
-	const ast = parseUtils.parseJS(code);
-	const analyzer = new FioriElementsAnalyzerWithStubbedLogger();
+	const ast = parseJS(code);
+	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test.serial("_analyzeAST: get template name from ast (async ArrowFunction)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], async (a, TemplateAssembler) => {
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -398,15 +399,14 @@ test.serial("_analyzeAST: get template name from ast (async ArrowFunction)", (t)
 				"manifest": "json"
 			}
 		});});`;
-	setupFioriElementsAnalyzerWithStubbedLogger(t);
-	const {FioriElementsAnalyzerWithStubbedLogger} = t.context;
-	const ast = parseUtils.parseJS(code);
-	const analyzer = new FioriElementsAnalyzerWithStubbedLogger();
+	const ast = parseJS(code);
+	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test.serial("_analyzeAST: get template name from ast (async ArrowFunction with implicit return)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"],
 	async (a, TemplateAssembler) => TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -420,15 +420,14 @@ test.serial("_analyzeAST: get template name from ast (async ArrowFunction with i
 				"manifest": "json"
 			}
 		}));`;
-	setupFioriElementsAnalyzerWithStubbedLogger(t);
-	const {FioriElementsAnalyzerWithStubbedLogger} = t.context;
-	const ast = parseUtils.parseJS(code);
-	const analyzer = new FioriElementsAnalyzerWithStubbedLogger();
+	const ast = parseJS(code);
+	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test("_analyzeAST: get template name from ast (ArrowFunction)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], (a, TemplateAssembler) => {
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -442,13 +441,14 @@ test("_analyzeAST: get template name from ast (ArrowFunction)", (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test("_analyzeAST: get template name from ast (ArrowFunction with implicit return)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"],
 	(a, TemplateAssembler) => TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -462,13 +462,14 @@ test("_analyzeAST: get template name from ast (ArrowFunction with implicit retur
 				"manifest": "json"
 			}
 		}));`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 	t.is(templateName, "sap.fe.templates.Page.view.Page");
 });
 
 test("_analyzeAST: get template name from ast (with SpreadElement)", (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], (a, TemplateAssembler) => {
 		const myTemplate = {
 			templateName: {
@@ -485,7 +486,7 @@ test("_analyzeAST: get template name from ast (with SpreadElement)", (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const analyzer = new FioriElementsAnalyzer();
 	const templateName = analyzer._analyzeAST("sap.fe.templates.Page.Component", ast);
 
@@ -493,6 +494,7 @@ test("_analyzeAST: get template name from ast (with SpreadElement)", (t) => {
 });
 
 test("_analyzeAST: no template name from ast", (t) => {
+	const {sinon, FioriElementsAnalyzer} = t.context;
 	const code = `sap.ui.define(["a", "sap/fe/core/TemplateAssembler"], function(a, TemplateAssembler){
 		return TemplateAssembler.getTemplateComponent(getMethods,
 		"sap.fe.templates.Page.Component", {
@@ -506,11 +508,11 @@ test("_analyzeAST: no template name from ast", (t) => {
 				"manifest": "json"
 			}
 		});});`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 
 	const analyzer = new FioriElementsAnalyzer();
 
-	const stubAnalyzeTemplateClassDefinition = t.context.sinon.stub(analyzer,
+	const stubAnalyzeTemplateClassDefinition = sinon.stub(analyzer,
 		"_analyzeTemplateClassDefinition").returns(false);
 
 	const result = analyzer._analyzeAST("pony", ast);
@@ -522,6 +524,7 @@ test("_analyzeAST: no template name from ast", (t) => {
 });
 
 test("_analyzeTemplateClassDefinition: get template name from metadata", async (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `var x = {
 			metadata: {
 				properties: {
@@ -533,7 +536,7 @@ test("_analyzeTemplateClassDefinition: get template name from metadata", async (
 				"manifest": "json"
 			}
 		};`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const expression = ast.body[0].declarations[0].init;
 
 	const analyzer = new FioriElementsAnalyzer();
@@ -544,6 +547,7 @@ test("_analyzeTemplateClassDefinition: get template name from metadata", async (
 });
 
 test("_analyzeTemplateClassDefinition: no string template name from metadata", async (t) => {
+	const {FioriElementsAnalyzer} = t.context;
 	const code = `var x = {
 			metadata: {
 				properties: {
@@ -555,7 +559,7 @@ test("_analyzeTemplateClassDefinition: no string template name from metadata", a
 				"manifest": "json"
 			}
 		};`;
-	const ast = parseUtils.parseJS(code);
+	const ast = parseJS(code);
 	const expression = ast.body[0].declarations[0].init;
 
 	const analyzer = new FioriElementsAnalyzer();

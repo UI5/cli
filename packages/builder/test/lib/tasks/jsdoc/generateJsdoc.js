@@ -1,25 +1,53 @@
-const test = require("ava");
-const sinon = require("sinon");
-const fs = require("graceful-fs");
-const os = require("os");
-const path = require("path");
+import test from "ava";
+import sinonGlobal from "sinon";
+import os from "node:os";
+import path from "node:path";
+import esmock from "esmock";
 
-const mock = require("mock-require");
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
-const generateJsdoc = require("../../../../lib/tasks/jsdoc/generateJsdoc");
+	t.context.mkdtempStub = sinon.stub();
+	t.context.makeDirStub = sinon.stub().resolves();
+	t.context.rimrafStub = sinon.stub().resolves();
+	t.context.jsdocGeneratorStub = sinon.stub();
+
+	t.context.writeStub = sinon.stub().resolves();
+	t.context.createAdapterStub = sinon.stub().returns({
+		write: t.context.writeStub
+	});
+
+	t.context.log = {
+		info: sinon.stub()
+	};
+
+	t.context.generateJsdoc = await esmock("../../../../lib/tasks/jsdoc/generateJsdoc.js", {
+		"graceful-fs": {
+			mkdtemp: t.context.mkdtempStub
+		},
+		"make-dir": t.context.makeDirStub,
+		"rimraf": t.context.rimrafStub,
+		"@ui5/fs/resourceFactory": {
+			createAdapter: t.context.createAdapterStub
+		},
+		"@ui5/logger": {
+			getLogger: sinon.stub().returns(t.context.log)
+		},
+		"../../../../lib/processors/jsdoc/jsdocGenerator": t.context.jsdocGeneratorStub,
+	});
+});
 
 test.afterEach.always((t) => {
-	sinon.restore();
+	t.context.sinon.restore();
 });
 
 test.serial("createTmpDir successful", async (t) => {
-	const makeDirStub = sinon.stub().resolves();
-	mock("make-dir", makeDirStub);
+	const {generateJsdoc, makeDirStub, mkdtempStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
-	const mkdtempStub = sinon.stub(fs, "mkdtemp").callsArgWithAsync(1, undefined, "some/path");
-	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
+	mkdtempStub.callsArgWithAsync(1, undefined, "some/path");
 
-	const res = await generateJsdoc._createTmpDir("som$e.nam3/space"); // non alphanum characters get removed
+	const res = await generateJsdocUtils.createTmpDir("som$e.nam3/space"); // non alphanum characters get removed
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
@@ -29,18 +57,15 @@ test.serial("createTmpDir successful", async (t) => {
 	t.is(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenam3space-"));
 	t.is(res, "some/path", "Correct path returned");
-
-	mock.stop("make-dir");
 });
 
 test.serial("createTmpDir error", async (t) => {
-	const makeDirStub = sinon.stub().resolves();
-	mock("make-dir", makeDirStub);
+	const {generateJsdoc, makeDirStub, mkdtempStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
-	const mkdtempStub = sinon.stub(fs, "mkdtemp").callsArgWithAsync(1, new Error("Dir creation failed"), "some/path");
-	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
+	mkdtempStub.callsArgWithAsync(1, new Error("Dir creation failed"), "some/path");
 
-	const res = await t.throwsAsync(generateJsdoc._createTmpDir("some.namespace"));
+	const res = await t.throwsAsync(generateJsdocUtils.createTmpDir("some.namespace"));
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
@@ -50,21 +75,16 @@ test.serial("createTmpDir error", async (t) => {
 	t.is(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenamespace-"));
 	t.is(res.message, "Dir creation failed", "Dir creation failed");
-
-	mock.stop("make-dir");
 });
 
 test.serial("createTmpDirs", async (t) => {
-	const makeDirStub = sinon.stub().resolves();
-	mock("make-dir", makeDirStub);
-	const rimrafStub = sinon.stub().resolves();
-	mock("rimraf", rimrafStub);
-	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
+	const {sinon, generateJsdoc, makeDirStub, rimrafStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
-	const createTmpDirStub = sinon.stub(generateJsdoc, "_createTmpDir")
+	const createTmpDirStub = sinon.stub(generateJsdocUtils, "createTmpDir")
 		.resolves(path.join("/", "some", "path"));
 
-	const res = await generateJsdoc._createTmpDirs("some.namespace");
+	const res = await generateJsdocUtils.createTmpDirs("some.namespace");
 
 	t.is(createTmpDirStub.callCount, 1, "creteTmpDir called once");
 	t.is(createTmpDirStub.getCall(0).args[0], "some.namespace", "creteTmpDir called with correct argument");
@@ -85,18 +105,13 @@ test.serial("createTmpDirs", async (t) => {
 	t.is(rimrafStub.callCount, 1, "Cleanup callback: rimraf called once");
 	t.deepEqual(rimrafStub.getCall(0).args[0], path.join("/", "some", "path"),
 		"Cleanup callback: rimraf called with correct path");
-
-	mock.stop("make-dir");
-	mock.stop("rimraf");
 });
 
 test.serial("writeResourcesToDir with byGlobSource", async (t) => {
-	const writeStub = sinon.stub().resolves();
-	const createAdapterStub = sinon.stub(require("@ui5/fs").resourceFactory, "createAdapter").returns({
-		write: writeStub
-	});
+	const {generateJsdoc, createAdapterStub, writeStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
-	await generateJsdoc._writeResourcesToDir({
+	await generateJsdocUtils.writeResourcesToDir({
 		workspace: {
 			// stub byGlobSource
 			byGlobSource: (pattern) => {
@@ -119,12 +134,10 @@ test.serial("writeResourcesToDir with byGlobSource", async (t) => {
 });
 
 test.serial("writeResourcesToDir with byGlob", async (t) => {
-	const writeStub = sinon.stub().resolves();
-	const createAdapterStub = sinon.stub(require("@ui5/fs").resourceFactory, "createAdapter").returns({
-		write: writeStub
-	});
+	const {generateJsdoc, createAdapterStub, writeStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
-	await generateJsdoc._writeResourcesToDir({
+	await generateJsdocUtils.writeResourcesToDir({
 		workspace: {
 			byGlob: (pattern) => {
 				t.is(pattern, "some pattern", "Glob with correct pattern");
@@ -146,10 +159,8 @@ test.serial("writeResourcesToDir with byGlob", async (t) => {
 });
 
 test.serial("writeDependencyApisToDir with byGlob", async (t) => {
-	const writeStub = sinon.stub().resolves();
-	const createAdapterStub = sinon.stub(require("@ui5/fs").resourceFactory, "createAdapter").returns({
-		write: writeStub
-	});
+	const {sinon, generateJsdoc, createAdapterStub, writeStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
 	const setPathStubA = sinon.stub();
 	const setPathStubB = sinon.stub();
@@ -173,7 +184,7 @@ test.serial("writeDependencyApisToDir with byGlob", async (t) => {
 		clone: cloneStubB
 	};
 
-	await generateJsdoc._writeDependencyApisToDir({
+	await generateJsdocUtils.writeDependencyApisToDir({
 		dependencies: {
 			byGlob: (pattern) => {
 				t.is(pattern, "/test-resources/**/designtime/api.json",
@@ -204,19 +215,20 @@ test.serial("writeDependencyApisToDir with byGlob", async (t) => {
 });
 
 test.serial("generateJsdoc", async (t) => {
-	const jsdocGeneratorStub = sinon.stub().resolves(["resource A", "resource B"]);
-	mock("../../../../lib/processors/jsdoc/jsdocGenerator", jsdocGeneratorStub);
-	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
+	const {sinon, generateJsdoc, jsdocGeneratorStub} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
+
+	jsdocGeneratorStub.resolves(["resource A", "resource B"]);
 
 	const cleanupStub = sinon.stub().resolves();
-	const createTmpDirsStub = sinon.stub(generateJsdoc, "_createTmpDirs").resolves({
+	const createTmpDirsStub = sinon.stub(generateJsdocUtils, "createTmpDirs").resolves({
 		sourcePath: path.join("/", "some", "source", "path"),
 		targetPath: path.join("/", "some", "target", "path"),
 		tmpPath: path.join("/", "some", "tmp", "path"),
 		cleanup: cleanupStub
 	});
-	const writeResourcesToDirStub = sinon.stub(generateJsdoc, "_writeResourcesToDir").resolves(1);
-	const writeDependencyApisToDirStub = sinon.stub(generateJsdoc, "_writeDependencyApisToDir").resolves(0);
+	const writeResourcesToDirStub = sinon.stub(generateJsdocUtils, "writeResourcesToDir").resolves(1);
+	const writeDependencyApisToDirStub = sinon.stub(generateJsdocUtils, "writeDependencyApisToDir").resolves(0);
 
 	const writeStub = sinon.stub().resolves();
 	const workspace = {
@@ -276,30 +288,21 @@ test.serial("generateJsdoc", async (t) => {
 	t.is(writeStub.callCount, 2, "Write got called twice");
 	t.is(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
 	t.is(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
-
-	mock.stop("../../../../lib/processors/jsdoc/jsdocGenerator");
 });
 
 test.serial("generateJsdoc with missing resources", async (t) => {
-	const jsdocGeneratorStub = sinon.stub().resolves();
-	mock("../../../../lib/processors/jsdoc/jsdocGenerator", jsdocGeneratorStub);
-	const logger = require("@ui5/logger");
-	const infoLogStub = sinon.stub();
-	const myLoggerInstance = {
-		info: infoLogStub
-	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const generateJsdoc = mock.reRequire("../../../../lib/tasks/jsdoc/generateJsdoc");
+	const {sinon, jsdocGeneratorStub, generateJsdoc, log} = t.context;
+	const generateJsdocUtils = generateJsdoc._utils;
 
 	const cleanupStub = sinon.stub().resolves();
-	sinon.stub(generateJsdoc, "_createTmpDirs").resolves({
+	sinon.stub(generateJsdocUtils, "createTmpDirs").resolves({
 		sourcePath: path.join("/", "some", "source", "path"),
 		targetPath: path.join("/", "some", "target", "path"),
 		tmpPath: path.join("/", "some", "tmp", "path"),
 		cleanup: cleanupStub
 	});
-	sinon.stub(generateJsdoc, "_writeResourcesToDir").resolves(0);
-	sinon.stub(generateJsdoc, "_writeDependencyApisToDir").resolves(0);
+	sinon.stub(generateJsdocUtils, "writeResourcesToDir").resolves(0);
+	sinon.stub(generateJsdocUtils, "writeDependencyApisToDir").resolves(0);
 
 	const writeStub = sinon.stub().resolves();
 	const workspace = {
@@ -325,23 +328,23 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 	t.deepEqual(registerCleanupTaskStub.getCall(0).args[0], cleanupStub,
 		"registerCleanupTask called with correct argument");
 
-	t.is(infoLogStub.callCount, 1, "One message has been logged");
-	t.deepEqual(infoLogStub.getCall(0).args[0], "Failed to find any input resources for project some.project " +
+	t.is(log.info.callCount, 1, "One message has been logged");
+	t.deepEqual(log.info.getCall(0).args[0], "Failed to find any input resources for project some.project " +
 		"using pattern some pattern. Skipping JSDoc generation...",
 	"Correct message has been logged");
 
 	t.is(jsdocGeneratorStub.callCount, 0, "jsdocGenerator processor has *not* been called");
-
-	mock.stop("../../../../lib/processors/jsdoc/jsdocGenerator");
 });
 
 test.serial("generateJsdoc no parameters", async (t) => {
+	const {generateJsdoc} = t.context;
 	await t.throwsAsync(generateJsdoc(), {
 		instanceOf: TypeError
 	}, "TypeError thrown");
 });
 
 test.serial("generateJsdoc missing parameters", async (t) => {
+	const {generateJsdoc} = t.context;
 	const error = await t.throwsAsync(generateJsdoc({}));
 	t.is(error.message, "[generateJsdoc]: One or more mandatory options not provided",
 		"Correct error message thrown");

@@ -1,4 +1,9 @@
-const escapeUnicode = require("escape-unicode");
+import escapeUnicode from "escape-unicode";
+
+/**
+ * @public
+ * @module @ui5/builder/processors/nonAsciiEscaper
+ */
 
 /**
  * @see https://en.wikipedia.org/wiki/ASCII
@@ -58,14 +63,16 @@ const escapeNonAscii = function(string) {
  *
  *
  * @public
- * @alias module:@ui5/builder.processors.nonAsciiEscaper
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources List of resources to be processed
+ * @param {@ui5/fs/Resource[]} parameters.resources List of resources to be processed
  * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.encoding="utf8"] resource file encoding
  *   ({@link https://nodejs.org/api/buffer.html#buffer_buffers_and_character_encodings Node.js character encodings}).
  *   Use #getEncodingFromAlias to get the encoding string
- * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving with the processed resources
+ * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with the processed resources
  */
 async function nonAsciiEscaper({resources, options: {encoding}}) {
 	encoding = encoding || "utf8";
@@ -94,7 +101,10 @@ const encodingMap = {
  * such that it can be used standalone without the respective task (e.g. in Splitter, Bundler and related projects).
  *
  * @public
- * @alias module:@ui5/builder.processors.nonAsciiEscaper․getEncodingFromAlias
+ * @function getEncodingFromAlias
+ * @alias @ui5/builder/processors/nonAsciiEscaper․getEncodingFromAlias
+ * @static
+ *
  * @param {string} encoding encoding labels: "UTF-8" and "ISO-8859-1"
  * @returns {string} node.js character encoding string, e.g. utf8 and latin1
  */
@@ -106,4 +116,4 @@ nonAsciiEscaper.getEncodingFromAlias = function(encoding) {
 	return encodingMap[encoding];
 };
 
-module.exports = nonAsciiEscaper;
+export default nonAsciiEscaper;

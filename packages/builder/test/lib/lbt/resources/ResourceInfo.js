@@ -1,6 +1,5 @@
-const test = require("ava");
-
-const ResourceInfo = require("../../../../lib/lbt/resources/ResourceInfo");
+import test from "ava";
+import ResourceInfo from "../../../../lib/lbt/resources/ResourceInfo.js";
 
 test("ResourceInfo: constructor", (t) => {
 	const resourceInfo = new ResourceInfo("myName");

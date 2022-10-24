@@ -1,6 +1,12 @@
-const log = require("@ui5/logger").getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
-const flexChangesBundler = require("../../processors/bundlers/flexChangesBundler");
-const semver = require("semver");
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
+import flexChangesBundler from "../../processors/bundlers/flexChangesBundler.js";
+import semver from "semver";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateFlexChangesBundle
+ */
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
@@ -12,15 +18,17 @@ const semver = require("semver");
  * If there are control variants and minUI5Version < 1.73 build will break and throw an error.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateFlexChangesBundle
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/project.build.helpers.TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} [parameters.options] Options
  * @param {string} [parameters.options.projectNamespace] Project Namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({workspace, taskUtil, options = {}}) {
+export default async function({workspace, taskUtil, options = {}}) {
 	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
 	const namespace = options.projectNamespace || options.namespace;
 
@@ -101,4 +109,4 @@ module.exports = async function({workspace, taskUtil, options = {}}) {
 			});
 		}
 	}
-};
+}

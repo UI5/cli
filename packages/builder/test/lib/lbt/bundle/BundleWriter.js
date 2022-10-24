@@ -1,6 +1,5 @@
-const test = require("ava");
-
-const BundleWriter = require("../../../../lib/lbt/bundle/BundleWriter");
+import test from "ava";
+import BundleWriter from "../../../../lib/lbt/bundle/BundleWriter.js";
 
 test("Constructor", (t) => {
 	const w = new BundleWriter();

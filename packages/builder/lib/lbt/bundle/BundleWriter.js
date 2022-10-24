@@ -1,4 +1,3 @@
-"use strict";
 
 
 const NL = "\n";
@@ -101,4 +100,4 @@ class BundleWriter {
 	}
 }
 
-module.exports = BundleWriter;
+export default BundleWriter;

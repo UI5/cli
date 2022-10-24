@@ -1,7 +1,13 @@
-const BundleBuilder = require("../../lbt/bundle/Builder");
-const LocatorResourcePool = require("../../lbt/resources/LocatorResourcePool");
-const EvoResource = require("@ui5/fs").Resource;
-const log = require("@ui5/logger").getLogger("builder:processors:bundlers:moduleBundler");
+import BundleBuilder from "../../lbt/bundle/Builder.js";
+import LocatorResourcePool from "../../lbt/resources/LocatorResourcePool.js";
+import EvoResource from "@ui5/fs/Resource";
+import logger from "@ui5/logger";
+const log = logger.getLogger("builder:processors:bundlers:moduleBundler");
+
+/**
+ * @public
+ * @module @ui5/builder/processors/moduleBundler
+ */
 
 /**
  * A ModuleBundleDefinitionSection specifies the embedding mode (either 'provided', 'raw', 'preload', 'require'
@@ -80,7 +86,7 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  * @property {string} name The module bundle name
  * @property {string[]} [defaultFileTypes=[".js", ".control.xml", ".fragment.html", ".fragment.json", ".fragment.xml", ".view.html", ".view.json", ".view.xml"]]
  *   List of default file types to be included in the bundle
- * @property {ModuleBundleDefinitionSection[]} sections List of module bundle definition sections.
+ * @property {module:@ui5/builder/processors/moduleBundler~ModuleBundleDefinitionSection[]} sections List of module bundle definition sections.
  */
 /* eslint-enable max-len */
 
@@ -106,27 +112,32 @@ const log = require("@ui5/logger").getLogger("builder:processors:bundlers:module
  *
  * @public
  * @typedef {object} ModuleBundlerResult
- * @property {module:@ui5/fs.Resource} bundle Bundle resource
- * @property {module:@ui5/fs.Resource} sourceMap Source Map
- * @memberof module:@ui5/builder.processors
+ * @property {@ui5/fs/Resource} bundle Bundle resource
+ * @property {@ui5/fs/Resource} sourceMap Source Map
  */
 
+/* eslint-disable max-len */
 /**
  * Legacy module bundler.
  *
  * @public
- * @alias module:@ui5/builder.processors.moduleBundler
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.Resource[]} parameters.resources Resources
+ * @param {@ui5/fs/Resource[]} parameters.resources Resources
  * @param {object} parameters.options Options
  * @param {object} [parameters.options.moduleNameMapping]
  				Optional mapping of resource paths to module name in order to overwrite the default determination
- * @param {ModuleBundleDefinition} parameters.options.bundleDefinition Module bundle definition
- * @param {ModuleBundleOptions} [parameters.options.bundleOptions] Module bundle options
- * @returns {Promise<module:@ui5/builder.processors.ModuleBundlerResult[]>}
+ * @param {module:@ui5/builder/processors/moduleBundler~ModuleBundleDefinition} parameters.options.bundleDefinition Module
+				bundle definition
+ * @param {module:@ui5/builder/processors/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
+				bundle options
+ * @returns {Promise<module:@ui5/builder/processors/moduleBundler~ModuleBundlerResult[]>}
  * Promise resolving with module bundle resources
  */
-module.exports = function({resources, options: {bundleDefinition, bundleOptions, moduleNameMapping}}) {
+/* eslint-enable max-len */
+export default function({resources, options: {bundleDefinition, bundleOptions, moduleNameMapping}}) {
 	// Apply defaults without modifying the passed object
 	bundleOptions = Object.assign({}, {
 		optimize: true,
@@ -177,4 +188,4 @@ module.exports = function({resources, options: {bundleDefinition, bundleOptions,
 				}
 			}));
 		});
-};
+}

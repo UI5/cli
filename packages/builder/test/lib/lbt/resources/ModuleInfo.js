@@ -1,6 +1,5 @@
-const test = require("ava");
-
-const ModuleInfo = require("../../../../lib/lbt/resources/ModuleInfo");
+import test from "ava";
+import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 
 test("ModuleInfo: constructor", (t) => {
 	const moduleInfo = new ModuleInfo("myName");

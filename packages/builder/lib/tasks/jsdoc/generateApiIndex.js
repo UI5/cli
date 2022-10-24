@@ -1,23 +1,29 @@
-const ui5Fs = require("@ui5/fs");
-const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
-const fsInterface = ui5Fs.fsInterface;
-const apiIndexGenerator = require("../../processors/jsdoc/apiIndexGenerator");
+import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
+import fsInterface from "@ui5/fs/fsInterface";
+import apiIndexGenerator from "../../processors/jsdoc/apiIndexGenerator.js";
+
+/**
+ * @public
+ * @module @ui5/builder/tasks/generateApiIndex
+ */
 
 /**
  * Compiles an api-index.json resource from all available api.json resources as created by the
- * [executeJsdocSdkTransformation]{@link module:@ui5/builder.tasks.executeJsdocSdkTransformation} task.
+ * [executeJsdocSdkTransformation]{@link @ui5/builder/tasks/executeJsdocSdkTransformation} task.
  * The resulting api-index.json resource is mainly to be used in the SDK.
  *
  * @public
- * @alias module:@ui5/builder.tasks.generateApiIndex
+ * @function default
+ * @static
+ *
  * @param {object} parameters Parameters
- * @param {module:@ui5/fs.DuplexCollection} parameters.workspace DuplexCollection to read and write files
- * @param {module:@ui5/fs.AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-module.exports = async function({
+export default async function({
 	workspace,
 	dependencies,
 	options: {projectName}
@@ -47,4 +53,4 @@ module.exports = async function({
 	await Promise.all(createdResources.map((resource) => {
 		return workspace.write(resource);
 	}));
-};
+}
