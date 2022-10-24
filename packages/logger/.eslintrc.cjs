@@ -1,4 +1,7 @@
 module.exports = {
+	"parserOptions": {
+		"sourceType": "module",
+	},
 	"env": {
 		"node": true,
 		"es2021": true
@@ -71,7 +74,8 @@ module.exports = {
 	"settings": {
 		"jsdoc": {
 			"tagNamePreference": {
-				"return": "returns"
+				"return": "returns",
+				"augments": "extends"
 			}
 		}
 	},
