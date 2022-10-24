@@ -1,9 +1,9 @@
-const themeBuilder = require("@ui5/builder").processors.themeBuilder;
-const fsInterface = require("@ui5/fs").fsInterface;
-const {basename, dirname} = require("path").posix;
-const etag = require("etag");
-const fresh = require("fresh");
-const parseurl = require("parseurl");
+import {ThemeBuilder} from "@ui5/builder/processors/themeBuilder";
+import fsInterface from "@ui5/fs/fsInterface";
+import {basename, dirname} from "node:path/posix";
+import etag from "etag";
+import fresh from "fresh";
+import parseurl from "parseurl";
 
 function isFresh(req, res) {
 	return fresh(req.headers, {
@@ -40,7 +40,7 @@ const themeResources = [
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources, middlewareUtil}) {
-	const builder = new themeBuilder.ThemeBuilder({
+	const builder = new ThemeBuilder({
 		fs: fsInterface(resources.all)
 	});
 	const buildOptions = {};
@@ -120,4 +120,4 @@ function createMiddleware({resources, middlewareUtil}) {
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

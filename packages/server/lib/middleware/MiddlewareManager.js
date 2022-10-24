@@ -1,20 +1,23 @@
-const middlewareRepository = require("./middlewareRepository");
-const MiddlewareUtil = require("./MiddlewareUtil");
+import middlewareRepository from "./middlewareRepository.js";
+import MiddlewareUtil from "./MiddlewareUtil.js";
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
 /**
- *
- * @typedef {object} middlewareResources
- * @property {module:@ui5/fs.AbstractReader} all Reader or Collection to read resources of the
+ * @private
+ * @typedef {object} MiddlewareResources
+ * @property {@ui5/fs.AbstractReader} all Reader or Collection to read resources of the
  *                                        root project and its dependencies
- * @property {module:@ui5/fs.AbstractReader} rootProject Reader or Collection to read resources of
+ * @property {@ui5/fs.AbstractReader} rootProject Reader or Collection to read resources of
  *                                        the project the server is started in
+ * @memberof @ui5/server/internal/MiddlewareManager
  */
 
 /**
+ * The MiddlewareManager
  *
- *
- * @memberof module:@ui5/server.middleware
+ * @private
+ * @class
+ * @alias @ui5/server/internal/MiddlewareManager
  */
 class MiddlewareManager {
 	constructor({graph, resources, options = {
@@ -33,6 +36,14 @@ class MiddlewareManager {
 		this.middlewareUtil = new MiddlewareUtil();
 	}
 
+	/**
+	 * Applies the middleware to
+	 *
+	 * @private
+	 * @param {object} app The express application object
+	 * @returns {Promise<Array<undefined>>} Promise resolving to an Array with a length of the number
+	 *      of added middlewares. The entries of the Array have a value of <code>undefined</code>.
+	 */
 	async applyMiddleware(app) {
 		await this.addStandardMiddleware();
 		await this.addCustomMiddleware();
@@ -43,6 +54,18 @@ class MiddlewareManager {
 		});
 	}
 
+	/**
+	 * Adds the given middleware configuration
+	 *
+	 * @private
+	 * @param {string} configuredMiddlewareName The name of the middleware
+	 * @param {object} [options] The Options of the middleware
+	 * @param {object} [options.customMiddleware] The custom middleware
+	 * @param {Function} [options.wrapperCallback] Callback called when middleware is called
+	 * @param {string} [options.mountPath="/"] The path hosting the middleware
+	 * @param {string} [options.beforeMiddleware] The name of the middleware called before the added middleware
+	 * @param {string} [options.afterMiddleware] The name of the middleware called after the added middleware
+	 */
 	async addMiddleware(configuredMiddlewareName, {
 		customMiddleware, wrapperCallback, mountPath = "/",
 		beforeMiddleware, afterMiddleware
@@ -51,7 +74,7 @@ class MiddlewareManager {
 		if (customMiddleware) {
 			middlewareCallback = customMiddleware;
 		} else {
-			const middlewareInfo = middlewareRepository.getMiddleware(configuredMiddlewareName);
+			const middlewareInfo = await middlewareRepository.getMiddleware(configuredMiddlewareName);
 			if (wrapperCallback) {
 				middlewareCallback = wrapperCallback(middlewareInfo);
 			} else {
@@ -98,6 +121,12 @@ class MiddlewareManager {
 		};
 	}
 
+	/**
+	 * Adds all registered standard middlewares
+	 *
+	 * @private
+	 * @returns {Promise} Resolving to <code>undefined</code> once all standard middlewares are added
+	 */
 	async addStandardMiddleware() {
 		await this.addMiddleware("csp", {
 			wrapperCallback: ({middleware: cspModule}) => {
@@ -214,6 +243,12 @@ class MiddlewareManager {
 		});
 	}
 
+	/**
+	 * Adds all registered custom middlewares
+	 *
+	 * @private
+	 * @returns {Promise} Resolving to <code>undefined</code> once all custom middlewares are added
+	 */
 	async addCustomMiddleware() {
 		const project = this.graph.getRoot();
 		const projectCustomMiddleware = project.getCustomMiddleware();
@@ -238,7 +273,7 @@ class MiddlewareManager {
 					`defines neither a "beforeMiddleware" nor an "afterMiddleware" parameter. One must be defined.`);
 			}
 			await this.addMiddleware(middlewareDef.name, {
-				customMiddleware: ({resources, middlewareUtil}) => {
+				customMiddleware: async ({resources, middlewareUtil}) => {
 					const customMiddleware = this.graph.getExtension(middlewareDef.name);
 					const specVersion = customMiddleware.getSpecVersion();
 					const options = {
@@ -254,7 +289,7 @@ class MiddlewareManager {
 						// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
 						params.middlewareUtil = middlewareUtil.getInterface(specVersion);
 					}
-					return customMiddleware.getMiddleware()(params);
+					return (await customMiddleware.getMiddleware())(params);
 				},
 				mountPath: middlewareDef.mountPath,
 				beforeMiddleware: middlewareDef.beforeMiddleware,
@@ -264,4 +299,4 @@ class MiddlewareManager {
 	}
 }
 
-module.exports = MiddlewareManager;
+export default MiddlewareManager;

@@ -1,6 +1,7 @@
-const log = require("@ui5/logger").getLogger("server:middleware:serveIndex");
-const mime = require("mime-types");
-const serveIndex = require("./serveIndex/serveIndex.js");
+import logger from "@ui5/logger";
+const log = logger.getLogger("server:middleware:serveIndex");
+import mime from "mime-types";
+import serveIndex from "./serveIndex/serveIndex.cjs";
 
 const KB = 1024;
 const MB = KB * KB;
@@ -120,4 +121,4 @@ function createMiddleware({resources, middlewareUtil, simpleIndex = false, showH
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

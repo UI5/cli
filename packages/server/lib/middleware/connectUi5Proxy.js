@@ -1,4 +1,4 @@
-const ui5connect = require("connect-openui5");
+import ui5connect from "connect-openui5";
 
 function createMiddleware() {
 	return ui5connect.proxy({
@@ -6,4 +6,4 @@ function createMiddleware() {
 	});
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

@@ -1,11 +1,13 @@
-const express = require("express");
-const portscanner = require("portscanner");
+import express from "express";
+import portscanner from "portscanner";
+import MiddlewareManager from "./middleware/MiddlewareManager.js";
+import {createReaderCollection} from "@ui5/fs/resourceFactory";
+import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 
-const MiddlewareManager = require("./middleware/MiddlewareManager");
-
-const ui5Fs = require("@ui5/fs");
-const resourceFactory = ui5Fs.resourceFactory;
-const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
+/**
+ * @public
+ * @module @ui5/server
+ */
 
 /**
  * Returns a promise resolving by starting the server.
@@ -79,13 +81,14 @@ function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
  * @param {object} parameters.app The original express application
  * @param {string} parameters.key Path to private key to be used for https
  * @param {string} parameters.cert Path to certificate to be used for for https
- * @returns {object} The express application with SSL support
+ * @returns {Promise<object>} The express application with SSL support
  * @private
  */
-function _addSsl({app, key, cert}) {
+async function _addSsl({app, key, cert}) {
 	// Using spdy as http2 server as the native http2 implementation
 	// from Node v8.4.0 doesn't seem to work with express
-	return require("spdy").createServer({cert, key}, app);
+	const {default: spdy} = await import("spdy");
+	return spdy.createServer({cert, key}, app);
 }
 
 
@@ -93,7 +96,7 @@ function _addSsl({app, key, cert}) {
  * SAP target CSP middleware options
  *
  * @public
- * @typedef {object} module:@ui5/server.server.SAPTargetCSPOptions
+ * @typedef {object} module:@ui5/server.SAPTargetCSPOptions
  * @property {string} [defaultPolicy="sap-target-level-1"]
  * @property {string} [defaultPolicyIsReportOnly=true]
  * @property {string} [defaultPolicy2="sap-target-level-2"]
@@ -103,94 +106,87 @@ function _addSsl({app, key, cert}) {
 
 
 /**
+ * Start a server for the given project (sub-)tree.
+ *
  * @public
- * @namespace
- * @alias module:@ui5/server.server
+ * @param {@ui5/project/graph/ProjectGraph} graph Project graph
+ * @param {object} options Options
+ * @param {number} options.port Port to listen to
+ * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
+ * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to <code>http</code>
+ * @param {string} [options.key] Path to private key to be used for https
+ * @param {string} [options.cert] Path to certificate to be used for for https
+ * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
+ * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and
+ * 															not only to localhost connections
+ * @param {boolean|module:@ui5/server.SAPTargetCSPOptions} [options.sendSAPTargetCSP=false]
+ * 										If set to <code>true</code> or an object, then the default (or configured)
+ * 										set of security policies that SAP and UI5 aim for (AKA 'target policies'),
+ * 										are send for any requested <code>*.html</code> file
+ * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
+ * 										'/.ui5/csp/csp-reports.json'
+ * @returns {Promise<object>} Promise resolving once the server is listening.
+ * 							It resolves with an object containing the <code>port</code>,
+ * 							<code>h2</code>-flag and a <code>close</code> function,
+ * 							which can be used to stop the server.
  */
-module.exports = {
-	/**
-	 * Start a server for the given project (sub-)tree.
-	 *
-	 * @public
-	 * @param {module:@ui5/project.graph.ProjectGraph} graph Project graph
-	 * @param {object} options Options
-	 * @param {number} options.port Port to listen to
-	 * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
-	 * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to <code>http</code>
-	 * @param {string} [options.key] Path to private key to be used for https
-	 * @param {string} [options.cert] Path to certificate to be used for for https
-	 * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
-	 * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and
-	 * 															not only to localhost connections
-	 * @param {boolean|module:@ui5/server.server.SAPTargetCSPOptions} [options.sendSAPTargetCSP=false]
-	 * 										If set to <code>true</code> or an object, then the default (or configured)
-	 * 										set of security policies that SAP and UI5 aim for (AKA 'target policies'),
-	 * 										are send for any requested <code>*.html</code> file
-	 * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
-	 * 										'/.ui5/csp/csp-reports.json'
-	 * @returns {Promise<object>} Promise resolving once the server is listening.
-	 * 							It resolves with an object containing the <code>port</code>,
-	 * 							<code>h2</code>-flag and a <code>close</code> function,
-	 * 							which can be used to stop the server.
-	 */
-	async serve(graph, {
-		port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
-		acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
-	}) {
-		const rootProject = graph.getRoot();
+export async function serve(graph, {
+	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
+	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
+}) {
+	const rootProject = graph.getRoot();
 
-		const readers = [];
-		await graph.traverseBreadthFirst(async function({project: dep}) {
-			if (dep.getName() === rootProject.getName()) {
-				// Ignore root project
-				return;
-			}
-			readers.push(dep.getReader({style: "runtime"}));
-		});
-
-		const dependencies = resourceFactory.createReaderCollection({
-			name: `Dependency reader collection for project ${rootProject.getName()}`,
-			readers
-		});
-
-		const rootReader = rootProject.getReader({style: "runtime"});
-
-		// TODO change to ReaderCollection once duplicates are sorted out
-		const combo = new ReaderCollectionPrioritized({
-			name: "server - prioritize workspace over dependencies",
-			readers: [rootReader, dependencies]
-		});
-		const resources = {
-			rootProject: rootReader,
-			dependencies: dependencies,
-			all: combo
-		};
-
-		const middlewareManager = new MiddlewareManager({
-			graph,
-			resources,
-			options: {
-				sendSAPTargetCSP,
-				serveCSPReports,
-				simpleIndex
-			}
-		});
-
-		let app = express();
-		await middlewareManager.applyMiddleware(app);
-
-		if (h2) {
-			app = _addSsl({app, key, cert});
+	const readers = [];
+	await graph.traverseBreadthFirst(async function({project: dep}) {
+		if (dep.getName() === rootProject.getName()) {
+			// Ignore root project
+			return;
 		}
+		readers.push(await dep.getReader({style: "runtime"}));
+	});
 
-		const {port, server} = await _listen(app, requestedPort, changePortIfInUse, acceptRemoteConnections);
+	const dependencies = createReaderCollection({
+		name: `Dependency reader collection for project ${rootProject.getName()}`,
+		readers
+	});
 
-		return {
-			h2,
-			port,
-			close: function(callback) {
-				server.close(callback);
-			}
-		};
+	const rootReader = await rootProject.getReader({style: "runtime"});
+
+	// TODO change to ReaderCollection once duplicates are sorted out
+	const combo = new ReaderCollectionPrioritized({
+		name: "server - prioritize workspace over dependencies",
+		readers: [rootReader, dependencies]
+	});
+	const resources = {
+		rootProject: rootReader,
+		dependencies: dependencies,
+		all: combo
+	};
+
+	const middlewareManager = new MiddlewareManager({
+		graph,
+		resources,
+		options: {
+			sendSAPTargetCSP,
+			serveCSPReports,
+			simpleIndex
+		}
+	});
+
+	let app = express();
+	await middlewareManager.applyMiddleware(app);
+
+	if (h2) {
+		app = await _addSsl({app, key, cert});
 	}
-};
+
+	const {port, server} = await _listen(app, requestedPort, changePortIfInUse, acceptRemoteConnections);
+
+	return {
+		h2,
+		port,
+		close: function(callback) {
+			server.close(callback);
+		}
+	};
+}

@@ -1,7 +1,8 @@
-const log = require("@ui5/logger").getLogger("server:middleware:serveResources");
-const replaceStream = require("replacestream");
-const etag = require("etag");
-const fresh = require("fresh");
+import logger from "@ui5/logger";
+const log = logger.getLogger("server:middleware:serveResources");
+import replaceStream from "replacestream";
+import etag from "etag";
+import fresh from "fresh";
 
 const rProperties = /\.properties$/i;
 const rReplaceVersion = /\.(library|js|json)$/i;
@@ -33,14 +34,16 @@ function createMiddleware({resources, middlewareUtil}) {
 				return;
 			}
 			if (log.isLevelEnabled("verbose")) {
-				const treeify = require("treeify");
+				const {
+					default: treeify
+				} = await import("treeify");
 				log.verbose("\n" + treeify.asTree(resource.getPathTree()));
 			}
 
 			const resourcePath = resource.getPath();
 			if (rProperties.test(resourcePath)) {
 				// Special handling for *.properties files escape non ascii characters.
-				const nonAsciiEscaper = require("@ui5/builder").processors.nonAsciiEscaper;
+				const {default: nonAsciiEscaper} = await import("@ui5/builder/processors/nonAsciiEscaper");
 				const project = resource.getProject();
 				let propertiesFileSourceEncoding = project?.getPropertiesFileSourceEncoding();
 
@@ -98,4 +101,4 @@ function createMiddleware({resources, middlewareUtil}) {
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

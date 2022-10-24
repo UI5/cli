@@ -1,8 +1,10 @@
-const parseurl = require("parseurl");
-const Router = require("router");
-const querystring = require("querystring");
+import parseurl from "parseurl";
+import Router from "router";
+import querystring from "node:querystring";
+import logger from "@ui5/logger";
+import bodyParser from "body-parser";
 
-const log = require("@ui5/logger").getLogger("server:middleware:csp");
+const log = logger.getLogger("server:middleware:csp");
 
 const HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
 const HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY = "Content-Security-Policy-Report-Only";
@@ -77,7 +79,6 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 	// .csplog
 	// body parser is required to parse csp-report in body (json)
 	if (serveCSPReports) {
-		const bodyParser = require("body-parser");
 		router.post("/.ui5/csp/report.csplog", bodyParser.json({type: "application/csp-report"}));
 	}
 	router.post("/.ui5/csp/report.csplog", function(req, res, next) {
@@ -196,4 +197,4 @@ function createMiddleware(sCspUrlParameterName, oConfig) {
 	return router;
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

@@ -1,19 +1,18 @@
-const test = require("ava");
-const supertest = require("supertest");
-const ui5Server = require("../../../");
-const server = ui5Server.server;
-const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
+import test from "ava";
+import supertest from "supertest";
+import {serve} from "../../../lib/server.js";
+import {graphFromPackageDependencies} from "@ui5/project/graph";
 
 let request;
-let serve;
+let server;
 
 // Start server before running tests
 test.before(async (t) => {
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	serve = await server.serve(graph, {
+	server = await serve(graph, {
 		port: 3333
 	});
 	request = supertest("http://localhost:3333");
@@ -21,7 +20,7 @@ test.before(async (t) => {
 
 test.after.always(() => {
 	return new Promise((resolve, reject) => {
-		serve.close((error) => {
+		server.close((error) => {
 			if (error) {
 				reject(error);
 			} else {
@@ -364,11 +363,11 @@ test("Stop server", async (t) => {
 	const port = 3350;
 	const request = supertest(`http://localhost:${port}`);
 
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	const serveResult = await server.serve(graph, {
+	const serveResult = await serve(graph, {
 		port: port
 	});
 
@@ -471,11 +470,11 @@ test("CSP (sap policies)", async (t) => {
 	const port = 3400;
 	const request = supertest(`http://localhost:${port}`);
 
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	const serveResult = await server.serve(graph, {
+	const serveResult = await serve(graph, {
 		port,
 		sendSAPTargetCSP: true,
 		simpleIndex: false
@@ -568,11 +567,11 @@ test("CSP serveCSPReports", async (t) => {
 	const port = 3450;
 	const request = supertest(`http://localhost:${port}`);
 
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	const serveResult = await server.serve(graph, {
+	const serveResult = await serve(graph, {
 		port,
 		serveCSPReports: true,
 		simpleIndex: false
@@ -622,11 +621,11 @@ test("CSP with ignore paths", async (t) => {
 	const port = 3500;
 	const request = supertest(`http://localhost:${port}`);
 
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	const serveResult = await server.serve(graph, {
+	const serveResult = await serve(graph, {
 		port,
 		serveCSPReports: true,
 		sendSAPTargetCSP: true,

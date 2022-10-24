@@ -1,7 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const MiddlewareManager = require("../../../../lib/middleware/MiddlewareManager");
-const middlewareRepository = require("../../../../lib/middleware/middlewareRepository");
+import test from "ava";
+import sinon from "sinon";
+import MiddlewareManager from "../../../../lib/middleware/MiddlewareManager.js";
+import middlewareRepository from "../../../../lib/middleware/middlewareRepository.js";
 
 test("Missing parameters", (t) => {
 	const err = t.throws(() => {
@@ -213,7 +213,7 @@ test("addMiddleware: Add middleware with invalid afterMiddleware parameter", asy
 		"No new middleware got added to middleware execution order array");
 });
 
-test("addMiddleware: Add middleware with rapperCallback parameter", async (t) => {
+test("addMiddleware: Add middleware with wrapperCallback parameter", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		resources: {
@@ -222,7 +222,7 @@ test("addMiddleware: Add middleware with rapperCallback parameter", async (t) =>
 			dependencies: "ponies"
 		}
 	});
-	const serveIndexMiddlewareInfo = middlewareRepository.getMiddleware("serveIndex");
+	const serveIndexMiddlewareInfo = await middlewareRepository.getMiddleware("serveIndex");
 
 	const moduleStub = sinon.stub().returns("🍅");
 	const wrapperCallbackStub = sinon.stub().returns(moduleStub);
@@ -527,7 +527,7 @@ test("addCustomMiddleware", async (t) => {
 	const middlewareUtil = {
 		getInterface: sinon.stub().returns("interfacedMiddlewareUtil")
 	};
-	const res = customMiddleware({
+	const res = await customMiddleware({
 		resources: "resources",
 		middlewareUtil
 	});

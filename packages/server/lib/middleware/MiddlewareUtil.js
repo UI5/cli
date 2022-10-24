@@ -1,3 +1,6 @@
+import parseurl from "parseurl";
+import mime from "mime-types";
+
 /**
  * Convenience functions for UI5 Server middleware.
  * An instance of this class is passed to every standard UI5 Server middleware.
@@ -8,7 +11,9 @@
  * version defined for the extension.
  *
  * @public
- * @memberof module:@ui5/server.middleware
+ * @class
+ * @alias @ui5/server/middleware/MiddlewareUtil
+ * @hideconstructor
  */
 class MiddlewareUtil {
 	/**
@@ -54,7 +59,6 @@ class MiddlewareUtil {
 	 * @public
 	 */
 	getPathname(req) {
-		const parseurl = require("parseurl");
 		let {pathname} = parseurl(req);
 		pathname = decodeURIComponent(pathname);
 		return pathname;
@@ -75,7 +79,7 @@ class MiddlewareUtil {
 	 * @property {string} type Detected content-type for the given resource path
 	 * @property {string} charset Default charset for the detected content-type
 	 * @property {string} contentType Calculated content-type header value
-	 * @memberof module:@ui5/server.middleware.MiddlewareUtil
+	 * @memberof @ui5/server/middleware/MiddlewareUtil
 	 */
 	/**
 	 * Returns MIME information derived from a given resource path.
@@ -84,11 +88,10 @@ class MiddlewareUtil {
 	 * <b>Specification Version 2.0 and above</b>.
 	 *
 	 * @param {object} resourcePath
-	 * @returns {module:@ui5/server.middleware.MiddlewareUtil.MimeInfo}
+	 * @returns {@ui5/server/middleware/MiddlewareUtil.MimeInfo}
 	 * @public
 	 */
 	getMimeInfo(resourcePath) {
-		const mime = require("mime-types");
 		const type = mime.lookup(resourcePath) || "application/octet-stream";
 		const charset = mime.charset(type);
 		return {
@@ -99,4 +102,4 @@ class MiddlewareUtil {
 	}
 }
 
-module.exports = MiddlewareUtil;
+export default MiddlewareUtil;

@@ -1,22 +1,22 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const path = require("path");
-const fs = require("graceful-fs");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "node:path";
+import fs from "graceful-fs";
+import {fileURLToPath} from "node:url";
 
 let testRunnerMiddleware;
-const baseResourcePath = path.join(__dirname, "..", "..", "..", "..", "lib", "middleware", "testRunner");
+const baseResourcePath = fileURLToPath(new URL("../../../../lib/middleware/testRunner", import.meta.url));
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.readFileStub = sinon.stub(fs, "readFile").yieldsAsync(null, "👮");
 
 	// Re-require to ensure that mocked modules are used
-	testRunnerMiddleware = mock.reRequire("../../../../lib/middleware/testRunner");
+	testRunnerMiddleware = await esmock("../../../../lib/middleware/testRunner.js");
 });
 
 test.afterEach.always(() => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 function callMiddleware(reqPath) {

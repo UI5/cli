@@ -1,7 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-
-const cspMiddleware = require("../../../../lib/middleware/csp");
+import test from "ava";
+import sinon from "sinon";
+import cspMiddleware from "../../../../lib/middleware/csp.js";
 
 
 test("OPTIONS request", async (t) => {

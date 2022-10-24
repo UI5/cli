@@ -1,58 +1,63 @@
-const os = require("os");
-const fs = require("fs");
-const log = require("@ui5/logger").getLogger("server:sslUtil");
-const {promisify} = require("util");
+import os from "node:os";
+import fs from "node:fs";
+import logger from "@ui5/logger";
+const log = logger.getLogger("server:sslUtil");
+import {promisify} from "node:util";
 
 const stat = promisify(fs.stat);
-const path = require("path");
+import path from "node:path";
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
-const makeDir = require("make-dir");
 
-const sslUtil = {
-	/**
-	 * Creates a new SSL certificate or validates an existing one.
-	 *
-	 * @module @ui5/server/sslUtil
-	 * @param {string} [keyPath=$HOME/.ui5/server/server.key]  Path to private key to be used for https.
-	 *                                                         Defaults to <code>$HOME/.ui5/server/server.key</code>
-	 * @param {string} [certPath=$HOME/.ui5/server/server.crt] Path to certificate to be used for for https.
-	 *                                                         Defaults to <code>$HOME/.ui5/server/server.crt</codee>
-	 * @returns {Promise<object>} Resolves with an sslObject containing <code>cert</code> and <code>key</code>
-	 */
-	getSslCertificate: function(
-		keyPath = path.join(os.homedir(), ".ui5/server/server.key"),
-		certPath = path.join(os.homedir(), ".ui5/server/server.crt")
-	) {
-		// checks the certificates if they are present
-		return Promise.all([
-			fileExists(keyPath).then((bExists) => {
-				if (!bExists) {
-					log.verbose(`No SSL private key found at ${keyPath}`);
-					return false;
-				}
-				return readFile(keyPath);
-			}),
-			fileExists(certPath).then((bExists) => {
-				if (!bExists) {
-					log.verbose(`No SSL certificate found at ${certPath}`);
-					return false;
-				}
-				return readFile(certPath);
-			})
-		]).then(function([key, cert]) {
-			if (key && cert) {
-				return {key, cert};
+
+/**
+ * @private
+ * @module @ui5/server/internal/sslUtil
+ */
+
+/**
+ * Creates a new SSL certificate or validates an existing one.
+ *
+ * @private
+ * @static
+ * @param {string} [keyPath=$HOME/.ui5/server/server.key]  Path to private key to be used for https.
+ *                                                         Defaults to <code>$HOME/.ui5/server/server.key</code>
+ * @param {string} [certPath=$HOME/.ui5/server/server.crt] Path to certificate to be used for for https.
+ *                                                         Defaults to <code>$HOME/.ui5/server/server.crt</codee>
+ * @returns {Promise<object>} Resolves with an sslObject containing <code>cert</code> and <code>key</code>
+ */
+export function getSslCertificate(
+	keyPath = path.join(os.homedir(), ".ui5/server/server.key"),
+	certPath = path.join(os.homedir(), ".ui5/server/server.crt")
+) {
+	// checks the certificates if they are present
+	return Promise.all([
+		fileExists(keyPath).then((bExists) => {
+			if (!bExists) {
+				log.verbose(`No SSL private key found at ${keyPath}`);
+				return false;
 			}
-			return createAndInstallCertificate(keyPath, certPath);
-		});
-	}
-};
+			return readFile(keyPath);
+		}),
+		fileExists(certPath).then((bExists) => {
+			if (!bExists) {
+				log.verbose(`No SSL certificate found at ${certPath}`);
+				return false;
+			}
+			return readFile(certPath);
+		})
+	]).then(function([key, cert]) {
+		if (key && cert) {
+			return {key, cert};
+		}
+		return createAndInstallCertificate(keyPath, certPath);
+	});
+}
 
 
 async function createAndInstallCertificate(keyPath, certPath) {
-	const yesno = require("yesno");
+	const {default: yesno} = await import("yesno");
 
 	const ok = await yesno({
 		question: "No SSL certificates found. " +
@@ -65,7 +70,7 @@ async function createAndInstallCertificate(keyPath, certPath) {
 	}
 
 	// In case certificate is not found, create a self-signed one and put it into the user's trust store
-	const devCert = require("devcert-sanscache");
+	const {default: devCert} = await import("devcert-sanscache");
 
 	// Inform end user about entering his root password (needed for importing
 	// the created certificate into the system)
@@ -81,6 +86,9 @@ async function createAndInstallCertificate(keyPath, certPath) {
 	}
 
 	const {key, cert} = await devCert("UI5Tooling");
+
+	const {default: makeDir} = await import("make-dir");
+
 	await Promise.all([
 		// Write certificates to the ui5 certificate folder
 		// such that they are used by default upon next startup
@@ -99,5 +107,3 @@ function fileExists(filePath) {
 		}
 	});
 }
-
-module.exports = sslUtil;

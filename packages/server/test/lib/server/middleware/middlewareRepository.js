@@ -1,18 +1,16 @@
-const test = require("ava");
-const middlewareRepository = require("../../../../lib/middleware/middlewareRepository");
+import test from "ava";
+import middlewareRepository from "../../../../lib/middleware/middlewareRepository.js";
+import cspModule from "../../../../lib/middleware/csp.js";
 
-test("getMiddleware", (t) => {
-	const cspModule = require("../../../../lib/middleware/csp");
-	const res = middlewareRepository.getMiddleware("csp");
+test("getMiddleware", async (t) => {
+	const res = await middlewareRepository.getMiddleware("csp");
 	t.deepEqual(res, {
 		middleware: cspModule
 	}, "Returned correct middleware module");
 });
 
-test("getMiddleware: Unknown middleware", (t) => {
-	const err = t.throws(() => {
-		middlewareRepository.getMiddleware("🐬");
-	});
+test("getMiddleware: Unknown middleware", async (t) => {
+	const err = await t.throwsAsync(middlewareRepository.getMiddleware("🐬"));
 	t.is(err.message, "middlewareRepository: Unknown Middleware 🐬",
 		"Threw error with correct message");
 });

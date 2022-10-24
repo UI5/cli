@@ -112,4 +112,4 @@ function createMiddleware({resources}) {
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

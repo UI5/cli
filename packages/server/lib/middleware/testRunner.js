@@ -1,10 +1,11 @@
-const {promisify} = require("util");
-const fs = require("graceful-fs");
+import {promisify} from "node:util";
+import fs from "graceful-fs";
 const readFile = promisify(fs.readFile);
-const path = require("path");
-const mime = require("mime-types");
-const parseurl = require("parseurl");
-const log = require("@ui5/logger").getLogger("server:middleware:testRunner");
+import {fileURLToPath} from "node:url";
+import mime from "mime-types";
+import parseurl from "parseurl";
+import logger from "@ui5/logger";
+const log = logger.getLogger("server:middleware:testRunner");
 
 const testRunnerResourceRegEx = /\/test-resources\/sap\/ui\/qunit\/(testrunner\.(html|css)|TestRunner.js)$/;
 const resourceCache = {};
@@ -40,7 +41,8 @@ function createMiddleware({resources}) {
 				log.verbose(`Serving ${pathname}`);
 				let pResource;
 				if (!resourceCache[pathname]) {
-					pResource = readFile(path.join(__dirname, "testRunner", resourceName), {encoding: "utf8"});
+					const filePath = fileURLToPath(new URL(`./testRunner/${resourceName}`, import.meta.url));
+					pResource = readFile(filePath, {encoding: "utf8"});
 					resourceCache[pathname] = pResource;
 				} else {
 					pResource = resourceCache[pathname];
@@ -57,4 +59,4 @@ function createMiddleware({resources}) {
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

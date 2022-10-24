@@ -1,8 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const resourceFactory = require("@ui5/fs").resourceFactory;
-let versionInfoMiddleware = require("../../../../lib/middleware/versionInfo");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import * as resourceFactory from "@ui5/fs/resourceFactory";
 
 function createWorkspace() {
 	return resourceFactory.createAdapter({
@@ -36,8 +35,8 @@ const createProjectMetadata = (names, version) => {
 };
 
 /**
- * @param {module:@ui5/fs.DuplexCollection} dependencies
- * @param {module:@ui5/fs.resourceFactory} resourceFactory
+ * @param {module:@ui5/fs/DuplexCollection} dependencies
+ * @param {module:@ui5/fs/resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {string} version Project version to write into to the .library
  * @returns {Promise<void>}
@@ -62,8 +61,8 @@ async function createDotLibrary(dependencies, resourceFactory, names, version) {
 
 /**
  *
- * @param {module:@ui5/fs.DuplexCollection} dependencies
- * @param {module:@ui5/fs.resourceFactory} resourceFactory
+ * @param {module:@ui5/fs/DuplexCollection} dependencies
+ * @param {module:@ui5/fs/resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {object[]} deps
  * @param {string[]} [embeds]
@@ -108,8 +107,8 @@ const createManifestResource = async (dependencies, resourceFactory, names, deps
 
 /**
  *
- * @param {module:@ui5/fs.DuplexCollection} dependencies
- * @param {module:@ui5/fs.resourceFactory} resourceFactory
+ * @param {module:@ui5/fs/DuplexCollection} dependencies
+ * @param {module:@ui5/fs/resourceFactory} resourceFactory
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {object[]} deps
  * @param {string[]} [embeds]
@@ -147,12 +146,13 @@ async function assertCreatedVersionInfo(t, expectedVersionInfo, versionInfoConte
 }
 
 test.beforeEach((t) => {
-	versionInfoMiddleware = mock.reRequire("../../../../lib/middleware/versionInfo");
+	t.context.createVersionInfoMiddleware = async (mocks = {}) => {
+		return esmock("../../../../lib/middleware/versionInfo.js", mocks);
+	};
 });
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
 test.serial("test all inner API calls within middleware", async (t) => {
@@ -163,13 +163,11 @@ test.serial("test all inner API calls within middleware", async (t) => {
 		string: "stubbed version info"
 	});
 	const versionInfoGeneratorStub = sinon.stub().returns([dummyVersionInfo]);
-	mock("@ui5/builder", {
-		processors: {
-			manifestCreator: manifestCreatorStub,
-			versionInfoGenerator: versionInfoGeneratorStub
-		}
+
+	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware({
+		"@ui5/builder/processors/manifestCreator": manifestCreatorStub,
+		"@ui5/builder/processors/versionInfoGenerator": versionInfoGeneratorStub,
 	});
-	versionInfoMiddleware = mock.reRequire("../../../../lib/middleware/versionInfo");
 
 	const dependenciesA = createDepWorkspace(["lib", "a"], {virBasePath: "/"});
 	const dependenciesB = createDepWorkspace(["lib", "b"], {virBasePath: "/"});
@@ -316,6 +314,8 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 	const graph = {
 		getRoot: () => createProjectMetadata(["myname"], "1.33.7")
 	};
+
+	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();
 	const middleware = versionInfoMiddleware({resources, graph});
 
 	const expectedVersionInfo = {

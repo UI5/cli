@@ -1,26 +1,26 @@
-const test = require("ava");
-const supertest = require("supertest");
-const ui5Server = require("../../../");
-const server = ui5Server.server;
-const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
-const path = require("path");
+import test from "ava";
+import supertest from "supertest";
+import {serve} from "../../../lib/server.js";
+import {getSslCertificate} from "../../../lib/sslUtil.js";
+import {graphFromPackageDependencies} from "@ui5/project/graph";
+import path from "node:path";
 
 let request;
-let serve;
+let server;
 
 // Start server before running tests
 test.before(async (t) => {
 	process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 	const sslPath = path.join(process.cwd(), "./test/fixtures/ssl/");
-	const {key, cert} = await ui5Server.sslUtil.getSslCertificate(
+	const {key, cert} = await getSslCertificate(
 		path.join(sslPath, "server.key"),
 		path.join(sslPath, "server.crt"),
 	);
-	serve = await server.serve(graph, {
+	server = await serve(graph, {
 		port: 3366,
 		h2: true,
 		key,
@@ -31,7 +31,7 @@ test.before(async (t) => {
 
 test.after(() => {
 	return new Promise((resolve, reject) => {
-		serve.close((error) => {
+		server.close((error) => {
 			if (error) {
 				reject(error);
 			} else {

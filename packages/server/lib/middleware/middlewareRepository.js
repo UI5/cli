@@ -1,34 +1,55 @@
 const middlewareInfos = {
 	compression: {path: "compression"},
 	cors: {path: "cors"},
-	csp: {path: "./csp"},
-	serveResources: {path: "./serveResources"},
-	serveIndex: {path: "./serveIndex"},
-	discovery: {path: "./discovery"},
-	versionInfo: {path: "./versionInfo"},
-	connectUi5Proxy: {path: "./connectUi5Proxy"},
-	serveThemes: {path: "./serveThemes"},
-	testRunner: {path: "./testRunner"},
-	nonReadRequests: {path: "./nonReadRequests"}
+	csp: {path: "./csp.js"},
+	serveResources: {path: "./serveResources.js"},
+	serveIndex: {path: "./serveIndex.js"},
+	discovery: {path: "./discovery.js"},
+	versionInfo: {path: "./versionInfo.js"},
+	connectUi5Proxy: {path: "./connectUi5Proxy.js"},
+	serveThemes: {path: "./serveThemes.js"},
+	testRunner: {path: "./testRunner.js"},
+	nonReadRequests: {path: "./nonReadRequests.js"}
 };
 
-function getMiddleware(middlewareName) {
+// see  @ui5/server/internal/middlewareRepository#getMiddleware
+async function getMiddleware(middlewareName) {
 	const middlewareInfo = middlewareInfos[middlewareName];
 
 	if (!middlewareInfo) {
 		throw new Error(`middlewareRepository: Unknown Middleware ${middlewareName}`);
 	}
 	try {
-		const middleware = require(middlewareInfo.path);
+		const {default: middleware} = await import(middlewareInfo.path);
 		return {
 			middleware
 		};
 	} catch (err) {
 		throw new Error(
-			`middlewareRepository: Failed to require middleware module for ${middlewareName}: ${err.message}`);
+			`middlewareRepository: Failed to require middleware module for ${middlewareName}:\n${err.stack}`);
 	}
 }
+/**
+ * @private
+ * @typedef {object} module:@ui5/server/internal/middlewareRepository~Middleware
+ * @property {object} middleware The middleware
+ */
 
-module.exports = {
+/**
+ * @private
+ * @module @ui5/server/internal/middlewareRepository
+ * @borrows getMiddleware as getMiddleware
+ */
+export default {
+
+	/**
+	 * Determines the desired middleware
+	 *
+	 * @private
+	 * @static
+	 * @function
+	 * @param {string} middlewareName The name of the middleware
+	 * @returns {module:@ui5/server/internal/middlewareRepository~Middleware} The middleware
+	 */
 	getMiddleware: getMiddleware
 };

@@ -1,19 +1,18 @@
-const test = require("ava");
-const supertest = require("supertest");
-const ui5Server = require("../../../");
-const server = ui5Server.server;
-const generateProjectGraph = require("@ui5/project").generateProjectGraph.usingNodePackageDependencies;
+import test from "ava";
+import supertest from "supertest";
+import {serve} from "../../../lib/server.js";
+import {graphFromPackageDependencies} from "@ui5/project/graph";
 
 let request;
-let serve;
+let server;
 
 // Start server before running tests
 test.before(async () => {
-	const graph = await generateProjectGraph({
+	const graph = await graphFromPackageDependencies({
 		cwd: "./test/fixtures/application.a"
 	});
 
-	serve = await server.serve(graph, {
+	server = await serve(graph, {
 		port: 3334,
 		acceptRemoteConnections: true
 	});
@@ -23,7 +22,7 @@ test.before(async () => {
 
 test.after(() => {
 	return new Promise((resolve, reject) => {
-		serve.close((error) => {
+		server.close((error) => {
 			if (error) {
 				reject(error);
 			} else {

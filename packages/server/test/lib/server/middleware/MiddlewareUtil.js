@@ -1,17 +1,19 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-const MiddlewareUtil = require("../../../../lib/middleware/MiddlewareUtil");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import mime from "mime-types";
+import MiddlewareUtil from "../../../../lib/middleware/MiddlewareUtil.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
 });
 
-test.serial("getPathname", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+test.serial("getPathname", async (t) => {
 	const parseurlStub = sinon.stub().returns({pathname: "path%20name"});
-	mock("parseurl", parseurlStub);
+	const MiddlewareUtil = await esmock("../../../../lib/middleware/MiddlewareUtil.js", {
+		parseurl: parseurlStub
+	});
+	const middlewareUtil = new MiddlewareUtil();
 	const pathname = middlewareUtil.getPathname("req");
 
 	t.is(parseurlStub.callCount, 1, "parseurl got called once");
@@ -21,7 +23,6 @@ test.serial("getPathname", (t) => {
 
 test.serial("getMimeInfo", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
-	const mime = require("mime-types");
 	const lookupStub = sinon.stub(mime, "lookup").returns("mytype");
 	const charsetStub = sinon.stub(mime, "charset").returns("mycharset");
 
@@ -40,7 +41,6 @@ test.serial("getMimeInfo", (t) => {
 
 test.serial("getMimeInfo: unknown type", (t) => {
 	const middlewareUtil = new MiddlewareUtil();
-	const mime = require("mime-types");
 	const lookupStub = sinon.stub(mime, "lookup");
 	const charsetStub = sinon.stub(mime, "charset");
 

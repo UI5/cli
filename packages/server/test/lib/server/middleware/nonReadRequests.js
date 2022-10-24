@@ -1,5 +1,5 @@
-const test = require("ava");
-const nonReadRequestsMiddleware = require("../../../../lib/middleware/nonReadRequests");
+import test from "ava";
+import nonReadRequestsMiddleware from "../../../../lib/middleware/nonReadRequests.js";
 
 test("Read requests", (t) => {
 	t.plan(3);

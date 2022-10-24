@@ -1,5 +1,5 @@
-const createVersionInfoProcessor = require("@ui5/builder").processors.versionInfoGenerator;
-const createManifestProcessor = require("@ui5/builder").processors.manifestCreator;
+import createVersionInfoProcessor from "@ui5/builder/processors/versionInfoGenerator";
+import createManifestProcessor from "@ui5/builder/processors/manifestCreator";
 
 const MANIFEST_JSON = "manifest.json";
 
@@ -8,8 +8,8 @@ const MANIFEST_JSON = "manifest.json";
  *
  * @module @ui5/server/middleware/versionInfo
  * @param {object} parameters Parameters
- * @param {module:@ui5/server.middleware.MiddlewareManager.middlewareResources} parameters.resources Parameters
- * @param {module:@ui5/project.graph.ProjectGraph} parameters.graph Project graph
+ * @param {@ui5/server.middleware.MiddlewareManager.middlewareResources} parameters.resources Parameters
+ * @param {@ui5/project.graph.ProjectGraph} parameters.graph Project graph
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources, graph}) {
@@ -74,4 +74,4 @@ function createMiddleware({resources, graph}) {
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;

@@ -20,4 +20,4 @@ function createMiddleware() {
 	};
 }
 
-module.exports = createMiddleware;
+export default createMiddleware;
