@@ -1,11 +1,12 @@
-const AbstractReader = require("./AbstractReader");
+import AbstractReader from "./AbstractReader.js";
 
 /**
  * Prioritized Resource Locator Collection
  *
  * @public
- * @memberof module:@ui5/fs
- * @augments module:@ui5/fs.AbstractReader
+ * @class
+ * @alias @ui5/fs/ReaderCollectionPrioritized
+ * @extends @ui5/fs/AbstractReader
  */
 class ReaderCollectionPrioritized extends AbstractReader {
 	/**
@@ -13,7 +14,7 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 *
 	 * @param {object} parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {module:@ui5/fs.AbstractReader[]} parameters.readers Prioritized list of resource readers
+	 * @param {@ui5/fs/AbstractReader[]} parameters.readers Prioritized list of resource readers
 	 * 																(first is tried first)
 	 */
 	constructor({readers, name}) {
@@ -29,8 +30,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @param {string|string[]} pattern glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	_byGlob(pattern, options, trace) {
 		return Promise.all(this._readers.map(function(resourceLocator) {
@@ -61,8 +62,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;
@@ -83,4 +84,4 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	}
 }
 
-module.exports = ReaderCollectionPrioritized;
+export default ReaderCollectionPrioritized;

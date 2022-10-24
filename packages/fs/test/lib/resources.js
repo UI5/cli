@@ -1,10 +1,10 @@
-const test = require("ava");
-const chai = require("chai");
-chai.use(require("chai-fs"));
+import test from "ava";
+import chai from "chai";
+import chaifs from "chai-fs";
+chai.use(chaifs);
 const assert = chai.assert;
-const sinon = require("sinon");
-
-const ui5Fs = require("../../");
+import sinon from "sinon";
+import {createAdapter} from "../../lib/resourceFactory.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();
@@ -14,11 +14,11 @@ test.afterEach.always((t) => {
 	Always make sure that every test writes to a separate file! By default, tests are running concurrent.
 */
 test("Get resource from application.a (/index.html) and write it to /dest/ using a ReadableStream", async (t) => {
-	const source = ui5Fs.resourceFactory.createAdapter({
+	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
-	const dest = ui5Fs.resourceFactory.createAdapter({
+	const dest = createAdapter({
 		fsBasePath: "./test/tmp/readerWriters/application.a/simple-read-write",
 		virBasePath: "/dest/"
 	});
@@ -38,11 +38,11 @@ test("Get resource from application.a (/index.html) and write it to /dest/ using
 });
 
 test("Filter resources", async (t) => {
-	const source = ui5Fs.resourceFactory.createAdapter({
+	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
-	const filteredSource = source.filter((resource) => {
+	const filteredSource = await source.filter((resource) => {
 		return resource.getPath().endsWith(".js");
 	});
 	const sourceResources = await source.byGlob("**");
@@ -55,11 +55,11 @@ test("Filter resources", async (t) => {
 });
 
 test("Transform resources", async (t) => {
-	const source = ui5Fs.resourceFactory.createAdapter({
+	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
-	const transformedSource = source.transform(async (resourcePath, getResource) => {
+	const transformedSource = await source.transform(async (resourcePath, getResource) => {
 		if (resourcePath === "/app/test.js") {
 			const resource = await getResource();
 			resource.setPath("/app/transformed-test.js");
@@ -79,11 +79,11 @@ test("Transform resources", async (t) => {
 });
 
 test("Flatten resources", async (t) => {
-	const source = ui5Fs.resourceFactory.createAdapter({
+	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/"
 	});
-	const transformedSource = source.flatten("app");
+	const transformedSource = await source.flatten("app");
 
 	const resources = await transformedSource.byGlob("**/*.js");
 	t.is(resources.length, 1, "Found one resource via transformer");

@@ -1,13 +1,15 @@
-const test = require("ava");
-const {promisify} = require("util");
-const Buffer = require("buffer").Buffer;
-const path = require("path");
-const fs = require("fs");
-const ui5Fs = require("../../");
-const fsInterface = ui5Fs.fsInterface;
-const MemAdapter = ui5Fs.adapters.Memory;
-const FsAdapter = ui5Fs.adapters.FileSystem;
-const Resource = ui5Fs.Resource;
+import test from "ava";
+import {promisify} from "node:util";
+import {Buffer} from "node:buffer";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import fsSync from "node:fs";
+const stat = promisify(fsSync.stat);
+import {readFile} from "node:fs/promises";
+import fsInterface from "../../lib/fsInterface.js";
+import MemAdapter from "../../lib/adapters/Memory.js";
+import FsAdapter from "../../lib/adapters/FileSystem.js";
+import Resource from "../../lib/Resource.js";
 
 const assertReadFile = async (t, readFile, basepath, filepath, content) => {
 	content = content || "content of " + filepath;
@@ -31,6 +33,10 @@ const assertReadFile = async (t, readFile, basepath, filepath, content) => {
 	t.deepEqual(content, content);
 };
 
+function getPath() {
+	return fileURLToPath(new URL("../fixtures/fsInterfáce", import.meta.url));
+}
+
 test("MemAdapter: readFile", async (t) => {
 	const memAdapter = new MemAdapter({
 		virBasePath: "/"
@@ -50,7 +56,7 @@ test("MemAdapter: readFile", async (t) => {
 test("FsAdapter: readFile with non-ASCII characters in path", async (t) => {
 	const fsAdapter = new FsAdapter({
 		virBasePath: "/",
-		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterfáce")
+		fsBasePath: getPath()
 	});
 	const fs = fsInterface(fsAdapter);
 	const readFile = promisify(fs.readFile);
@@ -59,11 +65,9 @@ test("FsAdapter: readFile with non-ASCII characters in path", async (t) => {
 });
 
 test("fs: readFile", async (t) => {
-	const readFile = promisify(fs.readFile);
 	await assertReadFile(t, readFile,
-		path.join(__dirname, "..", "fixtures", "fsInterfáce"), path.join("/", "foo.txt"), "content");
+		getPath(), path.join("/", "foo.txt"), "content");
 });
-
 
 const assertStat = async (t, stat, basepath, filepath) => {
 	const fullpath = path.join(basepath, filepath);
@@ -96,7 +100,7 @@ test("MemAdapter: stat", async (t) => {
 test("FsAdapter: stat", async (t) => {
 	const fsAdapter = new FsAdapter({
 		virBasePath: "/",
-		fsBasePath: path.join(__dirname, "..", "fixtures", "fsInterfáce")
+		fsBasePath: getPath()
 	});
 	const fs = fsInterface(fsAdapter);
 	const stat = promisify(fs.stat);
@@ -105,8 +109,7 @@ test("FsAdapter: stat", async (t) => {
 });
 
 test("fs: stat", async (t) => {
-	const stat = promisify(fs.stat);
-	await assertStat(t, stat, path.join(__dirname, "..", "fixtures", "fsInterfáce"), path.join("/", "foo.txt"));
+	await assertStat(t, stat, getPath(), path.join("/", "foo.txt"));
 });
 
 test("MemAdapter: mkdir", async (t) => {

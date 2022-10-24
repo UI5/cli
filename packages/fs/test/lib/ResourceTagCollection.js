@@ -1,8 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-
-const Resource = require("../../lib/Resource");
-const ResourceTagCollection = require("../../lib/ResourceTagCollection");
+import test from "ava";
+import sinon from "sinon";
+import Resource from "../../lib/Resource.js";
+import ResourceTagCollection from "../../lib/ResourceTagCollection.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();

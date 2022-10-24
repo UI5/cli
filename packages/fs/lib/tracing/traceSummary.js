@@ -1,5 +1,7 @@
-const log = require("@ui5/logger").getLogger("resources:tracing:total");
-const prettyHrtime = require("pretty-hrtime");
+import logger from "@ui5/logger";
+const log = logger.getLogger("resources:tracing:total");
+
+import prettyHrtime from "pretty-hrtime";
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 let timeoutId;
 let active = false;
@@ -114,8 +116,7 @@ function collection(name) {
 	}
 }
 
-
-module.exports = {
+export default {
 	pathCall: pathCall,
 	globCall: globCall,
 	collection: collection,

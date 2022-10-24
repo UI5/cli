@@ -1,21 +1,24 @@
-const AbstractReader = require("../AbstractReader");
-const ResourceFacade = require("../ResourceFacade");
-const resourceFactory = require("../resourceFactory");
-const log = require("@ui5/logger").getLogger("resources:readers:Link");
+import AbstractReader from "../AbstractReader.js";
+import ResourceFacade from "../ResourceFacade.js";
+import {prefixGlobPattern} from "../resourceFactory.js";
+import logger from "@ui5/logger";
+const log = logger.getLogger("resources:readers:Link");
 
 /**
  * A reader that allows modification of all resources passed through it.
  *
- * @private
- * @memberof module:@ui5/fs.readers
- * @augments module:@ui5/fs.AbstractReader
+ * @public
+ * @class
+ * @hideconstructor
+ * @alias @ui5/fs/readers/Link
+ * @extends @ui5/fs/AbstractReader
  */
 class Link extends AbstractReader {
 	/**
-	 * Path mapping for a [Link]{@link module:@ui5/fs.readers.Link}
+	 * Path mapping for a [Link]{@link @ui5/fs/readers/Link}
 	 *
 	 * @private
-	 * @typedef {object} module:@ui5/fs.readers.Link.PathMapping
+	 * @typedef {object} @ui5/fs/readers/Link/PathMapping
 	 * @property {string} linkPath Input path to rewrite
 	 * @property {string} targetPath Path to rewrite to
 	 */
@@ -25,8 +28,8 @@ class Link extends AbstractReader {
 	 *
 	 * @private
 	 * @param {object} parameters Parameters
-	 * @param {module:@ui5/fs.AbstractReader} parameters.reader The resource reader to wrap
-	 * @param {module:@ui5/fs.readers.Link.PathMapping} parameters.pathMapping
+	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader to wrap
+	 * @param {@ui5/fs/readers/Link/PathMapping} parameters.pathMapping
 	 */
 	constructor({reader, pathMapping}) {
 		super();
@@ -48,8 +51,8 @@ class Link extends AbstractReader {
 	 * @param {string|string[]} patterns glob pattern as string or an array of
 	 *         glob patterns for virtual directory structure
 	 * @param {object} options glob options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource[]>} Promise resolving to list of resources
+	 * @param {@ui5/fs/tracing/Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	async _byGlob(patterns, options, trace) {
 		if (!(patterns instanceof Array)) {
@@ -59,7 +62,7 @@ class Link extends AbstractReader {
 			if (pattern.startsWith(this._pathMapping.linkPath)) {
 				pattern = pattern.substr(this._pathMapping.linkPath.length);
 			}
-			return resourceFactory.prefixGlobPattern(pattern, this._pathMapping.targetPath);
+			return prefixGlobPattern(pattern, this._pathMapping.targetPath);
 		});
 
 		// Flatten prefixed patterns
@@ -84,8 +87,8 @@ class Link extends AbstractReader {
 	 * @private
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
-	 * @param {module:@ui5/fs.tracing.Trace} trace Trace instance
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving to a single resource
+	 * @param {@ui5/fs/tracing/Trace} trace Trace instance
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	async _byPath(virPath, options, trace) {
 		if (!virPath.startsWith(this._pathMapping.linkPath)) {
@@ -120,4 +123,4 @@ class Link extends AbstractReader {
 	}
 }
 
-module.exports = Link;
+export default Link;

@@ -1,6 +1,6 @@
-const stream = require("stream");
-const clone = require("clone");
-const path = require("path");
+import stream from "node:stream";
+import clone from "clone";
+import path from "node:path";
 
 const fnTrue = () => true;
 const fnFalse = () => false;
@@ -9,14 +9,15 @@ const fnFalse = () => false;
  * Resource
  *
  * @public
- * @memberof module:@ui5/fs
+ * @class
+ * @alias @ui5/fs/Resource
  */
 class Resource {
 	/**
 	* Function for dynamic creation of content streams
 	*
 	* @public
-	* @callback module:@ui5/fs.Resource~createStream
+	* @callback @ui5/fs/Resource~createStream
 	* @returns {stream.Readable} A readable stream of a resources content
 	*/
 
@@ -34,11 +35,11 @@ class Resource {
 	 *					(cannot be used in conjunction with parameters buffer, stream or createStream)
 	 * @param {Stream} [parameters.stream] Readable stream of the content of this resource
 	 *					(cannot be used in conjunction with parameters buffer, string or createStream)
-	 * @param {module:@ui5/fs.Resource~createStream} [parameters.createStream] Function callback that returns a readable
+	 * @param {@ui5/fs/Resource~createStream} [parameters.createStream] Function callback that returns a readable
 	 *					stream of the content of this resource (cannot be used in conjunction with parameters buffer,
 	 *					string or stream).
 	 *					In some cases this is the most memory-efficient way to supply resource content
-	 * @param {module:@ui5/project.specifications.Project} [parameters.project] Project this resource is associated with
+	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this resource is associated with
 	 * @param {object} [parameters.source] Experimental, internal parameter. Do not use
 	 */
 	constructor({path, statInfo, buffer, string, createStream, stream, project, source}) {
@@ -163,8 +164,8 @@ class Resource {
 	 * Gets a readable stream for the resource content.
 	 *
 	 * Repetitive calls of this function are only possible if new content has been set in the meantime (through
-	 * [setStream]{@link module:@ui5/fs.Resource#setStream}, [setBuffer]{@link module:@ui5/fs.Resource#setBuffer}
-	 * or [setString]{@link module:@ui5/fs.Resource#setString}). This
+	 * [setStream]{@link @ui5/fs/Resource#setStream}, [setBuffer]{@link @ui5/fs/Resource#setBuffer}
+	 * or [setString]{@link @ui5/fs/Resource#setString}). This
 	 * is to prevent consumers from accessing drained streams.
 	 *
 	 * @public
@@ -203,7 +204,7 @@ class Resource {
 	 * Sets a readable stream as content.
 	 *
 	 * @public
-	 * @param {stream.Readable|module:@ui5/fs.Resource~createStream} stream Readable stream of the resource content or
+	 * @param {stream.Readable|@ui5/fs/Resource~createStream} stream Readable stream of the resource content or
 	 														callback for dynamic creation of a readable stream
 	 */
 	setStream(stream) {
@@ -292,7 +293,7 @@ class Resource {
 	 * Returns a clone of the resource. The clones content is independent from that of the original resource
 	 *
 	 * @public
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving with the clone
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving with the clone
 	 */
 	async clone() {
 		const options = await this._getCloneOptions();
@@ -321,7 +322,7 @@ class Resource {
 	 * Retrieve the project assigned to the resource
 	 *
 	 * @public
-	 * @returns {module:@ui5/project.specifications.Project} Project this resource is associated with
+	 * @returns {@ui5/project/specifications/Project} Project this resource is associated with
 	 */
 	getProject() {
 		return this.__project;
@@ -331,7 +332,7 @@ class Resource {
 	 * Assign a project to the resource
 	 *
 	 * @public
-	 * @param {module:@ui5/project.specifications.Project} project Project this resource is associated with
+	 * @param {@ui5/project/specifications/Project} project Project this resource is associated with
 	 */
 	setProject(project) {
 		if (this.__project) {
@@ -426,4 +427,4 @@ class Resource {
 	}
 }
 
-module.exports = Resource;
+export default Resource;

@@ -1,7 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const Link = require("../../../lib/readers/Link");
-const ResourceFacade = require("../../../lib/ResourceFacade");
+import test from "ava";
+import sinon from "sinon";
+import Link from "../../../lib/readers/Link.js";
+import ResourceFacade from "../../../lib/ResourceFacade.js";
 
 test("_byGlob: Basic Link", async (t) => {
 	const dummyResourceA = {

@@ -1,8 +1,9 @@
 /**
- * A [Resource]{module:@ui5/project.Resource} with a different path than it's original
+ * A [Resource]{@ui5/project.Resource} with a different path than it's original
  *
  * @public
- * @memberof module:@ui5/fs
+ * @class
+ * @alias @ui5/fs/ResourceFacade
  */
 class ResourceFacade {
 	/**
@@ -11,7 +12,7 @@ class ResourceFacade {
 	 * @public
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.path Virtual path
-	 * @param {module:@ui5/fs.Resource} parameters.resource Resource to cover
+	 * @param {@ui5/fs/Resource} parameters.resource Resource to cover
 	 */
 	constructor({path, resource}) {
 		if (!path) {
@@ -49,7 +50,7 @@ class ResourceFacade {
 	 * A ResourceFacade becomes a Resource
 	 *
 	 * @public
-	 * @returns {Promise<module:@ui5/fs.Resource>} Promise resolving with the clone
+	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving with the clone
 	 */
 	async clone() {
 		// Cloning resolves the facade
@@ -107,8 +108,8 @@ class ResourceFacade {
 	 * Gets a readable stream for the resource content.
 	 *
 	 * Repetitive calls of this function are only possible if new content has been set in the meantime (through
-	 * [setStream]{@link module:@ui5/fs.Resource#setStream}, [setBuffer]{@link module:@ui5/fs.Resource#setBuffer}
-	 * or [setString]{@link module:@ui5/fs.Resource#setString}). This
+	 * [setStream]{@link @ui5/fs/Resource#setStream}, [setBuffer]{@link @ui5/fs/Resource#setBuffer}
+	 * or [setString]{@link @ui5/fs/Resource#setString}). This
 	 * is to prevent consumers from accessing drained streams.
 	 *
 	 * @public
@@ -122,7 +123,7 @@ class ResourceFacade {
 	 * Sets a readable stream as content.
 	 *
 	 * @public
-	 * @param {stream.Readable|module:@ui5/fs.Resource~createStream} stream Readable stream of the resource content or
+	 * @param {stream.Readable|@ui5/fs/Resource~createStream} stream Readable stream of the resource content or
 															callback for dynamic creation of a readable stream
 	 */
 	setStream(stream) {
@@ -171,18 +172,32 @@ class ResourceFacade {
 		return this._resource.getPathTree();
 	}
 
-	getSource() {
-		return this._resource.getSource();
-	}
-
+	/**
+	 * Retrieve the project assigned to the resource
+	 *
+	 * @public
+	 * @returns {@ui5/project/specifications/Project} Project this resource is associated with
+	 */
 	getProject() {
 		return this._resource.getProject();
 	}
 
+	/**
+	 * Assign a project to the resource
+	 *
+	 * @public
+	 * @param {@ui5/project/specifications/Project} project Project this resource is associated with
+	 */
 	setProject(project) {
 		return this._resource.setProject(project);
 	}
 
+	/**
+	 * Check whether a project has been assigned to the resource
+	 *
+	 * @public
+	 * @returns {boolean} True if the resource is associated with a project
+	 */
 	hasProject() {
 		return this._resource.hasProject();
 	}
@@ -190,6 +205,10 @@ class ResourceFacade {
 	getConcealedResource() {
 		return this._resource;
 	}
+
+	getSource() {
+		return this._resource.getSource();
+	}
 }
 
-module.exports = ResourceFacade;
+export default ResourceFacade;

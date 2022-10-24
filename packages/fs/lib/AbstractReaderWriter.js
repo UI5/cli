@@ -1,12 +1,13 @@
-const AbstractReader = require("./AbstractReader");
+import AbstractReader from "./AbstractReader.js";
 
 /**
  * Abstract resource locator
  *
- * @public
  * @abstract
- * @memberof module:@ui5/fs
- * @augments module:@ui5/fs.AbstractReader
+ * @public
+ * @class
+ * @alias @ui5/fs/AbstractReaderWriter
+ * @extends @ui5/fs/AbstractReader
  */
 class AbstractReaderWriter extends AbstractReader {
 	/**
@@ -25,7 +26,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 * Writes the content of a resource to a path.
 	 *
 	 * @public
-	 * @param {module:@ui5/fs.Resource} resource Resource to write
+	 * @param {@ui5/fs/Resource} resource Resource to write
 	 * @param {object} [options]
 	 * @param {boolean} [options.readOnly=false] Whether the resource content shall be written read-only
 	 *						Do not use in conjunction with the <code>drain</code> option.
@@ -48,7 +49,7 @@ class AbstractReaderWriter extends AbstractReader {
 	 *
 	 * @abstract
 	 * @protected
-	 * @param {module:@ui5/fs.Resource} resource Resource to write
+	 * @param {@ui5/fs/Resource} resource Resource to write
 	 * @param {object} [options] Write options, see above
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
@@ -57,4 +58,4 @@ class AbstractReaderWriter extends AbstractReader {
 	}
 }
 
-module.exports = AbstractReaderWriter;
+export default AbstractReaderWriter;
