@@ -185,23 +185,44 @@ class AbstractAdapter extends AbstractReaderWriter {
 		return new Resource(parameters);
 	}
 
-	_write(resource) {
-		if (!this._project) {
-			return;
+	async _migrateResource(resource) {
+		// Check if its a fs/Resource v3, function 'hasProject' was
+		// introduced with v3 therefore take it as the indicator
+		if (resource.hasProject) {
+			return resource;
 		}
 
-		// Assign project to resource if necessary
-		if (resource.hasProject()) {
-			if (resource.getProject() !== this._project) {
-				throw new Error(
-					`Unable to write resource associated with project ` +
-					`${resource.getProject().getName()} into adapter of project ${this._project.getName()}: ` +
-					resource.getPath());
-			}
-			return;
+		const options = {
+			path: resource._path,
+			statInfo: resource._statInfo,
+			source: resource._source
+		};
+
+		if (resource._stream) {
+			options.buffer = await resource._getBufferFromStream();
+		} else if (resource._createStream) {
+			options.createStream = resource._createStream;
+		} else if (resource._buffer) {
+			options.buffer = resource._buffer;
 		}
-		log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
-		resource.setProject(this._project);
+		return new Resource(options);
+	}
+
+	_write(resource) {
+		if (this._project) {
+			// Assign project to resource if necessary
+			if (resource.hasProject()) {
+				if (resource.getProject() !== this._project) {
+					throw new Error(
+						`Unable to write resource associated with project ` +
+						`${resource.getProject().getName()} into adapter of project ${this._project.getName()}: ` +
+						resource.getPath());
+				}
+				return;
+			}
+			log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);
+			resource.setProject(this._project);
+		}
 	}
 }
 

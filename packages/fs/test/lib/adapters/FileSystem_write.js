@@ -11,6 +11,7 @@ import chai from "chai";
 import chaifs from "chai-fs";
 chai.use(chaifs);
 const assert = chai.assert;
+import sinon from "sinon";
 
 import {createAdapter} from "../../../lib/resourceFactory.js";
 
@@ -128,4 +129,22 @@ test("Writing with readOnly and drain options set should fail", async (t) => {
 		message: "Error while writing resource /app/index.html: " +
 			"Do not use options 'drain' and 'readOnly' at the same time."
 	});
+});
+
+test("Migration of resource is executed", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const migrateResourceWriterSpy = sinon.spy(readerWriters.dest, "_migrateResource");
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Get resource from one readerWriter
+	const resource = await readerWriters.source.byPath("/app/index.html");
+
+	// Write resource content to another readerWriter
+	await readerWriters.dest.write(resource);
+
+	t.is(migrateResourceWriterSpy.callCount, 1);
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
 });

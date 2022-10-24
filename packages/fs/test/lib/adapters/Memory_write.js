@@ -1,5 +1,6 @@
 import test from "ava";
 import {createAdapter, createResource} from "../../../lib/resourceFactory.js";
+import sinon from "sinon";
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
 	const dest = createAdapter({
@@ -117,4 +118,18 @@ test("Write resource w/ crazy virtual base path", async (t) => {
 		"one\\/2",
 		"one\\"
 	], "Adapter added correct virtual directories");
+});
+
+test("Migration of resource is executed", async (t) => {
+	const writer = createAdapter({
+		virBasePath: "/"
+	});
+
+	const resource = createResource({
+		path: "/test.js"
+	});
+
+	const migrateResourceWriterSpy = sinon.spy(writer, "_migrateResource");
+	await writer.write(resource);
+	t.is(migrateResourceWriterSpy.callCount, 1);
 });
