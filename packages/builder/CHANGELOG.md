@@ -2,10 +2,25 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.11...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.12...HEAD).
+
+<a name="v3.0.0-alpha.12"></a>
+## [v3.0.0-alpha.12] - 2022-10-24
+### Breaking Changes
+- Transform to native ESM ([#790](https://github.com/SAP/ui5-builder/issues/790)) [`a439aa9`](https://github.com/SAP/ui5-builder/commit/a439aa9f679dfe2e18b8c540f54876f94c0de119)
+
+### BREAKING CHANGE
+
+This package has been transformed to native ESM. Therefore it no longer provides a CommonJS export.
+If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import.
+
+For more information see also:
+- https://sap.github.io/ui5-tooling/updates/migrate-v3/
+- https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
+
 
 <a name="v3.0.0-alpha.11"></a>
-## [v3.0.0-alpha.11] - 2022-10-12
+## [v3.0.0-alpha.11] - 2022-10-20
 ### Bug Fixes
 - **package.json:** Downgrade es5-ext dependency [`2b71707`](https://github.com/SAP/ui5-builder/commit/2b71707683480b26aab9957c09e5d22bce8a6450)
 
@@ -769,6 +784,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-alpha.12]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.11...v3.0.0-alpha.12
 [v3.0.0-alpha.11]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.10...v3.0.0-alpha.11
 [v3.0.0-alpha.10]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.9...v3.0.0-alpha.10
 [v3.0.0-alpha.9]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.8...v3.0.0-alpha.9
