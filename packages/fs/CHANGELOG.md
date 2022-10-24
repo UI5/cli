@@ -2,10 +2,25 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.6...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.7...HEAD).
+
+<a name="v3.0.0-alpha.7"></a>
+## [v3.0.0-alpha.7] - 2022-10-24
+### Breaking Changes
+- Transform to native ESM ([#398](https://github.com/SAP/ui5-fs/issues/398)) [`2b61580`](https://github.com/SAP/ui5-fs/commit/2b615807a610dd7dfeb5423496ec7aebc9169011)
+
+### BREAKING CHANGE
+
+This package has been transformed to native ESM. Therefore it no longer provides a CommonJS export.
+If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import.
+
+For more information see also:
+- https://sap.github.io/ui5-tooling/updates/migrate-v3/
+- https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
+
 
 <a name="v3.0.0-alpha.6"></a>
-## [v3.0.0-alpha.6] - 2022-07-28
+## [v3.0.0-alpha.6] - 2022-08-08
 
 <a name="v3.0.0-alpha.5"></a>
 ## [v3.0.0-alpha.5] - 2022-07-12
@@ -170,6 +185,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v3.0.0-alpha.7]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.6...v3.0.0-alpha.7
 [v3.0.0-alpha.6]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.5...v3.0.0-alpha.6
 [v3.0.0-alpha.5]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.4...v3.0.0-alpha.5
 [v3.0.0-alpha.4]: https://github.com/SAP/ui5-fs/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
