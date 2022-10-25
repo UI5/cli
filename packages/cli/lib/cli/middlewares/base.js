@@ -1,4 +1,4 @@
-const logger = require("./logger");
+import {initLogger} from "./logger.js";
 /**
  * Base middleware for CLI commands.
  *
@@ -7,7 +7,7 @@ const logger = require("./logger");
  * @param {object} argv The CLI arguments
  * @returns {object}
  */
-module.exports = function(argv) {
-	logger.init(argv);
+export default async function(argv) {
+	await initLogger(argv);
 	return {};
-};
+}

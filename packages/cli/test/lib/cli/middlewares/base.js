@@ -1,10 +1,14 @@
-const test = require("ava");
-const sinon = require("sinon");
-const baseMiddleware = require("../../../../lib/cli/middlewares/base");
-const logger = require("../../../../lib/cli/middlewares/logger");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
-test.beforeEach("Stubbing modules before execution", (t) => {
-	sinon.stub(logger, "init");
+test.beforeEach(async (t) => {
+	t.context.initLogger = sinon.stub();
+	t.context.baseMiddleware = await esmock("../../../../lib/cli/middlewares/base.js", {
+		"../../../../lib/cli/middlewares/logger.js": {
+			initLogger: t.context.initLogger
+		}
+	});
 });
 
 test.afterEach("Stubs Cleanup", (t) => {
@@ -12,6 +16,7 @@ test.afterEach("Stubs Cleanup", (t) => {
 });
 
 test.serial("uses default middleware", (t) => {
+	const {baseMiddleware, initLogger} = t.context;
 	baseMiddleware({loglevel: 1});
-	t.is(logger.init.called, true, "Logger middleware initialized");
+	t.is(initLogger.called, true, "Logger middleware initialized");
 });

@@ -1,6 +1,7 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import chalk from "chalk";
 
 function getDefaultArgv() {
 	// This has been taken from the actual argv object yargs provides
@@ -26,26 +27,19 @@ function getDefaultArgv() {
 	};
 }
 
-test.beforeEach((t) => {
-	const server = require("@ui5/server");
-	const project = require("@ui5/project");
-
+test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
 
-	t.context.server = server.server;
-	sinon.stub(t.context.server, "serve").returns({
-		h2: false,
-		port: 8080
-	});
+	t.context.server = {
+		serve: sinon.stub().returns({
+			h2: false,
+			port: 8080
+		})
+	};
+	t.context.sslUtil = {
+		getSslCertificate: sinon.stub().resolves()
+	};
 
-	t.context.sslUtil = server.sslUtil;
-	sinon.stub(t.context.sslUtil, "getSslCertificate");
-
-	sinon.stub(project.generateProjectGraph, "usingStaticFile").resolves();
-	sinon.stub(project.generateProjectGraph, "usingNodePackageDependencies").resolves();
-	t.context.generateProjectGraph = project.generateProjectGraph;
-
-	// Create basic mocking objects
 	t.context.getServerSettings = sinon.stub().returns({});
 	t.context.fakeGraph = {
 		getRoot: () => {
@@ -54,8 +48,12 @@ test.beforeEach((t) => {
 			};
 		}
 	};
-	t.context.generateProjectGraph.usingStaticFile.resolves(t.context.fakeGraph);
-	t.context.generateProjectGraph.usingNodePackageDependencies.resolves(t.context.fakeGraph);
+
+	t.context.graph = {
+		graphFromStaticFile: sinon.stub().resolves(t.context.fakeGraph),
+		graphFromPackageDependencies: sinon.stub().resolves(t.context.fakeGraph)
+	};
+
 
 	t.context.consoleOutput = "";
 	t.context.consoleLog = sinon.stub(console, "log").callsFake((message) => {
@@ -64,24 +62,28 @@ test.beforeEach((t) => {
 	});
 
 	t.context.open = sinon.stub();
-	mock("open", t.context.open);
 
-	t.context.serve = mock.reRequire("../../../../lib/cli/commands/serve");
+	t.context.serve = await esmock.p("../../../../lib/cli/commands/serve.js", {
+		"@ui5/server": t.context.server,
+		"@ui5/server/internal/sslUtil": t.context.sslUtil,
+		"@ui5/project/graph": t.context.graph,
+		"open": t.context.open
+	});
 });
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
+	esmock.purge(t.context.serve);
 });
 
 test.serial("ui5 serve: default", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -107,7 +109,7 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --h2", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph, sslUtil} = t.context;
+	const {argv, serve, graph, server, fakeGraph, sslUtil} = t.context;
 
 	sslUtil.getSslCertificate.resolves({
 		key: "randombyte-likes-ponies-key",
@@ -123,9 +125,9 @@ test.serial("ui5 serve --h2", async (t) => {
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -157,25 +159,25 @@ URL: https://localhost:8443
 });
 
 test.serial("ui5 serve --accept-remote-connections", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.acceptRemoteConnections = true;
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
 	t.is(t.context.consoleOutput, `
-⚠️  This server is accepting connections from all hosts on your network
-Please Note:
-* This server is intended for development purposes only. Do not use it in production.
-* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network
-* The use of proxy-middleware with preconfigured credentials might enable unauthorized access to a target \
-system for third parties on your network
+${chalk.bold("⚠️  This server is accepting connections from all hosts on your network")}
+${chalk.dim.underline("Please Note:")}
+${chalk.bold.dim("* This server is intended for development purposes only. Do not use it in production.")}
+${chalk.dim("* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network")}
+${chalk.dim("* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
+	"to a target system for third parties on your network")}
 
 Server started
 URL: http://localhost:8080
@@ -199,15 +201,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --open", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph, open} = t.context;
+	const {argv, serve, graph, server, fakeGraph, open} = t.context;
 
 	argv.open = "index.html";
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -241,15 +243,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --open (opens default url)", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph, open} = t.context;
+	const {argv, serve, graph, server, fakeGraph, open} = t.context;
 
 	argv.open = true;
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -283,15 +285,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --config", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.config = "/path/to/ui5.yaml";
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: "/path/to/ui5.yaml", versionOverride: undefined}
 	]);
 
@@ -317,15 +319,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --dependency-definition", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.dependencyDefinition = "/path/to/dependencies.yaml";
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 0);
-	t.is(generateProjectGraph.usingStaticFile.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingStaticFile.getCall(0).args, [
+	t.is(graph.graphFromPackageDependencies.callCount, 0);
+	t.is(graph.graphFromStaticFile.callCount, 1);
+	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [
 		{filePath: "/path/to/dependencies.yaml", versionOverride: undefined}
 	]);
 
@@ -351,15 +353,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --framework-version", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.frameworkVersion = "1.234.5";
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: "1.234.5"}
 	]);
 
@@ -385,15 +387,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --sap-csp-policies", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.sapCspPolicies = true;
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -419,15 +421,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --serve-csp-reports", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.serveCspReports = true;
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -453,15 +455,15 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve --simple-index", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph} = t.context;
+	const {argv, serve, graph, server, fakeGraph} = t.context;
 
 	argv.simpleIndex = true;
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -487,7 +489,7 @@ URL: http://localhost:8080
 });
 
 test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph, getServerSettings} = t.context;
+	const {argv, serve, graph, server, fakeGraph, getServerSettings} = t.context;
 
 	getServerSettings.returns({
 		httpPort: 3333
@@ -500,9 +502,9 @@ test.serial("ui5 serve with ui5.yaml port setting", async (t) => {
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -528,7 +530,7 @@ URL: http://localhost:3333
 });
 
 test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph, sslUtil, getServerSettings} = t.context;
+	const {argv, serve, graph, server, fakeGraph, sslUtil, getServerSettings} = t.context;
 
 	sslUtil.getSslCertificate.resolves({
 		key: "randombyte-likes-ponies-key",
@@ -548,9 +550,9 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting", async (t) => {
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 
@@ -582,7 +584,7 @@ URL: https://localhost:4444
 });
 
 test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", async (t) => {
-	const {argv, serve, generateProjectGraph, server, fakeGraph, sslUtil, getServerSettings} = t.context;
+	const {argv, serve, graph, server, fakeGraph, sslUtil, getServerSettings} = t.context;
 
 	sslUtil.getSslCertificate.resolves({
 		key: "randombyte-likes-ponies-key",
@@ -603,9 +605,9 @@ test.serial("ui5 serve --h2 with ui5.yaml port setting and port CLI argument", a
 
 	await serve.handler(argv);
 
-	t.is(generateProjectGraph.usingStaticFile.callCount, 0);
-	t.is(generateProjectGraph.usingNodePackageDependencies.callCount, 1);
-	t.deepEqual(generateProjectGraph.usingNodePackageDependencies.getCall(0).args, [
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
 		{rootConfigPath: undefined, versionOverride: undefined}
 	]);
 

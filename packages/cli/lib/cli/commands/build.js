@@ -1,6 +1,4 @@
-// Build
-
-const baseMiddleware = require("../middlewares/base.js");
+import baseMiddleware from "../middlewares/base.js";
 
 const build = {
 	command: "build",
@@ -121,21 +119,21 @@ build.builder = function(cli) {
 };
 
 async function handleBuild(argv) {
-	const logger = require("@ui5/logger");
-	const {generateProjectGraph} = require("@ui5/project");
+	const {default: logger} = await import("@ui5/logger");
+	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
 	const command = argv._[argv._.length - 1];
 	logger.setShowProgress(true);
 
 	let graph;
 	if (argv.dependencyDefinition) {
-		graph = await generateProjectGraph.usingStaticFile({
+		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion
 		});
 	} else {
-		graph = await generateProjectGraph.usingNodePackageDependencies({
+		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion
 		});
@@ -168,4 +166,4 @@ async function handleBuild(argv) {
 
 function noop() {}
 
-module.exports = build;
+export default build;

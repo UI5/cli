@@ -1,11 +1,13 @@
-const path = require("path");
-const os = require("os");
+import path from "node:path";
+import os from "node:os";
+import chalk from "chalk";
+import baseMiddleware from "../middlewares/base.js";
 
 // Serve
 const serve = {
 	command: "serve",
 	describe: "Start a web server for the current project",
-	middlewares: [require("../middlewares/base.js")]
+	middlewares: [baseMiddleware]
 };
 
 serve.builder = function(cli) {
@@ -73,18 +75,18 @@ serve.builder = function(cli) {
 };
 
 serve.handler = async function(argv) {
-	const {generateProjectGraph} = require("@ui5/project");
-	const ui5Server = require("@ui5/server");
-	const server = ui5Server.server;
+	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
+	const {serve: serverServe} = await import("@ui5/server");
+	const {getSslCertificate} = await import("@ui5/server/internal/sslUtil");
 
 	let graph;
 	if (argv.dependencyDefinition) {
-		graph = await generateProjectGraph.usingStaticFile({
+		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
 			versionOverride: argv.frameworkVersion
 		});
 	} else {
-		graph = await generateProjectGraph.usingNodePackageDependencies({
+		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion
 		});
@@ -124,17 +126,16 @@ serve.handler = async function(argv) {
 	};
 
 	if (serverConfig.h2) {
-		const {key, cert} = await ui5Server.sslUtil.getSslCertificate(serverConfig.key, serverConfig.cert);
+		const {key, cert} = await getSslCertificate(serverConfig.key, serverConfig.cert);
 		serverConfig.key = key;
 		serverConfig.cert = cert;
 	}
 
-	const {h2, port: actualPort} = await server.serve(graph, serverConfig);
+	const {h2, port: actualPort} = await serverServe(graph, serverConfig);
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
 	if (argv.acceptRemoteConnections) {
-		const chalk = require("chalk");
 		console.log("");
 		console.log(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
 		console.log(chalk.dim.underline("Please Note:"));
@@ -158,9 +159,9 @@ serve.handler = async function(argv) {
 			}
 			browserUrl += relPath;
 		}
-		const open = require("open");
+		const {default: open} = await import("open");
 		open(browserUrl, {url: true});
 	}
 };
 
-module.exports = serve;
+export default serve;

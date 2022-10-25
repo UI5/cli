@@ -1,7 +1,5 @@
-const {promisify} = require("util");
-const fs = require("fs");
-const stat = promisify(fs.stat);
-const path = require("path");
+import {stat} from "node:fs/promises";
+import path from "node:path";
 
 /**
  * Checks if a file or path exists
@@ -10,7 +8,7 @@ const path = require("path");
  * @param {string} filePath Path to check
  * @returns {Promise} Promise resolving with true if the file or path exists
  */
-async function exists(filePath) {
+export async function exists(filePath) {
 	try {
 		await stat(filePath);
 		return true;
@@ -32,12 +30,6 @@ async function exists(filePath) {
  * @param {string} cwd Current working directory
  * @returns {Promise} Resolving with an array of booleans for each path
  */
-async function pathsExist(paths, cwd) {
+export async function pathsExist(paths, cwd) {
 	return await Promise.all(paths.map((p) => exists(path.join(cwd, p))));
 }
-
-module.exports = {
-	exists,
-	pathsExist
-};
-

@@ -1,4 +1,4 @@
-const {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} = require("./utils");
+import {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} from "./utils.js";
 
 /**
  * Adds the given set of libraries to the framework libraries section in the ui5.yaml
@@ -7,7 +7,7 @@ const {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} = 
  * @param {object} parameters.projectGraphOptions
  * @param {object} parameters.libraries
  */
-module.exports = async function({projectGraphOptions, libraries}) {
+export default async function({projectGraphOptions, libraries}) {
 	const project = await getRootProjectConfiguration(projectGraphOptions);
 
 	if (!isValidSpecVersion(project.getSpecVersion())) {
@@ -63,7 +63,8 @@ module.exports = async function({projectGraphOptions, libraries}) {
 	// Try to update YAML file but still return with name and resolved version in case it failed
 	let yamlUpdated = false;
 	try {
-		await require("./updateYaml")({
+		const {default: updateYaml} = await import("./updateYaml.js");
+		await updateYaml({
 			project,
 			configPathOverride: projectGraphOptions.config,
 			data: {
@@ -81,4 +82,4 @@ module.exports = async function({projectGraphOptions, libraries}) {
 	return {
 		yamlUpdated
 	};
-};
+}

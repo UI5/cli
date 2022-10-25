@@ -1,7 +1,10 @@
-const path = require("path");
-const log = require("@ui5/logger").getLogger("cli:framework:updateYaml");
-const {loadAll, dump} = require("js-yaml");
-const {fromYaml, getPosition, getValue} = require("data-with-position");
+import path from "node:path";
+import {readFile, writeFile} from "node:fs/promises";
+import {loadAll, dump} from "js-yaml";
+import {fromYaml, getPosition, getValue} from "data-with-position";
+import logger from "@ui5/logger";
+
+const log = logger.getLogger("cli:framework:updateYaml");
 
 function getProjectYamlDocument({project, configFile, configPath}) {
 	const configs = loadAll(configFile, undefined, {
@@ -137,12 +140,7 @@ function formatValue(value, indent) {
 	}
 }
 
-module.exports = async function({project, configPathOverride, data}) {
-	const {promisify} = require("util");
-	const fs = require("fs");
-	const readFile = promisify(fs.readFile);
-	const writeFile = promisify(fs.writeFile);
-
+export default async function({project, configPathOverride, data}) {
 	let configPath;
 	if (configPathOverride) {
 		if (path.isAbsolute(configPathOverride)) {
@@ -274,4 +272,4 @@ module.exports = async function({project, configPathOverride, data}) {
 	}
 
 	await writeFile(configPath, adoptedYaml);
-};
+}

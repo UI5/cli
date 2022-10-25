@@ -1,5 +1,8 @@
-// Versions
-const baseMiddleware = require("../middlewares/base.js");
+import baseMiddleware from "../middlewares/base.js";
+import {createRequire} from "node:module";
+
+// Using CommonsJS require as importing json files causes an ExperimentalWarning
+const require = createRequire(import.meta.url);
 
 const versions = {
 	command: "versions",
@@ -18,20 +21,20 @@ versions.getVersion = (pkg) => {
 };
 
 versions.handler = async function() {
-	const cliVersion = versions.getVersion("../../..");
-	const builderVersion = versions.getVersion("@ui5/builder");
-	const serverVersion = versions.getVersion("@ui5/server");
-	const fsVersion = versions.getVersion("@ui5/fs");
-	const projectVersion = versions.getVersion("@ui5/project");
-	const loggerVersion = versions.getVersion("@ui5/logger");
-	console.log(`
-@ui5/cli:      ${cliVersion}
-@ui5/builder:  ${builderVersion}
-@ui5/server:   ${serverVersion}
-@ui5/fs:       ${fsVersion}
-@ui5/project:  ${projectVersion}
-@ui5/logger:   ${loggerVersion}
-	`);
+	const output = (await Promise.all(
+		[
+			"@ui5/cli",
+			"@ui5/builder",
+			"@ui5/server",
+			"@ui5/fs",
+			"@ui5/project",
+			"@ui5/logger",
+		].map(async (id) => {
+			return (id + ":").padEnd(15) + versions.getVersion(id);
+		})
+	)).join("\n");
+
+	console.log(`\n${output}\n`);
 };
 
-module.exports = versions;
+export default versions;

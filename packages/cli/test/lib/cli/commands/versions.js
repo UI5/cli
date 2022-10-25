@@ -1,6 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const versions = require("../../../../lib/cli/commands/versions");
+import test from "ava";
+import sinon from "sinon";
+import versions from "../../../../lib/cli/commands/versions.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();

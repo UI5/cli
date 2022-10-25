@@ -1,8 +1,6 @@
-const {promisify} = require("util");
-const path = require("path");
-const fs = require("fs");
-const readFile = promisify(fs.readFile);
-const fsHelper = require("../utils/fsHelper");
+import path from "node:path";
+import {readFile} from "node:fs/promises";
+import {pathsExist} from "../utils/fsHelper.js";
 
 /**
  * Reads the package.json file and returns its content
@@ -55,12 +53,17 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
 }
 
 /**
+ * @module @ui5/cli/init
+ */
+
+/**
  * Initiates the projects <b>ui5.yaml</b> configuration file.
  *
  * Checks the package.json and tries to determine the project type. If the <b>ui5.yaml</b> file does not exist,
  * it is created with the basic project configuration.
  *
- * @module @ui5/cli/init
+ * @function default
+ * @static
  * @param {string} cwd Current working directory
  * @returns {Promise} Promise resolving with the project configuration object
  */
@@ -87,12 +90,10 @@ async function init({cwd = "./"} = {}) {
 		throw new Error("Initialization not possible: Missing 'name' in package.json");
 	}
 
-	const [hasWebapp, hasSrc, hasTest] = await fsHelper.pathsExist(["webapp", "src", "test"], cwd);
+	const [hasWebapp, hasSrc, hasTest] = await pathsExist(["webapp", "src", "test"], cwd);
 	projectConfig.type = getProjectType(hasWebapp, hasSrc, hasTest);
 
 	return projectConfig;
 }
 
-module.exports = {
-	init: init
-};
+export default init;

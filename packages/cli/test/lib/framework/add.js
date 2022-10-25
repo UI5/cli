@@ -1,10 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-const utils = require("../../../lib/framework/utils");
-
-let addFramework;
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
 function createMockProject(attr) {
 	return {
@@ -17,28 +13,33 @@ function createMockProject(attr) {
 	};
 }
 
-test.beforeEach((t) => {
-	t.context.getRootProjectConfigurationStub = sinon.stub(utils, "getRootProjectConfiguration");
+test.beforeEach(async (t) => {
+	t.context.getRootProjectConfigurationStub = sinon.stub();
 	t.context.getLibraryMetadataStub = sinon.stub();
-	t.context.getFrameworkResolverStub = sinon.stub(utils, "getFrameworkResolver").returns(function Resolver() {
+	t.context.getFrameworkResolverStub = sinon.stub().returns(function Resolver() {
 		return {
 			getLibraryMetadata: t.context.getLibraryMetadataStub
 		};
 	});
 
 	t.context.updateYamlStub = sinon.stub();
-	mock("../../../lib/framework/updateYaml", t.context.updateYamlStub);
 
-	addFramework = mock.reRequire("../../../lib/framework/add");
+	t.context.addFramework = await esmock.p("../../../lib/framework/add.js", {
+		"../../../lib/framework/updateYaml.js": t.context.updateYamlStub,
+		"../../../lib/framework/utils.js": {
+			getRootProjectConfiguration: t.context.getRootProjectConfigurationStub,
+			getFrameworkResolver: t.context.getFrameworkResolverStub
+		},
+	});
 });
 
-test.afterEach.always(() => {
-	mock.stopAll();
+test.afterEach.always((t) => {
 	sinon.restore();
+	esmock.purge(t.context.addFramework);
 });
 
 test.serial("Add without existing libraries in config", async (t) => {
-	const {getRootProjectConfigurationStub, getFrameworkResolverStub,
+	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub,
 		getLibraryMetadataStub, updateYamlStub} = t.context;
 
 	const projectGraphOptions = {
@@ -86,7 +87,7 @@ test.serial("Add without existing libraries in config", async (t) => {
 });
 
 test.serial("Add with existing libraries in config", async (t) => {
-	const {getRootProjectConfigurationStub, getFrameworkResolverStub,
+	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub,
 		getLibraryMetadataStub, updateYamlStub} = t.context;
 
 	const projectGraphOptions = {
@@ -147,7 +148,7 @@ test.serial("Add with existing libraries in config", async (t) => {
 });
 
 test.serial("Add optional with existing libraries in config", async (t) => {
-	const {getRootProjectConfigurationStub, getFrameworkResolverStub,
+	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub,
 		getLibraryMetadataStub, updateYamlStub} = t.context;
 
 	const projectGraphOptions = {
@@ -211,6 +212,7 @@ test.serial("Add optional with existing libraries in config", async (t) => {
 
 test.serial("Add with specVersion 1.0", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
@@ -246,6 +248,7 @@ test.serial("Add with specVersion 1.0", async (t) => {
 
 test.serial("Add without framework configuration", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
@@ -281,6 +284,7 @@ test.serial("Add without framework configuration", async (t) => {
 
 test.serial("Add without framework version configuration", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
@@ -317,6 +321,7 @@ test.serial("Add without framework version configuration", async (t) => {
 
 test.serial("Add with failing library metadata call", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
@@ -361,6 +366,7 @@ test.serial("Add with failing library metadata call", async (t) => {
 
 test.serial("Add with failing YAML update", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
@@ -416,6 +422,7 @@ test.serial("Add with failing YAML update", async (t) => {
 
 test.serial("Add with failing YAML update (unexpected error)", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
@@ -468,7 +475,7 @@ test.serial("Add with failing YAML update (unexpected error)", async (t) => {
 });
 
 test.serial("Add should not modify input parameters", async (t) => {
-	const {getRootProjectConfigurationStub, getFrameworkResolverStub} = t.context;
+	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -501,6 +508,7 @@ test.serial("Add should not modify input parameters", async (t) => {
 
 test.serial("Add with projectGraphOptions.config", async (t) => {
 	const {
+		addFramework,
 		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;

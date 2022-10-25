@@ -1,4 +1,4 @@
-const {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} = require("./utils");
+import {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} from "./utils.js";
 
 async function resolveVersion({frameworkName, frameworkVersion}, resolverOptions) {
 	return await getFrameworkResolver(frameworkName).resolveVersion(frameworkVersion, resolverOptions);
@@ -22,7 +22,7 @@ function getEffectiveFrameworkName({project, frameworkOptions}) {
 	}
 }
 
-module.exports = async function({projectGraphOptions, frameworkOptions}) {
+export default async function({projectGraphOptions, frameworkOptions}) {
 	const project = await getRootProjectConfiguration(projectGraphOptions);
 
 	if (!isValidSpecVersion(project.getSpecVersion())) {
@@ -49,7 +49,8 @@ module.exports = async function({projectGraphOptions, frameworkOptions}) {
 	// Try to update YAML file but still return with name and resolved version in case it failed
 	let yamlUpdated = false;
 	try {
-		await require("./updateYaml")({
+		const {default: updateYaml} = await import("./updateYaml.js");
+		await updateYaml({
 			project,
 			configPathOverride: projectGraphOptions.config,
 			data: {
@@ -67,4 +68,4 @@ module.exports = async function({projectGraphOptions, frameworkOptions}) {
 		usedFramework: framework.name,
 		usedVersion: framework.version || null
 	};
-};
+}

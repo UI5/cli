@@ -1,8 +1,9 @@
 // Add
+import base from "../middlewares/base.js";
 const addCommand = {
 	command: "add [--development] [--optional] <framework-libraries..>",
 	describe: "Add SAPUI5/OpenUI5 framework libraries to the project configuration.",
-	middlewares: [require("../middlewares/base.js")]
+	middlewares: [base]
 };
 
 addCommand.builder = function(cli) {
@@ -56,7 +57,8 @@ addCommand.handler = async function(argv) {
 		return library;
 	});
 
-	const {yamlUpdated} = await require("../../framework/add")({
+	const {default: add} = await import("../../framework/add.js");
+	const {yamlUpdated} = await add({
 		projectGraphOptions,
 		libraries
 	});
@@ -85,4 +87,4 @@ addCommand.handler = async function(argv) {
 	}
 };
 
-module.exports = addCommand;
+export default addCommand;

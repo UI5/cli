@@ -3,11 +3,13 @@
         "allowUnknownTags": false
     },
     "source": {
-        "include": ["README.md", "index.js"],
+        "include": ["README.md"],
         "includePattern": ".+\\.js$",
         "excludePattern": "(node_modules(\\\\|/))"
     },
-    "plugins": [],
+    "plugins": [
+		"jsdoc-plugin.cjs"
+	],
     "opts": {
         "template": "node_modules/docdash/",
         "encoding": "utf8",

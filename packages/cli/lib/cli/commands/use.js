@@ -1,8 +1,10 @@
 // Use
+import baseMiddleware from "../middlewares/base.js";
+
 const useCommand = {
 	command: "use <framework-info>",
 	describe: "Initialize or update the project's framework configuration.",
-	middlewares: [require("../middlewares/base.js")]
+	middlewares: [baseMiddleware]
 };
 
 useCommand.builder = function(cli) {
@@ -60,7 +62,8 @@ useCommand.handler = async function(argv) {
 		config: argv.config
 	};
 
-	const {usedFramework, usedVersion, yamlUpdated} = await require("../../framework/use")({
+	const {default: use} = await import("../../framework/use.js");
+	const {usedFramework, usedVersion, yamlUpdated} = await use({
 		projectGraphOptions,
 		frameworkOptions
 	});
@@ -79,4 +82,4 @@ useCommand.handler = async function(argv) {
 	}
 };
 
-module.exports = useCommand;
+export default useCommand;

@@ -1,16 +1,15 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-const useCommand = require("../../../../lib/cli/commands/use");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
 async function assertUseHandler(t, {argv, expectedFrameworkOptions}) {
-	const frameworkUseStub = sinon.stub().resolves({
+	const {useCommand, frameworkUseStub} = t.context;
+
+	frameworkUseStub.resolves({
 		usedFramework: undefined, // not required for this test
 		usedVersion: undefined, // not required for this test
 		yamlUpdated: true
 	});
-	mock("../../../../lib/framework/use", frameworkUseStub);
 
 	await useCommand.handler(argv);
 
@@ -27,11 +26,12 @@ async function assertUseHandler(t, {argv, expectedFrameworkOptions}) {
 }
 
 async function assertFailingUseHandler(t, {argv, expectedMessage}) {
-	const frameworkUseStub = sinon.stub().resolves({
+	const {useCommand, frameworkUseStub} = t.context;
+
+	frameworkUseStub.resolves({
 		usedFramework: undefined, // not required for this test
 		usedVersion: undefined // not required for this test
 	});
-	mock("../../../../lib/framework/use", frameworkUseStub);
 
 	const exception = await t.throwsAsync(useCommand.handler(argv));
 
@@ -40,12 +40,13 @@ async function assertFailingUseHandler(t, {argv, expectedMessage}) {
 }
 
 async function assertFailingYamlUpdateUseHandler(t, {argv, expectedMessage}) {
-	const frameworkUseStub = sinon.stub().resolves({
+	const {useCommand, frameworkUseStub} = t.context;
+
+	frameworkUseStub.resolves({
 		usedFramework: "SAPUI5",
 		usedVersion: "1.76.0",
 		yamlUpdated: false
 	});
-	mock("../../../../lib/framework/use", frameworkUseStub);
 
 	const exception = await t.throwsAsync(useCommand.handler(argv));
 
@@ -53,13 +54,19 @@ async function assertFailingYamlUpdateUseHandler(t, {argv, expectedMessage}) {
 	t.is(frameworkUseStub.callCount, 1, "Use function should be called once");
 }
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	t.context.consoleLogStub = sinon.stub(console, "log");
+
+	t.context.frameworkUseStub = sinon.stub();
+
+	t.context.useCommand = await esmock.p("../../../../lib/cli/commands/use.js", {
+		"../../../../lib/framework/use": t.context.frameworkUseStub
+	});
 });
 
-test.afterEach.always(() => {
-	mock.stopAll();
+test.afterEach.always((t) => {
 	sinon.restore();
+	esmock.purge(t.context.useCommand);
 });
 
 test.serial("Accepts framework name and version (SAPUI5@1.76.0)", async (t) => {
@@ -252,12 +259,13 @@ test.serial("Rejects when YAML could not be updated (with config path)", async (
 });
 
 test.serial("Logs framework name, version and default config path when updating config", async (t) => {
-	const frameworkUseStub = sinon.stub().resolves({
+	const {useCommand, frameworkUseStub} = t.context;
+
+	frameworkUseStub.resolves({
 		usedFramework: "SAPUI5",
 		usedVersion: "1.76.0",
 		yamlUpdated: true
 	});
-	mock("../../../../lib/framework/use", frameworkUseStub);
 
 	await useCommand.handler({"framework-info": "SAPUI5@1.76.0"});
 
@@ -275,12 +283,13 @@ test.serial("Logs framework name, version and default config path when updating 
 });
 
 test.serial("Logs framework name, version and custom config path when updating config", async (t) => {
-	const frameworkUseStub = sinon.stub().resolves({
+	const {useCommand, frameworkUseStub} = t.context;
+
+	frameworkUseStub.resolves({
 		usedFramework: "SAPUI5",
 		usedVersion: "1.76.0",
 		yamlUpdated: true
 	});
-	mock("../../../../lib/framework/use", frameworkUseStub);
 
 	await useCommand.handler({"framework-info": "SAPUI5@1.76.0", "config": "/path/to/ui5.yaml"});
 

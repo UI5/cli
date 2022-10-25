@@ -1,25 +1,25 @@
 // Init
+import baseMiddleware from "../middlewares/base.js";
+
 const initCommand = {
 	command: "init",
 	describe: "Initialize the UI5 Tooling configuration for an application or library project.",
-	middlewares: [require("../middlewares/base.js")]
+	middlewares: [baseMiddleware]
 };
 
 initCommand.handler = async function() {
-	const fsHelper = require("../../utils/fsHelper");
-	const init = require("../../init/init");
-	const promisify = require("util").promisify;
-	const path = require("path");
-	const fs = require("fs");
-	const jsYaml = require("js-yaml");
-	const writeFile = promisify(fs.writeFile);
+	const {exists} = await import("../../utils/fsHelper.js");
+	const {default: init} = await import("../../init/init.js");
+	const {default: path} = await import("node:path");
+	const {writeFile} = await import("node:fs/promises");
+	const {default: jsYaml} = await import("js-yaml");
 
 	const yamlPath = path.resolve("./ui5.yaml");
-	if (await fsHelper.exists(yamlPath)) {
+	if (await exists(yamlPath)) {
 		throw new Error("Initialization not possible: ui5.yaml already exists");
 	}
 
-	const projectConfig = await init.init();
+	const projectConfig = await init();
 	const yaml = jsYaml.dump(projectConfig);
 
 	await writeFile(yamlPath, yaml);
@@ -27,4 +27,4 @@ initCommand.handler = async function() {
 	console.log(yaml);
 };
 
-module.exports = initCommand;
+export default initCommand;

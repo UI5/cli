@@ -1,26 +1,27 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-const fs = require("fs");
-const path = require("path");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "node:path";
 
 let updateYaml;
 
-test.beforeEach((t) => {
-	t.context.fsReadFileStub = sinon.stub(fs, "readFile");
-	t.context.fsWriteFileStub = sinon.stub(fs, "writeFile").yieldsAsync(null);
-
-	updateYaml = mock.reRequire("../../../lib/framework/updateYaml");
+test.beforeEach(async (t) => {
+	t.context.fsReadFileStub = sinon.stub();
+	t.context.fsWriteFileStub = sinon.stub().resolves();
+	updateYaml = await esmock("../../../lib/framework/updateYaml", {
+		"node:fs/promises": {
+			readFile: t.context.fsReadFileStub,
+			writeFile: t.context.fsWriteFileStub
+		}
+	});
 });
 
 test.afterEach.always(() => {
-	mock.stopAll();
 	sinon.restore();
 });
 
 test.serial("Should update single document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 ---
 metadata:
   name: my-project
@@ -56,7 +57,7 @@ framework:
 });
 
 test.serial("Should update first document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 specVersion: "2.0"
 metadata:
   name: my-project
@@ -109,7 +110,7 @@ shims:
 
 
 test.serial("Should update second document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 specVersion: "1.0"
 kind: extension
 metadata:
@@ -167,7 +168,7 @@ framework:
 });
 
 test.serial("Should add new object with one property to document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project`);
 
@@ -195,7 +196,7 @@ framework:
 });
 
 test.serial("Should add new object with two properties to document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project`);
 
@@ -225,7 +226,7 @@ framework:
 });
 
 test.serial("Should add version property to document and keep name", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -258,7 +259,7 @@ framework:
 });
 
 test.serial("Should add name property to document and keep version", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -291,7 +292,7 @@ framework:
 });
 
 test.serial("Should add new array to document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -330,7 +331,7 @@ framework:
 });
 
 test.serial("Should add new array to document with empty array", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -372,7 +373,7 @@ framework:
 });
 
 test.serial("Should remove array from document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -409,7 +410,7 @@ framework:
 });
 
 test.serial("Should remove array from document with content below", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -450,7 +451,7 @@ resources:
 });
 
 test.serial("Should add new array to document with content below", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -494,7 +495,7 @@ resources:
 });
 
 test.serial("Should add new array to document with content separated by empty line below", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -540,7 +541,7 @@ resources:
 });
 
 test.serial("Should add new array element to document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -581,7 +582,7 @@ framework:
 });
 
 test.serial("Should add new array elements to document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -624,7 +625,7 @@ framework:
 });
 
 test.serial("Should add new array elements to document with content below", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -674,7 +675,7 @@ resources:
 
 
 test.serial("Should add new array elements to document with content separated by empty line below", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -724,7 +725,7 @@ resources:
 });
 
 test.serial("Should add new array elements with multiple properties to document", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -771,7 +772,7 @@ framework:
 });
 
 test.serial("Should validate YAML before writing file", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework: { name: "SAPUI5" }
@@ -803,7 +804,7 @@ framework: { name: "SAPUI5" }
 });
 
 test.serial("Should throw error when project document can't be found", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project-1
 ---
@@ -826,7 +827,7 @@ metadata:
 });
 
 test.serial("Should add version property to object", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 metadata:
   name: my-project
 framework:
@@ -864,7 +865,7 @@ something: else
 });
 
 test.serial("Relative configPathOverride", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 ---
 metadata:
   name: my-project
@@ -904,7 +905,7 @@ framework:
 });
 
 test.serial("Absolute configPathOverride", async (t) => {
-	t.context.fsReadFileStub.yieldsAsync(null, `
+	t.context.fsReadFileStub.resolves(`
 ---
 metadata:
   name: my-project

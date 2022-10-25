@@ -1,8 +1,10 @@
 // Remove
+import baseMiddleware from "../middlewares/base.js";
+
 const removeCommand = {
 	command: "remove <framework-libraries..>",
 	describe: "Remove SAPUI5/OpenUI5 framework libraries from the project configuration.",
-	middlewares: [require("../middlewares/base.js")]
+	middlewares: [baseMiddleware]
 };
 
 removeCommand.builder = function(cli) {
@@ -37,7 +39,9 @@ removeCommand.handler = async function(argv) {
 		return library;
 	});
 
-	const {yamlUpdated} = await require("../../framework/remove")({
+	const {default: remove} = await import("../../framework/remove.js");
+
+	const {yamlUpdated} = await remove({
 		projectGraphOptions,
 		libraries
 	});
@@ -62,4 +66,4 @@ removeCommand.handler = async function(argv) {
 	}
 };
 
-module.exports = removeCommand;
+export default removeCommand;

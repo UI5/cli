@@ -1,19 +1,20 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
-const removeCommand = require("../../../../lib/cli/commands/remove");
+async function createMock(t, yamlUpdated = true) {
+	t.context.frameworkRemoveStub = sinon.stub().resolves({yamlUpdated});
+	t.context.removeCommand = await esmock.p("../../../../lib/cli/commands/remove.js", {
+		"../../../../lib/framework/remove.js": t.context.frameworkRemoveStub
+	});
+}
 
 async function assertRemoveHandler(t, {argv, expectedLibraries, expectedConsoleLog}) {
-	const frameworkRemoveStub = sinon.stub().resolves({
-		yamlUpdated: true
-	});
-	mock("../../../../lib/framework/remove", frameworkRemoveStub);
+	await createMock(t);
+	await t.context.removeCommand.handler(argv);
 
-	await removeCommand.handler(argv);
-
-	t.is(frameworkRemoveStub.callCount, 1, "Remove function should be called once");
-	t.deepEqual(frameworkRemoveStub.getCall(0).args, [
+	t.is(t.context.frameworkRemoveStub.callCount, 1, "Remove function should be called once");
+	t.deepEqual(t.context.frameworkRemoveStub.getCall(0).args, [
 		{
 			libraries: expectedLibraries,
 			projectGraphOptions: {
@@ -32,36 +33,29 @@ async function assertRemoveHandler(t, {argv, expectedLibraries, expectedConsoleL
 }
 
 async function assertFailingRemoveHandler(t, {argv, expectedMessage}) {
-	const frameworkRemoveStub = sinon.stub().resolves({
-		yamlUpdated: true
-	});
-	mock("../../../../lib/framework/remove", frameworkRemoveStub);
-
-	const exception = await t.throwsAsync(removeCommand.handler(argv));
+	await createMock(t);
+	const exception = await t.throwsAsync(t.context.removeCommand.handler(argv));
 
 	t.is(exception.message, expectedMessage, "Remove handler should throw expected error");
-	t.is(frameworkRemoveStub.callCount, 0, "Remove function should not be called");
+	t.is(t.context.frameworkRemoveStub.callCount, 0, "Remove function should not be called");
 }
 
 async function assertFailingYamlUpdateRemoveHandler(t, {argv, expectedMessage}) {
-	const frameworkRemoveStub = sinon.stub().resolves({
-		yamlUpdated: false
-	});
-	mock("../../../../lib/framework/remove", frameworkRemoveStub);
+	await createMock(t, false);
 
-	const exception = await t.throwsAsync(removeCommand.handler(argv));
+	const exception = await t.throwsAsync(t.context.removeCommand.handler(argv));
 
 	t.is(exception.message, expectedMessage, "Remove handler should throw expected error");
-	t.is(frameworkRemoveStub.callCount, 1, "Remove function should be called once");
+	t.is(t.context.frameworkRemoveStub.callCount, 1, "Remove function should be called once");
 }
 
 test.beforeEach((t) => {
 	t.context.consoleLogStub = sinon.stub(console, "log");
 });
 
-test.afterEach.always(() => {
-	mock.stopAll();
+test.afterEach.always((t) => {
 	sinon.restore();
+	esmock.purge(t.context.removeCommand);
 });
 
 test.serial("Accepts single library", async (t) => {

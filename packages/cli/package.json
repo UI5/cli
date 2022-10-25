@@ -19,7 +19,10 @@
 	"bin": {
 		"ui5": "./bin/ui5.js"
 	},
-	"main": "index.js",
+	"type": "module",
+	"exports": {
+		"./package.json": "./package.json"
+	},
 	"engines": {
 		"node": ">= 16.13.2",
 		"npm": ">= 8"
@@ -30,11 +33,11 @@
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
-		"unit-watch": "rimraf test/tmp && ava --watch",
-		"unit-nyan": "rimraf test/tmp && ava --tap | tnyan",
-		"unit-xunit": "rimraf test/tmp && ava --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
+		"unit-watch": "npm run unit -- --watch",
+		"unit-nyan": "npm run unit -- --tap | tnyan",
+		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
-		"coverage": "nyc npm run unit",
+		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
 		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
 		"jsdoc-generate": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
@@ -43,12 +46,11 @@
 		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"prepublishOnly": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version | node .chglog/consolidate-changelogs.js",
-		"depcheck": "depcheck --ignores docdash,@ui5/fs,@ui5/builder"
+		"depcheck": "depcheck --ignores @ui5/cli,docdash,@istanbuljs/esm-loader-hook,@ui5/fs,@ui5/builder"
 	},
 	"files": [
 		"CHANGELOG.md",
 		"CONTRIBUTING.md",
-		"index.js",
 		"jsdoc.json",
 		"npm-shrinkwrap.json",
 		"bin/**",
@@ -60,6 +62,10 @@
 		"files": [
 			"test/bin/**/*.js",
 			"test/lib/**/*.js"
+		],
+		"nodeArguments": [
+			"--loader=esmock",
+			"--no-warnings"
 		]
 	},
 	"nyc": {
@@ -74,8 +80,8 @@
 			"jsdocs/**",
 			"coverage/**",
 			"test/**",
-			".eslintrc.js",
-			"jsdoc-plugin.js"
+			".eslintrc.cjs",
+			"jsdoc-plugin.cjs"
 		],
 		"check-coverage": true,
 		"statements": 80,
@@ -108,11 +114,11 @@
 		"url": "git@github.com:SAP/ui5-cli.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^3.0.0-alpha.11",
-		"@ui5/fs": "^3.0.0-alpha.6",
-		"@ui5/logger": "^3.0.1-alpha.2",
-		"@ui5/project": "^3.0.0-alpha.9",
-		"@ui5/server": "^3.0.0-alpha.3",
+		"@ui5/builder": "^3.0.0-alpha.12",
+		"@ui5/fs": "^3.0.0-alpha.7",
+		"@ui5/logger": "^3.0.1-alpha.3",
+		"@ui5/project": "^3.0.0-alpha.10",
+		"@ui5/server": "^3.0.0-alpha.4",
 		"chalk": "^4.1.2",
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.1.0",
@@ -120,11 +126,12 @@
 		"open": "^7.4.2",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.3.5",
-		"update-notifier": "^5.1.0",
-		"yargs": "^16.2.0"
+		"update-notifier": "^6.0.2",
+		"yargs": "^17.5.1"
 	},
 	"devDependencies": {
-		"ava": "^3.15.0",
+		"@istanbuljs/esm-loader-hook": "^0.2.0",
+		"ava": "^4.3.3",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.3",
@@ -133,9 +140,9 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^13.0.2",
 		"eslint-plugin-jsdoc": "^37.6.3",
+		"esmock": "^2.0.0",
 		"execa": "^5.1.1",
 		"jsdoc": "^3.6.7",
-		"mock-require": "^3.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^6.0.1",
 		"rimraf": "^3.0.2",

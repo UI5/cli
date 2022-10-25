@@ -1,10 +1,13 @@
 // Tree
+import baseMiddleware from "../middlewares/base.js";
+import chalk from "chalk";
+
 const tree = {
 	command: "tree",
 	describe:
 		"Outputs the dependency tree of the current project to stdout. " +
 		"It takes all relevant parameters of ui5 build into account.",
-	middlewares: [require("../middlewares/base.js")]
+	middlewares: [baseMiddleware]
 };
 
 tree.builder = function(cli) {
@@ -17,29 +20,27 @@ tree.builder = function(cli) {
 };
 
 tree.handler = async function(argv) {
-	const chalk = require("chalk");
-
 	let startTime;
 	let elapsedTime;
 	if (argv.xPerf) {
 		startTime = process.hrtime();
 	}
-	const {generateProjectGraph} = require("@ui5/project");
+	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 	let graph;
 	if (argv.dependencyDefinition) {
-		graph = await generateProjectGraph.usingStaticFile({
+		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
 			versionOverride: argv.frameworkVersion
 		});
 	} else {
-		graph = await generateProjectGraph.usingNodePackageDependencies({
+		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion
 		});
 	}
 
 	if (argv.xPerf) {
-		elapsedTime = getElapsedTime(startTime);
+		elapsedTime = await getElapsedTime(startTime);
 	}
 
 	const projects = {};
@@ -98,9 +99,9 @@ tree.handler = async function(argv) {
 	}
 };
 
-function getElapsedTime(startTime) {
+async function getElapsedTime(startTime) {
 	const timeDiff = process.hrtime(startTime);
-	const prettyHrtime = require("pretty-hrtime");
+	const {default: prettyHrtime} = await import("pretty-hrtime");
 	return prettyHrtime(timeDiff);
 }
-module.exports = tree;
+export default tree;

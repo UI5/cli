@@ -1,15 +1,10 @@
-const test = require("ava");
-const sinon = require("sinon");
-const initCommand = require("../../../../lib/cli/commands/init");
-const fsHelper = require("../../../../lib/utils/fsHelper");
-const init = require("../../../../lib/init/init");
-const mock = require("mock-require");
-const jsYaml = require("js-yaml");
-const fs = require("fs");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
 test.afterEach.always((t) => {
 	sinon.restore();
-	mock.stopAll();
+	esmock.purge(t.context.initCommand);
 });
 
 test.serial("Writes ui5.yaml to fs", async (t) => {
@@ -20,11 +15,23 @@ test.serial("Writes ui5.yaml to fs", async (t) => {
 	name: sample-app
 	type: application`;
 
-	mock("path", {resolve: () => ui5YamlPath});
-	sinon.stub(fsHelper, "exists").resolves(false);
-	sinon.stub(init, "init").resolves({});
-	sinon.stub(jsYaml, "dump").returns(ui5Yaml);
-	const fsWriteFileStub = sinon.stub(fs, "writeFile").callsArgWith(2);
+	const fsWriteFileStub = sinon.stub().resolves();
+
+	const initCommand = t.context.initCommand = await esmock.p("../../../../lib/cli/commands/init.js", {
+		"../../../../lib/utils/fsHelper": {
+			exists: sinon.stub().resolves(false)
+		},
+		"../../../../lib/init/init": sinon.stub().resolves({}),
+		"js-yaml": {
+			dump: sinon.stub().returns(ui5Yaml)
+		},
+		"node:path": {
+			resolve: () => ui5YamlPath
+		},
+		"node:fs/promises": {
+			writeFile: fsWriteFileStub
+		}
+	});
 
 	await initCommand.handler({});
 
@@ -33,7 +40,11 @@ test.serial("Writes ui5.yaml to fs", async (t) => {
 });
 
 test.serial("Error: throws if ui5.yaml already exists", async (t) => {
-	sinon.stub(fsHelper, "exists").resolves(true);
+	const initCommand = t.context.initCommand = await esmock.p("../../../../lib/cli/commands/init.js", {
+		"../../../../lib/utils/fsHelper": {
+			exists: sinon.stub().resolves(true)
+		}
+	});
 
 	await t.throwsAsync(initCommand.handler(), {
 		message: "Initialization not possible: ui5.yaml already exists"

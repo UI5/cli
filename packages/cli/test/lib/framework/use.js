@@ -1,10 +1,6 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
-
-const utils = require("../../../lib/framework/utils");
-
-let useFramework;
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
 function createMockProject(attr) {
 	return {
@@ -16,27 +12,32 @@ function createMockProject(attr) {
 	};
 }
 
-test.beforeEach((t) => {
-	t.context.getRootProjectConfigurationStub = sinon.stub(utils, "getRootProjectConfiguration");
+test.beforeEach(async (t) => {
+	t.context.getRootProjectConfigurationStub = sinon.stub();
 	t.context.resolveVersionStub = sinon.stub();
-	t.context.getFrameworkResolverStub = sinon.stub(utils, "getFrameworkResolver").returns({
+	t.context.getFrameworkResolverStub = sinon.stub().returns({
 		resolveVersion: t.context.resolveVersionStub
 	});
 	t.context.updateYamlStub = sinon.stub();
-	mock("../../../lib/framework/updateYaml", t.context.updateYamlStub);
-
-	useFramework = mock.reRequire("../../../lib/framework/use");
+	t.context.useFramework = await esmock.p("../../../lib/framework/use.js", {
+		"../../../lib/framework/updateYaml.js": t.context.updateYamlStub,
+		"../../../lib/framework/utils.js": {
+			getRootProjectConfiguration: t.context.getRootProjectConfigurationStub,
+			getFrameworkResolver: t.context.getFrameworkResolverStub
+		},
+	});
 });
 
-test.afterEach.always(() => {
-	mock.stopAll();
+test.afterEach.always((t) => {
 	sinon.restore();
+	esmock.purge(t.context.useFramework);
 });
 
 test.serial("Use with name and version (OpenUI5)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -93,7 +94,8 @@ test.serial("Use with name and version (OpenUI5)", async (t) => {
 test.serial("Use with name and version (SAPUI5)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -150,7 +152,8 @@ test.serial("Use with name and version (SAPUI5)", async (t) => {
 test.serial("Use with version only (OpenUI5)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -208,7 +211,8 @@ test.serial("Use with version only (OpenUI5)", async (t) => {
 test.serial("Use with version only (SAPUI5)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -266,7 +270,8 @@ test.serial("Use with version only (SAPUI5)", async (t) => {
 test.serial("Use with name only (no existing framework configuration)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -317,7 +322,8 @@ test.serial("Use with name only (no existing framework configuration)", async (t
 test.serial("Use with name only (existing framework configuration)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -376,7 +382,8 @@ test.serial("Use with name only (existing framework configuration)", async (t) =
 test.serial("Use with projectGraphOptions.config", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -432,7 +439,7 @@ test.serial("Use with projectGraphOptions.config", async (t) => {
 
 test.serial("Use with version only (no framework name)", async (t) => {
 	const {getRootProjectConfigurationStub,
-		resolveVersionStub, getFrameworkResolverStub, updateYamlStub} = t.context;
+		resolveVersionStub, getFrameworkResolverStub, updateYamlStub, useFramework} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -468,7 +475,7 @@ test.serial("Use with version only (no framework name)", async (t) => {
 
 test.serial("Use with invalid name", async (t) => {
 	const {getRootProjectConfigurationStub,
-		resolveVersionStub, getFrameworkResolverStub, updateYamlStub} = t.context;
+		resolveVersionStub, getFrameworkResolverStub, updateYamlStub, useFramework} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -504,7 +511,7 @@ test.serial("Use with invalid name", async (t) => {
 
 test.serial("Use with specVersion 1.0", async (t) => {
 	const {getRootProjectConfigurationStub,
-		resolveVersionStub, getFrameworkResolverStub, updateYamlStub} = t.context;
+		resolveVersionStub, getFrameworkResolverStub, updateYamlStub, useFramework} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -542,7 +549,8 @@ test.serial("Use with specVersion 1.0", async (t) => {
 test.serial("Use with name and version (YAML update fails)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	const yamlUpdateError = new Error("Failed to update YAML file");
@@ -603,7 +611,8 @@ test.serial("Use with name and version (YAML update fails)", async (t) => {
 test.serial("Use with name and version (YAML update fails with unexpected error)", async (t) => {
 	const {
 		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub
+		getFrameworkResolverStub, updateYamlStub,
+		useFramework
 	} = t.context;
 
 	updateYamlStub.rejects(new Error("Some unexpected error"));

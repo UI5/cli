@@ -1,19 +1,20 @@
-const test = require("ava");
-const sinon = require("sinon");
-const mock = require("mock-require");
+import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 
-const addCommand = require("../../../../lib/cli/commands/add");
+async function createMock(t, yamlUpdated = true) {
+	t.context.frameworkAddStub = sinon.stub().resolves({yamlUpdated});
+	t.context.addCommand = await esmock.p("../../../../lib/cli/commands/add.js", {
+		"../../../../lib/framework/add.js": t.context.frameworkAddStub
+	});
+}
 
 async function assertAddHandler(t, {argv, expectedLibraries, expectedConsoleLog}) {
-	const frameworkAddStub = sinon.stub().resolves({
-		yamlUpdated: true
-	});
-	mock("../../../../lib/framework/add", frameworkAddStub);
+	await createMock(t);
+	await t.context.addCommand.handler(argv);
 
-	await addCommand.handler(argv);
-
-	t.is(frameworkAddStub.callCount, 1, "Add function should be called once");
-	t.deepEqual(frameworkAddStub.getCall(0).args, [
+	t.is(t.context.frameworkAddStub.callCount, 1, "Add function should be called once");
+	t.deepEqual(t.context.frameworkAddStub.getCall(0).args, [
 		{
 			libraries: expectedLibraries,
 			projectGraphOptions: {
@@ -32,36 +33,28 @@ async function assertAddHandler(t, {argv, expectedLibraries, expectedConsoleLog}
 }
 
 async function assertFailingAddHandler(t, {argv, expectedMessage}) {
-	const frameworkAddStub = sinon.stub().resolves({
-		yamlUpdated: true
-	});
-	mock("../../../../lib/framework/add", frameworkAddStub);
-
-	const exception = await t.throwsAsync(addCommand.handler(argv));
+	await createMock(t);
+	const exception = await t.throwsAsync(t.context.addCommand.handler(argv));
 
 	t.is(exception.message, expectedMessage, "Add handler should throw expected error");
-	t.is(frameworkAddStub.callCount, 0, "Add function should not be called");
+	t.is(t.context.frameworkAddStub.callCount, 0, "Add function should not be called");
 }
 
 async function assertFailingYamlUpdateAddHandler(t, {argv, expectedMessage}) {
-	const frameworkAddStub = sinon.stub().resolves({
-		yamlUpdated: false
-	});
-	mock("../../../../lib/framework/add", frameworkAddStub);
-
-	const exception = await t.throwsAsync(addCommand.handler(argv));
+	await createMock(t, false);
+	const exception = await t.throwsAsync(t.context.addCommand.handler(argv));
 
 	t.is(exception.message, expectedMessage, "Add handler should throw expected error");
-	t.is(frameworkAddStub.callCount, 1, "Add function should be called once");
+	t.is(t.context.frameworkAddStub.callCount, 1, "Add function should be called once");
 }
 
 test.beforeEach((t) => {
 	t.context.consoleLogStub = sinon.stub(console, "log");
 });
 
-test.afterEach.always(() => {
-	mock.stopAll();
+test.afterEach.always((t) => {
 	sinon.restore();
+	esmock.purge(t.context.addCommand);
 });
 
 test.serial("Accepts single library", async (t) => {
