@@ -5,9 +5,9 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 /**
  * @private
  * @typedef {object} MiddlewareResources
- * @property {@ui5/fs.AbstractReader} all Reader or Collection to read resources of the
+ * @property {@ui5/fs/AbstractReader} all Reader or Collection to read resources of the
  *                                        root project and its dependencies
- * @property {@ui5/fs.AbstractReader} rootProject Reader or Collection to read resources of
+ * @property {@ui5/fs/AbstractReader} rootProject Reader or Collection to read resources of
  *                                        the project the server is started in
  * @memberof @ui5/server/internal/MiddlewareManager
  */

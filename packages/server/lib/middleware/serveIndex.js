@@ -10,7 +10,7 @@ const GB = KB * KB * KB;
 /**
  * Returns the mime type of the given resource
  *
- * @param {module:@ui5/fs.Resource} resource the resource
+ * @param {module:@ui5/fs/Resource} resource the resource
  * @returns {string} mime type
  */
 function getMimeType(resource) {
@@ -41,7 +41,7 @@ function formatSize(bytes) {
  * Creates a resource info object which is used to create the HTML
  * content for the resource listing
  *
- * @param {module:@ui5/fs.Resource} resource the resource to convert
+ * @param {@ui5/fs/Resource} resource the resource to convert
  * @returns {object} resource info object
  */
 function createResourceInfo(resource) {
@@ -63,7 +63,7 @@ function createResourceInfo(resource) {
 /**
  * Creates a resource info array from the given resource array
  *
- * @param {module:@ui5/fs.Resource[]} resources an array of resources
+ * @param {@ui5/fs/Resource[]} resources an array of resources
  * @returns {object[]} sorted array of resource infos
  */
 function createResourceInfos(resources) {
@@ -87,7 +87,7 @@ function createResourceInfos(resources) {
  * @module @ui5/server/middleware/serveIndex
  * @param {object} parameters Parameters
  * @param {object} parameters.resources Contains the resource reader or collection to access project related files
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.all Resource collection which contains the workspace
+ * @param {@ui5/fs/AbstractReader} parameters.resources.all Resource collection which contains the workspace
  * and the project dependencies
  * @param {boolean} [parameters.simpleIndex=false] Use a simplified view for the server directory listing
  * @param {boolean} [parameters.showHidden=true] Show hidden files in the server directory listing

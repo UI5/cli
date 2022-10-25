@@ -34,9 +34,9 @@ const themeResources = [
  *
  * @module @ui5/server/middleware/serveThemes
  * @param {object} parameters Parameters
- * @param {module:@ui5/server.middleware.MiddlewareManager.middlewareResources} parameters.resources Parameters
+ * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Parameters
  * @param {object} parameters.middlewareUtil Specification version dependent interface to a
- *                                        [MiddlewareUtil]{@link module:@ui5/server.middleware.MiddlewareUtil} instance
+ *                                        [MiddlewareUtil]{@link @ui5/server/middleware/MiddlewareUtil} instance
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources, middlewareUtil}) {
