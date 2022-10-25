@@ -1,5 +1,5 @@
 /**
- * A [Resource]{@ui5/project.Resource} with a different path than it's original
+ * A {@link @ui5/fs/Resource Resource} with a different path than it's original
  *
  * @public
  * @class
