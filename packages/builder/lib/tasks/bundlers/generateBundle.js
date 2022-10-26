@@ -4,7 +4,7 @@ import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateBundle
+ * @module @ui5/builder/tasks/bundlers/generateBundle
  */
 
 /* eslint-disable max-len */
@@ -21,9 +21,9 @@ import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @param {module:@ui5/builder/processors/moduleBundler~ModuleBundleDefinition} parameters.options.bundleDefinition Module
+ * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleDefinition} parameters.options.bundleDefinition Module
  * 			bundle definition
- * @param {module:@ui5/builder/processors/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
+ * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
  * 			bundle options
  * @returns {Promise} Promise resolving with <code>undefined</code> once data has been written
  */

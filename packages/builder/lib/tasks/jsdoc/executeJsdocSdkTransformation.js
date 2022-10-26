@@ -6,12 +6,12 @@ import sdkTransformer from "../../processors/jsdoc/sdkTransformer.js";
 
 /**
  * @public
- * @module @ui5/builder/tasks/executeJsdocSdkTransformation
+ * @module @ui5/builder/tasks/jsdoc/executeJsdocSdkTransformation
  */
 
 /**
  * Task to transform the api.json file as created by the
- * [generateJsdoc]{@link @ui5/builder/tasks/generateJsdoc} task into a pre-processed api.json
+ * [generateJsdoc]{@link @ui5/builder/tasks/jsdoc/generateJsdoc} task into a pre-processed api.json
  * file suitable for the SDK.
  *
  * @public

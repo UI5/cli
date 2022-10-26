@@ -3,11 +3,11 @@ import transformer from "./lib/transformApiJson.cjs";
 
 /**
  * @public
- * @module @ui5/builder/processors/sdkTransformer
+ * @module @ui5/builder/processors/jsdoc/sdkTransformer
  */
 
 /**
- * Transform api.json as created by [jsdocGenerator]{@link @ui5/builder/processors/jsdocGenerator}
+ * Transform api.json as created by [jsdocGenerator]{@link @ui5/builder/processors/jsdoc/jsdocGenerator}
  * for usage in a UI5 SDK
  *
  * @public

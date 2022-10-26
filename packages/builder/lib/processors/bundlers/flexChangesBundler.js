@@ -4,7 +4,7 @@ import {createResource} from "@ui5/fs/resourceFactory";
 
 /**
  * @public
- * @module @ui5/builder/processors/flexChangesBundler
+ * @module @ui5/builder/processors/bundlers/flexChangesBundler
  */
 
 /**

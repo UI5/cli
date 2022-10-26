@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 
 /**
  * @public
- * @module @ui5/builder/processors/jsdocGenerator
+ * @module @ui5/builder/processors/jsdoc/jsdocGenerator
  */
 
 /**

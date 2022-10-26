@@ -46,7 +46,7 @@ class I18nResourceList {
 
 /**
  * @public
- * @module @ui5/builder/processors/manifestBundler
+ * @module @ui5/builder/processors/bundlers/manifestBundler
  */
 
 /**

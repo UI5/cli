@@ -6,7 +6,7 @@ const log = logger.getLogger("builder:processors:bundlers:moduleBundler");
 
 /**
  * @public
- * @module @ui5/builder/processors/moduleBundler
+ * @module @ui5/builder/processors/bundlers/moduleBundler
  */
 
 /**
@@ -86,7 +86,7 @@ const log = logger.getLogger("builder:processors:bundlers:moduleBundler");
  * @property {string} name The module bundle name
  * @property {string[]} [defaultFileTypes=[".js", ".control.xml", ".fragment.html", ".fragment.json", ".fragment.xml", ".view.html", ".view.json", ".view.xml"]]
  *   List of default file types to be included in the bundle
- * @property {module:@ui5/builder/processors/moduleBundler~ModuleBundleDefinitionSection[]} sections List of module bundle definition sections.
+ * @property {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleDefinitionSection[]} sections List of module bundle definition sections.
  */
 /* eslint-enable max-len */
 
@@ -129,11 +129,11 @@ const log = logger.getLogger("builder:processors:bundlers:moduleBundler");
  * @param {object} parameters.options Options
  * @param {object} [parameters.options.moduleNameMapping]
  				Optional mapping of resource paths to module name in order to overwrite the default determination
- * @param {module:@ui5/builder/processors/moduleBundler~ModuleBundleDefinition} parameters.options.bundleDefinition Module
+ * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleDefinition} parameters.options.bundleDefinition Module
 				bundle definition
- * @param {module:@ui5/builder/processors/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
+ * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
 				bundle options
- * @returns {Promise<module:@ui5/builder/processors/moduleBundler~ModuleBundlerResult[]>}
+ * @returns {Promise<module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundlerResult[]>}
  * Promise resolving with module bundle resources
  */
 /* eslint-enable max-len */

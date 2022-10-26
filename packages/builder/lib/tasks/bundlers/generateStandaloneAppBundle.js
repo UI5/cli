@@ -61,7 +61,7 @@ function getBundleDefinition(config) {
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateStandaloneAppBundle
+ * @module @ui5/builder/tasks/bundlers/generateStandaloneAppBundle
  */
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */

@@ -8,7 +8,7 @@ const BUNDLE_NAME = "manifest-bundle.zip";
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateManifestBundle
+ * @module @ui5/builder/tasks/bundlers/generateManifestBundle
  */
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */

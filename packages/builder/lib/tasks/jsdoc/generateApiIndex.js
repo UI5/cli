@@ -4,12 +4,12 @@ import apiIndexGenerator from "../../processors/jsdoc/apiIndexGenerator.js";
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateApiIndex
+ * @module @ui5/builder/tasks/jsdoc/generateApiIndex
  */
 
 /**
  * Compiles an api-index.json resource from all available api.json resources as created by the
- * [executeJsdocSdkTransformation]{@link @ui5/builder/tasks/executeJsdocSdkTransformation} task.
+ * [executeJsdocSdkTransformation]{@link @ui5/builder/tasks/jsdoc/executeJsdocSdkTransformation} task.
  * The resulting api-index.json resource is mainly to be used in the SDK.
  *
  * @public

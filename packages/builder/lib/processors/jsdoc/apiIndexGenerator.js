@@ -3,7 +3,7 @@ import createIndex from "./lib/createIndexFiles.cjs";
 
 /**
  * @public
- * @module @ui5/builder/processors/apiIndexGenerator
+ * @module @ui5/builder/processors/jsdoc/apiIndexGenerator
  */
 
 /**

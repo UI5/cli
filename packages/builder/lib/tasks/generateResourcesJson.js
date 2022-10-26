@@ -51,7 +51,7 @@ function getCreatorOptions(projectName) {
  * </p>
  *
  * <p>
- * Not supported in combination with task {@link @ui5/builder/tasks/generateStandaloneAppBundle}.
+ * Not supported in combination with task {@link @ui5/builder/tasks/bundlers/generateStandaloneAppBundle}.
  * Therefore it is also not supported in combination with self-contained build.
  * </p>
  *

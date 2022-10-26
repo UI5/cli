@@ -219,7 +219,7 @@ function getSapUiCoreBunDef(name, filters, preload) {
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateLibraryPreload
+ * @module @ui5/builder/tasks/bundlers/generateLibraryPreload
  */
 
 /**

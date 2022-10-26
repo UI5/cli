@@ -13,7 +13,7 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateJsdoc
+ * @module @ui5/builder/tasks/jsdoc/generateJsdoc
  */
 
 /**
@@ -36,7 +36,7 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
- * @param {module:@ui5/builder/tasks/generateJsdoc~GenerateJsdocOptions} parameters.options Options
+ * @param {module:@ui5/builder/tasks/jsdoc/generateJsdoc~GenerateJsdocOptions} parameters.options Options
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @param {object} [parameters.buildContext] Internal, deprecated parameter
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
@@ -49,7 +49,7 @@ export default async function generateJsdoc({
 	options = {}
 }) {
 	const {projectName, namespace, version, pattern} =
-	/** @type {module:@ui5/builder/tasks/generateJsdoc~GenerateJsdocOptions} */ (options);
+	/** @type {module:@ui5/builder/tasks/jsdoc/generateJsdoc~GenerateJsdocOptions} */ (options);
 
 	if (!projectName || !namespace || !version || !pattern) {
 		throw new Error("[generateJsdoc]: One or more mandatory options not provided");

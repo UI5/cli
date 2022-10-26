@@ -6,7 +6,7 @@ import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateComponentPreload
+ * @module @ui5/builder/tasks/bundlers/generateComponentPreload
  */
 
 /**

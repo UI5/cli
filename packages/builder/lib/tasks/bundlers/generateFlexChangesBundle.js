@@ -5,7 +5,7 @@ import semver from "semver";
 
 /**
  * @public
- * @module @ui5/builder/tasks/generateFlexChangesBundle
+ * @module @ui5/builder/tasks/bundlers/generateFlexChangesBundle
  */
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
