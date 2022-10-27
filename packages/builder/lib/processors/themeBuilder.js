@@ -114,10 +114,11 @@ export class ThemeBuilder {
 	}
 
 	/**
-	 * Clears all cached build results
+	 * Clears all cached build results.
 	 *
- 	 * @public
 	 * Use this method to prevent high memory consumption when building many themes within the same process.
+ 	 *
+	 * @public
 	 */
 	clearCache() {
 		this.builder.clearCache();

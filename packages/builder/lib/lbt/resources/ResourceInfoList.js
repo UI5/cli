@@ -24,7 +24,9 @@ class ResourceInfoList {
 
 		// --- transient state ---
 		/**
-		 * @type {string} name of the resource
+		 * The name of the resource
+		 *
+		 * @type {string}
 		 */
 		this.name = prefix;
 		/**
