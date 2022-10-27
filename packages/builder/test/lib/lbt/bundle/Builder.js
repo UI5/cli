@@ -680,9 +680,11 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 });
 
 test.serial("integration: createBundle with bundleInfo", async (t) => {
+	const sillyLogStub = sinon.stub();
 	const verboseLogStub = sinon.stub();
 	const warnLogStub = sinon.stub();
 	const myLoggerInstance = {
+		silly: sillyLogStub,
 		verbose: verboseLogStub,
 		warn: warnLogStub
 	};

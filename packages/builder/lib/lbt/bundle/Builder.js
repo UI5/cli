@@ -578,7 +578,7 @@ class BundleBuilder {
 			}
 		} else {
 			const sourceMapFileCandidate = resourcePath.slice("/resources/".length) + ".map";
-			log.verbose(`Could not find a sourceMappingURL reference in content of module ${moduleName}. ` +
+			log.silly(`Could not find a sourceMappingURL reference in content of module ${moduleName}. ` +
 				`Attempting to find a source map resource based on the module's path: ${sourceMapFileCandidate}`);
 			try {
 				const sourceMapResource = await this.pool.findResource(sourceMapFileCandidate);
@@ -587,7 +587,7 @@ class BundleBuilder {
 				}
 			} catch (e) {
 				// No input source map
-				log.verbose(`Could not find a source map for module ${moduleName}: ${e.message}`);
+				log.silly(`Could not find a source map for module ${moduleName}: ${e.message}`);
 			}
 		}
 
