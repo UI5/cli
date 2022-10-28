@@ -304,6 +304,32 @@ test("rootView with object", async (t) => {
 	t.deepEqual(mockInfo.deps, ["test/view/App.view.js"], "dependencies should be correct");
 });
 
+test("rootView with object (without type, defaults to XML)", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			rootView: {
+				viewName: "test.view.App",
+				async: true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [
+		"test/view/App.view.xml",
+	], "dependencies should be correct");
+});
+
 test("rootView with string", async (t) => {
 	const mockManifest = {
 		"sap.ui5": {
@@ -323,6 +349,162 @@ test("rootView with string", async (t) => {
 	const subject = new ComponentAnalyzer(mockPool);
 	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
 	t.deepEqual(mockInfo.deps, ["test/view/App.view.xml"], "dependencies should be correct");
+});
+
+test("rootView with Typed View ('module:' prefix)", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			"rootView": {
+				"viewName": "module:myapp/views/MyView",
+				"async": true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [
+		"myapp/views/MyView.js",
+	], "dependencies should be correct");
+});
+
+test("rootView with Template View", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			"rootView": {
+				"viewName": "myapp.views.MyView",
+				"type": "Template",
+				"async": true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [
+		"myapp/views/MyView.view.tmpl",
+	], "dependencies should be correct");
+});
+
+test("rootView with JSON View", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			"rootView": {
+				"viewName": "myapp.views.MyView",
+				"type": "JSON",
+				"async": true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [
+		"myapp/views/MyView.view.json",
+	], "dependencies should be correct");
+});
+
+test("rootView with HTML View", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			"rootView": {
+				"viewName": "myapp.views.MyView",
+				"type": "HTML",
+				"async": true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [
+		"myapp/views/MyView.view.html",
+	], "dependencies should be correct");
+});
+
+test("rootView with unknown view type", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			"rootView": {
+				"viewName": "myapp.views.MyView",
+				"type": "InvalidType",
+				"async": true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [], "dependencies should be correct");
+});
+
+test("rootView without viewName", async (t) => {
+	const mockManifest = {
+		"sap.ui5": {
+			"rootView": {
+				"type": "XML",
+				"async": true
+			}
+		}
+	};
+
+	const mockPool = createMockPool("test/", mockManifest);
+
+	const mockInfo = {
+		deps: [],
+		addDependency(name) {
+			this.deps.push(name);
+		}
+	};
+
+	const subject = new ComponentAnalyzer(mockPool);
+	await subject.analyze({name: path.join("test", "Component.js")}, mockInfo);
+	t.deepEqual(mockInfo.deps, [], "dependencies should be correct");
 });
 
 

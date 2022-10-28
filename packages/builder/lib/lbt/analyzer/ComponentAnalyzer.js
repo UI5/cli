@@ -66,6 +66,53 @@ class ComponentAnalyzer {
 		return info;
 	}
 
+	_getRootViewModule(rootView) {
+		// For runtime logic see sap/ui/core/UIComponent#createContent and sap/ui/core/mvc/View#_getModuleName
+
+		if (typeof rootView === "string") {
+			rootView = {
+				viewName: rootView
+			};
+		}
+		if (!rootView.type) {
+			rootView.type = "XML";
+		}
+
+		if (!rootView.viewName) {
+			log.warn(`Unable to analyze sap.ui5/rootView: Missing viewName`);
+			return null;
+		}
+
+		if (rootView.viewName.startsWith("module:")) {
+			return rootView.viewName.slice("module:".length) + ".js";
+		}
+
+		let viewTypeExtension;
+
+		switch (rootView.type) {
+		case "JS":
+			viewTypeExtension = ".view.js";
+			break;
+		case "JSON":
+			viewTypeExtension = ".view.json";
+			break;
+		case "Template":
+			viewTypeExtension = ".view.tmpl";
+			break;
+		case "XML":
+			viewTypeExtension = ".view.xml";
+			break;
+		case "HTML":
+			viewTypeExtension = ".view.html";
+			break;
+		default:
+			log.warn(`Unable to analyze sap.ui5/rootView: Unknown type '${rootView.type}'`);
+			return null;
+		}
+
+		return fromUI5LegacyName(rootView.viewName, viewTypeExtension);
+	}
+
 	/**
 	 * Evaluates a manifest after it has been read and parsed
 	 * and adds any newly found dependencies to the given info object.
@@ -88,20 +135,11 @@ class ComponentAnalyzer {
 		}
 
 		if ( ui5.rootView ) {
-			let rootView;
-			if ( typeof ui5.rootView === "string" ) {
-				rootView = {
-					viewName: ui5.rootView,
-					type: "XML"
-				};
-			} else {
-				rootView = ui5.rootView;
+			const module = this._getRootViewModule(ui5.rootView);
+			if (module) {
+				log.verbose("adding root view dependency ", module);
+				info.addDependency( module );
 			}
-			const module = fromUI5LegacyName(
-				rootView.viewName,
-				".view." + rootView.type.toLowerCase() );
-			log.verbose("adding root view dependency ", module);
-			info.addDependency( module );
 		}
 
 		each( ui5.dependencies && ui5.dependencies.libs, (options, lib) => {
