@@ -305,6 +305,61 @@ test("integration: Analysis of an xml view with core:require (missing comma, par
 		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
+test("integration: Analysis of an xml view with nested views", async (t) => {
+	const xml = `<mvc:View xmlns:mvc="sap.ui.core.mvc" xmlns:core="sap.ui.core" xmlns="sap.m">
+
+			<mvc:XMLView viewName="myapp.views.MyXMLView"/>
+			<mvc:JSView viewName="myapp.views.MyJSView"/>
+			<mvc:JSONView viewName="myapp.views.MyJSONView"/>
+			<mvc:TemplateView viewName="myapp.views.MyTemplateView"/>
+			<mvc:HTMLView viewName="myapp.views.MyHTMLView"/>
+
+			<mvc:View viewName="module:myapp/views/MyTypedView" />
+
+			<mvc:View viewName="myapp.views.MyXMLView2" type="XML" />
+			<mvc:View viewName="myapp.views.MyJSView2" type="JS" />
+			<mvc:View viewName="myapp.views.MyJSONView2" type="JSON" />
+			<mvc:View viewName="myapp.views.MyTemplateView2" type="Template" />
+			<mvc:View viewName="myapp.views.MyHTMLView2" type="HTML" />
+
+			<mvc:View viewName="myapp.views.UnknownViewType" type="unknown" />
+
+		</mvc:View>`;
+
+	const moduleInfo = new ModuleInfo();
+
+	const analyzer = new XMLTemplateAnalyzer(fakeMockPool);
+	await analyzer.analyzeView(xml, moduleInfo);
+	t.deepEqual(moduleInfo.dependencies,
+		[
+			"sap/ui/core/mvc/XMLView.js",
+			"myapp/views/MyXMLView.view.xml",
+
+			"sap/ui/core/mvc/JSView.js",
+			"myapp/views/MyJSView.view.js",
+
+			"sap/ui/core/mvc/JSONView.js",
+			"myapp/views/MyJSONView.view.json",
+
+			"sap/ui/core/mvc/TemplateView.js",
+			"myapp/views/MyTemplateView.view.tmpl",
+
+			"sap/ui/core/mvc/HTMLView.js",
+			"myapp/views/MyHTMLView.view.html",
+
+			"sap/ui/core/mvc/View.js",
+			"myapp/views/MyTypedView.js",
+
+			"myapp/views/MyXMLView2.view.xml",
+			"myapp/views/MyJSView2.view.js",
+			"myapp/views/MyJSONView2.view.json",
+			"myapp/views/MyTemplateView2.view.tmpl",
+			"myapp/views/MyHTMLView2.view.html"
+		], "Dependencies should come from the XML template");
+	t.false(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"XMLView is a strict dependency as the XMLView also has a nested XMLView");
+});
+
 test("integration: Analysis of an xml fragment", async (t) => {
 	const xml = `<HBox xmlns:m="sap.m" xmlns:l="sap.ui.layout" controllerName="myController">
 			<items>

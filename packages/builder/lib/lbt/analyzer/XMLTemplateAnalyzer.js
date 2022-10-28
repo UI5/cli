@@ -39,10 +39,12 @@ const FRAGMENT_FRAGMENTNAME_ATTRIBUTE = "fragmentName";
 const FRAGMENT_TYPE_ATTRIBUTE = "type";
 
 // different view types
+const VIEW_MODULE = "sap/ui/core/mvc/View.js";
 const HTMLVIEW_MODULE = "sap/ui/core/mvc/HTMLView.js";
 const JSVIEW_MODULE = "sap/ui/core/mvc/JSView.js";
 const JSONVIEW_MODULE = "sap/ui/core/mvc/JSONView.js";
 const XMLVIEW_MODULE = "sap/ui/core/mvc/XMLView.js";
+const TEMPLATEVIEW_MODULE = "sap/ui/core/mvc/TemplateView.js";
 const ANYVIEW_VIEWNAME_ATTRIBUTE = "viewName";
 const XMLVIEW_CONTROLLERNAME_ATTRIBUTE = "controllerName";
 const XMLVIEW_RESBUNDLENAME_ATTRIBUTE = "resourceBundleName";
@@ -50,6 +52,7 @@ const XMLVIEW_CORE_REQUIRE_ATTRIBUTE_NS = {
 	uri: "sap.ui.core",
 	local: "require"
 };
+const VIEW_TYPE_ATTRIBUTE = "type";
 
 /*
  * Helper to simplify access to node attributes.
@@ -349,6 +352,54 @@ class XMLTemplateAnalyzer {
 					const childViewModuleName = fromUI5LegacyName( viewName, ".view.xml" );
 					// console.log("child view detected %s", childViewModuleName);
 					this._addDependency(childViewModuleName, conditional);
+				}
+			} else if ( moduleName === TEMPLATEVIEW_MODULE ) {
+				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+				if ( viewName ) {
+					const childViewModuleName = fromUI5LegacyName( viewName, ".view.tmpl" );
+					// console.log("child view detected %s", childViewModuleName);
+					this._addDependency(childViewModuleName, conditional);
+				}
+			} else if ( moduleName === VIEW_MODULE ) {
+				const viewName = getAttribute(node, ANYVIEW_VIEWNAME_ATTRIBUTE);
+				if ( viewName ) {
+					let childViewModuleName;
+
+					if (viewName.startsWith("module:")) {
+						childViewModuleName = viewName.slice("module:".length) + ".js";
+					} else {
+						const viewType = getAttribute(node, VIEW_TYPE_ATTRIBUTE);
+
+						let viewTypeExtension;
+
+						switch (viewType) {
+						case "JS":
+							viewTypeExtension = ".view.js";
+							break;
+						case "JSON":
+							viewTypeExtension = ".view.json";
+							break;
+						case "Template":
+							viewTypeExtension = ".view.tmpl";
+							break;
+						case "XML":
+							viewTypeExtension = ".view.xml";
+							break;
+						case "HTML":
+							viewTypeExtension = ".view.html";
+							break;
+						default:
+							log.warn(`Unable to analyze sap.ui5/rootView: Unknown type '${viewType}'`);
+						}
+
+						if (viewTypeExtension) {
+							childViewModuleName = fromUI5LegacyName(viewName, viewTypeExtension);
+						}
+					}
+					if (childViewModuleName) {
+						// console.log("child view detected %s", childViewModuleName);
+						this._addDependency(childViewModuleName, conditional);
+					}
 				}
 			}
 		} catch (err) {
