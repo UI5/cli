@@ -75,6 +75,15 @@ test("Resource: getBuffer with throwing an error", (t) => {
 	});
 });
 
+test("Resource: getPath / getName", (t) => {
+	const resource = new Resource({
+		path: "my/path/to/resource.js",
+		buffer: Buffer.from("Content")
+	});
+	t.is(resource.getPath(), "my/path/to/resource.js", "Correct path");
+	t.is(resource.getName(), "resource.js", "Correct name");
+});
+
 test("Resource: getStream", async (t) => {
 	t.plan(1);
 

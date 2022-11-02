@@ -1,3 +1,5 @@
+import Resource from "./Resource.js";
+
 /**
  * A {@link @ui5/fs/Resource Resource} with a different path than it's original
  *
@@ -22,6 +24,7 @@ class ResourceFacade {
 			throw new Error("Cannot create ResourceFacade: resource parameter missing");
 		}
 		this._path = path;
+		this._name = Resource._getNameFromPath(path);
 		this._resource = resource;
 	}
 
@@ -33,6 +36,16 @@ class ResourceFacade {
 	 */
 	getPath() {
 		return this._path;
+	}
+
+	/**
+	 * Gets the resource name
+	 *
+	 * @public
+	 * @returns {string} Name of the resource
+	 */
+	getName() {
+		return this._name;
 	}
 
 	/**
