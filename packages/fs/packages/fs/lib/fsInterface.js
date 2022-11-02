@@ -79,7 +79,7 @@ function fsInterface(reader) {
 				nodir: false
 			}).then((resources) => {
 				const files = resources.map((resource) => {
-					return resource._name;
+					return resource.getName();
 				});
 				callback(null, files);
 			}).catch(callback);
