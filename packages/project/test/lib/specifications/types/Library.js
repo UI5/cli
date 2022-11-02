@@ -411,9 +411,7 @@ test("_getManifest: Invalid JSON", async (t) => {
 	};
 	project._pManifest = null; // Clear cache from instantiation
 	const error = await t.throwsAsync(project._getManifest());
-	t.is(error.message,
-		"Failed to read some path for project library.d: " +
-		"Unexpected token o in JSON at position 1",
+	t.regex(error.message, /^Failed to read some path for project library\.d: /,
 		"Rejected with correct error message");
 	t.is(byGlobStub.callCount, 1, "byGlob got called once");
 	t.is(byGlobStub.getCall(0).args[0], "**/manifest.json", "byGlob got called with the expected arguments");

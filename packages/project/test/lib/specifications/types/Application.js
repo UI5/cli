@@ -317,9 +317,7 @@ test("_getManifest: invalid JSON", async (t) => {
 	};
 
 	const error = await t.throwsAsync(project._getManifest("/some-manifest.json"));
-	t.deepEqual(error.message,
-		"Failed to read /some-manifest.json for project application.a: " +
-		"Unexpected token o in JSON at position 1",
+	t.regex(error.message, /^Failed to read \/some-manifest\.json for project application\.a: /,
 		"Rejected with correct error message");
 	t.is(byPathStub.callCount, 1, "byPath got called once");
 	t.is(byPathStub.getCall(0).args[0], "/some-manifest.json", "byPath got called with the correct argument");
