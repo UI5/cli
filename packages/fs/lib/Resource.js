@@ -53,7 +53,7 @@ class Resource {
 		}
 
 		this._path = path;
-		this._name = this._getNameFromPath(path);
+		this._name = Resource._getNameFromPath(path);
 
 		this._source = source; // Experimental, internal parameter
 		if (this._source) {
@@ -92,6 +92,10 @@ class Resource {
 
 		// Tracing:
 		this._collections = [];
+	}
+
+	static _getNameFromPath(virPath) {
+		return path.posix.basename(virPath);
 	}
 
 	/**
@@ -244,7 +248,17 @@ class Resource {
 	 */
 	setPath(path) {
 		this._path = path;
-		this._name = this._getNameFromPath(path);
+		this._name = Resource._getNameFromPath(path);
+	}
+
+	/**
+	 * Gets the resource name
+	 *
+	 * @public
+	 * @returns {string} Name of the resource
+	 */
+	getName() {
+		return this._name;
 	}
 
 	/**
@@ -274,10 +288,6 @@ class Resource {
 		}
 		const buffer = await this.getBuffer();
 		return buffer.byteLength;
-	}
-
-	_getNameFromPath(virPath) {
-		return path.posix.basename(virPath);
 	}
 
 	/**
