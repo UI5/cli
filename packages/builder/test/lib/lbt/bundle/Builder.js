@@ -51,8 +51,8 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file %s. Ignoring error, skipping compression.",
 		"first verbose log argument 0 is correct");
 	t.is(verboseLogStub.firstCall.args[1], "invalid.json", "first verbose log argument 1 is correct");
-	t.deepEqual(verboseLogStub.secondCall.args[0], new SyntaxError("Unexpected token { in JSON at position 19"),
-		"second verbose log");
+	t.true(verboseLogStub.secondCall.args[0] instanceof SyntaxError, "second verbose log with SyntaxError");
+	t.regex(verboseLogStub.secondCall.args[0].message, /JSON/, "second verbose log about incorrect JSON");
 
 	t.true(result, "result is true");
 	t.is(writeStub.callCount, 1, "Writer is called once");
