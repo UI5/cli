@@ -112,7 +112,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
-		"ava": "^4.3.1",
+		"ava": "^5.0.1",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.3",
