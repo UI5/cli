@@ -15,7 +15,7 @@
 class TaskUtil {
 	/**
 	 * Standard Build Tags. See UI5 Tooling
-	 * [RFC 0008]{@link https://github.com/SAP/ui5-tooling/blob/master/rfcs/0008-resource-tagging-during-build.md}
+	 * [RFC 0008]{@link https://github.com/SAP/ui5-tooling/blob/main/rfcs/0008-resource-tagging-during-build.md}
 	 * for details.
 	 *
 	 * @public
