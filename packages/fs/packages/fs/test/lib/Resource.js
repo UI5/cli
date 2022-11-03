@@ -84,6 +84,16 @@ test("Resource: getPath / getName", (t) => {
 	t.is(resource.getName(), "resource.js", "Correct name");
 });
 
+test("Resource: setPath / getName", (t) => {
+	const resource = new Resource({
+		path: "my/path/to/resource.js",
+		buffer: Buffer.from("Content")
+	});
+	resource.setPath("my/other/file.json");
+	t.is(resource.getPath(), "my/other/file.json", "Correct path");
+	t.is(resource.getName(), "file.json", "Correct name");
+});
+
 test("Resource: getStream", async (t) => {
 	t.plan(1);
 
