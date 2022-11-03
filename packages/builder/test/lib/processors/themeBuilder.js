@@ -5,7 +5,7 @@ import fsInterface from "@ui5/fs/fsInterface";
 import themeBuilderProcessor from "../../../lib/processors/themeBuilder.js";
 import {ThemeBuilder} from "../../../lib/processors/themeBuilder.js";
 
-function prepareResources({library} = {}) {
+async function prepareResources({library} = {}) {
 	const input =
 `@someColor: black;
 .someClass {
@@ -29,7 +29,7 @@ function prepareResources({library} = {}) {
 		string: input
 	});
 
-	memoryAdapter.write(resource);
+	await memoryAdapter.write(resource);
 
 	return {
 		resource,
@@ -116,7 +116,7 @@ function getExpectedResults({compress, library, cssVariables}) {
 }
 
 test("Processor: Builds a less file (default options)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const [cssResource, cssRtlResource, jsonResource] = await themeBuilderProcessor({
 		resources: [resource],
@@ -136,7 +136,7 @@ test("Processor: Builds a less file (default options)", async (t) => {
 });
 
 test("Processor: Builds a less file (compress = true)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const [cssResource, cssRtlResource, jsonResource] = await themeBuilderProcessor({
 		resources: [resource],
@@ -153,7 +153,7 @@ test("Processor: Builds a less file (compress = true)", async (t) => {
 });
 
 test("Processor: Builds a less file (compress = false)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const [cssResource, cssRtlResource, jsonResource] = await themeBuilderProcessor({
 		resources: [resource],
@@ -170,7 +170,7 @@ test("Processor: Builds a less file (compress = false)", async (t) => {
 });
 
 test("Processor: Builds a less file (no library)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources({library: false});
+	const {resource, memoryAdapter} = await prepareResources({library: false});
 
 	const [cssResource, cssRtlResource, jsonResource] = await themeBuilderProcessor({
 		resources: [resource],
@@ -187,7 +187,7 @@ test("Processor: Builds a less file (no library)", async (t) => {
 });
 
 test("ThemeBuilder: Builds a less file", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const themeBuilder = new ThemeBuilder({fs: fsInterface(memoryAdapter)});
 
@@ -200,7 +200,7 @@ test("ThemeBuilder: Builds a less file", async (t) => {
 });
 
 test("ThemeBuilder: Builds a less file (compress = true)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const themeBuilder = new ThemeBuilder({fs: fsInterface(memoryAdapter)});
 
@@ -215,7 +215,7 @@ test("ThemeBuilder: Builds a less file (compress = true)", async (t) => {
 });
 
 test("ThemeBuilder: Builds a less file (compress = false)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const themeBuilder = new ThemeBuilder({fs: fsInterface(memoryAdapter)});
 
@@ -230,7 +230,7 @@ test("ThemeBuilder: Builds a less file (compress = false)", async (t) => {
 });
 
 test("ThemeBuilder: Builds a less file (no library)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources({library: false});
+	const {resource, memoryAdapter} = await prepareResources({library: false});
 
 	const themeBuilder = new ThemeBuilder({fs: fsInterface(memoryAdapter)});
 
@@ -245,7 +245,7 @@ test("ThemeBuilder: Builds a less file (no library)", async (t) => {
 });
 
 test("Processor: Builds a less file (cssVariables = true)", async (t) => {
-	const {resource, memoryAdapter} = prepareResources();
+	const {resource, memoryAdapter} = await prepareResources();
 
 	const [
 		cssResource,
