@@ -35,3 +35,9 @@ jobs:
       uses: coverallsapp/github-action@1.1.3
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build e2e test image
+      run: ./test/e2e/build-image.sh
+
+    - name: Run e2e test image
+      run: ./test/e2e/run-image.sh

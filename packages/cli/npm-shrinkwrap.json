@@ -25,7 +25,7 @@
 				"yargs": "^17.5.1"
 			},
 			"bin": {
-				"ui5": "bin/ui5.js"
+				"ui5": "bin/ui5.cjs"
 			},
 			"devDependencies": {
 				"@istanbuljs/esm-loader-hook": "^0.2.0",
@@ -38,7 +38,7 @@
 				"eslint-config-google": "^0.14.0",
 				"eslint-plugin-ava": "^13.0.2",
 				"eslint-plugin-jsdoc": "^37.6.3",
-				"esmock": "^2.0.0",
+				"esmock": "^2.0.7",
 				"execa": "^5.1.1",
 				"jsdoc": "^3.6.7",
 				"nyc": "^15.1.0",
@@ -3868,13 +3868,10 @@
 			}
 		},
 		"node_modules/esmock": {
-			"version": "2.0.6",
-			"resolved": "https://registry.npmjs.org/esmock/-/esmock-2.0.6.tgz",
-			"integrity": "sha512-2EY6isqPxZ9xm/nPz7DE5u/M5Nt3Xq4WUTOT5Dv9sfaqim6HZ6hitpEEfrSKAryA1JsnF/YljSRo2MZCtx0LTw==",
+			"version": "2.0.7",
+			"resolved": "https://registry.npmjs.org/esmock/-/esmock-2.0.7.tgz",
+			"integrity": "sha512-/DzaNL58ZKT6CRuCu2WatPMGe49BOjUwiKADfhGCk/SBzrmWWjzG/pPFq+3hvScG8nvD2YFr0Hz4PIZkfVqy3Q==",
 			"dev": true,
-			"dependencies": {
-				"resolvewithplus": "^1.0.2"
-			},
 			"engines": {
 				"node": ">=14.16.0"
 			}
@@ -8373,15 +8370,6 @@
 			"integrity": "sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw==",
 			"engines": {
 				"node": ">=8"
-			}
-		},
-		"node_modules/resolvewithplus": {
-			"version": "1.0.2",
-			"resolved": "https://registry.npmjs.org/resolvewithplus/-/resolvewithplus-1.0.2.tgz",
-			"integrity": "sha512-UNvTSqWpe1lhKvXb+Qo97Q/dFUtA0kDuUG/gO7S+P9H/xYZ+A9pwlAbY6Dqp2tgAeQNdHmQG5MdNL6d9/FWo6Q==",
-			"dev": true,
-			"engines": {
-				"node": ">=12.16.0"
 			}
 		},
 		"node_modules/responselike": {
@@ -13225,13 +13213,10 @@
 			"integrity": "sha512-mQ+suqKJVyeuwGYHAdjMFqjCyfl8+Ldnxuyp3ldiMBFKkvytrXUZWaiPCEav8qDHKty44bD+qV1IP4T+w+xXRA=="
 		},
 		"esmock": {
-			"version": "2.0.6",
-			"resolved": "https://registry.npmjs.org/esmock/-/esmock-2.0.6.tgz",
-			"integrity": "sha512-2EY6isqPxZ9xm/nPz7DE5u/M5Nt3Xq4WUTOT5Dv9sfaqim6HZ6hitpEEfrSKAryA1JsnF/YljSRo2MZCtx0LTw==",
-			"dev": true,
-			"requires": {
-				"resolvewithplus": "^1.0.2"
-			}
+			"version": "2.0.7",
+			"resolved": "https://registry.npmjs.org/esmock/-/esmock-2.0.7.tgz",
+			"integrity": "sha512-/DzaNL58ZKT6CRuCu2WatPMGe49BOjUwiKADfhGCk/SBzrmWWjzG/pPFq+3hvScG8nvD2YFr0Hz4PIZkfVqy3Q==",
+			"dev": true
 		},
 		"espree": {
 			"version": "9.4.0",
@@ -16637,12 +16622,6 @@
 			"version": "5.0.0",
 			"resolved": "https://registry.npmjs.org/resolve-from/-/resolve-from-5.0.0.tgz",
 			"integrity": "sha512-qYg9KP24dD5qka9J47d0aVky0N+b4fTU89LN9iDnjB5waksiC49rvMB0PrUJQGoTmH50XPiqOvAjDfaijGxYZw=="
-		},
-		"resolvewithplus": {
-			"version": "1.0.2",
-			"resolved": "https://registry.npmjs.org/resolvewithplus/-/resolvewithplus-1.0.2.tgz",
-			"integrity": "sha512-UNvTSqWpe1lhKvXb+Qo97Q/dFUtA0kDuUG/gO7S+P9H/xYZ+A9pwlAbY6Dqp2tgAeQNdHmQG5MdNL6d9/FWo6Q==",
-			"dev": true
 		},
 		"responselike": {
 			"version": "3.0.0",

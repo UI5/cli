@@ -11,7 +11,7 @@ import {readFileSync} from "node:fs";
 const pkgJsonPath = new URL("../../../package.json", import.meta.url);
 const pkg = JSON.parse(readFileSync(pkgJsonPath));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ui5Cli = path.join(__dirname, "..", "..", "..", "bin", "ui5.js");
+const ui5Cli = path.join(__dirname, "..", "..", "..", "bin", "ui5.cjs");
 const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 
 test.beforeEach(async (t) => {

@@ -1,46 +1,84 @@
 import test from "ava";
-import sinon from "sinon";
-import esmock from "esmock";
+import sinonGlobal from "sinon";
+import {fileURLToPath} from "node:url";
+import {createRequire, Module} from "node:module";
+import chalk from "chalk";
+
+const require = createRequire(import.meta.url);
+
+const globalSinonSandbox = sinonGlobal.createSandbox();
+const importLocalStub = globalSinonSandbox.stub();
+
+test.before(() => {
+	// Mock dependencies
+	// NOTE: esmock is not able to properly mock dynamic imports within a CJS script.
+	// Also it seems that the stub is cached somewhere else, so beforeEach/afterEach
+	// can't be used to renew it. But #reset takes care of resetting the stub between tests
+
+	const importLocalModule = new Module("import-local");
+	importLocalModule.exports = importLocalStub;
+	require.cache[require.resolve("import-local")] = importLocalModule;
+});
 
 test.beforeEach((t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 	t.context.consoleLogStub = sinon.stub(console, "log");
 	t.context.consoleInfoStub = sinon.stub(console, "info");
 	t.context.originalArgv = process.argv;
+	process.env.UI5_CLI_TEST_BIN_RUN_MAIN = "false"; // prevent automatic execution of main function
 });
 
 test.afterEach.always((t) => {
 	process.argv = t.context.originalArgv;
-	sinon.restore();
-	if (t.context.ui5) {
-		esmock.purge(t.context.ui5);
-	}
+	t.context.sinon.restore();
+	globalSinonSandbox.reset();
+
+	// Allow re-requiring the module
+	delete require.cache[require.resolve("../../bin/ui5.cjs")];
+
+	// Clear mocked modules
+	delete require.cache[require.resolve("../../package.json")];
+	delete require.cache[require.resolve("semver")];
+
+	delete process.env.UI5_CLI_NO_LOCAL;
+	delete process.env.UI5_CLI_TEST_BIN_RUN_MAIN;
 });
 
-test.serial("ui5 fails when using unsupported Node.js version", async (t) => {
+test.serial("checkRequirements: Using supported Node.js version", (t) => {
 	const {consoleLogStub} = t.context;
 
-	const processExit = new Promise((resolve) => {
-		const processExitStub = sinon.stub(process, "exit");
-		processExitStub.callsFake((errorCode) => {
-			processExitStub.restore();
-			resolve(errorCode);
-		});
+	const {checkRequirements} = require("../../bin/ui5.cjs");
+
+	const returnValue = checkRequirements({
+		pkg: {
+			name: "ui5-cli-engines-test",
+			engines: {
+				node: ">= 18"
+			}
+		},
+		nodeVersion: "v20.0.0"
 	});
 
-	await esmock("../../bin/ui5", {
-		fs: {
-			readFileSync: sinon.stub().returns(JSON.stringify({
-				name: "ui5-cli-engines-test",
-				version: "0.0.0",
-				engines: {
-					node: "^999"
-				}
-			}))
-		}
-	});
-	const errorCode = await processExit;
+	t.true(returnValue);
+	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
+});
 
-	t.is(errorCode, 1, "Should exit with error code 1");
+test.serial("checkRequirements: Using unsupported Node.js version", (t) => {
+	const {consoleLogStub} = t.context;
+
+	const {checkRequirements} = require("../../bin/ui5.cjs");
+
+	const returnValue = checkRequirements({
+		pkg: {
+			name: "ui5-cli-engines-test",
+			engines: {
+				node: "^999"
+			}
+		},
+		nodeVersion: "v10.0.0"
+	});
+
+	t.false(returnValue);
 	t.is(consoleLogStub.callCount, 6, "console.log should be called 6 times");
 
 	t.deepEqual(consoleLogStub.getCall(0).args,
@@ -48,7 +86,7 @@ test.serial("ui5 fails when using unsupported Node.js version", async (t) => {
 	t.deepEqual(consoleLogStub.getCall(1).args,
 		["You are using an unsupported version of Node.js"]);
 	t.deepEqual(consoleLogStub.getCall(2).args,
-		[`Detected version ${process.version} but ui5-cli-engines-test requires ^999`]);
+		[`Detected version v10.0.0 but ui5-cli-engines-test requires ^999`]);
 	t.deepEqual(consoleLogStub.getCall(3).args,
 		[""]);
 	t.deepEqual(consoleLogStub.getCall(4).args,
@@ -57,99 +95,22 @@ test.serial("ui5 fails when using unsupported Node.js version", async (t) => {
 		["====================================================================="]);
 });
 
-test.serial("ui5 imports local installation when found", async (t) => {
-	const {consoleLogStub, consoleInfoStub} = t.context;
-
-	const importLocalStub = sinon.stub();
-
-	const setTimeoutPromise = new Promise((resolve) => {
-		importLocalStub.callsFake(() => {
-			// Use this call to know when to execute assertions
-			setTimeout(resolve, 0);
-			return true;
-		});
-	});
-
-	// esmock.p is needed as import-local is loaded via dynamic import
-	t.context.ui5 = await esmock.p("../../bin/ui5.js", {
-		"import-local": {default: importLocalStub}
-	});
-
-	await setTimeoutPromise;
-
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
-	t.is(consoleInfoStub.callCount, 2, "console.info should be called 2 times");
-
-	t.deepEqual(consoleInfoStub.getCall(0).args, ["INFO: Using local @ui5/cli installation"]);
-	t.deepEqual(consoleInfoStub.getCall(1).args, [""]);
-
-	t.is(importLocalStub.callCount, 1, "import-local should be called once");
-	t.is(importLocalStub.getCall(0).args.length, 1);
-	const importLocalUrl = new URL(importLocalStub.getCall(0).args[0]);
-	t.is(importLocalUrl.pathname, new URL("../../bin/ui5.js", import.meta.url).pathname,
-		"import-local should be called with bin/ui5.js filename");
-});
-
-test.serial("ui5 imports local installation when found (/w --verbose)", async (t) => {
-	const {consoleLogStub, consoleInfoStub} = t.context;
-	const importLocalStub = sinon.stub();
-
-	process.argv = [...process.argv, "--verbose"];
-
-	const setTimeoutPromise = new Promise((resolve) => {
-		importLocalStub.callsFake(() => {
-			// Use this call to know when to execute assertions
-			setTimeout(resolve, 0);
-			return true;
-		});
-	});
-
-	// esmock.p is needed as import-local is loaded via dynamic import
-	t.context.ui5 = await esmock.p("../../bin/ui5.js", {
-		"import-local": {default: importLocalStub}
-	});
-
-	await setTimeoutPromise;
-
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
-	t.is(consoleInfoStub.callCount, 3, "console.info should be called 3 times");
-
-	t.deepEqual(consoleInfoStub.getCall(0).args, [
-		"INFO: This project contains an individual @ui5/cli installation which will be used " +
-			"over the global one."]);
-	t.deepEqual(consoleInfoStub.getCall(1).args, [
-		"See https://github.com/SAP/ui5-cli#local-vs-global-installation for details."]);
-	t.deepEqual(consoleInfoStub.getCall(2).args, [""]);
-
-	t.is(importLocalStub.callCount, 1, "import-local should be called once");
-	t.is(importLocalStub.getCall(0).args.length, 1);
-	const importLocalUrl = new URL(importLocalStub.getCall(0).args[0]);
-	t.is(importLocalUrl.pathname, new URL("../../bin/ui5.js", import.meta.url).pathname,
-		"import-local should be called with bin/ui5.js filename");
-});
-
-test.serial("ui5 logs warning when using pre-release Node.js version", async (t) => {
+test.serial("checkRequirements: logs warning when using pre-release Node.js version", (t) => {
 	const {consoleLogStub} = t.context;
 
-	const importLocalStub = sinon.stub();
+	const {checkRequirements} = require("../../bin/ui5.cjs");
 
-	sinon.stub(process, "version").value("v17.0.0-v8-canary202108258414d1aed8");
-
-	const setTimeoutPromise = new Promise((resolve) => {
-		importLocalStub.callsFake(() => {
-			// Use this call to know when to execute assertions
-			setTimeout(resolve, 0);
-			return true;
-		});
+	const returnValue = checkRequirements({
+		pkg: {
+			name: "ui5-cli-engines-test",
+			engines: {
+				node: "^17"
+			}
+		},
+		nodeVersion: "v17.0.0-v8-canary202108258414d1aed8"
 	});
 
-	// esmock.p is needed as import-local is loaded via dynamic import
-	t.context.ui5 = await esmock.p("../../bin/ui5.js", {
-		"import-local": {default: importLocalStub}
-	});
-
-	await setTimeoutPromise;
-
+	t.true(returnValue);
 	t.is(consoleLogStub.callCount, 9, "console.log should be called 8 times");
 
 	t.is(consoleLogStub.getCall(0).args[0],
@@ -170,47 +131,142 @@ test.serial("ui5 logs warning when using pre-release Node.js version", async (t)
 		"   https://nodejs.org/en/about/releases");
 	t.is(consoleLogStub.getCall(8).args[0],
 		"=====================================================================");
+});
+
+test.serial("invokeLocalInstallation: Invokes local installation when found", async (t) => {
+	const {consoleLogStub, consoleInfoStub} = t.context;
+
+	importLocalStub.returns({});
+
+	const {invokeLocalInstallation} = require("../../bin/ui5.cjs");
+
+	const returnValue = await invokeLocalInstallation({name: "ui5-cli-test"});
+
+	t.true(returnValue);
+
+	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
+	t.is(consoleInfoStub.callCount, 2, "console.info should be called 2 times");
+
+	t.deepEqual(consoleInfoStub.getCall(0).args, ["INFO: Using local ui5-cli-test installation"]);
+	t.deepEqual(consoleInfoStub.getCall(1).args, [""]);
 
 	t.is(importLocalStub.callCount, 1, "import-local should be called once");
 	t.is(importLocalStub.getCall(0).args.length, 1);
-	const importLocalUrl = new URL(importLocalStub.getCall(0).args[0]);
-	t.is(importLocalUrl.pathname, new URL("../../bin/ui5.js", import.meta.url).pathname,
+	const importLocaPath = importLocalStub.getCall(0).args[0];
+	t.is(importLocaPath, fileURLToPath(new URL("../../bin/ui5.js", import.meta.url)),
 		"import-local should be called with bin/ui5.js filename");
 });
 
-test.serial("ui5 executes lib/cli/cli.js", async (t) => {
-	const cliStub = sinon.stub();
+test.serial("invokeLocalInstallation: Invokes local installation when found (/w --verbose)", async (t) => {
+	const {consoleLogStub, consoleInfoStub} = t.context;
 
-	const cliExecutedPromise = new Promise((resolve) => {
-		cliStub.callsFake(async () => {
-			resolve();
-		});
-	});
+	importLocalStub.returns({});
 
-	const fakePkg = {
-		name: "ui5-cli-test",
-		version: "0.0.0",
-		engines: {
-			node: ">= 16"
-		}
-	};
+	// Enable verbose logging
+	process.argv = [...process.argv, "--verbose"];
 
-	t.context.ui5 = await esmock.p("../../bin/ui5.js", {
-		"import-local": sinon.stub().returns(false),
-		"fs": {
-			readFileSync: sinon.stub().returns(JSON.stringify(fakePkg))
-		},
-		"../../lib/cli/cli.js": cliStub
-	});
+	const {invokeLocalInstallation} = require("../../bin/ui5.cjs");
 
-	await cliExecutedPromise;
+	const returnValue = await invokeLocalInstallation({name: "ui5-cli-test"});
 
-	t.is(cliStub.callCount, 1, "cli should be called once");
-	t.deepEqual(cliStub.getCall(0).args, [fakePkg], "cliStub should be called with package.json object");
+	t.true(returnValue);
+
+	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
+	t.is(consoleInfoStub.callCount, 3, "console.info should be called 3 times");
+
+	t.deepEqual(consoleInfoStub.getCall(0).args, [
+		"INFO: This project contains an individual ui5-cli-test installation which " +
+		"will be used over the global one."]);
+	t.deepEqual(consoleInfoStub.getCall(1).args, [
+		"See https://github.com/SAP/ui5-cli#local-vs-global-installation for details."
+	]);
+	t.deepEqual(consoleInfoStub.getCall(2).args, [""]);
+
+	t.is(importLocalStub.callCount, 1, "import-local should be called once");
+	t.is(importLocalStub.getCall(0).args.length, 1);
+	const importLocaPath = importLocalStub.getCall(0).args[0];
+	t.is(importLocaPath, fileURLToPath(new URL("../../bin/ui5.js", import.meta.url)),
+		"import-local should be called with bin/ui5.js filename");
 });
 
-test.serial("ui5 handles lib/cli/cli.js exceptions", async (t) => {
-	const {consoleLogStub} = t.context;
+test.serial("invokeLocalInstallation: Doesn't invoke local installation when UI5_CLI_NO_LOCAL is set", async (t) => {
+	const {consoleLogStub, consoleInfoStub} = t.context;
+
+	process.env.UI5_CLI_NO_LOCAL = "true";
+
+	const {invokeLocalInstallation} = require("../../bin/ui5.cjs");
+
+	const returnValue = await invokeLocalInstallation({name: "ui5-cli-test"});
+
+	t.false(returnValue);
+
+	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
+	t.is(consoleInfoStub.callCount, 0, "console.info should not be called");
+
+	t.is(importLocalStub.callCount, 0, "import-local should not be called");
+});
+
+test.serial("invokeLocalInstallation: Doesn't invoke local installation when it is not found", async (t) => {
+	const {consoleLogStub, consoleInfoStub} = t.context;
+
+	importLocalStub.returns(undefined);
+
+	const {invokeLocalInstallation} = require("../../bin/ui5.cjs");
+
+	const returnValue = await invokeLocalInstallation({name: "ui5-cli-test"});
+
+	t.false(returnValue);
+
+	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
+	t.is(consoleInfoStub.callCount, 0, "console.info should not be called");
+
+	t.is(importLocalStub.callCount, 1, "import-local should be called");
+});
+
+test.serial("main (unsupported Node.js version)", async (t) => {
+	const {sinon, consoleLogStub} = t.context;
+
+	const ui5 = require("../../bin/ui5.cjs");
+	const {main} = ui5;
+
+	sinon.stub(ui5, "checkRequirements").returns(false);
+	sinon.stub(ui5, "invokeLocalInstallation");
+	sinon.stub(ui5, "invokeCLI");
+
+	await main();
+
+	t.is(consoleLogStub.callCount, 0);
+
+	t.is(ui5.checkRequirements.callCount, 1);
+	t.is(ui5.invokeLocalInstallation.callCount, 0);
+	t.is(ui5.invokeCLI.callCount, 0);
+});
+
+test.serial("main (invocation of local installation)", async (t) => {
+	const {sinon, consoleLogStub} = t.context;
+
+	const ui5 = require("../../bin/ui5.cjs");
+	const {main} = ui5;
+
+	sinon.stub(ui5, "invokeLocalInstallation").resolves(true);
+	sinon.stub(ui5, "invokeCLI");
+
+	await main();
+
+	t.is(consoleLogStub.callCount, 0);
+
+	t.is(ui5.invokeLocalInstallation.callCount, 1);
+	t.is(ui5.invokeCLI.callCount, 0);
+});
+
+test.serial("integration: main / invokeCLI", async (t) => {
+	// It seems to be impossible to mock/stub dynamic imports of ES modules
+	// The require.cache is not taken into account and esmock doesn't work (as of v2.0.7)
+
+	// Therefore this test is an integration test that really invokes the CLI / yargs to
+	// fail with an unknown command error
+
+	const {sinon, consoleLogStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -220,33 +276,76 @@ test.serial("ui5 handles lib/cli/cli.js exceptions", async (t) => {
 		});
 	});
 
-	const fakeError = new Error("Test CLI Error!");
-	const cliStub = sinon.stub().callsFake(async () => {
-		throw fakeError;
-	});
+	process.argv = [...process.argv, "foo", "--no-update-notifier"];
 
-	const fakePkg = {
-		name: "ui5-cli-test",
-		version: "0.0.0",
-		engines: {
-			node: ">= 16"
-		}
-	};
+	const {main} = require("../../bin/ui5.cjs");
 
-	t.context.ui5 = await esmock.p("../../bin/ui5.js", {
-		"import-local": sinon.stub().returns(false),
-		"fs": {
-			readFileSync: sinon.stub().returns(JSON.stringify(fakePkg))
-		},
-		"../../lib/cli/cli.js": cliStub
-	});
+	await main();
 
 	const errorCode = await processExit;
+	t.is(errorCode, 1);
 
-	t.is(errorCode, 1, "Should exit with error code 1");
-	t.is(consoleLogStub.callCount, 2, "console.log should be called 2 times");
+	t.is(consoleLogStub.callCount, 4);
 
-	t.deepEqual(consoleLogStub.getCall(0).args,
-		["Fatal Error: Unable to initialize UI5 CLI"]);
-	t.deepEqual(consoleLogStub.getCall(1).args, [fakeError]);
+	t.deepEqual(consoleLogStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
+	t.deepEqual(consoleLogStub.getCall(1).args, ["Unknown argument: foo"], "Correct error log");
+});
+
+test.serial("integration: Executing main when required as main module", async (t) => {
+	const {sinon, consoleLogStub} = t.context;
+
+	const processExit = new Promise((resolve) => {
+		const processExitStub = sinon.stub(process, "exit");
+		processExitStub.callsFake((errorCode) => {
+			processExitStub.restore();
+			resolve(errorCode);
+		});
+	});
+
+	process.env.UI5_CLI_TEST_BIN_RUN_MAIN = "true";
+
+	process.argv = [...process.argv, "foo", "--no-update-notifier"];
+
+	require("../../bin/ui5.cjs");
+
+	const errorCode = await processExit;
+	t.is(errorCode, 1);
+
+	t.is(consoleLogStub.callCount, 4);
+
+	t.deepEqual(consoleLogStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
+	t.deepEqual(consoleLogStub.getCall(1).args, ["Unknown argument: foo"], "Correct error log");
+});
+
+test.serial("integration: Executing main when required as main module (catch initialize error)", async (t) => {
+	const {sinon, consoleLogStub} = t.context;
+
+	const processExit = new Promise((resolve) => {
+		const processExitStub = sinon.stub(process, "exit");
+		processExitStub.callsFake((errorCode) => {
+			processExitStub.restore();
+			resolve(errorCode);
+		});
+	});
+
+	process.env.UI5_CLI_TEST_BIN_RUN_MAIN = "true";
+
+	process.argv = [...process.argv, "foo"];
+
+	// Provide empty package.json so that update-notifier (executed via lib/cli/cli) fails
+	const packageJsonModule = new Module("../../package.json");
+	packageJsonModule.exports = {};
+	require.cache[require.resolve("../../package.json")] = packageJsonModule;
+
+	require("../../bin/ui5.cjs");
+
+	const errorCode = await processExit;
+	t.is(errorCode, 1);
+
+	t.is(consoleLogStub.callCount, 2);
+
+	t.deepEqual(consoleLogStub.getCall(0).args, ["Fatal Error: Unable to initialize UI5 CLI"]);
+	t.is(consoleLogStub.getCall(1).args.length, 1);
+	t.true(consoleLogStub.getCall(1).args[0] instanceof Error);
+	t.is(consoleLogStub.getCall(1).args[0].message, "pkg.name and pkg.version required");
 });

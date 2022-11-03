@@ -33,7 +33,7 @@ export default async (pkg) => {
 	// Explicitly set CLI version as the yargs default might
 	// be wrong in case a local CLI installation is used
 	// Also add CLI location
-	const ui5JsPath = fileURLToPath(new URL("../../bin/ui5.js", import.meta.url));
+	const ui5JsPath = fileURLToPath(new URL("../../bin/ui5.cjs", import.meta.url));
 	const pkgVersion = `${pkg.version} (from ${ui5JsPath})`;
 
 	setVersion(pkgVersion);

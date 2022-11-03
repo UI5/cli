@@ -99,12 +99,12 @@ test.serial("CLI", async (t) => {
 
 	t.is(setVersion.callCount, 1);
 	t.deepEqual(setVersion.getCall(0).args, [
-		`0.0.0-test (from ${fileURLToPath(new URL("../../../bin/ui5.js", import.meta.url))})`
+		`0.0.0-test (from ${fileURLToPath(new URL("../../../bin/ui5.cjs", import.meta.url))})`
 	]);
 
 	t.is(yargsInstance.version.callCount, 1);
 	t.deepEqual(yargsInstance.version.getCall(0).args, [
-		`0.0.0-test (from ${fileURLToPath(new URL("../../../bin/ui5.js", import.meta.url))})`
+		`0.0.0-test (from ${fileURLToPath(new URL("../../../bin/ui5.cjs", import.meta.url))})`
 	]);
 
 	t.is(yargsInstance.scriptName.callCount, 1);

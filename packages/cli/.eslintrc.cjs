@@ -1,6 +1,7 @@
 module.exports = {
 	"parserOptions": {
 		"sourceType": "module",
+		"ecmaVersion": 2022
 	},
 	"env": {
 		"node": true,
@@ -82,5 +83,19 @@ module.exports = {
 			}
 		}
 	},
-	"root": true
+	"root": true,
+	"overrides": [
+		{
+			"files": [
+				"bin/ui5.cjs"
+			],
+			"parserOptions": {
+				"sourceType": "script",
+			},
+			"env": {
+				"es2022": false, // disable ES2022 globals
+				"es2020": true // first version that supports the 'import' keyword
+			}
+		}
+	]
 };
