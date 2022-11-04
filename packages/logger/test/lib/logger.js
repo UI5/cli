@@ -1,5 +1,5 @@
 import test from "ava";
-import esmock from "esmock";
+import {strict as esmock} from "esmock";
 import sinon from "sinon";
 
 function getNpmLogStub() {
