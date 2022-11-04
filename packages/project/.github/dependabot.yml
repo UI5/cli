@@ -1,5 +1,6 @@
 version: 2
 updates:
+# Default Branch
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
@@ -15,12 +16,21 @@ updates:
   - RandomByte
   - matz3
   versioning-strategy: increase
-  ignore:
-  - dependency-name: pacote
-    versions:
-    - ">= 10.a"
-    - "< 11"
-  - dependency-name: pacote
-    versions:
-    - ">= 11.a"
-    - "< 12"
+# v2 Branch
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  target-branch: "v2"
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: weekly
+    day: sunday
+    time: "10:00"
+    timezone: Etc/UCT
+  target-branch: "v2"
+  reviewers:
+  - RandomByte
+  - matz3
+  versioning-strategy: increase
