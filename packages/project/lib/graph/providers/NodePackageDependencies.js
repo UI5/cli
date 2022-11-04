@@ -1,5 +1,5 @@
 import path from "node:path";
-import readPkgUp from "read-pkg-up";
+import {readPackageUp} from "read-pkg-up";
 import {readPackage} from "read-pkg";
 import {promisify} from "node:util";
 import fs from "graceful-fs";
@@ -39,7 +39,7 @@ class NodePackageDependencies {
 	}
 
 	async getRootNode() {
-		const rootPkg = await readPkgUp({
+		const rootPkg = await readPackageUp({
 			cwd: this._cwd,
 			normalize: false
 		});
