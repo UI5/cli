@@ -1,6 +1,6 @@
 import path from "node:path";
 import readPkgUp from "read-pkg-up";
-import readPkg from "read-pkg";
+import {readPackage} from "read-pkg";
 import {promisify} from "node:util";
 import fs from "graceful-fs";
 const realpath = promisify(fs.realpath);
@@ -93,7 +93,7 @@ class NodePackageDependencies {
 
 	async _getNode(modulePath, optional) {
 		log.verbose(`Reading package.json in directory ${modulePath}...`);
-		const packageJson = await readPkg({
+		const packageJson = await readPackage({
 			cwd: modulePath,
 			normalize: false
 		});
