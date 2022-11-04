@@ -155,7 +155,7 @@
 		"extract-zip": "^2.0.1",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
-		"recursive-readdir": "^2.1.1",
+		"recursive-readdir": "^2.2.3",
 		"sinon": "^14.0.0",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
