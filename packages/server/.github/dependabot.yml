@@ -1,5 +1,6 @@
 version: 2
 updates:
+# Default Branch
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
@@ -11,6 +12,24 @@ updates:
     day: sunday
     time: "10:00"
     timezone: Etc/UCT
+  reviewers:
+  - RandomByte
+  - matz3
+  versioning-strategy: increase
+# v2 Branch
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  target-branch: "v2"
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: weekly
+    day: sunday
+    time: "10:00"
+    timezone: Etc/UCT
+  target-branch: "v2"
   reviewers:
   - RandomByte
   - matz3
