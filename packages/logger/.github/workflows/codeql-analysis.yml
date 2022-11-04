@@ -3,14 +3,10 @@ name: "CodeQL"
 on:
   push:
     branches:
-      - v2
       - main
-      - next
   pull_request:
     branches:
-      - v2
       - main
-      - next
 
   # Execute at least once per week to get new findings without active development taking place
   schedule:
