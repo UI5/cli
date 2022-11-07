@@ -122,7 +122,7 @@
 	"dependencies": {
 		"@ui5/logger": "^3.0.1-alpha.3",
 		"clone": "^2.1.0",
-		"escape-string-regexp": "^4.0.0",
+		"escape-string-regexp": "^5.0.0",
 		"globby": "^11.1.0",
 		"graceful-fs": "^4.2.9",
 		"make-dir": "^3.1.0",
