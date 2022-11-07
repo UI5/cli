@@ -332,12 +332,11 @@ test.serial("integration: Executing main when required as main module (catch ini
 
 	process.argv = [...process.argv, "foo"];
 
-	// Provide empty package.json so that update-notifier (executed via lib/cli/cli) fails
-	const packageJsonModule = new Module("../../package.json");
-	packageJsonModule.exports = {};
-	require.cache[require.resolve("../../package.json")] = packageJsonModule;
-
-	require("../../bin/ui5.cjs");
+	const ui5 = require("../../bin/ui5.cjs");
+	// Immediately overwrite invokeCLI function before it is called
+	ui5.invokeCLI = async () => {
+		throw new Error("TEST: Unable to invoke CLI");
+	};
 
 	const errorCode = await processExit;
 	t.is(errorCode, 1);
@@ -347,5 +346,5 @@ test.serial("integration: Executing main when required as main module (catch ini
 	t.deepEqual(consoleLogStub.getCall(0).args, ["Fatal Error: Unable to initialize UI5 CLI"]);
 	t.is(consoleLogStub.getCall(1).args.length, 1);
 	t.true(consoleLogStub.getCall(1).args[0] instanceof Error);
-	t.is(consoleLogStub.getCall(1).args[0].message, "pkg.name and pkg.version required");
+	t.is(consoleLogStub.getCall(1).args[0].message, "TEST: Unable to invoke CLI");
 });
