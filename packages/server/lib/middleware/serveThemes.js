@@ -43,9 +43,9 @@ function createMiddleware({resources, middlewareUtil}) {
 	const builder = new ThemeBuilder({
 		fs: fsInterface(resources.all)
 	});
-	const buildOptions = {};
+	const buildOptions = Object.create(null);
 
-	const currentRequests = {};
+	const currentRequests = Object.create(null);
 
 	async function buildTheme(pathname) {
 		const filename = basename(pathname);

@@ -8,7 +8,7 @@ import logger from "@ui5/logger";
 const log = logger.getLogger("server:middleware:testRunner");
 
 const testRunnerResourceRegEx = /\/test-resources\/sap\/ui\/qunit\/(testrunner\.(html|css)|TestRunner.js)$/;
-const resourceCache = {};
+const resourceCache = Object.create(null);
 
 function serveResource(res, resourcePath, resourceContent) {
 	const type = mime.lookup(resourcePath) || "application/octet-stream";

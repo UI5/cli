@@ -76,7 +76,7 @@ function createMiddleware({resources}) {
 			]).then(function(results) {
 				const libraryResources = results[0];
 				const testPageResources = results[1];
-				const libs = {};
+				const libs = Object.create(null);
 
 				libraryResources.forEach(function(resource) {
 					const relPath = resource.getPath().substr(11); // cut off leading "/resources/"

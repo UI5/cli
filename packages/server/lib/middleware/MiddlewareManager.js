@@ -31,7 +31,7 @@ class MiddlewareManager {
 		this.resources = resources;
 		this.options = options;
 
-		this.middleware = {};
+		this.middleware = Object.create(null);
 		this.middlewareExecutionOrder = [];
 		this.middlewareUtil = new MiddlewareUtil();
 	}
