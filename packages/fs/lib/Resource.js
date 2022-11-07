@@ -368,12 +368,12 @@ class Resource {
 	 * @returns {object} Trace tree
 	 */
 	getPathTree() {
-		const tree = {};
+		const tree = Object.create(null);
 
-		let pointer = tree[this._path] = {};
+		let pointer = tree[this._path] = Object.create(null);
 
 		for (let i = this._collections.length - 1; i >= 0; i--) {
-			pointer = pointer[this._collections[i]] = {};
+			pointer = pointer[this._collections[i]] = Object.create(null);
 		}
 
 		return tree;

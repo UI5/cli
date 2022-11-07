@@ -21,7 +21,7 @@ class Trace {
 		this._startTime = process.hrtime();
 		this._globCalls = 0;
 		this._pathCalls = 0;
-		this._collections = {};
+		this._collections = Object.create(null);
 		summaryTrace.traceStarted();
 	}
 

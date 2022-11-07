@@ -23,8 +23,8 @@ class Memory extends AbstractAdapter {
 	 */
 	constructor({virBasePath, project, excludes}) {
 		super({virBasePath, project, excludes});
-		this._virFiles = {}; // map full of files
-		this._virDirs = {}; // map full of directories
+		this._virFiles = Object.create(null); // map full of files
+		this._virDirs = Object.create(null); // map full of directories
 	}
 
 	/**

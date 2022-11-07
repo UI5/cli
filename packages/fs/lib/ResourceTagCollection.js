@@ -29,7 +29,7 @@ class ResourceTagCollection {
 			this._allowedNamespacesRegExp = null;
 		}
 
-		this._pathTags = tags || {};
+		this._pathTags = tags || Object.create(null);
 	}
 
 	setTag(resourcePath, tag, value = true) {
@@ -38,7 +38,7 @@ class ResourceTagCollection {
 		this._validateValue(value);
 
 		if (!this._pathTags[resourcePath]) {
-			this._pathTags[resourcePath] = {};
+			this._pathTags[resourcePath] = Object.create(null);
 		}
 		this._pathTags[resourcePath][tag] = value;
 	}
