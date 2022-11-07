@@ -580,3 +580,30 @@ test("_analyzeCoreRequire: Catches error when attribute can't be parsed", async 
 	t.is(stubAddImplicitDependency.callCount, 0, "addImplicitDependency was never called");
 	t.is(stubAddDependency.callCount, 0, "addDependency was never called");
 });
+
+test("_analyzeNode: Should not detect invalid library name", (t) => {
+	const analyzer = new XMLTemplateAnalyzer();
+	// Ensure that promises array exists
+	analyzer.promises = [];
+
+	sinon.stub(analyzer, "_analyzeCoreRequire");
+	sinon.stub(analyzer, "_analyzeModuleDependency").resolves();
+	sinon.stub(analyzer, "_analyzeChildren");
+
+	const node = {
+		$ns: {
+			// Check for "Overly permissive regular expression range" when using A-z instead of A-Z
+			uri: "_[\\]^_`._[\\]^_`",
+			local: "MyControl"
+		}
+	};
+
+	analyzer._analyzeNode(node);
+
+	t.is(analyzer._analyzeCoreRequire.callCount, 0);
+	t.is(analyzer._analyzeModuleDependency.callCount, 0);
+
+	t.is(analyzer._analyzeChildren.callCount, 1);
+	t.is(analyzer._analyzeChildren.getCall(0).args.length, 1);
+	t.is(analyzer._analyzeChildren.getCall(0).args[0], node);
+});

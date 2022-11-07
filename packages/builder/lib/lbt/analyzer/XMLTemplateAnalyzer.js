@@ -24,7 +24,7 @@ const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const TEMPLATING_NAMESPACE = "http://schemas.sap.com/sapui5/extension/sap.ui.core.template/1";
 const TEMPLATING_CONDITONAL_TAGS = /^(?:if|repeat)$/;
 
-const PATTERN_LIBRARY_NAMESPACES = /^([a-zA-Z_$][a-zA-z0-9_$]*(\.[a-zA-Z_$][a-zA-z0-9_$]*)*)$/;
+const PATTERN_LIBRARY_NAMESPACES = /^([a-zA-Z_$][a-zA-Z0-9_$]*(\.[a-zA-Z_$][a-zA-Z0-9_$]*)*)$/;
 
 // component container
 const COMPONENTCONTAINER_MODULE = "sap/ui/core/ComponentContainer.js";
