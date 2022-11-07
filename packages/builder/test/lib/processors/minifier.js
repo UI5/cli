@@ -166,6 +166,22 @@ ${SOURCE_MAPPING_URL}=test.view.js.map`;
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 });
 
+test("Should not detect '^ (c) ^' as copyright comment", async (t) => {
+	const content = `// ^ (c) ^`;
+	const testResource = createResource({
+		path: "/test.view.js",
+		string: content
+	});
+	const [{resource}] = await minifier({
+		resources: [testResource],
+		options: {
+			addSourceMappingUrl: false
+		}
+	});
+
+	t.is(await resource.getString(), "", "Comment should be removed");
+});
+
 test("minify raw module (@ui5-bundle-raw-include)", async (t) => {
 	const content = `
 //@ui5-bundle-raw-include sap/ui/my/module.js
