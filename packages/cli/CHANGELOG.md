@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.15...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.0.0-beta.1...HEAD).
+
+<a name="v3.0.0-beta.1"></a>
+## [v3.0.0-beta.1] - 2022-11-07
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-alpha.10 to 3.0.0-beta.1 [`086384e`](https://github.com/SAP/ui5-cli/commit/086384e36302868a284b6fc2493a796501571657)
+- Bump [@ui5](https://github.com/ui5)/server from 3.0.0-alpha.4 to 3.0.0-beta.1 [`58924a4`](https://github.com/SAP/ui5-cli/commit/58924a407dbbf299ade3244210ac66325b52146d)
+- Bump [@ui5](https://github.com/ui5)/builder from 3.0.0-alpha.12 to 3.0.0-beta.1 [`bc16621`](https://github.com/SAP/ui5-cli/commit/bc16621c2eefa5275f42eea96a0aca97f86fa96d)
+- Bump [@ui5](https://github.com/ui5)/fs from 3.0.0-beta.1 to 3.0.0-beta.2 [`8b14c28`](https://github.com/SAP/ui5-cli/commit/8b14c28bd79080429ab49e1e35ef29cab7390b17)
+- Bump [@ui5](https://github.com/ui5)/logger from 3.0.0-beta.1 to 3.0.1-beta.0 [`cfacb3a`](https://github.com/SAP/ui5-cli/commit/cfacb3adf9ab63609eb7ba733e0adb3da352a256)
+- Bump [@ui5](https://github.com/ui5)/fs from 3.0.0-alpha.7 to 3.0.0-beta.1 [`c6fd11c`](https://github.com/SAP/ui5-cli/commit/c6fd11c7dfa56c4066fa94659f81919a069871db)
+- Bump [@ui5](https://github.com/ui5)/logger from 3.0.1-alpha.3 to 3.0.0-beta.1 [`2eba585`](https://github.com/SAP/ui5-cli/commit/2eba58578fd509743a5ab5b39238b9801377b323)
+
 
 <a name="v3.0.0-alpha.15"></a>
 ## [v3.0.0-alpha.15] - 2022-10-25
@@ -840,6 +852,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.0-beta.1]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.15...v3.0.0-beta.1
 [v3.0.0-alpha.15]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.14...v3.0.0-alpha.15
 [v3.0.0-alpha.14]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.13...v3.0.0-alpha.14
 [v3.0.0-alpha.13]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.12...v3.0.0-alpha.13
