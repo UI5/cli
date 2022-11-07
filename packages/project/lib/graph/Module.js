@@ -66,7 +66,7 @@ class Module {
 		this._version = version;
 		this._modulePath = modulePath;
 		this._configPath = configPath || DEFAULT_CONFIG_PATH;
-		this._dependencies = {};
+		this._dependencies = Object.create(null);
 
 		if (!Array.isArray(configuration)) {
 			configuration = [configuration];

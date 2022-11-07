@@ -99,7 +99,7 @@ function validateNode(node) {
  */
 async function projectGraphBuilder(nodeProvider) {
 	const shimCollection = new ShimCollection();
-	const moduleCollection = {};
+	const moduleCollection = Object.create(null);
 
 	const rootNode = await nodeProvider.getRootNode();
 	validateNode(rootNode);

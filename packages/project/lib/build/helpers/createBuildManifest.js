@@ -7,11 +7,20 @@ async function getVersion(pkg) {
 	return require(`${pkg}/package.json`).version;
 }
 
+function getSortedTags(project) {
+	const tags = project.getResourceTagCollection().getAllTags();
+	const entities = Object.entries(tags);
+	entities.sort(([keyA], [keyB]) => {
+		return keyA.localeCompare(keyB);
+	});
+	return Object.fromEntries(entities);
+}
+
 export default async function(project, buildConfig) {
 	const projectName = project.getName();
 	const type = project.getType();
 
-	const pathMapping = {};
+	const pathMapping = Object.create(null);
 	switch (type) {
 	case "application":
 		pathMapping.webapp = `resources/${project.getNamespace()}`;
@@ -51,7 +60,7 @@ export default async function(project, buildConfig) {
 			buildConfig,
 			version: project.getVersion(),
 			namespace: project.getNamespace(),
-			tags: Object.fromEntries(Object.entries(project.getResourceTagCollection().getAllTags()).sort())
+			tags: getSortedTags(project)
 		}
 	};
 

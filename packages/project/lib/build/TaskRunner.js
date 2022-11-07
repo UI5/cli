@@ -33,7 +33,7 @@ class TaskRunner {
 		this._log = parentLogger.createSubLogger(project.getType() + " " + project.getName(), 0.2);
 		this._taskLog = this._log.createTaskLogger("🔨");
 
-		this._tasks = {};
+		this._tasks = Object.create(null);
 		this._taskExecutionOrder = [];
 
 		for (const [taskName, params] of standardTasks) {

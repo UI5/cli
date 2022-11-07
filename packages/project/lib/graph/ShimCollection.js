@@ -24,9 +24,9 @@ function addToMap(name, fromMap, toMap) {
 
 class ShimCollection {
 	constructor() {
-		this._projectConfigShims = {};
-		this._dependencyShims = {};
-		this._collectionShims = {};
+		this._projectConfigShims = Object.create(null);
+		this._dependencyShims = Object.create(null);
+		this._collectionShims = Object.create(null);
 	}
 
 	addProjectShim(shimExtension) {

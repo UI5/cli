@@ -6,7 +6,7 @@ const log = logger.getLogger("graph:helpers:ui5Framework");
 class ProjectProcessor {
 	constructor({libraryMetadata}) {
 		this._libraryMetadata = libraryMetadata;
-		this._projectGraphPromises = {};
+		this._projectGraphPromises = Object.create(null);
 	}
 	async addProjectToGraph(libName, projectGraph) {
 		if (this._projectGraphPromises[libName]) {

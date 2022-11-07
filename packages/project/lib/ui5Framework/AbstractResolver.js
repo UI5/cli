@@ -54,7 +54,7 @@ class AbstractResolver {
 			return;
 		}
 		// Mark library as handled
-		libraryMetadata[libraryName] = {};
+		libraryMetadata[libraryName] = Object.create(null);
 
 		log.verbose("Processing " + libraryName);
 
@@ -160,7 +160,7 @@ class AbstractResolver {
 	 *   Resolves with an object containing the <code>libraryMetadata</code>
 	 */
 	async install(libraryNames) {
-		const libraryMetadata = {};
+		const libraryMetadata = Object.create(null);
 		const errors = [];
 
 		await this._processLibraries(libraryNames, libraryMetadata, errors);

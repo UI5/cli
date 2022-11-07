@@ -15,7 +15,7 @@ class Application extends ComponentProject {
 	constructor(parameters) {
 		super(parameters);
 
-		this._pManifests = {};
+		this._pManifests = Object.create(null);
 
 		this._webappPath = "webapp";
 

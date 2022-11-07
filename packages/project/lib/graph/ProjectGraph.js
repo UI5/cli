@@ -23,11 +23,11 @@ class ProjectGraph {
 
 		this._taskRepository = taskRepository;
 
-		this._projects = {}; // maps project name to instance
-		this._adjList = {}; // maps project name to edges/dependencies
-		this._optAdjList = {}; // maps project name to optional dependencies
+		this._projects = Object.create(null); // maps project name to instance
+		this._adjList = Object.create(null); // maps project name to edges/dependencies
+		this._optAdjList = Object.create(null); // maps project name to optional dependencies
 
-		this._extensions = {}; // maps extension name to instance
+		this._extensions = Object.create(null); // maps extension name to instance
 
 		this._sealed = false;
 		this._shouldResolveOptionalDependencies = false; // Performance optimization flag
@@ -355,7 +355,7 @@ class ProjectGraph {
 			predecessors: []
 		}];
 
-		const visited = {};
+		const visited = Object.create(null);
 
 		while (queue.length) {
 			const {projectNames, predecessors} = queue.shift(); // Get and remove first entry from queue

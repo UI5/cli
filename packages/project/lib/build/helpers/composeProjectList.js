@@ -10,7 +10,7 @@ const log = logger.getLogger("build:helpers:composeProjectList");
  * 												key and each with an array of its transitive dependencies as value
  */
 async function getFlattenedDependencyTree(graph) {
-	const dependencyMap = {};
+	const dependencyMap = Object.create(null);
 	const rootName = graph.getRoot().getName();
 
 	await graph.traverseDepthFirst(({project, getDependencies}) => {

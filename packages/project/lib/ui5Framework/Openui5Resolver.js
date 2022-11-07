@@ -28,7 +28,7 @@ class Openui5Resolver extends AbstractResolver {
 			cwd: this._cwd,
 			ui5HomeDir: this._ui5HomeDir
 		});
-		this._loadLibraryMetadata = {};
+		this._loadLibraryMetadata = Object.create(null);
 	}
 	static _getNpmPackageName(libraryName) {
 		return "@openui5/" + libraryName;
