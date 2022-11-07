@@ -49,7 +49,7 @@ function createRawInfo(rawModule) {
 }
 
 export function getDependencyInfos( name, content ) {
-	const infos = {};
+	const infos = Object.create(null);
 	parser.parseString(content, (err, result) => {
 		if ( result &&
 				result.library &&

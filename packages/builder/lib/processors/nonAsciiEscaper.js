@@ -14,7 +14,7 @@ import escapeUnicode from "escape-unicode";
 const CHAR_CODE_OF_LAST_ASCII_CHARACTER = 127;
 
 // use memoization for escapeUnicode function for performance
-const memoizeEscapeUnicodeMap = {};
+const memoizeEscapeUnicodeMap = Object.create(null);
 const memoizeEscapeUnicode = function(sChar) {
 	if (memoizeEscapeUnicodeMap[sChar]) {
 		return memoizeEscapeUnicodeMap[sChar];

@@ -15,7 +15,7 @@ import {getNonDebugName} from "../../../lbt/utils/ModuleName.js";
  * @returns {object} Module name mapping
  */
 export default function({resources, taskUtil}) {
-	const moduleNameMapping = {};
+	const moduleNameMapping = Object.create(null);
 	for (let i = resources.length - 1; i >= 0; i--) {
 		const resource = resources[i];
 		if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant)) {

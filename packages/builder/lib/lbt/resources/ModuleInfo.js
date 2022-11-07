@@ -39,7 +39,7 @@ class ModuleInfo {
 	constructor(name) {
 		this._name = name;
 		this.subModules = [];
-		this._dependencies = {};
+		this._dependencies = Object.create(null);
 		this.dynamicDependencies = false;
 
 		/**

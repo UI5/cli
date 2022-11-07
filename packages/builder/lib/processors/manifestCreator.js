@@ -349,7 +349,7 @@ async function createManifest(
 		}
 
 		function collectThemes() {
-			const themes = {};
+			const themes = Object.create(null);
 
 			// find theme resources and determine theme names from their paths
 			libBundle.getResources(/(?:[^/]+\/)*themes\//).forEach((res) => {

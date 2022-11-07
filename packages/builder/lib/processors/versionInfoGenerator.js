@@ -60,15 +60,15 @@ function getTimestamp() {
 const processManifest = async (manifestResource) => {
 	const manifestContent = await manifestResource.getString();
 	const manifestObject = JSON.parse(manifestContent);
-	const manifestInfo = {};
+	const manifestInfo = Object.create(null);
 
 	// sap.ui5/dependencies is used for the "manifestHints/libs"
 	if (manifestObject["sap.ui5"]) {
 		const manifestDependencies = manifestObject["sap.ui5"]["dependencies"];
 		if (manifestDependencies && manifestDependencies.libs) {
-			const libs = {};
+			const libs = Object.create(null);
 			for (const [libKey, libValue] of Object.entries(manifestDependencies.libs)) {
-				libs[libKey] = {};
+				libs[libKey] = Object.create(null);
 				if (libValue.lazy) {
 					libs[libKey].lazy = true;
 				}
@@ -230,7 +230,7 @@ class DependencyInfo {
  * @returns {object} the object with sorted keys
  */
 const sortObjectKeys = (obj) => {
-	const sortedObject = {};
+	const sortedObject = Object.create(null);
 	const keys = Object.keys(obj);
 	keys.sort();
 	keys.forEach((key) => {
@@ -433,7 +433,7 @@ export default async function({options}) {
 	let components;
 	artifactInfos.forEach((artifactInfo) => {
 		artifactInfo.embeds.forEach((embeddedArtifactInfo) => {
-			const componentObject = {};
+			const componentObject = Object.create(null);
 			const bundledComponents = artifactInfo.bundledComponents;
 			const componentName = embeddedArtifactInfo.componentName;
 			if (!bundledComponents.has(componentName)) {
@@ -446,7 +446,7 @@ export default async function({options}) {
 				componentObject.manifestHints = manifestHints;
 			}
 
-			components = components || {};
+			components = components || Object.create(null);
 			components[componentName] = componentObject;
 		});
 	});

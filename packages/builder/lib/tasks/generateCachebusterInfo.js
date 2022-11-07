@@ -57,7 +57,7 @@ export default function({workspace, options}) {
 	const basePath = `/resources/${namespace}/`;
 	return workspace.byGlob(`/resources/${namespace}/**/*`)
 		.then(async (resources) => {
-			const cachebusterInfo = {};
+			const cachebusterInfo = Object.create(null);
 			const signer = getSigner(signatureType);
 
 			await Promise.all(resources.map(async (resource) => {
