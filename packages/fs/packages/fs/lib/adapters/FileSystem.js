@@ -5,7 +5,7 @@ import {promisify} from "node:util";
 import fs from "graceful-fs";
 const copyFile = promisify(fs.copyFile);
 const chmod = promisify(fs.chmod);
-import globby from "globby";
+import {globby} from "globby";
 import makeDir from "make-dir";
 import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
