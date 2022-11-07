@@ -127,7 +127,7 @@
 		"graceful-fs": "^4.2.9",
 		"make-dir": "^3.1.0",
 		"micromatch": "^4.0.4",
-		"minimatch": "^3.0.3",
+		"minimatch": "^5.1.0",
 		"pretty-hrtime": "^1.0.3",
 		"random-int": "^3.0.0"
 	},
