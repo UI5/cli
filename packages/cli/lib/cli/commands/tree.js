@@ -43,7 +43,7 @@ tree.handler = async function(argv) {
 		elapsedTime = await getElapsedTime(startTime);
 	}
 
-	const projects = {};
+	const projects = Object.create(null);
 	const indentWidth = 4;
 	await graph.traverseBreadthFirst(async ({project, getDependencies}) => {
 		const deps = getDependencies().map((dep) => {
