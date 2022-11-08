@@ -235,10 +235,7 @@ URL: http://localhost:8080
 
 	t.is(open.callCount, 1);
 	t.deepEqual(open.getCall(0).args, [
-		"http://localhost:8080/index.html",
-		{
-			url: true
-		}
+		"http://localhost:8080/index.html"
 	]);
 });
 
@@ -277,10 +274,7 @@ URL: http://localhost:8080
 
 	t.is(open.callCount, 1);
 	t.deepEqual(open.getCall(0).args, [
-		"http://localhost:8080",
-		{
-			url: true
-		}
+		"http://localhost:8080"
 	]);
 });
 

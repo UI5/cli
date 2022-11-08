@@ -160,7 +160,7 @@ serve.handler = async function(argv) {
 			browserUrl += relPath;
 		}
 		const {default: open} = await import("open");
-		open(browserUrl, {url: true});
+		open(browserUrl);
 	}
 };
 
