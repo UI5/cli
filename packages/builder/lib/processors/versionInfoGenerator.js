@@ -25,7 +25,7 @@ function getTimestamp() {
 /**
  * Manifest libraries as defined in the manifest.json file
  *
- * @typedef {object<string, {lazy: boolean}>} ManifestLibraries
+ * @typedef {Object<string, {lazy: boolean}>} ManifestLibraries
  *
  * sample:
  * <pre>

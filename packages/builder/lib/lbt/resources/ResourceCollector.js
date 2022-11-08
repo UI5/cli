@@ -66,7 +66,7 @@ class ResourceCollector {
 	 *
 	 * If no component is given, orphans will only be reported but not added to any component (default).
 	 *
-	 * @param {object<string, string[]>} list component to list of components
+	 * @param {Object<string, string[]>} list component to list of components
 	 */
 	setExternalResources(list) {
 		this._externalResources = list;
