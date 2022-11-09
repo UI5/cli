@@ -507,9 +507,10 @@ function stripChainWrappers(rootNode, path) {
 
 function isTemplateLiteralWithoutExpression(node) {
 	return (
-		node?.type === Syntax.TemplateLiteral &&
-		node?.expressions?.length === 0 &&
-		node?.quasis?.length === 1
+		node &&
+		node.type === Syntax.TemplateLiteral &&
+		node.expressions && node.expressions.length === 0 &&
+		node.quasis && node.quasis.length === 1
 	);
 }
 
@@ -801,9 +802,11 @@ function convertValueWithRaw(node, type, propertyName) {
 		}
 
 	} else if ( isTemplateLiteralWithoutExpression(node) ) {
+		let value = node.quasis[0].value || {};
+
 		return {
-			value: node?.quasis?.[0]?.value?.cooked,
-			raw: node?.quasis?.[0]?.value?.raw,
+			value: value.cooked,
+			raw: value.raw,
 		};
 	}
 
@@ -2495,6 +2498,7 @@ exports.handlers = {
 			e.doclet.meta.__shortpath = getRelativePath(filepath);
 			_ui5data.resource = currentModule.resource;
 			_ui5data.module = currentModule.name || currentModule.module;
+			_ui5data.initialLongname = e.doclet.longname;
 
 			const localDecl = findLocalDeclaration(e.doclet.meta.lineno, e.doclet.meta.columnno);
 			if ( localDecl ) {
