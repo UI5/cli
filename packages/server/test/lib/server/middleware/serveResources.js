@@ -278,16 +278,6 @@ test.serial("Check verbose logging", async (t) => {
 			return {
 				getVersion: () => "1.0.0"
 			};
-		},
-		getPathTree: () => {
-			return {
-				"mypath": {
-					"a": {
-						"b": {}
-					}
-
-				}
-			};
 		}
 	};
 
@@ -314,11 +304,7 @@ test.serial("Check verbose logging", async (t) => {
 		res.getHeader = sinon.stub();
 		res._write = sinon.stub();
 		res.end = function() {
-			t.is(verboseLogStub.callCount, 1, "was called once");
-			const expected = "\n└─ mypath\n" +
-				"   └─ a\n" +
-				"      └─ b\n";
-			t.deepEqual(verboseLogStub.getCall(0).args, [expected], "treeify works correctly");
+			t.is(verboseLogStub.callCount, 0, "Currently no verbose logging");
 			resolve();
 		};
 

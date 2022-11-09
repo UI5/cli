@@ -33,12 +33,6 @@ function createMiddleware({resources, middlewareUtil}) {
 				next();
 				return;
 			}
-			if (log.isLevelEnabled("verbose")) {
-				const {
-					default: treeify
-				} = await import("treeify");
-				log.verbose("\n" + treeify.asTree(resource.getPathTree()));
-			}
 
 			const resourcePath = resource.getPath();
 			if (rProperties.test(resourcePath)) {
