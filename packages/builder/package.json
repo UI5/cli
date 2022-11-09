@@ -28,7 +28,7 @@
 		"./internal/jsdoc/template/publish": "./lib/processors/jsdoc/lib/ui5/template/publish.cjs"
 	},
 	"engines": {
-		"node": ">= 16.13.2",
+		"node": "^16.18.0 || >=18.0.0",
 		"npm": ">= 8"
 	},
 	"scripts": {
