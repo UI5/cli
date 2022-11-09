@@ -17,24 +17,27 @@ export default async function({projectGraphOptions, libraries}) {
 		);
 	}
 
-	if (!project.getFrameworkName()) {
+	const frameworkName = project.getFrameworkName();
+	const frameworkVersion = project.getFrameworkVersion();
+
+	if (!frameworkName) {
 		throw new Error(
 			`Project ${project.getName()} is missing a framework configuration. ` +
 			`Please use "ui5 use" to configure a framework and version.`
 		);
 	}
-	if (!project.getFrameworkVersion()) {
+	if (!frameworkVersion) {
 		throw new Error(
 			`Project ${project.getName()} does not define a framework version configuration. ` +
 			`Please use "ui5 use" to configure a version.`
 		);
 	}
 
-	const Resolver = getFrameworkResolver(project.getFrameworkName());
+	const Resolver = await getFrameworkResolver(frameworkName, frameworkVersion);
 
 	const resolver = new Resolver({
 		cwd: project.getRootPath(),
-		version: project.getFrameworkVersion()
+		version: frameworkVersion
 	});
 
 	// Get metadata of all libraries to verify that they can be installed
@@ -42,7 +45,7 @@ export default async function({projectGraphOptions, libraries}) {
 		try {
 			await resolver.getLibraryMetadata(name);
 		} catch (err) {
-			throw new Error(`Failed to find ${project.getFrameworkName()} framework library ${name}: ` + err.message);
+			throw new Error(`Failed to find ${frameworkName} framework library ${name}: ` + err.message);
 		}
 	}));
 

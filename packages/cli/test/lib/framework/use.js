@@ -20,7 +20,7 @@ function createMockProject(attr) {
 test.beforeEach(async (t) => {
 	t.context.getRootProjectConfigurationStub = sinon.stub();
 	t.context.resolveVersionStub = sinon.stub();
-	t.context.getFrameworkResolverStub = sinon.stub().returns({
+	t.context.getFrameworkResolverStub = sinon.stub().resolves({
 		resolveVersion: t.context.resolveVersionStub
 	});
 	t.context.updateYamlStub = sinon.stub();

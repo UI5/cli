@@ -1,7 +1,8 @@
 import {getRootProjectConfiguration, getFrameworkResolver} from "./utils.js";
 
 async function resolveVersion({frameworkName, frameworkVersion}, resolverOptions) {
-	return await getFrameworkResolver(frameworkName).resolveVersion(frameworkVersion, resolverOptions);
+	const Resolver = await getFrameworkResolver(frameworkName, frameworkVersion);
+	return Resolver.resolveVersion(frameworkVersion, resolverOptions);
 }
 
 function getEffectiveFrameworkName({project, frameworkOptions}) {

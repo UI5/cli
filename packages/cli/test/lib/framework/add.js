@@ -21,7 +21,7 @@ function createMockProject(attr) {
 test.beforeEach(async (t) => {
 	t.context.getRootProjectConfigurationStub = sinon.stub();
 	t.context.getLibraryMetadataStub = sinon.stub();
-	t.context.getFrameworkResolverStub = sinon.stub().returns(function Resolver() {
+	t.context.getFrameworkResolverStub = sinon.stub().resolves(function Resolver() {
 		return {
 			getLibraryMetadata: t.context.getLibraryMetadataStub
 		};

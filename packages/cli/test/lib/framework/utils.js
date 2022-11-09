@@ -12,17 +12,25 @@ test.beforeEach(async (t) => {
 
 	t.context.Sapui5Resolver = sinon.stub();
 	t.context.Openui5Resolver = sinon.stub();
-	t.context.utils = await esmock("../../../lib/framework/utils.js", {
+	t.context.Sapui5MavenSnapshotResolver = sinon.stub();
+	t.context.utils = await esmock.p("../../../lib/framework/utils.js", {
 		"@ui5/project/graph": {
 			graphFromStaticFile: t.context.graphFromStaticFile,
 			graphFromPackageDependencies: t.context.graphFromPackageDependencies
 		},
-		"@ui5/project/ui5Framework/Sapui5Resolver": t.context.Sapui5Resolver,
-		"@ui5/project/ui5Framework/Openui5Resolver": t.context.Openui5Resolver
+		"@ui5/project/ui5Framework/Sapui5Resolver": {
+			default: t.context.Sapui5Resolver
+		},
+		"@ui5/project/ui5Framework/Openui5Resolver": {
+			default: t.context.Openui5Resolver
+		},
+		"@ui5/project/ui5Framework/Sapui5MavenSnapshotResolver": {
+			default: t.context.Sapui5MavenSnapshotResolver
+		},
 	});
 });
 
-test.afterEach.always(() => {
+test.afterEach.always((t) => {
 	sinon.restore();
 });
 
@@ -70,26 +78,42 @@ test.serial("getRootProjectConfiguration: config", async (t) => {
 	t.is(result, t.context.graph.getRoot.getCall(0).returnValue);
 });
 
-test.serial("getFrameworkResolver: SAPUI5", (t) => {
+test.serial("getFrameworkResolver: SAPUI5", async (t) => {
 	const {getFrameworkResolver} = t.context.utils;
 	const {Sapui5Resolver} = t.context;
 
-	const result = getFrameworkResolver("SAPUI5");
+	const result = await getFrameworkResolver("SAPUI5", "1.100.0");
 	t.is(result, Sapui5Resolver);
 });
 
-test.serial("getFrameworkResolver: OpenUI5", (t) => {
+test.serial("getFrameworkResolver: OpenUI5", async (t) => {
 	const {getFrameworkResolver} = t.context.utils;
-	const {Sapui5Resolver} = t.context;
+	const {Openui5Resolver} = t.context;
 
-	const result = getFrameworkResolver("SAPUI5");
-	t.is(result, Sapui5Resolver);
+	const result = await getFrameworkResolver("OpenUI5", "1.100.0");
+	t.is(result, Openui5Resolver);
 });
 
-test.serial("getFrameworkResolver: Invalid framework.name", (t) => {
+test.serial("getFrameworkResolver: OpenUI5 Snapshot", async (t) => {
+	const {getFrameworkResolver} = t.context.utils;
+	const {Sapui5MavenSnapshotResolver} = t.context;
+
+	const result = await getFrameworkResolver("OpenUI5", "1.100.0-SNAPSHOT");
+	t.is(result, Sapui5MavenSnapshotResolver);
+});
+
+test.serial("getFrameworkResolver: SAPUI5 Snapshot", async (t) => {
+	const {getFrameworkResolver} = t.context.utils;
+	const {Sapui5MavenSnapshotResolver} = t.context;
+
+	const result = await getFrameworkResolver("SAPUI5", "1.100.0-SNAPSHOT");
+	t.is(result, Sapui5MavenSnapshotResolver);
+});
+
+test.serial("getFrameworkResolver: Invalid framework.name", async (t) => {
 	const {getFrameworkResolver} = t.context.utils;
 
-	t.throws(() => getFrameworkResolver("UI5"), {
+	await t.throwsAsync(() => getFrameworkResolver("UI5", "1.100.0"), {
 		message: "Invalid framework.name: UI5"
 	});
 });
