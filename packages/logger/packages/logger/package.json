@@ -108,7 +108,7 @@
 		"url": "git@github.com:SAP/ui5-logger.git"
 	},
 	"dependencies": {
-		"npmlog": "^6.0.2"
+		"npmlog": "^7.0.1"
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
