@@ -14,7 +14,7 @@ test("DuplexCollection: constructor", (t) => {
 	t.deepEqual(duplexCollection._reader, {}, "reader assigned");
 	t.deepEqual(duplexCollection._writer, {}, "writer assigned");
 	t.true(duplexCollection._combo instanceof ReaderCollectionPrioritized, "prioritized reader collection created");
-	t.is(duplexCollection._combo._name, "myCollection", "name assigned");
+	t.is(duplexCollection._combo.getName(), "myCollection - ReaderCollectionPrioritized", "name assigned");
 	t.deepEqual(duplexCollection._combo._readers, [{}, {}], "reader and writer assigned to readers");
 });
 
@@ -27,7 +27,7 @@ test("DuplexCollection: constructor with setting default name of an empty string
 	t.deepEqual(duplexCollection._reader, {}, "reader assigned");
 	t.deepEqual(duplexCollection._writer, {}, "writer assigned");
 	t.true(duplexCollection._combo instanceof ReaderCollectionPrioritized, "prioritized reader collection created");
-	t.is(duplexCollection._combo._name, "", "name assigned");
+	t.is(duplexCollection._combo.getName(), " - ReaderCollectionPrioritized", "name assigned");
 	t.deepEqual(duplexCollection._combo._readers, [{}, {}], "reader and writer assigned to readers");
 });
 

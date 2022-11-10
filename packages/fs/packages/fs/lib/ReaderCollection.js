@@ -17,8 +17,7 @@ class ReaderCollection extends AbstractReader {
 	 * @param {@ui5/fs/AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
 	 */
 	constructor({name, readers}) {
-		super();
-		this._name = name;
+		super(name);
 		this._readers = readers;
 	}
 

@@ -20,12 +20,12 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @param {string} [parameters.name=""] The collection name
 	 */
 	constructor({reader, writer, name = ""}) {
-		super();
+		super(name);
 		this._reader = reader;
 		this._writer = writer;
 
 		this._combo = new ReaderCollectionPrioritized({
-			name: name,
+			name: `${name} - ReaderCollectionPrioritized`,
 			readers: [
 				writer,
 				reader

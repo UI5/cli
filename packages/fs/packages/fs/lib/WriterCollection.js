@@ -29,8 +29,7 @@ class WriterCollection extends AbstractReaderWriter {
 	 * });
 	 */
 	constructor({name, writerMapping}) {
-		super();
-		this._name = name;
+		super(name);
 
 		if (!writerMapping) {
 			throw new Error("Missing parameter 'writerMapping'");
