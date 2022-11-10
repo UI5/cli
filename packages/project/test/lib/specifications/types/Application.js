@@ -54,7 +54,7 @@ test("getCachebusterSignatureType: Configuration", async (t) => {
 
 test("Access project resources via reader: buildtime style", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resource = await reader.byPath("/resources/id1/manifest.json");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/resources/id1/manifest.json", "Resource has correct path");
@@ -62,7 +62,7 @@ test("Access project resources via reader: buildtime style", async (t) => {
 
 test("Access project resources via reader: flat style", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const reader = await project.getReader({style: "flat"});
+	const reader = project.getReader({style: "flat"});
 	const resource = await reader.byPath("/manifest.json");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/manifest.json", "Resource has correct path");
@@ -70,7 +70,7 @@ test("Access project resources via reader: flat style", async (t) => {
 
 test("Access project resources via reader: runtime style", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const reader = await project.getReader({style: "runtime"});
+	const reader = project.getReader({style: "runtime"});
 	const resource = await reader.byPath("/manifest.json");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/manifest.json", "Resource has correct path");
@@ -78,7 +78,7 @@ test("Access project resources via reader: runtime style", async (t) => {
 
 test("Modify project resources via workspace and access via flat and runtime readers", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const workspace = await project.getWorkspace();
+	const workspace = project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/resources/id1/index.html");
 	t.truthy(workspaceResource, "Found resource in workspace");
 
@@ -86,7 +86,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 	workspaceResource.setString(newContent);
 	await workspace.write(workspaceResource);
 
-	const flatReader = await project.getReader({style: "flat"});
+	const flatReader = project.getReader({style: "flat"});
 	const flatReaderResource = await flatReader.byPath("/index.html");
 	t.truthy(flatReaderResource, "Found the requested resource byPath");
 	t.is(flatReaderResource.getPath(), "/index.html", "Resource (byPath) has correct path");
@@ -97,7 +97,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 	t.is(flatGlobResult[0].getPath(), "/index.html", "Resource (byGlob) has correct path");
 	t.is(await flatGlobResult[0].getString(), newContent, "Found resource (byGlob) has expected (changed) content");
 
-	const runtimeReader = await project.getReader({style: "runtime"});
+	const runtimeReader = project.getReader({style: "runtime"});
 	const runtimeReaderResource = await runtimeReader.byPath("/index.html");
 	t.truthy(runtimeReaderResource, "Found the requested resource byPath");
 	t.is(runtimeReaderResource.getPath(), "/index.html", "Resource (byPath) has correct path");
@@ -112,13 +112,13 @@ test("Modify project resources via workspace and access via flat and runtime rea
 
 test("Read and write resources outside of app namespace", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const workspace = await project.getWorkspace();
+	const workspace = project.getWorkspace();
 
 	await workspace.write(createResource({
 		path: "/resources/my-custom-bundle.js"
 	}));
 
-	const buildtimeReader = await project.getReader({style: "buildtime"});
+	const buildtimeReader = project.getReader({style: "buildtime"});
 	const buildtimeReaderResource = await buildtimeReader.byPath("/resources/my-custom-bundle.js");
 	t.truthy(buildtimeReaderResource, "Found the requested resource byPath (buildtime)");
 	t.is(buildtimeReaderResource.getPath(), "/resources/my-custom-bundle.js",
@@ -129,14 +129,14 @@ test("Read and write resources outside of app namespace", async (t) => {
 	t.is(buildtimeGlobResult[0].getPath(), "/resources/my-custom-bundle.js",
 		"Resource (byGlob) has correct path (buildtime)");
 
-	const flatReader = await project.getReader({style: "flat"});
+	const flatReader = project.getReader({style: "flat"});
 	const flatReaderResource = await flatReader.byPath("/resources/my-custom-bundle.js");
 	t.falsy(flatReaderResource, "Resource outside of app namespace can't be read using flat reader");
 
 	const flatGlobResult = await flatReader.byGlob("**/my-custom-bundle.js");
 	t.is(flatGlobResult.length, 0, "Resource outside of app namespace can't be found using flat reader");
 
-	const runtimeReader = await project.getReader({style: "runtime"});
+	const runtimeReader = project.getReader({style: "runtime"});
 	const runtimeReaderResource = await runtimeReader.byPath("/resources/my-custom-bundle.js");
 	t.truthy(runtimeReaderResource, "Found the requested resource byPath (runtime)");
 	t.is(runtimeReaderResource.getPath(), "/resources/my-custom-bundle.js",

@@ -41,7 +41,7 @@ test("Instantiate a basic module", (t) => {
 
 test("Access module root resources via reader", async (t) => {
 	const ui5Module = new Module(basicModuleInput);
-	const rootReader = await ui5Module.getReader();
+	const rootReader = ui5Module.getReader();
 	const packageJsonResource = await rootReader.byPath("/package.json");
 	t.is(packageJsonResource.getPath(), "/package.json", "Successfully retrieved root resource");
 });

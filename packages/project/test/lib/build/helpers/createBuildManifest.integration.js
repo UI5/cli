@@ -64,7 +64,7 @@ test("Create project from application project providing a build manifest", async
 		"Archive project has correct tag");
 	t.is(project.getVersion(), "2.0.0", "Archive project has version from archive module");
 
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resources = await reader.byGlob("**/test.js");
 	t.is(resources.length, 1,
 		"Found requested resource in archive project");
@@ -92,7 +92,7 @@ test("Create project from library project providing a build manifest", async (t)
 		"Archive project has correct tag");
 	t.is(project.getVersion(), "2.0.0", "Archive project has version from archive module");
 
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resources = await reader.byGlob("**/some.js");
 	t.is(resources.length, 1,
 		"Found requested resource in archive project");

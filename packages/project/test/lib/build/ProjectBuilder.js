@@ -14,8 +14,8 @@ function getMockProject(type, id = "b") {
 		getCopyright: noop,
 		getVersion: noop,
 		getSpecVersion: () => "0.1",
-		getReader: async () => "reader",
-		getWorkspace: async () => "workspace",
+		getReader: () => "reader",
+		getWorkspace: () => "workspace",
 	};
 }
 

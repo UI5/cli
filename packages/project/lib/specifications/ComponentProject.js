@@ -97,9 +97,9 @@ class ComponentProject extends Project {
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources. Can be "buildtime", "runtime" or "flat"
 	 * 												TODO: describe styles
-	 * @returns {Promise<@ui5/fs/ReaderCollection>} A reader collection instance
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	async getReader({style = "buildtime"} = {}) {
+	getReader({style = "buildtime"} = {}) {
 		// TODO: Additional style 'ABAP' using "sap.platform.abap".uri from manifest.json?
 
 		if (style === "runtime" && this._isRuntimeNamespaced) {
@@ -115,19 +115,25 @@ class ComponentProject extends Project {
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = await reader.flatten(this._namespace);
+			reader = resourceFactory.createFlatReader({
+				reader,
+				namespace: this._namespace
+			});
 			break;
 		case "flat":
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
-			reader = await reader.flatten(this._namespace);
+			reader = resourceFactory.createFlatReader({
+				reader,
+				namespace: this._namespace
+			});
 			break;
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
 
-		reader = await this._addWriter(reader, style);
+		reader = this._addWriter(reader, style);
 		return reader;
 	}
 
@@ -153,9 +159,9 @@ class ComponentProject extends Project {
 	 * Get a resource reader/writer for accessing and modifying a project's resources
 	 *
 	 * @public
-	 * @returns {Promise<@ui5/fs/ReaderCollection>} A reader collection instance
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	async getWorkspace() {
+	getWorkspace() {
 		// Workspace is always of style "buildtime"
 		return resourceFactory.createWorkspace({
 			name: `Workspace for project ${this.getName()}`,
@@ -207,7 +213,7 @@ class ComponentProject extends Project {
 		return reader;
 	}
 
-	async _addWriter(reader, style) {
+	_addWriter(reader, style) {
 		const {namespaceWriter, generalWriter} = this._getWriter();
 
 		if (style === "runtime" && this._isRuntimeNamespaced) {
@@ -224,14 +230,20 @@ class ComponentProject extends Project {
 		}
 		case "runtime": {
 			// Runtime is not namespaced: link namespace to /
-			readers.push(await namespaceWriter.flatten(this._namespace));
+			readers.push(resourceFactory.createFlatReader({
+				reader: namespaceWriter,
+				namespace: this._namespace
+			}));
 			// Add general writer as is
 			readers.push(generalWriter);
 			break;
 		}
 		case "flat": {
 			// Rewrite paths from "flat" to "buildtime"
-			readers.push(await namespaceWriter.flatten(this._namespace));
+			readers.push(resourceFactory.createFlatReader({
+				reader: namespaceWriter,
+				namespace: this._namespace
+			}));
 			// General writer resources can't be flattened, so they are not available
 			break;
 		}

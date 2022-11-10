@@ -290,7 +290,7 @@ class ProjectBuilder {
 				// Ignore project itself
 				return;
 			}
-			readers.push(await dep.getReader());
+			readers.push(dep.getReader());
 		});
 
 		const dependencies = resourceFactory.createReaderCollection({
@@ -299,7 +299,7 @@ class ProjectBuilder {
 		});
 
 		await taskRunner.runTasks({
-			workspace: await project.getWorkspace(),
+			workspace: project.getWorkspace(),
 			dependencies,
 		});
 	}
@@ -308,7 +308,7 @@ class ProjectBuilder {
 		const project = projectBuildContext.getProject();
 		const taskUtil = projectBuildContext.getTaskUtil();
 		const buildConfig = this._buildContext.getBuildConfig();
-		const reader = await project.getReader({
+		const reader = project.getReader({
 			// Force buildtime (=namespaced) style when writing with a build manifest
 			style: taskUtil.isRootProject() && buildConfig.createBuildManifest ? "buildtime" : "runtime"
 		});

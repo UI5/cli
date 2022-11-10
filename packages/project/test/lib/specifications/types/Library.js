@@ -96,7 +96,7 @@ test("getJsdocExcludes: default", async (t) => {
 
 test("Access project resources via reader: buildtime style", async (t) => {
 	const project = await (new Library().init(basicProjectInput));
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resource = await reader.byPath("/resources/library/d/.library");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/resources/library/d/.library", "Resource has correct path");
@@ -104,7 +104,7 @@ test("Access project resources via reader: buildtime style", async (t) => {
 
 test("Access project resources via reader: flat style", async (t) => {
 	const project = await (new Library().init(basicProjectInput));
-	const reader = await project.getReader({style: "flat"});
+	const reader = project.getReader({style: "flat"});
 	const resource = await reader.byPath("/.library");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/.library", "Resource has correct path");
@@ -112,7 +112,7 @@ test("Access project resources via reader: flat style", async (t) => {
 
 test("Access project test-resources via reader: buildtime style", async (t) => {
 	const project = await (new Library().init(basicProjectInput));
-	const reader = await project.getReader({style: "buildtime"});
+	const reader = project.getReader({style: "buildtime"});
 	const resource = await reader.byPath("/test-resources/library/d/Test.html");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/test-resources/library/d/Test.html", "Resource has correct path");
@@ -120,7 +120,7 @@ test("Access project test-resources via reader: buildtime style", async (t) => {
 
 test("Access project test-resources via reader: runtime style", async (t) => {
 	const project = await (new Library().init(basicProjectInput));
-	const reader = await project.getReader({style: "runtime"});
+	const reader = project.getReader({style: "runtime"});
 	const resource = await reader.byPath("/test-resources/library/d/Test.html");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/test-resources/library/d/Test.html", "Resource has correct path");
@@ -128,7 +128,7 @@ test("Access project test-resources via reader: runtime style", async (t) => {
 
 test("Modify project resources via workspace and access via flat and runtime reader", async (t) => {
 	const project = await (new Library().init(basicProjectInput));
-	const workspace = await project.getWorkspace();
+	const workspace = project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/resources/library/d/.library");
 	t.truthy(workspaceResource, "Found resource in workspace");
 
@@ -136,7 +136,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 	workspaceResource.setString(newContent);
 	await workspace.write(workspaceResource);
 
-	const flatReader = await project.getReader({style: "flat"});
+	const flatReader = project.getReader({style: "flat"});
 	const flatReaderResource = await flatReader.byPath("/.library");
 	t.truthy(flatReaderResource, "Found the requested resource byPath (flat)");
 	t.is(flatReaderResource.getPath(), "/.library", "Resource (byPath) has correct path (flat)");
@@ -149,7 +149,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 	t.is(await flatGlobResult[0].getString(), newContent,
 		"Found resource (byGlob) has expected (changed) content (flat)");
 
-	const runtimeReader = await project.getReader({style: "runtime"});
+	const runtimeReader = project.getReader({style: "runtime"});
 	const runtimeReaderResource = await runtimeReader.byPath("/resources/library/d/.library");
 	t.truthy(runtimeReaderResource, "Found the requested resource byPath (runtime)");
 	t.is(runtimeReaderResource.getPath(), "/resources/library/d/.library",
@@ -167,7 +167,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 
 test("Access flat project resources via reader: buildtime style", async (t) => {
 	const project = await (new Library().init(flatProjectInput));
-	const reader = await project.getReader({style: "buildtime"});
+	const reader = project.getReader({style: "buildtime"});
 	const resource = await reader.byPath("/resources/library/h/some.js");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/resources/library/h/some.js", "Resource has correct path");

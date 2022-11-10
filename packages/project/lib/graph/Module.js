@@ -295,7 +295,7 @@ class Module {
 			}
 		} else {
 			// Handle relative file paths with the @ui5/fs (virtual) file system
-			const reader = await this.getReader();
+			const reader = this.getReader();
 			let configResource;
 			try {
 				configResource = await reader.byPath(path.posix.join("/", configPath));
@@ -388,7 +388,7 @@ class Module {
 	}
 
 	async _readBuildManifest() {
-		const reader = await this.getReader();
+		const reader = this.getReader();
 		const buildManifestResource = await reader.byPath("/.ui5/build-manifest.json");
 		if (buildManifestResource) {
 			return JSON.parse(await buildManifestResource.getString());
@@ -405,7 +405,7 @@ class Module {
 	/**
 	* Resource Access
 	*/
-	async getReader() {
+	getReader() {
 		return createReader({
 			fsBasePath: this.getPath(),
 			virBasePath: "/",

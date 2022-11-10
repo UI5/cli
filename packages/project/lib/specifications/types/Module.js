@@ -33,9 +33,9 @@ class Module extends Project {
 	* Get a resource reader for accessing the project resources
 	*
 	* @public
-	* @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
-	async getReader() {
+	getReader() {
 		const readers = this._paths.map((readerArgs) => resourceFactory.createReader(readerArgs));
 		if (readers.length === 1) {
 			return readers[0];
@@ -54,10 +54,10 @@ class Module extends Project {
 	 * Get a resource reader/writer for accessing and modifying a project's resources
 	 *
 	 * @public
-	 * @returns {Promise<@ui5/fs/ReaderCollection>} A reader collection instance
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	async getWorkspace() {
-		const reader = await this.getReader();
+	getWorkspace() {
+		const reader = this.getReader();
 
 		const writer = this._getWriter();
 		return resourceFactory.createWorkspace({

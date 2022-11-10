@@ -44,7 +44,7 @@ test("getCopyright", async (t) => {
 
 test("Access project resources via reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resource = await reader.byPath("/resources/theme/library/e/themes/my_theme/.theme");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/resources/theme/library/e/themes/my_theme/.theme", "Resource has correct path");
@@ -52,7 +52,7 @@ test("Access project resources via reader", async (t) => {
 
 test("Access project test-resources via reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resource = await reader.byPath("/test-resources/theme/library/e/Test.html");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/test-resources/theme/library/e/Test.html", "Resource has correct path");
@@ -60,7 +60,7 @@ test("Access project test-resources via reader", async (t) => {
 
 test("Modify project resources via workspace and access via flat and runtime reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const workspace = await project.getWorkspace();
+	const workspace = project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/resources/theme/library/e/themes/my_theme/library.source.less");
 	t.truthy(workspaceResource, "Found resource in workspace");
 
@@ -68,7 +68,7 @@ test("Modify project resources via workspace and access via flat and runtime rea
 	workspaceResource.setString(newContent);
 	await workspace.write(workspaceResource);
 
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const readerResource = await reader.byPath("/resources/theme/library/e/themes/my_theme/library.source.less");
 	t.truthy(readerResource, "Found the requested resource byPath");
 	t.is(readerResource.getPath(), "/resources/theme/library/e/themes/my_theme/library.source.less",

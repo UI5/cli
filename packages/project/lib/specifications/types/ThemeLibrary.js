@@ -41,10 +41,10 @@ class ThemeLibrary extends Project {
 	 * <code>runtime</code>.
 	 *
 	 * @public
-	 * @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection allowing access to all resources of
+	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of
 	 *                                                     the project
 	 */
-	async getReader() {
+	getReader() {
 		let reader = resourceFactory.createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: "/resources/",
@@ -81,10 +81,10 @@ class ThemeLibrary extends Project {
 	* <code>runtime</code>.
 	*
 	* @public
-	* @returns {Promise<@ui5/fs/DuplexCollection>} DuplexCollection
+	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
 	*/
-	async getWorkspace() {
-		const reader = await this.getReader();
+	getWorkspace() {
+		const reader = this.getReader();
 
 		const writer = this._getWriter();
 		return resourceFactory.createWorkspace({

@@ -141,10 +141,9 @@ class Project extends Specification {
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources. Can be "buildtime", "runtime" or "flat"
 	 *											This parameter might be ignored by some project types
-	 * @returns {Promise<@ui5/fs/ReaderCollection>} Reader collection allowing access to all resources of the
-	 *                                                     project
+	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of the project
 	 */
-	async getReader(options) {
+	getReader(options) {
 		throw new Error(`getReader must be implemented by subclass ${this.constructor.name}`);
 	}
 
@@ -164,9 +163,9 @@ class Project extends Specification {
 	* project's resources. This is always of style <code>buildtime</code>.
 	*
 	* @public
-	* @returns {Promise<@ui5/fs/DuplexCollection>} DuplexCollection
+	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
 	*/
-	async getWorkspace() {
+	getWorkspace() {
 		throw new Error(`getWorkspace must be implemented by subclass ${this.constructor.name}`);
 	}
 

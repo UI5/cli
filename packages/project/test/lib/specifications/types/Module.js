@@ -46,7 +46,7 @@ test("Correct class", async (t) => {
 
 test("Access project resources via reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const resource1 = await reader.byPath("/dev/devTools.js");
 	t.truthy(resource1, "Found the requested resource");
 	t.is(resource1.getPath(), "/dev/devTools.js", "Resource has correct path");
@@ -58,7 +58,7 @@ test("Access project resources via reader", async (t) => {
 
 test("Modify project resources via workspace and access via reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const workspace = await project.getWorkspace();
+	const workspace = project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/dev/devTools.js");
 	t.truthy(workspaceResource, "Found resource in workspace");
 
@@ -66,7 +66,7 @@ test("Modify project resources via workspace and access via reader", async (t) =
 	workspaceResource.setString(newContent);
 	await workspace.write(workspaceResource);
 
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const readerResource = await reader.byPath("/dev/devTools.js");
 	t.truthy(readerResource, "Found the requested resource byPath");
 	t.is(readerResource.getPath(), "/dev/devTools.js", "Resource (byPath) has correct path");
@@ -82,7 +82,7 @@ test("Modify project resources via workspace and access via reader", async (t) =
 
 test("Modify project resources via workspace and access via reader for other path mapping", async (t) => {
 	const project = await Specification.create(basicProjectInput);
-	const workspace = await project.getWorkspace();
+	const workspace = project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/index.js");
 	t.truthy(workspaceResource, "Found resource in workspace");
 
@@ -90,7 +90,7 @@ test("Modify project resources via workspace and access via reader for other pat
 	workspaceResource.setString(newContent);
 	await workspace.write(workspaceResource);
 
-	const reader = await project.getReader();
+	const reader = project.getReader();
 	const readerResource = await reader.byPath("/index.js");
 	t.truthy(readerResource, "Found the requested resource byPath");
 	t.is(readerResource.getPath(), "/index.js", "Resource (byPath) has correct path");
