@@ -100,22 +100,6 @@ class AbstractReader {
 	}
 
 	/**
-	 * Create a [Transformer-Reader]{@link @ui5/fs/readers/Transformer} from the current reader.
-	 *
-	 * @private
-	 * @param {@ui5/fs/readers/Transformer~callback} callback
-	 * 				Callback to check and eventually transform any resource passed through the reader
-	 * @returns {Promise<@ui5/fs/readers/Transformer>} Promise resolving with transformer instance
-	 */
-	async transform(callback) {
-		const {default: Transformer} = await import("./readers/Transformer.js");
-		return new Transformer({
-			reader: this,
-			callback
-		});
-	}
-
-	/**
 	 * Create a [Link-Reader]{@link @ui5/fs/readers/Link} where all requests are prefixed with
 	 * <code>/resources/<namespace></code>.
 	 *

@@ -87,30 +87,6 @@ test("Filter resources", async (t) => {
 	t.is(resources[0].getPath(), "/app/test.js", "Found correct resource");
 });
 
-test("Transform resources", async (t) => {
-	const source = createAdapter({
-		fsBasePath: "./test/fixtures/application.a/webapp",
-		virBasePath: "/app/"
-	});
-	const transformedSource = await source.transform(async (resourcePath, getResource) => {
-		if (resourcePath === "/app/test.js") {
-			const resource = await getResource();
-			resource.setPath("/app/transformed-test.js");
-		}
-	});
-
-	const resources = await transformedSource.byGlob("**/*.js");
-	t.is(resources.length, 1, "Found one resource via transformer");
-	t.is(resources[0].getPath(), "/app/transformed-test.js", "Found correct resource");
-
-	const sourceResources = await source.byGlob("**/*.js");
-	t.is(sourceResources.length, 1, "Found one resource via source");
-	t.is(sourceResources[0].getPath(), "/app/test.js", "Found resource with original path");
-
-	t.is(await resources[0].getString(), await sourceResources[0].getString(),
-		"Resources have identical content");
-});
-
 test("Flatten resources", async (t) => {
 	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
