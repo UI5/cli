@@ -142,7 +142,7 @@ export async function serve(graph, {
 			// Ignore root project
 			return;
 		}
-		readers.push(await dep.getReader({style: "runtime"}));
+		readers.push(dep.getReader({style: "runtime"}));
 	});
 
 	const dependencies = createReaderCollection({
@@ -150,7 +150,7 @@ export async function serve(graph, {
 		readers
 	});
 
-	const rootReader = await rootProject.getReader({style: "runtime"});
+	const rootReader = rootProject.getReader({style: "runtime"});
 
 	// TODO change to ReaderCollection once duplicates are sorted out
 	const combo = new ReaderCollectionPrioritized({
