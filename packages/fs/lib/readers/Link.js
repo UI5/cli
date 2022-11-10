@@ -5,11 +5,10 @@ import logger from "@ui5/logger";
 const log = logger.getLogger("resources:readers:Link");
 
 /**
- * A reader that allows modification of all resources passed through it.
+ * A reader that allows removing paths segments from all resources passed through it.
  *
  * @public
  * @class
- * @hideconstructor
  * @alias @ui5/fs/readers/Link
  * @extends @ui5/fs/AbstractReader
  */
@@ -17,18 +16,18 @@ class Link extends AbstractReader {
 	/**
 	 * Path mapping for a [Link]{@link @ui5/fs/readers/Link}
 	 *
-	 * @private
+	 * @public
 	 * @typedef {object} @ui5/fs/readers/Link/PathMapping
-	 * @property {string} linkPath Input path to rewrite
-	 * @property {string} targetPath Path to rewrite to
+	 * @property {string} linkPath Path to match and replace in the requested path or pattern
+	 * @property {string} targetPath Path to use as a replacement in the request for the source reader
 	 */
 
 	/**
 	 * Constructor
 	 *
-	 * @private
+ 	 * @public
 	 * @param {object} parameters Parameters
-	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader to wrap
+	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader or collection to wrap
 	 * @param {@ui5/fs/readers/Link/PathMapping} parameters.pathMapping
 	 */
 	constructor({reader, pathMapping}) {

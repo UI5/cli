@@ -80,6 +80,7 @@ class AbstractReader {
 	 * @returns {Promise<@ui5/fs/readers/Filter>} Promise resolving with filter instance
 	 */
 	async filter(callback) {
+		console.warn("DEPRECATED CALL TO AbstractReader#filter - THIS FUNCTION WILL BE REMOVED IN THE NEXT RELEASE");
 		const {default: Filter} = await import("./readers/Filter.js");
 		return new Filter({
 			reader: this,
@@ -115,6 +116,7 @@ class AbstractReader {
 	 * @returns {Promise<@ui5/fs/readers/Link>} Promise resolving with reader instance
 	 */
 	async flatten(namespace) {
+		console.warn("DEPRECATED CALL TO AbstractReader#flatten - THIS FUNCTION WILL BE REMOVED IN THE NEXT RELEASE");
 		const {default: Link} = await import("./readers/Link.js");
 		return new Link({
 			reader: this,
