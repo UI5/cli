@@ -23,6 +23,7 @@
 		"./AbstractReaderWriter": "./lib/AbstractReaderWriter.js",
 		"./DuplexCollection": "./lib/DuplexCollection.js",
 		"./fsInterface": "./lib/fsInterface.js",
+		"./readers/*": "./lib/readers/*.js",
 		"./ReaderCollection": "./lib/ReaderCollection.js",
 		"./ReaderCollectionPrioritized": "./lib/ReaderCollectionPrioritized.js",
 		"./Resource": "./lib/Resource.js",

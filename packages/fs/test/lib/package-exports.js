@@ -12,7 +12,7 @@ test("export of package.json", (t) => {
 // Check number of definied exports
 test("check number of exports", (t) => {
 	const packageJson = require("@ui5/fs/package.json");
-	t.is(Object.keys(packageJson.exports).length, 11);
+	t.is(Object.keys(packageJson.exports).length, 12);
 });
 
 // Public API contract (exported modules)
@@ -52,6 +52,14 @@ test("check number of exports", (t) => {
 	{
 		exportedSpecifier: "@ui5/fs/ReaderCollectionPrioritized",
 		mappedModule: "../../lib/ReaderCollectionPrioritized.js"
+	},
+	{
+		exportedSpecifier: "@ui5/fs/readers/Filter",
+		mappedModule: "../../lib/readers/Filter.js"
+	},
+	{
+		exportedSpecifier: "@ui5/fs/readers/Link",
+		mappedModule: "../../lib/readers/Link.js"
 	},
 	{
 		exportedSpecifier: "@ui5/fs/Resource",
