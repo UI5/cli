@@ -5,7 +5,6 @@ import AbstractReader from "../AbstractReader.js";
  *
  * @public
  * @class
- * @hideconstructor
  * @alias @ui5/fs/readers/Filter
  * @extends @ui5/fs/AbstractReader
  */
@@ -22,8 +21,9 @@ class Filter extends AbstractReader {
 	/**
 	 * Constructor
 	 *
+ 	 * @public
 	 * @param {object} parameters Parameters
-	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader to wrap
+	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader or collection to wrap
 	 * @param {@ui5/fs/readers/Filter~callback} parameters.callback
 	 * 				Filter function. Will be called for every resource read through this reader.
 	 */

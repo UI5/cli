@@ -7,6 +7,8 @@ import ReaderCollection from "./ReaderCollection.js";
 import ReaderCollectionPrioritized from "./ReaderCollectionPrioritized.js";
 import Resource from "./Resource.js";
 import WriterCollection from "./WriterCollection.js";
+import Filter from "./readers/Filter.js";
+import Link from "./readers/Link.js";
 
 /**
  * @module @ui5/fs/resourceFactory
@@ -157,6 +159,59 @@ export function createWorkspace({reader, writer, virBasePath = "/", name = "vir 
 		reader,
 		writer,
 		name
+	});
+}
+
+/**
+ * Create a [Filter-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
+ * The provided callback is called for every resource that is retrieved through the
+ * reader and decides whether the resource shall be passed on or dropped.
+ *
+ * @public
+ * @param {object} parameters
+ * @param {@ui5/fs/AbstractReader} parameters.reader Single reader or collection of readers
+ * @param {@ui5/fs/readers/Filter~callback} parameters.callback
+ * 				Filter function. Will be called for every resource passed through this reader.
+ * @returns {@ui5/fs/readers/Filter} Reader instance
+ */
+export function createFilterReader(parameters) {
+	return new Filter(parameters);
+}
+
+/**
+ * Create a [Link-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
+ * The provided path mapping allows
+ *
+ * @public
+ * @param {object} parameters
+ * @param {@ui5/fs/AbstractReader} parameters.reader Single reader or collection of readers
+ * @param {@ui5/fs/readers/Link/PathMapping} parameters.pathMapping
+ * @returns {@ui5/fs/readers/Link} Reader instance
+ */
+export function createLinkReader(parameters) {
+	return new Link(parameters);
+}
+
+/**
+ * Create a [Link-Reader]{@link @ui5/fs/readers/Link} where all requests are prefixed with
+ * <code>/resources/<namespace></code>.
+ *
+ * This simulates "flat" resource access, which is for example common for projects of type
+ * "application".
+ *
+ * @public
+ * @param {object} parameters
+ * @param {@ui5/fs/AbstractReader} parameters.reader Single reader or collection of readers
+ * @param {string} parameters.namespace Project namespace
+ * @returns {@ui5/fs/readers/Link} Reader instance
+ */
+export function createFlatReader({reader, namespace}) {
+	return new Link({
+		reader: reader,
+		pathMapping: {
+			linkPath: `/`,
+			targetPath: `/resources/${namespace}/`
+		}
 	});
 }
 

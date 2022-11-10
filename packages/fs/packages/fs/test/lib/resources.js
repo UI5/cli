@@ -4,7 +4,7 @@ import chaifs from "chai-fs";
 chai.use(chaifs);
 const assert = chai.assert;
 import sinon from "sinon";
-import {createAdapter} from "../../lib/resourceFactory.js";
+import {createAdapter, createFilterReader, createFlatReader, createLinkReader} from "../../lib/resourceFactory.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();
@@ -37,13 +37,46 @@ test("Get resource from application.a (/index.html) and write it to /dest/ using
 	});
 });
 
-test("Filter resources", async (t) => {
+test("Legacy: Filter resources", async (t) => {
 	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/app/"
 	});
 	const filteredSource = await source.filter((resource) => {
 		return resource.getPath().endsWith(".js");
+	});
+	const sourceResources = await source.byGlob("**");
+	t.is(sourceResources.length, 2, "Found two resources in source");
+
+	const resources = await filteredSource.byGlob("**");
+
+	t.is(resources.length, 1, "Found exactly one resource via filter");
+	t.is(resources[0].getPath(), "/app/test.js", "Found correct resource");
+});
+
+test("Legacy: Flatten resources", async (t) => {
+	const source = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+	const transformedSource = await source.flatten("app");
+
+	const resources = await transformedSource.byGlob("**/*.js");
+	t.is(resources.length, 1, "Found one resource via transformer");
+	t.is(resources[0].getPath(), "/test.js", "Found correct resource");
+});
+
+
+test("Filter resources", async (t) => {
+	const source = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/"
+	});
+	const filteredSource = createFilterReader({
+		reader: source,
+		callback: (resource) => {
+			return resource.getPath().endsWith(".js");
+		}
 	});
 	const sourceResources = await source.byGlob("**");
 	t.is(sourceResources.length, 2, "Found two resources in source");
@@ -83,9 +116,30 @@ test("Flatten resources", async (t) => {
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/"
 	});
-	const transformedSource = await source.flatten("app");
+	const transformedSource = createFlatReader({
+		reader: source,
+		namespace: "app"
+	});
 
 	const resources = await transformedSource.byGlob("**/*.js");
 	t.is(resources.length, 1, "Found one resource via transformer");
 	t.is(resources[0].getPath(), "/test.js", "Found correct resource");
+});
+
+test("Link resources", async (t) => {
+	const source = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+	const transformedSource = createLinkReader({
+		reader: source,
+		pathMapping: {
+			linkPath: "/wow/this/is/a/beautiful/path/just/wow/",
+			targetPath: "/resources/"
+		}
+	});
+
+	const resources = await transformedSource.byGlob("**/*.js");
+	t.is(resources.length, 1, "Found one resource via transformer");
+	t.is(resources[0].getPath(), "/wow/this/is/a/beautiful/path/just/wow/app/test.js", "Found correct resource");
 });
