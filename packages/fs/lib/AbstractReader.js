@@ -2,7 +2,7 @@ import randomInt from "random-int";
 import Trace from "./tracing/Trace.js";
 
 /**
- * Abstract resource locator
+ * Abstract resource locator implementing the general API for <b>reading</b> resources
  *
  * @abstract
  * @public
@@ -14,11 +14,22 @@ class AbstractReader {
 	 * The constructor.
 	 *
 	 * @public
+	 * @param {string} name Name of the reader. Typically used for tracing purposes
 	 */
-	constructor() {
+	constructor(name) {
 		if (new.target === AbstractReader) {
 			throw new TypeError("Class 'AbstractReader' is abstract");
 		}
+		this._name = name;
+	}
+
+	/*
+	 * Returns the name of the reader instance. This can be used for logging/tracing purposes.
+	 *
+	 * @returns {string} Name of the reader
+	 */
+	getName() {
+		return this._name || `<unnamed ${this.constructor.name} Reader>`;
 	}
 
 	/**

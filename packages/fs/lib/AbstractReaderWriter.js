@@ -1,7 +1,7 @@
 import AbstractReader from "./AbstractReader.js";
 
 /**
- * Abstract resource locator
+ * Abstract resource locator implementing the general API for <b>reading and writing</b> resources
  *
  * @abstract
  * @public
@@ -14,12 +14,22 @@ class AbstractReaderWriter extends AbstractReader {
 	 * The constructor.
 	 *
 	 * @public
+	 * @param {string} name Name of the reader/writer. Typically used for tracing purposes
 	 */
-	constructor() {
+	constructor(name) {
 		if (new.target === AbstractReaderWriter) {
 			throw new TypeError("Class 'AbstractReaderWriter' is abstract");
 		}
-		super();
+		super(name);
+	}
+
+	/*
+	 * Returns the name of the reader/writer instance. This can be used for logging/tracing purposes.
+	 *
+	 * @returns {string} Name of the reader/writer
+	 */
+	getName() {
+		return this._name || `<unnamed ${this.constructor.name} Reader/Writer>`;
 	}
 
 	/**

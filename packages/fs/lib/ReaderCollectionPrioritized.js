@@ -18,8 +18,7 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * 																(first is tried first)
 	 */
 	constructor({readers, name}) {
-		super();
-		this._name = name;
+		super(name);
 		this._readers = readers;
 	}
 

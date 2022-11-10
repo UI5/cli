@@ -9,7 +9,7 @@ test("ReaderCollection: constructor", (t) => {
 		readers: [{}, {}, {}]
 	});
 
-	t.is(readerCollection._name, "myReader", "correct name assigned");
+	t.is(readerCollection.getName(), "myReader", "correct name assigned");
 	t.deepEqual(readerCollection._readers, [{}, {}, {}], "correct readers assigned");
 });
 
