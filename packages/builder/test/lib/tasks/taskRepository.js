@@ -26,7 +26,6 @@ test("getAllTaskNames", (t) => {
 		"transformBootstrapHtml",
 		"generateLibraryManifest",
 		"generateVersionInfo",
-		"generateManifestBundle",
 		"generateFlexChangesBundle",
 		"generateComponentPreload",
 		"generateResourcesJson",
@@ -53,6 +52,12 @@ test("Removed task retrieval", async (t) => {
 	const error2 = await t.throwsAsync(getTask("uglify"));
 	t.deepEqual(error2.message,
 		`Standard task uglify has been removed in UI5 Tooling 3.0. ` +
+		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		"Correct exception");
+
+	const error3 = await t.throwsAsync(getTask("generateManifestBundle"));
+	t.deepEqual(error3.message,
+		`Standard task generateManifestBundle has been removed in UI5 Tooling 3.0. ` +
 		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
 		"Correct exception");
 });

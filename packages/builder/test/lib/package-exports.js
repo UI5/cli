@@ -18,7 +18,6 @@ test("check number of exports", (t) => {
 // Public API contract (exported modules)
 [
 	"processors/bundlers/flexChangesBundler",
-	"processors/bundlers/manifestBundler",
 	"processors/bundlers/moduleBundler",
 	"processors/jsdoc/apiIndexGenerator",
 	"processors/jsdoc/jsdocGenerator",
@@ -34,7 +33,6 @@ test("check number of exports", (t) => {
 	"tasks/bundlers/generateComponentPreload",
 	"tasks/bundlers/generateFlexChangesBundle",
 	"tasks/bundlers/generateLibraryPreload",
-	"tasks/bundlers/generateManifestBundle",
 	"tasks/bundlers/generateStandaloneAppBundle",
 	"tasks/bundlers/generateBundle",
 	"tasks/generateCachebusterInfo",

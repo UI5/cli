@@ -28,7 +28,7 @@ const findFiles = (folder) => {
 	});
 };
 
-test("integration: Build application.g with manifestBundler", async (t) => {
+test("integration: Build application.g", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
@@ -64,7 +64,7 @@ test("integration: Build application.g with manifestBundler", async (t) => {
 	t.pass();
 });
 
-test("integration: Build application.g with manifestBundler and cachebuster using hashes", async (t) => {
+test("integration: Build application.g with cachebuster using hashes", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster_hash");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];

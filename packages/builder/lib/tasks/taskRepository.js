@@ -11,7 +11,6 @@ const taskInfos = {
 	transformBootstrapHtml: {path: "./transformBootstrapHtml.js"},
 	generateLibraryManifest: {path: "./generateLibraryManifest.js"},
 	generateVersionInfo: {path: "./generateVersionInfo.js"},
-	generateManifestBundle: {path: "./bundlers/generateManifestBundle.js"},
 	generateFlexChangesBundle: {path: "./bundlers/generateFlexChangesBundle.js"},
 	generateComponentPreload: {path: "./bundlers/generateComponentPreload.js"},
 	generateResourcesJson: {path: "./generateResourcesJson.js"},
@@ -26,7 +25,7 @@ export async function getTask(taskName) {
 	const taskInfo = taskInfos[taskName];
 
 	if (!taskInfo) {
-		if (["createDebugFiles", "uglify"].includes(taskName)) {
+		if (["createDebugFiles", "uglify", "generateManifestBundle"].includes(taskName)) {
 			throw new Error(
 				`Standard task ${taskName} has been removed in UI5 Tooling 3.0. ` +
 				`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`);
