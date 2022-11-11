@@ -93,7 +93,6 @@ test("Standard build", async (t) => {
 			}
 		},
 		generateLibraryManifest: {},
-		generateManifestBundle: {},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
@@ -200,7 +199,6 @@ test("Standard build with legacy spec version", (t) => {
 			}
 		},
 		generateLibraryManifest: {},
-		generateManifestBundle: {},
 		generateLibraryPreload: {
 			options: {
 				excludes: [], skipBundles: []
@@ -318,7 +316,6 @@ test("Custom bundles", async (t) => {
 			}
 		},
 		generateLibraryManifest: {},
-		generateManifestBundle: {},
 		generateLibraryPreload: {
 			options: {
 				excludes: [],

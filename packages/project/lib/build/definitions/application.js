@@ -47,7 +47,6 @@ export default function({project, taskUtil, getTask}) {
 	});
 
 	tasks.set("generateFlexChangesBundle", {});
-	tasks.set("generateManifestBundle", {});
 
 	const bundles = project.getBundles();
 	const existingBundleDefinitionNames =

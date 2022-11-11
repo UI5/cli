@@ -67,7 +67,6 @@ test("Standard build", (t) => {
 			}
 		},
 		generateFlexChangesBundle: {},
-		generateManifestBundle: {},
 		generateComponentPreload: {
 			options: {
 				namespaces: ["project/b"],
@@ -139,7 +138,6 @@ test("Standard build with legacy spec version", (t) => {
 			}
 		},
 		generateFlexChangesBundle: {},
-		generateManifestBundle: {},
 		generateComponentPreload: {
 			options: {
 				namespaces: ["project/b"],
@@ -245,7 +243,6 @@ test("Custom bundles", async (t) => {
 			}
 		},
 		generateFlexChangesBundle: {},
-		generateManifestBundle: {},
 		generateComponentPreload: {
 			options: {
 				namespaces: ["project/b"],

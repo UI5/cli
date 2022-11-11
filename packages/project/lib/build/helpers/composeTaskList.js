@@ -18,7 +18,6 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 	}, {});
 
 	// Exclude non default tasks
-	selectedTasks.generateManifestBundle = false;
 	selectedTasks.generateStandaloneAppBundle = false;
 	selectedTasks.transformBootstrapHtml = false;
 	selectedTasks.generateJsdoc = false;
@@ -59,7 +58,6 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 		selectedTasks.generateLibraryManifest = false;
 		selectedTasks.minify = false;
 		selectedTasks.generateFlexChangesBundle = false;
-		selectedTasks.generateManifestBundle = false;
 	}
 
 	// Exclude tasks
