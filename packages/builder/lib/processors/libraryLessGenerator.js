@@ -178,7 +178,7 @@ class LibraryLessGenerator {
  * @param {@ui5/fs/Resource[]} parameters.resources List of <code>library.source.less</code>
  * resources
  * @param {fs|module:@ui5/fs/fsInterface} parameters.fs Node fs or custom
- * [fs interface]{@link module:resources/module:@ui5/fs/fsInterface}
+ * [fs interface]{@link module:@ui5/fs/fsInterface}
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with library.less resources
  */
 async function createLibraryLess({resources, fs}) {
