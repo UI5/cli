@@ -6,7 +6,7 @@ root = true
 charset = utf-8
 indent_style = tab
 
-[*.{css,html,js,less,txt,json,yml,md}]
+[*.{css,html,js,cjs,mjs,jsx,ts,tsx,less,txt,json,yml,md}]
 trim_trailing_whitespace = true
 end_of_line = lf
 indent_size = 4
