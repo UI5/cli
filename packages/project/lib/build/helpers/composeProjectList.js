@@ -6,7 +6,7 @@ const log = logger.getLogger("build:helpers:composeProjectList");
  * its value is an array of all of its transitive dependencies.
  *
  * @param {@ui5/project/graph/ProjectGraph} graph
- * @returns {Promise<object<string, string[]>>} A promise resolving to an object with dependency names as
+ * @returns {Promise<Object<string, string[]>>} A promise resolving to an object with dependency names as
  * 												key and each with an array of its transitive dependencies as value
  */
 async function getFlattenedDependencyTree(graph) {
