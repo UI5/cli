@@ -171,6 +171,23 @@ class TaskUtil {
 	}
 
 	/**
+	 * Specification Version-dependent [Project]{@link @ui5/project/specifications/Project} interface.
+	 * For details on individual functions, see [Project]{@link @ui5/project/specifications/Project}
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/build/helpers/TaskUtil~ProjectInterface
+	 * @property {Function} getSpecVersion Get the project Specification Version
+	 * @property {Function} getType Get the project type
+	 * @property {Function} getName Get the project name
+	 * @property {Function} getVersion Get the project version
+	 * @property {Function} getNamespace Get the project namespace
+	 * @property {Function} getRootReader Get the project rootReader
+	 * @property {Function} getReader Get the project reader
+	 * @property {Function} getCustomConfiguration Get the project Custom Configuration
+	 * @property {Function} isFrameworkProject Check whether the project is a UI5-Framework project
+	 */
+
+	/**
 	 * Retrieve a single project from the dependency graph
 	 *
 	 * </br></br>
@@ -178,7 +195,7 @@ class TaskUtil {
 	 * <b>Specification Version 3.0 and above</b>.
 	 *
 	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
-	 * @returns {@ui5/project/specifications/Project|undefined}
+	 * @returns {@ui5/project/build/helpers/TaskUtil~ProjectInterface|undefined}
 	 *					project instance or undefined if the project is unknown to the graph
 	 * @public
 	 */

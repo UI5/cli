@@ -29,6 +29,12 @@ class ThemeLibrary extends Project {
 		return this._config.metadata.copyright;
 	}
 
+	/**
+	 * Get the path of the project's source directory
+	 *
+	 * @private
+	 * @returns {string} Absolute path to the source directory of the project
+	 */
 	getSourcePath() {
 		return fsPath.join(this.getPath(), this._srcPath);
 	}

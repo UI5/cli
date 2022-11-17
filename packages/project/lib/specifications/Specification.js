@@ -110,52 +110,69 @@ class Specification {
 
 	/* === Attributes === */
 	/**
-	* @public
-	*/
+	 * Get the project name
+	 *
+	 * @public
+	 * @returns {string} Project name
+	 */
 	getName() {
 		return this._name;
 	}
 
 	/**
-	* @public
-	*/
+	 * Get the project kind
+	 *
+	 * @public
+	 * @returns {string} Project kind
+	 */
 	getKind() {
 		return this._kind;
 	}
 
 	/**
-	* @public
-	*/
+	 * Get the project type
+	 *
+	 * @public
+	 * @returns {string} Project type
+	 */
 	getType() {
 		return this._type;
 	}
 
 	/**
-	* @public
-	*/
+	 * Get the project Specification Version
+	 *
+	 * @public
+	 * @returns {string} Project Specification Version
+	 */
 	getSpecVersion() {
 		return this._specVersion;
 	}
 
 	/**
-	* @public
-	*/
+	 * Get the project version as typically defined in the project's <code>package.json</code>
+	 *
+	 * @public
+	 * @returns {string} Project version
+	 */
 	getVersion() {
 		return this._version;
 	}
 
 	/**
-	* Might not be POSIX
-	*
-	* @private
-	*/
+	 * Get the project's file system path. This might not be POSIX-style on some platforms
+	 *
+	 * @private
+	 * @returns {string} Project root path
+	 */
 	getPath() {
 		return this._modulePath;
 	}
 
 	/* === Resource Access === */
 	/**
-	* Get a resource reader for the root directory of the project
+	* Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the project.
+	* Resource readers always use POSIX-style
 	*
 	* @public
 	* @returns {@ui5/fs/ReaderCollection} Reader collection

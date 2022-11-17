@@ -46,6 +46,12 @@ class Library extends ComponentProject {
 		return this._config.builder && this._config.builder.jsdoc && this._config.builder.jsdoc.excludes || [];
 	}
 
+	/**
+	 * Get the path of the project's source directory. This might not be POSIX-style on some platforms.
+	 *
+	 * @private
+	 * @returns {string} Absolute path to the source directory of the project
+	 */
 	getSourcePath() {
 		return fsPath.join(this.getPath(), this._srcPath);
 	}

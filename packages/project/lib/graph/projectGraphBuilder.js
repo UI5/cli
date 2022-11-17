@@ -260,7 +260,7 @@ async function projectGraphBuilder(nodeProvider) {
 						projectGraph.declareDependency(parentProject.getName(), projectName);
 					}
 
-					if (project.getDeprecated() && parentProject === rootProject &&
+					if (project.isDeprecated() && parentProject === rootProject &&
 							!parentProject.getName().endsWith("/testsuite")) {
 						// Only warn for direct dependencies of the root project
 						// No warning for testsuite projects
@@ -268,7 +268,7 @@ async function projectGraphBuilder(nodeProvider) {
 							`Dependency ${project.getName()} is deprecated and should not be used for new projects!`);
 					}
 
-					if (project.getSapInternal() && parentProject === rootProject &&
+					if (project.isSapInternal() && parentProject === rootProject &&
 						!parentProject.getAllowSapInternal()) {
 						// Only warn for direct dependencies of the root project, except it defines "allowSapInternal"
 						log.warn(

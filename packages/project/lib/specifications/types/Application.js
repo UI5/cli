@@ -35,6 +35,12 @@ class Application extends ComponentProject {
 			this._config.builder.cachebuster.signatureType || "time";
 	}
 
+	/**
+	 * Get the path of the project's source directory. This might not be POSIX-style on some platforms.
+	 *
+	 * @private
+	 * @returns {string} Absolute path to the source directory of the project
+	 */
 	getSourcePath() {
 		return fsPath.join(this.getPath(), this._webappPath);
 	}

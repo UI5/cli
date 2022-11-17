@@ -26,8 +26,11 @@ class ComponentProject extends Project {
 
 	/* === Attributes === */
 	/**
-	* @public
-	*/
+	 * Get the project namespace
+	 *
+	 * @public
+	 * @returns {string} Project namespace in slash-notation (e.g. <code>my/project/name</code>)
+	 */
 	getNamespace() {
 		return this._namespace;
 	}

@@ -20,13 +20,16 @@ class Module extends Project {
 	}
 
 	/* === Attributes === */
+
 	/**
-	* @public
-	*/
+	 * Since Modules have multiple source paths, this function always throws with an exception
+	 *
+	 * @private
+	 * @throws {Error} Projects of type module have more than one source path
+	 */
 	getSourcePath() {
 		throw new Error(`Projects of type module have more than one source path`);
 	}
-
 
 	/* === Resource Access === */
 	/**

@@ -42,8 +42,12 @@ class Project extends Specification {
 
 	/* === Attributes === */
 	/**
-	* @public
-	*/
+	 * Get the project namespace. Returns null for projects that have none or multiple namespaces.
+	 * For example Modules or Theme Libraries.
+	 *
+	 * @public
+	 * @returns {string|null} Project namespace in slash-notation (e.g. <code>my/project/name</code>) or null
+	 */
 	getNamespace() {
 		// Default namespace for general Projects:
 		// Their resources should be structured with globally unique paths, hence their namespace is undefined
@@ -51,76 +55,163 @@ class Project extends Specification {
 	}
 
 	/**
-	* Path of project's sources. This might not be POSIX.
-	*
-	* @public
-	*/
+	 * Check whether the project is a UI5-Framework project
+	 *
+	 * @public
+	 * @returns {boolean} True if the project is a framework project
+	 */
+	isFrameworkProject() {
+		return this.__id.startsWith("@openui5/") || this.__id.startsWith("@sapui5/");
+	}
+
+	/**
+	 * Get the project's customConfiguration
+	 *
+	 * @public
+	 * @returns {object} Custom Configuration
+	 */
+	getCustomConfiguration() {
+		return this._config.customConfiguration;
+	}
+
+	/**
+	 * Get the path of the project's source directory. This might not be POSIX-style on some platforms.
+	 * Projects with multiple source paths will throw an error. For example Modules.
+	 *
+	 * @private
+	 * @returns {string} Absolute path to the source directory of the project
+	 * @throws {Error} In case a project has multiple source directories
+	 */
 	getSourcePath() {
 		throw new Error(`getSourcePath must be implemented by subclass ${this.constructor.name}`);
 	}
 
 	/**
-	* @private
-	*/
+	 * Get the project's frameworkName configuration
+	 *
+	 * @private
+	 * @returns {string} FrameworkName configuration
+	 */
 	getFrameworkName() {
 		return this._config.framework?.name;
 	}
+
 	/**
-	* @private
-	*/
+	 * Get the project's frameworkVersion configuration
+	 *
+	 * @private
+	 * @returns {string} FrameworkVersion configuration
+	 */
 	getFrameworkVersion() {
 		return this._config.framework?.version;
 	}
+
 	/**
-	* @private
-	*/
+	 * Get the project's frameworkDependencies configuration
+	 *
+	 * @private
+	 * @returns {object[]} FrameworkDependencies configuration
+	 */
 	getFrameworkDependencies() {
 		return this._config.framework?.libraries || [];
 	}
 
-	isFrameworkProject() {
-		return this.__id.startsWith("@openui5/") || this.__id.startsWith("@sapui5/");
-	}
-
-	getDeprecated() {
+	/**
+	 * Get the project's deprecated configuration
+	 *
+	 * @private
+	 * @returns {boolean} True if the project is flagged as deprecated
+	 */
+	isDeprecated() {
 		return !!this._config.metadata.deprecated;
 	}
 
-	getSapInternal() {
+	/**
+	 * Get the project's sapInternal configuration
+	 *
+	 * @private
+	 * @returns {boolean} True if the project is flagged as SAP-internal
+	 */
+	isSapInternal() {
 		return !!this._config.metadata.sapInternal;
 	}
+
+	/**
+	 * Get the project's allowSapInternal configuration
+	 *
+	 * @private
+	 * @returns {boolean} True if the project allows for using SAP-internal projects
+	 */
 	getAllowSapInternal() {
 		return !!this._config.metadata.allowSapInternal;
 	}
 
-	getCustomConfiguration() {
-		return this._config.customConfiguration;
-	}
-
+	/**
+	 * Get the project's builderResourcesExcludes configuration
+	 *
+	 * @private
+	 * @returns {string[]} BuilderResourcesExcludes configuration
+	 */
 	getBuilderResourcesExcludes() {
 		return this._config.builder?.resources?.excludes || [];
 	}
 
+	/**
+	 * Get the project's customTasks configuration
+	 *
+	 * @private
+	 * @returns {object[]} CustomTasks configuration
+	 */
 	getCustomTasks() {
 		return this._config.builder?.customTasks || [];
 	}
 
+	/**
+	 * Get the project's customMiddleware configuration
+	 *
+	 * @private
+	 * @returns {object[]} CustomMiddleware configuration
+	 */
 	getCustomMiddleware() {
 		return this._config.server?.customMiddleware || [];
 	}
 
+	/**
+	 * Get the project's serverSettings configuration
+	 *
+	 * @private
+	 * @returns {object} ServerSettings configuration
+	 */
 	getServerSettings() {
 		return this._config.server?.settings;
 	}
 
+	/**
+	 * Get the project's builderSettings configuration
+	 *
+	 * @private
+	 * @returns {object} BuilderSettings configuration
+	 */
 	getBuilderSettings() {
 		return this._config.builder?.settings;
 	}
 
+	/**
+	 * Get the project's buildManifest configuration
+	 *
+	 * @private
+	 * @returns {boolean} BuildManifest configuration
+	 */
 	hasBuildManifest() {
 		return !!this._buildManifest;
 	}
 
+	/**
+	 * Get the project's buildManifest configuration
+	 *
+	 * @private
+	 * @returns {object} BuildManifest configuration
+	 */
 	getBuildManifest() {
 		return this._buildManifest || {};
 	}
@@ -136,6 +227,8 @@ class Project extends Specification {
 	 * <li><b>runtime</b>: Access resources the same way the UI5 runtime would do</li>
 	 * <li><b>flat:</b> No prefix, no namespace</li>
 	 * </ul>
+	 *
+	 * Resource readers always use POSIX-style.
 	 *
 	 * @public
 	 * @param {object} [options]
