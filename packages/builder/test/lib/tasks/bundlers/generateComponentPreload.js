@@ -15,7 +15,6 @@ test.beforeEach(async (t) => {
 		byGlob: sinon.stub().resolves([]),
 		write: sinon.stub().resolves()
 	};
-	t.context.workspace.filter = () => t.context.workspace;
 
 	t.context.dependencies = {};
 	t.context.byGlob = t.context.workspace.byGlob;
@@ -228,9 +227,22 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 		}
 	]);
 
+	const taskUtil = {
+		getTag: sinon.stub().returns(false),
+		setTag: sinon.stub().returns(),
+		clearTag: sinon.stub().returns(),
+		STANDARD_TAGS: {
+			IsBundle: "<IsBundle>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
+		}
+	};
 	await generateComponentPreload({
 		workspace,
 		dependencies,
+		taskUtil,
 		options: {
 			projectName: "Test Application",
 			namespaces: ["my/app"],
@@ -298,6 +310,22 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 		"workspace.write should have been called with expected args");
 	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
 		"workspace.write should have been called with exact resource returned by moduleBundler");
+
+	t.is(taskUtil.getTag.callCount, 0, "TaskUtil#getTag never got called");
+
+	t.is(taskUtil.setTag.callCount, 1, "TaskUtil#setTag got called once");
+	t.deepEqual(taskUtil.setTag.getCall(0).args[0], {"fake": "bundle"},
+		"TaskUtil#setTag got called with expected resource");
+	t.is(taskUtil.setTag.getCall(0).args[1], "<IsBundle>",
+		"TaskUtil#setTag got called with expected tag");
+	t.is(taskUtil.setTag.getCall(0).args[2], undefined, // defaults to true internally
+		"TaskUtil#setTag got called with expected tag value");
+
+	t.is(taskUtil.clearTag.callCount, 1, "TaskUtil#clearTag got called once");
+	t.deepEqual(taskUtil.clearTag.getCall(0).args[0], {"fake": "sourceMap"},
+		"TaskUtil#clearTag got called with expected resource");
+	t.is(taskUtil.clearTag.getCall(0).args[1], "<OmitFromBuildResult>",
+		"TaskUtil#clearTag got called with expected tag");
 });
 
 test.serial("generateComponentPreload - multiple namespaces - excludes", async (t) => {

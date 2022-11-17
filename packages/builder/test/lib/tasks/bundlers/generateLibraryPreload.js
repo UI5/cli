@@ -13,7 +13,6 @@ test.beforeEach(async (t) => {
 		byGlob: sinon.stub().resolves([]),
 		write: sinon.stub().resolves()
 	};
-	t.context.workspace.filter = () => t.context.workspace;
 
 	t.context.dependencies = {};
 	t.context.firstByGlob = t.context.workspace.byGlob.onFirstCall();
@@ -440,6 +439,9 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
 		}
 	};
 	await generateLibraryPreload({
@@ -461,6 +463,20 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
+
+	t.is(taskUtil.getTag.callCount, 3, "TaskUtil#getTag got called three times");
+	t.is(taskUtil.getTag.getCall(0).args[0], resources[2],
+		"TaskUtil#getTag got called with expected resource on first call");
+	t.is(taskUtil.getTag.getCall(0).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on first call");
+	t.is(taskUtil.getTag.getCall(1).args[0], resources[1],
+		"TaskUtil#getTag got called with expected resource on second call");
+	t.is(taskUtil.getTag.getCall(1).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on second call");
+	t.is(taskUtil.getTag.getCall(2).args[0], resources[0],
+		"TaskUtil#getTag got called with expected resource on third call");
+	t.is(taskUtil.getTag.getCall(2).args[1], "<IsDebugVariant>",
+		"TaskUtil#getTag got called with expected tag on third call");
 
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
@@ -776,6 +792,9 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
 		}
 	};
 	taskUtil.getTag
@@ -1113,6 +1132,9 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
 		}
 	};
 	await generateLibraryPreload({
@@ -1282,6 +1304,9 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
 		}
 	};
 	taskUtil.getTag
@@ -1451,6 +1476,9 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
 		}
 	};
 	taskUtil.getTag

@@ -246,9 +246,12 @@ function getSapUiCoreBunDef(name, filters, preload) {
 export default async function({workspace, taskUtil, options: {skipBundles = [], excludes = [], projectName}}) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
-		nonDbgWorkspace = await workspace.filter(function(resource) {
-			// Remove any debug variants
-			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		nonDbgWorkspace = taskUtil.resourceFactory.createFilterReader({
+			reader: workspace,
+			callback: function(resource) {
+				// Remove any debug variants
+				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+			}
 		});
 	}
 
@@ -281,9 +284,12 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 				let unoptimizedModuleNameMapping;
 				let unoptimizedResources = resources;
 				if (taskUtil) {
-					const unoptimizedWorkspace = await workspace.filter(function(resource) {
-						// Remove any non-debug variants
-						return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+					const unoptimizedWorkspace = taskUtil.resourceFactory.createFilterReader({
+						reader: workspace,
+						callback: function(resource) {
+							// Remove any non-debug variants
+							return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+						}
 					});
 					unoptimizedResources =
 						await unoptimizedWorkspace.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}");

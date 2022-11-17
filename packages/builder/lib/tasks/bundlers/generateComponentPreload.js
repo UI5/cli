@@ -37,9 +37,12 @@ export default async function({
 }) {
 	let nonDbgWorkspace = workspace;
 	if (taskUtil) {
-		nonDbgWorkspace = await workspace.filter(function(resource) {
-			// Remove any debug variants
-			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		nonDbgWorkspace = taskUtil.resourceFactory.createFilterReader({
+			reader: workspace,
+			callback: function(resource) {
+				// Remove any debug variants
+				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+			}
 		});
 	}
 
