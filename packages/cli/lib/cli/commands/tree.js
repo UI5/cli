@@ -55,7 +55,7 @@ tree.handler = async function(argv) {
 				const connectorString = lastChild ? "╰─" : "├─";
 				console.log(
 					`${baseString}${connectorString} ${chalk.bold(project.getName())} ` +
-					`${project.getNamespace ? chalk.inverse(project.getNamespace()) + " " : ""}` +
+					`${project.getNamespace() ? chalk.inverse(project.getNamespace()) + " " : ""}` +
 					chalk.dim(`(${project.getVersion()}, ${project.getType()}) `) +
 					chalk.dim.italic(`${project.getPath()}`)
 				);

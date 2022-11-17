@@ -108,6 +108,7 @@ test.serial("ui5 tree", async (t) => {
 		await fn({
 			project: {
 				getName: sinon.stub().returns("dependency1"),
+				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("1.1.1"),
 				getType: sinon.stub().returns("library"),
 				getPath: sinon.stub().returns("/home/dependency1")
@@ -117,6 +118,7 @@ test.serial("ui5 tree", async (t) => {
 		await fn({
 			project: {
 				getName: sinon.stub().returns("dependency3"),
+				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("3.3.3"),
 				getType: sinon.stub().returns("library"),
 				getPath: sinon.stub().returns("/home/dependency3")
