@@ -177,13 +177,30 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 3.0 and above</b>.
 	 *
-	 * @param {string} projectName Name of the project to retrieve
+	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
 	 * @returns {@ui5/project/specifications/Project|undefined}
 	 *					project instance or undefined if the project is unknown to the graph
 	 * @public
 	 */
 	getProject(projectName) {
 		return this._projectBuildContext.getProject(projectName);
+	}
+
+	/**
+	 * Retrieve a list of direct dependencies of a given project from the dependency graph.
+	 * Note that this list does not include transitive dependencies.
+	 *
+	 * </br></br>
+	 * This method is only available to custom task extensions defining
+	 * <b>Specification Version 3.0 and above</b>.
+	 *
+	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
+	 * @returns {string[]} Names of all direct dependencies
+	 * @throws {Error} If the requested project is unknown to the graph
+	 * @public
+	 */
+	getDependencies(projectName) {
+		return this._projectBuildContext.getDependencies(projectName);
 	}
 
 	/**
@@ -216,12 +233,16 @@ class TaskUtil {
 				const project = this.getProject(projectName);
 				const baseProjectInterface = {};
 				bindFunctions(project, baseProjectInterface, [
-					"getName", "getVersion", "getNamespace"
+					"getSpecVersion", "getType", "getName", "getVersion", "getNamespace",
+					"getRootReader", "getReader", "getCustomConfiguration", "isFrameworkProject"
 				]);
 				switch (specVersion) {
 				case "3.0":
 					return baseProjectInterface;
 				}
+			};
+			baseInterface.getDependencies = (projectName) => {
+				return this.getDependencies(projectName);
 			};
 			return baseInterface;
 		default:

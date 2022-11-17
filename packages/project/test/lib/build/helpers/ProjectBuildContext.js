@@ -219,11 +219,70 @@ test("getProject", (t) => {
 	});
 
 	t.is(projectBuildContext.getProject("pony project"), "pony", "Returned correct value");
-	t.is(getProjectStub.callCount, 1);
+	t.is(getProjectStub.callCount, 1, "getProject got called once");
 	t.is(getProjectStub.getCall(0).args[0], "pony project", "getProject got called with correct argument");
 
 	t.is(projectBuildContext.getProject(), project);
 	t.is(getProjectStub.callCount, 1, "getProject is not called again when requesting current project");
+});
+
+test("getProject: No name provided", (t) => {
+	const project = "project";
+	const getProjectStub = sinon.stub().returns("pony");
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getGraph: () => {
+				return {
+					getProject: getProjectStub
+				};
+			}
+		},
+		project,
+		log: "log"
+	});
+
+	t.is(projectBuildContext.getProject(), "project", "Returned correct value");
+	t.is(getProjectStub.callCount, 0, "getProject has not been called");
+});
+
+test("getDependencies", (t) => {
+	const project = "project";
+	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getGraph: () => {
+				return {
+					getDependencies: getDependenciesStub
+				};
+			}
+		},
+		project,
+		log: "log"
+	});
+
+	t.deepEqual(projectBuildContext.getDependencies("pony project"), ["dep a", "dep b"], "Returned correct value");
+	t.is(getDependenciesStub.callCount, 1, "getDependencies got called once");
+	t.is(getDependenciesStub.getCall(0).args[0], "pony project", "getProject got called with correct arguments");
+});
+
+test("getDependencies: No name provided", (t) => {
+	const project = {getName: () => "project"};
+	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {
+			getGraph: () => {
+				return {
+					getDependencies: getDependenciesStub
+				};
+			}
+		},
+		project,
+		log: "log"
+	});
+
+	t.deepEqual(projectBuildContext.getDependencies(), ["dep a", "dep b"], "Returned correct value");
+	t.is(getDependenciesStub.callCount, 1, "getDependencies got called once");
+	t.is(getDependenciesStub.getCall(0).args[0], "project", "getProject got called with correct arguments");
 });
 
 test("getTaskUtil", (t) => {

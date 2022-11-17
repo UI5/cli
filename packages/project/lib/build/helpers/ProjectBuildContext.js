@@ -64,6 +64,17 @@ class ProjectBuildContext {
 		return this._project;
 	}
 
+	/**
+	 * Retrieve a list of direct dependencies of a given project from the dependency graph
+	 *
+	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
+	 * @returns {string[]} Names of all direct dependencies
+	 * @throws {Error} If the requested project is unknown to the graph
+	 */
+	getDependencies(projectName) {
+		return this._buildContext.getGraph().getDependencies(projectName || this._project.getName());
+	}
+
 	getResourceTagCollection(resource, tag) {
 		if (!resource.hasProject()) {
 			this._log.silly(`Associating resource ${resource.getPath()} with project ${this._project.getName()}`);

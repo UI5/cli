@@ -221,7 +221,7 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @param {string} projectName Name of the project to retrieve the dependencies of
-	 * @returns {string[]} Project names
+	 * @returns {string[]} Names of all direct dependencies
 	 */
 	getDependencies(projectName) {
 		const adjacencies = this._adjList[projectName];

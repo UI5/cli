@@ -155,7 +155,6 @@ test("getBuildOption", (t) => {
 	t.is(res, "Pony", "Correct result");
 });
 
-
 test("getProject", (t) => {
 	const getProjectStub = sinon.stub().returns("Pony farm!");
 	const taskUtil = new TaskUtil({
@@ -164,9 +163,23 @@ test("getProject", (t) => {
 		}
 	});
 
-	const res = taskUtil.getProject("pony farm?");
+	const res = taskUtil.getProject("pony farm");
 
 	t.is(getProjectStub.callCount, 1, "ProjectBuildContext#getProject got called once");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
+test("getDependencies", (t) => {
+	const getDependenciesStub = sinon.stub().returns("Pony farm!");
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getDependencies: getDependenciesStub
+		}
+	});
+
+	const res = taskUtil.getDependencies("pony farm");
+
+	t.is(getDependenciesStub.callCount, 1, "ProjectBuildContext#getDependencies got called once");
 	t.is(res, "Pony farm!", "Correct result");
 });
 
@@ -316,15 +329,23 @@ test("getInterface: specVersion 2.6", (t) => {
 
 test("getInterface: specVersion 3.0", (t) => {
 	const getProjectStub = sinon.stub().returns({
-		getName: () => "",
-		getVersion: () => "",
-		getNamespace: () => "",
-		hasBuildManifest: () => "", // Should not be exposed
-		getFrameworkVersion: () => "", // Should not be exposed
+		getSpecVersion: () => "specVersion",
+		getType: () => "type",
+		getName: () => "name",
+		getVersion: () => "version",
+		getNamespace: () => "namespace",
+		getRootReader: () => "rootReader",
+		getReader: () => "reader",
+		getCustomConfiguration: () => "customConfiguration",
+		isFrameworkProject: () => "isFrameworkProject",
+		hasBuildManifest: () => "hasBuildManifest", // Should not be exposed
+		getFrameworkVersion: () => "frameworkVersion", // Should not be exposed
 	});
+	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
-			getProject: getProjectStub
+			getProject: getProjectStub,
+			getDependencies: getDependenciesStub
 		}
 	});
 
@@ -337,7 +358,8 @@ test("getInterface: specVersion 3.0", (t) => {
 		"getTag",
 		"isRootProject",
 		"registerCleanupTask",
-		"getProject"
+		"getProject",
+		"getDependencies"
 	], "Correct methods are provided");
 
 	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
@@ -350,13 +372,31 @@ test("getInterface: specVersion 3.0", (t) => {
 
 	const interfacedProject = interfacedTaskUtil.getProject("pony");
 	t.deepEqual(Object.keys(interfacedProject), [
+		"getSpecVersion",
+		"getType",
 		"getName",
 		"getVersion",
 		"getNamespace",
+		"getRootReader",
+		"getReader",
+		"getCustomConfiguration",
+		"isFrameworkProject",
 	], "Correct methods are provided");
-	t.is(typeof interfacedProject.getName, "function", "function getName is provided");
-	t.is(typeof interfacedProject.getVersion, "function", "function getVersion is provided");
-	t.is(typeof interfacedProject.getNamespace, "function", "function getNamespace is provided");
+
+	t.is(interfacedProject.getSpecVersion(), "specVersion", "getSpecVersion function is bound correctly");
+	t.is(interfacedProject.getType(), "type", "getType function is bound correctly");
+	t.is(interfacedProject.getName(), "name", "getName function is bound correctly");
+	t.is(interfacedProject.getVersion(), "version", "getVersion function is bound correctly");
+	t.is(interfacedProject.getNamespace(), "namespace", "getNamespace function is bound correctly");
+	t.is(interfacedProject.getRootReader(), "rootReader", "getRootReader function is bound correctly");
+	t.is(interfacedProject.getReader(), "reader", "getReader function is bound correctly");
+	t.is(interfacedProject.getCustomConfiguration(), "customConfiguration",
+		"getCustomConfiguration function is bound correctly");
+	t.is(interfacedProject.isFrameworkProject(), "isFrameworkProject",
+		"isFrameworkProject function is bound correctly");
+
+	t.deepEqual(interfacedTaskUtil.getDependencies("pony"), ["dep a", "dep b"],
+		"getDependencies function is available and bound correctly");
 });
 
 test("getInterface: specVersion undefined", (t) => {
