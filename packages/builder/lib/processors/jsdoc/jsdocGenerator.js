@@ -170,18 +170,16 @@ async function buildJsdoc({sourcePath, configPath}) {
 		"--verbose",
 		sourcePath
 	];
-	return new Promise((resolve, reject) => {
+	const exitCode = await new Promise((resolve /* , reject */) => {
 		const child = spawn("node", args, {
 			stdio: ["ignore", "ignore", "inherit"]
 		});
-		child.on("close", function(code) {
-			if (code === 0 || code === 1) {
-				resolve();
-			} else {
-				reject(new Error(`JSDoc child process closed with code ${code}`));
-			}
-		});
+		child.on("close", resolve);
 	});
+
+	if (exitCode !== 0) {
+		throw new Error(`JSDoc reported an error, check the log for issues (exit code: ${exitCode})`);
+	}
 }
 
 jsdocGenerator._generateJsdocConfig = generateJsdocConfig;

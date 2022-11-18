@@ -114,10 +114,12 @@ test.serial("buildJsdoc", async (t) => {
 
 	// Re-execute with exit code 1
 	exitCode = 1;
-	await t.notThrowsAsync(jsdocGenerator._buildJsdoc({
+	await t.throwsAsync(jsdocGenerator._buildJsdoc({
 		sourcePath: "/some/path",
 		configPath: "/some/config/path/jsdoc-config.json"
-	}));
+	}), {
+		message: "JSDoc reported an error, check the log for issues (exit code: 1)"
+	});
 
 	// Re-execute with exit code 2
 	exitCode = 2;
@@ -125,7 +127,7 @@ test.serial("buildJsdoc", async (t) => {
 		sourcePath: "/some/path",
 		configPath: "/some/config/path/jsdoc-config.json"
 	}));
-	t.is(error.message, "JSDoc child process closed with code 2");
+	t.is(error.message, "JSDoc reported an error, check the log for issues (exit code: 2)");
 });
 
 test.serial("jsdocGenerator", async (t) => {
