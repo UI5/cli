@@ -1,3 +1,11 @@
+import {
+	createReaderCollectionPrioritized,
+	createResource,
+	createFilterReader,
+	createLinkReader,
+	createFlatReader
+} from "@ui5/fs/resourceFactory";
+
 /**
  * Convenience functions for UI5 tasks.
  * An instance of this class is passed to every standard UI5 task that requires it.
@@ -221,6 +229,43 @@ class TaskUtil {
 	}
 
 	/**
+	 * Specification Version-dependent set of [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
+	 * functions provided to tasks.
+	 * For details on individual functions, see [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/build/helpers/TaskUtil~resourceFactory
+	 * @property {Function} createResource Creates a [Resource]{@link @ui5/fs/Resource}.
+	 * 	Accepts the same parameters as the [Resource]{@link @ui5/fs/Resource} constructor.
+	 * @property {Function} createReaderCollectionPrioritized Creates a prioritized reader collection:
+	 *	[ReaderCollectionPrioritized]{@link @ui5/fs/ReaderCollectionPrioritized}
+	 * @property {Function} createFilterReader
+	 * 	Create a [Filter-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
+	 * @property {Function} createLinkReader
+	 * 	Create a [Link-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
+	 * @property {Function} createFlatReader Create a [Link-Reader]{@link @ui5/fs/readers/Link}
+	 * where all requests are prefixed with <code>/resources/<namespace></code>.
+	 */
+
+	/**
+	 * Provides limited access to [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory} functions
+	 *
+	 * </br></br>
+	 * This attribute is only available to custom task extensions defining
+	 * <b>Specification Version 3.0 and above</b>.
+	 *
+	 * @type {@ui5/project/build/helpers/TaskUtil~resourceFactory}
+	 * @public
+	 */
+	resourceFactory = {
+		createResource,
+		createReaderCollectionPrioritized,
+		createFilterReader,
+		createLinkReader,
+		createFlatReader,
+	};
+
+	/**
 	 * Get an interface to an instance of this class that only provides those functions
 	 * that are supported by the given custom task extension specification version.
 	 *
@@ -246,6 +291,7 @@ class TaskUtil {
 		case "2.6":
 			return baseInterface;
 		case "3.0":
+			// getProject function, returning an interfaced project instance
 			baseInterface.getProject = (projectName) => {
 				const project = this.getProject(projectName);
 				const baseProjectInterface = {};
@@ -258,9 +304,21 @@ class TaskUtil {
 					return baseProjectInterface;
 				}
 			};
+			// getDependencies function, returning an array of project names
 			baseInterface.getDependencies = (projectName) => {
 				return this.getDependencies(projectName);
 			};
+
+			baseInterface.resourceFactory = Object.create(null);
+			[
+				// Once new functions get added, extract this array into a variable
+				// and enhance based on spec version once new functions get added
+				"createResource", "createReaderCollectionPrioritized",
+				"createFilterReader", "createLinkReader", "createFlatReader",
+			].forEach((factoryFunction) => {
+				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
+			});
+
 			return baseInterface;
 		default:
 			throw new Error(`TaskUtil: Unknown or unsupported Specification Version ${specVersion}`);

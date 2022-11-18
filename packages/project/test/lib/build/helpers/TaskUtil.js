@@ -342,6 +342,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		getFrameworkVersion: () => "frameworkVersion", // Should not be exposed
 	});
 	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
+
 	const taskUtil = new TaskUtil({
 		projectBuildContext: {
 			getProject: getProjectStub,
@@ -359,7 +360,8 @@ test("getInterface: specVersion 3.0", (t) => {
 		"isRootProject",
 		"registerCleanupTask",
 		"getProject",
-		"getDependencies"
+		"getDependencies",
+		"resourceFactory",
 	], "Correct methods are provided");
 
 	t.deepEqual(interfacedTaskUtil.STANDARD_TAGS, STANDARD_TAGS, "attribute STANDARD_TAGS is provided");
@@ -370,6 +372,7 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(typeof interfacedTaskUtil.registerCleanupTask, "function", "function registerCleanupTask is provided");
 	t.is(typeof interfacedTaskUtil.getProject, "function", "function registerCleanupTask is provided");
 
+	// getProject
 	const interfacedProject = interfacedTaskUtil.getProject("pony");
 	t.deepEqual(Object.keys(interfacedProject), [
 		"getSpecVersion",
@@ -395,8 +398,22 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(interfacedProject.isFrameworkProject(), "isFrameworkProject",
 		"isFrameworkProject function is bound correctly");
 
+	// getDependencies
 	t.deepEqual(interfacedTaskUtil.getDependencies("pony"), ["dep a", "dep b"],
 		"getDependencies function is available and bound correctly");
+
+	// resourceFactory
+	const resourceFactory = interfacedTaskUtil.resourceFactory;
+	t.is(typeof resourceFactory.createResource, "function",
+		"resourceFactory function createResource is available");
+	t.is(typeof resourceFactory.createReaderCollectionPrioritized, "function",
+		"resourceFactory function createReaderCollectionPrioritized is available");
+	t.is(typeof resourceFactory.createFilterReader, "function",
+		"resourceFactory function createFilterReader is available");
+	t.is(typeof resourceFactory.createLinkReader, "function",
+		"resourceFactory function createLinkReader is available");
+	t.is(typeof resourceFactory.createFlatReader, "function",
+		"resourceFactory function createFlatReader is available");
 });
 
 test("getInterface: specVersion undefined", (t) => {
