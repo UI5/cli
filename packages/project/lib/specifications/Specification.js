@@ -2,7 +2,7 @@ import logger from "@ui5/logger";
 import {createReader} from "@ui5/fs/resourceFactory";
 
 /**
- * Specification
+ * Abstract superclass for all projects and extensions
  *
  * @public
  * @abstract
@@ -110,47 +110,49 @@ class Specification {
 
 	/* === Attributes === */
 	/**
-	 * Get the project name
+	 * Get the name of this specification
 	 *
 	 * @public
-	 * @returns {string} Project name
+	 * @returns {string} Specification name
 	 */
 	getName() {
 		return this._name;
 	}
 
 	/**
-	 * Get the project kind
+	 * Get the kind of this specification. For example <code>project</code> or <code>extension</code>
 	 *
 	 * @public
-	 * @returns {string} Project kind
+	 * @returns {string} Specification kind
 	 */
 	getKind() {
 		return this._kind;
 	}
 
 	/**
-	 * Get the project type
+	 * Get the type of this specification.
+	 * For example <code>application</code> or <code>library</code> in case of projects,
+	 * and <code>task</code> or <code>server-middleware</code> in case of extensions
 	 *
 	 * @public
-	 * @returns {string} Project type
+	 * @returns {string} Specification type
 	 */
 	getType() {
 		return this._type;
 	}
 
 	/**
-	 * Get the project's Specification Version
+	 * Get the Specification Version
 	 *
 	 * @public
-	 * @returns {string} Project Specification Version
+	 * @returns {string} Specification Version
 	 */
 	getSpecVersion() {
 		return this._specVersion;
 	}
 
 	/**
-	 * Get the project version as typically defined in the project's <code>package.json</code>
+	 * Get the specification's version, as typically defined in a <code>package.json</code>
 	 *
 	 * @public
 	 * @returns {string} Project version
@@ -160,7 +162,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the project's file system path. This might not be POSIX-style on some platforms
+	 * Get the specification's file system path. This might not be POSIX-style on some platforms
 	 *
 	 * @private
 	 * @returns {string} Project root path
@@ -171,7 +173,7 @@ class Specification {
 
 	/* === Resource Access === */
 	/**
-	* Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the project.
+	* Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the specification.
 	* Resource readers always use POSIX-style
 	*
 	* @public
@@ -189,7 +191,7 @@ class Specification {
 	/* === Helper === */
 	/**
 	 * @private
-	 * @param {string} dirPath Path of directory, relative to the project root
+	 * @param {string} dirPath Directory path, relative to the specification root
 	*/
 	async _dirExists(dirPath) {
 		const resource = await this.getRootReader().byPath(dirPath, {nodir: false});
