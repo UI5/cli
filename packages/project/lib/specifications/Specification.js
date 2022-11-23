@@ -140,7 +140,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the project Specification Version
+	 * Get the project's Specification Version
 	 *
 	 * @public
 	 * @returns {string} Project Specification Version

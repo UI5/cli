@@ -42,11 +42,11 @@ class Project extends Specification {
 
 	/* === Attributes === */
 	/**
-	 * Get the project namespace. Returns null for projects that have none or multiple namespaces.
-	 * For example Modules or Theme Libraries.
+	 * Get the project namespace. Returns `null` for projects that have none or multiple namespaces,
+	 * for example Modules or Theme Libraries.
 	 *
 	 * @public
-	 * @returns {string|null} Project namespace in slash-notation (e.g. <code>my/project/name</code>) or null
+	 * @returns {string|null} Project namespace in slash notation (e.g. <code>my/project/name</code>) or null
 	 */
 	getNamespace() {
 		// Default namespace for general Projects:
