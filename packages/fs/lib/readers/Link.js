@@ -5,7 +5,21 @@ import logger from "@ui5/logger";
 const log = logger.getLogger("resources:readers:Link");
 
 /**
- * A reader that allows removing paths segments from all resources passed through it.
+ * A reader that allows for rewriting paths segments of all resources passed through it.
+ *
+ * @example
+ * import Link from "@ui5/fs/readers/Link";
+ * const linkedReader = new Link({
+ *     reader: sourceReader,
+ *     pathMapping: {
+ *          linkPath: `/app`,
+ *          targetPath: `/resources/my-app-name/`
+ *      }
+ * });
+ *
+ * // The following resolves with a @ui5/fs/ResourceFacade of the resource
+ * // located at "/resources/my-app-name/Component.js" in the sourceReader
+ * const resource = await linkedReader.byPath("/app/Component.js");
  *
  * @public
  * @class

@@ -122,7 +122,8 @@ export function createWriterCollection({name, writerMapping}) {
 }
 
 /**
- * Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
+ * Creates a [Resource]{@link @ui5/fs/Resource}.
+ * Accepts the same parameters as the [Resource]{@link @ui5/fs/Resource} constructor.
  *
  * @public
  * @param {object} parameters Parameters to be passed to the resource constructor
@@ -180,7 +181,21 @@ export function createFilterReader(parameters) {
 
 /**
  * Create a [Link-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
- * The provided path mapping allows
+ * The provided path mapping allows for rewriting paths segments of all resources passed through it.
+ *
+ * @example
+ * import {createLinkReader} from "@ui5/fs/resourceFactory";
+ * const linkedReader = createLinkReader({
+ *     reader: sourceReader,
+ *     pathMapping: {
+ *          linkPath: `/app`,
+ *          targetPath: `/resources/my-app-name/`
+ *      }
+ * });
+ *
+ * // The following resolves with a @ui5/fs/ResourceFacade of the resource
+ * // located at "/resources/my-app-name/Component.js" in the sourceReader
+ * const resource = await linkedReader.byPath("/app/Component.js");
  *
  * @public
  * @param {object} parameters
