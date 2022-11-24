@@ -120,7 +120,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the kind of this specification. For example <code>project</code> or <code>extension</code>
+	 * Get the kind of this specification, for example <code>project</code> or <code>extension</code>
 	 *
 	 * @public
 	 * @returns {string} Specification kind
@@ -130,8 +130,8 @@ class Specification {
 	}
 
 	/**
-	 * Get the type of this specification.
-	 * For example <code>application</code> or <code>library</code> in case of projects,
+	 * Get the type of this specification,
+	 * for example <code>application</code> or <code>library</code> in case of projects,
 	 * and <code>task</code> or <code>server-middleware</code> in case of extensions
 	 *
 	 * @public
