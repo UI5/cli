@@ -152,7 +152,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the specification's version, as typically defined in a <code>package.json</code>
+	 * Get the specification's generic version, as typically defined in a <code>package.json</code>
 	 *
 	 * @public
 	 * @returns {string} Project version
