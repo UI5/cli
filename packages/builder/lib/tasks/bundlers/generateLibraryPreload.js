@@ -273,7 +273,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 			// This is mainly to have an easier check without version parsing or using semver.
 			// If no project/specVersion is available, the bundles should also be created to not break potential
 			// existing use cases without a properly formed/formatted project tree.
-			if (!taskUtil || ["0.1", "1.1", "2.0"].includes(taskUtil.getProject().getSpecVersion())) {
+			if (!taskUtil || taskUtil.getProject().getSpecVersion().lte("2.0")) {
 				const isEvo = resources.find((resource) => {
 					return resource.getPath() === "/resources/ui5loader.js";
 				});

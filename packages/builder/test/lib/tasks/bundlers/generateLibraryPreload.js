@@ -426,7 +426,12 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	]);
 
 	const coreProject = {
-		getSpecVersion: () => "0.1"
+		getSpecVersion: () => {
+			return {
+				toString: () => "0.1",
+				lte: () => true,
+			};
+		}
 	};
 	const taskUtil = {
 		getTag: sinon.stub().returns(false),
@@ -756,7 +761,12 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	]);
 
 	const coreProject = {
-		getSpecVersion: () => "0.1"
+		getSpecVersion: () => {
+			return {
+				toString: () => "0.1",
+				lte: () => true,
+			};
+		}
 	};
 
 	const taskUtil = {
@@ -1089,7 +1099,12 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 
 	const coreProject = {
 		// A newer specVersion is the indicator that the hardcoded bundle config should be skipped
-		getSpecVersion: () => "2.4"
+		getSpecVersion: () => {
+			return {
+				toString: () => "2.4",
+				lte: () => false,
+			};
+		}
 	};
 	const taskUtil = {
 		getTag: sinon.stub().returns(false),
@@ -1253,7 +1268,12 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 
 	const coreProject = {
 		// A newer specVersion is the indicator that the hardcoded bundle config should be skipped
-		getSpecVersion: () => "2.6"
+		getSpecVersion: () => {
+			return {
+				toString: () => "2.6",
+				lte: () => false,
+			};
+		}
 	};
 	const taskUtil = {
 		getTag: sinon.stub().returns(false),
@@ -1417,7 +1437,12 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 	]);
 
 	const coreProject = {
-		getSpecVersion: () => "0.1"
+		getSpecVersion: () => {
+			return {
+				toString: () => "0.1",
+				lte: () => true,
+			};
+		}
 	};
 	const taskUtil = {
 		getTag: sinon.stub().returns(false),

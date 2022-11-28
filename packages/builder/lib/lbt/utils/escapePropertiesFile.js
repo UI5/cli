@@ -15,7 +15,7 @@ export default async function(resource) {
 	let propertiesFileSourceEncoding = project && project.getPropertiesFileSourceEncoding();
 
 	if (!propertiesFileSourceEncoding) {
-		if (project && ["0.1", "1.0", "1.1"].includes(project.getSpecVersion())) {
+		if (project && project.getSpecVersion().lte("1.1")) {
 			// default encoding to "ISO-8859-1" for old specVersions
 			propertiesFileSourceEncoding = "ISO-8859-1";
 		} else {

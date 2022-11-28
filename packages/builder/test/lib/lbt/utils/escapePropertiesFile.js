@@ -99,7 +99,12 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 0.1", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				getSpecVersion: () => "0.1",
+				getSpecVersion: () => {
+					return {
+						toString: () => "0.1",
+						lte: () => true,
+					};
+				},
 				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
@@ -126,7 +131,12 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 1.0", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				getSpecVersion: () => "1.0",
+				getSpecVersion: () => {
+					return {
+						toString: () => "1.0",
+						lte: () => true,
+					};
+				},
 				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
@@ -153,7 +163,12 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 1.1", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				getSpecVersion: () => "1.1",
+				getSpecVersion: () => {
+					return {
+						toString: () => "1.1",
+						lte: () => true,
+					};
+				},
 				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
@@ -180,7 +195,12 @@ test.serial("propertiesFileSourceEncoding not set - specVersion 2.0", async (t) 
 	const lbtResource = {
 		getProject: () => {
 			return {
-				getSpecVersion: () => "2.0",
+				getSpecVersion: () => {
+					return {
+						toString: () => "2.0",
+						lte: () => false,
+					};
+				},
 				getPropertiesFileSourceEncoding: () => ""
 			};
 		},
