@@ -73,7 +73,7 @@ export default function({project, taskUtil, getTask}) {
 
 	// Support rules should not be minified to have readable code in the Support Assistant
 	const minificationPattern = ["/resources/**/*.js", "!**/*.support.js"];
-	if (["2.6"].includes(project.getSpecVersion())) {
+	if (project.getSpecVersion().gte("2.6")) {
 		const minificationExcludes = project.getMinificationExcludes();
 		if (minificationExcludes.length) {
 			enhancePatternWithExcludes(minificationPattern, minificationExcludes, "/resources/");

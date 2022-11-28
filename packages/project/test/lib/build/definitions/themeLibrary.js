@@ -13,7 +13,11 @@ function getMockProject() {
 		getType: () => "theme-library",
 		getCopyright: () => "copyright",
 		getVersion: () => "version",
-		getSpecVersion: () => "2.6",
+		getSpecVersion: () => {
+			return {
+				toString: () => "2.6"
+			};
+		},
 		getMinificationExcludes: emptyarray,
 		getComponentPreloadPaths: emptyarray,
 		getComponentPreloadNamespaces: emptyarray,

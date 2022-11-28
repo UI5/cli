@@ -1,5 +1,6 @@
 import logger from "@ui5/logger";
 import {createReader} from "@ui5/fs/resourceFactory";
+import SpecificationVersion from "./SpecificationVersion.js";
 
 /**
  * Abstract superclass for all projects and extensions
@@ -50,10 +51,9 @@ class Specification {
 		const config = JSON.parse(JSON.stringify(configuration));
 		const {validate} = await import("../validation/validator.js");
 
-		if (config.specVersion === "0.1" || config.specVersion === "1.0" ||
-			config.specVersion === "1.1") {
+		if (SpecificationVersion.major(config.specVersion) <= 1) {
 			const originalSpecVersion = config.specVersion;
-			this._log.verbose(`Detected legacy specification version ${config.specVersion}, defined for ` +
+			this._log.verbose(`Detected legacy Specification Version ${config.specVersion}, defined for ` +
 				`${config.kind} ${config.metadata.name}. ` +
 				`Attempting to migrate the project to a supported specification version...`);
 			this._migrateLegacyProject(config);
@@ -69,20 +69,12 @@ class Specification {
 					`Validation error after migration of ${config.kind} ${config.metadata.name}:`);
 				this._log.verbose(err.message);
 				throw new Error(
-					`${config.kind} ${config.metadata.name} defines unsupported specification version ` +
+					`${config.kind} ${config.metadata.name} defines unsupported Specification Version ` +
 					`${originalSpecVersion}. Please manually upgrade to 2.0 or higher. ` +
 					`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions - ` +
 					`An attempted migration to a supported specification version failed, ` +
 					`likely due to unrecognized configuration. Check verbose log for details.`);
 			}
-		} else if (config.specVersion !== "2.0" &&
-			config.specVersion !== "2.1" && config.specVersion !== "2.2" &&
-			config.specVersion !== "2.3" && config.specVersion !== "2.4" &&
-			config.specVersion !== "2.5" && config.specVersion !== "2.6") {
-			throw new Error(
-				`Unsupported specification version ${config.specVersion} defined in ${config.kind} ` +
-				`${config.metadata.name}. Your UI5 CLI installation might be outdated. ` +
-				`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`);
 		} else {
 			await validate({
 				config,
@@ -102,7 +94,8 @@ class Specification {
 		this._name = config.metadata.name;
 		this._kind = config.kind;
 		this._type = config.type;
-		this._specVersion = config.specVersion;
+		this._specVersionString = config.specVersion;
+		this._specVersion = new SpecificationVersion(this._specVersionString);
 		this._config = config;
 
 		return this;
@@ -142,10 +135,10 @@ class Specification {
 	}
 
 	/**
-	 * Get the Specification Version
+	 * Returns an instance of a helper class representing a Specification Version
 	 *
 	 * @public
-	 * @returns {string} Specification Version
+	 * @returns {@ui5/project/specifications/SpecificationVersion}
 	 */
 	getSpecVersion() {
 		return this._specVersion;

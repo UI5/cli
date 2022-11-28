@@ -309,12 +309,13 @@ class TaskRunner {
 					params.dependencies = dependencies;
 				}
 
-				if (task.getSpecVersion() === "3.0") {
+				const specVersion = task.getSpecVersion();
+				if (specVersion.gte("3.0")) {
 					params.options.taskName = newTaskName;
 					params.log = logger.getGroupLogger(`builder:custom-task:${newTaskName}`);
 				}
 
-				const taskUtilInterface = taskUtil.getInterface(task.getSpecVersion());
+				const taskUtilInterface = taskUtil.getInterface(specVersion);
 				// Interface is undefined if specVersion does not support taskUtil
 				if (taskUtilInterface) {
 					params.taskUtil = taskUtilInterface;

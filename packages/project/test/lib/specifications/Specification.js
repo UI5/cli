@@ -48,6 +48,9 @@ test("Configurations", async (t) => {
 	const project = await Specification.create(t.context.basicProjectInput);
 	t.is(project.getKind(), "project", "Returned correct kind configuration");
 	t.is(project.getType(), "application", "Returned correct type configuration");
+	t.is(project.getSpecVersion().toString(), "2.3", "Returned correct specification version");
+	t.is(project.getSpecVersion().major(), 2,
+		"SpecVersionComparator returned correct major version");
 });
 
 test("Access project root resources via reader", async (t) => {
@@ -110,7 +113,7 @@ test("Migrate legacy project", async (t) => {
 	t.context.basicProjectInput.configuration.specVersion = "1.0";
 	const project = await Specification.create(t.context.basicProjectInput);
 
-	t.is(project.getSpecVersion(), "2.6", "Project got migrated to latest specVersion");
+	t.is(project.getSpecVersion().toString(), "2.6", "Project got migrated to latest specVersion");
 });
 
 test("Migrate legacy project unexpected configuration", async (t) => {
@@ -119,14 +122,14 @@ test("Migrate legacy project unexpected configuration", async (t) => {
 	const err = await t.throwsAsync(Specification.create(t.context.basicProjectInput));
 
 	t.is(err.message,
-		"project application.a defines unsupported specification version 1.0. Please manually upgrade to 2.0 or " +
+		"project application.a defines unsupported Specification Version 1.0. Please manually upgrade to 2.0 or " +
 		"higher. For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions - " +
 		"An attempted migration to a supported specification version failed, likely due to unrecognized " +
 		"configuration. Check verbose log for details.",
 		"Threw with expected error message");
 });
 
-test("Migrate legacy module", async (t) => {
+test("Migrate legacy module: specVersion 1.0", async (t) => {
 	const project = await Specification.create({
 		id: "my.task",
 		version: "3.4.7-beta",
@@ -144,7 +147,28 @@ test("Migrate legacy module", async (t) => {
 		}
 	});
 
-	t.is(project.getSpecVersion(), "2.6", "Project got migrated to latest specVersion");
+	t.is(project.getSpecVersion().toString(), "2.6", "Project got migrated to latest specVersion");
+});
+
+test("Migrate legacy module: specVersion 0.1", async (t) => {
+	const project = await Specification.create({
+		id: "my.task",
+		version: "3.4.7-beta",
+		modulePath: genericExtensionPath,
+		configuration: {
+			specVersion: "0.1",
+			kind: "extension",
+			type: "task",
+			metadata: {
+				name: "task-a"
+			},
+			task: {
+				path: "lib/extensionModule.js"
+			}
+		}
+	});
+
+	t.is(project.getSpecVersion().toString(), "2.6", "Project got migrated to latest specVersion");
 });
 
 test("Migrate legacy extension", async (t) => {
@@ -171,7 +195,7 @@ test("Migrate legacy extension", async (t) => {
 		}
 	});
 
-	t.is(project.getSpecVersion(), "2.6", "Project got migrated to latest specVersion");
+	t.is(project.getSpecVersion().toString(), "2.6", "Project got migrated to latest specVersion");
 });
 
 [{
@@ -265,4 +289,13 @@ test("create: Unknown type", async (t) => {
 	}), {
 		message: "Unable to create Specification instance: Unknown specification type 'foo'"
 	});
+});
+
+test("Invalid specVersion", async (t) => {
+	t.context.basicProjectInput.configuration.specVersion = "0.5";
+	await t.throwsAsync(Specification.create(t.context.basicProjectInput), {
+		message:
+		"Unsupported Specification Version 0.5 defined. Your UI5 CLI installation might be outdated. " +
+		"For details, see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions"
+	}, "Threw with expected error message");
 });

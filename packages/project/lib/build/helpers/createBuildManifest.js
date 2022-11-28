@@ -38,7 +38,7 @@ export default async function(project, buildConfig) {
 
 	const metadata = {
 		project: {
-			specVersion: project.getSpecVersion(),
+			specVersion: project.getSpecVersion().toString(),
 			type,
 			metadata: {
 				name: projectName,

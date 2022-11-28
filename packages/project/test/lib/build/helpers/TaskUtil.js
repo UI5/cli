@@ -1,10 +1,15 @@
 import test from "ava";
 import sinon from "sinon";
 import TaskUtil from "../../../../lib/build/helpers/TaskUtil.js";
+import SpecificationVersion from "../../../../lib/specifications/SpecificationVersion.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();
 });
+
+function getSpecificationVersion(specVersion) {
+	return new SpecificationVersion(specVersion);
+}
 
 const STANDARD_TAGS = Object.freeze({
 	IsDebugVariant: "ui5:IsDebugVariant",
@@ -15,9 +20,7 @@ const STANDARD_TAGS = Object.freeze({
 
 test("Instantiation", (t) => {
 	const taskUtil = new TaskUtil({
-		projectBuildContext: {
-			// STANDARD_TAGS: ["some tag", "some other tag", "Thursday"]
-		}
+		projectBuildContext: {}
 	});
 
 	t.deepEqual(taskUtil.STANDARD_TAGS, STANDARD_TAGS, "Correct standard tags exposed");
@@ -183,6 +186,22 @@ test("getDependencies", (t) => {
 	t.is(res, "Pony farm!", "Correct result");
 });
 
+test("resourceFactory", (t) => {
+	const {resourceFactory} = new TaskUtil({
+		projectBuildContext: {}
+	});
+	t.is(typeof resourceFactory.createResource, "function",
+		"resourceFactory function createResource is available");
+	t.is(typeof resourceFactory.createReaderCollectionPrioritized, "function",
+		"resourceFactory function createReaderCollectionPrioritized is available");
+	t.is(typeof resourceFactory.createFilterReader, "function",
+		"resourceFactory function createFilterReader is available");
+	t.is(typeof resourceFactory.createLinkReader, "function",
+		"resourceFactory function createLinkReader is available");
+	t.is(typeof resourceFactory.createFlatReader, "function",
+		"resourceFactory function createFlatReader is available");
+});
+
 test("registerCleanupTask", (t) => {
 	const registerCleanupTaskStub = sinon.stub();
 	const taskUtil = new TaskUtil({
@@ -202,7 +221,7 @@ test("getInterface: specVersion 1.0", (t) => {
 		projectBuildContext: {}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("1.0");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("1.0"));
 
 	t.is(interfacedTaskUtil, undefined, "no interface provided");
 });
@@ -212,7 +231,7 @@ test("getInterface: specVersion 2.2", (t) => {
 		projectBuildContext: {}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("2.2");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("2.2"));
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",
@@ -236,7 +255,7 @@ test("getInterface: specVersion 2.3", (t) => {
 		projectBuildContext: {}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("2.3");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("2.3"));
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",
@@ -260,7 +279,7 @@ test("getInterface: specVersion 2.4", (t) => {
 		projectBuildContext: {}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("2.4");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("2.4"));
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",
@@ -284,7 +303,7 @@ test("getInterface: specVersion 2.5", (t) => {
 		projectBuildContext: {}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("2.5");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("2.5"));
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",
@@ -308,7 +327,7 @@ test("getInterface: specVersion 2.6", (t) => {
 		projectBuildContext: {}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("2.6");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("2.6"));
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",
@@ -350,7 +369,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		}
 	});
 
-	const interfacedTaskUtil = taskUtil.getInterface("3.0");
+	const interfacedTaskUtil = taskUtil.getInterface(getSpecificationVersion("3.0"));
 
 	t.deepEqual(Object.keys(interfacedTaskUtil), [
 		"STANDARD_TAGS",
@@ -375,7 +394,6 @@ test("getInterface: specVersion 3.0", (t) => {
 	// getProject
 	const interfacedProject = interfacedTaskUtil.getProject("pony");
 	t.deepEqual(Object.keys(interfacedProject), [
-		"getSpecVersion",
 		"getType",
 		"getName",
 		"getVersion",
@@ -386,7 +404,6 @@ test("getInterface: specVersion 3.0", (t) => {
 		"isFrameworkProject",
 	], "Correct methods are provided");
 
-	t.is(interfacedProject.getSpecVersion(), "specVersion", "getSpecVersion function is bound correctly");
 	t.is(interfacedProject.getType(), "type", "getType function is bound correctly");
 	t.is(interfacedProject.getName(), "name", "getName function is bound correctly");
 	t.is(interfacedProject.getVersion(), "version", "getVersion function is bound correctly");
@@ -414,29 +431,4 @@ test("getInterface: specVersion 3.0", (t) => {
 		"resourceFactory function createLinkReader is available");
 	t.is(typeof resourceFactory.createFlatReader, "function",
 		"resourceFactory function createFlatReader is available");
-});
-
-test("getInterface: specVersion undefined", (t) => {
-	const taskUtil = new TaskUtil({
-		projectBuildContext: {}
-	});
-
-	const err = t.throws(() => {
-		taskUtil.getInterface();
-	});
-
-	t.is(err.message, "TaskUtil: Unknown or unsupported Specification Version undefined",
-		"Throw with correct error message");
-});
-
-test("getInterface: specVersion unknown", (t) => {
-	const taskUtil = new TaskUtil({
-		projectBuildContext: {}
-	});
-	const err = t.throws(() => {
-		taskUtil.getInterface("1.5");
-	});
-
-	t.is(err.message, "TaskUtil: Unknown or unsupported Specification Version 1.5",
-		"Throw with correct error message");
 });

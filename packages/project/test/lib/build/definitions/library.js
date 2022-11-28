@@ -14,7 +14,12 @@ function getMockProject() {
 		getPropertiesFileSourceEncoding: () => "UTF-412",
 		getCopyright: () => "copyright",
 		getVersion: () => "version",
-		getSpecVersion: () => "2.6",
+		getSpecVersion: () => {
+			return {
+				toString: () => "2.6",
+				gte: () => true
+			};
+		},
 		getMinificationExcludes: emptyarray,
 		getComponentPreloadPaths: emptyarray,
 		getComponentPreloadNamespaces: emptyarray,
@@ -151,7 +156,12 @@ test("Standard build", async (t) => {
 
 test("Standard build with legacy spec version", (t) => {
 	const {project, taskUtil, getTask} = t.context;
-	project.getSpecVersion = () => "0.1";
+	project.getSpecVersion = () => {
+		return {
+			toString: () => "0.1",
+			gte: () => false
+		};
+	};
 
 	const tasks = library({
 		project, taskUtil, getTask
@@ -432,7 +442,12 @@ test("Minification excludes", (t) => {
 
 test("Minification excludes not applied for legacy specVersion", (t) => {
 	const {project, taskUtil, getTask} = t.context;
-	project.getSpecVersion = () => "2.5";
+	project.getSpecVersion = () => {
+		return {
+			toString: () => "2.5",
+			gte: () => false
+		};
+	};
 	project.getMinificationExcludes = () => ["**.html"];
 
 	const tasks = library({

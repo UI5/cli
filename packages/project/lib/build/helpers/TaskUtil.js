@@ -184,7 +184,6 @@ class TaskUtil {
 	 *
 	 * @public
 	 * @typedef {object} @ui5/project/build/helpers/TaskUtil~ProjectInterface
-	 * @property {Function} getSpecVersion Get the project Specification Version
 	 * @property {Function} getType Get the project type
 	 * @property {Function} getName Get the project name
 	 * @property {Function} getVersion Get the project version
@@ -269,11 +268,13 @@ class TaskUtil {
 	 * Get an interface to an instance of this class that only provides those functions
 	 * that are supported by the given custom task extension specification version.
 	 *
-	 * @param {string} specVersion Specification version of custom task extension
+	 * @param {@ui5/project/specifications/SpecificationVersion} specVersion
+	 * SpecVersionComparator instance of the custom task
 	 * @returns {object} An object with bound instance methods supported by the given specification version
 	 */
 	getInterface(specVersion) {
-		if (["0.1", "1.0", "1.1", "2.0", "2.1"].includes(specVersion)) {
+		if (specVersion.lte("2.1")) {
+			// Tasks defining specVersion <= 2.1 do not have access to any TaskUtil APIs
 			return undefined;
 		}
 
@@ -283,26 +284,17 @@ class TaskUtil {
 		bindFunctions(this, baseInterface, [
 			"setTag", "clearTag", "getTag", "isRootProject", "registerCleanupTask"
 		]);
-		switch (specVersion) {
-		case "2.2":
-		case "2.3":
-		case "2.4":
-		case "2.5":
-		case "2.6":
-			return baseInterface;
-		case "3.0":
+
+		if (specVersion.gte("3.0")) {
 			// getProject function, returning an interfaced project instance
 			baseInterface.getProject = (projectName) => {
 				const project = this.getProject(projectName);
 				const baseProjectInterface = {};
 				bindFunctions(project, baseProjectInterface, [
-					"getSpecVersion", "getType", "getName", "getVersion", "getNamespace",
+					"getType", "getName", "getVersion", "getNamespace",
 					"getRootReader", "getReader", "getCustomConfiguration", "isFrameworkProject"
 				]);
-				switch (specVersion) {
-				case "3.0":
-					return baseProjectInterface;
-				}
+				return baseProjectInterface;
 			};
 			// getDependencies function, returning an array of project names
 			baseInterface.getDependencies = (projectName) => {
@@ -318,11 +310,8 @@ class TaskUtil {
 			].forEach((factoryFunction) => {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
 			});
-
-			return baseInterface;
-		default:
-			throw new Error(`TaskUtil: Unknown or unsupported Specification Version ${specVersion}`);
 		}
+		return baseInterface;
 	}
 }
 

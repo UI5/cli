@@ -13,7 +13,6 @@ function getMockProject(type, id = "b") {
 		getType: () => type,
 		getCopyright: noop,
 		getVersion: noop,
-		getSpecVersion: () => "0.1",
 		getReader: () => "reader",
 		getWorkspace: () => "workspace",
 	};

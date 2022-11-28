@@ -18,6 +18,7 @@
 	],
 	"type": "module",
 	"exports": {
+		"./specifications/SpecificationVersion": "./lib/specifications/SpecificationVersion.js",
 		"./ui5Framework/Openui5Resolver": "./lib/ui5Framework/Openui5Resolver.js",
 		"./ui5Framework/Sapui5Resolver": "./lib/ui5Framework/Sapui5Resolver.js",
 		"./validation/validator": "./lib/validation/validator.js",
