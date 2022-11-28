@@ -2,10 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-beta.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-beta.3...HEAD).
+
+<a name="v3.0.0-beta.3"></a>
+## [v3.0.0-beta.3] - 2022-11-28
+### Features
+- Introduce SpecificationVersion class ([#431](https://github.com/SAP/ui5-project/issues/431)) [`e57842b`](https://github.com/SAP/ui5-project/commit/e57842b06397a5b36e6373df97f7b7bb91f09741)
+- **TaskRunner:** Provide taskName and logger instance to custom tasks [`36cd2d8`](https://github.com/SAP/ui5-project/commit/36cd2d83f9a6a92cbd28619d8a25c0ba3f732117)
+- **TaskUtil:** Add resourceFactory API to v3 interface [`2e863cf`](https://github.com/SAP/ui5-project/commit/2e863cfaf9f8924d0c87fe9dfe01568c1fd979c8)
+- **TaskUtil:** Add getProject/getDependencies API to interface [`51f2949`](https://github.com/SAP/ui5-project/commit/51f29493f57f094396776bb2686c8a74e8901a7f)
+
 
 <a name="v3.0.0-beta.2"></a>
-## [v3.0.0-beta.2] - 2022-11-10
+## [v3.0.0-beta.2] - 2022-11-11
 
 <a name="v3.0.0-beta.1"></a>
 ## [v3.0.0-beta.1] - 2022-11-07
@@ -355,6 +364,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v3.0.0-beta.3]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.1...v3.0.0-beta.2
 [v3.0.0-beta.1]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.10...v3.0.0-beta.1
 [v3.0.0-alpha.10]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.9...v3.0.0-alpha.10
