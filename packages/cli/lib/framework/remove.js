@@ -1,4 +1,4 @@
-import {getRootProjectConfiguration, isValidSpecVersion} from "./utils.js";
+import {getRootProjectConfiguration} from "./utils.js";
 import logger from "@ui5/logger";
 
 const log = logger.getLogger("cli:framework:remove");
@@ -13,10 +13,10 @@ const log = logger.getLogger("cli:framework:remove");
 export default async function({projectGraphOptions, libraries}) {
 	const project = await getRootProjectConfiguration(projectGraphOptions);
 
-	if (!isValidSpecVersion(project.getSpecVersion())) {
+	if (project.getSpecVersion().lt("2.0")) {
 		throw new Error(
 			`ui5 remove command requires specVersion "2.0" or higher. ` +
-			`Project ${project.getName()} uses specVersion "${project.getSpecVersion()}"`
+			`Project ${project.getName()} uses specVersion "${project.getSpecVersion().toString()}"`
 		);
 	}
 

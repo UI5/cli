@@ -1,4 +1,4 @@
-import {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} from "./utils.js";
+import {getRootProjectConfiguration, getFrameworkResolver} from "./utils.js";
 
 /**
  * Adds the given set of libraries to the framework libraries section in the ui5.yaml
@@ -10,10 +10,10 @@ import {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} f
 export default async function({projectGraphOptions, libraries}) {
 	const project = await getRootProjectConfiguration(projectGraphOptions);
 
-	if (!isValidSpecVersion(project.getSpecVersion())) {
+	if (project.getSpecVersion().lt("2.0")) {
 		throw new Error(
 			`ui5 add command requires specVersion "2.0" or higher. ` +
-			`Project ${project.getName()} uses specVersion "${project.getSpecVersion()}"`
+			`Project ${project.getName()} uses specVersion "${project.getSpecVersion().toString()}"`
 		);
 	}
 

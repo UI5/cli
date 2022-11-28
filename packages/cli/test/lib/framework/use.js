@@ -5,7 +5,12 @@ import esmock from "esmock";
 function createMockProject(attr) {
 	return {
 		getName: () => attr.name,
-		getSpecVersion: () => attr.specVersion,
+		getSpecVersion: () => {
+			return {
+				toString: () => attr.specVersion,
+				lt: () => attr.specVersion === "1.0",
+			};
+		},
 		getPath: () => attr.path,
 		getFrameworkName: () => attr.frameworkName,
 		getFrameworkVersion: () => attr.frameworkVersion,

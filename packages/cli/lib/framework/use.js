@@ -1,4 +1,4 @@
-import {getRootProjectConfiguration, getFrameworkResolver, isValidSpecVersion} from "./utils.js";
+import {getRootProjectConfiguration, getFrameworkResolver} from "./utils.js";
 
 async function resolveVersion({frameworkName, frameworkVersion}, resolverOptions) {
 	return await getFrameworkResolver(frameworkName).resolveVersion(frameworkVersion, resolverOptions);
@@ -25,10 +25,10 @@ function getEffectiveFrameworkName({project, frameworkOptions}) {
 export default async function({projectGraphOptions, frameworkOptions}) {
 	const project = await getRootProjectConfiguration(projectGraphOptions);
 
-	if (!isValidSpecVersion(project.getSpecVersion())) {
+	if (project.getSpecVersion().lt("2.0")) {
 		throw new Error(
 			`ui5 use command requires specVersion "2.0" or higher. ` +
-			`Project ${project.getName()} uses specVersion "${project.getSpecVersion()}"`
+			`Project ${project.getName()} uses specVersion "${project.getSpecVersion().toString()}"`
 		);
 	}
 

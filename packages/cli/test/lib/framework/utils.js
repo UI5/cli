@@ -93,24 +93,3 @@ test.serial("getFrameworkResolver: Invalid framework.name", (t) => {
 		message: "Invalid framework.name: UI5"
 	});
 });
-
-test.serial("isValidSpecVersion", (t) => {
-	const {isValidSpecVersion} = t.context.utils;
-
-	t.true(isValidSpecVersion("2.0"));
-	t.true(isValidSpecVersion("2.1"));
-	t.true(isValidSpecVersion("3.0"));
-	t.true(isValidSpecVersion("123456789"));
-	t.true(isValidSpecVersion("123456789.0.0.0"));
-
-	t.false(isValidSpecVersion());
-	t.false(isValidSpecVersion(undefined));
-	t.false(isValidSpecVersion(null));
-	t.false(isValidSpecVersion(true));
-	t.false(isValidSpecVersion({}));
-	t.false(isValidSpecVersion(function() {}));
-	t.false(isValidSpecVersion(""));
-	t.false(isValidSpecVersion("0.1"));
-	t.false(isValidSpecVersion("1.0"));
-	t.false(isValidSpecVersion("1.1"));
-});

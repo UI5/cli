@@ -28,10 +28,3 @@ export function getFrameworkResolver(frameworkName) {
 		throw new Error("Invalid framework.name: " + frameworkName);
 	}
 }
-
-export function isValidSpecVersion(specVersion) {
-	// Only checks for a string and versions that are not supported
-	// The CLI relies on the @ui5/project to correctly verify the version
-	return typeof specVersion === "string" && specVersion !== "" &&
-		specVersion !== "0.1" && specVersion !== "1.0" && specVersion !== "1.1";
-}
