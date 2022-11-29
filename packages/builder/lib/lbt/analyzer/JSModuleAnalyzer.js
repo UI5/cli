@@ -135,10 +135,10 @@ const EnrichedVisitorKeys = (function() {
 		 * All properties in an object pattern are executed.
 		 */
 		ObjectPattern: [], // properties
-		// PrivateIdentifier: [], // will come with ES2022
+		PrivateIdentifier: [],
 		Program: [],
 		Property: [],
-		// PropertyDefinition: [], // will come with ES2022
+		PropertyDefinition: [],
 		/*
 		 * argument of the rest element is always executed under the same condition as the rest element itself
 		 */
@@ -146,7 +146,7 @@ const EnrichedVisitorKeys = (function() {
 		ReturnStatement: [],
 		SequenceExpression: [],
 		SpreadElement: [], // the argument of the spread operator always needs to be evaluated - argument
-		// StaticBlock: [], // will come with ES2022
+		StaticBlock: [],
 		Super: [],
 		SwitchStatement: [],
 		SwitchCase: ["test", "consequent"], // test and consequent are executed only conditionally
@@ -193,15 +193,6 @@ const EnrichedVisitorKeys = (function() {
 		}
 		// Ignore JSX visitor-keys because they aren't used.
 		if (type.startsWith("JSX")) {
-			return;
-		}
-
-		// Ignore new ES2022 syntax as we currently use ES2021 (see parseUtils.js)
-		if (
-			type === "PrivateIdentifier" ||
-			type === "PropertyDefinition" ||
-			type === "StaticBlock"
-		) {
 			return;
 		}
 
@@ -533,6 +524,15 @@ class JSModuleAnalyzer {
 						visit(node[key.key], key.conditional || conditional);
 					}
 				}
+				break;
+
+			case Syntax.PropertyDefinition:
+
+				// Instance properties (static=false) are only initialized when an instance is created (conditional)
+				// but a computed key is always evaluated on class initialization (eager)
+				visit(node.key, conditional);
+				visit(node.value, !node.static || conditional);
+
 				break;
 
 			default:

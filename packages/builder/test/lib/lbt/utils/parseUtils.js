@@ -29,3 +29,9 @@ test("successful parse step (ES2021 features)", (t) => {
 	t.true(ast != null && typeof ast === "object");
 	t.is(ast.type, "Program");
 });
+
+test("successful parse step (ES2022 features)", (t) => {
+	const ast = parseJS("class X { #foo; }"); // Private class field
+	t.true(ast != null && typeof ast === "object");
+	t.is(ast.type, "Program");
+});

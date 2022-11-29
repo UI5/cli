@@ -715,6 +715,70 @@ test("LogicalExpression", (t) => {
 		`ui5 module`);
 });
 
+test("ES2022: PrivateIdentifier, PropertyDefinition, StaticBlock", (t) => {
+	const content = `
+	sap.ui.define(['require', 'static/module1'], (require) => {
+
+		class TestES2022 {
+
+			// Eager dependencies
+
+			static {
+				const staticModule2 = sap.ui.requireSync('static/module2');
+			}
+
+			static publicStaticField = sap.ui.requireSync('static/module3');
+			static #privateStaticField = sap.ui.requireSync('static/module4');
+			static [sap.ui.requireSync('static/module5')] = "module5";
+
+			// Even though the field is on instance level, the computed key is evaluated when the class is declared
+			[sap.ui.requireSync('static/module6')] = "module6";
+
+			// Conditional dependencies
+
+			publicField = sap.ui.requireSync('conditional/module1');
+			#privateField = sap.ui.requireSync('conditional/module2');
+
+			#privateMethod() {
+				sap.ui.requireSync('conditional/module3')
+			}
+
+			static #privateStaticMethod() {
+				sap.ui.requireSync('conditional/module4')
+			}
+
+		}
+
+	});`;
+	const info = analyzeString(content, "modules/ES2022.js");
+
+	const expected = [
+		"conditional/module1.js",
+		"conditional/module2.js",
+		"conditional/module3.js",
+		"conditional/module4.js",
+		"static/module1.js",
+		"static/module2.js",
+		"static/module3.js",
+		"static/module4.js",
+		"static/module5.js",
+		"static/module6.js",
+		"ui5loader-autoconfig.js",
+	];
+	const actual = info.dependencies.sort();
+	t.deepEqual(actual, expected, "module dependencies should match");
+	expected.forEach((dep) => {
+		t.is(info.isConditionalDependency(dep), /^conditional\//.test(dep),
+			`only dependencies to 'conditional/*' modules should be conditional (${dep})`);
+		t.is(info.isImplicitDependency(dep), !/^(?:conditional|static)\//.test(dep),
+			`all dependencies other than 'conditional/*' and 'static/*' should be implicit (${dep})`);
+	});
+	t.false(info.dynamicDependencies,
+		`no use of dynamic dependencies should have been detected`);
+	t.false(info.rawModule,
+		`ui5 module`);
+});
+
 test("Dynamic import (declare/require)", async (t) => {
 	const info = await analyze("modules/declare_dynamic_require.js");
 	t.true(info.dynamicDependencies,

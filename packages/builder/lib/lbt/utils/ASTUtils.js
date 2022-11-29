@@ -56,6 +56,8 @@ export function isMethodCall(node, methodPath) {
 }
 
 export function isNamedObject(node, objectPath, length) {
+	// TODO: Support PrivateIdentifier (foo.#bar)
+
 	// console.log("checking for named object ", node, objectPath, length);
 	while ( length > 1 &&
 			node.type === Syntax.MemberExpression &&
