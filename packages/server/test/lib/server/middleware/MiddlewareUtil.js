@@ -144,6 +144,8 @@ test.serial("resourceFactory", (t) => {
 	const {resourceFactory} = new MiddlewareUtil({graph: "graph", project: "project"});
 	t.is(typeof resourceFactory.createResource, "function",
 		"resourceFactory function createResource is available");
+	t.is(typeof resourceFactory.createReaderCollection, "function",
+		"resourceFactory function createReaderCollection is available");
 	t.is(typeof resourceFactory.createReaderCollectionPrioritized, "function",
 		"resourceFactory function createReaderCollectionPrioritized is available");
 	t.is(typeof resourceFactory.createFilterReader, "function",
@@ -330,6 +332,8 @@ test("getInterface: specVersion 3.0", (t) => {
 	const resourceFactory = interfacedMiddlewareUtil.resourceFactory;
 	t.is(typeof resourceFactory.createResource, "function",
 		"resourceFactory function createResource is available");
+	t.is(typeof resourceFactory.createReaderCollection, "function",
+		"resourceFactory function createReaderCollection is available");
 	t.is(typeof resourceFactory.createReaderCollectionPrioritized, "function",
 		"resourceFactory function createReaderCollectionPrioritized is available");
 	t.is(typeof resourceFactory.createFilterReader, "function",
