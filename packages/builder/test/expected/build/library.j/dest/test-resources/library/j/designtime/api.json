@@ -1,1 +1,843 @@
-{"$schema-ref":"http://schemas.sap.com/sapui5/designtime/api.json/1.0","version":"1.0.0","library":"library.j","symbols":[{"kind":"namespace","name":"library.j","basename":"j","resource":"library/j/some.js","module":"library/j/some","static":true,"visibility":"public"},{"kind":"class","name":"library.j.aaa","basename":"aaa","resource":"library/j/dependency-es6-2.js","module":"library/j/dependency-es6-2","export":"","static":true,"visibility":"public","since":"1.22","extends":"library.j.a","ui5-metamodel":true,"ui5-metadata":{"properties":[{"name":"MyProp","type":"boolean","defaultValue":false,"group":"undefined","visibility":"public","since":"1.46","description":"MyProp property","methods":["getMyProp","setMyProp"]}]},"constructor":{"visibility":"public","parameters":[{"name":"sId","type":"string","optional":true,"description":"ID for the new control, generated automatically if no ID is given"},{"name":"mSettings","type":"object","optional":true,"description":"Initial settings for the new control"}],"description":"Constructor for a new library.j.aaa."},"methods":[{"name":"extend","visibility":"public","static":true,"returnValue":{"type":"function","description":"Created class / constructor function"},"parameters":[{"name":"sClassName","type":"string","optional":false,"description":"Name of the class being created"},{"name":"oClassInfo","type":"object","optional":true,"description":"Object literal with information about the class"},{"name":"FNMetaImpl","type":"function","optional":true,"description":"Constructor function for the metadata object; if not given, it defaults to the metadata implementation used by this class"}],"description":"Creates a new subclass of class library.j.aaa with name <code>sClassName</code> and enriches it with the information contained in <code>oClassInfo</code>.\n\n<code>oClassInfo</code> might contain the same kind of information as described in {@link library.j.a.extend}."},{"name":"getMetadata","visibility":"public","static":true,"returnValue":{"type":"sap.ui.base.Metadata","description":"Metadata object describing this class"},"description":"Returns a metadata object for class library.j.aaa."},{"name":"getMyProp","visibility":"public","since":"1.46","returnValue":{"type":"boolean","description":"Value of property <code>MyProp</code>"},"description":"Gets current value of property {@link #getMyProp MyProp}.\n\nMyProp property\n\nDefault value is <code>false</code>."},{"name":"setMyProp","visibility":"public","since":"1.46","returnValue":{"type":"this","description":"Reference to <code>this</code> in order to allow method chaining"},"parameters":[{"name":"bMyProp","type":"boolean","optional":true,"defaultValue":false,"description":"New value for property <code>MyProp</code>"}],"description":"Sets a new value for property {@link #getMyProp MyProp}.\n\nMyProp property\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>false</code>."}]},{"kind":"class","name":"library.j.Foo","basename":"Foo","resource":"library/j/dependency-es6-1.js","module":"library/j/dependency-es6-1","static":true,"visibility":"public","extends":"library.j.Bar","description":"My super documentation of this class","constructor":{"visibility":"public"}}]}
+{
+	"$schema-ref": "http://schemas.sap.com/sapui5/designtime/api.json/1.0",
+	"version": "1.0.0",
+	"library": "library.j",
+	"symbols": [
+		{
+			"kind": "enum",
+			"name": "library.j.core.AnotherValidEnum",
+			"basename": "AnotherValidEnum",
+			"resource": "library/j/core/library.js",
+			"module": "library/j/core/library",
+			"export": "AnotherValidEnum",
+			"static": true,
+			"visibility": "public",
+			"description": "AnotherValidEnum",
+			"ui5-metamodel": true,
+			"ui5-metadata": {
+				"stereotype": "enum"
+			},
+			"properties": [
+				{
+					"name": "Buzz",
+					"visibility": "public",
+					"static": true,
+					"type": "string",
+					"description": "Buzz"
+				},
+				{
+					"name": "Fizz",
+					"visibility": "public",
+					"static": true,
+					"type": "string",
+					"description": "Fizz"
+				}
+			]
+		},
+		{
+			"kind": "class",
+			"name": "library.j.Foo",
+			"basename": "Foo",
+			"resource": "library/j/Foo.js",
+			"module": "library/j/Foo",
+			"export": "",
+			"static": true,
+			"visibility": "public",
+			"extends": "library.j.Bar",
+			"description": "My super documentation of this class",
+			"constructor": {
+				"visibility": "public"
+			}
+		},
+		{
+			"kind": "enum",
+			"name": "library.j.MyValidEnum",
+			"basename": "MyValidEnum",
+			"resource": "library/j/library.js",
+			"module": "library/j/library",
+			"export": "MyValidEnum",
+			"static": true,
+			"visibility": "public",
+			"description": "MyValidEnum",
+			"ui5-metamodel": true,
+			"ui5-metadata": {
+				"stereotype": "enum"
+			},
+			"properties": [
+				{
+					"name": "Bar",
+					"visibility": "public",
+					"static": true,
+					"type": "string",
+					"description": "Bar"
+				},
+				{
+					"name": "Foo",
+					"visibility": "public",
+					"static": true,
+					"type": "string",
+					"description": "Foo"
+				}
+			]
+		},
+		{
+			"kind": "class",
+			"name": "library.j.SubControl",
+			"basename": "SubControl",
+			"resource": "library/j/SubControl.js",
+			"module": "library/j/SubControl",
+			"export": "",
+			"static": true,
+			"visibility": "public",
+			"since": "1.22",
+			"extends": "sap.ui.core.Control",
+			"ui5-metadata": {
+				"stereotype": "control",
+				"properties": [
+					{
+						"name": "MyProp",
+						"type": "boolean",
+						"defaultValue": false,
+						"group": "undefined",
+						"visibility": "public",
+						"since": "1.46",
+						"description": "MyProp property",
+						"methods": [
+							"getMyProp",
+							"setMyProp"
+						]
+					}
+				]
+			},
+			"constructor": {
+				"visibility": "public",
+				"parameters": [
+					{
+						"name": "sId",
+						"type": "string",
+						"optional": true,
+						"description": "ID for the new control, generated automatically if no ID is given"
+					},
+					{
+						"name": "mSettings",
+						"type": "object",
+						"optional": true,
+						"description": "Initial settings for the new control"
+					}
+				],
+				"description": "Constructor for a new library.j.SubControl."
+			},
+			"methods": [
+				{
+					"name": "extend",
+					"visibility": "public",
+					"static": true,
+					"returnValue": {
+						"type": "function",
+						"description": "Created class / constructor function"
+					},
+					"parameters": [
+						{
+							"name": "sClassName",
+							"type": "string",
+							"optional": false,
+							"description": "Name of the class being created"
+						},
+						{
+							"name": "oClassInfo",
+							"type": "object",
+							"optional": true,
+							"description": "Object literal with information about the class"
+						},
+						{
+							"name": "FNMetaImpl",
+							"type": "function",
+							"optional": true,
+							"description": "Constructor function for the metadata object; if not given, it defaults to the metadata implementation used by this class"
+						}
+					],
+					"description": "Creates a new subclass of class library.j.SubControl with name <code>sClassName</code> and enriches it with the information contained in <code>oClassInfo</code>.\n\n<code>oClassInfo</code> might contain the same kind of information as described in {@link sap.ui.core.Control.extend}."
+				},
+				{
+					"name": "getMetadata",
+					"visibility": "public",
+					"static": true,
+					"returnValue": {
+						"type": "sap.ui.base.Metadata",
+						"description": "Metadata object describing this class"
+					},
+					"description": "Returns a metadata object for class library.j.SubControl."
+				},
+				{
+					"name": "getMyProp",
+					"visibility": "public",
+					"since": "1.46",
+					"returnValue": {
+						"type": "boolean",
+						"description": "Value of property <code>MyProp</code>"
+					},
+					"description": "Gets current value of property {@link #getMyProp MyProp}.\n\nMyProp property\n\nDefault value is <code>false</code>."
+				},
+				{
+					"name": "setMyProp",
+					"visibility": "public",
+					"since": "1.46",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "bMyProp",
+							"type": "boolean",
+							"optional": true,
+							"defaultValue": false,
+							"description": "New value for property <code>MyProp</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getMyProp MyProp}.\n\nMyProp property\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>false</code>."
+				}
+			]
+		},
+		{
+			"kind": "enum",
+			"name": "library.j.ThisIsEnumToo",
+			"basename": "ThisIsEnumToo",
+			"resource": "library/j/library.js",
+			"module": "library/j/library",
+			"export": "ThisIsEnumToo",
+			"static": true,
+			"visibility": "public",
+			"description": "ThisIsEnumToo",
+			"ui5-metadata": {
+				"stereotype": "enum"
+			},
+			"properties": [
+				{
+					"name": "Value1",
+					"visibility": "public",
+					"static": true,
+					"type": "string",
+					"description": "Value1"
+				},
+				{
+					"name": "Value2",
+					"visibility": "public",
+					"static": true,
+					"type": "string",
+					"description": "Value2"
+				}
+			]
+		},
+		{
+			"kind": "class",
+			"name": "library.j.ValidPropertyDefaultValue",
+			"basename": "ValidPropertyDefaultValue",
+			"resource": "library/j/ValidPropertyDefaultValue.js",
+			"module": "library/j/ValidPropertyDefaultValue",
+			"export": "",
+			"static": true,
+			"visibility": "public",
+			"extends": "sap.ui.core.Control",
+			"description": "My super documentation of this class",
+			"ui5-metamodel": true,
+			"ui5-metadata": {
+				"stereotype": "control",
+				"properties": [
+					{
+						"name": "validPropertyDefaultValueEnumSimpleDestructuring",
+						"type": "library.j.core.AnotherValidEnum",
+						"defaultValue": "Buzz",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumSimpleDestructuring",
+						"methods": [
+							"getValidPropertyDefaultValueEnumSimpleDestructuring",
+							"setValidPropertyDefaultValueEnumSimpleDestructuring"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumChainedDestructuring",
+						"type": "library.j.core.AnotherValidEnum",
+						"defaultValue": "Buzz",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumChainedDestructuring",
+						"methods": [
+							"getValidPropertyDefaultValueEnumChainedDestructuring",
+							"setValidPropertyDefaultValueEnumChainedDestructuring"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumNestedDestructuring",
+						"type": "library.j.core.AnotherValidEnum",
+						"defaultValue": "Buzz",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumNestedDestructuring",
+						"methods": [
+							"getValidPropertyDefaultValueEnumNestedDestructuring",
+							"setValidPropertyDefaultValueEnumNestedDestructuring"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumDestructuringWithRename",
+						"type": "library.j.core.AnotherValidEnum",
+						"defaultValue": "Fizz",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumDestructuringWithRename",
+						"methods": [
+							"getValidPropertyDefaultValueEnumDestructuringWithRename",
+							"setValidPropertyDefaultValueEnumDestructuringWithRename"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumDestructuringWithRenameInArguments",
+						"type": "library.j.ThisIsEnumToo",
+						"defaultValue": "Value1",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumDestructuringWithRenameInArguments",
+						"methods": [
+							"getValidPropertyDefaultValueEnumDestructuringWithRenameInArguments",
+							"setValidPropertyDefaultValueEnumDestructuringWithRenameInArguments"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar",
+						"type": "library.j.ThisIsEnumToo",
+						"defaultValue": "Value2",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar",
+						"methods": [
+							"getValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar",
+							"setValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumViaDestructuringInArrowFn",
+						"type": "library.j.MyValidEnum",
+						"defaultValue": "Foo",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumViaDestructuringInArrowFn",
+						"methods": [
+							"getValidPropertyDefaultValueEnumViaDestructuringInArrowFn",
+							"setValidPropertyDefaultValueEnumViaDestructuringInArrowFn"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueEnumViaDestructuringGlobal",
+						"type": "sap.ui.core.TitleLevel",
+						"defaultValue": "H1",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueEnumViaDestructuringGlobal",
+						"methods": [
+							"getValidPropertyDefaultValueEnumViaDestructuringGlobal",
+							"setValidPropertyDefaultValueEnumViaDestructuringGlobal"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueArrPattern",
+						"type": "sap.external.thirdparty.0",
+						"defaultValue": "arrPattern",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueArrPattern",
+						"methods": [
+							"getValidPropertyDefaultValueArrPattern",
+							"setValidPropertyDefaultValueArrPattern"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueArrPatternDeepDestruct",
+						"type": "sap.external.thirdparty.1.arrWith",
+						"defaultValue": "deep",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueArrPatternDeepDestruct",
+						"methods": [
+							"getValidPropertyDefaultValueArrPatternDeepDestruct",
+							"setValidPropertyDefaultValueArrPatternDeepDestruct"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueObjPatternDeepDestruct",
+						"type": "sap.external2.thirdparty.objPattern.deeply",
+						"defaultValue": "destructured",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueArrPatternDeepDestruct",
+						"methods": [
+							"getValidPropertyDefaultValueObjPatternDeepDestruct",
+							"setValidPropertyDefaultValueObjPatternDeepDestruct"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueObjPatternNested",
+						"type": "sap.external2.thirdparty.objPattern",
+						"defaultValue": "objPattern1Lvl",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueObjPatternNested",
+						"methods": [
+							"getValidPropertyDefaultValueObjPatternNested",
+							"setValidPropertyDefaultValueObjPatternNested"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueArrPatternVarDef",
+						"type": "sap.external3.thirdparty.0",
+						"defaultValue": "arrPatternVarDef",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueArrPatternVarDef",
+						"methods": [
+							"getValidPropertyDefaultValueArrPatternVarDef",
+							"setValidPropertyDefaultValueArrPatternVarDef"
+						]
+					},
+					{
+						"name": "validPropertyDefaultValueArrPatternVarDefNestedAndRenamed",
+						"type": "sap.external3.thirdparty.1.nested",
+						"defaultValue": "arrPatternVarDef",
+						"group": "Misc",
+						"visibility": "public",
+						"description": "validPropertyDefaultValueArrPatternVarDef",
+						"methods": [
+							"getValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed",
+							"setValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed"
+						]
+					}
+				]
+			},
+			"constructor": {
+				"visibility": "public",
+				"description": "Accepts an object literal <code>mSettings</code> that defines initial property values, aggregated and associated objects as well as event handlers. See {@link sap.ui.base.ManagedObject#constructor} for a general description of the syntax of the settings object."
+			},
+			"methods": [
+				{
+					"name": "extend",
+					"visibility": "public",
+					"static": true,
+					"returnValue": {
+						"type": "function",
+						"description": "Created class / constructor function"
+					},
+					"parameters": [
+						{
+							"name": "sClassName",
+							"type": "string",
+							"optional": false,
+							"description": "Name of the class being created"
+						},
+						{
+							"name": "oClassInfo",
+							"type": "object",
+							"optional": true,
+							"description": "Object literal with information about the class"
+						},
+						{
+							"name": "FNMetaImpl",
+							"type": "function",
+							"optional": true,
+							"description": "Constructor function for the metadata object; if not given, it defaults to the metadata implementation used by this class"
+						}
+					],
+					"description": "Creates a new subclass of class library.j.ValidPropertyDefaultValue with name <code>sClassName</code> and enriches it with the information contained in <code>oClassInfo</code>.\n\n<code>oClassInfo</code> might contain the same kind of information as described in {@link sap.ui.core.Control.extend}."
+				},
+				{
+					"name": "getMetadata",
+					"visibility": "public",
+					"static": true,
+					"returnValue": {
+						"type": "sap.ui.base.Metadata",
+						"description": "Metadata object describing this class"
+					},
+					"description": "Returns a metadata object for class library.j.ValidPropertyDefaultValue."
+				},
+				{
+					"name": "getValidPropertyDefaultValueArrPattern",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.external.thirdparty.0",
+						"description": "Value of property <code>validPropertyDefaultValueArrPattern</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueArrPattern validPropertyDefaultValueArrPattern}.\n\nvalidPropertyDefaultValueArrPattern\n\nDefault value is <code>arrPattern</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueArrPatternDeepDestruct",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.external.thirdparty.1.arrWith",
+						"description": "Value of property <code>validPropertyDefaultValueArrPatternDeepDestruct</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueArrPatternDeepDestruct validPropertyDefaultValueArrPatternDeepDestruct}.\n\nvalidPropertyDefaultValueArrPatternDeepDestruct\n\nDefault value is <code>deep</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueArrPatternVarDef",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.external3.thirdparty.0",
+						"description": "Value of property <code>validPropertyDefaultValueArrPatternVarDef</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueArrPatternVarDef validPropertyDefaultValueArrPatternVarDef}.\n\nvalidPropertyDefaultValueArrPatternVarDef\n\nDefault value is <code>arrPatternVarDef</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.external3.thirdparty.1.nested",
+						"description": "Value of property <code>validPropertyDefaultValueArrPatternVarDefNestedAndRenamed</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed validPropertyDefaultValueArrPatternVarDefNestedAndRenamed}.\n\nvalidPropertyDefaultValueArrPatternVarDef\n\nDefault value is <code>arrPatternVarDef</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumChainedDestructuring",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.core.AnotherValidEnum",
+						"description": "Value of property <code>validPropertyDefaultValueEnumChainedDestructuring</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumChainedDestructuring validPropertyDefaultValueEnumChainedDestructuring}.\n\nvalidPropertyDefaultValueEnumChainedDestructuring\n\nDefault value is <code>Buzz</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumDestructuringWithRename",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.core.AnotherValidEnum",
+						"description": "Value of property <code>validPropertyDefaultValueEnumDestructuringWithRename</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumDestructuringWithRename validPropertyDefaultValueEnumDestructuringWithRename}.\n\nvalidPropertyDefaultValueEnumDestructuringWithRename\n\nDefault value is <code>Fizz</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumDestructuringWithRenameInArguments",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.ThisIsEnumToo",
+						"description": "Value of property <code>validPropertyDefaultValueEnumDestructuringWithRenameInArguments</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumDestructuringWithRenameInArguments validPropertyDefaultValueEnumDestructuringWithRenameInArguments}.\n\nvalidPropertyDefaultValueEnumDestructuringWithRenameInArguments\n\nDefault value is <code>Value1</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.ThisIsEnumToo",
+						"description": "Value of property <code>validPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar validPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar}.\n\nvalidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar\n\nDefault value is <code>Value2</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumNestedDestructuring",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.core.AnotherValidEnum",
+						"description": "Value of property <code>validPropertyDefaultValueEnumNestedDestructuring</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumNestedDestructuring validPropertyDefaultValueEnumNestedDestructuring}.\n\nvalidPropertyDefaultValueEnumNestedDestructuring\n\nDefault value is <code>Buzz</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumSimpleDestructuring",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.core.AnotherValidEnum",
+						"description": "Value of property <code>validPropertyDefaultValueEnumSimpleDestructuring</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumSimpleDestructuring validPropertyDefaultValueEnumSimpleDestructuring}.\n\nvalidPropertyDefaultValueEnumSimpleDestructuring\n\nDefault value is <code>Buzz</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumViaDestructuringGlobal",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.ui.core.TitleLevel",
+						"description": "Value of property <code>validPropertyDefaultValueEnumViaDestructuringGlobal</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumViaDestructuringGlobal validPropertyDefaultValueEnumViaDestructuringGlobal}.\n\nvalidPropertyDefaultValueEnumViaDestructuringGlobal\n\nDefault value is <code>H1</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueEnumViaDestructuringInArrowFn",
+					"visibility": "public",
+					"returnValue": {
+						"type": "library.j.MyValidEnum",
+						"description": "Value of property <code>validPropertyDefaultValueEnumViaDestructuringInArrowFn</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueEnumViaDestructuringInArrowFn validPropertyDefaultValueEnumViaDestructuringInArrowFn}.\n\nvalidPropertyDefaultValueEnumViaDestructuringInArrowFn\n\nDefault value is <code>Foo</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueObjPatternDeepDestruct",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.external2.thirdparty.objPattern.deeply",
+						"description": "Value of property <code>validPropertyDefaultValueObjPatternDeepDestruct</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueObjPatternDeepDestruct validPropertyDefaultValueObjPatternDeepDestruct}.\n\nvalidPropertyDefaultValueArrPatternDeepDestruct\n\nDefault value is <code>destructured</code>."
+				},
+				{
+					"name": "getValidPropertyDefaultValueObjPatternNested",
+					"visibility": "public",
+					"returnValue": {
+						"type": "sap.external2.thirdparty.objPattern",
+						"description": "Value of property <code>validPropertyDefaultValueObjPatternNested</code>"
+					},
+					"description": "Gets current value of property {@link #getValidPropertyDefaultValueObjPatternNested validPropertyDefaultValueObjPatternNested}.\n\nvalidPropertyDefaultValueObjPatternNested\n\nDefault value is <code>objPattern1Lvl</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueArrPattern",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueArrPattern",
+							"type": "sap.external.thirdparty.0",
+							"optional": true,
+							"defaultValue": "arrPattern",
+							"description": "New value for property <code>validPropertyDefaultValueArrPattern</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueArrPattern validPropertyDefaultValueArrPattern}.\n\nvalidPropertyDefaultValueArrPattern\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>arrPattern</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueArrPatternDeepDestruct",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueArrPatternDeepDestruct",
+							"type": "sap.external.thirdparty.1.arrWith",
+							"optional": true,
+							"defaultValue": "deep",
+							"description": "New value for property <code>validPropertyDefaultValueArrPatternDeepDestruct</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueArrPatternDeepDestruct validPropertyDefaultValueArrPatternDeepDestruct}.\n\nvalidPropertyDefaultValueArrPatternDeepDestruct\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>deep</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueArrPatternVarDef",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueArrPatternVarDef",
+							"type": "sap.external3.thirdparty.0",
+							"optional": true,
+							"defaultValue": "arrPatternVarDef",
+							"description": "New value for property <code>validPropertyDefaultValueArrPatternVarDef</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueArrPatternVarDef validPropertyDefaultValueArrPatternVarDef}.\n\nvalidPropertyDefaultValueArrPatternVarDef\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>arrPatternVarDef</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed",
+							"type": "sap.external3.thirdparty.1.nested",
+							"optional": true,
+							"defaultValue": "arrPatternVarDef",
+							"description": "New value for property <code>validPropertyDefaultValueArrPatternVarDefNestedAndRenamed</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueArrPatternVarDefNestedAndRenamed validPropertyDefaultValueArrPatternVarDefNestedAndRenamed}.\n\nvalidPropertyDefaultValueArrPatternVarDef\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>arrPatternVarDef</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumChainedDestructuring",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumChainedDestructuring",
+							"type": "library.j.core.AnotherValidEnum",
+							"optional": true,
+							"defaultValue": "Buzz",
+							"description": "New value for property <code>validPropertyDefaultValueEnumChainedDestructuring</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumChainedDestructuring validPropertyDefaultValueEnumChainedDestructuring}.\n\nvalidPropertyDefaultValueEnumChainedDestructuring\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Buzz</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumDestructuringWithRename",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumDestructuringWithRename",
+							"type": "library.j.core.AnotherValidEnum",
+							"optional": true,
+							"defaultValue": "Fizz",
+							"description": "New value for property <code>validPropertyDefaultValueEnumDestructuringWithRename</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumDestructuringWithRename validPropertyDefaultValueEnumDestructuringWithRename}.\n\nvalidPropertyDefaultValueEnumDestructuringWithRename\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Fizz</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumDestructuringWithRenameInArguments",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumDestructuringWithRenameInArguments",
+							"type": "library.j.ThisIsEnumToo",
+							"optional": true,
+							"defaultValue": "Value1",
+							"description": "New value for property <code>validPropertyDefaultValueEnumDestructuringWithRenameInArguments</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumDestructuringWithRenameInArguments validPropertyDefaultValueEnumDestructuringWithRenameInArguments}.\n\nvalidPropertyDefaultValueEnumDestructuringWithRenameInArguments\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Value1</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar",
+							"type": "library.j.ThisIsEnumToo",
+							"optional": true,
+							"defaultValue": "Value2",
+							"description": "New value for property <code>validPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar validPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar}.\n\nvalidPropertyDefaultValueEnumDestructuringWithRenameInArgumentsAndLocalVar\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Value2</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumNestedDestructuring",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumNestedDestructuring",
+							"type": "library.j.core.AnotherValidEnum",
+							"optional": true,
+							"defaultValue": "Buzz",
+							"description": "New value for property <code>validPropertyDefaultValueEnumNestedDestructuring</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumNestedDestructuring validPropertyDefaultValueEnumNestedDestructuring}.\n\nvalidPropertyDefaultValueEnumNestedDestructuring\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Buzz</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumSimpleDestructuring",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumSimpleDestructuring",
+							"type": "library.j.core.AnotherValidEnum",
+							"optional": true,
+							"defaultValue": "Buzz",
+							"description": "New value for property <code>validPropertyDefaultValueEnumSimpleDestructuring</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumSimpleDestructuring validPropertyDefaultValueEnumSimpleDestructuring}.\n\nvalidPropertyDefaultValueEnumSimpleDestructuring\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Buzz</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumViaDestructuringGlobal",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumViaDestructuringGlobal",
+							"type": "sap.ui.core.TitleLevel",
+							"optional": true,
+							"defaultValue": "H1",
+							"description": "New value for property <code>validPropertyDefaultValueEnumViaDestructuringGlobal</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumViaDestructuringGlobal validPropertyDefaultValueEnumViaDestructuringGlobal}.\n\nvalidPropertyDefaultValueEnumViaDestructuringGlobal\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>H1</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueEnumViaDestructuringInArrowFn",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueEnumViaDestructuringInArrowFn",
+							"type": "library.j.MyValidEnum",
+							"optional": true,
+							"defaultValue": "Foo",
+							"description": "New value for property <code>validPropertyDefaultValueEnumViaDestructuringInArrowFn</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueEnumViaDestructuringInArrowFn validPropertyDefaultValueEnumViaDestructuringInArrowFn}.\n\nvalidPropertyDefaultValueEnumViaDestructuringInArrowFn\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>Foo</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueObjPatternDeepDestruct",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueObjPatternDeepDestruct",
+							"type": "sap.external2.thirdparty.objPattern.deeply",
+							"optional": true,
+							"defaultValue": "destructured",
+							"description": "New value for property <code>validPropertyDefaultValueObjPatternDeepDestruct</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueObjPatternDeepDestruct validPropertyDefaultValueObjPatternDeepDestruct}.\n\nvalidPropertyDefaultValueArrPatternDeepDestruct\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>destructured</code>."
+				},
+				{
+					"name": "setValidPropertyDefaultValueObjPatternNested",
+					"visibility": "public",
+					"returnValue": {
+						"type": "this",
+						"description": "Reference to <code>this</code> in order to allow method chaining"
+					},
+					"parameters": [
+						{
+							"name": "sValidPropertyDefaultValueObjPatternNested",
+							"type": "sap.external2.thirdparty.objPattern",
+							"optional": true,
+							"defaultValue": "objPattern1Lvl",
+							"description": "New value for property <code>validPropertyDefaultValueObjPatternNested</code>"
+						}
+					],
+					"description": "Sets a new value for property {@link #getValidPropertyDefaultValueObjPatternNested validPropertyDefaultValueObjPatternNested}.\n\nvalidPropertyDefaultValueObjPatternNested\n\nWhen called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.\n\nDefault value is <code>objPattern1Lvl</code>."
+				}
+			]
+		}
+	]
+}
