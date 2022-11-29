@@ -2,7 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.0.0-beta.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.0.0-beta.2...HEAD).
+
+<a name="v3.0.0-beta.2"></a>
+## [v3.0.0-beta.2] - 2022-11-29
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/server from 3.0.0-beta.1 to 3.0.0-beta.2 [`8bbfcf9`](https://github.com/SAP/ui5-cli/commit/8bbfcf9e51036c7c9b60e29f53b011a60063c2ea)
+- Bump [@ui5](https://github.com/ui5)/builder from 3.0.0-beta.1 to 3.0.0-beta.2 [`3b241bc`](https://github.com/SAP/ui5-cli/commit/3b241bca435e107772473fab226b652ab3abbe69)
+- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-beta.2 to 3.0.0-beta.3 [`1654cbc`](https://github.com/SAP/ui5-cli/commit/1654cbc91d6c0483144afbe600738a6bee5b4b66)
+- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-beta.1 to 3.0.0-beta.2 [`677dc78`](https://github.com/SAP/ui5-cli/commit/677dc7856363051db7a4b0b2feb312a98cec943a)
+- Bump [@ui5](https://github.com/ui5)/fs from 3.0.0-beta.2 to 3.0.0-beta.3 [`6f59a7e`](https://github.com/SAP/ui5-cli/commit/6f59a7ed1124dc7e55cbbc42bfe2262103f78ef9)
+- Bump [@ui5](https://github.com/ui5)/logger from 3.0.1-beta.0 to 3.0.1-beta.1 [`1532039`](https://github.com/SAP/ui5-cli/commit/15320397fae3ccba9a702bbb6d920367c67c738a)
+
 
 <a name="v3.0.0-beta.1"></a>
 ## [v3.0.0-beta.1] - 2022-11-07
@@ -852,6 +863,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.0-beta.2]: https://github.com/SAP/ui5-cli/compare/v3.0.0-beta.1...v3.0.0-beta.2
 [v3.0.0-beta.1]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.15...v3.0.0-beta.1
 [v3.0.0-alpha.15]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.14...v3.0.0-alpha.15
 [v3.0.0-alpha.14]: https://github.com/SAP/ui5-cli/compare/v3.0.0-alpha.13...v3.0.0-alpha.14
