@@ -87,8 +87,11 @@ export default async function({
 		// Omit -dbg files for optimize bundles and vice versa
 		const filterTag = optimize ?
 			taskUtil.STANDARD_TAGS.IsDebugVariant : taskUtil.STANDARD_TAGS.HasDebugVariant;
-		combo = await combo.filter(function(resource) {
-			return !taskUtil.getTag(resource, filterTag);
+		combo = taskUtil.resourceFactory.createFilterReader({
+			reader: combo,
+			callback: function(resource) {
+				return !taskUtil.getTag(resource, filterTag);
+			}
 		});
 	}
 

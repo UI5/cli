@@ -8,6 +8,17 @@ test.beforeEach(async (t) => {
 		verbose: sinon.stub(),
 		error: sinon.stub()
 	};
+	t.context.workspace = {
+		byGlob: sinon.stub().resolves([]),
+		write: sinon.stub().resolves()
+	};
+	t.context.dependencies = {};
+	t.context.combo = {
+		byGlob: sinon.stub().resolves([]),
+		filter: sinon.stub()
+	};
+
+	t.context.createFilterReaderStub = sinon.stub().returns(t.context.combo);
 
 	t.context.taskUtil = {
 		getTag: sinon.stub(),
@@ -17,17 +28,10 @@ test.beforeEach(async (t) => {
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: t.context.createFilterReaderStub
 		}
-	};
-
-	t.context.workspace = {
-		byGlob: sinon.stub().resolves([]),
-		write: sinon.stub().resolves()
-	};
-	t.context.dependencies = {};
-	t.context.combo = {
-		byGlob: sinon.stub().resolves([]),
-		filter: sinon.stub()
 	};
 
 	t.context.ReaderCollectionPrioritizedStub = sinon.stub().returns(t.context.combo);
@@ -55,7 +59,7 @@ test.afterEach.always(() => {
 test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 	const {
 		generateBundle, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, combo
+		workspace, dependencies, combo, createFilterReaderStub
 	} = t.context;
 
 	const resources = [
@@ -97,8 +101,8 @@ test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 	t.deepEqual(combo.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"combo.byGlob should have been called with expected pattern");
 
-	t.is(combo.filter.callCount, 0,
-		"combo.filter should not have been called");
+	t.is(createFilterReaderStub.callCount, 0,
+		"createFilterReaderStub should not have been called");
 
 	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
 		"ReaderCollectionPrioritized should have been called once");
@@ -121,7 +125,7 @@ test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	const {
 		generateBundle, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, combo,
+		workspace, dependencies, combo, createFilterReaderStub,
 		taskUtil
 	} = t.context;
 
@@ -132,7 +136,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	const filteredCombo = {
 		byGlob: sinon.stub().resolves(resources)
 	};
-	combo.filter.returns(filteredCombo);
+	createFilterReaderStub.returns(filteredCombo);
 
 	moduleBundlerStub.resolves([
 		{
@@ -167,13 +171,16 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	t.is(combo.byGlob.callCount, 0,
 		"combo.byGlob should not have been called");
 
-	t.is(combo.filter.callCount, 1,
-		"combo.filter should have been called once");
-	t.is(combo.filter.getCall(0).args.length, 1,
-		"combo.filter should have been called with one argument");
-	const filterFunction = combo.filter.getCall(0).args[0];
+	t.is(createFilterReaderStub.callCount, 1,
+		"createFilterReader should have been called once");
+	t.is(createFilterReaderStub.getCall(0).args.length, 1,
+		"createFilterReader should have been called with one argument");
+	const filterFunction = createFilterReaderStub.getCall(0).args[0].callback;
 	t.is(typeof filterFunction, "function",
-		"combo.filter should have been called with a function");
+		"createFilterReader should have been called with a function");
+	const filterReader = createFilterReaderStub.getCall(0).args[0].reader;
+	t.is(filterReader, combo,
+		"createFilterReader should have been called with correct reader instance");
 
 	t.is(filteredCombo.byGlob.callCount, 1,
 		"filteredCombo.byGlob should have been called once");
@@ -204,7 +211,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 
 	t.is(taskUtil.getTag.callCount, 0, "taskUtil.getTag should not have been called by the task");
 
-	// Testing the combo.filter function
+	// Testing the createFilterReader function
 
 	const resourceForFilterTest = {};
 	taskUtil.getTag.returns(true);
@@ -224,7 +231,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", async (t) => {
 	const {
 		generateBundle, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, combo,
+		workspace, dependencies, combo, createFilterReaderStub,
 		taskUtil
 	} = t.context;
 
@@ -240,7 +247,7 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	const filteredCombo = {
 		byGlob: sinon.stub().resolves(resources)
 	};
-	combo.filter.returns(filteredCombo);
+	createFilterReaderStub.returns(filteredCombo);
 
 	taskUtil.getTag.returns(false)
 		.withArgs(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant)
@@ -284,13 +291,16 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	t.is(combo.byGlob.callCount, 0,
 		"combo.byGlob should not have been called");
 
-	t.is(combo.filter.callCount, 1,
-		"combo.filter should have been called once");
-	t.is(combo.filter.getCall(0).args.length, 1,
-		"combo.filter should have been called with one argument");
-	const filterFunction = combo.filter.getCall(0).args[0];
+	t.is(createFilterReaderStub.callCount, 1,
+		"createFilterReader should have been called once");
+	t.is(createFilterReaderStub.getCall(0).args.length, 1,
+		"createFilterReader should have been called with one argument");
+	const filterFunction = createFilterReaderStub.getCall(0).args[0].callback;
 	t.is(typeof filterFunction, "function",
-		"combo.filter should have been called with a function");
+		"createFilterReader should have been called with a function");
+	const filterReader = createFilterReaderStub.getCall(0).args[0].reader;
+	t.is(filterReader, combo,
+		"createFilterReader should have been called with correct reader instance");
 
 	t.is(filteredCombo.byGlob.callCount, 1,
 		"filteredCombo.byGlob should have been called once");
@@ -330,7 +340,7 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	taskUtil.getTag.reset(); // Reset stub as it has already been called by generateBundle
 	t.is(taskUtil.getTag.callCount, 0);
 
-	// Testing the combo.filter function
+	// Testing the createFilterReader function
 
 	const resourceForFilterTest = {};
 	taskUtil.getTag.returns(true);
@@ -350,7 +360,7 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", async (t) => {
 	const {
 		generateBundle, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, combo,
+		workspace, dependencies, combo, createFilterReaderStub,
 		taskUtil
 	} = t.context;
 
@@ -366,7 +376,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	const filteredCombo = {
 		byGlob: sinon.stub().resolves(resources)
 	};
-	combo.filter.returns(filteredCombo);
+	createFilterReaderStub.returns(filteredCombo);
 
 	taskUtil.getTag.returns(false)
 		.withArgs(resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant)
@@ -406,13 +416,16 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	t.is(combo.byGlob.callCount, 0,
 		"combo.byGlob should not have been called");
 
-	t.is(combo.filter.callCount, 1,
-		"combo.filter should have been called once");
-	t.is(combo.filter.getCall(0).args.length, 1,
-		"combo.filter should have been called with one argument");
-	const filterFunction = combo.filter.getCall(0).args[0];
+	t.is(createFilterReaderStub.callCount, 1,
+		"createFilterReader should have been called once");
+	t.is(createFilterReaderStub.getCall(0).args.length, 1,
+		"createFilterReader should have been called with one argument");
+	const filterFunction = createFilterReaderStub.getCall(0).args[0].callback;
 	t.is(typeof filterFunction, "function",
-		"combo.filter should have been called with a function");
+		"createFilterReader should have been called with a function");
+	const filterReader = createFilterReaderStub.getCall(0).args[0].reader;
+	t.is(filterReader, combo,
+		"createFilterReader should have been called with correct reader instance");
 
 	t.is(filteredCombo.byGlob.callCount, 1,
 		"filteredCombo.byGlob should have been called once");
@@ -440,7 +453,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	taskUtil.getTag.reset(); // Reset stub as it has already been called by generateBundle
 	t.is(taskUtil.getTag.callCount, 0);
 
-	// Testing the combo.filter function
+	// Testing the createFilterReader function
 
 	const resourceForFilterTest = {};
 	taskUtil.getTag.returns(true);
@@ -460,7 +473,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 	const {
 		generateBundle, moduleBundlerStub, ReaderCollectionPrioritizedStub,
-		workspace, dependencies, combo,
+		workspace, dependencies, combo, createFilterReaderStub,
 		taskUtil
 	} = t.context;
 
@@ -469,7 +482,7 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 	const filteredCombo = {
 		byGlob: sinon.stub().resolves(resources)
 	};
-	combo.filter.returns(filteredCombo);
+	createFilterReaderStub.returns(filteredCombo);
 
 	moduleBundlerStub.resolves([undefined]);
 
@@ -500,13 +513,16 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 	t.is(combo.byGlob.callCount, 0,
 		"combo.byGlob should not have been called");
 
-	t.is(combo.filter.callCount, 1,
-		"combo.filter should have been called once");
-	t.is(combo.filter.getCall(0).args.length, 1,
-		"combo.filter should have been called with one argument");
-	const filterFunction = combo.filter.getCall(0).args[0];
+	t.is(createFilterReaderStub.callCount, 1,
+		"createFilterReader should have been called once");
+	t.is(createFilterReaderStub.getCall(0).args.length, 1,
+		"createFilterReader should have been called with one argument");
+	const filterFunction = createFilterReaderStub.getCall(0).args[0].callback;
 	t.is(typeof filterFunction, "function",
-		"combo.filter should have been called with a function");
+		"createFilterReader should have been called with a function");
+	const filterReader = createFilterReaderStub.getCall(0).args[0].reader;
+	t.is(filterReader, combo,
+		"createFilterReader should have been called with correct reader instance");
 
 	t.is(filteredCombo.byGlob.callCount, 1,
 		"filteredCombo.byGlob should have been called once");
@@ -530,7 +546,7 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 test.serial("generateBundle: Throws error when non-debug name can't be resolved", async (t) => {
 	const {
 		generateBundle, moduleBundlerStub,
-		workspace, dependencies, combo,
+		workspace, dependencies, createFilterReaderStub,
 		taskUtil, getNonDebugName
 	} = t.context;
 
@@ -543,7 +559,7 @@ test.serial("generateBundle: Throws error when non-debug name can't be resolved"
 	const filteredCombo = {
 		byGlob: sinon.stub().resolves(resources)
 	};
-	combo.filter.returns(filteredCombo);
+	createFilterReaderStub.returns(filteredCombo);
 
 	moduleBundlerStub.resolves([undefined]);
 
