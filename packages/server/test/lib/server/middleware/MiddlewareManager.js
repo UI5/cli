@@ -1,12 +1,30 @@
 import test from "ava";
-import sinon from "sinon";
+import sinonGlobal from "sinon";
+import esmock from "esmock";
 import MiddlewareManager from "../../../../lib/middleware/MiddlewareManager.js";
 import middlewareRepository from "../../../../lib/middleware/middlewareRepository.js";
+
+test.beforeEach(async (t) => {
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+
+	t.context.logger = {
+		getGroupLogger: sinon.stub().returns("group logger")
+	};
+
+	t.context.MiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
+		"@ui5/logger": t.context.logger
+	});
+});
+
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
+});
 
 test("Missing parameters", (t) => {
 	const err = t.throws(() => {
 		new MiddlewareManager({
 			graph: {},
+			rootProject: "root project",
 			resources: {}
 		});
 	});
@@ -18,6 +36,7 @@ test("Correct parameters", (t) => {
 	t.notThrows(() => {
 		new MiddlewareManager({
 			graph: {},
+			rootProject: "root project",
 			resources: {
 				all: "I",
 				rootProject: "like",
@@ -28,8 +47,10 @@ test("Correct parameters", (t) => {
 });
 
 test("applyMiddleware", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "love",
@@ -61,6 +82,7 @@ test("applyMiddleware", async (t) => {
 test("addMiddleware: Adding already added middleware produces unique middleware name", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -97,6 +119,7 @@ test("addMiddleware: Adding already added middleware produces unique middleware 
 test("addMiddleware: Adding middleware already added to middlewareExecutionOrder", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -117,6 +140,7 @@ test("addMiddleware: Adding middleware already added to middlewareExecutionOrder
 test("addMiddleware: Add middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -140,6 +164,7 @@ test("addMiddleware: Add middleware", async (t) => {
 test("addMiddleware: Add middleware with beforeMiddleware and mountPath parameter", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -166,6 +191,7 @@ test("addMiddleware: Add middleware with beforeMiddleware and mountPath paramete
 test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -192,6 +218,7 @@ test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) =
 test("addMiddleware: Add middleware with invalid afterMiddleware parameter", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -214,8 +241,10 @@ test("addMiddleware: Add middleware with invalid afterMiddleware parameter", asy
 });
 
 test("addMiddleware: Add middleware with wrapperCallback parameter", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -251,8 +280,10 @@ test("addMiddleware: Add middleware with wrapperCallback parameter", async (t) =
 });
 
 test("addMiddleware: Add middleware with async wrapperCallback", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -271,8 +302,10 @@ test("addMiddleware: Add middleware with async wrapperCallback", async (t) => {
 });
 
 test("addStandardMiddleware: Adds standard middleware in correct order", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -303,6 +336,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 });
 
 test("addCustomMiddleware: No custom middleware defined", async (t) => {
+	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
 			return {
@@ -313,6 +347,7 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -326,6 +361,7 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 });
 
 test("addCustomMiddleware: Custom middleware got added", async (t) => {
+	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
 			return {
@@ -343,6 +379,7 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -375,6 +412,7 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 });
 
 test("addCustomMiddleware: No special handling for custom middleware with duplicate name", async (t) => {
+	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
 			return {
@@ -388,6 +426,7 @@ test("addCustomMiddleware: No special handling for custom middleware with duplic
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -416,6 +455,7 @@ test("addCustomMiddleware: Missing name configuration", async (t) => {
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -445,6 +485,7 @@ test("addCustomMiddleware: Both before- and afterMiddleware configuration", asyn
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -473,6 +514,7 @@ test("addCustomMiddleware: Missing before- or afterMiddleware configuration", as
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -489,10 +531,15 @@ test("addCustomMiddleware: Missing before- or afterMiddleware configuration", as
 });
 
 test("addCustomMiddleware", async (t) => {
+	const {sinon} = t.context;
 	const middlewareModuleStub = sinon.stub().returns("ok");
-	const getSpecVersionStub = sinon.stub().returns("2.6");
+	const specVersionGteStub = sinon.stub().returns(false);
+	const mockSpecificationVersion = {
+		toString: () => "2.6",
+		gte: specVersionGteStub
+	};
 	const getExtensionStub = sinon.stub().returns({
-		getSpecVersion: getSpecVersionStub,
+		getSpecVersion: () => mockSpecificationVersion,
 		getMiddleware: () => middlewareModuleStub
 	});
 	const graph = {
@@ -512,6 +559,7 @@ test("addCustomMiddleware", async (t) => {
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -533,9 +581,12 @@ test("addCustomMiddleware", async (t) => {
 	});
 
 	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.is(specVersionGteStub.callCount, 1, "SpecificationVersion#gte got called once");
+	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments");
 	t.is(middlewareUtil.getInterface.callCount, 1, "middlewareUtil.getInterface got called once");
-	t.is(middlewareUtil.getInterface.getCall(0).args[0], "2.6",
-		"middlewareUtil.getInterface got called correct arguments");
+	t.is(middlewareUtil.getInterface.getCall(0).args[0], mockSpecificationVersion,
+		"middlewareUtil.getInterface got called with correct arguments");
 	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
 	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
 		resources: "resources",
@@ -548,9 +599,82 @@ test("addCustomMiddleware", async (t) => {
 	}, "Middleware module got called with correct arguments");
 });
 
+test("addCustomMiddleware with specVersion 3.0", async (t) => {
+	const {sinon, MiddlewareManager} = t.context;
+	const middlewareModuleStub = sinon.stub().returns("ok");
+	const specVersionGteStub = sinon.stub().returns(true);
+	const mockSpecificationVersion = {
+		toString: () => "3.0",
+		gte: specVersionGteStub
+	};
+	const getExtensionStub = sinon.stub().returns({
+		getSpecVersion: () => mockSpecificationVersion,
+		getMiddleware: () => middlewareModuleStub
+	});
+	const graph = {
+		getRoot: () => {
+			return {
+				getName: () => "my project",
+				getCustomMiddleware: () => [{
+					name: "my custom middleware A",
+					beforeMiddleware: "cors",
+					configuration: {
+						"🦊": "🐰"
+					}
+				}]
+			};
+		},
+		getExtension: getExtensionStub
+	};
+	const middlewareManager = new MiddlewareManager({
+		graph,
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await middlewareManager.addCustomMiddleware();
+
+	t.is(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
+
+	const customMiddleware = addMiddlewareStub.getCall(0).args[1].customMiddleware;
+	const middlewareUtil = {
+		getInterface: sinon.stub().returns("interfacedMiddlewareUtil")
+	};
+	const res = await customMiddleware({
+		resources: "resources",
+		middlewareUtil
+	});
+
+	t.is(res, "ok", "Wrapper callback returned expected value");
+	t.is(specVersionGteStub.callCount, 1, "SpecificationVersion#gte got called once");
+	t.is(specVersionGteStub.getCall(0).args[0], "3.0",
+		"SpecificationVersion#gte got called with correct arguments");
+	t.is(middlewareUtil.getInterface.callCount, 1, "middlewareUtil.getInterface got called once");
+	t.is(middlewareUtil.getInterface.getCall(0).args[0], mockSpecificationVersion,
+		"middlewareUtil.getInterface got called with correct arguments");
+	t.is(middlewareModuleStub.callCount, 1, "Middleware module got called once");
+	t.deepEqual(middlewareModuleStub.getCall(0).args[0], {
+		resources: "resources",
+		options: {
+			configuration: {
+				"🦊": "🐰"
+			},
+			middlewareName: "my custom middleware A"
+		},
+		middlewareUtil: "interfacedMiddlewareUtil",
+		log: "group logger"
+	}, "Middleware module got called with correct arguments");
+});
+
 test("addStandardMiddleware: CSP middleware configured correctly (default)", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -595,8 +719,10 @@ test("addStandardMiddleware: CSP middleware configured correctly (default)", asy
 });
 
 test("addStandardMiddleware: CSP middleware configured correctly (enabled)", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",
@@ -653,8 +779,10 @@ test("addStandardMiddleware: CSP middleware configured correctly (enabled)", asy
 });
 
 test("addStandardMiddleware: CSP middleware configured correctly (custom)", async (t) => {
+	const {sinon} = t.context;
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
+		rootProject: "root project",
 		resources: {
 			all: "I",
 			rootProject: "like",

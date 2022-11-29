@@ -1,5 +1,12 @@
 import parseurl from "parseurl";
 import mime from "mime-types";
+import {
+	createReaderCollectionPrioritized,
+	createResource,
+	createFilterReader,
+	createLinkReader,
+	createFlatReader
+} from "@ui5/fs/resourceFactory";
 
 /**
  * Convenience functions for UI5 Server middleware.
@@ -17,33 +24,21 @@ import mime from "mime-types";
  */
 class MiddlewareUtil {
 	/**
-	 * Get an interface to an instance of this class that only provides those functions
-	 * that are supported by the given custom middleware extension specification version.
 	 *
-	 * @param {string} specVersion Specification Version of custom middleware extension
-	 * @returns {object} An object with bound instance methods supported by the given specification version
+	 * @param {object} parameters
+	 * @param {@ui5/project/graph/ProjectGraph} parameters.graph Relevant ProjectGraph
+	 * @param {@ui5/project/specifications/Project} parameters.project Project that is being served
+	 * @public
 	 */
-	getInterface(specVersion) {
-		const baseInterface = {
-			getPathname: this.getPathname.bind(this),
-			getMimeInfo: this.getMimeInfo.bind(this)
-		};
-		switch (specVersion) {
-		case "0.1":
-		case "1.0":
-		case "1.1":
-			return undefined;
-		case "2.0":
-		case "2.1":
-		case "2.2":
-		case "2.3":
-		case "2.4":
-		case "2.5":
-		case "2.6":
-			return baseInterface;
-		default:
-			throw new Error(`MiddlewareUtil: Unknown or unsupported Specification Version ${specVersion}`);
+	constructor({graph, project}) {
+		if (!graph) {
+			throw new Error(`Missing parameter "graph"`);
 		}
+		if (!project) {
+			throw new Error(`Missing parameter "project"`);
+		}
+		this._graph = graph;
+		this._project = project;
 	}
 
 	/**
@@ -100,6 +95,148 @@ class MiddlewareUtil {
 			contentType: type + (charset ? "; charset=" + charset : "")
 		};
 	}
+	/**
+	 * Specification Version-dependent [Project]{@link @ui5/project/specifications/Project} interface.
+	 * For details on individual functions, see [Project]{@link @ui5/project/specifications/Project}
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/build/helpers/MiddlewareUtill~ProjectInterface
+	 * @property {Function} getType Get the project type
+	 * @property {Function} getName Get the project name
+	 * @property {Function} getVersion Get the project version
+	 * @property {Function} getNamespace Get the project namespace
+	 * @property {Function} getRootReader Get the project rootReader
+	 * @property {Function} getReader Get the project reader
+	 * @property {Function} getCustomConfiguration Get the project Custom Configuration
+	 * @property {Function} isFrameworkProject Check whether the project is a UI5-Framework project
+	 */
+
+	/**
+	 * Retrieve a single project from the dependency graph
+	 *
+	 * </br></br>
+	 * This method is only available to custom server middleware extensions defining
+	 * <b>Specification Version 3.0 and above</b>.
+	 *
+	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
+	 * @returns {@ui5/project/build/helpers/MiddlewareUtill~ProjectInterface|undefined}
+	 * project instance or undefined if the project is unknown to the graph
+	 * @public
+	 */
+	getProject(projectName) {
+		if (projectName) {
+			return this._graph.getProject(projectName);
+		}
+		return this._project;
+	}
+
+	/**
+	 * Retrieve a list of direct dependencies of a given project from the dependency graph.
+	 * Note that this list does not include transitive dependencies.
+	 *
+	 * </br></br>
+	 * This method is only available to custom server middleware extensions defining
+	 * <b>Specification Version 3.0 and above</b>.
+	 *
+	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
+	 * @returns {string[]} Names of all direct dependencies
+	 * @throws {Error} If the requested project is unknown to the graph
+	 * @public
+	 */
+	getDependencies(projectName) {
+		return this._graph.getDependencies(projectName || this._project.getName());
+	}
+
+	/**
+	 * Specification Version-dependent set of [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
+	 * functions provided to middleware.
+	 * For details on individual functions, see [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/build/helpers/MiddlewareUtill~resourceFactory
+	 * @property {Function} createResource Creates a [Resource]{@link @ui5/fs/Resource}.
+	 * 	Accepts the same parameters as the [Resource]{@link @ui5/fs/Resource} constructor.
+	 * @property {Function} createReaderCollectionPrioritized Creates a prioritized reader collection:
+	 *	[ReaderCollectionPrioritized]{@link @ui5/fs/ReaderCollectionPrioritized}
+	 * @property {Function} createFilterReader
+	 * 	Create a [Filter-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
+	 * @property {Function} createLinkReader
+	 * 	Create a [Link-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
+	 * @property {Function} createFlatReader Create a [Link-Reader]{@link @ui5/fs/readers/Link}
+	 * where all requests are prefixed with <code>/resources/<namespace></code>.
+	 */
+
+	/**
+	 * Provides limited access to [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory} functions
+	 *
+	 * </br></br>
+	 * This attribute is only available to custom server middleware extensions defining
+	 * <b>Specification Version 3.0 and above</b>.
+	 *
+	 * @type {@ui5/project/build/helpers/MiddlewareUtill~resourceFactory}
+	 * @public
+	 */
+	resourceFactory = {
+		createResource,
+		createReaderCollectionPrioritized,
+		createFilterReader,
+		createLinkReader,
+		createFlatReader,
+	};
+
+	/**
+	 * Get an interface to an instance of this class that only provides those functions
+	 * that are supported by the given custom middleware extension specification version.
+	 *
+	 * @param {@ui5/project/specifications/SpecificationVersion} specVersion
+	 * SpecVersionComparator instance of the custom server middleware
+	 * @returns {object} An object with bound instance methods supported by the given specification version
+	 */
+	getInterface(specVersion) {
+		if (specVersion.lt("2.0")) {
+			// Custom middleware defining specVersion <2.0 does not have access to any MiddlewareUtil API
+			return undefined;
+		}
+
+		const baseInterface = {};
+		bindFunctions(this, baseInterface, [
+			"getPathname", "getMimeInfo"
+		]);
+
+		if (specVersion.gte("3.0")) {
+			// getProject function, returning an interfaced project instance
+			baseInterface.getProject = (projectName) => {
+				const project = this.getProject(projectName);
+				const baseProjectInterface = {};
+				bindFunctions(project, baseProjectInterface, [
+					"getType", "getName", "getVersion", "getNamespace",
+					"getRootReader", "getReader", "getCustomConfiguration", "isFrameworkProject"
+				]);
+				return baseProjectInterface;
+			};
+			// getDependencies function, returning an array of project names
+			baseInterface.getDependencies = (projectName) => {
+				return this.getDependencies(projectName);
+			};
+
+			baseInterface.resourceFactory = Object.create(null);
+			[
+				// Once new functions get added, extract this array into a variable
+				// and enhance based on spec version once new functions get added
+				"createResource", "createReaderCollectionPrioritized",
+				"createFilterReader", "createLinkReader", "createFlatReader",
+			].forEach((factoryFunction) => {
+				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
+			});
+		}
+		return baseInterface;
+	}
+}
+
+function bindFunctions(sourceObject, targetObject, funcNames) {
+	funcNames.forEach((funcName) => {
+		targetObject[funcName] = sourceObject[funcName].bind(sourceObject);
+	});
 }
 
 export default MiddlewareUtil;

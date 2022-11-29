@@ -61,7 +61,7 @@ test.serial("Check if properties file is served properly", async (t) => {
 
 	const setStringSpy = sinon.spy(resource, "setString");
 	const middleware = serveResourcesMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		}
@@ -101,7 +101,7 @@ test.serial("Check if properties file is served properly with UTF-8", async (t) 
 
 	const setStringSpy = sinon.spy(resource, "setString");
 	const middleware = serveResourcesMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		}
@@ -137,7 +137,7 @@ test.serial("Check if properties file is served properly without property settin
 	);
 	const setStringSpy = sinon.spy(resource, "setString");
 	const middleware = serveResourcesMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		}
@@ -171,14 +171,19 @@ test.serial("Check if properties file is served properly without property settin
 		const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 		const project = {
 			getPropertiesFileSourceEncoding: () => "",
-			getSpecVersion: () => "1.1"
+			getSpecVersion: () => {
+				return {
+					toString: () => "1.1",
+					lte: () => true,
+				};
+			}
 		};
 		const resource = await writeResource(readerWriter, "/myFile3.properties",
 			1024 * 1024, "key=titel\nfame=straße", "latin1", project
 		);
 		const setStringSpy = sinon.spy(resource, "setString");
 		const middleware = serveResourcesMiddleware({
-			middlewareUtil: new MiddlewareUtil(),
+			middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 			resources: {
 				all: readerWriter
 			}
@@ -209,14 +214,19 @@ test.serial("Check if properties file is served properly without property settin
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
 	const project = {
 		getPropertiesFileSourceEncoding: () => "",
-		getSpecVersion: () => "2.0"
+		getSpecVersion: () => {
+			return {
+				toString: () => "2.0",
+				lte: () => false,
+			};
+		}
 	};
 	const resource = await writeResource(readerWriter, "/myFile3.properties",
 		1024 * 1024, "key=titel\nfame=straße", "utf8", project
 	);
 	const setStringSpy = sinon.spy(resource, "setString");
 	const middleware = serveResourcesMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		}
@@ -287,7 +297,7 @@ test.serial("Check verbose logging", async (t) => {
 		}
 	};
 	const middleware = serveResourcesMiddlewareWithMock({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources
 	});
 
@@ -354,7 +364,7 @@ test.serial("Check if version replacement is done", (t) => {
 		}
 	};
 	const middleware = serveResourcesMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources
 	});
 
@@ -433,7 +443,7 @@ test.serial("Check if utf8 characters are correctly processed in version replace
 		}
 	};
 	const middleware = serveResourcesMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources
 	});
 

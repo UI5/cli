@@ -1,5 +1,6 @@
 import middlewareRepository from "./middlewareRepository.js";
 import MiddlewareUtil from "./MiddlewareUtil.js";
+import logger from "@ui5/logger";
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
 /**
@@ -20,20 +21,22 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
  * @alias @ui5/server/internal/MiddlewareManager
  */
 class MiddlewareManager {
-	constructor({graph, resources, options = {
+	constructor({graph, rootProject, resources, options = {
 		sendSAPTargetCSP: false,
 		serveCSPReports: false
 	}}) {
-		if (!graph || !resources || !resources.all || !resources.rootProject || !resources.dependencies) {
+		if (!graph || !rootProject || !resources || !resources.all ||
+			!resources.rootProject || !resources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
 		}
 		this.graph = graph;
+		this.rootProject = rootProject;
 		this.resources = resources;
 		this.options = options;
 
 		this.middleware = Object.create(null);
 		this.middlewareExecutionOrder = [];
-		this.middlewareUtil = new MiddlewareUtil();
+		this.middlewareUtil = new MiddlewareUtil({graph, project: rootProject});
 	}
 
 	/**
@@ -275,19 +278,22 @@ class MiddlewareManager {
 			await this.addMiddleware(middlewareDef.name, {
 				customMiddleware: async ({resources, middlewareUtil}) => {
 					const customMiddleware = this.graph.getExtension(middlewareDef.name);
-					const specVersion = customMiddleware.getSpecVersion();
-					const options = {
-						configuration: middlewareDef.configuration
+
+					const params = {
+						resources,
+						options: {
+							configuration: middlewareDef.configuration
+						}
 					};
-					const params = {resources, options};
-					if (
-						specVersion === "2.0" || specVersion === "2.1" ||
-						specVersion === "2.2" || specVersion === "2.3" ||
-						specVersion === "2.4" || specVersion === "2.5" ||
-						specVersion === "2.6"
-					) {
-						// Supply interface to MiddlewareUtil instance starting with specVersion 2.0
-						params.middlewareUtil = middlewareUtil.getInterface(specVersion);
+
+					const specVersion = customMiddleware.getSpecVersion();
+					if (specVersion.gte("3.0")) {
+						params.options.middlewareName = middlewareDef.name;
+						params.log = logger.getGroupLogger(`server:custom-middleware:${middlewareDef.name}`);
+					}
+					const middlewareUtilInterface = middlewareUtil.getInterface(specVersion);
+					if (middlewareUtilInterface) {
+						params.middlewareUtil = middlewareUtilInterface;
 					}
 					return (await customMiddleware.getMiddleware())(params);
 				},

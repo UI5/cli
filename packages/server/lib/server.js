@@ -165,6 +165,7 @@ export async function serve(graph, {
 
 	const middlewareManager = new MiddlewareManager({
 		graph,
+		rootProject,
 		resources,
 		options: {
 			sendSAPTargetCSP,

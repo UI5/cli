@@ -26,7 +26,7 @@ test.serial("serveIndex default", async (t) => {
 		writeResource(readerWriter, "/.myFile4", Buffer.alloc(1024)), // hidden 1 KB
 	]);
 	const middleware = serveIndexMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		}
@@ -92,7 +92,7 @@ test.serial("serveIndex no hidden", async (t) => {
 		writeResource(readerWriter, "/.myFile4", Buffer.alloc(1024)), // hidden 1 KB
 	]);
 	const middleware = serveIndexMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		},
@@ -161,7 +161,7 @@ test.serial("serveIndex no details", async (t) => {
 		writeResource(readerWriter, "/.myFile4", Buffer.alloc(1024)), // hidden 1 KB
 	]);
 	const middleware = serveIndexMiddleware({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources: {
 			all: readerWriter
 		},

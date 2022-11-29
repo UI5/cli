@@ -130,7 +130,7 @@ test.beforeEach(async (t) => {
 	t.context.byPath = resources.all.byPath;
 
 	t.context.middleware = t.context.serveThemes({
-		middlewareUtil: new MiddlewareUtil(),
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
 		resources
 	});
 });

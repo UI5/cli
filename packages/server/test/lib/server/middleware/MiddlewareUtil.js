@@ -3,17 +3,22 @@ import sinon from "sinon";
 import esmock from "esmock";
 import mime from "mime-types";
 import MiddlewareUtil from "../../../../lib/middleware/MiddlewareUtil.js";
+import SpecificationVersion from "@ui5/project/specifications/SpecificationVersion";
 
 test.afterEach.always((t) => {
 	sinon.restore();
 });
+
+function getSpecificationVersion(specVersion) {
+	return new SpecificationVersion(specVersion);
+}
 
 test.serial("getPathname", async (t) => {
 	const parseurlStub = sinon.stub().returns({pathname: "path%20name"});
 	const MiddlewareUtil = await esmock("../../../../lib/middleware/MiddlewareUtil.js", {
 		parseurl: parseurlStub
 	});
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const pathname = middlewareUtil.getPathname("req");
 
 	t.is(parseurlStub.callCount, 1, "parseurl got called once");
@@ -22,7 +27,7 @@ test.serial("getPathname", async (t) => {
 });
 
 test.serial("getMimeInfo", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const lookupStub = sinon.stub(mime, "lookup").returns("mytype");
 	const charsetStub = sinon.stub(mime, "charset").returns("mycharset");
 
@@ -40,7 +45,7 @@ test.serial("getMimeInfo", (t) => {
 });
 
 test.serial("getMimeInfo: unknown type", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const lookupStub = sinon.stub(mime, "lookup");
 	const charsetStub = sinon.stub(mime, "charset");
 
@@ -57,18 +62,110 @@ test.serial("getMimeInfo: unknown type", (t) => {
 	}, "Correct pathname returned");
 });
 
-test("getInterface: specVersion 1.0", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+test("getProject", (t) => {
+	const getProjectStub = sinon.stub().returns("Pony farm!");
+	const getProjectNameStub = sinon.stub().returns("root project name");
+	const middlewareUtil = new MiddlewareUtil({
+		graph: {
+			getProject: getProjectStub
+		},
+		project: {
+			getName: getProjectNameStub
+		}
+	});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("1.0");
+	const res = middlewareUtil.getProject("pony farm");
+
+	t.is(getProjectStub.callCount, 1, "ProjectGraph#getProject got called once");
+	t.is(getProjectStub.getCall(0).args[0], "pony farm",
+		"ProjectGraph#getProject got called with correct arguments");
+	t.is(getProjectNameStub.callCount, 0, "#getName of root project has not been called");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
+test("getProject: Default name", (t) => {
+	const getProjectStub = sinon.stub().returns("Pony farm!");
+	const middlewareUtil = new MiddlewareUtil({
+		graph: {
+			getProject: getProjectStub
+		},
+		project: "root project"
+	});
+
+	const res = middlewareUtil.getProject();
+
+	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject never got called");
+	t.is(res, "root project", "Correct result");
+});
+
+test("getDependencies", (t) => {
+	const getDependenciesStub = sinon.stub().returns("Pony farm!");
+	const getProjectNameStub = sinon.stub().returns("root project name");
+	const middlewareUtil = new MiddlewareUtil({
+		graph: {
+			getDependencies: getDependenciesStub
+		},
+		project: {
+			getName: getProjectNameStub
+		}
+	});
+
+	const res = middlewareUtil.getDependencies("pony farm");
+
+	t.is(getDependenciesStub.callCount, 1, "ProjectGraph#getDependencies got called once");
+	t.is(getDependenciesStub.getCall(0).args[0], "pony farm",
+		"ProjectGraph#getDependencies got called with correct arguments");
+	t.is(getProjectNameStub.callCount, 0, "#getName of root project has not been called");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
+test("getDependencies: Default name", (t) => {
+	const getDependenciesStub = sinon.stub().returns("Pony farm!");
+	const getProjectNameStub = sinon.stub().returns("root project name");
+	const middlewareUtil = new MiddlewareUtil({
+		graph: {
+			getDependencies: getDependenciesStub
+		},
+		project: {
+			getName: getProjectNameStub
+		}
+	});
+
+	const res = middlewareUtil.getDependencies();
+
+	t.is(getDependenciesStub.callCount, 1, "ProjectGraph#getDependencies got called once");
+	t.is(getDependenciesStub.getCall(0).args[0], "root project name",
+		"ProjectGraph#getDependencies got called with correct arguments");
+	t.is(getProjectNameStub.callCount, 1, "#getName of root project has been called once");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
+test.serial("resourceFactory", (t) => {
+	const {resourceFactory} = new MiddlewareUtil({graph: "graph", project: "project"});
+	t.is(typeof resourceFactory.createResource, "function",
+		"resourceFactory function createResource is available");
+	t.is(typeof resourceFactory.createReaderCollectionPrioritized, "function",
+		"resourceFactory function createReaderCollectionPrioritized is available");
+	t.is(typeof resourceFactory.createFilterReader, "function",
+		"resourceFactory function createFilterReader is available");
+	t.is(typeof resourceFactory.createLinkReader, "function",
+		"resourceFactory function createLinkReader is available");
+	t.is(typeof resourceFactory.createFlatReader, "function",
+		"resourceFactory function createFlatReader is available");
+});
+
+test("getInterface: specVersion 1.0", (t) => {
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
+
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("1.0"));
 
 	t.is(interfacedMiddlewareUtil, undefined, "no interface provided");
 });
 
 test("getInterface: specVersion 2.0", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.0");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.0"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -80,9 +177,9 @@ test("getInterface: specVersion 2.0", (t) => {
 });
 
 test("getInterface: specVersion 2.1", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.1");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.1"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -94,9 +191,9 @@ test("getInterface: specVersion 2.1", (t) => {
 });
 
 test("getInterface: specVersion 2.2", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.2");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.2"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -108,9 +205,9 @@ test("getInterface: specVersion 2.2", (t) => {
 });
 
 test("getInterface: specVersion 2.3", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.3");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.3"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -122,9 +219,9 @@ test("getInterface: specVersion 2.3", (t) => {
 });
 
 test("getInterface: specVersion 2.4", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.4");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.4"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -136,9 +233,9 @@ test("getInterface: specVersion 2.4", (t) => {
 });
 
 test("getInterface: specVersion 2.5", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.5");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.5"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -150,9 +247,9 @@ test("getInterface: specVersion 2.5", (t) => {
 });
 
 test("getInterface: specVersion 2.6", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 
-	const interfacedMiddlewareUtil = middlewareUtil.getInterface("2.6");
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("2.6"));
 
 	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
 		"getPathname",
@@ -163,23 +260,94 @@ test("getInterface: specVersion 2.6", (t) => {
 	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
 });
 
-test("getInterface: specVersion undefined", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
-
-	const err = t.throws(() => {
-		middlewareUtil.getInterface();
+test("getInterface: specVersion 3.0", (t) => {
+	const getProjectStub = sinon.stub().returns({
+		getSpecVersion: () => "specVersion",
+		getType: () => "type",
+		getName: () => "name",
+		getVersion: () => "version",
+		getNamespace: () => "namespace",
+		getRootReader: () => "rootReader",
+		getReader: () => "reader",
+		getCustomConfiguration: () => "customConfiguration",
+		isFrameworkProject: () => "isFrameworkProject",
+		hasBuildManifest: () => "hasBuildManifest", // Should not be exposed
+		getFrameworkVersion: () => "frameworkVersion", // Should not be exposed
 	});
+	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
 
-	t.is(err.message, "MiddlewareUtil: Unknown or unsupported Specification Version undefined",
-		"Throw with correct error message");
+	const mockGraph = {
+		getProject: getProjectStub,
+		getDependencies: getDependenciesStub
+	};
+
+	const middlewareUtil = new MiddlewareUtil({graph: mockGraph, project: "project"});
+
+	const interfacedMiddlewareUtil = middlewareUtil.getInterface(getSpecificationVersion("3.0"));
+
+	t.deepEqual(Object.keys(interfacedMiddlewareUtil), [
+		"getPathname",
+		"getMimeInfo",
+		"getProject",
+		"getDependencies",
+		"resourceFactory",
+	], "Correct methods are provided");
+
+	t.is(typeof interfacedMiddlewareUtil.getPathname, "function", "function getPathname is provided");
+	t.is(typeof interfacedMiddlewareUtil.getMimeInfo, "function", "function getMimeInfo is provided");
+	t.is(typeof interfacedMiddlewareUtil.getProject, "function", "function getProject is provided");
+	t.is(typeof interfacedMiddlewareUtil.getDependencies, "function", "function getDependencies is provided");
+
+	// getProject
+	const interfacedProject = interfacedMiddlewareUtil.getProject("pony");
+	t.deepEqual(Object.keys(interfacedProject), [
+		"getType",
+		"getName",
+		"getVersion",
+		"getNamespace",
+		"getRootReader",
+		"getReader",
+		"getCustomConfiguration",
+		"isFrameworkProject",
+	], "Correct methods are provided");
+
+	t.is(interfacedProject.getType(), "type", "getType function is bound correctly");
+	t.is(interfacedProject.getName(), "name", "getName function is bound correctly");
+	t.is(interfacedProject.getVersion(), "version", "getVersion function is bound correctly");
+	t.is(interfacedProject.getNamespace(), "namespace", "getNamespace function is bound correctly");
+	t.is(interfacedProject.getRootReader(), "rootReader", "getRootReader function is bound correctly");
+	t.is(interfacedProject.getReader(), "reader", "getReader function is bound correctly");
+	t.is(interfacedProject.getCustomConfiguration(), "customConfiguration",
+		"getCustomConfiguration function is bound correctly");
+	t.is(interfacedProject.isFrameworkProject(), "isFrameworkProject",
+		"isFrameworkProject function is bound correctly");
+
+	// getDependencies
+	t.deepEqual(interfacedMiddlewareUtil.getDependencies("pony"), ["dep a", "dep b"],
+		"getDependencies function is available and bound correctly");
+
+	// resourceFactory
+	const resourceFactory = interfacedMiddlewareUtil.resourceFactory;
+	t.is(typeof resourceFactory.createResource, "function",
+		"resourceFactory function createResource is available");
+	t.is(typeof resourceFactory.createReaderCollectionPrioritized, "function",
+		"resourceFactory function createReaderCollectionPrioritized is available");
+	t.is(typeof resourceFactory.createFilterReader, "function",
+		"resourceFactory function createFilterReader is available");
+	t.is(typeof resourceFactory.createLinkReader, "function",
+		"resourceFactory function createLinkReader is available");
+	t.is(typeof resourceFactory.createFlatReader, "function",
+		"resourceFactory function createFlatReader is available");
 });
 
 test("getInterface: specVersion unknown", (t) => {
-	const middlewareUtil = new MiddlewareUtil();
+	const middlewareUtil = new MiddlewareUtil({graph: "graph", project: "project"});
 	const err = t.throws(() => {
-		middlewareUtil.getInterface("1.5");
+		middlewareUtil.getInterface(getSpecificationVersion("1.5"));
 	});
 
-	t.is(err.message, "MiddlewareUtil: Unknown or unsupported Specification Version 1.5",
+	t.is(err.message,
+		"Unsupported Specification Version 1.5 defined. Your UI5 CLI installation might be outdated. " +
+		"For details, see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
 		"Throw with correct error message");
 });
