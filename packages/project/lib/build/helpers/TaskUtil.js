@@ -1,4 +1,5 @@
 import {
+	createReaderCollection,
 	createReaderCollectionPrioritized,
 	createResource,
 	createFilterReader,
@@ -236,6 +237,8 @@ class TaskUtil {
 	 * @typedef {object} @ui5/project/build/helpers/TaskUtil~resourceFactory
 	 * @property {Function} createResource Creates a [Resource]{@link @ui5/fs/Resource}.
 	 * 	Accepts the same parameters as the [Resource]{@link @ui5/fs/Resource} constructor.
+	 * @property {Function} createReaderCollection Creates a reader collection:
+	 *	[ReaderCollection]{@link @ui5/fs/ReaderCollection}
 	 * @property {Function} createReaderCollectionPrioritized Creates a prioritized reader collection:
 	 *	[ReaderCollectionPrioritized]{@link @ui5/fs/ReaderCollectionPrioritized}
 	 * @property {Function} createFilterReader
@@ -258,6 +261,7 @@ class TaskUtil {
 	 */
 	resourceFactory = {
 		createResource,
+		createReaderCollection,
 		createReaderCollectionPrioritized,
 		createFilterReader,
 		createLinkReader,
@@ -305,7 +309,7 @@ class TaskUtil {
 			[
 				// Once new functions get added, extract this array into a variable
 				// and enhance based on spec version once new functions get added
-				"createResource", "createReaderCollectionPrioritized",
+				"createResource", "createReaderCollection", "createReaderCollectionPrioritized",
 				"createFilterReader", "createLinkReader", "createFlatReader",
 			].forEach((factoryFunction) => {
 				baseInterface.resourceFactory[factoryFunction] = this.resourceFactory[factoryFunction];
