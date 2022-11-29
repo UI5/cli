@@ -19,7 +19,7 @@ const log = logger.getLogger("lbt:analyzer:JSModuleAnalyzer");
 
 // ------------------------------------------------------------------------------------------------------------------
 
-const EnrichedVisitorKeys = (function() {
+export const EnrichedVisitorKeys = (function() {
 	function toBeDone() {
 		return null;
 	}
@@ -184,36 +184,23 @@ const EnrichedVisitorKeys = (function() {
 
 	// merge with 'official' visitor keys
 	Object.keys(VisitorKeys).forEach( (type) => {
-		// Ignore deprecated keys:
-		// - ExperimentalSpreadProperty => SpreadElement
-		// - ExperimentalRestProperty => RestElement
-		// They are about to be removed, see: https://github.com/eslint/eslint-visitor-keys/pull/36
-		if (type === "ExperimentalSpreadProperty" || type === "ExperimentalRestProperty") {
-			return;
-		}
-		// Ignore JSX visitor-keys because they aren't used.
-		if (type.startsWith("JSX")) {
-			return;
-		}
-
 		const visitorKeys = VisitorKeys[type];
 		const condKeys = TempKeys[type];
-		if ( condKeys === undefined ) {
-			// configuration missing in ConditionalKeys, maybe a new syntax ?
-			throw new Error(`unknown estree node type '${type}', new syntax?`);
-		} else if ( Array.isArray(condKeys) ) {
+		if ( Array.isArray(condKeys) ) {
 			// check configured keys against visitor keys
 			condKeys.forEach( (key) => {
-				if ( visitorKeys.indexOf(key) < 0 ) {
+				if ( !visitorKeys.includes(key) ) {
 					throw new Error(`configuration for type '${type}' contains unknown key '${key}'`);
 				}
 			});
 			TempKeys[type] = visitorKeys.map( (key) => ({
 				key: key,
-				conditional: condKeys.indexOf(key) >= 0
+				conditional: condKeys.includes(key)
 			}) );
-		} else {
+		} else if (condKeys === null) {
 			// this is a 'toBeDone' node type, keep null and complain at runtime when such a node occurs
+		} else {
+			// undefined => ignored node type (see JSModuleAnalyzer consistency test)
 		}
 	});
 
@@ -749,7 +736,7 @@ class JSModuleAnalyzer {
 				const value = getStringValue(item);
 				if ( value !== undefined ) {
 					// ignore special AMD dependencies (require, exports, module)
-					if ( SPECIAL_AMD_DEPENDENCIES.indexOf(value) >= 0 ) {
+					if ( SPECIAL_AMD_DEPENDENCIES.includes(value) ) {
 						return;
 					}
 					let requiredModule;

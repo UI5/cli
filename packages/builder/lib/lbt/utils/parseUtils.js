@@ -3,11 +3,19 @@ import {parse} from "espree";
 
 const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
 
+/*
+ * NOTE: After updating the ecmaVersion:
+ * - Adopt JSModuleAnalyzer to handle new Syntax / VisitorKeys.
+ * - Adjust the JSModuleAnalyzer test "Check for consistency between VisitorKeys and EnrichedVisitorKeys"
+ *   (See comments in test for details)
+*/
+export const ecmaVersion = 2022;
+
 export function parseJS(code, userOptions = {}) {
 	// allowed options and their defaults
 	const options = {
 		comment: false,
-		ecmaVersion: 2022, // NOTE: Adopt JSModuleAnalyzer.js to allow new Syntax when upgrading to newer ECMA versions
+		ecmaVersion,
 		range: false,
 		sourceType: "script",
 	};

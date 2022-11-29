@@ -2,9 +2,9 @@ import test from "ava";
 
 import fs from "node:fs";
 import path from "node:path";
-import {parseJS} from "../../../../lib/lbt/utils/parseUtils.js";
+import {ecmaVersion, parseJS, VisitorKeys} from "../../../../lib/lbt/utils/parseUtils.js";
 import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
-import JSModuleAnalyzer from "../../../../lib/lbt/analyzer/JSModuleAnalyzer.js";
+import JSModuleAnalyzer, {EnrichedVisitorKeys} from "../../../../lib/lbt/analyzer/JSModuleAnalyzer.js";
 
 import {fileURLToPath} from "node:url";
 const __filename = fileURLToPath(import.meta.url);
@@ -118,6 +118,38 @@ async function analyzeModule(
 		}
 	}); // .then(() => t.end(), (e) => t.fail(`failed to analyze module with error: ${e.message}`));
 }
+
+test("Check for consistency between VisitorKeys and EnrichedVisitorKeys", (t) => {
+	// This test is supposed to run and might fail when a new ecmaVersion is configured to be used
+	// and not all new VisitorKeys are handled by the EnrichedVisitorKeys.
+
+	// After updating the ecmaVersion in parseUtils, this test runs and should be fixed by adding
+	// the relevant keys within JSModuleAnalyzer or ignoring them (e.g. like JSX*).
+
+	// Only then, the if-clause below should be changed to the new ecmaVersion to prevent the test
+	// from failing when new VisitorKeys are available via espree.
+
+	if (ecmaVersion > 2022) {
+		Object.keys(VisitorKeys).forEach( (type) => {
+			// Ignore deprecated keys:
+			// - ExperimentalSpreadProperty => SpreadElement
+			// - ExperimentalRestProperty => RestElement
+			// They are about to be removed, see: https://github.com/eslint/eslint-visitor-keys/pull/36
+			if (type === "ExperimentalSpreadProperty" || type === "ExperimentalRestProperty") {
+				return;
+			}
+
+			// Ignore JSX visitor-keys because they aren't used.
+			if (type.startsWith("JSX")) {
+				return;
+			}
+
+			t.not(EnrichedVisitorKeys[type], undefined, `unknown estree node type '${type}', new syntax?`);
+		});
+	} else {
+		t.pass("ecmaVersion is not updated. Skipping test");
+	}
+});
 
 test("DeclareToplevel", analyzeModule,
 	"modules/declare_toplevel.js", EXPECTED_MODULE_NAME, EXPECTED_DECLARE_DEPENDENCIES);
