@@ -2,7 +2,23 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.2...HEAD).
+
+<a name="v3.0.0-beta.2"></a>
+## [v3.0.0-beta.2] - 2022-11-17
+### Breaking Changes
+- Removal of manifestBundler and generateManifestBundle ([#838](https://github.com/SAP/ui5-builder/issues/838)) [`07a5be2`](https://github.com/SAP/ui5-builder/commit/07a5be2b6d9aa23cf78ddd17951c832d6dec7bef)
+- **JSDoc:** Fail build when jsdoc command failed ([#845](https://github.com/SAP/ui5-builder/issues/845)) [`c2916b4`](https://github.com/SAP/ui5-builder/commit/c2916b4f1d49b5500e4b51143d4e6065ac200eef)
+
+### Features
+- Support ES2022 language features ([#848](https://github.com/SAP/ui5-builder/issues/848)) [`f9b8457`](https://github.com/SAP/ui5-builder/commit/f9b845726731a0e02ec4a499e2a1a82a639174a8)
+
+### BREAKING CHANGE
+
+The `jsdocGenerator` processor and the corresponding `generateJsdoc` task will now throw an error when JSDoc reports an error (exit code != 0). This will also fail the build when running `ui5 build jsdoc`.
+
+The manifestBundler processor and generateManifestBundle task has been removed because it is no longer required for the HTML5 repository in Cloud Foundry.
+
 
 <a name="v3.0.0-beta.1"></a>
 ## [v3.0.0-beta.1] - 2022-11-07
@@ -787,6 +803,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-beta.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.1...v3.0.0-beta.2
 [v3.0.0-beta.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.12...v3.0.0-beta.1
 [v3.0.0-alpha.12]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.11...v3.0.0-alpha.12
 [v3.0.0-alpha.11]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.10...v3.0.0-alpha.11
