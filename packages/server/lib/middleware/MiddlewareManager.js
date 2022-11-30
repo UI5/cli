@@ -61,7 +61,7 @@ class MiddlewareManager {
 	 * Adds the given middleware configuration
 	 *
 	 * @private
-	 * @param {string} configuredMiddlewareName The name of the middleware
+	 * @param {string} middlewareName The name of the middleware
 	 * @param {object} [options] The Options of the middleware
 	 * @param {object} [options.customMiddleware] The custom middleware
 	 * @param {Function} [options.wrapperCallback] Callback called when middleware is called
@@ -69,15 +69,19 @@ class MiddlewareManager {
 	 * @param {string} [options.beforeMiddleware] The name of the middleware called before the added middleware
 	 * @param {string} [options.afterMiddleware] The name of the middleware called after the added middleware
 	 */
-	async addMiddleware(configuredMiddlewareName, {
+	async addMiddleware(middlewareName, {
 		customMiddleware, wrapperCallback, mountPath = "/",
 		beforeMiddleware, afterMiddleware
 	} = {}) {
+		if (this.middleware[middlewareName]) {
+			throw new Error(`A middleware with the name ${middlewareName} has already been added`);
+		}
+
 		let middlewareCallback;
 		if (customMiddleware) {
 			middlewareCallback = customMiddleware;
 		} else {
-			const middlewareInfo = await middlewareRepository.getMiddleware(configuredMiddlewareName);
+			const middlewareInfo = await middlewareRepository.getMiddleware(middlewareName);
 			if (wrapperCallback) {
 				middlewareCallback = wrapperCallback(middlewareInfo);
 			} else {
@@ -85,16 +89,6 @@ class MiddlewareManager {
 			}
 		}
 
-		let middlewareName = configuredMiddlewareName;
-		if (this.middleware[middlewareName]) {
-			// Middleware is already known
-			// => add a suffix to allow for multiple configurations of the same middleware
-			let suffixCounter = 0;
-			while (this.middleware[middlewareName]) {
-				suffixCounter++; // Start at 1
-				middlewareName = `${configuredMiddlewareName}--${suffixCounter}`;
-			}
-		}
 		if (this.middlewareExecutionOrder.includes(middlewareName)) {
 			throw new Error(`Middleware ${middlewareName} already added to execution order. This should not happen.`);
 		}
@@ -275,7 +269,19 @@ class MiddlewareManager {
 					`Custom middleware definition ${middlewareDef.name} of project ${project.getName()} ` +
 					`defines neither a "beforeMiddleware" nor an "afterMiddleware" parameter. One must be defined.`);
 			}
-			await this.addMiddleware(middlewareDef.name, {
+
+			let middlewareName = middlewareDef.name;
+			if (this.middleware[middlewareName]) {
+				// Middleware is already known
+				// => add a suffix to allow for multiple configurations of the same middleware
+				let suffixCounter = 0;
+				while (this.middleware[middlewareName]) {
+					suffixCounter++; // Start at 1
+					middlewareName = `${middlewareDef.name}--${suffixCounter}`;
+				}
+			}
+
+			await this.addMiddleware(middlewareName, {
 				customMiddleware: async ({resources, middlewareUtil}) => {
 					const customMiddleware = this.graph.getExtension(middlewareDef.name);
 
@@ -288,7 +294,7 @@ class MiddlewareManager {
 
 					const specVersion = customMiddleware.getSpecVersion();
 					if (specVersion.gte("3.0")) {
-						params.options.middlewareName = middlewareDef.name;
+						params.options.middlewareName = middlewareName;
 						params.log = logger.getGroupLogger(`server:custom-middleware:${middlewareDef.name}`);
 					}
 					const middlewareUtilInterface = middlewareUtil.getInterface(specVersion);

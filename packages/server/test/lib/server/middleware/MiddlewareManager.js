@@ -79,7 +79,7 @@ test("applyMiddleware", async (t) => {
 	t.is(appUseStub.getCall(0).args[1], "myMiddleware", "app.use got called with correct middleware parameter");
 });
 
-test("addMiddleware: Adding already added middleware produces unique middleware name", async (t) => {
+test("addMiddleware: Adding already added middleware", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
 		rootProject: "root project",
@@ -93,27 +93,11 @@ test("addMiddleware: Adding already added middleware produces unique middleware 
 	await middlewareManager.addMiddleware("serveIndex", {
 		mountPath: "/pony"
 	});
-	await middlewareManager.addMiddleware("serveIndex", {
+	await t.throwsAsync(middlewareManager.addMiddleware("serveIndex", {
 		mountPath: "/seagull"
+	}), {
+		message: "A middleware with the name serveIndex has already been added"
 	});
-	await middlewareManager.addMiddleware("serveIndex", {
-		mountPath: "/goose"
-	});
-	t.truthy(middlewareManager.middleware["serveIndex"], "Middleware got added to internal map with unique name");
-	t.is(middlewareManager.middleware["serveIndex"].mountPath, "/pony",
-		"Middleware got added correct mount path");
-	t.truthy(middlewareManager.middleware["serveIndex--1"], "Middleware got added to internal map with unique name");
-	t.is(middlewareManager.middleware["serveIndex--1"].mountPath, "/seagull",
-		"Middleware got added correct mount path");
-	t.truthy(middlewareManager.middleware["serveIndex--2"], "Middleware got added to internal map with unique name");
-	t.is(middlewareManager.middleware["serveIndex--2"].mountPath, "/goose",
-		"Middleware got added correct mount path");
-
-	t.deepEqual(middlewareManager.middlewareExecutionOrder, [
-		"serveIndex",
-		"serveIndex--1",
-		"serveIndex--2"
-	], "Middlewares got added to middlewareExecutionOrder in correct order and with correct unique names");
 });
 
 test("addMiddleware: Adding middleware already added to middlewareExecutionOrder", async (t) => {
@@ -411,7 +395,7 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 		"addMiddleware was called with correct afterMiddleware option");
 });
 
-test("addCustomMiddleware: No special handling for custom middleware with duplicate name", async (t) => {
+test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => {
 	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
@@ -434,11 +418,12 @@ test("addCustomMiddleware: No special handling for custom middleware with duplic
 		}
 	});
 	middlewareManager.middleware["my custom middleware A"] = true;
+	middlewareManager.middleware["my custom middleware A--1"] = true;
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addCustomMiddleware();
 
 	t.is(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
-	t.is(addMiddlewareStub.getCall(0).args[0], "my custom middleware A",
+	t.is(addMiddlewareStub.getCall(0).args[0], "my custom middleware A--2",
 		"addMiddleware was called with correct middleware name");
 });
 
@@ -616,7 +601,7 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 			return {
 				getName: () => "my project",
 				getCustomMiddleware: () => [{
-					name: "my custom middleware A",
+					name: "my custom middleware",
 					beforeMiddleware: "cors",
 					configuration: {
 						"🦊": "🐰"
@@ -635,6 +620,9 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 			dependencies: "ponies"
 		}
 	});
+	// Simulate that a custom middleware with the same name has already been added (twice)
+	middlewareManager.middleware["my custom middleware"] = true;
+	middlewareManager.middleware["my custom middleware--1"] = true;
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addCustomMiddleware();
 
@@ -663,7 +651,7 @@ test("addCustomMiddleware with specVersion 3.0", async (t) => {
 			configuration: {
 				"🦊": "🐰"
 			},
-			middlewareName: "my custom middleware A"
+			middlewareName: "my custom middleware--2"
 		},
 		middlewareUtil: "interfacedMiddlewareUtil",
 		log: "group logger"
