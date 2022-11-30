@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.3...HEAD).
+
+<a name="v3.0.0-beta.3"></a>
+## [v3.0.0-beta.3] - 2022-11-29
+### Features
+- **jsdoc:** Support destructuring of enums for defaultValue ([#775](https://github.com/SAP/ui5-builder/issues/775)) [`523f365`](https://github.com/SAP/ui5-builder/commit/523f365cb917997c5031d245309c21e9e4b3e311)
+
 
 <a name="v3.0.0-beta.2"></a>
-## [v3.0.0-beta.2] - 2022-11-17
+## [v3.0.0-beta.2] - 2022-11-29
 ### Breaking Changes
 - Removal of manifestBundler and generateManifestBundle ([#838](https://github.com/SAP/ui5-builder/issues/838)) [`07a5be2`](https://github.com/SAP/ui5-builder/commit/07a5be2b6d9aa23cf78ddd17951c832d6dec7bef)
 - **JSDoc:** Fail build when jsdoc command failed ([#845](https://github.com/SAP/ui5-builder/issues/845)) [`c2916b4`](https://github.com/SAP/ui5-builder/commit/c2916b4f1d49b5500e4b51143d4e6065ac200eef)
@@ -803,6 +809,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-beta.3]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.1...v3.0.0-beta.2
 [v3.0.0-beta.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.12...v3.0.0-beta.1
 [v3.0.0-alpha.12]: https://github.com/SAP/ui5-builder/compare/v3.0.0-alpha.11...v3.0.0-alpha.12
