@@ -119,7 +119,7 @@
 		"@ui5/builder": "^3.0.0-beta.3",
 		"@ui5/fs": "^3.0.0-beta.3",
 		"@ui5/logger": "^3.0.1-beta.1",
-		"@ui5/project": "^3.0.0-beta.3",
+		"@ui5/project": "^3.0.0-beta.4",
 		"@ui5/server": "^3.0.0-beta.3",
 		"chalk": "^5.1.2",
 		"data-with-position": "^0.5.0",
