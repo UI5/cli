@@ -37,36 +37,6 @@ test("Get resource from application.a (/index.html) and write it to /dest/ using
 	});
 });
 
-test("Legacy: Filter resources", async (t) => {
-	const source = createAdapter({
-		fsBasePath: "./test/fixtures/application.a/webapp",
-		virBasePath: "/app/"
-	});
-	const filteredSource = await source.filter((resource) => {
-		return resource.getPath().endsWith(".js");
-	});
-	const sourceResources = await source.byGlob("**");
-	t.is(sourceResources.length, 2, "Found two resources in source");
-
-	const resources = await filteredSource.byGlob("**");
-
-	t.is(resources.length, 1, "Found exactly one resource via filter");
-	t.is(resources[0].getPath(), "/app/test.js", "Found correct resource");
-});
-
-test("Legacy: Flatten resources", async (t) => {
-	const source = createAdapter({
-		fsBasePath: "./test/fixtures/application.a/webapp",
-		virBasePath: "/resources/app/"
-	});
-	const transformedSource = await source.flatten("app");
-
-	const resources = await transformedSource.byGlob("**/*.js");
-	t.is(resources.length, 1, "Found one resource via transformer");
-	t.is(resources[0].getPath(), "/test.js", "Found correct resource");
-});
-
-
 test("Filter resources", async (t) => {
 	const source = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",

@@ -83,46 +83,6 @@ class AbstractReader {
 	}
 
 	/**
-	 * Create a [Filter-Reader]{@link @ui5/fs/readers/Filter} from the current reader.
-	 *
-	 * @public
-	 * @param {@ui5/fs/readers/Filter~callback} callback
-	 * 				Filter function. Will be called for every resource passed through this reader.
-	 * @returns {Promise<@ui5/fs/readers/Filter>} Promise resolving with filter instance
-	 */
-	async filter(callback) {
-		console.warn("DEPRECATED CALL TO AbstractReader#filter - THIS FUNCTION WILL BE REMOVED IN THE NEXT RELEASE");
-		const {default: Filter} = await import("./readers/Filter.js");
-		return new Filter({
-			reader: this,
-			callback
-		});
-	}
-
-	/**
-	 * Create a [Link-Reader]{@link @ui5/fs/readers/Link} where all requests are prefixed with
-	 * <code>/resources/<namespace></code>.
-	 *
-	 * This simulates "flat" resource access, which is for example common for projects of type
-	 * "application".
-	 *
-	 * @public
-	 * @param {string} namespace Project namespace
-	 * @returns {Promise<@ui5/fs/readers/Link>} Promise resolving with reader instance
-	 */
-	async flatten(namespace) {
-		console.warn("DEPRECATED CALL TO AbstractReader#flatten - THIS FUNCTION WILL BE REMOVED IN THE NEXT RELEASE");
-		const {default: Link} = await import("./readers/Link.js");
-		return new Link({
-			reader: this,
-			pathMapping: {
-				linkPath: `/`,
-				targetPath: `/resources/${namespace}/`
-			}
-		});
-	}
-
-	/**
 	 * Locates resources by one or more glob patterns.
 	 *
 	 * @abstract
