@@ -91,18 +91,22 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 			`unable to generate complete bundles for such projects.`);
 	}
 
-	let combo = new ReaderCollectionPrioritized({
+	const combo = new ReaderCollectionPrioritized({
 		name: `generateStandaloneAppBundle - prioritize workspace over dependencies: ${projectName}`,
 		readers: [workspace, dependencies]
 	});
 
+	let resourceReader = combo;
 	if (taskUtil) {
 		// Omit -dbg files
-		combo = await combo.filter(function(resource) {
-			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+		resourceReader = await taskUtil.resourceFactory.createFilterReader({
+			reader: combo,
+			callback: function(resource) {
+				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant);
+			}
 		});
 	}
-	const resources = await combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
+	const resources = await resourceReader.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
 	const isEvo = resources.find((resource) => {
 		return resource.getPath() === "/resources/ui5loader.js";
@@ -117,13 +121,16 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 	let unoptimizedModuleNameMapping;
 	let unoptimizedResources = resources;
 	if (taskUtil) {
-		unoptimizedResources = await (await new ReaderCollectionPrioritized({
-			name: `generateStandaloneAppBundle - prioritize workspace over dependencies: ${projectName}`,
-			readers: [workspace, dependencies]
-		}).filter(function(resource) {
-			// Remove any non-debug variants
-			return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
-		})).byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
+		const unoptimizedResourceReader = await taskUtil.resourceFactory.createFilterReader({
+			reader: combo,
+			callback: function(resource) {
+				// Remove any non-debug variants
+				return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
+			}
+		});
+
+		unoptimizedResources = await unoptimizedResourceReader
+			.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
 		unoptimizedModuleNameMapping = createModuleNameMapping({
 			resources: unoptimizedResources,

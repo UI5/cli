@@ -10,6 +10,9 @@ test.beforeEach(async (t) => {
 	t.context.moduleBundlerStub = sinon.stub();
 	t.context.moduleBundlerStub.resolves([{bundle: "I am a resource", sourceMap: "I am a source map"}]);
 
+	t.context.createFilterReaderStub = sinon.stub().callsFake((params) => {
+		return params.reader;
+	});
 	t.context.taskUtil = {
 		getTag: sinon.stub().returns(false),
 		setTag: sinon.stub(),
@@ -18,6 +21,9 @@ test.beforeEach(async (t) => {
 			HasDebugVariant: "<HasDebugVariant>",
 			IsDebugVariant: "<IsDebugVariant>",
 			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: t.context.createFilterReaderStub
 		}
 	};
 	t.context.generateStandaloneAppBundle =
@@ -170,7 +176,7 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 });
 
 test.serial("execute module bundler with taskUtil", async (t) => {
-	const {generateStandaloneAppBundle, taskUtil} = t.context;
+	const {generateStandaloneAppBundle, taskUtil, createFilterReaderStub, moduleBundlerStub} = t.context;
 
 	const dummyResource1 = createDummyResource("1.js");
 	const dummyResource2 = createDummyResource("2-dbg.js");
@@ -209,10 +215,38 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 	};
 	await generateStandaloneAppBundle(params);
 
-	t.is(t.context.moduleBundlerStub.callCount, 2);
+	t.is(taskUtil.getTag.callCount, 5, "TaskUtil#getTag got called six times");
 
-	t.is(t.context.moduleBundlerStub.getCall(0).args.length, 1);
-	t.deepEqual(t.context.moduleBundlerStub.getCall(0).args[0].options, {
+	t.is(createFilterReaderStub.callCount, 2, "Two filter readers have been created");
+	t.is(createFilterReaderStub.getCall(0).args[0].reader.getName(),
+		"generateStandaloneAppBundle - prioritize workspace over dependencies: some.project.name",
+		"Correct reader argument on first createFilterReader call");
+
+	taskUtil.getTag.reset();
+	// Execute first filter-reader callback and test side effect on taskUtil
+	const filterReaderCallbackRes1 = createFilterReaderStub.getCall(0).args[0].callback("resource");
+	t.is(taskUtil.getTag.callCount, 1, "TaskUtil#getTag got called once by callback");
+	t.deepEqual(taskUtil.getTag.getCall(0).args, ["resource", "<IsDebugVariant>"],
+		"TaskUtil getTag got called with correct argument");
+	t.is(filterReaderCallbackRes1, true, "First filter-reader callback returned expected value");
+
+	t.is(createFilterReaderStub.getCall(1).args[0].reader.getName(),
+		"generateStandaloneAppBundle - prioritize workspace over dependencies: some.project.name",
+		"Correct reader argument on first createFilterReader call");
+
+	taskUtil.getTag.reset();
+	// Execute second filter-callback and test side effect on taskUtil
+	const filterReaderCallbackRes2 = createFilterReaderStub.getCall(1).args[0].callback("resource");
+	t.is(taskUtil.getTag.callCount, 1, "TaskUtil#getTag got called once by callback");
+	t.deepEqual(taskUtil.getTag.getCall(0).args, ["resource", "<HasDebugVariant>"],
+		"TaskUtil getTag got called with correct argument");
+	t.is(filterReaderCallbackRes2, true, "First filter-reader callback returned expected value");
+
+
+	t.is(moduleBundlerStub.callCount, 2);
+
+	t.is(moduleBundlerStub.getCall(0).args.length, 1);
+	t.deepEqual(moduleBundlerStub.getCall(0).args[0].options, {
 		bundleDefinition: {
 			defaultFileTypes: [
 				".js",
@@ -260,8 +294,8 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 		}
 	});
 
-	t.is(t.context.moduleBundlerStub.getCall(1).args.length, 1);
-	t.deepEqual(t.context.moduleBundlerStub.getCall(1).args[0].options, {
+	t.is(moduleBundlerStub.getCall(1).args.length, 1);
+	t.deepEqual(moduleBundlerStub.getCall(1).args[0].options, {
 		bundleDefinition: {
 			defaultFileTypes: [
 				".js",
