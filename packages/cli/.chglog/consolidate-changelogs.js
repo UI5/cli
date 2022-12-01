@@ -30,6 +30,9 @@ function handleDependencyBump(line) {
     - Changes contained in [${moduleName}@${moduleVersion}](${repoUrl}):
 
 ${versionChangelog}`;
+		} else {
+			// In case of an empty changelog: Only add the required newline
+			line += "\n";
 		}
 	}
 	return line;
