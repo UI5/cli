@@ -60,7 +60,8 @@ class Sapui5Resolver extends AbstractResolver {
 
 		if (metadata.npmPackageName.startsWith("@openui5/") &&
 				semver.satisfies(this._version, "1.77.x")) {
-			// TODO 3.0: Remove this workaround
+			// TODO: Remove this workaround once SAPUI5 1.77.x isn't used anymore.
+			//       As of Dec 2022 there are still ~80 downloads per week (npmjs.com stats).
 			// 1.77.x (at least 1.77.0-1.77.2) distribution metadata.json is missing
 			//	dependency information for all OpenUI5 libraries.
 			// Therefore we need to request those from the registry like it is done
