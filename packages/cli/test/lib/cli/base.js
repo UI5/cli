@@ -1,6 +1,6 @@
 import test from "ava";
 import path from "node:path";
-import execa from "execa";
+import {execa} from "execa";
 import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";

@@ -21,7 +21,7 @@ test.serial("retrieves logger middleware if verbose or loglevel are set", async 
 });
 
 import path from "node:path";
-import execa from "execa";
+import {execa} from "execa";
 import {fileURLToPath} from "node:url";
 import {readFileSync} from "node:fs";
 
