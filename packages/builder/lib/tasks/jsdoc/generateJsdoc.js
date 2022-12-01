@@ -38,12 +38,10 @@ import {createAdapter} from "@ui5/fs/resourceFactory";
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
  * @param {module:@ui5/builder/tasks/jsdoc/generateJsdoc~GenerateJsdocOptions} parameters.options Options
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
- * @param {object} [parameters.buildContext] Internal, deprecated parameter
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function generateJsdoc({
 	taskUtil,
-	buildContext,
 	workspace,
 	dependencies,
 	options = {}
@@ -58,11 +56,7 @@ export default async function generateJsdoc({
 	const {sourcePath: resourcePath, targetPath, tmpPath, cleanup} =
 		await utils.createTmpDirs(projectName);
 
-	// TODO 3.0: remove buildContext
-	const _taskUtil = taskUtil || buildContext;
-	if (_taskUtil) {
-		_taskUtil.registerCleanupTask(cleanup);
-	}
+	taskUtil?.registerCleanupTask(cleanup);
 
 	const [writtenResourcesCount] = await Promise.all([
 		utils.writeResourcesToDir({
