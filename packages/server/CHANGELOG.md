@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0-beta.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0-beta.4...HEAD).
+
+<a name="v3.0.0-beta.4"></a>
+## [v3.0.0-beta.4] - 2022-12-01
+### Dependency Updates
+- Bump connect-openui5 from 0.10.2 to 0.10.3 [`90871f8`](https://github.com/SAP/ui5-server/commit/90871f89815501860616ffbdf8927824412ec909)
+
 
 <a name="v3.0.0-beta.3"></a>
 ## [v3.0.0-beta.3] - 2022-11-30
@@ -302,6 +308,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.0-beta.4]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.3...v3.0.0-beta.4
 [v3.0.0-beta.3]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.1...v3.0.0-beta.2
 [v3.0.0-beta.1]: https://github.com/SAP/ui5-server/compare/v3.0.0-alpha.4...v3.0.0-beta.1
