@@ -13,7 +13,7 @@
 				"@ui5/fs": "^3.0.0-beta.4",
 				"@ui5/logger": "^3.0.1-beta.1",
 				"@ui5/project": "^3.0.0-beta.4",
-				"@ui5/server": "^3.0.0-beta.3",
+				"@ui5/server": "^3.0.0-beta.4",
 				"chalk": "^5.1.2",
 				"data-with-position": "^0.5.0",
 				"import-local": "^3.1.0",
@@ -1150,16 +1150,16 @@
 			}
 		},
 		"node_modules/@ui5/server": {
-			"version": "3.0.0-beta.3",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-beta.3.tgz",
-			"integrity": "sha512-x0sVHqz59uMsRE24TcwwPhwyIwk9y03eKwsD/SzUAgH6vjvHiSNPzYz4QRY22p68m+smtNkmjnIC49HCZeYrcg==",
+			"version": "3.0.0-beta.4",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-beta.4.tgz",
+			"integrity": "sha512-Doi1qLwTkpnBE/dAYH1UgTa+zU+9eDIldY5wv2r+5IiD4RahriIo0/o4qbqVCyemBz6C9TjwEHSKoYolpTAjbA==",
 			"dependencies": {
-				"@ui5/builder": "^3.0.0-beta.3",
-				"@ui5/fs": "^3.0.0-beta.3",
+				"@ui5/builder": "^3.0.0-beta.4",
+				"@ui5/fs": "^3.0.0-beta.4",
 				"@ui5/logger": "^3.0.1-beta.1",
 				"body-parser": "^1.20.1",
 				"compression": "^1.7.4",
-				"connect-openui5": "^0.10.2",
+				"connect-openui5": "^0.10.3",
 				"cors": "^2.8.5",
 				"devcert-sanscache": "^0.4.8",
 				"escape-html": "^1.0.3",
@@ -2748,17 +2748,17 @@
 			}
 		},
 		"node_modules/connect-openui5": {
-			"version": "0.10.2",
-			"resolved": "https://registry.npmjs.org/connect-openui5/-/connect-openui5-0.10.2.tgz",
-			"integrity": "sha512-41c5WbJIMvQlexQYG7++bmXePPQ+EoFKtkGRWPTXFo1BmYIQxp5JE84tTbonhOKfyRut/LgRVGp+sv/UjZqkew==",
+			"version": "0.10.3",
+			"resolved": "https://registry.npmjs.org/connect-openui5/-/connect-openui5-0.10.3.tgz",
+			"integrity": "sha512-7pdGd0bg/dRH8LWZTSXB7GQuZQtwhKspImyDKFcHAMkxlBwJ6YMWmDOlXhQmYzyeoI06sDsD8Nd5bdGmZGN61w==",
 			"dependencies": {
-				"async": "^3.2.0",
-				"cookie": "^0.4.1",
-				"extend": "^3.0.0",
-				"glob": "^7.1.6",
+				"async": "^3.2.4",
+				"cookie": "^0.4.2",
+				"extend": "^3.0.2",
+				"glob": "^7.2.3",
 				"http-proxy": "^1.18.1",
-				"less-openui5": "^0.11.0",
-				"set-cookie-parser": "^2.4.8"
+				"less-openui5": "^0.11.3",
+				"set-cookie-parser": "^2.5.1"
 			},
 			"engines": {
 				"node": ">= 10",
@@ -11685,16 +11685,16 @@
 			}
 		},
 		"@ui5/server": {
-			"version": "3.0.0-beta.3",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-beta.3.tgz",
-			"integrity": "sha512-x0sVHqz59uMsRE24TcwwPhwyIwk9y03eKwsD/SzUAgH6vjvHiSNPzYz4QRY22p68m+smtNkmjnIC49HCZeYrcg==",
+			"version": "3.0.0-beta.4",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.0-beta.4.tgz",
+			"integrity": "sha512-Doi1qLwTkpnBE/dAYH1UgTa+zU+9eDIldY5wv2r+5IiD4RahriIo0/o4qbqVCyemBz6C9TjwEHSKoYolpTAjbA==",
 			"requires": {
-				"@ui5/builder": "^3.0.0-beta.3",
-				"@ui5/fs": "^3.0.0-beta.3",
+				"@ui5/builder": "^3.0.0-beta.4",
+				"@ui5/fs": "^3.0.0-beta.4",
 				"@ui5/logger": "^3.0.1-beta.1",
 				"body-parser": "^1.20.1",
 				"compression": "^1.7.4",
-				"connect-openui5": "^0.10.2",
+				"connect-openui5": "^0.10.3",
 				"cors": "^2.8.5",
 				"devcert-sanscache": "^0.4.8",
 				"escape-html": "^1.0.3",
@@ -12889,17 +12889,17 @@
 			}
 		},
 		"connect-openui5": {
-			"version": "0.10.2",
-			"resolved": "https://registry.npmjs.org/connect-openui5/-/connect-openui5-0.10.2.tgz",
-			"integrity": "sha512-41c5WbJIMvQlexQYG7++bmXePPQ+EoFKtkGRWPTXFo1BmYIQxp5JE84tTbonhOKfyRut/LgRVGp+sv/UjZqkew==",
+			"version": "0.10.3",
+			"resolved": "https://registry.npmjs.org/connect-openui5/-/connect-openui5-0.10.3.tgz",
+			"integrity": "sha512-7pdGd0bg/dRH8LWZTSXB7GQuZQtwhKspImyDKFcHAMkxlBwJ6YMWmDOlXhQmYzyeoI06sDsD8Nd5bdGmZGN61w==",
 			"requires": {
-				"async": "^3.2.0",
-				"cookie": "^0.4.1",
-				"extend": "^3.0.0",
-				"glob": "^7.1.6",
+				"async": "^3.2.4",
+				"cookie": "^0.4.2",
+				"extend": "^3.0.2",
+				"glob": "^7.2.3",
 				"http-proxy": "^1.18.1",
-				"less-openui5": "^0.11.0",
-				"set-cookie-parser": "^2.4.8"
+				"less-openui5": "^0.11.3",
+				"set-cookie-parser": "^2.5.1"
 			}
 		},
 		"console-control-strings": {
