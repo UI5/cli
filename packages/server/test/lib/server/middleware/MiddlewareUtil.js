@@ -64,14 +64,11 @@ test.serial("getMimeInfo: unknown type", (t) => {
 
 test("getProject", (t) => {
 	const getProjectStub = sinon.stub().returns("Pony farm!");
-	const getProjectNameStub = sinon.stub().returns("root project name");
 	const middlewareUtil = new MiddlewareUtil({
 		graph: {
 			getProject: getProjectStub
 		},
-		project: {
-			getName: getProjectNameStub
-		}
+		project: "root project"
 	});
 
 	const res = middlewareUtil.getProject("pony farm");
@@ -79,7 +76,6 @@ test("getProject", (t) => {
 	t.is(getProjectStub.callCount, 1, "ProjectGraph#getProject got called once");
 	t.is(getProjectStub.getCall(0).args[0], "pony farm",
 		"ProjectGraph#getProject got called with correct arguments");
-	t.is(getProjectNameStub.callCount, 0, "#getName of root project has not been called");
 	t.is(res, "Pony farm!", "Correct result");
 });
 
@@ -96,6 +92,25 @@ test("getProject: Default name", (t) => {
 
 	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject never got called");
 	t.is(res, "root project", "Correct result");
+});
+
+test("getProject: Resource", (t) => {
+	const getProjectStub = sinon.stub().returns("Pony farm!");
+	const middlewareUtil = new MiddlewareUtil({
+		graph: {
+			getProject: getProjectStub
+		},
+		project: "root project"
+	});
+
+	const mockResource = {
+		getProject: sinon.stub().returns("Pig farm!")
+	};
+	const res = middlewareUtil.getProject(mockResource);
+
+	t.is(getProjectStub.callCount, 0, "ProjectGraph#getProject never got called");
+	t.is(mockResource.getProject.callCount, 1, "Resource#getProject got called once");
+	t.is(res, "Pig farm!", "Correct result");
 });
 
 test("getDependencies", (t) => {
