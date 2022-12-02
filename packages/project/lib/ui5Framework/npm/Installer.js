@@ -1,5 +1,4 @@
 import path from "node:path";
-import mkdirp from "mkdirp";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
@@ -8,6 +7,7 @@ const rimraf = promisify(_rimraf);
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
+const mkdir = promisify(fs.mkdir);
 import logger from "@ui5/logger";
 const log = logger.getLogger("ui5Framework:npm:Installer");
 
@@ -100,7 +100,7 @@ class Installer {
 
 					// Do not create target dir itself to prevent EPERM error in following rename operation
 					// (https://github.com/SAP/ui5-tooling/issues/487)
-					await mkdirp(path.dirname(targetDir));
+					await mkdir(path.dirname(targetDir), {recursive: true});
 					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
 					await rename(stagingDir, targetDir);
 				} else {
@@ -139,7 +139,7 @@ class Installer {
 		const lock = promisify(lockfile.lock);
 		const unlock = promisify(lockfile.unlock);
 		const lockPath = this._getLockPath({pkgName, version});
-		await mkdirp(this._lockDir);
+		await mkdir(this._lockDir, {recursive: true});
 		log.verbose("Locking " + lockPath);
 		await lock(lockPath, {
 			wait: 10000,

@@ -49,9 +49,9 @@ test.beforeEach(async (t) => {
 
 	t.context.Installer = await esmock.p("../../../../lib/ui5Framework/npm/Installer.js", {
 		"@ui5/logger": ui5Logger,
-		"mkdirp": sinon.stub().resolves(),
 		"graceful-fs": {
-			rename: sinon.stub().yieldsAsync()
+			rename: sinon.stub().yieldsAsync(),
+			mkdir: sinon.stub().yieldsAsync()
 		},
 		"lockfile": {
 			lock: sinon.stub().yieldsAsync(),
