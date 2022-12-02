@@ -126,7 +126,6 @@
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^13.1.2",
 		"graceful-fs": "^4.2.10",
-		"make-dir": "^3.1.0",
 		"micromatch": "^4.0.5",
 		"minimatch": "^5.1.0",
 		"pretty-hrtime": "^1.0.3",

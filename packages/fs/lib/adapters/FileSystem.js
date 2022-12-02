@@ -5,8 +5,8 @@ import {promisify} from "node:util";
 import fs from "graceful-fs";
 const copyFile = promisify(fs.copyFile);
 const chmod = promisify(fs.chmod);
+const mkdir = promisify(fs.mkdir);
 import {globby} from "globby";
-import makeDir from "make-dir";
 import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
 
@@ -220,7 +220,7 @@ class FileSystem extends AbstractAdapter {
 		const fsPath = path.join(this._fsBasePath, relPath);
 		const dirPath = path.dirname(fsPath);
 
-		await makeDir(dirPath, {fs});
+		await mkdir(dirPath, {recursive: true});
 
 		const resourceSource = resource.getSource();
 		if (!resourceSource.modified && resourceSource.adapter === "FileSystem" && resourceSource.fsPath) {
