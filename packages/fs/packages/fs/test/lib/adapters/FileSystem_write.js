@@ -1,9 +1,7 @@
 import path from "node:path";
 import {promisify} from "node:util";
-import fs from "node:fs";
+import {access as fsAccess, constants as fsConstants, mkdir} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
-const fsAccess = promisify(fs.access);
-import makeDir from "make-dir";
 import test from "ava";
 import rimraf from "rimraf";
 const rimrafp = promisify(rimraf);
@@ -20,7 +18,7 @@ test.beforeEach(async (t) => {
 
 	// Create a tmp directory for every test
 	t.context.tmpDirPath = fileURLToPath(new URL("../../tmp/adapters/FileSystemWrite/" + tmpDirName, import.meta.url));
-	await makeDir(t.context.tmpDirPath);
+	await mkdir(t.context.tmpDirPath, {recursive: true});
 
 	t.context.readerWriters = {
 		source: createAdapter({
@@ -63,8 +61,8 @@ test("Write resource in readOnly mode", async (t) => {
 	// Write resource content to another readerWriter
 	await readerWriters.dest.write(resource, {readOnly: true});
 
-	await t.notThrowsAsync(fsAccess(destFsPath, fs.constants.R_OK), "File can be read");
-	await t.throwsAsync(fsAccess(destFsPath, fs.constants.W_OK),
+	await t.notThrowsAsync(fsAccess(destFsPath, fsConstants.R_OK), "File can be read");
+	await t.throwsAsync(fsAccess(destFsPath, fsConstants.W_OK),
 		{message: /EACCES: permission denied|EPERM: operation not permitted/},
 		"File can not be written");
 
