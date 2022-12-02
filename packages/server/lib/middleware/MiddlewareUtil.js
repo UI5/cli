@@ -123,8 +123,8 @@ class MiddlewareUtil {
 	 * Name of the project to retrieve or a Resource instance to retrieve the associated project for.
 	 * Defaults to the name of the current root project
 	 * @returns {@ui5/project/build/helpers/MiddlewareUtill~ProjectInterface|undefined}
-	 * Specification Version-dependent interface to the Project instance or
-	 * undefined if the project name is unknown or the provided resource is not associated with any project.
+	 * Specification Version-dependent interface to the Project instance or <code>undefined</code>
+	 * if the project name is unknown or the provided resource is not associated with any project.
 	 * @public
 	 */
 	getProject(projectNameOrResource) {
