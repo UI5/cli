@@ -21,15 +21,17 @@ function fileExists(filePath) {
 test.beforeEach(async (t) => {
 	t.context.yesno = sinon.stub();
 	t.context.devcertSanscache = sinon.stub();
-	t.context.makeDir = sinon.stub().resolves();
+	t.context.mkdir = sinon.stub().resolves();
 
-	t.context.createSslUtilMock = async (mockMakeDir = false) => {
+	t.context.createSslUtilMock = async (mockMkdir = false) => {
 		const mocks = {
 			"yesno": t.context.yesno,
 			"devcert-sanscache": t.context.devcertSanscache
 		};
-		if (mockMakeDir) {
-			mocks["make-dir"] = t.context.makeDir;
+		if (mockMkdir) {
+			mocks["node:fs/promises"] = {
+				mkdir: t.context.mkdir
+			};
 		}
 		t.context.sslUtil = await esmock.p("../../../lib/sslUtil.js", mocks);
 		return t.context.sslUtil;
@@ -127,7 +129,7 @@ test.serial("Create new certificate and do not install it", async (t) => {
 });
 
 test.serial("Create new certificate not succeeded", async (t) => {
-	const {createSslUtilMock, yesno, devcertSanscache, makeDir} = t.context;
+	const {createSslUtilMock, yesno, devcertSanscache, mkdir} = t.context;
 	const sslUtil = await createSslUtilMock(true);
 
 	t.plan(6);
@@ -149,8 +151,8 @@ test.serial("Create new certificate not succeeded", async (t) => {
 			cert: "bbb"
 		};
 	});
-	makeDir.callsFake(async function(dirName) {
-		t.pass("make-dir mock reached.");
+	mkdir.callsFake(async function(dirName) {
+		t.pass("mkdir mock reached.");
 
 		throw new Error("some error");
 	});

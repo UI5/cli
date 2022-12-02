@@ -1,15 +1,9 @@
 import os from "node:os";
-import fs from "node:fs";
-import logger from "@ui5/logger";
-const log = logger.getLogger("server:sslUtil");
-import {promisify} from "node:util";
-
-const stat = promisify(fs.stat);
+import {stat, readFile, writeFile, mkdir} from "node:fs/promises";
 import path from "node:path";
+import logger from "@ui5/logger";
 
-const readFile = promisify(fs.readFile);
-const writeFile = promisify(fs.writeFile);
-
+const log = logger.getLogger("server:sslUtil");
 
 /**
  * @private
@@ -87,13 +81,11 @@ async function createAndInstallCertificate(keyPath, certPath) {
 
 	const {key, cert} = await devCert("UI5Tooling");
 
-	const {default: makeDir} = await import("make-dir");
-
 	await Promise.all([
 		// Write certificates to the ui5 certificate folder
 		// such that they are used by default upon next startup
-		makeDir(path.dirname(keyPath)).then(() => writeFile(keyPath, key)),
-		makeDir(path.dirname(certPath)).then(() => writeFile(certPath, cert))
+		mkdir(path.dirname(keyPath), {recursive: true}).then(() => writeFile(keyPath, key)),
+		mkdir(path.dirname(certPath), {recursive: true}).then(() => writeFile(certPath, cert))
 	]);
 	return {key, cert};
 }
