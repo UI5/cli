@@ -1,5 +1,6 @@
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import TaskUtil from "./TaskUtil.js";
+import TaskRunner from "../TaskRunner.js";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -104,11 +105,41 @@ class ProjectBuildContext {
 	}
 
 	getTaskRunner() {
+		if (!this._taskRunner) {
+			this._taskRunner = new TaskRunner({
+				project: this._project,
+				parentLogger: this._log,
+				taskUtil: this.getTaskUtil(),
+				graph: this._buildContext.getGraph(),
+				taskRepository: this._buildContext.getTaskRepository(),
+				buildConfig: this._buildContext.getBuildConfig()
+			});
+		}
 		return this._taskRunner;
 	}
 
-	setTaskRunner(taskRunner) {
-		this._taskRunner = taskRunner;
+	/**
+	 * Determine whether the project has to be built or is already built
+	 * (typically indicated by the presence of a build manifest)
+	 *
+	 * @returns {boolean} True if the project needs to be built
+	 */
+	requiresBuild() {
+		return !this._project.getBuildManifest();
+	}
+
+	getBuildMetadata() {
+		const buildManifest = this._project.getBuildManifest();
+		if (!buildManifest) {
+			return null;
+		}
+		const timeDiff = (new Date().getTime() - new Date(buildManifest.timestamp).getTime());
+
+		// TODO: Format age properly via a new @ui5/logger util module
+		return {
+			timestamp: buildManifest.timestamp,
+			age: timeDiff / 1000 + " seconds"
+		};
 	}
 }
 

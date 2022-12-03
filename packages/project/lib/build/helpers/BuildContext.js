@@ -1,5 +1,4 @@
 import ProjectBuildContext from "./ProjectBuildContext.js";
-import TaskRunner from "../TaskRunner.js";
 
 /**
  * Context of a build process
@@ -66,21 +65,12 @@ class BuildContext {
 		return this._graph;
 	}
 
-	async createProjectContext({project, log}) {
+	createProjectContext({project, log}) {
 		const projectBuildContext = new ProjectBuildContext({
 			buildContext: this,
 			project,
 			log
 		});
-		const taskRunner = await TaskRunner.create({
-			graph: this.getGraph(),
-			project,
-			taskUtil: projectBuildContext.getTaskUtil(),
-			taskRepository: this.getTaskRepository(),
-			parentLogger: log,
-			buildConfig: this.getBuildConfig()
-		});
-		projectBuildContext.setTaskRunner(taskRunner);
 		this._projectBuildContexts.push(projectBuildContext);
 		return projectBuildContext;
 	}

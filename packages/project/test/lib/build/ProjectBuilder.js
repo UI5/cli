@@ -99,19 +99,21 @@ test("build", async (t) => {
 	const getProjectFilterStub = sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
 
 	const requiresBuildStub = sinon.stub().returns(true);
+	const runTasksStub = sinon.stub().resolves();
 	const projectBuildContextMock = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildStub
+				runTasks: runTasksStub,
 			};
 		},
+		requiresBuild: requiresBuildStub,
 		getProject: sinon.stub().returns(getMockProject("library"))
 	};
 	const createRequiredBuildContextsStub = sinon.stub(builder, "_createRequiredBuildContexts")
 		.resolves(new Map().set("project.a", projectBuildContextMock));
 
 	const registerCleanupSigHooksStub = sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
-	const buildProjectStub = sinon.stub(builder, "_buildProject").resolves();
+
 	const writeResultsStub = sinon.stub(builder, "_writeResults").resolves();
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
@@ -134,12 +136,10 @@ test("build", async (t) => {
 		"project.a", "project.b", "project.c"
 	], "_createRequiredBuildContexts got called with correct arguments");
 
-	t.is(requiresBuildStub.callCount, 1, "TaskRunner#requiresBuild got called twice");
+	t.is(requiresBuildStub.callCount, 1, "ProjectBuildContext#requiresBuild got called once");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
-	t.is(buildProjectStub.callCount, 1, "_buildProject got called once");
-	t.is(buildProjectStub.getCall(0).args[0], projectBuildContextMock,
-		"_buildProject got called with correct arguments");
+	t.is(runTasksStub.callCount, 1, "TaskRunner#runTasks got called once");
 
 	t.is(writeResultsStub.callCount, 1, "_writeResults got called once");
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMock,
@@ -193,10 +193,12 @@ test("build: Failure", async (t) => {
 	sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
 
 	const requiresBuildStub = sinon.stub().returns(true);
+	const runTasksStub = sinon.stub().rejects(new Error("Some Error"));
 	const projectBuildContextMock = {
+		requiresBuild: requiresBuildStub,
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildStub
+				runTasks: runTasksStub
 			};
 		},
 		getProject: sinon.stub().returns(getMockProject("library"))
@@ -205,7 +207,6 @@ test("build: Failure", async (t) => {
 		.resolves(new Map().set("project.a", projectBuildContextMock));
 
 	sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
-	sinon.stub(builder, "_buildProject").rejects(new Error("Some Error"));
 	const writeResultsStub = sinon.stub(builder, "_writeResults").resolves();
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
@@ -240,29 +241,33 @@ test.serial("build: Multiple projects", async (t) => {
 		timestamp: "2022-07-28T12:00:00.000Z",
 		age: "xx days"
 	});
+	const runTasksStub = sinon.stub().resolves();
 	const projectBuildContextMockA = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildAStub
+				runTasks: runTasksStub
 			};
 		},
+		requiresBuild: requiresBuildAStub,
 		getProject: sinon.stub().returns(getMockProject("library", "a"))
 	};
 	const projectBuildContextMockB = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildBStub,
-				getBuildMetadata: getBuildMetadataStub
+				runTasks: runTasksStub
 			};
 		},
+		getBuildMetadata: getBuildMetadataStub,
+		requiresBuild: requiresBuildBStub,
 		getProject: sinon.stub().returns(getMockProject("library", "b"))
 	};
 	const projectBuildContextMockC = {
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildCStub
+				runTasks: runTasksStub
 			};
 		},
+		requiresBuild: requiresBuildCStub,
 		getProject: sinon.stub().returns(getMockProject("library", "c"))
 	};
 	const createRequiredBuildContextsStub = sinon.stub(builder, "_createRequiredBuildContexts")
@@ -273,7 +278,6 @@ test.serial("build: Multiple projects", async (t) => {
 		);
 
 	const registerCleanupSigHooksStub = sinon.stub(builder, "_registerCleanupSigHooks").returns("cleanup sig hooks");
-	const buildProjectStub = sinon.stub(builder, "_buildProject").resolves();
 	const writeResultsStub = sinon.stub(builder, "_writeResults").resolves();
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
@@ -302,11 +306,7 @@ test.serial("build: Multiple projects", async (t) => {
 	t.is(requiresBuildCStub.callCount, 1, "TaskRunner#requiresBuild got called once times for library.c");
 	t.is(registerCleanupSigHooksStub.callCount, 1, "_registerCleanupSigHooksStub got called once");
 
-	t.is(buildProjectStub.callCount, 2, "_buildProject got called three times"); // library.b does not require a build
-	t.is(buildProjectStub.getCall(0).args[0], projectBuildContextMockA,
-		"_buildProject got called with correct arguments");
-	t.is(buildProjectStub.getCall(1).args[0], projectBuildContextMockC,
-		"_buildProject got called with correct arguments");
+	t.is(runTasksStub.callCount, 2, "TaskRunner#runTasks got called twice"); // library.b does not require a build
 
 	t.is(writeResultsStub.callCount, 2, "_writeResults got called twice"); // library.a has not been requested
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMockB,
@@ -330,12 +330,15 @@ test("_createRequiredBuildContexts", async (t) => {
 	const builder = new ProjectBuilder(graph, taskRepository);
 
 	const requiresBuildStub = sinon.stub().returns(true);
-	const requiresDependenciesStub = sinon.stub().returns(false).onFirstCall().returns(true);
+	const getRequiredDependenciesStub = sinon.stub()
+		.returns(new Set())
+		.onFirstCall().returns(new Set(["project.b"])); // required dependency of project.a
+
 	const projectBuildContextMock = {
+		requiresBuild: requiresBuildStub,
 		getTaskRunner: () => {
 			return {
-				requiresBuild: requiresBuildStub,
-				requiresDependencies: requiresDependenciesStub
+				getRequiredDependencies: getRequiredDependenciesStub
 			};
 		}
 	};
@@ -343,14 +346,14 @@ test("_createRequiredBuildContexts", async (t) => {
 		.returns(projectBuildContextMock);
 	const projectBuildContexts = await builder._createRequiredBuildContexts(["project.a", "project.c"]);
 
+	t.is(requiresBuildStub.callCount, 3, "TaskRunner#requiresBuild got called three times");
+	t.is(getRequiredDependenciesStub.callCount, 3, "TaskRunner#getRequiredDependencies got called three times");
+
 	t.deepEqual(Object.fromEntries(projectBuildContexts), {
 		"project.a": projectBuildContextMock,
 		"project.b": projectBuildContextMock, // is a required dependency of project.a
 		"project.c": projectBuildContextMock,
 	}, "Returned expected project build contexts");
-
-	t.is(requiresBuildStub.callCount, 3, "TaskRunner#requiresBuild got called three times");
-	t.is(requiresDependenciesStub.callCount, 3, "TaskRunner#requiresDependencies got called three times");
 
 	t.is(createProjectContextStub.callCount, 3, "BuildContext#createProjectContextStub got called three times");
 	t.is(createProjectContextStub.getCall(0).args[0].project.getName(), "project.a",
@@ -428,76 +431,6 @@ test.serial("_getProjectFilter with explicit include/exclude", async (t) => {
 	t.true(filterProject("project.c"), "project.c is allowed");
 	t.false(filterProject("project.d"), "project.d is not allowed");
 	t.false(filterProject("project.e"), "project.e is not allowed");
-});
-
-test.serial("_buildProject", async (t) => {
-	const {graph, taskRepository, sinon} = t.context;
-	const readerCollectionStub = sinon.stub().returns("dependencies");
-	const ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js", {
-		"@ui5/fs/resourceFactory": {
-			createReaderCollection: readerCollectionStub
-		}
-	});
-
-	const builder = new ProjectBuilder(graph, taskRepository);
-
-
-	const runTasksStub = sinon.stub().resolves();
-	await builder._buildProject({
-		getProject: () => getMockProject("library", "a"),
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub
-			};
-		}
-	});
-
-	t.is(readerCollectionStub.callCount, 1, "One reader collection created");
-	t.deepEqual(readerCollectionStub.getCall(0).args[0], {
-		name: "Dependency reader collection for project project.a",
-		readers: ["reader"]
-	}, "Reader collection got created with expected arguments");
-
-	t.is(runTasksStub.callCount, 1, "TaskRunner#runTasks got called once");
-	t.deepEqual(runTasksStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-	}, "TaskRunner#runTasks got called with expected arguments");
-});
-
-test.serial("_buildProject: Requested project is not added to readers", async (t) => {
-	const {graph, taskRepository, sinon} = t.context;
-	const readerCollectionStub = sinon.stub().returns("dependencies");
-
-	const ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js", {
-		"@ui5/fs/resourceFactory": {
-			createReaderCollection: readerCollectionStub
-		}
-	});
-
-	const builder = new ProjectBuilder(graph, taskRepository);
-
-	const runTasksStub = sinon.stub().resolves();
-	await builder._buildProject({
-		getProject: () => getMockProject("library", "c"),
-		getTaskRunner: () => {
-			return {
-				runTasks: runTasksStub
-			};
-		}
-	});
-
-	t.is(readerCollectionStub.callCount, 1, "One reader collection created");
-	t.deepEqual(readerCollectionStub.getCall(0).args[0], {
-		name: "Dependency reader collection for project project.c",
-		readers: []
-	}, "Reader collection got created with expected arguments");
-
-	t.is(runTasksStub.callCount, 1, "TaskRunner#runTasks got called once");
-	t.deepEqual(runTasksStub.getCall(0).args[0], {
-		workspace: "workspace",
-		dependencies: "dependencies",
-	}, "TaskRunner#runTasks got called with expected arguments");
 });
 
 test("_writeResults", async (t) => {

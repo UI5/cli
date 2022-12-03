@@ -200,20 +200,10 @@ class Project extends Specification {
 	 * Get the project's buildManifest configuration
 	 *
 	 * @private
-	 * @returns {boolean} BuildManifest configuration
-	 */
-	hasBuildManifest() {
-		return !!this._buildManifest;
-	}
-
-	/**
-	 * Get the project's buildManifest configuration
-	 *
-	 * @private
-	 * @returns {object} BuildManifest configuration
+	 * @returns {object|null} BuildManifest configuration or null if none is available
 	 */
 	getBuildManifest() {
-		return this._buildManifest || {};
+		return this._buildManifest || null;
 	}
 
 	/* === Resource Access === */

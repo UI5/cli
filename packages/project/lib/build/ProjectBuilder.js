@@ -120,7 +120,7 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
-				if (!projectBuildContext.getTaskRunner().requiresBuild()) {
+				if (!projectBuildContext.requiresBuild()) {
 					alreadyBuilt.push(projectName);
 				}
 			}
@@ -141,7 +141,7 @@ class ProjectBuilder {
 						const projectName = projectBuildContext.getProject().getName();
 						let msg;
 						if (alreadyBuilt.includes(projectName)) {
-							const buildMetadata = projectBuildContext.getTaskRunner().getBuildMetadata();
+							const buildMetadata = projectBuildContext.getBuildMetadata();
 							const ts = new Date(buildMetadata.timestamp).toUTCString();
 							msg = `*> ${projectName} /// already built at ${ts}`;
 						} else {
@@ -167,7 +167,7 @@ class ProjectBuilder {
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
 				if (!alreadyBuilt.includes(projectName)) {
 					buildLogger.startWork(`Building project ${projectName}...`);
-					await this._buildProject(projectBuildContext);
+					await projectBuildContext.getTaskRunner().runTasks();
 					buildLogger.completeWork(1);
 
 					log.verbose(`Finished building project ${projectName}`);
@@ -203,20 +203,28 @@ class ProjectBuilder {
 		for (const project of requiredProjects) {
 			const projectName = project.getName();
 			log.verbose(`Creating build context for project ${projectName}...`);
-			const projectBuildContext = await this._buildContext.createProjectContext({
+			const projectBuildContext = this._buildContext.createProjectContext({
 				project,
 				log
 			});
 
-			const taskRunner = projectBuildContext.getTaskRunner();
 			projectBuildContexts.set(projectName, projectBuildContext);
 
-			if (taskRunner.requiresBuild() && taskRunner.requiresDependencies()) {
+			if (projectBuildContext.requiresBuild()) {
+				const taskRunner = projectBuildContext.getTaskRunner();
+				const requiredDependencies = await taskRunner.getRequiredDependencies();
+
+				if (requiredDependencies.size === 0) {
+					continue;
+				}
 				// This project needs to be built and required dependencies to be built as well
 				this._graph.getDependencies(projectName).forEach((depName) => {
 					if (projectBuildContexts.has(depName)) {
 						// Build context already exists
 						//	=> Dependency will be built
+						return;
+					}
+					if (!requiredDependencies.has(depName)) {
 						return;
 					}
 					// Add dependency to list of projects to build
@@ -277,31 +285,6 @@ class ProjectBuilder {
 
 			return false;
 		};
-	}
-
-	async _buildProject(projectBuildContext) {
-		const project = projectBuildContext.getProject();
-		const taskRunner = projectBuildContext.getTaskRunner();
-
-		// Create readers for all dependencies
-		const readers = [];
-		await this._graph.traverseBreadthFirst(project.getName(), async function({project: dep}) {
-			if (dep.getName() === project.getName()) {
-				// Ignore project itself
-				return;
-			}
-			readers.push(dep.getReader());
-		});
-
-		const dependencies = resourceFactory.createReaderCollection({
-			name: `Dependency reader collection for project ${project.getName()}`,
-			readers
-		});
-
-		await taskRunner.runTasks({
-			workspace: project.getWorkspace(),
-			dependencies,
-		});
 	}
 
 	async _writeResults(projectBuildContext, target) {

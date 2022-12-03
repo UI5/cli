@@ -118,15 +118,13 @@ test("getBuilderSettings", async (t) => {
 	}, "Returned correct build settings");
 });
 
-test("has-/getBuildManifest", async (t) => {
+test("getBuildManifest", async (t) => {
 	const projectWithoutBuildManifest = await Specification.create(clone(basicProjectInput));
-	t.false(projectWithoutBuildManifest.hasBuildManifest(), "Project has a no build manifest");
-	t.deepEqual(projectWithoutBuildManifest.getBuildManifest(), {}, "Project has a no build manifest");
+	t.is(projectWithoutBuildManifest.getBuildManifest(), null, "Project has a no build manifest");
 
 	const customProjectInput = clone(basicProjectInput);
 	customProjectInput.buildManifest = "buildManifest";
 	const project = await Specification.create(customProjectInput);
-	t.true(project.hasBuildManifest(), "Project has a build manifest");
 	t.is(project.getBuildManifest(), "buildManifest", "Returned correct build manifest");
 });
 

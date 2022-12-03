@@ -1,6 +1,5 @@
 import test from "ava";
 import sinon from "sinon";
-import esmock from "esmock";
 
 test.afterEach.always((t) => {
 	sinon.restore();
@@ -110,44 +109,15 @@ test("getBuildOption", (t) => {
 		"(not exposed as buold option)");
 });
 
-test.serial("createProjectContext", async (t) => {
-	t.plan(6);
-
-	const project = {
-		getType: sinon.stub().returns("foo")
-	};
-	const taskRunner = {"task": "runner"};
-	class DummyProjectContext {
-		constructor({buildContext, project, log}) {
-			t.is(buildContext, testBuildContext, "Correct buildContext parameter");
-			t.is(project, project, "Correct project parameter");
-			t.is(log, "log", "Correct log parameter");
-		}
-		getTaskUtil() {
-			return "taskUtil";
-		}
-		setTaskRunner(_taskRunner) {
-			t.is(_taskRunner, taskRunner);
-		}
-	}
-	const BuildContext = await esmock("../../../../lib/build/helpers/BuildContext.js", {
-		"../../../../lib/build/helpers/ProjectBuildContext.js": DummyProjectContext,
-		"../../../../lib/build/TaskRunner.js": {
-			create: sinon.stub().resolves(taskRunner)
-		},
-
-	});
-	const testBuildContext = new BuildContext("graph", "taskRepository");
-
-	const projectContext = await testBuildContext.createProjectContext({
-		project,
+test("createProjectContext", async (t) => {
+	const buildContext = new BuildContext("graph", "taskRepository");
+	const projectBuildContext = await buildContext.createProjectContext({
+		project: "project",
 		log: "log"
 	});
 
-	t.true(projectContext instanceof DummyProjectContext,
-		"Project context is an instance of DummyProjectContext");
-	t.is(testBuildContext._projectBuildContexts[0], projectContext,
-		"BuildContext stored correct ProjectBuildContext");
+	t.deepEqual(buildContext._projectBuildContexts, [projectBuildContext],
+		"Project build context has been added to internal array");
 });
 
 test("executeCleanupTasks", async (t) => {

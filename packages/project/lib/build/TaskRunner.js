@@ -1,5 +1,6 @@
 import composeTaskList from "./helpers/composeTaskList.js";
 import logger from "@ui5/logger";
+import {createReaderCollection} from "@ui5/fs/resourceFactory";
 
 /**
  * TaskRunner
@@ -19,10 +20,9 @@ class TaskRunner {
 	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
-	 * @param {Map<string, object>} parameters.standardTasks Standard tasks
 	 */
-	constructor({graph, project, parentLogger, taskUtil, taskRepository, buildConfig, standardTasks}) {
-		if (!graph || !project || !parentLogger || !taskUtil || !buildConfig || !standardTasks) {
+	constructor({graph, project, parentLogger, taskUtil, taskRepository, buildConfig}) {
+		if (!graph || !project || !parentLogger || !taskUtil || !taskRepository || !buildConfig) {
 			throw new Error("One or more mandatory parameters not provided");
 		}
 		this._project = project;
@@ -34,33 +34,18 @@ class TaskRunner {
 		this._log = parentLogger.createSubLogger(project.getType() + " " + project.getName(), 0.2);
 		this._taskLog = this._log.createTaskLogger("🔨");
 
+		this._directDependencies = new Set(this._taskUtil.getDependencies());
+	}
+
+	async _initTasks() {
+		if (this._tasks) {
+			return;
+		}
+
 		this._tasks = Object.create(null);
 		this._taskExecutionOrder = [];
 
-		for (const [taskName, params] of standardTasks) {
-			this._addTask(taskName, params);
-		}
-
-		this._addCustomTasks({
-			graph,
-			project,
-			taskUtil
-		});
-	}
-
-	/**
-	 * Creates a new TaskRunner Instance
-	 *
-	 * @param {object} parameters
-	 * @param {object} parameters.graph
-	 * @param {object} parameters.project
-	 * @param {@ui5/logger/GroupLogger} parameters.parentLogger Logger to use
-	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
-	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
-	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
-	 * 			Build configuration
-	 */
-	static async create({graph, project, parentLogger, taskUtil, taskRepository, buildConfig}) {
+		const project = this._project;
 		let buildDefinition;
 
 		switch (project.getType()) {
@@ -84,22 +69,39 @@ class TaskRunner {
 
 		const standardTasks = getStandardTasks({
 			project,
-			taskUtil,
-			getTask: taskRepository.getTask
+			taskUtil: this._taskUtil,
+			getTask: this._taskRepository.getTask
 		});
 
-		return new TaskRunner({graph, project, parentLogger, taskUtil, taskRepository, buildConfig, standardTasks});
+		for (const [taskName, params] of standardTasks) {
+			this._addTask(taskName, params);
+		}
+
+		await this._addCustomTasks();
+
+		// Create readers for *all* dependencies
+		const depReaders = [];
+		await this._graph.traverseBreadthFirst(project.getName(), async function({project: dep}) {
+			if (dep.getName() === project.getName()) {
+				// Ignore project itself
+				return;
+			}
+			depReaders.push(dep.getReader());
+		});
+
+		this._allDependenciesReader = createReaderCollection({
+			name: `Dependency reader collection of project ${project.getName()}`,
+			readers: depReaders
+		});
 	}
 
 	/**
 	 * Takes a list of tasks which should be executed from the available task list of the current builder
 	 *
-	 * @param {object} buildParams
-	 * @param {@ui5/fs/DuplexCollection} buildParams.workspace Workspace of the current project
-	 * @param {@ui5/fs/ReaderCollection} buildParams.dependencies Dependencies reader collection
-	 * @returns {Promise} Returns promise chain with tasks
+	 * @returns {Promise} Returns promise resolving once all tasks have been executed
 	 */
-	async runTasks(buildParams) {
+	async runTasks() {
+		await this._initTasks();
 		const tasksToRun = composeTaskList(Object.keys(this._tasks), this._buildConfig);
 		const allTasks = this._taskExecutionOrder.filter((taskName) => {
 			// There might be a numeric suffix in case a custom task is configured multiple times.
@@ -120,17 +122,19 @@ class TaskRunner {
 			const taskFunction = this._tasks[taskName].task;
 
 			if (typeof taskFunction === "function") {
-				await this._executeTask(taskName, taskFunction, buildParams);
+				await this._executeTask(taskName, taskFunction);
 			}
 		}
 	}
 
 	/**
-	 * Takes a list of tasks which should be executed from the available task list of the current builder
+	 * First compiles a list of all tasks that will be executed, then a list of all direct project
+	 * dependencies that those tasks require access to.
 	 *
-	 * @returns {Promise} Returns promise chain with tasks
+	 * @returns {Set} Returns a set containing the names of all required direct project dependencies
 	 */
-	requiresDependencies() {
+	async getRequiredDependencies() {
+		await this._initTasks();
 		const tasksToRun = composeTaskList(Object.keys(this._tasks), this._buildConfig);
 		const allTasks = this._taskExecutionOrder.filter((taskName) => {
 			// There might be a numeric suffix in case a custom task is configured multiple times.
@@ -144,33 +148,15 @@ class TaskRunner {
 			const taskWithoutSuffixCounter = taskName.replace(/--\d+$/, "");
 			return tasksToRun.includes(taskWithoutSuffixCounter);
 		});
-		return allTasks.some((taskName) => {
-			if (this._tasks[taskName].requiresDependencies) {
+		return allTasks.reduce((requiredDependencies, taskName) => {
+			if (this._tasks[taskName].requiredDependencies.size) {
 				this._log.verbose(`Task ${taskName} for project ${this._project.getName()} requires dependencies`);
-				return true;
 			}
-			return false;
-		});
-	}
-
-	requiresBuild() {
-		// TODO: Decide based on build config and manifest content
-		return !this._project.hasBuildManifest();
-	}
-
-	getBuildMetadata() {
-		if (this._project.hasBuildManifest()) {
-			const buildManifest = this._project.getBuildManifest();
-			const timeDiff = (new Date().getTime() - new Date(buildManifest.timestamp).getTime());
-
-			// TODO: Format age properly via a new @ui5/logger util module
-			return {
-				timestamp: buildManifest.timestamp,
-				age: timeDiff / 1000 + " seconds"
-			};
-		} else {
-			return null;
-		}
+			for (const depName of this._tasks[taskName].requiredDependencies) {
+				requiredDependencies.add(depName);
+			}
+			return requiredDependencies;
+		}, new Set());
 	}
 
 	/**
@@ -193,18 +179,18 @@ class TaskRunner {
 				`It has already been scheduled for execution`);
 		}
 
-		const task = async ({workspace, dependencies}, log) => {
+		const task = async (log) => {
 			options.projectName = this._project.getName();
 			options.projectNamespace = this._project.getNamespace();
 
 			const params = {
-				workspace,
+				workspace: this._project.getWorkspace(),
 				taskUtil: this._taskUtil,
 				options
 			};
 
 			if (requiresDependencies) {
-				params.dependencies = dependencies;
+				params.dependencies = this._allDependenciesReader;
 			}
 
 			if (!taskFunction) {
@@ -214,138 +200,211 @@ class TaskRunner {
 		};
 		this._tasks[taskName] = {
 			task,
-			requiresDependencies
+			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()
 		};
 		this._taskExecutionOrder.push(taskName);
 	}
 
 	/**
-	 * Adds custom tasks to execute
 	 *
 	 * @private
-	 * @param {object} parameters
-	 * @param {object} parameters.graph
-	 * @param {object} parameters.project
-	 * @param {object} parameters.taskUtil
 	 */
-	_addCustomTasks({graph, project, taskUtil}) {
-		const projectCustomTasks = project.getCustomTasks();
+	async _addCustomTasks() {
+		const projectCustomTasks = this._project.getCustomTasks();
 		if (!projectCustomTasks || projectCustomTasks.length === 0) {
 			return; // No custom tasks defined
 		}
 		for (let i = 0; i < projectCustomTasks.length; i++) {
-			const taskDef = projectCustomTasks[i];
-			if (!taskDef.name) {
-				throw new Error(`Missing name for custom task in configuration of project ${project.getName()}`);
-			}
-			if (taskDef.beforeTask && taskDef.afterTask) {
-				throw new Error(`Custom task definition ${taskDef.name} of project ${project.getName()} ` +
-					`defines both "beforeTask" and "afterTask" parameters. Only one must be defined.`);
-			}
-			if (this._taskExecutionOrder.length && !taskDef.beforeTask && !taskDef.afterTask) {
-				// Iff there are tasks configured, beforeTask or afterTask must be given
-				throw new Error(`Custom task definition ${taskDef.name} of project ${project.getName()} ` +
-					`defines neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`);
-			}
-			const standardTasks = this._taskRepository.getAllTaskNames();
-			if (standardTasks.includes(taskDef.name)) {
-				throw new Error(
-					`Custom task configuration of project ${project.getName()} ` +
-					`references standard task ${taskDef.name}. Only custom tasks must be provided here.`);
-			}
+			// Add tasks one-by-one to keep order as defined in project configuration
+			await this._addCustomTask(projectCustomTasks[i]);
+		}
+	}
+	/**
+	 * Adds custom tasks to execute
+	 *
+	 * @private
+	 * @param {object} taskDef
+	 */
+	async _addCustomTask(taskDef) {
+		const project = this._project;
+		const graph = this._graph;
+		const taskUtil = this._taskUtil;
 
-			let newTaskName = taskDef.name;
-			if (this._tasks[newTaskName]) {
-				// Task is already known
-				// => add a suffix to allow for multiple configurations of the same task
-				let suffixCounter = 1;
-				while (this._tasks[newTaskName]) {
-					suffixCounter++; // Start at 2
-					newTaskName = `${taskDef.name}--${suffixCounter}`;
-				}
-			}
-			const task = graph.getExtension(taskDef.name);
-			if (!task) {
-				throw new Error(
-					`Could not find custom task ${taskDef.name}, referenced by project ${project.getName()} ` +
-					`in project graph with root node ${graph.getRoot().getName()}`);
-			}
-			// TODO: Create callback for custom tasks to configure "requiresDependencies" and "enabled"
-			// 		Input: task "options" and build mode ("standalone", "preload", etc.)
-			const requiresDependencies = true; // Default to true for old spec versions
-			const execTask = async function({workspace, dependencies}, log) {
-				/* Custom Task Interface
-					Parameters:
-						{Object} parameters Parameters
-						{@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
-						{@ui5/fs/AbstractReader} parameters.dependencies
-							Reader or Collection to read dependency files
-						{@ui5/project/build/helpers/TaskUtil} parameters.taskUtil Specification Version-dependent
-							interface of a [TaskUtil]{@link @ui5/project/build/helpers/TaskUtil} instance
-						{@ui5/logger/GroupLogger} [parameters.log] Logger instance to use by the custom task.
-							This parameter is only available to custom task extensions defining
-	 						<b>Specification Version 3.0 and above</b>.
-						{Object} parameters.options Options
-						{string} parameters.options.projectName Project name
-						{string|null} parameters.options.projectNamespace Project namespace if available
-						{string} [parameters.options.taskName] Runtime name of the task.
-							If a task is executed multiple times, a suffix is added to distinguish the executions.
-							This attribute is only available to custom task extensions defining
-	 						<b>Specification Version 3.0 and above</b>.
-						{string} [parameters.options.configuration] Task configuration if given in ui5.yaml
-					Returns:
-						{Promise<undefined>} Promise resolving with undefined once data has been written
-				*/
-				const params = {
-					workspace,
-					options: {
-						projectName: project.getName(),
-						projectNamespace: project.getNamespace(),
-						configuration: taskDef.configuration,
-					}
-				};
+		if (!taskDef.name) {
+			throw new Error(`Missing name for custom task in configuration of project ${project.getName()}`);
+		}
+		if (taskDef.beforeTask && taskDef.afterTask) {
+			throw new Error(`Custom task definition ${taskDef.name} of project ${project.getName()} ` +
+				`defines both "beforeTask" and "afterTask" parameters. Only one must be defined.`);
+		}
+		if (this._taskExecutionOrder.length && !taskDef.beforeTask && !taskDef.afterTask) {
+			// Iff there are tasks configured, beforeTask or afterTask must be given
+			throw new Error(`Custom task definition ${taskDef.name} of project ${project.getName()} ` +
+				`defines neither a "beforeTask" nor an "afterTask" parameter. One must be defined.`);
+		}
+		const standardTasks = this._taskRepository.getAllTaskNames();
+		if (standardTasks.includes(taskDef.name)) {
+			throw new Error(
+				`Custom task configuration of project ${project.getName()} ` +
+				`references standard task ${taskDef.name}. Only custom tasks must be provided here.`);
+		}
 
-				if (requiresDependencies) {
-					params.dependencies = dependencies;
-				}
-
-				const specVersion = task.getSpecVersion();
-				if (specVersion.gte("3.0")) {
-					params.options.taskName = newTaskName;
-					params.log = logger.getGroupLogger(`builder:custom-task:${newTaskName}`);
-				}
-
-				const taskUtilInterface = taskUtil.getInterface(specVersion);
-				// Interface is undefined if specVersion does not support taskUtil
-				if (taskUtilInterface) {
-					params.taskUtil = taskUtilInterface;
-				}
-				return (await task.getTask())(params);
-			};
-
-			this._tasks[newTaskName] = {
-				task: execTask,
-				requiresDependencies
-			};
-
-			if (this._taskExecutionOrder.length) {
-				// There is at least one task configured. Use before- and afterTask to add the custom task
-				const refTaskName = taskDef.beforeTask || taskDef.afterTask;
-				let refTaskIdx = this._taskExecutionOrder.indexOf(refTaskName);
-				if (refTaskIdx === -1) {
-					throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${newTaskName}, ` +
-						`to be scheduled for project ${project.getName()}`);
-				}
-				if (taskDef.afterTask) {
-					// Insert after index of referenced task
-					refTaskIdx++;
-				}
-				this._taskExecutionOrder.splice(refTaskIdx, 0, newTaskName);
-			} else {
-				// There is no task configured so far. Just add the custom task
-				this._taskExecutionOrder.push(newTaskName);
+		let newTaskName = taskDef.name;
+		if (this._tasks[newTaskName]) {
+			// Task is already known
+			// => add a suffix to allow for multiple configurations of the same task
+			let suffixCounter = 1;
+			while (this._tasks[newTaskName]) {
+				suffixCounter++; // Start at 2
+				newTaskName = `${taskDef.name}--${suffixCounter}`;
 			}
 		}
+		const task = graph.getExtension(taskDef.name);
+		if (!task) {
+			throw new Error(
+				`Could not find custom task ${taskDef.name}, referenced by project ${project.getName()} ` +
+				`in project graph with root node ${graph.getRoot().getName()}`);
+		}
+
+		// Tasks can provide an optional callback to tell build process which dependencies they require
+		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
+		const specVersion = task.getSpecVersion();
+		let requiredDependencies;
+		if (!requiredDependenciesCallback) {
+			if (specVersion.gte("3.0")) {
+				// Default for new spec versions: Provide no dependencies if no callback is provided
+				this._log.verbose(
+					`Custom task ${task.getName()} of project ${this._project.getName()} ` +
+					`does not provide a callback for determining its required dependencies. ` +
+					`Defaulting to not providing any dependencies to the task`);
+				requiredDependencies = new Set();
+			} else {
+				// Default for old spec versions: Assume all dependencies are required
+				requiredDependencies = this._directDependencies;
+			}
+		} else {
+			const dependencyDeterminationParams = {
+				availableDependencies: new Set(this._directDependencies)
+			};
+
+			if (specVersion.gte("3.0")) {
+				// Add getProjects, getDependencies and options to parameters
+				const taskUtilInterface = taskUtil.getInterface(specVersion);
+				dependencyDeterminationParams.getProject =
+					taskUtilInterface.getProject.bind(taskUtilInterface);
+				dependencyDeterminationParams.getDependencies =
+					taskUtilInterface.getDependencies.bind(taskUtilInterface);
+				dependencyDeterminationParams.options = {
+					projectName: project.getName(),
+					projectNamespace: project.getNamespace(),
+					configuration: taskDef.configuration,
+					taskName: newTaskName
+				};
+			}
+			requiredDependencies = await requiredDependenciesCallback(dependencyDeterminationParams);
+			if (!(requiredDependencies instanceof Set)) {
+				throw new Error(
+					`'determineRequiredDependencies' callback function of custom task ${task.getName()} of ` +
+					`project ${project.getName()} must resolve with Set.`);
+			}
+			requiredDependencies.forEach((depName) => {
+				// Returned requiredDependencies must be a subset of all direct dependencies of the project
+				if (!this._directDependencies.has(depName)) {
+					throw new Error(
+						`'determineRequiredDependencies' callback function of custom task ${task.getName()} ` +
+						`of project ${project.getName()} must resolve with a subset of the the direct ` +
+						`dependencies of the project. ${depName} is not a direct dependency of the project.`);
+				}
+			});
+		}
+
+		this._tasks[newTaskName] = {
+			task: this._createCustomTaskWrapper({
+				task,
+				project,
+				taskUtil,
+				taskName: newTaskName,
+				taskConfiguration: taskDef.configuration,
+				getDependenciesReader: () => {
+					// Create the dependencies reader on-demand
+					return this._createDependencyReader(requiredDependencies);
+				},
+			}),
+			requiredDependencies
+		};
+
+		if (this._taskExecutionOrder.length) {
+			// There is at least one task configured. Use before- and afterTask to add the custom task
+			const refTaskName = taskDef.beforeTask || taskDef.afterTask;
+			let refTaskIdx = this._taskExecutionOrder.indexOf(refTaskName);
+			if (refTaskIdx === -1) {
+				throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${newTaskName}, ` +
+					`to be scheduled for project ${project.getName()}`);
+			}
+			if (taskDef.afterTask) {
+				// Insert after index of referenced task
+				refTaskIdx++;
+			}
+			this._taskExecutionOrder.splice(refTaskIdx, 0, newTaskName);
+		} else {
+			// There is no task configured so far. Just add the custom task
+			this._taskExecutionOrder.push(newTaskName);
+		}
+	}
+
+	_createCustomTaskWrapper({
+		project, taskUtil, getDependenciesReader, task, taskName, taskConfiguration
+	}) {
+		return async function(log) {
+			/* Custom Task Interface
+				Parameters:
+					{Object} parameters Parameters
+					{@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+					{@ui5/fs/AbstractReader} parameters.dependencies
+						Reader or Collection to read dependency files
+					{@ui5/project/build/helpers/TaskUtil} parameters.taskUtil Specification Version-dependent
+						interface of a [TaskUtil]{@link @ui5/project/build/helpers/TaskUtil} instance
+					{@ui5/logger/GroupLogger} [parameters.log] Logger instance to use by the custom task.
+						This parameter is only available to custom task extensions defining
+						<b>Specification Version 3.0 and above</b>.
+					{Object} parameters.options Options
+					{string} parameters.options.projectName Project name
+					{string|null} parameters.options.projectNamespace Project namespace if available
+					{string} [parameters.options.taskName] Runtime name of the task.
+						If a task is executed multiple times, a suffix is added to distinguish the executions.
+						This attribute is only available to custom task extensions defining
+						<b>Specification Version 3.0 and above</b>.
+					{string} [parameters.options.configuration] Task configuration if given in ui5.yaml
+				Returns:
+					{Promise<undefined>} Promise resolving with undefined once data has been written
+			*/
+			const params = {
+				workspace: project.getWorkspace(),
+				options: {
+					projectName: project.getName(),
+					projectNamespace: project.getNamespace(),
+					configuration: taskConfiguration,
+				}
+			};
+			const specVersion = task.getSpecVersion();
+			const taskUtilInterface = taskUtil.getInterface(specVersion);
+			// Interface is undefined if specVersion does not support taskUtil
+			if (taskUtilInterface) {
+				params.taskUtil = taskUtilInterface;
+			}
+			const taskFunction = await task.getTask();
+
+			if (specVersion.gte("3.0")) {
+				params.options.taskName = taskName;
+				params.log = logger.getGroupLogger(`builder:custom-task:${taskName}`);
+			}
+
+			const dependencies = await getDependenciesReader();
+			if (dependencies) {
+				params.dependencies = dependencies;
+			}
+			return taskFunction(params);
+		};
 	}
 
 	/**
@@ -365,6 +424,42 @@ class TaskRunner {
 		if (this._taskLog.isLevelEnabled("perf")) {
 			this._taskLog.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
+	}
+
+	async _createDependencyReader(requiredDirectDependencies) {
+		if (requiredDirectDependencies.size === 0) {
+			// No dependencies are required, so no reader will be provided
+			return null;
+		}
+		if (requiredDirectDependencies.size === this._directDependencies.size) {
+			// Shortcut: If all direct dependencies are required, just return the already created reader
+			return this._allDependenciesReader;
+		}
+		const rootProject = this._project;
+
+		// Collect readers for all requested dependencies
+		const readers = [];
+
+		// Add transitive dependencies to set of required dependencies
+		const requiredDependencies = new Set(requiredDirectDependencies);
+		for (const projectName of requiredDirectDependencies) {
+			this._graph.getAllDependencies(projectName).forEach((depName) => {
+				requiredDependencies.add(depName);
+			});
+		}
+
+		// Collect readers for all (transitive) dependencies
+		await this._graph.traverseBreadthFirst(rootProject.getName(), async ({project}) => {
+			if (requiredDependencies.has(project.getName())) {
+				readers.push(project.getReader());
+			}
+		});
+
+		// Create a reader collection for that
+		return createReaderCollection({
+			name: `Reduced dependency reader collection of project ${rootProject.getName()}`,
+			readers
+		});
 	}
 }
 

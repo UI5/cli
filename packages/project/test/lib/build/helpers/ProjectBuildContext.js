@@ -296,18 +296,130 @@ test("getTaskUtil", (t) => {
 	t.is(projectBuildContext.getTaskUtil(), projectBuildContext.getTaskUtil(), "Caches TaskUtil instance");
 });
 
-test.serial("setTaskRunner / getTaskRunner", (t) => {
+test.serial("getTaskRunner", async (t) => {
+	t.plan(2);
+	class DummyTaskRunner {
+		constructor(params) {
+			t.deepEqual(params, {
+				graph: "graph",
+				project: "project",
+				parentLogger: "log",
+				taskUtil: "taskUtil",
+				taskRepository: "taskRepository",
+				buildConfig: "buildConfig"
+			}, "TaskRunner created with expected constructor arguments");
+		}
+	}
+	const ProjectBuildContext = await esmock("../../../../lib/build/helpers/ProjectBuildContext.js", {
+		"../../../../lib/build/TaskRunner.js": DummyTaskRunner
+	});
+
 	const projectBuildContext = new ProjectBuildContext({
-		buildContext: {},
+		buildContext: {
+			getGraph: () => "graph",
+			getTaskRepository: () => "taskRepository",
+			getBuildConfig: () => "buildConfig",
+		},
 		project: "project",
 		log: "log"
 	});
 
-	t.is(projectBuildContext.getTaskRunner(), undefined, "No taskRunner assigned / created by default");
+	projectBuildContext.getTaskUtil = () => "taskUtil";
 
-	const taskRunner = {"task": "runner"};
-	projectBuildContext.setTaskRunner(taskRunner);
-
-	t.is(projectBuildContext.getTaskRunner(), taskRunner, "getter returns previously set object");
+	const taskRunner = projectBuildContext.getTaskRunner();
+	t.is(projectBuildContext.getTaskRunner(), taskRunner, "Returns cached TaskRunner instance");
 });
 
+
+test.serial("createProjectContext", async (t) => {
+	t.plan(5);
+
+	const project = {
+		getType: sinon.stub().returns("foo")
+	};
+	const taskRunner = {"task": "runner"};
+	class DummyProjectContext {
+		constructor({buildContext, project, log}) {
+			t.is(buildContext, testBuildContext, "Correct buildContext parameter");
+			t.is(project, project, "Correct project parameter");
+			t.is(log, "log", "Correct log parameter");
+		}
+		getTaskUtil() {
+			return "taskUtil";
+		}
+		setTaskRunner(_taskRunner) {
+			t.is(_taskRunner, taskRunner);
+		}
+	}
+	const BuildContext = await esmock("../../../../lib/build/helpers/BuildContext.js", {
+		"../../../../lib/build/helpers/ProjectBuildContext.js": DummyProjectContext,
+		"../../../../lib/build/TaskRunner.js": {
+			create: sinon.stub().resolves(taskRunner)
+		}
+	});
+	const testBuildContext = new BuildContext("graph", "taskRepository");
+
+	const projectContext = await testBuildContext.createProjectContext({
+		project,
+		log: "log"
+	});
+
+	t.true(projectContext instanceof DummyProjectContext,
+		"Project context is an instance of DummyProjectContext");
+	t.is(testBuildContext._projectBuildContexts[0], projectContext,
+		"BuildContext stored correct ProjectBuildContext");
+});
+
+test("requiresBuild: has no build-manifest", (t) => {
+	const project = {getBuildManifest: () => null};
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {},
+		project,
+		log: "log"
+	});
+	t.true(projectBuildContext.requiresBuild(), "Project without build-manifest requires to be build");
+});
+
+test("requiresBuild: has build-manifest", (t) => {
+	const project = {getBuildManifest: () => {
+		return {
+			timestamp: "2022-07-28T12:00:00.000Z"
+		};
+	}};
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {},
+		project,
+		log: "log"
+	});
+	t.false(projectBuildContext.requiresBuild(), "Project with build-manifest does not require to be build");
+});
+
+test.serial("getBuildMetadata", (t) => {
+	const project = {getBuildManifest: () => {
+		return {
+			timestamp: "2022-07-28T12:00:00.000Z"
+		};
+	}};
+	const getTimeStub = sinon.stub(Date.prototype, "getTime").callThrough().onFirstCall().returns(1659016800000);
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {},
+		project,
+		log: "log"
+	});
+
+	t.deepEqual(projectBuildContext.getBuildMetadata(), {
+		timestamp: "2022-07-28T12:00:00.000Z",
+		age: "7200 seconds"
+	}, "Project with build-manifest does not require to be build");
+	getTimeStub.restore();
+});
+
+test("getBuildMetadata: has no build-manifest", (t) => {
+	const project = {getBuildManifest: () => null};
+	const projectBuildContext = new ProjectBuildContext({
+		buildContext: {},
+		project,
+		log: "log"
+	});
+	t.is(projectBuildContext.getBuildMetadata(), null, "Project has no build manifest");
+});

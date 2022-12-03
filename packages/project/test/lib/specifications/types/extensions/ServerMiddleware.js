@@ -61,17 +61,15 @@ test("Correct class (ESM)", async (t) => {
 
 test("getMiddleware (CJS)", async (t) => {
 	const extension = await Specification.create(clone(basicCjsServerMiddlewareInput));
-	const middlewarePromise = extension.getMiddleware();
-	t.is(typeof middlewarePromise.then, "function");
-	t.is(await middlewarePromise, "extension module",
+	const middleware = await extension.getMiddleware();
+	t.is(middleware(), "extension module",
 		"Returned correct module");
 });
 
 test("getMiddleware (ESM)", async (t) => {
 	const extension = await Specification.create(clone(basicEsmServerMiddlewareInput));
-	const middlewarePromise = extension.getMiddleware();
-	t.is(typeof middlewarePromise.then, "function");
-	t.is(await middlewarePromise, "extension module",
+	const middleware = await extension.getMiddleware();
+	t.is(middleware(), "extension module",
 		"Returned correct module");
 });
 

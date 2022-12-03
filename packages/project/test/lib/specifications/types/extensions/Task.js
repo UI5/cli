@@ -64,17 +64,29 @@ test("Correct class (ESM)", async (t) => {
 
 test("getTask (CJS)", async (t) => {
 	const extension = await Specification.create(clone(basicCjsTaskInput));
-	const taskPromise = extension.getTask();
-	t.is(typeof taskPromise.then, "function");
-	t.is(await taskPromise, "extension module",
+	const task = await extension.getTask();
+	t.is(task(), "extension module",
 		"Returned correct module");
 });
 
 test("getTask (ESM)", async (t) => {
 	const extension = await Specification.create(clone(basicEsmTaskInput));
-	const taskPromise = extension.getTask();
-	t.is(typeof taskPromise.then, "function");
-	t.is(await taskPromise, "extension module",
+	const task = await extension.getTask();
+	t.is(task(), "extension module",
+		"Returned correct module");
+});
+
+test("getRequiredDependenciesCallback (CJS)", async (t) => {
+	const extension = await Specification.create(clone(basicCjsTaskInput));
+	const requiredDependenciesCallback = await extension.getRequiredDependenciesCallback();
+	t.is(requiredDependenciesCallback(), "required dependencies function",
+		"Returned correct module");
+});
+
+test("getRequiredDependenciesCallback (ESM)", async (t) => {
+	const extension = await Specification.create(clone(basicEsmTaskInput));
+	const requiredDependenciesCallback = await extension.getRequiredDependenciesCallback();
+	t.is(requiredDependenciesCallback(), "required dependencies function",
 		"Returned correct module");
 });
 
