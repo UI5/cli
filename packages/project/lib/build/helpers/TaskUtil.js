@@ -202,13 +202,26 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 3.0 and above</b>.
 	 *
-	 * @param {string} [projectName] Name of the project to retrieve. Defaults to the project currently being built
+	 * @param {string|@ui5/fs/Resource} [projectNameOrResource]
+	 * Name of the project to retrieve or a Resource instance to retrieve the associated project for.
+	 * Defaults to the name of the project currently being built
 	 * @returns {@ui5/project/build/helpers/TaskUtil~ProjectInterface|undefined}
-	 *					project instance or undefined if the project is unknown to the graph
+	 * Specification Version-dependent interface to the Project instance or <code>undefined</code>
+	 * if the project name is unknown or the provided resource is not associated with any project.
 	 * @public
 	 */
-	getProject(projectName) {
-		return this._projectBuildContext.getProject(projectName);
+	getProject(projectNameOrResource) {
+		if (projectNameOrResource) {
+			if (typeof projectNameOrResource === "string" || projectNameOrResource instanceof String) {
+				// A project name has been provided
+				return this._projectBuildContext.getProject(projectNameOrResource);
+			} else {
+				// A Resource instance has been provided
+				return projectNameOrResource.getProject();
+			}
+		}
+		// No parameter has been provided, default to the project currently being built.
+		return this._projectBuildContext.getProject();
 	}
 
 	/**

@@ -283,7 +283,7 @@ class TaskRunner {
 						{@ui5/project/build/helpers/TaskUtil} parameters.taskUtil Specification Version-dependent
 							interface of a [TaskUtil]{@link @ui5/project/build/helpers/TaskUtil} instance
 						{@ui5/logger/GroupLogger} [parameters.log] Logger instance to use by the custom task.
-							This method is only available to custom task extensions defining
+							This parameter is only available to custom task extensions defining
 	 						<b>Specification Version 3.0 and above</b>.
 						{Object} parameters.options Options
 						{string} parameters.options.projectName Project name

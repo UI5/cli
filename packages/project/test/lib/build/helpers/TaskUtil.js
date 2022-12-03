@@ -169,7 +169,43 @@ test("getProject", (t) => {
 	const res = taskUtil.getProject("pony farm");
 
 	t.is(getProjectStub.callCount, 1, "ProjectBuildContext#getProject got called once");
+	t.is(getProjectStub.getCall(0).args[0], "pony farm",
+		"ProjectBuildContext#getProject got called with expected arguments");
 	t.is(res, "Pony farm!", "Correct result");
+});
+
+test("getProject: Default name", (t) => {
+	const getProjectStub = sinon.stub().returns("Pony farm!");
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getProject: getProjectStub
+		}
+	});
+
+	const res = taskUtil.getProject();
+
+	t.is(getProjectStub.callCount, 1, "ProjectBuildContext#getProject got called once");
+	t.is(getProjectStub.getCall(0).args[0], undefined,
+		"ProjectBuildContext#getProject got called with no arguments");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
+test("getProject: Resource", (t) => {
+	const getProjectStub = sinon.stub();
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getProject: getProjectStub
+		}
+	});
+
+	const mockResource = {
+		getProject: sinon.stub().returns("Pig farm!")
+	};
+	const res = taskUtil.getProject(mockResource);
+
+	t.is(getProjectStub.callCount, 0, "ProjectBuildContext#getProject has not been called");
+	t.is(mockResource.getProject.callCount, 1, "Resource#getProject has been called once");
+	t.is(res, "Pig farm!", "Correct result");
 });
 
 test("getDependencies", (t) => {
@@ -183,6 +219,24 @@ test("getDependencies", (t) => {
 	const res = taskUtil.getDependencies("pony farm");
 
 	t.is(getDependenciesStub.callCount, 1, "ProjectBuildContext#getDependencies got called once");
+	t.is(getDependenciesStub.getCall(0).args[0], "pony farm",
+		"ProjectBuildContext#getDependencies got called with expected arguments");
+	t.is(res, "Pony farm!", "Correct result");
+});
+
+test("getDependencies: Default name", (t) => {
+	const getDependenciesStub = sinon.stub().returns("Pony farm!");
+	const taskUtil = new TaskUtil({
+		projectBuildContext: {
+			getDependencies: getDependenciesStub
+		}
+	});
+
+	const res = taskUtil.getDependencies();
+
+	t.is(getDependenciesStub.callCount, 1, "ProjectBuildContext#getDependencies got called once");
+	t.is(getDependenciesStub.getCall(0).args[0], undefined,
+		"ProjectBuildContext#getDependencies got called with no arguments");
 	t.is(res, "Pony farm!", "Correct result");
 });
 
