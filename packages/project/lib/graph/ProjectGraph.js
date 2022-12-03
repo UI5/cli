@@ -234,6 +234,29 @@ class ProjectGraph {
 	}
 
 	/**
+	 * Get all (direct and transitive) dependencies of a project as an array of project names
+	 *
+	 * @public
+	 * @param {string} projectName Name of the project to retrieve the dependencies of
+	 * @returns {string[]} Names of all direct and transitive dependencies
+	 */
+	getAllDependencies(projectName) {
+		const dependencies = new Set();
+
+		const processDependency = (depName) => {
+			const adjacencies = this._adjList[depName];
+			adjacencies.forEach((depName) => {
+				if (!dependencies.has(depName)) {
+					dependencies.add(depName);
+					processDependency(depName);
+				}
+			});
+		};
+
+		processDependency(projectName);
+		return Array.from(dependencies);
+	}
+	/**
 	 * Checks whether a dependency is optional or not.
 	 * Currently only used in tests.
 	 *

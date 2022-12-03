@@ -321,6 +321,31 @@ test("declareDependency / getDependencies", async (t) => {
 		"Should declare dependency as non-optional");
 });
 
+test("getAllDependencies", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "my root project"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+	graph.addProject(await createProject("library.e"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.c", "library.d");
+	graph.declareDependency("library.a", "library.d");
+	graph.declareDependency("library.d", "library.e");
+
+	t.deepEqual(graph.getAllDependencies("library.a"), [
+		"library.b",
+		"library.c",
+		"library.d",
+		"library.e",
+	], "Should store and return correct transitive dependencies for library.a");
+});
+
 test("declareDependency: Unknown source", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
