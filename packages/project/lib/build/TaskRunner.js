@@ -338,6 +338,13 @@ class TaskRunner {
 			const refTaskName = taskDef.beforeTask || taskDef.afterTask;
 			let refTaskIdx = this._taskExecutionOrder.indexOf(refTaskName);
 			if (refTaskIdx === -1) {
+				if (this._taskRepository.getRemovedTaskNames().includes(refTaskName)) {
+					throw new Error(
+						`Standard task ${refTaskName}, referenced by custom task ${newTaskName} ` +
+						`in project ${project.getName()}, ` +
+						`has been removed in this version of UI5 Tooling and can't be referenced anymore. ` +
+						`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`);
+				}
 				throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${newTaskName}, ` +
 					`to be scheduled for project ${project.getName()}`);
 			}

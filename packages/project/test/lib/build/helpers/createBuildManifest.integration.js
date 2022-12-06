@@ -48,7 +48,11 @@ test("Create project from application project providing a build manifest", async
 	const inputProject = await Specification.create(applicationAConfig);
 	inputProject.getResourceTagCollection().setTag("/resources/id1/foo.js", "ui5:HasDebugVariant");
 
-	const metadata = await createBuildManifest(inputProject, buildConfig);
+	const taskRepository = {
+		getVersions: async () => ({a: "a", b: "b"})
+	};
+
+	const metadata = await createBuildManifest(inputProject, buildConfig, taskRepository);
 	const m = new Module({
 		id: "build-descr-application.a.id",
 		version: "2.0.0",
@@ -76,7 +80,11 @@ test("Create project from library project providing a build manifest", async (t)
 	const inputProject = await Specification.create(libraryEConfig);
 	inputProject.getResourceTagCollection().setTag("/resources/library/e/file.js", "ui5:HasDebugVariant");
 
-	const metadata = await createBuildManifest(inputProject, buildConfig);
+	const taskRepository = {
+		getVersions: async () => ({a: "a", b: "b"})
+	};
+
+	const metadata = await createBuildManifest(inputProject, buildConfig, taskRepository);
 	const m = new Module({
 		id: "build-descr-library.e.id",
 		version: "2.0.0",

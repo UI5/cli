@@ -1,4 +1,3 @@
-import * as taskRepository from "@ui5/builder/internal/taskRepository";
 import logger from "@ui5/logger";
 const log = logger.getLogger("graph:ProjectGraph");
 
@@ -21,8 +20,6 @@ class ProjectGraph {
 		}
 		this._rootProjectName = rootProjectName;
 
-		this._taskRepository = taskRepository;
-
 		this._projects = Object.create(null); // maps project name to instance
 		this._adjList = Object.create(null); // maps project name to edges/dependencies
 		this._optAdjList = Object.create(null); // maps project name to optional dependencies
@@ -31,6 +28,7 @@ class ProjectGraph {
 
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
+		this._taskRepository = null;
 	}
 
 	/**
@@ -492,11 +490,14 @@ class ProjectGraph {
 	}
 
 	// Only to be used by @ui5/builder tests to inject its version of the taskRepository
-	setTaskRepository(taskRepo) {
-		this._taskRepository = taskRepo;
+	setTaskRepository(taskRepository) {
+		this._taskRepository = taskRepository;
 	}
 
-	getTaskRepository() {
+	async _getTaskRepository() {
+		if (!this._taskRepository) {
+			this._taskRepository = await import("@ui5/builder/internal/taskRepository");
+		}
 		return this._taskRepository;
 	}
 
@@ -531,7 +532,7 @@ class ProjectGraph {
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = []
 	}) {
-		this.seal();
+		this.seal(); // Do not allow further changes to the graph
 		if (this._built) {
 			throw new Error(
 				`Project graph with root node ${this._rootProjectName} has already been built. ` +
@@ -541,10 +542,14 @@ class ProjectGraph {
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
-		const builder = new ProjectBuilder(this, this.getTaskRepository(), {
-			selfContained, cssVariables, jsdoc,
-			createBuildManifest,
-			includedTasks, excludedTasks,
+		const builder = new ProjectBuilder({
+			graph: this,
+			taskRepository: await this._getTaskRepository(),
+			buildConfig: {
+				selfContained, cssVariables, jsdoc,
+				createBuildManifest,
+				includedTasks, excludedTasks,
+			}
 		});
 		await builder.build({
 			destPath, cleanDest,
@@ -563,7 +568,9 @@ class ProjectGraph {
 	}
 
 	/**
-	 * Check whether the project graph has been sealed
+	 * Check whether the project graph has been sealed.
+	 * This means the graph is read-only. Neither projects, nor dependencies between projects
+	 * can be added or removed.
 	 *
 	 * @public
 	 * @returns {boolean} True if the project graph has been sealed
@@ -580,7 +587,7 @@ class ProjectGraph {
 	 */
 	_checkSealed() {
 		if (this._sealed) {
-			throw new Error(`Project graph with root node ${this._rootProjectName} has been sealed`);
+			throw new Error(`Project graph with root node ${this._rootProjectName} has been sealed and is read-only`);
 		}
 	}
 

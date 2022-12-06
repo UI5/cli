@@ -78,13 +78,13 @@ test.afterEach.always((t) => {
 test("Missing graph parameters", (t) => {
 	const {ProjectBuilder} = t.context;
 	const err1 = t.throws(() => {
-		new ProjectBuilder();
+		new ProjectBuilder({});
 	});
 	t.is(err1.message, "Missing parameter 'graph'",
 		"Threw with expected error message");
 
 	const err2 = t.throws(() => {
-		new ProjectBuilder("graph");
+		new ProjectBuilder({graph: "graph"});
 	});
 	t.is(err2.message, "Missing parameter 'taskRepository'",
 		"Threw with expected error message");
@@ -93,7 +93,7 @@ test("Missing graph parameters", (t) => {
 test("build", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true);
 	const getProjectFilterStub = sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
@@ -156,7 +156,7 @@ test("build", async (t) => {
 test("build: Missing dest parameter", async (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const err = await t.throwsAsync(builder.build({
 		destPath: "dest/path",
@@ -174,7 +174,7 @@ test("build: Missing dest parameter", async (t) => {
 test("build: Too many dependency parameters", async (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const err = await t.throwsAsync(builder.build({
 		includedDependencies: ["dep a"],
@@ -187,7 +187,7 @@ test("build: Too many dependency parameters", async (t) => {
 test("build: Failure", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true);
 	sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
@@ -229,7 +229,7 @@ test("build: Failure", async (t) => {
 
 test.serial("build: Multiple projects", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true).onFirstCall().returns(false);
 	const getProjectFilterStub = sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
@@ -327,7 +327,7 @@ test.serial("build: Multiple projects", async (t) => {
 test("_createRequiredBuildContexts", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const requiresBuildStub = sinon.stub().returns(true);
 	const getRequiredDependenciesStub = sinon.stub()
@@ -380,7 +380,7 @@ test.serial("_getProjectFilter with complexDependencyIncludes", async (t) => {
 		"../../../lib/build/helpers/composeProjectList.js": composeProjectListStub
 	});
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProject = await builder._getProjectFilter({
 		complexDependencyIncludes: "complexDependencyIncludes",
@@ -411,7 +411,7 @@ test.serial("_getProjectFilter with explicit include/exclude", async (t) => {
 		"../../../lib/build/helpers/composeProjectList.js": composeProjectListStub
 	});
 
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProject = await builder._getProjectFilter({
 		explicitIncludes: "explicitIncludes",
@@ -437,9 +437,12 @@ test("_writeResults", async (t) => {
 	const {ProjectBuilder, sinon} = t.context;
 	t.context.getRootTypeStub = sinon.stub().returns("library");
 	const {graph, taskRepository} = t.context;
-	const builder = new ProjectBuilder(graph, taskRepository, {
-		createBuildManifest: false,
-		otherBuildConfig: "yes"
+	const builder = new ProjectBuilder({
+		graph, taskRepository,
+		buildConfig: {
+			createBuildManifest: false,
+			otherBuildConfig: "yes"
+		}
 	});
 
 	const dummyResources = [{
@@ -513,9 +516,12 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		}
 	});
 
-	const builder = new ProjectBuilder(graph, taskRepository, {
-		createBuildManifest: true,
-		otherBuildConfig: "yes"
+	const builder = new ProjectBuilder({
+		graph, taskRepository,
+		buildConfig: {
+			createBuildManifest: true,
+			otherBuildConfig: "yes"
+		}
 	});
 
 	const dummyResources = [{
@@ -603,8 +609,11 @@ test("_writeResults: Do not create build manifest for non-root project", async (
 	t.context.getRootTypeStub = sinon.stub().returns("library");
 	const {graph, taskRepository} = t.context;
 
-	const builder = new ProjectBuilder(graph, taskRepository, {
-		createBuildManifest: true
+	const builder = new ProjectBuilder({
+		graph, taskRepository,
+		buildConfig: {
+			createBuildManifest: true
+		}
 	});
 
 	const dummyResources = [{
@@ -650,7 +659,7 @@ test("_writeResults: Do not create build manifest for non-root project", async (
 
 test("_executeCleanupTasks", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const executeCleanupTasksStub = sinon.stub(builder._buildContext, "executeCleanupTasks");
 	await builder._executeCleanupTasks();
@@ -669,7 +678,7 @@ test("_registerCleanupSigHooks/_deregisterCleanupSigHooks", (t) => {
 	const listenersBefore = getProcessListenerCount();
 
 	const {graph, taskRepository, ProjectBuilder} = t.context;
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const signals = builder._registerCleanupSigHooks();
 
@@ -687,7 +696,7 @@ test("_registerCleanupSigHooks/_deregisterCleanupSigHooks", (t) => {
 
 test("_getElapsedTime", (t) => {
 	const {graph, taskRepository, ProjectBuilder} = t.context;
-	const builder = new ProjectBuilder(graph, taskRepository);
+	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const res = builder._getElapsedTime(process.hrtime());
 	t.truthy(res, "Returned a value");

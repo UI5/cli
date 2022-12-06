@@ -34,11 +34,12 @@ class ProjectBuilder {
 	 * Executes a project build, including all necessary or requested dependencies
 	 *
 	 * @public
-	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph
-	 * @param {@ui5/builder/tasks/taskRepository} taskRepository Task Repository module
-	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} [buildConfig] Build configuration
+	 * @param {object} parameters
+	 * @param {@ui5/project/graph/ProjectGraph} parameters.graph Project graph
+	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} [parameters.buildConfig] Build configuration
+	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task Repository module to use
 	 */
-	constructor(graph, taskRepository, buildConfig) {
+	constructor({graph, buildConfig, taskRepository}) {
 		if (!graph) {
 			throw new Error(`Missing parameter 'graph'`);
 		}
@@ -302,7 +303,7 @@ class ProjectBuilder {
 			const {
 				default: createBuildManifest
 			} = await import("./helpers/createBuildManifest.js");
-			const metadata = await createBuildManifest(project, buildConfig);
+			const metadata = await createBuildManifest(project, buildConfig, this._buildContext.getTaskRepository());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
 				string: JSON.stringify(metadata, null, "\t")

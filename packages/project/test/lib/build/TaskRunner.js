@@ -78,7 +78,8 @@ test.beforeEach(async (t) => {
 		getTask: sinon.stub().callsFake(async (taskName) => {
 			throw new Error(`taskRepository: Unknown Task ${taskName}`);
 		}),
-		getAllTaskNames: sinon.stub().returns(["replaceVersion"])
+		getAllTaskNames: sinon.stub().returns(["replaceVersion"]),
+		getRemovedTaskNames: sinon.stub().returns(["removedTask"]),
 	};
 
 	t.context.customTaskSpecVersionGteStub = sinon.stub().returns(true);
@@ -498,6 +499,25 @@ test("_initTasks: Custom tasks is unknown", async (t) => {
 	t.is(err.message,
 		"Could not find custom task myTask, referenced by project project.b in project " +
 		"graph with root node graph-root",
+		"Threw with expected error message");
+});
+
+test("_initTasks: Custom tasks with removed beforeTask", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner} = t.context;
+	const project = getMockProject("application");
+	project.getCustomTasks = () => [
+		{name: "myTask", beforeTask: "removedTask"}
+	];
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
+	});
+	const err = await t.throwsAsync(async () => {
+		await taskRunner._initTasks();
+	});
+	t.is(err.message,
+		`Standard task removedTask, referenced by custom task myTask in project project.b, ` +
+		`has been removed in this version of UI5 Tooling and can't be referenced anymore. ` +
+		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
 		"Threw with expected error message");
 });
 

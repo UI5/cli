@@ -1195,7 +1195,7 @@ test("Seal/isSealed", async (t) => {
 	graph.seal();
 	t.is(graph.isSealed(), true, "Graph should be sealed");
 
-	const expectedSealMsg = "Project graph with root node library.a has been sealed";
+	const expectedSealMsg = "Project graph with root node library.a has been sealed and is read-only";
 
 	const libX = await createProject("library.x");
 	t.throws(() => {

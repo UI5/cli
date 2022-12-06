@@ -16,7 +16,16 @@ function getSortedTags(project) {
 	return Object.fromEntries(entities);
 }
 
-export default async function(project, buildConfig) {
+export default async function(project, buildConfig, taskRepository) {
+	if (!project) {
+		throw new Error(`Missing parameter 'project'`);
+	}
+	if (!buildConfig) {
+		throw new Error(`Missing parameter 'buildConfig'`);
+	}
+	if (!taskRepository) {
+		throw new Error(`Missing parameter 'taskRepository'`);
+	}
 	const projectName = project.getName();
 	const type = project.getType();
 
@@ -36,6 +45,7 @@ export default async function(project, buildConfig) {
 			`Project type ${type} is currently not supported`);
 	}
 
+	const {builderVersion, fsVersion: builderFsVersion} = await taskRepository.getVersions();
 	const metadata = {
 		project: {
 			specVersion: project.getSpecVersion().toString(),
@@ -50,10 +60,10 @@ export default async function(project, buildConfig) {
 			}
 		},
 		buildManifest: {
-			manifestVersion: "0.1",
+			manifestVersion: "0.2",
 			timestamp: new Date().toISOString(),
 			versions: {
-				builderVersion: await getVersion("@ui5/builder"),
+				builderVersion: builderVersion,
 				projectVersion: await getVersion("@ui5/project"),
 				fsVersion: await getVersion("@ui5/fs"),
 			},
@@ -63,6 +73,13 @@ export default async function(project, buildConfig) {
 			tags: getSortedTags(project)
 		}
 	};
+
+	if (metadata.buildManifest.versions.fsVersion !== builderFsVersion) {
+		// Added in manifestVersion 0.2:
+		// @ui5/project and @ui5/builder use different versions of @ui5/fs.
+		// This should be mentioned in the build manifest:
+		metadata.buildManifest.versions.builderFsVersion = builderFsVersion;
+	}
 
 	return metadata;
 }
