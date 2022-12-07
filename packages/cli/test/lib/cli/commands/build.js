@@ -30,7 +30,7 @@ function getDefaultBuilderArgs() {
 	return {
 		destPath: "./dist",
 		cleanDest: false,
-		complexDependencyIncludes: {
+		dependencyIncludes: {
 			includeAllDependencies: false,
 			includeDependency: undefined,
 			includeDependencyRegExp: undefined,
@@ -221,7 +221,7 @@ test.serial("ui5 build (Include/Exclude dependency options)", async (t) => {
 
 	await build.handler(argv);
 
-	expectedBuilderArgs.complexDependencyIncludes = {
+	expectedBuilderArgs.dependencyIncludes = {
 		includeAllDependencies: false,
 		includeDependency: ["sap.ui.core"],
 		includeDependencyRegExp: ["^sap.[mf]$"],
@@ -248,7 +248,7 @@ test.serial("ui5 build (Include dependency via configuration)", async (t) => {
 
 	await build.handler(argv);
 
-	expectedBuilderArgs.complexDependencyIncludes = {
+	expectedBuilderArgs.dependencyIncludes = {
 		includeAllDependencies: false,
 		includeDependency: undefined,
 		includeDependencyRegExp: undefined,

@@ -144,7 +144,7 @@ async function handleBuild(argv) {
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
 		createBuildManifest: argv["create-build-manifest"],
-		complexDependencyIncludes: {
+		dependencyIncludes: {
 			includeAllDependencies: argv["include-all-dependencies"],
 			includeDependency: argv["include-dependency"],
 			includeDependencyRegExp: argv["include-dependency-regexp"],
