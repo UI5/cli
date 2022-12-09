@@ -23,8 +23,9 @@ class ProjectBuilder {
 	 * @property {boolean} [cssVariables=false] Flag to activate CSS variables generation
 	 * @property {boolean} [jsdoc=false] Flag to activate JSDoc build
 	 * @property {boolean} [createBuildManifest=false]
-	 * 			Whether to create a build manifest file for the root project.
-	 *			This is currently only supported for projects of type 'library' and 'theme-library'
+	 *   Whether to create a build manifest file for the root project.
+	 *   This is currently only supported for projects of type 'library' and 'theme-library'
+	 *   No other dependencies can be included in the build result.
 	 * @property {Array.<string>} [includedTasks=[]] List of tasks to be included
 	 * @property {Array.<string>} [excludedTasks=[]] List of tasks to be excluded.
 	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
@@ -101,6 +102,12 @@ class ProjectBuilder {
 		const requestedProjects = this._graph.getAllProjects().map((p) => p.getName()).filter(function(projectName) {
 			return filterProject(projectName);
 		});
+
+		if (this._buildContext.getBuildConfig().createBuildManifest && requestedProjects.length > 1) {
+			throw new Error(
+				`It is currently not supported to request the creation of a build manifest ` +
+				`while including any dependencies into the build result`);
+		}
 
 		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
 		const cleanupSigHooks = this._registerCleanupSigHooks();

@@ -184,6 +184,28 @@ test("build: Too many dependency parameters", async (t) => {
 	t.is(err.message, "Missing parameter 'destPath'", "Threw with expected error message");
 });
 
+test("build: createBuildManifest in conjunction with dependencies", async (t) => {
+	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+	t.context.getRootTypeStub = sinon.stub().returns("library");
+	const builder = new ProjectBuilder({graph, taskRepository,
+		buildConfig: {
+			createBuildManifest: true
+		}
+	});
+
+	const filterProjectStub = sinon.stub().returns(true);
+	sinon.stub(builder, "_getProjectFilter").resolves(filterProjectStub);
+	const err = await t.throwsAsync(builder.build({
+		destPath: "dest/path",
+		includedDependencies: ["dep a"]
+	}));
+
+	t.is(err.message,
+		"It is currently not supported to request the creation of a build manifest while " +
+		"including any dependencies into the build result",
+		"Threw with expected error message");
+});
+
 test("build: Failure", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
 
