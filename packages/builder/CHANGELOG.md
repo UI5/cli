@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.5...HEAD).
+
+<a name="v3.0.0-beta.5"></a>
+## [v3.0.0-beta.5] - 2022-12-12
+### Breaking Changes
+- **generateJsDoc:** Remove internal 'buildContext' parameter [`4ec80c8`](https://github.com/SAP/ui5-builder/commit/4ec80c874e177b658b1cd819431b6cb0660ded87)
+
+### Dependency Updates
+- Bump less-openui5 from 0.11.4 to 0.11.5 [`bf46354`](https://github.com/SAP/ui5-builder/commit/bf463541b7651db1dee167057eddc94181f5c1da)
+
 
 <a name="v3.0.0-beta.4"></a>
 ## [v3.0.0-beta.4] - 2022-12-01
@@ -816,6 +825,7 @@ to load the custom bundle file instead.
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
 
 
+[v3.0.0-beta.5]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.4...v3.0.0-beta.5
 [v3.0.0-beta.4]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.3...v3.0.0-beta.4
 [v3.0.0-beta.3]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-builder/compare/v3.0.0-beta.1...v3.0.0-beta.2
