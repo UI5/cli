@@ -330,6 +330,13 @@ class Resource {
 
 	/**
 	 * Retrieve the project assigned to the resource
+	 * <br/>
+	 * <b>Note for UI5 Tooling extensions (i.e. custom tasks, custom middleware):</b>
+	 * In order to ensure compatibility across UI5 Tooling versions, consider using the
+	 * <code>getProject(resource)</code> method provided by
+	 * [TaskUtil]{@link module:@ui5/project/build/helpers/TaskUtil} and
+	 * [MiddlewareUtil]{@link module:@ui5/server.middleware.MiddlewareUtil}, which will
+	 * return a Specification Version-compatible Project interface.
 	 *
 	 * @public
 	 * @returns {@ui5/project/specifications/Project} Project this resource is associated with
