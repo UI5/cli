@@ -9,7 +9,7 @@
 			"version": "3.0.0-beta.4",
 			"license": "Apache-2.0",
 			"dependencies": {
-				"@ui5/builder": "^3.0.0-beta.4",
+				"@ui5/builder": "^3.0.0-beta.5",
 				"@ui5/fs": "^3.0.0-beta.4",
 				"@ui5/logger": "^3.0.1-beta.1",
 				"@ui5/project": "^3.0.0-beta.4",
@@ -1053,9 +1053,9 @@
 			"dev": true
 		},
 		"node_modules/@ui5/builder": {
-			"version": "3.0.0-beta.4",
-			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-beta.4.tgz",
-			"integrity": "sha512-Kh8MkjnGXOfDRcb56/qgVOregXZYJtGNwm56XxMnVzd/KiwpCGaisd+Rx+XlV5W2vSTN+lGC6rdPgR2u2wnBPw==",
+			"version": "3.0.0-beta.5",
+			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-beta.5.tgz",
+			"integrity": "sha512-pXCaF52R83eHJF07vZ5ReJ3HDeIaGWLXGTx/3uM0J9n4t5Tjf+h6vOBZuVvUVhVY8wpgfhaS17kPoqchv2fvAA==",
 			"dependencies": {
 				"@jridgewell/sourcemap-codec": "^1.4.14",
 				"@ui5/fs": "^3.0.0-beta.4",
@@ -1066,13 +1066,12 @@
 				"espree": "^9.4.1",
 				"graceful-fs": "^4.2.10",
 				"jsdoc": "^3.6.11",
-				"less-openui5": "^0.11.4",
-				"make-dir": "^3.1.0",
+				"less-openui5": "^0.11.5",
 				"pretty-data": "^0.40.0",
 				"replacestream": "^4.0.3",
 				"rimraf": "^3.0.2",
 				"semver": "^7.3.8",
-				"terser": "^5.16.0",
+				"terser": "^5.16.1",
 				"xml2js": "^0.4.23"
 			},
 			"engines": {
@@ -11749,9 +11748,9 @@
 			"dev": true
 		},
 		"@ui5/builder": {
-			"version": "3.0.0-beta.4",
-			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-beta.4.tgz",
-			"integrity": "sha512-Kh8MkjnGXOfDRcb56/qgVOregXZYJtGNwm56XxMnVzd/KiwpCGaisd+Rx+XlV5W2vSTN+lGC6rdPgR2u2wnBPw==",
+			"version": "3.0.0-beta.5",
+			"resolved": "https://registry.npmjs.org/@ui5/builder/-/builder-3.0.0-beta.5.tgz",
+			"integrity": "sha512-pXCaF52R83eHJF07vZ5ReJ3HDeIaGWLXGTx/3uM0J9n4t5Tjf+h6vOBZuVvUVhVY8wpgfhaS17kPoqchv2fvAA==",
 			"requires": {
 				"@jridgewell/sourcemap-codec": "^1.4.14",
 				"@ui5/fs": "^3.0.0-beta.4",
@@ -11762,13 +11761,12 @@
 				"espree": "^9.4.1",
 				"graceful-fs": "^4.2.10",
 				"jsdoc": "^3.6.11",
-				"less-openui5": "^0.11.4",
-				"make-dir": "^3.1.0",
+				"less-openui5": "^0.11.5",
 				"pretty-data": "^0.40.0",
 				"replacestream": "^4.0.3",
 				"rimraf": "^3.0.2",
 				"semver": "^7.3.8",
-				"terser": "^5.16.0",
+				"terser": "^5.16.1",
 				"xml2js": "^0.4.23"
 			}
 		},
