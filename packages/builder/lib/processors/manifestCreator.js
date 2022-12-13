@@ -624,7 +624,7 @@ async function createManifest(
 export default function({libraryResource, resources, getProjectVersion, options}) {
 	// merge options with defaults
 	options = Object.assign({
-		descriptorVersion: APP_DESCRIPTOR_V22, // TODO 3.0: change this to type string instead of a semver object
+		descriptorVersion: APP_DESCRIPTOR_V22.toString(),
 		include3rdParty: true,
 		prettyPrint: true,
 		omitMinVersions: false
@@ -640,7 +640,7 @@ export default function({libraryResource, resources, getProjectVersion, options}
 		return Promise.resolve(null); // a fulfillment of null indicates that no manifest has been created
 	}
 
-	return createManifest(libraryResource, libBundle, options.descriptorVersion, options.include3rdParty,
+	return createManifest(libraryResource, libBundle, new Version(options.descriptorVersion), options.include3rdParty,
 		options.omitMinVersions, getProjectVersion)
 		.then((manifest) => {
 			return new Resource({

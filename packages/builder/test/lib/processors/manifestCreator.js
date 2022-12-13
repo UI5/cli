@@ -1,8 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
-import semver from "semver";
-const Version = semver.SemVer;
 
 const libraryContent = `<?xml version="1.0" encoding="UTF-8" ?>
 <library xmlns="http://www.sap.com/sap.ui.library.xsd" >
@@ -487,7 +485,7 @@ test.serial("default manifest creation with special characters small app descrip
 		};
 	});
 
-	const options = {descriptorVersion: new Version("1.9.0")};
+	const options = {descriptorVersion: "1.9.0"};
 	const result = await manifestCreator({libraryResource, resources, getProjectVersion, options});
 	const expectedManifestContentSmallVersion = expectedManifestContentObject();
 	expectedManifestContentSmallVersion["_version"] = "1.9.0";
@@ -509,7 +507,7 @@ test.serial("default manifest creation with special characters very small app de
 		}
 	};
 
-	const options = {descriptorVersion: new Version("1.1.0")};
+	const options = {descriptorVersion: "1.1.0"};
 	const result = await manifestCreator({libraryResource, resources: [], getProjectVersion, options});
 	const expectedManifestContentSmallVersion = expectedManifestContentObject();
 	expectedManifestContentSmallVersion["_version"] = "1.1.0";
