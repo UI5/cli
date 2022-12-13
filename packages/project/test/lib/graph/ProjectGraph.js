@@ -514,8 +514,12 @@ test("resolveOptionalDependencies", async (t) => {
 
 	t.is(graph.isOptionalDependency("library.a", "library.b"), false,
 		"library.a should have no optional dependency to library.b anymore");
+
 	t.is(graph.isOptionalDependency("library.a", "library.c"), false,
 		"library.a should have no optional dependency to library.c anymore");
+
+	t.false(graph._hasUnresolvedOptionalDependencies,
+		"Graph has no unresolved optional dependencies");
 
 	await traverseDepthFirst(t, graph, [
 		"library.b",
@@ -541,13 +545,36 @@ test("resolveOptionalDependencies: Optional dependency has not been resolved", a
 
 	await graph.resolveOptionalDependencies();
 
-	t.is(graph.isOptionalDependency("library.a", "library.b"), true,
+	t.true(graph.isOptionalDependency("library.a", "library.b"),
 		"Dependency from library.a to library.b should still be optional");
 
-	t.is(graph.isOptionalDependency("library.a", "library.c"), true,
+	t.true(graph.isOptionalDependency("library.a", "library.c"),
 		"Dependency from library.a to library.c should still be optional");
 
 	await traverseDepthFirst(t, graph, [
+		"library.d",
+		"library.a"
+	]);
+
+	t.true(graph._hasUnresolvedOptionalDependencies,
+		"Graph still has unresolved optional dependencies");
+
+	// Make library.c resolvable through library.d
+	graph.declareDependency("library.d", "library.c");
+
+	await graph.resolveOptionalDependencies();
+
+	t.true(graph.isOptionalDependency("library.a", "library.b"),
+		"Dependency from library.a to library.b should still be optional");
+
+	t.false(graph.isOptionalDependency("library.a", "library.c"),
+		"Dependency from library.a to library.c should be resolved now");
+
+	t.true(graph._hasUnresolvedOptionalDependencies,
+		"Graph still has unresolved optional dependencies");
+
+	await traverseDepthFirst(t, graph, [
+		"library.c",
 		"library.d",
 		"library.a"
 	]);
@@ -599,6 +626,9 @@ test("resolveOptionalDependencies: Cyclic optional dependency is not resolved", 
 	t.is(graph.isOptionalDependency("library.b", "library.c"), true,
 		"Dependency from library.b to library.c should still be optional");
 
+	t.true(graph._hasUnresolvedOptionalDependencies,
+		"Graph still has unresolved optional dependencies");
+
 	await traverseDepthFirst(t, graph, [
 		"library.b",
 		"library.c",
@@ -629,6 +659,9 @@ test("resolveOptionalDependencies: Resolves transitive optional dependencies", a
 
 	t.is(graph.isOptionalDependency("library.a", "library.d"), false,
 		"Dependency from library.a to library.d should not be optional anymore");
+
+	t.false(graph._hasUnresolvedOptionalDependencies,
+		"Graph has no unresolved optional dependencies");
 
 	await traverseDepthFirst(t, graph, [
 		"library.d",

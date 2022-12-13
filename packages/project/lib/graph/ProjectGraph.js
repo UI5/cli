@@ -30,7 +30,7 @@ class ProjectGraph {
 		this._extensions = Object.create(null); // maps extension name to instance
 
 		this._sealed = false;
-		this._shouldResolveOptionalDependencies = false; // Performance optimization flag
+		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
 	}
 
 	/**
@@ -181,7 +181,7 @@ class ProjectGraph {
 			// }
 			log.verbose(`Declaring optional dependency: ${fromProjectName} depends on ${toProjectName}`);
 			this._declareDependency(this._optAdjList, fromProjectName, toProjectName);
-			this._shouldResolveOptionalDependencies = true;
+			this._hasUnresolvedOptionalDependencies = true;
 		} catch (err) {
 			throw new Error(
 				`Failed to declare optional dependency from project ${fromProjectName} to ${toProjectName}: ` +
@@ -290,7 +290,7 @@ class ProjectGraph {
 	 * @public
 	 */
 	async resolveOptionalDependencies() {
-		if (!this._shouldResolveOptionalDependencies) {
+		if (!this._hasUnresolvedOptionalDependencies) {
 			log.verbose(`Skipping resolution of optional dependencies since none have been declared`);
 			return;
 		}
@@ -302,6 +302,7 @@ class ProjectGraph {
 			resolvedProjects.add(project.getName());
 		});
 
+		let unresolvedOptDeps = false;
 		for (const [projectName, dependencies] of Object.entries(this._optAdjList)) {
 			for (let i = dependencies.length - 1; i >= 0; i--) {
 				const targetProjectName = dependencies[i];
@@ -317,11 +318,18 @@ class ProjectGraph {
 						log.verbose(
 							`  Optional dependency from ${projectName} to ${targetProjectName} ` +
 							`will not be declared as it would introduce a cycle`);
+						unresolvedOptDeps = true;
 					} else {
 						this.declareDependency(projectName, targetProjectName);
+						dependencies.splice(i, 1);
 					}
+				} else {
+					unresolvedOptDeps = true;
 				}
 			}
+		}
+		if (!unresolvedOptDeps) {
+			this._hasUnresolvedOptionalDependencies = false;
 		}
 	}
 
