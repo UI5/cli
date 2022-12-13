@@ -303,9 +303,9 @@ class ProjectGraph {
 		});
 
 		let unresolvedOptDeps = false;
-		for (const [projectName, dependencies] of Object.entries(this._optAdjList)) {
-			for (let i = dependencies.length - 1; i >= 0; i--) {
-				const targetProjectName = dependencies[i];
+		for (const [projectName, optDependencies] of Object.entries(this._optAdjList)) {
+			for (let i = optDependencies.length - 1; i >= 0; i--) {
+				const targetProjectName = optDependencies[i];
 				if (resolvedProjects.has(targetProjectName)) {
 					// Target node is already reachable in the graph
 					// => Resolve optional dependency
@@ -321,7 +321,9 @@ class ProjectGraph {
 						unresolvedOptDeps = true;
 					} else {
 						this.declareDependency(projectName, targetProjectName);
-						dependencies.splice(i, 1);
+						// This optional dependency has now been resolved
+						// => Remove it from the list of optional dependencies
+						optDependencies.splice(i, 1);
 					}
 				} else {
 					unresolvedOptDeps = true;
