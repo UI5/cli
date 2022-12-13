@@ -131,7 +131,7 @@ class TaskRunner {
 	 * First compiles a list of all tasks that will be executed, then a list of all direct project
 	 * dependencies that those tasks require access to.
 	 *
-	 * @returns {Set} Returns a set containing the names of all required direct project dependencies
+	 * @returns {Set<string>} Returns a set containing the names of all required direct project dependencies
 	 */
 	async getRequiredDependencies() {
 		await this._initTasks();
@@ -327,7 +327,7 @@ class TaskRunner {
 				taskConfiguration: taskDef.configuration,
 				getDependenciesReader: () => {
 					// Create the dependencies reader on-demand
-					return this._createDependencyReader(requiredDependencies);
+					return this._createDependenciesReader(requiredDependencies);
 				},
 			}),
 			requiredDependencies
@@ -426,7 +426,7 @@ class TaskRunner {
 		}
 	}
 
-	async _createDependencyReader(requiredDirectDependencies) {
+	async _createDependenciesReader(requiredDirectDependencies) {
 		if (requiredDirectDependencies.size === 0) {
 			// No dependencies are required, so no reader will be provided
 			return null;

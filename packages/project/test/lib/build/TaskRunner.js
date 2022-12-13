@@ -576,7 +576,7 @@ test("Custom task is called correctly", async (t) => {
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
 		"Custom tasks requires all dependencies by default");
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependencyReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
@@ -585,10 +585,10 @@ test("Custom task is called correctly", async (t) => {
 	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on second call");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependencyReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"_createDependencyReader got called with correct arguments");
+		"_createDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -637,7 +637,7 @@ test("Custom task with legacy spec version", async (t) => {
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.a", "dep.b"]),
 		"Custom tasks requires all dependencies by default");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependencyReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
@@ -646,10 +646,10 @@ test("Custom task with legacy spec version", async (t) => {
 	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on second call");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependencyReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"_createDependencyReader got called with correct arguments");
+		"_createDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -703,7 +703,7 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 		availableDependencies: new Set(["dep.a", "dep.b"])
 	}, "requiredDependenciesCallback got called with expected arguments");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependencyReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
@@ -712,10 +712,10 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 	t.is(specVersionGteStub.getCall(1).args[0], "3.0",
 		"SpecificationVersion#gte got called with correct arguments on second call");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependencyReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.b"]),
-		"_createDependencyReader got called with correct arguments");
+		"_createDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -795,7 +795,7 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.truthy(taskRunner._tasks["myTask"], "Custom tasks has been added to task map");
 	t.deepEqual(taskRunner._tasks["myTask"].requiredDependencies, new Set(["dep.b"]),
 		"Custom tasks requires all dependencies by default");
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependencyReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
 	await taskRunner._tasks["myTask"].task();
 
 	t.is(specVersionGteStub.callCount, 2, "SpecificationVersion#gte got called twice");
@@ -810,10 +810,10 @@ test("Custom task with specVersion 3.0", async (t) => {
 	t.is(taskUtil.getInterface.getCall(1).args[0], mockSpecVersion,
 		"taskUtil#getInterface got called with correct argument on second call");
 
-	t.is(createDependencyReaderStub.callCount, 1, "_createDependencyReader got called once");
+	t.is(createDependencyReaderStub.callCount, 1, "_createDependenciesReader got called once");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.b"]),
-		"_createDependencyReader got called with correct arguments");
+		"_createDependenciesReader got called with correct arguments");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.is(taskStub.getCall(0).args.length, 1, "Task got called with one argument");
@@ -928,7 +928,7 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 		"myTask--2",
 	], "Correct order of custom tasks");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependencyReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
 	await taskRunner.runTasks();
 
 	t.is(taskUtil.getInterface.callCount, 5, "taskUtil#getInterface got called three times");
@@ -943,19 +943,19 @@ test("Multiple custom tasks with same name are called correctly", async (t) => {
 	t.is(taskUtil.getInterface.getCall(4).args[0], mockSpecVersionB,
 		"taskUtil#getInterface got called with correct argument on fifth call");
 
-	t.is(createDependencyReaderStub.callCount, 4, "_createDependencyReader got called four times");
+	t.is(createDependencyReaderStub.callCount, 4, "_createDependenciesReader got called four times");
 	t.deepEqual(createDependencyReaderStub.getCall(0).args[0],
 		new Set(["dep.b"]),
-		"_createDependencyReader got called with correct arguments on first call");
+		"_createDependenciesReader got called with correct arguments on first call");
 	t.deepEqual(createDependencyReaderStub.getCall(1).args[0],
 		new Set(["dep.a"]),
-		"_createDependencyReader got called with correct arguments on second call");
+		"_createDependenciesReader got called with correct arguments on second call");
 	t.deepEqual(createDependencyReaderStub.getCall(2).args[0],
 		new Set([]),
-		"_createDependencyReader got called with correct arguments on third call");
+		"_createDependenciesReader got called with correct arguments on third call");
 	t.deepEqual(createDependencyReaderStub.getCall(3).args[0],
 		new Set(["dep.a", "dep.b"]),
-		"_createDependencyReader got called with correct arguments on fourth call");
+		"_createDependenciesReader got called with correct arguments on fourth call");
 
 	t.is(taskStubA.callCount, 1, "Task A got called once");
 	t.is(taskStubA.getCall(0).args.length, 1, "Task A got called with one argument");
@@ -1152,14 +1152,14 @@ test.serial("_addTask with options", async (t) => {
 	t.truthy(taskRunner._tasks["standardTask"].task, "Task function got set correctly");
 	t.deepEqual(taskRunner._taskExecutionOrder, ["standardTask"], "Task got added to execution order");
 
-	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependencyReader").resolves("dependencies");
+	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");
 	await taskRunner._tasks["standardTask"].task({
 		workspace: "workspace",
 		dependencies: "dependencies",
 	});
 
 	t.is(taskRepository.getTask.callCount, 0, "taskRepository#getTask did not get called");
-	t.is(createDependencyReaderStub.callCount, 0, "_createDependencyReader did not get called");
+	t.is(createDependencyReaderStub.callCount, 0, "_createDependenciesReader did not get called");
 
 	t.is(taskStub.callCount, 1, "Task got called once");
 	t.deepEqual(taskStub.getCall(0).args[0], {
@@ -1272,7 +1272,7 @@ test("getRequiredDependencies: Default module", async (t) => {
 		"Default module project does not require dependencies");
 });
 
-test("_createDependencyReader", async (t) => {
+test("_createDependenciesReader", async (t) => {
 	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory} = t.context;
 	const project = getMockProject("module");
 
@@ -1283,7 +1283,7 @@ test("_createDependencyReader", async (t) => {
 	graph.traverseBreadthFirst.reset(); // Ignore the call in initTask
 	resourceFactory.createReaderCollection.reset(); // Ignore the call in initTask
 	resourceFactory.createReaderCollection.returns("custom reader collection");
-	const res = await taskRunner._createDependencyReader(new Set(["dep.a"]));
+	const res = await taskRunner._createDependenciesReader(new Set(["dep.a"]));
 
 	t.is(graph.traverseBreadthFirst.callCount, 1, "ProjectGraph#traverseBreadthFirst got called once");
 	t.is(graph.traverseBreadthFirst.getCall(0).args[0], "project.b",
@@ -1333,7 +1333,7 @@ test("_createDependencyReader", async (t) => {
 	t.is(res, "custom reader collection", "Returned expected value");
 });
 
-test("_createDependencyReader: All dependencies required", async (t) => {
+test("_createDependenciesReader: All dependencies required", async (t) => {
 	const {graph, taskUtil, taskRepository, TaskRunner, resourceFactory} = t.context;
 	const project = getMockProject("module");
 
@@ -1341,13 +1341,13 @@ test("_createDependencyReader: All dependencies required", async (t) => {
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	await taskRunner._initTasks();
-	const res = await taskRunner._createDependencyReader(new Set(["dep.a", "dep.b"]));
+	const res = await taskRunner._createDependenciesReader(new Set(["dep.a", "dep.b"]));
 	t.is(graph.traverseBreadthFirst.callCount, 1, "ProjectGraph#traverseBreadthFirst got called once");
 	t.is(resourceFactory.createReaderCollection.callCount, 1, "createReaderCollection got called once");
 	t.is(res, "reader collection", "Shared (all-)dependency reader returned");
 });
 
-test("_createDependencyReader: No dependencies required", async (t) => {
+test("_createDependenciesReader: No dependencies required", async (t) => {
 	const {graph, taskUtil, taskRepository, TaskRunner} = t.context;
 	const project = getMockProject("module");
 
@@ -1355,7 +1355,7 @@ test("_createDependencyReader: No dependencies required", async (t) => {
 		project, graph, taskUtil, taskRepository, parentLogger, buildConfig
 	});
 	await taskRunner._initTasks();
-	const res = await taskRunner._createDependencyReader(new Set());
+	const res = await taskRunner._createDependenciesReader(new Set());
 	t.is(res, null, "No dependency reader returned");
 });
 
