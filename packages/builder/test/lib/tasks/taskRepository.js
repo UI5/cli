@@ -1,5 +1,6 @@
 import test from "ava";
-import {getTask, getAllTaskNames} from "../../../lib/tasks/taskRepository.js";
+import semver from "semver";
+import {getTask, getAllTaskNames, getRemovedTaskNames, getVersions} from "../../../lib/tasks/taskRepository.js";
 
 test("Task retrieval", async (t) => {
 	const escapeNonAsciiCharacters = (await import("../../../lib/tasks/escapeNonAsciiCharacters.js")).default;
@@ -60,4 +61,15 @@ test("Removed task retrieval", async (t) => {
 		`Standard task generateManifestBundle has been removed in UI5 Tooling 3.0. ` +
 		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
 		"Correct exception");
+});
+
+test("getRemovedTaskNames", (t) => {
+	t.deepEqual(getRemovedTaskNames(), ["createDebugFiles", "uglify", "generateManifestBundle"],
+		"Returned correct list of removed tasks");
+});
+
+test("getVersions", async (t) => {
+	const versions = await getVersions();
+	t.not(semver.valid(versions.builderVersion), null, "builder version should be set and valid");
+	t.not(semver.valid(versions.fsVersion), null, "fs version should be set and valid");
 });
