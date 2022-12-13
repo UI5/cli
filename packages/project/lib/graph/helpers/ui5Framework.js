@@ -106,12 +106,39 @@ const utils = {
 				return;
 			}
 
+			const isRoot = project === rootProject;
 			frameworkDependencies.forEach((dependency) => {
-				if (utils.shouldIncludeDependency(dependency, project === rootProject)) {
-					projectGraph.declareDependency(project.getName(), dependency.name);
+				if (isRoot || !dependency.development) {
+					// Root project should include all dependencies
+					// Otherwise all non-development dependencies should be considered
+
+					if (isRoot) {
+						// Check for deprecated/internal dependencies of the root project
+						const depProject = projectGraph.getProject(dependency.name);
+						if (depProject && depProject.isDeprecated() && rootProject.getName() !== "testsuite") {
+							// No warning for testsuite projects
+							log.warn(`Dependency ${depProject.getName()} is deprecated ` +
+								`and should not be used for new projects!`);
+						}
+						if (depProject && depProject.isSapInternal() && !rootProject.getAllowSapInternal()) {
+							// Do not warn if project defines "allowSapInternal"
+							log.warn(`Dependency ${depProject.getName()} is restricted for use by ` +
+								`SAP internal projects only! ` +
+								`If the project ${rootProject.getName()} is an SAP internal project, ` +
+								`add the attribute "allowSapInternal: true" to its metadata configuration`);
+						}
+					}
+					if (dependency.optional) {
+						if (projectGraph.getProject(dependency.name)) {
+							projectGraph.declareOptionalDependency(project.getName(), dependency.name);
+						}
+					} else {
+						projectGraph.declareDependency(project.getName(), dependency.name);
+					}
 				}
 			});
 		});
+		await projectGraph.resolveOptionalDependencies();
 	},
 	ProjectProcessor
 };

@@ -175,7 +175,7 @@ test.serial("No warnings logged", async (t) => {
 
 	const node1 = createNode({
 		id: "id1",
-		name: "@my-comp/testsuite" // "/testsuite" suffix should suppress deprecation warnings
+		name: "testsuite" // "testsuite" name should suppress deprecation warnings
 	});
 	node1.configuration.metadata.allowSapInternal = true;
 	getRootNode.resolves(node1);
@@ -196,7 +196,7 @@ test.serial("No warnings logged", async (t) => {
 	const graph = await projectGraphBuilder(t.context.provider);
 
 	await traverseBreadthFirst(t, graph, [
-		"@my-comp/testsuite",
+		"testsuite",
 		"project-2",
 		"project-3"
 	]);

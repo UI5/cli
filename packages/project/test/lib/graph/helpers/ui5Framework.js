@@ -14,14 +14,15 @@ const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
-	const logStub = {
+	t.context.log = {
 		info: sinon.stub(),
+		warn: sinon.stub(),
 		verbose: sinon.stub(),
 		isLevelEnabled: sinon.stub().returns(false),
 		_getLogger: sinon.stub()
 	};
 	const ui5Logger = {
-		getLogger: sinon.stub().returns(logStub)
+		getLogger: sinon.stub().returns(t.context.log)
 	};
 
 	t.context.Sapui5ResolverStub = sinon.stub();
@@ -423,7 +424,6 @@ test.serial("utils.getFrameworkLibrariesFromTree: Framework project", async (t) 
 	t.deepEqual(ui5Dependencies, []);
 });
 
-
 test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dependency with libraries", async (t) => {
 	const {utils} = t.context;
 	const dependencyTree = {
@@ -526,6 +526,280 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dep
 
 	const ui5Dependencies = await utils.getFrameworkLibrariesFromGraph(projectGraph);
 	t.deepEqual(ui5Dependencies, ["lib1", "lib2", "lib6", "lib3", "lib5"]);
+});
+
+test.serial("utils.declareFrameworkDependenciesInGraph", async (t) => {
+	const {utils, sinon, log} = t.context;
+	const projectTree = {
+		id: "test-project",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.100.0",
+				libraries: [{
+					name: "lib1"
+				}, {
+					name: "lib2",
+					optional: true
+				}, {
+					name: "lib3",
+					development: true
+				}]
+			}
+		},
+		dependencies: [{
+			id: "library.a",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "library.a"
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "lib2"
+					}, {
+						name: "lib3",
+						optional: true
+					}, {
+						name: "lib4",
+						development: true
+					}, {
+						name: "lib5",
+						optional: true
+					}]
+				}
+			},
+			dependencies: []
+		}]
+	};
+	const frameworkTree = {
+		id: "dummy-framework-tree-root",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "dummy-framework-tree-root"
+			}
+		},
+		dependencies: [{
+			id: "@openui5/lib1",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib1",
+					deprecated: true
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "should.be.ignored"
+					}]
+				}
+			}
+		}, {
+			id: "@openui5/lib2",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib2",
+					sapInternal: true
+				}
+			}
+		}, {
+			id: "@openui5/lib3",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib3",
+					deprecated: true
+				}
+			}
+		}]
+	};
+	const projectGraph = await projectGraphBuilder(new DependencyTreeProvider({
+		dependencyTree: projectTree
+	}));
+	const frameworkGraph = await projectGraphBuilder(new DependencyTreeProvider({
+		dependencyTree: frameworkTree
+	}));
+	projectGraph.join(frameworkGraph);
+
+	const declareDependencySpy = sinon.spy(projectGraph, "declareDependency");
+	const declareOptionalDependencySpy = sinon.spy(projectGraph, "declareOptionalDependency");
+	const resolveOptionalDependenciesSpy = sinon.spy(projectGraph, "resolveOptionalDependencies");
+	await utils.declareFrameworkDependenciesInGraph(projectGraph);
+
+	t.is(declareDependencySpy.callCount, 5, "declareDependency got called five times");
+	t.deepEqual(declareDependencySpy.getCall(0).args, ["application.a", "lib1"],
+		"declareDependency got called with correct arguments on first call");
+	t.deepEqual(declareDependencySpy.getCall(1).args, ["application.a", "lib3"],
+		"declareDependency got called with correct arguments on second call");
+	t.deepEqual(declareDependencySpy.getCall(2).args, ["library.a", "lib2"],
+		"declareDependency got called with correct arguments on third call");
+	t.deepEqual(declareDependencySpy.getCall(3).args, ["application.a", "lib2"],
+		"declareDependency got called with correct arguments on fourth call");
+	t.deepEqual(declareDependencySpy.getCall(4).args, ["library.a", "lib3"],
+		"declareDependency got called with correct arguments on fifth call");
+	t.is(declareOptionalDependencySpy.callCount, 2, "declareOptionalDependency got called ");
+	t.deepEqual(declareOptionalDependencySpy.getCall(0).args, ["application.a", "lib2"],
+		"declareOptionalDependency got called with correct arguments on first call");
+	t.deepEqual(declareOptionalDependencySpy.getCall(1).args, ["library.a", "lib3"],
+		"declareOptionalDependency got called with correct arguments on second call");
+	t.is(resolveOptionalDependenciesSpy.callCount, 1,
+		"resolveOptionalDependenciesSpy got called once");
+
+	t.is(log.warn.callCount, 3,
+		"Three warnings got logged");
+	t.is(log.warn.getCall(0).args[0], "Dependency lib1 is deprecated and should not be used for new projects!",
+		"Expected first warning logged");
+	t.is(log.warn.getCall(1).args[0],
+		`Dependency lib2 is restricted for use by SAP internal projects only! If the project application.a is ` +
+		`an SAP internal project, add the attribute "allowSapInternal: true" to its metadata configuration`,
+		"Expected first warning logged");
+	t.is(log.warn.getCall(2).args[0], "Dependency lib3 is deprecated and should not be used for new projects!",
+		"Expected first warning logged");
+
+	t.deepEqual(projectGraph.getDependencies("application.a"), [
+		"library.a",
+		"lib1",
+		"lib3",
+		"lib2"
+	], `Root project has correct dependencies`);
+
+	t.deepEqual(projectGraph.getDependencies("library.a"), [
+		"lib2",
+		"lib3"
+	], `Non-framework dependency has correct dependencies`);
+});
+
+test.serial("utils.declareFrameworkDependenciesInGraph: No deprecation warnings for testsuite projects", async (t) => {
+	const {utils, log} = t.context;
+
+	const projectTree = {
+		id: "test-project",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "testsuite"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.100.0",
+				libraries: [{
+					name: "lib1"
+				}, {
+					name: "lib2",
+					optional: true
+				}, {
+					name: "lib3",
+					development: true
+				}]
+			}
+		},
+		dependencies: []
+	};
+	const frameworkTree = {
+		id: "dummy-framework-tree-root",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "dummy-framework-tree-root"
+			}
+		},
+		dependencies: [{
+			id: "@openui5/lib1",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib1",
+					deprecated: true
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "should.be.ignored"
+					}]
+				}
+			}
+		}, {
+			id: "@openui5/lib2",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib2",
+					sapInternal: true
+				}
+			}
+		}, {
+			id: "@openui5/lib3",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib3",
+					deprecated: true
+				}
+			}
+		}]
+	};
+	const projectGraph = await projectGraphBuilder(new DependencyTreeProvider({
+		dependencyTree: projectTree
+	}));
+	const frameworkGraph = await projectGraphBuilder(new DependencyTreeProvider({
+		dependencyTree: frameworkTree
+	}));
+	projectGraph.join(frameworkGraph);
+
+	await utils.declareFrameworkDependenciesInGraph(projectGraph);
+
+	t.is(log.warn.callCount, 1,
+		"One warning got logged");
+
+	t.is(log.warn.getCall(0).args[0],
+		`Dependency lib2 is restricted for use by SAP internal projects only! If the project testsuite is ` +
+		`an SAP internal project, add the attribute "allowSapInternal: true" to its metadata configuration`,
+		"Expected first warning logged");
+
+	t.deepEqual(projectGraph.getDependencies("testsuite"), [
+		"lib1",
+		"lib3"
+	], `Root project has correct dependencies`);
 });
 
 // TODO test: ProjectProcessor

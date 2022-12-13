@@ -261,7 +261,7 @@ async function projectGraphBuilder(nodeProvider) {
 					}
 
 					if (project.isDeprecated() && parentProject === rootProject &&
-							!parentProject.getName().endsWith("/testsuite")) {
+							parentProject.getName() !== "testsuite") {
 						// Only warn for direct dependencies of the root project
 						// No warning for testsuite projects
 						log.warn(

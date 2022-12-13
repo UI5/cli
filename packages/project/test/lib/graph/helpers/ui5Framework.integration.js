@@ -428,6 +428,20 @@ function defineTest(testName, {
 			"test-application",
 		], "Traversed graph in correct order");
 
+		t.deepEqual(projectGraph.getDependencies("test-application"), [
+			"test-dependency",
+			"test-dependency-no-framework",
+			"sap.ui.lib1",
+			"sap.ui.lib8",
+			"sap.ui.lib4",
+		], `Non-framework dependency has correct dependencies`);
+
+		t.deepEqual(projectGraph.getDependencies("test-dependency"), [
+			"sap.ui.lib1",
+			"sap.ui.lib2",
+			"sap.ui.lib8",
+		], `Non-framework dependency has correct dependencies`);
+
 		const frameworkLibAlreadyAddedInfoLogged = (logStub.info.getCalls()
 			.map(($) => $.firstArg)
 			.findIndex(($) => $.includes("defines a dependency to the UI5 framework library")) !== -1);
