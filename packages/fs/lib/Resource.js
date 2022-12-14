@@ -58,7 +58,7 @@ class Resource {
 		this._source = source; // Experimental, internal parameter
 		if (this._source) {
 			// Indicator for adapters like FileSystem to detect whether a resource has been changed
-			this._source.modified = false;
+			this._source.modified = this._source.modified || false;
 		}
 		this.__project = project; // Two underscores since "_project" was widely used in UI5 Tooling 2.0
 
@@ -314,7 +314,7 @@ class Resource {
 		const options = {
 			path: this._path,
 			statInfo: clone(this._statInfo),
-			source: this._source
+			source: clone(this._source)
 		};
 
 		if (this._stream) {
@@ -323,6 +323,10 @@ class Resource {
 			options.createStream = this._createStream;
 		} else if (this._buffer) {
 			options.buffer = this._buffer;
+		}
+
+		if (this.__project) {
+			options.project = this.__project;
 		}
 
 		return options;

@@ -10,11 +10,10 @@ test("glob resources from application.a w/ virtual base path prefix", async (t) 
 	const res = createResource({
 		path: "/app/index.html"
 	});
-	await dest.write(res)
-		.then(() => dest.byGlob("/app/*.html"))
-		.then((resources) => {
-			t.is(resources.length, 1, "Found exactly one resource");
-		});
+	await dest.write(res);
+	const resources = await dest.byGlob("/app/*.html");
+	t.is(resources.length, 1, "Found exactly one resource");
+	t.not(resources[0], res, "Not the same resource instance");
 });
 
 test("glob resources from application.a w/o virtual base path prefix", async (t) => {
@@ -25,11 +24,9 @@ test("glob resources from application.a w/o virtual base path prefix", async (t)
 	const res = createResource({
 		path: "/app/index.html"
 	});
-	await dest.write(res)
-		.then(() => dest.byGlob("/**/*.html"))
-		.then((resources) => {
-			t.is(resources.length, 1, "Found exactly one resource");
-		});
+	await dest.write(res);
+	const resources = await dest.byGlob("/**/*.html");
+	t.is(resources.length, 1, "Found exactly one resource");
 });
 
 test("Write resource w/ virtual base path", async (t) => {
@@ -47,6 +44,7 @@ test("Write resource w/ virtual base path", async (t) => {
 	}, "Adapter added resource with correct path");
 
 	t.deepEqual(Object.keys(readerWriter._virDirs), [], "Adapter added correct virtual directories");
+	t.not(readerWriter._virFiles["test.html"], res, "Not the same resource instance");
 });
 
 test("Write resource w/o virtual base path", async (t) => {
@@ -132,4 +130,31 @@ test("Migration of resource is executed", async (t) => {
 	const migrateResourceWriterSpy = sinon.spy(writer, "_migrateResource");
 	await writer.write(resource);
 	t.is(migrateResourceWriterSpy.callCount, 1);
+});
+
+test("Resource: Change instance after write", async (t) => {
+	const writer = createAdapter({
+		virBasePath: "/"
+	});
+
+	const resource = createResource({
+		path: "/test.js",
+		string: "MyInitialContent"
+	});
+
+	await writer.write(resource);
+
+	resource.setString("MyNewContent");
+
+	const resource1 = await writer.byPath("/test.js");
+
+	t.is(await resource.getString(), "MyNewContent");
+	t.is(await resource1.getString(), "MyInitialContent");
+
+	await writer.write(resource);
+
+	const resource2 = await writer.byPath("/test.js");
+	t.is(await resource.getString(), "MyNewContent");
+	t.is(await resource1.getString(), "MyInitialContent");
+	t.is(await resource2.getString(), "MyNewContent");
 });
