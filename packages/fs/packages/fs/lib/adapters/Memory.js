@@ -28,6 +28,24 @@ class Memory extends AbstractAdapter {
 	}
 
 	/**
+	 * Matches and returns resources from a given map (either _virFiles or _virDirs).
+	 *
+	 * @private
+	 * @param {string[]} patterns
+	 * @param {object} resourceMap
+	 * @returns {Promise<module:@ui5/fs.Resource[]>}
+	 */
+	async _matchPatterns(patterns, resourceMap) {
+		const resourcePaths = Object.keys(resourceMap);
+		const matchedPaths = micromatch(resourcePaths, patterns, {
+			dot: true
+		});
+		return Promise.all(matchedPaths.map((virPath) => {
+			return resourceMap[virPath] && resourceMap[virPath].clone();
+		}));
+	}
+
+	/**
 	 * Locate resources by glob.
 	 *
 	 * @private
@@ -55,22 +73,11 @@ class Memory extends AbstractAdapter {
 			];
 		}
 
-		const filePaths = Object.keys(this._virFiles);
-		const matchedFilePaths = micromatch(filePaths, patterns, {
-			dot: true
-		});
-		let matchedResources = matchedFilePaths.map((virPath) => {
-			return this._virFiles[virPath];
-		});
+		let matchedResources = await this._matchPatterns(patterns, this._virFiles);
 
 		if (!options.nodir) {
-			const dirPaths = Object.keys(this._virDirs);
-			const matchedDirs = micromatch(dirPaths, patterns, {
-				dot: true
-			});
-			matchedResources = matchedResources.concat(matchedDirs.map((virPath) => {
-				return this._virDirs[virPath];
-			}));
+			const matchedDirs = await this._matchPatterns(patterns, this._virDirs);
+			matchedResources = matchedResources.concat(matchedDirs);
 		}
 
 		return matchedResources;
@@ -85,28 +92,25 @@ class Memory extends AbstractAdapter {
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
 	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
-	_byPath(virPath, options, trace) {
+	async _byPath(virPath, options, trace) {
 		if (this.isPathExcluded(virPath)) {
-			return Promise.resolve(null);
+			return null;
 		}
-		return new Promise((resolve, reject) => {
-			if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
-				// Neither starts with basePath, nor equals baseDirectory
-				resolve(null);
-				return;
-			}
+		if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
+			// Neither starts with basePath, nor equals baseDirectory
+			return null;
+		}
 
-			const relPath = virPath.substr(this._virBasePath.length);
-			trace.pathCall();
+		const relPath = virPath.substr(this._virBasePath.length);
+		trace.pathCall();
 
-			const resource = this._virFiles[relPath];
+		const resource = this._virFiles[relPath];
 
-			if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
-				resolve(null);
-			} else {
-				resolve(resource);
-			}
-		});
+		if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
+			return null;
+		} else {
+			return await resource.clone();
+		}
 	}
 
 	/**
@@ -119,42 +123,39 @@ class Memory extends AbstractAdapter {
 	async _write(resource) {
 		resource = await this._migrateResource(resource);
 		super._write(resource);
-		return new Promise((resolve, reject) => {
-			const relPath = resource.getPath().substr(this._virBasePath.length);
-			log.silly("Writing to virtual path %s", resource.getPath());
-			this._virFiles[relPath] = resource;
+		const relPath = resource.getPath().substr(this._virBasePath.length);
+		log.silly("Writing to virtual path %s", resource.getPath());
+		this._virFiles[relPath] = await resource.clone();
 
-			// Add virtual directories for all path segments of the written resource
-			// TODO: Add tests for all this
-			const pathSegments = relPath.split("/");
-			pathSegments.pop(); // Remove last segment representing the resource itself
+		// Add virtual directories for all path segments of the written resource
+		// TODO: Add tests for all this
+		const pathSegments = relPath.split("/");
+		pathSegments.pop(); // Remove last segment representing the resource itself
 
-			pathSegments.forEach((segment, i) => {
-				if (i >= 1) {
-					segment = pathSegments[i - 1] + "/" + segment;
-				}
-				pathSegments[i] = segment;
-			});
-
-			for (let i = pathSegments.length - 1; i >= 0; i--) {
-				const segment = pathSegments[i];
-				if (!this._virDirs[segment]) {
-					this._virDirs[segment] = this._createResource({
-						project: this._project,
-						source: {
-							adapter: "Memory"
-						},
-						statInfo: { // TODO: make closer to fs stat info
-							isDirectory: function() {
-								return true;
-							}
-						},
-						path: this._virBasePath + segment
-					});
-				}
+		pathSegments.forEach((segment, i) => {
+			if (i >= 1) {
+				segment = pathSegments[i - 1] + "/" + segment;
 			}
-			resolve();
+			pathSegments[i] = segment;
 		});
+
+		for (let i = pathSegments.length - 1; i >= 0; i--) {
+			const segment = pathSegments[i];
+			if (!this._virDirs[segment]) {
+				this._virDirs[segment] = this._createResource({
+					project: this._project,
+					source: {
+						adapter: "Memory"
+					},
+					statInfo: { // TODO: make closer to fs stat info
+						isDirectory: function() {
+							return true;
+						}
+					},
+					path: this._virBasePath + segment
+				});
+			}
+		}
 	}
 }
 

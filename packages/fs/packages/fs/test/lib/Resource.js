@@ -316,6 +316,71 @@ test("Resource: clone resource with stream", async (t) => {
 	t.is(clonedResourceContent, "Content", "Cloned resource has correct content string");
 });
 
+test("Resource: clone resource with source", async (t) => {
+	t.plan(4);
+
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		source: {
+			adapter: "FileSystem",
+			fsPath: "/resources/my.js"
+		}
+	});
+
+	const clonedResource = await resource.clone();
+
+	t.not(resource.getSource(), clonedResource.getSource());
+	t.deepEqual(clonedResource.getSource(), resource.getSource());
+
+	// Change existing resource and clone
+	resource.setString("New Content");
+
+	const clonedResource2 = await resource.clone();
+
+	t.not(clonedResource.getSource(), resource.getSource());
+	t.deepEqual(clonedResource2.getSource(), resource.getSource());
+});
+
+test("Resource: clone resource with project", async (t) => {
+	t.plan(2);
+
+	const myProject = {
+		name: "my project"
+	};
+
+	const resourceOptions = {
+		path: "my/path/to/resource",
+		project: myProject
+	};
+
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		project: myProject
+	});
+
+	const clonedResource = await resource.clone();
+	t.pass("Resource cloned");
+
+	const clonedResourceProject = await clonedResource.getProject();
+	t.is(clonedResourceProject, resourceOptions.project, "Cloned resource should have same " +
+		"project reference as the original resource");
+});
+
+test("Resource: create resource with modified source", (t) => {
+	t.plan(1);
+
+	const resource = new Resource({
+		path: "my/path/to/resource",
+		source: {
+			adapter: "FileSystem",
+			fsPath: "/resources/my.js",
+			modified: true
+		}
+	});
+
+	t.true(resource.getSource().modified, "Modified flag is still true");
+});
+
 test("getStream with createStream callback content: Subsequent content requests should throw error due " +
 		"to drained content", async (t) => {
 	const resource = createBasicResource();
