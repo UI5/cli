@@ -12,6 +12,56 @@ import SpecificationVersion from "./SpecificationVersion.js";
  * @hideconstructor
  */
 class Specification {
+	/**
+	 * Create a Specification instance for the given parameters
+	 *
+	 * @param {object} parameters
+	 * @param {string} parameters.id Unique ID
+	 * @param {string} parameters.version Version
+	 * @param {string} parameters.modulePath File System path to access resources
+	 * @param {object} parameters.configuration
+	 *   Type-dependent configuration object. Typically defined in a ui5.yaml
+	 * @static
+	 * @public
+	 */
+	static async create(parameters) {
+		if (!parameters.configuration) {
+			throw new Error(
+				`Unable to create Specification instance: Missing configuration parameter`);
+		}
+		const {kind, type} = parameters.configuration;
+		if (!["project", "extension"].includes(kind)) {
+			throw new Error(`Unable to create Specification instance: Unknown kind '${kind}'`);
+		}
+
+		switch (type) {
+		case "application": {
+			return createAndInitializeSpec("types/Application.js", parameters);
+		}
+		case "library": {
+			return createAndInitializeSpec("types/Library.js", parameters);
+		}
+		case "theme-library": {
+			return createAndInitializeSpec("types/ThemeLibrary.js", parameters);
+		}
+		case "module": {
+			return createAndInitializeSpec("types/Module.js", parameters);
+		}
+		case "task": {
+			return createAndInitializeSpec("extensions/Task.js", parameters);
+		}
+		case "server-middleware": {
+			return createAndInitializeSpec("extensions/ServerMiddleware.js", parameters);
+		}
+		case "project-shim": {
+			return createAndInitializeSpec("extensions/ProjectShim.js", parameters);
+		}
+		default:
+			throw new Error(
+				`Unable to create Specification instance: Unknown specification type '${type}'`);
+		}
+	}
+
 	constructor() {
 		if (new.target === Specification) {
 			throw new TypeError("Class 'Specification' is abstract. Please use one of the 'types' subclasses");
@@ -205,44 +255,6 @@ class Specification {
 			config.resources = config.resources || {};
 			config.resources.configuration = config.resources.configuration || {};
 			config.resources.configuration.propertiesFileSourceEncoding = "ISO-8859-1";
-		}
-	}
-
-	static async create(params) {
-		if (!params.configuration) {
-			throw new Error(
-				`Unable to create Specification instance: Missing configuration parameter`);
-		}
-		const {kind, type} = params.configuration;
-		if (!["project", "extension"].includes(kind)) {
-			throw new Error(`Unable to create Specification instance: Unknown kind '${kind}'`);
-		}
-
-		switch (type) {
-		case "application": {
-			return createAndInitializeSpec("types/Application.js", params);
-		}
-		case "library": {
-			return createAndInitializeSpec("types/Library.js", params);
-		}
-		case "theme-library": {
-			return createAndInitializeSpec("types/ThemeLibrary.js", params);
-		}
-		case "module": {
-			return createAndInitializeSpec("types/Module.js", params);
-		}
-		case "task": {
-			return createAndInitializeSpec("extensions/Task.js", params);
-		}
-		case "server-middleware": {
-			return createAndInitializeSpec("extensions/ServerMiddleware.js", params);
-		}
-		case "project-shim": {
-			return createAndInitializeSpec("extensions/ProjectShim.js", params);
-		}
-		default:
-			throw new Error(
-				`Unable to create Specification instance: Unknown specification type '${type}'`);
 		}
 	}
 }
