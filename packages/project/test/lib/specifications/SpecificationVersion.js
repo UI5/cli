@@ -1,7 +1,7 @@
 import test from "ava";
 import sinonGlobal from "sinon";
-import SpecificationVersion from "../../../../lib/specifications/SpecificationVersion.js";
-import {__localFunctions__} from "../../../../lib/specifications/SpecificationVersion.js";
+import SpecificationVersion from "../../../lib/specifications/SpecificationVersion.js";
+import {__localFunctions__} from "../../../lib/specifications/SpecificationVersion.js";
 
 const unsupportedSpecVersionText = (specVersion) =>
 	`Unsupported Specification Version ${specVersion} defined. Your UI5 CLI installation might be outdated. ` +
