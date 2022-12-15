@@ -220,16 +220,16 @@ class Specification {
 
 		switch (type) {
 		case "application": {
-			return createAndInitializeSpec("Application.js", params);
+			return createAndInitializeSpec("types/Application.js", params);
 		}
 		case "library": {
-			return createAndInitializeSpec("Library.js", params);
+			return createAndInitializeSpec("types/Library.js", params);
 		}
 		case "theme-library": {
-			return createAndInitializeSpec("ThemeLibrary.js", params);
+			return createAndInitializeSpec("types/ThemeLibrary.js", params);
 		}
 		case "module": {
-			return createAndInitializeSpec("Module.js", params);
+			return createAndInitializeSpec("types/Module.js", params);
 		}
 		case "task": {
 			return createAndInitializeSpec("extensions/Task.js", params);
@@ -248,7 +248,7 @@ class Specification {
 }
 
 async function createAndInitializeSpec(moduleName, params) {
-	const {default: Spec} = await import(`./types/${moduleName}`);
+	const {default: Spec} = await import(`./${moduleName}`);
 	return new Spec().init(params);
 }
 

@@ -1,5 +1,5 @@
 import path from "node:path";
-import Extension from "../../Extension.js";
+import Extension from "../Extension.js";
 import {pathToFileURL} from "node:url";
 
 /**
@@ -7,7 +7,7 @@ import {pathToFileURL} from "node:url";
  *
  * @public
  * @class
- * @alias @ui5/project/specifications/types/extensions/Task
+ * @alias @ui5/project/specifications/extensions/Task
  * @extends @ui5/project/specifications/Extension
  * @hideconstructor
  */

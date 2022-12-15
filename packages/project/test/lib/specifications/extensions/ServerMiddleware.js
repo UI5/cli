@@ -2,8 +2,8 @@ import test from "ava";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import sinon from "sinon";
-import Specification from "../../../../../lib/specifications/Specification.js";
-import ServerMiddleware from "../../../../../lib/specifications/types/extensions/ServerMiddleware.js";
+import Specification from "../../../../lib/specifications/Specification.js";
+import ServerMiddleware from "../../../../lib/specifications/extensions/ServerMiddleware.js";
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
@@ -11,8 +11,8 @@ function clone(obj) {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const genericCjsExtensionPath = path.join(__dirname, "..", "..", "..", "..", "fixtures", "extension.a");
-const genericEsmExtensionPath = path.join(__dirname, "..", "..", "..", "..", "fixtures", "extension.a.esm");
+const genericCjsExtensionPath = path.join(__dirname, "..", "..", "..", "fixtures", "extension.a");
+const genericEsmExtensionPath = path.join(__dirname, "..", "..", "..", "fixtures", "extension.a.esm");
 const basicCjsServerMiddlewareInput = {
 	id: "server.middleware.a",
 	version: "1.0.0",

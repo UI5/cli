@@ -7,9 +7,9 @@ import Application from "../../../lib/specifications/types/Application.js";
 import Library from "../../../lib/specifications/types/Library.js";
 import ThemeLibrary from "../../../lib/specifications/types/ThemeLibrary.js";
 import Module from "../../../lib/specifications/types/Module.js";
-import Task from "../../../lib/specifications/types/extensions/Task.js";
-import ProjectShim from "../../../lib/specifications/types/extensions/ProjectShim.js";
-import ServerMiddleware from "../../../lib/specifications/types/extensions/ServerMiddleware.js";
+import Task from "../../../lib/specifications/extensions/Task.js";
+import ProjectShim from "../../../lib/specifications/extensions/ProjectShim.js";
+import ServerMiddleware from "../../../lib/specifications/extensions/ServerMiddleware.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

@@ -1,11 +1,11 @@
-import Extension from "../../Extension.js";
+import Extension from "../Extension.js";
 
 /**
  * ProjectShim
  *
  * @public
  * @class
- * @alias @ui5/project/specifications/types/extensions/ProjectShim
+ * @alias @ui5/project/specifications/extensions/ProjectShim
  * @extends @ui5/project/specifications/Extension
  * @hideconstructor
  */
