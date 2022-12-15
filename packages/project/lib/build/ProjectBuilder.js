@@ -32,6 +32,66 @@ class ProjectBuilder {
 	 */
 
 	/**
+	 * As an alternative to providing plain lists of names of dependencies to include and exclude, you can provide a
+	 * more complex "Dependency Includes" object to define which dependencies should be part of the build result.
+	 * <br>
+	 * This information is then used to compile lists of <code>includedDependencies</code> and
+	 * <code>excludedDependencies</code>, which are applied during the build process.
+	 * <br><br>
+	 * Regular expression-parameters are directly applied to a list of all project dependencies
+	 * so that they don't need to be evaluated in later processing steps.
+	 * <br><br>
+	 * Generally, includes are handled with a higher priority than excludes. Additionally, operations for processing
+	 * transitive dependencies are handled with a lower priority than explicitly mentioned dependencies. The "default"
+	 * dependency-includes are appended at the end.
+	 * <br><br>
+	 * The priority of the various dependency lists is applied in the following order.
+	 * Note that a later exclude can't overrule an earlier include.
+	 * <br>
+	 * <ol>
+	 *   <li><code>includeDependency</code>, <code>includeDependencyRegExp</code></li>
+	 *   <li><code>excludeDependency</code>, <code>excludeDependencyRegExp</code></li>
+	 *   <li><code>includeDependencyTree</code></li>
+	 *   <li><code>excludeDependencyTree</code></li>
+	 *   <li><code>defaultIncludeDependency</code>, <code>defaultIncludeDependencyRegExp</code>,
+	 *     <code>defaultIncludeDependencyTree</code></li>
+	 * </ol>
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/build/ProjectBuilder~DependencyIncludes
+	 * @property {boolean} includeAllDependencies
+	 *   Whether all dependencies should be part of the build result
+	 *	 This parameter has the lowest priority and basically includes all remaining (not excluded) projects as include
+	 * @property {string[]} includeDependency
+	 *   The dependencies to be considered in <code>includedDependencies</code>; the
+	 *   <code>*</code> character can be used as wildcard for all dependencies and
+	 *   is an alias for the CLI option <code>--all</code>
+	 * @property {string[]} includeDependencyRegExp
+	 *   Strings which are interpreted as regular expressions
+	 *   to describe the selection of dependencies to be considered in <code>includedDependencies</code>
+	 * @property {string[]} includeDependencyTree
+	 *   The dependencies to be considered in <code>includedDependencies</code>;
+	 *   transitive dependencies are also appended
+	 * @property {string[]} excludeDependency
+	 *   The dependencies to be considered in <code>excludedDependencies</code>
+	 * @property {string[]} excludeDependencyRegExp
+	 *   Strings which are interpreted as regular expressions
+	 *   to describe the selection of dependencies to be considered in <code>excludedDependencies</code>
+	 * @property {string[]} excludeDependencyTree
+	 *   The dependencies to be considered in <code>excludedDependencies</code>;
+	 *   transitive dependencies are also appended
+	 * @property {string[]} defaultIncludeDependency
+	 *   Same as <code>includeDependency</code> parameter;
+	 *   typically used in project build settings
+	 * @property {string[]} defaultIncludeDependencyRegExp
+	 *   Same as <code>includeDependencyRegExp</code> parameter;
+	 *   typically used in project build settings
+	 * @property {string[]} defaultIncludeDependencyTree
+	 *   Same as <code>includeDependencyTree</code> parameter;
+	 *   typically used in project build settings
+	 */
+
+	/**
 	 * Executes a project build, including all necessary or requested dependencies
 	 *
 	 * @public
@@ -64,25 +124,28 @@ class ProjectBuilder {
 	 * @param {string} parameters.destPath Target path
 	 * @param {boolean} [parameters.cleanDest=false] Decides whether project should clean the target path before build
 	 * @param {Array.<string|RegExp>} [parameters.includedDependencies=[]]
-	 *			List of names of projects to include in the build result
-	 *			If the wildcard '*' is provided, all dependencies will be included in the build result.
+	 *   List of names of projects to include in the build result
+	 *   If the wildcard '*' is provided, all dependencies will be included in the build result.
 	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]]
-	 *			List of names of projects to exclude from the build result.
-	 * @param {object} [parameters.complexDependencyIncludes] TODO 3.0
-	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
+	 *   List of names of projects to exclude from the build result.
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [parameters.dependencyIncludes]
+	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
+	 *   Allows for a more sophisticated configuration for defining which dependencies should be
+	 *   part of the build result. If this is provided, the other mentioned parameters are ignored.
+	 * @returns {Promise} Promise resolving once the build has finished
 	 */
 	async build({
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
-		complexDependencyIncludes
+		dependencyIncludes
 	}) {
 		if (!destPath) {
 			throw new Error(`Missing parameter 'destPath'`);
 		}
-		if (complexDependencyIncludes) {
+		if (dependencyIncludes) {
 			if (includedDependencies.length || excludedDependencies.length) {
 				throw new Error(
-					"Parameter 'complexDependencyIncludes' can't be used in conjunction " +
+					"Parameter 'dependencyIncludes' can't be used in conjunction " +
 					"with parameters 'includedDependencies' or 'excludedDependencies");
 			}
 		}
@@ -95,7 +158,7 @@ class ProjectBuilder {
 		const filterProject = await this._getProjectFilter({
 			explicitIncludes: includedDependencies,
 			explicitExcludes: excludedDependencies,
-			complexDependencyIncludes
+			dependencyIncludes
 		});
 
 		// Count total number of projects to build based on input
@@ -246,13 +309,13 @@ class ProjectBuilder {
 	}
 
 	async _getProjectFilter({
-		complexDependencyIncludes,
+		dependencyIncludes,
 		explicitIncludes,
 		explicitExcludes
 	}) {
 		const {includedDependencies, excludedDependencies} = await composeProjectList(
 			this._graph,
-			complexDependencyIncludes || {
+			dependencyIncludes || {
 				includeDependencyTree: explicitIncludes,
 				excludeDependencyTree: explicitExcludes
 			}

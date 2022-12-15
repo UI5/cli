@@ -513,7 +513,10 @@ class ProjectGraph {
 	 *			If the wildcard '*' is provided, all dependencies will be included in the build result.
 	 * @param {Array.<string|RegExp>} [parameters.excludedDependencies=[]]
 	 *			List of names of projects to exclude from the build result.
-	 * @param {object} [parameters.complexDependencyIncludes] TODO 3.0
+	 * @param {@ui5/project/build/ProjectBuilder~DependencyIncludes} [parameters.dependencyIncludes]
+	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
+	 *   Allows for a more sophisticated configuration for defining which dependencies should be
+	 *   part of the build result. If this is provided, the other mentioned parameters will be ignored.
 	 * @param {boolean} [parameters.selfContained=false] Flag to activate self contained build
 	 * @param {boolean} [parameters.cssVariables=false] Flag to activate CSS variables generation
 	 * @param {boolean} [parameters.jsdoc=false] Flag to activate JSDoc build
@@ -528,7 +531,7 @@ class ProjectGraph {
 	async build({
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
-		complexDependencyIncludes,
+		dependencyIncludes,
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = []
 	}) {
@@ -554,7 +557,7 @@ class ProjectGraph {
 		await builder.build({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
-			complexDependencyIncludes,
+			dependencyIncludes,
 		});
 	}
 

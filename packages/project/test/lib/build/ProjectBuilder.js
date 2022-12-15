@@ -128,7 +128,7 @@ test("build", async (t) => {
 	t.deepEqual(getProjectFilterStub.getCall(0).args[0], {
 		explicitIncludes: ["dep a"],
 		explicitExcludes: ["dep b"],
-		complexDependencyIncludes: undefined
+		dependencyIncludes: undefined
 	}, "_getProjectFilter got called with correct arguments");
 
 	t.is(createRequiredBuildContextsStub.callCount, 1, "_createRequiredBuildContexts got called once");
@@ -160,13 +160,13 @@ test("build: Missing dest parameter", async (t) => {
 
 	const err = await t.throwsAsync(builder.build({
 		destPath: "dest/path",
-		complexDependencyIncludes: "complexDependencyIncludes",
+		dependencyIncludes: "dependencyIncludes",
 		includedDependencies: ["dep a"],
 		excludedDependencies: ["dep b"]
 	}));
 
 	t.is(err.message,
-		"Parameter 'complexDependencyIncludes' can't be used in conjunction " +
+		"Parameter 'dependencyIncludes' can't be used in conjunction " +
 		"with parameters 'includedDependencies' or 'excludedDependencies",
 		"Threw with expected error message");
 });
@@ -307,7 +307,7 @@ test.serial("build: Multiple projects", async (t) => {
 	logger.setLevel("verbose");
 	await builder.build({
 		destPath: "dest/path",
-		complexDependencyIncludes: "complexDependencyIncludes"
+		dependencyIncludes: "dependencyIncludes"
 	});
 	logger.setLevel("info");
 
@@ -315,7 +315,7 @@ test.serial("build: Multiple projects", async (t) => {
 	t.deepEqual(getProjectFilterStub.getCall(0).args[0], {
 		explicitIncludes: [],
 		explicitExcludes: [],
-		complexDependencyIncludes: "complexDependencyIncludes"
+		dependencyIncludes: "dependencyIncludes"
 	}, "_getProjectFilter got called with correct arguments");
 
 	t.is(createRequiredBuildContextsStub.callCount, 1, "_createRequiredBuildContexts got called once");
@@ -392,7 +392,7 @@ test("_createRequiredBuildContexts", async (t) => {
 		"Third call to BuildContext#createProjectContextStub with a log instance");
 });
 
-test.serial("_getProjectFilter with complexDependencyIncludes", async (t) => {
+test.serial("_getProjectFilter with dependencyIncludes", async (t) => {
 	const {graph, taskRepository, sinon} = t.context;
 	const composeProjectListStub = sinon.stub().returns({
 		includedDependencies: ["project.b", "project.c"],
@@ -405,7 +405,7 @@ test.serial("_getProjectFilter with complexDependencyIncludes", async (t) => {
 	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProject = await builder._getProjectFilter({
-		complexDependencyIncludes: "complexDependencyIncludes",
+		dependencyIncludes: "dependencyIncludes",
 		explicitIncludes: "explicitIncludes",
 		explicitExcludes: "explicitExcludes",
 	});
@@ -413,7 +413,7 @@ test.serial("_getProjectFilter with complexDependencyIncludes", async (t) => {
 	t.is(composeProjectListStub.callCount, 1, "composeProjectList got called once");
 	t.is(composeProjectListStub.getCall(0).args[0], graph,
 		"composeProjectList got called with correct graph argument");
-	t.is(composeProjectListStub.getCall(0).args[1], "complexDependencyIncludes",
+	t.is(composeProjectListStub.getCall(0).args[1], "dependencyIncludes",
 		"composeProjectList got called with correct include/exclude argument");
 
 	t.true(filterProject("project.a"), "project.a (root project) is always allowed");
