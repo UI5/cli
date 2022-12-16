@@ -20,10 +20,12 @@ test.beforeEach(async (t) => {
 	t.context.argv = getDefaultArgv();
 
 	t.context.traverseBreadthFirst = sinon.stub();
-	t.context.getAllExtensions = sinon.stub().returns([]);
+	t.context.getExtensionNames = sinon.stub().returns([]);
+	t.context.getExtension = sinon.stub().returns();
 	const fakeGraph = {
 		traverseBreadthFirst: t.context.traverseBreadthFirst,
-		getAllExtensions: t.context.getAllExtensions
+		getExtensionNames: t.context.getExtensionNames,
+		getExtension: t.context.getExtension,
 	};
 	t.context.graph = {
 		graphFromStaticFile: sinon.stub().resolves(fakeGraph),
@@ -57,7 +59,7 @@ test.serial("ui5 tree (Without dependencies)", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
 
@@ -91,11 +93,7 @@ test.serial("ui5 tree", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([{
-				getName: sinon.stub().returns("dependency1")
-			}, {
-				getName: sinon.stub().returns("dependency2")
-			}])
+			dependencies: ["dependency1", "dependency2"]
 		});
 		await fn({
 			project: {
@@ -105,9 +103,7 @@ test.serial("ui5 tree", async (t) => {
 				getType: sinon.stub().returns("library"),
 				getPath: sinon.stub().returns("/home/dependency2")
 			},
-			getDependencies: sinon.stub().returns([{
-				getName: sinon.stub().returns("dependency1")
-			}])
+			dependencies: ["dependency1"]
 		});
 		await fn({
 			project: {
@@ -116,9 +112,7 @@ test.serial("ui5 tree", async (t) => {
 				getType: sinon.stub().returns("library"),
 				getPath: sinon.stub().returns("/home/dependency1")
 			},
-			getDependencies: sinon.stub().returns([{
-				getName: sinon.stub().returns("dependency3")
-			}])
+			dependencies: ["dependency3"]
 		});
 		await fn({
 			project: {
@@ -127,7 +121,7 @@ test.serial("ui5 tree", async (t) => {
 				getType: sinon.stub().returns("library"),
 				getPath: sinon.stub().returns("/home/dependency3")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
 
@@ -158,7 +152,7 @@ ${chalk.italic("None")}
 });
 
 test.serial("ui5 tree (With extensions)", async (t) => {
-	const {argv, tree, traverseBreadthFirst, graph, getAllExtensions} = t.context;
+	const {argv, tree, traverseBreadthFirst, graph, getExtension, getExtensionNames} = t.context;
 
 	traverseBreadthFirst.callsFake(async (fn) => {
 		await fn({
@@ -169,19 +163,33 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
+	getExtensionNames.returns(["extension1", "extension2"]);
 
-	getAllExtensions.returns([{
+	getExtension.onFirstCall().returns({
 		getName: sinon.stub().returns("extension1"),
 		getVersion: sinon.stub().returns("3.0.0"),
 		getType: sinon.stub().returns("task"),
 		getPath: sinon.stub().returns("/home/extension1")
-	}]);
+	}).onSecondCall().returns({
+		getName: sinon.stub().returns("extension2"),
+		getVersion: sinon.stub().returns("5.0.0"),
+		getType: sinon.stub().returns("middleware"),
+		getPath: sinon.stub().returns("/home/extension2")
+	});
 
 	await tree.handler(argv);
 
+	t.is(getExtensionNames.callCount, 1,
+		"getExtensionNames got called once");
+	t.is(getExtension.callCount, 2,
+		"getExtension got called once");
+	t.is(getExtension.getCall(0).args[0], "extension1",
+		"getExtension called with expected extension name");
+	t.is(getExtension.getCall(1).args[0], "extension2",
+		"getExtension called with expected extension name");
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
 	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
@@ -193,9 +201,11 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 ╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
 ${chalk.dim.italic("/home/project1")}
 
-${chalk.bold.underline("Extensions (1):")}
+${chalk.bold.underline("Extensions (2):")}
 ├─ extension1 ${chalk.dim("(3.0.0, task) ")}\
 ${chalk.dim.italic("/home/extension1")}
+╰─ extension2 ${chalk.dim("(5.0.0, middleware) ")}\
+${chalk.dim.italic("/home/extension2")}
 `);
 });
 
@@ -211,7 +221,7 @@ test.serial("ui5 tree --x-perf", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
 
@@ -255,7 +265,7 @@ test.serial("ui5 tree --framework-version", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
 
@@ -291,7 +301,7 @@ test.serial("ui5 tree --config", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
 
@@ -327,7 +337,7 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 				getType: sinon.stub().returns("application"),
 				getPath: sinon.stub().returns("/home/project1")
 			},
-			getDependencies: sinon.stub().returns([])
+			dependencies: []
 		});
 	});
 

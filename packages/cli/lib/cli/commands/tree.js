@@ -45,10 +45,7 @@ tree.handler = async function(argv) {
 
 	const projects = Object.create(null);
 	const indentWidth = 4;
-	await graph.traverseBreadthFirst(async ({project, getDependencies}) => {
-		const deps = getDependencies().map((dep) => {
-			return dep.getName();
-		});
+	await graph.traverseBreadthFirst(async ({project, dependencies}) => {
 		projects[project.getName()] = {
 			render: function(indentation, connectorIndices, lastChild) {
 				let baseString = " ".repeat(indentation * indentWidth);
@@ -63,12 +60,12 @@ tree.handler = async function(argv) {
 					chalk.dim.italic(`${project.getPath()}`)
 				);
 
-				const lastIdx = deps.length -1;
+				const lastIdx = dependencies.length - 1;
 				const newConnectorIndices = [...connectorIndices];
 				if (!lastChild) {
 					newConnectorIndices.push(indentation * indentWidth);
 				}
-				deps.forEach((dep, i) => {
+				dependencies.forEach((dep, i) => {
 					projects[dep].render(indentation + 1, newConnectorIndices, i === lastIdx);
 				});
 			}
@@ -80,12 +77,16 @@ tree.handler = async function(argv) {
 	projects[projectKeys[0]].render(0, [], true);
 	console.log("");
 
-	const extensions = graph.getAllExtensions();
-	console.log(chalk.bold.underline(`Extensions (${extensions.length}):`));
-	if (extensions.length) {
-		extensions.forEach((extension) => {
+	const extensionNames = graph.getExtensionNames();
+	const extensionCount = extensionNames.length;
+	console.log(chalk.bold.underline(`Extensions (${extensionCount}):`));
+	if (extensionCount) {
+		const lastIdx = extensionCount - 1;
+		extensionNames.forEach((extensionName, idx) => {
+			const extension = graph.getExtension(extensionName);
+			const connectorString = idx === lastIdx ? "╰─" : "├─";
 			console.log(
-				`├─ ${extension.getName()} ` +
+				`${connectorString} ${extensionName} ` +
 				chalk.dim(`(${extension.getVersion()}, ${extension.getType()}) `) +
 				chalk.dim.italic(`${extension.getPath()}`));
 		});
