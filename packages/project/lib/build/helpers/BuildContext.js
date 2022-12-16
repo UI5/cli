@@ -27,6 +27,12 @@ class BuildContext {
 				graph.getRoot().getType());
 		}
 
+		if (createBuildManifest && selfContained) {
+			throw new Error(
+				`Build manifest creation is currently not supported for ` +
+				`self-contained builds`);
+		}
+
 		this._graph = graph;
 		this._buildConfig = {
 			selfContained,

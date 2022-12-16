@@ -65,7 +65,7 @@ test("getBuildConfig: Custom values", (t) => {
 		selfContained: true,
 		cssVariables: true,
 		jsdoc: true,
-		createBuildManifest: true,
+		createBuildManifest: false,
 		includedTasks: ["included tasks"],
 		excludedTasks: ["excluded tasks"],
 	});
@@ -74,18 +74,18 @@ test("getBuildConfig: Custom values", (t) => {
 		selfContained: true,
 		cssVariables: true,
 		jsdoc: true,
-		createBuildManifest: true,
+		createBuildManifest: false,
 		includedTasks: ["included tasks"],
 		excludedTasks: ["excluded tasks"],
 	}, "Returned correct value");
 });
 
-test("createBuildManifest not supported", (t) => {
+test("createBuildManifest not supported for type application", (t) => {
 	const err = t.throws(() => {
 		new BuildContext({
 			getRoot: () => {
 				return {
-					getType: () => "pony"
+					getType: () => "application"
 				};
 			}
 		}, "taskRepository", {
@@ -93,8 +93,73 @@ test("createBuildManifest not supported", (t) => {
 		});
 	});
 	t.is(err.message,
-		"Build manifest creation is currently not supported for projects of type pony",
+		"Build manifest creation is currently not supported for projects of type application",
 		"Threw with expected error message");
+});
+
+test("createBuildManifest not supported for type module", (t) => {
+	const err = t.throws(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "module"
+				};
+			}
+		}, "taskRepository", {
+			createBuildManifest: true
+		});
+	});
+	t.is(err.message,
+		"Build manifest creation is currently not supported for projects of type module",
+		"Threw with expected error message");
+});
+
+test("createBuildManifest not supported for self-contained build", (t) => {
+	const err = t.throws(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "library"
+				};
+			}
+		}, "taskRepository", {
+			createBuildManifest: true,
+			selfContained: true
+		});
+	});
+	t.is(err.message,
+		"Build manifest creation is currently not supported for self-contained builds",
+		"Threw with expected error message");
+});
+
+test("createBuildManifest supported for css-variables build", (t) => {
+	t.notThrows(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "library"
+				};
+			}
+		}, "taskRepository", {
+			createBuildManifest: true,
+			cssVariables: true
+		});
+	});
+});
+
+test("createBuildManifest supported for jsdoc build", (t) => {
+	t.notThrows(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "library"
+				};
+			}
+		}, "taskRepository", {
+			createBuildManifest: true,
+			jsdoc: true
+		});
+	});
 });
 
 test("getBuildOption", (t) => {
