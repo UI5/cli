@@ -102,7 +102,7 @@ test.beforeEach(async (t) => {
 		},
 		getExtension: sinon.stub().returns(t.context.customTask),
 		traverseBreadthFirst: sinon.stub(),
-		getAllDependencies: sinon.stub().returns(["dep.a", "dep.b", "dep.c"])
+		getTransitiveDependencies: sinon.stub().returns(["dep.a", "dep.b", "dep.c"])
 	};
 
 	t.context.logger = {

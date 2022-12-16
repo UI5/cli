@@ -450,7 +450,7 @@ class TaskRunner {
 		// Add transitive dependencies to set of required dependencies
 		const requiredDependencies = new Set(requiredDirectDependencies);
 		for (const projectName of requiredDirectDependencies) {
-			this._graph.getAllDependencies(projectName).forEach((depName) => {
+			this._graph.getTransitiveDependencies(projectName).forEach((depName) => {
 				requiredDependencies.add(depName);
 			});
 		}

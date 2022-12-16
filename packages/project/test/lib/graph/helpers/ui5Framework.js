@@ -232,7 +232,7 @@ test.serial("generateDependencyTree should skip framework project without versio
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
-	t.is(projectGraph.getAllProjects().length, 1, "Project graph should remain unchanged");
+	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 });
 
 test.serial("generateDependencyTree should skip framework project with version and framework config", async (t) => {
@@ -264,7 +264,7 @@ test.serial("generateDependencyTree should skip framework project with version a
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
-	t.is(projectGraph.getAllProjects().length, 1, "Project graph should remain unchanged");
+	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 });
 
 test.serial("generateDependencyTree should throw for framework project with dependency missing in graph", async (t) => {
@@ -317,7 +317,7 @@ test.serial("generateDependencyTree should ignore root project without framework
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
-	t.is(projectGraph.getAllProjects().length, 1, "Project graph should remain unchanged");
+	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 });
 
 test.serial("utils.shouldIncludeDependency", (t) => {

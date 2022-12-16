@@ -31,11 +31,12 @@ test.beforeEach(async (t) => {
 			};
 		},
 		isSealed: sinon.stub().returns(true),
-		getAllProjects: sinon.stub().returns([
-			getMockProject("library", "a"),
-			getMockProject("library", "b"),
-			getMockProject("library", "c"),
+		getProjectNames: sinon.stub().returns([
+			"project.a",
+			"project.b",
+			"project.c",
 		]),
+		getSize: sinon.stub().returns(3),
 		getDependencies: sinon.stub().returns([]).withArgs("project.a").returns(["project.b"]),
 		traverseBreadthFirst: async (start, callback) => {
 			if (callback) {
@@ -65,7 +66,9 @@ test.beforeEach(async (t) => {
 				project: getMockProject("library", "c")
 			});
 		},
-		getProject: sinon.stub().returns(getMockProject("project", "b"))
+		getProject: sinon.stub().callsFake((projectName) => {
+			return getMockProject(...projectName.split("."));
+		})
 	};
 
 	t.context.ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js");

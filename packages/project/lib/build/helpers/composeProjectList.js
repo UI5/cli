@@ -13,14 +13,13 @@ async function getFlattenedDependencyTree(graph) {
 	const dependencyMap = Object.create(null);
 	const rootName = graph.getRoot().getName();
 
-	await graph.traverseDepthFirst(({project, getDependencies}) => {
+	await graph.traverseDepthFirst(({project, dependencies}) => {
 		if (project.getName() === rootName) {
 			// Skip root project
 			return;
 		}
 		const projectDeps = [];
-		getDependencies().forEach((dep) => {
-			const depName = dep.getName();
+		dependencies.forEach((depName) => {
 			projectDeps.push(depName);
 			if (dependencyMap[depName]) {
 				projectDeps.push(...dependencyMap[depName]);

@@ -20,11 +20,11 @@ class ProjectGraph {
 		}
 		this._rootProjectName = rootProjectName;
 
-		this._projects = Object.create(null); // maps project name to instance
-		this._adjList = Object.create(null); // maps project name to edges/dependencies
-		this._optAdjList = Object.create(null); // maps project name to optional dependencies
+		this._projects = new Map(); // maps project name to instance
+		this._adjList = new Map(); // maps project name to edges/dependencies
+		this._optAdjList = new Map(); // maps project name to optional dependencies
 
-		this._extensions = Object.create(null); // maps extension name to instance
+		this._extensions = new Map(); // maps extension name to instance
 
 		this._sealed = false;
 		this._hasUnresolvedOptionalDependencies = false; // Performance optimization flag
@@ -38,7 +38,7 @@ class ProjectGraph {
 	 * @returns {@ui5/project/specifications/Project} Root project
 	 */
 	getRoot() {
-		const rootProject = this._projects[this._rootProjectName];
+		const rootProject = this._projects.get(this._rootProjectName);
 		if (!rootProject) {
 			throw new Error(`Unable to find root project with name ${this._rootProjectName} in project graph`);
 		}
@@ -50,15 +50,11 @@ class ProjectGraph {
 	 *
 	 * @public
 	 * @param {@ui5/project/specifications/Project} project Project which should be added to the graph
-	 * @param {boolean} [ignoreDuplicates=false] Whether an error should be thrown when a duplicate project is added
 	 */
-	addProject(project, ignoreDuplicates) {
+	addProject(project) {
 		this._checkSealed();
 		const projectName = project.getName();
-		if (this._projects[projectName]) {
-			if (ignoreDuplicates) {
-				return;
-			}
+		if (this._projects.has(projectName)) {
 			throw new Error(
 				`Failed to add project ${projectName} to graph: A project with that name has already been added`);
 		}
@@ -69,9 +65,9 @@ class ProjectGraph {
 				`Failed to add project ${projectName} to graph: Project name must not be integer-like`);
 		}
 		log.verbose(`Adding project: ${projectName}`);
-		this._projects[projectName] = project;
-		this._adjList[projectName] = [];
-		this._optAdjList[projectName] = [];
+		this._projects.set(projectName, project);
+		this._adjList.set(projectName, new Set());
+		this._optAdjList.set(projectName, new Set());
 	}
 
 	/**
@@ -83,17 +79,37 @@ class ProjectGraph {
 	 *					project instance or undefined if the project is unknown to the graph
 	 */
 	getProject(projectName) {
-		return this._projects[projectName];
+		return this._projects.get(projectName);
 	}
 
 	/**
 	 * Get all projects in the graph
 	 *
 	 * @public
-	 * @returns {@ui5/project/specifications/Project[]}
+	 * @returns {Iterable.<@ui5/project/specifications/Project>}
 	 */
-	getAllProjects() {
-		return Object.values(this._projects);
+	getProjects() {
+		return this._projects.values();
+	}
+
+	/**
+	 * Get names of all projects in the graph
+	 *
+	 * @public
+	 * @returns {string[]} Names of all projects
+	 */
+	getProjectNames() {
+		return Array.from(this._projects.keys());
+	}
+
+	/**
+	 * Get the number of projects in the graph
+	 *
+	 * @public
+	 * @returns {integer} Count of projects in the graph
+	 */
+	getSize() {
+		return this._projects.size;
 	}
 
 	/**
@@ -105,7 +121,7 @@ class ProjectGraph {
 	addExtension(extension) {
 		this._checkSealed();
 		const extensionName = extension.getName();
-		if (this._extensions[extensionName]) {
+		if (this._extensions.has(extensionName)) {
 			throw new Error(
 				`Failed to add extension ${extensionName} to graph: ` +
 				`An extension with that name has already been added`);
@@ -116,7 +132,7 @@ class ProjectGraph {
 			throw new Error(
 				`Failed to add extension ${extensionName} to graph: Extension name must not be integer-like`);
 		}
-		this._extensions[extensionName] = extension;
+		this._extensions.set(extensionName, extension);
 	}
 
 	/**
@@ -126,17 +142,27 @@ class ProjectGraph {
 	 *					Extension instance or undefined if the extension is unknown to the graph
 	 */
 	getExtension(extensionName) {
-		return this._extensions[extensionName];
+		return this._extensions.get(extensionName);
 	}
 
 	/**
 	 * Get all extensions in the graph
 	 *
 	 * @public
-	 * @returns {@ui5/project/specifications/Extension[]}
+	 * @returns {Iterable.<@ui5/project/specifications/Extension>}
 	 */
-	getAllExtensions() {
-		return Object.values(this._extensions);
+	getExtensions() {
+		return this._extensions.values();
+	}
+
+	/**
+	 * Get names of all extensions in the graph
+	 *
+	 * @public
+	 * @returns {string[]} Names of all extensions
+	 */
+	getExtensionNames() {
+		return Array.from(this._extensions.keys());
 	}
 
 	/**
@@ -195,11 +221,11 @@ class ProjectGraph {
 	 * @param {string} toProjectName Name of project on which the other depends
 	 */
 	_declareDependency(map, fromProjectName, toProjectName) {
-		if (!this._projects[fromProjectName]) {
+		if (!this._projects.has(fromProjectName)) {
 			throw new Error(
 				`Unable to find depending project with name ${fromProjectName} in project graph`);
 		}
-		if (!this._projects[toProjectName]) {
+		if (!this._projects.has(toProjectName)) {
 			throw new Error(
 				`Unable to find dependency project with name ${toProjectName} in project graph`);
 		}
@@ -207,10 +233,11 @@ class ProjectGraph {
 			throw new Error(
 				`A project can't depend on itself`);
 		}
-		if (map[fromProjectName].includes(toProjectName)) {
+		const adjacencies = map.get(fromProjectName);
+		if (adjacencies.has(toProjectName)) {
 			log.warn(`Dependency has already been declared: ${fromProjectName} depends on ${toProjectName}`);
 		} else {
-			map[fromProjectName].push(toProjectName);
+			adjacencies.add(toProjectName);
 		}
 	}
 
@@ -222,13 +249,13 @@ class ProjectGraph {
 	 * @returns {string[]} Names of all direct dependencies
 	 */
 	getDependencies(projectName) {
-		const adjacencies = this._adjList[projectName];
+		const adjacencies = this._adjList.get(projectName);
 		if (!adjacencies) {
 			throw new Error(
 				`Failed to get dependencies for project ${projectName}: ` +
 				`Unable to find project in project graph`);
 		}
-		return adjacencies;
+		return Array.from(adjacencies);
 	}
 
 	/**
@@ -238,11 +265,11 @@ class ProjectGraph {
 	 * @param {string} projectName Name of the project to retrieve the dependencies of
 	 * @returns {string[]} Names of all direct and transitive dependencies
 	 */
-	getAllDependencies(projectName) {
+	getTransitiveDependencies(projectName) {
 		const dependencies = new Set();
 
 		const processDependency = (depName) => {
-			const adjacencies = this._adjList[depName];
+			const adjacencies = this._adjList.get(depName);
 			adjacencies.forEach((depName) => {
 				if (!dependencies.has(depName)) {
 					dependencies.add(depName);
@@ -264,18 +291,18 @@ class ProjectGraph {
 	 * @returns {boolean} True if the dependency is currently optional
 	 */
 	isOptionalDependency(fromProjectName, toProjectName) {
-		const adjacencies = this._adjList[fromProjectName];
+		const adjacencies = this._adjList.get(fromProjectName);
 		if (!adjacencies) {
 			throw new Error(
 				`Failed to determine whether dependency from ${fromProjectName} to ${toProjectName} ` +
 				`is optional: ` +
 				`Unable to find project with name ${fromProjectName} in project graph`);
 		}
-		if (adjacencies.includes(toProjectName)) {
+		if (adjacencies.has(toProjectName)) {
 			return false;
 		}
-		const optAdjacencies = this._optAdjList[fromProjectName];
-		if (optAdjacencies.includes(toProjectName)) {
+		const optAdjacencies = this._optAdjList.get(fromProjectName);
+		if (optAdjacencies.has(toProjectName)) {
 			return true;
 		}
 		return false;
@@ -288,6 +315,7 @@ class ProjectGraph {
 	 * @public
 	 */
 	async resolveOptionalDependencies() {
+		this._checkSealed();
 		if (!this._hasUnresolvedOptionalDependencies) {
 			log.verbose(`Skipping resolution of optional dependencies since none have been declared`);
 			return;
@@ -295,33 +323,32 @@ class ProjectGraph {
 		log.verbose(`Resolving optional dependencies...`);
 
 		// First collect all projects that are currently reachable from the root project (=all non-optional projects)
-		const resolvedProjects = new Set;
+		const resolvedProjects = new Set();
 		await this.traverseBreadthFirst(({project}) => {
 			resolvedProjects.add(project.getName());
 		});
 
 		let unresolvedOptDeps = false;
-		for (const [projectName, optDependencies] of Object.entries(this._optAdjList)) {
-			for (let i = optDependencies.length - 1; i >= 0; i--) {
-				const targetProjectName = optDependencies[i];
-				if (resolvedProjects.has(targetProjectName)) {
+		for (const [fromProjectName, optDependencies] of this._optAdjList) {
+			for (const toProjectName of optDependencies) {
+				if (resolvedProjects.has(toProjectName)) {
 					// Target node is already reachable in the graph
 					// => Resolve optional dependency
-					log.verbose(`Resolving optional dependency from ${projectName} to ${targetProjectName}...`);
+					log.verbose(`Resolving optional dependency from ${fromProjectName} to ${toProjectName}...`);
 
-					if (this._adjList[targetProjectName].includes(projectName)) {
+					if (this._adjList.get(toProjectName).has(fromProjectName)) {
 						log.verbose(
-							`  Cyclic optional dependency detected: ${targetProjectName} already has a non-optional ` +
-							`dependency to ${projectName}`);
+							`  Cyclic optional dependency detected: ${toProjectName} already has a non-optional ` +
+							`dependency to ${fromProjectName}`);
 						log.verbose(
-							`  Optional dependency from ${projectName} to ${targetProjectName} ` +
+							`  Optional dependency from ${fromProjectName} to ${toProjectName} ` +
 							`will not be declared as it would introduce a cycle`);
 						unresolvedOptDeps = true;
 					} else {
-						this.declareDependency(projectName, targetProjectName);
+						this.declareDependency(fromProjectName, toProjectName);
 						// This optional dependency has now been resolved
 						// => Remove it from the list of optional dependencies
-						optDependencies.splice(i, 1);
+						optDependencies.delete(toProjectName);
 					}
 				} else {
 					unresolvedOptDeps = true;
@@ -340,25 +367,13 @@ class ProjectGraph {
 	 * @async
 	 * @callback @ui5/project/graph/ProjectGraph~traversalCallback
 	 * @param {object} parameters Parameters passed to the callback
-	 * @param {@ui5/project/specifications/Project} parameters.project The project that is currently visited
-	 * @param {@ui5/project/graph/ProjectGraph~getDependencies} parameters.getDependencies
-	 * 				Function to access the dependencies of the project that is currently visited.
-	 * @returns {Promise} Must return a promise on which the graph traversal will wait
+	 * @param {@ui5/project/specifications/Project} parameters.project
+	 *   Project that is currently visited
+	 * @param {string[]} parameters.dependencies
+	 *   Array containing the names of all direct dependencies of the project
+	 * @returns {Promise|undefined} If a promise is returned,
+	 *   graph traversal will wait and only continue once the promise has resolved.
 	 */
-
-	/**
-	 * Helper function available in the
-	 * [traversalCallback]{@link @ui5/project/graph/ProjectGraph~traversalCallback} to access the
-	 * dependencies of the corresponding project in the current graph.
-	 * <br><br>
-	 * Note that transitive dependencies can't be accessed this way. Projects should rather add a direct
-	 * dependency to projects they need access to.
-	 *
-	 * @public
-	 * @function @ui5/project/graph/ProjectGraph~getDependencies
-	 * @returns {Array.<@ui5/project/specifications/Project>} Direct dependencies of the visited project
-	 */
-
 
 	// TODO: Use generator functions instead?
 	/**
@@ -409,9 +424,7 @@ class ProjectGraph {
 
 					await callback({
 						project: this.getProject(projectName),
-						getDependencies: () => {
-							return dependencies.map(($) => this.getProject($));
-						}
+						dependencies
 					});
 				})();
 			}));
@@ -437,7 +450,7 @@ class ProjectGraph {
 		if (!this.getProject(startName)) {
 			throw new Error(`Failed to start graph traversal: Could not find project ${startName} in project graph`);
 		}
-		return this._traverseDepthFirst(startName, {}, [], callback);
+		return this._traverseDepthFirst(startName, Object.create(null), [], callback);
 	}
 
 	async _traverseDepthFirst(projectName, visited, predecessors, callback) {
@@ -455,9 +468,7 @@ class ProjectGraph {
 
 			await callback({
 				project: this.getProject(projectName),
-				getDependencies: () => {
-					return dependencies.map(($) => this.getProject($));
-				}
+				dependencies
 			});
 		})();
 	}
@@ -480,8 +491,12 @@ class ProjectGraph {
 				projectGraph.seal();
 			}
 			mergeMap(this._projects, projectGraph._projects);
-			mergeMap(this._adjList, projectGraph._adjList);
 			mergeMap(this._extensions, projectGraph._extensions);
+			mergeMap(this._adjList, projectGraph._adjList);
+			mergeMap(this._optAdjList, projectGraph._optAdjList);
+
+			this._hasUnresolvedOptionalDependencies =
+				this._hasUnresolvedOptionalDependencies || projectGraph._hasUnresolvedOptionalDependencies;
 		} catch (err) {
 			throw new Error(
 				`Failed to join project graph with root project ${projectGraph._rootProjectName} into ` +
@@ -608,11 +623,16 @@ class ProjectGraph {
 }
 
 function mergeMap(target, source) {
-	for (const [key, value] of Object.entries(source)) {
-		if (target[key]) {
+	for (const [key, value] of source) {
+		if (target.has(key)) {
 			throw new Error(`Failed to merge map: Key '${key}' already present in target set`);
 		}
-		target[key] = value;
+		if (value instanceof Set) {
+			// Shallow-clone any Sets
+			target.set(key, new Set(value));
+		} else {
+			target.set(key, value);
+		}
 	}
 }
 

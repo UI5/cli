@@ -161,23 +161,6 @@ test("addProject: Add duplicate", async (t) => {
 	t.is(res, project1, "Should return correct project");
 });
 
-test("addProject: Add duplicate with ignoreDuplicates", async (t) => {
-	const {ProjectGraph} = t.context;
-	const graph = new ProjectGraph({
-		rootProjectName: "my root project"
-	});
-	const project1 = await createProject("application.a");
-	graph.addProject(project1);
-
-	const project2 = await createProject("application.a");
-	t.notThrows(() => {
-		graph.addProject(project2, true);
-	}, "Should not throw when adding duplicates");
-
-	const res = graph.getProject("application.a");
-	t.is(res, project1, "Should return correct project");
-});
-
 test("addProject: Add project with integer-like name", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
@@ -202,7 +185,7 @@ test("getProject: Project is not in graph", (t) => {
 	t.is(res, undefined, "Should return undefined");
 });
 
-test("getAllProjects", async (t) => {
+test("getProjects", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "my root project"
@@ -213,10 +196,45 @@ test("getAllProjects", async (t) => {
 	const project2 = await createProject("application.b");
 	graph.addProject(project2);
 
-	const res = graph.getAllProjects();
-	t.deepEqual(res, [
+	const res = graph.getProjects();
+	t.deepEqual(Array.from(res), [
 		project1, project2
-	], "Should return all projects in a flat array");
+	], "Should return an iterable for all projects");
+});
+
+test("getProjectNames", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "my root project"
+	});
+	const project1 = await createProject("application.a");
+	graph.addProject(project1);
+
+	const project2 = await createProject("application.b");
+	graph.addProject(project2);
+
+	const res = graph.getProjectNames();
+	t.deepEqual(res, [
+		"application.a", "application.b"
+	], "Should return all project names in a flat array");
+});
+
+test("getSize", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "my root project"
+	});
+	const project1 = await createProject("application.a");
+	graph.addProject(project1);
+
+	const project2 = await createProject("application.b");
+	graph.addProject(project2);
+
+	// Extensions should not influence graph size
+	const extension1 = await createExtension("extension.a");
+	graph.addExtension(extension1);
+
+	t.is(graph.getSize(), 2, "Should return correct project count");
 });
 
 test("add-/getExtension", async (t) => {
@@ -274,7 +292,7 @@ test("getExtension: Project is not in graph", (t) => {
 	t.is(res, undefined, "Should return undefined");
 });
 
-test("getAllExtensions", async (t) => {
+test("getExtensions", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "my root project"
@@ -284,10 +302,10 @@ test("getAllExtensions", async (t) => {
 
 	const extension2 = await createExtension("extension.b");
 	graph.addExtension(extension2);
-	const res = graph.getAllExtensions();
-	t.deepEqual(res, [
+	const res = graph.getExtensions();
+	t.deepEqual(Array.from(res), [
 		extension1, extension2
-	], "Should return all extensions in a flat array");
+	], "Should return an iterable for all extensions");
 });
 
 test("declareDependency / getDependencies", async (t) => {
@@ -321,7 +339,7 @@ test("declareDependency / getDependencies", async (t) => {
 		"Should declare dependency as non-optional");
 });
 
-test("getAllDependencies", async (t) => {
+test("getTransitiveDependencies", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "my root project"
@@ -338,7 +356,7 @@ test("getAllDependencies", async (t) => {
 	graph.declareDependency("library.a", "library.d");
 	graph.declareDependency("library.d", "library.e");
 
-	t.deepEqual(graph.getAllDependencies("library.a"), [
+	t.deepEqual(graph.getTransitiveDependencies("library.a"), [
 		"library.b",
 		"library.c",
 		"library.d",
@@ -671,7 +689,7 @@ test("resolveOptionalDependencies: Resolves transitive optional dependencies", a
 	]);
 });
 
-test("traverseBreadthFirst", async (t) => {
+test("traverseBreadthFirst: Async", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "library.a"
@@ -681,10 +699,47 @@ test("traverseBreadthFirst", async (t) => {
 
 	graph.declareDependency("library.a", "library.b");
 
-	await traverseBreadthFirst(t, graph, [
+	const callbackStub = t.context.sinon.stub().resolves().onFirstCall().callsFake(() => {
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				t.is(callbackStub.callCount, 1, "Callback still called only once while waiting for promise");
+				resolve();
+			}, 100);
+		});
+	});
+	await graph.traverseBreadthFirst(callbackStub);
+
+	t.is(callbackStub.callCount, 2, "Correct number of projects have been visited");
+
+	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
+
+	t.deepEqual(callbackCalls, [
 		"library.a",
-		"library.b"
-	]);
+		"library.b",
+	], "Traversed graph in correct order, starting with library.a");
+});
+
+test("traverseBreadthFirst: Sync", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+
+	graph.declareDependency("library.a", "library.b");
+
+	const callbackStub = t.context.sinon.stub().returns();
+	await graph.traverseBreadthFirst(callbackStub);
+
+	t.is(callbackStub.callCount, 2, "Correct number of projects have been visited");
+
+	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
+
+	t.deepEqual(callbackCalls, [
+		"library.a",
+		"library.b",
+	], "Traversed graph in correct order, starting with library.a");
 });
 
 test("traverseBreadthFirst: No project visited twice", async (t) => {
@@ -782,7 +837,7 @@ test("traverseBreadthFirst: Custom start node", async (t) => {
 	], "Traversed graph in correct order, starting with library.b");
 });
 
-test("traverseBreadthFirst: getDependencies callback", async (t) => {
+test("traverseBreadthFirst: dependencies parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "library.a"
@@ -802,9 +857,7 @@ test("traverseBreadthFirst: getDependencies callback", async (t) => {
 
 	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
 	const dependencies = callbackStub.getCalls().map((call) => {
-		return call.args[0].getDependencies().map((dep) => {
-			return dep.getName();
-		});
+		return call.args[0].dependencies;
 	});
 
 	t.deepEqual(callbackCalls, [
@@ -861,7 +914,7 @@ test("traverseBreadthFirst: Dependency declaration order is followed", async (t)
 	]);
 });
 
-test("traverseDepthFirst", async (t) => {
+test("traverseDepthFirst: Async", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "library.a"
@@ -871,10 +924,47 @@ test("traverseDepthFirst", async (t) => {
 
 	graph.declareDependency("library.a", "library.b");
 
-	await traverseDepthFirst(t, graph, [
+	const callbackStub = t.context.sinon.stub().resolves().onFirstCall().callsFake(() => {
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				t.is(callbackStub.callCount, 1, "Callback still called only once while waiting for promise");
+				resolve();
+			}, 100);
+		});
+	});
+	await graph.traverseDepthFirst(callbackStub);
+
+	t.is(callbackStub.callCount, 2, "Correct number of projects have been visited");
+
+	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
+
+	t.deepEqual(callbackCalls, [
 		"library.b",
-		"library.a"
-	]);
+		"library.a",
+	], "Traversed graph in correct order, starting with library.b");
+});
+
+test("traverseDepthFirst: Sync", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+
+	graph.declareDependency("library.a", "library.b");
+
+	const callbackStub = t.context.sinon.stub().returns();
+	await graph.traverseDepthFirst(callbackStub);
+
+	t.is(callbackStub.callCount, 2, "Correct number of projects have been visited");
+
+	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
+
+	t.deepEqual(callbackCalls, [
+		"library.b",
+		"library.a",
+	], "Traversed graph in correct order, starting with library.b");
 });
 
 test("traverseDepthFirst: No project visited twice", async (t) => {
@@ -971,7 +1061,7 @@ test("traverseDepthFirst: Custom start node", async (t) => {
 	], "Traversed graph in correct order, starting with library.b");
 });
 
-test("traverseDepthFirst: getDependencies callback", async (t) => {
+test("traverseDepthFirst: dependencies parameter", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
 		rootProjectName: "library.a"
@@ -991,9 +1081,7 @@ test("traverseDepthFirst: getDependencies callback", async (t) => {
 
 	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
 	const dependencies = callbackStub.getCalls().map((call) => {
-		return call.args[0].getDependencies().map((dep) => {
-			return dep.getName();
-		});
+		return call.args[0].dependencies;
 	});
 
 	t.deepEqual(callbackCalls, [
@@ -1074,22 +1162,31 @@ test("join", async (t) => {
 	graph2.addProject(await createProject("theme.b"));
 	graph2.addProject(await createProject("theme.c"));
 	graph2.addProject(await createProject("theme.d"));
+	graph2.addProject(await createProject("theme.e"));
 
 	graph2.declareDependency("theme.a", "theme.d");
 	graph2.declareDependency("theme.a", "theme.c");
 	graph2.declareDependency("theme.b", "theme.a"); // This causes theme.b to not appear
+	graph2.declareOptionalDependency("theme.a", "theme.e");
 
 	const extensionB = await createExtension("extension.b");
 	graph2.addExtension(extensionB);
-
 	graph1.join(graph2);
+
+	t.true(graph1._hasUnresolvedOptionalDependencies,
+		"Graph has unresolved optional dependencies taken over from graph2");
+
 	graph1.declareDependency("library.d", "theme.a");
+	graph1.declareDependency("library.d", "theme.e");
+
+	graph1.resolveOptionalDependencies();
 
 	await traverseDepthFirst(t, graph1, [
 		"library.b",
 		"library.c",
 		"theme.d",
 		"theme.c",
+		"theme.e",
 		"theme.a",
 		"library.d",
 		"library.a",
@@ -1097,6 +1194,33 @@ test("join", async (t) => {
 
 	t.is(graph1.getExtension("extension.a"), extensionA, "Should return correct extension");
 	t.is(graph1.getExtension("extension.b"), extensionB, "Should return correct joined extension");
+
+	// graph2 remained unmodified
+	await traverseDepthFirst(t, graph2, [
+		"theme.d",
+		"theme.c",
+		"theme.a",
+	]);
+});
+
+test("join: Preserves hasUnresolvedOptionalDependencies flag", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph1 = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	const graph2 = new ProjectGraph({
+		rootProjectName: "theme.a"
+	});
+	graph1.addProject(await createProject("library.a"));
+	graph1.addProject(await createProject("library.b"));
+	graph1.declareOptionalDependency("library.a", "library.b");
+
+	graph1.join(graph2);
+
+	t.true(graph1._hasUnresolvedOptionalDependencies,
+		"graph1 still has unresolved optional dependencies");
+	t.false(graph2._hasUnresolvedOptionalDependencies,
+		"graph2 still does not have unresolved optional dependencies");
 });
 
 test("join: Seals incoming graph", (t) => {
@@ -1217,6 +1341,9 @@ test("Seal/isSealed", async (t) => {
 	t.throws(() => {
 		graph.addExtension(extB);
 	}, {
+		message: expectedSealMsg
+	});
+	await t.throwsAsync(graph.resolveOptionalDependencies(), {
 		message: expectedSealMsg
 	});
 

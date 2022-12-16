@@ -162,7 +162,7 @@ class ProjectBuilder {
 		});
 
 		// Count total number of projects to build based on input
-		const requestedProjects = this._graph.getAllProjects().map((p) => p.getName()).filter(function(projectName) {
+		const requestedProjects = this._graph.getProjectNames().filter(function(projectName) {
 			return filterProject(projectName);
 		});
 
@@ -264,18 +264,16 @@ class ProjectBuilder {
 	}
 
 	async _createRequiredBuildContexts(requestedProjects) {
-		const allProjects = this._graph.getAllProjects();
-		const requiredProjects = new Set(allProjects.filter((project) => {
-			return requestedProjects.includes(project.getName());
+		const requiredProjects = new Set(this._graph.getProjectNames().filter((projectName) => {
+			return requestedProjects.includes(projectName);
 		}));
 
 		const projectBuildContexts = new Map();
 
-		for (const project of requiredProjects) {
-			const projectName = project.getName();
+		for (const projectName of requiredProjects) {
 			log.verbose(`Creating build context for project ${projectName}...`);
 			const projectBuildContext = this._buildContext.createProjectContext({
-				project,
+				project: this._graph.getProject(projectName),
 				log
 			});
 
@@ -299,8 +297,7 @@ class ProjectBuilder {
 						return;
 					}
 					// Add dependency to list of projects to build
-					const depProject = this._graph.getProject(depName);
-					requiredProjects.add(depProject);
+					requiredProjects.add(depName);
 				});
 			}
 		}
@@ -322,7 +319,7 @@ class ProjectBuilder {
 		);
 
 		if (includedDependencies.length) {
-			if (includedDependencies.length === this._graph.getAllProjects().length - 1) {
+			if (includedDependencies.length === this._graph.getSize() - 1) {
 				log.info(`  Including all dependencies`);
 			} else {
 				log.info(`  Requested dependencies:`);
