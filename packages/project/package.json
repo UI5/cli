@@ -128,7 +128,7 @@
 		"js-yaml": "^4.1.0",
 		"libnpmconfig": "^1.2.1",
 		"lockfile": "^1.0.4",
-		"pacote": "^15.0.7",
+		"pacote": "^15.0.8",
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^7.1.0",
 		"read-pkg-up": "^9.1.0",
@@ -144,7 +144,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.3",
 		"docdash": "^2.0.0",
-		"eslint": "^8.29.0",
+		"eslint": "^8.30.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^13.2.0",
 		"eslint-plugin-jsdoc": "^39.6.4",
@@ -157,7 +157,7 @@
 		"jsdoc": "^3.6.11",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
-		"sinon": "^15.0.0",
+		"sinon": "^15.0.1",
 		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}
