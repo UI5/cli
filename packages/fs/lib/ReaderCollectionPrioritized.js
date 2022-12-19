@@ -14,12 +14,15 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 *
 	 * @param {object} parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {@ui5/fs/AbstractReader[]} parameters.readers Prioritized list of resource readers
-	 * 																(first is tried first)
+	 * @param {@ui5/fs/AbstractReader[]} [parameters.readers]
+	 *   Prioritized list of resource readers (tried in the order provided).
+	 *   If none are provided, the collection will never return any results.
 	 */
 	constructor({readers, name}) {
 		super(name);
-		this._readers = readers;
+
+		// Remove any undefined (empty) readers from array
+		this._readers = readers.filter(($) => $);
 	}
 
 	/**
@@ -62,7 +65,8 @@ class ReaderCollectionPrioritized extends AbstractReader {
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
-	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
+	 * @returns {Promise<@ui5/fs/Resource|null>}
+	 *   Promise resolving to a single resource or <code>null</code> if no resource is found
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;

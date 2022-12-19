@@ -21,6 +21,14 @@ class DuplexCollection extends AbstractReaderWriter {
 	 */
 	constructor({reader, writer, name = ""}) {
 		super(name);
+
+		if (!reader) {
+			throw new Error(`Cannot create DuplexCollection ${this._name}: No reader provided`);
+		}
+		if (!writer) {
+			throw new Error(`Cannot create DuplexCollection ${this._name}: No writer provided`);
+		}
+
 		this._reader = reader;
 		this._writer = writer;
 
@@ -73,7 +81,8 @@ class DuplexCollection extends AbstractReaderWriter {
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
-	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
+	 * @returns {Promise<@ui5/fs/Resource|null>}
+	 *   Promise resolving to a single resource or <code>null</code> if no resource is found
 	 */
 	_byPath(virPath, options, trace) {
 		return this._combo._byPath(virPath, options, trace);

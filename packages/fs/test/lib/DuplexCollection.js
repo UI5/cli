@@ -196,6 +196,7 @@ test("DuplexCollection: _write successful", async (t) => {
 	});
 	const duplexCollection = new DuplexCollection({
 		name: "myCollection",
+		reader: {},
 		writer: {
 			write: sinon.stub().returns(Promise.resolve())
 		}
@@ -203,4 +204,26 @@ test("DuplexCollection: _write successful", async (t) => {
 	await duplexCollection._write(resource);
 
 	t.pass("write on writer called");
+});
+
+test("DuplexCollection: Throws for empty reader", (t) => {
+	t.throws(() => {
+		new DuplexCollection({
+			name: "myReader",
+			writer: {}
+		});
+	}, {
+		message: "Cannot create DuplexCollection myReader: No reader provided"
+	});
+});
+
+test("DuplexCollection: Throws for empty writer", (t) => {
+	t.throws(() => {
+		new DuplexCollection({
+			name: "myReader",
+			reader: {}
+		});
+	}, {
+		message: "Cannot create DuplexCollection myReader: No writer provided"
+	});
 });
