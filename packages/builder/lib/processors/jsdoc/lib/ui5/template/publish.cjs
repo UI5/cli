@@ -1855,7 +1855,7 @@ class TypeStringBuilder {
 }
 
 function TypeParser(defaultBuilder = new ASTBuilder()) {
-	const rLexer = /\s*(Array\.?<|Object\.?<|Set\.?<|Promise\.?<|function\(|\{|:|\(|\||\}|\.?<|>|\)|,|\[\]|\*|\?|!|=|\.\.\.)|\s*(false|true|(?:\+|-)?(?:\d+(?:\.\d+)?|NaN|Infinity)|'[^']*'|"[^"]*"|null|undefined)|\s*((?:module:)?\w+(?:[/.#~]\w+)*)|./g;
+	const rLexer = /\s*(Array\.?<|Object\.?<|Set\.?<|Promise\.?<|function\(|\{|:|\(|\||\}|\.?<|>|\)|,|\[\]|\*|\?|!|=|\.\.\.)|\s*(false|true|(?:\+|-)?(?:\d+(?:\.\d+)?|NaN|Infinity)|'[^']*'|"[^"]*"|null|undefined)|\s*((?:module:)?\w+(?:[/.#~][$\w_]+)*)|./g;
 
 	let input;
 	let builder;
@@ -2392,6 +2392,24 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 
 	}
 
+	function writeModuleInfo(member, symbol) {
+		// write out resource, module and export only when the module is different from the module of the parent entity
+		// and when the member was not cloned (e.g. because it is borrowed)
+		var isBorrowed = member.__ui5.initialLongname !== member.longname;
+
+		if ( member.__ui5.resource
+			&& member.__ui5.resource !== symbol.__ui5.resource
+			&& !isBorrowed ) {
+			attrib("resource", member.__ui5.resource);
+		}
+		if ( member.__ui5.module
+			 && member.__ui5.module !== symbol.__ui5.module
+			 && !isBorrowed ) {
+			attrib("module", member.__ui5.module);
+			attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : member.__ui5.export, '', true);
+		}
+	}
+
 	function examples(symbol) {
 		if ( symbol.examples && symbol.examples.length ) {
 			collection("examples");
@@ -2877,14 +2895,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		}
 		tag("method");
 		attrib("name", name || member.name);
-		// write out module and export only when the module is different from the module of the parent entity
-		// and when the member was not cloned (e.g. because it is borrowed)
-		if ( member.__ui5.module
-			 && member.__ui5.module !== symbol.__ui5.module
-			 && member.__ui5.initialLongname === member.longname ) {
-			attrib("module", member.__ui5.module);
-			attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : member.__ui5.export, '', true);
-		}
+		writeModuleInfo(member, symbol);
 		attrib("visibility", visibility(member), 'public');
 		if ( stakeholders(member) ) {
 			stakeholderList("allowedFor", stakeholders(member));
@@ -2911,9 +2922,6 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 			attrib("tsSkip", true, false, /* raw = */true);
 		}
 		//secTags(member);
-		if ( member.__ui5.resource && member.__ui5.resource !== symbol.__ui5.resource ) {
-			attrib("resource", member.__ui5.resource);
-		}
 		closeTag("method");
 
 	}
@@ -3067,6 +3075,12 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 		if ( symbol.params || symbol.returns || symbol.exceptions ) {
 			methodSignature(symbol);
 		} else if ( symbol.properties && symbol.properties.length > 0 ) {
+			if ( symbol.type ) { // "type" of a typedef defines its inheritance base
+				const type = listTypes(symbol.type);
+				if ( type.toLowerCase() !== "object" ) {
+					attrib("extends", type);
+				}
+			}
 			collection("properties");
 			symbol.properties.forEach((prop) => {
 				if ( prop.name.indexOf('.') >= 0 ) {
@@ -3108,10 +3122,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				const member = ownProperties[i];
 				tag("property");
 				attrib("name", member.name);
-				if ( member.__ui5.module && member.__ui5.module !== symbol.__ui5.module ) {
-					attrib("module", member.__ui5.module);
-					attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : member.__ui5.export, '', true);
-				}
+				writeModuleInfo(member, symbol);
 				if ( kind === 'enum' && !standardEnum && member.__ui5.value !== undefined ) {
 					attrib("value", member.__ui5.value, undefined, /* raw = */true);
 				}
@@ -3132,9 +3143,6 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				if ( member.__ui5.tsSkip ) {
 					attrib("tsSkip", true, false, /* raw = */true);
 				}
-				if ( member.__ui5.resource && member.__ui5.resource !== symbol.__ui5.resource ) {
-					attrib("resource", member.__ui5.resource);
-				}
 				closeTag("property");
 			}
 			endCollection("properties");
@@ -3147,10 +3155,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				const member = ownEvents[i];
 				tag("event");
 				attrib("name", member.name);
-				if ( member.__ui5.module && member.__ui5.module !== symbol.__ui5.module ) {
-					attrib("module", member.__ui5.module);
-					attrib("export", member.__ui5.globalOnly ? GLOBAL_ONLY : member.__ui5.export, '', true);
-				}
+				writeModuleInfo(member, symbol);
 				attrib("visibility", visibility(member), 'public');
 				if ( stakeholders(member) ) {
 					stakeholderList("allowedFor", stakeholders(member));
@@ -3188,9 +3193,6 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 				examples(member);
 				referencesList(member);
 				//secTags(member);
-				if ( member.__ui5.resource && member.__ui5.resource !== symbol.__ui5.resource ) {
-					attrib("resource", member.__ui5.resource);
-				}
 				closeTag("event");
 			}
 			endCollection("events");
@@ -3340,6 +3342,11 @@ function postProcessAPIJSON(api) {
 				} else {
 					debug(`could not identify export name of ${symbol.symbol.kind} '${symbol.name}', contained in module '${moduleName}'`);
 				}
+			}
+			if ( symbol.symbol.kind === "namespace" && symbol.symbol.export === undefined ) {
+				// if no export could be identified for a namespace, don't annotate the namespace with a module
+				symbol.symbol.resource =
+				symbol.symbol.module = undefined;
 			}
 		});
 
