@@ -102,11 +102,11 @@ build.builder = function(cli) {
 		})
 		.example("ui5 build", "Preload build for project without dependencies")
 		.example("ui5 build self-contained", "Self-contained build for project")
-		.example("ui5 build --exclude-task=* --include-task=createDebugFiles generateAppPreload",
-			"Build project but only apply the createDebugFiles- and generateAppPreload tasks")
-		.example("ui5 build --include-task=createDebugFiles --exclude-task=generateAppPreload",
-			"Build project by applying all default tasks including the createDebugFiles " +
-			"task and excluding the generateAppPreload task")
+		.example("ui5 build --exclude-task=* --include-task=minify generateComponentPreload",
+			"Build project but only apply the minify- and generateComponentPreload tasks")
+		.example("ui5 build --include-task=minify --exclude-task=generateComponentPreload",
+			"Build project by applying all default tasks including the minify " +
+			"task and excluding the generateComponentPreload task")
 		.example("ui5 build --experimental-css-variables",
 			"Preload build with experimental CSS variables artifacts");
 };
