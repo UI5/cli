@@ -32,11 +32,11 @@ class WriterCollection extends AbstractReaderWriter {
 		super(name);
 
 		if (!writerMapping) {
-			throw new Error("Missing parameter 'writerMapping'");
+			throw new Error(`Cannot create WriterCollection ${this._name}: Missing parameter 'writerMapping'`);
 		}
 		const basePaths = Object.keys(writerMapping);
 		if (!basePaths.length) {
-			throw new Error("Empty parameter 'writerMapping'");
+			throw new Error(`Cannot create WriterCollection ${this._name}: Empty parameter 'writerMapping'`);
 		}
 
 		// Create a regular expression (which is greedy by nature) from all paths to easily

@@ -37,7 +37,8 @@ test("Constructor: Throws for missing path mapping", (t) => {
 			name: "myCollection"
 		});
 	});
-	t.is(err.message, "Missing parameter 'writerMapping'", "Threw with expected error message");
+	t.is(err.message, "Cannot create WriterCollection myCollection: Missing parameter 'writerMapping'",
+		"Threw with expected error message");
 });
 
 test("Constructor: Throws for empty path mapping", (t) => {
@@ -47,7 +48,8 @@ test("Constructor: Throws for empty path mapping", (t) => {
 			writerMapping: {}
 		});
 	});
-	t.is(err.message, "Empty parameter 'writerMapping'", "Threw with expected error message");
+	t.is(err.message, "Cannot create WriterCollection myCollection: Empty parameter 'writerMapping'",
+		"Threw with expected error message");
 });
 
 test("Constructor: Throws for empty path", (t) => {

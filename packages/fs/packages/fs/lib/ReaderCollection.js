@@ -14,11 +14,15 @@ class ReaderCollection extends AbstractReader {
 	 *
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.name The collection name
-	 * @param {@ui5/fs/AbstractReader[]} parameters.readers List of resource readers (all tried in parallel)
+	 * @param {@ui5/fs/AbstractReader[]} [parameters.readers]
+	 *   List of resource readers (all tried in parallel).
+	 *   If none are provided, the collection will never return any results.
 	 */
 	constructor({name, readers}) {
 		super(name);
-		this._readers = readers;
+
+		// Remove any undefined (empty) readers from array
+		this._readers = readers.filter(($) => $);
 	}
 
 	/**
@@ -47,21 +51,21 @@ class ReaderCollection extends AbstractReader {
 	 * @param {string} virPath Virtual path
 	 * @param {object} options Options
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
-	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
+	 * @returns {Promise<@ui5/fs/Resource|null>}
+	 *   Promise resolving to a single resource or <code>null</code> if no resource is found
 	 */
 	_byPath(virPath, options, trace) {
 		const that = this;
 		const resourceLocatorCount = this._readers.length;
 		let resolveCount = 0;
 
-		if (this._readers.length === 0) {
-			// Promise.race doesn't resolve for empty arrays
-			return Promise.resolve();
+		if (resourceLocatorCount === 0) {
+			// Short-circuit if there are no readers (Promise.race does not settle for empty arrays)
+			trace.collection(that._name);
+			return Promise.resolve(null);
 		}
 
-		/* Promise.race to cover the following (self defined) requirement:
-			Deliver files that can be found fast at the cost of slower response times for files that cannot be found.
-		*/
+		// Using Promise.race to deliver files that can be found as fast as possible
 		return Promise.race(this._readers.map(function(resourceLocator) {
 			return resourceLocator._byPath(virPath, options, trace).then(function(resource) {
 				return new Promise(function(resolve, reject) {
