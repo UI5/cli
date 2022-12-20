@@ -39,6 +39,7 @@ test.beforeEach(async (t) => {
 	};
 
 	t.context.consoleLog = sinon.stub(console, "log");
+	t.context.consoleTrace = sinon.stub(console, "trace");
 
 	t.context.logger = await esmock("../../lib/logger", {
 		npmlog: t.context.npmLogStub
@@ -58,12 +59,16 @@ test.serial("getLogger", (t) => {
 	t.true(myLogger instanceof Logger, "Returned logger should be Logger instance");
 });
 
-test.serial("getGroupLogger", (t) => {
+test.serial("getGroupLogger throws (deprecated)", (t) => {
 	const {logger} = t.context;
-	const {GroupLogger} = logger.__test__;
 
-	const myLogger = logger.getGroupLogger("my-module");
-	t.true(myLogger instanceof GroupLogger, "Returned logger should be Logger instance");
+	t.throws(() => {
+		logger.getGroupLogger("my-module");
+	}, {
+		message: "Deprecated call to @ui5/logger#getGroupLogger. " +
+			"This function has been deprecated in @ui5/logger version 3 and will be " +
+			"removed in the final release"
+	});
 });
 
 test.serial("setLevel", (t) => {
@@ -120,21 +125,20 @@ test.serial("isLevelEnabled", (t) => {
 	}, {message: `Failed to find current log level "level should not be set here" in list of expected log levels`});
 });
 
-test.serial("setShowProgress", (t) => {
+test.serial("setShowProgress (deprecated)", (t) => {
 	const {logger, npmLogStub} = t.context;
 
 	t.is(npmLogStub.enableProgress.callCount, 0, "enableProgress should not be called initially");
 	t.is(npmLogStub.disableProgress.callCount, 0, "disableProgress should not be called initially");
 
-	logger.setShowProgress(true);
 
-	t.is(npmLogStub.enableProgress.callCount, 1, "enableProgress should be called once");
-	t.is(npmLogStub.disableProgress.callCount, 0, "disableProgress should still not be called");
-
-	logger.setShowProgress(false);
-
-	t.is(npmLogStub.enableProgress.callCount, 1, "enableProgress should still be called once");
-	t.is(npmLogStub.disableProgress.callCount, 1, "disableProgress should be called once");
+	t.throws(() => {
+		logger.setShowProgress(true);
+	}, {
+		message: "Deprecated call to @ui5/logger#setShowProgress. " +
+			"This function has been deprecated in @ui5/logger version 3 and will be " +
+			"removed in the final release"
+	});
 });
 
 test.serial("npmlog.level default", (t) => {
@@ -162,7 +166,7 @@ test.serial("Environment variable UI5_LOG_LVL (invalid)", async (t) => {
 });
 
 test.serial("Logger", (t) => {
-	const {logger, npmLogStub} = t.context;
+	const {logger, npmLogStub, consoleLog} = t.context;
 	const {Logger} = logger.__test__;
 
 	const myLogger = new Logger("myModule");
@@ -174,149 +178,106 @@ test.serial("Logger", (t) => {
 
 	const _logger = myLogger._getLogger();
 	t.is(_logger, npmLogStub, "_getLogger should return npmlog");
+	t.is(consoleLog.callCount, 1, "console.log got called once");
+	t.is(consoleLog.getCall(0).args[0],
+		"⚠️ Deprecated call to Logger#_getLogger. Internal method Logger#_getLogger " +
+		"has been deprecated and will be removed.",
+		"Correct log message");
+	consoleLog.reset();
 
 	["silly", "verbose", "perf", "info", "warn", "error"].forEach((level) => {
-		myLogger[level]("Message 1", "Message 2", "Message 3");
+		myLogger[level]("Message 1");
+		t.is(consoleLog.callCount, 0, "console.log did not get called");
 		t.true(_logger[level].calledOnce, `npmlog.${level} should be called`);
 		t.deepEqual(_logger[level].getCall(0).args, [
 			"myModule",
 			"Message 1",
-			"Message 2",
-			"Message 3"
-		], `npmlog.${level} should be called with module name and arguments`);
+		], `npmlog.${level} should be called with module name and message`);
+		consoleLog.reset();
 	});
 });
 
-test.serial("GroupLogger", (t) => {
-	const {logger} = t.context;
-	const {GroupLogger} = logger.__test__;
+test.serial("Logger: Two arguments", (t) => {
+	const {logger, npmLogStub, consoleLog} = t.context;
+	const {Logger} = logger.__test__;
 
-	const myLogger = new GroupLogger("myModule");
-
-	sinon.spy(logger, "isLevelEnabled");
-
-	myLogger.isLevelEnabled("error");
-	t.true(logger.isLevelEnabled.calledOnce, "Logger#isLevelEnabled should call static isLevelEnabled");
+	const myLogger = new Logger("myModule");
 
 	const _logger = myLogger._getLogger();
+	t.is(_logger, npmLogStub, "_getLogger should return npmlog");
+	t.is(consoleLog.callCount, 1, "console.log got called once");
+	t.is(consoleLog.getCall(0).args[0],
+		"⚠️ Deprecated call to Logger#_getLogger. Internal method Logger#_getLogger " +
+		"has been deprecated and will be removed.",
+		"Correct log message");
+	consoleLog.reset();
 
 	["silly", "verbose", "perf", "info", "warn", "error"].forEach((level) => {
-		myLogger[level]("Message 1", "Message 2", "Message 3");
+		myLogger[level]("Message 1", {status: "running"});
+		t.is(consoleLog.callCount, 0, "console.log has not been called");
+		consoleLog.reset();
 		t.true(_logger[level].calledOnce, `npmlog.${level} should be called`);
 		t.deepEqual(_logger[level].getCall(0).args, [
 			"myModule",
 			"Message 1",
-			"Message 2",
-			"Message 3"
-		], `npmlog.${level} should be called with module name and arguments`);
+			{status: "running"}
+		], `npmlog.${level} should be called with module name, first- and second argument`);
 	});
 });
 
-test.serial("GroupLogger#createSubLogger", (t) => {
-	const {logger} = t.context;
-	const {GroupLogger} = logger.__test__;
+test.serial("Logger: Multiple arguments", (t) => {
+	const {logger, npmLogStub, consoleLog} = t.context;
+	const {Logger} = logger.__test__;
 
-	const myLogger = new GroupLogger("myModule");
-
-	const subLogger = myLogger.createSubLogger("mySubLogger", 1);
-	t.true(subLogger instanceof GroupLogger, "createSubLogger should return a GroupLogger");
-});
-
-test.serial("GroupLogger#createTaskLogger", (t) => {
-	const {logger} = t.context;
-	const {GroupLogger, TaskLogger} = logger.__test__;
-
-	const myLogger = new GroupLogger("myModule");
-
-	const taskLogger = myLogger.createTaskLogger("myTaskLogger", 1, 1);
-	t.true(taskLogger instanceof TaskLogger, "createTaskLogger should return a TaskLogger");
-});
-
-test.serial("TaskLogger", (t) => {
-	const {logger} = t.context;
-	const {TaskLogger} = logger.__test__;
-
-	const myLogger = new TaskLogger("myModule");
-
-	sinon.spy(logger, "isLevelEnabled");
-
-	myLogger.isLevelEnabled("error");
-	t.true(logger.isLevelEnabled.calledOnce, "Logger#isLevelEnabled should call static isLevelEnabled");
+	const myLogger = new Logger("myModule");
 
 	const _logger = myLogger._getLogger();
+	t.is(_logger, npmLogStub, "_getLogger should return npmlog");
+	t.is(consoleLog.callCount, 1, "console.log got called once");
+	t.is(consoleLog.getCall(0).args[0],
+		"⚠️ Deprecated call to Logger#_getLogger. Internal method Logger#_getLogger " +
+		"has been deprecated and will be removed.",
+		"Correct log message");
+	consoleLog.reset();
 
 	["silly", "verbose", "perf", "info", "warn", "error"].forEach((level) => {
-		myLogger[level]("Message 1", "Message 2", "Message 3");
+		myLogger[level]("Message 1", {status: "running"}, 123);
+		t.is(consoleLog.callCount, 1, "console.log got called once");
+		t.is(consoleLog.getCall(0).args[0],
+			`⚠️ @ui5/logger: Deprecated log.${level}() call with multiple arguments. @ui5/logger version 3 ` +
+			`does not accept more than two argument. Call stack of this invocation:`,
+			"Correct log message");
+		consoleLog.reset();
 		t.true(_logger[level].calledOnce, `npmlog.${level} should be called`);
 		t.deepEqual(_logger[level].getCall(0).args, [
 			"myModule",
 			"Message 1",
-			"Message 2",
-			"Message 3"
-		], `npmlog.${level} should be called with module name and arguments`);
+			{status: "running"}
+		], `npmlog.${level} should be called with module name, first- and second argument`);
 	});
 });
 
-test.serial("TaskLogger#addWork", (t) => {
-	const {logger} = t.context;
-	const {TaskLogger} = logger.__test__;
+test.serial("Logger: String substitution characters", (t) => {
+	const {logger, npmLogStub, consoleLog} = t.context;
+	const {Logger} = logger.__test__;
 
-	const myLogger = new TaskLogger("myModule");
+	const myLogger = new Logger("myModule");
 
-	t.is(myLogger._todo, 0, "todo should be 0");
+	const _logger = myLogger._logger;
+	t.is(_logger, npmLogStub, "_getLogger should return npmlog");
 
-	myLogger.addWork(1);
-
-	t.is(myLogger._todo, 1, "todo should be 1");
-});
-
-test.serial("TaskLogger#startWork", (t) => {
-	const {logger} = t.context;
-	const {TaskLogger} = logger.__test__;
-
-	const myLogger = new TaskLogger("myModule", 3);
-
-	sinon.spy(myLogger, "info");
-
-	myLogger.startWork("Message 1", "Message 2");
-
-	t.true(myLogger.info.calledOnce, "startWork should call info once");
-	t.deepEqual(myLogger.info.getCall(0).args, [
-		"(1/3)", "Message 1", "Message 2"
-	], "startWork should call info with expected args");
-});
-
-test.serial("TaskLogger#completeWork", (t) => {
-	const {logger} = t.context;
-	const {TaskLogger} = logger.__test__;
-
-	const myLogger = new TaskLogger("myModule", 3);
-
-	const _logger = myLogger._getLogger();
-
-	t.is(myLogger._completed, 0, "0 should be completed");
-
-	myLogger.startWork("Message");
-
-	myLogger.completeWork(1);
-
-	t.true(_logger.completeWork.calledOnce, "completeWork should call npmlog.completeWork");
-	t.deepEqual(_logger.completeWork.getCall(0).args, [1], "completeWork should be called with expected args");
-
-	t.is(myLogger._completed, 1, "1 should be completed");
-});
-
-test.serial("TaskLogger#finish", (t) => {
-	const {logger} = t.context;
-	const {TaskLogger} = logger.__test__;
-
-	const myLogger = new TaskLogger("myModule", 3);
-
-	const _logger = myLogger._getLogger();
-
-	myLogger.finish();
-
-	t.true(_logger.finish.calledOnce, "finished should call npmlog.finish");
+	["Hello %s", "Hello %d", "Hello %o", "Hello %O", "Hello %f", "Hello %c"].forEach((message) => {
+		myLogger.info(message, "World");
+		t.is(consoleLog.callCount, 0, "console.log has not been called");
+		consoleLog.reset();
+		t.true(_logger.info.calledOnce, `npmlog.info should be called`);
+		t.deepEqual(_logger.info.getCall(0).args, [
+			"myModule",
+			"Hello <deprecated string substitution char>",
+			"World",
+		], `npmlog.info should be called with module name, first- and second argument`);
+		_logger.info.reset();
+	});
 });
 
 test.serial("npmlog errors are send to console", (t) => {
