@@ -39,6 +39,20 @@ function isLevelEnabled(levelName) {
 	}
 }
 
+const substitutionPlaceholders = /%[oOdisfc]/g;
+function handleLogArguments(mode, messages) {
+	if (messages.length > 1) {
+		messages[0] = messages[0].replaceAll(substitutionPlaceholders, "<deprecated string substitution char>");
+	}
+	if (messages.length > 2) {
+		console.log(`⚠️ @ui5/logger: Deprecated log.${mode}() call with multiple arguments. ` +
+			`@ui5/logger version 3 does not accept more than two argument. Call stack of this invocation:`);
+		console.trace();
+		return [messages[0], messages[1]];
+	}
+	return messages;
+}
+
 class Logger {
 	constructor(moduleName) {
 		this._moduleName = moduleName;
@@ -50,85 +64,35 @@ class Logger {
 	}
 
 	silly(...messages) {
-		return this._logger.silly(this._moduleName, ...messages);
+		return this._logger.silly(this._moduleName, ...handleLogArguments("silly", messages));
 	}
 
 	verbose(...messages) {
-		return this._logger.verbose(this._moduleName, ...messages);
+		return this._logger.verbose(this._moduleName, ...handleLogArguments("verbose", messages));
 	}
 
 	perf(...messages) {
-		return this._logger.perf(this._moduleName, ...messages);
+		return this._logger.perf(this._moduleName, ...handleLogArguments("perf", messages));
 	}
 
 	info(...messages) {
-		return this._logger.info(this._moduleName, ...messages);
+		return this._logger.info(this._moduleName, ...handleLogArguments("info", messages));
 	}
 
 	warn(...messages) {
-		return this._logger.warn(this._moduleName, ...messages);
+		return this._logger.warn(this._moduleName, ...handleLogArguments("warn", messages));
 	}
 
 	error(...messages) {
-		return this._logger.error(this._moduleName, ...messages);
+		return this._logger.error(this._moduleName, ...handleLogArguments("error", messages));
 	}
 
 	_getLogger() {
+		// TODO 3.0: Remove this function
+		console.log("⚠️ Deprecated call to Logger#_getLogger. " +
+			"Internal method Logger#_getLogger has been deprecated and will be removed.");
+		console.trace();
 		return this._logger;
-	}
-}
-
-class GroupLogger extends Logger {
-	constructor(moduleName, weight = 0, parentLogger) {
-		super(moduleName);
-
-		if (parentLogger) {
-			this._logger = parentLogger._getLogger().newGroup("", weight);
-		} else {
-			this._logger = npmlog.newGroup("", weight);
-		}
-	}
-
-	createSubLogger(name, weight) {
-		return new GroupLogger(this._moduleName + " " + name, weight, this);
-	}
-
-	createTaskLogger(name, todo, weight) {
-		return new TaskLogger(this._moduleName + " " + name, todo, weight, this);
-	}
-}
-
-
-class TaskLogger extends Logger {
-	constructor(moduleName, todo, weight, parentLogger) {
-		super(moduleName);
-		this._todo = todo || 0;
-		this._completed = 0;
-
-		if (parentLogger) {
-			this._logger = parentLogger._getLogger().newItem("", todo, weight);
-		} else {
-			this._logger = npmlog.newItem(this._moduleName, todo, weight);
-		}
-	}
-
-	addWork(todo) {
-		this._logger.addWork(todo);
-		this._todo += todo;
-	}
-
-	startWork(...messages) {
-		// Current job number is completed + 1
-		this.info(`(${this._completed + 1}/${this._todo})`, ...messages);
-	}
-
-	completeWork(completed) {
-		this._completed += completed;
-		this._logger.completeWork(completed);
-	}
-
-	finish() {
-		return this._logger.finish();
 	}
 }
 
@@ -138,7 +102,10 @@ const logger = {
 	},
 
 	getGroupLogger: function(moduleName) {
-		return new GroupLogger(moduleName);
+		// TODO 3.0: Remove this function
+		throw new Error("Deprecated call to @ui5/logger#getGroupLogger. " +
+			"This function has been deprecated in @ui5/logger version 3 and will be " +
+			"removed in the final release");
 	},
 
 	setLevel(level) {
@@ -151,11 +118,10 @@ const logger = {
 	isLevelEnabled,
 
 	setShowProgress(showProgress) {
-		if (showProgress) {
-			npmlog.enableProgress();
-		} else {
-			npmlog.disableProgress();
-		}
+		// TODO 3.0: Remove this function
+		throw new Error("Deprecated call to @ui5/logger#setShowProgress. " +
+			"This function has been deprecated in @ui5/logger version 3 and will be " +
+			"removed in the final release");
 	},
 };
 
@@ -163,7 +129,7 @@ const logger = {
 /* istanbul ignore else */
 if (process.env.NODE_ENV === "test") {
 	logger.__test__ = {
-		Logger, GroupLogger, TaskLogger
+		Logger
 	};
 }
 
