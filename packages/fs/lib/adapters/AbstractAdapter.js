@@ -210,7 +210,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 
 	_write(resource) {
 		if (!resource.getPath().startsWith(this._virBasePath)) {
-			throw new Error(`The path of the resource '${resource.getPath()}' does not starts with ` +
+			throw new Error(`The path of the resource '${resource.getPath()}' does not start with ` +
 				`the configured virtual base path of the adapter '${this._virBasePath}'`);
 		}
 

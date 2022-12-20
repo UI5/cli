@@ -57,6 +57,6 @@ test("Create a resource with a path not starting with path configured in the ada
 
 	const error = t.throws(() => writer._write(resource));
 	t.is(error.message,
-		"The path of the resource '/dest2/tmp/test.js' does not starts with the configured " +
+		"The path of the resource '/dest2/tmp/test.js' does not start with the configured " +
 			"virtual base path of the adapter '/dest2/writer/'");
 });
