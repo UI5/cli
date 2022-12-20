@@ -142,7 +142,7 @@ for (const adapter of adapters) {
 		});
 
 		const error = await t.throwsAsync(dest.write(resource));
-		t.is(error.message, "The path of the resource '/dest2/tmp/test.js' does not starts with the configured " +
+		t.is(error.message, "The path of the resource '/dest2/tmp/test.js' does not start with the configured " +
 			"virtual base path of the adapter '/dest2/writer/'");
 	});
 
