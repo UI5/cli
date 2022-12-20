@@ -253,7 +253,28 @@ test("build: Failure", async (t) => {
 });
 
 test.serial("build: Multiple projects", async (t) => {
-	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;
+	const {graph, taskRepository, sinon} = t.context;
+
+	const buildLoggerMock = {
+		isLevelEnabled: sinon.stub(),
+		setProjects: sinon.stub(),
+		startProjectBuild: sinon.stub(),
+		endProjectBuild: sinon.stub(),
+		skipProjectBuild: sinon.stub(),
+
+		info: sinon.stub(),
+		verbose: sinon.stub(),
+		error: sinon.stub(),
+	};
+	// Function acts as constructor for our class mock
+	function CreateBuildLoggerMock(moduleName) {
+		t.is(moduleName, "ProjectBuilder", "BuildLogger created with expected moduleName");
+		return buildLoggerMock;
+	}
+	const ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js", {
+		"@ui5/logger/internal/loggers/Build": CreateBuildLoggerMock
+	});
+
 	const builder = new ProjectBuilder({graph, taskRepository});
 
 	const filterProjectStub = sinon.stub().returns(true).onFirstCall().returns(false);
@@ -347,6 +368,29 @@ test.serial("build: Multiple projects", async (t) => {
 	t.is(deregisterCleanupSigHooksStub.getCall(0).args[0], "cleanup sig hooks",
 		"_deregisterCleanupSigHooks got called with correct arguments");
 	t.is(executeCleanupTasksStub.callCount, 1, "_executeCleanupTasksStub got called once");
+
+	t.is(buildLoggerMock.setProjects.callCount, 1, "BuildLogger#setProjects got called once");
+	t.deepEqual(buildLoggerMock.setProjects.firstCall.firstArg, [
+		"project.a",
+		"project.b",
+		"project.c",
+	], "BuildLogger#setProjects got called with expected argument");
+	t.is(buildLoggerMock.startProjectBuild.callCount, 2,
+		"BuildLogger#startProjectBuild got called twice");
+	t.is(buildLoggerMock.startProjectBuild.getCall(0).firstArg, "project.a",
+		"BuildLogger#startProjectBuild got called with expected argument on first call");
+	t.is(buildLoggerMock.startProjectBuild.getCall(1).firstArg, "project.c",
+		"BuildLogger#startProjectBuild got called with expected argument on second call");
+	t.is(buildLoggerMock.endProjectBuild.callCount, 2,
+		"BuildLogger#endProjectBuild got called twice");
+	t.is(buildLoggerMock.endProjectBuild.getCall(0).firstArg, "project.a",
+		"BuildLogger#endProjectBuild got called with expected argument on first call");
+	t.is(buildLoggerMock.endProjectBuild.getCall(1).firstArg, "project.c",
+		"BuildLogger#endProjectBuild got called with expected argument on second call");
+	t.is(buildLoggerMock.skipProjectBuild.callCount, 1,
+		"BuildLogger#skipProjectBuild got called once");
+	t.is(buildLoggerMock.skipProjectBuild.getCall(0).firstArg, "project.b",
+		"BuildLogger#skipProjectBuild got called with expected argument");
 });
 
 test("_createRequiredBuildContexts", async (t) => {

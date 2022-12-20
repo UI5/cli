@@ -315,13 +315,16 @@ test("getTaskUtil", (t) => {
 });
 
 test.serial("getTaskRunner", async (t) => {
-	t.plan(2);
+	t.plan(3);
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
 	};
-	class DummyTaskRunner {
+	const {default: ProjectBuildLogger} = await import("@ui5/logger/internal/loggers/ProjectBuild");
+	class TaskRunnerMock {
 		constructor(params) {
+			t.true(params.log instanceof ProjectBuildLogger, "TaskRunner receives an instance of ProjectBuildLogger");
+			params.log = "log"; // replace log instance with string for deep comparison
 			t.deepEqual(params, {
 				graph: "graph",
 				project: project,
@@ -333,10 +336,7 @@ test.serial("getTaskRunner", async (t) => {
 		}
 	}
 	const ProjectBuildContext = await esmock("../../../../lib/build/helpers/ProjectBuildContext.js", {
-		"../../../../lib/build/TaskRunner.js": DummyTaskRunner,
-		"@ui5/logger": {
-			getLogger: sinon.stub().withArgs("type project").returns("log")
-		}
+		"../../../../lib/build/TaskRunner.js": TaskRunnerMock
 	});
 
 	const projectBuildContext = new ProjectBuildContext({
@@ -363,7 +363,7 @@ test.serial("createProjectContext", async (t) => {
 		getType: sinon.stub().returns("bar"),
 	};
 	const taskRunner = {"task": "runner"};
-	class DummyProjectContext {
+	class ProjectContextMock {
 		constructor({buildContext, project}) {
 			t.is(buildContext, testBuildContext, "Correct buildContext parameter");
 			t.is(project, project, "Correct project parameter");
@@ -376,7 +376,7 @@ test.serial("createProjectContext", async (t) => {
 		}
 	}
 	const BuildContext = await esmock("../../../../lib/build/helpers/BuildContext.js", {
-		"../../../../lib/build/helpers/ProjectBuildContext.js": DummyProjectContext,
+		"../../../../lib/build/helpers/ProjectBuildContext.js": ProjectContextMock,
 		"../../../../lib/build/TaskRunner.js": {
 			create: sinon.stub().resolves(taskRunner)
 		}
@@ -387,8 +387,8 @@ test.serial("createProjectContext", async (t) => {
 		project
 	});
 
-	t.true(projectContext instanceof DummyProjectContext,
-		"Project context is an instance of DummyProjectContext");
+	t.true(projectContext instanceof ProjectContextMock,
+		"Project context is an instance of ProjectContextMock");
 	t.is(testBuildContext._projectBuildContexts[0], projectContext,
 		"BuildContext stored correct ProjectBuildContext");
 });

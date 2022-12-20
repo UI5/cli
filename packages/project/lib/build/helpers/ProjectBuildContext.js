@@ -1,7 +1,7 @@
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
+import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
-import logger from "@ui5/logger";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -20,7 +20,11 @@ class ProjectBuildContext {
 		}
 		this._buildContext = buildContext;
 		this._project = project;
-		this._log = logger.getLogger(`${project.getType()} ${project.getName()}`);
+		this._log = new ProjectBuildLogger({
+			moduleName: "Build",
+			projectName: project.getName(),
+			projectType: project.getType()
+		});
 		this._queues = {
 			cleanup: []
 		};

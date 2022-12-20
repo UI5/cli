@@ -2,8 +2,8 @@ import {promisify} from "node:util";
 import rimraf from "rimraf";
 const rimrafp = promisify(rimraf);
 import * as resourceFactory from "@ui5/fs/resourceFactory";
-import logger from "@ui5/logger";
-const log = logger.getLogger("ProjectBuilder");
+import BuildLogger from "@ui5/logger/internal/loggers/Build";
+const log = new BuildLogger("ProjectBuilder");
 import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
@@ -197,10 +197,13 @@ class ProjectBuilder {
 			}
 		});
 
+		log.setProjects(queue.map((projectBuildContext) => {
+			return projectBuildContext.getProject().getName();
+		}));
 		if (queue.length > 1) { // Do not log if only the root project is being built
 			log.info(`Processing ${queue.length} projects`);
 			if (alreadyBuilt.length) {
-				log.info(`  Reusing built results of ${alreadyBuilt.length} projects`);
+				log.info(`  Reusing build results of ${alreadyBuilt.length} projects`);
 				log.info(`  Building ${queue.length - alreadyBuilt.length} projects`);
 			}
 
@@ -232,13 +235,16 @@ class ProjectBuilder {
 			const pWrites = [];
 			for (const projectBuildContext of queue) {
 				const projectName = projectBuildContext.getProject().getName();
+				const projectType = projectBuildContext.getProject().getType();
 				log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
-				if (!alreadyBuilt.includes(projectName)) {
-					log.info(`Building project ${projectName}...`);
+				if (alreadyBuilt.includes(projectName)) {
+					log.skipProjectBuild(projectName, projectType);
+				} else {
+					log.startProjectBuild(projectName, projectType);
 					await projectBuildContext.getTaskRunner().runTasks();
-					log.verbose(`Finished building project ${projectName}`);
+					log.endProjectBuild(projectName, projectType);
 				}
 				if (!requestedProjects.includes(projectName)) {
 					// Project has not been requested
