@@ -1,11 +1,11 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema",
-	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/project.json",
+	"$id": "http://ui5.sap/schema/specVersion/kind/project.json",
 
 	"type": "object",
 	"required": ["specVersion", "type"],
 	"properties": {
-		"specVersion": { "enum": ["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"specVersion": { "enum": ["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
 		"kind": {
 			"enum": ["project", null],
 			"$comment": "Using null to allow not defining 'kind' which defaults to project"
@@ -119,62 +119,7 @@
 				"additionalProperties": false,
 				"properties": {
 					"bundleDefinition": {
-						"type": "object",
-						"additionalProperties": false,
-						"required": ["name"],
-						"properties": {
-							"name": {
-								"type": "string"
-							},
-							"defaultFileTypes": {
-								"type": "array",
-								"items": {
-									"type": "string"
-								}
-							},
-							"sections": {
-								"type": "array",
-								"items": {
-									"type": "object",
-									"additionalProperties": false,
-									"required": ["mode", "filters"],
-									"properties": {
-										"name": {
-											"type": "string"
-										},
-										"mode": {
-											"enum": ["raw", "preload", "require", "provided"]
-										},
-										"filters": {
-											"type": "array",
-											"items": {
-												"type": "string"
-											}
-										},
-										"resolve": {
-											"type": "boolean",
-											"default": false
-										},
-										"resolveConditional": {
-											"type": "boolean",
-											"default": false
-										},
-										"renderer": {
-											"type": "boolean",
-											"default": false
-										},
-										"sort": {
-											"type": "boolean",
-											"default": true
-										},
-										"declareRawModules": {
-											"type": "boolean",
-											"default": false
-										}
-									}
-								}
-							}
-						}
+						"$ref": "#/definitions/builder-bundles-bundleDefinition"
 					},
 					"bundleOptions": {
 						"$ref": "#/definitions/builder-bundles-bundleOptions"
@@ -190,65 +135,142 @@
 				"additionalProperties": false,
 				"properties": {
 					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-2.4"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions"
+					}
+				}
+			}
+		},
+		"builder-bundles-3.0": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-2.4"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions-3.0"
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleDefinition": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["name"],
+						"required": ["mode", "filters"],
 						"properties": {
 							"name": {
 								"type": "string"
 							},
-							"defaultFileTypes": {
+							"mode": {
+								"enum": ["raw", "preload", "require", "provided"]
+							},
+							"filters": {
 								"type": "array",
 								"items": {
 									"type": "string"
 								}
 							},
-							"sections": {
-								"type": "array",
-								"items": {
-									"type": "object",
-									"additionalProperties": false,
-									"required": ["mode", "filters"],
-									"properties": {
-										"name": {
-											"type": "string"
-										},
-										"mode": {
-											"enum": ["raw", "preload", "require", "provided", "bundleInfo"]
-										},
-										"filters": {
-											"type": "array",
-											"items": {
-												"type": "string"
-											}
-										},
-										"resolve": {
-											"type": "boolean",
-											"default": false
-										},
-										"resolveConditional": {
-											"type": "boolean",
-											"default": false
-										},
-										"renderer": {
-											"type": "boolean",
-											"default": false
-										},
-										"sort": {
-											"type": "boolean",
-											"default": true
-										},
-										"declareRawModules": {
-											"type": "boolean",
-											"default": false
-										}
-									}
-								}
+							"resolve": {
+								"type": "boolean",
+								"default": false
+							},
+							"resolveConditional": {
+								"type": "boolean",
+								"default": false
+							},
+							"renderer": {
+								"type": "boolean",
+								"default": false
+							},
+							"sort": {
+								"type": "boolean",
+								"default": true
+							},
+							"declareRawModules": {
+								"type": "boolean",
+								"default": false
 							}
 						}
-					},
-					"bundleOptions": {
-						"$ref": "#/definitions/builder-bundles-bundleOptions"
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleDefinition-2.4": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["mode", "filters"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"mode": {
+								"enum": ["raw", "preload", "require", "provided", "bundleInfo"]
+							},
+							"filters": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"resolve": {
+								"type": "boolean",
+								"default": false
+							},
+							"resolveConditional": {
+								"type": "boolean",
+								"default": false
+							},
+							"renderer": {
+								"type": "boolean",
+								"default": false
+							},
+							"sort": {
+								"type": "boolean",
+								"default": true
+							},
+							"declareRawModules": {
+								"type": "boolean",
+								"default": false
+							}
+						}
 					}
 				}
 			}
@@ -276,6 +298,36 @@
 				"numberOfParts": {
 					"type": "number",
 					"default": 1
+				}
+			}
+		},
+		"builder-bundles-bundleOptions-3.0": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"optimize": {
+					"type": "boolean",
+					"default": true
+				},
+				"decorateBootstrapModule": {
+					"type": "boolean",
+					"default": true
+				},
+				"addTryCatchRestartWrapper": {
+					"type": "boolean",
+					"default": false
+				},
+				"usePredefineCalls": {
+					"type": "boolean",
+					"default": false
+				},
+				"numberOfParts": {
+					"type": "number",
+					"default": 1
+				},
+				"sourceMap": {
+					"type": "boolean",
+					"default": true
 				}
 			}
 		},

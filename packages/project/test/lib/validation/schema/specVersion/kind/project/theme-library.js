@@ -1,10 +1,10 @@
 import test from "ava";
 import Ajv from "ajv";
 import ajvErrors from "ajv-errors";
-import AjvCoverage from "../../../../../../../utils/AjvCoverage.js";
-import {_Validator as Validator} from "../../../../../../../../lib/validation/validator.js";
-import ValidationError from "../../../../../../../../lib/validation/ValidationError.js";
-import project from "../../../../__helper__/project.js";
+import AjvCoverage from "../../../../../../utils/AjvCoverage.js";
+import {_Validator as Validator} from "../../../../../../../lib/validation/validator.js";
+import ValidationError from "../../../../../../../lib/validation/ValidationError.js";
+import project from "../../../__helper__/project.js";
 
 async function assertValidation(t, config, expectedErrors = undefined) {
 	const validation = t.context.validator.validate({config, project: {id: "my-project"}});
@@ -30,7 +30,7 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 test.before((t) => {
 	t.context.validator = new Validator({Ajv, ajvErrors});
 	t.context.ajvCoverage = new AjvCoverage(t.context.validator.ajv, {
-		includes: ["schema/specVersion/2.0/kind/project/theme-library.json"]
+		includes: ["schema/specVersion/kind/project/theme-library.json"]
 	});
 });
 
@@ -46,7 +46,7 @@ test.after.always((t) => {
 });
 
 
-["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -167,7 +167,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.6", "2.5"].forEach(function(specVersion) {
+["3.0", "2.6", "2.5"].forEach(function(specVersion) {
 	test(`theme-library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,

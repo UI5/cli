@@ -1,10 +1,10 @@
 import test from "ava";
 import Ajv from "ajv";
 import ajvErrors from "ajv-errors";
-import AjvCoverage from "../../../../../../../utils/AjvCoverage.js";
-import {_Validator as Validator} from "../../../../../../../../lib/validation/validator.js";
-import ValidationError from "../../../../../../../../lib/validation/ValidationError.js";
-import project from "../../../../__helper__/project.js";
+import AjvCoverage from "../../../../../../utils/AjvCoverage.js";
+import {_Validator as Validator} from "../../../../../../../lib/validation/validator.js";
+import ValidationError from "../../../../../../../lib/validation/ValidationError.js";
+import project from "../../../__helper__/project.js";
 
 async function assertValidation(t, config, expectedErrors = undefined) {
 	const validation = t.context.validator.validate({config, project: {id: "my-project"}});
@@ -30,12 +30,12 @@ async function assertValidation(t, config, expectedErrors = undefined) {
 test.before((t) => {
 	t.context.validator = new Validator({Ajv, ajvErrors});
 	t.context.ajvCoverage = new AjvCoverage(t.context.validator.ajv, {
-		includes: ["schema/specVersion/2.0/kind/project/library.json"]
+		includes: ["schema/specVersion/kind/project/application.json"]
 	});
 });
 
 test.after.always((t) => {
-	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-library"});
+	t.context.ajvCoverage.createReport("html", {dir: "coverage/ajv-project-application"});
 	const thresholds = {
 		statements: 80,
 		branches: 75,
@@ -45,22 +45,21 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
-	test(`library (specVersion ${specVersion}): Valid configuration`, async (t) => {
+["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"kind": "project",
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
-				"copyright": "yes"
+				"copyright": "okay"
 			},
 			"resources": {
 				"configuration": {
 					"propertiesFileSourceEncoding": "UTF-8",
 					"paths": {
-						"src": "src/main/uilib",
-						"test": "src/test/uilib"
+						"webapp": "my/path"
 					}
 				}
 			},
@@ -68,6 +67,7 @@ test.after.always((t) => {
 				"resources": {
 					"excludes": [
 						"/resources/some/project/name/test_results/**",
+						"/test-resources/**",
 						"!/test-resources/some/project/name/demo-app/**"
 					]
 				},
@@ -152,10 +152,8 @@ test.after.always((t) => {
 						"some/other/namespace"
 					]
 				},
-				"jsdoc": {
-					"excludes": [
-						"some/project/name/thirdparty/**"
-					]
+				"cachebuster": {
+					"signatureType": "hash"
 				},
 				"customTasks": [
 					{
@@ -171,6 +169,11 @@ test.after.always((t) => {
 						"configuration": {
 							"color": "blue"
 						}
+					},
+					{
+						"name": "custom-task-2",
+						"beforeTask": "not-valid",
+						"configuration": false
 					}
 				]
 			},
@@ -187,33 +190,121 @@ test.after.always((t) => {
 						"configuration": {
 							"debug": true
 						}
+					},
+					{
+						"name": "myCustomMiddleware-2",
+						"beforeMiddleware": "myCustomMiddleware",
+						"configuration": {
+							"debug": true
+						}
 					}
 				]
 			}
 		});
 	});
 
-	test(`library (specVersion ${specVersion}): Invalid configuration`, async (t) => {
+	test(`Invalid resources configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test"
+			},
+			"resources": {
+				"configuration": {
+					"propertiesFileSourceEncoding": "FOO",
+					"paths": {
+						"app": "webapp",
+						"webapp": {
+							"path": "invalid"
+						}
+					},
+					"notAllowed": true
+				},
+				"notAllowed": true
+			}
+		}, [
+			{
+				dataPath: "/resources",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				}
+			},
+			{
+				dataPath: "/resources/configuration",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				}
+			},
+			{
+				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: [
+						"UTF-8",
+						"ISO-8859-1"
+					],
+				}
+			},
+			{
+				dataPath: "/resources/configuration/paths",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "app",
+				}
+			},
+			{
+				dataPath: "/resources/configuration/paths/webapp",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string"
+				}
+			}
+		]);
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test"
+			},
+			"resources": {
+				"configuration": {
+					"paths": "webapp"
+				}
+			}
+		}, [
+			{
+				dataPath: "/resources/configuration/paths",
+				keyword: "type",
+				message: "should be object",
+				params: {
+					type: "object"
+				}
+			}
+		]);
+	});
+
+	test(`Invalid builder configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
 			},
-			"resources": {
-				"configuration": {
-					"propertiesFileSourceEncoding": "UTF8",
-					"paths": {
-						"src": {"path": "src"},
-						"test": {"path": "test"},
-						"webapp": "app"
-					}
-				}
-			},
 			"builder": {
-				"resources": {
-					"excludes": "/resources/some/project/name/test_results/**"
+				// jsdoc is not supported for type application
+				"jsdoc": {
+					"excludes": [
+						"some/project/name/thirdparty/**"
+					]
 				},
 				"bundles": [
 					{
@@ -272,80 +363,23 @@ test.after.always((t) => {
 					"paths": "some/invalid/glob/**/pattern/Component.js",
 					"namespaces": "some/invalid/namespace",
 				},
-				"jsdoc": {
-					"excludes": "some/project/name/thirdparty/**"
-				},
-				"customTasks": [
-					{
-						"name": "custom-task-1",
-						"beforeTask": "replaceCopyright",
-						"afterTask": "replaceCopyright",
-					},
-					{
-						"afterTask": "custom-task-1",
-						"configuration": {
-							"color": "blue"
-						}
-					},
-					"my-task"
-				]
-			},
-			"server": {
-				"settings": {
-					"httpPort": "1337",
-					"httpsPort": "1443"
-				}
+				"libraryPreload": {} // Only supported for type library
 			}
 		}, [
 			{
-				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
-				keyword: "enum",
-				message: "should be equal to one of the allowed values",
-				params: {
-					allowedValues: [
-						"UTF-8",
-						"ISO-8859-1",
-					],
-				}
-			},
-			{
-				dataPath: "/resources/configuration/paths",
+				dataPath: "/builder",
 				keyword: "additionalProperties",
 				message: "should NOT have additional properties",
 				params: {
-					additionalProperty: "webapp",
+					additionalProperty: "jsdoc"
 				}
 			},
 			{
-				dataPath: "/resources/configuration/paths/src",
-				keyword: "type",
-				message: "should be string",
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
 				params: {
-					type: "string",
-				}
-			},
-			{
-				dataPath: "/resources/configuration/paths/test",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string",
-				}
-			},
-			{
-				dataPath: "/builder/resources/excludes",
-				keyword: "type",
-				message: "should be array",
-				params: {
-					type: "array",
-				}
-			},
-			{
-				dataPath: "/builder/jsdoc/excludes",
-				keyword: "type",
-				message: "should be array",
-				params: {
-					type: "array",
+					additionalProperty: "libraryPreload"
 				}
 			},
 			{
@@ -401,7 +435,7 @@ test.after.always((t) => {
 				keyword: "enum",
 				message: "should be equal to one of the allowed values",
 				params: {
-					allowedValues: ["2.6", "2.5", "2.4"].includes(specVersion) ? [
+					allowedValues: ["3.0", "2.6", "2.5", "2.4"].includes(specVersion) ? [
 						"raw",
 						"preload",
 						"require",
@@ -470,127 +504,16 @@ test.after.always((t) => {
 				params: {
 					type: "array",
 				}
-			},
-			{
-				dataPath: "/builder/customTasks/0",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "afterTask",
-				}
-			},
-			{
-				dataPath: "/builder/customTasks/0",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "beforeTask",
-				}
-			},
-			{
-				dataPath: "/builder/customTasks/1",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "afterTask",
-				}
-			},
-			{
-				dataPath: "/builder/customTasks/1",
-				keyword: "required",
-				message: "should have required property 'name'",
-				params: {
-					missingProperty: "name",
-				}
-			},
-			{
-				dataPath: "/builder/customTasks/1",
-				keyword: "required",
-				message: "should have required property 'beforeTask'",
-				params: {
-					missingProperty: "beforeTask",
-				}
-			},
-			{
-				dataPath: "/builder/customTasks/2",
-				keyword: "type",
-				message: "should be object",
-				params: {
-					type: "object",
-				}
-			},
-			{
-				dataPath: "/server/settings/httpPort",
-				keyword: "type",
-				message: "should be number",
-				params: {
-					type: "number",
-				}
-			},
-			{
-				dataPath: "/server/settings/httpsPort",
-				keyword: "type",
-				message: "should be number",
-				params: {
-					type: "number",
-				}
 			}
 		]);
-	});
-
-	test(`library (specVersion ${specVersion}): Invalid builder configuration`, async (t) => {
-		const config = {
-			"specVersion": specVersion,
-			"type": "library",
-			"metadata": {
-				"name": "com.sap.ui5.test",
-				"copyright": "yes"
-			},
-			"builder": {
-				// cachebuster is only supported for type application
-				"cachebuster": {
-					"signatureType": "time"
-				}
-			}
-		};
-		await assertValidation(t, config, [{
-			dataPath: "/builder",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "cachebuster"
-			}
-		}]);
 	});
 });
 
 ["2.2", "2.1", "2.0"].forEach(function(specVersion) {
-	test(`Unsupported builder/libraryPreload configuration (specVersion ${specVersion})`, async (t) => {
-		await assertValidation(t, {
-			"specVersion": specVersion,
-			"type": "library",
-			"metadata": {
-				"name": "com.sap.ui5.test",
-				"copyright": "yes"
-			},
-			"builder": {
-				"libraryPreload": {}
-			}
-		}, [
-			{
-				dataPath: "/builder",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "libraryPreload",
-				},
-			},
-		]);
-	});
 	test(`Unsupported builder/componentPreload/excludes configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -616,108 +539,12 @@ test.after.always((t) => {
 	});
 });
 
-["2.6", "2.5", "2.4", "2.3"].forEach(function(specVersion) {
-	test(`library (specVersion ${specVersion}): builder/libraryPreload/excludes`, async (t) => {
+["3.0", "2.6", "2.5", "2.4", "2.3"].forEach(function(specVersion) {
+	test(`application (specVersion ${specVersion}): builder/componentPreload/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"kind": "project",
-			"type": "library",
-			"metadata": {
-				"name": "com.sap.ui5.test",
-				"copyright": "yes"
-			},
-			"builder": {
-				"libraryPreload": {
-					"excludes": [
-						"some/excluded/files/**",
-						"some/other/excluded/files/**"
-					]
-				}
-			}
-		});
-	});
-	test(`Invalid builder/libraryPreload/excludes configuration (specVersion ${specVersion})`, async (t) => {
-		await assertValidation(t, {
-			"specVersion": specVersion,
-			"type": "library",
-			"metadata": {
-				"name": "com.sap.ui5.test",
-				"copyright": "yes"
-			},
-			"builder": {
-				"libraryPreload": {
-					"excludes": "some/excluded/files/**"
-				}
-			}
-		}, [
-			{
-				dataPath: "/builder/libraryPreload/excludes",
-				keyword: "type",
-				message: "should be array",
-				params: {
-					type: "array",
-				},
-			},
-		]);
-		await assertValidation(t, {
-			"specVersion": specVersion,
-			"type": "library",
-			"metadata": {
-				"name": "com.sap.ui5.test",
-				"copyright": "yes"
-			},
-			"builder": {
-				"libraryPreload": {
-					"excludes": [
-						true,
-						1,
-						{}
-					],
-					"notAllowed": true
-				}
-			}
-		}, [
-			{
-				dataPath: "/builder/libraryPreload",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "notAllowed",
-				},
-			},
-			{
-				dataPath: "/builder/libraryPreload/excludes/0",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string",
-				},
-			},
-			{
-				dataPath: "/builder/libraryPreload/excludes/1",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string",
-				},
-			},
-			{
-				dataPath: "/builder/libraryPreload/excludes/2",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string",
-				},
-			},
-		]);
-	});
-
-
-	test(`library (specVersion ${specVersion}): builder/componentPreload/excludes`, async (t) => {
-		await assertValidation(t, {
-			"specVersion": specVersion,
-			"kind": "project",
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -735,7 +562,7 @@ test.after.always((t) => {
 	test(`Invalid builder/componentPreload/excludes configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -757,7 +584,7 @@ test.after.always((t) => {
 		]);
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -809,14 +636,14 @@ test.after.always((t) => {
 	});
 });
 
-["2.6", "2.5", "2.4"].forEach(function(specVersion) {
+["3.0", "2.6", "2.5", "2.4"].forEach(function(specVersion) {
 	// Unsupported cases for older spec-versions already tested via "allowedValues" comparison above
-	test(`library (specVersion ${specVersion}): builder/bundles/bundleDefinition/sections/mode: bundleInfo`,
+	test(`application (specVersion ${specVersion}): builder/bundles/bundleDefinition/sections/mode: bundleInfo`,
 		async (t) => {
 			await assertValidation(t, {
 				"specVersion": specVersion,
 				"kind": "project",
-				"type": "library",
+				"type": "application",
 				"metadata": {
 					"name": "com.sap.ui5.test",
 					"copyright": "yes"
@@ -837,12 +664,12 @@ test.after.always((t) => {
 		});
 });
 
-["2.6", "2.5"].forEach(function(specVersion) {
-	test(`library (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
+["3.0", "2.6", "2.5"].forEach(function(specVersion) {
+	test(`application (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"kind": "project",
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -868,7 +695,7 @@ test.after.always((t) => {
 	test(`Invalid builder/settings/includeDependency* configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -908,7 +735,7 @@ test.after.always((t) => {
 		]);
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -1018,12 +845,12 @@ test.after.always((t) => {
 	});
 });
 
-["2.6"].forEach(function(specVersion) {
-	test(`library (specVersion ${specVersion}): builder/minification/excludes`, async (t) => {
+["3.0", "2.6"].forEach(function(specVersion) {
+	test(`application (specVersion ${specVersion}): builder/minification/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"kind": "project",
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -1041,7 +868,7 @@ test.after.always((t) => {
 	test(`Invalid builder/minification/excludes configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -1063,7 +890,7 @@ test.after.always((t) => {
 		]);
 		await assertValidation(t, {
 			"specVersion": specVersion,
-			"type": "library",
+			"type": "application",
 			"metadata": {
 				"name": "com.sap.ui5.test",
 				"copyright": "yes"
@@ -1115,4 +942,4 @@ test.after.always((t) => {
 	});
 });
 
-project.defineTests(test, assertValidation, "library");
+project.defineTests(test, assertValidation, "application");

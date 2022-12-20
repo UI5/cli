@@ -1,19 +1,19 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema",
-	"$id": "http://ui5.sap/schema/specVersion/2.0/kind/extension/server-middleware.json",
+	"$id": "http://ui5.sap/schema/specVersion/kind/extension/server-middleware.json",
 
 	"type": "object",
 
 	"required": ["specVersion", "kind", "type", "metadata", "middleware"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] }
+			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "3.0"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] },
+			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "3.0"] },
 			"kind": {
 				"enum": ["extension"]
 			},

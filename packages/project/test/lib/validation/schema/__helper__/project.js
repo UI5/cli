@@ -1,5 +1,6 @@
 import framework from "./framework.js";
 import customConfiguration from "./customConfiguration.js";
+import bundleOptions from "./builder-bundleOptions.js";
 
 /**
  * Common test functionality to be able to run the same tests for different types of kind "project"
@@ -22,8 +23,13 @@ export default {
 		// customConfiguration tests
 		customConfiguration.defineTests(test, assertValidation, type);
 
+		// builder.bundleOptions tests
+		if (["application", "library"].includes(type)) {
+			bundleOptions.defineTests(test, assertValidation, type);
+		}
+
 		// version specific tests
-		["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+		["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
 			// tests for all kinds and version 2.0 and above
 			test(`${type} (specVersion ${specVersion}): No metadata`, async (t) => {
 				await assertValidation(t, {

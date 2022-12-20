@@ -8,7 +8,7 @@ import semver from "semver";
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 //
 // This needs to be aligned with the ui5.yaml JSON schema:
-// lib/validation/schema/specVersion/2.0/kind/project.json#/definitions/framework/properties/version/pattern
+// lib/validation/schema/specVersion/kind/project.json#/definitions/framework/properties/version/pattern
 //
 // eslint-disable-next-line max-len
 const SEMVER_VERSION_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;

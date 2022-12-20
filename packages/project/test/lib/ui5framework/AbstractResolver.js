@@ -609,7 +609,7 @@ test.serial(
 test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
 	const projectSchema = JSON.parse(
 		await readFile(fileURLToPath(
-			new URL("../../../lib/validation/schema/specVersion/2.0/kind/project.json", import.meta.url)
+			new URL("../../../lib/validation/schema/specVersion/kind/project.json", import.meta.url)
 		), {encoding: "utf-8"})
 	);
 	const schemaPattern = projectSchema.definitions.framework.properties.version.pattern;
