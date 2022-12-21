@@ -100,7 +100,7 @@ export default class ResourceFilterList {
 		this.matchers = [];
 		this.matchByDefault = true;
 		this.fileTypes = makeFileTypePattern(fileTypes);
-		log.verbose(`filetypes: ${fileTypes}`);
+		log.verbose(`Filetypes: ${fileTypes}`);
 		this.addFilters(filters);
 	}
 

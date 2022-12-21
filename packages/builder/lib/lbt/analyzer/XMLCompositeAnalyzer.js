@@ -43,7 +43,7 @@ class XMLCompositeAnalyzer {
 				}
 				if (fragmentName) {
 					const fragmentModule = fromUI5LegacyName(fragmentName, ".control.xml");
-					log.verbose("fragment control: add dependency to template fragment %s", fragmentModule);
+					log.verbose(`Fragment control: Add dependency to template fragment ${fragmentModule}`);
 					info.addDependency(fragmentModule);
 				}
 			}

@@ -138,7 +138,7 @@ export default async function({resources, dependencyResources = [], options}) {
 	const visitPromises = resources.map((resource) => collector.visitResource(resource));
 
 	await Promise.all(visitPromises);
-	log.verbose(`	found ${collector.resources.size} resources`);
+	log.verbose(`	Found ${collector.resources.size} resources`);
 
 	// determine additional information for the found resources
 	if ( options && options.externalResources ) {
@@ -159,7 +159,7 @@ export default async function({resources, dependencyResources = [], options}) {
 
 	// write out resources.json files
 	for (const [prefix, list] of collector.components.entries()) {
-		log.verbose(`	writing '${prefix}resources.json'`);
+		log.verbose(`	Writing '${prefix}resources.json'`);
 
 		const contentString = makeResourcesJSON(list, prefix);
 
@@ -169,7 +169,7 @@ export default async function({resources, dependencyResources = [], options}) {
 		}));
 	}
 	for (const [prefix, list] of collector.themePackages.entries()) {
-		log.verbose(`	writing '${prefix}resources.json'`);
+		log.verbose(`	Writing '${prefix}resources.json'`);
 
 		const contentString = makeResourcesJSON(list, prefix);
 

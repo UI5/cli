@@ -63,14 +63,16 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		try {
 			ast = parseJS(code, {comment: true});
 		} catch (err) {
-			log.error("failed to parse %s: %s", resource.name, err.message);
+			log.error(`Failed to parse ${resource.name}: ${err.message}`);
+			log.verbose(err.stack);
 		}
 		if (ast) {
 			try {
 				jsAnalyzer.analyze(ast, resource.name, info);
 				new XMLCompositeAnalyzer(pool).analyze(ast, resource.name, info);
 			} catch (error) {
-				log.error("failed to analyze %s: %s", resource.name, error.stack);
+				log.error(`Failed to analyze ${resource.name}: ${error.message}`);
+				log.verbose(error.stack);
 			}
 		}
 		if ( rawInfo ) {
@@ -149,7 +151,7 @@ class ResourcePool {
 	 */
 	addResource( resource ) {
 		if ( this._resourcesByName.has(resource.name) ) {
-			log.warn("duplicate resource " + resource.name);
+			log.warn("Duplicate resource " + resource.name);
 			// TODO return and let the first one always win?
 		}
 

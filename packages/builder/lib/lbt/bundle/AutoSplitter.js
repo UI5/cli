@@ -82,8 +82,9 @@ class AutoSplitter {
 		await Promise.all(promises);
 
 		const partSize = Math.floor(totalSize / numberOfParts);
-		log.verbose("total size of modules %d (chars), target size for each of the %d parts: %d (chars)",
-			totalSize, numberOfParts, partSize);
+		log.verbose(
+			`Total size of modules ${totalSize} (chars), target size for each ` +
+			`of the ${numberOfParts} parts: ${partSize} (chars)`);
 
 		// ---- create a separate module definition for each part
 		const splittedModules = [];
@@ -184,7 +185,7 @@ class AutoSplitter {
 			}
 		});
 
-		log.verbose("splitted modules: %s", splittedModules);
+		log.verbose(`Splitted modules: ${splittedModules}`);
 		return splittedModules;
 	}
 

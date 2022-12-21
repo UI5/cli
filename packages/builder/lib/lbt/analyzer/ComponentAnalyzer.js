@@ -57,10 +57,11 @@ class ComponentAnalyzer {
 				const fileContent = await manifestResource.buffer();
 				this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 			} else {
-				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
+				log.verbose(`No manifest found for '${resource.name}', skipping analysis`);
 			}
 		} catch (err) {
-			log.error("an error occurred while analyzing component %s (ignored)", resource.name, err.stack);
+			log.error(`An error occurred while analyzing component ${resource.name} (ignored): ${err.message}`);
+			log.verbose(err.stack);
 		}
 
 		return info;
@@ -137,20 +138,20 @@ class ComponentAnalyzer {
 		if ( ui5.rootView ) {
 			const module = this._getRootViewModule(ui5.rootView);
 			if (module) {
-				log.verbose("adding root view dependency ", module);
+				log.verbose(`Adding root view dependency ${module}`);
 				info.addDependency( module );
 			}
 		}
 
 		each( ui5.dependencies && ui5.dependencies.libs, (options, lib) => {
 			const module = fromUI5LegacyName(lib, "/library.js");
-			log.verbose("adding library dependency ", module, options.lazy || false);
+			log.verbose(`Adding library dependency ${module} - lazy: ${options.lazy || false}`);
 			info.addDependency( module, options.lazy ); // lazy -> conditional dependency
 		});
 
 		each( ui5.dependencies && ui5.dependencies.components, (options, component) => {
 			const module = fromUI5LegacyName(component, "/Component.js");
-			log.verbose("adding component dependency ", module, options.lazy || false);
+			log.verbose(`Adding component dependency ${module} - lazy: ${options.lazy || false}`);
 			info.addDependency( module, options.lazy ); // lazy -> conditional dependency
 		});
 
@@ -202,7 +203,7 @@ class ComponentAnalyzer {
 				return;
 			}
 			const module = fromUI5LegacyName( modelType );
-			log.verbose("derived model implementation dependency ", module);
+			log.verbose(`Derived model implementation dependency ${module}`);
 			info.addDependency(module);
 		});
 
@@ -214,15 +215,15 @@ class ComponentAnalyzer {
 			if (routing.routes) {
 				const routerClassName = routingConfig.routerClass || "sap.ui.core.routing.Router";
 				const routerClassModule = fromUI5LegacyName(routerClassName);
-				log.verbose(`adding router dependency '${routerClassModule}'`);
+				log.verbose(`Adding router dependency '${routerClassModule}'`);
 				info.addDependency(routerClassModule);
 			} else if (routing.targets) {
 				const targetsModule = routingConfig.targetsClass || "sap/ui/core/routing/Targets.js";
-				log.verbose(`adding routing targets dependency '${targetsModule}'`);
+				log.verbose(`Adding routing targets dependency '${targetsModule}'`);
 				info.addDependency(targetsModule);
 
 				const viewsModule = "sap/ui/core/routing/Views.js";
-				log.verbose(`adding routing views dependency '${viewsModule}'`);
+				log.verbose(`Adding routing views dependency '${viewsModule}'`);
 				info.addDependency(viewsModule);
 			}
 
@@ -235,7 +236,7 @@ class ComponentAnalyzer {
 						const module = fromUI5LegacyName(
 							(config.viewPath ? config.viewPath + "." : "") +
 							config.viewName, ".view." + config.viewType.toLowerCase() );
-						log.verbose("converting routing target '%s' to view dependency '%s'", targetName, module);
+						log.verbose(`Converting routing target '${targetName}' to view dependency '${module}'`);
 						// TODO make this a conditional dependency, depending on the route pattern?
 						info.addDependency(module);
 					}

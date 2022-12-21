@@ -32,7 +32,7 @@ test("cyclic dependencies", async (t) => {
 	const pool = createMockPool({"third": "mydep", "mydep": "third"});
 	const roots = ["myroot", "mydep", "third"];
 	const error = await t.throwsAsync(topologicalSort(pool, roots));
-	t.is(error.message, "failed to resolve cyclic dependencies: mydep,third");
+	t.is(error.message, "Failed to resolve cyclic dependencies: mydep, third");
 });
 
 test("no dependencies", async (t) => {

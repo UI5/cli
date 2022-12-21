@@ -178,7 +178,7 @@ export const EnrichedVisitorKeys = (function() {
 	// check for unknown keys in our configuration
 	for ( const type in TempKeys ) {
 		if ( VisitorKeys[type] === undefined ) {
-			throw new Error("configuration contains unknown node type '" + type + "'");
+			throw new Error(`Configuration contains unknown node type '${type}'`);
 		}
 	}
 
@@ -190,7 +190,7 @@ export const EnrichedVisitorKeys = (function() {
 			// check configured keys against visitor keys
 			condKeys.forEach( (key) => {
 				if ( !visitorKeys.includes(key) ) {
-					throw new Error(`configuration for type '${type}' contains unknown key '${key}'`);
+					throw new Error(`Configuration for type '${type}' contains unknown key '${key}'`);
 				}
 			});
 			TempKeys[type] = visitorKeys.map( (key) => ({
@@ -301,7 +301,7 @@ class JSModuleAnalyzer {
 					if ( comment.value.startsWith("@ui5-bundle-raw-include ") ) {
 						const subModule = comment.value.slice("@ui5-bundle-raw-include ".length);
 						info.addSubModule(subModule);
-						log.verbose(`bundle include directive ${subModule}`);
+						log.verbose(`Bundle include directive ${subModule}`);
 					} else if ( comment.value.startsWith("@ui5-bundle ") ) {
 						const bundleName = comment.value.slice("@ui5-bundle ".length);
 						if (comment.start === 0) {
@@ -310,9 +310,9 @@ class JSModuleAnalyzer {
 						} else {
 							setMainModuleInfo(bundleName, null);
 						}
-						log.verbose(`bundle name directive ${bundleName}`);
+						log.verbose(`Bundle name directive ${bundleName}`);
 					} else {
-						log.warn(`unrecognized bundle directive ${comment.value}`);
+						log.warn(`Unrecognized bundle directive ${comment.value}`);
 					}
 				}
 			});
@@ -363,7 +363,7 @@ class JSModuleAnalyzer {
 		// hoisted functions
 		function setMainModuleInfo(name, description) {
 			if ( mainModuleFound ) {
-				throw new Error("conflicting main modules found (unnamed + named)");
+				throw new Error("Conflicting main modules found (unnamed + named)");
 			}
 			mainModuleFound = true;
 			info.name = name;
@@ -524,7 +524,7 @@ class JSModuleAnalyzer {
 
 			default:
 				if ( condKeys == null ) {
-					log.error("Unhandled AST node type " + node.type, node);
+					log.error(`Unhandled AST node type ${node.type}`, node);
 					throw new Error(`Unhandled AST node type ${node.type}`);
 				}
 				// default visit
@@ -547,17 +547,18 @@ class JSModuleAnalyzer {
 						setMainModuleInfo(name, getDocumentation(node));
 					} else if ( nModuleDeclarations > 1 && name === info.name ) {
 						// ignore duplicate declarations (e.g. in behavior file of design time controls)
-						log.warn(`duplicate declaration of module name at ${getLocation(args)} in ${name}`);
+						log.warn(`Duplicate declaration of module name at ${getLocation(args)} in ${name}`);
 					} else {
 						// otherwise it is just a submodule declaration
 						info.addSubModule(name);
 					}
 					return;
 				} else {
-					log.error("jQuery.sap.declare: module name could not be determined from first argument:", args[0]);
+					log.error(
+						`jQuery.sap.declare: Module name could not be determined from first argument: ${args[0]}`);
 				}
 			} else {
-				log.error("jQuery.sap.declare: module name could not be determined, no arguments are given");
+				log.error("jQuery.sap.declare: Module name could not be determined, no arguments are given");
 			}
 		}
 
@@ -594,11 +595,11 @@ class JSModuleAnalyzer {
 				nUnnamedDefines++;
 				if ( nUnnamedDefines > 1 ) {
 					throw new Error(
-						"if multiple modules are contained in a file, only one of them may omit the module ID " +
+						"If multiple modules are contained in a file, only one of them may omit the module ID " +
 						name + " " + nUnnamedDefines);
 				}
 				if ( defaultName == null ) {
-					throw new Error("unnamed module found, but no default name given");
+					throw new Error("Unnamed module found, but no default name given");
 				}
 				name = defaultName;
 				// the first unnamed module definition qualifies as main module
@@ -617,7 +618,7 @@ class JSModuleAnalyzer {
 			const nArgs = args.length;
 
 			if ( nArgs > 0 && args[0].type == Syntax.OBJECT ) {
-				log.verbose("jQuery.sap.require: cannot evaluate complex require (view/controller)");
+				log.verbose("jQuery.sap.require: Cannot evaluate complex require (view/controller)");
 			} else {
 				// UI5 signature with one or many required modules
 				for (let i = 0; i < nArgs; i++) {
@@ -638,11 +639,11 @@ class JSModuleAnalyzer {
 							info.addDependency(requiredModuleName2, true);
 						}
 						if ( consequentValue === undefined || alternateValue === undefined ) {
-							log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg && arg.type);
+							log.verbose(`jQuery.sap.require: Cannot evaluate dynamic arguments: ${arg && arg.type}`);
 							info.dynamicDependencies = true;
 						}
 					} else {
-						log.verbose("jQuery.sap.require: cannot evaluate dynamic arguments: ", arg && arg.type);
+						log.verbose(`jQuery.sap.require: Cannot evaluate dynamic arguments: ${arg && arg.type}`);
 						info.dynamicDependencies = true;
 					}
 				}
@@ -661,7 +662,7 @@ class JSModuleAnalyzer {
 					const moduleName = fromRequireJSName( value );
 					info.addDependency(moduleName, conditional);
 				} else {
-					log.verbose("sap.ui.requireSync: cannot evaluate dynamic arguments: ", args[i] && args[i].type);
+					log.verbose(`sap.ui.requireSync: Cannot evaluate dynamic arguments: ${args[i] && args[i].type}`);
 					info.dynamicDependencies = true;
 				}
 			}
@@ -726,7 +727,7 @@ class JSModuleAnalyzer {
 					info.addSubModule(moduleName);
 				});
 			} else {
-				log.verbose("Cannot evaluate registerPreloadedModules: '%s'", modules && modules.type);
+				log.verbose(`Cannot evaluate registerPreloadedModules: ${modules && modules.type}`);
 			}
 		}
 
@@ -747,7 +748,7 @@ class JSModuleAnalyzer {
 					}
 					info.addDependency( requiredModule, conditional );
 				} else {
-					log.verbose("sap.ui.require/sap.ui.define: cannot evaluate dynamic argument: ", item && item.type);
+					log.verbose(`sap.ui.require/sap.ui.define: Cannot evaluate dynamic argument: ${item && item.type}`);
 					info.dynamicDependencies = true;
 				}
 			});

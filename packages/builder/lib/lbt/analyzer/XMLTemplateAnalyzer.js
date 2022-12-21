@@ -206,7 +206,7 @@ class XMLTemplateAnalyzer {
 		const resourceBundleName = getAttribute(node, XMLVIEW_RESBUNDLENAME_ATTRIBUTE);
 		if ( resourceBundleName ) {
 			const resourceBundleModuleName = fromUI5LegacyName(resourceBundleName, ".properties");
-			log.verbose("found dependency to resource bundle %s", resourceBundleModuleName);
+			log.verbose(`Found dependency to resource bundle ${resourceBundleModuleName}`);
 			// TODO locale dependent dependencies: this._addDependency(resourceBundleModuleName);
 			this._addDependency( resourceBundleModuleName, this.conditional );
 		}
@@ -269,9 +269,8 @@ class XMLTemplateAnalyzer {
 			// e.g. "{= '{Handler: \'' + ${myActions > handlerModule} + '\'}'}"
 			if ((coreRequire.startsWith("{=") || coreRequire.startsWith("{:=")) && this.templateTag) {
 				log.verbose(
-					`Ignoring core:require: '%s' on Node %s:%s contains ` +
-					`an expression binding and is within a 'template' Node`,
-					coreRequire, node.$ns.uri, node.$ns.local
+					`Ignoring core:require: '${coreRequire}' on Node ${node.$ns.uri}:${node.$ns.local} contains ` +
+					`an expression binding and is within a 'template' Node`
 				);
 				return;
 			}
@@ -280,9 +279,10 @@ class XMLTemplateAnalyzer {
 				requireContext = JSTokenizer.parseJS(coreRequire);
 			} catch (e) {
 				log.error(
-					"Ignoring core:require: '%s' can't be parsed on Node %s:%s",
-					coreRequire, node.$ns.uri, node.$ns.local
+					`Ignoring core:require: '${coreRequire}' can't be parsed on Node ` +
+					`${node.$ns.uri}:${node.$ns.local}: ${e.message}`
 				);
+				log.verbose(e.stack);
 			}
 			if ( requireContext ) {
 				Object.keys(requireContext).forEach((key) => {

@@ -98,10 +98,10 @@ class BundleBuilder {
 	async _createBundle(module, options) {
 		const resolvedModule = await this.resolver.resolve(module);
 		if ( options.skipIfEmpty && isEmptyBundle(resolvedModule) ) {
-			log.verbose("  skipping empty bundle " + module.name);
+			log.verbose("  Skipping empty bundle " + module.name);
 			return undefined;
 		}
-		log.verbose("  create '%s'", resolvedModule.name);
+		log.verbose(`  Create '${resolvedModule.name}'`);
 
 		this.options = options || {};
 		this.optimize = !!this.options.optimize;
@@ -131,8 +131,7 @@ class BundleBuilder {
 		let bundleInfos = [];
 		// create all sections in sequence
 		for ( const section of resolvedModule.sections ) {
-			log.verbose("    adding section%s of type %s",
-				section.name ? " '" + section.name + "'" : "", section.mode);
+			log.verbose(`    Adding section${section.name ? " '" + section.name + "'" : ""} of type ${section.mode}`);
 			if ( section.mode === SectionType.BundleInfo ) {
 				bundleInfos.push(section);
 			} else {
@@ -253,8 +252,7 @@ class BundleBuilder {
 				this.outW.writeln("//@ui5-bundle-raw-include " + moduleName);
 				await this.writeRawModule(moduleName, resource);
 				const compressedSize = this.outW.endSegment();
-				log.verbose("    %s (%d,%d)", moduleName,
-					resource.info != null ? resource.info.size : -1, compressedSize);
+				log.verbose(`    ${moduleName} (${resource.info != null ? resource.info.size : -1},${compressedSize})`);
 				if ( section.declareRawModules ) {
 					this.missingRawDeclarations.push(moduleName);
 				}
@@ -262,7 +260,7 @@ class BundleBuilder {
 					this.jqglobalAvailable = true;
 				}
 			} else {
-				log.error("    couldn't find %s", moduleName);
+				log.error(`    Could not find module ${moduleName}`);
 			}
 		}
 	}
@@ -308,11 +306,10 @@ class BundleBuilder {
 					outW.startSegment(module);
 					await this.writePreloadModule(module, resource.info, resource);
 					const compressedSize = outW.endSegment();
-					log.verbose("    %s (%d,%d)", module,
-						resource.info != null ? resource.info.size : -1, compressedSize);
+					log.verbose(`    ${module} (${resource.info != null ? resource.info.size : -1},${compressedSize})`);
 					i++;
 				} else {
-					log.error("    couldn't find %s", module);
+					log.error(`    Could not find module ${module}`);
 				}
 			}
 
@@ -387,8 +384,8 @@ class BundleBuilder {
 						outW.write(moduleContent);
 						outW.ensureNewLine();
 						const compressedSize = outW.endSegment();
-						log.verbose("    %s (%d,%d)", moduleName,
-							resource.info != null ? resource.info.size : -1, compressedSize);
+						log.verbose(
+							`    ${moduleName} (${resource.info != null ? resource.info.size : -1},${compressedSize})`);
 					} else {
 						// keep unprocessed modules
 						remaining.push(moduleName);
@@ -440,8 +437,8 @@ class BundleBuilder {
 			outW.ensureNewLine();
 			outW.write(`}`);
 		} else if ( /\.js$/.test(moduleName) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
-			log.warn("**** warning: module %s requires top level scope" +
-					" and can only be embedded as a string (requires 'eval')", moduleName);
+			log.warn(
+				`Module ${moduleName} requires top level scope and can only be embedded as a string (requires 'eval')`);
 			outW.write( makeStringLiteral( (await resource.buffer()).toString() ) );
 		} else if ( /\.html$/.test(moduleName) ) {
 			const fileContent = (await resource.buffer()).toString();
@@ -452,7 +449,7 @@ class BundleBuilder {
 				try {
 					fileContent = JSON.stringify( JSON.parse( fileContent) );
 				} catch (e) {
-					log.verbose("Failed to parse JSON file %s. Ignoring error, skipping compression.", moduleName);
+					log.verbose(`Failed to parse JSON file ${moduleName}. Ignoring error, skipping compression.`);
 					log.verbose(e);
 				}
 			}
@@ -475,7 +472,7 @@ class BundleBuilder {
 
 			outW.write( makeStringLiteral( fileContent ) );
 		} else {
-			log.error("don't know how to embed module " + moduleName); // TODO throw?
+			log.error("Don't know how to embed module " + moduleName); // TODO throw?
 		}
 
 		return true;
@@ -512,7 +509,7 @@ class BundleBuilder {
 					throw new Error(`A 'bundleInfo' section is missing the mandatory 'name' property.` );
 				}
 				if (!path.extname(section.name)) {
-					log.warn(`bundleInfo section name '${section.name}' is missing a file extension. ` +
+					log.warn(`BundleInfo section name '${section.name}' is missing a file extension. ` +
 						`The info might not work as expected. ` +
 						`The name must match the bundle filename (incl. extension such as '.js')`);
 				}
@@ -636,7 +633,8 @@ async function rewriteDefine({moduleName, moduleContent, moduleSourceMap}) {
 	try {
 		ast = parseJS(moduleContent, {range: true});
 	} catch (e) {
-		log.error("error while parsing %s: %s", moduleName, e.message);
+		log.error(`Error while parsing ${moduleName}: ${e.message}`);
+		log.verbose(e.stack);
 		return {};
 	}
 

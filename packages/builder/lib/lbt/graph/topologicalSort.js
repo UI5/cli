@@ -70,7 +70,7 @@ function createDependencyGraph(pool, moduleNames, indegreeOnly) {
 				});
 				return Promise.all(p);
 			}, (err) => {
-				log.error("module %s not found in pool", moduleName);
+				log.error(`Module ${moduleName} not found in pool`);
 			});
 	});
 
@@ -119,7 +119,7 @@ function topologicalSort(pool, moduleNames) {
 									dependent.outgoing.splice(index, 1);
 								// console.log("removing outgoing %s in %s", node.name, dependent.name);
 								} else {
-									log.error("**** could not find node %s in %s", node.name, dependent.name);
+									log.error(`**** Could not find node ${node.name} in ${dependent.name}`);
 								}
 							});
 						}
@@ -177,7 +177,7 @@ function topologicalSort(pool, moduleNames) {
 					Object.keys(graph)
 						.filter((name) => moduleNames.indexOf(name) < l)
 						.map((name) => graph[name].toString()));
-				throw new Error("failed to resolve cyclic dependencies: " + moduleNames.slice(0, l) );
+				throw new Error("Failed to resolve cyclic dependencies: " + moduleNames.slice(0, l).join(", ") );
 				// NODE-TODO use new CycleFinder(graph).toString() for easier to understand output
 			}
 

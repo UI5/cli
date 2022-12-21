@@ -193,7 +193,7 @@ async function createManifest(
 
 			const manifestResource = libBundle.findResource(manifestPath.substring(libraryPathPrefix.length));
 			if ( manifestResource == null ) {
-				log.verbose("  component has no accompanying manifest.json, don't list it as 'embedded'");
+				log.verbose("  Component has no accompanying manifest.json, don't list it as 'embedded'");
 				return false;
 			}
 			return true;
@@ -204,19 +204,19 @@ async function createManifest(
 			const components = libBundle.getResources(/^\/(?:[^/]+\/)*Component\.js$/);
 			for (const comp of components) {
 				const componentPath = posixPath.dirname(comp.getPath());
-				log.verbose("checking component at %s", componentPath);
+				log.verbose(`Checking component at ${componentPath}`);
 				if ( componentPath.startsWith(libraryPathPrefix) && hasManifest(componentPath) ) {
 					result.push( componentPath.substring(libraryPathPrefix.length) );
 				} else if ( libraryPathPrefix === "/resources/sap/apf/" ) {
-					log.verbose("Package %s contains both '*.library' and 'Component.js'. " +
-						"This is a known issue but can't be solved due to backward compatibility.", componentPath);
+					log.verbose(`Package ${componentPath} contains both '*.library' and 'Component.js'. ` +
+						`This is a known issue but can't be solved due to backward compatibility.`);
 				} else if (
 					libraryPathPrefix === (componentPath + "/") &&
 					libraryPathPrefix !== "/resources/sap/ui/core/"
 				) {
-					log.error("Package %s contains both '*.library' and 'Component.js'. " +
-						"This is not supported by manifests, therefore the component won't be " +
-						"listed in the library's manifest.", componentPath);
+					log.error(`Package ${componentPath} contains both '*.library' and 'Component.js'. ` +
+						`This is not supported by manifests, therefore the component won't be ` +
+						`listed in the library's manifest.`);
 				}
 			}
 			return result.sort();
@@ -308,7 +308,7 @@ async function createManifest(
 		let i18n;
 		if (typeof i18nText === "string") {
 			i18n = createI18nSection(i18nText, i18nToSupportedLocales);
-			log.verbose(`sap.app/i18n taken from .library appData: '%s'`, i18nText);
+			log.verbose(`sap.app/i18n taken from .library appData: '${i18nText}'`);
 		}
 		const sapApp = {
 			_version: sectionVersion(APP_DESCRIPTOR_V3_SECTION_SAP_APP),
@@ -328,10 +328,10 @@ async function createManifest(
 			openSourceComponents: openSourceComponents()
 		};
 
-		log.verbose("  sap.app/id taken from .library: '%s'", sapApp.id);
-		log.verbose("  sap.app/embeds determined from resources: '%s'", sapApp.embeds);
-		log.verbose("  sap.app/i18n taken from .library appData: '%s'", sapApp.i18n);
-		log.verbose("  sap.app/ach taken from .library appData/ownership: '%s'", sapApp.ach);
+		log.verbose(`  sap.app/id taken from .library: '${sapApp.id}'`);
+		log.verbose(`  sap.app/embeds determined from resources:`, sapApp.embeds);
+		log.verbose(`  sap.app/i18n taken from .library appData:`, sapApp.i18n);
+		log.verbose(`  sap.app/ach taken from .library appData/ownership: '${sapApp.ach}'`);
 
 		return sapApp;
 	}
@@ -382,7 +382,7 @@ async function createManifest(
 			supportedThemes: collectThemes()
 		};
 
-		log.verbose("  sap.ui/supportedThemes determined from resources: '%s'", sapUi.supportedThemes);
+		log.verbose(`  sap.ui/supportedThemes determined from resources: '${sapUi.supportedThemes.join(", ")}'`);
 
 		return sapUi;
 	}
@@ -406,7 +406,7 @@ async function createManifest(
 					};
 				}
 			}
-			log.verbose("  sap.ui5/dependencies/libs determined from .library dependencies: '%s'", dependencies.libs);
+			log.verbose(`  sap.ui5/dependencies/libs determined from .library dependencies:`, dependencies.libs);
 			return dependencies;
 		}
 
@@ -417,18 +417,17 @@ async function createManifest(
 					cozy: getBooleanAttribute(contentDensitiesElement, "cozy"),
 					compact: getBooleanAttribute(contentDensitiesElement, "compact")
 				};
-				log.verbose("  sap.ui5/contentDensities property taken from .library appData: '%s'", contentDensities);
+				log.verbose(`  sap.ui5/contentDensities property taken from .library appData:`, contentDensities);
 				return contentDensities;
 			}
 		}
 
 		function createLibraryMetadata() {
 			if ( descriptorVersion.compare(APP_DESCRIPTOR_V10) < 0 ) {
-				log.verbose("  target descriptor version %s: skipping sap.ui5/library information",
-					descriptorVersion);
+				log.verbose(`  Target descriptor version ${descriptorVersion}: skipping sap.ui5/library information`);
 			}
 
-			log.verbose("  target descriptor version %s: include sap.ui5/library information", descriptorVersion);
+			log.verbose(`  Target descriptor version ${descriptorVersion}: include sap.ui5/library information`);
 
 			const sapUi5AppData = findChild(manifestAppData, "sap.ui5");
 			const libraryAppData = findChild(sapUi5AppData, "library");
@@ -465,11 +464,11 @@ async function createManifest(
 				if ( cssElement != null ) {
 					const css = cssElement._;
 					if ( css === "false" ) {
-						log.verbose("  sap.ui5/library/css property taken from .library appData: '%s'", false);
+						log.verbose(`  sap.ui5/library/css property taken from .library appData: 'false'`);
 						return false;
 					}
 				} else if ( libraryJSInfo.noLibraryCSS ) {
-					log.verbose("  sap.ui5/library/css property extracted from library.js: '%s'", false);
+					log.verbose(`  sap.ui5/library/css property extracted from library.js: 'false'`);
 					return false;
 				}
 			}
@@ -636,7 +635,7 @@ export default function({libraryResource, resources, getProjectVersion, options}
 	// check whether a manifest exists already
 	const manifestResource = libBundle.findResource("manifest.json");
 	if ( manifestResource != null ) {
-		log.verbose("Library manifest already exists at '%s', skipping generation", manifestResource.getPath());
+		log.verbose(`Library manifest already exists at '${manifestResource.getPath()}', skipping generation`);
 		return Promise.resolve(null); // a fulfillment of null indicates that no manifest has been created
 	}
 

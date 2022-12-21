@@ -596,10 +596,8 @@ test.serial("manifest creation with themes", async (t) => {
 
 	t.is(errorLogStub.callCount, 0);
 	t.is(verboseLogStub.callCount, 7);
-	t.deepEqual(verboseLogStub.getCall(4).args, [
-		"  sap.ui/supportedThemes determined from resources: '%s'",
-		["base", "sap_foo"]
-	]);
+	t.is(verboseLogStub.getCall(4).args[0],
+		"  sap.ui/supportedThemes determined from resources: 'base, sap_foo'");
 });
 
 test.serial("manifest creation for sap/apf", async (t) => {
@@ -640,14 +638,12 @@ test.serial("manifest creation for sap/apf", async (t) => {
 	t.is(errorLogStub.callCount, 0);
 
 	t.is(verboseLogStub.callCount, 10);
-	t.is(verboseLogStub.getCall(0).args[0], "sap.app/i18n taken from .library appData: '%s'");
+	t.is(verboseLogStub.getCall(0).args[0], "sap.app/i18n taken from .library appData: 'i18n/i18n.properties'");
 	t.is(verboseLogStub.getCall(1).args[0],
-		"checking component at %s");
-	t.is(verboseLogStub.getCall(1).args[1], "/resources/sap/apf");
+		"Checking component at /resources/sap/apf");
 	t.is(verboseLogStub.getCall(2).args[0],
-		"Package %s contains both '*.library' and 'Component.js'. " +
+		"Package /resources/sap/apf contains both '*.library' and 'Component.js'. " +
 		"This is a known issue but can't be solved due to backward compatibility.");
-	t.is(verboseLogStub.getCall(2).args[1], "/resources/sap/apf");
 });
 
 test.serial("manifest creation for sap/ui/core", async (t) => {
@@ -711,8 +707,7 @@ test.serial("manifest creation for sap/ui/core", async (t) => {
 
 	t.is(verboseLogStub.callCount, 8);
 	t.is(verboseLogStub.getCall(1).args[0],
-		"  sap.app/id taken from .library: '%s'");
-	t.is(verboseLogStub.getCall(1).args[1], "sap.ui.core");
+		"  sap.app/id taken from .library: 'sap.ui.core'");
 });
 
 test.serial("manifest creation with .library / Component.js at same namespace", async (t) => {
@@ -773,17 +768,14 @@ test.serial("manifest creation with .library / Component.js at same namespace", 
 	t.is(await result.getString(), expectedManifestContent, "Correct result returned");
 
 	t.is(errorLogStub.callCount, 1);
-	t.deepEqual(errorLogStub.getCall(0).args, [
-		"Package %s contains both '*.library' and 'Component.js'. " +
+	t.is(errorLogStub.getCall(0).args[0],
+		"Package /resources/sap/lib1 contains both '*.library' and 'Component.js'. " +
 		"This is not supported by manifests, therefore the component won't be " +
-		"listed in the library's manifest.",
-		"/resources/sap/lib1"
-	]);
+		"listed in the library's manifest.");
 
 	t.is(verboseLogStub.callCount, 8);
 	t.is(verboseLogStub.getCall(1).args[0],
-		"  sap.app/id taken from .library: '%s'");
-	t.is(verboseLogStub.getCall(1).args[1], "sap.lib1");
+		"  sap.app/id taken from .library: 'sap.lib1'");
 });
 
 test.serial("manifest creation with embedded component", async (t) => {
@@ -862,12 +854,10 @@ test.serial("manifest creation with embedded component", async (t) => {
 	t.is(errorLogStub.callCount, 0);
 
 	t.true(verboseLogStub.callCount >= 2, "There should be at least 2 verbose log calls");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"checking component at %s", "/resources/sap/lib1/component1"
-	]);
-	t.deepEqual(verboseLogStub.getCall(1).args, [
-		"  sap.app/id taken from .library: '%s'", "sap.lib1"
-	]);
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Checking component at /resources/sap/lib1/component1");
+	t.is(verboseLogStub.getCall(1).args[0],
+		"  sap.app/id taken from .library: 'sap.lib1'");
 });
 
 test.serial("manifest creation with embedded component (Missing 'embeddedBy')", async (t) => {
@@ -942,12 +932,10 @@ test.serial("manifest creation with embedded component (Missing 'embeddedBy')", 
 	t.is(errorLogStub.callCount, 0);
 
 	t.true(verboseLogStub.callCount >= 2, "There should be at least 2 verbose log calls");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"checking component at %s", "/resources/sap/lib1/component1"
-	]);
-	t.deepEqual(verboseLogStub.getCall(1).args, [
-		"  sap.app/id taken from .library: '%s'", "sap.lib1"
-	]);
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Checking component at /resources/sap/lib1/component1");
+	t.is(verboseLogStub.getCall(1).args[0],
+		"  sap.app/id taken from .library: 'sap.lib1'");
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' doesn't point to library)", async (t) => {
@@ -1026,12 +1014,10 @@ test.serial("manifest creation with embedded component ('embeddedBy' doesn't poi
 	t.is(errorLogStub.callCount, 0);
 
 	t.true(verboseLogStub.callCount >= 2, "There should be at least 2 verbose log calls");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"checking component at %s", "/resources/sap/lib1/component1"
-	]);
-	t.deepEqual(verboseLogStub.getCall(1).args, [
-		"  sap.app/id taken from .library: '%s'", "sap.lib1"
-	]);
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Checking component at /resources/sap/lib1/component1");
+	t.is(verboseLogStub.getCall(1).args[0],
+		"  sap.app/id taken from .library: 'sap.lib1'");
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' absolute path)", async (t) => {
@@ -1110,12 +1096,10 @@ test.serial("manifest creation with embedded component ('embeddedBy' absolute pa
 	t.is(errorLogStub.callCount, 0);
 
 	t.true(verboseLogStub.callCount >= 2, "There should be at least 2 verbose log calls");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"checking component at %s", "/resources/sap/lib1/component1"
-	]);
-	t.deepEqual(verboseLogStub.getCall(1).args, [
-		"  sap.app/id taken from .library: '%s'", "sap.lib1"
-	]);
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Checking component at /resources/sap/lib1/component1");
+	t.is(verboseLogStub.getCall(1).args[0],
+		"  sap.app/id taken from .library: 'sap.lib1'");
 });
 
 test.serial("manifest creation with embedded component ('embeddedBy' empty string)", async (t) => {
@@ -1333,13 +1317,10 @@ test.serial("manifest creation with embedded component (no manifest.json)", asyn
 	t.is(errorLogStub.callCount, 0);
 
 	t.true(verboseLogStub.callCount >= 2, "There should be at least 2 verbose log calls");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"checking component at %s",
-		"/resources/sap/lib1/component1"
-	]);
-	t.deepEqual(verboseLogStub.getCall(1).args, [
-		"  component has no accompanying manifest.json, don't list it as 'embedded'"
-	]);
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Checking component at /resources/sap/lib1/component1");
+	t.is(verboseLogStub.getCall(1).args[0],
+		"  Component has no accompanying manifest.json, don't list it as 'embedded'");
 });
 
 test.serial("manifest creation with embedded component (invalid manifest.json)", async (t) => {

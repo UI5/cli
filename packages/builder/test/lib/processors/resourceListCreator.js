@@ -51,7 +51,7 @@ test.serial("Empty resources", async (t) => {
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 1);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 0 resources"]);
+		["\tFound 0 resources"]);
 });
 
 test.serial("Empty resources but options", async (t) => {
@@ -69,7 +69,7 @@ test.serial("Empty resources but options", async (t) => {
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 1);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 0 resources"]);
+		["\tFound 0 resources"]);
 });
 
 test.serial("Orphaned resources", async (t) => {
@@ -86,7 +86,7 @@ test.serial("Orphaned resources", async (t) => {
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 1);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 1 resources"]);
+		["\tFound 1 resources"]);
 });
 
 test.serial("Orphaned resources (failOnOrphans: true)", async (t) => {
@@ -112,7 +112,7 @@ test.serial("Orphaned resources (failOnOrphans: true)", async (t) => {
 		"resources.json generation failed because of unassigned resources: nomodule.foo");
 	t.is(resourceListCreatorLog.verbose.callCount, 1);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 1 resources"]);
+		["\tFound 1 resources"]);
 });
 
 test.serial("Components and themes", async (t) => {
@@ -133,11 +133,11 @@ test.serial("Components and themes", async (t) => {
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 3);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 2 resources"]);
+		["\tFound 2 resources"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(1).args,
-		["\twriting 'mylib/resources.json'"]);
+		["\tWriting 'mylib/resources.json'"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(2).args,
-		["\twriting 'themes/a/resources.json'"]);
+		["\tWriting 'themes/a/resources.json'"]);
 
 
 	t.is(resources.length, 2);
@@ -224,9 +224,9 @@ test.serial("XML View with control resource as dependency", async (t) => {
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 2);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 3 resources"]);
+		["\tFound 3 resources"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(1).args,
-		["\twriting 'my/app/resources.json'"]);
+		["\tWriting 'my/app/resources.json'"]);
 
 	t.is(resourcesJson.length, 1, "One resources.json should be returned");
 	const myAppResourcesJson = resourcesJson[0];
@@ -322,15 +322,15 @@ sap.ui.require.preload({
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 2);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 4 resources"]);
+		["\tFound 4 resources"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(1).args,
-		["\twriting 'my/app/resources.json'"]);
+		["\tWriting 'my/app/resources.json'"]);
 
 	t.is(ResourceCollectorLog.error.callCount, 0);
 	t.is(ResourceCollectorLog.warn.callCount, 0);
 	t.is(ResourceCollectorLog.verbose.callCount, 1);
 	t.deepEqual(ResourceCollectorLog.verbose.getCall(0).args,
-		["  configured external resources filters (resources outside the namespace): (none)"]);
+		["  Configured external resources filters (resources outside the namespace): (none)"]);
 
 	t.is(resourcesJson.length, 1, "One resources.json should be returned");
 	const myAppResourcesJson = resourcesJson[0];
@@ -406,17 +406,17 @@ sap.ui.require.preload({
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 2);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 2 resources"]);
+		["\tFound 2 resources"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(1).args,
-		["\twriting 'my/app/resources.json'"]);
+		["\tWriting 'my/app/resources.json'"]);
 
 	t.is(ResourceCollectorLog.error.callCount, 0);
 	t.is(ResourceCollectorLog.warn.callCount, 0);
 	t.is(ResourceCollectorLog.verbose.callCount, 2);
 	t.deepEqual(ResourceCollectorLog.verbose.getCall(0).args,
-		["\tmissing submodule my/app/view/Main.view.xml included by my/app/bundle.js"]);
+		["\tMissing submodule my/app/view/Main.view.xml included by my/app/bundle.js"]);
 	t.deepEqual(ResourceCollectorLog.verbose.getCall(1).args,
-		["  configured external resources filters (resources outside the namespace): (none)"]);
+		["  Configured external resources filters (resources outside the namespace): (none)"]);
 
 	t.is(resourcesJson.length, 1, "One resources.json should be returned");
 	const myAppResourcesJson = resourcesJson[0];
@@ -498,15 +498,15 @@ sap.ui.require.preload({
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 2);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 4 resources"]);
+		["\tFound 4 resources"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(1).args,
-		["\twriting 'my/app/resources.json'"]);
+		["\tWriting 'my/app/resources.json'"]);
 
 	t.is(ResourceCollectorLog.error.callCount, 0);
 	t.is(ResourceCollectorLog.warn.callCount, 0);
 	t.is(ResourceCollectorLog.verbose.callCount, 1);
 	t.deepEqual(ResourceCollectorLog.verbose.getCall(0).args,
-		["  configured external resources filters (resources outside the namespace): (none)"]);
+		["  Configured external resources filters (resources outside the namespace): (none)"]);
 
 	// XMLTemplateAnalyzer should only be called once, which means that the view was only analyzed once
 	t.is(XMLTemplateAnalyzerAnalyzeViewSpy.callCount, 1);
@@ -603,15 +603,15 @@ sap.ui.require.preload({
 	t.is(resourceListCreatorLog.error.callCount, 0);
 	t.is(resourceListCreatorLog.verbose.callCount, 2);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(0).args,
-		["\tfound 4 resources"]);
+		["\tFound 4 resources"]);
 	t.deepEqual(resourceListCreatorLog.verbose.getCall(1).args,
-		["\twriting 'my/app/resources.json'"]);
+		["\tWriting 'my/app/resources.json'"]);
 
 	t.is(ResourceCollectorLog.error.callCount, 0);
 	t.is(ResourceCollectorLog.warn.callCount, 0);
 	t.is(ResourceCollectorLog.verbose.callCount, 1);
 	t.deepEqual(ResourceCollectorLog.verbose.getCall(0).args,
-		["  configured external resources filters (resources outside the namespace): (none)"]);
+		["  Configured external resources filters (resources outside the namespace): (none)"]);
 
 	t.is(resourcesJson.length, 1, "One resources.json should be returned");
 	const myAppResourcesJson = resourcesJson[0];

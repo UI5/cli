@@ -45,7 +45,7 @@ export class ThemeBuilder {
 		const files = [];
 
 		const compile = (resource) => {
-			log.verbose("Compiling %s", resource.getPath());
+			log.verbose(`Compiling ${resource.getPath()}`);
 
 			let libraryName;
 			const libraryMatch = libraryMatchPattern.exec(resource.getPath());

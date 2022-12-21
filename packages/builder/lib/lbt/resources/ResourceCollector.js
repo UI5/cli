@@ -80,7 +80,7 @@ class ResourceCollector {
 	async visitResource(resource) {
 		const virPath = resource.getPath();
 		if ( !virPath.startsWith("/resources/") ) {
-			log.warn(`non-runtime resource ${virPath} ignored`);
+			log.warn(`Non-runtime resource ${virPath} ignored`);
 			return;
 		}
 		const name = virPath.slice("/resources/".length);
@@ -102,7 +102,7 @@ class ResourceCollector {
 			// .theming files are not always present therefore this check is relevant for the library.source.less
 			if ( name.match("(?:[^/]+/)*themes/[^/]+/(?:\\.theming|library\\.source\\.less)") &&
 					!this._themePackages.has(prefix) ) {
-				// log.info("found new theme package %s", prefix);
+				// log.info("Found new theme package %s", prefix);
 				this._themePackages.set(prefix, new ResourceInfoList(prefix));
 			}
 		}
@@ -141,7 +141,7 @@ class ResourceCollector {
 					try {
 						subModuleInfo = await this._pool.getModuleInfo(subModule);
 					} catch (err) {
-						log.verbose(`	missing submodule ${subModule} included by ${moduleInfo.name}`);
+						log.verbose(`	Missing submodule ${subModule} included by ${moduleInfo.name}`);
 					}
 					if (subModuleInfo) {
 						// Inherit subModule dependencies
@@ -207,14 +207,14 @@ class ResourceCollector {
 		for (const [name, info] of this._resources.entries()) {
 			if ( debugFilter.matches(name) ) {
 				info.isDebug = true;
-				log.verbose(`  found potential debug resource '${name}'`);
+				log.verbose(`  Found potential debug resource '${name}'`);
 			}
 
 			// log.verbose(`  checking ${name}`);
 			let m;
 			if ( m = LOCALE.exec(name) ) {
 				const baseName = m[1] + m[3];
-				log.verbose(`  found potential i18n resource '${name}', base name is '${baseName}', locale is ${m[2]}`);
+				log.verbose(`  Found potential i18n resource '${name}', base name is '${baseName}', locale is ${m[2]}`);
 				info.i18nName = baseName; // e.g. "i18n.properties"
 				info.i18nLocale = m[2]; // e.g. "de"
 				baseNames.add(baseName);
@@ -225,7 +225,7 @@ class ResourceCollector {
 				if ( this._themePackages.has(m[0]) ) {
 					const theme = m[2];
 					info.theme = theme;
-					log.verbose(`  found potential theme resource '${name}', theme ${theme}`);
+					log.verbose(`  Found potential theme resource '${name}', theme ${theme}`);
 				}
 			}
 
@@ -255,17 +255,17 @@ class ResourceCollector {
 
 			if ( mergeFilter.matches(name) ) {
 				info.merged = true;
-				log.verbose(`  found potential merged resource '${name}'`);
+				log.verbose(`  Found potential merged resource '${name}'`);
 			}
 
 			if ( designtimeFilter.matches(name) ) {
 				info.designtime = true;
-				log.verbose(`  found potential designtime resource '${name}'`);
+				log.verbose(`  Found potential designtime resource '${name}'`);
 			}
 
 			if ( supportFilter.matches(name) ) {
 				info.support = true;
-				log.verbose(`  found potential support resource '${name}'`);
+				log.verbose(`  Found potential support resource '${name}'`);
 			}
 		}
 
@@ -320,7 +320,7 @@ class ResourceCollector {
 
 	createOrphanFilters() {
 		log.verbose(
-			`  configured external resources filters (resources outside the namespace): ` +
+			`  Configured external resources filters (resources outside the namespace): ` +
 			`${this._externalResources == null ? "(none)" : this._externalResources}`);
 
 		const filtersByComponent = new Map();
@@ -333,7 +333,7 @@ class ResourceCollector {
 				} else if ( !component.endsWith("/") ) {
 					component += "/";
 				}
-				log.verbose(`	resulting filter list for '${component}': '${packageFilters}'`);
+				log.verbose(`	Resulting filter list for '${component}': '${packageFilters}'`);
 				filtersByComponent.set(component, packageFilters);
 			}
 		}

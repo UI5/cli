@@ -48,9 +48,8 @@ test.serial("writePreloadModule: with invalid json content", async (t) => {
 	const result = await builder.writePreloadModule("invalid.json", undefined, invalidJsonResource);
 
 	t.is(verboseLogStub.callCount, 2, "called 2 times");
-	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file %s. Ignoring error, skipping compression.",
+	t.is(verboseLogStub.firstCall.args[0], "Failed to parse JSON file invalid.json. Ignoring error, skipping compression.",
 		"first verbose log argument 0 is correct");
-	t.is(verboseLogStub.firstCall.args[1], "invalid.json", "first verbose log argument 1 is correct");
 	t.true(verboseLogStub.secondCall.args[0] instanceof SyntaxError, "second verbose log with SyntaxError");
 	t.regex(verboseLogStub.secondCall.args[0].message, /JSON/, "second verbose log about incorrect JSON");
 
@@ -796,7 +795,7 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 
 	t.is(warnLogStub.callCount, 1);
 	t.deepEqual(warnLogStub.getCall(0).args, [
-		`bundleInfo section name 'my-custom-bundle' is missing a file extension. ` +
+		`BundleInfo section name 'my-custom-bundle' is missing a file extension. ` +
 		`The info might not work as expected. ` +
 		`The name must match the bundle filename (incl. extension such as '.js')`
 	]);

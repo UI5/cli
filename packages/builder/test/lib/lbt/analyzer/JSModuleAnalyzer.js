@@ -271,7 +271,7 @@ test("AMDMultipleModulesWithConflictBetweenNamedAndUnnamed", async (t) => {
 		await analyze("modules/amd_multiple_modules_with_conflict_between_named_and_unnamed.js");
 		t.fail("parsing a file with conflicting modules shouldn't succeed");
 	} catch (error) {
-		t.is(error.message, "conflicting main modules found (unnamed + named)",
+		t.is(error.message, "Conflicting main modules found (unnamed + named)",
 			"Exception message should contain a hint on conflicting modules");
 	}
 });
@@ -281,7 +281,7 @@ test("AMDMultipleModulesWithConflictBetweenUnnamedAndNamed", async (t) => {
 		await analyze("modules/amd_multiple_modules_with_conflict_between_unnamed_and_named.js");
 		t.fail("parsing a file with conflicting modules shouldn't succeed");
 	} catch (error) {
-		t.is(error.message, "conflicting main modules found (unnamed + named)",
+		t.is(error.message, "Conflicting main modules found (unnamed + named)",
 			"Exception message should contain a hint on conflicting modules");
 	}
 });
@@ -291,7 +291,7 @@ test("AMDMultipleModulesWithConflictBetweenTwoNamed", async (t) => {
 		await analyze("modules/amd_multiple_modules_with_conflict_between_two_named.js");
 		t.fail("parsing a file with conflicting modules shouldn't succeed");
 	} catch (error) {
-		t.is(error.message, "conflicting main modules found (unnamed + named)",
+		t.is(error.message, "Conflicting main modules found (unnamed + named)",
 			"Exception message should contain a hint on conflicting modules");
 	}
 });
@@ -1117,6 +1117,6 @@ test("@ui5-bundle comment: Multiple comments (Not in first line)", (t) => {
 //@ui5-bundle test/bundle2.js
 `;
 	t.throws(() => analyzeString(content, "modules/ui5-bundle-comments.js"), {
-		message: "conflicting main modules found (unnamed + named)"
+		message: "Conflicting main modules found (unnamed + named)"
 	});
 });

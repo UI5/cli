@@ -955,7 +955,7 @@ test.serial("integration: Library without dependencies and embeddedBy undefined"
 
 	t.is(verboseLogStub.callCount, 1);
 	t.is(verboseLogStub.firstCall.args[0],
-		"  component doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'");
+		"  Component doesn't declare 'sap.app/embeddedBy', don't list it as 'embedded'");
 });
 
 test.serial("integration: Library without dependencies and embeddedBy not a string", async (t) => {
@@ -1002,8 +1002,8 @@ test.serial("integration: Library without dependencies and embeddedBy not a stri
 
 	t.is(errorLogStub.callCount, 1);
 	t.is(errorLogStub.firstCall.args[0],
-		"  component '%s': property 'sap.app/embeddedBy' is of type '%s' (expected 'string'), " +
-		"it won't be listed as 'embedded'");
+		"  Component '/resources/lib/a/sub/fold': property 'sap.app/embeddedBy' is of type 'object' " +
+		"(expected 'string'), it won't be listed as 'embedded'");
 });
 
 test.serial("integration: Library without dependencies and embeddedBy empty string", async (t) => {
@@ -1050,8 +1050,8 @@ test.serial("integration: Library without dependencies and embeddedBy empty stri
 
 	t.is(errorLogStub.callCount, 1);
 	t.is(errorLogStub.firstCall.args[0],
-		"  component '%s': property 'sap.app/embeddedBy' has an empty string value (which is invalid), " +
-		"it won't be listed as 'embedded'");
+		"  Component '/resources/lib/a/sub/fold': property 'sap.app/embeddedBy' has an empty string value " +
+		"(which is invalid), it won't be listed as 'embedded'");
 });
 
 test.serial("integration: Library without dependencies and embeddedBy path not correct", async (t) => {
@@ -1098,7 +1098,7 @@ test.serial("integration: Library without dependencies and embeddedBy path not c
 
 	t.is(verboseLogStub.callCount, 1);
 	t.is(verboseLogStub.firstCall.args[0],
-		"  component's 'sap.app/embeddedBy' points to '%s', don't list it as 'embedded'");
+		"  Component's 'sap.app/embeddedBy' points to '/resources/lib/a/sub/', don't list it as 'embedded'");
 });
 
 test.serial("integration: Library with manifest with invalid dependency", async (t) => {

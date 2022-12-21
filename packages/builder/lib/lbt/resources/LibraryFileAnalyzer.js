@@ -64,7 +64,7 @@ export function getDependencyInfos( name, content ) {
 						moduleInfos["raw-module"] && moduleInfos["raw-module"].forEach( (rawModule) => {
 							const rawInfo = createRawInfo(rawModule);
 							if ( rawInfo ) {
-								log.verbose(name + " rawInfo:", JSON.stringify(rawInfo));
+								log.verbose(name + " rawInfo: " + JSON.stringify(rawInfo));
 								infos[rawInfo.name] = rawInfo;
 							}
 						});

@@ -59,11 +59,11 @@ class TemplateComponentAnalyzer {
 				const fileContent = await manifestResource.buffer();
 				await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 			} else {
-				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
+				log.verbose(`No manifest found for '${resource.name}', skipping analysis`);
 			}
 		} catch (err) {
-			log.error("an error occurred while analyzing template app %s (ignored):", resource.name);
-			log.error(err.stack);
+			log.error(`An error occurred while analyzing template app ${resource.name} (ignored): ${err.message}`);
+			log.verbose(err.stack);
 		}
 
 		return info;
@@ -85,7 +85,7 @@ class TemplateComponentAnalyzer {
 		function recursePage(page) {
 			if ( page.component && page.component.name ) {
 				const module = fromUI5LegacyName( page.component.name + ".Component" );
-				log.verbose("template app: add dependency to template component %s", module);
+				log.verbose(`Template app: Add dependency to template component ${module}`);
 				info.addDependency(module);
 				promises.push( that._analyzeTemplateComponent(module, page, info) );
 			}
@@ -114,12 +114,12 @@ class TemplateComponentAnalyzer {
 									pageConfig.component.settings.templateName) || defaultTemplateName;
 			if ( templateName ) {
 				const templateModuleName = fromUI5LegacyName( templateName, ".view.xml" );
-				log.verbose("template app: add dependency to template view %s", templateModuleName);
+				log.verbose(`Template app: Add dependency to template view ${templateModuleName}`);
 				appInfo.addDependency(templateModuleName);
 			}
 		} catch (err) {
 			if (this._pool.getIgnoreMissingModules() && err.message.startsWith("resource not found in pool")) {
-				log.verbose("Ignoring missing module as per ResourcePool configuration: " + err.message);
+				log.verbose(`Ignoring missing module as per ResourcePool configuration: ${err.message}`);
 			} else {
 				throw err;
 			}

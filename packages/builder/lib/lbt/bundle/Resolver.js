@@ -272,7 +272,7 @@ class BundleResolver {
 
 		// NODE-TODO placeholderValues = vars;
 
-		log.verbose("  resolving bundle definition %s", bundle.name);
+		log.verbose(`  Resolving bundle definition ${bundle.name}`);
 
 		const resolved = new ResolvedBundleDefinition(bundle /* , vars*/);
 
@@ -280,8 +280,8 @@ class BundleResolver {
 
 		bundle.sections.forEach(function(section, index) {
 			previous = previous.then( function() {
-				log.verbose("    resolving section%s of type %s",
-					section.name ? " '" + section.name + "'" : "", section.mode);
+				log.verbose(
+					`    Resolving section${section.name ? " '" + section.name + "'" : ""} of type ${section.mode}`);
 
 				// NODE-TODO long t0=System.nanoTime();
 				const resolvedSection = resolved.sections[index];
@@ -291,12 +291,12 @@ class BundleResolver {
 						if ( section.mode == SectionType.Raw && section.sort !== false ) {
 							// sort the modules in topological order
 							return topologicalSort(pool, modules).then( (modules) => {
-								log.silly("      resolved modules (sorted): %s", modules);
+								log.silly(`      Resolved modules (sorted): ${modules}`);
 								return modules;
 							});
 						}
 
-						log.silly("      resolved modules: %s", modules);
+						log.silly(`      Resolved modules: ${modules}`);
 						return modules;
 					}).then( function(modules) {
 						resolvedSection.modules = modules;
@@ -315,7 +315,7 @@ class BundleResolver {
 		// NODE-TODO if ( PerfMeasurement.ACTIVE ) PerfMeasurement.stop(PerfKeys.RESOLVE_MODULE);
 
 		return previous.then( function() {
-			log.verbose("  resolving bundle done");
+			log.verbose("  Resolving bundle done");
 
 			return resolved;
 		});

@@ -64,7 +64,7 @@ test.serial("visitResource: path", async (t) => {
 	const resourceCollector = new ResourceCollector();
 	await resourceCollector.visitResource({getPath: () => "mypath", getSize: async () => 13});
 	t.is(t.context.logWarnSpy.callCount, 1);
-	t.is(t.context.logWarnSpy.getCall(0).args[0], "non-runtime resource mypath ignored");
+	t.is(t.context.logWarnSpy.getCall(0).args[0], "Non-runtime resource mypath ignored");
 });
 
 test.serial("visitResource: library.source.less", async (t) => {

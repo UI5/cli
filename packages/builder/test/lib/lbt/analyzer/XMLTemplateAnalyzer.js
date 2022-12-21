@@ -62,7 +62,8 @@ test("integration: Analysis of an xml view with data binding in properties", asy
 test.serial("integration: Analysis of an xml view with core:require from databinding", async (t) => {
 	const errorLogStub = sinon.stub();
 	const myLoggerInstance = {
-		error: errorLogStub
+		error: errorLogStub,
+		verbose: sinon.stub()
 	};
 	const XMLTemplateAnalyzerWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/XMLTemplateAnalyzer.js", {
 		"@ui5/logger": {
@@ -112,12 +113,10 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 		"A control outside of template:if should become a strict dependency");
 
 	t.is(errorLogStub.callCount, 1, "should be called 1 time");
-	t.deepEqual(errorLogStub.getCall(0).args, [
-		"Ignoring core:require: '%s' can't be parsed on Node %s:%s",
-		"{= '{Handler: \\'' + ${myActions>handlerModule} + '\\'}'}",
-		"sap.m",
-		"Button"
-	], "should be called with expected args");
+	t.is(errorLogStub.getCall(0).args[0],
+		"Ignoring core:require: '{= '{Handler: \\'' + ${myActions>handlerModule} + '\\'}'}' can't be " +
+		"parsed on Node sap.m:Button: Bad name",
+		"should be called with expected args");
 });
 
 test.serial("integration: Analysis of an xml view with core:require from databinding in template", async (t) => {
@@ -166,12 +165,10 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 		"A control within template:if or template:repeat should become a conditional dependency");
 
 	t.is(verboseLogStub.callCount, 1, "should be called 1 time");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"Ignoring core:require: '%s' on Node %s:%s contains an expression binding and is within a 'template' Node",
-		"{= '{Handler: \\'' + ${myActions > handlerModule} + '\\'}'}",
-		"sap.m",
-		"Button"
-	], "should be called with expected args");
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Ignoring core:require: '{= '{Handler: \\'' + ${myActions > handlerModule} + '\\'}'}' on Node " +
+		"sap.m:Button contains an expression binding and is within a 'template' Node",
+		"should be called with expected args");
 });
 
 test.serial("integration: Analysis of an xml view with core:require from expression binding in template", async (t) => {
@@ -216,12 +213,10 @@ test.serial("integration: Analysis of an xml view with core:require from express
 		"A control within template:if should become a conditional dependency");
 
 	t.is(verboseLogStub.callCount, 1, "should be called 1 time");
-	t.deepEqual(verboseLogStub.getCall(0).args, [
-		"Ignoring core:require: '%s' on Node %s:%s contains an expression binding and is within a 'template' Node",
-		"{= 'foo': true}",
-		"sap.m",
-		"Button"
-	], "should be called with expected args");
+	t.is(verboseLogStub.getCall(0).args[0],
+		"Ignoring core:require: '{= 'foo': true}' on Node sap.m:Button contains an expression binding " +
+		"and is within a 'template' Node",
+		"should be called with expected args");
 });
 
 test("integration: Analysis of an xml view with core:require", async (t) => {

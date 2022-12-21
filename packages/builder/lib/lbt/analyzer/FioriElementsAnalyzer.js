@@ -100,10 +100,11 @@ class FioriElementsAnalyzer {
 				const fileContent = await manifestResource.buffer();
 				await this._analyzeManifest( JSON.parse(fileContent.toString()), info );
 			} else {
-				log.verbose("No manifest found for '%s', skipping analysis", resource.name);
+				log.verbose(`No manifest found for '${resource.name}', skipping analysis`);
 			}
 		} catch (err) {
-			log.error("an error occurred while analyzing template app %s (ignored)", resource.name, err);
+			log.error(`An error occurred while analyzing template app ${resource.name} (ignored): ${err.message}`);
+			log.verbose(err.stack);
 		}
 
 		return info;
@@ -131,7 +132,7 @@ class FioriElementsAnalyzer {
 					if ( actionCfg.template ) {
 						const module = fromUI5LegacyName( "sap.fe.templates." +
 										actionCfg.template + ".Component" );
-						log.verbose("template app: add dependency to template component %s", module);
+						log.verbose(`Template app: Add dependency to template component ${module}`);
 						info.addDependency(module);
 						promises.push( this._analyzeTemplateComponent(module, actionCfg, info) );
 					}
@@ -152,7 +153,7 @@ class FioriElementsAnalyzer {
 								pageConfig.component.settings.templateName) || defaultTemplateName;
 		if ( templateName ) {
 			const templateModuleName = fromUI5LegacyName( templateName, ".view.xml" );
-			log.verbose("template app: add dependency to template view %s", templateModuleName);
+			log.verbose(`Template app: Add dependency to template view ${templateModuleName}`);
 			appInfo.addDependency(templateModuleName);
 		}
 	}

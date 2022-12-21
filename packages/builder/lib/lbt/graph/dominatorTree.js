@@ -28,7 +28,7 @@ function calculateDominatorTree({n0, nodes}) {
 		}
 	}
 
-	log.verbose("%d modules found, starting dominator tree calculation", nodes.size - 1);
+	log.verbose(`${nodes.size - 1} modules found, starting dominator tree calculation`);
 
 	function countEdges(nodes) {
 		let count = 0;
@@ -43,7 +43,9 @@ function calculateDominatorTree({n0, nodes}) {
 	do {
 		// while changes in any Dom(n)
 
-		log.verbose("%d remaining edges", countEdges(nodes));
+		if (log.isLevelEnabled("verbose")) {
+			log.verbose(`${countEdges(nodes)} remaining edges`);
+		}
 
 		modified = false;
 		for ( const n of nodes.values() ) {
@@ -81,7 +83,7 @@ function calculateDominatorTree({n0, nodes}) {
 		n.visited = false;
 	}
 
-	log.verbose("reduce dominator graph to immediate dominator tree");
+	log.verbose("Reduce dominator graph to immediate dominator tree");
 
 	// use DFS to reduce the dominator graph to the (immediate) dominator tree
 	//
@@ -108,7 +110,7 @@ function calculateDominatorTree({n0, nodes}) {
 	}
 	dfs(n0);
 
-	log.verbose("calculation of dominator tree done");
+	log.verbose("Calculation of dominator tree done");
 
 	return n0;
 }

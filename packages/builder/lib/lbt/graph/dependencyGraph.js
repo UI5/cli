@@ -43,7 +43,7 @@ async function createDependencyGraph(pool, roots, options) {
 			});
 			return Promise.all(p);
 		}, (err) => {
-			log.error("module %s not found in pool:", name, err);
+			log.error(`Module ${name} not found in pool: ${err.message}`);
 		}).then( () => node );
 	}
 
