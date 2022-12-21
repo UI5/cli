@@ -135,7 +135,7 @@ class Memory extends AbstractAdapter {
 		resource = await this._migrateResource(resource);
 		super._write(resource);
 		const relPath = resource.getPath().substr(this._virBasePath.length);
-		log.silly("Writing to virtual path %s", resource.getPath());
+		log.silly(`Writing to virtual path ${resource.getPath()}`);
 		this._virFiles[relPath] = await resource.clone();
 
 		// Add virtual directories for all path segments of the written resource
