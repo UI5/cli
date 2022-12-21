@@ -300,7 +300,7 @@ class MiddlewareManager {
 					const specVersion = customMiddleware.getSpecVersion();
 					if (specVersion.gte("3.0")) {
 						params.options.middlewareName = middlewareName;
-						params.log = logger.getGroupLogger(`server:custom-middleware:${middlewareDef.name}`);
+						params.log = logger.getLogger(`server:custom-middleware:${middlewareDef.name}`);
 					}
 					const middlewareUtilInterface = middlewareUtil.getInterface(specVersion);
 					if (middlewareUtilInterface) {

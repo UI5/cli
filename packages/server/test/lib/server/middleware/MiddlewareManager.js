@@ -8,7 +8,7 @@ test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.logger = {
-		getGroupLogger: sinon.stub().returns("group logger")
+		getLogger: sinon.stub().returns("group logger")
 	};
 
 	t.context.MiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
@@ -176,7 +176,7 @@ test("addMiddleware: Add middleware with beforeMiddleware=connectUi5Proxy", asyn
 	const {sinon} = t.context;
 	const warnSpy = sinon.spy();
 	const StubbedMiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
-		"@ui5/logger": {getGroupLogger: sinon.stub().returns({warn: warnSpy})}
+		"@ui5/logger": {getLogger: sinon.stub().returns({warn: warnSpy})}
 	});
 	const middlewareManager = new StubbedMiddlewareManager({
 		graph: {},

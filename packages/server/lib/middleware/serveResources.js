@@ -84,7 +84,7 @@ function createMiddleware({resources, middlewareUtil}) {
 					stream.setEncoding("utf8");
 					stream = stream.pipe(replaceStream("${version}", resource.getProject().getVersion()));
 				} else {
-					log.verbose("Project missing from resource %s", pathname);
+					log.verbose(`Project missing from resource ${pathname}"`);
 				}
 			}
 
