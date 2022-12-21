@@ -112,11 +112,9 @@ build.builder = function(cli) {
 };
 
 async function handleBuild(argv) {
-	const {default: logger} = await import("@ui5/logger");
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
 
 	const command = argv._[argv._.length - 1];
-	logger.setShowProgress(true);
 
 	let graph;
 	if (argv.dependencyDefinition) {
