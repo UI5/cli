@@ -15,14 +15,14 @@ class TaskRunner {
 	 * @param {object} parameters
 	 * @param {object} parameters.graph
 	 * @param {object} parameters.project
-	 * @param {@ui5/logger/GroupLogger} parameters.parentLogger Logger to use
+	 * @param {@ui5/logger/GroupLogger} parameters.log Logger to use
 	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
 	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
 	 */
-	constructor({graph, project, parentLogger, taskUtil, taskRepository, buildConfig}) {
-		if (!graph || !project || !parentLogger || !taskUtil || !taskRepository || !buildConfig) {
+	constructor({graph, project, log, taskUtil, taskRepository, buildConfig}) {
+		if (!graph || !project || !log || !taskUtil || !taskRepository || !buildConfig) {
 			throw new Error("One or more mandatory parameters not provided");
 		}
 		this._project = project;
@@ -31,8 +31,7 @@ class TaskRunner {
 		this._taskRepository = taskRepository;
 		this._buildConfig = buildConfig;
 
-		this._log = parentLogger.createSubLogger(project.getType() + " " + project.getName(), 0.2);
-		this._taskLog = this._log.createTaskLogger("🔨");
+		this._log = log;
 
 		this._directDependencies = new Set(this._taskUtil.getDependencies());
 	}
@@ -115,8 +114,6 @@ class TaskRunner {
 			const taskWithoutSuffixCounter = taskName.replace(/--\d+$/, "");
 			return tasksToRun.includes(taskWithoutSuffixCounter);
 		});
-
-		this._taskLog.addWork(allTasks.length);
 
 		for (const taskName of allTasks) {
 			const taskFunction = this._tasks[taskName].task;
@@ -403,7 +400,7 @@ class TaskRunner {
 
 			if (specVersion.gte("3.0")) {
 				params.options.taskName = taskName;
-				params.log = logger.getGroupLogger(`builder:custom-task:${taskName}`);
+				params.log = logger.getLogger(`builder:custom-task:${taskName}`);
 			}
 
 			const dependencies = await getDependenciesReader();
@@ -424,12 +421,11 @@ class TaskRunner {
 	 * @returns {Promise} Resolves when task has finished
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
-		this._taskLog.startWork(`Running task ${taskName}...`);
+		this._log.info(`Running task ${taskName}...`);
 		this._taskStart = performance.now();
-		await taskFunction(taskParams, this._taskLog);
-		this._taskLog.completeWork(1);
-		if (this._taskLog.isLevelEnabled("perf")) {
-			this._taskLog.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
+		await taskFunction(taskParams, this._log);
+		if (this._log.isLevelEnabled("perf")) {
+			this._log.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
 	}
 

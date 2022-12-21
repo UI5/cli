@@ -1,6 +1,7 @@
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
+import logger from "@ui5/logger";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -10,19 +11,16 @@ import TaskRunner from "../TaskRunner.js";
  * @memberof @ui5/project/build/helpers
  */
 class ProjectBuildContext {
-	constructor({buildContext, log, project}) {
+	constructor({buildContext, project}) {
 		if (!buildContext) {
 			throw new Error(`Missing parameter 'buildContext'`);
-		}
-		if (!log) {
-			throw new Error(`Missing parameter 'log'`);
 		}
 		if (!project) {
 			throw new Error(`Missing parameter 'project'`);
 		}
 		this._buildContext = buildContext;
 		this._project = project;
-		this._log = log;
+		this._log = logger.getLogger(`${project.getType()} ${project.getName()}`);
 		this._queues = {
 			cleanup: []
 		};
@@ -108,7 +106,7 @@ class ProjectBuildContext {
 		if (!this._taskRunner) {
 			this._taskRunner = new TaskRunner({
 				project: this._project,
-				parentLogger: this._log,
+				log: this._log,
 				taskUtil: this.getTaskUtil(),
 				graph: this._buildContext.getGraph(),
 				taskRepository: this._buildContext.getTaskRepository(),

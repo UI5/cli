@@ -383,16 +383,10 @@ test("_createRequiredBuildContexts", async (t) => {
 	t.is(createProjectContextStub.callCount, 3, "BuildContext#createProjectContextStub got called three times");
 	t.is(createProjectContextStub.getCall(0).args[0].project.getName(), "project.a",
 		"First call to BuildContext#createProjectContextStub with expected project");
-	t.truthy(createProjectContextStub.getCall(0).args[0].log,
-		"First call to BuildContext#createProjectContextStub with a log instance");
 	t.is(createProjectContextStub.getCall(1).args[0].project.getName(), "project.c",
 		"Second call to BuildContext#createProjectContextStub with expected project");
-	t.truthy(createProjectContextStub.getCall(1).args[0].log,
-		"Second call to BuildContext#createProjectContextStub with a log instance");
 	t.is(createProjectContextStub.getCall(2).args[0].project.getName(), "project.b",
 		"Third call to BuildContext#createProjectContextStub with expected project");
-	t.truthy(createProjectContextStub.getCall(2).args[0].log,
-		"Third call to BuildContext#createProjectContextStub with a log instance");
 });
 
 test.serial("_getProjectFilter with dependencyIncludes", async (t) => {

@@ -3,7 +3,7 @@ import rimraf from "rimraf";
 const rimrafp = promisify(rimraf);
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import logger from "@ui5/logger";
-const log = logger.getGroupLogger("build");
+const log = logger.getLogger("ProjectBuilder");
 import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
@@ -196,8 +196,7 @@ class ProjectBuilder {
 				}
 			}
 		});
-		const buildLogger = log.createTaskLogger("🛠 ");
-		buildLogger.addWork(queue.length - alreadyBuilt.length);
+
 		if (queue.length > 1) { // Do not log if only the root project is being built
 			log.info(`Processing ${queue.length} projects`);
 			if (alreadyBuilt.length) {
@@ -237,10 +236,8 @@ class ProjectBuilder {
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
 				if (!alreadyBuilt.includes(projectName)) {
-					buildLogger.startWork(`Building project ${projectName}...`);
+					log.info(`Building project ${projectName}...`);
 					await projectBuildContext.getTaskRunner().runTasks();
-					buildLogger.completeWork(1);
-
 					log.verbose(`Finished building project ${projectName}`);
 				}
 				if (!requestedProjects.includes(projectName)) {
@@ -273,8 +270,7 @@ class ProjectBuilder {
 		for (const projectName of requiredProjects) {
 			log.verbose(`Creating build context for project ${projectName}...`);
 			const projectBuildContext = this._buildContext.createProjectContext({
-				project: this._graph.getProject(projectName),
-				log
+				project: this._graph.getProject(projectName)
 			});
 
 			projectBuildContexts.set(projectName, projectBuildContext);

@@ -71,11 +71,10 @@ class BuildContext {
 		return this._graph;
 	}
 
-	createProjectContext({project, log}) {
+	createProjectContext({project}) {
 		const projectBuildContext = new ProjectBuildContext({
 			buildContext: this,
-			project,
-			log
+			project
 		});
 		this._projectBuildContexts.push(projectBuildContext);
 		return projectBuildContext;
