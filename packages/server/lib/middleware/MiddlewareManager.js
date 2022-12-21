@@ -96,6 +96,14 @@ class MiddlewareManager {
 		if (beforeMiddleware || afterMiddleware) {
 			const refMiddlewareName = beforeMiddleware || afterMiddleware;
 			let refMiddlewareIdx = this.middlewareExecutionOrder.indexOf(refMiddlewareName);
+
+			if (refMiddlewareName === "connectUi5Proxy") {
+				throw new Error(
+					`Standard middleware "connectUi5Proxy", referenced by middleware "${middlewareName}" ` +
+					`in project ${this.middlewareUtil.getProject()}, ` +
+					`has been removed in this version of UI5 Tooling and can't be referenced anymore. ` +
+					`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`);
+			}
 			if (refMiddlewareIdx === -1) {
 				throw new Error(`Could not find middleware ${refMiddlewareName}, referenced by custom ` +
 					`middleware ${middlewareName}`);
@@ -222,9 +230,6 @@ class MiddlewareManager {
 					});
 				};
 			}
-		});
-		await this.addMiddleware("connectUi5Proxy", {
-			mountPath: "/proxy"
 		});
 		// Handle anything but read operations *before* the serveIndex middleware
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling

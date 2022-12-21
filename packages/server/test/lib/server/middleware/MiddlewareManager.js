@@ -172,6 +172,37 @@ test("addMiddleware: Add middleware with beforeMiddleware and mountPath paramete
 		"Middleware was inserted at correct position of middleware execution order array");
 });
 
+test("addMiddleware: Add middleware with beforeMiddleware=connectUi5Proxy", async (t) => {
+	const {sinon} = t.context;
+	const warnSpy = sinon.spy();
+	const StubbedMiddlewareManager = await esmock("../../../../lib/middleware/MiddlewareManager.js", {
+		"@ui5/logger": {getGroupLogger: sinon.stub().returns({warn: warnSpy})}
+	});
+	const middlewareManager = new StubbedMiddlewareManager({
+		graph: {},
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+
+	await middlewareManager.addStandardMiddleware(); // Add standard middleware
+
+	const err = await t.throwsAsync(() => {
+		return middlewareManager.addMiddleware("customMiddleware", { // Add middleware to test for
+			customMiddleware: () => {},
+			afterMiddleware: "connectUi5Proxy",
+			mountPath: "/pony"
+		});
+	});
+
+	t.is(err.message,
+		"Standard middleware \"connectUi5Proxy\", referenced by middleware \"customMiddleware\" in project root project, has been removed in this version of UI5 Tooling and can't be referenced anymore. Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/",
+		"Trying to bind to a non-existing standard middleware");
+});
+
 test("addMiddleware: Add middleware with afterMiddleware parameter", async (t) => {
 	const middlewareManager = new MiddlewareManager({
 		graph: {},
@@ -299,7 +330,7 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
 	await middlewareManager.addStandardMiddleware();
 
-	t.is(addMiddlewareStub.callCount, 11, "Expected count of middleware got added");
+	t.is(addMiddlewareStub.callCount, 10, "Expected count of middleware got added");
 	const addedMiddlewareNames = [];
 	for (let i = 0; i < addMiddlewareStub.callCount; i++) {
 		addedMiddlewareNames.push(addMiddlewareStub.getCall(i).args[0]);
@@ -313,7 +344,6 @@ test("addStandardMiddleware: Adds standard middleware in correct order", async (
 		"testRunner",
 		"serveThemes",
 		"versionInfo",
-		"connectUi5Proxy",
 		"nonReadRequests",
 		"serveIndex"
 	], "Correct order of standard middlewares");

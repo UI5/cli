@@ -6,7 +6,6 @@ const middlewareInfos = {
 	serveIndex: {path: "./serveIndex.js"},
 	discovery: {path: "./discovery.js"},
 	versionInfo: {path: "./versionInfo.js"},
-	connectUi5Proxy: {path: "./connectUi5Proxy.js"},
 	serveThemes: {path: "./serveThemes.js"},
 	testRunner: {path: "./testRunner.js"},
 	nonReadRequests: {path: "./nonReadRequests.js"}
