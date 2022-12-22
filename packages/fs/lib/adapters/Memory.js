@@ -40,9 +40,20 @@ class Memory extends AbstractAdapter {
 		const matchedPaths = micromatch(resourcePaths, patterns, {
 			dot: true
 		});
-		return Promise.all(matchedPaths.map((virPath) => {
-			return resourceMap[virPath] && resourceMap[virPath].clone();
+		return await Promise.all(matchedPaths.map((virPath) => {
+			const resource = resourceMap[virPath];
+			if (resource) {
+				return this._cloneResource(resource);
+			}
 		}));
+	}
+
+	async _cloneResource(resource) {
+		const clonedResource = await resource.clone();
+		if (this._project) {
+			clonedResource.setProject(this._project);
+		}
+		return clonedResource;
 	}
 
 	/**
@@ -109,7 +120,7 @@ class Memory extends AbstractAdapter {
 		if (!resource || (options.nodir && resource.getStatInfo().isDirectory())) {
 			return null;
 		} else {
-			return await resource.clone();
+			return await this._cloneResource(resource);
 		}
 	}
 

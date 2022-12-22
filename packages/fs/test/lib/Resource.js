@@ -341,16 +341,11 @@ test("Resource: clone resource with source", async (t) => {
 	t.deepEqual(clonedResource2.getSource(), resource.getSource());
 });
 
-test("Resource: clone resource with project", async (t) => {
+test("Resource: clone resource with project removes project", async (t) => {
 	t.plan(2);
 
 	const myProject = {
 		name: "my project"
-	};
-
-	const resourceOptions = {
-		path: "my/path/to/resource",
-		project: myProject
 	};
 
 	const resource = new Resource({
@@ -362,8 +357,7 @@ test("Resource: clone resource with project", async (t) => {
 	t.pass("Resource cloned");
 
 	const clonedResourceProject = await clonedResource.getProject();
-	t.is(clonedResourceProject, resourceOptions.project, "Cloned resource should have same " +
-		"project reference as the original resource");
+	t.falsy(clonedResourceProject, "Cloned resource should not have a project");
 });
 
 test("Resource: create resource with modified source", (t) => {
