@@ -325,10 +325,6 @@ class Resource {
 			options.buffer = this._buffer;
 		}
 
-		if (this.__project) {
-			options.project = this.__project;
-		}
-
 		return options;
 	}
 
