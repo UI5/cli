@@ -9,6 +9,9 @@ trigger:
 
 strategy:
   matrix:
+    linux_node_min_version:
+      imageName: 'ubuntu-20.04'
+      node_version: 16.18.0
     linux_node_lts_16:
       imageName: 'ubuntu-20.04'
       node_version: 16.x
