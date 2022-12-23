@@ -6,7 +6,8 @@ import fs from "graceful-fs";
 const copyFile = promisify(fs.copyFile);
 const chmod = promisify(fs.chmod);
 const mkdir = promisify(fs.mkdir);
-import {globby} from "globby";
+const stat = promisify(fs.stat);
+import {globby, isGitIgnored} from "globby";
 import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
 
@@ -28,11 +29,14 @@ class FileSystem extends AbstractAdapter {
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string} parameters.fsBasePath (Physical) File system path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
-	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
+	 * @param {object} [parameters.useGitignore=false]
+	 *   Whether to apply any excludes defined in an optional .gitignore in the base directory
+	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
 	 */
-	constructor({virBasePath, project, fsBasePath, excludes}) {
+	constructor({virBasePath, project, fsBasePath, excludes, useGitignore=false}) {
 		super({virBasePath, project, excludes});
 		this._fsBasePath = path.resolve(fsBasePath);
+		this._useGitignore = !!useGitignore;
 	}
 
 	/**
@@ -50,7 +54,8 @@ class FileSystem extends AbstractAdapter {
 			cwd: this._fsBasePath,
 			dot: true,
 			onlyFiles: options.nodir,
-			followSymbolicLinks: false
+			followSymbolicLinks: false,
+			gitignore: this._useGitignore,
 		};
 		trace.globCall();
 
@@ -129,65 +134,71 @@ class FileSystem extends AbstractAdapter {
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
 	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource or null if not found
 	 */
-	_byPath(virPath, options, trace) {
+	async _byPath(virPath, options, trace) {
 		if (this.isPathExcluded(virPath)) {
-			return Promise.resolve(null);
+			return null;
 		}
 
-		return new Promise((resolve, reject) => {
-			if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
-				// Neither starts with basePath, nor equals baseDirectory
-				if (!options.nodir && this._virBasePath.startsWith(virPath)) {
-					resolve(this._createResource({
-						project: this._project,
-						statInfo: { // TODO: make closer to fs stat info
-							isDirectory: function() {
-								return true;
-							}
-						},
-						path: virPath
-					}));
-				} else {
-					resolve(null);
-				}
-
-				return;
-			}
-			const relPath = virPath.substr(this._virBasePath.length);
-			const fsPath = path.join(this._fsBasePath, relPath);
-
-			trace.pathCall();
-			fs.stat(fsPath, (err, stat) => {
-				if (err) {
-					if (err.code === "ENOENT") { // "File or directory does not exist"
-						resolve(null);
-					} else {
-						reject(err);
-					}
-				} else if (options.nodir && stat.isDirectory()) {
-					resolve(null);
-				} else {
-					const options = {
-						project: this._project,
-						statInfo: stat,
-						path: virPath,
-						source: {
-							adapter: "FileSystem",
-							fsPath
+		if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
+			// Neither starts with basePath, nor equals baseDirectory
+			if (!options.nodir && this._virBasePath.startsWith(virPath)) {
+				return this._createResource({
+					project: this._project,
+					statInfo: { // TODO: make closer to fs stat info
+						isDirectory: function() {
+							return true;
 						}
-					};
+					},
+					path: virPath
+				});
+			} else {
+				return null;
+			}
+		}
+		const relPath = virPath.substr(this._virBasePath.length);
+		const fsPath = path.join(this._fsBasePath, relPath);
 
-					if (!stat.isDirectory()) {
-						// Add content
-						options.createStream = function() {
-							return fs.createReadStream(fsPath);
-						};
-					}
+		trace.pathCall();
 
-					resolve(this._createResource(options));
+		if (this._useGitignore) {
+			// Check whether path should be ignored
+			const isIgnored = await isGitIgnored();
+			if (isIgnored(fsPath)) {
+				// Path is ignored by .gitignore
+				return null;
+			}
+		}
+
+		try {
+			const statInfo = await stat(fsPath);
+			if (options.nodir && statInfo.isDirectory()) {
+				return null;
+			}
+			const resourceOptions = {
+				project: this._project,
+				statInfo,
+				path: virPath,
+				source: {
+					adapter: "FileSystem",
+					fsPath
 				}
-			});
-		});
+			};
+
+			if (!statInfo.isDirectory()) {
+				// Add content as lazy stream
+				resourceOptions.createStream = function() {
+					return fs.createReadStream(fsPath);
+				};
+			}
+
+			return this._createResource(resourceOptions);
+		} catch (err) {
+			if (err.code === "ENOENT") { // "File or directory does not exist"
+				return null;
+			} else {
+				throw err;
+			}
+		}
 	}
 
 	/**
