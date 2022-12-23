@@ -120,7 +120,7 @@
 		"@ui5/fs": "^3.0.0-rc.0",
 		"@ui5/logger": "^3.0.1-rc.0",
 		"@ui5/project": "^3.0.0-beta.5",
-		"@ui5/server": "^3.0.0-beta.4",
+		"@ui5/server": "^3.0.0-rc.0",
 		"chalk": "^5.2.0",
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.1.0",
