@@ -19,7 +19,7 @@ class Memory extends AbstractAdapter {
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.virBasePath Virtual base path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
-	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
+	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
 	 */
 	constructor({virBasePath, project, excludes}) {
 		super({virBasePath, project, excludes});

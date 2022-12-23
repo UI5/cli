@@ -27,10 +27,10 @@ import Link from "./readers/Link.js";
  * @param {string} parameters.virBasePath Virtual base path
  * @param {string} [parameters.fsBasePath] File system base path
  * @param {string[]} [parameters.excludes] List of glob patterns to exclude
- * @param {object} [parameters.project] Experimental, internal parameter. Do not use
  * @param {object} [parameters.useGitignore=false]
  *   Whether to apply any excludes defined in an optional .gitignore in the base directory.
  *   This parameter only takes effect in conjunction with the <code>fsBasePath</code> parameter.
+ * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
  * @returns {@ui5/fs/adapters/FileSystem|@ui5/fs/adapters/Memory} File System- or Virtual Adapter
  */
 export function createAdapter({fsBasePath, virBasePath, project, excludes, useGitignore}) {
