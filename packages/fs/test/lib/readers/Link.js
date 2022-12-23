@@ -94,7 +94,7 @@ test("_byGlob: Request prefixed with target path", async (t) => {
 
 	t.is(abstractReader._byGlob.callCount, 1, "Mocked _byGlob got called once");
 	t.deepEqual(abstractReader._byGlob.getCall(0).args[0], [
-		"/some/lib/some/lib/dir/**", // TODO 3.0: Is this expected? Maybe this can lead to serious issues
+		"/some/lib/some/lib/dir/**", // Weird, but expected. We prefix everything with the targetPath
 	], "Mocked _byGlob got called with expected patterns");
 	t.is(abstractReader._byGlob.getCall(0).args[1], options,
 		"Mocked _byGlob got called with expected options");
