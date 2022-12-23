@@ -2,10 +2,23 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-beta.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.0-rc.0...HEAD).
+
+<a name="v3.0.0-rc.0"></a>
+## [v3.0.0-rc.0] - 2022-12-23
+### Breaking Changes
+- Throw an error on write of a resource when path does not starts with virBasePath of the respective adapter ([#453](https://github.com/SAP/ui5-fs/issues/453)) [`d76575f`](https://github.com/SAP/ui5-fs/commit/d76575f8f05a0b6695285200ba595e532620daed)
+- Clone resources when writing in and reading from the Memory ([#448](https://github.com/SAP/ui5-fs/issues/448)) [`3454bc1`](https://github.com/SAP/ui5-fs/commit/3454bc15be8a6ecd455b49607cb289e69b41d0f0)
+
+### BREAKING CHANGE
+
+An error is thrown when a resource shall be written to an adapter where the path of the resource does not starts with the virtual base path defined in the adapter.
+
+Resources stored in the adapters can not be modified by reference anymore. All modifications need to be persisted by using the #write method in order to be reflected in the adapter.
+
 
 <a name="v3.0.0-beta.4"></a>
-## [v3.0.0-beta.4] - 2022-11-30
+## [v3.0.0-beta.4] - 2022-12-01
 
 <a name="v3.0.0-beta.3"></a>
 ## [v3.0.0-beta.3] - 2022-11-11
@@ -200,6 +213,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
 
 
+[v3.0.0-rc.0]: https://github.com/SAP/ui5-fs/compare/v3.0.0-beta.4...v3.0.0-rc.0
 [v3.0.0-beta.4]: https://github.com/SAP/ui5-fs/compare/v3.0.0-beta.3...v3.0.0-beta.4
 [v3.0.0-beta.3]: https://github.com/SAP/ui5-fs/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-fs/compare/v3.0.0-beta.1...v3.0.0-beta.2
