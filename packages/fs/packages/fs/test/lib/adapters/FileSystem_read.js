@@ -399,3 +399,37 @@ test("static excludes: glob with negated directory exclude, not excluding resour
 
 	t.is(resources.length, 4, "Found two resources and two directories");
 });
+
+test("glob with useGitignore: true", async (t) => {
+	const srcReader = createAdapter({
+		fsBasePath: "./test/fixtures/library.l/",
+		virBasePath: "/",
+		useGitignore: true
+	});
+
+	const resources = await srcReader.byGlob("/**/*");
+
+	t.is(resources.length, 5, "Found two resources");
+	t.deepEqual(resources.map(getPathFromResource).sort(), [
+		"/.gitignore",
+		"/package.json",
+		"/src/library/l/.library",
+		"/src/library/l/some.js",
+		"/ui5.yaml",
+	], "Found expected resources");
+});
+
+test("byPath with useGitignore: true", async (t) => {
+	const srcReader = createAdapter({
+		fsBasePath: "./test/fixtures/library.l/",
+		virBasePath: "/",
+		useGitignore: true
+	});
+
+	const testResource = await srcReader.byPath("/test/library/l/Test.html");
+	t.is(testResource, null, "Ignored resource cannot be found");
+
+	const srcResource = await srcReader.byPath("/src/library/l/some.js");
+	t.truthy(srcResource, "Not-ignored resource can be found");
+	t.is(srcResource.getPath(), "/src/library/l/some.js", "Found resource has correct path");
+});
