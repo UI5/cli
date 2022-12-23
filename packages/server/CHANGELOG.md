@@ -2,7 +2,26 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0-beta.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0-rc.0...HEAD).
+
+<a name="v3.0.0-rc.0"></a>
+## [v3.0.0-rc.0] - 2022-12-23
+### Breaking Changes
+- Remove "/proxy" endpoint ([#550](https://github.com/SAP/ui5-server/issues/550)) [`4bdf839`](https://github.com/SAP/ui5-server/commit/4bdf839e96f67ddbc4cb2a18216921d54df4006e)
+
+### BREAKING CHANGE
+
+This removes the "/proxy" endpoint and the corresponding
+"connectUi5Proxy" middleware from the standard ui5-server.
+Internally, this middleware made use of the connect-openui5 proxy
+implementation (https://github.com/SAP/connect-openui5#proxy).
+
+More sophisticated proxy solutions for ui5-server are already available
+in the form of custom middleware extensions from the UI5-community.
+
+The UI5 Team might provide a dedicated custom middleware extension,
+with similar functionality, in the future.
+
 
 <a name="v3.0.0-beta.4"></a>
 ## [v3.0.0-beta.4] - 2022-12-01
@@ -308,6 +327,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.0-rc.0]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.4...v3.0.0-rc.0
 [v3.0.0-beta.4]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.3...v3.0.0-beta.4
 [v3.0.0-beta.3]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.1...v3.0.0-beta.2
