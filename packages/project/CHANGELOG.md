@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-beta.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-beta.5...HEAD).
+
+<a name="v3.0.0-beta.5"></a>
+## [v3.0.0-beta.5] - 2022-12-23
+### Features
+- specVersion 3.0 ([#522](https://github.com/SAP/ui5-project/issues/522)) [`c5070e5`](https://github.com/SAP/ui5-project/commit/c5070e55d92ced4326cd7611caf3ec9a3da9e7ed)
+
 
 <a name="v3.0.0-beta.4"></a>
 ## [v3.0.0-beta.4] - 2022-11-30
@@ -367,6 +373,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v3.0.0-beta.5]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.4...v3.0.0-beta.5
 [v3.0.0-beta.4]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.3...v3.0.0-beta.4
 [v3.0.0-beta.3]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.2...v3.0.0-beta.3
 [v3.0.0-beta.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.1...v3.0.0-beta.2
