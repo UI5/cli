@@ -119,7 +119,7 @@
 	"dependencies": {
 		"@ui5/builder": "^3.0.0-beta.6",
 		"@ui5/fs": "^3.0.0-beta.4",
-		"@ui5/logger": "^3.0.1-beta.1",
+		"@ui5/logger": "^3.0.1-rc.0",
 		"ajv": "^6.12.6",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^5.2.0",
