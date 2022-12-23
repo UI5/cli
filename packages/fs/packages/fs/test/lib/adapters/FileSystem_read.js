@@ -409,7 +409,7 @@ test("glob with useGitignore: true", async (t) => {
 
 	const resources = await srcReader.byGlob("/**/*");
 
-	t.is(resources.length, 5, "Found two resources");
+	t.is(resources.length, 5, "Found five resources");
 	t.deepEqual(resources.map(getPathFromResource).sort(), [
 		"/.gitignore",
 		"/package.json",
