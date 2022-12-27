@@ -30,7 +30,7 @@ class FileSystem extends AbstractAdapter {
 	 * @param {string} parameters.fsBasePath (Physical) File system path
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {object} [parameters.useGitignore=false]
-	 *   Whether to apply any excludes defined in an optional .gitignore in the base directory
+	 *   Whether to apply any excludes defined in an optional .gitignore in the given <code>fsBasePath</code> directory
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
 	 */
 	constructor({virBasePath, project, fsBasePath, excludes, useGitignore=false}) {
