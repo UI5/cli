@@ -267,6 +267,13 @@ class TaskRunner {
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
+
+		// Always provide a dependencies-reader, even if empty. Unless the task is specVersion >=3.0
+		// and did not define the respective callback.
+		// This is to distinguish between tasks semi-intentionally not requesting any dependencies,
+		// because none are available (i.e. because the project does not have any) and tasks that
+		// intentionally do not request any dependencies, by not providing a dependency-determination callback function
+		let provideDependenciesReader = true;
 		if (!requiredDependenciesCallback) {
 			if (specVersion.gte("3.0")) {
 				// Default for new spec versions: Provide no dependencies if no callback is provided
@@ -275,6 +282,10 @@ class TaskRunner {
 					`does not provide a callback for determining its required dependencies. ` +
 					`Defaulting to not providing any dependencies to the task`);
 				requiredDependencies = new Set();
+
+				// Ensure that no reader is provided, in order to produce an exception if
+				// access is still attempted
+				provideDependenciesReader = false;
 			} else {
 				// Default for old spec versions: Assume all dependencies are required
 				requiredDependencies = this._directDependencies;
@@ -322,6 +333,7 @@ class TaskRunner {
 				taskUtil,
 				taskName: newTaskName,
 				taskConfiguration: taskDef.configuration,
+				provideDependenciesReader,
 				getDependenciesReader: () => {
 					// Create the dependencies reader on-demand
 					return this._createDependenciesReader(requiredDependencies);
@@ -357,7 +369,7 @@ class TaskRunner {
 	}
 
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReader, task, taskName, taskConfiguration
+		project, taskUtil, getDependenciesReader, provideDependenciesReader, task, taskName, taskConfiguration
 	}) {
 		return async function(log) {
 			/* Custom Task Interface
@@ -403,9 +415,8 @@ class TaskRunner {
 				params.log = logger.getLogger(`builder:custom-task:${taskName}`);
 			}
 
-			const dependencies = await getDependenciesReader();
-			if (dependencies) {
-				params.dependencies = dependencies;
+			if (provideDependenciesReader) {
+				params.dependencies = await getDependenciesReader();
 			}
 			return taskFunction(params);
 		};
@@ -430,10 +441,6 @@ class TaskRunner {
 	}
 
 	async _createDependenciesReader(requiredDirectDependencies) {
-		if (requiredDirectDependencies.size === 0) {
-			// No dependencies are required, so no reader will be provided
-			return null;
-		}
 		if (requiredDirectDependencies.size === this._directDependencies.size) {
 			// Shortcut: If all direct dependencies are required, just return the already created reader
 			return this._allDependenciesReader;
