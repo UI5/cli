@@ -216,17 +216,21 @@ class Specification {
 
 	/* === Resource Access === */
 	/**
-	* Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the specification.
-	* Resource readers always use POSIX-style
-	*
-	* @public
-	* @returns {@ui5/fs/ReaderCollection} Reader collection
+	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the specification.
+	 * Resource readers always use POSIX-style
+	 *
+	 * @public
+	 * @param {object} [parameters] Parameters
+	 * @param {object} [parameters.useGitignore=true]
+	 *   Whether to apply any excludes defined in an optional .gitignore in the root directory
+	 * @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
-	getRootReader() {
+	getRootReader({useGitignore=true} = {}) {
 		return createReader({
 			fsBasePath: this.getPath(),
 			virBasePath: "/",
-			name: `Root reader for ${this.getType()} ${this.getKind()} ${this.getName()}`
+			name: `Root reader for ${this.getType()} ${this.getKind()} ${this.getName()}`,
+			useGitignore
 		});
 	}
 

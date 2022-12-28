@@ -1,4 +1,5 @@
 import test from "ava";
+import esmock from "esmock";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import sinon from "sinon";
@@ -19,6 +20,24 @@ const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.li
 const genericExtensionPath = path.join(__dirname, "..", "..", "fixtures", "extension.a");
 const moduleAPath = path.join(__dirname, "..", "..", "fixtures", "module.a");
 
+function createSubclass(Specification) {
+	class DummySpecification extends Specification {
+		getPath() {
+			return "path";
+		}
+		getType() {
+			return "type";
+		}
+		getKind() {
+			return "kind";
+		}
+		getName() {
+			return "name";
+		}
+	}
+	return DummySpecification;
+}
+
 test.beforeEach((t) => {
 	t.context.basicProjectInput = {
 		id: "application.a.id",
@@ -35,6 +54,14 @@ test.beforeEach((t) => {
 
 test.afterEach.always((t) => {
 	sinon.restore();
+});
+
+test("Specification can't be instantiated", (t) => {
+	t.throws(() => {
+		new Specification();
+	}, {
+		message: "Class 'Specification' is abstract. Please use one of the 'types' subclasses"
+	});
 });
 
 test("Instantiate a basic project", async (t) => {
@@ -298,4 +325,61 @@ test("Invalid specVersion", async (t) => {
 		"Unsupported Specification Version 0.5 defined. Your UI5 CLI installation might be outdated. " +
 		"For details, see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions"
 	}, "Threw with expected error message");
+});
+
+test("getRootReader: Default parameters", async (t) => {
+	// Since Specification#create instantiates a far-away subclass, it would be a mess to mock
+	// every class up to "Specification.js" just to stub the resourceFactory's createReader method
+	// Therefore we just come up with our own subclass that can be instantiated right away:
+
+	const createReaderStub = sinon.stub();
+	const Specification = await esmock("../../../lib/specifications/Specification.js", {
+		"@ui5/fs/resourceFactory": {
+			createReader: createReaderStub
+		}
+	});
+
+	const DummySpecification = createSubclass(Specification);
+	const spec = new DummySpecification();
+	await spec.getRootReader();
+
+	t.is(createReaderStub.callCount, 1, "createReader got called once");
+	t.deepEqual(createReaderStub.getCall(0).args[0], {
+		fsBasePath: "path",
+		name: "Root reader for type kind name",
+		useGitignore: true,
+		virBasePath: "/",
+	}, "createReader got called with expected arguments");
+});
+
+test("getRootReader: Custom parameters", async (t) => {
+	const createReaderStub = sinon.stub();
+	const Specification = await esmock("../../../lib/specifications/Specification.js", {
+		"@ui5/fs/resourceFactory": {
+			createReader: createReaderStub
+		}
+	});
+
+	const DummySpecification = createSubclass(Specification);
+	const spec = new DummySpecification();
+	await spec.getRootReader({});
+	await spec.getRootReader({
+		useGitignore: false
+	});
+
+
+	t.is(createReaderStub.callCount, 2, "createReader got called twice");
+	t.deepEqual(createReaderStub.getCall(0).args[0], {
+		fsBasePath: "path",
+		name: "Root reader for type kind name",
+		useGitignore: true,
+		virBasePath: "/",
+	}, "createReader got called with expected arguments on first call");
+
+	t.deepEqual(createReaderStub.getCall(1).args[0], {
+		fsBasePath: "path",
+		name: "Root reader for type kind name",
+		useGitignore: false,
+		virBasePath: "/",
+	}, "createReader got called with expected arguments on second call");
 });
