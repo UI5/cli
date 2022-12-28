@@ -1,5 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
+import stripAnsi from "strip-ansi";
 import {initLogger} from "../../../../lib/cli/middlewares/logger.js";
 import logger from "@ui5/logger";
 
@@ -34,7 +35,7 @@ const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 test("ui5 --verbose", async (t) => {
 	// Using "versions" as a command, as the --verbose flag can't be used standalone
 	const {stderr} = await ui5(["versions", "--verbose"]);
-	t.is(stderr,
+	t.is(stripAnsi(stderr),
 		`verb cli:middlewares:base using @ui5/cli version ${pkg.version} (from ${ui5Cli})\n`+
 		`verb cli:middlewares:base using node version ${process.version}`);
 });

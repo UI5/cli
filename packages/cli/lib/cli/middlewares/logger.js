@@ -1,4 +1,5 @@
-
+import logger from "@ui5/logger";
+import ConsoleWriter from "@ui5/logger/writers/Console";
 import {getVersion} from "../version.js";
 /**
  * Logger middleware used as one of default middlewares by tooling
@@ -7,9 +8,12 @@ import {getVersion} from "../version.js";
  * @returns {object} logger instance or null
  */
 export async function initLogger(argv) {
-	if (!argv.verbose && !argv.loglevel) return null;
+	ConsoleWriter.init();
 
-	const {default: logger} = await import("@ui5/logger");
+	if (!argv.verbose && !argv.loglevel) {
+		return null;
+	}
+
 	if (argv.loglevel) {
 		logger.setLevel(argv.loglevel);
 	}
