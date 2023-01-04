@@ -11,25 +11,23 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-const adapters = ["FileSystem", "Memory"];
-
-async function getAdapter(config, adapter) {
-	if (adapter === "Memory") {
-		const fsAdapter = createAdapter(config);
-		const fsResources = await fsAdapter.byGlob("**/*");
-		// By removing the fsBasePath a MemAdapter will be created
-		delete config.fsBasePath;
-		const memAdapter = createAdapter(config);
-		for (const resource of fsResources) {
-			await memAdapter.write(resource);
+["FileSystem", "Memory"].forEach((adapter) => {
+	async function getAdapter(config) {
+		if (adapter === "Memory") {
+			const fsAdapter = createAdapter(config);
+			const fsResources = await fsAdapter.byGlob("**/*");
+			// By removing the fsBasePath a MemAdapter will be created
+			delete config.fsBasePath;
+			const memAdapter = createAdapter(config);
+			for (const resource of fsResources) {
+				await memAdapter.write(resource);
+			}
+			return memAdapter;
+		} else if (adapter === "FileSystem") {
+			return createAdapter(config);
 		}
-		return memAdapter;
-	} else {
-		return createAdapter(config);
 	}
-}
 
-for (const adapter of adapters) {
 	/* BEWARE:
 		Always make sure that every test writes to a separate file! By default, tests are running concurrent.
 	*/
@@ -38,11 +36,11 @@ for (const adapter of adapters) {
 		const source = await getAdapter({
 			fsBasePath: "./test/fixtures/application.a/webapp",
 			virBasePath: "/app/"
-		}, adapter);
+		});
 		const dest = await getAdapter({
 			fsBasePath: "./test/tmp/readerWriters/application.a/simple-read-write",
 			virBasePath: "/dest/"
-		}, adapter);
+		});
 
 		// Get resource from one readerWriter
 		const resource = await source.byPath("/app/index.html");
@@ -170,7 +168,7 @@ for (const adapter of adapters) {
 		const source = await getAdapter({
 			fsBasePath: "./test/fixtures/application.a/webapp",
 			virBasePath: "/resources/app/"
-		}, adapter);
+		});
 		const transformedSource = createFlatReader({
 			reader: source,
 			namespace: "app"
@@ -185,7 +183,7 @@ for (const adapter of adapters) {
 		const source = await getAdapter({
 			fsBasePath: "./test/fixtures/application.a/webapp",
 			virBasePath: "/resources/app/"
-		}, adapter);
+		});
 		const transformedSource = createLinkReader({
 			reader: source,
 			pathMapping: {
@@ -198,4 +196,4 @@ for (const adapter of adapters) {
 		t.is(resources.length, 1, "Found one resource via transformer");
 		t.is(resources[0].getPath(), "/wow/this/is/a/beautiful/path/just/wow/app/test.js", "Found correct resource");
 	});
-}
+});
