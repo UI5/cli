@@ -1,4 +1,7 @@
 import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
+import path from "node:path";
 import {createAdapter} from "../../../lib/resourceFactory.js";
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
@@ -420,8 +423,18 @@ test("glob with useGitignore: true", async (t) => {
 });
 
 test("byPath with useGitignore: true", async (t) => {
-	const srcReader = createAdapter({
-		fsBasePath: "./test/fixtures/library.l/",
+	const {isGitIgnored} = await import("globby");
+	const isGitIgnoredSpy = sinon.stub().callsFake(isGitIgnored);
+
+	const FileSystem = await esmock("../../../lib/adapters/FileSystem.js", {
+		"globby": {
+			isGitIgnored: isGitIgnoredSpy
+		}
+	});
+
+	const fsBasePath = "./test/fixtures/library.l/";
+	const srcReader = new FileSystem({
+		fsBasePath,
 		virBasePath: "/",
 		useGitignore: true
 	});
@@ -429,7 +442,16 @@ test("byPath with useGitignore: true", async (t) => {
 	const testResource = await srcReader.byPath("/test/library/l/Test.html");
 	t.is(testResource, null, "Ignored resource cannot be found");
 
+	t.is(isGitIgnoredSpy.callCount, 1);
+	t.deepEqual(
+		isGitIgnoredSpy.getCall(0).args,
+		[{cwd: path.resolve(fsBasePath)}],
+		"isGitIgnored should be called with the correct cwd"
+	);
+
 	const srcResource = await srcReader.byPath("/src/library/l/some.js");
 	t.truthy(srcResource, "Not-ignored resource can be found");
 	t.is(srcResource.getPath(), "/src/library/l/some.js", "Found resource has correct path");
+
+	t.is(isGitIgnoredSpy.callCount, 1, "isGitIgnored should only be called once per FileSystem instance");
 });

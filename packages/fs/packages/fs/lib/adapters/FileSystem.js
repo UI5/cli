@@ -161,9 +161,13 @@ class FileSystem extends AbstractAdapter {
 		trace.pathCall();
 
 		if (this._useGitignore) {
+			if (!this._isGitIgnored) {
+				this._isGitIgnored = await isGitIgnored({
+					cwd: this._fsBasePath
+				});
+			}
 			// Check whether path should be ignored
-			const isIgnored = await isGitIgnored();
-			if (isIgnored(fsPath)) {
+			if (this._isGitIgnored(fsPath)) {
 				// Path is ignored by .gitignore
 				return null;
 			}
