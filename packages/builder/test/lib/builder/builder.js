@@ -2162,7 +2162,8 @@ const libraryCoreBuildtimeTree = {
 };
 
 const themeJTree = {
-	"id": "theme.j",
+	// Using @openui5/ prefix to enable execution of generateThemeDesignerResources task
+	"id": "@openui5/theme.j",
 	"version": "1.0.0",
 	"path": themeJPath,
 	"dependencies": [],
@@ -2186,7 +2187,8 @@ const themeJTree = {
 };
 
 const themeLibraryETree = {
-	"id": "theme.library.e.id",
+	// Using @openui5/ prefix to enable execution of generateThemeDesignerResources task
+	"id": "@openui5/theme.library.e.id",
 	"version": "1.0.0",
 	"path": themeLibraryEPath,
 	"dependencies": [],
