@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-rc.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-rc.2...HEAD).
+
+<a name="v3.0.0-rc.2"></a>
+## [v3.0.0-rc.2] - 2023-01-11
+### Breaking Changes
+- Run 'generateThemeDesignerResources' only on framework libs [`e4bb108`](https://github.com/SAP/ui5-project/commit/e4bb1084df3e0ae906df27aba4a674d187ff8069)
+
 
 <a name="v3.0.0-rc.1"></a>
 ## [v3.0.0-rc.1] - 2023-01-04
@@ -379,6 +385,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v3.0.0-rc.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.1...v3.0.0-rc.2
 [v3.0.0-rc.1]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.0...v3.0.0-rc.1
 [v3.0.0-rc.0]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.5...v3.0.0-rc.0
 [v3.0.0-beta.5]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.4...v3.0.0-beta.5
