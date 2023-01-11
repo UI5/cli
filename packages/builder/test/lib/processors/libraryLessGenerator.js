@@ -420,12 +420,10 @@ test.serial("LibraryLessGenerator: Rewrite for library.source.less", async (t) =
 	t.is(loggerStub.error.callCount, 0);
 });
 
-test.serial("LibraryLessGenerator: loggerStub error for file in sub-directory", async (t) => {
+test.serial("LibraryLessGenerator: Throw error for file in sub-directory", async (t) => {
 	const {LibraryLessGenerator, loggerStub} = t.context;
 
 	const input = `@import "foo/bar.less";`;
-	const expectedOutput = `${FILE_HEADER}\n\n` +
-	`@import "foo/bar.less"; /* ImportError: Could not inline import outside of theme directory */`;
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, options, cb) => {
@@ -435,29 +433,23 @@ test.serial("LibraryLessGenerator: loggerStub error for file in sub-directory", 
 		})
 	};
 
-	const output = await (new LibraryLessGenerator({fs})).generate({
+	await t.throwsAsync(new LibraryLessGenerator({fs}).generate({
 		filePath: "/resources/sap/ui/core/themes/sap_fiori_3/library.source.less",
 		fileContent: input
+	}), {
+		message: `Could not inline import '/resources/sap/ui/core/themes/sap_fiori_3/foo/bar.less' ` +
+			`outside of theme directory '/resources/sap/ui/core/themes/sap_fiori_3'. ` +
+			`Stylesheets must be located in the theme directory (no sub-directories).`
 	});
 
-	t.is(output, expectedOutput);
 	t.is(fs.readFile.callCount, 0, "fs.readFile should not be called");
-	t.is(loggerStub.error.callCount, 1);
-	t.deepEqual(loggerStub.error.getCall(0).args, [
-		"Could not inline import '/resources/sap/ui/core/themes/sap_fiori_3/foo/bar.less' " +
-		"outside of theme directory '/resources/sap/ui/core/themes/sap_fiori_3'. " +
-		"Stylesheets must be located in the theme directory (no sub-directories). " +
-		"The generated '/resources/sap/ui/core/themes/sap_fiori_3/library.less' will cause " +
-		"errors when compiled with the Theme Designer."
-	]);
+	t.is(loggerStub.error.callCount, 0);
 });
 
-test.serial("LibraryLessGenerator: loggerStub error for file outside of theme directory", async (t) => {
+test.serial("LibraryLessGenerator: Throw error for file outside of theme directory", async (t) => {
 	const {LibraryLessGenerator, loggerStub} = t.context;
 
 	const input = `@import "../foo/bar.less";`;
-	const expectedOutput = `${FILE_HEADER}\n\n` +
-	`@import "../foo/bar.less"; /* ImportError: Could not inline import outside of theme directory */`;
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, options, cb) => {
@@ -467,29 +459,23 @@ test.serial("LibraryLessGenerator: loggerStub error for file outside of theme di
 		})
 	};
 
-	const output = await (new LibraryLessGenerator({fs})).generate({
+	await t.throwsAsync(new LibraryLessGenerator({fs}).generate({
 		filePath: "/resources/sap/ui/core/themes/sap_fiori_3/library.source.less",
 		fileContent: input
+	}), {
+		message: `Could not inline import '/resources/sap/ui/core/themes/foo/bar.less' outside of theme directory ` +
+			`'/resources/sap/ui/core/themes/sap_fiori_3'. ` +
+			`Stylesheets must be located in the theme directory (no sub-directories).`
 	});
 
-	t.is(output, expectedOutput);
 	t.is(fs.readFile.callCount, 0, "fs.readFile should not be called");
-	t.is(loggerStub.error.callCount, 1);
-	t.deepEqual(loggerStub.error.getCall(0).args, [
-		"Could not inline import '/resources/sap/ui/core/themes/foo/bar.less' " +
-		"outside of theme directory '/resources/sap/ui/core/themes/sap_fiori_3'. " +
-		"Stylesheets must be located in the theme directory (no sub-directories). " +
-		"The generated '/resources/sap/ui/core/themes/sap_fiori_3/library.less' will cause " +
-		"errors when compiled with the Theme Designer."
-	]);
+	t.is(loggerStub.error.callCount, 0);
 });
 
-test.serial("LibraryLessGenerator: loggerStub error for absolute import outside of theme directory", async (t) => {
+test.serial("LibraryLessGenerator: Throw error for absolute import outside of theme directory", async (t) => {
 	const {LibraryLessGenerator, loggerStub} = t.context;
 
 	const input = `@import "/foo/bar.less";`;
-	const expectedOutput = `${FILE_HEADER}\n\n` +
-	`@import "/foo/bar.less"; /* ImportError: Could not inline import outside of theme directory */`;
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, options, cb) => {
@@ -499,21 +485,17 @@ test.serial("LibraryLessGenerator: loggerStub error for absolute import outside 
 		})
 	};
 
-	const output = await (new LibraryLessGenerator({fs})).generate({
+	await t.throwsAsync(new LibraryLessGenerator({fs}).generate({
 		filePath: "/resources/sap/ui/core/themes/sap_fiori_3/library.source.less",
 		fileContent: input
+	}), {
+		message: `Could not inline import '/foo/bar.less' outside of theme directory ` +
+			`'/resources/sap/ui/core/themes/sap_fiori_3'. ` +
+			`Stylesheets must be located in the theme directory (no sub-directories).`
 	});
 
-	t.is(output, expectedOutput);
 	t.is(fs.readFile.callCount, 0, "fs.readFile should not be called");
-	t.is(loggerStub.error.callCount, 1);
-	t.deepEqual(loggerStub.error.getCall(0).args, [
-		"Could not inline import '/foo/bar.less' " +
-		"outside of theme directory '/resources/sap/ui/core/themes/sap_fiori_3'. " +
-		"Stylesheets must be located in the theme directory (no sub-directories). " +
-		"The generated '/resources/sap/ui/core/themes/sap_fiori_3/library.less' will cause " +
-		"errors when compiled with the Theme Designer."
-	]);
+	t.is(loggerStub.error.callCount, 0);
 });
 
 test.serial("LibraryLessGenerator: Throw error when file can't be found", async (t) => {
