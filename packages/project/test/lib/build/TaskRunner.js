@@ -58,7 +58,8 @@ function getMockProject(type) {
 		getCachebusterSignatureType: noop,
 		getCustomTasks: () => [],
 		hasBuildManifest: () => false,
-		getWorkspace: () => "workspace"
+		getWorkspace: () => "workspace",
+		isFrameworkProject: () => false
 	};
 }
 
@@ -237,6 +238,34 @@ test("_initTasks: Project of type 'library'", async (t) => {
 		"generateLibraryPreload",
 		"generateBundle",
 		"buildThemes",
+		"generateResourcesJson"
+	], "Correct standard tasks");
+});
+
+test("_initTasks: Project of type 'library' (framework project)", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner} = t.context;
+
+	const project = getMockProject("library");
+	project.isFrameworkProject = () => true;
+
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, taskRepository, log, buildConfig
+	});
+	await taskRunner._initTasks();
+
+	t.deepEqual(taskRunner._taskExecutionOrder, [
+		"escapeNonAsciiCharacters",
+		"replaceCopyright",
+		"replaceVersion",
+		"replaceBuildtime",
+		"generateJsdoc",
+		"executeJsdocSdkTransformation",
+		"minify",
+		"generateLibraryManifest",
+		"generateComponentPreload",
+		"generateLibraryPreload",
+		"generateBundle",
+		"buildThemes",
 		"generateThemeDesignerResources",
 		"generateResourcesJson"
 	], "Correct standard tasks");
@@ -246,6 +275,25 @@ test("_initTasks: Project of type 'theme-library'", async (t) => {
 	const {graph, taskUtil, taskRepository, TaskRunner} = t.context;
 	const taskRunner = new TaskRunner({
 		project: getMockProject("theme-library"), graph, taskUtil, taskRepository, log, buildConfig
+	});
+	await taskRunner._initTasks();
+
+	t.deepEqual(taskRunner._taskExecutionOrder, [
+		"replaceCopyright",
+		"replaceVersion",
+		"buildThemes",
+		"generateResourcesJson"
+	], "Correct standard tasks");
+});
+
+test("_initTasks: Project of type 'theme-library' (framework project)", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner} = t.context;
+
+	const project = getMockProject("theme-library");
+	project.isFrameworkProject = () => true;
+
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, taskRepository, log, buildConfig
 	});
 	await taskRunner._initTasks();
 

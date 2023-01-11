@@ -29,6 +29,7 @@ function getMockProject() {
 		getCachebusterSignatureType: () => "PONY",
 		getJsdocExcludes: () => [],
 		getCustomTasks: emptyarray,
+		isFrameworkProject: () => false
 	};
 }
 
@@ -113,11 +114,6 @@ test("Standard build", async (t) => {
 				cssVariables: undefined
 			}
 		},
-		generateThemeDesignerResources: {
-			requiresDependencies: true, options: {
-				version: "version"
-			}
-		},
 		generateResourcesJson: {
 			requiresDependencies: true
 		}
@@ -152,6 +148,27 @@ test("Standard build", async (t) => {
 	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
 	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
 		"taskUtil#getBuildOption got called with correct argument");
+});
+
+test("Standard build (framework project)", (t) => {
+	const {project, taskUtil, getTask} = t.context;
+
+	project.isFrameworkProject = () => true;
+
+	const generateJsdocTaskStub = sinon.stub();
+	getTask.returns({
+		task: generateJsdocTaskStub
+	});
+
+	const tasks = library({
+		project, taskUtil, getTask
+	});
+
+	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
+		requiresDependencies: true, options: {
+			version: "version"
+		}
+	});
 });
 
 test("Standard build with legacy spec version", (t) => {
@@ -222,11 +239,6 @@ test("Standard build with legacy spec version", (t) => {
 				themesPattern: undefined,
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
 				cssVariables: undefined
-			}
-		},
-		generateThemeDesignerResources: {
-			requiresDependencies: true, options: {
-				version: "version"
 			}
 		},
 		generateResourcesJson: {
@@ -347,11 +359,6 @@ test("Custom bundles", async (t) => {
 				themesPattern: undefined,
 				inputPattern: "/resources/project/b/themes/*/library.source.less",
 				cssVariables: undefined
-			}
-		},
-		generateThemeDesignerResources: {
-			requiresDependencies: true, options: {
-				version: "version"
 			}
 		},
 		generateResourcesJson: {

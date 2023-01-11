@@ -35,12 +35,14 @@ export default function({project, taskUtil, getTask}) {
 		}
 	});
 
-	tasks.set("generateThemeDesignerResources", {
-		requiresDependencies: true,
-		options: {
-			version: project.getVersion()
-		}
-	});
+	if (project.isFrameworkProject()) {
+		tasks.set("generateThemeDesignerResources", {
+			requiresDependencies: true,
+			options: {
+				version: project.getVersion()
+			}
+		});
+	}
 
 	tasks.set("generateResourcesJson", {requiresDependencies: true});
 	return tasks;

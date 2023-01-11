@@ -26,6 +26,7 @@ function getMockProject() {
 		getBundles: emptyarray,
 		getCachebusterSignatureType: () => "PONY",
 		getCustomTasks: emptyarray,
+		isFrameworkProject: () => false
 	};
 }
 
@@ -69,12 +70,6 @@ test("Standard build", (t) => {
 				cssVariables: undefined
 			}
 		},
-		generateThemeDesignerResources: {
-			requiresDependencies: true,
-			options: {
-				version: "version"
-			}
-		},
 		generateResourcesJson: {
 			requiresDependencies: true
 		}
@@ -83,6 +78,22 @@ test("Standard build", (t) => {
 	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
 	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
 		"taskUtil#getBuildOption got called with correct argument");
+});
+
+test("Standard build (framework project)", (t) => {
+	const {project, taskUtil, getTask} = t.context;
+
+	project.isFrameworkProject = () => true;
+
+	const tasks = themeLibrary({
+		project, taskUtil, getTask
+	});
+
+	t.deepEqual(tasks.get("generateThemeDesignerResources"), {
+		requiresDependencies: true, options: {
+			version: "version"
+		}
+	});
 });
 
 test("Standard build for non root project", (t) => {
@@ -113,12 +124,6 @@ test("Standard build for non root project", (t) => {
 				themesPattern: "/resources/sap/ui/core/themes/*",
 				inputPattern: "/resources/**/themes/*/library.source.less",
 				cssVariables: undefined
-			}
-		},
-		generateThemeDesignerResources: {
-			requiresDependencies: true,
-			options: {
-				version: "version"
 			}
 		},
 		generateResourcesJson: {
