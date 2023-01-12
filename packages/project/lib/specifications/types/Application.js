@@ -173,7 +173,7 @@ class Application extends ComponentProject {
 		}
 		const namespace = appId.replace(/\./g, "/");
 		this._log.verbose(
-			`Namespace of project ${this.getName()} is ${namespace} (from manifest.appdescr_variant)`);
+			`Namespace of project ${this.getName()} is ${namespace} (from manifest.json)`);
 		return namespace;
 	}
 
