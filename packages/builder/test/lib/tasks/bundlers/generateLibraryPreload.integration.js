@@ -29,7 +29,7 @@ const findFiles = (folder) => {
 	});
 };
 
-test("integration: build library.d with library preload", async (t) => {
+test.serial("integration: build library.d with library preload", async (t) => {
 	const destPath = "./test/tmp/build/library.d/preload";
 	const expectedPath = "./test/expected/build/library.d/preload";
 	const excludedTasks = ["*"];
@@ -82,7 +82,7 @@ const libraryDTree = {
 	}
 };
 
-test("integration: build sap.ui.core with library preload", async (t) => {
+test.serial("integration: build sap.ui.core with library preload", async (t) => {
 	const destPath = "./test/tmp/build/sap.ui.core/preload";
 	const expectedPath = "./test/expected/build/sap.ui.core/preload";
 	const excludedTasks = ["*"];
@@ -135,7 +135,7 @@ const sapUiCoreTree = {
 };
 
 
-test("integration: generateLibraryPreload", async (t) => {
+test.serial("integration: generateLibraryPreload", async (t) => {
 	const reader = createAdapter({
 		virBasePath: "/"
 	});
@@ -181,7 +181,7 @@ test("integration: generateLibraryPreload", async (t) => {
 	}, "Source map file should have valid JSON content");
 });
 
-test("integration: generateLibraryPreload with designtime and support files", async (t) => {
+test.serial("integration: generateLibraryPreload with designtime and support files", async (t) => {
 	const reader = createAdapter({
 		virBasePath: "/"
 	});

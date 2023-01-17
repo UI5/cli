@@ -4,7 +4,7 @@ import XMLCompositeAnalyzer from "../../../../lib/lbt/analyzer/XMLCompositeAnaly
 import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 import sinonGlobal from "sinon";
 import logger from "@ui5/logger";
-const loggerInstance = logger.getLogger();
+const loggerInstance = logger.getLogger("XMLCompositeAnalyzerTest");
 import esmock from "esmock";
 
 test.beforeEach((t) => {
