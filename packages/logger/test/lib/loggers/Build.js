@@ -1,6 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
-import BuildLogger from "../../../lib/loggers/BuildLogger.js";
+import BuildLogger from "../../../lib/loggers/Build.js";
 
 test.serial.beforeEach((t) => {
 	t.context.buildLogger = new BuildLogger("my:module:name");
@@ -189,13 +189,13 @@ test.serial("Set projects: Missing parameter", (t) => {
 	t.throws(() => {
 		buildLogger.setProjects();
 	}, {
-		message: `BuildLogger#setProjects: Missing or incorrect projects parameter`
+		message: `loggers/Build#setProjects: Missing or incorrect projects parameter`
 	}, "Threw with expected error message");
 
 	t.throws(() => {
 		buildLogger.setProjects(new Set("no array"));
 	}, {
-		message: `BuildLogger#setProjects: Missing or incorrect projects parameter`
+		message: `loggers/Build#setProjects: Missing or incorrect projects parameter`
 	}, "Threw with expected error message");
 });
 
@@ -206,7 +206,7 @@ test.serial("Start project build: Unknown project", (t) => {
 	t.throws(() => {
 		buildLogger.startProjectBuild("project.x", "application");
 	}, {
-		message: `BuildLogger#startProjectBuild: Unknown project project.x`
+		message: `loggers/Build#startProjectBuild: Unknown project project.x`
 	}, "Threw with expected error message");
 
 	buildLogger.setProjects(["project.a"]);
@@ -214,7 +214,7 @@ test.serial("Start project build: Unknown project", (t) => {
 	t.throws(() => {
 		buildLogger.startProjectBuild("project.x", "application");
 	}, {
-		message: `BuildLogger#startProjectBuild: Unknown project project.x`
+		message: `loggers/Build#startProjectBuild: Unknown project project.x`
 	}, "Threw with expected error message");
 });
 
@@ -225,7 +225,7 @@ test.serial("End project build: Unknown project", (t) => {
 	t.throws(() => {
 		buildLogger.endProjectBuild("project.x", "application");
 	}, {
-		message: `BuildLogger#endProjectBuild: Unknown project project.x`
+		message: `loggers/Build#endProjectBuild: Unknown project project.x`
 	}, "Threw with expected error message");
 
 	buildLogger.setProjects(["project.a"]);
@@ -233,7 +233,7 @@ test.serial("End project build: Unknown project", (t) => {
 	t.throws(() => {
 		buildLogger.endProjectBuild("project.x", "application");
 	}, {
-		message: `BuildLogger#endProjectBuild: Unknown project project.x`
+		message: `loggers/Build#endProjectBuild: Unknown project project.x`
 	}, "Threw with expected error message");
 });
 
@@ -244,7 +244,7 @@ test.serial("Skip project build: Unknown project", (t) => {
 	t.throws(() => {
 		buildLogger.skipProjectBuild("project.x", "application");
 	}, {
-		message: `BuildLogger#skipProjectBuild: Unknown project project.x`
+		message: `loggers/Build#skipProjectBuild: Unknown project project.x`
 	}, "Threw with expected error message");
 
 	buildLogger.setProjects(["project.a"]);
@@ -252,7 +252,7 @@ test.serial("Skip project build: Unknown project", (t) => {
 	t.throws(() => {
 		buildLogger.skipProjectBuild("project.x", "application");
 	}, {
-		message: `BuildLogger#skipProjectBuild: Unknown project project.x`
+		message: `loggers/Build#skipProjectBuild: Unknown project project.x`
 	}, "Threw with expected error message");
 });
 
@@ -263,7 +263,7 @@ test.serial("Start project build: Missing projectType parameter", (t) => {
 	t.throws(() => {
 		buildLogger.startProjectBuild("project.a");
 	}, {
-		message: `BuildLogger#startProjectBuild: Missing projectType parameter`
+		message: `loggers/Build#startProjectBuild: Missing projectType parameter`
 	}, "Threw with expected error message");
 });
 
@@ -274,7 +274,7 @@ test.serial("End project build: Missing projectType parameter", (t) => {
 	t.throws(() => {
 		buildLogger.endProjectBuild("project.a");
 	}, {
-		message: `BuildLogger#endProjectBuild: Missing projectType parameter`
+		message: `loggers/Build#endProjectBuild: Missing projectType parameter`
 	}, "Threw with expected error message");
 });
 
@@ -285,6 +285,6 @@ test.serial("Skip project build: Missing projectType parameter", (t) => {
 	t.throws(() => {
 		buildLogger.skipProjectBuild("project.a");
 	}, {
-		message: `BuildLogger#skipProjectBuild: Missing projectType parameter`
+		message: `loggers/Build#skipProjectBuild: Missing projectType parameter`
 	}, "Threw with expected error message");
 });

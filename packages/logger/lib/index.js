@@ -9,12 +9,12 @@ import Logger from "./loggers/Logger.js";
 export default {
 
 	/**
-	 * Convenience function to create an instance of [@ui5/logger/Logger]{@link @ui5/logger/Logger}
+	 * Convenience function to create an instance of [@ui5/logger/loggers/Logger]{@link @ui5/logger/loggers/Logger}
 	 *
 	 * @public
 	 * @param {string} moduleName Identifier for messages created by the logger.
 	 * Example: <code>module:submodule:Class</code>
-	 * @returns {@ui5/logger/Logger}
+	 * @returns {@ui5/logger/loggers/Logger}
 	 */
 	getLogger: (moduleName) => {
 		return new Logger(moduleName);

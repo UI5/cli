@@ -2,17 +2,17 @@ import test from "ava";
 import sinon from "sinon";
 import stripAnsi from "strip-ansi";
 import figures from "figures";
-import ConsoleHandler from "../../../lib/handlers/ConsoleHandler.js";
+import ConsoleWriter from "../../../lib/writers/Console.js";
 
 test.serial.beforeEach((t) => {
-	t.context.consoleHandler = ConsoleHandler.init();
+	t.context.consoleWriter = ConsoleWriter.init();
 	t.context.stderrWriteStub = sinon.stub(process.stderr, "write");
 	t.context.originalIsTty = process.stderr.isTTY;
 	process.env.UI5_LOG_LVL = "info";
 });
 
 test.serial.afterEach.always((t) => {
-	t.context.consoleHandler.disable();
+	t.context.consoleWriter.disable();
 	sinon.restore();
 	process.stderr.isTTY = t.context.originalIsTty;
 	delete process.env.UI5_LOG_LVL;
@@ -28,13 +28,13 @@ test.serial("Log event", (t) => {
 	});
 
 	t.is(stderrWriteStub.callCount, 1, "Logged one message");
-	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `info my:module: Message 1\n`,
+	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `info my:module Message 1\n`,
 		"Logged expected message");
 });
 
 test.serial("Disable", (t) => {
-	const {consoleHandler, stderrWriteStub} = t.context;
-	consoleHandler.disable();
+	const {consoleWriter, stderrWriteStub} = t.context;
+	consoleWriter.disable();
 
 	process.emit("ui5.log", {
 		level: "info",
@@ -46,8 +46,8 @@ test.serial("Disable", (t) => {
 });
 
 test.serial("Enable", (t) => {
-	const {consoleHandler, stderrWriteStub} = t.context;
-	consoleHandler.disable();
+	const {consoleWriter, stderrWriteStub} = t.context;
+	consoleWriter.disable();
 
 	process.emit("ui5.log", {
 		level: "info",
@@ -57,7 +57,7 @@ test.serial("Enable", (t) => {
 
 	t.is(stderrWriteStub.callCount, 0, "Logged no message");
 
-	consoleHandler.enable();
+	consoleWriter.enable();
 	process.emit("ui5.log", {
 		level: "info",
 		message: "Message 2",
@@ -66,7 +66,7 @@ test.serial("Enable", (t) => {
 
 	t.is(stderrWriteStub.callCount, 1, "Logged no message");
 	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
-		`info my:module: Message 2\n`,
+		`info my:module Message 2\n`,
 		"Logged expected message");
 });
 
@@ -135,7 +135,7 @@ test.serial("Build status: Unknown project", (t) => {
 			status: "project-build-start",
 		});
 	}, {
-		message: "ConsoleHandler: Unknown project project.a"
+		message: "writers/Console: Unknown project project.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -162,7 +162,7 @@ test.serial("Build status (start): Duplicate project build start", (t) => {
 			status: "project-build-start",
 		});
 	}, {
-		message: "ConsoleHandler: Unexpected duplicate project-build-start event for project project.a"
+		message: "writers/Console: Unexpected duplicate project-build-start event for project project.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -197,7 +197,7 @@ test.serial("Build status (start): Project build already ended", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected project-build-start event for project project.a. Project build already ended"
+			"writers/Console: Unexpected project-build-start event for project project.a. Project build already ended"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -225,7 +225,7 @@ test.serial("Build status (start): Project build already skipped", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected project-build-start event for project project.a. " +
+			"writers/Console: Unexpected project-build-start event for project project.a. " +
 			"Project build already skipped"
 	});
 
@@ -260,7 +260,7 @@ test.serial("Build status (end): Duplicate project build end", (t) => {
 			status: "project-build-end",
 		});
 	}, {
-		message: "ConsoleHandler: Unexpected duplicate project-build-end event for project project.a"
+		message: "writers/Console: Unexpected duplicate project-build-end event for project project.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -281,7 +281,7 @@ test.serial("Build status (end): Project build not started", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected project-build-end event for project project.a. " +
+			"writers/Console: Unexpected project-build-end event for project project.a. " +
 			"No corresponding project-build-start event handled"
 	});
 
@@ -310,7 +310,7 @@ test.serial("Build status (end): Project build already skipped", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected project-build-end event for project project.a. " +
+			"writers/Console: Unexpected project-build-end event for project project.a. " +
 			"Project build already skipped"
 	});
 
@@ -338,7 +338,7 @@ test.serial("Build status (skip): Duplicate project build skip", (t) => {
 			status: "project-build-skip",
 		});
 	}, {
-		message: "ConsoleHandler: Unexpected duplicate project-build-skip event for project project.a"
+		message: "writers/Console: Unexpected duplicate project-build-skip event for project project.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -366,7 +366,7 @@ test.serial("Build status (skip): Project build already started", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected project-build-skip event for project project.a. " +
+			"writers/Console: Unexpected project-build-skip event for project project.a. " +
 			"Project build already started"
 	});
 
@@ -402,7 +402,7 @@ test.serial("Build status (skip): Project build already ended", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected project-build-skip event for project project.a. " +
+			"writers/Console: Unexpected project-build-skip event for project project.a. " +
 			"Project build already ended"
 	});
 
@@ -425,7 +425,7 @@ test.serial("Build status: Unknown status", (t) => {
 
 	t.is(stderrWriteStub.callCount, 1, "Logged one message");
 	t.is(stripAnsi(stderrWriteStub.firstCall.firstArg),
-		`verb ConsoleHandler: Received unknown build-status foo for project project.a\n`,
+		`verb writers/Console: Received unknown build-status foo for project project.a\n`,
 		"Logged expected message");
 });
 
@@ -475,7 +475,7 @@ test.serial("ProjectBuild status: Unknown project", (t) => {
 			status: "task-end",
 		});
 	}, {
-		message: "ConsoleHandler: Unknown project project.a"
+		message: "writers/Console: Unknown project project.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -496,7 +496,7 @@ test.serial("ProjectBuild status: Unknown task", (t) => {
 			status: "task-end",
 		});
 	}, {
-		message: "ConsoleHandler: Unknown task task.a for project project.a"
+		message: "writers/Console: Unknown task task.a for project project.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -532,7 +532,7 @@ test.serial("ProjectBuild status (start): Duplicate task execution start", (t) =
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected duplicate task-start event for project project.a, task task.a"
+			"writers/Console: Unexpected duplicate task-start event for project project.a, task task.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -576,7 +576,7 @@ test.serial("ProjectBuild status (start): Task execution already ended", (t) => 
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected task-start event for project project.a, task task.a. " +
+			"writers/Console: Unexpected task-start event for project project.a, task task.a. " +
 			"Task execution already ended"
 	});
 
@@ -621,7 +621,7 @@ test.serial("ProjectBuild status (end): Duplicate task execution end", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected duplicate task-end event for project project.a, task task.a"
+			"writers/Console: Unexpected duplicate task-end event for project project.a, task task.a"
 	});
 
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
@@ -649,7 +649,7 @@ test.serial("ProjectBuild status (end): Task execution not started", (t) => {
 		});
 	}, {
 		message:
-			"ConsoleHandler: Unexpected task-end event for project project.a, task task.a. " +
+			"writers/Console: Unexpected task-end event for project project.a, task task.a. " +
 			"No corresponding task-start event handled"
 	});
 
@@ -679,29 +679,29 @@ test.serial("ProjectBuild status: Unknown status", (t) => {
 
 	t.is(stderrWriteStub.callCount, 1, "Logged one message");
 	t.is(stripAnsi(stderrWriteStub.firstCall.firstArg),
-		`verb ConsoleHandler: Received unknown project-build-status foo for project project.a\n`,
+		`verb writers/Console: Received unknown project-build-status foo for project project.a\n`,
 		"Logged expected message");
 });
 
 test.serial("No progress bar in test environment", (t) => {
-	const {consoleHandler} = t.context;
+	const {consoleWriter} = t.context;
 
 	// Since there is no interactive terminal, progress bar should not be used/returned
-	t.falsy(consoleHandler._getProgressBar(), "No progress bar returned");
+	t.falsy(consoleWriter._getProgressBar(), "No progress bar returned");
 });
 
 test.serial("No progress bar for log level verbose", (t) => {
-	const {consoleHandler} = t.context;
+	const {consoleWriter} = t.context;
 
 	process.stderr.isTTY = true;
 	process.env.UI5_LOG_LVL = "verbose";
 
 	// Since there is no interactive terminal, progress bar should not be used/returned
-	t.falsy(consoleHandler._getProgressBar(), "No progress bar returned");
+	t.falsy(consoleWriter._getProgressBar(), "No progress bar returned");
 });
 
 test.serial("Progress bar completion does not drop any logs", async (t) => {
-	const {consoleHandler, stderrWriteStub} = t.context;
+	const {consoleWriter, stderrWriteStub} = t.context;
 
 	// Force TTY in test env to enable progress bar
 	process.stderr.isTTY = true;
@@ -710,7 +710,7 @@ test.serial("Progress bar completion does not drop any logs", async (t) => {
 		projectsToBuild: ["project.a"]
 	});
 
-	const pb = consoleHandler._getProgressBar();
+	const pb = consoleWriter._getProgressBar();
 
 	t.true(pb.isActive, "Progress bar is active");
 
@@ -755,7 +755,7 @@ test.serial("Progress bar completion does not drop any logs", async (t) => {
 	});
 	t.truthy(firstMessage, "Logged first message");
 	t.is(stripAnsi(firstMessage.firstArg),
-		`info my:module: Message 1\n`,
+		`info my:module Message 1\n`,
 		"Logged expected first message");
 
 	const secondMessage = allWriteCalls.find((call) => {
@@ -763,7 +763,7 @@ test.serial("Progress bar completion does not drop any logs", async (t) => {
 	});
 	t.truthy(secondMessage, "Logged second message");
 	t.is(stripAnsi(secondMessage.firstArg),
-		`info my:module: Message 2\n`,
+		`info my:module Message 2\n`,
 		"Logged expected second message");
 
 	const thirdMessage = allWriteCalls.find((call) => {
@@ -771,12 +771,12 @@ test.serial("Progress bar completion does not drop any logs", async (t) => {
 	});
 	t.truthy(thirdMessage, "Logged third message");
 	t.is(stripAnsi(thirdMessage.firstArg),
-		`info my:module: Message 3\n`,
+		`info my:module Message 3\n`,
 		"Logged expected third message");
 });
 
 test.serial("Disable: Stops progress bar", (t) => {
-	const {consoleHandler, stderrWriteStub} = t.context;
+	const {consoleWriter, stderrWriteStub} = t.context;
 
 	// Force TTY in test env to enable progress bar
 	process.stderr.isTTY = true;
@@ -785,17 +785,17 @@ test.serial("Disable: Stops progress bar", (t) => {
 		projectsToBuild: ["project.a"]
 	});
 
-	const pb = consoleHandler._getProgressBar();
+	const pb = consoleWriter._getProgressBar();
 
 	t.true(pb.isActive, "Progress bar is active");
 
-	consoleHandler.disable();
+	consoleWriter.disable();
 	stderrWriteStub.resetHistory();
 
 	t.false(pb.isActive, "Progress bar is not active anymore");
 
 	// Re-enable and log a message
-	consoleHandler.enable();
+	consoleWriter.enable();
 	process.emit("ui5.log", {
 		level: "info",
 		message: "Message 1",

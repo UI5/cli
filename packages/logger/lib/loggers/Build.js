@@ -5,15 +5,15 @@ import Logger from "./Logger.js";
  * <br><br>
  * Emits <code>ui5.log</code>, <code>ui5.build-metadata</code> and <code>ui5.build-status</code> events on the
  * [<code>process</code>]{@link https://nodejs.org/api/process.html} object, which can which can be handled
- * by dedicated handlers, like [@ui5/logger/handlers/ConsoleHandler]{@link @ui5/logger/handlers/ConsoleHandler}.
+ * by dedicated writers, like [@ui5/logger/writers/Console]{@link @ui5/logger/writers/Console}.
  * <br><br>
  * If no listener is attached to the the event, messages are written directly to the <code>process.stderr</code> stream.
  *
  * @private
  * @class
- * @alias @ui5/logger/BuildLogger
+ * @alias @ui5/logger/loggers/Build
  */
-class BuildLogger extends Logger {
+class Build extends Logger {
 	#projectsToBuild;
 
 	static BUILD_METADATA_EVENT_NAME = "ui5.build-metadata";
@@ -21,24 +21,24 @@ class BuildLogger extends Logger {
 
 	setProjects(projects) {
 		if (!projects || !Array.isArray(projects)) {
-			throw new Error("BuildLogger#setProjects: Missing or incorrect projects parameter");
+			throw new Error("loggers/Build#setProjects: Missing or incorrect projects parameter");
 		}
 		this.#projectsToBuild = projects;
 
-		this._emit(BuildLogger.BUILD_METADATA_EVENT_NAME, {
+		this._emit(Build.BUILD_METADATA_EVENT_NAME, {
 			projectsToBuild: projects
 		});
 	}
 
 	startProjectBuild(projectName, projectType) {
 		if (!this.#projectsToBuild || !this.#projectsToBuild.includes(projectName)) {
-			throw new Error(`BuildLogger#startProjectBuild: Unknown project ${projectName}`);
+			throw new Error(`loggers/Build#startProjectBuild: Unknown project ${projectName}`);
 		}
 		if (!projectType) {
-			throw new Error(`BuildLogger#startProjectBuild: Missing projectType parameter`);
+			throw new Error(`loggers/Build#startProjectBuild: Missing projectType parameter`);
 		}
 		const level = "info";
-		const hasListeners = this._emit(BuildLogger.BUILD_STATUS_EVENT_NAME, {
+		const hasListeners = this._emit(Build.BUILD_STATUS_EVENT_NAME, {
 			level,
 			projectName,
 			projectType,
@@ -51,13 +51,13 @@ class BuildLogger extends Logger {
 
 	endProjectBuild(projectName, projectType) {
 		if (!this.#projectsToBuild || !this.#projectsToBuild.includes(projectName)) {
-			throw new Error(`BuildLogger#endProjectBuild: Unknown project ${projectName}`);
+			throw new Error(`loggers/Build#endProjectBuild: Unknown project ${projectName}`);
 		}
 		if (!projectType) {
-			throw new Error(`BuildLogger#endProjectBuild: Missing projectType parameter`);
+			throw new Error(`loggers/Build#endProjectBuild: Missing projectType parameter`);
 		}
 		const level = "verbose";
-		const hasListeners = this._emit(BuildLogger.BUILD_STATUS_EVENT_NAME, {
+		const hasListeners = this._emit(Build.BUILD_STATUS_EVENT_NAME, {
 			level,
 			projectName,
 			projectType,
@@ -70,13 +70,13 @@ class BuildLogger extends Logger {
 
 	skipProjectBuild(projectName, projectType) {
 		if (!this.#projectsToBuild || !this.#projectsToBuild.includes(projectName)) {
-			throw new Error(`BuildLogger#skipProjectBuild: Unknown project ${projectName}`);
+			throw new Error(`loggers/Build#skipProjectBuild: Unknown project ${projectName}`);
 		}
 		if (!projectType) {
-			throw new Error(`BuildLogger#skipProjectBuild: Missing projectType parameter`);
+			throw new Error(`loggers/Build#skipProjectBuild: Missing projectType parameter`);
 		}
 		const level = "info";
-		const hasListeners = this._emit(BuildLogger.BUILD_STATUS_EVENT_NAME, {
+		const hasListeners = this._emit(Build.BUILD_STATUS_EVENT_NAME, {
 			level,
 			projectName,
 			projectType,
@@ -88,4 +88,4 @@ class BuildLogger extends Logger {
 	}
 }
 
-export default BuildLogger;
+export default Build;
