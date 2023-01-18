@@ -32,7 +32,7 @@ class ThemeLibrary extends Project {
 	/**
 	 * Get the path of the project's source directory
 	 *
-	 * @private
+	 * @public
 	 * @returns {string} Absolute path to the source directory of the project
 	 */
 	getSourcePath() {

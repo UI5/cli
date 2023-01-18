@@ -78,7 +78,7 @@ class Project extends Specification {
 	 * Get the path of the project's source directory. This might not be POSIX-style on some platforms.
 	 * Projects with multiple source paths will throw an error. For example Modules.
 	 *
-	 * @private
+	 * @public
 	 * @returns {string} Absolute path to the source directory of the project
 	 * @throws {Error} In case a project has multiple source directories
 	 */

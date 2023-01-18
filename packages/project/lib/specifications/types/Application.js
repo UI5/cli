@@ -38,7 +38,7 @@ class Application extends ComponentProject {
 	/**
 	 * Get the path of the project's source directory. This might not be POSIX-style on some platforms.
 	 *
-	 * @private
+	 * @public
 	 * @returns {string} Absolute path to the source directory of the project
 	 */
 	getSourcePath() {

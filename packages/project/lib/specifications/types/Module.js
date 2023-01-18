@@ -24,7 +24,7 @@ class Module extends Project {
 	/**
 	 * Since Modules have multiple source paths, this function always throws with an exception
 	 *
-	 * @private
+	 * @public
 	 * @throws {Error} Projects of type module have more than one source path
 	 */
 	getSourcePath() {
