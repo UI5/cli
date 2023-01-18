@@ -2,10 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v3.0.1-rc.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v3.0.1-rc.1...HEAD).
+
+<a name="v3.0.1-rc.1"></a>
+## [v3.0.1-rc.1] - 2023-01-18
+### Breaking Changes
+- Replace npmlog with [@ui5](https://github.com/ui5)/logger/Logger ([#363](https://github.com/SAP/ui5-logger/issues/363)) [`66a159a`](https://github.com/SAP/ui5-logger/commit/66a159acd9b67a27dd66d1e8056c362585f51bcf)
+
+### BREAKING CHANGE
+
+
+
 
 <a name="v3.0.1-rc.0"></a>
-## [v3.0.1-rc.0] - 2022-12-22
+## [v3.0.1-rc.0] - 2022-12-23
 ### Breaking Changes
 - Deprecate advanced APIs in preparation of refactoring [`3aea5e7`](https://github.com/SAP/ui5-logger/commit/3aea5e766f9bda156e8c7e62a2e8c65f613ef7e9)
 
@@ -133,6 +143,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.1-rc.1]: https://github.com/SAP/ui5-logger/compare/v3.0.1-rc.0...v3.0.1-rc.1
 [v3.0.1-rc.0]: https://github.com/SAP/ui5-logger/compare/v3.0.1-beta.1...v3.0.1-rc.0
 [v3.0.1-beta.1]: https://github.com/SAP/ui5-logger/compare/v3.0.1-beta.0...v3.0.1-beta.1
 [v3.0.1-beta.0]: https://github.com/SAP/ui5-logger/compare/v3.0.1-alpha.3...v3.0.1-beta.0
