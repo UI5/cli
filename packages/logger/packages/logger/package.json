@@ -35,7 +35,6 @@
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
 		"unit-watch": "npm run unit -- --watch",
-		"unit-nyan": "npm run unit -- --tap | tnyan",
 		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
@@ -131,7 +130,6 @@
 		"rimraf": "^3.0.2",
 		"sinon": "^15.0.1",
 		"strip-ansi": "^7.0.1",
-		"tap-nyan": "^1.1.0",
 		"tap-xunit": "^2.4.1"
 	}
 }
