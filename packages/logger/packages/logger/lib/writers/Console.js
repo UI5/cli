@@ -14,9 +14,9 @@ import Logger from "../loggers/Logger.js";
  *
  * @public
  * @class
- * @alias @ui5/logger/handlers/ConsoleHandler
+ * @alias @ui5/logger/writers/Console
  */
-class ConsoleHandler {
+class Console {
 	#projectMetadata = new Map();
 	#progressBarContainer;
 	#progressBar;
@@ -134,7 +134,7 @@ class ConsoleHandler {
 	}
 
 	#handleLogEvent({level, message, moduleName}) {
-		this.#writeMessage(level, `${chalk.blue(moduleName)}: ${message}`);
+		this.#writeMessage(level, `${chalk.blue(moduleName)} ${message}`);
 	}
 
 	#handleBuildMetadataEvent({projectsToBuild}) {
@@ -165,7 +165,7 @@ class ConsoleHandler {
 	#getProjectMetadata(projectName) {
 		const projectMetadata = this.#projectMetadata.get(projectName);
 		if (!projectMetadata) {
-			throw new Error(`ConsoleHandler: Unknown project ${projectName}`);
+			throw new Error(`writers/Console: Unknown project ${projectName}`);
 		}
 		return projectMetadata;
 	}
@@ -201,16 +201,16 @@ class ConsoleHandler {
 		case "project-build-start":
 			if (projectMetadata.buildEnded) {
 				throw new Error(
-					`ConsoleHandler: Unexpected project-build-start event for project ${projectName}. ` +
+					`writers/Console: Unexpected project-build-start event for project ${projectName}. ` +
 					`Project build already ended`);
 			}
 			if (projectMetadata.buildStarted) {
 				throw new Error(
-					`ConsoleHandler: Unexpected duplicate project-build-start event for project ${projectName}`);
+					`writers/Console: Unexpected duplicate project-build-start event for project ${projectName}`);
 			}
 			if (projectMetadata.buildSkipped) {
 				throw new Error(
-					`ConsoleHandler: Unexpected project-build-start event for project ${projectName}. ` +
+					`writers/Console: Unexpected project-build-start event for project ${projectName}. ` +
 					`Project build already skipped`);
 			}
 			projectMetadata.buildStarted = true;
@@ -225,16 +225,16 @@ class ConsoleHandler {
 		case "project-build-end":
 			if (projectMetadata.buildEnded) {
 				throw new Error(
-					`ConsoleHandler: Unexpected duplicate project-build-end event for project ${projectName}`);
+					`writers/Console: Unexpected duplicate project-build-end event for project ${projectName}`);
 			}
 			if (projectMetadata.buildSkipped) {
 				throw new Error(
-					`ConsoleHandler: Unexpected project-build-end event for project ${projectName}. ` +
+					`writers/Console: Unexpected project-build-end event for project ${projectName}. ` +
 					`Project build already skipped`);
 			}
 			if (!projectMetadata.buildStarted) {
 				throw new Error(
-					`ConsoleHandler: Unexpected project-build-end event for project ${projectName}. ` +
+					`writers/Console: Unexpected project-build-end event for project ${projectName}. ` +
 					`No corresponding project-build-start event handled`);
 			}
 			projectMetadata.buildEnded = true;
@@ -247,16 +247,16 @@ class ConsoleHandler {
 		case "project-build-skip":
 			if (projectMetadata.buildSkipped) {
 				throw new Error(
-					`ConsoleHandler: Unexpected duplicate project-build-skip event for project ${projectName}`);
+					`writers/Console: Unexpected duplicate project-build-skip event for project ${projectName}`);
 			}
 			if (projectMetadata.buildEnded) {
 				throw new Error(
-					`ConsoleHandler: Unexpected project-build-skip event for project ${projectName}. ` +
+					`writers/Console: Unexpected project-build-skip event for project ${projectName}. ` +
 					`Project build already ended`);
 			}
 			if (projectMetadata.buildStarted) {
 				throw new Error(
-					`ConsoleHandler: Unexpected project-build-skip event for project ${projectName}. ` +
+					`writers/Console: Unexpected project-build-skip event for project ${projectName}. ` +
 					`Project build already started`);
 			}
 			projectMetadata.buildSkipped = true;
@@ -269,7 +269,7 @@ class ConsoleHandler {
 			break;
 		default:
 			this.#writeMessage("verbose",
-				`ConsoleHandler: Received unknown build-status ${status} for project ${projectName}`);
+				`writers/Console: Received unknown build-status ${status} for project ${projectName}`);
 			return;
 		}
 
@@ -280,7 +280,7 @@ class ConsoleHandler {
 		const {projectTasks} = this.#getProjectMetadata(projectName);
 		const taskMetadata = projectTasks.get(taskName);
 		if (!taskMetadata) {
-			throw new Error(`ConsoleHandler: Unknown task ${taskName} for project ${projectName}`);
+			throw new Error(`writers/Console: Unknown task ${taskName} for project ${projectName}`);
 		}
 		if (taskMetadata.executionStartIndex === null) {
 			let nextIdx = 1;
@@ -301,11 +301,11 @@ class ConsoleHandler {
 		case "task-start":
 			if (taskMetadata.executionEnded) {
 				throw new Error(
-					`ConsoleHandler: Unexpected task-start event for project ${projectName}, task ${taskName}. ` +
+					`writers/Console: Unexpected task-start event for project ${projectName}, task ${taskName}. ` +
 					`Task execution already ended`);
 			}
 			if (taskMetadata.executionStarted) {
-				throw new Error(`ConsoleHandler: Unexpected duplicate task-start event ` +
+				throw new Error(`writers/Console: Unexpected duplicate task-start event ` +
 					`for project ${projectName}, task ${taskName}`);
 			}
 			taskMetadata.executionStarted = true;
@@ -313,12 +313,12 @@ class ConsoleHandler {
 			break;
 		case "task-end":
 			if (taskMetadata.executionEnded) {
-				throw new Error(
-					`ConsoleHandler: Unexpected duplicate task-end event for project ${projectName}, task ${taskName}`);
+				throw new Error(`writers/Console: ` +
+					`Unexpected duplicate task-end event for project ${projectName}, task ${taskName}`);
 			}
 			if (!taskMetadata.executionStarted) {
 				throw new Error(
-					`ConsoleHandler: Unexpected task-end event for project ${projectName}, task ${taskName}. ` +
+					`writers/Console: Unexpected task-end event for project ${projectName}, task ${taskName}. ` +
 					`No corresponding task-start event handled`);
 			}
 			taskMetadata.executionEnded = true;
@@ -329,7 +329,7 @@ class ConsoleHandler {
 			break;
 		default:
 			this.#writeMessage("verbose",
-				`ConsoleHandler: Received unknown project-build-status ${status} for project ${projectName}`);
+				`writers/Console: Received unknown project-build-status ${status} for project ${projectName}`);
 			return;
 		}
 
@@ -362,10 +362,10 @@ class ConsoleHandler {
 	 * @public
 	 */
 	static init() {
-		const cH = new ConsoleHandler();
+		const cH = new Console();
 		cH.enable();
 		return cH;
 	}
 }
 
-export default ConsoleHandler;
+export default Console;

@@ -8,14 +8,14 @@ const rIllegalModuleNameChars = /[^0-9a-zA-Z-_:@.]/i;
  * Standard logging module for UI5 Tooling and extensions.
  * <br><br>
  * Emits <code>ui5.log</code> events on the [<code>process</code>]{@link https://nodejs.org/api/process.html} object,
- * which can be handled by dedicated handlers,
- * like [@ui5/logger/handlers/ConsoleHandler]{@link @ui5/logger/handlers/ConsoleHandler}.
+ * which can be handled by dedicated writers,
+ * like [@ui5/logger/writers/Console]{@link @ui5/logger/writers/Console}.
  * <br><br>
  * If no listener is attached to an event, messages are written directly to the <code>process.stderr</code> stream.
  *
  * @public
  * @class
- * @alias @ui5/logger/Logger
+ * @alias @ui5/logger/loggers/Logger
  */
 class Logger {
 	/**

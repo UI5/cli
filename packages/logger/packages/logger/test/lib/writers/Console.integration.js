@@ -2,20 +2,20 @@ import test from "ava";
 import sinon from "sinon";
 import stripAnsi from "strip-ansi";
 import figures from "figures";
-import ConsoleHandler from "../../../lib/handlers/ConsoleHandler.js";
+import ConsoleWriter from "../../../lib/writers/Console.js";
 import Logger from "../../../lib/loggers/Logger.js";
-import BuildLogger from "../../../lib/loggers/BuildLogger.js";
-import ProjectBuildLogger from "../../../lib/loggers/ProjectBuildLogger.js";
+import BuildLogger from "../../../lib/loggers/Build.js";
+import ProjectBuildLogger from "../../../lib/loggers/ProjectBuild.js";
 
 test.serial.beforeEach((t) => {
-	t.context.consoleHandler = ConsoleHandler.init();
+	t.context.consoleWriter = ConsoleWriter.init();
 	t.context.stderrWriteStub = sinon.stub(process.stderr, "write");
 	t.context.originalIsTty = process.stderr.isTTY;
 	process.env.UI5_LOG_LVL = "silly";
 });
 
 test.serial.afterEach.always((t) => {
-	t.context.consoleHandler.disable();
+	t.context.consoleWriter.disable();
 	sinon.restore();
 	process.stderr.isTTY = t.context.originalIsTty;
 	delete process.env.UI5_LOG_LVL;
@@ -53,7 +53,7 @@ test.serial("Log standard messages", (t) => {
 			level = "verb";
 		}
 		t.is(stderrWriteStub.callCount, 1, "Logged one message");
-		t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `${level} my:module: Message 1\n`,
+		t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `${level} my:module Message 1\n`,
 			"Logged expected message");
 		stderrWriteStub.resetHistory();
 	});
@@ -84,7 +84,7 @@ test.serial("Log Build messages", (t) => {
 			level = "verb";
 		}
 		t.is(stderrWriteStub.callCount, 1, "Logged one message");
-		t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `${level} Builder: Message 1\n`,
+		t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `${level} Builder Message 1\n`,
 			"Logged expected message");
 		stderrWriteStub.resetHistory();
 	});
@@ -143,7 +143,7 @@ test.serial("Log ProjectBuild messages", (t) => {
 			level = "verb";
 		}
 		t.is(stderrWriteStub.callCount, 1, "Logged one message");
-		t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `${level} project:build: Message 1\n`,
+		t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]), `${level} project:build Message 1\n`,
 			"Logged expected message");
 		stderrWriteStub.resetHistory();
 	});
@@ -152,7 +152,7 @@ test.serial("Log ProjectBuild messages", (t) => {
 test.serial("Log ProjectBuild status", (t) => {
 	const {stderrWriteStub} = t.context;
 
-	// Make ConsoleHandler aware of the project first
+	// Make ConsoleWriter aware of the project first
 	const buildLogger = new BuildLogger("Builder");
 	buildLogger.setProjects(["project.a"]);
 
@@ -186,7 +186,7 @@ test.serial("Log ProjectBuild status", (t) => {
 test.serial("ProjectBuild status restricted by log level", (t) => {
 	const {stderrWriteStub} = t.context;
 
-	// Make ConsoleHandler aware of the project first
+	// Make ConsoleWriter aware of the project first
 	const buildLogger = new BuildLogger("Builder");
 	buildLogger.setProjects(["project.a"]);
 
@@ -222,7 +222,7 @@ test.serial("Log through progress bar", async (t) => {
 	const msg = await findMessageInProgressBarLog(t, "Message 1");
 	t.truthy(msg, "Logged expected message");
 	t.is(stripAnsi(msg),
-		`info my:module: Message 1\n`,
+		`info my:module Message 1\n`,
 		"Logged expected message");
 });
 
@@ -245,12 +245,12 @@ test.serial("Do not use progress bar for log level verbose", async (t) => {
 
 	t.is(stderrWriteStub.callCount, 1, "Logged one messages");
 	t.is(stripAnsi(stderrWriteStub.firstCall.firstArg),
-		`info my:module: Message 1\n`,
+		`info my:module Message 1\n`,
 		"Logged expected message");
 });
 
 test.serial("Return to direct logging once progress bar stopped", async (t) => {
-	const {consoleHandler, stderrWriteStub} = t.context;
+	const {consoleWriter, stderrWriteStub} = t.context;
 	const buildLogger = new BuildLogger("Builder");
 
 	process.env.UI5_LOG_LVL = "info";
@@ -259,7 +259,7 @@ test.serial("Return to direct logging once progress bar stopped", async (t) => {
 	process.stderr.isTTY = true;
 
 	buildLogger.setProjects(["project.a", "project.b"]);
-	const pb = consoleHandler._getProgressBar();
+	const pb = consoleWriter._getProgressBar();
 
 	t.true(pb.isActive, "Progress bar is active");
 
@@ -284,12 +284,12 @@ test.serial("Return to direct logging once progress bar stopped", async (t) => {
 
 	t.is(stderrWriteStub.callCount, 1, "Logged one messages");
 	t.is(stripAnsi(stderrWriteStub.firstCall.firstArg),
-		`info my:module: Message 1\n`,
+		`info my:module Message 1\n`,
 		"Logged expected message");
 });
 
 test.serial("Progress bar progress", (t) => {
-	const {consoleHandler} = t.context;
+	const {consoleWriter} = t.context;
 	const buildLogger = new BuildLogger("Builder");
 	const projectBuildLoggerA = new ProjectBuildLogger({
 		moduleName: "ProjectBuilder",
@@ -307,7 +307,7 @@ test.serial("Progress bar progress", (t) => {
 	// Force TTY in test env to enable progress bar
 	process.stderr.isTTY = true;
 
-	const pb = consoleHandler._getProgressBar();
+	const pb = consoleWriter._getProgressBar();
 	buildLogger.setProjects(["project.a", "project.b"]);
 	t.is(pb.getTotal(), 4, "Correct progress total after setting projects");
 	t.is(pb.getProgress(), 0, "No progress after setting projects to build");
