@@ -1,8 +1,7 @@
 ![UI5 icon](https://raw.githubusercontent.com/SAP/ui5-tooling/main/docs/images/UI5_logo_wide.png)
 
 # ui5-cli
-
-> UI5 Command Line Interface  
+> `ui5` Command Line Interface  
 > Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP/ui5-cli)](https://api.reuse.software/info/github.com/SAP/ui5-cli)
@@ -11,7 +10,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-cli/badge.svg)](https://coveralls.io/github/SAP/ui5-cli)
 
 ## Documentation
-Can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/pages/CLI/)
+UI5 CLI documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/pages/CLI/)
 
 ## Contributing
 
