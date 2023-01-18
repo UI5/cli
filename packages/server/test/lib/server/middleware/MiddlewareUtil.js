@@ -286,6 +286,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		getNamespace: () => "namespace",
 		getRootReader: () => "rootReader",
 		getReader: () => "reader",
+		getSourcePath: () => "sourcePath",
 		getCustomConfiguration: () => "customConfiguration",
 		isFrameworkProject: () => "isFrameworkProject",
 		hasBuildManifest: () => "hasBuildManifest", // Should not be exposed
@@ -324,6 +325,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		"getNamespace",
 		"getRootReader",
 		"getReader",
+		"getSourcePath",
 		"getCustomConfiguration",
 		"isFrameworkProject",
 	], "Correct methods are provided");
@@ -334,6 +336,7 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(interfacedProject.getNamespace(), "namespace", "getNamespace function is bound correctly");
 	t.is(interfacedProject.getRootReader(), "rootReader", "getRootReader function is bound correctly");
 	t.is(interfacedProject.getReader(), "reader", "getReader function is bound correctly");
+	t.is(interfacedProject.getSourcePath(), "sourcePath", "getSourcePath function is bound correctly");
 	t.is(interfacedProject.getCustomConfiguration(), "customConfiguration",
 		"getCustomConfiguration function is bound correctly");
 	t.is(interfacedProject.isFrameworkProject(), "isFrameworkProject",
