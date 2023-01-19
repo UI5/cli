@@ -1,6 +1,4 @@
-import {promisify} from "node:util";
 import rimraf from "rimraf";
-const rimrafp = promisify(rimraf);
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import BuildLogger from "@ui5/logger/internal/loggers/Build";
 const log = new BuildLogger("ProjectBuilder");
@@ -228,7 +226,7 @@ class ProjectBuilder {
 
 		if (cleanDest) {
 			log.info(`Cleaning target directory...`);
-			await rimrafp(destPath);
+			await rimraf(destPath);
 		}
 		const startTime = process.hrtime();
 		try {
