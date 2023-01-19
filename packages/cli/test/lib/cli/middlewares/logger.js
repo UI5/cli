@@ -4,21 +4,28 @@ import stripAnsi from "strip-ansi";
 import {initLogger} from "../../../../lib/cli/middlewares/logger.js";
 import logger from "@ui5/logger";
 
-test.serial("sets log level of log middleware", async (t) => {
+test.serial("init logger", async (t) => {
 	sinon.stub(logger, "setLevel");
-	await initLogger({loglevel: 1});
-	t.is(logger.setLevel.getCall(0).args[0], 1, "sets log level to 1");
+	await initLogger({});
+	t.is(logger.setLevel.callCount, 0, "setLevel has not been called");
 	logger.setLevel.restore();
 });
 
-test.serial("disable middleware if invalig arguments are given", async (t) => {
-	const usedMiddleware = (await initLogger({})) === null;
-	t.is(usedMiddleware, true, "Logger is not used as middleware");
+test.serial("With log-level flag", async (t) => {
+	sinon.stub(logger, "setLevel");
+	await initLogger({loglevel: "silly"});
+	t.is(logger.setLevel.callCount, 1, "setLevel has been called once");
+	t.is(logger.setLevel.getCall(0).args[0], "silly", "sets log level to verbose");
+	logger.setLevel.restore();
 });
 
-test.serial("retrieves logger middleware if verbose or loglevel are set", async (t) => {
-	const loggerInstance = await initLogger({verbose: true});
-	t.deepEqual(Object.keys(loggerInstance), Object.keys(logger), "Logger is used as middleware");
+test.serial("With log-level and verbose flag", async (t) => {
+	sinon.stub(logger, "setLevel");
+	await initLogger({loglevel: "silly", verbose: true});
+	t.is(logger.setLevel.callCount, 2, "setLevel has been called twice");
+	t.is(logger.setLevel.getCall(0).args[0], "silly", "sets log level to verbose");
+	t.is(logger.setLevel.getCall(1).args[0], "verbose", "sets log level to verbose");
+	logger.setLevel.restore();
 });
 
 import path from "node:path";

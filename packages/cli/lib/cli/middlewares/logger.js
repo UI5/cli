@@ -2,25 +2,20 @@ import logger from "@ui5/logger";
 import ConsoleWriter from "@ui5/logger/writers/Console";
 import {getVersion} from "../version.js";
 /**
- * Logger middleware used as one of default middlewares by tooling
+ * Logger middleware to enable logging capabilities
  *
  * @param {object} argv logger arguments
- * @returns {object} logger instance or null
  */
 export async function initLogger(argv) {
 	ConsoleWriter.init();
-
-	if (!argv.verbose && !argv.loglevel) {
-		return null;
-	}
 
 	if (argv.loglevel) {
 		logger.setLevel(argv.loglevel);
 	}
 	if (argv.verbose) {
 		logger.setLevel("verbose");
-		logger.getLogger("cli:middlewares:base").verbose(`using @ui5/cli version ${getVersion()}`);
-		logger.getLogger("cli:middlewares:base").verbose(`using node version ${process.version}`);
+		const log = logger.getLogger("cli:middlewares:base");
+		log.verbose(`using @ui5/cli version ${getVersion()}`);
+		log.verbose(`using node version ${process.version}`);
 	}
-	return logger;
 }
