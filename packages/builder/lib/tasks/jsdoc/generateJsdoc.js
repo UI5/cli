@@ -3,11 +3,10 @@ const log = logger.getLogger("builder:tasks:jsdoc:generateJsdoc");
 import path from "node:path";
 import os from "node:os";
 import fs from "graceful-fs";
-import _rimraf from "rimraf";
+import rimraf from "rimraf";
 import {promisify} from "node:util";
 const mkdtemp = promisify(fs.mkdtemp);
 const mkdir = promisify(fs.mkdir);
-const rimraf = promisify(_rimraf);
 import jsdocGenerator from "../../processors/jsdoc/jsdocGenerator.js";
 import {createAdapter} from "@ui5/fs/resourceFactory";
 
