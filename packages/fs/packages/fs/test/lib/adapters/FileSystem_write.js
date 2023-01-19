@@ -1,10 +1,8 @@
 import path from "node:path";
-import {promisify} from "node:util";
 import {access as fsAccess, constants as fsConstants, mkdir} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 import test from "ava";
 import rimraf from "rimraf";
-const rimrafp = promisify(rimraf);
 import chai from "chai";
 import chaifs from "chai-fs";
 chai.use(chaifs);
@@ -34,7 +32,7 @@ test.beforeEach(async (t) => {
 
 test.afterEach.always((t) => {
 	// Cleanup tmp directory
-	return rimrafp(t.context.tmpDirPath);
+	return rimraf(t.context.tmpDirPath);
 });
 
 test("Write resource", async (t) => {
