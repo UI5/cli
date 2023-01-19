@@ -47,7 +47,7 @@
 		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
 		"prepublishOnly": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version | node .chglog/consolidate-changelogs.js",
-		"depcheck": "depcheck --ignores @ui5/cli,docdash,@istanbuljs/esm-loader-hook,@ui5/fs,@ui5/builder"
+		"depcheck": "depcheck --ignores @ui5/cli,rimraf,docdash,@istanbuljs/esm-loader-hook,@ui5/fs,@ui5/builder"
 	},
 	"files": [
 		"CHANGELOG.md",
@@ -146,7 +146,7 @@
 		"jsdoc": "^3.6.11",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
-		"rimraf": "^3.0.2",
+		"rimraf": "^4.1.1",
 		"sinon": "^15.0.1",
 		"strip-ansi": "^7.0.1",
 		"tap-xunit": "^2.4.1"
