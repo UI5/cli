@@ -4,8 +4,7 @@ import test from "ava";
 import sinon from "sinon";
 import {promisify} from "node:util";
 const stat = promisify(fs.stat);
-import _rimraf from "rimraf";
-const rimraf = promisify(_rimraf);
+import rimraf from "rimraf";
 import esmock from "esmock";
 
 function fileExists(filePath) {
