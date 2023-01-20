@@ -77,6 +77,8 @@ class Resource {
 			// Since the sourceMetadata object is inherited to clones, it is the only correct indicator
 			this.#sourceMetadata.contentModified = this.#sourceMetadata.contentModified || false;
 		}
+		this.#isModified = false;
+
 		this.#project = project;
 
 		this.#statInfo = statInfo || { // TODO
@@ -102,15 +104,15 @@ class Resource {
 		} else if (stream) {
 			this.#stream = stream;
 		} else if (buffer) {
-			this.setBuffer(buffer);
+			// Use private setter, not to accidentally set any modified flags
+			this.#setBuffer(buffer);
 		} else if (typeof string === "string" || string instanceof String) {
-			this.setString(string);
+			// Use private setter, not to accidentally set any modified flags
+			this.#setBuffer(Buffer.from(string, "utf8"));
 		}
 
 		// Tracing:
 		this.#collections = [];
-
-		this.#isModified = false;
 	}
 
 	static _getNameFromPath(virPath) {
