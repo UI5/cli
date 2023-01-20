@@ -3,6 +3,8 @@ const log = logger.getLogger("resources:adapters:Memory");
 import micromatch from "micromatch";
 import AbstractAdapter from "./AbstractAdapter.js";
 
+const ADAPTER_NAME = "Memory";
+
 /**
  * Virtual resource Adapter
  *
@@ -76,8 +78,8 @@ class Memory extends AbstractAdapter {
 							return true;
 						}
 					},
-					source: {
-						adapter: "Memory"
+					sourceMetadata: {
+						adapter: ADAPTER_NAME
 					},
 					path: this._virBasePath.slice(0, -1)
 				})
@@ -155,8 +157,8 @@ class Memory extends AbstractAdapter {
 			if (!this._virDirs[segment]) {
 				this._virDirs[segment] = this._createResource({
 					project: this._project,
-					source: {
-						adapter: "Memory"
+					sourceMetadata: {
+						adapter: ADAPTER_NAME
 					},
 					statInfo: { // TODO: make closer to fs stat info
 						isDirectory: function() {

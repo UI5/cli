@@ -12,7 +12,7 @@ import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
 
 const READ_ONLY_MODE = 0o444;
-
+const ADAPTER_NAME = "FileSystem";
 /**
  * File system resource adapter
  *
@@ -70,8 +70,8 @@ class FileSystem extends AbstractAdapter {
 							project: this._project,
 							statInfo: stat,
 							path: this._virBaseDir,
-							source: {
-								adapter: "FileSystem",
+							sourceMetadata: {
+								adapter: ADAPTER_NAME,
 								fsPath: this._fsBasePath
 							},
 							createStream: () => {
@@ -106,8 +106,8 @@ class FileSystem extends AbstractAdapter {
 								project: this._project,
 								statInfo: stat,
 								path: virPath,
-								source: {
-									adapter: "FileSystem",
+								sourceMetadata: {
+									adapter: ADAPTER_NAME,
 									fsPath: fsPath
 								},
 								createStream: () => {
@@ -182,8 +182,8 @@ class FileSystem extends AbstractAdapter {
 				project: this._project,
 				statInfo,
 				path: virPath,
-				source: {
-					adapter: "FileSystem",
+				sourceMetadata: {
+					adapter: ADAPTER_NAME,
 					fsPath
 				}
 			};
@@ -237,28 +237,45 @@ class FileSystem extends AbstractAdapter {
 
 		await mkdir(dirPath, {recursive: true});
 
-		const resourceSource = resource.getSource();
-		if (!resourceSource.modified && resourceSource.adapter === "FileSystem" && resourceSource.fsPath) {
-			// fs.copyFile can be used when the resource is from FS and hasn't been modified
-			// In addition, nothing needs to be done when src === dest
-			if (resourceSource.fsPath === fsPath) {
-				log.silly(`Skip writing to ${fsPath} (Resource hasn't been modified)`);
-			} else {
-				log.silly(`Copying resource from ${resourceSource.fsPath} to ${fsPath}`);
-				await copyFile(resourceSource.fsPath, fsPath);
+		const sourceMetadata = resource.getSourceMetadata();
+		if (sourceMetadata && sourceMetadata.adapter === ADAPTER_NAME && sourceMetadata.fsPath) {
+			// Resource has been created by FileSystem adapter. This means it might require special handling
+
+			/* The following code covers these four conditions:
+				1. FS-paths not equal + Resource not modified => Shortcut: Use fs.copyFile
+				2. FS-paths equal + Resource not modified => Shortcut: Skip write altogether
+				3. FS-paths equal + Resource modified => Drain stream into buffer. Later write from buffer as usual
+				4. FS-paths not equal + Resource modified => No special handling. Write from stream or buffer
+			*/
+
+			if (sourceMetadata.fsPath !== fsPath && !sourceMetadata.contentModified) {
+				// Shortcut: fs.copyFile can be used when the resource hasn't been modified
+				log.silly(`Resource hasn't been modified. Copying resource from ${sourceMetadata.fsPath} to ${fsPath}`);
+				await copyFile(sourceMetadata.fsPath, fsPath);
 				if (readOnly) {
 					await chmod(fsPath, READ_ONLY_MODE);
 				}
-			}
-			return;
+				return;
+			} else if (sourceMetadata.fsPath === fsPath && !sourceMetadata.contentModified) {
+				log.silly(
+					`Resource hasn't been modified, target path equals source path. Skipping write to ${fsPath}`);
+				if (readOnly) {
+					await chmod(fsPath, READ_ONLY_MODE);
+				}
+				return;
+			} else if (sourceMetadata.fsPath === fsPath && sourceMetadata.contentModified) {
+				// Resource has been modified. Make sure all streams are drained to prevent
+				// issues caused by piping the original read-stream into a write-stream for the same path
+				await resource.getBuffer();
+			} else {/* Different paths + modifications require no special handling */}
 		}
 
 		log.silly(`Writing to ${fsPath}`);
 
-		return new Promise((resolve, reject) => {
+		await new Promise((resolve, reject) => {
 			let contentStream;
 
-			if ((drain || readOnly) && resourceSource.fsPath !== fsPath) {
+			if (drain || readOnly) {
 				// Stream will be drained
 				contentStream = resource.getStream();
 
@@ -292,16 +309,26 @@ class FileSystem extends AbstractAdapter {
 				reject(err);
 			});
 			write.on("close", (ex) => {
-				if (readOnly) {
-					// Create new stream from written file
-					resource.setStream(function() {
-						return fs.createReadStream(fsPath);
-					});
-				}
 				resolve();
 			});
 			contentStream.pipe(write);
 		});
+
+		if (readOnly) {
+			if (sourceMetadata?.fsPath === fsPath) {
+				// When streaming into the same file, permissions need to be changed explicitly
+				await chmod(fsPath, READ_ONLY_MODE);
+			}
+
+			// In case of readOnly, we drained the stream and can now set a new callback
+			// for creating a stream from written file
+			// This should be identical to buffering the resource content in memory, since the written file
+			// can not be modified.
+			// We chose this approach to be more memory efficient in scenarios where readOnly is used
+			resource.setStream(function() {
+				return fs.createReadStream(fsPath);
+			});
+		}
 	}
 }
 

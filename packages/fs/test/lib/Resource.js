@@ -147,14 +147,16 @@ test("Resource: getStream throwing an error", (t) => {
 test("Resource: setString", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		source: {} // Needs to be passed in order to get the "modified" state
+		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
-	t.is(resource.getSource().modified, false);
+	t.is(resource.getSourceMetadata().contentModified, false, "sourceMetadata modified flag set correctly");
+	t.false(resource.isModified(), "Resource is not modified");
 
 	resource.setString("Content");
 
-	t.is(resource.getSource().modified, true);
+	t.is(resource.getSourceMetadata().contentModified, true, "sourceMetadata modified flag updated correctly");
+	t.true(resource.isModified(), "Resource is modified");
 
 	const value = await resource.getString();
 	t.is(value, "Content", "String set");
@@ -163,14 +165,16 @@ test("Resource: setString", async (t) => {
 test("Resource: setBuffer", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		source: {} // Needs to be passed in order to get the "modified" state
+		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
-	t.is(resource.getSource().modified, false);
+	t.is(resource.getSourceMetadata().contentModified, false, "sourceMetadata modified flag set correctly");
+	t.false(resource.isModified(), "Resource is not modified");
 
 	resource.setBuffer(Buffer.from("Content"));
 
-	t.is(resource.getSource().modified, true);
+	t.is(resource.getSourceMetadata().contentModified, true, "sourceMetadata modified flag updated correctly");
+	t.true(resource.isModified(), "Resource is modified");
 
 	const value = await resource.getString();
 	t.is(value, "Content", "String set");
@@ -237,10 +241,11 @@ test("Resource: size modification", async (t) => {
 test("Resource: setStream (Stream)", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		source: {} // Needs to be passed in order to get the "modified" state
+		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
-	t.is(resource.getSource().modified, false);
+	t.is(resource.getSourceMetadata().contentModified, false, "sourceMetadata modified flag set correctly");
+	t.false(resource.isModified(), "Resource is not modified");
 
 	const stream = new Stream.Readable();
 	stream._read = function() {};
@@ -251,7 +256,8 @@ test("Resource: setStream (Stream)", async (t) => {
 
 	resource.setStream(stream);
 
-	t.is(resource.getSource().modified, true);
+	t.is(resource.getSourceMetadata().contentModified, true, "sourceMetadata modified flag updated correctly");
+	t.true(resource.isModified(), "Resource is modified");
 
 	const value = await resource.getString();
 	t.is(value, "I am a readable stream!", "Stream set correctly");
@@ -260,10 +266,11 @@ test("Resource: setStream (Stream)", async (t) => {
 test("Resource: setStream (Create stream callback)", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		source: {} // Needs to be passed in order to get the "modified" state
+		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
-	t.is(resource.getSource().modified, false);
+	t.is(resource.getSourceMetadata().contentModified, false, "sourceMetadata modified flag set correctly");
+	t.false(resource.isModified(), "Resource is not modified");
 
 	resource.setStream(() => {
 		const stream = new Stream.Readable();
@@ -275,7 +282,8 @@ test("Resource: setStream (Create stream callback)", async (t) => {
 		return stream;
 	});
 
-	t.is(resource.getSource().modified, true);
+	t.is(resource.getSourceMetadata().contentModified, true, "sourceMetadata modified flag updated correctly");
+	t.true(resource.isModified(), "Resource is modified");
 
 	const value = await resource.getString();
 	t.is(value, "I am a readable stream!", "Stream set correctly");
@@ -316,12 +324,10 @@ test("Resource: clone resource with stream", async (t) => {
 	t.is(clonedResourceContent, "Content", "Cloned resource has correct content string");
 });
 
-test("Resource: clone resource with source", async (t) => {
-	t.plan(4);
-
+test("Resource: clone resource with sourceMetadata", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		source: {
+		sourceMetadata: {
 			adapter: "FileSystem",
 			fsPath: "/resources/my.js"
 		}
@@ -329,21 +335,33 @@ test("Resource: clone resource with source", async (t) => {
 
 	const clonedResource = await resource.clone();
 
-	t.not(resource.getSource(), clonedResource.getSource());
-	t.deepEqual(clonedResource.getSource(), resource.getSource());
+	t.not(resource.getSourceMetadata(), clonedResource.getSourceMetadata(),
+		"Clone has de-referenced instance of sourceMetadata");
+	t.deepEqual(clonedResource.getSourceMetadata(), {
+		adapter: "FileSystem",
+		fsPath: "/resources/my.js",
+		contentModified: false,
+	});
 
 	// Change existing resource and clone
 	resource.setString("New Content");
 
 	const clonedResource2 = await resource.clone();
 
-	t.not(clonedResource.getSource(), resource.getSource());
-	t.deepEqual(clonedResource2.getSource(), resource.getSource());
+	t.not(clonedResource2.getSourceMetadata(), resource.getSourceMetadata(),
+		"Clone has de-referenced instance of sourceMetadata");
+	t.deepEqual(clonedResource2.getSourceMetadata(), {
+		adapter: "FileSystem",
+		fsPath: "/resources/my.js",
+		contentModified: true,
+	});
+
+	t.true(resource.isModified(), "Original resource is flagged as modified");
+	t.false(clonedResource.isModified(), "Cloned resource 1 is not flagged as modified");
+	t.false(clonedResource2.isModified(), "Cloned resource 2 is not flagged as modified");
 });
 
 test("Resource: clone resource with project removes project", async (t) => {
-	t.plan(2);
-
 	const myProject = {
 		name: "my project"
 	};
@@ -360,19 +378,18 @@ test("Resource: clone resource with project removes project", async (t) => {
 	t.falsy(clonedResourceProject, "Cloned resource should not have a project");
 });
 
-test("Resource: create resource with modified source", (t) => {
-	t.plan(1);
-
+test("Resource: create resource with sourceMetadata.contentModified: true", (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
-		source: {
+		sourceMetadata: {
 			adapter: "FileSystem",
 			fsPath: "/resources/my.js",
-			modified: true
+			contentModified: true
 		}
 	});
 
-	t.true(resource.getSource().modified, "Modified flag is still true");
+	t.true(resource.getSourceMetadata().contentModified, "Modified flag is still true");
+	t.false(resource.isModified(), "Resource is not modified");
 });
 
 test("getStream with createStream callback content: Subsequent content requests should throw error due " +
@@ -485,16 +502,16 @@ test("Resource: constructor with stream", async (t) => {
 	const resource = new Resource({
 		path: "my/path/to/resource",
 		stream,
-		source: {} // Needs to be passed in order to get the "modified" state
+		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
-	t.is(resource.getSource().modified, false);
+	t.is(resource.getSourceMetadata().contentModified, false);
 
 	const value = await resource.getString();
 	t.is(value, "I am a readable stream!");
 
 	// modified should still be false although setBuffer is called internally
-	t.is(resource.getSource().modified, false);
+	t.is(resource.getSourceMetadata().contentModified, false);
 });
 
 test("integration stat - resource size", async (t) => {

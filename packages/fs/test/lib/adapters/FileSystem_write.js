@@ -7,9 +7,10 @@ import chai from "chai";
 import chaifs from "chai-fs";
 chai.use(chaifs);
 const assert = chai.assert;
+
 import sinon from "sinon";
 
-import {createAdapter} from "../../../lib/resourceFactory.js";
+import {createAdapter, createResource} from "../../../lib/resourceFactory.js";
 
 test.beforeEach(async (t) => {
 	const tmpDirName = t.title.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase(); // Generate tmp dir name from test name
@@ -115,7 +116,7 @@ test("Write modified resource in drain mode", async (t) => {
 		{message: /Content of Resource \/app\/index.html has been drained/});
 });
 
-test("Writing with readOnly and drain options set should fail", async (t) => {
+test("Write with readOnly and drain options set should fail", async (t) => {
 	const readerWriters = t.context.readerWriters;
 
 	// Get resource from one readerWriter
@@ -125,6 +126,183 @@ test("Writing with readOnly and drain options set should fail", async (t) => {
 		message: "Error while writing resource /app/index.html: " +
 			"Do not use options 'drain' and 'readOnly' at the same time."
 	});
+});
+
+test("Write unmodified resource into same file", async (t) => {
+	const {source, dest} = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Preparation: Create resource in dest
+	const sourceResource = await source.byPath("/app/index.html");
+	await dest.write(sourceResource);
+
+	const resource = await dest.byPath("/app/index.html");
+	resource.setStream(resource.getStream());
+	await dest.write(resource);
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
+});
+
+test("Write unmodified resource into same file in drain mode", async (t) => {
+	const {source, dest} = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Preparation: Create resource in dest
+	const sourceResource = await source.byPath("/app/index.html");
+	await dest.write(sourceResource);
+
+	const resource = await dest.byPath("/app/index.html");
+	await dest.write(resource, {drain: true});
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.notThrowsAsync(resource.getBuffer(),
+		"Resource content can still be accessed, since stream had to be buffered");
+});
+
+test("Write unmodified resource into same file in read-only mode", async (t) => {
+	const {source, dest} = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Preparation: Create resource in dest
+	const sourceResource = await source.byPath("/app/index.html");
+	await dest.write(sourceResource);
+
+	const resource = await dest.byPath("/app/index.html");
+	await dest.write(resource, {readOnly: true});
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.notThrowsAsync(resource.getBuffer(),
+		"Resource content can still be accessed, since stream had to be buffered");
+
+	await t.notThrowsAsync(fsAccess(destFsPath, fsConstants.R_OK), "File can be read");
+	await t.throwsAsync(fsAccess(destFsPath, fsConstants.W_OK),
+		{message: /EACCES: permission denied|EPERM: operation not permitted/},
+		"File can not be written");
+});
+
+test("Write modified resource into same file", async (t) => {
+	const {source, dest} = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Preparation: Create resource in dest
+	const sourceResource = await source.byPath("/app/index.html");
+	await dest.write(sourceResource);
+
+	const resource = await dest.byPath("/app/index.html");
+	// Simulate a modification by setting a stream
+	resource.setStream(resource.getStream());
+	await dest.write(resource);
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
+});
+
+test("Write modified resource into same file in drain mode", async (t) => {
+	const {source, dest} = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Preparation: Create resource in dest
+	const sourceResource = await source.byPath("/app/index.html");
+	await dest.write(sourceResource);
+
+	const resource = await dest.byPath("/app/index.html");
+	// Simulate a modification by setting a stream
+	resource.setStream(resource.getStream());
+	await dest.write(resource, {drain: true});
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.throwsAsync(resource.getBuffer(),
+		{message: /Content of Resource \/app\/index.html has been drained/});
+});
+
+test("Write modified resource into same file in read-only mode", async (t) => {
+	const {source, dest} = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	// Preparation: Create resource in dest
+	const sourceResource = await source.byPath("/app/index.html");
+	await dest.write(sourceResource);
+
+	const resource = await dest.byPath("/app/index.html");
+	// Simulate a modification by setting a stream
+	resource.setStream(resource.getStream());
+	await dest.write(resource, {readOnly: true});
+
+	t.notThrows(() => {
+		assert.fileEqual(destFsPath, "./test/fixtures/application.a/webapp/index.html");
+	});
+	await t.notThrowsAsync(resource.getBuffer(),
+		"Resource content can still be accessed");
+
+	await t.notThrowsAsync(fsAccess(destFsPath, fsConstants.R_OK), "File can be read");
+	await t.throwsAsync(fsAccess(destFsPath, fsConstants.W_OK),
+		{message: /EACCES: permission denied|EPERM: operation not permitted/},
+		"File can not be written");
+});
+
+test("Write new resource", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	const resource = createResource({
+		path: "/app/index.html",
+		string: "Resource content",
+	});
+
+	await readerWriters.dest.write(resource);
+	t.notThrows(() => {
+		assert.fileContent(destFsPath, "Resource content");
+	});
+	await t.notThrowsAsync(resource.getBuffer(), "Resource content can still be accessed");
+});
+
+test("Write new resource in drain mode", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	const resource = createResource({
+		path: "/app/index.html",
+		string: "Resource content",
+	});
+
+	await readerWriters.dest.write(resource, {drain: true});
+	t.notThrows(() => {
+		assert.fileContent(destFsPath, "Resource content");
+	});
+	await t.throwsAsync(resource.getBuffer(),
+		{message: /Content of Resource \/app\/index.html has been drained/});
+});
+
+test("Write new resource in read-only mode", async (t) => {
+	const readerWriters = t.context.readerWriters;
+	const destFsPath = path.join(t.context.tmpDirPath, "index.html");
+
+	const resource = createResource({
+		path: "/app/index.html",
+		string: "Resource content",
+	});
+
+	await readerWriters.dest.write(resource, {readOnly: true});
+	t.notThrows(() => {
+		assert.fileContent(destFsPath, "Resource content");
+	});
+	await t.notThrowsAsync(resource.getBuffer(),
+		"Resource content can still be accessed");
+	await t.notThrowsAsync(fsAccess(destFsPath, fsConstants.R_OK), "File can be read");
+	await t.throwsAsync(fsAccess(destFsPath, fsConstants.W_OK),
+		{message: /EACCES: permission denied|EPERM: operation not permitted/},
+		"File can not be written");
 });
 
 test("Migration of resource is executed", async (t) => {
