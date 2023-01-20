@@ -161,7 +161,7 @@ test("glob a specific filetype (yaml)", async (t) => {
 
 	const resources = await readerWriter.byGlob("/**/*.yaml");
 	resources.forEach((res) => {
-		t.is(res._name, "ui5.yaml");
+		t.is(res.getName(), "ui5.yaml");
 	});
 });
 
@@ -225,7 +225,7 @@ test("glob (normalized) root directory (=> fs root)", async (t) => {
 		"/*",
 	], {nodir: false});
 	resources.forEach((res) => {
-		t.is(res._name, "app");
+		t.is(res.getName(), "app");
 		t.is(res.getStatInfo().isDirectory(), true);
 	});
 });

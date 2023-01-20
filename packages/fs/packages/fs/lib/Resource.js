@@ -13,6 +13,20 @@ const fnFalse = () => false;
  * @alias @ui5/fs/Resource
  */
 class Resource {
+	#project;
+	#buffer;
+	#buffering;
+	#collections;
+	#contentDrained;
+	#createStream;
+	#name;
+	#path;
+	#sourceMetadata;
+	#statInfo;
+	#stream;
+	#streamDrained;
+	#isModified;
+
 	/**
 	* Function for dynamic creation of content streams
 	*
@@ -52,20 +66,20 @@ class Resource {
 				"Buffer, string, stream or createStream");
 		}
 
-		this._path = path;
-		this._name = Resource._getNameFromPath(path);
+		this.#path = path;
+		this.#name = Resource._getNameFromPath(path);
 
-		this._sourceMetadata = sourceMetadata;
-		if (this._sourceMetadata) {
+		this.#sourceMetadata = sourceMetadata;
+		if (this.#sourceMetadata) {
 			// This flag indicates whether a resource has changed from its original source.
 			// resource.isModified() is not sufficient, since it only reflects the modification state of the
 			// current instance.
 			// Since the sourceMetadata object is inherited to clones, it is the only correct indicator
-			this._sourceMetadata.contentModified = this._sourceMetadata.contentModified || false;
+			this.#sourceMetadata.contentModified = this.#sourceMetadata.contentModified || false;
 		}
-		this.__project = project; // Two underscores since "_project" was widely used in UI5 Tooling 2.0
+		this.#project = project;
 
-		this._statInfo = statInfo || { // TODO
+		this.#statInfo = statInfo || { // TODO
 			isFile: fnTrue,
 			isDirectory: fnFalse,
 			isBlockDevice: fnFalse,
@@ -84,9 +98,9 @@ class Resource {
 		};
 
 		if (createStream) {
-			this._createStream = createStream;
+			this.#createStream = createStream;
 		} else if (stream) {
-			this._stream = stream;
+			this.#stream = stream;
 		} else if (buffer) {
 			this.setBuffer(buffer);
 		} else if (typeof string === "string" || string instanceof String) {
@@ -94,9 +108,9 @@ class Resource {
 		}
 
 		// Tracing:
-		this._collections = [];
+		this.#collections = [];
 
-		this._isModified = false;
+		this.#isModified = false;
 	}
 
 	static _getNameFromPath(virPath) {
@@ -110,17 +124,17 @@ class Resource {
 	 * @returns {Promise<Buffer>} Promise resolving with a buffer of the resource content.
 	 */
 	async getBuffer() {
-		if (this._contentDrained) {
-			throw new Error(`Content of Resource ${this._path} has been drained. ` +
+		if (this.#contentDrained) {
+			throw new Error(`Content of Resource ${this.#path} has been drained. ` +
 				"This might be caused by requesting resource content after a content stream has been " +
 				"requested and no new content (e.g. a new stream) has been set.");
 		}
-		if (this._buffer) {
-			return this._buffer;
-		} else if (this._createStream || this._stream) {
-			return this._getBufferFromStream();
+		if (this.#buffer) {
+			return this.#buffer;
+		} else if (this.#createStream || this.#stream) {
+			return this.#getBufferFromStream();
 		} else {
-			throw new Error(`Resource ${this._path} has no content`);
+			throw new Error(`Resource ${this.#path} has no content`);
 		}
 	}
 
@@ -131,22 +145,22 @@ class Resource {
 	 * @param {Buffer} buffer Buffer instance
 	 */
 	setBuffer(buffer) {
-		if (this._sourceMetadata) {
-			this._sourceMetadata.contentModified = true;
+		if (this.#sourceMetadata) {
+			this.#sourceMetadata.contentModified = true;
 		}
-		this._isModified = true;
-		this._setBuffer(buffer);
+		this.#isModified = true;
+		this.#setBuffer(buffer);
 	}
 
-	_setBuffer(buffer) {
-		this._createStream = null;
-		// if (this._stream) { // TODO this may cause strange issues
-		// 	this._stream.destroy();
+	#setBuffer(buffer) {
+		this.#createStream = null;
+		// if (this.#stream) { // TODO this may cause strange issues
+		// 	this.#stream.destroy();
 		// }
-		this._stream = null;
-		this._buffer = buffer;
-		this._contentDrained = false;
-		this._streamDrained = false;
+		this.#stream = null;
+		this.#buffer = buffer;
+		this.#contentDrained = false;
+		this.#streamDrained = false;
 	}
 
 	/**
@@ -156,8 +170,8 @@ class Resource {
 	 * @returns {Promise<string>} Promise resolving with the resource content.
 	 */
 	getString() {
-		if (this._contentDrained) {
-			return Promise.reject(new Error(`Content of Resource ${this._path} has been drained. ` +
+		if (this.#contentDrained) {
+			return Promise.reject(new Error(`Content of Resource ${this.#path} has been drained. ` +
 				"This might be caused by requesting resource content after a content stream has been " +
 				"requested and no new content (e.g. a new stream) has been set."));
 		}
@@ -186,21 +200,21 @@ class Resource {
 	 * @returns {stream.Readable} Readable stream for the resource content.
 	 */
 	getStream() {
-		if (this._contentDrained) {
-			throw new Error(`Content of Resource ${this._path} has been drained. ` +
+		if (this.#contentDrained) {
+			throw new Error(`Content of Resource ${this.#path} has been drained. ` +
 				"This might be caused by requesting resource content after a content stream has been " +
 				"requested and no new content (e.g. a new stream) has been set.");
 		}
 		let contentStream;
-		if (this._buffer) {
+		if (this.#buffer) {
 			const bufferStream = new stream.PassThrough();
-			bufferStream.end(this._buffer);
+			bufferStream.end(this.#buffer);
 			contentStream = bufferStream;
-		} else if (this._createStream || this._stream) {
-			contentStream = this._getStream();
+		} else if (this.#createStream || this.#stream) {
+			contentStream = this.#getStream();
 		}
 		if (!contentStream) {
-			throw new Error(`Resource ${this._path} has no content`);
+			throw new Error(`Resource ${this.#path} has no content`);
 		}
 		// If a stream instance is being returned, it will typically get drained be the consumer.
 		// In that case, further content access will result in a "Content stream has been drained" error.
@@ -210,7 +224,7 @@ class Resource {
 		// To prevent unexpected "Content stream has been drained" errors caused by changing environments, we flag
 		//	the resource content as "drained" every time a stream is requested. Even if actually a buffer or
 		//	createStream callback is being used.
-		this._contentDrained = true;
+		this.#contentDrained = true;
 		return contentStream;
 	}
 
@@ -222,24 +236,24 @@ class Resource {
 	 														callback for dynamic creation of a readable stream
 	 */
 	setStream(stream) {
-		this._isModified = true;
-		if (this._sourceMetadata) {
-			this._sourceMetadata.contentModified = true;
+		this.#isModified = true;
+		if (this.#sourceMetadata) {
+			this.#sourceMetadata.contentModified = true;
 		}
 
-		this._buffer = null;
-		// if (this._stream) { // TODO this may cause strange issues
-		// 	this._stream.destroy();
+		this.#buffer = null;
+		// if (this.#stream) { // TODO this may cause strange issues
+		// 	this.#stream.destroy();
 		// }
 		if (typeof stream === "function") {
-			this._createStream = stream;
-			this._stream = null;
+			this.#createStream = stream;
+			this.#stream = null;
 		} else {
-			this._stream = stream;
-			this._createStream = null;
+			this.#stream = stream;
+			this.#createStream = null;
 		}
-		this._contentDrained = false;
-		this._streamDrained = false;
+		this.#contentDrained = false;
+		this.#streamDrained = false;
 	}
 
 	/**
@@ -249,7 +263,7 @@ class Resource {
 	 * @returns {string} (Virtual) path of the resource
 	 */
 	getPath() {
-		return this._path;
+		return this.#path;
 	}
 
 	/**
@@ -259,8 +273,8 @@ class Resource {
 	 * @param {string} path (Virtual) path of the resource
 	 */
 	setPath(path) {
-		this._path = path;
-		this._name = Resource._getNameFromPath(path);
+		this.#path = path;
+		this.#name = Resource._getNameFromPath(path);
 	}
 
 	/**
@@ -270,7 +284,7 @@ class Resource {
 	 * @returns {string} Name of the resource
 	 */
 	getName() {
-		return this._name;
+		return this.#name;
 	}
 
 	/**
@@ -284,7 +298,7 @@ class Resource {
 	 *								or similar object
 	 */
 	getStatInfo() {
-		return this._statInfo;
+		return this.#statInfo;
 	}
 
 	/**
@@ -295,7 +309,7 @@ class Resource {
 	 */
 	async getSize() {
 		// if resource does not have any content it should have 0 bytes
-		if (!this._buffer && !this._createStream && !this._stream) {
+		if (!this.#buffer && !this.#createStream && !this.#stream) {
 			return 0;
 		}
 		const buffer = await this.getBuffer();
@@ -308,7 +322,7 @@ class Resource {
 	 * @param {string} name Resource collection name
 	 */
 	pushCollection(name) {
-		this._collections.push(name);
+		this.#collections.push(name);
 	}
 
 	/**
@@ -318,23 +332,23 @@ class Resource {
 	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving with the clone
 	 */
 	async clone() {
-		const options = await this._getCloneOptions();
+		const options = await this.#getCloneOptions();
 		return new Resource(options);
 	}
 
-	async _getCloneOptions() {
+	async #getCloneOptions() {
 		const options = {
-			path: this._path,
-			statInfo: clone(this._statInfo),
-			sourceMetadata: clone(this._sourceMetadata)
+			path: this.#path,
+			statInfo: clone(this.#statInfo),
+			sourceMetadata: clone(this.#sourceMetadata)
 		};
 
-		if (this._stream) {
-			options.buffer = await this._getBufferFromStream();
-		} else if (this._createStream) {
-			options.createStream = this._createStream;
-		} else if (this._buffer) {
-			options.buffer = this._buffer;
+		if (this.#stream) {
+			options.buffer = await this.#getBufferFromStream();
+		} else if (this.#createStream) {
+			options.createStream = this.#createStream;
+		} else if (this.#buffer) {
+			options.buffer = this.#buffer;
 		}
 
 		return options;
@@ -354,7 +368,7 @@ class Resource {
 	 * @returns {@ui5/project/specifications/Project} Project this resource is associated with
 	 */
 	getProject() {
-		return this.__project;
+		return this.#project;
 	}
 
 	/**
@@ -364,11 +378,11 @@ class Resource {
 	 * @param {@ui5/project/specifications/Project} project Project this resource is associated with
 	 */
 	setProject(project) {
-		if (this.__project) {
-			throw new Error(`Unable to assign project ${project.getName()} to resource ${this._path}: ` +
-				`Resource is already associated to project ${this.__project}`);
+		if (this.#project) {
+			throw new Error(`Unable to assign project ${project.getName()} to resource ${this.#path}: ` +
+				`Resource is already associated to project ${this.#project}`);
 		}
-		this.__project = project;
+		this.#project = project;
 	}
 
 	/**
@@ -378,7 +392,7 @@ class Resource {
 	 * @returns {boolean} True if the resource is associated with a project
 	 */
 	hasProject() {
-		return !!this.__project;
+		return !!this.#project;
 	}
 
 	/**
@@ -388,7 +402,7 @@ class Resource {
 	 * @returns {boolean} True if the resource's content has been changed
 	 */
 	isModified() {
-		return this._isModified;
+		return this.#isModified;
 	}
 
 	/**
@@ -399,10 +413,10 @@ class Resource {
 	getPathTree() {
 		const tree = Object.create(null);
 
-		let pointer = tree[this._path] = Object.create(null);
+		let pointer = tree[this.#path] = Object.create(null);
 
-		for (let i = this._collections.length - 1; i >= 0; i--) {
-			pointer = pointer[this._collections[i]] = Object.create(null);
+		for (let i = this.#collections.length - 1; i >= 0; i--) {
+			pointer = pointer[this.#collections[i]] = Object.create(null);
 		}
 
 		return tree;
@@ -415,7 +429,7 @@ class Resource {
 	 * @returns {object|null}
 	 */
 	getSourceMetadata() {
-		return this._sourceMetadata || null;
+		return this.#sourceMetadata || null;
 	}
 
 	/**
@@ -424,15 +438,15 @@ class Resource {
 	 * @private
 	 * @returns {stream.Readable} Readable stream
 	 */
-	_getStream() {
-		if (this._streamDrained) {
-			throw new Error(`Content stream of Resource ${this._path} is flagged as drained.`);
+	#getStream() {
+		if (this.#streamDrained) {
+			throw new Error(`Content stream of Resource ${this.#path} is flagged as drained.`);
 		}
-		if (this._createStream) {
-			return this._createStream();
+		if (this.#createStream) {
+			return this.#createStream();
 		}
-		this._streamDrained = true;
-		return this._stream;
+		this.#streamDrained = true;
+		return this.#stream;
 	}
 
 	/**
@@ -441,12 +455,12 @@ class Resource {
 	 * @private
 	 * @returns {Promise<Buffer>} Promise resolving with buffer.
 	 */
-	_getBufferFromStream() {
-		if (this._buffering) { // Prevent simultaneous buffering, causing unexpected access to drained stream
-			return this._buffering;
+	#getBufferFromStream() {
+		if (this.#buffering) { // Prevent simultaneous buffering, causing unexpected access to drained stream
+			return this.#buffering;
 		}
-		return this._buffering = new Promise((resolve, reject) => {
-			const contentStream = this._getStream();
+		return this.#buffering = new Promise((resolve, reject) => {
+			const contentStream = this.#getStream();
 			const buffers = [];
 			contentStream.on("data", (data) => {
 				buffers.push(data);
@@ -456,8 +470,8 @@ class Resource {
 			});
 			contentStream.on("end", () => {
 				const buffer = Buffer.concat(buffers);
-				this._setBuffer(buffer);
-				this._buffering = null;
+				this.#setBuffer(buffer);
+				this.#buffering = null;
 				resolve(buffer);
 			});
 		});
