@@ -1,5 +1,3 @@
-import replaceStream from "replacestream";
-
 /**
  * @public
  * @module @ui5/builder/processors/stringReplacer
@@ -20,12 +18,12 @@ import replaceStream from "replacestream";
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with modified resources
  */
 export default function({resources, options: {pattern, replacement}}) {
-	return Promise.all(resources.map((resource) => {
-		let stream = resource.getStream();
-		stream.setEncoding("utf8");
-		stream = stream.pipe(replaceStream(pattern, replacement));
-
-		resource.setStream(stream);
+	return Promise.all(resources.map(async (resource) => {
+		const content = await resource.getString();
+		const newContent = content.replaceAll(pattern, replacement);
+		if (content !== newContent) {
+			resource.setString(newContent);
+		}
 		return resource;
 	}));
 }
