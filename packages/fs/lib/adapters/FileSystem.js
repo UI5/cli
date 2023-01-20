@@ -224,7 +224,12 @@ class FileSystem extends AbstractAdapter {
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	async _write(resource, {drain, readOnly}) {
-		resource = await this._migrateResource(resource);
+		resource = this._migrateResource(resource);
+		if (resource instanceof Promise) {
+			// Only await if the migrate function returned a promise
+			// Otherwise await would automatically create a Promise, causing unwanted overhead
+			resource = await resource;
+		}
 		super._write(resource);
 		if (drain && readOnly) {
 			throw new Error(`Error while writing resource ${resource.getPath()}: ` +

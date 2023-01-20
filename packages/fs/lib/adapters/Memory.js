@@ -134,7 +134,12 @@ class Memory extends AbstractAdapter {
 	 * @returns {Promise<undefined>} Promise resolving once data has been written
 	 */
 	async _write(resource) {
-		resource = await this._migrateResource(resource);
+		resource = this._migrateResource(resource);
+		if (resource instanceof Promise) {
+			// Only await if the migrate function returned a promise
+			// Otherwise await would automatically create a Promise, causing unwanted overhead
+			resource = await resource;
+		}
 		super._write(resource);
 		const relPath = resource.getPath().substr(this._virBasePath.length);
 		log.silly(`Writing to virtual path ${resource.getPath()}`);
