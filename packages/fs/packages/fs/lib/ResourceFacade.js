@@ -9,12 +9,11 @@ import Resource from "./Resource.js";
  */
 class ResourceFacade {
 	/**
-	 * The constructor.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
-	 * @param {string} parameters.path Virtual path
-	 * @param {@ui5/fs/Resource} parameters.resource Resource to cover
+	 * @param {string} parameters.path Virtual path of the facade resource
+	 * @param {@ui5/fs/Resource} parameters.resource Resource to conceal
 	 */
 	constructor({path, resource}) {
 		if (!path) {
@@ -221,13 +220,34 @@ class ResourceFacade {
 	hasProject() {
 		return this._resource.hasProject();
 	}
-
-	getConcealedResource() {
-		return this._resource;
+	/**
+	 * Check whether the content of this resource has been changed during its life cycle
+	 *
+	 * @public
+	 * @returns {boolean} True if the resource's content has been changed
+	 */
+	isModified() {
+		return this._resource.isModified();
 	}
 
-	getSource() {
-		return this._resource.getSource();
+	/**
+	 * Returns source metadata if any where provided during the creation of this resource.
+	 * Typically set by an adapter to store information for later retrieval.
+	 *
+	 * @returns {object|null}
+	 */
+	getSourceMetadata() {
+		return this._resource.getSourceMetadata();
+	}
+
+
+	/**
+	 * Returns the resource concealed by this facade
+	 *
+	 * @returns {@ui5/fs/Resource}
+	 */
+	getConcealedResource() {
+		return this._resource;
 	}
 }
 

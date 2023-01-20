@@ -6,7 +6,7 @@ const fnTrue = () => true;
 const fnFalse = () => false;
 
 /**
- * Resource
+ * Resource. UI5 Tooling specific representation of a file's content and metadata
  *
  * @public
  * @class
@@ -22,7 +22,6 @@ class Resource {
 	*/
 
 	/**
-	 * The constructor.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
@@ -40,9 +39,10 @@ class Resource {
 	 *					string or stream).
 	 *					In some cases this is the most memory-efficient way to supply resource content
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this resource is associated with
-	 * @param {object} [parameters.source] Experimental, internal parameter. Do not use
+	 * @param {object} [parameters.sourceMetadata] Source metadata for UI5 Tooling internal use.
+	 * 	Typically set by an adapter to store information for later retrieval.
 	 */
-	constructor({path, statInfo, buffer, string, createStream, stream, project, source}) {
+	constructor({path, statInfo, buffer, string, createStream, stream, project, sourceMetadata}) {
 		if (!path) {
 			throw new Error("Cannot create Resource: path parameter missing");
 		}
@@ -55,10 +55,13 @@ class Resource {
 		this._path = path;
 		this._name = Resource._getNameFromPath(path);
 
-		this._source = source; // Experimental, internal parameter
-		if (this._source) {
-			// Indicator for adapters like FileSystem to detect whether a resource has been changed
-			this._source.modified = this._source.modified || false;
+		this._sourceMetadata = sourceMetadata;
+		if (this._sourceMetadata) {
+			// This flag indicates whether a resource has changed from its original source.
+			// resource.isModified() is not sufficient, since it only reflects the modification state of the
+			// current instance.
+			// Since the sourceMetadata object is inherited to clones, it is the only correct indicator
+			this._sourceMetadata.contentModified = this._sourceMetadata.contentModified || false;
 		}
 		this.__project = project; // Two underscores since "_project" was widely used in UI5 Tooling 2.0
 
@@ -92,6 +95,8 @@ class Resource {
 
 		// Tracing:
 		this._collections = [];
+
+		this._isModified = false;
 	}
 
 	static _getNameFromPath(virPath) {
@@ -126,9 +131,14 @@ class Resource {
 	 * @param {Buffer} buffer Buffer instance
 	 */
 	setBuffer(buffer) {
-		if (this._source && !this._source.modified) {
-			this._source.modified = true;
+		if (this._sourceMetadata) {
+			this._sourceMetadata.contentModified = true;
 		}
+		this._isModified = true;
+		this._setBuffer(buffer);
+	}
+
+	_setBuffer(buffer) {
 		this._createStream = null;
 		// if (this._stream) { // TODO this may cause strange issues
 		// 	this._stream.destroy();
@@ -212,9 +222,11 @@ class Resource {
 	 														callback for dynamic creation of a readable stream
 	 */
 	setStream(stream) {
-		if (this._source && !this._source.modified) {
-			this._source.modified = true;
+		this._isModified = true;
+		if (this._sourceMetadata) {
+			this._sourceMetadata.contentModified = true;
 		}
+
 		this._buffer = null;
 		// if (this._stream) { // TODO this may cause strange issues
 		// 	this._stream.destroy();
@@ -314,7 +326,7 @@ class Resource {
 		const options = {
 			path: this._path,
 			statInfo: clone(this._statInfo),
-			source: clone(this._source)
+			sourceMetadata: clone(this._sourceMetadata)
 		};
 
 		if (this._stream) {
@@ -370,6 +382,16 @@ class Resource {
 	}
 
 	/**
+	 * Check whether the content of this resource has been changed during its life cycle
+	 *
+	 * @public
+	 * @returns {boolean} True if the resource's content has been changed
+	 */
+	isModified() {
+		return this._isModified;
+	}
+
+	/**
 	 * Tracing: Get tree for printing out trace
 	 *
 	 * @returns {object} Trace tree
@@ -386,8 +408,14 @@ class Resource {
 		return tree;
 	}
 
-	getSource() {
-		return this._source || {};
+	/**
+	 * Returns source metadata if any where provided during the creation of this resource.
+	 * Typically set by an adapter to store information for later retrieval.
+	 *
+	 * @returns {object|null}
+	 */
+	getSourceMetadata() {
+		return this._sourceMetadata || null;
 	}
 
 	/**
@@ -428,15 +456,7 @@ class Resource {
 			});
 			contentStream.on("end", () => {
 				const buffer = Buffer.concat(buffers);
-				let modified;
-				if (this._source) {
-					modified = this._source.modified;
-				}
-				this.setBuffer(buffer);
-				// Modified flag should be reset as the resource hasn't been modified from the outside
-				if (this._source) {
-					this._source.modified = modified;
-				}
+				this._setBuffer(buffer);
 				this._buffering = null;
 				resolve(buffer);
 			});
