@@ -185,13 +185,20 @@ class AbstractAdapter extends AbstractReaderWriter {
 		return new Resource(parameters);
 	}
 
-	async _migrateResource(resource) {
+	_migrateResource(resource) {
+		// This function only returns a promise if a migration is necessary.
+		// Since this is rarely the case, we therefore reduce the amount of
+		// created Promises by making this differentiation
+
 		// Check if its a fs/Resource v3, function 'hasProject' was
 		// introduced with v3 therefore take it as the indicator
 		if (resource.hasProject) {
 			return resource;
 		}
+		return this._createFromLegacyResource(resource);
+	}
 
+	async _createFromLegacyResource(resource) {
 		const options = {
 			path: resource._path,
 			statInfo: resource._statInfo,
