@@ -8,6 +8,10 @@ import Resource from "./Resource.js";
  * @alias @ui5/fs/ResourceFacade
  */
 class ResourceFacade {
+	#path;
+	#name;
+	#resource;
+
 	/**
 	 *
 	 * @public
@@ -22,9 +26,9 @@ class ResourceFacade {
 		if (!resource) {
 			throw new Error("Cannot create ResourceFacade: resource parameter missing");
 		}
-		this._path = path;
-		this._name = Resource._getNameFromPath(path);
-		this._resource = resource;
+		this.#path = path;
+		this.#name = Resource._getNameFromPath(path);
+		this.#resource = resource;
 	}
 
 	/**
@@ -34,7 +38,7 @@ class ResourceFacade {
 	 * @returns {string} (Virtual) path of the resource
 	 */
 	getPath() {
-		return this._path;
+		return this.#path;
 	}
 
 	/**
@@ -44,7 +48,7 @@ class ResourceFacade {
 	 * @returns {string} Name of the resource
 	 */
 	getName() {
-		return this._name;
+		return this.#name;
 	}
 
 	/**
@@ -66,7 +70,7 @@ class ResourceFacade {
 	 */
 	async clone() {
 		// Cloning resolves the facade
-		const resourceClone = await this._resource.clone();
+		const resourceClone = await this.#resource.clone();
 		resourceClone.setPath(this.getPath());
 		return resourceClone;
 	}
@@ -83,7 +87,7 @@ class ResourceFacade {
 	 * @returns {Promise<Buffer>} Promise resolving with a buffer of the resource content.
 	 */
 	async getBuffer() {
-		return this._resource.getBuffer();
+		return this.#resource.getBuffer();
 	}
 
 	/**
@@ -93,7 +97,7 @@ class ResourceFacade {
 	 * @param {Buffer} buffer Buffer instance
 	 */
 	setBuffer(buffer) {
-		return this._resource.setBuffer(buffer);
+		return this.#resource.setBuffer(buffer);
 	}
 
 	/**
@@ -103,7 +107,7 @@ class ResourceFacade {
 	 * @returns {Promise<string>} Promise resolving with the resource content.
 	 */
 	getString() {
-		return this._resource.getString();
+		return this.#resource.getString();
 	}
 
 	/**
@@ -113,7 +117,7 @@ class ResourceFacade {
 	 * @param {string} string Resource content
 	 */
 	setString(string) {
-		return this._resource.setString(string);
+		return this.#resource.setString(string);
 	}
 
 	/**
@@ -128,7 +132,7 @@ class ResourceFacade {
 	 * @returns {stream.Readable} Readable stream for the resource content.
 	 */
 	getStream() {
-		return this._resource.getStream();
+		return this.#resource.getStream();
 	}
 
 	/**
@@ -139,7 +143,7 @@ class ResourceFacade {
 															callback for dynamic creation of a readable stream
 	 */
 	setStream(stream) {
-		return this._resource.setStream(stream);
+		return this.#resource.setStream(stream);
 	}
 
 	/**
@@ -153,7 +157,7 @@ class ResourceFacade {
 	 *								or similar object
 	 */
 	getStatInfo() {
-		return this._resource.getStatInfo();
+		return this.#resource.getStatInfo();
 	}
 
 	/**
@@ -163,7 +167,7 @@ class ResourceFacade {
 	 * @returns {Promise<number>} size in bytes, <code>0</code> if there is no content yet
 	 */
 	async getSize() {
-		return this._resource.getSize();
+		return this.#resource.getSize();
 	}
 
 	/**
@@ -172,7 +176,7 @@ class ResourceFacade {
 	 * @param {string} name Resource collection name
 	 */
 	pushCollection(name) {
-		return this._resource.pushCollection(name);
+		return this.#resource.pushCollection(name);
 	}
 
 	/**
@@ -181,7 +185,7 @@ class ResourceFacade {
 	 * @returns {object} Trace tree
 	 */
 	getPathTree() {
-		return this._resource.getPathTree();
+		return this.#resource.getPathTree();
 	}
 
 	/**
@@ -198,7 +202,7 @@ class ResourceFacade {
 	 * @returns {@ui5/project/specifications/Project} Project this resource is associated with
 	 */
 	getProject() {
-		return this._resource.getProject();
+		return this.#resource.getProject();
 	}
 
 	/**
@@ -208,7 +212,7 @@ class ResourceFacade {
 	 * @param {@ui5/project/specifications/Project} project Project this resource is associated with
 	 */
 	setProject(project) {
-		return this._resource.setProject(project);
+		return this.#resource.setProject(project);
 	}
 
 	/**
@@ -218,7 +222,7 @@ class ResourceFacade {
 	 * @returns {boolean} True if the resource is associated with a project
 	 */
 	hasProject() {
-		return this._resource.hasProject();
+		return this.#resource.hasProject();
 	}
 	/**
 	 * Check whether the content of this resource has been changed during its life cycle
@@ -227,7 +231,7 @@ class ResourceFacade {
 	 * @returns {boolean} True if the resource's content has been changed
 	 */
 	isModified() {
-		return this._resource.isModified();
+		return this.#resource.isModified();
 	}
 
 	/**
@@ -237,7 +241,7 @@ class ResourceFacade {
 	 * @returns {object|null}
 	 */
 	getSourceMetadata() {
-		return this._resource.getSourceMetadata();
+		return this.#resource.getSourceMetadata();
 	}
 
 
@@ -247,7 +251,7 @@ class ResourceFacade {
 	 * @returns {@ui5/fs/Resource}
 	 */
 	getConcealedResource() {
-		return this._resource;
+		return this.#resource;
 	}
 }
 

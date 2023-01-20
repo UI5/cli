@@ -118,7 +118,7 @@ test("glob only a specific filetype (yaml)", async (t) => {
 	const resources = await t.context.readerWriter.filesystem.byGlob("/**/*.yaml");
 
 	resources.forEach((res) => {
-		t.is(res._name, "ui5.yaml");
+		t.is(res.getName(), "ui5.yaml");
 	});
 });
 
@@ -145,7 +145,7 @@ test("glob only a specific filetype (json) with exclude pattern", async (t) => {
 	]);
 
 	resources.forEach((res) => {
-		t.is(res._name, "manifest.json");
+		t.is(res.getName(), "manifest.json");
 	});
 });
 
@@ -169,7 +169,7 @@ test("glob (normalized) root directory (=> fs root)", async (t) => {
 	], {nodir: false});
 
 	resources.forEach((res) => {
-		t.is(res._name, "test-resources");
+		t.is(res.getName(), "test-resources");
 		t.is(res.getStatInfo().isDirectory(), true);
 	});
 });
@@ -190,7 +190,7 @@ test("glob subdirectory", async (t) => {
 	], {nodir: false});
 
 	resources.forEach((res) => {
-		t.is(res._name, "application.a");
+		t.is(res.getName(), "application.a");
 		t.is(res.getStatInfo().isDirectory(), true);
 	});
 });
