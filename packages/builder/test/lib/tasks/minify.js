@@ -80,13 +80,21 @@ test();`;
 	t.deepEqual(await resSourceMap.getString(), expectedSourceMap, "Correct source map content");
 
 	t.is(taskUtil.setTag.callCount, 4, "taskUtil.setTag was called 4 times");
-	t.deepEqual(taskUtil.setTag.getCall(0).args, [res, "1️⃣"], "First taskUtil.setTag call with expected arguments");
-	t.deepEqual(taskUtil.setTag.getCall(1).args, [resDbg, "2️⃣"],
-		"Second taskUtil.setTag call with expected arguments");
-	t.deepEqual(taskUtil.setTag.getCall(2).args, [resSourceMap, "1️⃣"],
-		"Third taskUtil.setTag call with expected arguments");
-	t.deepEqual(taskUtil.setTag.getCall(3).args, [resSourceMap, "3️⃣"],
-		"Fourth taskUtil.setTag call with expected arguments");
+	t.is(taskUtil.setTag.getCall(0).args[0].getPath(), res.getPath(),
+		"First taskUtil.setTag call with expected first argument");
+	t.is(taskUtil.setTag.getCall(0).args[1], "1️⃣", "First taskUtil.setTag call with expected second argument");
+	t.is(taskUtil.setTag.getCall(1).args[0].getPath(), resDbg.getPath(),
+		"Second taskUtil.setTag call with expected first arguments");
+	t.is(taskUtil.setTag.getCall(1).args[1], "2️⃣",
+		"Second taskUtil.setTag call with expected second arguments");
+	t.is(taskUtil.setTag.getCall(2).args[0].getPath(), resSourceMap.getPath(),
+		"Third taskUtil.setTag call with expected first arguments");
+	t.is(taskUtil.setTag.getCall(2).args[1], "1️⃣",
+		"Third taskUtil.setTag call with expected second arguments");
+	t.is(taskUtil.setTag.getCall(3).args[0].getPath(), resSourceMap.getPath(),
+		"Fourth taskUtil.setTag call with expected first arguments");
+	t.is(taskUtil.setTag.getCall(3).args[1], "3️⃣",
+		"Fourth taskUtil.setTag call with expected second arguments");
 });
 
 test("integration: minify omitSourceMapResources=false", async (t) => {
@@ -145,11 +153,17 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 	t.deepEqual(await resSourceMap.getString(), expectedSourceMap, "Correct source map content");
 
 	t.is(taskUtil.setTag.callCount, 3, "taskUtil.setTag was called 3 times");
-	t.deepEqual(taskUtil.setTag.getCall(0).args, [res, "1️⃣"], "First taskUtil.setTag call with expected arguments");
-	t.deepEqual(taskUtil.setTag.getCall(1).args, [resDbg, "2️⃣"],
-		"Second taskUtil.setTag call with expected arguments");
-	t.deepEqual(taskUtil.setTag.getCall(2).args, [resSourceMap, "1️⃣"],
-		"Third taskUtil.setTag call with expected arguments");
+	t.is(taskUtil.setTag.getCall(0).args[0].getPath(), res.getPath(),
+		"First taskUtil.setTag call with expected first argument");
+	t.is(taskUtil.setTag.getCall(0).args[1], "1️⃣", "First taskUtil.setTag call with expected second argument");
+	t.is(taskUtil.setTag.getCall(1).args[0].getPath(), resDbg.getPath(),
+		"Second taskUtil.setTag call with expected first arguments");
+	t.is(taskUtil.setTag.getCall(1).args[1], "2️⃣",
+		"Second taskUtil.setTag call with expected second arguments");
+	t.is(taskUtil.setTag.getCall(2).args[0].getPath(), resSourceMap.getPath(),
+		"Third taskUtil.setTag call with expected first arguments");
+	t.is(taskUtil.setTag.getCall(2).args[1], "1️⃣",
+		"Third taskUtil.setTag call with expected second arguments");
 });
 
 test("integration: minify omitSourceMapResources=true (without taskUtil)", async (t) => {
