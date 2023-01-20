@@ -49,17 +49,94 @@ test("Resource: constructor with missing path parameter", (t) => {
 });
 
 test("Resource: constructor with duplicated content parameter", (t) => {
-	t.throws(() => {
-		new Resource({
-			path: "my/path",
-			buffer: Buffer.from("Content"),
-			string: "Content"
-		});
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	[{
+		path: "my/path",
+		buffer: Buffer.from("Content"),
+		string: "Content",
 	}, {
-		instanceOf: Error,
-		message: "Cannot create Resource: Please set only one content parameter. " +
-			"Buffer, string, stream or createStream"
+		path: "my/path",
+		buffer: Buffer.from("Content"),
+		stream: createReadStream(fsPath),
+	}, {
+		path: "my/path",
+		buffer: Buffer.from("Content"),
+		createStream: () => {
+			return createReadStream(fsPath);
+		},
+	}, {
+		path: "my/path",
+		string: "Content",
+		stream: createReadStream(fsPath),
+	}, {
+		path: "my/path",
+		string: "Content",
+		createStream: () => {
+			return createReadStream(fsPath);
+		},
+	}, {
+		path: "my/path",
+		stream: createReadStream(fsPath),
+		createStream: () => {
+			return createReadStream(fsPath);
+		},
+	}].forEach((resourceParams) => {
+		t.throws(() => {
+			new Resource(resourceParams);
+		}, {
+			instanceOf: Error,
+			message: "Cannot create Resource: Please set only one content parameter. " +
+				"Buffer, string, stream or createStream"
+		}, "Threw with expected error message");
 	});
+});
+
+test("Resource: From buffer", async (t) => {
+	const resource = new Resource({
+		path: "my/path",
+		buffer: Buffer.from("Content"),
+		sourceMetadata: {}
+	});
+	t.is(await resource.getSize(), 7, "Content is set");
+	t.false(resource.isModified(), "Content of new resource is not modified");
+	t.false(resource.getSourceMetadata().contentModified, "Content of new resource is not modified");
+});
+
+test("Resource: From string", async (t) => {
+	const resource = new Resource({
+		path: "my/path",
+		string: "Content",
+		sourceMetadata: {}
+	});
+	t.is(await resource.getSize(), 7, "Content is set");
+	t.false(resource.isModified(), "Content of new resource is not modified");
+	t.false(resource.getSourceMetadata().contentModified, "Content of new resource is not modified");
+});
+
+test("Resource: From stream", async (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const resource = new Resource({
+		path: "my/path",
+		stream: createReadStream(fsPath),
+		sourceMetadata: {}
+	});
+	t.is(await resource.getSize(), 91, "Content is set");
+	t.false(resource.isModified(), "Content of new resource is not modified");
+	t.false(resource.getSourceMetadata().contentModified, "Content of new resource is not modified");
+});
+
+test("Resource: From createStream", async (t) => {
+	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
+	const resource = new Resource({
+		path: "my/path",
+		createStream: () => {
+			return createReadStream(fsPath);
+		},
+		sourceMetadata: {}
+	});
+	t.is(await resource.getSize(), 91, "Content is set");
+	t.false(resource.isModified(), "Content of new resource is not modified");
+	t.false(resource.getSourceMetadata().contentModified, "Content of new resource is not modified");
 });
 
 test("Resource: getBuffer with throwing an error", (t) => {
