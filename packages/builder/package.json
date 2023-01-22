@@ -136,7 +136,7 @@
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
 		"@ui5/project": "^3.0.0-rc.3",
-		"ava": "^5.1.0",
+		"ava": "^5.1.1",
 		"chai": "^4.3.7",
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^3.0.0",
@@ -146,7 +146,7 @@
 		"eslint": "^8.32.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^13.2.0",
-		"eslint-plugin-jsdoc": "^39.6.4",
+		"eslint-plugin-jsdoc": "^39.6.7",
 		"esmock": "^2.1.0",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
