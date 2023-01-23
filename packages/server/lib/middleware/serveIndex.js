@@ -49,7 +49,7 @@ function createResourceInfo(resource) {
 	const isDir = stat.isDirectory();
 	return {
 		path: resource.getPath() + (isDir ? "/" : ""),
-		name: resource._name + (isDir ? "/" : ""),
+		name: resource.getName() + (isDir ? "/" : ""),
 		isDir: isDir,
 		mimetype: isDir ? "" : getMimeType(resource),
 		lastModified: new Date(stat.mtime).toLocaleString(),
