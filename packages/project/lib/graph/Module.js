@@ -7,9 +7,9 @@ import {createReader} from "@ui5/fs/resourceFactory";
 import Specification from "../specifications/Specification.js";
 import {validate} from "../validation/validator.js";
 
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 
-const log = logger.getLogger("graph:Module");
+const log = getLogger("graph:Module");
 
 const DEFAULT_CONFIG_PATH = "ui5.yaml";
 const SAP_THEMES_NS_EXEMPTIONS = ["themelib_sap_fiori_3", "themelib_sap_bluecrystal", "themelib_sap_belize"];

@@ -1,7 +1,7 @@
 import path from "node:path";
 import os from "node:os";
-import logger from "@ui5/logger";
-const log = logger.getLogger("ui5Framework:AbstractResolver");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("ui5Framework:AbstractResolver");
 import semver from "semver";
 
 // Matches Semantic Versioning 2.0.0 versions

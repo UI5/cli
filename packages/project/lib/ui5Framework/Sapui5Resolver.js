@@ -3,8 +3,8 @@ import os from "node:os";
 import semver from "semver";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./npm/Installer.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("ui5Framework:Sapui5Resolver");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("ui5Framework:Sapui5Resolver");
 
 const DIST_PKG_NAME = "@sapui5/distribution-metadata";
 

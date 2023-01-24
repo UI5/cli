@@ -1,4 +1,4 @@
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 
@@ -412,7 +412,7 @@ class TaskRunner {
 
 			if (specVersion.gte("3.0")) {
 				params.options.taskName = taskName;
-				params.log = logger.getLogger(`builder:custom-task:${taskName}`);
+				params.log = getLogger(`builder:custom-task:${taskName}`);
 			}
 
 			if (provideDependenciesReader) {

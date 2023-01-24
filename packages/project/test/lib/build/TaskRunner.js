@@ -1,8 +1,8 @@
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
-import logger from "@ui5/logger";
-logger.setLevel("perf");
+import {setLogLevel} from "@ui5/logger";
+setLogLevel("perf");
 
 function noop() {}
 function emptyarray() {

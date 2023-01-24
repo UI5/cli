@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("graph:ShimCollection");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("graph:ShimCollection");
 
 function addToMap(name, fromMap, toMap) {
 	/* Dynamically populate the given map "toMap" with the following structure:

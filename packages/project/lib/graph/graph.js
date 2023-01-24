@@ -1,8 +1,8 @@
 import path from "node:path";
 import projectGraphBuilder from "./projectGraphBuilder.js";
 import ui5Framework from "./helpers/ui5Framework.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("generateProjectGraph");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("generateProjectGraph");
 
 function resolveProjectPaths(cwd, project) {
 	if (!project.path) {

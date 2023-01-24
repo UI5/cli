@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("ui5Framework:npm:Registry");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("ui5Framework:npm:Registry");
 
 function logConfig(config, configName) {
 	const configValue = config[configName];

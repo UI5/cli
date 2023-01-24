@@ -8,8 +8,8 @@ const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
 const mkdir = promisify(fs.mkdir);
-import logger from "@ui5/logger";
-const log = logger.getLogger("ui5Framework:npm:Installer");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("ui5Framework:npm:Installer");
 
 class Installer {
 	constructor({cwd, ui5HomeDir}) {

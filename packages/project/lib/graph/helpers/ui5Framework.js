@@ -1,7 +1,7 @@
 import Module from "../Module.js";
 import ProjectGraph from "../ProjectGraph.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("graph:helpers:ui5Framework");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("graph:helpers:ui5Framework");
 
 class ProjectProcessor {
 	constructor({libraryMetadata}) {

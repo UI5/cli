@@ -6,8 +6,8 @@ import fs from "graceful-fs";
 const realpath = promisify(fs.realpath);
 import resolve from "resolve";
 const resolveModulePath = promisify(resolve);
-import logger from "@ui5/logger";
-const log = logger.getLogger("graph:providers:NodePackageDependencies");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("graph:providers:NodePackageDependencies");
 
 // Packages to consider:
 // * https://github.com/npm/read-package-json-fast

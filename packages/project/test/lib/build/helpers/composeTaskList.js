@@ -1,21 +1,18 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
-import logger from "@ui5/logger";
 
 test.beforeEach(async (t) => {
 	t.context.log = {
 		warn: sinon.stub()
 	};
-	const logStub = sinon.stub(logger, "getLogger").withArgs("build:helpers:composeTaskList").returns(t.context.log);
+	const getLoggerStub = sinon.stub().withArgs("build:helpers:composeTaskList").returns(t.context.log);
 
 	t.context.composeTaskList = await esmock("../../../../lib/build/helpers/composeTaskList.js", {
-		"@ui5/logger": logStub
+		"@ui5/logger": {
+			getLogger: getLoggerStub
+		}
 	});
-});
-
-test.afterEach.always(() => {
-	sinon.restore();
 });
 
 const allTasks = [

@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("graph:ProjectGraph");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("graph:ProjectGraph");
 
 /**
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions

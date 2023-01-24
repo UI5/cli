@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("build:helpers:composeProjectList");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("build:helpers:composeProjectList");
 
 /**
  * Creates an object containing the flattened project dependency tree. Each dependency is defined as an object key while

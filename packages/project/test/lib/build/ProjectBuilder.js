@@ -2,7 +2,7 @@ import test from "ava";
 import sinonGlobal from "sinon";
 import path from "node:path";
 import esmock from "esmock";
-import logger from "@ui5/logger";
+import {setLogLevel} from "@ui5/logger";
 
 function noop() {}
 
@@ -328,12 +328,12 @@ test.serial("build: Multiple projects", async (t) => {
 	const deregisterCleanupSigHooksStub = sinon.stub(builder, "_deregisterCleanupSigHooks");
 	const executeCleanupTasksStub = sinon.stub(builder, "_executeCleanupTasks").resolves();
 
-	logger.setLevel("verbose");
+	setLogLevel("verbose");
 	await builder.build({
 		destPath: "dest/path",
 		dependencyIncludes: "dependencyIncludes"
 	});
-	logger.setLevel("info");
+	setLogLevel("info");
 
 	t.is(getProjectFilterStub.callCount, 1, "_getProjectFilter got called once");
 	t.deepEqual(getProjectFilterStub.getCall(0).args[0], {

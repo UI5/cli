@@ -1,4 +1,4 @@
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 import {createReader} from "@ui5/fs/resourceFactory";
 import SpecificationVersion from "./SpecificationVersion.js";
 
@@ -66,7 +66,7 @@ class Specification {
 		if (new.target === Specification) {
 			throw new TypeError("Class 'Specification' is abstract. Please use one of the 'types' subclasses");
 		}
-		this._log = logger.getLogger(`specifications:types:${this.constructor.name}`);
+		this._log = getLogger(`specifications:types:${this.constructor.name}`);
 	}
 
 	/**
