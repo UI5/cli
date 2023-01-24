@@ -13,7 +13,7 @@ import Logger from "./loggers/Logger.js";
  * @public
  * @param {string} moduleName Identifier for messages created by the logger.
  * Example: <code>module:submodule:Class</code>
- * @returns {@ui5/logger/loggers/Logger}
+ * @returns {@ui5/logger/Logger}
  */
 export function getLogger(moduleName) {
 	return new Logger(moduleName);
