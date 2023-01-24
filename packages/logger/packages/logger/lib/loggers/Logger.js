@@ -2,7 +2,7 @@ import process from "node:process";
 import {inspect} from "node:util";
 
 // Module name must not contain any other characters than alphanumerical and some specials
-const rIllegalModuleNameChars = /[^0-9a-zA-Z-_:@.]/i;
+const rIllegalModuleNameChars = /[^0-9a-zA-Z-_:@./]/i;
 
 /**
  * Standard logging module for UI5 Tooling and extensions.
