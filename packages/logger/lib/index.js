@@ -8,7 +8,7 @@ import Logger from "./loggers/Logger.js";
  */
 
 /**
- * Convenience function to create an instance of [@ui5/logger/loggers/Logger]{@link @ui5/logger/loggers/Logger}
+ * Convenience function to create an instance of [@ui5/logger/Logger]{@link @ui5/logger/Logger}
  *
  * @public
  * @param {string} moduleName Identifier for messages created by the logger.
