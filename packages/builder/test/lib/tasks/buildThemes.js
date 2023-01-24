@@ -5,8 +5,8 @@ let buildThemes;
 
 test.before(async () => {
 	// Enable verbose logging to also cover verbose logging code
-	const {default: logger} = await import("@ui5/logger");
-	logger.setLevel("verbose");
+	const {setLogLevel} = await import("@ui5/logger");
+	setLogLevel("verbose");
 });
 
 test.beforeEach(async (t) => {

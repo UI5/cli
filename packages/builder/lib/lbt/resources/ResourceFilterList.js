@@ -1,6 +1,6 @@
 
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:resources:ResourceFilterList");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:resources:ResourceFilterList");
 
 const FILTER_PREFIXES = /^[-!+]/;
 

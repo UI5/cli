@@ -3,8 +3,8 @@
  * It does not (yet) analyze dependencies of the library and therefore isn't part of the analyzer package (yet).
  */
 import xml2js from "xml2js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:resources:LibraryFileAnalyzer");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:resources:LibraryFileAnalyzer");
 
 const parser = new xml2js.Parser({
 	// explicitChildren: true,

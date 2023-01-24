@@ -8,8 +8,8 @@ import XMLTemplateAnalyzer from "../analyzer/XMLTemplateAnalyzer.js";
 import {getDependencyInfos} from "./LibraryFileAnalyzer.js";
 import ModuleInfo from "./ModuleInfo.js";
 import ResourceFilterList from "./ResourceFilterList.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:resources:ResourcePool");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:resources:ResourcePool");
 /*
 import Resource from "./Resource";
  */

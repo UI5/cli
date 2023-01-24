@@ -61,8 +61,8 @@ import {fromUI5LegacyName} from "../utils/ModuleName.js";
 import SapUiDefine from "../calls/SapUiDefine.js";
 import {parseJS, Syntax} from "../utils/parseUtils.js";
 import {getValue, isMethodCall, getStringValue} from "../utils/ASTUtils.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:analyzer:FioriElementAnalyzer");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:analyzer:FioriElementAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 

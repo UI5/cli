@@ -3,9 +3,6 @@ import {parseJS} from "../../../../lib/lbt/utils/parseUtils.js";
 import XMLCompositeAnalyzer from "../../../../lib/lbt/analyzer/XMLCompositeAnalyzer.js";
 import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 import sinonGlobal from "sinon";
-import logger from "@ui5/logger";
-const loggerInstance = logger.getLogger("XMLCompositeAnalyzerTest");
-import esmock from "esmock";
 
 test.beforeEach((t) => {
 	t.context.sinon = sinonGlobal.createSandbox();
@@ -14,14 +11,6 @@ test.beforeEach((t) => {
 test.afterEach.always((t) => {
 	t.context.sinon.restore();
 });
-
-async function setupXMLCompositeAnalyzerWithStubbedLogger({context}) {
-	const {sinon} = context;
-	context.warningLogSpy = sinon.spy(loggerInstance, "warn");
-	sinon.stub(logger, "getLogger").returns(loggerInstance);
-	context.XMLCompositeAnalyzerWithStubbedLogger =
-		await esmock("../../../../lib/lbt/analyzer/XMLCompositeAnalyzer");
-}
 
 test("integration: XMLComposite code with VariableDeclaration", (t) => {
 	const code = `sap.ui.define([
@@ -92,17 +81,15 @@ test("integration: XMLComposite code (arrow factory function with implicit retur
 		"Dependency should be created from composite name");
 });
 
-test.serial("integration: XMLComposite code (async factory function)", async (t) => {
+test.serial("integration: XMLComposite code (async factory function)", (t) => {
 	const code = `sap.ui.define([
 		'jquery.sap.global', 'sap/ui/core/XMLComposite'],
 		async function(jQuery, XMLComposite) {
 		"use strict";
 		return XMLComposite.extend("composites.ButtonList", {});
 	});`;
-	await setupXMLCompositeAnalyzerWithStubbedLogger(t);
-	const {XMLCompositeAnalyzerWithStubbedLogger} = t.context;
 	const ast = parseJS(code);
-	const analyzer = new XMLCompositeAnalyzerWithStubbedLogger();
+	const analyzer = new XMLCompositeAnalyzer();
 	const name = "composites.ButtonList";
 	const moduleInfo = new ModuleInfo();
 	analyzer.analyze(ast, name, moduleInfo);
@@ -110,16 +97,14 @@ test.serial("integration: XMLComposite code (async factory function)", async (t)
 		"Dependency should be created from composite name");
 });
 
-test.serial("integration: XMLComposite code (async arrow factory function)", async (t) => {
+test.serial("integration: XMLComposite code (async arrow factory function)", (t) => {
 	const code = `sap.ui.define([
 		'jquery.sap.global', 'sap/ui/core/XMLComposite'],
 		async (jQuery, XMLComposite) => {
 		return XMLComposite.extend("composites.ButtonList", {});
 	});`;
-	await setupXMLCompositeAnalyzerWithStubbedLogger(t);
-	const {XMLCompositeAnalyzerWithStubbedLogger} = t.context;
 	const ast = parseJS(code);
-	const analyzer = new XMLCompositeAnalyzerWithStubbedLogger();
+	const analyzer = new XMLCompositeAnalyzer();
 	const name = "composites.ButtonList";
 	const moduleInfo = new ModuleInfo();
 	analyzer.analyze(ast, name, moduleInfo);
@@ -127,14 +112,12 @@ test.serial("integration: XMLComposite code (async arrow factory function)", asy
 		"Dependency should be created from composite name");
 });
 
-test.serial("integration: XMLComposite code (async arrow factory function with implicit return)", async (t) => {
+test.serial("integration: XMLComposite code (async arrow factory function with implicit return)", (t) => {
 	const code = `sap.ui.define([
 		'jquery.sap.global', 'sap/ui/core/XMLComposite'],
 		async (jQuery, XMLComposite) => XMLComposite.extend("composites.ButtonList", {}));`;
-	await setupXMLCompositeAnalyzerWithStubbedLogger(t);
-	const {XMLCompositeAnalyzerWithStubbedLogger} = t.context;
 	const ast = parseJS(code);
-	const analyzer = new XMLCompositeAnalyzerWithStubbedLogger();
+	const analyzer = new XMLCompositeAnalyzer();
 	const name = "composites.ButtonList";
 	const moduleInfo = new ModuleInfo();
 	analyzer.analyze(ast, name, moduleInfo);

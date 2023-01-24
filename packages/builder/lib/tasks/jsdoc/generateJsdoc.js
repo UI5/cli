@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:jsdoc:generateJsdoc");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:jsdoc:generateJsdoc");
 import path from "node:path";
 import os from "node:os";
 import fs from "graceful-fs";

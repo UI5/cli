@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:bundlers:generateFlexChangesBundle");
 import flexChangesBundler from "../../processors/bundlers/flexChangesBundler.js";
 import semver from "semver";
 

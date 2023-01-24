@@ -2,8 +2,8 @@ import path from "node:path";
 import themeBuilder from "../processors/themeBuilder.js";
 import fsInterface from "@ui5/fs/fsInterface";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:buildThemes");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:buildThemes");
 
 /**
  * @public

@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:versionInfoGenerator");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:versionInfoGenerator");
 import {createResource} from "@ui5/fs/resourceFactory";
 import posixPath from "node:path/posix";
 

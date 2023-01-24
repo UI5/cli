@@ -1,8 +1,8 @@
 import BundleBuilder from "../../lbt/bundle/Builder.js";
 import LocatorResourcePool from "../../lbt/resources/LocatorResourcePool.js";
 import EvoResource from "@ui5/fs/Resource";
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:bundlers:moduleBundler");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:bundlers:moduleBundler");
 
 /**
  * @public

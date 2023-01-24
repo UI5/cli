@@ -1,8 +1,8 @@
 
 import {parseJS, Syntax, VisitorKeys} from "../utils/parseUtils.js";
 import {getPropertyKey, isMethodCall, isIdentifier, getStringArray} from "../utils/ASTUtils.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:analyzer:LibraryJS");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:analyzer:LibraryJS");
 
 const CALL__SAP_UI_GETCORE = ["sap", "ui", "getCore"];
 

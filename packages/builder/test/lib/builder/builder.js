@@ -12,7 +12,7 @@ const assert = chai.assert;
 import sinon from "sinon";
 import {graphFromObject, graphFromPackageDependencies} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
-import logger from "@ui5/logger";
+import {setLogLevel} from "@ui5/logger";
 
 // Using CommonsJS require as importing json files causes an ExperimentalWarning
 const require = createRequire(import.meta.url);
@@ -935,7 +935,7 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 		"..", "..", "tmp", "build", "library.i", "bundle-library.h-build-manifest", ".ui5", "build-manifest.json");
 
 
-	logger.setLevel("verbose");
+	setLogLevel("verbose");
 	const graph1 = await graphFromObject({
 		dependencyTree: libraryHTree
 	});
@@ -960,7 +960,7 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 		destPath,
 		createBuildManifest: true
 	});
-	logger.setLevel("info");
+	setLogLevel("info");
 	toISOStringStub.restore();
 
 	let expectedFiles = await findFiles(expectedPath);

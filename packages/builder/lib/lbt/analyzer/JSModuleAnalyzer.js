@@ -13,9 +13,9 @@ import {
 	getStringValue,
 } from "../utils/ASTUtils.js";
 
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 
-const log = logger.getLogger("lbt:analyzer:JSModuleAnalyzer");
+const log = getLogger("lbt:analyzer:JSModuleAnalyzer");
 
 // ------------------------------------------------------------------------------------------------------------------
 

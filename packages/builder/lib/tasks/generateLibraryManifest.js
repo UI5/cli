@@ -1,6 +1,6 @@
 
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:generateLibraryManifest");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:generateLibraryManifest");
 import manifestCreator from "../processors/manifestCreator.js";
 
 /**

@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:libraryLessGenerator");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:libraryLessGenerator");
 
 import {promisify} from "node:util";
 import posixPath from "node:path/posix";

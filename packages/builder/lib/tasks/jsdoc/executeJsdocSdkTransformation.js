@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:jsdoc:executeJsdocSdkTransformation");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:jsdoc:executeJsdocSdkTransformation");
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import fsInterface from "@ui5/fs/fsInterface";
 import sdkTransformer from "../../processors/jsdoc/sdkTransformer.js";

@@ -2,8 +2,8 @@
 import xml2js from "xml2js";
 import {fromUI5LegacyName, fromRequireJSName} from "../utils/ModuleName.js";
 import JSTokenizer from "../utils/JSTokenizer.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:analyzer:XMLTemplateAnalyzer");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:analyzer:XMLTemplateAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 

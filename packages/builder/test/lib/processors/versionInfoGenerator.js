@@ -1,25 +1,23 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
-import logger from "@ui5/logger";
 
 test.beforeEach(async (t) => {
 	t.context.warnLogStub = sinon.stub();
 	t.context.infoLogStub = sinon.stub();
 	t.context.verboseLogStub = sinon.stub();
 	t.context.sillyLogStub = sinon.stub();
-	sinon.stub(logger, "getLogger").returns({
-		warn: t.context.warnLogStub,
-		info: t.context.infoLogStub,
-		verbose: t.context.verboseLogStub,
-		silly: t.context.sillyLogStub,
-		isLevelEnabled: () => true
+	t.context.versionInfoGenerator = await esmock("../../../lib/processors/versionInfoGenerator.js", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				warn: t.context.warnLogStub,
+				info: t.context.infoLogStub,
+				verbose: t.context.verboseLogStub,
+				silly: t.context.sillyLogStub,
+				isLevelEnabled: () => true
+			})
+		}
 	});
-	t.context.versionInfoGenerator = await esmock("../../../lib/processors/versionInfoGenerator.js");
-});
-
-test.afterEach.always((t) => {
-	sinon.restore();
 });
 
 test("versionInfoGenerator missing parameters", async (t) => {

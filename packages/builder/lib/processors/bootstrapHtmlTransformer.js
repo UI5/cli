@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:bootstrapHtmlTransformer");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:bootstrapHtmlTransformer");
 import cheerio from "cheerio";
 
 /**

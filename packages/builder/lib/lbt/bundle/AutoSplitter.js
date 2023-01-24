@@ -3,8 +3,8 @@ import {pd} from "pretty-data";
 import {toRequireJSName} from "../utils/ModuleName.js";
 import {SectionType} from "./BundleDefinition.js";
 import escapePropertiesFile from "../utils/escapePropertiesFile.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:bundle:AutoSplitter");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:bundle:AutoSplitter");
 
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 

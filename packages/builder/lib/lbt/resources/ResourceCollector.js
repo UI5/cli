@@ -1,8 +1,8 @@
 import ResourceInfoList from "./ResourceInfoList.js";
 import ResourceFilterList from "./ResourceFilterList.js";
 import ResourceInfo from "./ResourceInfo.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:resources:ResourceCollector");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:resources:ResourceCollector");
 
 const LOCALE = /^((?:[^/]+\/)*[^/]+?)_([A-Z]{2}(?:_[A-Z]{2}(?:_[A-Z0-9_]+)?)?)(\.properties|\.hdbtextbundle)$/i;
 const THEME = /^((?:[^/]+\/)*)themes\/([^/]+)\//;

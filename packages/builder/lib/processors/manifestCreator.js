@@ -2,8 +2,8 @@
 import posixPath from "node:path/posix";
 import semver from "semver";
 const {SemVer: Version} = semver;
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:manifestCreator");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:manifestCreator");
 import Resource from "@ui5/fs/Resource";
 import xml2js from "xml2js";
 import analyzeLibraryJS from "../lbt/analyzer/analyzeLibraryJS.js";

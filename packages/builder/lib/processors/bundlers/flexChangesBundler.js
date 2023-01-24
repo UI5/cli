@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:bundlers:flexChangesBundler");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:bundlers:flexChangesBundler");
 import {createResource} from "@ui5/fs/resourceFactory";
 
 /**

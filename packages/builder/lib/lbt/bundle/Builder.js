@@ -15,8 +15,8 @@ import BundleResolver from "./Resolver.js";
 import BundleSplitter from "./AutoSplitter.js";
 import {SectionType} from "./BundleDefinition.js";
 import BundleWriter from "./BundleWriter.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:bundle:Builder");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:bundle:Builder");
 
 const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(.+)\s*$/;
 const httpPattern = /^https?:\/\//i;

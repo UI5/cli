@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
 import createModuleNameMapping from "./utils/createModuleNameMapping.js";

@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:graph:dependencyGraph");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:graph:dependencyGraph");
 
 class Node {
 	constructor(name) {

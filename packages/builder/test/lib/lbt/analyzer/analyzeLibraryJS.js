@@ -59,12 +59,11 @@ sap.ui.define([
 
 	const librayJSPath = "library/test/library.js";
 	const errorLogStub = sinon.stub();
-	const myLoggerInstance = {
-		error: errorLogStub
-	};
 	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS.js", {
 		"@ui5/logger": {
-			getLogger: sinon.stub().returns(myLoggerInstance)
+			getLogger: () => ({
+				error: errorLogStub
+			})
 		}
 	});
 
@@ -103,13 +102,14 @@ sap.ui.define([
 });`;
 
 	const librayJSPath = "library/test/library.js";
-	const logger = await esmock("@ui5/logger");
 	const errorLogStub = sinon.stub();
-	const myLoggerInstance = {
-		error: errorLogStub
-	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS");
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				error: errorLogStub
+			})
+		}
+	});
 
 	const mockResource = createMockResource(libraryJS, librayJSPath);
 
@@ -137,13 +137,14 @@ sap.ui.define([
 });`;
 
 	const librayJSPath = "library/test/library.js";
-	const logger = await esmock("@ui5/logger");
 	const errorLogStub = sinon.stub();
-	const myLoggerInstance = {
-		error: errorLogStub
-	};
-	sinon.stub(logger, "getLogger").returns(myLoggerInstance);
-	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS");
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				error: errorLogStub
+			})
+		}
+	});
 
 	const mockResource = createMockResource(libraryJS, librayJSPath);
 

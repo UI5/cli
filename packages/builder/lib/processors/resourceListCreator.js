@@ -1,6 +1,6 @@
 
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:resourceListCreator");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:resourceListCreator");
 import ResourceCollector from "../lbt/resources/ResourceCollector.js";
 import LocatorResourcePool from "../lbt/resources/LocatorResourcePool.js";
 import ResourceInfo from "../lbt/resources/ResourceInfo.js";

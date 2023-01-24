@@ -7,8 +7,8 @@ import {getRendererName} from "../UI5ClientConstants.js";
 import ResourceFilterList from "../resources/ResourceFilterList.js";
 import {SectionType} from "./BundleDefinition.js";
 import ResolvedBundleDefinition from "./ResolvedBundleDefinition.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:bundle:Resolver");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:bundle:Resolver");
 
 let dependencyTracker;
 

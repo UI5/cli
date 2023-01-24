@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:bundlers:generateLibraryPreload");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:bundlers:generateLibraryPreload");
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
 import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
 import createModuleNameMapping from "./utils/createModuleNameMapping.js";

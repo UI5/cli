@@ -1,7 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
-import logger from "@ui5/logger";
 
 test.beforeEach(async (t) => {
 	t.context.log = {
@@ -9,7 +8,6 @@ test.beforeEach(async (t) => {
 		verbose: sinon.stub(),
 		error: sinon.stub()
 	};
-	sinon.stub(logger, "getLogger").withArgs("builder:tasks:bundlers:generateComponentPreload").returns(t.context.log);
 
 	t.context.workspace = {
 		byGlob: sinon.stub().resolves([]),
@@ -22,7 +20,10 @@ test.beforeEach(async (t) => {
 	t.context.moduleBundlerStub = sinon.stub().resolves([]);
 
 	t.context.generateComponentPreload = await esmock("../../../../lib/tasks/bundlers/generateComponentPreload.js", {
-		"../../../../lib/processors/bundlers/moduleBundler": t.context.moduleBundlerStub
+		"../../../../lib/processors/bundlers/moduleBundler": t.context.moduleBundlerStub,
+		"@ui5/logger": {
+			getLogger: sinon.stub().withArgs("builder:tasks:bundlers:generateComponentPreload").returns(t.context.log)
+		}
 	});
 });
 

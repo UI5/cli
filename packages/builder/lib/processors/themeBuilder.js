@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:processors:themeBuilder");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:processors:themeBuilder");
 import posixPath from "node:path/posix";
 import less from "less-openui5";
 import Resource from "@ui5/fs/Resource";

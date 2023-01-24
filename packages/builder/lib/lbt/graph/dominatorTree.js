@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:graph:dominatorTree");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:graph:dominatorTree");
 
 /**
  * Creates a dependency graph starting from the given set of root modules.

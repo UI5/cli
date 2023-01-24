@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:transformBootstrapHtml");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:transformBootstrapHtml");
 import bootstrapHtmlTransformer from "../processors/bootstrapHtmlTransformer.js";
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */

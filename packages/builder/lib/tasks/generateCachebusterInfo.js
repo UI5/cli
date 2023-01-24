@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import {createResource} from "@ui5/fs/resourceFactory";
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:generateCachebusterInfo");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:generateCachebusterInfo");
 
 /**
  * @public

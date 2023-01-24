@@ -1,6 +1,6 @@
 
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:graph:topologicalSort");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:graph:topologicalSort");
 
 /**
  * Represents a module and its dependencies in a dependency graph.

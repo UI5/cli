@@ -1,7 +1,7 @@
 import path from "node:path";
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("builder:tasks:bundlers:generateComponentPreload");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("builder:tasks:bundlers:generateComponentPreload");
 import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
 
 /**

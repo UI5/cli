@@ -20,8 +20,8 @@
  */
 
 import {fromUI5LegacyName} from "../utils/ModuleName.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("lbt:analyzer:ComponentAnalyzer");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("lbt:analyzer:ComponentAnalyzer");
 
 // ---------------------------------------------------------------------------------------------------------
 
