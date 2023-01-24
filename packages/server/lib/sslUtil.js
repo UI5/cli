@@ -1,9 +1,9 @@
 import os from "node:os";
 import {stat, readFile, writeFile, mkdir} from "node:fs/promises";
 import path from "node:path";
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 
-const log = logger.getLogger("server:sslUtil");
+const log = getLogger("server:sslUtil");
 
 /**
  * @private

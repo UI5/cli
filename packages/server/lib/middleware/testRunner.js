@@ -4,8 +4,8 @@ const readFile = promisify(fs.readFile);
 import {fileURLToPath} from "node:url";
 import mime from "mime-types";
 import parseurl from "parseurl";
-import logger from "@ui5/logger";
-const log = logger.getLogger("server:middleware:testRunner");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("server:middleware:testRunner");
 
 const testRunnerResourceRegEx = /\/test-resources\/sap\/ui\/qunit\/(testrunner\.(html|css)|TestRunner.js)$/;
 const resourceCache = Object.create(null);

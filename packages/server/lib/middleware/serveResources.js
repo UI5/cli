@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("server:middleware:serveResources");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("server:middleware:serveResources");
 import replaceStream from "replacestream";
 import etag from "etag";
 import fresh from "fresh";

@@ -1,10 +1,10 @@
 import parseurl from "parseurl";
 import Router from "router";
 import querystring from "node:querystring";
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 import bodyParser from "body-parser";
 
-const log = logger.getLogger("server:middleware:csp");
+const log = getLogger("server:middleware:csp");
 
 const HEADER_CONTENT_SECURITY_POLICY = "Content-Security-Policy";
 const HEADER_CONTENT_SECURITY_POLICY_REPORT_ONLY = "Content-Security-Policy-Report-Only";

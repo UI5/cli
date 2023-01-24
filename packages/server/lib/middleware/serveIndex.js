@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("server:middleware:serveIndex");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("server:middleware:serveIndex");
 import mime from "mime-types";
 import serveIndex from "./serveIndex/serveIndex.cjs";
 
