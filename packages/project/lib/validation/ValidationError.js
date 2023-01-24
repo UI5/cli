@@ -49,7 +49,14 @@ class ValidationError extends Error {
 			separator += chalk.grey.dim("\u2500".repeat(process.stdout.columns || 80));
 		}
 		separator += "\n\n";
-		let message = chalk.red(`Invalid ui5.yaml configuration for project ${this.project.id}`) + "\n\n";
+		let message;
+
+		if (this.project) { // ui5-workspace.yaml is project independent, so in that case, no project is available
+			message = chalk.red(`Invalid ui5.yaml configuration for project ${this.project.id}`) + "\n\n";
+		} else {
+			message = chalk.red(`Invalid workspace configuration.`) + "\n\n";
+		}
+
 		message += this.errors.map((error) => {
 			return this.formatError(error);
 		}).join(separator);

@@ -1,0 +1,54 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/ui5-workspace.json",
+	"title": "ui5-workspace.yaml",
+	"description": "Schema for UI5 Tooling Workspace Configuration File (ui5-workspace.yaml)",
+	"$comment": "See https://sap.github.io/ui5-tooling/",
+	"type": "object",
+	"required": ["specVersion", "metadata", "dependencyManagement"],
+	"properties": {
+		"additionalProperties": false,
+		"specVersion": {
+			"enum": ["workspace/1.0"],
+			"errorMessage": "Unsupported \"specVersion\"\nYour UI5 CLI installation might be outdated.\nSupported specification versions: \"workspace/1.0\"\nFor details see: // TODO: Add link to Documentation"
+		},
+		"metadata": {
+			"$ref": "#/definitions/metadata"
+		},
+		"dependencyManagement": {
+			"$ref": "#/definitions/dependencyManagement"
+		}
+	},
+	"definitions": {
+		"metadata": {
+			"type": "object",
+			"required": ["name"],
+			"properties": {
+				"additionalProperties": false,
+				"name": {
+					"type": "string",
+					"errorMessage": "Workspace name is not provided. There must be a wokrspace name defined."
+				}
+			}
+		},
+		"dependencyManagement": {
+			"type": "object",
+			"properties": {
+				"additionalProperties": false,
+				"resolutions": {
+					"type": "array",
+					"additionalProperties": false,
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"properties": {
+							"path": {
+								"type": "string"
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
