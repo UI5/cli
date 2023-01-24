@@ -97,6 +97,7 @@ test.serial("Legal module names", (t) => {
 	testNotThrows("Module:Name");
 	testNotThrows("@module");
 	testNotThrows("m0-dule_.nAme");
+	testNotThrows("module/name");
 });
 
 test.serial("Illegal module names", (t) => {
@@ -108,7 +109,7 @@ test.serial("Illegal module names", (t) => {
 		}, "Threw with expected error message");
 	}
 	testThrows("module name");
-	testThrows("module/name");
+	testThrows("module\\name");
 	testThrows("näme");
 	testThrows("🧗");
 });
