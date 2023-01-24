@@ -5,10 +5,10 @@ import {
 import FileSystem from "../../lib/adapters/FileSystem.js";
 import Memory from "../../lib/adapters/Memory.js";
 import ReaderCollection from "../../lib/ReaderCollection.js";
-import logger from "@ui5/logger";
+import {setLogLevel} from "@ui5/logger";
 
 // Set log level to silly to activate tracing
-logger.setLevel("silly");
+setLogLevel("silly");
 
 test("prefixGlobPattern", (t) => {
 	t.deepEqual(

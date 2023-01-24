@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("resources:tracing:total");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("resources:tracing:total");
 
 import prettyHrtime from "pretty-hrtime";
 const hasOwnProperty = Object.prototype.hasOwnProperty;
