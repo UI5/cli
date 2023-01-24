@@ -136,7 +136,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
-		"@ui5/project": "^3.0.0-rc.5",
+		"@ui5/project": "^3.0.0-rc.6",
 		"ava": "^5.1.1",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
