@@ -15,7 +15,7 @@ const rIllegalModuleNameChars = /[^0-9a-zA-Z-_:@.]/i;
  *
  * @public
  * @class
- * @alias @ui5/logger/loggers/Logger
+ * @alias @ui5/logger/Logger
  */
 class Logger {
 	/**

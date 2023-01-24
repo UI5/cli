@@ -17,7 +17,7 @@ test("check number of exports", (t) => {
 
 // Public API contract (exported modules)
 [
-	"loggers/Logger",
+	{exportedSpecifier: "Logger", mappedModule: "../../lib/loggers/Logger.js"},
 	"writers/Console",
 
 	// Internal modules (only to be used by @ui5/* packages)
