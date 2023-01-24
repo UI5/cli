@@ -1,4 +1,4 @@
-import logger from "@ui5/logger";
+import {setLogLevel, getLogger} from "@ui5/logger";
 import ConsoleWriter from "@ui5/logger/writers/Console";
 import {getVersion} from "../version.js";
 /**
@@ -10,11 +10,11 @@ export async function initLogger(argv) {
 	ConsoleWriter.init();
 
 	if (argv.loglevel) {
-		logger.setLevel(argv.loglevel);
+		setLogLevel(argv.loglevel);
 	}
 	if (argv.verbose) {
-		logger.setLevel("verbose");
-		const log = logger.getLogger("cli:middlewares:base");
+		setLogLevel("verbose");
+		const log = getLogger("cli:middlewares:base");
 		log.verbose(`using @ui5/cli version ${getVersion()}`);
 		log.verbose(`using node version ${process.version}`);
 	}

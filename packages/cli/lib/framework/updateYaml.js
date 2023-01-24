@@ -2,9 +2,9 @@ import path from "node:path";
 import {readFile, writeFile} from "node:fs/promises";
 import {loadAll, dump} from "js-yaml";
 import {fromYaml, getPosition, getValue} from "data-with-position";
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 
-const log = logger.getLogger("cli:framework:updateYaml");
+const log = getLogger("cli:framework:updateYaml");
 
 function getProjectYamlDocument({project, configFile, configPath}) {
 	const configs = loadAll(configFile, undefined, {

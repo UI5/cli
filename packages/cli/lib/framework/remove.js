@@ -1,7 +1,7 @@
 import {getRootProjectConfiguration} from "./utils.js";
-import logger from "@ui5/logger";
+import {getLogger} from "@ui5/logger";
 
-const log = logger.getLogger("cli:framework:remove");
+const log = getLogger("cli:framework:remove");
 
 /**
  * Removes the given set of libraries from the framework libraries section in the ui5.yaml

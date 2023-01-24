@@ -1,31 +1,40 @@
 import test from "ava";
 import sinon from "sinon";
+import esmock from "esmock";
 import stripAnsi from "strip-ansi";
-import {initLogger} from "../../../../lib/cli/middlewares/logger.js";
-import logger from "@ui5/logger";
+
+test.beforeEach(async (t) => {
+	t.context.verboseLogStub = sinon.stub();
+	t.context.setLogLevelStub = sinon.stub();
+	t.context.logger = await esmock("../../../../lib/cli/middlewares/logger.js", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				verbose: t.context.verboseLogStub,
+			}),
+			setLogLevel: t.context.setLogLevelStub,
+		}
+	});
+});
 
 test.serial("init logger", async (t) => {
-	sinon.stub(logger, "setLevel");
-	await initLogger({});
-	t.is(logger.setLevel.callCount, 0, "setLevel has not been called");
-	logger.setLevel.restore();
+	const {logger, setLogLevelStub} = t.context;
+	await logger.initLogger({});
+	t.is(setLogLevelStub.callCount, 0, "setLevel has not been called");
 });
 
 test.serial("With log-level flag", async (t) => {
-	sinon.stub(logger, "setLevel");
-	await initLogger({loglevel: "silly"});
-	t.is(logger.setLevel.callCount, 1, "setLevel has been called once");
-	t.is(logger.setLevel.getCall(0).args[0], "silly", "sets log level to verbose");
-	logger.setLevel.restore();
+	const {logger, setLogLevelStub} = t.context;
+	await logger.initLogger({loglevel: "silly"});
+	t.is(setLogLevelStub.callCount, 1, "setLevel has been called once");
+	t.is(setLogLevelStub.getCall(0).args[0], "silly", "sets log level to verbose");
 });
 
 test.serial("With log-level and verbose flag", async (t) => {
-	sinon.stub(logger, "setLevel");
-	await initLogger({loglevel: "silly", verbose: true});
-	t.is(logger.setLevel.callCount, 2, "setLevel has been called twice");
-	t.is(logger.setLevel.getCall(0).args[0], "silly", "sets log level to verbose");
-	t.is(logger.setLevel.getCall(1).args[0], "verbose", "sets log level to verbose");
-	logger.setLevel.restore();
+	const {logger, setLogLevelStub} = t.context;
+	await logger.initLogger({loglevel: "silly", verbose: true});
+	t.is(setLogLevelStub.callCount, 2, "setLevel has been called twice");
+	t.is(setLogLevelStub.getCall(0).args[0], "silly", "sets log level to verbose");
+	t.is(setLogLevelStub.getCall(1).args[0], "verbose", "sets log level to verbose");
 });
 
 import path from "node:path";

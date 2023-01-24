@@ -17,13 +17,13 @@ const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 test.beforeEach(async (t) => {
 	t.context.consoleLogStub = sinon.stub(console, "log");
 
-	t.context.loggerIsLevelEnabled = sinon.stub();
-	t.context.loggerIsLevelEnabled.withArgs("error").returns(true);
-	t.context.loggerIsLevelEnabled.withArgs("verbose").returns(false);
+	t.context.loggerIsLogLevelEnabled = sinon.stub();
+	t.context.loggerIsLogLevelEnabled.withArgs("error").returns(true);
+	t.context.loggerIsLogLevelEnabled.withArgs("verbose").returns(false);
 
 	t.context.base = await esmock("../../../lib/cli/base.js", {
 		"@ui5/logger": {
-			isLevelEnabled: t.context.loggerIsLevelEnabled
+			isLogLevelEnabled: t.context.loggerIsLogLevelEnabled
 		}
 	});
 });
@@ -122,9 +122,9 @@ test.serial("Exception error handling", async (t) => {
 });
 
 test.serial("Exception error handling without logging (silent)", async (t) => {
-	const {base, consoleLogStub, loggerIsLevelEnabled} = t.context;
+	const {base, consoleLogStub, loggerIsLogLevelEnabled} = t.context;
 
-	loggerIsLevelEnabled.withArgs("error").returns(false);
+	loggerIsLogLevelEnabled.withArgs("error").returns(false);
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -159,9 +159,9 @@ test.serial("Exception error handling without logging (silent)", async (t) => {
 });
 
 test.serial("Exception error handling with verbose logging", async (t) => {
-	const {base, consoleLogStub, loggerIsLevelEnabled} = t.context;
+	const {base, consoleLogStub, loggerIsLogLevelEnabled} = t.context;
 
-	loggerIsLevelEnabled.withArgs("verbose").returns(true);
+	loggerIsLogLevelEnabled.withArgs("verbose").returns(true);
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");

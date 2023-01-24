@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import logger from "@ui5/logger";
+import {isLogLevelEnabled} from "@ui5/logger";
 
 export default function(cli) {
 	cli.usage("Usage: ui5 <command> [options]")
@@ -39,7 +39,7 @@ export default function(cli) {
 		.fail(function(msg, err, yargs) {
 			if (err) {
 				// Exception
-				if (logger.isLevelEnabled("error")) {
+				if (isLogLevelEnabled("error")) {
 					console.log("");
 					console.log(chalk.bold.red("⚠️  Process Failed With Error"));
 
@@ -49,7 +49,7 @@ export default function(cli) {
 
 					// Unexpected errors should always be logged with stack trace
 					const unexpectedErrors = ["SyntaxError", "ReferenceError", "TypeError"];
-					if (unexpectedErrors.includes(err.name) || logger.isLevelEnabled("verbose")) {
+					if (unexpectedErrors.includes(err.name) || isLogLevelEnabled("verbose")) {
 						console.log("");
 						console.log(chalk.underline("Stack Trace:"));
 						console.log(err.stack);
