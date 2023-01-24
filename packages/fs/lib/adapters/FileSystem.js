@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("resources:adapters:FileSystem");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("resources:adapters:FileSystem");
 import path from "node:path";
 import {promisify} from "node:util";
 import fs from "graceful-fs";

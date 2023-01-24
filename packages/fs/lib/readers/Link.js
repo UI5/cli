@@ -1,8 +1,8 @@
 import AbstractReader from "../AbstractReader.js";
 import ResourceFacade from "../ResourceFacade.js";
 import {prefixGlobPattern} from "../resourceFactory.js";
-import logger from "@ui5/logger";
-const log = logger.getLogger("resources:readers:Link");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("resources:readers:Link");
 
 /**
  * A reader that allows for rewriting paths segments of all resources passed through it.

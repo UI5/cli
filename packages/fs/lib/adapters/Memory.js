@@ -1,5 +1,5 @@
-import logger from "@ui5/logger";
-const log = logger.getLogger("resources:adapters:Memory");
+import {getLogger} from "@ui5/logger";
+const log = getLogger("resources:adapters:Memory");
 import micromatch from "micromatch";
 import AbstractAdapter from "./AbstractAdapter.js";
 
