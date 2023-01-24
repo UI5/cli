@@ -19,7 +19,7 @@
 	"type": "module",
 	"exports": {
 		".": "./lib/index.js",
-		"./loggers/Logger": "./lib/loggers/Logger.js",
+		"./Logger": "./lib/loggers/Logger.js",
 		"./writers/*": "./lib/writers/*.js",
 		"./package.json": "./package.json",
 		"./internal/loggers/*": "./lib/loggers/*.js"
