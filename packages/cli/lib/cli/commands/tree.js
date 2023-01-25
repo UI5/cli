@@ -22,7 +22,7 @@ tree.builder = function(cli) {
 tree.handler = async function(argv) {
 	let startTime;
 	let elapsedTime;
-	if (argv.xPerf) {
+	if (argv.perf) {
 		startTime = process.hrtime();
 	}
 	const {graphFromStaticFile, graphFromPackageDependencies} = await import("@ui5/project/graph");
@@ -39,7 +39,7 @@ tree.handler = async function(argv) {
 		});
 	}
 
-	if (argv.xPerf) {
+	if (argv.perf) {
 		elapsedTime = await getElapsedTime(startTime);
 	}
 
@@ -93,7 +93,7 @@ tree.handler = async function(argv) {
 	} else {
 		console.log(chalk.italic(`None`));
 	}
-	if (argv.xPerf) {
+	if (argv.perf) {
 		console.log("");
 		console.log(chalk.blue(
 			`Dependency graph generation took ${chalk.bold(elapsedTime)}`));

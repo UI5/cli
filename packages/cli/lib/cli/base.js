@@ -13,18 +13,24 @@ export default function(cli) {
 		"This option will disable resolution of node package dependencies.",
 			type: "string"
 		})
-		.option("verbose", {
-			describe: "Enable verbose logging.",
-			type: "boolean"
-		})
 		.option("loglevel", {
 			alias: "log-level",
-			describe: "Set the logging level (error|warn|info|verbose|silly).",
+			describe: "Set the logging level (silent|error|warn|info|perf|verbose|silly).",
 			default: "info",
 			type: "string"
 		})
-		.option("x-perf", {
-			describe: "Outputs performance measurements",
+		.option("verbose", {
+			describe: "Enable verbose logging.",
+			default: false,
+			type: "boolean"
+		})
+		.option("silent", {
+			describe: "Disable all log output.",
+			default: false,
+			type: "boolean"
+		})
+		.option("perf", {
+			describe: "Enable performance measurements and related logging.",
 			default: false,
 			type: "boolean"
 		})

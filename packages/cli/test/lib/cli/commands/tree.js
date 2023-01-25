@@ -10,8 +10,8 @@ function getDefaultArgv() {
 		"loglevel": "info",
 		"log-level": "info",
 		"logLevel": "info",
-		"x-perf": false,
-		"xPerf": false,
+		"perf": false,
+		"silent": false,
 		"$0": "ui5"
 	};
 }
@@ -225,7 +225,7 @@ test.serial("ui5 tree --x-perf", async (t) => {
 		});
 	});
 
-	argv.xPerf = true;
+	argv.perf = true;
 
 	sinon.stub(process, "hrtime")
 		.withArgs().returns([0, 0])
