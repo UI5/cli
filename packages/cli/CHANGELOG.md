@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.0.0-rc.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.0.0-rc.4...HEAD).
+
+<a name="v3.0.0-rc.4"></a>
+## [v3.0.0-rc.4] - 2023-01-25
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-rc.6 to 3.0.0-rc.7 [`c39657c`](https://github.com/SAP/ui5-cli/commit/c39657c4399e264f699caabb368b2b02c8b09921)
+- Bump [@ui5](https://github.com/ui5)/server from 3.0.0-rc.1 to 3.0.0-rc.2 [`1bdecfb`](https://github.com/SAP/ui5-cli/commit/1bdecfb2d7846c73f14c2c5970a1a027494f7958)
+- Bump [@ui5](https://github.com/ui5)/builder from 3.0.0-rc.2 to 3.0.0-rc.3 [`bd92f25`](https://github.com/SAP/ui5-cli/commit/bd92f250f2300a9ea7437af00c9cab23bdabee6e)
+- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-rc.5 to 3.0.0-rc.6 [`6baac05`](https://github.com/SAP/ui5-cli/commit/6baac05a70a11874b41fa071aa5bb6a327f0ae7b)
+- Bump [@ui5](https://github.com/ui5)/fs from 3.0.0-rc.3 to 3.0.0-rc.4 [`83c84f4`](https://github.com/SAP/ui5-cli/commit/83c84f47f7746d17eceeb310f3655dd3d3b1f87a)
+- Bump [@ui5](https://github.com/ui5)/logger from 3.0.1-rc.1 to 3.0.1-rc.2 [`a553030`](https://github.com/SAP/ui5-cli/commit/a553030c408a64044a6cafc6975f68a2a750d806)
+- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-rc.4 to 3.0.0-rc.5 [`bb08848`](https://github.com/SAP/ui5-cli/commit/bb08848ace38a69e879d9a646ab57821b9ded7eb)
+
 
 <a name="v3.0.0-rc.3"></a>
 ## [v3.0.0-rc.3] - 2023-01-23
@@ -922,6 +934,7 @@ Only Node.js v10 or higher is supported.
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
 
+[v3.0.0-rc.4]: https://github.com/SAP/ui5-cli/compare/v3.0.0-rc.3...v3.0.0-rc.4
 [v3.0.0-rc.3]: https://github.com/SAP/ui5-cli/compare/v3.0.0-rc.2...v3.0.0-rc.3
 [v3.0.0-rc.2]: https://github.com/SAP/ui5-cli/compare/v3.0.0-rc.1...v3.0.0-rc.2
 [v3.0.0-rc.1]: https://github.com/SAP/ui5-cli/compare/v3.0.0-rc.0...v3.0.0-rc.1
