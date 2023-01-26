@@ -17,20 +17,21 @@ export default function(cli) {
 			alias: "log-level",
 			describe: "Set the logging level (silent|error|warn|info|perf|verbose|silly).",
 			default: "info",
-			type: "string"
+			type: "string",
+			choices: ["silent", "error", "warn", "info", "perf", "verbose", "silly"]
 		})
 		.option("verbose", {
 			describe: "Enable verbose logging.",
 			default: false,
 			type: "boolean"
 		})
-		.option("silent", {
-			describe: "Disable all log output.",
+		.option("perf", {
+			describe: "Enable performance measurements and related logging.",
 			default: false,
 			type: "boolean"
 		})
-		.option("perf", {
-			describe: "Enable performance measurements and related logging.",
+		.option("silent", {
+			describe: "Disable all log output.",
 			default: false,
 			type: "boolean"
 		})

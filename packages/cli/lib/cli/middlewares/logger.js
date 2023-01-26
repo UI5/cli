@@ -7,11 +7,8 @@ import {getVersion} from "../version.js";
  * @param {object} argv logger arguments
  */
 export async function initLogger(argv) {
-	if (argv.loglevel && argv.loglevel !== "info") {
-		// argv.loglevel defaults to "info", which is anyways already the Logger's default
-		// Therefore do not explicitly set it again in order to allow overwriting the log level
-		// using the UI5_LOG_LVL environment variable
-		setLogLevel(argv.loglevel);
+	if (argv.silent) {
+		setLogLevel("silent");
 	}
 	if (argv.perf) {
 		setLogLevel("perf");
@@ -19,9 +16,11 @@ export async function initLogger(argv) {
 	if (argv.verbose) {
 		setLogLevel("verbose");
 	}
-	if (argv.silent) {
-		// Silent should overrule any other log-level related CLI flags
-		setLogLevel("silent");
+	if (argv.loglevel && argv.loglevel !== "info") {
+		// argv.loglevel defaults to "info", which is anyways already the Logger's default
+		// Therefore do not explicitly set it again in order to allow overwriting the log level
+		// using the UI5_LOG_LVL environment variable
+		setLogLevel(argv.loglevel);
 	}
 
 	// Initialize writer

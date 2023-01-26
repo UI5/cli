@@ -75,18 +75,18 @@ test.serial("With log-level and verbose flag", async (t) => {
 	const {logger, setLogLevelStub} = t.context;
 	await logger.initLogger({loglevel: "silly", verbose: true});
 	t.is(setLogLevelStub.callCount, 2, "setLevel has been called twice");
-	t.is(setLogLevelStub.getCall(0).args[0], "silly", "sets log level to verbose");
-	t.is(setLogLevelStub.getCall(1).args[0], "verbose", "sets log level to verbose");
+	t.is(setLogLevelStub.getCall(0).args[0], "verbose", "sets log level to verbose");
+	t.is(setLogLevelStub.getCall(1).args[0], "silly", "sets log level to verbose");
 });
 
 test.serial("With log-level, verbose, perf and silent flag", async (t) => {
 	const {logger, setLogLevelStub} = t.context;
 	await logger.initLogger({loglevel: "silly", verbose: true, perf: true, silent: true});
 	t.is(setLogLevelStub.callCount, 4, "setLevel has been called four times");
-	t.is(setLogLevelStub.getCall(0).args[0], "silly", "sets log level to verbose");
+	t.is(setLogLevelStub.getCall(0).args[0], "silent", "sets log level to silent");
 	t.is(setLogLevelStub.getCall(1).args[0], "perf", "sets log level to perf");
 	t.is(setLogLevelStub.getCall(2).args[0], "verbose", "Third sets log level to verbose");
-	t.is(setLogLevelStub.getCall(3).args[0], "silent", "sets log level to silent");
+	t.is(setLogLevelStub.getCall(3).args[0], "silly", "sets log level to verbose");
 });
 
 import path from "node:path";
