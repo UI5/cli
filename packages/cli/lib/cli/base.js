@@ -35,6 +35,33 @@ export default function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.coerce([
+			// base.js
+			"config", "dependency-definition", "log-level",
+
+			// tree.js, build.js & serve.js
+			"framework-version",
+
+			// build.js
+			"dest",
+
+			// serve.js
+			"open", "port", "key", "cert",
+		], (arg) => {
+			// If an option is specified multiple times, yargs creates an array for all the values,
+			// independently of whether the option is of type "array" or "string".
+			// This is unexpected for options listed above, which should all only have only one definitive value.
+			// The yargs behavior could be disabled by using the parserConfiguration "duplicate-arguments-array": true
+			// However, yargs would then cease to create arrays for those options where we *do* expect the
+			// automatic creation of arrays in case the option is specified multiple times. Like "--include-task".
+			// Also see https://github.com/yargs/yargs/issues/1318
+			// Note: This is not necessary for options of type "boolean"
+			if (Array.isArray(arg)) {
+				// If the option is specified multiple times, use the value of the last option
+				return arg[arg.length - 1];
+			}
+			return arg;
+		})
 		.showHelpOnFail(true)
 		.strict(true)
 		.alias("help", "h")

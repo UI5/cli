@@ -36,33 +36,39 @@ build.builder = function(cli) {
 			describe: "A list of dependencies to be included in the build result. You can use the asterisk '*' as" +
 				" an alias for including all dependencies in the build result. The listed dependencies cannot be" +
 				" overruled by dependencies defined in 'exclude-dependency'.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("include-dependency-regexp", {
 			describe: "A list of regular expressions defining dependencies to be included in the build result." +
 				" This list is prioritized like 'include-dependency'.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("include-dependency-tree", {
 			describe: "A list of dependencies to be included in the build result. Transitive dependencies are" +
 				" implicitly included and do not need to be part of this list. These dependencies overrule" +
 				" the selection of 'exclude-dependency-tree' but can be overruled by 'exclude-dependency'.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("exclude-dependency", {
 			describe: "A list of dependencies to be excluded from the build result. The listed dependencies can" +
 				" be overruled by dependencies defined in 'include-dependency'.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("exclude-dependency-regexp", {
 			describe: "A list of regular expressions defining dependencies to be excluded from the build result." +
 				" This list is prioritized like 'exclude-dependency'.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("exclude-dependency-tree", {
 			describe: "A list of dependencies to be excluded from the build result. Transitive dependencies are" +
 				" implicitly included and do not need to be part of this list.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("dest", {
 			describe: "Path of build destination",
@@ -83,11 +89,13 @@ build.builder = function(cli) {
 		.option("include-task", {
 			describe: "A list of tasks to be added to the default execution set. " +
 				"This option takes precedence over any excludes.",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("exclude-task", {
 			describe: "A list of tasks to be excluded from the default task execution set",
-			type: "array"
+			type: "string",
+			array: true
 		})
 		.option("framework-version", {
 			describe: "Overrides the framework version defined by the project",

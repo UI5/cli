@@ -4,6 +4,7 @@ import {execa} from "execa";
 import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";
+import stripAnsi from "strip-ansi";
 import yargs from "yargs";
 import {fileURLToPath} from "node:url";
 import {readFileSync} from "node:fs";
@@ -40,6 +41,11 @@ test.serial("ui5 --version", async (t) => {
 test.serial("ui5 -v", async (t) => {
 	const {stdout} = await ui5(["-v"]);
 	t.is(stdout, `${pkg.version} (from ${ui5Cli})`);
+});
+
+test.serial("Handle multiple options", async (t) => {
+	const {stderr} = await ui5(["versions", "--log-level", "silent", "--log-level", "silly"]);
+	t.regex(stripAnsi(stderr), /^verb/, "Verbose logging got enabled");
 });
 
 test.serial("Yargs error handling", async (t) => {
