@@ -274,6 +274,12 @@ class MiddlewareManager {
 					`Custom middleware definition ${middlewareDef.name} of project ${project.getName()} ` +
 					`defines neither a "beforeMiddleware" nor an "afterMiddleware" parameter. One must be defined.`);
 			}
+			const customMiddleware = this.graph.getExtension(middlewareDef.name);
+			if (!customMiddleware) {
+				throw new Error(
+					`Could not find custom middleware ${middlewareDef.name}, ` +
+					`referenced by project ${project.getName()}`);
+			}
 
 			let middlewareName = middlewareDef.name;
 			if (this.middleware[middlewareName]) {
@@ -288,8 +294,6 @@ class MiddlewareManager {
 
 			await this.addMiddleware(middlewareName, {
 				customMiddleware: async ({resources, middlewareUtil}) => {
-					const customMiddleware = this.graph.getExtension(middlewareDef.name);
-
 					const params = {
 						resources,
 						options: {

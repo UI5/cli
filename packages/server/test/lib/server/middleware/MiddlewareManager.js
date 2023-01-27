@@ -357,7 +357,8 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 				getName: () => "my project",
 				getCustomMiddleware: () => []
 			};
-		}
+		},
+		getExtension: sinon.stub(),
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
@@ -372,6 +373,41 @@ test("addCustomMiddleware: No custom middleware defined", async (t) => {
 	await middlewareManager.addCustomMiddleware();
 
 	t.is(addMiddlewareStub.callCount, 0, "addMiddleware was not called");
+	t.is(graph.getExtension.callCount, 0, "graph#getExtension was not called");
+});
+
+test("addCustomMiddleware: Unknown custom middleware", async (t) => {
+	const {sinon} = t.context;
+	const graph = {
+		getRoot: () => {
+			return {
+				getName: () => "my project",
+				getCustomMiddleware: () => [{
+					name: "my custom middleware A",
+					afterMiddleware: "serveIndex"
+				}]
+			};
+		},
+		getExtension: sinon.stub().returns(undefined),
+	};
+	const middlewareManager = new MiddlewareManager({
+		graph,
+		rootProject: "root project",
+		resources: {
+			all: "I",
+			rootProject: "like",
+			dependencies: "ponies"
+		}
+	});
+	const addMiddlewareStub = sinon.stub(middlewareManager, "addMiddleware").resolves();
+	await t.throwsAsync(middlewareManager.addCustomMiddleware(), {
+		message: "Could not find custom middleware my custom middleware A, referenced by project my project"
+	}, "Threw with expected error message");
+
+	t.is(addMiddlewareStub.callCount, 0, "addMiddleware was not called");
+	t.is(graph.getExtension.callCount, 1, "graph#getExtension was called once");
+	t.is(graph.getExtension.firstCall.firstArg, "my custom middleware A",
+		"graph#getExtension was with expected argument");
 });
 
 test("addCustomMiddleware: Custom middleware got added", async (t) => {
@@ -389,7 +425,8 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 					afterMiddleware: "my custom middleware A"
 				}]
 			};
-		}
+		},
+		getExtension: sinon.stub().returns("extension"),
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
@@ -423,6 +460,12 @@ test("addCustomMiddleware: Custom middleware got added", async (t) => {
 		"addMiddleware was called with correct beforeMiddleware option");
 	t.is(middlewareOptionsB.afterMiddleware, "my custom middleware A",
 		"addMiddleware was called with correct afterMiddleware option");
+
+	t.is(graph.getExtension.callCount, 2, "graph#getExtension was called twice");
+	t.is(graph.getExtension.firstCall.firstArg, "my custom middleware A",
+		"graph#getExtension was with expected argument on first call");
+	t.is(graph.getExtension.secondCall.firstArg, "my custom middleware B",
+		"graph#getExtension was with expected argument on second call");
 });
 
 test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => {
@@ -436,7 +479,8 @@ test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => 
 					afterMiddleware: "serveIndex"
 				}]
 			};
-		}
+		},
+		getExtension: sinon.stub().returns("extension"),
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
@@ -455,9 +499,14 @@ test("addCustomMiddleware: Custom middleware with duplicate name", async (t) => 
 	t.is(addMiddlewareStub.callCount, 1, "addMiddleware was called once");
 	t.is(addMiddlewareStub.getCall(0).args[0], "my custom middleware A--2",
 		"addMiddleware was called with correct middleware name");
+
+	t.is(graph.getExtension.callCount, 1, "graph#getExtension was called once");
+	t.is(graph.getExtension.firstCall.firstArg, "my custom middleware A",
+		"graph#getExtension was with expected argument");
 });
 
 test("addCustomMiddleware: Missing name configuration", async (t) => {
+	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
 			return {
@@ -466,7 +515,8 @@ test("addCustomMiddleware: Missing name configuration", async (t) => {
 					afterMiddleware: "my custom middleware A"
 				}]
 			};
-		}
+		},
+		getExtension: sinon.stub().returns("extension"),
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
@@ -486,6 +536,7 @@ test("addCustomMiddleware: Missing name configuration", async (t) => {
 });
 
 test("addCustomMiddleware: Both before- and afterMiddleware configuration", async (t) => {
+	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
 			return {
@@ -496,7 +547,8 @@ test("addCustomMiddleware: Both before- and afterMiddleware configuration", asyn
 					afterMiddleware: "🐒"
 				}]
 			};
-		}
+		},
+		getExtension: sinon.stub().returns("extension"),
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
@@ -517,6 +569,7 @@ test("addCustomMiddleware: Both before- and afterMiddleware configuration", asyn
 });
 
 test("addCustomMiddleware: Missing before- or afterMiddleware configuration", async (t) => {
+	const {sinon} = t.context;
 	const graph = {
 		getRoot: () => {
 			return {
@@ -525,7 +578,8 @@ test("addCustomMiddleware: Missing before- or afterMiddleware configuration", as
 					name: "🦆"
 				}]
 			};
-		}
+		},
+		getExtension: sinon.stub().returns("extension"),
 	};
 	const middlewareManager = new MiddlewareManager({
 		graph,
