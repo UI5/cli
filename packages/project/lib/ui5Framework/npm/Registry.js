@@ -41,9 +41,6 @@ class Registry {
 			const opts = {
 				cache: this._cacheDir
 			};
-			if (log.isLevelEnabled("verbose")) {
-				opts.log = log._getLogger();
-			}
 			const config = libnpmconfig.read(opts, {
 				cwd: this._cwd
 			}).toJSON();
