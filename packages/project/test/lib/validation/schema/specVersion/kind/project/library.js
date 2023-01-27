@@ -1126,7 +1126,7 @@ test.after.always((t) => {
 		}, [{
 			dataPath: "/metadata/name",
 			keyword: "errorMessage",
-			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
+			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
 			params: {
 				errors: [{
 					dataPath: "/metadata/name",
@@ -1147,7 +1147,7 @@ test.after.always((t) => {
 		}, [{
 			dataPath: "/metadata/name",
 			keyword: "errorMessage",
-			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
+			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
 			params: {
 				errors: [{
 					dataPath: "/metadata/name",
@@ -1168,7 +1168,7 @@ test.after.always((t) => {
 		}, [{
 			dataPath: "/metadata/name",
 			keyword: "errorMessage",
-			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
+			message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
 			params: {
 				errors: [{
 					dataPath: "/metadata/name",

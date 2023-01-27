@@ -62,7 +62,7 @@ test("Empty config", async (t) => {
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "workspace/1.0"
-For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#workspace-specification-versions`,
+For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#workspace-specification-versions`,
 				params: {
 					errors: [
 						{
@@ -163,7 +163,7 @@ test("Invalid metadata.name: Illegal characters", async (t) => {
 			{
 				dataPath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
 				params: {
 					errors: [
 						{
@@ -201,7 +201,7 @@ test("Invalid metadata.name: Too short", async (t) => {
 			{
 				dataPath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
 				params: {
 					errors: [
 						{
@@ -240,7 +240,7 @@ test("Invalid metadata.name: Too long", async (t) => {
 			{
 				dataPath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
 				params: {
 					errors: [
 						{
@@ -279,7 +279,7 @@ test("Invalid fields", async (t) => {
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "workspace/1.0"
-For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#workspace-specification-versions`,
+For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#workspace-specification-versions`,
 				params: {
 					errors: [
 						{
@@ -297,7 +297,7 @@ For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#works
 			{
 				dataPath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
 				params: {
 					errors: [
 						{
@@ -348,7 +348,7 @@ test("Invalid types", async (t) => {
 				message: `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "workspace/1.0"
-For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#workspace-specification-versions`,
+For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#workspace-specification-versions`,
 				params: {
 					errors: [
 						{
@@ -366,7 +366,7 @@ For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#works
 			{
 				dataPath: "/metadata/name",
 				keyword: "errorMessage",
-				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
+				message: "Not a valid workspace name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Workspace/#name",
 				params: {
 					errors: [
 						{

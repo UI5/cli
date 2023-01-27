@@ -104,8 +104,8 @@
 					"maxLength": 50,
 					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
 					"title": "Project Name",
-					"description": "Unique identifier for the project. E.g. organization.product.project",
-					"errorMessage": "Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name"
+					"description": "Unique identifier for the project, for example: organization.product.project",
+					"errorMessage": "Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name"
 				},
 				"copyright": {
 					"type": "string"

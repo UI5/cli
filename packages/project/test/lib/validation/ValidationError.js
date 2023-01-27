@@ -860,7 +860,7 @@ test.serial("ValidationError.formatMessage: keyword=errorMessage", (t) => {
 `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "2.0", "1.1", "1.0", "0.1"
-For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`,
+For details, see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`,
 		params: {
 			errors: [
 				{
@@ -886,7 +886,7 @@ For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specific
 `Unsupported "specVersion"
 Your UI5 CLI installation might be outdated.
 Supported specification versions: "2.0", "1.1", "1.0", "0.1"
-For details see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`;
+For details, see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`;
 
 	const errorMessage = ValidationError.formatMessage(error, {});
 	t.is(errorMessage, expectedErrorMessage);
