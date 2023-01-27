@@ -53,7 +53,7 @@ class Library extends ComponentProject {
 	 * @returns {string} Absolute path to the source directory of the project
 	 */
 	getSourcePath() {
-		return fsPath.join(this.getPath(), this._srcPath);
+		return fsPath.join(this.getRootPath(), this._srcPath);
 	}
 
 	/* === Resource Access === */
@@ -85,7 +85,7 @@ class Library extends ComponentProject {
 			virBasePath += `${this._namespace}/`;
 		}
 		const testReader = resourceFactory.createReader({
-			fsBasePath: fsPath.join(this.getPath(), this._testPath),
+			fsBasePath: fsPath.join(this.getRootPath(), this._testPath),
 			virBasePath,
 			name: `Runtime test-resources reader for library project ${this.getName()}`,
 			project: this,
@@ -133,7 +133,7 @@ class Library extends ComponentProject {
 		this._testPathExists = await this._dirExists("/" + this._testPath);
 
 		this._log.verbose(`Path mapping for library project ${this.getName()}:`);
-		this._log.verbose(`  Physical root path: ${this.getPath()}`);
+		this._log.verbose(`  Physical root path: ${this.getRootPath()}`);
 		this._log.verbose(`  Mapped to:`);
 		this._log.verbose(`    /resources/ => ${this._srcPath}`);
 		this._log.verbose(

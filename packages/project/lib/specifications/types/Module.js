@@ -88,7 +88,7 @@ class Module extends Project {
 		await super._configureAndValidatePaths(config);
 
 		this._log.verbose(`Path mapping for module project ${this.getName()}:`);
-		this._log.verbose(`  Physical root path: ${this.getPath()}`);
+		this._log.verbose(`  Physical root path: ${this.getRootPath()}`);
 		this._log.verbose(`  Mapped to:`);
 
 		if (config.resources?.configuration?.paths) {
@@ -107,7 +107,7 @@ class Module extends Project {
 				return {
 					name: `'${relFsPath}'' reader for module project ${this.getName()}`,
 					virBasePath,
-					fsBasePath: fsPath.join(this.getPath(), relFsPath),
+					fsBasePath: fsPath.join(this.getRootPath(), relFsPath),
 					project: this,
 					excludes: config.builder?.resources?.excludes
 				};
@@ -121,7 +121,7 @@ class Module extends Project {
 			this._paths = [{
 				name: `Root reader for module project ${this.getName()}`,
 				virBasePath: "/",
-				fsBasePath: this.getPath(),
+				fsBasePath: this.getRootPath(),
 				project: this,
 				excludes: config.builder?.resources?.excludes
 			}];

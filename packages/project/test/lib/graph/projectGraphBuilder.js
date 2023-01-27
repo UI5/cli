@@ -76,7 +76,7 @@ test("Basic graph creation", async (t) => {
 	]);
 
 	const p = graph.getProject("id1");
-	t.is(p.getPath(), libraryEPath, "Project returned correct path");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
 
 	t.is(t.context.getRootNode.callCount, 1, "NodeProvider#getRoodNode got called once");
 	t.is(t.context.getDependencies.callCount, 1, "NodeProvider#getDependencies got called once");
@@ -104,7 +104,7 @@ test("Basic graph with dependencies", async (t) => {
 	]);
 
 	const p = graph.getProject("project-1");
-	t.is(p.getPath(), libraryEPath, "Project returned correct path");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
 
 	t.is(t.context.getRootNode.callCount, 1, "NodeProvider#getRoodNode got called once");
 	t.is(t.context.getDependencies.callCount, 3, "NodeProvider#getDependencies got called once");
@@ -268,7 +268,7 @@ test("Nested node with same id is ignored", async (t) => {
 	]);
 	const graph = await projectGraphBuilder(t.context.provider);
 	const p = graph.getProject("project-1");
-	t.is(p.getPath(), libraryEPath, "Project returned correct path");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
 	t.falsy(graph.getProject("project-3"), "Configuration of project with same ID has been ignored");
 	t.deepEqual(graph.getDependencies("project-2"), ["project-1"], "Cyclic dependency has been added");
 });
@@ -339,7 +339,7 @@ test("Dependency is a collection", async (t) => {
 		"library.c"
 	]);
 	const p = graph.getProject("project-1");
-	t.is(p.getPath(), libraryEPath, "Project returned correct path");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
 	t.deepEqual(graph.getDependencies("project-1"), [
 		"library.a", "library.b", "library.c"
 	], "Correct dependencies for root node maintained");

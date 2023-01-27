@@ -191,6 +191,7 @@ class TaskUtil {
 	 * @property {Function} getNamespace Get the project namespace
 	 * @property {Function} getRootReader Get the project rootReader
 	 * @property {Function} getReader Get the project reader
+	 * @property {Function} getRootPath Get the local File System path of the project's root directory
 	 * @property {Function} getSourcePath Get the local File System path of the project's source directory
 	 * @property {Function} getCustomConfiguration Get the project Custom Configuration
 	 * @property {Function} isFrameworkProject Check whether the project is a UI5-Framework project
@@ -310,7 +311,7 @@ class TaskUtil {
 				const baseProjectInterface = {};
 				bindFunctions(project, baseProjectInterface, [
 					"getType", "getName", "getVersion", "getNamespace",
-					"getRootReader", "getReader", "getSourcePath",
+					"getRootReader", "getReader", "getRootPath", "getSourcePath",
 					"getCustomConfiguration", "isFrameworkProject"
 				]);
 				return baseProjectInterface;

@@ -22,7 +22,7 @@ const moduleAPath = path.join(__dirname, "..", "..", "fixtures", "module.a");
 
 function createSubclass(Specification) {
 	class DummySpecification extends Specification {
-		getPath() {
+		getRootPath() {
 			return "path";
 		}
 		getType() {
@@ -68,7 +68,7 @@ test("Instantiate a basic project", async (t) => {
 	const project = await Specification.create(t.context.basicProjectInput);
 	t.is(project.getName(), "application.a", "Returned correct name");
 	t.is(project.getVersion(), "1.0.0", "Returned correct version");
-	t.is(project.getPath(), applicationAPath, "Returned correct project path");
+	t.is(project.getRootPath(), applicationAPath, "Returned correct project path");
 });
 
 test("Configurations", async (t) => {
@@ -133,7 +133,7 @@ test("Project with incorrect name", async (t) => {
 	});
 	t.is(project.getName(), "application a", "Returned correct name");
 	t.is(project.getVersion(), "1.0.0", "Returned correct version");
-	t.is(project.getPath(), applicationAPath, "Returned correct project path");
+	t.is(project.getRootPath(), applicationAPath, "Returned correct project path");
 });
 
 test("Migrate legacy project", async (t) => {

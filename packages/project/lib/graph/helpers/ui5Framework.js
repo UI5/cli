@@ -202,7 +202,7 @@ export default {
 				`No framework version defined for root project ${rootProject.getName()}`
 			);
 		} else if (options.versionOverride) {
-			version = await Resolver.resolveVersion(options.versionOverride, {cwd: rootProject.getPath()});
+			version = await Resolver.resolveVersion(options.versionOverride, {cwd: rootProject.getRootPath()});
 			log.info(
 				`Overriding configured ${frameworkName} version ` +
 				`${frameworkVersion} with version ${version}`
@@ -221,7 +221,7 @@ export default {
 
 		log.info(`Using ${frameworkName} version: ${version}`);
 
-		const resolver = new Resolver({cwd: rootProject.getPath(), version});
+		const resolver = new Resolver({cwd: rootProject.getRootPath(), version});
 
 		let startTime;
 		if (log.isLevelEnabled("verbose")) {

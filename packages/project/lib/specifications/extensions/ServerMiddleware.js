@@ -21,7 +21,7 @@ class ServerMiddleware extends Extension {
 	* @public
 	*/
 	async getMiddleware() {
-		const middlewarePath = path.join(this.getPath(), this._config.middleware.path);
+		const middlewarePath = path.join(this.getRootPath(), this._config.middleware.path);
 		const {default: middleware} = await import(pathToFileURL(middlewarePath));
 		return middleware;
 	}

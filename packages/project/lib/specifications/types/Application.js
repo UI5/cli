@@ -42,7 +42,7 @@ class Application extends ComponentProject {
 	 * @returns {string} Absolute path to the source directory of the project
 	 */
 	getSourcePath() {
-		return fsPath.join(this.getPath(), this._webappPath);
+		return fsPath.join(this.getRootPath(), this._webappPath);
 	}
 
 	/* === Resource Access === */
@@ -88,7 +88,7 @@ class Application extends ComponentProject {
 		}
 
 		this._log.verbose(`Path mapping for application project ${this.getName()}:`);
-		this._log.verbose(`  Physical root path: ${this.getPath()}`);
+		this._log.verbose(`  Physical root path: ${this.getRootPath()}`);
 		this._log.verbose(`  Mapped to: ${this._webappPath}`);
 
 		if (!(await this._dirExists("/" + this._webappPath))) {

@@ -36,7 +36,7 @@ class Task extends Extension {
 	 * @private
 	*/
 	async _getImplementation() {
-		const taskPath = path.join(this.getPath(), this._config.task.path);
+		const taskPath = path.join(this.getRootPath(), this._config.task.path);
 		const {default: task, determineRequiredDependencies} = await import(pathToFileURL(taskPath));
 		return {
 			task, determineRequiredDependencies

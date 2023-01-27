@@ -207,10 +207,10 @@ class Specification {
 	/**
 	 * Get the specification's file system path. This might not be POSIX-style on some platforms
 	 *
-	 * @private
+	 * @public
 	 * @returns {string} Project root path
 	 */
-	getPath() {
+	getRootPath() {
 		return this._modulePath;
 	}
 
@@ -227,7 +227,7 @@ class Specification {
 	*/
 	getRootReader({useGitignore=true} = {}) {
 		return createReader({
-			fsBasePath: this.getPath(),
+			fsBasePath: this.getRootPath(),
 			virBasePath: "/",
 			name: `Root reader for ${this.getType()} ${this.getKind()} ${this.getName()}`,
 			useGitignore
