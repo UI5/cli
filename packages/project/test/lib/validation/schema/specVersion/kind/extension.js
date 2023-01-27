@@ -152,3 +152,43 @@ test.after.always((t) => {
 		}]);
 	});
 });
+
+test("Legacy: Special characters in name (task)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"kind": "extension",
+		"type": "task",
+		"metadata": {
+			"name": "ä".repeat(51)
+		},
+		"task": {
+			"path": "task.js"
+		}
+	});
+});
+
+test("Legacy: Special characters in name (server-middleware)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"kind": "extension",
+		"type": "server-middleware",
+		"metadata": {
+			"name": "@my(middleware)"
+		},
+		"middleware": {
+			"path": "middleware.js"
+		}
+	});
+});
+
+test("Legacy: Special characters in name (project-shim)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"kind": "extension",
+		"type": "project-shim",
+		"metadata": {
+			"name": "my/(project)-shim"
+		},
+		"shims": {}
+	});
+});

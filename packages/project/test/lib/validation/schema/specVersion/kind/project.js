@@ -195,3 +195,43 @@ test("No specVersion", async (t) => {
 		}
 	}]);
 });
+
+test("Legacy: Special characters in name (application)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"type": "application",
+		"metadata": {
+			"name": "/".repeat(51)
+		}
+	});
+});
+
+test("Legacy: Special characters in name (library)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"type": "library",
+		"metadata": {
+			"name": "my/(library)"
+		}
+	});
+});
+
+test("Legacy: Special characters in name (theme-library)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"type": "theme-library",
+		"metadata": {
+			"name": "my/(theme)-library"
+		}
+	});
+});
+
+test("Legacy: Special characters in name (module)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "2.0",
+		"type": "module",
+		"metadata": {
+			"name": "my/(module)"
+		}
+	});
+});

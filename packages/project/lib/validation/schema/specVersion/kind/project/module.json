@@ -6,13 +6,13 @@
 	"required": ["specVersion", "type", "metadata"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.5", "2.6", "3.0"] }
+			"specVersion": { "enum": ["3.0"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.5", "2.6", "3.0"] },
+			"specVersion": { "enum": ["3.0"] },
 			"kind": {
 				"enum": ["project", null]
 			},
@@ -20,7 +20,7 @@
 				"enum": ["module"]
 			},
 			"metadata": {
-				"$ref": "../project.json#/definitions/metadata"
+				"$ref": "../project.json#/definitions/metadata-3.0"
 			},
 			"resources": {
 				"$ref": "#/definitions/resources"
@@ -40,13 +40,13 @@
 	"else": {
 		"if": {
 			"properties": {
-				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] }
+				"specVersion": { "enum": ["2.5", "2.6"] }
 			}
 		},
 		"then": {
 			"additionalProperties": false,
 			"properties": {
-				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] },
+				"specVersion": { "enum": ["2.5", "2.6"] },
 				"kind": {
 					"enum": ["project", null]
 				},
@@ -58,6 +58,12 @@
 				},
 				"resources": {
 					"$ref": "#/definitions/resources"
+				},
+				"builder": {
+					"$ref": "#/definitions/builder-specVersion-2.5"
+				},
+				"server": {
+					"$ref": "../project.json#/definitions/server"
 				},
 				"customConfiguration": {
 					"type": "object",
@@ -66,25 +72,53 @@
 			}
 		},
 		"else": {
-			"additionalProperties": false,
-			"properties": {
-				"specVersion": { "enum": ["2.0"] },
-				"kind": {
-					"enum": ["project", null]
-				},
-				"type": {
-					"enum": ["module"]
-				},
-				"metadata": {
-					"$ref": "../project.json#/definitions/metadata"
-				},
-				"resources": {
-					"$ref": "#/definitions/resources"
+			"if": {
+				"properties": {
+					"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] }
+				}
+			},
+			"then": {
+				"additionalProperties": false,
+				"properties": {
+					"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] },
+					"kind": {
+						"enum": ["project", null]
+					},
+					"type": {
+						"enum": ["module"]
+					},
+					"metadata": {
+						"$ref": "../project.json#/definitions/metadata"
+					},
+					"resources": {
+						"$ref": "#/definitions/resources"
+					},
+					"customConfiguration": {
+						"type": "object",
+						"additionalProperties": true
+					}
+				}
+			},
+			"else": {
+				"additionalProperties": false,
+				"properties": {
+					"specVersion": { "enum": ["2.0"] },
+					"kind": {
+						"enum": ["project", null]
+					},
+					"type": {
+						"enum": ["module"]
+					},
+					"metadata": {
+						"$ref": "../project.json#/definitions/metadata"
+					},
+					"resources": {
+						"$ref": "#/definitions/resources"
+					}
 				}
 			}
 		}
 	},
-
 	"definitions": {
 		"resources": {
 			"type": "object",

@@ -93,6 +93,37 @@
 				}
 			}
 		},
+		"metadata-3.0": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string",
+					"minLength": 3,
+					"maxLength": 50,
+					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
+					"title": "Project Name",
+					"description": "Unique identifier for the project. E.g. organization.product.project",
+					"errorMessage": "Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name"
+				},
+				"copyright": {
+					"type": "string"
+				},
+				"deprecated": {
+					"type": "boolean",
+					"default": false
+				},
+				"sapInternal": {
+					"type": "boolean",
+					"default": false
+				},
+				"allowSapInternal": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
 		"resources-configuration-propertiesFileSourceEncoding": {
 			"enum": ["UTF-8", "ISO-8859-1"],
 			"default": "UTF-8",

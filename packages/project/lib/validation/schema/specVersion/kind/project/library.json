@@ -20,7 +20,7 @@
 				"enum": ["library"]
 			},
 			"metadata": {
-				"$ref": "../project.json#/definitions/metadata"
+				"$ref": "../project.json#/definitions/metadata-3.0"
 			},
 			"framework": {
 				"$ref": "../project.json#/definitions/framework"

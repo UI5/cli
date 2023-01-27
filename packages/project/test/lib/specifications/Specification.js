@@ -149,7 +149,7 @@ test("Migrate legacy project unexpected configuration", async (t) => {
 	const err = await t.throwsAsync(Specification.create(t.context.basicProjectInput));
 
 	t.is(err.message,
-		"project application.a defines unsupported Specification Version 1.0. Please manually upgrade to 2.0 or " +
+		"project application.a defines unsupported Specification Version 1.0. Please manually upgrade to 3.0 or " +
 		"higher. For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions - " +
 		"An attempted migration to a supported specification version failed, likely due to unrecognized " +
 		"configuration. Check verbose log for details.",

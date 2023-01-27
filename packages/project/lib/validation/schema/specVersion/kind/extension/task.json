@@ -6,13 +6,13 @@
 	"required": ["specVersion", "kind", "type", "metadata", "task"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "3.0"] }
+			"specVersion": { "enum": ["3.0"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "3.0"] },
+			"specVersion": { "enum": ["3.0"] },
 			"kind": {
 				"enum": ["extension"]
 			},
@@ -20,7 +20,7 @@
 				"enum": ["task"]
 			},
 			"metadata": {
-				"$ref": "../extension.json#/definitions/metadata"
+				"$ref": "../extension.json#/definitions/metadata-3.0"
 			},
 			"task": {
 				"$ref": "#/definitions/task"
@@ -32,20 +32,49 @@
 		}
 	},
 	"else": {
-		"additionalProperties": false,
-		"properties": {
-			"specVersion": { "enum": ["2.0"] },
-			"kind": {
-				"enum": ["extension"]
-			},
-			"type": {
-				"enum": ["task"]
-			},
-			"metadata": {
-				"$ref": "../extension.json#/definitions/metadata"
-			},
-			"task": {
-				"$ref": "#/definitions/task"
+		"if": {
+			"properties": {
+				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] }
+			}
+		},
+		"then": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] },
+				"kind": {
+					"enum": ["extension"]
+				},
+				"type": {
+					"enum": ["task"]
+				},
+				"metadata": {
+					"$ref": "../extension.json#/definitions/metadata"
+				},
+				"task": {
+					"$ref": "#/definitions/task"
+				},
+				"customConfiguration": {
+					"type": "object",
+					"additionalProperties": true
+				}
+			}
+		},
+		"else": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.0"] },
+				"kind": {
+					"enum": ["extension"]
+				},
+				"type": {
+					"enum": ["task"]
+				},
+				"metadata": {
+					"$ref": "../extension.json#/definitions/metadata"
+				},
+				"task": {
+					"$ref": "#/definitions/task"
+				}
 			}
 		}
 	},

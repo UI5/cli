@@ -75,25 +75,6 @@ export default {
 				}]);
 			});
 
-			test(`${type} (specVersion ${specVersion}): Invalid metadata.name`, async (t) => {
-				await assertValidation(t, {
-					"specVersion": specVersion,
-					"type": type,
-					"metadata": {
-						"name": {}
-					}
-				}, [
-					{
-						dataPath: "/metadata/name",
-						keyword: "type",
-						message: "should be string",
-						params: {
-							type: "string"
-						}
-					}
-				]);
-			});
-
 			test(`${type} (specVersion ${specVersion}): Invalid metadata.copyright`, async (t) => {
 				await assertValidation(t, {
 					"specVersion": specVersion,
@@ -276,6 +257,55 @@ export default {
 						additionalProperty: "notAllowed",
 					},
 				}]);
+			});
+		});
+
+		["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+			test(`${type} (specVersion ${specVersion}): Invalid metadata.name`, async (t) => {
+				await assertValidation(t, {
+					"specVersion": specVersion,
+					"type": type,
+					"metadata": {
+						"name": {}
+					}
+				}, [
+					{
+						dataPath: "/metadata/name",
+						keyword: "type",
+						message: "should be string",
+						params: {
+							type: "string"
+						}
+					}
+				]);
+			});
+		});
+
+		["3.0"].forEach((specVersion) => {
+			test(`${type} (specVersion ${specVersion}): Invalid metadata.name`, async (t) => {
+				await assertValidation(t, {
+					"specVersion": specVersion,
+					"type": type,
+					"metadata": {
+						"name": {}
+					}
+				}, [
+					{
+						dataPath: "/metadata/name",
+						keyword: "errorMessage",
+						message: `Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore and period only. Additionally, it may contain an npm-style package scope. For details see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name`,
+						params: {
+							errors: [{
+								dataPath: "/metadata/name",
+								keyword: "type",
+								message: "should be string",
+								params: {
+									type: "string",
+								}
+							}]
+						},
+					}
+				]);
 			});
 		});
 	}

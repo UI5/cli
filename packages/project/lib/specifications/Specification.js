@@ -120,7 +120,7 @@ class Specification {
 				this._log.verbose(err.message);
 				throw new Error(
 					`${config.kind} ${config.metadata.name} defines unsupported Specification Version ` +
-					`${originalSpecVersion}. Please manually upgrade to 2.0 or higher. ` +
+					`${originalSpecVersion}. Please manually upgrade to 3.0 or higher. ` +
 					`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions - ` +
 					`An attempted migration to a supported specification version failed, ` +
 					`likely due to unrecognized configuration. Check verbose log for details.`);
@@ -249,6 +249,9 @@ class Specification {
 	}
 
 	_migrateLegacyProject(config) {
+		// Stick to 2.6 since 3.0 adds further restrictions (i.e. for the name) and enables
+		// functionality for extensions that shouldn't be enabled if the specVersion is not
+		// explicitly set to 3.x
 		config.specVersion = "2.6";
 
 		// propertiesFileSourceEncoding (relevant for applications and libraries) default
