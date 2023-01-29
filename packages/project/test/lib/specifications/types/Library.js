@@ -211,7 +211,7 @@ test("_configureAndValidatePaths: Source directory does not exist", async (t) =>
 	projectInput.configuration.resources.configuration.paths.src = "does/not/exist";
 	const err = await t.throwsAsync(new Library().init(projectInput));
 
-	t.is(err.message, "Unable to find directory 'does/not/exist' in library project library.d");
+	t.is(err.message, "Unable to find source directory 'does/not/exist' in library project library.d");
 });
 
 test("_parseConfiguration: Get copyright", async (t) => {

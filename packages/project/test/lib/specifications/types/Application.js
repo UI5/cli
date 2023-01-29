@@ -191,7 +191,7 @@ test("_configureAndValidatePaths: Webapp directory does not exist", async (t) =>
 	};
 	const err = await t.throwsAsync(Specification.create(projectInput));
 
-	t.is(err.message, "Unable to find directory 'does/not/exist' in application project application.a");
+	t.is(err.message, "Unable to find source directory 'does/not/exist' in application project application.a");
 });
 
 test("_getNamespaceFromManifestJson: No 'sap.app' configuration found", async (t) => {

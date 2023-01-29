@@ -139,5 +139,5 @@ test("_configureAndValidatePaths: Directory does not exist", async (t) => {
 	projectInput.configuration.resources.configuration.paths.doesNotExist = "does/not/exist";
 	const err = await t.throwsAsync(Specification.create(projectInput));
 
-	t.is(err.message, "Unable to find directory 'does/not/exist' in module project module.a");
+	t.is(err.message, "Unable to find source directory 'does/not/exist' in module project module.a");
 });

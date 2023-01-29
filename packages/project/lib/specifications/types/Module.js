@@ -87,32 +87,37 @@ class Module extends Project {
 	async _configureAndValidatePaths(config) {
 		await super._configureAndValidatePaths(config);
 
-		this._log.verbose(`Path mapping for library project ${this.getName()}:`);
+		this._log.verbose(`Path mapping for module project ${this.getName()}:`);
 		this._log.verbose(`  Physical root path: ${this.getPath()}`);
 		this._log.verbose(`  Mapped to:`);
 
 		if (config.resources?.configuration?.paths) {
-			this._paths = await Promise.all(Object.entries(config.resources.configuration.paths)
-				.map(async ([virBasePath, relFsPath]) => {
+			const pathMappings = Object.entries(config.resources.configuration.paths);
+			if (this._log.isLevelEnabled("verbose")) {
+				// Log synchronously before async dir-exists checks
+				pathMappings.forEach(([virBasePath, relFsPath]) => {
 					this._log.verbose(`    ${virBasePath} => ${relFsPath}`);
-					if (!(await this._dirExists("/" + relFsPath))) {
-						throw new Error(
-							`Unable to find directory '${relFsPath}' in module project ${this.getName()}`);
-					}
-					return {
-						name: `'${relFsPath}'' reader for module project ${this.getName()}`,
-						virBasePath,
-						fsBasePath: fsPath.join(this.getPath(), relFsPath),
-						project: this,
-						excludes: config.builder?.resources?.excludes
-					};
-				}));
+				});
+			}
+			this._paths = await Promise.all(pathMappings.map(async ([virBasePath, relFsPath]) => {
+				if (!(await this._dirExists("/" + relFsPath))) {
+					throw new Error(
+						`Unable to find source directory '${relFsPath}' in module project ${this.getName()}`);
+				}
+				return {
+					name: `'${relFsPath}'' reader for module project ${this.getName()}`,
+					virBasePath,
+					fsBasePath: fsPath.join(this.getPath(), relFsPath),
+					project: this,
+					excludes: config.builder?.resources?.excludes
+				};
+			}));
 		} else {
+			this._log.verbose(`    / => <project root>`);
 			if (!(await this._dirExists("/"))) {
 				throw new Error(
 					`Unable to find root directory of module project ${this.getName()}`);
 			}
-			this._log.verbose(`    / => <project root>`);
 			this._paths = [{
 				name: `Root reader for module project ${this.getName()}`,
 				virBasePath: "/",

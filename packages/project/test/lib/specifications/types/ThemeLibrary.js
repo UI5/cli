@@ -119,5 +119,5 @@ test("_configureAndValidatePaths: Source directory does not exist", async (t) =>
 	};
 	const err = await t.throwsAsync(Specification.create(projectInput));
 
-	t.is(err.message, "Unable to find directory 'does/not/exist' in theme-library project theme.library.e");
+	t.is(err.message, "Unable to find source directory 'does/not/exist' in theme-library project theme.library.e");
 });

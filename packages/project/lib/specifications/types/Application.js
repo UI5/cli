@@ -93,7 +93,7 @@ class Application extends ComponentProject {
 
 		if (!(await this._dirExists("/" + this._webappPath))) {
 			throw new Error(
-				`Unable to find directory '${this._webappPath}' in application project ${this.getName()}`);
+				`Unable to find source directory '${this._webappPath}' in application project ${this.getName()}`);
 		}
 	}
 
