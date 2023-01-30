@@ -33,7 +33,7 @@ export default async function({projectGraphOptions, libraries}) {
 	const Resolver = getFrameworkResolver(project.getFrameworkName());
 
 	const resolver = new Resolver({
-		cwd: project.getPath(),
+		cwd: project.getRootPath(),
 		version: project.getFrameworkVersion()
 	});
 

@@ -11,7 +11,7 @@ function createMockProject(attr) {
 				lt: () => attr.specVersion === "1.0",
 			};
 		},
-		getPath: () => attr.path,
+		getRootPath: () => attr.path,
 		getFrameworkName: () => attr.frameworkName,
 		getFrameworkVersion: () => attr.frameworkVersion,
 	};

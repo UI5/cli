@@ -42,7 +42,7 @@ export default async function({projectGraphOptions, frameworkOptions}) {
 			frameworkName: framework.name,
 			frameworkVersion
 		}, {
-			cwd: project.getPath()
+			cwd: project.getRootPath()
 		});
 	}
 

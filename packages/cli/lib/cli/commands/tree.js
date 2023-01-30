@@ -57,7 +57,7 @@ tree.handler = async function(argv) {
 					`${baseString}${connectorString} ${chalk.bold(project.getName())} ` +
 					`${project.getNamespace() ? chalk.inverse(project.getNamespace()) + " " : ""}` +
 					chalk.dim(`(${project.getVersion()}, ${project.getType()}) `) +
-					chalk.dim.italic(`${project.getPath()}`)
+					chalk.dim.italic(`${project.getRootPath()}`)
 				);
 
 				const lastIdx = dependencies.length - 1;
@@ -88,7 +88,7 @@ tree.handler = async function(argv) {
 			console.log(
 				`${connectorString} ${extensionName} ` +
 				chalk.dim(`(${extension.getVersion()}, ${extension.getType()}) `) +
-				chalk.dim.italic(`${extension.getPath()}`));
+				chalk.dim.italic(`${extension.getRootPath()}`));
 		});
 	} else {
 		console.log(chalk.italic(`None`));

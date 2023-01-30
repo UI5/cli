@@ -146,10 +146,10 @@ export default async function({project, configPathOverride, data}) {
 		if (path.isAbsolute(configPathOverride)) {
 			configPath = configPathOverride;
 		} else {
-			configPath = path.join(project.getPath(), configPathOverride);
+			configPath = path.join(project.getRootPath(), configPathOverride);
 		}
 	} else {
-		configPath = path.join(project.getPath(), "ui5.yaml");
+		configPath = path.join(project.getRootPath(), "ui5.yaml");
 	}
 
 	const configFile = await readFile(configPath, {encoding: "utf8"});

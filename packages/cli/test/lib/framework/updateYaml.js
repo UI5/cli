@@ -32,7 +32,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -76,7 +76,7 @@ shims:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -132,7 +132,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -174,7 +174,7 @@ metadata:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -202,7 +202,7 @@ metadata:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -235,7 +235,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -268,7 +268,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -302,7 +302,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -343,7 +343,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -387,7 +387,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -425,7 +425,7 @@ resources:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -463,7 +463,7 @@ resources:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -508,7 +508,7 @@ resources:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -553,7 +553,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -594,7 +594,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -640,7 +640,7 @@ resources:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -691,7 +691,7 @@ resources:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -738,7 +738,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -780,7 +780,7 @@ framework: { name: "SAPUI5" }
 
 	const error = await t.throwsAsync(updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -814,7 +814,7 @@ metadata:
 
 	const error = await t.throwsAsync(updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project-3"
 		},
 		configPathOverride: "ui5.yaml",
@@ -839,7 +839,7 @@ something: else
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		data: {
@@ -876,7 +876,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		configPathOverride: path.join("dir", "other-file.yaml"),
@@ -916,7 +916,7 @@ framework:
 
 	await updateYaml({
 		project: {
-			getPath: () => "my-project",
+			getRootPath: () => "my-project",
 			getName: () => "my-project"
 		},
 		configPathOverride: path.join("/", "dir", "other-file.yaml"),

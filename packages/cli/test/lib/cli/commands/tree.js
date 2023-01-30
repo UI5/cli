@@ -57,7 +57,7 @@ test.serial("ui5 tree (Without dependencies)", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: []
 		});
@@ -91,7 +91,7 @@ test.serial("ui5 tree", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: ["dependency1", "dependency2"]
 		});
@@ -101,7 +101,7 @@ test.serial("ui5 tree", async (t) => {
 				getNamespace: sinon.stub().returns("test/dependency2"),
 				getVersion: sinon.stub().returns("2.0.0"),
 				getType: sinon.stub().returns("library"),
-				getPath: sinon.stub().returns("/home/dependency2")
+				getRootPath: sinon.stub().returns("/home/dependency2")
 			},
 			dependencies: ["dependency1"]
 		});
@@ -111,7 +111,7 @@ test.serial("ui5 tree", async (t) => {
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("1.1.1"),
 				getType: sinon.stub().returns("library"),
-				getPath: sinon.stub().returns("/home/dependency1")
+				getRootPath: sinon.stub().returns("/home/dependency1")
 			},
 			dependencies: ["dependency3"]
 		});
@@ -121,7 +121,7 @@ test.serial("ui5 tree", async (t) => {
 				getNamespace: sinon.stub().returns(null),
 				getVersion: sinon.stub().returns("3.3.3"),
 				getType: sinon.stub().returns("library"),
-				getPath: sinon.stub().returns("/home/dependency3")
+				getRootPath: sinon.stub().returns("/home/dependency3")
 			},
 			dependencies: []
 		});
@@ -163,7 +163,7 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: []
 		});
@@ -174,12 +174,12 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 		getName: sinon.stub().returns("extension1"),
 		getVersion: sinon.stub().returns("3.0.0"),
 		getType: sinon.stub().returns("task"),
-		getPath: sinon.stub().returns("/home/extension1")
+		getRootPath: sinon.stub().returns("/home/extension1")
 	}).onSecondCall().returns({
 		getName: sinon.stub().returns("extension2"),
 		getVersion: sinon.stub().returns("5.0.0"),
 		getType: sinon.stub().returns("middleware"),
-		getPath: sinon.stub().returns("/home/extension2")
+		getRootPath: sinon.stub().returns("/home/extension2")
 	});
 
 	await tree.handler(argv);
@@ -221,7 +221,7 @@ test.serial("ui5 tree --x-perf", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: []
 		});
@@ -265,7 +265,7 @@ test.serial("ui5 tree --framework-version", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: []
 		});
@@ -301,7 +301,7 @@ test.serial("ui5 tree --config", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: []
 		});
@@ -337,7 +337,7 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 				getNamespace: sinon.stub().returns("test/project1"),
 				getVersion: sinon.stub().returns("1.0.0"),
 				getType: sinon.stub().returns("application"),
-				getPath: sinon.stub().returns("/home/project1")
+				getRootPath: sinon.stub().returns("/home/project1")
 			},
 			dependencies: []
 		});
