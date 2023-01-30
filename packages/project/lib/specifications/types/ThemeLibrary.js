@@ -127,15 +127,11 @@ class ThemeLibrary extends Project {
 			}
 		}
 
-		if (!(await this._dirExists("/" + this._testPath))) {
-			this._testPathExists = false;
-		} else {
-			this._testPathExists = true;
-		}
 		if (!(await this._dirExists("/" + this._srcPath))) {
 			throw new Error(
 				`Unable to find source directory '${this._srcPath}' in theme-library project ${this.getName()}`);
 		}
+		this._testPathExists = await this._dirExists("/" + this._testPath);
 
 		this._log.verbose(`Path mapping for theme-library project ${this.getName()}:`);
 		this._log.verbose(`  Physical root path: ${this.getPath()}`);

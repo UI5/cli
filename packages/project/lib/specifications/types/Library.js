@@ -126,15 +126,11 @@ class Library extends ComponentProject {
 				this._testPath = config.resources.configuration.paths.test;
 			}
 		}
-		if (!(await this._dirExists("/" + this._testPath))) {
-			this._testPathExists = false;
-		} else {
-			this._testPathExists = true;
-		}
 		if (!(await this._dirExists("/" + this._srcPath))) {
 			throw new Error(
 				`Unable to find source directory '${this._srcPath}' in library project ${this.getName()}`);
 		}
+		this._testPathExists = await this._dirExists("/" + this._testPath);
 
 		this._log.verbose(`Path mapping for library project ${this.getName()}:`);
 		this._log.verbose(`  Physical root path: ${this.getPath()}`);
