@@ -44,7 +44,16 @@ test("Correct class", async (t) => {
 	t.true(project instanceof Module, `Is an instance of the Module class`);
 });
 
-test("Access project resources via reader", async (t) => {
+test("getSourcePath: Throws", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.throws(() => {
+		project.getSourcePath();
+	}, {
+		message: "Projects of type module have more than one source path"
+	}, "Threw with expected error message");
+});
+
+test("Access project resources via reader (multiple mappings)", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 	const reader = project.getReader();
 	const resource1 = await reader.byPath("/dev/devTools.js");
@@ -54,6 +63,19 @@ test("Access project resources via reader", async (t) => {
 	const resource2 = await reader.byPath("/index.js");
 	t.truthy(resource2, "Found the requested resource");
 	t.is(resource2.getPath(), "/index.js", "Resource has correct path");
+});
+
+test("Access project resources via reader (one mapping)", async (t) => {
+	const projectInput = clone(basicProjectInput);
+	delete projectInput.configuration.resources.configuration.paths["/"];
+	const project = await Specification.create(projectInput);
+	const reader = project.getReader();
+	const resource1 = await reader.byPath("/dev/devTools.js");
+	t.truthy(resource1, "Found the requested resource");
+	t.is(resource1.getPath(), "/dev/devTools.js", "Resource has correct path");
+
+	const resource2 = await reader.byPath("/index.js");
+	t.falsy(resource2, "Could not find resource in unmapped path");
 });
 
 test("Modify project resources via workspace and access via reader", async (t) => {

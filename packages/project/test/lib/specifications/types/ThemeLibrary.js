@@ -42,6 +42,11 @@ test("getCopyright", async (t) => {
 	t.is(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
 });
 
+test("getSourcePath", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.is(project.getSourcePath(), path.join(themeLibraryEPath, "src"), "Correct source path");
+});
+
 test("Access project resources via reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 	const reader = project.getReader();

@@ -78,16 +78,16 @@ class Specification {
 	 */
 	async init({id, version, modulePath, configuration}) {
 		if (!id) {
-			throw new Error(`Could not create specification: Missing or empty parameter 'id'`);
+			throw new Error(`Could not create Specification: Missing or empty parameter 'id'`);
 		}
 		if (!version) {
-			throw new Error(`Could not create specification: Missing or empty parameter 'version'`);
+			throw new Error(`Could not create Specification: Missing or empty parameter 'version'`);
 		}
 		if (!modulePath) {
-			throw new Error(`Could not create specification: Missing or empty parameter 'modulePath'`);
+			throw new Error(`Could not create Specification: Missing or empty parameter 'modulePath'`);
 		}
 		if (!configuration) {
-			throw new Error(`Could not create specification: Missing or empty parameter 'configuration'`);
+			throw new Error(`Could not create Specification: Missing or empty parameter 'configuration'`);
 		}
 
 		this._version = version;

@@ -21,7 +21,7 @@ const genericExtensionPath = path.join(__dirname, "..", "..", "fixtures", "exten
 const moduleAPath = path.join(__dirname, "..", "..", "fixtures", "module.a");
 
 function createSubclass(Specification) {
-	class DummySpecification extends Specification {
+	class MockSpecification extends Specification {
 		getRootPath() {
 			return "path";
 		}
@@ -35,7 +35,7 @@ function createSubclass(Specification) {
 			return "name";
 		}
 	}
-	return DummySpecification;
+	return MockSpecification;
 }
 
 test.beforeEach((t) => {
@@ -69,6 +69,46 @@ test("Instantiate a basic project", async (t) => {
 	t.is(project.getName(), "application.a", "Returned correct name");
 	t.is(project.getVersion(), "1.0.0", "Returned correct version");
 	t.is(project.getRootPath(), applicationAPath, "Returned correct project path");
+});
+
+test("init: Missing id", async (t) => {
+	delete t.context.basicProjectInput.id;
+	await t.throwsAsync(Specification.create(t.context.basicProjectInput), {
+		message: "Could not create Specification: Missing or empty parameter 'id'"
+	}, "Threw with expected error message");
+});
+
+test("init: Missing version", async (t) => {
+	delete t.context.basicProjectInput.version;
+	await t.throwsAsync(Specification.create(t.context.basicProjectInput), {
+		message: "Could not create Specification: Missing or empty parameter 'version'"
+	}, "Threw with expected error message");
+});
+
+test("init: Missing modulePath", async (t) => {
+	delete t.context.basicProjectInput.modulePath;
+	await t.throwsAsync(Specification.create(t.context.basicProjectInput), {
+		message: "Could not create Specification: Missing or empty parameter 'modulePath'"
+	}, "Threw with expected error message");
+});
+
+test("init: Missing configuration", async (t) => {
+	delete t.context.basicProjectInput.configuration;
+	const project = new Application();
+
+	await t.throwsAsync(project.init(t.context.basicProjectInput), {
+		message: "Could not create Specification: Missing or empty parameter 'configuration'"
+	}, "Threw with expected error message");
+});
+
+test("init: Invalid constructor name", async (t) => {
+	const MockSpecification = createSubclass(Specification);
+	const project = new MockSpecification();
+
+	await t.throwsAsync(project.init(t.context.basicProjectInput), {
+		message: "Configuration mismatch: Supplied configuration of type 'application' " +
+		"does not match with specification class MockSpecification"
+	}, "Threw with expected error message");
 });
 
 test("Configurations", async (t) => {
@@ -339,8 +379,8 @@ test("getRootReader: Default parameters", async (t) => {
 		}
 	});
 
-	const DummySpecification = createSubclass(Specification);
-	const spec = new DummySpecification();
+	const MockSpecification = createSubclass(Specification);
+	const spec = new MockSpecification();
 	await spec.getRootReader();
 
 	t.is(createReaderStub.callCount, 1, "createReader got called once");
@@ -360,8 +400,8 @@ test("getRootReader: Custom parameters", async (t) => {
 		}
 	});
 
-	const DummySpecification = createSubclass(Specification);
-	const spec = new DummySpecification();
+	const MockSpecification = createSubclass(Specification);
+	const spec = new MockSpecification();
 	await spec.getRootReader({});
 	await spec.getRootReader({
 		useGitignore: false
