@@ -127,7 +127,7 @@ test.serial("ui5Framework translator should throw an error when framework versio
 	], "Traversed graph in correct order");
 });
 
-test.serial("generateDependencyTree (with versionOverride)", async (t) => {
+test.serial("enrichProjectGraph (with versionOverride)", async (t) => {
 	const {
 		sinon, ui5Framework, utils,
 		Sapui5ResolverStub, Sapui5ResolverResolveVersionStub, Sapui5ResolverInstallStub
@@ -179,7 +179,7 @@ test.serial("generateDependencyTree (with versionOverride)", async (t) => {
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
 
-test.serial("generateDependencyTree should throw error when no framework version is provided", async (t) => {
+test.serial("enrichProjectGraph should throw error when no framework version is provided", async (t) => {
 	const {ui5Framework} = t.context;
 	const dependencyTree = {
 		id: "test-id",
@@ -203,15 +203,9 @@ test.serial("generateDependencyTree should throw error when no framework version
 	await t.throwsAsync(async () => {
 		await ui5Framework.enrichProjectGraph(projectGraph);
 	}, {message: "No framework version defined for root project application.a"});
-
-	await t.throwsAsync(async () => {
-		await ui5Framework.enrichProjectGraph(projectGraph, {
-			versionOverride: "1.75.0"
-		});
-	}, {message: "No framework version defined for root project application.a"});
 });
 
-test.serial("generateDependencyTree should skip framework project without version", async (t) => {
+test.serial("enrichProjectGraph should skip framework project without version", async (t) => {
 	const {ui5Framework} = t.context;
 	const dependencyTree = {
 		id: "@sapui5/project",
@@ -235,8 +229,14 @@ test.serial("generateDependencyTree should skip framework project without versio
 	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
 });
 
-test.serial("generateDependencyTree should skip framework project with version and framework config", async (t) => {
-	const {ui5Framework} = t.context;
+test.serial("enrichProjectGraph should resolve framework project with version and framework config", async (t) => {
+	// Framework projects should not specify framework versions, but they might do so in dedicated configuration files
+	// In this case the graph is generated the usual way for the root-project. However, framework projects on
+	// other levels of the graph are ignored
+	const {
+		sinon, ui5Framework, utils,
+		Sapui5ResolverStub, Sapui5ResolverInstallStub
+	} = t.context;
 	const dependencyTree = {
 		id: "@sapui5/project",
 		version: "1.2.3",
@@ -257,17 +257,136 @@ test.serial("generateDependencyTree should skip framework project with version a
 					}
 				]
 			}
-		}
+		},
+		dependencies: [{
+			id: "@openui5/test1", // Will not be scanned
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "library.d"
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "lib2"
+					}]
+				}
+			}
+		}]
 	};
+	const referencedLibraries = ["lib1"];
+	const libraryMetadata = {fake: "metadata"};
+
+	const getFrameworkLibrariesFromGraphStub =
+		sinon.stub(utils, "getFrameworkLibrariesFromGraph").resolves(referencedLibraries);
+
+	Sapui5ResolverInstallStub.resolves({libraryMetadata});
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
 
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
-	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
+	t.is(projectGraph.getSize(), 2, "Project graph should remain unchanged");
+
+	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGrap should be called once");
+	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
+	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
+		cwd: dependencyTree.path,
+		version: "1.2.3"
+	}], "Sapui5Resolver#constructor should be called with expected args");
 });
 
-test.serial("generateDependencyTree should throw for framework project with dependency missing in graph", async (t) => {
+test.serial("enrichProjectGraph should resolve framework project " +
+	"with framework config and version override", async (t) => {
+	// Framework projects should not specify framework versions, but they might do so in dedicated configuration files
+	// In this case the graph is generated the usual way for the root-project. However, framework projects on
+	// other levels of the graph are ignored
+	const {
+		sinon, ui5Framework, utils,
+		Sapui5ResolverStub, Sapui5ResolverResolveVersionStub, Sapui5ResolverInstallStub
+	} = t.context;
+	const dependencyTree = {
+		id: "@sapui5/project",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				libraries: [
+					{
+						name: "lib1",
+						optional: true
+					}
+				]
+			}
+		},
+		dependencies: [{
+			id: "@openui5/test1", // Will not be scanned
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "library.d"
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "lib2"
+					}]
+				}
+			}
+		}]
+	};
+	const referencedLibraries = ["lib1"];
+	const libraryMetadata = {fake: "metadata"};
+
+	const getFrameworkLibrariesFromGraphStub =
+		sinon.stub(utils, "getFrameworkLibrariesFromGraph").resolves(referencedLibraries);
+
+	Sapui5ResolverInstallStub.resolves({libraryMetadata});
+	Sapui5ResolverResolveVersionStub.resolves("1.99.9");
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "3.4.5"});
+	t.is(projectGraph.getSize(), 2, "Project graph should remain unchanged");
+
+	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
+	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGrap should be called once");
+	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
+		cwd: dependencyTree.path,
+		version: "1.99.9"
+	}], "Sapui5Resolver#constructor should be called with expected args");
+});
+
+test.serial("enrichProjectGraph should throw for framework project with dependency missing in graph", async (t) => {
 	const {ui5Framework} = t.context;
 	const dependencyTree = {
 		id: "@sapui5/project",
@@ -281,7 +400,6 @@ test.serial("generateDependencyTree should throw for framework project with depe
 			},
 			framework: {
 				name: "SAPUI5",
-				version: "1.2.3",
 				libraries: [
 					{
 						name: "lib1"
@@ -295,11 +413,11 @@ test.serial("generateDependencyTree should throw for framework project with depe
 	const projectGraph = await projectGraphBuilder(provider);
 
 	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph));
-	t.is(err.message, `Missing framework dependency lib1 for project application.a`,
+	t.is(err.message, `Missing framework dependency lib1 for framework project application.a`,
 		"Threw with expected error message");
 });
 
-test.serial("generateDependencyTree should ignore root project without framework configuration", async (t) => {
+test.serial("enrichProjectGraph should ignore root project without framework configuration", async (t) => {
 	const {ui5Framework} = t.context;
 	const dependencyTree = {
 		id: "@sapui5/project",
@@ -376,7 +494,8 @@ test.serial("utils.getFrameworkLibrariesFromTree: Project without dependencies",
 	t.deepEqual(ui5Dependencies, []);
 });
 
-test.serial("utils.getFrameworkLibrariesFromTree: Framework project", async (t) => {
+test.serial("utils.getFrameworkLibrariesFromTree: Framework project with framework dependency", async (t) => {
+	// Only root-level framework projects are scanned
 	const {utils} = t.context;
 	const dependencyTree = {
 		id: "@sapui5/project",
@@ -399,7 +518,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Framework project", async (t) 
 			}
 		},
 		dependencies: [{
-			id: "@openui5/test1",
+			id: "@openui5/test1", // Will not be scanned
 			version: "1.2.3",
 			path: libraryEPath,
 			configuration: {
@@ -421,7 +540,7 @@ test.serial("utils.getFrameworkLibrariesFromTree: Framework project", async (t) 
 	const projectGraph = await projectGraphBuilder(provider);
 
 	const ui5Dependencies = await utils.getFrameworkLibrariesFromGraph(projectGraph);
-	t.deepEqual(ui5Dependencies, []);
+	t.deepEqual(ui5Dependencies, ["lib1"]);
 });
 
 test.serial("utils.getFrameworkLibrariesFromTree: Project with libraries and dependency with libraries", async (t) => {

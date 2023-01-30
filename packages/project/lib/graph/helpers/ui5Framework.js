@@ -69,7 +69,7 @@ const utils = {
 		const ui5Dependencies = [];
 		const rootProject = projectGraph.getRoot();
 		await projectGraph.traverseBreadthFirst(async ({project}) => {
-			if (project.isFrameworkProject()) {
+			if (project !== rootProject && project.isFrameworkProject()) {
 				// Ignoring UI5 Framework libraries in dependencies
 				return;
 			}
@@ -93,7 +93,7 @@ const utils = {
 	async declareFrameworkDependenciesInGraph(projectGraph) {
 		const rootProject = projectGraph.getRoot();
 		await projectGraph.traverseBreadthFirst(async ({project}) => {
-			if (project.isFrameworkProject()) {
+			if (project !== rootProject && project.isFrameworkProject()) {
 				// Ignoring UI5 Framework libraries in dependencies
 				return;
 			}
@@ -147,7 +147,7 @@ const utils = {
  *
  *
  * @private
- * @module @ui5/project/translators/ui5Framework
+ * @module @ui5/project/helpers/ui5Framework
  */
 export default {
 	/**
@@ -157,26 +157,34 @@ export default {
 	 * @param {@ui5/project/graph/ProjectGraph} projectGraph
 	 * @param {object} [options]
 	 * @param {string} [options.versionOverride] Framework version to use instead of the root projects framework
-	 *   version from the provided <code>tree</code>
+	 *   version
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
 		const rootProject = projectGraph.getRoot();
+		const frameworkName = rootProject.getFrameworkName();
+		const frameworkVersion = rootProject.getFrameworkVersion();
 
-		if (rootProject.isFrameworkProject()) {
+		// It is allowed omit the framework version in ui5.yaml and only provide one via the override
+		// This is a common use case for framework libraries, which generally should not define a
+		// framework version in their respective ui5.yaml
+		let version = options.versionOverride || frameworkVersion;
+
+		if (rootProject.isFrameworkProject() && !version) {
+			// If the root project is a framework project and no framework version is defined,
+			// all framework dependencies must already be part of the graph
 			rootProject.getFrameworkDependencies().forEach((dep) => {
 				if (utils.shouldIncludeDependency(dep) && !projectGraph.getProject(dep.name)) {
 					throw new Error(
-						`Missing framework dependency ${dep.name} for project ${rootProject.getName()}`);
+						`Missing framework dependency ${dep.name} for framework project ${rootProject.getName()}`);
 				}
 			});
-			// Ignoring UI5 Framework libraries in dependencies
+			// All framework dependencies are already present in the graph
 			return projectGraph;
 		}
 
-		const frameworkName = rootProject.getFrameworkName();
-		const frameworkVersion = rootProject.getFrameworkVersion();
+
 		if (!frameworkName && !frameworkVersion) {
 			log.verbose(`Root project ${rootProject.getName()} has no framework configuration. Nothing to do here`);
 			return projectGraph;
@@ -189,6 +197,12 @@ export default {
 			);
 		}
 
+		if (!version) {
+			throw new Error(
+				`No framework version defined for root project ${rootProject.getName()}`
+			);
+		}
+
 		let Resolver;
 		if (frameworkName === "OpenUI5") {
 			Resolver = (await import("../../ui5Framework/Openui5Resolver.js")).default;
@@ -196,19 +210,12 @@ export default {
 			Resolver = (await import("../../ui5Framework/Sapui5Resolver.js")).default;
 		}
 
-		let version;
-		if (!frameworkVersion) {
-			throw new Error(
-				`No framework version defined for root project ${rootProject.getName()}`
-			);
-		} else if (options.versionOverride) {
+		if (options.versionOverride) {
 			version = await Resolver.resolveVersion(options.versionOverride, {cwd: rootProject.getRootPath()});
 			log.info(
 				`Overriding configured ${frameworkName} version ` +
 				`${frameworkVersion} with version ${version}`
 			);
-		} else {
-			version = frameworkVersion;
 		}
 
 		const referencedLibraries = await utils.getFrameworkLibrariesFromGraph(projectGraph);
