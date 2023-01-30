@@ -13,6 +13,15 @@ export default function(cli) {
 		"This option will disable resolution of node package dependencies.",
 			type: "string"
 		})
+		.option("workspace-config", {
+			describe: "Path to workspace configuration file in YAML format",
+			type: "string"
+		})
+		.option("workspace", {
+			describe: "Name of the workspace configuration to use",
+			default: "default",
+			type: "string"
+		})
 		.option("loglevel", {
 			alias: "log-level",
 			describe: "Set the logging level (silent|error|warn|info|perf|verbose|silly).",
@@ -37,7 +46,7 @@ export default function(cli) {
 		})
 		.coerce([
 			// base.js
-			"config", "dependency-definition", "log-level",
+			"config", "dependency-definition", "workspace-config", "workspace", "log-level",
 
 			// tree.js, build.js & serve.js
 			"framework-version",

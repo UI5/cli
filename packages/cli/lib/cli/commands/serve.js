@@ -88,7 +88,9 @@ serve.handler = async function(argv) {
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
-			versionOverride: argv.frameworkVersion
+			versionOverride: argv.frameworkVersion,
+			workspaceConfigPath: argv.workspaceConfig,
+			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});
 	}
 

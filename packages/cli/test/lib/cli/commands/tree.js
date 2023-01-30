@@ -1,3 +1,4 @@
+import path from "node:path";
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
@@ -67,9 +68,10 @@ test.serial("ui5 tree (Without dependencies)", async (t) => {
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
-	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
-		{rootConfigPath: undefined, versionOverride: undefined}
-	]);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: undefined,
+	}]);
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
@@ -131,9 +133,10 @@ test.serial("ui5 tree", async (t) => {
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
-	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
-		{rootConfigPath: undefined, versionOverride: undefined}
-	]);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: undefined,
+	}]);
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (4):")}
@@ -194,9 +197,10 @@ test.serial("ui5 tree (With extensions)", async (t) => {
 		"getExtension called with expected extension name");
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
-	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
-		{rootConfigPath: undefined, versionOverride: undefined}
-	]);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: undefined,
+	}]);
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
@@ -211,7 +215,7 @@ ${chalk.dim.italic("/home/extension2")}
 `);
 });
 
-test.serial("ui5 tree --x-perf", async (t) => {
+test.serial("ui5 tree --perf", async (t) => {
 	const {argv, tree, traverseBreadthFirst, graph} = t.context;
 
 	traverseBreadthFirst.callsFake(async (fn) => {
@@ -237,9 +241,10 @@ test.serial("ui5 tree --x-perf", async (t) => {
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
-	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
-		{rootConfigPath: undefined, versionOverride: undefined}
-	]);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: undefined,
+	}]);
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
@@ -275,9 +280,10 @@ test.serial("ui5 tree --framework-version", async (t) => {
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
-	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
-		{rootConfigPath: undefined, versionOverride: "1.234.5"}
-	]);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: "1.234.5",
+		workspaceConfigPath: undefined, workspaceName: undefined,
+	}]);
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
@@ -292,7 +298,8 @@ ${chalk.italic("None")}
 test.serial("ui5 tree --config", async (t) => {
 	const {argv, tree, traverseBreadthFirst, graph} = t.context;
 
-	argv.config = "/home/project1/config.yaml";
+	const fakePath = path.join("/", "path", "to", "ui5.yaml");
+	argv.config = fakePath;
 
 	traverseBreadthFirst.callsFake(async (fn) => {
 		await fn({
@@ -311,9 +318,122 @@ test.serial("ui5 tree --config", async (t) => {
 
 	t.is(graph.graphFromStaticFile.callCount, 0);
 	t.is(graph.graphFromPackageDependencies.callCount, 1);
-	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [
-		{rootConfigPath: "/home/project1/config.yaml", versionOverride: undefined}
-	]);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: fakePath, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: undefined,
+	}]);
+
+	t.is(t.context.consoleOutput,
+		`${chalk.bold.underline("Dependencies (1):")}
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+${chalk.dim.italic("/home/project1")}
+
+${chalk.bold.underline("Extensions (0):")}
+${chalk.italic("None")}
+`);
+});
+
+test.serial("ui5 tree --workspace", async (t) => {
+	const {argv, tree, traverseBreadthFirst, graph} = t.context;
+
+	argv.workspace = "dolphin";
+
+	traverseBreadthFirst.callsFake(async (fn) => {
+		await fn({
+			project: {
+				getName: sinon.stub().returns("project1"),
+				getNamespace: sinon.stub().returns("test/project1"),
+				getVersion: sinon.stub().returns("1.0.0"),
+				getType: sinon.stub().returns("application"),
+				getRootPath: sinon.stub().returns("/home/project1")
+			},
+			dependencies: []
+		});
+	});
+
+	await tree.handler(argv);
+
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: "dolphin",
+	}]);
+
+	t.is(t.context.consoleOutput,
+		`${chalk.bold.underline("Dependencies (1):")}
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+${chalk.dim.italic("/home/project1")}
+
+${chalk.bold.underline("Extensions (0):")}
+${chalk.italic("None")}
+`);
+});
+
+test.serial("ui5 tree --no-workspace", async (t) => {
+	const {argv, tree, traverseBreadthFirst, graph} = t.context;
+
+	argv.workspace = false;
+
+	traverseBreadthFirst.callsFake(async (fn) => {
+		await fn({
+			project: {
+				getName: sinon.stub().returns("project1"),
+				getNamespace: sinon.stub().returns("test/project1"),
+				getVersion: sinon.stub().returns("1.0.0"),
+				getType: sinon.stub().returns("application"),
+				getRootPath: sinon.stub().returns("/home/project1")
+			},
+			dependencies: []
+		});
+	});
+
+	await tree.handler(argv);
+
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: undefined, workspaceName: null,
+	}]);
+
+	t.is(t.context.consoleOutput,
+		`${chalk.bold.underline("Dependencies (1):")}
+╰─ ${chalk.bold("project1")} ${chalk.inverse("test/project1")} ${chalk.dim("(1.0.0, application) ")}\
+${chalk.dim.italic("/home/project1")}
+
+${chalk.bold.underline("Extensions (0):")}
+${chalk.italic("None")}
+`);
+});
+
+test.serial("ui5 tree --workspace-config", async (t) => {
+	const {argv, tree, traverseBreadthFirst, graph} = t.context;
+
+	const fakePath = path.join("/", "path", "to", "ui5-workspace.yaml");
+	argv.workspaceConfig = fakePath;
+
+	traverseBreadthFirst.callsFake(async (fn) => {
+		await fn({
+			project: {
+				getName: sinon.stub().returns("project1"),
+				getNamespace: sinon.stub().returns("test/project1"),
+				getVersion: sinon.stub().returns("1.0.0"),
+				getType: sinon.stub().returns("application"),
+				getRootPath: sinon.stub().returns("/home/project1")
+			},
+			dependencies: []
+		});
+	});
+
+	await tree.handler(argv);
+
+	t.is(graph.graphFromStaticFile.callCount, 0);
+	t.is(graph.graphFromPackageDependencies.callCount, 1);
+	t.deepEqual(graph.graphFromPackageDependencies.getCall(0).args, [{
+		rootConfigPath: undefined, versionOverride: undefined,
+		workspaceConfigPath: fakePath, workspaceName: undefined,
+	}]);
 
 	t.is(t.context.consoleOutput,
 		`${chalk.bold.underline("Dependencies (1):")}
@@ -328,7 +448,8 @@ ${chalk.italic("None")}
 test.serial("ui5 tree --dependency-definition", async (t) => {
 	const {argv, tree, traverseBreadthFirst, graph} = t.context;
 
-	argv.dependencyDefinition = "/home/project1/dependencies.yaml";
+	const fakePath = path.join("/", "path", "to", "dependencies.yaml");
+	argv.dependencyDefinition = fakePath;
 
 	traverseBreadthFirst.callsFake(async (fn) => {
 		await fn({
@@ -348,7 +469,7 @@ test.serial("ui5 tree --dependency-definition", async (t) => {
 	t.is(graph.graphFromPackageDependencies.callCount, 0);
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [
-		{filePath: "/home/project1/dependencies.yaml", versionOverride: undefined}
+		{filePath: fakePath, versionOverride: undefined}
 	]);
 
 	t.is(t.context.consoleOutput,

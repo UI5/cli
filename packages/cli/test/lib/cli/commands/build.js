@@ -1,3 +1,4 @@
+import path from "node:path";
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
@@ -123,7 +124,9 @@ test.serial("ui5 build --framework-version", async (t) => {
 		graphFromPackageDependenciesStub.getCall(0).args[0],
 		{
 			rootConfigPath: undefined,
-			versionOverride: "1.99.0"
+			versionOverride: "1.99.0",
+			workspaceConfigPath: undefined,
+			workspaceName: undefined,
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -139,7 +142,64 @@ test.serial("ui5 build --config", async (t) => {
 		graphFromPackageDependenciesStub.getCall(0).args[0],
 		{
 			rootConfigPath: "ui5-test.yaml",
-			versionOverride: undefined
+			versionOverride: undefined,
+			workspaceConfigPath: undefined,
+			workspaceName: undefined,
+		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
+	);
+});
+
+test.serial("ui5 build --workspace", async (t) => {
+	const {build, argv, graphFromPackageDependenciesStub} = t.context;
+
+	argv.workspace = "dolphin";
+
+	await build.handler(argv);
+
+	t.deepEqual(
+		graphFromPackageDependenciesStub.getCall(0).args[0],
+		{
+			rootConfigPath: undefined,
+			versionOverride: undefined,
+			workspaceConfigPath: undefined,
+			workspaceName: "dolphin",
+		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
+	);
+});
+
+test.serial("ui5 build --no-workspace", async (t) => {
+	const {build, argv, graphFromPackageDependenciesStub} = t.context;
+
+	argv.workspace = false;
+
+	await build.handler(argv);
+
+	t.deepEqual(
+		graphFromPackageDependenciesStub.getCall(0).args[0],
+		{
+			rootConfigPath: undefined,
+			versionOverride: undefined,
+			workspaceConfigPath: undefined,
+			workspaceName: null,
+		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
+	);
+});
+
+test.serial("ui5 build --workspace-config", async (t) => {
+	const {build, argv, graphFromPackageDependenciesStub} = t.context;
+
+	const fakePath = path.join("/", "path", "to", "ui5-workspace.yaml");
+	argv.workspaceConfig = fakePath;
+
+	await build.handler(argv);
+
+	t.deepEqual(
+		graphFromPackageDependenciesStub.getCall(0).args[0],
+		{
+			rootConfigPath: undefined,
+			versionOverride: undefined,
+			workspaceConfigPath: fakePath,
+			workspaceName: undefined,
 		}, "generateProjectGraph.graphFromPackageDependencies got called with expected arguments"
 	);
 });
@@ -156,7 +216,7 @@ test.serial("ui5 build --dependency-definition", async (t) => {
 		{
 			filePath: "dependencies.yaml",
 			rootConfigPath: undefined,
-			versionOverride: undefined
+			versionOverride: undefined,
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -174,7 +234,7 @@ test.serial("ui5 build --dependency-definition --config", async (t) => {
 		{
 			filePath: "dependencies.yaml",
 			rootConfigPath: "ui5-test.yaml",
-			versionOverride: undefined
+			versionOverride: undefined,
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
@@ -193,7 +253,7 @@ test.serial("ui5 build --dependency-definition --config --framework-version", as
 		{
 			filePath: "dependencies.yaml",
 			rootConfigPath: "ui5-test.yaml",
-			versionOverride: "1.99.0"
+			versionOverride: "1.99.0",
 		}, "generateProjectGraph.graphFromStaticFile got called with expected arguments"
 	);
 });
