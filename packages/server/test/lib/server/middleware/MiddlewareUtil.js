@@ -285,6 +285,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		getVersion: () => "version",
 		getNamespace: () => "namespace",
 		getRootReader: () => "rootReader",
+		getRootPath: () => "rootPath",
 		getReader: () => "reader",
 		getSourcePath: () => "sourcePath",
 		getCustomConfiguration: () => "customConfiguration",
@@ -325,6 +326,7 @@ test("getInterface: specVersion 3.0", (t) => {
 		"getNamespace",
 		"getRootReader",
 		"getReader",
+		"getRootPath",
 		"getSourcePath",
 		"getCustomConfiguration",
 		"isFrameworkProject",
@@ -335,6 +337,7 @@ test("getInterface: specVersion 3.0", (t) => {
 	t.is(interfacedProject.getVersion(), "version", "getVersion function is bound correctly");
 	t.is(interfacedProject.getNamespace(), "namespace", "getNamespace function is bound correctly");
 	t.is(interfacedProject.getRootReader(), "rootReader", "getRootReader function is bound correctly");
+	t.is(interfacedProject.getRootPath(), "rootPath", "getRootPath function is bound correctly");
 	t.is(interfacedProject.getReader(), "reader", "getReader function is bound correctly");
 	t.is(interfacedProject.getSourcePath(), "sourcePath", "getSourcePath function is bound correctly");
 	t.is(interfacedProject.getCustomConfiguration(), "customConfiguration",

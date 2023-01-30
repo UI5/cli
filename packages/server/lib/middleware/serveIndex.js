@@ -56,7 +56,7 @@ function createResourceInfo(resource) {
 		size: formatSize(stat.size),
 		sizeInBytes: stat.size,
 		project: resource.getProject()?.getName() || "<unknown>",
-		projectPath: resource.getProject()?.getPath() || "<unknown>"
+		projectPath: resource.getProject()?.getRootPath() || "<unknown>"
 	};
 }
 
