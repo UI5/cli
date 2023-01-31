@@ -32,6 +32,32 @@ test.serial("Log event", (t) => {
 		"Logged expected message");
 });
 
+test.serial("Enable", (t) => {
+	const {stderrWriteStub} = t.context;
+
+	// Disable and overwrite writer created in beforeEach hook
+	t.context.consoleWriter.disable();
+	const consoleWriter = t.context.consoleWriter = new ConsoleWriter();
+
+	process.emit("ui5.log", {
+		level: "info",
+		message: "Message 1",
+		moduleName: "my:module"
+	});
+
+	t.is(stderrWriteStub.callCount, 0, "Logged no message after creation");
+
+	consoleWriter.enable();
+
+	process.emit("ui5.log", {
+		level: "info",
+		message: "Message 2",
+		moduleName: "my:module"
+	});
+
+	t.is(stderrWriteStub.callCount, 1, "Logged one message after being enabled");
+});
+
 test.serial("Disable", (t) => {
 	const {consoleWriter, stderrWriteStub} = t.context;
 	consoleWriter.disable();
@@ -45,7 +71,7 @@ test.serial("Disable", (t) => {
 	t.is(stderrWriteStub.callCount, 0, "Logged no message");
 });
 
-test.serial("Enable", (t) => {
+test.serial("Disable + Enable", (t) => {
 	const {consoleWriter, stderrWriteStub} = t.context;
 	consoleWriter.disable();
 
@@ -68,6 +94,45 @@ test.serial("Enable", (t) => {
 	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
 		`info my:module Message 2\n`,
 		"Logged expected message");
+});
+
+test.serial("Stop", (t) => {
+	const {stderrWriteStub} = t.context;
+
+	ConsoleWriter.stop();
+	process.emit("ui5.log", {
+		level: "info",
+		message: "Message 1",
+		moduleName: "my:module"
+	});
+
+	t.is(stderrWriteStub.callCount, 0, "Logged no message");
+});
+
+test.serial("Stop disables all instances", (t) => {
+	const {stderrWriteStub} = t.context;
+
+	ConsoleWriter.init();
+	ConsoleWriter.init();
+
+	process.emit("ui5.log", {
+		level: "info",
+		message: "Message 1",
+		moduleName: "my:module"
+	});
+
+	t.is(stderrWriteStub.callCount, 3, "Logged three message");
+	stderrWriteStub.resetHistory();
+
+	ConsoleWriter.stop();
+
+	process.emit("ui5.log", {
+		level: "info",
+		message: "Message 2",
+		moduleName: "my:module"
+	});
+
+	t.is(stderrWriteStub.callCount, 0, "Logged no message");
 });
 
 test.serial("Logging restricted by log level setting", (t) => {
