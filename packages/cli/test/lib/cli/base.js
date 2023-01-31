@@ -21,10 +21,14 @@ test.beforeEach(async (t) => {
 	t.context.isLogLevelEnabledStub = sinon.stub();
 	t.context.isLogLevelEnabledStub.withArgs("error").returns(true);
 	t.context.isLogLevelEnabledStub.withArgs("verbose").returns(false);
+	t.context.consoleWriterStopStub = sinon.stub();
 
 	t.context.base = await esmock("../../../lib/cli/base.js", {
 		"@ui5/logger": {
 			isLogLevelEnabled: t.context.isLogLevelEnabledStub
+		},
+		"@ui5/logger/writers/Console": {
+			stop: t.context.consoleWriterStopStub
 		}
 	});
 });
@@ -49,7 +53,7 @@ test.serial("Handle multiple options", async (t) => {
 });
 
 test.serial("Yargs error handling", async (t) => {
-	const {consoleLogStub} = t.context;
+	const {consoleLogStub, consoleWriterStopStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -76,6 +80,7 @@ test.serial("Yargs error handling", async (t) => {
 	const errorCode = await processExit;
 
 	t.is(errorCode, 1, "Should exit with error code 1");
+	t.is(consoleWriterStopStub.callCount, 0, "ConsoleWriter.stop did not get called");
 	t.is(consoleLogStub.callCount, 4);
 	t.deepEqual(consoleLogStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
 	t.deepEqual(consoleLogStub.getCall(1).args, ["Unknown argument: invalid"], "Correct error log");
@@ -87,7 +92,7 @@ test.serial("Yargs error handling", async (t) => {
 
 
 test.serial("Exception error handling", async (t) => {
-	const {base, consoleLogStub} = t.context;
+	const {base, consoleLogStub, consoleWriterStopStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -118,6 +123,7 @@ test.serial("Exception error handling", async (t) => {
 	const errorCode = await processExit;
 
 	t.is(errorCode, 1, "Should exit with error code 1");
+	t.is(consoleWriterStopStub.callCount, 1, "ConsoleWriter.stop got called once");
 	t.is(consoleLogStub.callCount, 7);
 	t.deepEqual(consoleLogStub.getCall(1).args, [chalk.bold.red("⚠️  Process Failed With Error")], "Correct error log");
 	t.deepEqual(consoleLogStub.getCall(3).args, [chalk.underline("Error Message:")], "Correct error log");
@@ -128,7 +134,7 @@ test.serial("Exception error handling", async (t) => {
 });
 
 test.serial("Exception error handling without logging (silent)", async (t) => {
-	const {base, consoleLogStub, isLogLevelEnabledStub} = t.context;
+	const {base, consoleLogStub, isLogLevelEnabledStub, consoleWriterStopStub} = t.context;
 
 	isLogLevelEnabledStub.withArgs("error").returns(false);
 
@@ -161,6 +167,7 @@ test.serial("Exception error handling without logging (silent)", async (t) => {
 	const errorCode = await processExit;
 
 	t.is(errorCode, 1, "Should exit with error code 1");
+	t.is(consoleWriterStopStub.callCount, 1, "ConsoleWriter.stop got called once");
 	t.is(consoleLogStub.callCount, 0);
 });
 
@@ -217,7 +224,7 @@ test.serial("Exception error handling with verbose logging", async (t) => {
 });
 
 test.serial("Unexpected error handling", async (t) => {
-	const {consoleLogStub} = t.context;
+	const {consoleLogStub, consoleWriterStopStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -250,6 +257,7 @@ test.serial("Unexpected error handling", async (t) => {
 	const errorCode = await processExit;
 
 	t.is(errorCode, 1, "Should exit with error code 1");
+	t.is(consoleWriterStopStub.callCount, 0, "ConsoleWriter.stop did not get called");
 	t.is(consoleLogStub.callCount, 10);
 	t.deepEqual(consoleLogStub.getCall(1).args, [chalk.bold.red("⚠️  Process Failed With Error")], "Correct error log");
 	t.deepEqual(consoleLogStub.getCall(3).args, [chalk.underline("Error Message:")], "Correct error log");

@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import {isLogLevelEnabled} from "@ui5/logger";
+import ConsoleWriter from "@ui5/logger/writers/Console";
 
 export default function(cli) {
 	cli.usage("Usage: ui5 <command> [options]")
@@ -87,6 +88,7 @@ export default function(cli) {
 			"Execute command with the maximum log output")
 		.fail(function(msg, err, yargs) {
 			if (err) {
+				ConsoleWriter.stop();
 				// Exception
 				if (isLogLevelEnabled("error")) {
 					console.log("");
