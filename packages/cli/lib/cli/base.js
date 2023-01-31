@@ -5,6 +5,7 @@ export default function(cli) {
 	cli.usage("Usage: ui5 <command> [options]")
 		.demandCommand(1, "Command required! Please have a look at the help documentation above.")
 		.option("config", {
+			alias: "c",
 			describe: "Path to project configuration file in YAML format",
 			type: "string"
 		})
@@ -18,6 +19,7 @@ export default function(cli) {
 			type: "string"
 		})
 		.option("workspace", {
+			alias: "w",
 			describe: "Name of the workspace configuration to use",
 			default: "default",
 			type: "string"
@@ -75,10 +77,14 @@ export default function(cli) {
 		.strict(true)
 		.alias("help", "h")
 		.alias("version", "v")
-		.example("ui5 <command> --translator static:/path/to/projectDependencies.yaml",
-			"Execute command using a \"static\" translator with translator parameters")
+		.example("ui5 <command> --dependency-definition /path/to/projectDependencies.yaml",
+			"Execute command using a static dependency tree instead of resolving node package dependencies")
 		.example("ui5 <command> --config /path/to/ui5.yaml",
 			"Execute command using a project configuration from custom path")
+		.example("ui5 <command> --workspace dolphin",
+			"Execute command using the 'dolphin' workspace of a ui5-workspace.yaml")
+		.example("ui5 <command> --log-level silly",
+			"Execute command with the maximum log output")
 		.fail(function(msg, err, yargs) {
 			if (err) {
 				// Exception
