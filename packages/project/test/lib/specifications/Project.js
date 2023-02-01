@@ -92,6 +92,63 @@ test("getCustomTasks/getCustomMiddleware defaults", async (t) => {
 		"Returned correct default value for custom middleware configuration");
 });
 
+test("getFramework*: Defaults", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	const project = await Specification.create(customProjectInput);
+	t.is(project.getFrameworkName(), undefined, "Returned correct framework name");
+	t.is(project.getFrameworkVersion(), undefined, "Returned correct framework version");
+	t.deepEqual(project.getFrameworkDependencies(), [], "Returned correct framework dependencies");
+	t.false(project.isFrameworkProject(), "Is not a framework project");
+});
+
+test("getFramework* configurations", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.framework = {
+		name: "OpenUI5",
+		version: "1.111.1",
+		libraries: [
+			{name: "lib-1"},
+			{name: "lib-2"},
+		]
+	};
+	customProjectInput.id = "@openui5/" + customProjectInput.id;
+	const project = await Specification.create(customProjectInput);
+	t.is(project.getFrameworkName(), "OpenUI5", "Returned correct framework name");
+	t.is(project.getFrameworkVersion(), "1.111.1", "Returned correct framework version");
+	t.deepEqual(project.getFrameworkDependencies(), [
+		{name: "lib-1"},
+		{name: "lib-2"}
+	], "Returned correct framework dependencies");
+	t.true(project.isFrameworkProject(), "Is a framework project");
+});
+
+test("isFrameworkProject: sapui5", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.id = "@sapui5/" + customProjectInput.id;
+	const project = await Specification.create(customProjectInput);
+	t.true(project.isFrameworkProject(), "Is a framework project");
+});
+
+test("isDeprecated/isSapInternal: Defaults", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+
+	const project = await Specification.create(customProjectInput);
+	t.false(project.isDeprecated(), "Is not deprecated");
+	t.false(project.isSapInternal(), "Is not SAP-internal");
+	t.false(project.getAllowSapInternal(), "Does not allow SAP-internal");
+});
+
+test("isDeprecated/isSapInternal: True", async (t) => {
+	const customProjectInput = clone(basicProjectInput);
+	customProjectInput.configuration.metadata.deprecated = true;
+	customProjectInput.configuration.metadata.sapInternal = true;
+	customProjectInput.configuration.metadata.allowSapInternal = true;
+	const project = await Specification.create(customProjectInput);
+	t.true(project.isDeprecated(), "Is deprecated");
+	t.true(project.isSapInternal(), "Is SAP-internal");
+	t.true(project.getAllowSapInternal(), "Does allow SAP-internal");
+});
+
 test("getServerSettings", async (t) => {
 	const customProjectInput = clone(basicProjectInput);
 	customProjectInput.configuration.server = {

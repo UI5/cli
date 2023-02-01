@@ -47,6 +47,12 @@ test("getSourcePath", async (t) => {
 	t.is(project.getSourcePath(), path.join(themeLibraryEPath, "src"), "Correct source path");
 });
 
+test("getNamespace", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.is(project.getNamespace(), null,
+		"Returned no namespace");
+});
+
 test("Access project resources via reader", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 	const reader = project.getReader();

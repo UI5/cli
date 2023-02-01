@@ -46,6 +46,21 @@ test("Correct class", async (t) => {
 
 test("getSourcePath: Throws", async (t) => {
 	const project = await Specification.create(basicProjectInput);
+	const err = t.throws(() => {
+		project.getSourcePath();
+	});
+	t.is(err.message, "Projects of type module have more than one source path",
+		"Threw with expected error message");
+});
+
+test("getNamespace", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.is(project.getNamespace(), null,
+		"Returned no namespace");
+});
+
+test("Access project resources via reader", async (t) => {
+	const project = await Specification.create(basicProjectInput);
 	t.throws(() => {
 		project.getSourcePath();
 	}, {

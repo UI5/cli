@@ -62,6 +62,12 @@ test("getNamespace", async (t) => {
 		"Returned correct namespace");
 });
 
+test("getSourcePath", async (t) => {
+	const project = await (new Library().init(basicProjectInput));
+	t.is(project.getSourcePath(), path.join(libraryDPath, "main", "src"),
+		"Returned correct source path");
+});
+
 test("getPropertiesFileSourceEncoding: Default", async (t) => {
 	const project = await (new Library().init(basicProjectInput));
 	t.is(project.getPropertiesFileSourceEncoding(), "UTF-8",

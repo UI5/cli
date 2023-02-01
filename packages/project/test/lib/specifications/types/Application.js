@@ -34,6 +34,18 @@ test("Correct class", async (t) => {
 	t.true(project instanceof Application, `Is an instance of the Application class`);
 });
 
+test("getNamespace", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.is(project.getNamespace(), "id1",
+		"Returned correct namespace");
+});
+
+test("getSourcePath", async (t) => {
+	const project = await Specification.create(basicProjectInput);
+	t.is(project.getSourcePath(), path.join(applicationAPath, "webapp"),
+		"Returned correct source path");
+});
+
 test("getCachebusterSignatureType: Default", async (t) => {
 	const project = await Specification.create(basicProjectInput);
 	t.is(project.getCachebusterSignatureType(), "time",
