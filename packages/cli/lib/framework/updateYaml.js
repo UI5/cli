@@ -1,7 +1,7 @@
 import path from "node:path";
 import {readFile, writeFile} from "node:fs/promises";
 import {loadAll, dump} from "js-yaml";
-import {fromYaml, getPosition, getValue} from "data-with-position";
+import {fromYaml, getPosition, getValue, getKind} from "data-with-position";
 import {getLogger} from "@ui5/logger";
 
 const log = getLogger("cli:framework:updateYaml");
@@ -110,7 +110,23 @@ function getValueFromPath(data, path) {
 }
 
 function getPositionFromPath(positionData, path) {
-	return getPosition(getValueFromPath(positionData, path));
+	const data = getValueFromPath(positionData, path);
+	const position = getPosition(data);
+	const kind = getKind(data);
+	if ((kind === "array" && data.length) || kind === "object") {
+		// data-with-position treats arrays and objects different from primitives:
+		// The end index of such nodes always reaches up to the beginning of the following node, instead of the end
+		// of the contained data.
+		// For example, if an array has entries, the end position of the array is *directly* at the beginning of
+		// the next node instead of at the end of the last entry.
+		// Typically this means one line and multiple columns *after* the array ended.
+		// However, if an array has no entries (e.g. "[]"), the end is directly after the end of that data and
+		// *not* in the next line (this appears to be an inconsistency).
+		// Therefore, in case we encounter an array *with entries*, or an object, we reset the end column to "1"
+		// to prevent replacing (i.e. removing) the indentation of the following node.
+		position.end.column = 1;
+	}
+	return position;
 }
 
 function formatValue(value, indent) {

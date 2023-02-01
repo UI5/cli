@@ -673,6 +673,54 @@ resources:
 `, "writeFile should be called with expected content");
 });
 
+test.serial("Should add new array elements to document with content below on same level", async (t) => {
+	t.context.fsReadFileStub.resolves(`
+metadata:
+  name: my-project
+framework:
+  name: OpenUI5
+  libraries:
+    - name: sap.ui.core
+  version: "1.76.0"
+resources:
+  configuration:
+    propertiesFileSourceEncoding: UTF-8
+`);
+
+	await updateYaml({
+		project: {
+			getRootPath: () => "my-project",
+			getName: () => "my-project"
+		},
+		data: {
+			framework: {
+				libraries: [
+					{name: "sap.ui.core"},
+					{name: "sap.m"},
+					{name: "sap.ui.layout"},
+				]
+			}
+		}
+	});
+
+	t.is(t.context.fsWriteFileStub.callCount, 1, "fs.writeFile should be called once");
+	t.deepEqual(t.context.fsWriteFileStub.getCall(0).args[0], path.join("my-project", "ui5.yaml"),
+		"writeFile should be called with expected path");
+	t.is(t.context.fsWriteFileStub.getCall(0).args[1], `
+metadata:
+  name: my-project
+framework:
+  name: OpenUI5
+  libraries:
+    - name: sap.ui.core
+    - name: sap.m
+    - name: sap.ui.layout
+  version: "1.76.0"
+resources:
+  configuration:
+    propertiesFileSourceEncoding: UTF-8
+`, "writeFile should be called with expected content");
+});
 
 test.serial("Should add new array elements to document with content separated by empty line below", async (t) => {
 	t.context.fsReadFileStub.resolves(`
