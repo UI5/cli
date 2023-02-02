@@ -257,6 +257,48 @@ test("glob subdirectory", async (t) => {
 	t.is(resources[0].getStatInfo().isDirectory(), true);
 });
 
+test("glob virtual directory above virtual base path (path traversal)", async (t) => {
+	const readerWriter = createAdapter({
+		virBasePath: "/resources/app/"
+	});
+	await fillFromFs(readerWriter, {
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+	});
+
+	const res = await readerWriter.byGlob([
+		"/*/../*",
+	], {nodir: false});
+	t.is(res.length, 0, "Returned no resources");
+});
+
+test("byPath", async (t) => {
+	const readerWriter = createAdapter({
+		virBasePath: "/resources/app/"
+	});
+	await fillFromFs(readerWriter, {
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+	});
+
+	const resource = await readerWriter.byPath("/resources/app/index.html", {nodir: true});
+	t.truthy(resource, "Found one resource");
+});
+
+test("byPath virtual directory above base path (path traversal)", async (t) => {
+	const readerWriter = createAdapter({
+		virBasePath: "/resources/app/"
+	});
+	await fillFromFs(readerWriter, {
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+	});
+
+	const resource = await readerWriter.byPath("/resources/app/../package.json", {nodir: true});
+	t.is(resource, null, "Found no resource");
+});
+
+
 function getPathFromResource(resource) {
 	return resource.getPath();
 }

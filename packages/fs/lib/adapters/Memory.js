@@ -19,7 +19,8 @@ class Memory extends AbstractAdapter {
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
-	 * @param {string} parameters.virBasePath Virtual base path
+	 * @param {string} parameters.virBasePath
+	 *   Virtual base path. Must be absolute, POSIX-style, and must end with a slash
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
 	 */
@@ -106,15 +107,11 @@ class Memory extends AbstractAdapter {
 	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	async _byPath(virPath, options, trace) {
-		if (this.isPathExcluded(virPath)) {
-			return null;
-		}
-		if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
-			// Neither starts with basePath, nor equals baseDirectory
+		const relPath = this._resolveVirtualPathToBase(virPath);
+		if (!relPath) {
 			return null;
 		}
 
-		const relPath = virPath.substr(this._virBasePath.length);
 		trace.pathCall();
 
 		const resource = this._virFiles[relPath];
@@ -140,8 +137,8 @@ class Memory extends AbstractAdapter {
 			// Otherwise await would automatically create a Promise, causing unwanted overhead
 			resource = await resource;
 		}
-		super._write(resource);
-		const relPath = resource.getPath().substr(this._virBasePath.length);
+		this._assignProjectToResource(resource);
+		const relPath = this._resolveVirtualPathToBase(resource.getPath(), true);
 		log.silly(`Writing to virtual path ${resource.getPath()}`);
 		this._virFiles[relPath] = await resource.clone();
 

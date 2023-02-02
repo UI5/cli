@@ -59,7 +59,7 @@ test("DuplexCollection: _byGlob", async (t) => {
 	t.plan(5);
 
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const abstractReader = {
@@ -79,7 +79,7 @@ test("DuplexCollection: _byGlob", async (t) => {
 
 	t.true(Array.isArray(resources), "Found resources are returned as an array");
 	t.true(resources.length === 1, "Resource found");
-	t.is(resource.getPath(), "my/path", "Resource has expected path");
+	t.is(resource.getPath(), "/my/path", "Resource has expected path");
 	t.true(comboSpy.calledWithExactly("anyPattern", {someOption: true}, trace),
 		"Delegated globbing task correctly to readers");
 	t.is(resourceContent, "content", "Resource has expected content");
@@ -108,7 +108,7 @@ test("DuplexCollection: _byGlobSource with default options and a reader finding 
 	t.plan(3);
 
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const abstractReader = {
@@ -127,7 +127,7 @@ test("DuplexCollection: _byGlobSource with default options and a reader finding 
 	t.true(Array.isArray(resources), "Found resources are returned as an array");
 	t.true(abstractReader.byGlob.calledWithExactly("anyPattern", {nodir: true}),
 		"Delegated globbing task correctly to readers");
-	t.true(abstractWriter.byPath.calledWithExactly("my/path"),
+	t.true(abstractWriter.byPath.calledWithExactly("/my/path"),
 		"byPath called on writer");
 });
 
@@ -135,7 +135,7 @@ test("DuplexCollection: _byPath with reader finding a resource", async (t) => {
 	t.plan(4);
 
 	const resource = new Resource({
-		path: "path",
+		path: "/path",
 		buffer: Buffer.from("content")
 	});
 	const pushCollectionSpy = sinon.spy(resource, "pushCollection");
@@ -157,7 +157,7 @@ test("DuplexCollection: _byPath with reader finding a resource", async (t) => {
 	t.true(comboSpy.calledWithExactly("anyVirtualPath", {someOption: true}, trace),
 		"Delegated globbing task correctly to readers");
 	t.true(pushCollectionSpy.called, "pushCollection called on resource");
-	t.is(readResource.getPath(), "path", "Resource has expected path");
+	t.is(readResource.getPath(), "/path", "Resource has expected path");
 	t.is(readResourceContent, "content", "Resource has expected content");
 });
 
@@ -191,7 +191,7 @@ test("DuplexCollection: _write successful", async (t) => {
 	t.plan(1);
 
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const duplexCollection = new DuplexCollection({

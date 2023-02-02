@@ -1,7 +1,7 @@
 import path from "node:path";
 import minimatch from "minimatch";
 import DuplexCollection from "./DuplexCollection.js";
-import FileSystem from "./adapters/FileSystem.js";
+import FsAdapter from "./adapters/FileSystem.js";
 import MemAdapter from "./adapters/Memory.js";
 import ReaderCollection from "./ReaderCollection.js";
 import ReaderCollectionPrioritized from "./ReaderCollectionPrioritized.js";
@@ -24,8 +24,11 @@ import Link from "./readers/Link.js";
  *
  * @public
  * @param {object} parameters Parameters
- * @param {string} parameters.virBasePath Virtual base path
- * @param {string} [parameters.fsBasePath] File system base path
+ * @param {string} parameters.virBasePath Virtual base path. Must be absolute, POSIX-style, and must end with a slash
+ * @param {string} [parameters.fsBasePath]
+ *   File System base path.
+ *   If this parameter is supplied, a File System adapter will be created instead of a Memory adapter.
+ *   The provided path must be absolute and must use platform-specific path segment separators.
  * @param {string[]} [parameters.excludes] List of glob patterns to exclude
  * @param {object} [parameters.useGitignore=false]
  *   Whether to apply any excludes defined in an optional .gitignore in the base directory.
@@ -35,7 +38,6 @@ import Link from "./readers/Link.js";
  */
 export function createAdapter({fsBasePath, virBasePath, project, excludes, useGitignore}) {
 	if (fsBasePath) {
-		const FsAdapter = FileSystem;
 		return new FsAdapter({fsBasePath, virBasePath, project, excludes, useGitignore});
 	} else {
 		return new MemAdapter({virBasePath, project, excludes});
@@ -43,12 +45,13 @@ export function createAdapter({fsBasePath, virBasePath, project, excludes, useGi
 }
 
 /**
- * Creates an adapter and wraps it in a ReaderCollection
+ * Creates a File System adapter and wraps it in a ReaderCollection
  *
  * @public
  * @param {object} parameters Parameters
- * @param {string} parameters.virBasePath Virtual base path
- * @param {string} parameters.fsBasePath File system base path
+ * @param {string} parameters.virBasePath Virtual base path. Must be absolute, POSIX-style, and must end with a slash
+ * @param {string} parameters.fsBasePath
+ *   File System base path. Must be absolute and must use platform-specific path segment separators
  * @param {object} [parameters.project] Experimental, internal parameter. Do not use
  * @param {string[]} [parameters.excludes] List of glob patterns to exclude
  * @param {string} [parameters.name] Name for the reader collection
@@ -61,7 +64,7 @@ export function createReader({fsBasePath, virBasePath, project, excludes = [], n
 	if (!fsBasePath) {
 		// Creating a reader with a memory adapter seems pointless right now
 		// since there would be no way to fill the adapter with resources
-		throw new Error(`Missing parameter "fsBasePath"`);
+		throw new Error(`Unable to create reader: Missing parameter "fsBasePath"`);
 	}
 	return new ReaderCollection({
 		name,
@@ -148,11 +151,11 @@ export function createResource(parameters) {
  * @param {@ui5/fs/AbstractReader} parameters.reader Single reader or collection of readers
  * @param {@ui5/fs/AbstractReaderWriter} [parameters.writer] A ReaderWriter instance which is
  *        only used for writing files. If not supplied, a Memory adapter will be created.
- * @param {string} [parameters.name="vir & fs source"] Name of the collection
+ * @param {string} [parameters.name="workspace"] Name of the collection
  * @param {string} [parameters.virBasePath="/"] Virtual base path
  * @returns {@ui5/fs/DuplexCollection} DuplexCollection which wraps the provided resource locators
  */
-export function createWorkspace({reader, writer, virBasePath = "/", name = "vir & fs source"}) {
+export function createWorkspace({reader, writer, virBasePath = "/", name = "workspace"}) {
 	if (!writer) {
 		writer = new MemAdapter({
 			virBasePath
