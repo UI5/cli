@@ -17,7 +17,7 @@ test("wait for resources to finish prepare", async (t) => {
 	});
 	const resourcePool = new LocatorResourcePool();
 	resourcePool.addResource = () => promise;
-	await resourcePool.prepare([new Resource({path: "mypath"})]);
+	await resourcePool.prepare([new Resource({path: "/mypath"})]);
 	t.true(promiseResolved, "addResources promise is resolved before prepare promise is resolved");
 });
 

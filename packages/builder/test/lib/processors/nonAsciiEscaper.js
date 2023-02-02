@@ -12,7 +12,7 @@ import Resource from "@ui5/fs/Resource";
  */
 const escape = async function(input, options={}, encoding="utf8") {
 	const resource = new Resource({
-		path: "my.properties",
+		path: "/my.properties",
 		buffer: Buffer.from(input, encoding)
 	});
 	return nonAsciiEscaper({resources: [resource], options});

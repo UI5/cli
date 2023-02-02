@@ -96,14 +96,14 @@ test("flexChangesBundler with 2 changes", async (t) => {
 	});
 
 	const options = {
-		pathPrefix: "mypath"
+		pathPrefix: "/mypath"
 	};
 	const aResult = await flexChangesBundler({resources, options});
 	t.is(aResult.length, 1, "There should be only one element");
 	const oResult = aResult[0];
 
 	// check path
-	t.is(oResult.getPath(), "mypath/changes/changes-bundle.json", "path should be generated from options");
+	t.is(oResult.getPath(), "/mypath/changes/changes-bundle.json", "path should be generated from options");
 
 	// check content
 	const content = await oResult.getString();
@@ -388,7 +388,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 	};
 
 	const options = {
-		pathPrefix: "mypath",
+		pathPrefix: "/mypath",
 		hasFlexBundleVersion: true
 	};
 	const aResult = await flexChangesBundler({resources, options});
@@ -396,7 +396,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = true", asyn
 	const oResult = aResult[0];
 
 	// check path
-	t.is(oResult.getPath(), "mypath/changes/flexibility-bundle.json", "path should be generated from options");
+	t.is(oResult.getPath(), "/mypath/changes/flexibility-bundle.json", "path should be generated from options");
 
 	// check content
 	const content = await oResult.getString();
@@ -483,7 +483,7 @@ test("flexChangesBundler has ctrl_variant and hasFlexBundleVersion = false", asy
 	});
 
 	const options = {
-		pathPrefix: "mypath",
+		pathPrefix: "/mypath",
 		hasFlexBundleVersion: false
 	};
 

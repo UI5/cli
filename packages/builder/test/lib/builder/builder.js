@@ -928,7 +928,7 @@ test.serial("Build library.i, bundling library.h", async (t) => {
 });
 
 test.serial("Build library.i, bundling library.h with build manifest", async (t) => {
-	const libraryHDestPath = path.join("test", "tmp", "intermediate", "library.h-for-library.i");
+	const libraryHDestPath = path.join(__dirname, "..", "..", "tmp", "intermediate", "library.h-for-library.i");
 	const destPath = path.join("test", "tmp", "build", "library.i", "bundle-library.h-build-manifest");
 	const expectedPath = path.join("test", "expected", "build", "library.i", "bundle-library.h-build-manifest");
 	const resultBuildManifestPath = path.join(__dirname,
