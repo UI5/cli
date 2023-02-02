@@ -90,7 +90,7 @@ class Workspace {
 
 	/**
 	 * For a given node id (e.g. the value of the name property in a package.json),
-	 * returns a [Module]{@eId Node ID of} instance or <code>undefined</code> depending on whether the module
+	 * returns a [Module]{@ui5/project/graph/Module} instance or <code>undefined</code> depending on whether the module
 	 * has been found in the configured dependency-management resolution paths of this workspace
 	 * and contains at least one project or extension
 	 *
