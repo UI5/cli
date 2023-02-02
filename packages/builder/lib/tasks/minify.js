@@ -25,8 +25,10 @@ export default async function({workspace, taskUtil, options: {pattern, omitSourc
 	const resources = await workspace.byGlob(pattern);
 	const processedResources = await minifier({
 		resources,
+		taskUtil,
 		options: {
-			addSourceMappingUrl: !omitSourceMapResources
+			addSourceMappingUrl: !omitSourceMapResources,
+			useWorkers: !!taskUtil,
 		}
 	});
 

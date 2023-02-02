@@ -31,7 +31,8 @@ test("integration: minify omitSourceMapResources=true", async (t) => {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
 			OmitFromBuildResult: "3️⃣"
-		}
+		},
+		registerCleanupTask: sinon.stub()
 	};
 	const {reader, writer, workspace} = createWorkspace();
 	const content = `
