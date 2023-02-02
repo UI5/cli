@@ -101,7 +101,20 @@ test("glob resources from application.a with directory exclude", async (t) => {
 	});
 });
 
-test("byPath virtual directory", async (t) => {
+test("glob virtual directory above virtual base path (path traversal)", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/"
+	});
+
+	const res = await readerWriter.byGlob([
+		"/*/../*",
+	], {nodir: false});
+	t.is(res.length, 0, "Returned no resources");
+});
+
+
+test("byPath", async (t) => {
 	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/"
@@ -109,6 +122,16 @@ test("byPath virtual directory", async (t) => {
 
 	const resource = await readerWriter.byPath("/resources/app/index.html", {nodir: true});
 	t.truthy(resource, "Found one resource");
+});
+
+test("byPath virtual directory above base path (path traversal)", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+
+	const resource = await readerWriter.byPath("/resources/app/../package.json", {nodir: true});
+	t.is(resource, null, "Found no resource");
 });
 
 function getPathFromResource(resource) {
@@ -445,7 +468,7 @@ test("byPath with useGitignore: true", async (t) => {
 	t.is(isGitIgnoredSpy.callCount, 1);
 	t.deepEqual(
 		isGitIgnoredSpy.getCall(0).args,
-		[{cwd: path.resolve(fsBasePath)}],
+		[{cwd: path.resolve(fsBasePath) + path.sep}],
 		"isGitIgnored should be called with the correct cwd"
 	);
 

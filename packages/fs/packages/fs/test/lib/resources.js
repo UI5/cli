@@ -127,7 +127,8 @@ test.afterEach.always((t) => {
 		t.not(resourceOldPath1);
 	});
 
-	test(adapter + ": Create a resource with a path not starting with path configured in the adapter", async (t) => {
+	test(adapter +
+		": Create a resource with a path different from the path configured in the adapter", async (t) => {
 		t.pass(2);
 		const dest = await getAdapter({
 			fsBasePath: "./test/tmp/writer/",
@@ -140,8 +141,56 @@ test.afterEach.always((t) => {
 		});
 
 		const error = await t.throwsAsync(dest.write(resource));
-		t.is(error.message, "The path of the resource '/dest2/tmp/test.js' does not start with the configured " +
-			"virtual base path of the adapter '/dest2/writer/'");
+		t.is(error.message,
+			"Failed to write resource with virtual path '/dest2/tmp/test.js': Path must start with the " +
+			"configured virtual base path of the adapter. Base path: '/dest2/writer/'",
+			"Threw with expected error message");
+	});
+
+	test(adapter +
+		": Create a resource with a path above the path configured in the adapter", async (t) => {
+		t.pass(2);
+		const dest = await getAdapter({
+			fsBasePath: "./test/tmp/writer/",
+			virBasePath: "/dest2/writer/"
+		});
+
+		const resource = createResource({
+			path: "/dest2/test.js",
+			string: "MyContent"
+		});
+
+		const error = await t.throwsAsync(dest.write(resource));
+		t.is(error.message,
+			"Failed to write resource with virtual path '/dest2/test.js': Path must start with the " +
+			"configured virtual base path of the adapter. Base path: '/dest2/writer/'",
+			"Threw with expected error message");
+	});
+
+	test(adapter +
+		": Create a resource with a path resolving outside the path configured in the adapter", async (t) => {
+		t.pass(2);
+		const dest = await getAdapter({
+			fsBasePath: "./test/tmp/writer/",
+			virBasePath: "/dest/writer/"
+		});
+
+		const resource = createResource({
+			path: "/dest/writer/../relative.js",
+			string: "MyContent"
+		});
+		// Resource will already resolve relative path segments
+		t.is(resource.getPath(), "/dest/relative.js", "Resource path resolved");
+
+		// This would cause the base path to not match
+		// So we cheat, simulating a misbehaving or old Resource instance, using a relative path segment
+		sinon.stub(resource, "getPath").returns("/dest/writer/../relative.js");
+
+		await t.throwsAsync(dest.write(resource), {
+			message:
+				"Failed to write resource with virtual path '/dest/writer/../relative.js': " +
+				"Path must start with the configured virtual base path of the adapter. Base path: '/dest/writer/'"
+		}, "Threw with expected error message");
 	});
 
 	test(adapter + ": Filter resources", async (t) => {

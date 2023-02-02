@@ -26,8 +26,10 @@ class FileSystem extends AbstractAdapter {
 	 * The Constructor.
 	 *
 	 * @param {object} parameters Parameters
-	 * @param {string} parameters.virBasePath Virtual base path
-	 * @param {string} parameters.fsBasePath (Physical) File system path
+	 * @param {string} parameters.virBasePath
+	 *   Virtual base path. Must be absolute, POSIX-style, and must end with a slash
+	 * @param {string} parameters.fsBasePath
+	 *   File System base path. Must be absolute and must use platform-specific path segment separators
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {object} [parameters.useGitignore=false]
 	 *   Whether to apply any excludes defined in an optional .gitignore in the given <code>fsBasePath</code> directory
@@ -35,7 +37,14 @@ class FileSystem extends AbstractAdapter {
 	 */
 	constructor({virBasePath, project, fsBasePath, excludes, useGitignore=false}) {
 		super({virBasePath, project, excludes});
-		this._fsBasePath = path.resolve(fsBasePath);
+
+		if (!fsBasePath) {
+			throw new Error(`Unable to create adapter: Missing parameter 'fsBasePath'`);
+		}
+
+		// Ensure path is resolved to an absolute path, ending with a slash (or backslash on Windows)
+		// path.resolve will always remove any trailing segment separator
+		this._fsBasePath = path.join(path.resolve(fsBasePath), path.sep);
 		this._useGitignore = !!useGitignore;
 	}
 
@@ -94,8 +103,16 @@ class FileSystem extends AbstractAdapter {
 			const matches = await globby(globbyPatterns, opt);
 			for (let i = matches.length - 1; i >= 0; i--) {
 				promises.push(new Promise((resolve, reject) => {
-					const fsPath = path.join(this._fsBasePath, matches[i]);
 					const virPath = (this._virBasePath + matches[i]);
+					const relPath = this._resolveVirtualPathToBase(virPath);
+					if (!relPath) {
+						// Match is likely outside adapter base path
+						log.verbose(
+							`Failed to resolve virtual path of glob match '${virPath}': Path must start with ` +
+							`the configured virtual base path of the adapter. Base path: '${this._virBasePath}'`);
+						resolve(null);
+					}
+					const fsPath = this._resolveToFileSystem(relPath);
 
 					// Workaround for not getting the stat from the glob
 					fs.stat(fsPath, (err, stat) => {
@@ -122,24 +139,22 @@ class FileSystem extends AbstractAdapter {
 		const results = await Promise.all(promises);
 
 		// Flatten results
-		return Array.prototype.concat.apply([], results);
+		return Array.prototype.concat.apply([], results).filter(($) => $);
 	}
 
 	/**
 	 * Locate a resource by path.
 	 *
 	 * @private
-	 * @param {string} virPath Virtual path
+	 * @param {string} virPath Absolute virtual path
 	 * @param {object} options Options
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
 	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource or null if not found
 	 */
 	async _byPath(virPath, options, trace) {
-		if (this.isPathExcluded(virPath)) {
-			return null;
-		}
+		const relPath = this._resolveVirtualPathToBase(virPath);
 
-		if (!virPath.startsWith(this._virBasePath) && virPath !== this._virBaseDir) {
+		if (!relPath) {
 			// Neither starts with basePath, nor equals baseDirectory
 			if (!options.nodir && this._virBasePath.startsWith(virPath)) {
 				return this._createResource({
@@ -155,8 +170,8 @@ class FileSystem extends AbstractAdapter {
 				return null;
 			}
 		}
-		const relPath = virPath.substr(this._virBasePath.length);
-		const fsPath = path.join(this._fsBasePath, relPath);
+
+		const fsPath = this._resolveToFileSystem(relPath);
 
 		trace.pathCall();
 
@@ -230,14 +245,14 @@ class FileSystem extends AbstractAdapter {
 			// Otherwise await would automatically create a Promise, causing unwanted overhead
 			resource = await resource;
 		}
-		super._write(resource);
+		this._assignProjectToResource(resource);
 		if (drain && readOnly) {
 			throw new Error(`Error while writing resource ${resource.getPath()}: ` +
 				"Do not use options 'drain' and 'readOnly' at the same time.");
 		}
 
-		const relPath = resource.getPath().substr(this._virBasePath.length);
-		const fsPath = path.join(this._fsBasePath, relPath);
+		const relPath = this._resolveVirtualPathToBase(resource.getPath(), true);
+		const fsPath = this._resolveToFileSystem(relPath);
 		const dirPath = path.dirname(fsPath);
 
 		await mkdir(dirPath, {recursive: true});
@@ -334,6 +349,20 @@ class FileSystem extends AbstractAdapter {
 				return fs.createReadStream(fsPath);
 			});
 		}
+	}
+
+	_resolveToFileSystem(relPath) {
+		const fsPath = path.join(this._fsBasePath, relPath);
+
+		if (!fsPath.startsWith(this._fsBasePath)) {
+			log.verbose(`Failed to resolve virtual path internally: ${relPath}`);
+			log.verbose(`  Adapter base path: ${this._fsBasePath}`);
+			log.verbose(`  Resulting path: ${fsPath}`);
+			throw new Error(
+				`Error while resolving internal virtual path: '${relPath}' resolves ` +
+				`to a directory not accessible by this File System adapter instance`);
+		}
+		return fsPath;
 	}
 }
 

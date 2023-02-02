@@ -35,7 +35,7 @@ test("ReaderCollectionPrioritized: _byGlob w/o finding a resource", async (t) =>
 
 test("ReaderCollectionPrioritized: _byGlob with finding a resource", async (t) => {
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const abstractReader = {
@@ -57,13 +57,13 @@ test("ReaderCollectionPrioritized: _byGlob with finding a resource", async (t) =
 	t.true(abstractReader._byGlob.calledWithExactly("anyPattern", {someOption: true}, trace),
 		"Delegated globbing task correctly to readers");
 	t.true(trace.collection.called, "Trace.collection called");
-	t.is(resources[0].getPath(), "my/path", "Resource has expected path");
+	t.is(resources[0].getPath(), "/my/path", "Resource has expected path");
 	t.is(resourceContent, "content", "Resource has expected content");
 });
 
 test("ReaderCollectionPrioritized: _byPath with reader finding a resource", async (t) => {
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const pushCollectionSpy = sinon.spy(resource, "pushCollection");
@@ -84,7 +84,7 @@ test("ReaderCollectionPrioritized: _byPath with reader finding a resource", asyn
 	t.true(abstractReader._byPath.calledWithExactly("anyVirtualPath", {someOption: true}, trace),
 		"Delegated globbing task correctly to readers");
 	t.true(pushCollectionSpy.called, "pushCollection called on resource");
-	t.is(readResource.getPath(), "my/path", "Resource has expected path");
+	t.is(readResource.getPath(), "/my/path", "Resource has expected path");
 	t.is(readResourceContent, "content", "Resource has expected content");
 });
 
@@ -127,7 +127,7 @@ test("ReaderCollectionPrioritized: _byPath with empty readers array", async (t) 
 
 test("ReaderCollectionPrioritized: _byPath with some empty readers", async (t) => {
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const abstractReaderOne = {
@@ -164,7 +164,7 @@ test("ReaderCollectionPrioritized: _byGlob with empty readers array", async (t) 
 
 test("ReaderCollectionPrioritized: _byGlob with some empty readers", async (t) => {
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("content")
 	});
 	const abstractReaderOne = {

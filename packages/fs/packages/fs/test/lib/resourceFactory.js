@@ -116,7 +116,7 @@ test("createReader: Throw error missing 'fsBasePath'", (t) => {
 		excludes: ["**/*.html"],
 		name: "reader name"
 	}));
-	t.is(error.message, "Missing parameter \"fsBasePath\"");
+	t.is(error.message, "Unable to create reader: Missing parameter \"fsBasePath\"");
 });
 
 test("createReaderCollection", async (t) => {
