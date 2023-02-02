@@ -59,7 +59,7 @@ test.after.always((t) => {
 				"configuration": {
 					"propertiesFileSourceEncoding": "UTF-8",
 					"paths": {
-						"webapp": "my/path"
+						"webapp": "/my/path"
 					}
 				}
 			},

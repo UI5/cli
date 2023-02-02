@@ -1,3 +1,4 @@
+import path from "node:path";
 import {getLogger} from "@ui5/logger";
 import {createReader} from "@ui5/fs/resourceFactory";
 import SpecificationVersion from "./SpecificationVersion.js";
@@ -18,7 +19,7 @@ class Specification {
 	 * @param {object} parameters
 	 * @param {string} parameters.id Unique ID
 	 * @param {string} parameters.version Version
-	 * @param {string} parameters.modulePath File System path to access resources
+	 * @param {string} parameters.modulePath Absolute File System path to access resources
 	 * @param {object} parameters.configuration
 	 *   Type-dependent configuration object. Typically defined in a ui5.yaml
 	 * @static
@@ -73,7 +74,7 @@ class Specification {
 	 * @param {object} parameters Specification parameters
 	 * @param {string} parameters.id Unique ID
 	 * @param {string} parameters.version Version
-	 * @param {string} parameters.modulePath File System path to access resources
+	 * @param {string} parameters.modulePath Absolute File System path to access resources
 	 * @param {object} parameters.configuration Configuration object
 	 */
 	async init({id, version, modulePath, configuration}) {
@@ -85,6 +86,9 @@ class Specification {
 		}
 		if (!modulePath) {
 			throw new Error(`Could not create Specification: Missing or empty parameter 'modulePath'`);
+		}
+		if (!path.isAbsolute(modulePath)) {
+			throw new Error(`Could not create Specification: Parameter 'modulePath' must contain an absolute path`);
 		}
 		if (!configuration) {
 			throw new Error(`Could not create Specification: Missing or empty parameter 'configuration'`);

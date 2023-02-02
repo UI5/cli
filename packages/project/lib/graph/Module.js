@@ -31,7 +31,7 @@ class Module {
 	 * @param {object} parameters Module parameters
 	 * @param {string} parameters.id Unique ID for the module
 	 * @param {string} parameters.version Version of the module
-	 * @param {string} parameters.modulePath File System path to access the projects resources
+	 * @param {string} parameters.modulePath Absolute File System path of the module
 	 * @param {string} [parameters.configPath=ui5.yaml]
 	 *						Either a path relative to `modulePath` which will be resolved by @ui5/fs (default),
 	 *						or an absolute File System path to the configuration file.
@@ -50,6 +50,9 @@ class Module {
 		}
 		if (!modulePath) {
 			throw new Error(`Could not create Module: Missing or empty parameter 'modulePath'`);
+		}
+		if (!path.isAbsolute(modulePath)) {
+			throw new Error(`Could not create Module: Parameter 'modulePath' must contain an absolute path`);
 		}
 		if (
 			(

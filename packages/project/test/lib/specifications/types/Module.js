@@ -165,7 +165,7 @@ test("_configureAndValidatePaths: Configured path mapping", async (t) => {
 test("_configureAndValidatePaths: Default directory does not exist", async (t) => {
 	const projectInput = clone(basicProjectInput);
 	projectInput.configuration.resources = {};
-	projectInput.modulePath = "does/not/exist";
+	projectInput.modulePath = "/does/not/exist";
 	const err = await t.throwsAsync(Specification.create(projectInput));
 
 	t.is(err.message, "Unable to find root directory of module project module.a");

@@ -40,6 +40,51 @@ test("Instantiate a basic module", (t) => {
 	t.is(ui5Module.getPath(), applicationAPath, "Should return correct module path");
 });
 
+test("Create module with missing id", (t) => {
+	t.throws(() => {
+		new Module({
+			version: "1.0.0",
+			modulePath: "/module/path"
+		});
+	}, {
+		message: "Could not create Module: Missing or empty parameter 'id'"
+	});
+});
+
+test("Create module with missing version", (t) => {
+	t.throws(() => {
+		new Module({
+			id: "application.a.id",
+			modulePath: "/module/path"
+		});
+	}, {
+		message: "Could not create Module: Missing or empty parameter 'version'"
+	});
+});
+
+test("Create module with missing modulePath", (t) => {
+	t.throws(() => {
+		new Module({
+			id: "application.a.id",
+			version: "1.0.0",
+		});
+	}, {
+		message: "Could not create Module: Missing or empty parameter 'modulePath'"
+	});
+});
+
+test("Create module with relative modulePath", (t) => {
+	t.throws(() => {
+		new Module({
+			id: "application.a.id",
+			version: "1.0.0",
+			modulePath: "module/path"
+		});
+	}, {
+		message: "Could not create Module: Parameter 'modulePath' must contain an absolute path"
+	});
+});
+
 test("Access module root resources via reader", async (t) => {
 	const ui5Module = new Module(basicModuleInput);
 	const rootReader = ui5Module.getReader();

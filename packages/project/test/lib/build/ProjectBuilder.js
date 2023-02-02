@@ -147,7 +147,7 @@ test("build", async (t) => {
 	t.is(writeResultsStub.callCount, 1, "_writeResults got called once");
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMock,
 		"_writeResults got called with correct first argument");
-	t.is(writeResultsStub.getCall(0).args[1]._fsBasePath, path.resolve("dest/path"),
+	t.is(writeResultsStub.getCall(0).args[1]._fsBasePath, path.resolve("dest/path") + path.sep,
 		"_writeResults got called with correct second argument");
 
 	t.is(deregisterCleanupSigHooksStub.callCount, 1, "_deregisterCleanupSigHooks got called once");
@@ -330,7 +330,7 @@ test.serial("build: Multiple projects", async (t) => {
 
 	setLogLevel("verbose");
 	await builder.build({
-		destPath: "dest/path",
+		destPath: path.join("dest", "path"),
 		dependencyIncludes: "dependencyIncludes"
 	});
 	setLogLevel("info");
@@ -357,11 +357,11 @@ test.serial("build: Multiple projects", async (t) => {
 	t.is(writeResultsStub.callCount, 2, "_writeResults got called twice"); // library.a has not been requested
 	t.is(writeResultsStub.getCall(0).args[0], projectBuildContextMockB,
 		"_writeResults got called with correct first argument");
-	t.is(writeResultsStub.getCall(0).args[1]._fsBasePath, path.resolve("dest/path"),
+	t.is(writeResultsStub.getCall(0).args[1]._fsBasePath, path.resolve("dest/path") + path.sep,
 		"_writeResults got called with correct second argument");
 	t.is(writeResultsStub.getCall(1).args[0], projectBuildContextMockC,
 		"_writeResults got called with correct first argument");
-	t.is(writeResultsStub.getCall(1).args[1]._fsBasePath, path.resolve("dest/path"),
+	t.is(writeResultsStub.getCall(1).args[1]._fsBasePath, path.resolve("dest/path") + path.sep,
 		"_writeResults got called with correct second argument");
 
 	t.is(deregisterCleanupSigHooksStub.callCount, 1, "_deregisterCleanupSigHooks got called once");

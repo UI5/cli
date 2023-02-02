@@ -312,13 +312,13 @@ test("Missing configuration file for root project", async (t) => {
 	const tree = {
 		id: "application.a.id",
 		version: "1.0.0",
-		path: "non-existent",
+		path: "/non-existent",
 		dependencies: []
 	};
 	await t.throwsAsync(graphFromObject({dependencyTree: tree}),
 		{
 			message:
-				"Failed to create a UI5 project from module application.a.id at non-existent. " +
+				"Failed to create a UI5 project from module application.a.id at /non-existent. " +
 				"Make sure the path is correct and a project configuration is present or supplied."
 		},
 		"Rejected with error");
