@@ -1,0 +1,8 @@
+---
+specVersion: "2.0"
+kind: extension
+type: task
+metadata:
+  name: extension.a-ui5-yaml
+task:
+  path: lib/extensionModule.js

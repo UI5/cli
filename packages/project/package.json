@@ -123,6 +123,7 @@
 		"ajv-errors": "^1.0.1",
 		"chalk": "^5.2.0",
 		"escape-string-regexp": "^5.0.0",
+		"globby": "^13.1.2",
 		"graceful-fs": "^4.2.10",
 		"js-yaml": "^4.1.0",
 		"libnpmconfig": "^1.2.1",

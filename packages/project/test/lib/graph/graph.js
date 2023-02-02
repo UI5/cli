@@ -3,19 +3,22 @@ import {fileURLToPath} from "node:url";
 import path from "node:path";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const fixturesPath = path.join(__dirname, "..", "..", "fixtures");
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.npmProviderConstructorStub = sinon.stub();
-	class DummyNpmProvider {
+	class MockNpmProvider {
 		constructor(params) {
 			t.context.npmProviderConstructorStub(params);
 		}
 	}
+	t.context.createWorkspaceStub = sinon.stub().returns("workspace");
 
-	t.context.DummyNpmProvider = DummyNpmProvider;
+	t.context.MockNpmProvider = MockNpmProvider;
 
 	t.context.dependencyTreeProviderStub = sinon.stub();
 	class DummyDependencyTreeProvider {
@@ -28,8 +31,9 @@ test.beforeEach(async (t) => {
 	t.context.projectGraphBuilderStub = sinon.stub().resolves("graph");
 	t.context.enrichProjectGraphStub = sinon.stub();
 	t.context.graph = await esmock.p("../../../lib/graph/graph.js", {
-		"../../../lib/graph/providers/NodePackageDependencies.js": t.context.DummyNpmProvider,
+		"../../../lib/graph/providers/NodePackageDependencies.js": t.context.MockNpmProvider,
 		"../../../lib/graph/providers/DependencyTree.js": t.context.DummyDependencyTreeProvider,
+		"../../../lib/graph/helpers/createWorkspace.js": t.context.createWorkspaceStub,
 		"../../../lib/graph/projectGraphBuilder.js": t.context.projectGraphBuilderStub,
 		"../../../lib/graph/helpers/ui5Framework.js": {
 			enrichProjectGraph: t.context.enrichProjectGraphStub
@@ -44,8 +48,8 @@ test.afterEach.always((t) => {
 
 test.serial("graphFromPackageDependencies", async (t) => {
 	const {
-		npmProviderConstructorStub,
-		projectGraphBuilderStub, enrichProjectGraphStub, DummyNpmProvider
+		createWorkspaceStub, npmProviderConstructorStub,
+		projectGraphBuilderStub, enrichProjectGraphStub, MockNpmProvider
 	} = t.context;
 	const {graphFromPackageDependencies} = t.context.graph;
 
@@ -58,6 +62,54 @@ test.serial("graphFromPackageDependencies", async (t) => {
 
 	t.is(res, "graph");
 
+	t.is(createWorkspaceStub.callCount, 0, "createWorkspace did not get called");
+	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
+	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath"
+	}, "Created NodePackageDependencies provider instance with correct parameters");
+
+	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
+	t.true(projectGraphBuilderStub.getCall(0).args[0] instanceof MockNpmProvider,
+		"projectGraphBuilder got called with correct provider instance");
+	t.is(projectGraphBuilderStub.getCall(0).args[1], undefined,
+		"projectGraphBuilder got called with an empty workspace");
+
+	t.is(enrichProjectGraphStub.callCount, 1, "enrichProjectGraph got called once");
+	t.is(enrichProjectGraphStub.getCall(0).args[0], "graph",
+		"enrichProjectGraph got called with graph");
+	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
+		versionOverride: "versionOverride",
+		workspace: undefined
+	}, "enrichProjectGraph got called with correct options");
+});
+
+test.serial("graphFromPackageDependencies with workspace name", async (t) => {
+	const {
+		createWorkspaceStub, npmProviderConstructorStub,
+		projectGraphBuilderStub, enrichProjectGraphStub, MockNpmProvider
+	} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	const res = await graphFromPackageDependencies({
+		cwd: "cwd",
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath",
+		versionOverride: "versionOverride",
+		workspaceName: "dolphin",
+	});
+
+	t.is(res, "graph");
+
+	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
+	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		name: "dolphin",
+		configPath: "ui5-workspace.yaml",
+		configObject: undefined,
+	}, "createWorkspace called with correct parameters");
+
 	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
 		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
@@ -66,14 +118,144 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	}, "Created NodePackageDependencies provider instance with correct parameters");
 
 	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
-	t.true(projectGraphBuilderStub.getCall(0).args[0] instanceof DummyNpmProvider,
+	t.true(projectGraphBuilderStub.getCall(0).args[0] instanceof MockNpmProvider,
 		"projectGraphBuilder got called with correct provider instance");
+	t.is(projectGraphBuilderStub.getCall(0).args[1], "workspace",
+		"projectGraphBuilder got called with correct workspace instance");
 
 	t.is(enrichProjectGraphStub.callCount, 1, "enrichProjectGraph got called once");
 	t.is(enrichProjectGraphStub.getCall(0).args[0], "graph",
 		"enrichProjectGraph got called with graph");
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
-		versionOverride: "versionOverride"
+		versionOverride: "versionOverride",
+		workspace: "workspace"
+	}, "enrichProjectGraph got called with correct options");
+});
+
+test.serial("graphFromPackageDependencies with workspace object", async (t) => {
+	const {
+		createWorkspaceStub
+	} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	const res = await graphFromPackageDependencies({
+		cwd: "cwd",
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath",
+		versionOverride: "versionOverride",
+		workspaceConfiguration: "workspaceConfiguration"
+	});
+
+	t.is(res, "graph");
+
+	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
+	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		configPath: "ui5-workspace.yaml",
+		name: undefined,
+		configObject: "workspaceConfiguration"
+	}, "createWorkspace called with correct parameters");
+});
+
+test.serial("graphFromPackageDependencies with workspace object and workspace name", async (t) => {
+	const {
+		createWorkspaceStub
+	} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	const res = await graphFromPackageDependencies({
+		cwd: "cwd",
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath",
+		versionOverride: "versionOverride",
+		workspaceName: "dolphin",
+		workspaceConfiguration: "workspaceConfiguration"
+	});
+
+	t.is(res, "graph");
+
+	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
+	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		name: "dolphin",
+		configPath: "ui5-workspace.yaml",
+		configObject: "workspaceConfiguration"
+	}, "createWorkspace called with correct parameters");
+});
+
+test.serial("graphFromPackageDependencies with workspace path and workspace name", async (t) => {
+	const {
+		createWorkspaceStub
+	} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	const res = await graphFromPackageDependencies({
+		cwd: "cwd",
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath",
+		versionOverride: "versionOverride",
+		workspaceName: "dolphin",
+		workspaceConfigPath: "workspaceConfigurationPath"
+	});
+
+	t.is(res, "graph");
+
+	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
+	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		name: "dolphin",
+		configPath: "workspaceConfigurationPath",
+		configObject: undefined
+	}, "createWorkspace called with correct parameters");
+});
+
+test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
+	const {
+		createWorkspaceStub, npmProviderConstructorStub,
+		projectGraphBuilderStub, enrichProjectGraphStub, MockNpmProvider
+	} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	// Simulate no workspace config found
+	createWorkspaceStub.resolves(null);
+
+	const res = await graphFromPackageDependencies({
+		cwd: "cwd",
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath",
+		versionOverride: "versionOverride",
+		workspaceName: "dolphin",
+	});
+
+	t.is(res, "graph");
+
+	t.is(createWorkspaceStub.callCount, 1, "createWorkspace got called once");
+	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		name: "dolphin",
+		configPath: "ui5-workspace.yaml",
+		configObject: undefined,
+	}, "createWorkspace called with correct parameters");
+
+	t.is(npmProviderConstructorStub.callCount, 1, "NPM provider constructor got called once");
+	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
+		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "rootConfigPath",
+	}, "Created NodePackageDependencies provider instance with correct parameters");
+
+	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
+	t.true(projectGraphBuilderStub.getCall(0).args[0] instanceof MockNpmProvider,
+		"projectGraphBuilder got called with correct provider instance");
+	t.is(projectGraphBuilderStub.getCall(0).args[1], null,
+		"projectGraphBuilder got called with correct workspace instance");
+
+	t.is(enrichProjectGraphStub.callCount, 1, "enrichProjectGraph got called once");
+	t.is(enrichProjectGraphStub.getCall(0).args[0], "graph",
+		"enrichProjectGraph got called with graph");
+	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
+		versionOverride: "versionOverride",
+		workspace: null
 	}, "enrichProjectGraph got called with correct options");
 });
 
@@ -208,3 +390,21 @@ test.serial("usingObject: Do not resolve framework dependencies", async (t) => {
 	t.is(res, "graph");
 	t.is(enrichProjectGraphStub.callCount, 0, "enrichProjectGraph did not get called");
 });
+
+test.serial("utils: readDependencyConfigFile", async (t) => {
+	const {graphFromStaticFile} = t.context.graph;
+	const res = await graphFromStaticFile._utils.readDependencyConfigFile(
+		path.join(fixturesPath, "application.h"), "projectDependencies.yaml");
+
+	t.deepEqual(res, {
+		id: "static-application.a",
+		path: path.join(fixturesPath, "application.a"),
+		version: "0.0.1",
+		dependencies: [{
+			id: "static-library.e",
+			path: path.join(fixturesPath, "library.e"),
+			version: "0.0.1",
+		}],
+	}, "Returned correct file content");
+});
+

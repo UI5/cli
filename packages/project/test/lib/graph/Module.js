@@ -6,14 +6,15 @@ import Module from "../../../lib/graph/Module.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
+const fixturesPath = path.join(__dirname, "..", "..", "fixtures");
+const applicationAPath = path.join(fixturesPath, "application.a");
 const buildDescriptionApplicationAPath =
-	path.join(__dirname, "..", "..", "fixtures", "build-manifest", "application.a");
+	path.join(fixturesPath, "build-manifest", "application.a");
 const buildDescriptionLibraryAPath =
-	path.join(__dirname, "..", "..", "fixtures", "build-manifest", "library.e");
-const applicationHPath = path.join(__dirname, "..", "..", "fixtures", "application.h");
-const collectionPath = path.join(__dirname, "..", "..", "fixtures", "collection");
-const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.library.e");
+	path.join(fixturesPath, "build-manifest", "library.e");
+const applicationHPath = path.join(fixturesPath, "application.h");
+const collectionPath = path.join(fixturesPath, "collection");
+const themeLibraryEPath = path.join(fixturesPath, "theme.library.e");
 
 const basicModuleInput = {
 	id: "application.a.id",
@@ -377,6 +378,49 @@ test("Invalid configuration in file", async (t) => {
 	// the Specification instance but the Module
 	t.true(err.message.includes("ui5-test-error.yaml"), "Error message references file name");
 	t.truthy(err.yaml, "Error object contains yaml information");
+});
+
+test("Corrupt configuration in file", async (t) => {
+	const ui5Module = new Module({
+		id: "application.a.id",
+		version: "1.0.0",
+		modulePath: applicationAPath,
+		configPath: "ui5-test-corrupt.yaml"
+	});
+	const err = await t.throwsAsync(ui5Module.getSpecifications());
+
+	t.regex(err.message,
+		new RegExp("^Failed to parse configuration for project application.a.id at 'ui5-test-corrupt.yaml'.*"),
+		"Threw with parsing error");
+});
+
+test("Empty configuration in file", async (t) => {
+	const ui5Module = new Module({
+		id: "application.a.id",
+		version: "1.0.0",
+		modulePath: applicationAPath,
+		configPath: "ui5-test-empty.yaml"
+	});
+	const res = await ui5Module.getSpecifications();
+
+	t.deepEqual(res, {
+		project: null,
+		extensions: []
+	}, "Returned no project or extensions");
+});
+
+test("No configuration", async (t) => {
+	const ui5Module = new Module({
+		id: "application.a.id",
+		version: "1.0.0",
+		modulePath: fixturesPath, // does not contain a ui5.yaml
+	});
+	const res = await ui5Module.getSpecifications();
+
+	t.deepEqual(res, {
+		project: null,
+		extensions: []
+	}, "Returned no project or extensions");
 });
 
 test("Incorrect config path", async (t) => {

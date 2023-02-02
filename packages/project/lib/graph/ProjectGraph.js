@@ -2,7 +2,9 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
 
 /**
- * A rooted, directed graph representing a UI5 project, its dependencies and available extensions
+ * A rooted, directed graph representing a UI5 project, its dependencies and available extensions.
+ * <br><br>
+ * While it allows defining cyclic dependencies, both traversal functions will throw an error if they encounter cycles.
  *
  * @public
  * @class
@@ -20,9 +22,9 @@ class ProjectGraph {
 		}
 		this._rootProjectName = rootProjectName;
 
-		this._projects = new Map(); // maps project name to instance
-		this._adjList = new Map(); // maps project name to edges/dependencies
-		this._optAdjList = new Map(); // maps project name to optional dependencies
+		this._projects = new Map(); // maps project name to instance (= nodes)
+		this._adjList = new Map(); // maps project name to dependencies (= edges)
+		this._optAdjList = new Map(); // maps project name to optional dependencies (= edges)
 
 		this._extensions = new Map(); // maps extension name to instance
 
@@ -175,10 +177,6 @@ class ProjectGraph {
 	declareDependency(fromProjectName, toProjectName) {
 		this._checkSealed();
 		try	{
-			// if (this._optAdjList[fromProjectName] && this._optAdjList[fromProjectName][toProjectName]) {
-			// 	// TODO: Do we even care?
-			// 	throw new Error(`Dependency has already been declared as optional`);
-			// }
 			log.verbose(`Declaring dependency: ${fromProjectName} depends on ${toProjectName}`);
 			this._declareDependency(this._adjList, fromProjectName, toProjectName);
 		} catch (err) {
@@ -199,10 +197,6 @@ class ProjectGraph {
 	declareOptionalDependency(fromProjectName, toProjectName) {
 		this._checkSealed();
 		try	{
-			// if (this._adjList[fromProjectName] && this._adjList[fromProjectName][toProjectName]) {
-			// 	// TODO: Do we even care?
-			// 	throw new Error(`Dependency has already been declared as non-optional`);
-			// }
 			log.verbose(`Declaring optional dependency: ${fromProjectName} depends on ${toProjectName}`);
 			this._declareDependency(this._optAdjList, fromProjectName, toProjectName);
 			this._hasUnresolvedOptionalDependencies = true;
@@ -267,6 +261,11 @@ class ProjectGraph {
 	 */
 	getTransitiveDependencies(projectName) {
 		const dependencies = new Set();
+		if (!this._projects.has(projectName)) {
+			throw new Error(
+				`Failed to get transitive dependencies for project ${projectName}: ` +
+				`Unable to find project in project graph`);
+		}
 
 		const processDependency = (depName) => {
 			const adjacencies = this._adjList.get(depName);
@@ -375,7 +374,6 @@ class ProjectGraph {
 	 *   graph traversal will wait and only continue once the promise has resolved.
 	 */
 
-	// TODO: Use generator functions instead?
 	/**
 	 * Visit every project in the graph that can be reached by the given entry project exactly once.
 	 * The entry project defaults to the root project.
@@ -398,28 +396,28 @@ class ProjectGraph {
 
 		const queue = [{
 			projectNames: [startName],
-			predecessors: []
+			ancestors: []
 		}];
 
 		const visited = Object.create(null);
 
 		while (queue.length) {
-			const {projectNames, predecessors} = queue.shift(); // Get and remove first entry from queue
+			const {projectNames, ancestors} = queue.shift(); // Get and remove first entry from queue
 
 			await Promise.all(projectNames.map(async (projectName) => {
-				this._checkCycle(predecessors, projectName);
+				this._checkCycle(ancestors, projectName);
 
 				if (visited[projectName]) {
 					return visited[projectName];
 				}
 
 				return visited[projectName] = (async () => {
-					const newPredecessors = [...predecessors, projectName];
+					const newAncestors = [...ancestors, projectName];
 					const dependencies = this.getDependencies(projectName);
 
 					queue.push({
 						projectNames: dependencies,
-						predecessors: newPredecessors
+						ancestors: newAncestors
 					});
 
 					await callback({
@@ -453,17 +451,17 @@ class ProjectGraph {
 		return this._traverseDepthFirst(startName, Object.create(null), [], callback);
 	}
 
-	async _traverseDepthFirst(projectName, visited, predecessors, callback) {
-		this._checkCycle(predecessors, projectName);
+	async _traverseDepthFirst(projectName, visited, ancestors, callback) {
+		this._checkCycle(ancestors, projectName);
 
 		if (visited[projectName]) {
 			return visited[projectName];
 		}
 		return visited[projectName] = (async () => {
-			const newPredecessors = [...predecessors, projectName];
+			const newAncestors = [...ancestors, projectName];
 			const dependencies = this.getDependencies(projectName);
 			await Promise.all(dependencies.map((depName) => {
-				return this._traverseDepthFirst(depName, visited, newPredecessors, callback);
+				return this._traverseDepthFirst(depName, visited, newAncestors, callback);
 			}));
 
 			await callback({
@@ -609,13 +607,13 @@ class ProjectGraph {
 		}
 	}
 
-	_checkCycle(predecessors, projectName) {
-		if (predecessors.includes(projectName)) {
-			// We start to run in circles. That's neither expected nor something we can deal with
-
-			// Mark first and last occurrence in chain with an asterisk
-			predecessors[predecessors.indexOf(projectName)] = `${projectName}*`;
-			throw new Error(`Detected cyclic dependency chain: ${predecessors.join(" -> ")} -> ${projectName}*`);
+	_checkCycle(ancestors, projectName) {
+		if (ancestors.includes(projectName)) {
+			// "Back-edge" detected. Neither BFS nor DFS searches should continue
+			// Mark first and last occurrence in chain with an asterisk and throw an error detailing the
+			// problematic dependency chain
+			ancestors[ancestors.indexOf(projectName)] = `*${projectName}*`;
+			throw new Error(`Detected cyclic dependency chain: ${ancestors.join(" -> ")} -> *${projectName}*`);
 		}
 	}
 

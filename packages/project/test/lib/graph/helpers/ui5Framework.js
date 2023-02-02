@@ -9,7 +9,9 @@ import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
+const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");
+const libraryFPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.f");
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
@@ -48,7 +50,7 @@ test.afterEach.always((t) => {
 	esmock.purge(t.context.ui5Framework);
 });
 
-test.serial("ui5Framework translator should throw an error when framework version is not defined", async (t) => {
+test.serial("enrichProjectGraph", async (t) => {
 	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub} = t.context;
 
 	const dependencyTree = {
@@ -104,8 +106,14 @@ test.serial("ui5Framework translator should throw an error when framework versio
 	], "Sapui5Resolver#install should be called with expected args");
 
 	t.is(ProjectProcessorStub.callCount, 1, "ProjectProcessor#constructor should be called once");
-	t.deepEqual(ProjectProcessorStub.getCall(0).args, [{libraryMetadata}],
-		"ProjectProcessor#constructor should be called with expected args");
+	const projectProcessorConstructorArgs = ProjectProcessorStub.getCall(0).args[0];
+	t.deepEqual(projectProcessorConstructorArgs.libraryMetadata, libraryMetadata,
+		"Correct libraryMetadata provided to ProjectProcessor");
+	t.is(projectProcessorConstructorArgs.graph._rootProjectName,
+		"fake-root-of-application.a-framework-dependency-graph",
+		"Correct graph provided to ProjectProcessor");
+	t.falsy(projectProcessorConstructorArgs.workspace,
+		"No workspace provided to ProjectProcessor");
 
 	t.is(addProjectToGraphStub.callCount, 3, "ProjectProcessor#getProject should be called 3 times");
 	t.deepEqual(addProjectToGraphStub.getCall(0).args[0], referencedLibraries[0],
@@ -127,7 +135,7 @@ test.serial("ui5Framework translator should throw an error when framework versio
 	], "Traversed graph in correct order");
 });
 
-test.serial("enrichProjectGraph (with versionOverride)", async (t) => {
+test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 	const {
 		sinon, ui5Framework, utils,
 		Sapui5ResolverStub, Sapui5ResolverResolveVersionStub, Sapui5ResolverInstallStub
@@ -414,6 +422,40 @@ test.serial("enrichProjectGraph should throw for framework project with dependen
 
 	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph));
 	t.is(err.message, `Missing framework dependency lib1 for framework project application.a`,
+		"Threw with expected error message");
+});
+
+test.serial("enrichProjectGraph should throw for incorrect framework name", async (t) => {
+	const {ui5Framework, sinon} = t.context;
+	const dependencyTree = {
+		id: "project",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.2.3",
+				libraries: [
+					{
+						name: "lib1",
+						optional: true
+					}
+				]
+			}
+		}
+	};
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	sinon.stub(projectGraph.getRoot(), "getFrameworkName").returns("Pony5");
+	const err = await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph));
+	t.is(err.message, `Unknown framework.name "Pony5" for project application.a. Must be "OpenUI5" or "SAPUI5"`,
 		"Threw with expected error message");
 });
 
@@ -921,4 +963,486 @@ test.serial("utils.declareFrameworkDependenciesInGraph: No deprecation warnings 
 	], `Root project has correct dependencies`);
 });
 
-// TODO test: ProjectProcessor
+test.serial("ProjectProcessor: Add project to graph", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub()
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock
+	});
+
+	await projectProcessor.addProjectToGraph("library.e");
+	t.is(graphMock.getProject.callCount, 1, "graph#getProject got called once");
+	t.is(graphMock.getProject.getCall(0).args[0], "library.e", "graph#getProject got called with the correct argument");
+	t.is(graphMock.addProject.callCount, 1, "graph#addProject got called once");
+	t.is(graphMock.addProject.getCall(0).args[0].getName(), "library.e",
+		"graph#addProject got called with the correct project");
+});
+
+test.serial("ProjectProcessor: Add same project twice", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub()
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock
+	});
+
+	await projectProcessor.addProjectToGraph("library.e");
+	await projectProcessor.addProjectToGraph("library.e");
+	t.is(graphMock.getProject.callCount, 1, "graph#getProject got called once");
+	t.is(graphMock.getProject.getCall(0).args[0], "library.e", "graph#getProject got called with the correct argument");
+	t.is(graphMock.addProject.callCount, 1, "graph#addProject got called once");
+	t.is(graphMock.addProject.getCall(0).args[0].getName(), "library.e",
+		"graph#addProject got called with the correct project");
+});
+
+test.serial("ProjectProcessor: Project already in graph", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns("project"),
+		addProject: sinon.stub()
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock
+	});
+
+	await projectProcessor.addProjectToGraph("library.e");
+	t.is(graphMock.getProject.callCount, 1, "graph#getProject got called once");
+	t.is(graphMock.getProject.getCall(0).args[0], "library.e", "graph#getProject got called with the correct argument");
+	t.is(graphMock.addProject.callCount, 0, "graph#addProject never got called");
+});
+
+test.serial("ProjectProcessor: Add project with dependencies to graph", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub(),
+		declareDependency: sinon.stub()
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: ["library.d"],
+				optionalDependencies: []
+			},
+			"library.d": {
+				id: "lib.d.id",
+				version: "120000.0.0",
+				path: libraryDPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock
+	});
+
+	await projectProcessor.addProjectToGraph("library.e");
+	t.is(graphMock.getProject.callCount, 2, "graph#getProject got called twice");
+	t.is(graphMock.getProject.getCall(0).args[0], "library.e", "graph#getProject got called with the correct argument");
+	t.is(graphMock.getProject.getCall(1).args[0], "library.d", "graph#getProject got called with the correct argument");
+	t.is(graphMock.addProject.callCount, 2, "graph#addProject got called twice");
+	t.is(graphMock.addProject.getCall(0).args[0].getName(), "library.d",
+		"graph#addProject got called with the correct project");
+	t.is(graphMock.addProject.getCall(1).args[0].getName(), "library.e",
+		"graph#addProject got called with the correct project");
+	t.is(graphMock.declareDependency.callCount, 1, "graph#declareDependency got called once");
+	t.deepEqual(graphMock.declareDependency.getCall(0).args, ["library.e", "library.d"],
+		"graph#declareDependency got called with the correct arguments");
+});
+
+test.serial("ProjectProcessor: Resolve project via workspace", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub(),
+		declareDependency: sinon.stub()
+	};
+	const libraryEProjectMock = {
+		getName: () => "library.e",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.d"
+		}])
+	};
+	const libraryDProjectMock = {
+		getName: () => "library.d",
+		getFrameworkDependencies: sinon.stub().returns([])
+	};
+	const moduleMock = {
+		getVersion: () => "1.0.0",
+		getPath: () => path.join("module", "path"),
+		getSpecifications: sinon.stub()
+			.onFirstCall().resolves({
+				project: libraryDProjectMock
+			})
+			.onSecondCall().resolves({
+				project: libraryEProjectMock
+			})
+	};
+	const workspaceMock = {
+		getName: sinon.stub().returns("workspace name"),
+		getModuleByProjectName: sinon.stub().resolves(moduleMock),
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: ["library.d"],
+				optionalDependencies: []
+			},
+			"library.d": {
+				id: "lib.d.id",
+				version: "120000.0.0",
+				path: libraryDPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock,
+		workspace: workspaceMock
+	});
+
+	await projectProcessor.addProjectToGraph("library.e");
+	t.is(graphMock.getProject.callCount, 2, "graph#getProject got called twice");
+	t.is(graphMock.getProject.getCall(0).args[0], "library.e", "graph#getProject got called with the correct argument");
+	t.is(graphMock.getProject.getCall(1).args[0], "library.d", "graph#getProject got called with the correct argument");
+	t.is(graphMock.addProject.callCount, 2, "graph#addProject got called once");
+	t.is(graphMock.addProject.getCall(0).args[0].getName(), "library.d",
+		"graph#addProject got called with the correct project");
+	t.is(graphMock.addProject.getCall(1).args[0].getName(), "library.e",
+		"graph#addProject got called with the correct project");
+	t.is(graphMock.declareDependency.callCount, 1, "graph#declareDependency got called once");
+	t.deepEqual(graphMock.declareDependency.getCall(0).args, ["library.e", "library.d"],
+		"graph#declareDependency got called with the correct arguments");
+});
+
+test.serial("ProjectProcessor: Resolve project via workspace with additional dependency", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub(),
+		declareDependency: sinon.stub()
+	};
+	const libraryEProjectMock = {
+		getName: () => "library.e",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.d"
+		}])
+	};
+	const libraryDProjectMock = {
+		getName: () => "library.d",
+		getFrameworkDependencies: sinon.stub().returns([])
+	};
+	const moduleMock = {
+		getVersion: () => "1.0.0",
+		getPath: () => path.join("module", "path"),
+		getSpecifications: sinon.stub()
+			.onFirstCall().resolves({
+				project: libraryEProjectMock
+			})
+			.onSecondCall().resolves({
+				project: libraryDProjectMock
+			})
+	};
+	const workspaceMock = {
+		getName: sinon.stub().returns("workspace name"),
+		getModuleByProjectName: sinon.stub().resolves(moduleMock),
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: [], // Dependency to library.d is only declared in workspace-resolved library.e
+				optionalDependencies: []
+			},
+			"library.d": {
+				id: "lib.d.id",
+				version: "120000.0.0",
+				path: libraryDPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock,
+		workspace: workspaceMock
+	});
+
+	await projectProcessor.addProjectToGraph("library.e");
+	t.is(graphMock.getProject.callCount, 2, "graph#getProject got called twice");
+	t.is(graphMock.getProject.getCall(0).args[0], "library.e", "graph#getProject got called with the correct argument");
+	t.is(graphMock.getProject.getCall(1).args[0], "library.d", "graph#getProject got called with the correct argument");
+	t.is(graphMock.addProject.callCount, 2, "graph#addProject got called once");
+	t.is(graphMock.addProject.getCall(0).args[0].getName(), "library.e",
+		"graph#addProject got called with the correct project");
+	t.is(graphMock.addProject.getCall(1).args[0].getName(), "library.d",
+		"graph#addProject got called with the correct project");
+	t.is(graphMock.declareDependency.callCount, 1, "graph#declareDependency got called once");
+	t.deepEqual(graphMock.declareDependency.getCall(0).args, ["library.e", "library.d"],
+		"graph#declareDependency got called with the correct arguments");
+});
+
+test.serial("ProjectProcessor: Resolve project via workspace with additional, unknown dependency", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub(),
+		declareDependency: sinon.stub()
+	};
+	const libraryEProjectMock = {
+		getName: () => "library.e",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.xyz"
+		}])
+	};
+	const libraryDProjectMock = {
+		getName: () => "library.d",
+		getFrameworkDependencies: sinon.stub().returns([])
+	};
+	const moduleMock = {
+		getVersion: () => "1.0.0",
+		getPath: () => path.join("module", "path"),
+		getSpecifications: sinon.stub()
+			.onFirstCall().resolves({
+				project: libraryEProjectMock
+			})
+			.onSecondCall().resolves({
+				project: libraryDProjectMock
+			})
+	};
+	const workspaceMock = {
+		getName: sinon.stub().returns("workspace name"),
+		getModuleByProjectName: sinon.stub().resolves(moduleMock),
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: ["library.d"],
+				optionalDependencies: []
+			},
+			"library.d": {
+				id: "lib.d.id",
+				version: "120000.0.0",
+				path: libraryDPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock,
+		workspace: workspaceMock
+	});
+
+	await t.throwsAsync(projectProcessor.addProjectToGraph("library.e"), {
+		message:
+			"Unable to find dependency library.xyz, required by project library.e " +
+			"(resolved via workspace name workspace) " +
+			"in current set of libraries. Try adding it temporarily to the root project's dependencies"
+	}, "Threw with expected error message");
+});
+
+test.serial("ProjectProcessor: Resolve project via workspace with cyclic dependency", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub(),
+		declareDependency: sinon.stub()
+	};
+	const libraryEProjectMock = {
+		getName: () => "library.e",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.d"
+		}])
+	};
+	const libraryDProjectMock = {
+		getName: () => "library.d",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.e" // Cyclic dependency in workspace project
+		}])
+	};
+	const moduleMock = {
+		getVersion: () => "1.0.0",
+		getPath: () => path.join("module", "path"),
+		getSpecifications: sinon.stub()
+			.onFirstCall().resolves({
+				project: libraryEProjectMock
+			})
+			.onSecondCall().resolves({
+				project: libraryDProjectMock
+			})
+	};
+	const workspaceMock = {
+		getName: sinon.stub().returns("workspace name"),
+		getModuleByProjectName: sinon.stub().resolves(moduleMock),
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: ["library.d"],
+				optionalDependencies: []
+			},
+			"library.d": {
+				id: "lib.d.id",
+				version: "120000.0.0",
+				path: libraryDPath,
+				dependencies: [],
+				optionalDependencies: []
+			}
+		},
+		graph: graphMock,
+		workspace: workspaceMock
+	});
+
+	await t.throwsAsync(projectProcessor.addProjectToGraph("library.e"), {
+		message:
+			"ui5Framework:ProjectPreprocessor: Detected cyclic dependency chain: " +
+			"library.e -> *library.d* -> *library.d*"
+	}, "Threw with expected error message");
+});
+
+test.serial("ProjectProcessor: Resolve project via workspace with distant cyclic dependency", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub(),
+		declareDependency: sinon.stub()
+	};
+	const libraryEProjectMock = {
+		getName: () => "library.e",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.d"
+		}])
+	};
+	const libraryDProjectMock = {
+		getName: () => "library.d",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.f"
+		}])
+	};
+	const libraryFProjectMock = {
+		getName: () => "library.f",
+		getFrameworkDependencies: sinon.stub().returns([{
+			name: "library.e" // Cyclic dependency in workspace project
+		}])
+	};
+	const moduleMock = {
+		getVersion: () => "1.0.0",
+		getPath: () => path.join("module", "path"),
+		getSpecifications: sinon.stub()
+			.onFirstCall().resolves({
+				project: libraryEProjectMock
+			})
+			.onSecondCall().resolves({
+				project: libraryDProjectMock
+			})
+			.onThirdCall().resolves({
+				project: libraryFProjectMock
+			})
+	};
+	const workspaceMock = {
+		getName: sinon.stub().returns("workspace name"),
+		getModuleByProjectName: sinon.stub().resolves(moduleMock),
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"library.e": {
+				id: "lib.e.id",
+				version: "1000.0.0",
+				path: libraryEPath,
+				dependencies: ["library.d"],
+				optionalDependencies: []
+			},
+			"library.d": {
+				id: "lib.d.id",
+				version: "120000.0.0",
+				path: libraryDPath,
+				dependencies: ["library.f"],
+				optionalDependencies: []
+			},
+			"library.f": {
+				id: "lib.f.id",
+				version: "1.0.0",
+				path: libraryFPath,
+				dependencies: [],
+				optionalDependencies: []
+			},
+		},
+		graph: graphMock,
+		workspace: workspaceMock
+	});
+
+	await t.throwsAsync(projectProcessor.addProjectToGraph("library.e"), {
+		message:
+			"ui5Framework:ProjectPreprocessor: Detected cyclic dependency chain: " +
+			"library.e -> *library.d* -> library.f -> *library.d*"
+	}, "Threw with expected error message");
+});
+
+test.serial("ProjectProcessor: Project missing in metadata", async (t) => {
+	const {sinon} = t.context;
+	const {ProjectProcessor} = t.context.utils;
+	const graphMock = {
+		getProject: sinon.stub().returns(),
+		addProject: sinon.stub()
+	};
+	const projectProcessor = new ProjectProcessor({
+		libraryMetadata: {
+			"lib.x": {}
+		},
+		graph: graphMock
+	});
+
+	await t.throwsAsync(projectProcessor.addProjectToGraph("lib.a"), {
+		message: "Failed to find library lib.a in dist packages metadata.json"
+	}, "Threw with expected error message");
+});

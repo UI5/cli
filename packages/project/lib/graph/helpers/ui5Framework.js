@@ -4,33 +4,38 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
 
 class ProjectProcessor {
-	constructor({libraryMetadata}) {
+	constructor({libraryMetadata, graph, workspace}) {
 		this._libraryMetadata = libraryMetadata;
+		this._graph = graph;
+		this._workspace = workspace;
 		this._projectGraphPromises = Object.create(null);
 	}
-	async addProjectToGraph(libName, projectGraph) {
+	async addProjectToGraph(libName, ancestors) {
+		if (ancestors) {
+			this._checkCycle(ancestors, libName);
+		}
 		if (this._projectGraphPromises[libName]) {
 			return this._projectGraphPromises[libName];
 		}
-		return this._projectGraphPromises[libName] = this._addProjectToGraph(libName, projectGraph);
+		return this._projectGraphPromises[libName] = this._addProjectToGraph(libName, ancestors);
 	}
-	async _addProjectToGraph(libName, projectGraph) {
+	async _addProjectToGraph(libName, ancestors = []) {
 		log.verbose(`Creating project for library ${libName}...`);
-
 
 		if (!this._libraryMetadata[libName]) {
 			throw new Error(`Failed to find library ${libName} in dist packages metadata.json`);
 		}
 
 		const depMetadata = this._libraryMetadata[libName];
+		const graph = this._graph;
 
-		if (projectGraph.getProject(depMetadata.id)) {
+		if (graph.getProject(libName)) {
 			// Already added
 			return;
 		}
 
 		const dependencies = await Promise.all(depMetadata.dependencies.map(async (depName) => {
-			await this.addProjectToGraph(depName, projectGraph);
+			await this.addProjectToGraph(depName, [...ancestors, libName]);
 			return depName;
 		}));
 
@@ -38,7 +43,7 @@ class ProjectProcessor {
 			const resolvedOptionals = await Promise.all(depMetadata.optionalDependencies.map(async (depName) => {
 				if (this._libraryMetadata[depName]) {
 					log.verbose(`Resolving optional dependency ${depName} for project ${libName}...`);
-					await this.addProjectToGraph(depName, projectGraph);
+					await this.addProjectToGraph(depName, [...ancestors, libName]);
 					return depName;
 				}
 			}));
@@ -46,16 +51,63 @@ class ProjectProcessor {
 			dependencies.push(...resolvedOptionals.filter(($)=>$));
 		}
 
-		const ui5Module = new Module({
-			id: depMetadata.id,
-			version: depMetadata.version,
-			modulePath: depMetadata.path
-		});
+		let projectIsFromWorkspace = false;
+		let ui5Module;
+		if (this._workspace) {
+			ui5Module = await this._workspace.getModuleByProjectName(libName);
+			if (ui5Module) {
+				log.info(`Resolved project ${libName} via ${this._workspace.getName()} workspace ` +
+					`to version ${ui5Module.getVersion()}`);
+				log.verbose(`  Resolved module ${libName} to path ${ui5Module.getPath()}`);
+				log.verbose(`  Requested version was: ${depMetadata.version}`);
+				projectIsFromWorkspace = true;
+			}
+		}
+
+		if (!ui5Module) {
+			ui5Module = new Module({
+				id: depMetadata.id,
+				version: depMetadata.version,
+				modulePath: depMetadata.path
+			});
+		}
 		const {project} = await ui5Module.getSpecifications();
-		projectGraph.addProject(project);
+		graph.addProject(project);
 		dependencies.forEach((dependency) => {
-			projectGraph.declareDependency(libName, dependency);
+			graph.declareDependency(libName, dependency);
 		});
+		if (projectIsFromWorkspace) {
+			// Add any dependencies that are only declared in the workspace resolved project
+			// Do not remove superfluous dependencies (might be added later though)
+			await Promise.all(project.getFrameworkDependencies().map(async ({name, optional, development}) => {
+				// Only proceed with dependencies which are not "optional" or "development",
+				// and not already listed in the dependencies of the original node
+				if (optional || development || dependencies.includes(name)) {
+					return;
+				}
+
+				if (!this._libraryMetadata[name]) {
+					throw new Error(
+						`Unable to find dependency ${name}, required by project ${project.getName()} ` +
+						`(resolved via ${this._workspace.getName()} workspace) in current set of libraries. ` +
+						`Try adding it temporarily to the root project's dependencies`);
+				}
+
+				await this.addProjectToGraph(name, [...ancestors, libName]);
+				graph.declareDependency(libName, name);
+			}));
+		}
+	}
+	_checkCycle(ancestors, projectName) {
+		if (ancestors.includes(projectName)) {
+			// "Back-edge" detected. This would cause a deadlock
+			// Mark first and last occurrence in chain with an asterisk and throw an error detailing the
+			// problematic dependency chain
+			ancestors[ancestors.indexOf(projectName)] = `*${projectName}*`;
+			throw new Error(
+				`ui5Framework:ProjectPreprocessor: Detected cyclic dependency chain: ` +
+				`${ancestors.join(" -> ")} -> *${projectName}*`);
+		}
 	}
 }
 
@@ -158,6 +210,8 @@ export default {
 	 * @param {object} [options]
 	 * @param {string} [options.versionOverride] Framework version to use instead of the root projects framework
 	 *   version
+	 * @param {@ui5/project/graph/Workspace} [options.workspace]
+	 *   Optional workspace instance to use for overriding node resolutions
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
@@ -245,15 +299,18 @@ export default {
 				`resolved in ${prettyHrtime(timeDiff)}`);
 		}
 
-		const projectProcessor = new utils.ProjectProcessor({
-			libraryMetadata
-		});
-
 		const frameworkGraph = new ProjectGraph({
 			rootProjectName: `fake-root-of-${rootProject.getName()}-framework-dependency-graph`
 		});
+
+		const projectProcessor = new utils.ProjectProcessor({
+			libraryMetadata,
+			graph: frameworkGraph,
+			workspace: options.workspace
+		});
+
 		await Promise.all(referencedLibraries.map(async (libName) => {
-			await projectProcessor.addProjectToGraph(libName, frameworkGraph);
+			await projectProcessor.addProjectToGraph(libName);
 		}));
 
 		log.verbose("Joining framework graph into project graph...");

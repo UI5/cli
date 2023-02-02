@@ -83,7 +83,8 @@ function validateNode(node) {
  * @public
  * @function
  * @name @ui5/project/graph/ProjectGraphBuilder~NodeProvider#getDependencies
- * @param {Node} The root node of the dependency graph
+ * @param {Node} node The root node of the dependency graph
+ * @param {@ui5/project/graph/Workspace} [workspace] workspace instance to use for overriding node resolution
  * @returns {Node[]} Array of nodes which are direct dependencies of the given node
  */
 
@@ -95,9 +96,12 @@ function validateNode(node) {
  * @function default
  * @static
  * @param {@ui5/project/graph/ProjectGraphBuilder~NodeProvider} nodeProvider
+ * 	Node provider instance to use for building the graph
+ * @param {@ui5/project/graph/Workspace} [workspace]
+ * 	Optional workspace instance to use for overriding project resolutions
  * @returns {@ui5/project/graph/ProjectGraph} A new project graph instance
  */
-async function projectGraphBuilder(nodeProvider) {
+async function projectGraphBuilder(nodeProvider, workspace) {
 	const shimCollection = new ShimCollection();
 	const moduleCollection = Object.create(null);
 
@@ -141,7 +145,7 @@ async function projectGraphBuilder(nodeProvider) {
 
 	const queue = [];
 
-	const rootDependencies = await nodeProvider.getDependencies(rootNode);
+	const rootDependencies = await nodeProvider.getDependencies(rootNode, workspace);
 
 	if (rootDependencies && rootDependencies.length) {
 		queue.push({
@@ -174,7 +178,6 @@ async function projectGraphBuilder(nodeProvider) {
 			}
 
 			const {project, extensions} = await ui5Module.getSpecifications();
-
 			return {
 				node,
 				project,

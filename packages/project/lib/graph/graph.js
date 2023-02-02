@@ -1,6 +1,7 @@
 import path from "node:path";
 import projectGraphBuilder from "./projectGraphBuilder.js";
 import ui5Framework from "./helpers/ui5Framework.js";
+import createWorkspace from "./helpers/createWorkspace.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("generateProjectGraph");
 
@@ -46,27 +47,47 @@ function resolveProjectPaths(cwd, project) {
  * @param {string} [options.versionOverride] Framework version to use instead of the one defined in the root project
  * @param {string} [options.resolveFrameworkDependencies=true]
  * 		Whether framework dependencies should be added to the graph
+ * @param {string} [options.workspaceName]
+ * 		Name of the workspace configuration that should be used if any is provided
+ * @param {string} [options.workspaceConfigPath=ui5-workspace.yaml]
+ * 		Workspace configuration file to use if no object has been provided
+ * @param {@ui5/project/graph/Workspace~Configuration} [options.workspaceConfiguration]
+ * 		Workspace configuration object to use instead of reading from a configuration file.
+ * 		Parameter <code>workspaceName</code> can either be omitted or has to match with the given configuration name
  * @returns {Promise<@ui5/project/graph/ProjectGraph>} Promise resolving to a Project Graph instance
  */
 export async function graphFromPackageDependencies({
 	cwd, rootConfiguration, rootConfigPath,
-	versionOverride, resolveFrameworkDependencies = true
+	versionOverride, resolveFrameworkDependencies = true,
+	workspaceName, workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
 }) {
 	log.verbose(`Creating project graph using npm provider...`);
 	const {
 		default: NpmProvider
 	} = await import("./providers/NodePackageDependencies.js");
 
+	cwd = cwd ? path.resolve(cwd) : process.cwd();
+
+	let workspace;
+	if (workspaceName || workspaceConfiguration) {
+		workspace = await createWorkspace({
+			cwd,
+			name: workspaceName,
+			configObject: workspaceConfiguration,
+			configPath: workspaceConfigPath
+		});
+	}
+
 	const provider = new NpmProvider({
-		cwd: cwd ? path.resolve(cwd) : process.cwd(),
+		cwd,
 		rootConfiguration,
 		rootConfigPath
 	});
 
-	const projectGraph = await projectGraphBuilder(provider);
+	const projectGraph = await projectGraphBuilder(provider, workspace);
 
 	if (resolveFrameworkDependencies) {
-		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride});
+		await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride, workspace});
 	}
 
 	return projectGraph;

@@ -1,0 +1,11 @@
+{
+  "name": "library.d",
+  "version": "2.0.0",
+  "description": "Version of library.d that has additional dependencies defined. Used for testing UI5 Workspace resolutions",
+  "dependencies": {
+    "library.f": "file:../library.f"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

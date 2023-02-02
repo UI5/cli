@@ -100,7 +100,7 @@ class Module {
 	 *
 	 * @private
 	 * @typedef {object} @ui5/project/graph/Module~SpecificationsResult
-	 * @property {@ui5/project/specifications/Project|undefined} Project found in the module (if one is found)
+	 * @property {@ui5/project/specifications/Project|null} Project found in the module (if one is found)
 	 * @property {@ui5/project/specifications/Extension[]} Array of extensions found in the module
 	 *
 	 */
@@ -187,7 +187,7 @@ class Module {
 		}
 
 		return {
-			project: projects[0],
+			project: projects[0] || null,
 			extensions
 		};
 	}
@@ -338,6 +338,8 @@ class Module {
 		}
 
 		// Validate found configurations with schema
+		// Validation is done again in the Specification class. But here we can reference the YAML file
+		// which adds helpful information like the line number
 		const validationResults = await Promise.all(
 			configs.map(async (config, documentIndex) => {
 				// Catch validation errors to ensure proper order of rejections within Promise.all

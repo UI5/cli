@@ -14,6 +14,7 @@ const applicationFPath = path.join(__dirname, "..", "..", "..", "fixtures", "app
 const applicationGPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.g");
 const errApplicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "err.application.a");
 const cycleDepsBasePath = path.join(__dirname, "..", "..", "..", "fixtures", "cyclic-deps", "node_modules");
+const libraryDOverridePath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-adtl-deps");
 
 import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
 import NodePackageDependenciesProvider from "../../../../lib/graph/providers/NodePackageDependencies.js";
@@ -27,18 +28,18 @@ test.afterEach.always((t) => {
 });
 
 function testGraphCreationBfs(...args) {
-	return _testGraphCreation(...args, true);
+	return _testGraphCreation(true, ...args);
 }
 
 function testGraphCreationDfs(...args) {
-	return _testGraphCreation(...args, false);
+	return _testGraphCreation(false, ...args);
 }
 
-async function _testGraphCreation(t, npmProvider, expectedOrder, bfs) {
+async function _testGraphCreation(bfs, t, npmProvider, expectedOrder, workspace) {
 	if (bfs === undefined) {
 		throw new Error("Test error: Parameter 'bfs' must be specified");
 	}
-	const projectGraph = await projectGraphBuilder(npmProvider);
+	const projectGraph = await projectGraphBuilder(npmProvider, workspace);
 	const callbackStub = t.context.sinon.stub().resolves();
 	if (bfs) {
 		await projectGraph.traverseBreadthFirst(callbackStub);
@@ -65,6 +66,37 @@ test("AppA: project with collection dependency", async (t) => {
 		"library.c",
 		"application.a",
 	]);
+});
+
+test("AppA: project with workspace overrides", async (t) => {
+	const workspace = {
+		getName: () => "workspace name",
+		getModuleByNodeId: t.context.sinon.stub().resolves(undefined).onFirstCall().resolves({
+			// This version of library.d has an additional dependency to library.f,
+			// which in turn has a dependency to library.g
+			getPath: () => libraryDOverridePath,
+			getVersion: () => "1.0.0",
+		})
+	};
+	const npmProvider = new NodePackageDependenciesProvider({
+		cwd: applicationAPath
+	});
+	const graph = await testGraphCreationDfs(t, npmProvider, [
+		"library.g", // Added through workspace override of library.d
+		"library.a",
+		"library.b",
+		"library.c",
+		"library.f", // Added through workspace override of library.d
+		"library.d",
+		"application.a",
+	], workspace);
+
+	t.is(workspace.getModuleByNodeId.callCount, 2, "Workspace#getModuleByNodeId got called twice");
+	t.is(workspace.getModuleByNodeId.getCall(0).args[0], "library.d",
+		"Workspace#getModuleByNodeId got called with correct argument on first call");
+	t.is(workspace.getModuleByNodeId.getCall(1).args[0], "collection",
+		"Workspace#getModuleByNodeId got called with correct argument on second call");
+	t.is(graph.getProject("library.d").getVersion(), "2.0.0", "Version from override is used");
 });
 
 test("AppC: project with dependency with optional dependency resolved through root project", async (t) => {
@@ -188,7 +220,7 @@ test("AppCycleD: cyclic npm deps - Cycles everywhere", async (t) => {
 
 	const error = await t.throwsAsync(testGraphCreationDfs(t, npmProvider, []));
 	t.is(error.message,
-		`Detected cyclic dependency chain: application.cycle.d -> module.h* -> module.i -> module.k -> module.h*`);
+		`Detected cyclic dependency chain: application.cycle.d -> *module.h* -> module.i -> module.k -> *module.h*`);
 });
 
 test("AppCycleE: cyclic npm deps - Cycle via devDependency", async (t) => {

@@ -81,8 +81,8 @@ test("Application Cycle A: Traverse project graph breadth first with cycles", as
 	t.is(callbackStub.callCount, 4, "Four projects have been visited");
 
 	t.is(error.message,
-		"Detected cyclic dependency chain: application.cycle.a* -> component.cycle.a " +
-		"-> application.cycle.a*",
+		"Detected cyclic dependency chain: *application.cycle.a* -> component.cycle.a " +
+		"-> *application.cycle.a*",
 		"Threw with expected error message");
 
 	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
@@ -143,8 +143,8 @@ test("Application Cycle A: Traverse project graph depth first with cycles", asyn
 	t.is(callbackStub.callCount, 0, "Zero projects have been visited");
 
 	t.is(error.message,
-		"Detected cyclic dependency chain: application.cycle.a* -> component.cycle.a " +
-		"-> application.cycle.a*",
+		"Detected cyclic dependency chain: *application.cycle.a* -> component.cycle.a " +
+		"-> *application.cycle.a*",
 		"Threw with expected error message");
 });
 
@@ -157,8 +157,8 @@ test("Application Cycle B: Traverse project graph depth first with cycles", asyn
 	t.is(callbackStub.callCount, 0, "Zero projects have been visited");
 
 	t.is(error.message,
-		"Detected cyclic dependency chain: application.cycle.b -> module.d* " +
-		"-> module.e -> module.d*",
+		"Detected cyclic dependency chain: application.cycle.b -> *module.d* " +
+		"-> module.e -> *module.d*",
 		"Threw with expected error message");
 });
 

@@ -364,6 +364,20 @@ test("getTransitiveDependencies", async (t) => {
 	], "Should store and return correct transitive dependencies for library.a");
 });
 
+test("getTransitiveDependencies: Unknown project", (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "my root project"
+	});
+
+	const error = t.throws(() => {
+		graph.getTransitiveDependencies("library.x");
+	});
+	t.is(error.message,
+		"Failed to get transitive dependencies for project library.x: Unable to find project in project graph",
+		"Should throw with expected error message");
+});
+
 test("declareDependency: Unknown source", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph = new ProjectGraph({
@@ -484,7 +498,6 @@ test("declareDependency: Already declared as optional, now non-optional", async 
 	t.is(graph.isOptionalDependency("library.a", "library.b"), false,
 		"Should declare dependency as non-optional");
 });
-
 
 test("getDependencies: Project without dependencies", async (t) => {
 	const {ProjectGraph} = t.context;
@@ -775,7 +788,7 @@ test("traverseBreadthFirst: Detect cycle", async (t) => {
 
 	const error = await t.throwsAsync(graph.traverseBreadthFirst(() => {}));
 	t.is(error.message,
-		"Detected cyclic dependency chain: library.a* -> library.b -> library.a*",
+		"Detected cyclic dependency chain: *library.a* -> library.b -> *library.a*",
 		"Should throw with expected error message");
 });
 
@@ -1000,7 +1013,7 @@ test("traverseDepthFirst: Detect cycle", async (t) => {
 
 	const error = await t.throwsAsync(graph.traverseDepthFirst(() => {}));
 	t.is(error.message,
-		"Detected cyclic dependency chain: library.a* -> library.b -> library.a*",
+		"Detected cyclic dependency chain: *library.a* -> library.b -> *library.a*",
 		"Should throw with expected error message");
 });
 
@@ -1020,7 +1033,7 @@ test("traverseDepthFirst: Cycle which does not occur in BFS", async (t) => {
 
 	const error = await t.throwsAsync(graph.traverseDepthFirst(() => {}));
 	t.is(error.message,
-		"Detected cyclic dependency chain: library.a -> library.b* -> library.c -> library.b*",
+		"Detected cyclic dependency chain: library.a -> *library.b* -> library.c -> *library.b*",
 		"Should throw with expected error message");
 });
 

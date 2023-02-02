@@ -1,0 +1,15 @@
+specVersion: workspace/1.0
+metadata:
+    name: default
+dependencyManagement:
+    resolutions:
+        - path: ../library.d
+---
+specVersion: workspace/1.0
+metadata:
+    name: all-libraries
+dependencyManagement:
+    resolutions:
+        - path: ../library.d
+        - path: ../library.e
+        - path: ../library.f

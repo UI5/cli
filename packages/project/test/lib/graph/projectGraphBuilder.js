@@ -249,6 +249,29 @@ test("Node depends on itself", async (t) => {
 		"Threw with expected error message");
 });
 
+test("Cyclic dependencies", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies
+		.onFirstCall().resolves([
+			createNode({
+				id: "id2",
+				name: "project-2"
+			}),
+		])
+		.onSecondCall().resolves([
+			createNode({
+				id: "id1",
+				name: "project-1"
+			}),
+		]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.deepEqual(graph.getDependencies("project-1"), ["project-2"], "Cyclic dependency has been added");
+	t.deepEqual(graph.getDependencies("project-2"), ["project-1"], "Cyclic dependency has been added");
+});
+
 test("Nested node with same id is ignored", async (t) => {
 	t.context.getRootNode.resolves(createNode({
 		id: "id1",
@@ -263,7 +286,7 @@ test("Nested node with same id is ignored", async (t) => {
 	t.context.getDependencies.onSecondCall().resolves([
 		createNode({
 			id: "id1",
-			name: "project-3"
+			name: "project-3" // name will be ignored, since the first "id1" node is being used
 		}),
 	]);
 	const graph = await projectGraphBuilder(t.context.provider);

@@ -1,0 +1,13 @@
+specVersion: workspace/1.0
+metadata:
+    name: config-a
+dependencyManagement:
+    resolutions:
+        - path: ../library.d
+---
+specVersion: workspace/1.0
+metadata:
+    name: config-b
+dependencyManagement:
+    resolutions:
+        - path: ../library.x

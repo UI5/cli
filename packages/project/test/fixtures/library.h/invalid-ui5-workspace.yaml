@@ -1,0 +1,6 @@
+specVersion: wörkspace/1.0
+metadata:
+    name: default
+dependencyManagement:
+    resolutions:
+        - path: ../library.d

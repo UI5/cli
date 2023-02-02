@@ -34,8 +34,6 @@ class NodePackageDependencies {
 		this._cwd = cwd;
 		this._rootConfiguration = rootConfiguration;
 		this._rootConfigPath = rootConfigPath;
-
-		// this._nodes = {};
 	}
 
 	async getRootNode() {
@@ -49,9 +47,6 @@ class NodePackageDependencies {
 				`Failed to locate package.json for directory ${path.resolve(this._cwd)}`);
 		}
 		const modulePath = path.dirname(rootPkg.path);
-		// this._nodes[rootPkg.packageJson.name] = {
-		// 	dependencies: Object.keys(rootPkg.packageJson.dependencies)
-		// };
 		return {
 			id: rootPkg.packageJson.name,
 			version: rootPkg.packageJson.version,
@@ -62,19 +57,32 @@ class NodePackageDependencies {
 		};
 	}
 
-	async getDependencies(node) {
+	async getDependencies(node, workspace) {
 		log.verbose(`Resolving dependencies of ${node.id}...`);
 		if (!node._dependencies) {
 			return [];
 		}
 		return Promise.all(node._dependencies.map(async ({name, optional}) => {
-			const modulePath = await this._resolveModulePath(node.path, name);
+			const modulePath = await this._resolveModulePath(node.path, name, workspace);
 			return this._getNode(modulePath, optional);
 		}));
 	}
 
-	async _resolveModulePath(baseDir, moduleName) {
+	async _resolveModulePath(baseDir, moduleName, workspace) {
 		log.verbose(`Resolving module path for '${moduleName}'...`);
+
+		if (workspace) {
+			// Check whether node can be resolved via the provided Workspace instance
+			// If yes, replace the node from NodeProvider with the one from Workspace
+			const workspaceNode = await workspace.getModuleByNodeId(moduleName);
+			if (workspaceNode) {
+				log.info(`Resolved module ${moduleName} via ${workspace.getName()} workspace ` +
+					`to version ${workspaceNode.getVersion()}`);
+				log.verbose(`  Resolved module ${moduleName} to path ${workspaceNode.getPath()}`);
+				return workspaceNode.getPath();
+			}
+		}
+
 		try {
 			let packageJsonPath = await resolveModulePath(moduleName + "/package.json", {
 				basedir: baseDir,
