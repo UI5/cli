@@ -1,4 +1,4 @@
-import Resource from "./Resource.js";
+import posixPath from "node:path/posix";
 
 /**
  * A {@link @ui5/fs/Resource Resource} with a different path than it's original
@@ -21,13 +21,17 @@ class ResourceFacade {
 	 */
 	constructor({path, resource}) {
 		if (!path) {
-			throw new Error("Cannot create ResourceFacade: path parameter missing");
+			throw new Error("Unable to create ResourceFacade: Missing parameter 'path'");
 		}
 		if (!resource) {
-			throw new Error("Cannot create ResourceFacade: resource parameter missing");
+			throw new Error("Unable to create ResourceFacade: Missing parameter 'resource'");
+		}
+		path = posixPath.normalize(path);
+		if (!posixPath.isAbsolute(path)) {
+			throw new Error(`Unable to create ResourceFacade: Parameter 'path' must be absolute: ${path}`);
 		}
 		this.#path = path;
-		this.#name = Resource._getNameFromPath(path);
+		this.#name = posixPath.basename(path);
 		this.#resource = resource;
 	}
 

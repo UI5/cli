@@ -44,38 +44,38 @@ test("Resource: constructor with missing path parameter", (t) => {
 		new Resource({});
 	}, {
 		instanceOf: Error,
-		message: "Cannot create Resource: path parameter missing"
+		message: "Unable to create Resource: Missing parameter 'path'"
 	});
 });
 
 test("Resource: constructor with duplicated content parameter", (t) => {
 	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
 	[{
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("Content"),
 		string: "Content",
 	}, {
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("Content"),
 		stream: createReadStream(fsPath),
 	}, {
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("Content"),
 		createStream: () => {
 			return createReadStream(fsPath);
 		},
 	}, {
-		path: "my/path",
+		path: "/my/path",
 		string: "Content",
 		stream: createReadStream(fsPath),
 	}, {
-		path: "my/path",
+		path: "/my/path",
 		string: "Content",
 		createStream: () => {
 			return createReadStream(fsPath);
 		},
 	}, {
-		path: "my/path",
+		path: "/my/path",
 		stream: createReadStream(fsPath),
 		createStream: () => {
 			return createReadStream(fsPath);
@@ -85,15 +85,15 @@ test("Resource: constructor with duplicated content parameter", (t) => {
 			new Resource(resourceParams);
 		}, {
 			instanceOf: Error,
-			message: "Cannot create Resource: Please set only one content parameter. " +
-				"Buffer, string, stream or createStream"
+			message: "Unable to create Resource: Please set only one content parameter. " +
+				"'buffer', 'string', 'stream' or 'createStream'"
 		}, "Threw with expected error message");
 	});
 });
 
 test("Resource: From buffer", async (t) => {
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		buffer: Buffer.from("Content"),
 		sourceMetadata: {}
 	});
@@ -104,7 +104,7 @@ test("Resource: From buffer", async (t) => {
 
 test("Resource: From string", async (t) => {
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		string: "Content",
 		sourceMetadata: {}
 	});
@@ -116,7 +116,7 @@ test("Resource: From string", async (t) => {
 test("Resource: From stream", async (t) => {
 	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		stream: createReadStream(fsPath),
 		sourceMetadata: {}
 	});
@@ -128,7 +128,7 @@ test("Resource: From stream", async (t) => {
 test("Resource: From createStream", async (t) => {
 	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
 	const resource = new Resource({
-		path: "my/path",
+		path: "/my/path",
 		createStream: () => {
 			return createReadStream(fsPath);
 		},
@@ -143,39 +143,64 @@ test("Resource: getBuffer with throwing an error", (t) => {
 	t.plan(1);
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 	});
 
 	return resource.getBuffer().catch(function(error) {
-		t.is(error.message, "Resource my/path/to/resource has no content",
+		t.is(error.message, "Resource /my/path/to/resource has no content",
 			"getBuffer called w/o having a resource content provided");
 	});
 });
 
 test("Resource: getPath / getName", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource.js",
+		path: "/my/path/to/resource.js",
 		buffer: Buffer.from("Content")
 	});
-	t.is(resource.getPath(), "my/path/to/resource.js", "Correct path");
+	t.is(resource.getPath(), "/my/path/to/resource.js", "Correct path");
 	t.is(resource.getName(), "resource.js", "Correct name");
 });
 
 test("Resource: setPath / getName", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource.js",
+		path: "/my/path/to/resource.js",
 		buffer: Buffer.from("Content")
 	});
-	resource.setPath("my/other/file.json");
-	t.is(resource.getPath(), "my/other/file.json", "Correct path");
+	resource.setPath("/my/other/file.json");
+	t.is(resource.getPath(), "/my/other/file.json", "Correct path");
 	t.is(resource.getName(), "file.json", "Correct name");
+});
+
+test("Resource: setPath with non-absolute path", (t) => {
+	const resource = new Resource({
+		path: "/my/path/to/resource.js",
+		buffer: Buffer.from("Content")
+	});
+	t.throws(() => {
+		resource.setPath("my/other/file.json");
+	}, {
+		message: "Unable to set resource path: Path must be absolute: my/other/file.json"
+	}, "Threw with expected error message");
+	t.is(resource.getPath(), "/my/path/to/resource.js", "Path is unchanged");
+	t.is(resource.getName(), "resource.js", "Name is unchanged");
+});
+
+test("Create Resource with non-absolute path", (t) => {
+	t.throws(() => {
+		new Resource({
+			path: "my/path/to/resource.js",
+			buffer: Buffer.from("Content")
+		});
+	}, {
+		message: "Unable to set resource path: Path must be absolute: my/path/to/resource.js"
+	}, "Threw with expected error message");
 });
 
 test("Resource: getStream", async (t) => {
 	t.plan(1);
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		buffer: Buffer.from("Content")
 	});
 
@@ -187,7 +212,7 @@ test("Resource: getStream for empty string", async (t) => {
 	t.plan(1);
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		string: ""
 	});
 
@@ -199,7 +224,7 @@ test("Resource: getStream for empty string instance", async (t) => {
 	t.plan(1);
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		// eslint-disable-next-line no-new-wrappers
 		string: new String("")
 	});
@@ -210,20 +235,20 @@ test("Resource: getStream for empty string instance", async (t) => {
 
 test("Resource: getStream throwing an error", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource"
+		path: "/my/path/to/resource"
 	});
 
 	t.throws(() => {
 		resource.getStream();
 	}, {
 		instanceOf: Error,
-		message: "Resource my/path/to/resource has no content"
+		message: "Resource /my/path/to/resource has no content"
 	});
 });
 
 test("Resource: setString", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
@@ -241,7 +266,7 @@ test("Resource: setString", async (t) => {
 
 test("Resource: setBuffer", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
@@ -259,7 +284,7 @@ test("Resource: setBuffer", async (t) => {
 
 test("Resource: size modification", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource"
+		path: "/my/path/to/resource"
 	});
 	t.is(await resource.getSize(), 0, "initial size without content");
 
@@ -268,7 +293,7 @@ test("Resource: size modification", async (t) => {
 
 	t.is(await resource.getSize(), 7, "size after manually setting the string");
 	t.is(await new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		string: "Content"
 	}).getSize(), 7, "size when passing string to constructor");
 
@@ -287,7 +312,7 @@ test("Resource: size modification", async (t) => {
 
 	t.is(await resource.getSize(), 1234, "buffer with alloc after setting the buffer");
 	t.is(await new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		buffer: buf
 	}).getSize(), 1234, "buffer with alloc when passing buffer to constructor");
 
@@ -296,7 +321,7 @@ test("Resource: size modification", async (t) => {
 
 	// stream
 	const streamResource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 	});
 	const stream = new Stream.Readable();
 	stream._read = function() {};
@@ -317,7 +342,7 @@ test("Resource: size modification", async (t) => {
 
 test("Resource: setStream (Stream)", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
@@ -342,7 +367,7 @@ test("Resource: setStream (Stream)", async (t) => {
 
 test("Resource: setStream (Create stream callback)", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
 
@@ -370,7 +395,7 @@ test("Resource: clone resource with buffer", async (t) => {
 	t.plan(2);
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		buffer: Buffer.from("Content")
 	});
 
@@ -385,7 +410,7 @@ test("Resource: clone resource with stream", async (t) => {
 	t.plan(2);
 
 	const resource = new Resource({
-		path: "my/path/to/resource"
+		path: "/my/path/to/resource"
 	});
 	const stream = new Stream.Readable();
 	stream._read = function() {};
@@ -403,7 +428,7 @@ test("Resource: clone resource with stream", async (t) => {
 
 test("Resource: clone resource with sourceMetadata", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		sourceMetadata: {
 			adapter: "FileSystem",
 			fsPath: "/resources/my.js"
@@ -444,7 +469,7 @@ test("Resource: clone resource with project removes project", async (t) => {
 	};
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		project: myProject
 	});
 
@@ -457,7 +482,7 @@ test("Resource: clone resource with project removes project", async (t) => {
 
 test("Resource: create resource with sourceMetadata.contentModified: true", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		sourceMetadata: {
 			adapter: "FileSystem",
 			fsPath: "/resources/my.js",
@@ -539,7 +564,7 @@ test("getBuffer from Stream content: Subsequent content requests should not thro
 test("Resource: getProject", (t) => {
 	t.plan(1);
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		project: {getName: () => "Mock Project"}
 	});
 	const project = resource.getProject();
@@ -549,7 +574,7 @@ test("Resource: getProject", (t) => {
 test("Resource: setProject", (t) => {
 	t.plan(1);
 	const resource = new Resource({
-		path: "my/path/to/resource"
+		path: "/my/path/to/resource"
 	});
 	const project = {getName: () => "Mock Project"};
 	resource.setProject(project);
@@ -559,12 +584,12 @@ test("Resource: setProject", (t) => {
 test("Resource: reassign with setProject", (t) => {
 	t.plan(2);
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		project: {getName: () => "Mock Project"}
 	});
 	const project = {getName: () => "New Mock Project"};
 	const error = t.throws(() => resource.setProject(project));
-	t.is(error.message, "Unable to assign project New Mock Project to resource my/path/to/resource: " +
+	t.is(error.message, "Unable to assign project New Mock Project to resource /my/path/to/resource: " +
 		"Resource is already associated to project " + project);
 });
 
@@ -577,7 +602,7 @@ test("Resource: constructor with stream", async (t) => {
 	stream.push(null);
 
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		stream,
 		sourceMetadata: {} // Needs to be passed in order to get the "modified" state
 	});
@@ -596,7 +621,7 @@ test("integration stat - resource size", async (t) => {
 	const statInfo = await fs.stat(fsPath);
 
 	const resource = new Resource({
-		path: fsPath,
+		path: "/some/path",
 		statInfo,
 		createStream: () => {
 			return createReadStream(fsPath);

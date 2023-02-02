@@ -9,14 +9,14 @@ test.afterEach.always( (t) => {
 
 test("Create instance", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		string: "my content"
 	});
 	const resourceFacade = new ResourceFacade({
-		path: "my/path",
+		path: "/my/path",
 		resource
 	});
-	t.is(resourceFacade.getPath(), "my/path", "Returns correct path");
+	t.is(resourceFacade.getPath(), "/my/path", "Returns correct path");
 	t.is(resourceFacade.getName(), "path", "Returns correct name");
 	t.is(resourceFacade.getConcealedResource(), resource, "Returns correct concealed resource");
 });
@@ -24,11 +24,11 @@ test("Create instance", (t) => {
 test("Create instance: Missing parameters", (t) => {
 	t.throws(() => {
 		new ResourceFacade({
-			path: "my/path",
+			path: "/my/path",
 		});
 	}, {
 		instanceOf: Error,
-		message: "Cannot create ResourceFacade: resource parameter missing"
+		message: "Unable to create ResourceFacade: Missing parameter 'resource'"
 	});
 	t.throws(() => {
 		new ResourceFacade({
@@ -36,32 +36,32 @@ test("Create instance: Missing parameters", (t) => {
 		});
 	}, {
 		instanceOf: Error,
-		message: "Cannot create ResourceFacade: path parameter missing"
+		message: "Unable to create ResourceFacade: Missing parameter 'path'"
 	});
 });
 
 test("ResourceFacade #clone", async (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		string: "my content"
 	});
 	const resourceFacade = new ResourceFacade({
-		path: "my/path",
+		path: "/my/path",
 		resource
 	});
 
 	const clone = await resourceFacade.clone();
 	t.true(clone instanceof Resource, "Cloned resource facade is an instance of Resource");
-	t.is(clone.getPath(), "my/path", "Cloned resource has path of resource facade");
+	t.is(clone.getPath(), "/my/path", "Cloned resource has path of resource facade");
 });
 
 test("ResourceFacade #setPath", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		string: "my content"
 	});
 	const resourceFacade = new ResourceFacade({
-		path: "my/path",
+		path: "/my/path",
 		resource
 	});
 
@@ -73,11 +73,11 @@ test("ResourceFacade #setPath", (t) => {
 
 test("ResourceFacade provides same public functions as Resource", (t) => {
 	const resource = new Resource({
-		path: "my/path/to/resource",
+		path: "/my/path/to/resource",
 		string: "my content"
 	});
 	const resourceFacade = new ResourceFacade({
-		path: "my/path",
+		path: "/my/path",
 		resource
 	});
 

@@ -1,6 +1,6 @@
 import stream from "node:stream";
 import clone from "clone";
-import path from "node:path";
+import posixPath from "node:path/posix";
 
 const fnTrue = () => true;
 const fnFalse = () => false;
@@ -39,7 +39,7 @@ class Resource {
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
-	 * @param {string} parameters.path Virtual path
+	 * @param {string} parameters.path Absolute virtual path of the resource
 	 * @param {fs.Stats|object} [parameters.statInfo] File information. Instance of
 	 *					[fs.Stats]{@link https://nodejs.org/api/fs.html#fs_class_fs_stats} or similar object
 	 * @param {Buffer} [parameters.buffer] Content of this resources as a Buffer instance
@@ -58,16 +58,15 @@ class Resource {
 	 */
 	constructor({path, statInfo, buffer, string, createStream, stream, project, sourceMetadata}) {
 		if (!path) {
-			throw new Error("Cannot create Resource: path parameter missing");
+			throw new Error("Unable to create Resource: Missing parameter 'path'");
 		}
 		if (buffer && createStream || buffer && string || string && createStream || buffer && stream ||
 				string && stream || createStream && stream) {
-			throw new Error("Cannot create Resource: Please set only one content parameter. " +
-				"Buffer, string, stream or createStream");
+			throw new Error("Unable to create Resource: Please set only one content parameter. " +
+				"'buffer', 'string', 'stream' or 'createStream'");
 		}
 
-		this.#path = path;
-		this.#name = Resource._getNameFromPath(path);
+		this.setPath(path);
 
 		this.#sourceMetadata = sourceMetadata;
 		if (this.#sourceMetadata) {
@@ -113,10 +112,6 @@ class Resource {
 
 		// Tracing:
 		this.#collections = [];
-	}
-
-	static _getNameFromPath(virPath) {
-		return path.posix.basename(virPath);
 	}
 
 	/**
@@ -259,24 +254,28 @@ class Resource {
 	}
 
 	/**
-	 * Gets the resources path
+	 * Gets the virtual resources path
 	 *
 	 * @public
-	 * @returns {string} (Virtual) path of the resource
+	 * @returns {string} Virtual path of the resource
 	 */
 	getPath() {
 		return this.#path;
 	}
 
 	/**
-	 * Sets the resources path
+	 * Sets the virtual resources path
 	 *
 	 * @public
-	 * @param {string} path (Virtual) path of the resource
+	 * @param {string} path Absolute virtual path of the resource
 	 */
 	setPath(path) {
+		path = posixPath.normalize(path);
+		if (!posixPath.isAbsolute(path)) {
+			throw new Error(`Unable to set resource path: Path must be absolute: ${path}`);
+		}
 		this.#path = path;
-		this.#name = Resource._getNameFromPath(path);
+		this.#name = posixPath.basename(path);
 	}
 
 	/**
