@@ -108,7 +108,7 @@ class Memory extends AbstractAdapter {
 	 */
 	async _byPath(virPath, options, trace) {
 		const relPath = this._resolveVirtualPathToBase(virPath);
-		if (!relPath) {
+		if (relPath === null) {
 			return null;
 		}
 

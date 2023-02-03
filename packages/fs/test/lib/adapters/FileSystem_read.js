@@ -113,7 +113,6 @@ test("glob virtual directory above virtual base path (path traversal)", async (t
 	t.is(res.length, 0, "Returned no resources");
 });
 
-
 test("byPath", async (t) => {
 	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
@@ -132,6 +131,59 @@ test("byPath virtual directory above base path (path traversal)", async (t) => {
 
 	const resource = await readerWriter.byPath("/resources/app/../package.json", {nodir: true});
 	t.is(resource, null, "Found no resource");
+});
+
+test("byPath: Root dir w/ trailing slash", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+
+	const resource = await readerWriter.byPath("/resources/app/", {nodir: false});
+	t.truthy(resource, "Found one resource");
+});
+
+test("byPath: Root dir w/o trailing slash", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+
+	const resource = await readerWriter.byPath("/resources/app", {nodir: false});
+	t.truthy(resource, "Found one resource");
+});
+
+test("byPath: Virtual directory w/ trailing slash", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+
+	const resource = await readerWriter.byPath("/resources/", {nodir: false});
+	t.truthy(resource, "Found one resource");
+});
+
+test("byPath: Virtual directory w/o trailing slash", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+
+	const resource = await readerWriter.byPath("/resources", {nodir: false});
+	t.truthy(resource, "Found one resource");
+});
+
+test("byPath: Incorrect virtual directory w/o trailing slash", async (t) => {
+	// Adding a trailing slash would make the path not match the base path, which is already
+	// tested elsewhere
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/"
+	});
+
+	// TODO: This should actually not match
+	const resource = await readerWriter.byPath("/resour", {nodir: false});
+	t.truthy(resource, "Found one resource");
 });
 
 function getPathFromResource(resource) {
