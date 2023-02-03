@@ -105,7 +105,7 @@ class FileSystem extends AbstractAdapter {
 				promises.push(new Promise((resolve, reject) => {
 					const virPath = (this._virBasePath + matches[i]);
 					const relPath = this._resolveVirtualPathToBase(virPath);
-					if (!relPath) {
+					if (relPath === null) {
 						// Match is likely outside adapter base path
 						log.verbose(
 							`Failed to resolve virtual path of glob match '${virPath}': Path must start with ` +
@@ -154,9 +154,11 @@ class FileSystem extends AbstractAdapter {
 	async _byPath(virPath, options, trace) {
 		const relPath = this._resolveVirtualPathToBase(virPath);
 
-		if (!relPath) {
+		if (relPath === null) {
 			// Neither starts with basePath, nor equals baseDirectory
 			if (!options.nodir && this._virBasePath.startsWith(virPath)) {
+				// Create virtual directories for the virtual base path (which has to exist)
+				// TODO: Maybe improve this by actually matching the base paths segments to the virPath
 				return this._createResource({
 					project: this._project,
 					statInfo: { // TODO: make closer to fs stat info
