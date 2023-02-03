@@ -136,7 +136,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
-		"@ui5/project": "^3.0.0-rc.7",
+		"@ui5/project": "^3.0.0-rc.8",
 		"ava": "^5.1.1",
 		"chai": "^4.3.7",
 		"chai-fs": "^2.0.0",
