@@ -2,7 +2,35 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-rc.7...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-rc.8...HEAD).
+
+<a name="v3.0.0-rc.8"></a>
+## [v3.0.0-rc.8] - 2023-02-03
+### Breaking Changes
+- **Schema:** Restrict metadata.name for specVersion >= 3.0 ([#552](https://github.com/SAP/ui5-project/issues/552)) [`d0ea703`](https://github.com/SAP/ui5-project/commit/d0ea703e8b7e74079fba48b62045608d4d49ab3b)
+
+### Bug Fixes
+- **Registry:** Do not use custom logger for pacote [`242601f`](https://github.com/SAP/ui5-project/commit/242601f5c0c63c0d51cf086089101df30dcf017e)
+
+### Features
+- Add 'UI5 Workspace' Support ([#494](https://github.com/SAP/ui5-project/issues/494)) [`b77ca2f`](https://github.com/SAP/ui5-project/commit/b77ca2f02a96fa7fba5c4c565551aca8c1e11847)
+
+### BREAKING CHANGE
+
+For projects and extensions defining specVersion 3.0 and later, the
+metadata.name property must satisfy the following conditions:
+
+* Must be at least 3 characters long
+* Must be no longer than 50 characters
+* Must contain lowercase characters only
+* Must contain alphanumeric characters, dash, underscore and period only
+    - Exception: `@` and `/` are allowed at certain positions as
+      explained below
+* Must start with an alphabetic character or an `@`-character
+* If a name starts with an `@`-character, it must contain exactly one
+  forward-slash `/`
+    - This is aligned with the npm concept for package scopes
+
 
 <a name="v3.0.0-rc.7"></a>
 ## [v3.0.0-rc.7] - 2023-01-25
@@ -406,6 +434,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
 
 
+[v3.0.0-rc.8]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.7...v3.0.0-rc.8
 [v3.0.0-rc.7]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.6...v3.0.0-rc.7
 [v3.0.0-rc.6]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.5...v3.0.0-rc.6
 [v3.0.0-rc.5]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.4...v3.0.0-rc.5
