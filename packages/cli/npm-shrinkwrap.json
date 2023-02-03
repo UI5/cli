@@ -10,7 +10,7 @@
 			"license": "Apache-2.0",
 			"dependencies": {
 				"@ui5/builder": "^3.0.0-rc.4",
-				"@ui5/fs": "^3.0.0-rc.5",
+				"@ui5/fs": "^3.0.0-rc.6",
 				"@ui5/logger": "^3.0.1-rc.3",
 				"@ui5/project": "^3.0.0-rc.7",
 				"@ui5/server": "^3.0.0-rc.2",
@@ -1113,9 +1113,9 @@
 			}
 		},
 		"node_modules/@ui5/fs": {
-			"version": "3.0.0-rc.5",
-			"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-3.0.0-rc.5.tgz",
-			"integrity": "sha512-EEOEc/hNOMnLVHEdLJyXx+B8pQ08setonFTMWgGhA+AaYV6B0fOQWiW2PDwGDSByHtkwrHS3n0pSRwq0QgzD/g==",
+			"version": "3.0.0-rc.6",
+			"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-3.0.0-rc.6.tgz",
+			"integrity": "sha512-WrvbtiGN841MdgafefftKqV1ZUB2AmKmcKBwNEVmB+5nYKzf4xPUmRf+QU+suD+m0tVbJo07o1bJ+j8xnxcdtA==",
 			"dependencies": {
 				"@ui5/logger": "^3.0.1-rc.3",
 				"clone": "^2.1.2",
@@ -11526,9 +11526,9 @@
 			}
 		},
 		"@ui5/fs": {
-			"version": "3.0.0-rc.5",
-			"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-3.0.0-rc.5.tgz",
-			"integrity": "sha512-EEOEc/hNOMnLVHEdLJyXx+B8pQ08setonFTMWgGhA+AaYV6B0fOQWiW2PDwGDSByHtkwrHS3n0pSRwq0QgzD/g==",
+			"version": "3.0.0-rc.6",
+			"resolved": "https://registry.npmjs.org/@ui5/fs/-/fs-3.0.0-rc.6.tgz",
+			"integrity": "sha512-WrvbtiGN841MdgafefftKqV1ZUB2AmKmcKBwNEVmB+5nYKzf4xPUmRf+QU+suD+m0tVbJo07o1bJ+j8xnxcdtA==",
 			"requires": {
 				"@ui5/logger": "^3.0.1-rc.3",
 				"clone": "^2.1.2",
