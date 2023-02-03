@@ -135,8 +135,10 @@ test("_dirExists: Directory exists", async (t) => {
 
 test("_dirExists: Missing leading slash", async (t) => {
 	const project = await Specification.create(t.context.basicProjectInput);
-	const bExists = await project._dirExists("webapp");
-	t.false(bExists, "directory is not found");
+
+	await t.throwsAsync(project._dirExists("webapp"), {
+		message: "Failed to resolve virtual path 'webapp': Path must be absolute"
+	});
 });
 
 test("_dirExists: Trailing slash is ok", async (t) => {
@@ -148,8 +150,9 @@ test("_dirExists: Trailing slash is ok", async (t) => {
 test("_dirExists: Directory is a file", async (t) => {
 	const project = await Specification.create(t.context.basicProjectInput);
 
-	const bExists = await project._dirExists("webapp/index.html");
-	t.false(bExists, "directory is a file");
+	await t.throwsAsync(project._dirExists("webapp/index.html"), {
+		message: "Failed to resolve virtual path 'webapp/index.html': Path must be absolute"
+	});
 });
 
 test("_dirExists: Directory does not exist", async (t) => {
