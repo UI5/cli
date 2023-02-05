@@ -123,7 +123,7 @@
 		"eslint": "^8.33.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
-		"eslint-plugin-jsdoc": "^39.7.4",
+		"eslint-plugin-jsdoc": "^39.8.0",
 		"jsdoc": "^3.6.11",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
