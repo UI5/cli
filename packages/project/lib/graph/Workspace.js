@@ -11,19 +11,20 @@ const log = getLogger("graph:Workspace");
 
 
 /**
- * Dependency graph node representing a module
+ * Workspace configuration. For details, refer to the
+ * [UI5 Workspaces documentation]{@link https://sap.github.io/ui5-tooling/v3/pages/Workspace/#configuration}
  *
  * @public
  * @typedef {object} @ui5/project/graph/Workspace~Configuration
- * @property {string} node.specVersion
- * @property {object} node.metadata Version of the project
+ * @property {string} node.specVersion Workspace Specification Version
+ * @property {object} node.metadata
  * @property {string} node.metadata.name Name of the workspace configuration
  * @property {object} node.dependencyManagement
  * @property {@ui5/project/graph/Workspace~DependencyManagementResolutions[]} node.dependencyManagement.resolutions
  */
 
 /**
- * A resolution entry for the dependency management section of the configuration
+ * A resolution entry for the dependency management section of the workspace configuration
  *
  * @public
  * @typedef {object} @ui5/project/graph/Workspace~DependencyManagementResolution
@@ -31,7 +32,7 @@ const log = getLogger("graph:Workspace");
  */
 
 /**
- * Workspace representation
+ * UI5 Workspace
  *
  * @public
  * @class
