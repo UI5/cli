@@ -19,7 +19,7 @@ export const SCHEMA_VARIANTS = {
 
 class Validator {
 	constructor({Ajv, ajvErrors, schemaName}) {
-		if (!schemaName && !SCHEMA_VARIANTS[schemaName]) {
+		if (!schemaName || !SCHEMA_VARIANTS[schemaName]) {
 			throw new Error(
 				`"schemaName" is missing or incorrect. The available schemaName variants are ${Object.keys(
 					SCHEMA_VARIANTS

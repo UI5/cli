@@ -88,7 +88,7 @@ test("Validator requires a valid schemaName", (t) => {
 	const Ajv = sinon.stub();
 	const ajvErrors = sinon.stub();
 	const invalidContructor = () => {
-		new Validator({Ajv, ajvErrors, schemName: "invalid schema name"});
+		new Validator({Ajv, ajvErrors, schemaName: "invalid schema name"});
 	};
 
 	t.throws(invalidContructor, {
