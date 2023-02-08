@@ -154,7 +154,7 @@
 		"istanbul-lib-report": "^3.0.0",
 		"istanbul-reports": "^3.1.5",
 		"js-beautify": "^1.14.7",
-		"jsdoc": "^3.6.11",
+		"jsdoc": "^4.0.0",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
 		"sinon": "^15.0.1",
