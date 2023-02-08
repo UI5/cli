@@ -124,7 +124,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^39.8.0",
-		"jsdoc": "^3.6.11",
+		"jsdoc": "^4.0.0",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
 		"rimraf": "^4.1.2",
