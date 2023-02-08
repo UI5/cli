@@ -101,7 +101,7 @@
 				"name": {
 					"type": "string",
 					"minLength": 3,
-					"maxLength": 50,
+					"maxLength": 80,
 					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
 					"title": "Project Name",
 					"description": "Unique identifier for the project, for example: organization.product.project",

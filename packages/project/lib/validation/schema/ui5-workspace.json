@@ -28,7 +28,7 @@
 				"name": {
 					"type": "string",
 					"minLength": 3,
-					"maxLength": 50,
+					"maxLength": 80,
 					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
 					"title": "Workspace Name",
 					"description": "Identifier for the workspace configuration. Workspaces named 'default' will be used automatically by UI5 Tooling",

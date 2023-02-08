@@ -159,7 +159,7 @@ test("Legacy: Special characters in name (task)", async (t) => {
 		"kind": "extension",
 		"type": "task",
 		"metadata": {
-			"name": "ä".repeat(51)
+			"name": "ä".repeat(81)
 		},
 		"task": {
 			"path": "task.js"

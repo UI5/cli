@@ -201,7 +201,7 @@ test("Legacy: Special characters in name (application)", async (t) => {
 		"specVersion": "2.0",
 		"type": "application",
 		"metadata": {
-			"name": "/".repeat(51)
+			"name": "/".repeat(81)
 		}
 	});
 });

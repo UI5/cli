@@ -396,7 +396,7 @@ test.after.always((t) => {
 			"specVersion": specVersion,
 			"type": "theme-library",
 			"metadata": {
-				"name": "a".repeat(51)
+				"name": "a".repeat(81)
 			}
 		}, [{
 			dataPath: "/metadata/name",
@@ -406,9 +406,9 @@ test.after.always((t) => {
 				errors: [{
 					dataPath: "/metadata/name",
 					keyword: "maxLength",
-					message: "should NOT be longer than 50 characters",
+					message: "should NOT be longer than 80 characters",
 					params: {
-						limit: 50,
+						limit: 80,
 					},
 				}]
 			},

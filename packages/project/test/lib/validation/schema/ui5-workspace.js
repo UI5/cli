@@ -226,7 +226,7 @@ test("Invalid metadata.name: Too long", async (t) => {
 		{
 			specVersion: "workspace/1.0",
 			metadata: {
-				name: "b".repeat(51)
+				name: "b".repeat(81)
 			},
 			dependencyManagement: {
 				resolutions: [
@@ -246,9 +246,9 @@ test("Invalid metadata.name: Too long", async (t) => {
 						{
 							dataPath: "/metadata/name",
 							keyword: "maxLength",
-							message: "should NOT be longer than 50 characters",
+							message: "should NOT be longer than 80 characters",
 							params: {
-								limit: 50,
+								limit: 80,
 							},
 						}
 					],
