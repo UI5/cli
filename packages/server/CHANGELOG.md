@@ -2,26 +2,24 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0-rc.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0...HEAD).
 
-<a name="v3.0.0-rc.3"></a>
-## [v3.0.0-rc.3] - 2023-02-04
-### Bug Fixes
-- **MiddlewareManager:** Throw if custom middleware is unknown [`5d5bbe1`](https://github.com/SAP/ui5-server/commit/5d5bbe1bc7b8e12e2094e9ef08807d5359d8ac5e)
-
-
-<a name="v3.0.0-rc.2"></a>
-## [v3.0.0-rc.2] - 2023-01-25
-
-<a name="v3.0.0-rc.1"></a>
-## [v3.0.0-rc.1] - 2023-01-23
-
-<a name="v3.0.0-rc.0"></a>
-## [v3.0.0-rc.0] - 2022-12-23
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
+- Transform to ES Modules ([#501](https://github.com/SAP/ui5-server/issues/501)) [`05e3013`](https://github.com/SAP/ui5-server/commit/05e3013605e28e9ab5a785aa57616473d40e5710)
 - Remove "/proxy" endpoint ([#550](https://github.com/SAP/ui5-server/issues/550)) [`4bdf839`](https://github.com/SAP/ui5-server/commit/4bdf839e96f67ddbc4cb2a18216921d54df4006e)
+- Require Project Graph ([#479](https://github.com/SAP/ui5-server/issues/479)) [`d62f85a`](https://github.com/SAP/ui5-server/commit/d62f85a193115a587dbf58225e8130318a475023)
+- Require Node.js >= 16.18.0 / npm >= 8 [`63d216a`](https://github.com/SAP/ui5-server/commit/63d216a3ba34e8e50acc6621d43a78c3a0804d67)
 
 ### BREAKING CHANGE
+This package has been transformed to ES Modules. Therefore it no longer provides a CommonJS export.
+If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import.
+
+For more information see also:
+
+- https://sap.github.io/ui5-tooling/updates/migrate-v3/
+- https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
 
 This removes the "/proxy" endpoint and the corresponding
 "connectUi5Proxy" middleware from the standard ui5-server.
@@ -34,68 +32,22 @@ in the form of custom middleware extensions from the UI5-community.
 The UI5 Team might provide a dedicated custom middleware extension,
 with similar functionality, in the future.
 
+- Server now requires a Project Graph instance instead.
+- Standard middleware now rely on Project instances being available on Resources (see https://github.com/SAP/ui5-fs/pull/381)
+- MiddlewareRepository#addMiddleware has been removed. Custom middleware need to be added to the project graph instead
 
-<a name="v3.0.0-beta.4"></a>
-## [v3.0.0-beta.4] - 2022-12-01
-### Dependency Updates
-- Bump connect-openui5 from 0.10.2 to 0.10.3 [`90871f8`](https://github.com/SAP/ui5-server/commit/90871f89815501860616ffbdf8927824412ec909)
+Support for older Node.js and npm releases has been dropped.
+Only Node.js v16.18.0 and npm v8 or higher are supported.
 
-
-<a name="v3.0.0-beta.3"></a>
-## [v3.0.0-beta.3] - 2022-11-30
-
-<a name="v3.0.0-beta.2"></a>
-## [v3.0.0-beta.2] - 2022-11-29
 ### Features
 - **MiddlewareUtil:** Add getProject/getDependencies/resourceFactory API to interface ([#547](https://github.com/SAP/ui5-server/issues/547)) [`ab28f78`](https://github.com/SAP/ui5-server/commit/ab28f789ba929ef1319b6e562267e9717cc9937b)
 
 
-<a name="v3.0.0-beta.1"></a>
-## [v3.0.0-beta.1] - 2022-11-07
+<a name="v2.4.1"></a>
+## [v2.4.1] - 2022-11-30
+### Dependency Updates
+- Bump connect-openui5 from 0.10.2 to 0.10.3 [`20b6fc8`](https://github.com/SAP/ui5-server/commit/20b6fc8fbad69265bae3e8f7efd320f6297ac4c4)
 
-<a name="v3.0.0-alpha.4"></a>
-## [v3.0.0-alpha.4] - 2022-10-24
-### Breaking Changes
-- Transform to native ESM ([#501](https://github.com/SAP/ui5-server/issues/501)) [`05e3013`](https://github.com/SAP/ui5-server/commit/05e3013605e28e9ab5a785aa57616473d40e5710)
-
-### BREAKING CHANGE
-
-This package has been transformed to native ESM. Therefore it no longer provides a CommonJS export.
-If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import.
-
-For more information see also:
-- https://sap.github.io/ui5-tooling/updates/migrate-v3/
-- https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
-
-
-<a name="v3.0.0-alpha.3"></a>
-## [v3.0.0-alpha.3] - 2022-07-27
-
-<a name="v3.0.0-alpha.2"></a>
-## [v3.0.0-alpha.2] - 2022-06-14
-### Breaking Changes
-- Require Project Graph ([#479](https://github.com/SAP/ui5-server/issues/479)) [`d62f85a`](https://github.com/SAP/ui5-server/commit/d62f85a193115a587dbf58225e8130318a475023)
-
-### BREAKING CHANGE
-
-* Server now requires a Project Graph instance instead.
-* Standard middleware now rely on Project instances being available on Resources (see https://github.com/SAP/ui5-fs/pull/381)
-* MiddlewareRepository#addMiddleware has been removed. Custom middleware need to be added to the project graph instead
-
-
-<a name="v3.0.0-alpha.1"></a>
-## [v3.0.0-alpha.1] - 2022-01-25
-### Breaking Changes
-- Require Node.js >= 16.13.2 / npm >= 8 [`63d216a`](https://github.com/SAP/ui5-server/commit/63d216a3ba34e8e50acc6621d43a78c3a0804d67)
-
-### BREAKING CHANGE
-
-Support for older Node.js and npm releases has been dropped.
-Only Node.js v16.13.2 and npm v8 or higher are supported.
-
-
-<a name="v3.0.0-alpha.0"></a>
-## [v3.0.0-alpha.0] - 2021-12-14
 
 <a name="v2.4.0"></a>
 ## [v2.4.0] - 2021-10-19
@@ -131,7 +83,7 @@ Only Node.js v16.13.2 and npm v8 or higher are supported.
 ## [v2.2.6] - 2020-10-22
 ### Bug Fixes
 - Improve parallel theme request handling [`88bc0d6`](https://github.com/SAP/ui5-server/commit/88bc0d6d4e5ca8bb191029335451713579360e1c)
-- **nonReadRequests middleware:** Use native response API [`2d2325f`](https://github.com/SAP/ui5-server/commit/2d2325f638820d25738ddbd56afe0d104e37f2e0)
+- **nonReadRequests middleware:** Use response API [`2d2325f`](https://github.com/SAP/ui5-server/commit/2d2325f638820d25738ddbd56afe0d104e37f2e0)
 
 
 <a name="v2.2.5"></a>
@@ -180,7 +132,7 @@ Only Node.js v16.13.2 and npm v8 or higher are supported.
 <a name="v2.0.2"></a>
 ## [v2.0.2] - 2020-04-30
 ### Bug Fixes
-- **CSP Middleware:** Use native res.getHeader/setHeader methods ([#312](https://github.com/SAP/ui5-server/issues/312)) [`c53525c`](https://github.com/SAP/ui5-server/commit/c53525ca4bb5825d241d0f137ce3912d681e6548)
+- **CSP Middleware:** Use res.getHeader/setHeader methods ([#312](https://github.com/SAP/ui5-server/issues/312)) [`c53525c`](https://github.com/SAP/ui5-server/commit/c53525ca4bb5825d241d0f137ce3912d681e6548)
 
 
 <a name="v2.0.1"></a>
@@ -338,20 +290,8 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
-
-[v3.0.0-rc.3]: https://github.com/SAP/ui5-server/compare/v3.0.0-rc.2...v3.0.0-rc.3
-[v3.0.0-rc.2]: https://github.com/SAP/ui5-server/compare/v3.0.0-rc.1...v3.0.0-rc.2
-[v3.0.0-rc.1]: https://github.com/SAP/ui5-server/compare/v3.0.0-rc.0...v3.0.0-rc.1
-[v3.0.0-rc.0]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.4...v3.0.0-rc.0
-[v3.0.0-beta.4]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.3...v3.0.0-beta.4
-[v3.0.0-beta.3]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.2...v3.0.0-beta.3
-[v3.0.0-beta.2]: https://github.com/SAP/ui5-server/compare/v3.0.0-beta.1...v3.0.0-beta.2
-[v3.0.0-beta.1]: https://github.com/SAP/ui5-server/compare/v3.0.0-alpha.4...v3.0.0-beta.1
-[v3.0.0-alpha.4]: https://github.com/SAP/ui5-server/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
-[v3.0.0-alpha.3]: https://github.com/SAP/ui5-server/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
-[v3.0.0-alpha.2]: https://github.com/SAP/ui5-server/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
-[v3.0.0-alpha.1]: https://github.com/SAP/ui5-server/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
-[v3.0.0-alpha.0]: https://github.com/SAP/ui5-server/compare/v2.4.0...v3.0.0-alpha.0
+[v3.0.0]: https://github.com/SAP/ui5-server/compare/v2.4.0...v3.0.0
+[v2.4.1]: https://github.com/SAP/ui5-server/compare/v2.4.0...v2.4.1
 [v2.4.0]: https://github.com/SAP/ui5-server/compare/v2.3.1...v2.4.0
 [v2.3.1]: https://github.com/SAP/ui5-server/compare/v2.3.0...v2.3.1
 [v2.3.0]: https://github.com/SAP/ui5-server/compare/v2.2.10...v2.3.0
