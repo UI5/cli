@@ -116,7 +116,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^3.0.0-rc.6",
-		"@ui5/fs": "^3.0.0-rc.6",
+		"@ui5/fs": "^3.0.0",
 		"@ui5/logger": "^3.0.0",
 		"@ui5/project": "^3.0.0-rc.9",
 		"@ui5/server": "^3.0.0-rc.3",
