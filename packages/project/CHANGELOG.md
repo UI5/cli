@@ -2,182 +2,49 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0-rc.9...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0...HEAD).
 
-<a name="v3.0.0-rc.9"></a>
-## [v3.0.0-rc.9] - 2023-02-08
-### Bug Fixes
-- Validator contructor checks ([#567](https://github.com/SAP/ui5-project/issues/567)) [`292b454`](https://github.com/SAP/ui5-project/commit/292b4549143037d7a8e034ca0978d55e93f10d64)
-
-
-<a name="v3.0.0-rc.8"></a>
-## [v3.0.0-rc.8] - 2023-02-03
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
-- **Schema:** Restrict metadata.name for specVersion >= 3.0 ([#552](https://github.com/SAP/ui5-project/issues/552)) [`d0ea703`](https://github.com/SAP/ui5-project/commit/d0ea703e8b7e74079fba48b62045608d4d49ab3b)
-
-### Bug Fixes
-- **Registry:** Do not use custom logger for pacote [`242601f`](https://github.com/SAP/ui5-project/commit/242601f5c0c63c0d51cf086089101df30dcf017e)
-
-### Features
-- Add 'UI5 Workspace' Support ([#494](https://github.com/SAP/ui5-project/issues/494)) [`b77ca2f`](https://github.com/SAP/ui5-project/commit/b77ca2f02a96fa7fba5c4c565551aca8c1e11847)
-
-### BREAKING CHANGE
-
-For projects and extensions defining specVersion 3.0 and later, the
-metadata.name property must satisfy the following conditions:
-
-* Must be at least 3 characters long
-* Must be no longer than 50 characters
-* Must contain lowercase characters only
-* Must contain alphanumeric characters, dash, underscore and period only
-    - Exception: `@` and `/` are allowed at certain positions as
-      explained below
-* Must start with an alphabetic character or an `@`-character
-* If a name starts with an `@`-character, it must contain exactly one
-  forward-slash `/`
-    - This is aligned with the npm concept for package scopes
-
-
-<a name="v3.0.0-rc.7"></a>
-## [v3.0.0-rc.7] - 2023-01-25
-### Bug Fixes
-- **npm/Installer:** Do not wrap promise provided by rimraf v4 [`2d1ccda`](https://github.com/SAP/ui5-project/commit/2d1ccda54edd29dabadcb7bad9136bff09da8eac)
-
-
-<a name="v3.0.0-rc.6"></a>
-## [v3.0.0-rc.6] - 2023-01-24
-
-<a name="v3.0.0-rc.5"></a>
-## [v3.0.0-rc.5] - 2023-01-24
-
-<a name="v3.0.0-rc.4"></a>
-## [v3.0.0-rc.4] - 2023-01-23
-### Dependency Updates
-- Bump rimraf from 3.0.2 to 4.1.1 ([#550](https://github.com/SAP/ui5-project/issues/550)) [`99876ae`](https://github.com/SAP/ui5-project/commit/99876ae35e9d8f5c725e2e87bd3be37d7ed4363c)
-
-
-<a name="v3.0.0-rc.3"></a>
-## [v3.0.0-rc.3] - 2023-01-19
-
-<a name="v3.0.0-rc.2"></a>
-## [v3.0.0-rc.2] - 2023-01-11
-### Breaking Changes
+- Implement Project Graph, build execution [`161f462`](https://github.com/SAP/ui5-project/commit/161f462cf6a9955337fff512007125128c6c39dd)
 - Run 'generateThemeDesignerResources' only on framework libs [`e4bb108`](https://github.com/SAP/ui5-project/commit/e4bb1084df3e0ae906df27aba4a674d187ff8069)
 
-
-<a name="v3.0.0-rc.1"></a>
-## [v3.0.0-rc.1] - 2023-01-04
-
-<a name="v3.0.0-rc.0"></a>
-## [v3.0.0-rc.0] - 2022-12-23
-
-<a name="v3.0.0-beta.5"></a>
-## [v3.0.0-beta.5] - 2022-12-23
-### Features
-- specVersion 3.0 ([#522](https://github.com/SAP/ui5-project/issues/522)) [`c5070e5`](https://github.com/SAP/ui5-project/commit/c5070e55d92ced4326cd7611caf3ec9a3da9e7ed)
-
-
-<a name="v3.0.0-beta.4"></a>
-## [v3.0.0-beta.4] - 2022-11-30
-
-<a name="v3.0.0-beta.3"></a>
-## [v3.0.0-beta.3] - 2022-11-28
-### Features
-- Introduce SpecificationVersion class ([#431](https://github.com/SAP/ui5-project/issues/431)) [`e57842b`](https://github.com/SAP/ui5-project/commit/e57842b06397a5b36e6373df97f7b7bb91f09741)
-- **TaskRunner:** Provide taskName and logger instance to custom tasks [`36cd2d8`](https://github.com/SAP/ui5-project/commit/36cd2d83f9a6a92cbd28619d8a25c0ba3f732117)
-- **TaskUtil:** Add resourceFactory API to v3 interface [`2e863cf`](https://github.com/SAP/ui5-project/commit/2e863cfaf9f8924d0c87fe9dfe01568c1fd979c8)
-- **TaskUtil:** Add getProject/getDependencies API to interface [`51f2949`](https://github.com/SAP/ui5-project/commit/51f29493f57f094396776bb2686c8a74e8901a7f)
-
-
-<a name="v3.0.0-beta.2"></a>
-## [v3.0.0-beta.2] - 2022-11-11
-
-<a name="v3.0.0-beta.1"></a>
-## [v3.0.0-beta.1] - 2022-11-07
-
-<a name="v3.0.0-alpha.10"></a>
-## [v3.0.0-alpha.10] - 2022-10-24
-### Breaking Changes
-- Transform to native ESM ([#472](https://github.com/SAP/ui5-project/issues/472)) [`1945f2e`](https://github.com/SAP/ui5-project/commit/1945f2ec8a011260c23d77d197e885420c31aaef)
-
 ### BREAKING CHANGE
+Support for older Node.js and npm releases has been dropped for all UI5 Tooling modules.
+Only Node.js versions v16.18.0, v18.12.0 or higher as well as npm v8 or higher are supported.
 
-This package has been transformed to native ESM. Therefore it no longer provides a CommonJS export.
-If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import.
+All packages have been transformed to ES Modules. Therefore modules are no longer provides a CommonJS exports.
+If your project uses CommonJS, it needs to be converted to ESM or use a dynamic import for consuming UI5 Tooling modules.
 
 For more information see also:
 - https://sap.github.io/ui5-tooling/updates/migrate-v3/
 - https://gist.github.com/sindresorhus/a39789f98801d908bbc7ff3ecc99d99c
 
+- normalizer and projectTree APIs have been removed. Use generateProjectGraph instead
+- Going forward only specification versions 2.0 and higher are supported
+    - In case a legacy specification version is detected, an automatic, transparent migration is attempted.
+- Build:
+    - The "dev" build mode has been removed
+    - The task "generateVersionInfo" is no longer executed for application projects by default. You may enable it again using the includedTasks parameter
 
-<a name="v3.0.0-alpha.9"></a>
-## [v3.0.0-alpha.9] - 2022-08-10
+### Features
+- specVersion 3.0 ([#522](https://github.com/SAP/ui5-project/issues/522)) [`c5070e5`](https://github.com/SAP/ui5-project/commit/c5070e55d92ced4326cd7611caf3ec9a3da9e7ed)
+- Introduce SpecificationVersion class ([#431](https://github.com/SAP/ui5-project/issues/431)) [`e57842b`](https://github.com/SAP/ui5-project/commit/e57842b06397a5b36e6373df97f7b7bb91f09741)
+- **TaskRunner:** Provide taskName and logger instance to custom tasks [`36cd2d8`](https://github.com/SAP/ui5-project/commit/36cd2d83f9a6a92cbd28619d8a25c0ba3f732117)
+- **TaskUtil:** Add resourceFactory API to v3 interface [`2e863cf`](https://github.com/SAP/ui5-project/commit/2e863cfaf9f8924d0c87fe9dfe01568c1fd979c8)
+- **TaskUtil:** Add getProject/getDependencies API to interface [`51f2949`](https://github.com/SAP/ui5-project/commit/51f29493f57f094396776bb2686c8a74e8901a7f)
+
 ### Bug Fixes
+- **npm/Installer:** Do not wrap promise provided by rimraf v4 [`2d1ccda`](https://github.com/SAP/ui5-project/commit/2d1ccda54edd29dabadcb7bad9136bff09da8eac)
 - **ProjectBuilder:** Fix verbose logging for already built projects [`f04ffd2`](https://github.com/SAP/ui5-project/commit/f04ffd2c0ab0270df697c20258474ff536811476)
-
-
-<a name="v3.0.0-alpha.8"></a>
-## [v3.0.0-alpha.8] - 2022-08-09
-### Bug Fixes
-- **Specification:** Fix migration for legacy projects that are not applications or libraries [`d89d804`](https://github.com/SAP/ui5-project/commit/d89d8047519ca8f162dc7a225f138ae304871ecb)
-
-
-<a name="v3.0.0-alpha.7"></a>
-## [v3.0.0-alpha.7] - 2022-07-27
-
-<a name="v3.0.0-alpha.6"></a>
-## [v3.0.0-alpha.6] - 2022-07-27
-### Bug Fixes
 - **ProjectBuilder:** Skip build for projects that do not require to be built [`ac5f1f8`](https://github.com/SAP/ui5-project/commit/ac5f1f891255b56597e51d121329f03786338d4a)
-
-
-<a name="v3.0.0-alpha.5"></a>
-## [v3.0.0-alpha.5] - 2022-07-26
-### Bug Fixes
+- **Specification:** Fix migration for legacy projects that are not applications or libraries [`d89d804`](https://github.com/SAP/ui5-project/commit/d89d8047519ca8f162dc7a225f138ae304871ecb)
 - Fix build manifest creation [`b1459eb`](https://github.com/SAP/ui5-project/commit/b1459eb26aa8a4b18ad84a369c122c114d64b64b)
 
+### Dependency Updates
+- Bump rimraf from 3.0.2 to 4.1.1 ([#550](https://github.com/SAP/ui5-project/issues/550)) [`99876ae`](https://github.com/SAP/ui5-project/commit/99876ae35e9d8f5c725e2e87bd3be37d7ed4363c)
 
-<a name="v3.0.0-alpha.4"></a>
-## [v3.0.0-alpha.4] - 2022-07-15
-### Reverts
-- [INTERNAL] Lower coverage thresholds
-
-
-<a name="v3.0.0-alpha.3"></a>
-## [v3.0.0-alpha.3] - 2022-06-14
-### Breaking Changes
-- Implement Project Graph, build execution [`161f462`](https://github.com/SAP/ui5-project/commit/161f462cf6a9955337fff512007125128c6c39dd)
-
-### BREAKING CHANGE
-
-* normalizer and projectTree APIs have been removed. Use
-generateProjectGraph instead
-* Going forward only specification versions 2.0 and higher are supported
-    * In case a legacy specification version is detected, an automatic,
-      transparent migration is attempted.
-* Build:
-    * The "dev" build mode has been removed
-    * The task "generateVersionInfo" is no longer executed for
-      application projects by default. You may enable it again using the
-      includedTasks parameter
-
-
-<a name="v3.0.0-alpha.2"></a>
-## [v3.0.0-alpha.2] - 2022-04-26
-
-<a name="v3.0.0-alpha.1"></a>
-## [v3.0.0-alpha.1] - 2022-01-25
-### Breaking Changes
-- Require Node.js >= 16.13.2 / npm >= 8 [`5e4dbff`](https://github.com/SAP/ui5-project/commit/5e4dbffcac6d3c8244b3e8fafcb5a219eeebe15d)
-
-### BREAKING CHANGE
-
-Support for older Node.js and npm releases has been dropped.
-Only Node.js v16.13.2 and npm v8 or higher are supported.
-
-
-<a name="v3.0.0-alpha.0"></a>
-## [v3.0.0-alpha.0] - 2021-12-14
 
 <a name="v2.6.0"></a>
 ## [v2.6.0] - 2021-10-19
@@ -438,34 +305,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
-
-
-[v3.0.0-rc.9]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.8...v3.0.0-rc.9
-[v3.0.0-rc.8]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.7...v3.0.0-rc.8
-[v3.0.0-rc.7]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.6...v3.0.0-rc.7
-[v3.0.0-rc.6]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.5...v3.0.0-rc.6
-[v3.0.0-rc.5]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.4...v3.0.0-rc.5
-[v3.0.0-rc.4]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.3...v3.0.0-rc.4
-[v3.0.0-rc.3]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.2...v3.0.0-rc.3
-[v3.0.0-rc.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.1...v3.0.0-rc.2
-[v3.0.0-rc.1]: https://github.com/SAP/ui5-project/compare/v3.0.0-rc.0...v3.0.0-rc.1
-[v3.0.0-rc.0]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.5...v3.0.0-rc.0
-[v3.0.0-beta.5]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.4...v3.0.0-beta.5
-[v3.0.0-beta.4]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.3...v3.0.0-beta.4
-[v3.0.0-beta.3]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.2...v3.0.0-beta.3
-[v3.0.0-beta.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-beta.1...v3.0.0-beta.2
-[v3.0.0-beta.1]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.10...v3.0.0-beta.1
-[v3.0.0-alpha.10]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.9...v3.0.0-alpha.10
-[v3.0.0-alpha.9]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.8...v3.0.0-alpha.9
-[v3.0.0-alpha.8]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.7...v3.0.0-alpha.8
-[v3.0.0-alpha.7]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.6...v3.0.0-alpha.7
-[v3.0.0-alpha.6]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.5...v3.0.0-alpha.6
-[v3.0.0-alpha.5]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.4...v3.0.0-alpha.5
-[v3.0.0-alpha.4]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.3...v3.0.0-alpha.4
-[v3.0.0-alpha.3]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.2...v3.0.0-alpha.3
-[v3.0.0-alpha.2]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.1...v3.0.0-alpha.2
-[v3.0.0-alpha.1]: https://github.com/SAP/ui5-project/compare/v3.0.0-alpha.0...v3.0.0-alpha.1
-[v3.0.0-alpha.0]: https://github.com/SAP/ui5-project/compare/v2.6.0...v3.0.0-alpha.0
+[v3.0.0]: https://github.com/SAP/ui5-project/compare/v2.6.0...v3.0.0
 [v2.6.0]: https://github.com/SAP/ui5-project/compare/v2.5.0...v2.6.0
 [v2.5.0]: https://github.com/SAP/ui5-project/compare/v2.4.0...v2.5.0
 [v2.4.0]: https://github.com/SAP/ui5-project/compare/v2.3.1...v2.4.0
