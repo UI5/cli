@@ -117,7 +117,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^3.0.0-rc.6",
-		"@ui5/fs": "^3.0.0-rc.6",
+		"@ui5/fs": "^3.0.0",
 		"@ui5/logger": "^3.0.0",
 		"ajv": "^6.12.6",
 		"ajv-errors": "^1.0.1",
