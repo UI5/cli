@@ -43,7 +43,7 @@
 		"jsdoc-generate": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"jsdoc-watch": "npm run jsdoc && chokidar \"./lib/**/*.js\" -c \"npm run jsdoc-generate\"",
 		"preversion": "npm test",
-		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md && git add CHANGELOG.md",
+		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md v3.0.0.. && git add CHANGELOG.md",
 		"postversion": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version",
 		"depcheck": "depcheck --ignores @ui5/logger,rimraf,docdash,@istanbuljs/esm-loader-hook"
