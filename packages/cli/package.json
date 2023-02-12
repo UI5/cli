@@ -142,7 +142,7 @@
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^39.9.1",
 		"esmock": "^2.1.0",
-		"execa": "^6.1.0",
+		"execa": "^7.0.0",
 		"jsdoc": "^4.0.0",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
