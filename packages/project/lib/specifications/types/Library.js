@@ -57,7 +57,13 @@ class Library extends ComponentProject {
 	}
 
 	/* === Resource Access === */
-	_getSourceReader() {
+	/**
+	* Get a resource reader for the sources of the project (excluding any test resources)
+	*
+	* @param {string[]} excludes List of glob patterns to exclude
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
+	*/
+	_getSourceReader(excludes) {
 		// TODO: Throw for libraries with additional namespaces like sap.ui.core?
 		let virBasePath = "/resources/";
 		if (!this._isSourceNamespaced) {
@@ -70,11 +76,17 @@ class Library extends ComponentProject {
 			virBasePath,
 			name: `Source reader for library project ${this.getName()}`,
 			project: this,
-			excludes: this.getBuilderResourcesExcludes()
+			excludes
 		});
 	}
 
-	_getTestReader() {
+	/**
+	* Get a resource reader for the test-resources of the project
+	*
+	* @param {string[]} excludes List of glob patterns to exclude
+	* @returns {@ui5/fs/ReaderCollection} Reader collection
+	*/
+	_getTestReader(excludes) {
 		if (!this._testPathExists) {
 			return null;
 		}
@@ -89,7 +101,7 @@ class Library extends ComponentProject {
 			virBasePath,
 			name: `Runtime test-resources reader for library project ${this.getName()}`,
 			project: this,
-			excludes: this.getBuilderResourcesExcludes()
+			excludes
 		});
 		return testReader;
 	}

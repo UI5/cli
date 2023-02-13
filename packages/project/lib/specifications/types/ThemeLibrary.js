@@ -42,21 +42,46 @@ class ThemeLibrary extends Project {
 	/* === Resource Access === */
 	/**
 	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
-	 * project.
-	 * This is always of style <code>buildtime</code>, wich for theme libraries is identical to style
-	 * <code>runtime</code>.
+	 * project in the specified "style":
+	 *
+	 * <ul>
+	 * <li><b>buildtime:</b> Resource paths are always prefixed with <code>/resources/</code>
+	 *  or <code>/test-resources/</code> followed by the project's namespace.
+	 *  Any configured build-excludes are applied</li>
+	 * <li><b>dist:</b> Resource paths always match with what the UI5 runtime expects.
+	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
+	 *  structure, while libraries use a "buildtime"-like structure.
+	 *  Any configured build-excludes are applied</li>
+	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
+	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
+	 *  structure, while libraries use a "buildtime"-like structure.
+	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied
+	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
+	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
+	 *  Any configured build-excludes are applied</li>
+	 * </ul>
+	 *
+	 * If project resources have been changed through the means of a workspace, those changes
+	 * are reflected in the provided reader too.
+	 *
+	 * Resource readers always use POSIX-style paths.
 	 *
 	 * @public
-	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of
-	 *                                                     the project
+	 * @param {object} [options]
+	 * @param {string} [options.style=buildtime] Path style to access resources.
+	 *   Can be "buildtime", "dist", "runtime" or "flat"
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	getReader() {
+	getReader({style = "buildtime"} = {}) {
+		// Apply builder excludes to all styles but "runtime"
+		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
+
 		let reader = resourceFactory.createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: "/resources/",
 			name: `Runtime resources reader for theme-library project ${this.getName()}`,
 			project: this,
-			excludes: this.getBuilderResourcesExcludes()
+			excludes
 		});
 		if (this._testPathExists) {
 			const testReader = resourceFactory.createReader({
@@ -64,7 +89,7 @@ class ThemeLibrary extends Project {
 				virBasePath: "/test-resources/",
 				name: `Runtime test-resources reader for theme-library project ${this.getName()}`,
 				project: this,
-				excludes: this.getBuilderResourcesExcludes()
+				excludes
 			});
 			reader = resourceFactory.createReaderCollection({
 				name: `Reader collection for theme-library project ${this.getName()}`,

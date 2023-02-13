@@ -361,7 +361,7 @@ class ProjectBuilder {
 		const buildConfig = this._buildContext.getBuildConfig();
 		const reader = project.getReader({
 			// Force buildtime (=namespaced) style when writing with a build manifest
-			style: taskUtil.isRootProject() && buildConfig.createBuildManifest ? "buildtime" : "runtime"
+			style: taskUtil.isRootProject() && buildConfig.createBuildManifest ? "buildtime" : "dist"
 		});
 		const resources = await reader.byGlob("/**/*");
 

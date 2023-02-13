@@ -212,18 +212,28 @@ class Project extends Specification {
 	 * project in the specified "style":
 	 *
 	 * <ul>
-	 * <li><b>buildtime</b>: Resource paths are always prefixed with <code>/resources/</code>
-	 *  or <code>/test-resources/</code> followed by the project's namespace</li>
-	 * <li><b>runtime</b>: Access resources the same way the UI5 runtime would do</li>
-	 * <li><b>flat:</b> No prefix, no namespace</li>
+	 * <li><b>buildtime:</b> Resource paths are always prefixed with <code>/resources/</code>
+	 *  or <code>/test-resources/</code> followed by the project's namespace.
+	 *  Any configured build-excludes are applied</li>
+	 * <li><b>dist:</b> Resource paths always match with what the UI5 runtime expects.
+	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
+	 *  structure, while libraries use a "buildtime"-like structure.
+	 *  Any configured build-excludes are applied</li>
+	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
+	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
+	 *  structure, while libraries use a "buildtime"-like structure.
+	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied
+	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
+	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
+	 *  Any configured build-excludes are applied</li>
 	 * </ul>
 	 *
-	 * Resource readers always use POSIX-style.
+	 * Resource readers always use POSIX-style paths.
 	 *
 	 * @public
 	 * @param {object} [options]
-	 * @param {string} [options.style=buildtime] Path style to access resources. Can be "buildtime", "runtime" or "flat"
-	 *											This parameter might be ignored by some project types
+	 * @param {string} [options.style=buildtime] Path style to access resources.
+	 *   Can be "buildtime", "dist", "runtime" or "flat"
 	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of the project
 	 */
 	getReader(options) {

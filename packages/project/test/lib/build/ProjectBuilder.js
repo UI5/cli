@@ -546,7 +546,7 @@ test("_writeResults", async (t) => {
 
 	t.is(getReaderStub.callCount, 1, "One reader requested");
 	t.deepEqual(getReaderStub.getCall(0).args[0], {
-		style: "runtime"
+		style: "dist"
 	}, "Reader requested expected style");
 
 	t.is(byGlobStub.callCount, 1, "One byGlob call");
@@ -711,7 +711,7 @@ test("_writeResults: Do not create build manifest for non-root project", async (
 
 	t.is(getReaderStub.callCount, 1, "One reader requested");
 	t.deepEqual(getReaderStub.getCall(0).args[0], {
-		style: "runtime"
+		style: "dist"
 	}, "Reader requested expected style");
 
 	t.is(getTagStub.callCount, 1, "TaskUtil#getTag got called once");

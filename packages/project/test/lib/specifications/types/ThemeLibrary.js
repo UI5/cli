@@ -1,60 +1,64 @@
 import test from "ava";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import sinon from "sinon";
+import sinonGlobal from "sinon";
 import Specification from "../../../../lib/specifications/Specification.js";
 
-function clone(obj) {
-	return JSON.parse(JSON.stringify(obj));
-}
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const themeLibraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "theme.library.e");
-const basicProjectInput = {
-	id: "theme.library.e.id",
-	version: "1.0.0",
-	modulePath: themeLibraryEPath,
-	configuration: {
-		specVersion: "2.6",
-		kind: "project",
-		type: "theme-library",
-		metadata: {
-			name: "theme.library.e",
-			copyright: "Some fancy copyright"
+
+test.beforeEach((t) => {
+	t.context.sinon = sinonGlobal.createSandbox();
+	t.context.projectInput = {
+		id: "theme.library.e.id",
+		version: "1.0.0",
+		modulePath: themeLibraryEPath,
+		configuration: {
+			specVersion: "2.6",
+			kind: "project",
+			type: "theme-library",
+			metadata: {
+				name: "theme.library.e",
+				copyright: "Some fancy copyright"
+			}
 		}
-	}
-};
+	};
+});
 
 test.afterEach.always((t) => {
-	sinon.restore();
+	t.context.sinon.restore();
 });
 
 test("Correct class", async (t) => {
+	const {projectInput} = t.context;
 	const {default: ThemeLibrary} = await import("../../../../lib/specifications/types/ThemeLibrary.js");
-	const project = await Specification.create(basicProjectInput);
+	const project = await Specification.create(projectInput);
 	t.true(project instanceof ThemeLibrary, `Is an instance of the ThemeLibrary class`);
 });
 
 test("getCopyright", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 
 	t.is(project.getCopyright(), "Some fancy copyright", "Copyright was read correctly");
 });
 
 test("getSourcePath", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 	t.is(project.getSourcePath(), path.join(themeLibraryEPath, "src"), "Correct source path");
 });
 
 test("getNamespace", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 	t.is(project.getNamespace(), null,
 		"Returned no namespace");
 });
 
 test("Access project resources via reader", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 	const reader = project.getReader();
 	const resource = await reader.byPath("/resources/theme/library/e/themes/my_theme/.theme");
 	t.truthy(resource, "Found the requested resource");
@@ -62,15 +66,58 @@ test("Access project resources via reader", async (t) => {
 });
 
 test("Access project test-resources via reader", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 	const reader = project.getReader();
 	const resource = await reader.byPath("/test-resources/theme/library/e/Test.html");
 	t.truthy(resource, "Found the requested resource");
 	t.is(resource.getPath(), "/test-resources/theme/library/e/Test.html", "Resource has correct path");
 });
 
+test("Access project resources via reader w/ builder excludes", async (t) => {
+	const {projectInput} = t.context;
+	const baselineProject = await Specification.create(projectInput);
+
+	projectInput.configuration.builder = {
+		resources: {
+			excludes: ["**/.theme"]
+		}
+	};
+	const excludesProject = await Specification.create(projectInput);
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getReader({}).byGlob("**/.theme")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getReader({}).byGlob("**/.theme")).length, 0,
+		"Did not find excluded resource for default style");
+
+	t.is((await baselineProject.getReader({style: "buildtime"}).byGlob("**/.theme")).length, 1,
+		"Found resource in baseline project for buildtime style");
+	t.is((await excludesProject.getReader({style: "buildtime"}).byGlob("**/.theme")).length, 0,
+		"Did not find excluded resource for buildtime style");
+
+	t.is((await baselineProject.getReader({style: "dist"}).byGlob("**/.theme")).length, 1,
+		"Found resource in baseline project for dist style");
+	t.is((await excludesProject.getReader({style: "dist"}).byGlob("**/.theme")).length, 0,
+		"Did not find excluded resource for dist style");
+
+	t.is((await baselineProject.getReader({style: "flat"}).byGlob("**/.theme")).length, 1,
+		"Found resource in baseline project for flat style");
+	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/.theme")).length, 0,
+		"Did not find excluded resource for flat style");
+
+	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/.theme")).length, 1,
+		"Found resource in baseline project for runtime style");
+	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/.theme")).length, 1,
+		"Found excluded resource for runtime style");
+});
+
 test("Modify project resources via workspace and access via flat and runtime reader", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 	const workspace = project.getWorkspace();
 	const workspaceResource = await workspace.byPath("/resources/theme/library/e/themes/my_theme/library.source.less");
 	t.truthy(workspaceResource, "Found resource in workspace");
@@ -96,7 +143,8 @@ test("Modify project resources via workspace and access via flat and runtime rea
 });
 
 test("_configureAndValidatePaths: Default paths", async (t) => {
-	const project = await Specification.create(basicProjectInput);
+	const {projectInput} = t.context;
+	const project = await Specification.create(projectInput);
 
 	t.is(project._srcPath, "src", "Correct default path for src");
 	t.is(project._testPath, "test", "Correct default path for test");
@@ -104,7 +152,7 @@ test("_configureAndValidatePaths: Default paths", async (t) => {
 });
 
 test("_configureAndValidatePaths: Test directory does not exist", async (t) => {
-	const projectInput = clone(basicProjectInput);
+	const {projectInput} = t.context;
 	projectInput.configuration.resources = {
 		configuration: {
 			paths: {
@@ -120,7 +168,7 @@ test("_configureAndValidatePaths: Test directory does not exist", async (t) => {
 });
 
 test("_configureAndValidatePaths: Source directory does not exist", async (t) => {
-	const projectInput = clone(basicProjectInput);
+	const {projectInput} = t.context;
 	projectInput.configuration.resources = {
 		configuration: {
 			paths: {

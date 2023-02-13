@@ -92,29 +92,54 @@ class ComponentProject extends Project {
 	/* === Resource Access === */
 
 	/**
-	 * Get a resource reader for accessing the project resources in a given style.
+	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
+	 * project in the specified "style":
+	 *
+	 * <ul>
+	 * <li><b>buildtime:</b> Resource paths are always prefixed with <code>/resources/</code>
+	 *  or <code>/test-resources/</code> followed by the project's namespace.
+	 *  Any configured build-excludes are applied</li>
+	 * <li><b>dist:</b> Resource paths always match with what the UI5 runtime expects.
+	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
+	 *  structure, while libraries use a "buildtime"-like structure.
+	 *  Any configured build-excludes are applied</li>
+	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
+	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
+	 *  structure, while libraries use a "buildtime"-like structure.
+	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied
+	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
+	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
+	 *  Any configured build-excludes are applied</li>
+	 * </ul>
+	 *
 	 * If project resources have been changed through the means of a workspace, those changes
 	 * are reflected in the provided reader too.
 	 *
+	 * Resource readers always use POSIX-style paths.
+	 *
 	 * @public
 	 * @param {object} [options]
-	 * @param {string} [options.style=buildtime] Path style to access resources. Can be "buildtime", "runtime" or "flat"
-	 * 												TODO: describe styles
+	 * @param {string} [options.style=buildtime] Path style to access resources.
+	 *   Can be "buildtime", "dist", "runtime" or "flat"
 	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
 	getReader({style = "buildtime"} = {}) {
 		// TODO: Additional style 'ABAP' using "sap.platform.abap".uri from manifest.json?
 
-		if (style === "runtime" && this._isRuntimeNamespaced) {
-			// If the project's runtime paths contains its namespace too,
-			// "runtime" style paths are identical to "buildtime" style paths
+		// Apply builder excludes to all styles but "runtime"
+		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
+
+		if ((style === "runtime" || style === "dist") && this._isRuntimeNamespaced) {
+			// If the project's type requires a namespace at runtime, the
+			// dist- and runtime-style paths are identical to buildtime-style paths
 			style = "buildtime";
 		}
-		let reader = this._getReader();
+		let reader = this._getReader(excludes);
 		switch (style) {
 		case "buildtime":
 			break;
 		case "runtime":
+		case "dist":
 			// Use buildtime reader and link it to /
 			// No test-resources for runtime resource access,
 			// unless runtime is namespaced
@@ -204,9 +229,9 @@ class ComponentProject extends Project {
 		return this._writers;
 	}
 
-	_getReader() {
-		let reader = this._getSourceReader();
-		const testReader = this._getTestReader();
+	_getReader(excludes) {
+		let reader = this._getSourceReader(excludes);
+		const testReader = this._getTestReader(excludes);
 		if (testReader) {
 			reader = resourceFactory.createReaderCollection({
 				name: `Reader collection for project ${this.getName()}`,
@@ -219,19 +244,20 @@ class ComponentProject extends Project {
 	_addWriter(reader, style) {
 		const {namespaceWriter, generalWriter} = this._getWriter();
 
-		if (style === "runtime" && this._isRuntimeNamespaced) {
-			// If the project's runtime requires namespaces, "runtime" paths are identical to "buildtime" paths
+		if ((style === "runtime" || style === "dist") && this._isRuntimeNamespaced) {
+			// If the project's type requires a namespace at runtime, the
+			// dist- and runtime-style paths are identical to buildtime-style paths
 			style = "buildtime";
 		}
 		const readers = [];
 		switch (style) {
-		case "buildtime": {
+		case "buildtime":
 			// Writer already uses buildtime style
 			readers.push(namespaceWriter);
 			readers.push(generalWriter);
 			break;
-		}
-		case "runtime": {
+		case "runtime":
+		case "dist":
 			// Runtime is not namespaced: link namespace to /
 			readers.push(resourceFactory.createFlatReader({
 				reader: namespaceWriter,
@@ -240,8 +266,7 @@ class ComponentProject extends Project {
 			// Add general writer as is
 			readers.push(generalWriter);
 			break;
-		}
-		case "flat": {
+		case "flat":
 			// Rewrite paths from "flat" to "buildtime"
 			readers.push(resourceFactory.createFlatReader({
 				reader: namespaceWriter,
@@ -249,7 +274,6 @@ class ComponentProject extends Project {
 			}));
 			// General writer resources can't be flattened, so they are not available
 			break;
-		}
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
 		}

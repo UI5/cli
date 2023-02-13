@@ -49,15 +49,16 @@ class Application extends ComponentProject {
 	/**
 	* Get a resource reader for the sources of the project (excluding any test resources)
 	*
+	* @param {string[]} excludes List of glob patterns to exclude
 	* @returns {@ui5/fs/ReaderCollection} Reader collection
 	*/
-	_getSourceReader() {
+	_getSourceReader(excludes) {
 		return createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: `/resources/${this._namespace}/`,
 			name: `Source reader for application project ${this.getName()}`,
 			project: this,
-			excludes: this.getBuilderResourcesExcludes()
+			excludes
 		});
 	}
 
