@@ -192,6 +192,22 @@ const utils = {
 		});
 		await projectGraph.resolveOptionalDependencies();
 	},
+	checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph) {
+		// Check for duplicate framework libraries
+		const projectGraphProjectNames = projectGraph.getProjectNames();
+		const duplicateFrameworkProjectNames = frameworkGraph.getProjectNames()
+			.filter((name) => projectGraphProjectNames.includes(name));
+
+		if (duplicateFrameworkProjectNames.length) {
+			throw new Error(
+				`Duplicate framework library definition(s) found in project ${projectGraph.getRoot().getName()}: ` +
+				`${duplicateFrameworkProjectNames.join(", ")}. ` +
+				`Framework libraries should only be referenced via ui5.yaml configuration, ` +
+				`not in its dependencies (e.g. package.json). ` +
+				`Note that this error could also come from transitive dependencies.`
+			);
+		}
+	},
 	ProjectProcessor
 };
 
@@ -312,6 +328,8 @@ export default {
 		await Promise.all(referencedLibraries.map(async (libName) => {
 			await projectProcessor.addProjectToGraph(libName);
 		}));
+
+		utils.checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph);
 
 		log.verbose("Joining framework graph into project graph...");
 		projectGraph.join(frameworkGraph);

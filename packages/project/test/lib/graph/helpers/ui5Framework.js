@@ -5,6 +5,7 @@ import sinonGlobal from "sinon";
 import esmock from "esmock";
 import DependencyTreeProvider from "../../../../lib/graph/providers/DependencyTree.js";
 import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
+import Specification from "../../../../lib/specifications/Specification.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,8 @@ test.beforeEach(async (t) => {
 	const ui5Logger = {
 		getLogger: sinon.stub().returns(t.context.log)
 	};
+
+	t.context.Openui5ResolverStub = sinon.stub();
 
 	t.context.Sapui5ResolverStub = sinon.stub();
 	t.context.Sapui5ResolverInstallStub = sinon.stub();
@@ -478,6 +481,84 @@ test.serial("enrichProjectGraph should ignore root project without framework con
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
 	t.is(projectGraph.getSize(), 1, "Project graph should remain unchanged");
+});
+
+test.serial("enrichProjectGraph should throw error when projectGraph contains a framework library project " +
+"that is also defined in framework configuration", async (t) => {
+	const {
+		sinon, ui5Framework, utils,
+		Sapui5ResolverResolveVersionStub, Sapui5ResolverInstallStub
+	} = t.context;
+	const dependencyTree = {
+		id: "application.a",
+		version: "1.2.3",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.100.0",
+				libraries: [{
+					name: "sap.ui.core"
+				}]
+			}
+		},
+		dependencies: [{
+			id: "@openui5/sap.ui.core",
+			version: "1.99.0",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "sap.ui.core"
+				}
+			}
+		}]
+	};
+
+	const referencedLibraries = ["sap.ui.core"];
+	const libraryMetadata = {fake: "metadata"};
+
+	sinon.stub(utils, "getFrameworkLibrariesFromGraph").resolves(referencedLibraries);
+
+	Sapui5ResolverInstallStub.resolves({libraryMetadata});
+	Sapui5ResolverResolveVersionStub.resolves("1.100.0");
+
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(({graph}) => {
+			return {
+				async addProjectToGraph() {
+					const fakeCoreProject = await Specification.create({
+						id: "@openui5/sap.ui.core",
+						version: "1.100.0",
+						modulePath: libraryEPath,
+						configuration: {
+							specVersion: "3.0",
+							kind: "project",
+							type: "library",
+							metadata: {
+								name: "sap.ui.core"
+							}
+						}
+					});
+					graph.addProject(fakeCoreProject);
+				}
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph), {
+		message: `Duplicate framework library definition(s) found in project application.a: sap.ui.core. ` +
+		`Framework libraries should only be referenced via ui5.yaml configuration, not in its ` +
+		`dependencies (e.g. package.json). Note that this error could also come from transitive dependencies.`
+	});
 });
 
 test.serial("utils.shouldIncludeDependency", (t) => {
@@ -961,6 +1042,64 @@ test.serial("utils.declareFrameworkDependenciesInGraph: No deprecation warnings 
 		"lib1",
 		"lib3"
 	], `Root project has correct dependencies`);
+});
+
+test("utils.checkForDuplicateFrameworkProjects: No duplicates", (t) => {
+	const {utils, sinon} = t.context;
+
+	const projectGraph = {
+		getRoot: sinon.stub().returns({
+			getName: sinon.stub().returns("root-project")
+		}),
+		getProjectNames: sinon.stub().returns(["lib1", "lib2", "lib3"])
+	};
+	const frameworkGraph = {
+		getProjectNames: sinon.stub().returns(["sap.ui.core"])
+	};
+
+	t.notThrows(() => utils.checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph));
+});
+
+test("utils.checkForDuplicateFrameworkProjects: One duplicate", (t) => {
+	const {utils, sinon} = t.context;
+
+	const projectGraph = {
+		getRoot: sinon.stub().returns({
+			getName: sinon.stub().returns("root-project")
+		}),
+		getProjectNames: sinon.stub().returns(["lib1", "sap.ui.core", "lib2", "lib3"])
+	};
+	const frameworkGraph = {
+		getProjectNames: sinon.stub().returns(["sap.ui.core"])
+	};
+
+	t.throws(() => utils.checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph), {
+		message: "Duplicate framework library definition(s) found in project root-project: " +
+			"sap.ui.core. " +
+			"Framework libraries should only be referenced via ui5.yaml configuration, not in its dependencies " +
+			"(e.g. package.json). Note that this error could also come from transitive dependencies."
+	});
+});
+
+test("utils.checkForDuplicateFrameworkProjects: Two duplicates", (t) => {
+	const {utils, sinon} = t.context;
+
+	const projectGraph = {
+		getRoot: sinon.stub().returns({
+			getName: sinon.stub().returns("root-project")
+		}),
+		getProjectNames: sinon.stub().returns(["lib1", "sap.ui.core", "lib2", "sap.ui.layout", "lib3"])
+	};
+	const frameworkGraph = {
+		getProjectNames: sinon.stub().returns(["sap.ui.core", "sap.ui.layout", "sap.m"])
+	};
+
+	t.throws(() => utils.checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph), {
+		message: "Duplicate framework library definition(s) found in project root-project: " +
+			"sap.ui.core, sap.ui.layout. " +
+			"Framework libraries should only be referenced via ui5.yaml configuration, not in its dependencies " +
+			"(e.g. package.json). Note that this error could also come from transitive dependencies."
+	});
 });
 
 test.serial("ProjectProcessor: Add project to graph", async (t) => {
