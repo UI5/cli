@@ -39,7 +39,13 @@ class Registry {
 		if (!this._npmConfig) {
 			const {default: libnpmconfig} = await import("libnpmconfig");
 			const opts = {
-				cache: this._cacheDir
+				cache: this._cacheDir,
+				// Disable usage of shared keep-alive agents.
+				// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
+				// that can be easily reached (Error: Socket timeout) and there doesn't
+				// seem to be another way to disable or increase it.
+				// Also see: https://github.com/node-modules/agentkeepalive/issues/106
+				agent: false,
 			};
 			const config = libnpmconfig.read(opts, {
 				cwd: this._cwd
