@@ -56,7 +56,7 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride"
 	});
 
@@ -67,7 +67,7 @@ test.serial("graphFromPackageDependencies", async (t) => {
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
 		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath"
+		rootConfigPath: "/rootConfigPath"
 	}, "Created NodePackageDependencies provider instance with correct parameters");
 
 	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
@@ -95,7 +95,7 @@ test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		workspaceName: "dolphin",
 	});
@@ -114,7 +114,7 @@ test.serial("graphFromPackageDependencies with workspace name", async (t) => {
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
 		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
 
 	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
@@ -141,7 +141,7 @@ test.serial("graphFromPackageDependencies with workspace object", async (t) => {
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		workspaceConfiguration: "workspaceConfiguration"
 	});
@@ -166,7 +166,7 @@ test.serial("graphFromPackageDependencies with workspace object and workspace na
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		workspaceName: "dolphin",
 		workspaceConfiguration: "workspaceConfiguration"
@@ -192,7 +192,7 @@ test.serial("graphFromPackageDependencies with workspace path and workspace name
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		workspaceName: "dolphin",
 		workspaceConfigPath: "workspaceConfigurationPath"
@@ -222,7 +222,7 @@ test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		workspaceName: "dolphin",
 	});
@@ -241,7 +241,7 @@ test.serial("graphFromPackageDependencies with empty workspace", async (t) => {
 	t.deepEqual(npmProviderConstructorStub.getCall(0).args[0], {
 		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
 
 	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
@@ -266,7 +266,7 @@ test.serial("graphFromPackageDependencies: Do not resolve framework dependencies
 	const res = await graphFromPackageDependencies({
 		cwd: "cwd",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		resolveFrameworkDependencies: false
 	});
@@ -289,7 +289,7 @@ test.serial("graphFromStaticFile", async (t) => {
 		cwd: "cwd",
 		filePath: "file/path",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride"
 	});
 
@@ -305,7 +305,7 @@ test.serial("graphFromStaticFile", async (t) => {
 	t.deepEqual(dependencyTreeProviderStub.getCall(0).args[0], {
 		dependencyTree: "dependencyTree",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
 
 	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
@@ -331,7 +331,7 @@ test.serial("graphFromStaticFile: Do not resolve framework dependencies", async 
 		cwd: "cwd",
 		filePath: "filePath",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		resolveFrameworkDependencies: false
 	});
@@ -350,7 +350,7 @@ test.serial("usingObject", async (t) => {
 	const res = await graphFromObject({
 		dependencyTree: "dependencyTree",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride"
 	});
 
@@ -360,7 +360,7 @@ test.serial("usingObject", async (t) => {
 	t.deepEqual(dependencyTreeProviderStub.getCall(0).args[0], {
 		dependencyTree: "dependencyTree",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 	}, "Created NodePackageDependencies provider instance with correct parameters");
 
 	t.is(projectGraphBuilderStub.callCount, 1, "projectGraphBuilder got called once");
@@ -382,7 +382,7 @@ test.serial("usingObject: Do not resolve framework dependencies", async (t) => {
 		cwd: "cwd",
 		filePath: "filePath",
 		rootConfiguration: "rootConfiguration",
-		rootConfigPath: "rootConfigPath",
+		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		resolveFrameworkDependencies: false
 	});

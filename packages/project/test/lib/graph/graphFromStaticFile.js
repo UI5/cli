@@ -105,7 +105,7 @@ test("rootConfiguration", async (t) => {
 test("rootConfig", async (t) => {
 	const projectGraph = await graphFromStaticFile({
 		cwd: applicationHPath,
-		rootConfigPath: "ui5-test-configPath.yaml"
+		rootConfigPath: "../application.a/ui5-test-configPath.yaml"
 	});
 	t.deepEqual(projectGraph.getRoot().getCustomConfiguration(), {
 		configPathTest: true
