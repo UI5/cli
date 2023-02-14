@@ -19,6 +19,7 @@ test.beforeEach(async (t) => {
 	t.context.logStub = {
 		info: sinon.stub(),
 		verbose: sinon.stub(),
+		silly: sinon.stub(),
 		isLevelEnabled: sinon.stub().returns(false),
 		_getLogger: sinon.stub()
 	};

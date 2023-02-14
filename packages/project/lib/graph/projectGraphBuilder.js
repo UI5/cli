@@ -104,6 +104,7 @@ function validateNode(node) {
 async function projectGraphBuilder(nodeProvider, workspace) {
 	const shimCollection = new ShimCollection();
 	const moduleCollection = Object.create(null);
+	const handledExtensions = new Set(); // Set containing the IDs of modules which' extensions have been handled
 
 	const rootNode = await nodeProvider.getRootNode();
 	validateNode(rootNode);
@@ -142,6 +143,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 	}
 
 	handleExtensions(rootExtensions);
+	handledExtensions.add(rootNode.id);
 
 	const queue = [];
 
@@ -160,6 +162,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 		const res = await Promise.all(nodes.map(async (node) => {
 			let ui5Module = moduleCollection[node.id];
 			if (!ui5Module) {
+				log.silly(`Visiting Module ${node.id} as a dependency of ${parentProject.getName()}`);
 				log.verbose(`Creating module ${node.id}...`);
 				validateNode(node);
 				ui5Module = moduleCollection[node.id] = new Module({
@@ -170,11 +173,15 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 					configuration: node.configuration,
 					shimCollection
 				});
-			} else if (ui5Module.getPath() !== node.path) {
-				log.verbose(
-					`Possible inconsistency detected: Dependency ${node.id} is available at multiple paths:` +
-					`\nLocation of the already added module (this one will be used): ${ui5Module.getPath()}` +
-					`\nAdditional location (this one will be ignored): ${node.path}`);
+			} else {
+				log.silly(
+					`Re-visiting module ${node.id} as a dependency of ${parentProject.getName()}`);
+				if (ui5Module.getPath() !== node.path) {
+					log.verbose(
+						`Warning - Dependency ${node.id} is available at multiple paths:` +
+						`\n  Location of the already processed module (this one will be used): ${ui5Module.getPath()}` +
+						`\n  Additional location (this one will be ignored): ${node.path}`);
+				}
 			}
 
 			const {project, extensions} = await ui5Module.getSpecifications();
@@ -194,7 +201,18 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 				extensions // Any extensions found for this node
 			} = res[i];
 
-			handleExtensions(extensions);
+			if (extensions.length && (!node.optional || parentProject === rootProject)) {
+				// Only handle extensions in non-optional dependencies and any dependencies of the root project
+				if (handledExtensions.has(node.id)) {
+					// Do not handle extensions of the same module twice
+					log.verbose(`Extensions contained in module ${node.id} have already been handled`);
+				} else {
+					log.verbose(`Handling extensions for module ${node.id}...`);
+					// If a different module contains the same extension, we expect an error to be thrown by the graph
+					handleExtensions(extensions);
+					handledExtensions.add(node.id);
+				}
+			}
 
 			// Check for collection shims
 			const collectionShims = shimCollection.getCollectionShims(node.id);
@@ -223,6 +241,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 				// Skip collection node
 				continue;
 			}
+
 			let skipDependencies = false;
 			if (project) {
 				const projectName = project.getName();
@@ -248,6 +267,10 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 					}
 				}
 				if (projectGraph.getProject(projectName)) {
+					// Opposing to extensions, we are generally fine with the same project being contained in different
+					// modules. We simply ignore all but the first occurrence.
+					// This can happen for example if the same project is packaged in different ways/modules
+					// (e.g. one module containing the source and one containing the pre-built resources)
 					log.verbose(
 						`Project ${projectName} has already been added to the graph. ` +
 						`Skipping dependency resolution...`);
@@ -283,7 +306,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 			}
 
 			if (!project && !extensions.length) {
-				// Module provided neither a project nor an extension
+				// Module provides neither a project nor an extension
 				// => Do not follow its dependencies
 				log.verbose(
 					`Module ${node.id} neither provides a project nor an extension. Skipping dependency resolution`);

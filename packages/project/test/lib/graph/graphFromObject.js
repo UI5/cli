@@ -24,10 +24,11 @@ test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.log = {
-		warn: sinon.stub(),
-		verbose: sinon.stub(),
 		error: sinon.stub(),
+		warn: sinon.stub(),
 		info: sinon.stub(),
+		verbose: sinon.stub(),
+		silly: sinon.stub(),
 		isLevelEnabled: () => true
 	};
 

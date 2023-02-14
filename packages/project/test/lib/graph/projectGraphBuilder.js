@@ -8,9 +8,12 @@ import projectGraphBuilder from "../../../lib/graph/projectGraphBuilder.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const libraryEPath = path.join(__dirname, "..", "..", "fixtures", "library.e");
+const libraryFPath = path.join(__dirname, "..", "..", "fixtures", "library.f");
+const libraryGPath = path.join(__dirname, "..", "..", "fixtures", "library.g");
 const collectionPath = path.join(__dirname, "..", "..", "fixtures", "collection");
+const nonExistingPath = path.join(__dirname, "..", "..", "fixtures", "does-not-exist");
 
-function createNode({id, name, version = "1.0.0", modulePath, configuration}) {
+function createNode({id, name, version = "1.0.0", modulePath, optional, configuration}) {
 	if (!Array.isArray(configuration)) {
 		configuration = Object.assign({
 			specVersion: "2.6",
@@ -24,6 +27,7 @@ function createNode({id, name, version = "1.0.0", modulePath, configuration}) {
 		id,
 		version,
 		path: modulePath || libraryEPath,
+		optional,
 		configuration
 	};
 }
@@ -120,6 +124,7 @@ test.serial("Correct warnings logged", async (t) => {
 				.withArgs("graph:projectGraphBuilder").returns({
 					warn: logWarnStub,
 					verbose: () => "",
+					silly: () => "",
 				})
 		}
 	});
@@ -169,6 +174,7 @@ test.serial("No warnings logged", async (t) => {
 				.withArgs("graph:projectGraphBuilder").returns({
 					warn: logWarnStub,
 					verbose: () => "",
+					silly: () => "",
 				})
 		}
 	});
@@ -272,7 +278,7 @@ test("Cyclic dependencies", async (t) => {
 	t.deepEqual(graph.getDependencies("project-2"), ["project-1"], "Cyclic dependency has been added");
 });
 
-test("Nested node with same id is ignored", async (t) => {
+test("Nested node with same id is processed correctly", async (t) => {
 	t.context.getRootNode.resolves(createNode({
 		id: "id1",
 		name: "project-1"
@@ -294,6 +300,153 @@ test("Nested node with same id is ignored", async (t) => {
 	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
 	t.falsy(graph.getProject("project-3"), "Configuration of project with same ID has been ignored");
 	t.deepEqual(graph.getDependencies("project-2"), ["project-1"], "Cyclic dependency has been added");
+});
+
+test("Nested node with different id but same project is processed correctly", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([
+		createNode({
+			id: "id2",
+			name: "project-2",
+			modulePath: libraryFPath
+		}),
+	]);
+	t.context.getDependencies.onSecondCall().resolves([
+		createNode({
+			id: "id3",
+			name: "project-1", // Project is already in the graph and won't be added again
+			modulePath: libraryGPath
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	const p = graph.getProject("project-1");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
+	t.deepEqual(graph.getDependencies("project-2"), ["project-1"], "Cyclic dependency has been added");
+});
+
+test("Unresolved optional dependency", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([
+		// Deps of id1
+		createNode({
+			id: "id2",
+			name: "project-2",
+			optional: true
+		}),
+		createNode({
+			id: "id3",
+			name: "project-3"
+		}),
+	]);
+	t.context.getDependencies.onSecondCall().resolves([
+		// Deps of id2
+		createNode({
+			id: "id4",
+			name: "project-4"
+		}),
+	]);
+	t.context.getDependencies.onThirdCall().resolves([
+		// Deps of id3
+		createNode({
+			id: "id2",
+			name: "project-2",
+			optional: true
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	const p = graph.getProject("project-1");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
+	t.deepEqual(graph.getDependencies("project-1"), ["project-3"], "Correct dependencies for project-1");
+	t.deepEqual(graph.getDependencies("project-2"), ["project-4"], "Correct dependencies for project-2");
+	t.deepEqual(graph.getDependencies("project-3"), [], "Correct dependencies for project-3");
+});
+
+test("Nested node with same project resolves optional dependency", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([
+		// Deps of id1
+		createNode({
+			id: "id2",
+			name: "project-2",
+			optional: true
+		}),
+		createNode({
+			id: "id3",
+			name: "project-3"
+		}),
+	]);
+	t.context.getDependencies.onSecondCall().resolves([
+		// Deps of id2
+		createNode({
+			id: "id4",
+			name: "project-4"
+		}),
+	]);
+	t.context.getDependencies.onThirdCall().resolves([
+		// Deps of id3
+		createNode({
+			// non-optional dependency to id2/project-2
+			id: "id2",
+			name: "project-2",
+			modulePath: libraryGPath // Different path but same module id should be ignored (first module is reused)
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	const p = graph.getProject("project-1");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
+	t.deepEqual(graph.getDependencies("project-1"), ["project-3", "project-2"], "Correct dependencies for project-1");
+	t.deepEqual(graph.getDependencies("project-2"), ["project-4"], "Correct dependencies for project-2");
+	t.deepEqual(graph.getDependencies("project-3"), ["project-2"], "Correct dependencies for project-3");
+});
+
+test("Nested node with different id but same project resolves optional dependency", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([
+		// Deps of id1
+		createNode({
+			id: "id2",
+			name: "project-2",
+			optional: true
+		}),
+		createNode({
+			id: "id3",
+			name: "project-3"
+		}),
+	]);
+	t.context.getDependencies.onSecondCall().resolves([
+		// Deps of id2
+		createNode({
+			id: "id4",
+			name: "project-4"
+		}),
+	]);
+	t.context.getDependencies.onThirdCall().resolves([
+		// Deps of id3
+		createNode({
+			// non-optional dependency to project-2
+			id: "id5", // Different module but same project should still resolve the optional dependency
+			name: "project-2",
+			modulePath: libraryGPath
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	const p = graph.getProject("project-1");
+	t.is(p.getRootPath(), libraryEPath, "Project returned correct path");
+	t.deepEqual(graph.getDependencies("project-1"), ["project-3", "project-2"], "Correct dependencies for project-1");
+	t.deepEqual(graph.getDependencies("project-2"), ["project-4"], "Correct dependencies for project-2");
+	t.deepEqual(graph.getDependencies("project-3"), ["project-2"], "Correct dependencies for project-3");
 });
 
 test("Root node must provide a project", async (t) => {
@@ -519,4 +672,239 @@ test("Dependencies defined through shim", async (t) => {
 	]);
 	const graph = await projectGraphBuilder(t.context.provider);
 	t.deepEqual(graph.getDependencies("project-3"), ["project-2"], "Shimmed dependency has been defined");
+});
+
+test("Extension in dependencies", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([
+		createNode({
+			id: "id2",
+			modulePath: libraryEPath,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.truthy(graph.getExtension("task-a"), "Extension has been added to the graph");
+});
+
+test("Extension is an optional dependency of the root project", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([
+		createNode({
+			id: "id2",
+			modulePath: libraryEPath,
+			optional: true,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.truthy(graph.getExtension("task-a"), "Extension has been added to the graph");
+});
+
+test("Extension is an optional dependency of a non-root project", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([createNode({
+		id: "id2",
+		name: "project-2"
+	})]);
+	t.context.getDependencies.onSecondCall().resolves([
+		createNode({
+			id: "id3",
+			modulePath: libraryEPath,
+			optional: true,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.falsy(graph.getExtension("task-a"), "Extension has not been added to the graph");
+});
+
+test("Extension is an optional dependency of a non-root project and is not available", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([createNode({
+		id: "id2",
+		name: "project-2"
+	})]);
+	t.context.getDependencies.onSecondCall().resolves([
+		createNode({
+			id: "id3",
+			modulePath: nonExistingPath, // Module is not installed (transitive devDependency)
+			optional: true,
+			configuration: []
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.falsy(graph.getExtension("task-a"), "Extension has not been added to the graph");
+});
+
+test("Extension is a partially optional dependency of a non-root project", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([createNode({
+		id: "id2",
+		name: "project-2"
+	}), createNode({
+		id: "id3",
+		name: "project-3"
+	})]);
+	t.context.getDependencies.onSecondCall().resolves([
+		// Deps of id2
+		createNode({
+			id: "id4",
+			modulePath: libraryEPath,
+			optional: true,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	t.context.getDependencies.onThirdCall().resolves([
+		// Deps of id3
+		createNode({
+			id: "id4", // Will reuse the already visited id4 module
+			optional: false, // Will cause the extension to be added
+			modulePath: libraryEPath
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.truthy(graph.getExtension("task-a"), "Extension has been added to the graph");
+});
+
+test("Multiple dependencies to same module containing an extension", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([createNode({
+		id: "id2",
+		name: "project-2"
+	}), createNode({
+		id: "id3",
+		name: "project-3"
+	})]);
+	t.context.getDependencies.onSecondCall().resolves([
+		// Deps of id2
+		createNode({
+			id: "id4",
+			modulePath: libraryEPath,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	t.context.getDependencies.onThirdCall().resolves([
+		// Deps of id3
+		createNode({
+			id: "id4", // Will reuse the already visited id4 module
+			modulePath: libraryEPath
+		}),
+	]);
+	const graph = await projectGraphBuilder(t.context.provider);
+	t.truthy(graph.getExtension("task-a"), "Extension has been added to the graph");
+});
+
+test("Multiple dependencies to different module containing the same extension", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "id1",
+		name: "project-1"
+	}));
+	t.context.getDependencies.onFirstCall().resolves([createNode({
+		id: "id2",
+		name: "project-2"
+	}), createNode({
+		id: "id3",
+		name: "project-3"
+	})]);
+	t.context.getDependencies.onSecondCall().resolves([
+		// Deps of id2
+		createNode({
+			id: "id4",
+			modulePath: libraryEPath,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	t.context.getDependencies.onThirdCall().resolves([
+		// Deps of id3
+		createNode({
+			id: "id5",
+			modulePath: libraryEPath,
+			configuration: {
+				kind: "extension",
+				type: "task",
+				metadata: {
+					name: "task-a"
+				},
+				task: {
+					path: "task-a.js"
+				}
+			}
+		}),
+	]);
+	await t.throwsAsync(projectGraphBuilder(t.context.provider), {
+		message: "Failed to add extension task-a to graph: An extension with that name has already been added"
+	});
 });
