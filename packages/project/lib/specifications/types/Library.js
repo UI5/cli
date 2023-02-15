@@ -175,6 +175,8 @@ class Library extends ComponentProject {
 		}
 
 		if (this.isFrameworkProject()) {
+			// Only framework projects are allowed to provide preload-excludes in their .library file,
+			// and only if it is not already defined in the ui5.yaml
 			if (config.builder?.libraryPreload?.excludes) {
 				this._log.verbose(
 					`Using preload excludes for framework library ${this.getName()} from project configuration`);
@@ -393,17 +395,24 @@ class Library extends ComponentProject {
 	 * @returns {string|null} Copyright of the project
 	 */
 	async _getCopyrightFromDotLibrary() {
-		// If no copyright replacement was provided by ui5.yaml,
-		// check if the .library file has a valid copyright replacement
-		const {content: dotLibrary, filePath} = await this._getDotLibrary();
-		if (dotLibrary?.library?.copyright?._) {
+		try {
+			// If no copyright replacement was provided by ui5.yaml,
+			// check if the .library file has a valid copyright replacement
+			const {content: dotLibrary, filePath} = await this._getDotLibrary();
+			if (dotLibrary?.library?.copyright?._) {
+				this._log.verbose(
+					`Using copyright from ${filePath} for project ${this.getName()}...`);
+				return dotLibrary.library.copyright._;
+			} else {
+				this._log.verbose(
+					`No copyright configuration found in ${filePath} ` +
+					`of project ${this.getName()}`);
+				return null;
+			}
+		} catch (err) {
 			this._log.verbose(
-				`Using copyright from ${filePath} for project ${this.getName()}...`);
-			return dotLibrary.library.copyright._;
-		} else {
-			this._log.verbose(
-				`No copyright configuration found in ${filePath} ` +
-				`of project ${this.getName()}`);
+				`Copyright determination from .library failed for project ` +
+				`${this.getName()}: ${err.message}`);
 			return null;
 		}
 	}

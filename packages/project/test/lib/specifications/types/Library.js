@@ -1066,8 +1066,8 @@ test("_getNamespace: from library.js", async (t) => {
 	const {projectInput, sinon} = t.context;
 
 	const project = await (new Library().init(projectInput));
-	sinon.stub(project, "_getManifest").resolves({});
-	sinon.stub(project, "_getDotLibrary").resolves({});
+	sinon.stub(project, "_getManifest").resolves({}); // Empty result or exception should not matter
+	sinon.stub(project, "_getDotLibrary").rejects(new Error("Because bird"));
 	sinon.stub(project, "_getLibraryJsPath").resolves("/my/namespace/library.js");
 	const res = await project._getNamespace();
 	t.is(res, "my/namespace", "Returned correct namespace");
@@ -1168,15 +1168,14 @@ test("_getCopyrightFromDotLibrary: No copyright in .library file", async (t) => 
 	t.is(copyright, null, "No copyright returned");
 });
 
-test("_getCopyrightFromDotLibrary: Propagates exception", async (t) => {
+test("_getCopyrightFromDotLibrary: Does not propagate exception", async (t) => {
 	const {projectInput, sinon} = t.context;
 
 	const project = await (new Library().init(projectInput));
 
 	sinon.stub(project, "_getDotLibrary").rejects(new Error("because shark"));
-	const err = await t.throwsAsync(project._getCopyrightFromDotLibrary());
-	t.is(err.message, "because shark",
-		"Threw with excepted error message");
+	const res = await project._getCopyrightFromDotLibrary();
+	t.is(res, null, "Returned with null");
 });
 
 test("_getPreloadExcludesFromDotLibrary: Single exclude", async (t) => {
