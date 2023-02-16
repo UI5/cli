@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.1...HEAD).
+
+<a name="v3.0.1"></a>
+## [v3.0.1] - 2023-02-16
+### Bug Fixes
+- Prevent socket timeouts when installing framework libraries [`a198356`](https://github.com/SAP/ui5-project/commit/a198356c9c5f39dd94fb8cf7542d9059ee628f3b)
+- **Library:** Do not throw for missing .library file [`1163821`](https://github.com/SAP/ui5-project/commit/11638210994fd9511b2ab5ee3da40e3ccf294e58)
+- **Project#getReader:** Do not apply builder resource excludes for style 'runtime' [`1cd94f7`](https://github.com/SAP/ui5-project/commit/1cd94f7f15ed07283e198238edb546517ee25691)
+- **TaskUtil:** Provide framework configuration getters to custom tasks ([#580](https://github.com/SAP/ui5-project/issues/580)) [`6a40927`](https://github.com/SAP/ui5-project/commit/6a409278285252da59ea4d42fcf154814518661d)
+- **graph:** Always resolve rootConfigPath to CWD [`ef3e569`](https://github.com/SAP/ui5-project/commit/ef3e56996111233aaa04410c95f11b1c3495a9b2)
+- **projectGraphBuilder:** Apply extensions of the same module only once [`6d753a8`](https://github.com/SAP/ui5-project/commit/6d753a850f2a4ca34a50f64a404472bf0081054e)
+- **ui5Framework:** Improve error handling for duplicate lib declaration [`fb1db6d`](https://github.com/SAP/ui5-project/commit/fb1db6d7cb74dee9c4754ffb62a2a970cb0e2fbe)
+
 
 <a name="v3.0.0"></a>
 ## [v3.0.0] - 2023-02-09
@@ -305,6 +317,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.0.1]: https://github.com/SAP/ui5-project/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-project/compare/v2.6.0...v3.0.0
 [v2.6.0]: https://github.com/SAP/ui5-project/compare/v2.5.0...v2.6.0
 [v2.5.0]: https://github.com/SAP/ui5-project/compare/v2.4.0...v2.5.0
