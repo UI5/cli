@@ -125,6 +125,32 @@ test("glob virtual directory above virtual base path (path traversal)", async (t
 	t.is(res.length, 0, "Returned no resources");
 });
 
+test("glob not existing directory with existing file path (nodir: true)", async (t) => {
+	const srcReader = createAdapter({
+		fsBasePath: "./test/fixtures/library.l/",
+		virBasePath: "/",
+	});
+
+	// globby will throw if it is attempted to glob the content of a directory
+	// which is actually a file
+	await t.throwsAsync(srcReader.byGlob("/test/library/l/Test.html/*", {nodir: true}), {
+		message: /ENOTDIR/
+	}, "Threw with expected error message");
+});
+
+test("glob not existing directory with existing file path (nodir: false)", async (t) => {
+	const srcReader = createAdapter({
+		fsBasePath: "./test/fixtures/library.l/",
+		virBasePath: "/",
+	});
+
+	// globby will throw if it is attempted to glob the content of a directory
+	// which is actually a file
+	await t.throwsAsync(srcReader.byGlob("/test/library/l/Test.html/*", {nodir: false}), {
+		message: /ENOTDIR/
+	}, "Threw with expected error message");
+});
+
 test("byPath", async (t) => {
 	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
@@ -488,6 +514,20 @@ test("static excludes: glob with negated directory exclude, not excluding resour
 	const resources = await srcReader.byGlob("/**/*", {nodir: false});
 
 	t.is(resources.length, 4, "Found two resources and two directories");
+});
+
+test("static excludes: glob with exclude (nodir: false)", async (t) => {
+	const srcReader = createAdapter({
+		fsBasePath: "./test/fixtures/library.l/",
+		virBasePath: "/",
+		excludes: [
+			"/test/**"
+		]
+	});
+
+	const resources = await srcReader.byGlob("/test/library/l/Test.html", {nodir: false});
+
+	t.is(resources.length, 0, "Found no resources");
 });
 
 test("glob with useGitignore: true", async (t) => {
