@@ -191,9 +191,11 @@ class ComponentProject extends Project {
 	 */
 	getWorkspace() {
 		// Workspace is always of style "buildtime"
+		// Therefore builder resource-excludes are always to be applied
+		const excludes = this.getBuilderResourcesExcludes();
 		return resourceFactory.createWorkspace({
 			name: `Workspace for project ${this.getName()}`,
-			reader: this._getReader(),
+			reader: this._getReader(excludes),
 			writer: this._getWriter().collection
 		});
 	}

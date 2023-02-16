@@ -155,6 +155,27 @@ test("Access project resources via reader w/ builder excludes", async (t) => {
 		"Found excluded resource for runtime style");
 });
 
+test("Access project resources via workspace w/ builder excludes", async (t) => {
+	const {projectInput} = t.context;
+	const baselineProject = await Specification.create(projectInput);
+
+	projectInput.configuration.builder = {
+		resources: {
+			excludes: ["**/manifest.json"]
+		}
+	};
+	const excludesProject = await Specification.create(projectInput);
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getWorkspace().byGlob("**/manifest.json")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getWorkspace().byGlob("**/manifest.json")).length, 0,
+		"Did not find excluded resource for default style");
+});
+
 test("Modify project resources via workspace and access via flat and runtime readers", async (t) => {
 	const {projectInput} = t.context;
 	const project = await Specification.create(projectInput);
