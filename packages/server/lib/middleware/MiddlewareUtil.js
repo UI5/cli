@@ -107,11 +107,14 @@ class MiddlewareUtil {
 	 * @property {Function} getVersion Get the project version
 	 * @property {Function} getNamespace Get the project namespace
 	 * @property {Function} getRootReader Get the project rootReader
-	 * @property {Function} getReader Get the project reader
+	 * @property {Function} getReader Get the project reader, defaulting to "runtime" style instead of "buildtime"
 	 * @property {Function} getRootPath Get the local File System path of the project's root directory
 	 * @property {Function} getSourcePath Get the local File System path of the project's source directory
 	 * @property {Function} getCustomConfiguration Get the project Custom Configuration
 	 * @property {Function} isFrameworkProject Check whether the project is a UI5-Framework project
+	 * @property {Function} getFrameworkName Get the project's framework name configuration
+	 * @property {Function} getFrameworkVersion Get the project's framework version configuration
+	 * @property {Function} getFrameworkDependencies Get the project's framework dependencies configuration
 	 */
 
 	/**
@@ -227,9 +230,19 @@ class MiddlewareUtil {
 				const baseProjectInterface = {};
 				bindFunctions(project, baseProjectInterface, [
 					"getType", "getName", "getVersion", "getNamespace",
-					"getRootReader", "getReader", "getRootPath", "getSourcePath",
-					"getCustomConfiguration", "isFrameworkProject"
+					"getRootReader", "getRootPath", "getSourcePath",
+					"getCustomConfiguration", "isFrameworkProject", "getFrameworkName",
+					"getFrameworkVersion", "getFrameworkDependencies"
 				]);
+				// Project#getReader defaults to style "buildtime". However ui5-server uses
+				// style "runtime". The main difference is that for some project types (like applications)
+				// the /resources/<namespace> path prefix is omitted for "runtime". Also, no builder resource-
+				// exclude configuration is applied.
+				// Therefore default to style "runtime" here so that custom middleware will commonly work with
+				// the same paths as ui5-server and no unexpected builder-excludes.
+				baseProjectInterface.getReader = function(options = {style: "runtime"}) {
+					return project.getReader(options);
+				};
 				return baseProjectInterface;
 			};
 			// getDependencies function, returning an array of project names
