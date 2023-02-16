@@ -555,9 +555,9 @@ test.serial("enrichProjectGraph should throw error when projectGraph contains a 
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await t.throwsAsync(ui5Framework.enrichProjectGraph(projectGraph), {
-		message: `Duplicate framework library definition(s) found in project application.a: sap.ui.core. ` +
-		`Framework libraries should only be referenced via ui5.yaml configuration, not in its ` +
-		`dependencies (e.g. package.json). Note that this error could also come from transitive dependencies.`
+		message: `Duplicate framework dependency definition(s) found for project application.a: sap.ui.core.\n` +
+			`Framework libraries should only be referenced via ui5.yaml configuration. Neither the root project, ` +
+			`nor any of its dependencies should include them as direct dependencies (e.g. via package.json).`
 	});
 });
 
@@ -1074,10 +1074,10 @@ test("utils.checkForDuplicateFrameworkProjects: One duplicate", (t) => {
 	};
 
 	t.throws(() => utils.checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph), {
-		message: "Duplicate framework library definition(s) found in project root-project: " +
-			"sap.ui.core. " +
-			"Framework libraries should only be referenced via ui5.yaml configuration, not in its dependencies " +
-			"(e.g. package.json). Note that this error could also come from transitive dependencies."
+		message: "Duplicate framework dependency definition(s) found for project root-project: " +
+			"sap.ui.core.\n" +
+			"Framework libraries should only be referenced via ui5.yaml configuration. Neither the root project, " +
+			"nor any of its dependencies should include them as direct dependencies (e.g. via package.json)."
 	});
 });
 
@@ -1095,10 +1095,10 @@ test("utils.checkForDuplicateFrameworkProjects: Two duplicates", (t) => {
 	};
 
 	t.throws(() => utils.checkForDuplicateFrameworkProjects(projectGraph, frameworkGraph), {
-		message: "Duplicate framework library definition(s) found in project root-project: " +
-			"sap.ui.core, sap.ui.layout. " +
-			"Framework libraries should only be referenced via ui5.yaml configuration, not in its dependencies " +
-			"(e.g. package.json). Note that this error could also come from transitive dependencies."
+		message: "Duplicate framework dependency definition(s) found for project root-project: " +
+			"sap.ui.core, sap.ui.layout.\n" +
+			"Framework libraries should only be referenced via ui5.yaml configuration. Neither the root project, " +
+			"nor any of its dependencies should include them as direct dependencies (e.g. via package.json)."
 	});
 });
 

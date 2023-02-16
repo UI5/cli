@@ -200,11 +200,11 @@ const utils = {
 
 		if (duplicateFrameworkProjectNames.length) {
 			throw new Error(
-				`Duplicate framework library definition(s) found in project ${projectGraph.getRoot().getName()}: ` +
-				`${duplicateFrameworkProjectNames.join(", ")}. ` +
-				`Framework libraries should only be referenced via ui5.yaml configuration, ` +
-				`not in its dependencies (e.g. package.json). ` +
-				`Note that this error could also come from transitive dependencies.`
+				`Duplicate framework dependency definition(s) found for project ${projectGraph.getRoot().getName()}: ` +
+				`${duplicateFrameworkProjectNames.join(", ")}.\n` +
+				`Framework libraries should only be referenced via ui5.yaml configuration. ` +
+				`Neither the root project, nor any of its dependencies should include them as direct ` +
+				`dependencies (e.g. via package.json).`
 			);
 		}
 	},
