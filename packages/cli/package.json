@@ -118,7 +118,7 @@
 		"@ui5/builder": "^3.0.1",
 		"@ui5/fs": "^3.0.1",
 		"@ui5/logger": "^3.0.0",
-		"@ui5/project": "^3.0.0",
+		"@ui5/project": "^3.0.1",
 		"@ui5/server": "^3.0.1",
 		"chalk": "^5.2.0",
 		"data-with-position": "^0.5.0",
