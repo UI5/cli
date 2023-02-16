@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.0.1...HEAD).
+
+<a name="v3.0.1"></a>
+## [v3.0.1] - 2023-02-16
+### Bug Fixes
+- **MiddlewareUtil:** Provide framework configuration getters to custom tasks ([#579](https://github.com/SAP/ui5-server/issues/579)) [`58bf4f5`](https://github.com/SAP/ui5-server/commit/58bf4f5953aed3a1fc6f4f4353e37fe6c3b7094f)
+
 
 <a name="v3.0.0"></a>
 ## [v3.0.0] - 2023-02-09
@@ -290,6 +296,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.0.1]: https://github.com/SAP/ui5-server/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-server/compare/v2.4.0...v3.0.0
 [v2.4.1]: https://github.com/SAP/ui5-server/compare/v2.4.0...v2.4.1
 [v2.4.0]: https://github.com/SAP/ui5-server/compare/v2.3.1...v2.4.0
