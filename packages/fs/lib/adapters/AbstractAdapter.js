@@ -60,7 +60,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 * @param {@ui5/fs/tracing.Trace} trace Trace instance
 	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
-	_byGlob(virPattern, options = {nodir: true}, trace) {
+	async _byGlob(virPattern, options = {nodir: true}, trace) {
 		const excludes = this._excludesNegated;
 
 		if (!(virPattern instanceof Array)) {
@@ -69,36 +69,34 @@ class AbstractAdapter extends AbstractReaderWriter {
 
 		// Append static exclude patterns
 		virPattern = Array.prototype.concat.apply(virPattern, excludes);
+		let patterns = virPattern.map(this._normalizePattern, this);
+		patterns = Array.prototype.concat.apply([], patterns);
+		if (patterns.length === 0) {
+			return [];
+		}
 
-		return Promise.all(virPattern.map(this._normalizePattern, this)).then((patterns) => {
-			patterns = Array.prototype.concat.apply([], patterns);
-			if (patterns.length === 0) {
-				return [];
-			}
-
-			if (!options.nodir) {
-				for (let i = patterns.length - 1; i >= 0; i--) {
-					const idx = this._virBaseDir.indexOf(patterns[i]);
-					if (patterns[i] && idx !== -1 && idx < this._virBaseDir.length) {
-						const subPath = patterns[i];
-						return Promise.resolve([
-							this._createResource({
-								statInfo: { // TODO: make closer to fs stat info
-									isDirectory: function() {
-										return true;
-									}
-								},
-								source: {
-									adapter: "Abstract"
-								},
-								path: subPath
-							})
-						]);
-					}
+		if (!options.nodir) {
+			for (let i = patterns.length - 1; i >= 0; i--) {
+				const idx = this._virBaseDir.indexOf(patterns[i]);
+				if (patterns[i] && idx !== -1 && idx < this._virBaseDir.length) {
+					const subPath = patterns[i];
+					return [
+						this._createResource({
+							statInfo: { // TODO: make closer to fs stat info
+								isDirectory: function() {
+									return true;
+								}
+							},
+							source: {
+								adapter: "Abstract"
+							},
+							path: subPath
+						})
+					];
 				}
 			}
-			return this._runGlob(patterns, options, trace);
-		});
+		}
+		return await this._runGlob(patterns, options, trace);
 	}
 
 	/**
@@ -129,76 +127,74 @@ class AbstractAdapter extends AbstractReaderWriter {
 	 *
 	 * @private
 	 * @param {string} virPattern glob pattern for virtual directory structure
-	 * @returns {Promise<string[]>} Promise resolving to list of normalized glob patterns
+	 * @returns {string[]} A list of normalized glob patterns
 	 */
 	_normalizePattern(virPattern) {
-		return Promise.resolve().then(() => {
-			const that = this;
-			const mm = new minimatch.Minimatch(virPattern);
+		const that = this;
+		const mm = new minimatch.Minimatch(virPattern);
 
-			const basePathParts = this._virBaseDir.split("/");
+		const basePathParts = this._virBaseDir.split("/");
 
-			function matchSubset(subset) {
-				let i;
-				for (i = 0; i < basePathParts.length; i++) {
-					const globPart = subset[i];
-					if (globPart === undefined) {
-						log.verbose("Ran out of glob parts to match (this should not happen):");
-						if (that._project) { // project is optional
-							log.verbose(`Project: ${that._project.getName()}`);
-						}
-						log.verbose(`Virtual base path: ${that._virBaseDir}`);
-						log.verbose(`Pattern to match: ${virPattern}`);
-						log.verbose(`Current subset (tried index ${i}):`);
-						log.verbose(subset);
-						return {idx: i, virtualMatch: true};
+		function matchSubset(subset) {
+			let i;
+			for (i = 0; i < basePathParts.length; i++) {
+				const globPart = subset[i];
+				if (globPart === undefined) {
+					log.verbose("Ran out of glob parts to match (this should not happen):");
+					if (that._project) { // project is optional
+						log.verbose(`Project: ${that._project.getName()}`);
 					}
-					const basePathPart = basePathParts[i];
-					if (typeof globPart === "string") {
-						if (globPart !== basePathPart) {
-							return null;
-						} else {
-							continue;
-						}
-					} else if (globPart === minimatch.GLOBSTAR) {
-						return {idx: i};
-					} else { // Regex
-						if (!globPart.test(basePathPart)) {
-							return null;
-						} else {
-							continue;
-						}
-					}
+					log.verbose(`Virtual base path: ${that._virBaseDir}`);
+					log.verbose(`Pattern to match: ${virPattern}`);
+					log.verbose(`Current subset (tried index ${i}):`);
+					log.verbose(subset);
+					return {idx: i, virtualMatch: true};
 				}
-				if (subset.length === basePathParts.length) {
-					return {rootMatch: true};
-				}
-				return {idx: i};
-			}
-
-			const resultGlobs = [];
-			for (let i = 0; i < mm.set.length; i++) {
-				const match = matchSubset(mm.set[i]);
-				if (match) {
-					let resultPattern;
-					if (match.virtualMatch) {
-						resultPattern = basePathParts.slice(0, match.idx).join("/");
-					} else if (match.rootMatch) { // matched one up
-						resultPattern = ""; // root "/"
-					} else { // matched at some part of the glob
-						resultPattern = mm.globParts[i].slice(match.idx).join("/");
-						if (resultPattern.startsWith("/")) {
-							resultPattern = resultPattern.substr(1);
-						}
+				const basePathPart = basePathParts[i];
+				if (typeof globPart === "string") {
+					if (globPart !== basePathPart) {
+						return null;
+					} else {
+						continue;
 					}
-					if (mm.negate) {
-						resultPattern = "!" + resultPattern;
+				} else if (globPart === minimatch.GLOBSTAR) {
+					return {idx: i};
+				} else { // Regex
+					if (!globPart.test(basePathPart)) {
+						return null;
+					} else {
+						continue;
 					}
-					resultGlobs.push(resultPattern);
 				}
 			}
-			return resultGlobs;
-		});
+			if (subset.length === basePathParts.length) {
+				return {rootMatch: true};
+			}
+			return {idx: i};
+		}
+
+		const resultGlobs = [];
+		for (let i = 0; i < mm.set.length; i++) {
+			const match = matchSubset(mm.set[i]);
+			if (match) {
+				let resultPattern;
+				if (match.virtualMatch) {
+					resultPattern = basePathParts.slice(0, match.idx).join("/");
+				} else if (match.rootMatch) { // matched one up
+					resultPattern = ""; // root "/"
+				} else { // matched at some part of the glob
+					resultPattern = mm.globParts[i].slice(match.idx).join("/");
+					if (resultPattern.startsWith("/")) {
+						resultPattern = resultPattern.substr(1);
+					}
+				}
+				if (mm.negate) {
+					resultPattern = "!" + resultPattern;
+				}
+				resultGlobs.push(resultPattern);
+			}
+		}
+		return resultGlobs;
 	}
 
 	_createResource(parameters) {
