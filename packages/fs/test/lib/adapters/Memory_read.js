@@ -257,17 +257,32 @@ test("glob subdirectory", async (t) => {
 	t.is(resources[0].getStatInfo().isDirectory(), true);
 });
 
-test("glob virtual directory above virtual base path (path traversal)", async (t) => {
+test("glob all resources above virtual base path (path traversal)", async (t) => {
 	const readerWriter = createAdapter({
-		virBasePath: "/resources/app/"
+		virBasePath: "/app/"
 	});
 	await fillFromFs(readerWriter, {
 		fsBasePath: "./test/fixtures/application.a/webapp",
-		virBasePath: "/resources/app/",
+		virBasePath: "/app/",
 	});
 
 	const res = await readerWriter.byGlob([
-		"/*/../*",
+		"/app/../**",
+	], {nodir: false});
+	t.is(res.length, 2, "Returned resources in virtual base dir only");
+});
+
+test("glob virtual directory above virtual base path (path traversal)", async (t) => {
+	const readerWriter = createAdapter({
+		virBasePath: "/app/"
+	});
+	await fillFromFs(readerWriter, {
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/",
+	});
+
+	const res = await readerWriter.byGlob([
+		"/*/../../application.b/**", // try to get resources from another project
 	], {nodir: false});
 	t.is(res.length, 0, "Returned no resources");
 });
