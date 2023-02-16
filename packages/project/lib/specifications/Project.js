@@ -87,30 +87,42 @@ class Project extends Specification {
 	}
 
 	/**
-	 * Get the project's frameworkName configuration
+	 * Get the project's framework name configuration
 	 *
-	 * @private
-	 * @returns {string} FrameworkName configuration
+	 * @public
+	 * @returns {string} Framework name configuration, either <code>OpenUI5</code> or <code>SAPUI5</code>
 	 */
 	getFrameworkName() {
 		return this._config.framework?.name;
 	}
 
 	/**
-	 * Get the project's frameworkVersion configuration
+	 * Get the project's framework version configuration
 	 *
-	 * @private
-	 * @returns {string} FrameworkVersion configuration
+	 * @public
+	 * @returns {string} Framework version configuration, e.g <code>1.110.0</code>
 	 */
 	getFrameworkVersion() {
 		return this._config.framework?.version;
 	}
 
+
 	/**
-	 * Get the project's frameworkDependencies configuration
+	 * Framework dependency entry of the project configuration.
+	 * Also see [Framework Configuration: Dependencies]{@link https://sap.github.io/ui5-tooling/stable/pages/Configuration/#dependencies}
 	 *
-	 * @private
-	 * @returns {object[]} FrameworkDependencies configuration
+	 * @public
+	 * @typedef {object} @ui5/project/specifications/Project~FrameworkDependency
+	 * @property {string} name Name of the framework library. For example <code>sap.ui.core</code>
+	 * @property {boolean} development Whether the dependency is meant for development purposes only
+	 * @property {boolean} optional Whether the dependency should be treated as optional
+	 */
+
+	/**
+	 * Get the project's framework dependencies configuration
+	 *
+	 * @public
+	 * @returns {@ui5/project/specifications/Project~FrameworkDependency[]} Framework dependencies configuration
 	 */
 	getFrameworkDependencies() {
 		return this._config.framework?.libraries || [];

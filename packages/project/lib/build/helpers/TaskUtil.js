@@ -195,6 +195,9 @@ class TaskUtil {
 	 * @property {Function} getSourcePath Get the local File System path of the project's source directory
 	 * @property {Function} getCustomConfiguration Get the project Custom Configuration
 	 * @property {Function} isFrameworkProject Check whether the project is a UI5-Framework project
+	 * @property {Function} getFrameworkName Get the project's framework name configuration
+	 * @property {Function} getFrameworkVersion Get the project's framework version configuration
+	 * @property {Function} getFrameworkDependencies Get the project's framework dependencies configuration
 	 */
 
 	/**
@@ -312,7 +315,8 @@ class TaskUtil {
 				bindFunctions(project, baseProjectInterface, [
 					"getType", "getName", "getVersion", "getNamespace",
 					"getRootReader", "getReader", "getRootPath", "getSourcePath",
-					"getCustomConfiguration", "isFrameworkProject"
+					"getCustomConfiguration", "isFrameworkProject", "getFrameworkName",
+					"getFrameworkVersion", "getFrameworkDependencies"
 				]);
 				return baseProjectInterface;
 			};

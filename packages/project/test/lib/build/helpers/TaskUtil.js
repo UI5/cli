@@ -415,8 +415,10 @@ test("getInterface: specVersion 3.0", (t) => {
 		getSourcePath: () => "sourcePath",
 		getCustomConfiguration: () => "customConfiguration",
 		isFrameworkProject: () => "isFrameworkProject",
+		getFrameworkVersion: () => "frameworkVersion",
+		getFrameworkName: () => "frameworkName",
+		getFrameworkDependencies: () => ["frameworkDependencies"],
 		hasBuildManifest: () => "hasBuildManifest", // Should not be exposed
-		getFrameworkVersion: () => "frameworkVersion", // Should not be exposed
 	});
 	const getDependenciesStub = sinon.stub().returns(["dep a", "dep b"]);
 
@@ -462,6 +464,9 @@ test("getInterface: specVersion 3.0", (t) => {
 		"getSourcePath",
 		"getCustomConfiguration",
 		"isFrameworkProject",
+		"getFrameworkName",
+		"getFrameworkVersion",
+		"getFrameworkDependencies",
 	], "Correct methods are provided");
 
 	t.is(interfacedProject.getType(), "type", "getType function is bound correctly");
@@ -476,6 +481,12 @@ test("getInterface: specVersion 3.0", (t) => {
 		"getCustomConfiguration function is bound correctly");
 	t.is(interfacedProject.isFrameworkProject(), "isFrameworkProject",
 		"isFrameworkProject function is bound correctly");
+	t.is(interfacedProject.getFrameworkVersion(), "frameworkVersion",
+		"getFrameworkVersion function is bound correctly");
+	t.is(interfacedProject.getFrameworkName(), "frameworkName",
+		"getFrameworkName function is bound correctly");
+	t.deepEqual(interfacedProject.getFrameworkDependencies(), ["frameworkDependencies"],
+		"getFrameworkDependencies function is bound correctly");
 
 	// getDependencies
 	t.deepEqual(interfacedTaskUtil.getDependencies("pony"), ["dep a", "dep b"],
