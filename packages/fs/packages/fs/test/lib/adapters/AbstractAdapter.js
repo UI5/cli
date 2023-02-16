@@ -238,7 +238,7 @@ test("_normalizePattern: Match sub-directory", async (t) => {
 		"Returned expected patterns");
 });
 
-test("_normalizePattern: Match all", async (t) => {
+test("_normalizePattern: Match all", (t) => {
 	const writer = new MyAbstractAdapter({
 		virBasePath: "/path/",
 		project: {
@@ -247,11 +247,11 @@ test("_normalizePattern: Match all", async (t) => {
 		}
 	});
 
-	t.deepEqual(await writer._normalizePattern("/**/*"), ["**/*"],
+	t.deepEqual(writer._normalizePattern("/**/*"), ["**/*"],
 		"Returned expected patterns");
 });
 
-test("_normalizePattern: Relative path segment above virtual root directory", async (t) => {
+test("_normalizePattern: Relative path segment above virtual root directory", (t) => {
 	const writer = new MyAbstractAdapter({
 		virBasePath: "/path/",
 		project: {
@@ -260,11 +260,11 @@ test("_normalizePattern: Relative path segment above virtual root directory", as
 		}
 	});
 
-	t.deepEqual(await writer._normalizePattern("/path/../../*"), [],
+	t.deepEqual(writer._normalizePattern("/path/../../*"), [],
 		"Returned no pattern");
 });
 
-test("_normalizePattern: Relative path segment resolving to base directory", async (t) => {
+test("_normalizePattern: Relative path segment resolving to base directory", (t) => {
 	const writer = new MyAbstractAdapter({
 		virBasePath: "/path/",
 		project: {
@@ -273,11 +273,11 @@ test("_normalizePattern: Relative path segment resolving to base directory", asy
 		}
 	});
 
-	t.deepEqual(await writer._normalizePattern("/*/../*"), [""],
+	t.deepEqual(writer._normalizePattern("/*/../*"), [""],
 		"Returned an empty pattern since the input pattern matches the base directory only");
 });
 
-test("_normalizePattern: Relative path segment", async (t) => {
+test("_normalizePattern: Relative path segment", (t) => {
 	const writer = new MyAbstractAdapter({
 		virBasePath: "/path/",
 		project: {
@@ -286,11 +286,11 @@ test("_normalizePattern: Relative path segment", async (t) => {
 		}
 	});
 
-	t.deepEqual(await writer._normalizePattern("/path/../*"), [""],
+	t.deepEqual(writer._normalizePattern("/path/../*"), [""],
 		"Returned an empty pattern since the input pattern matches the base directory only");
 });
 
-test("_normalizePattern: Relative path segment within base directory, matching all", async (t) => {
+test("_normalizePattern: Relative path segment within base directory, matching all", (t) => {
 	const writer = new MyAbstractAdapter({
 		virBasePath: "/path/",
 		project: {
@@ -299,6 +299,6 @@ test("_normalizePattern: Relative path segment within base directory, matching a
 		}
 	});
 
-	t.deepEqual(await writer._normalizePattern("/path/path2/../**/*"), ["**/*"],
+	t.deepEqual(writer._normalizePattern("/path/path2/../**/*"), ["**/*"],
 		"Returned expected patterns");
 });
