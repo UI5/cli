@@ -101,6 +101,18 @@ test("glob resources from application.a with directory exclude", async (t) => {
 	});
 });
 
+test("glob all above virtual base path (path traversal)", async (t) => {
+	const readerWriter = createAdapter({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/app/"
+	});
+
+	const res = await readerWriter.byGlob([
+		"/app/../**",
+	], {nodir: false});
+	t.is(res.length, 2, "Returned resources in virtual base dir only");
+});
+
 test("glob virtual directory above virtual base path (path traversal)", async (t) => {
 	const readerWriter = createAdapter({
 		fsBasePath: "./test/fixtures/application.a/webapp",
@@ -108,7 +120,7 @@ test("glob virtual directory above virtual base path (path traversal)", async (t
 	});
 
 	const res = await readerWriter.byGlob([
-		"/*/../*",
+		"/*/../../application.b/**",
 	], {nodir: false});
 	t.is(res.length, 0, "Returned no resources");
 });

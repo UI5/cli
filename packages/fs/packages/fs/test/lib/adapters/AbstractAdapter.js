@@ -196,3 +196,109 @@ test("_resolveVirtualPathToBase (write mode): Path Must be absolute", (t) => {
 			`Failed to resolve virtual path './dest2/write': Path must be absolute`
 	}, "Threw with expected error message");
 });
+
+test("_normalizePattern", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/*/{src,test}/**"), [
+		"src/**",
+		"test/**"
+	], "Returned expected patterns");
+});
+
+test("_normalizePattern: Match base directory", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/*"), [""],
+		"Returned an empty pattern since the input pattern matches the base directory only");
+});
+
+test("_normalizePattern: Match sub-directory", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/path/*"), ["*"],
+		"Returned expected patterns");
+});
+
+test("_normalizePattern: Match all", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/**/*"), ["**/*"],
+		"Returned expected patterns");
+});
+
+test("_normalizePattern: Relative path segment above virtual root directory", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/path/../../*"), [],
+		"Returned no pattern");
+});
+
+test("_normalizePattern: Relative path segment resolving to base directory", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/*/../*"), [""],
+		"Returned an empty pattern since the input pattern matches the base directory only");
+});
+
+test("_normalizePattern: Relative path segment", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/path/../*"), [""],
+		"Returned an empty pattern since the input pattern matches the base directory only");
+});
+
+test("_normalizePattern: Relative path segment within base directory, matching all", async (t) => {
+	const writer = new MyAbstractAdapter({
+		virBasePath: "/path/",
+		project: {
+			getName: () => "test.lib1",
+			getVersion: () => "2.0.0"
+		}
+	});
+
+	t.deepEqual(await writer._normalizePattern("/path/path2/../**/*"), ["**/*"],
+		"Returned expected patterns");
+});
