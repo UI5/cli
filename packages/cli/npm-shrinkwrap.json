@@ -796,9 +796,9 @@
 			}
 		},
 		"node_modules/@npmcli/git/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -1886,9 +1886,9 @@
 			}
 		},
 		"node_modules/cacache/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -2046,9 +2046,9 @@
 			}
 		},
 		"node_modules/caniuse-lite": {
-			"version": "1.0.30001453",
-			"resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001453.tgz",
-			"integrity": "sha512-R9o/uySW38VViaTrOtwfbFEiBFUh7ST3uIG4OEymIG3/uKdHDO4xk/FaqfUw0d+irSUyFPy3dZszf9VvSTPnsA==",
+			"version": "1.0.30001456",
+			"resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001456.tgz",
+			"integrity": "sha512-XFHJY5dUgmpMV25UqaD4kVq2LsiaU5rS8fb0f17pCoXQiQslzmFgnfOxfvo1bTpTqf7dwG/N/05CnLCnOEKmzA==",
 			"dev": true,
 			"funding": [
 				{
@@ -3500,9 +3500,9 @@
 			"integrity": "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 		},
 		"node_modules/electron-to-chromium": {
-			"version": "1.4.299",
-			"resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.4.299.tgz",
-			"integrity": "sha512-lQ7ijJghH6pCGbfWXr6EY+KYCMaRSjgsY925r1p/TlpSfVM1VjHTcn1gAc15VM4uwti283X6QtjPTXdpoSGiZQ==",
+			"version": "1.4.301",
+			"resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.4.301.tgz",
+			"integrity": "sha512-bz00ASIIDjcgszZKuEA1JEFhbDjqUNbQ/PEhNEl1wbixzYpeTp2H2QWjsQvAL2T1wJBdOwCF5hE896BoMwYKrA==",
 			"dev": true
 		},
 		"node_modules/emittery": {
@@ -6265,9 +6265,9 @@
 			}
 		},
 		"node_modules/make-fetch-happen/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -7325,9 +7325,9 @@
 			}
 		},
 		"node_modules/npm-package-arg/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -7375,9 +7375,9 @@
 			}
 		},
 		"node_modules/npm-registry-fetch/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -8679,9 +8679,9 @@
 			}
 		},
 		"node_modules/read-package-json/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -9169,9 +9169,9 @@
 			"integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg=="
 		},
 		"node_modules/sass": {
-			"version": "1.58.1",
-			"resolved": "https://registry.npmjs.org/sass/-/sass-1.58.1.tgz",
-			"integrity": "sha512-bnINi6nPXbP1XNRaranMFEBZWUfdW/AF16Ql5+ypRxfTvCRTTKrLsMIakyDcayUt2t/RZotmL4kgJwNH5xO+bg==",
+			"version": "1.58.2",
+			"resolved": "https://registry.npmjs.org/sass/-/sass-1.58.2.tgz",
+			"integrity": "sha512-2mbyOWOv/lhEXD6nVrQZQ4KT2DlwcODbTskM42EyqBAFUWOhiiYtAXZqjZz1ygzapYf+N+2GwfIH9M5FM4GUMg==",
 			"dev": true,
 			"dependencies": {
 				"chokidar": ">=3.0.0 <4.0.0",
@@ -9400,9 +9400,9 @@
 			}
 		},
 		"node_modules/sigstore/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
@@ -10255,9 +10255,9 @@
 			}
 		},
 		"node_modules/tuf-js/node_modules/lru-cache": {
-			"version": "7.15.0",
-			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.15.0.tgz",
-			"integrity": "sha512-LKpNuyKR1lRsqN5DatvMOkW2nmUAwI22HoQK604nhs+WiRWSIC0MFUKq2XYUKv1fCVPK9Cro4d4Il3DxM80/fQ==",
+			"version": "7.16.0",
+			"resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-7.16.0.tgz",
+			"integrity": "sha512-VJBdeMa9Bz27NNlx+DI/YXGQtXdjUU+9gdfN1rYfra7vtTjhodl5tVNmR42bo+ORHuDqDT+lGAUAb+lzvY42Bw==",
 			"engines": {
 				"node": ">=12"
 			}
