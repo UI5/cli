@@ -116,6 +116,7 @@ const allTasks = [
 			"generateApiIndex",
 			"generateJsdoc",
 			"buildThemes",
+			"generateVersionInfo",
 			"generateBundle",
 		]
 	],

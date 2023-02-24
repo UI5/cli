@@ -45,6 +45,7 @@ export default function composeTaskList(allTasks, {selfContained, jsdoc, include
 		selectedTasks.generateJsdoc = true;
 		selectedTasks.executeJsdocSdkTransformation = true;
 		selectedTasks.generateApiIndex = true;
+		selectedTasks.generateVersionInfo = true;
 
 		// Include theme build as required for SDK
 		selectedTasks.buildThemes = true;
