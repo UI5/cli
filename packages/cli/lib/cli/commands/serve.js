@@ -52,7 +52,7 @@ serve.builder = function(cli) {
 		.option("sap-csp-policies", {
 			describe:
 				"Always send content security policies 'sap-target-level-1' and " +
-				"'sap-target-level-2' in report-only mode",
+				"'sap-target-level-3' in report-only mode",
 			default: false,
 			type: "boolean"
 		})
