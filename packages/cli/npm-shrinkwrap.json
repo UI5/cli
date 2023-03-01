@@ -13,7 +13,7 @@
 				"@ui5/fs": "^3.0.2",
 				"@ui5/logger": "^3.0.0",
 				"@ui5/project": "^3.0.2",
-				"@ui5/server": "^3.0.1",
+				"@ui5/server": "^3.1.0",
 				"chalk": "^5.2.0",
 				"data-with-position": "^0.5.0",
 				"import-local": "^3.1.0",
@@ -1201,14 +1201,14 @@
 			}
 		},
 		"node_modules/@ui5/server": {
-			"version": "3.0.1",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.0.1.tgz",
-			"integrity": "sha512-PUPTAhasz8UhuUXIYeGji+E1doeDgznVNBIqeTjbHgHUzjl3jEqTKhijagB27HktrvhhRSOItunoOfahQfVpKQ==",
+			"version": "3.1.0",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-3.1.0.tgz",
+			"integrity": "sha512-hd9ZQYSTn/lTjZfkKC5tZQucioM18tz73+VPBwV5L0Rp9GW/4AY5UGwwnb4FLPPRNY8b2HQy5D1vxImeu+m7vQ==",
 			"dependencies": {
 				"@ui5/builder": "^3.0.1",
-				"@ui5/fs": "^3.0.0",
+				"@ui5/fs": "^3.0.2",
 				"@ui5/logger": "^3.0.0",
-				"body-parser": "^1.20.1",
+				"body-parser": "^1.20.2",
 				"compression": "^1.7.4",
 				"cors": "^2.8.5",
 				"devcert-sanscache": "^0.4.8",
@@ -1221,7 +1221,7 @@
 				"parseurl": "^1.3.3",
 				"portscanner": "^2.2.0",
 				"replacestream": "^4.0.3",
-				"router": "^1.3.7",
+				"router": "^1.3.8",
 				"spdy": "^4.0.2",
 				"yesno": "^0.4.0"
 			},
