@@ -56,7 +56,7 @@ test("Default Settings", async (t) => {
 	await new Promise((resolve) => {
 		middleware({
 			method: "GET",
-			url: "/test.html?sap-ui-xx-csp-policy=sap-target-level-2",
+			url: "/test.html?sap-ui-xx-csp-policy=sap-target-level-3",
 			headers: {}
 		}, res, resolve);
 	});

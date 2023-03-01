@@ -99,7 +99,7 @@ async function _addSsl({app, key, cert}) {
  * @typedef {object} module:@ui5/server.SAPTargetCSPOptions
  * @property {string} [defaultPolicy="sap-target-level-1"]
  * @property {string} [defaultPolicyIsReportOnly=true]
- * @property {string} [defaultPolicy2="sap-target-level-2"]
+ * @property {string} [defaultPolicy2="sap-target-level-3"]
  * @property {string} [defaultPolicy2IsReportOnly=true]
  * @property {string[]} [ignorePaths=["test-resources/sap/ui/qunit/testrunner.html"]]
  */

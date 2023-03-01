@@ -408,7 +408,7 @@ test("CSP (defaults)", async (t) => {
 		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-1").then((res) => {
 			t.truthy(res.headers["content-security-policy"], "response should have enforcing csp header");
 			t.regex(res.headers["content-security-policy"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
-				"header should should have the expected content");
+				"header should have the expected content");
 			t.is(res.headers["content-security-policy-report-only"], undefined,
 				"response must not have report-only csp header");
 		}),
@@ -418,12 +418,14 @@ test("CSP (defaults)", async (t) => {
 			t.truthy(res.headers["content-security-policy-report-only"],
 				"response should have report-only csp header");
 			t.regex(res.headers["content-security-policy-report-only"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
-				"header should should have the expected content");
+				"header should have the expected content");
 		}),
 		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-2").then((res) => {
 			t.truthy(res.headers["content-security-policy"], "response should have enforcing csp header");
 			t.regex(res.headers["content-security-policy"], /script-src\s+'self'\s*;/,
-				"header should should have the expected content");
+				"header should have the expected content");
+			t.regex(res.headers["content-security-policy"], /style-src\s+'self'\s+'unsafe-inline'\s*;/,
+				"header should have the expected content");
 			t.is(res.headers["content-security-policy-report-only"], undefined,
 				"response must not have report-only csp header");
 		}),
@@ -433,6 +435,27 @@ test("CSP (defaults)", async (t) => {
 			t.truthy(res.headers["content-security-policy-report-only"],
 				"response should have report-only csp header");
 			t.regex(res.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
+				"header should have the expected content");
+			t.regex(res.headers["content-security-policy-report-only"], /style-src\s+'self'\s+'unsafe-inline'\s*;/,
+				"header should have the expected content");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-3").then((res) => {
+			t.truthy(res.headers["content-security-policy"], "response should have enforcing csp header");
+			t.regex(res.headers["content-security-policy"], /script-src\s+'self'\s*;/,
+				"header should have the expected content");
+			t.regex(res.headers["content-security-policy"], /style-src\s+'self'\s*;/,
+				"header should have the expected content");
+			t.is(res.headers["content-security-policy-report-only"], undefined,
+				"response must not have report-only csp header");
+		}),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-3:report-only").then((res) => {
+			t.is(res.headers["content-security-policy"], undefined,
+				"response must not have enforcing csp header");
+			t.truthy(res.headers["content-security-policy-report-only"],
+				"response should have report-only csp header");
+			t.regex(res.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
+				"header should have the expected content");
+			t.regex(res.headers["content-security-policy-report-only"], /style-src\s+'self'\s*;/,
 				"header should have the expected content");
 		}),
 		request.get("/index.html?sap-ui-xx-csp-policy=default-src%20http%3a;").then((res) => {
@@ -480,12 +503,17 @@ test("CSP (sap policies)", async (t) => {
 		simpleIndex: false
 	});
 
-	const [result1, result2, result3, result4, result5, result6, result7, result8] = await Promise.all([
+	const [
+		result1, result2, result3, result4, result5,
+		result6, result7, result8, result9, result10
+	] = await Promise.all([
 		request.get("/index.html"),
 		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-1"),
 		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-1:report-only"),
 		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-2"),
 		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-2:report-only"),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-3"),
+		request.get("/index.html?sap-ui-xx-csp-policy=sap-target-level-3:report-only"),
 		request.get("/index.html?sap-ui-xx-csp-policy=default-src%20http%3a;"),
 		request.get("/index.html?sap-ui-xx-csp-policy=default-src%20http%3a;:report-only"),
 		request.get("/index.html?sap-ui-xx-csp-policy=default-src%20http%3a;:ro")
@@ -495,13 +523,13 @@ test("CSP (sap policies)", async (t) => {
 	t.truthy(result1.headers["content-security-policy-report-only"],
 		"response should have report-only csp header");
 	t.regex(result1.headers["content-security-policy-report-only"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
-		"header should contain the 1st default policy");
-	t.regex(result1.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
-		"header should contain the 2nd default policy");
+		"header should contain the 1st default policy (level-1)");
+	t.regex(result1.headers["content-security-policy-report-only"], /style-src\s+'self'\s*;/,
+		"header should contain the 2nd default policy (level-3)");
 
 	t.truthy(result2.headers["content-security-policy"], "response should have enforcing csp header");
 	t.regex(result2.headers["content-security-policy"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
-		"header should should have the expected content");
+		"header should have the expected content");
 	t.truthy(result2.headers["content-security-policy-report-only"],
 		"response should have report-only csp header");
 	t.regex(result2.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
@@ -511,13 +539,13 @@ test("CSP (sap policies)", async (t) => {
 	t.truthy(result3.headers["content-security-policy-report-only"],
 		"response should have report-only csp header");
 	t.regex(result3.headers["content-security-policy-report-only"], /script-src\s+'self'\s+'unsafe-eval'\s*;/,
-		"header should should have the expected content");
+		"header should have the expected content");
 	t.regex(result3.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
 		"header should contain the 2nd default policy");
 
 	t.truthy(result4.headers["content-security-policy"], "response should have enforcing csp header");
 	t.regex(result4.headers["content-security-policy"], /script-src\s+'self'\s*;/,
-		"header should should have the expected content");
+		"header should have the expected content");
 	t.regex(result4.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
 		"header should contain the 2nd default policy");
 
@@ -528,27 +556,39 @@ test("CSP (sap policies)", async (t) => {
 		"header should have the expected content");
 
 	t.truthy(result6.headers["content-security-policy"], "response should have enforcing csp header");
-	t.regex(result6.headers["content-security-policy"], /default-src\s+http:\s*;/,
-		"header should contain the configured policy");
+	t.regex(result6.headers["content-security-policy"], /style-src\s+'self'\s*;/,
+		"header should have the expected content");
 	t.regex(result6.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
-		"header should contain the 2nd default policy");
+		"header should contain the level-3 policy");
 
-	t.is(result7.headers["content-security-policy"], undefined,
-		"response must not have enforcing csp header");
+	t.is(result7.headers["content-security-policy"], undefined, "response must not have enforcing csp header");
 	t.truthy(result7.headers["content-security-policy-report-only"],
 		"response should have report-only csp header");
-	t.regex(result7.headers["content-security-policy-report-only"], /default-src\s+http:\s*;/,
+	t.regex(result7.headers["content-security-policy-report-only"], /style-src\s+'self'\s*;/,
+		"header should have the expected content");
+
+	t.truthy(result8.headers["content-security-policy"], "response should have enforcing csp header");
+	t.regex(result8.headers["content-security-policy"], /default-src\s+http:\s*;/,
 		"header should contain the configured policy");
-	t.regex(result7.headers["content-security-policy-report-only"], /default-src\s+'self'\s*;/,
+	t.regex(result8.headers["content-security-policy-report-only"], /script-src\s+'self'\s*;/,
 		"header should contain the 2nd default policy");
 
-	t.is(result8.headers["content-security-policy"], undefined,
+	t.is(result9.headers["content-security-policy"], undefined,
 		"response must not have enforcing csp header");
-	t.truthy(result8.headers["content-security-policy-report-only"],
+	t.truthy(result9.headers["content-security-policy-report-only"],
 		"response should have report-only csp header");
-	t.regex(result8.headers["content-security-policy-report-only"], /default-src\s+http:\s*;/,
+	t.regex(result9.headers["content-security-policy-report-only"], /default-src\s+http:\s*;/,
 		"header should contain the configured policy");
-	t.regex(result8.headers["content-security-policy-report-only"], /default-src\s+'self'\s*;/,
+	t.regex(result9.headers["content-security-policy-report-only"], /default-src\s+'self'\s*;/,
+		"header should contain the 2nd default policy");
+
+	t.is(result10.headers["content-security-policy"], undefined,
+		"response must not have enforcing csp header");
+	t.truthy(result10.headers["content-security-policy-report-only"],
+		"response should have report-only csp header");
+	t.regex(result10.headers["content-security-policy-report-only"], /default-src\s+http:\s*;/,
+		"header should contain the configured policy");
+	t.regex(result10.headers["content-security-policy-report-only"], /default-src\s+'self'\s*;/,
 		"header should contain the 2nd default policy");
 
 	await new Promise((resolve, reject) => {

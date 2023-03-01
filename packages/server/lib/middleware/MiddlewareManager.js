@@ -184,7 +184,7 @@ class MiddlewareManager {
 					const defaultSAPTargetConfig = {
 						defaultPolicy: "sap-target-level-1",
 						defaultPolicyIsReportOnly: true,
-						defaultPolicy2: "sap-target-level-2",
+						defaultPolicy2: "sap-target-level-3",
 						defaultPolicy2IsReportOnly: true,
 						ignorePaths: ["test-resources/sap/ui/qunit/testrunner.html"]
 					};

@@ -841,7 +841,7 @@ test("addStandardMiddleware: CSP middleware configured correctly (enabled)", asy
 		},
 		defaultPolicy: "sap-target-level-1",
 		defaultPolicyIsReportOnly: true,
-		defaultPolicy2: "sap-target-level-2",
+		defaultPolicy2: "sap-target-level-3",
 		defaultPolicy2IsReportOnly: true,
 		ignorePaths: [
 			"test-resources/sap/ui/qunit/testrunner.html",
@@ -864,7 +864,7 @@ test("addStandardMiddleware: CSP middleware configured correctly (custom)", asyn
 			sendSAPTargetCSP: {
 				defaultPolicy: "sap-target-level-1",
 				defaultPolicyIsReportOnly: false,
-				defaultPolicy2: "sap-target-level-3",
+				defaultPolicy2: "sap-target-level-2",
 				defaultPolicy2IsReportOnly: true,
 				ignorePaths: ["lord/tirek.html"]
 			},
@@ -907,7 +907,7 @@ test("addStandardMiddleware: CSP middleware configured correctly (custom)", asyn
 		},
 		defaultPolicy: "sap-target-level-1",
 		defaultPolicyIsReportOnly: false,
-		defaultPolicy2: "sap-target-level-3",
+		defaultPolicy2: "sap-target-level-2",
 		defaultPolicy2IsReportOnly: true,
 		ignorePaths: [
 			"lord/tirek.html",
