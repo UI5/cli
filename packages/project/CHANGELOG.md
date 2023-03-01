@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.3...HEAD).
+
+<a name="v3.0.3"></a>
+## [v3.0.3] - 2023-03-01
+### Bug Fixes
+- **jsdoc:** enable generateVersionInfo task [`a58e5eb`](https://github.com/SAP/ui5-project/commit/a58e5eb0769a9ba63a0b0aa267675ef2f9c08769)
+
 
 <a name="v3.0.2"></a>
-## [v3.0.2] - 2023-02-16
+## [v3.0.2] - 2023-02-17
 ### Bug Fixes
 - **ComponentProject#getWorkspace:** Apply builder resource excludes [`5257e59`](https://github.com/SAP/ui5-project/commit/5257e5977c4e92e2aca5b0ce4b2ed55688a66646)
 
@@ -323,6 +329,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.0.3]: https://github.com/SAP/ui5-project/compare/v3.0.2...v3.0.3
 [v3.0.2]: https://github.com/SAP/ui5-project/compare/v3.0.1...v3.0.2
 [v3.0.1]: https://github.com/SAP/ui5-project/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-project/compare/v2.6.0...v3.0.0
