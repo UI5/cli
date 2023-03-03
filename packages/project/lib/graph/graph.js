@@ -41,7 +41,8 @@ const log = getLogger("generateProjectGraph");
 export async function graphFromPackageDependencies({
 	cwd, rootConfiguration, rootConfigPath,
 	versionOverride, resolveFrameworkDependencies = true,
-	workspaceName, workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
+	workspaceName /* TODO 4.0: default workspaceName to "default" ? */,
+	workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
 }) {
 	log.verbose(`Creating project graph using npm provider...`);
 	const {
