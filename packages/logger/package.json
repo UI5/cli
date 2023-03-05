@@ -123,11 +123,11 @@
 		"eslint": "^8.35.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
-		"eslint-plugin-jsdoc": "^40.0.0",
+		"eslint-plugin-jsdoc": "^40.0.1",
 		"jsdoc": "^4.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.1.0",
-		"rimraf": "^4.1.2",
+		"rimraf": "^4.3.0",
 		"sinon": "^15.0.1",
 		"strip-ansi": "^7.0.1",
 		"tap-xunit": "^2.4.1"
