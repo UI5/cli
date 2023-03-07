@@ -4,17 +4,30 @@ import path from "node:path";
 import os from "node:os";
 import {fileURLToPath} from "node:url";
 import {readFile} from "node:fs/promises";
-import AbstractResolver from "../../../lib/ui5Framework/AbstractResolver.js";
+import esmock from "esmock";
 
-class MyResolver extends AbstractResolver {
-	static async fetchAllVersions() {}
-}
+test.beforeEach(async (t) => {
+	t.context.osHomeDirStub = sinon.stub().callsFake(() => os.homedir());
+	t.context.AbstractResolver = await esmock.p("../../../lib/ui5Framework/AbstractResolver.js", {
+		"node:os": {
+			homedir: t.context.osHomeDirStub
+		}
+	});
 
-test.afterEach.always(() => {
+	class MyResolver extends t.context.AbstractResolver {
+		static async fetchAllVersions() {}
+	}
+
+	t.context.MyResolver = MyResolver;
+});
+
+test.afterEach.always((t) => {
+	esmock.purge(t.context.AbstractResolver);
 	sinon.restore();
 });
 
 test("AbstractResolver: abstract constructor should throw", async (t) => {
+	const {AbstractResolver} = t.context;
 	await t.throwsAsync(async () => {
 		new AbstractResolver({
 			cwd: "/test-project/",
@@ -24,6 +37,7 @@ test("AbstractResolver: abstract constructor should throw", async (t) => {
 });
 
 test("AbstractResolver: constructor", (t) => {
+	const {MyResolver, AbstractResolver} = t.context;
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -33,12 +47,14 @@ test("AbstractResolver: constructor", (t) => {
 });
 
 test("AbstractResolver: constructor requires 'version'", (t) => {
+	const {MyResolver} = t.context;
 	t.throws(() => {
 		new MyResolver({});
 	}, {message: `AbstractResolver: Missing parameter "version"`});
 });
 
 test("AbstractResolver: Set absolute 'cwd'", (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		version: "1.75.0",
 		cwd: "/my-cwd"
@@ -47,6 +63,7 @@ test("AbstractResolver: Set absolute 'cwd'", (t) => {
 });
 
 test("AbstractResolver: Set relative 'cwd'", (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		version: "1.75.0",
 		cwd: "./my-cwd"
@@ -55,6 +72,7 @@ test("AbstractResolver: Set relative 'cwd'", (t) => {
 });
 
 test("AbstractResolver: Defaults 'cwd' to process.cwd()", (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		version: "1.75.0",
 		ui5HomeDir: "/ui5home"
@@ -63,6 +81,7 @@ test("AbstractResolver: Defaults 'cwd' to process.cwd()", (t) => {
 });
 
 test("AbstractResolver: Set absolute 'ui5HomeDir'", (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		version: "1.75.0",
 		ui5HomeDir: "/my-ui5HomeDir"
@@ -71,6 +90,7 @@ test("AbstractResolver: Set absolute 'ui5HomeDir'", (t) => {
 });
 
 test("AbstractResolver: Set relative 'ui5HomeDir'", (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		version: "1.75.0",
 		ui5HomeDir: "./my-ui5HomeDir"
@@ -78,7 +98,19 @@ test("AbstractResolver: Set relative 'ui5HomeDir'", (t) => {
 	t.is(resolver._ui5HomeDir, path.resolve("./my-ui5HomeDir"), "Should be resolved 'ui5HomeDir'");
 });
 
+test("AbstractResolver: 'ui5HomeDir' overriden os.homedir()", (t) => {
+	const {MyResolver, osHomeDirStub} = t.context;
+
+	osHomeDirStub.returns("./");
+
+	const resolver = new MyResolver({
+		version: "1.75.0"
+	});
+	t.is(resolver._ui5HomeDir, path.resolve("./.ui5"), "Should be resolved 'ui5HomeDir'");
+});
+
 test("AbstractResolver: Defaults 'ui5HomeDir' to ~/.ui5", (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		version: "1.75.0",
 		cwd: "/test-project/"
@@ -87,6 +119,7 @@ test("AbstractResolver: Defaults 'ui5HomeDir' to ~/.ui5", (t) => {
 });
 
 test("AbstractResolver: getLibraryMetadata should throw an Error when not implemented", async (t) => {
+	const {MyResolver} = t.context;
 	await t.throwsAsync(async () => {
 		const resolver = new MyResolver({
 			cwd: "/test-project/",
@@ -97,6 +130,7 @@ test("AbstractResolver: getLibraryMetadata should throw an Error when not implem
 });
 
 test("AbstractResolver: handleLibrary should throw an Error when not implemented", async (t) => {
+	const {MyResolver} = t.context;
 	await t.throwsAsync(async () => {
 		const resolver = new MyResolver({
 			cwd: "/test-project/",
@@ -107,6 +141,7 @@ test("AbstractResolver: handleLibrary should throw an Error when not implemented
 });
 
 test("AbstractResolver: install", async (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -175,6 +210,7 @@ test("AbstractResolver: install", async (t) => {
 });
 
 test("AbstractResolver: install error handling (rejection of metadata/install)", async (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -204,6 +240,7 @@ Failed to resolve library sap.ui.lib2: Error installing sap.ui.lib2`});
 });
 
 test("AbstractResolver: install error handling (rejection of dependency metadata/install)", async (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -234,6 +271,7 @@ Failed to resolve library sap.ui.lib2: Error installing sap.ui.lib2`});
 });
 
 test("AbstractResolver: install error handling (rejection of dependency install)", async (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -276,6 +314,7 @@ Failed to resolve library sap.ui.lib3: Error installing sap.ui.lib3`});
 });
 
 test("AbstractResolver: install error handling (handleLibrary throws error)", async (t) => {
+	const {MyResolver} = t.context;
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0"
@@ -297,12 +336,14 @@ Failed to resolve library sap.ui.lib2: Error within handleLibrary: sap.ui.lib2`}
 });
 
 test("AbstractResolver: static fetchAllVersions should throw an Error when not implemented", async (t) => {
+	const {AbstractResolver} = t.context;
 	await t.throwsAsync(async () => {
 		await AbstractResolver.fetchAllVersions();
 	}, {message: `AbstractResolver: static fetchAllVersions must be implemented!`});
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'latest'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
@@ -321,6 +362,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'latest'", async (
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
@@ -339,6 +381,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", as
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
@@ -357,6 +400,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 });
 
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-prerelease'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT"]);
 
@@ -375,6 +419,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 });
 
 test.serial("AbstractResolver: Static resolveVersion does not include prereleases for 'latest' version", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT"]);
 
@@ -393,6 +438,7 @@ test.serial("AbstractResolver: Static resolveVersion does not include prerelease
 });
 
 test.serial("AbstractResolver: Static resolveVersion without options", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0"]);
 
@@ -406,6 +452,7 @@ test.serial("AbstractResolver: Static resolveVersion without options", async (t)
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for 'lts'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
 	const error = await t.throwsAsync(MyResolver.resolveVersion("lts", {
@@ -419,6 +466,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for 'lts'", as
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for '1'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
 	const error = await t.throwsAsync(MyResolver.resolveVersion("1", {
@@ -432,6 +480,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for '1'", asyn
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for '1.x'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
 	const error = await t.throwsAsync(MyResolver.resolveVersion("1.x", {
@@ -445,6 +494,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for '1.x'", as
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for '1.75.x'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
 	const error = await t.throwsAsync(MyResolver.resolveVersion("1.75.x", {
@@ -458,6 +508,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for '1.75.x'",
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for '^1.75.0'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
 	const error = await t.throwsAsync(MyResolver.resolveVersion("^1.75.0", {
@@ -471,6 +522,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for '^1.75.0'"
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for '~1.75.0'", async (t) => {
+	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
 
 	const error = await t.throwsAsync(MyResolver.resolveVersion("~1.75.0", {
@@ -484,6 +536,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for '~1.75.0'"
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for version not found", async (t) => {
+	const {MyResolver} = t.context;
 	sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.75.0", "1.75.1", "1.76.0"]);
 
@@ -498,6 +551,7 @@ test.serial("AbstractResolver: Static resolveVersion throws error for version no
 
 test.serial(
 	"AbstractResolver: Static resolveVersion throws error for version lower than lowest OpenUI5 version", async (t) => {
+		const {AbstractResolver} = t.context;
 		class Openui5Resolver extends AbstractResolver {
 			static async fetchAllVersions() {}
 		}
@@ -517,6 +571,7 @@ test.serial(
 
 test.serial(
 	"AbstractResolver: Static resolveVersion throws error for version lower than lowest SAPUI5 version", async (t) => {
+		const {AbstractResolver} = t.context;
 		class Sapui5Resolver extends AbstractResolver {
 			static async fetchAllVersions() {}
 		}
@@ -536,6 +591,7 @@ test.serial(
 
 test.serial(
 	"AbstractResolver: Static resolveVersion throws error when latest OpenUI5 version cannot be found", async (t) => {
+		const {AbstractResolver} = t.context;
 		class Openui5Resolver extends AbstractResolver {
 			static async fetchAllVersions() {}
 		}
@@ -554,6 +610,7 @@ test.serial(
 
 test.serial(
 	"AbstractResolver: Static resolveVersion throws error when latest SAPUI5 version cannot be found", async (t) => {
+		const {AbstractResolver} = t.context;
 		class Sapui5Resolver extends AbstractResolver {
 			static async fetchAllVersions() {}
 		}
@@ -572,6 +629,7 @@ test.serial(
 
 test.serial(
 	"AbstractResolver: Static resolveVersion throws error when OpenUI5 version range cannot be resolved", async (t) => {
+		const {AbstractResolver} = t.context;
 		class Openui5Resolver extends AbstractResolver {
 			static async fetchAllVersions() {}
 		}
@@ -590,6 +648,7 @@ test.serial(
 
 test.serial(
 	"AbstractResolver: Static resolveVersion throws error when SAPUI5 version range cannot be resolved", async (t) => {
+		const {AbstractResolver} = t.context;
 		class Sapui5Resolver extends AbstractResolver {
 			static async fetchAllVersions() {}
 		}
@@ -607,6 +666,8 @@ test.serial(
 	});
 
 test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
+	const {AbstractResolver} = t.context;
+
 	const projectSchema = JSON.parse(
 		await readFile(fileURLToPath(
 			new URL("../../../lib/validation/schema/specVersion/kind/project.json", import.meta.url)

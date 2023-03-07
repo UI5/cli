@@ -43,7 +43,11 @@ class AbstractResolver {
 			throw new Error(`AbstractResolver: Missing parameter "version"`);
 		}
 
-		this._ui5HomeDir = ui5HomeDir ? path.resolve(ui5HomeDir) : path.join(os.homedir(), ".ui5");
+		// In some CI environments, the homedir might be set explicitly to a relative
+		// path (e.g. "./"), but tooling requires an absolute path
+		this._ui5HomeDir = path.resolve(
+			ui5HomeDir || path.join(os.homedir(), ".ui5")
+		);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
 	}
