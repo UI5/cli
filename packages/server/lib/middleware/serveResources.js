@@ -39,7 +39,7 @@ function createMiddleware({resources, middlewareUtil}) {
 				// Special handling for *.properties files escape non ascii characters.
 				const {default: nonAsciiEscaper} = await import("@ui5/builder/processors/nonAsciiEscaper");
 				const project = resource.getProject();
-				let propertiesFileSourceEncoding = project?.getPropertiesFileSourceEncoding();
+				let propertiesFileSourceEncoding = project?.getPropertiesFileSourceEncoding?.();
 
 				if (!propertiesFileSourceEncoding) {
 					if (project && project.getSpecVersion().lte("1.1")) {

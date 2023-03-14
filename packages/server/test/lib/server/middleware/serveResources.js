@@ -252,6 +252,52 @@ fame=stra\\u00dfe`);
 	t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
 });
 
+test.serial("Check if properties file is served properly for non component projects", async (t) => {
+	t.plan(4);
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
+
+	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
+	const project = {
+		getSpecVersion: () => {
+			return {
+				toString: () => "3.0",
+				lte: () => false,
+			};
+		}
+	};
+
+	const resource = await writeResource(readerWriter, "/myFile3.properties", 1024 * 1024,
+		"key=titel\nfame=straße", "utf8", project);
+
+	const setStringSpy = sinon.spy(resource, "setString");
+	const middleware = serveResourcesMiddleware({
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const response = fakeResponse;
+
+	const setHeaderSpy = sinon.spy(response, "setHeader");
+	const req = {
+		url: "/myFile3.properties",
+		headers: {}
+	};
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.message}`);
+	};
+	await middleware(req, response, next);
+	const content = await resource.getString();
+
+	t.is(content, `key=titel
+fame=stra\\u00dfe`);
+	t.is(setHeaderSpy.callCount, 2);
+	t.is(setStringSpy.callCount, 1);
+	t.is(setHeaderSpy.getCall(0).lastArg, "application/octet-stream");
+});
+
 test.serial("Check verbose logging", async (t) => {
 	const verboseLogStub = sinon.stub();
 	t.context.loggerStub = {
