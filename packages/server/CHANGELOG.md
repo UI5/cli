@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.1...HEAD).
+
+<a name="v3.1.1"></a>
+## [v3.1.1] - 2023-03-14
+### Bug Fixes
+- Allow serving of propertyfiles of non component project types [`1bc6ec7`](https://github.com/SAP/ui5-server/commit/1bc6ec72a15ae7df558c4938b2670d0e78af710b)
+
 
 <a name="v3.1.0"></a>
 ## [v3.1.0] - 2023-03-01
@@ -302,6 +308,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.1.1]: https://github.com/SAP/ui5-server/compare/v3.1.0...v3.1.1
 [v3.1.0]: https://github.com/SAP/ui5-server/compare/v3.0.1...v3.1.0
 [v3.0.1]: https://github.com/SAP/ui5-server/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-server/compare/v2.4.0...v3.0.0
