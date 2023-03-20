@@ -28,4 +28,4 @@ jobs:
       run: npm test
 
     - name: Send report to Coveralls
-      uses: coverallsapp/github-action@v1.2.4
+      uses: coverallsapp/github-action@v2.0.0
