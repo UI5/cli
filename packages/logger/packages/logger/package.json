@@ -126,8 +126,8 @@
 		"eslint-plugin-jsdoc": "^40.1.0",
 		"jsdoc": "^4.0.2",
 		"nyc": "^15.1.0",
-		"open-cli": "^7.1.0",
-		"rimraf": "^4.4.0",
+		"open-cli": "^7.2.0",
+		"rimraf": "^4.4.1",
 		"sinon": "^15.0.2",
 		"strip-ansi": "^7.0.1",
 		"tap-xunit": "^2.4.1"
