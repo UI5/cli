@@ -97,8 +97,10 @@ class Specification {
 		this._version = version;
 		this._modulePath = modulePath;
 
-		// The configured name (metadata.name) should be the unique identifier
-		// The ID property as supplied by the translators is only here for debugging and potential tracing purposes
+		// The ID property is filled from the provider (e.g. package.json "name") and might differ between providers.
+		// It is mainly used to detect framework libraries marked by @openui5 / @sapui5 scopes of npm package.
+		// (see Project#isFrameworkProject)
+		// In general, the configured name (metadata.name) should be used instead as the unique identifier of a project.
 		this.__id = id;
 
 		// Deep clone config to prevent changes by reference
@@ -157,7 +159,23 @@ class Specification {
 
 	/* === Attributes === */
 	/**
-	 * Get the name of this specification
+	 * Get the ID of this specification.
+	 *
+	 * <p><b>Note: </b>Only to be used in special occasions as it specific to the provider that was used and does
+	 * not necessarily represent something defined by the project.</p>
+	 *
+	 * For general purposes of a unique identifier use
+	 * {@link @ui5/project/specifications/Specification#getName getName} instead.
+	 *
+	 * @public
+	 * @returns {string} Specification ID
+	 */
+	getId() {
+		return this.__id;
+	}
+
+	/**
+	 * Get the name of this specification. Represents a unique identifier.
 	 *
 	 * @public
 	 * @returns {string} Specification name

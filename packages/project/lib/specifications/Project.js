@@ -61,7 +61,8 @@ class Project extends Specification {
 	 * @returns {boolean} True if the project is a framework project
 	 */
 	isFrameworkProject() {
-		return this.__id.startsWith("@openui5/") || this.__id.startsWith("@sapui5/");
+		const id = this.getId();
+		return id.startsWith("@openui5/") || id.startsWith("@sapui5/");
 	}
 
 	/**

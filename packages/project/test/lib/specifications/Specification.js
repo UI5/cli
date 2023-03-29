@@ -66,6 +66,7 @@ test("Specification can't be instantiated", (t) => {
 
 test("Instantiate a basic project", async (t) => {
 	const project = await Specification.create(t.context.basicProjectInput);
+	t.is(project.getId(), "application.a.id", "Returned correct ID");
 	t.is(project.getName(), "application.a", "Returned correct name");
 	t.is(project.getVersion(), "1.0.0", "Returned correct version");
 	t.is(project.getRootPath(), applicationAPath, "Returned correct project path");
