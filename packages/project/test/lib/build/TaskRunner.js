@@ -776,7 +776,13 @@ test("Custom task with legacy spec version and requiredDependenciesCallback", as
 
 	t.is(requiredDependenciesCallbackStub.callCount, 1, "requiredDependenciesCallback got called once");
 	t.deepEqual(requiredDependenciesCallbackStub.getCall(0).args[0], {
-		availableDependencies: new Set(["dep.a", "dep.b"])
+		availableDependencies: new Set(["dep.a", "dep.b"]),
+		options: {
+			projectName: "project.b",
+			projectNamespace: "project/b",
+			configuration: "configuration",
+			taskName: "myTask"
+		}
 	}, "requiredDependenciesCallback got called with expected arguments");
 
 	const createDependencyReaderStub = sinon.stub(taskRunner, "_createDependenciesReader").resolves("dependencies");

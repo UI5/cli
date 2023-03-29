@@ -302,13 +302,15 @@ class TaskRunner {
 					taskUtilInterface.getProject.bind(taskUtilInterface);
 				dependencyDeterminationParams.getDependencies =
 					taskUtilInterface.getDependencies.bind(taskUtilInterface);
-				dependencyDeterminationParams.options = {
-					projectName: project.getName(),
-					projectNamespace: project.getNamespace(),
-					configuration: taskDef.configuration,
-					taskName: newTaskName
-				};
 			}
+
+			dependencyDeterminationParams.options = {
+				projectName: project.getName(),
+				projectNamespace: project.getNamespace(),
+				configuration: taskDef.configuration,
+				taskName: newTaskName
+			};
+
 			requiredDependencies = await requiredDependenciesCallback(dependencyDeterminationParams);
 			if (!(requiredDependencies instanceof Set)) {
 				throw new Error(
