@@ -75,6 +75,20 @@ class Workspace {
 	}
 
 	/**
+	 * Returns an array of [Module]{@ui5/project/graph/Module} instances found in the configured
+	 * dependency-management resolution paths of this workspace, sorted by module ID.
+	 *
+	 * @public
+	 * @returns {Promise<@ui5/project/graph/Module[]>}
+	 *   Array of Module instances sorted by module ID
+	 */
+	async getModules() {
+		const {moduleIdMap} = await this._getResolvedModules();
+		const sortedMap = new Map([...moduleIdMap].sort((a, b) => String(a[0]).localeCompare(b[0])));
+		return Array.from(sortedMap.values());
+	}
+
+	/**
 	 * For a given project name (e.g. the value of the <code>metadata.name</code> property in a ui5.yaml),
 	 * returns a [Module]{@ui5/project/graph/Module} instance or <code>undefined</code> depending on whether the project
 	 * has been found in the configured dependency-management resolution paths of this workspace
@@ -82,7 +96,7 @@ class Workspace {
 	 * @public
 	 * @param {string} projectName Name of the project
 	 * @returns {Promise<@ui5/project/graph/Module|undefined>}
-	 *   Module instance of <code>undefined</code> if none is found
+	 *   Module instance or <code>undefined</code> if none is found
 	 */
 	async getModuleByProjectName(projectName) {
 		const {projectNameMap} = await this._getResolvedModules();
@@ -98,7 +112,7 @@ class Workspace {
 	 * @public
 	 * @param {string} nodeId Node ID of the module
 	 * @returns {Promise<@ui5/project/graph/Module|undefined>}
-	 *   Module instance of <code>undefined</code> if none is found
+	 *   Module instance or <code>undefined</code> if none is found
 	 */
 	async getModuleByNodeId(nodeId) {
 		const {moduleIdMap} = await this._getResolvedModules();

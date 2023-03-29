@@ -82,6 +82,9 @@ test("Basic resolution", async (t) => {
 	t.is(await workspace.getModuleByNodeId("library.d"), libD,
 		"getModuleByNodeId returns correct module for library.d");
 
+	const modules = await workspace.getModules();
+	t.deepEqual(modules, [libD, libE], "getModules returns modules sorted by module ID");
+
 	t.deepEqual(Array.from(moduleIdMap.keys()).sort(), ["library.d", "library.e"], "Correct module ID keys");
 	moduleIdMap.forEach((value, key) => {
 		t.is(value, projectNameMap.get(key), `Same instance of module ${key} in both maps`);
