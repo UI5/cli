@@ -159,9 +159,9 @@ class Specification {
 
 	/* === Attributes === */
 	/**
-	 * Get the ID of this specification.
+	 * Gets the ID of this specification.
 	 *
-	 * <p><b>Note: </b>Only to be used in special occasions as it specific to the provider that was used and does
+	 * <p><b>Note: </b>Only to be used for special occasions as it is specific to the provider that was used and does
 	 * not necessarily represent something defined by the project.</p>
 	 *
 	 * For general purposes of a unique identifier use
@@ -175,7 +175,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the name of this specification. Represents a unique identifier.
+	 * Gets the name of this specification. Represents a unique identifier.
 	 *
 	 * @public
 	 * @returns {string} Specification name
@@ -185,7 +185,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the kind of this specification, for example <code>project</code> or <code>extension</code>
+	 * Gets the kind of this specification, for example <code>project</code> or <code>extension</code>
 	 *
 	 * @public
 	 * @returns {string} Specification kind
@@ -195,7 +195,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the type of this specification,
+	 * Gets the type of this specification,
 	 * for example <code>application</code> or <code>library</code> in case of projects,
 	 * and <code>task</code> or <code>server-middleware</code> in case of extensions
 	 *
@@ -217,7 +217,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the specification's generic version, as typically defined in a <code>package.json</code>
+	 * Gets the specification's generic version, as typically defined in a <code>package.json</code>
 	 *
 	 * @public
 	 * @returns {string} Project version
@@ -227,7 +227,7 @@ class Specification {
 	}
 
 	/**
-	 * Get the specification's file system path. This might not be POSIX-style on some platforms
+	 * Gets the specification's file system path. This might not be POSIX-style on some platforms
 	 *
 	 * @public
 	 * @returns {string} Project root path
@@ -238,7 +238,7 @@ class Specification {
 
 	/* === Resource Access === */
 	/**
-	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the specification.
+	 * Gets a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for the root directory of the specification.
 	 * Resource readers always use POSIX-style
 	 *
 	 * @public

@@ -96,7 +96,7 @@ class Workspace {
 	 * @public
 	 * @param {string} projectName Name of the project
 	 * @returns {Promise<@ui5/project/graph/Module|undefined>}
-	 *   Module instance or <code>undefined</code> if none is found
+	 *   Module instance, or <code>undefined</code> if none is found
 	 */
 	async getModuleByProjectName(projectName) {
 		const {projectNameMap} = await this._getResolvedModules();
@@ -112,7 +112,7 @@ class Workspace {
 	 * @public
 	 * @param {string} nodeId Node ID of the module
 	 * @returns {Promise<@ui5/project/graph/Module|undefined>}
-	 *   Module instance or <code>undefined</code> if none is found
+	 *   Module instance, or <code>undefined</code> if none is found
 	 */
 	async getModuleByNodeId(nodeId) {
 		const {moduleIdMap} = await this._getResolvedModules();
