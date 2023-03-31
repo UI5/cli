@@ -2,10 +2,21 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.0.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.1.0...HEAD).
+
+<a name="v3.1.0"></a>
+## [v3.1.0] - 2023-03-31
+### Bug Fixes
+- **Taskrunner:** pass new taskutil options to determineRequiredDependencies hook [`94bcd99`](https://github.com/SAP/ui5-project/commit/94bcd9931d6709170b78a92e7372bbd0de44ae03)
+- **ui5Framework:** Prevent install of libraries within workspace ([#589](https://github.com/SAP/ui5-project/issues/589)) [`8ffc676`](https://github.com/SAP/ui5-project/commit/8ffc676434defd320c70b615960efc9182a29de9)
+
+### Features
+- **Specification:** Add getId method [`7bdb47a`](https://github.com/SAP/ui5-project/commit/7bdb47a2925c0936ee33faf23f51f6c6ab396369)
+- **Workspace:** Add getModules method [`1e2aa0e`](https://github.com/SAP/ui5-project/commit/1e2aa0e48bb2d895728f3d5f4cb74d55fbc8ec34)
+
 
 <a name="v3.0.4"></a>
-## [v3.0.4] - 2023-03-07
+## [v3.0.4] - 2023-03-10
 ### Bug Fixes
 - Resolve properly absolute path for ui5HomeDir ([#588](https://github.com/SAP/ui5-project/issues/588)) [`9b414a7`](https://github.com/SAP/ui5-project/commit/9b414a77a1d86f6a3560231ae04db407e2f022c5)
 
@@ -335,6 +346,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.1.0]: https://github.com/SAP/ui5-project/compare/v3.0.4...v3.1.0
 [v3.0.4]: https://github.com/SAP/ui5-project/compare/v3.0.3...v3.0.4
 [v3.0.3]: https://github.com/SAP/ui5-project/compare/v3.0.2...v3.0.3
 [v3.0.2]: https://github.com/SAP/ui5-project/compare/v3.0.1...v3.0.2
