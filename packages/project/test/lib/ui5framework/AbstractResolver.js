@@ -38,19 +38,24 @@ test("AbstractResolver: abstract constructor should throw", async (t) => {
 
 test("AbstractResolver: constructor", (t) => {
 	const {MyResolver, AbstractResolver} = t.context;
+	const providedLibraryMetadata = {"test": "data"};
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.75.0",
+		providedLibraryMetadata
 	});
 	t.true(resolver instanceof MyResolver, "Constructor returns instance of sub-class");
 	t.true(resolver instanceof AbstractResolver, "Constructor returns instance of abstract class");
+	t.is(resolver._version, "1.75.0");
+	t.is(resolver._providedLibraryMetadata, providedLibraryMetadata);
 });
 
-test("AbstractResolver: constructor requires 'version'", (t) => {
+test("AbstractResolver: constructor without version", (t) => {
 	const {MyResolver} = t.context;
-	t.throws(() => {
-		new MyResolver({});
-	}, {message: `AbstractResolver: Missing parameter "version"`});
+	const resolver = new MyResolver({
+		cwd: "/test-project/"
+	});
+	t.is(resolver._version, undefined);
 });
 
 test("AbstractResolver: Set absolute 'cwd'", (t) => {
@@ -204,9 +209,160 @@ test("AbstractResolver: install", async (t) => {
 			install: Promise.resolve({pkgPath: "/foo/sap.ui.lib4"})
 		});
 
-	await resolver.install(["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib4"]);
+	const result = await resolver.install(["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib4"]);
 
 	t.is(handleLibraryStub.callCount, 4, "Each library should be handled once");
+	t.deepEqual(result, {
+		libraryMetadata: {
+			"sap.ui.lib1": {
+				dependencies: [],
+				npmPackageName: "@openui5/sap.ui.lib1",
+				optionalDependencies: [],
+				path: "/foo/sap.ui.lib1",
+				version: "1.75.0",
+			},
+			"sap.ui.lib2": {
+				dependencies: [
+					"sap.ui.lib3",
+				],
+				npmPackageName: "@openui5/sap.ui.lib2",
+				optionalDependencies: [],
+				path: "/foo/sap.ui.lib2",
+				version: "1.75.0",
+			},
+			"sap.ui.lib3": {
+				dependencies: [],
+				npmPackageName: "@openui5/sap.ui.lib3",
+				optionalDependencies: [
+					"sap.ui.lib4",
+				],
+				path: "/foo/sap.ui.lib3",
+				version: "1.75.0",
+			},
+			"sap.ui.lib4": {
+				dependencies: [
+					"sap.ui.lib1",
+				],
+				npmPackageName: "@openui5/sap.ui.lib4",
+				optionalDependencies: [],
+				path: "/foo/sap.ui.lib4",
+				version: "1.75.0",
+			},
+		}
+	});
+});
+
+test("AbstractResolver: install (with providedLibraryMetadata)", async (t) => {
+	const {MyResolver} = t.context;
+	const resolver = new MyResolver({
+		cwd: "/test-project/",
+		version: "1.75.0",
+		providedLibraryMetadata: {
+			"sap.ui.lib1": {
+				"npmPackageName": "@openui5/sap.ui.lib1",
+				"version": "1.75.0-workspace",
+				"dependencies": [
+					"sap.ui.lib3"
+				],
+				"optionalDependencies": [],
+				"path": "/workspace/sap.ui.lib1"
+			},
+			"sap.ui.lib4": {
+				"npmPackageName": "@openui5/sap.ui.lib4",
+				"version": "1.75.0-workspace",
+				"dependencies": [
+					"sap.ui.lib5"
+				],
+				"optionalDependencies": [],
+				"path": "/workspace/sap.ui.lib4"
+			},
+			"sap.ui.lib5": {
+				"npmPackageName": "@openui5/sap.ui.lib5",
+				"version": "1.75.0-workspace",
+				"dependencies": [],
+				"optionalDependencies": [],
+				"path": "/workspace/sap.ui.lib5"
+			},
+		}
+	});
+
+	const metadata = {
+		libraries: {
+			"sap.ui.lib2": {
+				"npmPackageName": "@openui5/sap.ui.lib2",
+				"version": "1.75.0",
+				"dependencies": [],
+				"optionalDependencies": []
+			},
+			"sap.ui.lib3": {
+				"npmPackageName": "@openui5/sap.ui.lib3",
+				"version": "1.75.0",
+				"dependencies": [
+					"sap.ui.lib4"
+				],
+				"optionalDependencies": []
+			},
+		}
+	};
+
+	const handleLibraryStub = sinon.stub(resolver, "handleLibrary");
+	handleLibraryStub
+		.callsFake(async (libraryName) => {
+			throw new Error(`Unknown handleLibrary call: ${libraryName}`);
+		})
+		.withArgs("sap.ui.lib2").resolves({
+			metadata: Promise.resolve(metadata.libraries["sap.ui.lib2"]),
+			install: Promise.resolve({pkgPath: "/foo/sap.ui.lib2"})
+		})
+		.withArgs("sap.ui.lib3").resolves({
+			metadata: Promise.resolve(metadata.libraries["sap.ui.lib3"]),
+			install: Promise.resolve({pkgPath: "/foo/sap.ui.lib3"})
+		});
+
+	const result = await resolver.install(["sap.ui.lib1", "sap.ui.lib2"]);
+
+	t.is(handleLibraryStub.callCount, 2, "Each library not part of providedLibraryMetadata should be handled once");
+	t.deepEqual(result, {
+		libraryMetadata: {
+			"sap.ui.lib1": {
+				dependencies: ["sap.ui.lib3"],
+				npmPackageName: "@openui5/sap.ui.lib1",
+				optionalDependencies: [],
+				path: "/workspace/sap.ui.lib1",
+				version: "1.75.0-workspace",
+			},
+			"sap.ui.lib2": {
+				dependencies: [],
+				npmPackageName: "@openui5/sap.ui.lib2",
+				optionalDependencies: [],
+				path: "/foo/sap.ui.lib2",
+				version: "1.75.0",
+			},
+			"sap.ui.lib3": {
+				dependencies: ["sap.ui.lib4",],
+				npmPackageName: "@openui5/sap.ui.lib3",
+				optionalDependencies: [],
+				path: "/foo/sap.ui.lib3",
+				version: "1.75.0",
+			},
+			"sap.ui.lib4": {
+				dependencies: [
+					"sap.ui.lib5",
+				],
+				npmPackageName: "@openui5/sap.ui.lib4",
+				optionalDependencies: [],
+				path: "/workspace/sap.ui.lib4",
+				version: "1.75.0-workspace",
+			},
+			"sap.ui.lib5": {
+				dependencies: [],
+				npmPackageName: "@openui5/sap.ui.lib5",
+				optionalDependencies: [],
+				path: "/workspace/sap.ui.lib5",
+				version: "1.75.0-workspace",
+			},
+		}
+	});
 });
 
 test("AbstractResolver: install error handling (rejection of metadata/install)", async (t) => {
@@ -333,6 +489,49 @@ Failed to resolve library sap.ui.lib1: Error within handleLibrary: sap.ui.lib1
 Failed to resolve library sap.ui.lib2: Error within handleLibrary: sap.ui.lib2`});
 
 	t.is(handleLibraryStub.callCount, 2, "Each library should be handled once");
+});
+
+test("AbstractResolver: install error handling " +
+"(no version, no providedLibraryMetadata)", async (t) => {
+	const {MyResolver} = t.context;
+	const resolver = new MyResolver({
+		cwd: "/test-project/",
+	});
+
+	const handleLibraryStub = sinon.stub(resolver, "handleLibrary");
+
+	await t.throwsAsync(resolver.install(["sap.ui.lib1", "sap.ui.lib2"]), {
+		message: `Resolution of framework libraries failed with errors:
+Failed to resolve library sap.ui.lib1: Unable to install library sap.ui.lib1. No framework version provided.
+Failed to resolve library sap.ui.lib2: Unable to install library sap.ui.lib2. No framework version provided.`
+	});
+
+	t.is(handleLibraryStub.callCount, 0, "Handle library should not be called when no version is available");
+});
+
+test("AbstractResolver: install error handling " +
+"(no version, one lib not part of providedLibraryMetadata)", async (t) => {
+	const {MyResolver} = t.context;
+	const resolver = new MyResolver({
+		cwd: "/test-project/",
+		providedLibraryMetadata: {
+			"sap.ui.lib1": {
+				"npmPackageName": "@openui5/sap.ui.lib1",
+				"version": "1.75.0-SNAPSHOT",
+				"dependencies": [],
+				"optionalDependencies": []
+			}
+		}
+	});
+
+	const handleLibraryStub = sinon.stub(resolver, "handleLibrary");
+
+	await t.throwsAsync(resolver.install(["sap.ui.lib1", "sap.ui.lib2"]), {
+		message: `Resolution of framework libraries failed with errors:
+Failed to resolve library sap.ui.lib2: Unable to install library sap.ui.lib2. No framework version provided.`
+	});
+
+	t.is(handleLibraryStub.callCount, 0, "Handle library should not be called when no version is available");
 });
 
 test("AbstractResolver: static fetchAllVersions should throw an Error when not implemented", async (t) => {

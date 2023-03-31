@@ -208,6 +208,60 @@ const utils = {
 			);
 		}
 	},
+	/**
+	 * This logic needs to stay in sync with the dependency definitions for the
+	 * sapui5/distribution-metadata package.
+	 *
+	 * @param {@ui5/project/specifications/Project} project
+	 */
+	async getFrameworkLibraryDependencies(project) {
+		let dependencies = [];
+		let optionalDependencies = [];
+
+		if (project.getId().startsWith("@sapui5/")) {
+			project.getFrameworkDependencies().forEach((dependency) => {
+				if (dependency.optional) {
+					// Add optional dependency to optionalDependencies
+					optionalDependencies.push(dependency.name);
+				} else if (!dependency.development) {
+					// Add non-development dependency to dependencies
+					dependencies.push(dependency.name);
+				}
+			});
+		} else if (project.getId().startsWith("@openui5/")) {
+			const packageResource = await project.getRootReader().byPath("/package.json");
+			const packageInfo = JSON.parse(await packageResource.getString());
+
+			dependencies = Object.keys(
+				packageInfo.dependencies || {}
+			).map(($) => $.replace("@openui5/", "")); // @sapui5 dependencies must not be defined in package.json
+			optionalDependencies = Object.keys(
+				packageInfo.devDependencies || {}
+			).map(($) => $.replace("@openui5/", "")); // @sapui5 dependencies must not be defined in package.json
+		}
+
+		return {dependencies, optionalDependencies};
+	},
+	async getWorkspaceFrameworkLibraryMetadata({workspace, projectGraph}) {
+		const libraryMetadata = Object.create(null);
+		const ui5Modules = await workspace.getModules();
+		for (const ui5Module of ui5Modules) {
+			const {project} = await ui5Module.getSpecifications();
+			// Only framework projects that are not already part of the projectGraph should be handled.
+			// Otherwise they would be available twice which is checked
+			// after installing via checkForDuplicateFrameworkProjects
+			if (project?.isFrameworkProject?.() && !projectGraph.getProject(project.getName())) {
+				const metadata = libraryMetadata[project.getName()] = Object.create(null);
+				metadata.id = project.getId();
+				metadata.path = project.getRootPath();
+				metadata.version = project.getVersion();
+				const {dependencies, optionalDependencies} = await utils.getFrameworkLibraryDependencies(project);
+				metadata.dependencies = dependencies;
+				metadata.optionalDependencies = optionalDependencies;
+			}
+		}
+		return libraryMetadata;
+	},
 	ProjectProcessor
 };
 
@@ -232,26 +286,31 @@ export default {
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
+		const {workspace} = options;
 		const rootProject = projectGraph.getRoot();
 		const frameworkName = rootProject.getFrameworkName();
 		const frameworkVersion = rootProject.getFrameworkVersion();
 
-		// It is allowed omit the framework version in ui5.yaml and only provide one via the override
+		// It is allowed to omit the framework version in ui5.yaml and only provide one via the override
 		// This is a common use case for framework libraries, which generally should not define a
 		// framework version in their respective ui5.yaml
 		let version = options.versionOverride || frameworkVersion;
 
 		if (rootProject.isFrameworkProject() && !version) {
 			// If the root project is a framework project and no framework version is defined,
-			// all framework dependencies must already be part of the graph
-			rootProject.getFrameworkDependencies().forEach((dep) => {
-				if (utils.shouldIncludeDependency(dep) && !projectGraph.getProject(dep.name)) {
-					throw new Error(
-						`Missing framework dependency ${dep.name} for framework project ${rootProject.getName()}`);
-				}
+			// all framework dependencies must either be already part of the graph or part of the workspace.
+			// A mixed setup of framework deps within the graph AND from the workspace is currently not supported.
+
+			const someDependencyMissing = rootProject.getFrameworkDependencies().some((dep) => {
+				return utils.shouldIncludeDependency(dep) && !projectGraph.getProject(dep.name);
 			});
-			// All framework dependencies are already present in the graph
-			return projectGraph;
+
+			// If all dependencies are available there is nothing else to do here.
+			// In case of a workspace setup, the resolver will be created below without a version and
+			// will succeed in case no library needs to be actually installed.
+			if (!someDependencyMissing) {
+				return projectGraph;
+			}
 		}
 
 
@@ -264,12 +323,6 @@ export default {
 			throw new Error(
 				`Unknown framework.name "${frameworkName}" for project ${rootProject.getName()}. ` +
 				`Must be "OpenUI5" or "SAPUI5"`
-			);
-		}
-
-		if (!version) {
-			throw new Error(
-				`No framework version defined for root project ${rootProject.getName()}`
 			);
 		}
 
@@ -296,9 +349,20 @@ export default {
 			return projectGraph;
 		}
 
-		log.info(`Using ${frameworkName} version: ${version}`);
+		if (version) {
+			log.info(`Using ${frameworkName} version: ${version}`);
+		}
 
-		const resolver = new Resolver({cwd: rootProject.getRootPath(), version});
+		let providedLibraryMetadata;
+		if (workspace) {
+			providedLibraryMetadata = await utils.getWorkspaceFrameworkLibraryMetadata({
+				workspace, projectGraph
+			});
+		}
+
+		// Note: version might be undefined here and the Resolver will throw an error when calling
+		// #install and it can't be resolved via the provided library metadata
+		const resolver = new Resolver({cwd: rootProject.getRootPath(), version, providedLibraryMetadata});
 
 		let startTime;
 		if (log.isLevelEnabled("verbose")) {
@@ -322,7 +386,7 @@ export default {
 		const projectProcessor = new utils.ProjectProcessor({
 			libraryMetadata,
 			graph: frameworkGraph,
-			workspace: options.workspace
+			workspace
 		});
 
 		await Promise.all(referencedLibraries.map(async (libName) => {

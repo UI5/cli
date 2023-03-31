@@ -27,20 +27,23 @@ const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
  * @hideconstructor
  */
 class AbstractResolver {
+	/* eslint-disable max-len */
 	/**
 	 * @param {*} options options
-	 * @param {string} options.version Framework version to use
+	 * @param {string} [options.version] Framework version to use. When omitted, all libraries need to be available
+	 * via <code>providedLibraryMetadata</code> parameter. Otherwise an error is thrown.
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
 	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
+	 * Resolver skips installing listed libraries and uses the dependency information to resolve their dependencies.
+	 * <code>version</code> can be omitted in case all libraries can be resolved via the <code>providedLibraryMetadata</code>.
+	 * Otherwise an error is thrown.
 	 */
-	constructor({cwd, version, ui5HomeDir}) {
+	/* eslint-enable max-len */
+	constructor({cwd, version, ui5HomeDir, providedLibraryMetadata}) {
 		if (new.target === AbstractResolver) {
 			throw new TypeError("Class 'AbstractResolver' is abstract");
-		}
-
-		if (!version) {
-			throw new Error(`AbstractResolver: Missing parameter "version"`);
 		}
 
 		// In some CI environments, the homedir might be set explicitly to a relative
@@ -50,6 +53,7 @@ class AbstractResolver {
 		);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
+		this._providedLibraryMetadata = providedLibraryMetadata;
 	}
 
 	async _processLibrary(libraryName, libraryMetadata, errors) {
@@ -62,7 +66,23 @@ class AbstractResolver {
 
 		log.verbose("Processing " + libraryName);
 
-		const promises = await this.handleLibrary(libraryName);
+		let promises;
+		const providedLibraryMetadata = this._providedLibraryMetadata?.[libraryName];
+		if (providedLibraryMetadata) {
+			log.verbose(`Skipping install for ${libraryName} (provided)`);
+			promises = {
+				// Use existing metadata if library is provided from outside (e.g. workspace)
+				metadata: Promise.resolve(providedLibraryMetadata),
+				// Provided libraries are already "installed"
+				install: Promise.resolve({
+					pkgPath: providedLibraryMetadata.path
+				})
+			};
+		} else if (!this._version) {
+			throw new Error(`Unable to install library ${libraryName}. No framework version provided.`);
+		} else {
+			promises = await this.handleLibrary(libraryName);
+		}
 
 		const [metadata, {pkgPath}] = await Promise.all([
 			promises.metadata.then((metadata) =>
@@ -143,7 +163,6 @@ class AbstractResolver {
 	 *   Object containing all installed libraries with library name as key
 	 */
 
-	/* eslint-enable max-len */
 	/**
 	 * Installs the provided libraries and their dependencies
 	 *

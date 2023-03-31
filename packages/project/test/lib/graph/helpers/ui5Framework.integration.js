@@ -135,7 +135,8 @@ test.afterEach.always((t) => {
 
 function defineTest(testName, {
 	frameworkName,
-	verbose = false
+	verbose = false,
+	librariesInWorkspace = null
 }) {
 	const npmScope = frameworkName === "SAPUI5" ? "@sapui5" : "@openui5";
 
@@ -410,7 +411,66 @@ function defineTest(testName, {
 		const provider = new DependencyTreeProvider({dependencyTree});
 		const projectGraph = await projectGraphBuilder(provider);
 
-		await ui5Framework.enrichProjectGraph(projectGraph);
+		if (librariesInWorkspace) {
+			const projectNameMap = new Map();
+			const moduleIdMap = new Map();
+			librariesInWorkspace.forEach((libName) => {
+				const libraryDistMetadata = distributionMetadata.libraries[libName];
+				const module = {
+					getSpecifications: sinon.stub().resolves({
+						project: {
+							getName: sinon.stub().returns(libName),
+							getVersion: sinon.stub().returns("1.76.0-SNAPSHOT"),
+							getRootPath: sinon.stub().returns(path.join(fakeBaseDir, "workspace", libName)),
+							isFrameworkProject: sinon.stub().returns(true),
+							getId: sinon.stub().returns(libraryDistMetadata.npmPackageName),
+							getRootReader: sinon.stub().returns({
+								byPath: sinon.stub().resolves({
+									getString: sinon.stub().resolves(JSON.stringify({dependencies: {}}))
+								})
+							}),
+							getFrameworkDependencies: sinon.stub().callsFake(() => {
+								const deps = [];
+								libraryDistMetadata.dependencies.forEach((dep) => {
+									deps.push({name: dep});
+								});
+								libraryDistMetadata.optionalDependencies.forEach((optDep) => {
+									deps.push({name: optDep, optional: true});
+								});
+								return deps;
+							}),
+							isDeprecated: sinon.stub().returns(false),
+							isSapInternal: sinon.stub().returns(false),
+							getAllowSapInternal: sinon.stub().returns(false),
+						}
+					}),
+					getVersion: sinon.stub().returns("1.76.0-SNAPSHOT"),
+					getPath: sinon.stub().returns(path.join(fakeBaseDir, "workspace", libName)),
+				};
+				projectNameMap.set(libName, module);
+				moduleIdMap.set(libraryDistMetadata.npmPackageName, module);
+			});
+
+			const getModuleByProjectName = sinon.stub().callsFake(
+				async (projectName) => projectNameMap.get(projectName)
+			);
+			const getModules = sinon.stub().callsFake(
+				async () => {
+					const sortedMap = new Map([...moduleIdMap].sort((a, b) => String(a[0]).localeCompare(b[0])));
+					return Array.from(sortedMap.values());
+				}
+			);
+
+			const workspace = {
+				getName: sinon.stub().returns("test"),
+				getModules,
+				getModuleByProjectName
+			};
+
+			await ui5Framework.enrichProjectGraph(projectGraph, {workspace});
+		} else {
+			await ui5Framework.enrichProjectGraph(projectGraph);
+		}
 
 		const callbackStub = sinon.stub().resolves();
 		await projectGraph.traverseDepthFirst(callbackStub);
@@ -463,6 +523,15 @@ defineTest("ui5Framework helper should enhance project graph with UI5 framework 
 defineTest("ui5Framework helper should enhance project graph with UI5 framework libraries", {
 	frameworkName: "OpenUI5",
 	verbose: true
+});
+
+defineTest("ui5Framework helper should not cause install of libraries within workspace", {
+	frameworkName: "SAPUI5",
+	librariesInWorkspace: ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib8"]
+});
+defineTest("ui5Framework helper should not cause install of libraries within workspace", {
+	frameworkName: "OpenUI5",
+	librariesInWorkspace: ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib8"]
 });
 
 function defineErrorTest(testName, {
@@ -723,8 +792,8 @@ test.serial("ui5Framework translator should not try to install anything when no 
 	t.is(pacote.manifest.callCount, 0, "No manifest should be requested");
 });
 
-test.serial("ui5Framework translator should throw an error when framework version is not defined", async (t) => {
-	const {ui5Framework, projectGraphBuilder} = t.context;
+test.serial("ui5Framework helper shouldn't throw when framework version and libraries are not provided", async (t) => {
+	const {ui5Framework, projectGraphBuilder, logStub} = t.context;
 
 	const dependencyTree = {
 		id: "test-id",
@@ -745,13 +814,28 @@ test.serial("ui5Framework translator should throw an error when framework versio
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await t.throwsAsync(async () => {
-		await ui5Framework.enrichProjectGraph(projectGraph);
-	}, {message: `No framework version defined for root project test-project`}, "Correct error message");
+	await ui5Framework.enrichProjectGraph(projectGraph);
+
+	t.is(logStub.verbose.callCount, 5);
+	t.deepEqual(logStub.verbose.getCall(0).args, [
+		"Configuration for module test-id has been supplied directly"
+	]);
+	t.deepEqual(logStub.verbose.getCall(1).args, [
+		"Module test-id contains project test-project"
+	]);
+	t.deepEqual(logStub.verbose.getCall(2).args, [
+		"Root project test-project qualified as application project for project graph"
+	]);
+	t.deepEqual(logStub.verbose.getCall(3).args, [
+		"Project test-project has no framework dependencies"
+	]);
+	t.deepEqual(logStub.verbose.getCall(4).args, [
+		"No SAPUI5 libraries referenced in project test-project or in any of its dependencies"
+	]);
 });
 
 test.serial(
-	"SAPUI5: ui5Framework translator should throw error when using a library that is not part of the dist metadata",
+	"SAPUI5: ui5Framework helper should throw error when using a library that is not part of the dist metadata",
 	async (t) => {
 		const {sinon, ui5Framework, Installer, projectGraphBuilder} = t.context;
 
