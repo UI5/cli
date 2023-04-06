@@ -101,7 +101,7 @@ class MiddlewareUtil {
 	 * For details on individual functions, see [Project]{@link @ui5/project/specifications/Project}
 	 *
 	 * @public
-	 * @typedef {object} @ui5/project/build/helpers/MiddlewareUtill~ProjectInterface
+	 * @typedef {object} @ui5/server/middleware/MiddlewareUtil~ProjectInterface
 	 * @property {Function} getType Get the project type
 	 * @property {Function} getName Get the project name
 	 * @property {Function} getVersion Get the project version
@@ -127,7 +127,7 @@ class MiddlewareUtil {
 	 * @param {string|@ui5/fs/Resource} [projectNameOrResource]
 	 * Name of the project to retrieve or a Resource instance to retrieve the associated project for.
 	 * Defaults to the name of the current root project
-	 * @returns {@ui5/project/build/helpers/MiddlewareUtill~ProjectInterface|undefined}
+	 * @returns {@ui5/server/middleware/MiddlewareUtil~ProjectInterface|undefined}
 	 * Specification Version-dependent interface to the Project instance or <code>undefined</code>
 	 * if the project name is unknown or the provided resource is not associated with any project.
 	 * @public
@@ -170,7 +170,7 @@ class MiddlewareUtil {
 	 * For details on individual functions, see [@ui5/fs/resourceFactory]{@link @ui5/fs/resourceFactory}
 	 *
 	 * @public
-	 * @typedef {object} @ui5/project/build/helpers/MiddlewareUtill~resourceFactory
+	 * @typedef {object} @ui5/server/middleware/MiddlewareUtil~resourceFactory
 	 * @property {Function} createResource Creates a [Resource]{@link @ui5/fs/Resource}.
 	 * 	Accepts the same parameters as the [Resource]{@link @ui5/fs/Resource} constructor.
 	 * @property {Function} createReaderCollection Creates a reader collection:
@@ -192,7 +192,7 @@ class MiddlewareUtil {
 	 * This attribute is only available to custom server middleware extensions defining
 	 * <b>Specification Version 3.0 and above</b>.
 	 *
-	 * @type {@ui5/project/build/helpers/MiddlewareUtill~resourceFactory}
+	 * @type {@ui5/server/middleware/MiddlewareUtil~resourceFactory}
 	 * @public
 	 */
 	resourceFactory = {
