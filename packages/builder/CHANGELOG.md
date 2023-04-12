@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.2...HEAD).
+
+<a name="v3.0.2"></a>
+## [v3.0.2] - 2023-04-12
+### Dependency Updates
+- Bump xml2js from 0.4.23 to 0.5.0 [`5269fc2`](https://github.com/SAP/ui5-builder/commit/5269fc206b30a13d28493892cc658f1614e7cc74)
+
 
 <a name="v3.0.1"></a>
 ## [v3.0.1] - 2023-02-16
@@ -773,6 +779,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v3.0.2]: https://github.com/SAP/ui5-builder/compare/v3.0.1...v3.0.2
 [v3.0.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-builder/compare/v2.11.2...v3.0.0
 [v2.11.9]: https://github.com/SAP/ui5-builder/compare/v2.11.8...v2.11.9
