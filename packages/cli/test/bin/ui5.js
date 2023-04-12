@@ -226,6 +226,14 @@ test.serial("invokeLocalInstallation: Doesn't invoke local installation when it 
 test.serial("main (unsupported Node.js version)", async (t) => {
 	const {sinon, consoleLogStub} = t.context;
 
+	const processExit = new Promise((resolve) => {
+		const processExitStub = sinon.stub(process, "exit");
+		processExitStub.callsFake((errorCode) => {
+			processExitStub.restore();
+			resolve(errorCode);
+		});
+	});
+
 	const ui5 = require("../../bin/ui5.cjs");
 	const {main} = ui5;
 
@@ -234,6 +242,9 @@ test.serial("main (unsupported Node.js version)", async (t) => {
 	sinon.stub(ui5, "invokeCLI");
 
 	await main();
+
+	const errorCode = await processExit;
+	t.is(errorCode, 1);
 
 	t.is(consoleLogStub.callCount, 0);
 
@@ -245,6 +256,8 @@ test.serial("main (unsupported Node.js version)", async (t) => {
 test.serial("main (invocation of local installation)", async (t) => {
 	const {sinon, consoleLogStub} = t.context;
 
+	const processExitStub = sinon.stub(process, "exit");
+
 	const ui5 = require("../../bin/ui5.cjs");
 	const {main} = ui5;
 
@@ -253,6 +266,7 @@ test.serial("main (invocation of local installation)", async (t) => {
 
 	await main();
 
+	t.is(processExitStub.callCount, 0);
 	t.is(consoleLogStub.callCount, 0);
 
 	t.is(ui5.invokeLocalInstallation.callCount, 1);

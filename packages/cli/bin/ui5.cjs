@@ -84,11 +84,12 @@ const ui5 = {
 	async main() {
 		const pkg = ui5.getPackageJson();
 		if (!ui5.checkRequirements({pkg, nodeVersion: process.version})) {
-			return;
-		}
-		const localInstallationInvoked = await ui5.invokeLocalInstallation(pkg);
-		if (!localInstallationInvoked) {
-			await ui5.invokeCLI(pkg);
+			process.exit(1);
+		} else {
+			const localInstallationInvoked = await ui5.invokeLocalInstallation(pkg);
+			if (!localInstallationInvoked) {
+				await ui5.invokeCLI(pkg);
+			}
 		}
 	}
 };
