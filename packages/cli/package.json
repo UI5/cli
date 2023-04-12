@@ -126,7 +126,7 @@
 		"js-yaml": "^4.1.0",
 		"open": "^9.1.0",
 		"pretty-hrtime": "^1.0.3",
-		"semver": "^7.3.8",
+		"semver": "^7.4.0",
 		"update-notifier": "^6.0.2",
 		"yargs": "^17.7.1"
 	},
@@ -140,7 +140,7 @@
 		"eslint": "^8.38.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
-		"eslint-plugin-jsdoc": "^40.1.2",
+		"eslint-plugin-jsdoc": "^40.3.0",
 		"esmock": "^2.2.1",
 		"execa": "^7.1.1",
 		"jsdoc": "^4.0.2",
