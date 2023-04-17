@@ -19,7 +19,9 @@ test.beforeEach(async (t) => {
 		"../../../../lib/utils/fs.js": {
 			mkdirp: t.context.mkdirpStub
 		},
-		"rimraf": t.context.rimrafStub,
+		"rimraf": {
+			rimraf: t.context.rimrafStub
+		},
 		"lockfile": {
 			lock: t.context.lockStub,
 			unlock: t.context.unlockStub
@@ -30,7 +32,9 @@ test.beforeEach(async (t) => {
 		"../../../../lib/utils/fs.js": {
 			mkdirp: t.context.mkdirpStub
 		},
-		"rimraf": t.context.rimrafStub,
+		"rimraf": {
+			rimraf: t.context.rimrafStub
+		},
 		"graceful-fs": {
 			rename: t.context.renameStub,
 			stat: t.context.statStub

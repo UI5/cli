@@ -3,7 +3,7 @@ import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
 import fs from "graceful-fs";
-import rimraf from "rimraf";
+import {rimraf} from "rimraf";
 
 test.beforeEach(async (t) => {
 	t.context.mkdirpStub = sinon.stub().resolves();

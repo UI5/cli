@@ -1,4 +1,4 @@
-import rimraf from "rimraf";
+import {rimraf} from "rimraf";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import BuildLogger from "@ui5/logger/internal/loggers/Build";
 const log = new BuildLogger("ProjectBuilder");

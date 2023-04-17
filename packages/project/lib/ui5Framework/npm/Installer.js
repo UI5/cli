@@ -4,7 +4,7 @@ import fs from "graceful-fs";
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
-import rimraf from "rimraf";
+import {rimraf} from "rimraf";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
