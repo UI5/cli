@@ -2,7 +2,7 @@ import path from "node:path";
 import {access as fsAccess, constants as fsConstants, mkdir} from "node:fs/promises";
 import {fileURLToPath} from "node:url";
 import test from "ava";
-import rimraf from "rimraf";
+import {rimraf} from "rimraf";
 import chai from "chai";
 import chaifs from "chai-fs";
 chai.use(chaifs);
