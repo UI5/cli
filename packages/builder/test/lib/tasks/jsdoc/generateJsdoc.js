@@ -26,7 +26,9 @@ test.beforeEach(async (t) => {
 			mkdtemp: t.context.mkdtempStub,
 			mkdir: t.context.mkdirStub
 		},
-		"rimraf": t.context.rimrafStub,
+		"rimraf": {
+			rimraf: t.context.rimrafStub
+		},
 		"@ui5/fs/resourceFactory": {
 			createAdapter: t.context.createAdapterStub
 		},

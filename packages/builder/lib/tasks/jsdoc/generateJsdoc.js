@@ -3,7 +3,7 @@ const log = getLogger("builder:tasks:jsdoc:generateJsdoc");
 import path from "node:path";
 import os from "node:os";
 import fs from "graceful-fs";
-import rimraf from "rimraf";
+import {rimraf} from "rimraf";
 import {promisify} from "node:util";
 const mkdtemp = promisify(fs.mkdtemp);
 const mkdir = promisify(fs.mkdir);
