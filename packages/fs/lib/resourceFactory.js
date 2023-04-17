@@ -1,5 +1,5 @@
 import path from "node:path";
-import minimatch from "minimatch";
+import {minimatch} from "minimatch";
 import DuplexCollection from "./DuplexCollection.js";
 import FsAdapter from "./adapters/FileSystem.js";
 import MemAdapter from "./adapters/Memory.js";
