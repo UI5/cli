@@ -20,13 +20,19 @@ class Openui5Resolver extends AbstractResolver {
 	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
 	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {string} [options.cacheDir] Where to store temp/cached packages.
+	 * @param {string} [options.packagesDir] Where to install packages
+	 * @param {string} [options.stagingDir] The staging directory for the packages
 	 */
 	constructor(options) {
 		super(options);
 
+		const {cacheDir, packagesDir, stagingDir} = options;
+
 		this._installer = new Installer({
 			cwd: this._cwd,
-			ui5HomeDir: this._ui5HomeDir
+			ui5HomeDir: this._ui5HomeDir,
+			cacheDir, packagesDir, stagingDir
 		});
 		this._loadLibraryMetadata = Object.create(null);
 	}

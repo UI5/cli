@@ -15,7 +15,7 @@ const SEMVER_VERSION_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:
 
 // Reduced Semantic Versioning pattern
 // Matches MAJOR.MINOR as a simple version range to be resolved to the latest patch
-const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-SNAPSHOT)?$/;
 
 /**
  * Abstract Resolver
@@ -32,7 +32,9 @@ class AbstractResolver {
 	 * @param {*} options options
 	 * @param {string} [options.version] Framework version to use. When omitted, all libraries need to be available
 	 * via <code>providedLibraryMetadata</code> parameter. Otherwise an error is thrown.
-	 * @param {string} [options.cwd=process.cwd()] Working directory to resolve configurations like .npmrc
+	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
+	 * 					pre-built (with build manifest)
+	 * @param {string} [options.cwd=process.cwd()] Current working directory
 	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
 	 * @param {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
@@ -41,7 +43,7 @@ class AbstractResolver {
 	 * Otherwise an error is thrown.
 	 */
 	/* eslint-enable max-len */
-	constructor({cwd, version, ui5HomeDir, providedLibraryMetadata}) {
+	constructor({cwd, version, sources, ui5HomeDir, providedLibraryMetadata}) {
 		if (new.target === AbstractResolver) {
 			throw new TypeError("Class 'AbstractResolver' is abstract");
 		}
@@ -53,6 +55,7 @@ class AbstractResolver {
 		);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
+		this._sources = !!sources;
 		this._providedLibraryMetadata = providedLibraryMetadata;
 	}
 
@@ -107,10 +110,15 @@ class AbstractResolver {
 	}
 
 	async _processLibraries(libraryNames, libraryMetadata, errors) {
+		const sourceErrors = new Set();
 		const results = await Promise.all(libraryNames.map(async (libraryName) => {
 			try {
 				await this._processLibrary(libraryName, libraryMetadata, errors);
 			} catch (err) {
+				if (sourceErrors.has(err.message)) {
+					return `Failed to resolve library ${libraryName}: Error already logged`;
+				}
+				sourceErrors.add(err.message);
 				log.verbose(`Failed to process library ${libraryName}`);
 				log.verbose(`Error: ${err.message}`);
 				log.verbose(`Call stack: ${err.stack}`);
@@ -188,8 +196,11 @@ class AbstractResolver {
 
 		await this._processLibraries(libraryNames, libraryMetadata, errors);
 
-		if (errors.length > 0) {
-			throw new Error("Resolution of framework libraries failed with errors:\n" + errors.join("\n"));
+		if (errors.length === 1) {
+			throw new Error(errors[0]);
+		} if (errors.length > 1) {
+			const msg = errors.map((err, idx) => `  ${idx + 1}. ${err}`).join("\n");
+			throw new Error(`Resolution of framework libraries failed with errors:\n${msg}`);
 		}
 
 		return {
@@ -199,15 +210,28 @@ class AbstractResolver {
 
 	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
 		let spec;
-		if (version === "latest") {
+		const isSnapshotVersion = version.toLowerCase().endsWith("-snapshot");
+		if (version === "latest" || version === "latest-snapshot") {
+			// Use a wildcard to resolve to the latest available version
 			spec = "*";
-		} else if (VERSION_RANGE_REGEXP.test(version) || SEMVER_VERSION_REGEXP.test(version)) {
+		} else if (SEMVER_VERSION_REGEXP.test(version)) {
+			// Fully qualified version, can be used directly
 			spec = version;
+		} else if (VERSION_RANGE_REGEXP.test(version)) {
+			if (isSnapshotVersion) {
+				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
+				// in order to make the semver check work: "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
+				spec = version.replace(/-SNAPSHOT$/, ".x-SNAPSHOT");
+			} else {
+				spec = version;
+			}
 		} else {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
-		const resolvedVersion = semver.maxSatisfying(versions, spec);
+		const resolvedVersion = semver.maxSatisfying(versions, spec, {
+			includePrerelease: isSnapshotVersion
+		});
 		if (!resolvedVersion) {
 			if (semver.valid(spec)) {
 				if (this.name === "Sapui5Resolver" && semver.lt(spec, "1.76.0")) {

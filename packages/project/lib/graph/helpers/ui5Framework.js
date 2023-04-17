@@ -282,6 +282,8 @@ export default {
 	 *   version
 	 * @param {@ui5/project/graph/Workspace} [options.workspace]
 	 *   Optional workspace instance to use for overriding node resolutions
+	 * @param {object} [options.resolverConfig]
+	 *   Optional configuration object to use for the resolvers
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
@@ -327,7 +329,9 @@ export default {
 		}
 
 		let Resolver;
-		if (frameworkName === "OpenUI5") {
+		if (version && version.endsWith("-SNAPSHOT")) {
+			Resolver = (await import("../../ui5Framework/Sapui5MavenSnapshotResolver.js")).default;
+		} else if (frameworkName === "OpenUI5") {
 			Resolver = (await import("../../ui5Framework/Openui5Resolver.js")).default;
 		} else if (frameworkName === "SAPUI5") {
 			Resolver = (await import("../../ui5Framework/Sapui5Resolver.js")).default;
@@ -340,7 +344,6 @@ export default {
 				`${frameworkVersion} with version ${version}`
 			);
 		}
-
 		const referencedLibraries = await utils.getFrameworkLibrariesFromGraph(projectGraph);
 		if (!referencedLibraries.length) {
 			log.verbose(
@@ -362,7 +365,12 @@ export default {
 
 		// Note: version might be undefined here and the Resolver will throw an error when calling
 		// #install and it can't be resolved via the provided library metadata
-		const resolver = new Resolver({cwd: rootProject.getRootPath(), version, providedLibraryMetadata});
+		const resolver = new Resolver({
+			cwd: rootProject.getRootPath(),
+			version,
+			providedLibraryMetadata,
+			...options.resolverConfig,
+		});
 
 		let startTime;
 		if (log.isLevelEnabled("verbose")) {

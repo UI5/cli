@@ -9,7 +9,18 @@ function logConfig(config, configName) {
 }
 
 class Registry {
+	/**
+	 * @param {object} parameters Parameters
+	 * @param {string} parameters.cwd Current working directory
+	 * @param {string} parameters.cacheDir Cache directory
+	 */
 	constructor({cwd, cacheDir}) {
+		if (!cwd) {
+			throw new Error(`Registry: Missing parameter "cwd"`);
+		}
+		if (!cacheDir) {
+			throw new Error(`Registry: Missing parameter "cacheDir"`);
+		}
 		this._cwd = cwd;
 		this._cacheDir = cacheDir;
 	}
@@ -19,6 +30,7 @@ class Registry {
 	}
 	async requestPackageManifest(pkgName, version) {
 		const {pacote, pacoteOptions} = await this._getPacote();
+
 		return pacote.manifest(`${pkgName}@${version}`, pacoteOptions);
 	}
 	async extractPackage(pkgName, version, targetDir) {

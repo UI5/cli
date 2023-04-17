@@ -1,29 +1,41 @@
 import path from "node:path";
+import {mkdirp} from "../../utils/fs.js";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
+import AbstractInstaller from "../AbstractInstaller.js";
 import rimraf from "rimraf";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
-const mkdir = promisify(fs.mkdir);
 import {getLogger} from "@ui5/logger";
 const log = getLogger("ui5Framework:npm:Installer");
 
-class Installer {
-	constructor({cwd, ui5HomeDir}) {
+class Installer extends AbstractInstaller {
+	/**
+	 * @param {object} parameters Parameters
+	 * @param {string} parameters.cwd Current working directory
+	 * @param {string} parameters.ui5HomeDir UI5 home directory location. This will be used to store packages,
+	 * metadata and configuration used by the resolvers.
+	 * @param {string} [parameters.packagesDir="${ui5HomeDir}/framework/packages"] Where to install packages
+	 * @param {string} [parameters.stagingDir="${ui5HomeDir}/framework/staging"] The staging directory for the packages
+	 * @param {string} [parameters.cacheDir="${ui5HomeDir}/framework/cacache"] Where to store temp/cached packages.
+	 */
+	constructor({cwd, ui5HomeDir, packagesDir, stagingDir, cacheDir}) {
+		super(ui5HomeDir);
 		if (!cwd) {
 			throw new Error(`Installer: Missing parameter "cwd"`);
 		}
-		if (!ui5HomeDir) {
-			throw new Error(`Installer: Missing parameter "ui5HomeDir"`);
-		}
-		this._packagesDir = path.join(ui5HomeDir, "framework", "packages");
+		this._packagesDir = packagesDir ?
+			path.resolve(packagesDir) : path.join(ui5HomeDir, "framework", "packages");
+
 		log.verbose(`Installing to: ${this._packagesDir}`);
+
 		this._cwd = cwd;
-		this._caCacheDir = path.join(ui5HomeDir, "framework", "cacache");
-		this._lockDir = path.join(ui5HomeDir, "framework", "locks");
-		this._stagingDir = path.join(ui5HomeDir, "framework", "staging");
+		this._caCacheDir = cacheDir ?
+			path.resolve(cacheDir) : path.join(ui5HomeDir, "framework", "cacache");
+		this._stagingDir = stagingDir ?
+			path.resolve(stagingDir) : path.join(ui5HomeDir, "framework", "staging");
 	}
 
 	getRegistry() {
@@ -72,7 +84,7 @@ class Installer {
 		const targetDir = this._getTargetDirForPackage({pkgName, version});
 		const installed = await this._packageJsonExists(targetDir);
 		if (!installed) {
-			await this._synchronize({pkgName, version}, async () => {
+			await this._synchronize(`package-${pkgName}@${version}`, async () => {
 				// check again whether package is now installed
 				const installed = await this._packageJsonExists(targetDir);
 				if (!installed) {
@@ -99,15 +111,15 @@ class Installer {
 
 					// Do not create target dir itself to prevent EPERM error in following rename operation
 					// (https://github.com/SAP/ui5-tooling/issues/487)
-					await mkdir(path.dirname(targetDir), {recursive: true});
+					await mkdirp(path.dirname(targetDir));
 					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
 					await rename(stagingDir, targetDir);
 				} else {
-					log.verbose(`Alrady installed: ${pkgName} in version ${version}`);
+					log.verbose(`Already installed: ${pkgName} in version ${version}`);
 				}
 			});
 		} else {
-			log.verbose(`Alrady installed: ${pkgName} in version ${version}`);
+			log.verbose(`Already installed: ${pkgName} in version ${version}`);
 		}
 		return {
 			pkgPath: targetDir
@@ -131,39 +143,12 @@ class Installer {
 		}
 	}
 
-	async _synchronize({pkgName, version}, callback) {
-		const {
-			default: lockfile
-		} = await import("lockfile");
-		const lock = promisify(lockfile.lock);
-		const unlock = promisify(lockfile.unlock);
-		const lockPath = this._getLockPath({pkgName, version});
-		await mkdir(this._lockDir, {recursive: true});
-		log.verbose("Locking " + lockPath);
-		await lock(lockPath, {
-			wait: 10000,
-			stale: 60000,
-			retries: 10
-		});
-		try {
-			await callback();
-		} finally {
-			log.verbose("Unlocking " + lockPath);
-			await unlock(lockPath);
-		}
-	}
-
-	_getLockPath({pkgName, version}) {
-		const lockName = pkgName.replace(/\//g, "-");
-		return path.join(this._lockDir, `package-${lockName}@${version}.lock`);
-	}
-
 	_getTargetDirForPackage({pkgName, version}) {
 		return path.join(this._packagesDir, ...pkgName.split("/"), version);
 	}
 
 	_getStagingDirForPackage({pkgName, version}) {
-		return path.join(this._stagingDir, `${pkgName.replace("/", "-")}-${version}`);
+		return path.join(this._stagingDir, `${pkgName.replaceAll("/", "-")}-${version}`);
 	}
 }
 

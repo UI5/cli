@@ -40,10 +40,18 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5ResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5ResolverStub.resolveVersion = t.context.Sapui5ResolverResolveVersionStub;
 
+	t.context.Sapui5MavenSnapshotResolverInstallStub = sinon.stub();
+	t.context.Sapui5MavenSnapshotResolver = sinon.stub()
+		.callsFake(() => {
+			return {
+				install: t.context.Sapui5MavenSnapshotResolverInstallStub
+			};
+		});
+
 	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
 		"@ui5/logger": ui5Logger,
-		"../../../../lib/ui5Framework/Openui5Resolver.js": t.context.Openui5ResolverStub,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
+		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolver,
 	});
 	t.context.utils = t.context.ui5Framework._utils;
 });
@@ -167,6 +175,97 @@ test.serial("enrichProjectGraph: without framework configuration", async (t) => 
 	]);
 });
 
+test.serial("enrichProjectGraph SNAPSHOT", async (t) => {
+	const {sinon, ui5Framework, utils, Sapui5MavenSnapshotResolverInstallStub} = t.context;
+	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT = "__url__";
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.75.0-SNAPSHOT"
+			}
+		}
+	};
+
+	const referencedLibraries = ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"];
+	const libraryMetadata = {libraryMetadata: {fake: "metadata"}};
+
+	const getFrameworkLibrariesFromGraphStub = sinon.stub(utils, "getFrameworkLibrariesFromGraph")
+		.resolves(referencedLibraries);
+
+	Sapui5MavenSnapshotResolverInstallStub.resolves(libraryMetadata);
+
+	const addProjectToGraphStub = sinon.stub();
+	const ProjectProcessorStub = sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	await ui5Framework.enrichProjectGraph(projectGraph);
+
+	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");
+
+	t.is(t.context.Sapui5MavenSnapshotResolverInstallStub.callCount,
+		1, "Sapui5MavenSnapshotResolverInstallStub#constructor should be called once");
+	t.deepEqual(
+		t.context.Sapui5MavenSnapshotResolverInstallStub.getCall(0).args,
+		[["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"]],
+		"Sapui5MavenSnapshotResolverInstallStub#constructor should be called with expected args"
+	);
+
+	t.is(t.context.Sapui5MavenSnapshotResolverInstallStub.callCount, 1,
+		"Sapui5MavenSnapshotResolverInstallStub#install should be called once");
+	t.deepEqual(t.context.Sapui5MavenSnapshotResolverInstallStub.getCall(0).args, [
+		referencedLibraries
+	], "Sapui5MavenSnapshotResolverInstallStub#install should be called with expected args");
+
+	t.is(ProjectProcessorStub.callCount, 1, "ProjectProcessor#constructor should be called once");
+	const projectProcessorConstructorArgs = ProjectProcessorStub.getCall(0).args[0];
+	t.deepEqual(projectProcessorConstructorArgs.libraryMetadata, libraryMetadata.libraryMetadata,
+		"Correct libraryMetadata provided to ProjectProcessor");
+	t.is(projectProcessorConstructorArgs.graph._rootProjectName,
+		"fake-root-of-application.a-framework-dependency-graph",
+		"Correct graph provided to ProjectProcessor");
+	t.falsy(projectProcessorConstructorArgs.workspace,
+		"No workspace provided to ProjectProcessor");
+
+	t.is(addProjectToGraphStub.callCount, 3, "ProjectProcessor#getProject should be called 3 times");
+	t.deepEqual(addProjectToGraphStub.getCall(0).args[0], referencedLibraries[0],
+		"ProjectProcessor#addProjectToGraph should be called with expected first arg (call 1)");
+	t.deepEqual(addProjectToGraphStub.getCall(1).args[0], referencedLibraries[1],
+		"ProjectProcessor#addProjectToGraph should be called with expected first arg (call 2)");
+	t.deepEqual(addProjectToGraphStub.getCall(2).args[0], referencedLibraries[2],
+		"ProjectProcessor#addProjectToGraph should be called with expected first arg (call 3)");
+
+
+	const callbackStub = sinon.stub().resolves();
+	await projectGraph.traverseDepthFirst(callbackStub);
+
+	t.is(callbackStub.callCount, 1, "Correct number of projects have been visited");
+
+	const callbackCalls = callbackStub.getCalls().map((call) => call.args[0].project.getName());
+	t.deepEqual(callbackCalls, [
+		"application.a"
+	], "Traversed graph in correct order");
+
+	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT;
+});
+
 test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 	const {
 		sinon, ui5Framework, utils,
@@ -241,7 +340,10 @@ test.serial("enrichProjectGraph shouldn't throw when no framework version and no
 	const provider = new DependencyTreeProvider({dependencyTree});
 	const projectGraph = await projectGraphBuilder(provider);
 
-	await ui5Framework.enrichProjectGraph(projectGraph);
+	// Framework override is fine, even if no framework version is configured
+	await ui5Framework.enrichProjectGraph(projectGraph, {
+		versionOverride: "1.75.0"
+	});
 
 	t.is(log.verbose.callCount, 2);
 	t.deepEqual(log.verbose.getCall(0).args, [

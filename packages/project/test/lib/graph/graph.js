@@ -36,7 +36,7 @@ test.beforeEach(async (t) => {
 		"../../../lib/graph/helpers/createWorkspace.js": t.context.createWorkspaceStub,
 		"../../../lib/graph/projectGraphBuilder.js": t.context.projectGraphBuilderStub,
 		"../../../lib/graph/helpers/ui5Framework.js": {
-			enrichProjectGraph: t.context.enrichProjectGraphStub
+			"enrichProjectGraph": t.context.enrichProjectGraphStub
 		}
 	});
 });
