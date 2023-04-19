@@ -48,19 +48,27 @@ test.beforeEach(async (t) => {
 		},
 	});
 
+	const AbstractInstaller = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
+		"@ui5/logger": ui5Logger,
+		"../../../../lib/utils/fs.js": {
+			mkdirp: sinon.stub().resolves()
+		},
+		"lockfile": {
+			lock: sinon.stub().yieldsAsync(),
+			unlock: sinon.stub().yieldsAsync()
+		}
+	});
+
 	t.context.Installer = await esmock.p("../../../../lib/ui5Framework/npm/Installer.js", {
 		"@ui5/logger": ui5Logger,
 		"graceful-fs": {
 			rename: sinon.stub().yieldsAsync(),
 		},
 		"../../../../lib/utils/fs.js": {
-			mkdir: sinon.stub().resolves()
+			mkdirp: sinon.stub().resolves()
 		},
-		"lockfile": {
-			lock: sinon.stub().yieldsAsync(),
-			unlock: sinon.stub().yieldsAsync()
-		},
-		"../../../../lib/ui5Framework/npm/Registry.js": t.context.Registry
+		"../../../../lib/ui5Framework/npm/Registry.js": t.context.Registry,
+		"../../../../lib/ui5Framework/AbstractInstaller.js": AbstractInstaller
 	});
 
 	t.context.AbstractResolver = await esmock.p("../../../../lib/ui5Framework/AbstractResolver.js", {
