@@ -79,7 +79,7 @@ test.serial("fromFile", async (t) => {
 	t.deepEqual(config.toJSON(), ui5rcContents);
 });
 
-test.serial("fromFile: configuration file not found- fallback to default config", async (t) => {
+test.serial("fromFile: configuration file not found - fallback to default config", async (t) => {
 	const {promisifyStub, sinon, Configuration} = t.context;
 	const fromFile = Configuration.fromFile;
 
@@ -89,7 +89,21 @@ test.serial("fromFile: configuration file not found- fallback to default config"
 	const config = await fromFile("/non-existing/path/.ui5rc");
 
 	t.is(config instanceof Configuration, true, "Created a default configuration");
-	t.is(config.getMavenSnapshotEndpointUrl(), undefined, "Dafault settings");
+	t.is(config.getMavenSnapshotEndpointUrl(), undefined, "Default settings");
+});
+
+
+test.serial("fromFile: empty configuration file - fallback to default config", async (t) => {
+	const {promisifyStub, sinon, Configuration} = t.context;
+	const fromFile = Configuration.fromFile;
+
+	const responseStub = sinon.stub().resolves("");
+	promisifyStub.callsFake(() => responseStub);
+
+	const config = await fromFile("/non-existing/path/.ui5rc");
+
+	t.is(config instanceof Configuration, true, "Created a default configuration");
+	t.is(config.getMavenSnapshotEndpointUrl(), undefined, "Default settings");
 });
 
 test.serial("fromFile: throws", async (t) => {
@@ -99,8 +113,8 @@ test.serial("fromFile: throws", async (t) => {
 	const responseStub = sinon.stub().throws(new Error("Error"));
 	promisifyStub.callsFake(() => responseStub);
 
-	await t.throwsAsync(fromFile("/non-existing/path/.ui5rc"), {
-		message: "Error"
+	await t.throwsAsync(fromFile(), {
+		message: `Failed to read UI5 Tooling configuration from ~/.ui5rc: Error`
 	});
 });
 
@@ -119,4 +133,16 @@ test.serial("toFile", async (t) => {
 		["/path/to/save/.ui5rc", JSON.stringify(config.toJSON())],
 		"Write config to path"
 	);
+});
+
+test.serial("toFile: throws", async (t) => {
+	const {promisifyStub, sinon, Configuration} = t.context;
+	const toFile = Configuration.toFile;
+
+	const responseStub = sinon.stub().throws(new Error("Error"));
+	promisifyStub.callsFake(() => responseStub);
+
+	await t.throwsAsync(toFile(new Configuration({})), {
+		message: "Failed to write UI5 Tooling configuration to ~/.ui5rc: Error"
+	});
 });

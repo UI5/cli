@@ -58,13 +58,20 @@ class Configuration {
 		let config;
 		try {
 			const fileContent = await readFile(filePath);
-			config = JSON.parse(fileContent);
+			if (!fileContent.length) {
+				config = {};
+			} else {
+				config = JSON.parse(fileContent);
+			}
 		} catch (err) {
 			if (err.code === "ENOENT") {
 				// "File or directory does not exist"
 				config = {};
 			} else {
-				throw err;
+				throw new Error(
+					`Failed to read UI5 Tooling configuration from ${filePath}: ${err.message}`, {
+						cause: err
+					});
 			}
 		}
 		return new Configuration(config);
@@ -86,7 +93,14 @@ class Configuration {
 		const {promisify} = await import("node:util");
 		const writeFile = promisify(fs.writeFile);
 
-		return writeFile(filePath, JSON.stringify(config.toJSON()));
+		try {
+			return writeFile(filePath, JSON.stringify(config.toJSON()));
+		} catch (err) {
+			throw new Error(
+				`Failed to write UI5 Tooling configuration to ${filePath}: ${err.message}`, {
+					cause: err
+				});
+		}
 	}
 }
 
