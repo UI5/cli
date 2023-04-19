@@ -25,6 +25,11 @@ test.beforeEach(async (t) => {
 	t.context.loggerWarn = sinon.stub();
 	t.context.loggerInfo = sinon.stub();
 
+	t.context.Configuration = await esmock.p("../../../lib/config/Configuration.js", {});
+	t.context.configFromFile = sinon.stub(t.context.Configuration, "fromFile")
+		.resolves(new t.context.Configuration({}));
+	t.context.configToFile = sinon.stub(t.context.Configuration, "toFile").resolves();
+
 	t.context.Sapui5MavenSnapshotResolver = await esmock.p("../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js", {
 		"../../../lib/ui5Framework/maven/Installer": t.context.InstallerStub,
 		"yesno": t.context.yesnoStub,
@@ -37,7 +42,8 @@ test.beforeEach(async (t) => {
 				warning: t.context.loggerWarn,
 				info: t.context.loggerInfo,
 			})
-		}
+		},
+		"../../../lib/config/Configuration": t.context.Configuration
 	});
 
 	t.context.originalIsTty = process.stdout.isTTY;
@@ -251,9 +257,87 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions without option
 	}], "Installer should be called with expected arguments");
 });
 
+test.serial("_createSnapshotEndpointUrlCallback: Environment variable", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
+
+	const endpointCallback = await createSnapshotEndpointUrlCallback();
+
+	t.is(await endpointCallback(), "_SNAPSHOT_URL_",
+		"Returned a callback resolving to value of env variable");
+});
+
+test.serial("_createSnapshotEndpointUrlCallback: Parameter", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
+
+	const endpointCallback = await createSnapshotEndpointUrlCallback("my url");
+
+	t.is(await endpointCallback(), "my url",
+		"Returned a callback resolving to value of env variable");
+});
+
+test.serial("_createSnapshotEndpointUrlCallback: Fallback to configuration files", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
+
+	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT; // Delete env variable for this test
+	const resolveUrlStub = sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrl").resolves("🐱");
+
+	const endpointCallback = await createSnapshotEndpointUrlCallback();
+
+	t.is(endpointCallback, resolveUrlStub, "Returned correct callback");
+	t.is(await endpointCallback(), "🐱", "Callback can be executed correctly");
+});
+
+test.serial("_resolveSnapshotEndpointUrl: From configuration", async (t) => {
+	const {configFromFile, configToFile, Configuration, Sapui5MavenSnapshotResolver} = t.context;
+	const resolveSnapshotEndpointUrl = Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
+
+	configFromFile.resolves(new Configuration({mavenSnapshotEndpointUrl: "config-url"}));
+	const fromMavenStub = sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrlFromMaven").resolves();
+
+	const endpoint = await resolveSnapshotEndpointUrl();
+
+	t.is(endpoint, "config-url", "Returned URL extracted from UI5 Tooling configuration");
+	t.is(configFromFile.callCount, 1, "Configuration has been read once");
+	t.is(configToFile.callCount, 0, "Configuration has not been written");
+	t.is(fromMavenStub.callCount, 0, "Maven configuration has not been requested");
+});
+
+test.serial("_resolveSnapshotEndpointUrl: Maven fallback with config update", async (t) => {
+	const {configFromFile, configToFile, Sapui5MavenSnapshotResolver} = t.context;
+	const resolveSnapshotEndpointUrl = Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
+
+	sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrlFromMaven").resolves("maven-url");
+
+	const endpoint = await resolveSnapshotEndpointUrl();
+
+	t.is(endpoint, "maven-url", "Returned URL extracted from Maven settings.xml");
+	t.is(configFromFile.callCount, 1, "Configuration has been read once");
+	t.is(configToFile.callCount, 1, "Configuration has been written once");
+	t.deepEqual(configToFile.firstCall.firstArg.toJSON(), {
+		mavenSnapshotEndpointUrl: "maven-url"
+	}, "Correct configuration has been written");
+});
+
+test.serial("_resolveSnapshotEndpointUrl: Maven fallback without config update", async (t) => {
+	const {configFromFile, configToFile, Sapui5MavenSnapshotResolver} = t.context;
+	const resolveSnapshotEndpointUrl = Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
+
+	// Resolving with null
+	sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrlFromMaven").resolves(null);
+
+	const endpoint = await resolveSnapshotEndpointUrl();
+
+	t.is(endpoint, null, "No URL resolved");
+	t.is(configFromFile.callCount, 1, "Configuration has been read once");
+	t.is(configToFile.callCount, 0, "Configuration has not been written");
+});
+
 test.serial("_resolveSnapshotEndpointUrlFromMaven", async (t) => {
 	const resolveSnapshotEndpointUrl = t.context.Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven;
-	const {promisifyStub, yesnoStub, loggerInfo} = t.context;
+	const {promisifyStub, yesnoStub} = t.context;
 
 	process.stdout.isTTY = true;
 
@@ -277,12 +361,34 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven", async (t) => {
 	const endpoint = await resolveSnapshotEndpointUrl();
 
 	t.is(endpoint, "/build-snapshots/", "URL Extracted from settings.xml");
+});
 
-	t.is(loggerInfo.getCall(0).args[0],
-		"Using Maven snapshot endpoint URL resolved from Maven configuration file: /build-snapshots/");
-	t.is(loggerInfo.getCall(1).args[0],
-		"Consider persisting this choice by executing the following command: " +
-		"ui5 config set mavenSnapshotEndpointUrl /build-snapshots/");
+test.serial("_resolveSnapshotEndpointUrlFromMaven: No snapshot.build attribute", async (t) => {
+	const resolveSnapshotEndpointUrl = t.context.Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven;
+	const {promisifyStub, yesnoStub} = t.context;
+
+	process.stdout.isTTY = true;
+
+	const readStub = sinon.stub().resolves(`<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+	  <profiles>
+		<profile>
+		  <id>deploy.build</id>
+		  <pluginRepositories>
+			<pluginRepository>
+			  <id>artifactory</id>
+			  <url>/build-snapshots/</url>
+			</pluginRepository>
+		  </pluginRepositories>
+		</profile>
+	  </profiles>
+	</settings>`);
+	promisifyStub.callsFake(() => readStub);
+	yesnoStub.resolves(true);
+
+	const endpoint = await resolveSnapshotEndpointUrl();
+
+	t.is(endpoint, null, "No URL Extracted from settings.xml");
 });
 
 test.serial("_resolveSnapshotEndpointUrlFromMaven fails", async (t) => {
@@ -310,7 +416,9 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven fails", async (t) => {
 			</settings>`);
 	promisifyStub.callsFake(() => readStub);
 
-	await resolveSnapshotEndpointUrl(".m2/settings.xml");
+	let endpoint;
+	endpoint = await resolveSnapshotEndpointUrl(".m2/settings.xml");
+	t.is(endpoint, null, "No endpoint resolved");
 	t.is(
 		loggerVerbose.getCall(0).args[0],
 		"Attempting to resolve snapshot endpoint URL from Maven configuration file at .m2/settings.xml..."
@@ -322,7 +430,8 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven fails", async (t) => {
 
 	loggerVerbose.reset();
 	loggerWarn.reset();
-	await resolveSnapshotEndpointUrl("settings.xml");
+	endpoint = await resolveSnapshotEndpointUrl("settings.xml");
+	t.is(endpoint, null, "No endpoint resolved");
 	t.is(
 		loggerVerbose.getCall(0).args[0],
 		"Attempting to resolve snapshot endpoint URL from Maven configuration file at settings.xml..."
@@ -335,9 +444,9 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven fails", async (t) => {
 	loggerVerbose.reset();
 	loggerWarn.reset();
 	yesnoStub.resolves(false);
-	const endpoint = await resolveSnapshotEndpointUrl();
+	endpoint = await resolveSnapshotEndpointUrl();
 
-	t.falsy(endpoint, "URL is not extracted after user rejection");
+	t.is(endpoint, null, "URL is not extracted after user rejection");
 	t.is(
 		loggerVerbose.getCall(1).args[0],
 		"User rejected usage of the resolved URL"

@@ -61,7 +61,9 @@ class Registry {
 			if (err.code === "ENOTFOUND") {
 				throw new Error(
 					`Failed to connect to Maven registry at ${this._endpointUrl}. ` +
-					`Please check the correct endpoint URL is maintained and can be reached. `);
+					`Please check the correct endpoint URL is maintained and can be reached. ` +
+					`You can change the configured URL using the following command: ` +
+					`'ui5 config set mavenSnapshotEndpointUrl <url>'`);
 
 				// TODO: Allow cacheMode to be set from outside
 				// `You may be able to continue working offline. For this, set --cache-mode to "force"`);
@@ -94,7 +96,9 @@ class Registry {
 			if (err.code === "ENOTFOUND") {
 				throw new Error(
 					`Failed to connect to Maven registry at ${this._endpointUrl}. ` +
-					`Please check the correct endpoint URL is maintained and can be reached. `);
+					`Please check the correct endpoint URL is maintained and can be reached. ` +
+					`You can change the configured URL using the following command: ` +
+					`'ui5 config set mavenSnapshotEndpointUrl <url>'`);
 
 				// TODO: Allow cacheMode to be set from outside
 				// `You may be able to continue working offline. For this, set --cache-mode to "force"`);

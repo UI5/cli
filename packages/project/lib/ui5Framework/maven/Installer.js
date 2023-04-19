@@ -69,8 +69,9 @@ class Installer extends AbstractInstaller {
 				if (!snapshotEndpointUrl) {
 					reject(new Error(
 						`Installer: Missing or empty Maven repository URL for snapshot consumption. ` +
+						`This URL is required for consuming snapshot versions of UI5 libraries. ` +
 						`Please configure the correct URL using the following command: ` +
-						`ui5 config set mavenSnapshotEndpointUrl https://registry.corp/vendor/build-snapshots/`));
+						`'ui5 config set mavenSnapshotEndpointUrl <url>'`));
 				}
 
 				resolve(new Registry({endpointUrl: snapshotEndpointUrl}));

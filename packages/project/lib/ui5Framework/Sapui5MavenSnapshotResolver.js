@@ -152,10 +152,35 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			// user for confirmation. In some cases where the resources are already cached,
 			// this is not necessary and we could skip it as a real request to the repository won't
 			// be made.
-			return Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven;
+			return Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
 		} else {
 			return () => Promise.resolve(snapshotEndpointUrl);
 		}
+	}
+
+	/**
+	 * Read the Maven repository snapshot endpoint URL from the central
+	 * UI5 Tooling configuration, with a fallback to central Maven configuration (is existing)
+	 *
+	 * @returns {Promise<string>} The resolved snapshotEndpointUrl
+	 */
+	static async _resolveSnapshotEndpointUrl() {
+		const {default: Configuration} = await import("../config/Configuration.js");
+		const config = await Configuration.fromFile();
+		let url = config.getMavenSnapshotEndpointUrl();
+		if (url) {
+			log.verbose(`Using UI5 Tooling configuration for mavenSnapshotEndpointUrl: ${url}`);
+		} else {
+			log.verbose(`No mavenSnapshotEndpointUrl configuration found`);
+			url = await Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven();
+			if (url) {
+				log.verbose(`Updating UI5 Tooling configuration with new mavenSnapshotEndpointUrl: ${url}`);
+				const configJson = config.toJSON();
+				configJson.mavenSnapshotEndpointUrl = url;
+				await Configuration.toFile(new Configuration(configJson));
+			}
+		}
+		return url;
 	}
 
 	/**
@@ -173,7 +198,6 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			return null;
 		}
 
-		let skipConfirmation = false;
 		settingsXML =
 			settingsXML || path.resolve(path.join(os.homedir(), ".m2", "settings.xml"));
 
@@ -201,40 +225,36 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 				snapshotBuildChunk?.pluginRepositories?.[0]?.pluginRepository?.[0]?.url?.[0]?._;
 
 			if (!url) {
-				skipConfirmation = true;
 				log.verbose(`"snapshot.build" attribute could not be found in ${settingsXML}`);
+				return null;
 			}
 		} catch (err) {
-			skipConfirmation = true;
 			if (err.code === "ENOENT") {
 				// "File or directory does not exist"
 				log.verbose(`File does not exist: ${settingsXML}`);
 			} else {
 				log.warning(`Failed to read Maven configuration file from ${settingsXML}: ${err.message}`);
 			}
+			return null;
 		}
 
-		if (!skipConfirmation) {
-			const {default: yesno} = await import("yesno");
-			const ok = await yesno({
-				question:
-					"A Maven snapshot endpoint URL is required for consuming snapshot versions of UI5 libraries. " +
-					`The following URL has been found in a Maven configuration file at ${settingsXML}: '${url}'. ` +
-					`Continue with this endpoint URL? (yes)`,
-				defaultValue: true,
-			});
+		const {default: yesno} = await import("yesno");
+		const ok = await yesno({
+			question:
+				"\nA Maven repository endpoint URL is required for consuming snapshot versions of UI5 libraries.\n" +
+				"You can configure one using the command: 'ui5 config set mavenSnapshotEndpointUrl <url>'\n\n" +
+				`The following URL has been found in a Maven configuration file at ${settingsXML}:\n${url}\n\n` +
+				`Continue with this endpoint URL and remember it for the future? (yes)`,
+			defaultValue: true,
+		});
 
-			if (ok) {
-				log.info(`Using Maven snapshot endpoint URL resolved from Maven configuration file: ${url}`);
-				log.info(`Consider persisting this choice by executing the following command: ` +
-					`ui5 config set mavenSnapshotEndpointUrl ${url}`);
-			} else {
-				log.verbose(`User rejected usage of the resolved URL`);
-				url = null;
-			}
+		if (ok) {
+			log.verbose(`Using Maven snapshot endpoint URL resolved from Maven configuration file: ${url}`);
+			return url;
+		} else {
+			log.verbose(`User rejected usage of the resolved URL`);
+			return null;
 		}
-
-		return url;
 	}
 }
 
