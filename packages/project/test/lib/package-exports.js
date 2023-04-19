@@ -13,11 +13,12 @@ test("export of package.json", (t) => {
 // Check number of definied exports
 test("check number of exports", (t) => {
 	const packageJson = require("@ui5/project/package.json");
-	t.is(Object.keys(packageJson.exports).length, 11);
+	t.is(Object.keys(packageJson.exports).length, 12);
 });
 
 // Public API contract (exported modules)
 [
+	"config/Configuration",
 	"specifications/Specification",
 	"specifications/SpecificationVersion",
 	"ui5Framework/Openui5Resolver",

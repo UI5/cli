@@ -282,7 +282,7 @@ test.serial("_resolveSnapshotEndpointUrlFromMaven", async (t) => {
 		"Using Maven snapshot endpoint URL resolved from Maven configuration file: /build-snapshots/");
 	t.is(loggerInfo.getCall(1).args[0],
 		"Consider persisting this choice by executing the following command: " +
-		"ui5 config set snapshotEndpointUrl /build-snapshots/");
+		"ui5 config set mavenSnapshotEndpointUrl /build-snapshots/");
 });
 
 test.serial("_resolveSnapshotEndpointUrlFromMaven fails", async (t) => {

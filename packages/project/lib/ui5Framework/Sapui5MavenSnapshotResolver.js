@@ -227,7 +227,7 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			if (ok) {
 				log.info(`Using Maven snapshot endpoint URL resolved from Maven configuration file: ${url}`);
 				log.info(`Consider persisting this choice by executing the following command: ` +
-					`ui5 config set snapshotEndpointUrl ${url}`);
+					`ui5 config set mavenSnapshotEndpointUrl ${url}`);
 			} else {
 				log.verbose(`User rejected usage of the resolved URL`);
 				url = null;

@@ -70,7 +70,7 @@ class Installer extends AbstractInstaller {
 					reject(new Error(
 						`Installer: Missing or empty Maven repository URL for snapshot consumption. ` +
 						`Please configure the correct URL using the following command: ` +
-						`ui5 config set snapshotEndpointUrl https://registry.corp/vendor/build-snapshots/`));
+						`ui5 config set mavenSnapshotEndpointUrl https://registry.corp/vendor/build-snapshots/`));
 				}
 
 				resolve(new Registry({endpointUrl: snapshotEndpointUrl}));

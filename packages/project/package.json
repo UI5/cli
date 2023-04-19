@@ -18,6 +18,7 @@
 	],
 	"type": "module",
 	"exports": {
+		"./config/Configuration": "./lib/config/Configuration.js",
 		"./specifications/Specification": "./lib/specifications/Specification.js",
 		"./specifications/SpecificationVersion": "./lib/specifications/SpecificationVersion.js",
 		"./ui5Framework/Sapui5MavenSnapshotResolver": "./lib/ui5Framework/Sapui5MavenSnapshotResolver.js",
