@@ -55,7 +55,13 @@ class AbstractResolver {
 		);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
+
+		// Environment variable should always enforce usage of sources
+		if (process.env.UI5_PROJECT_USE_FRAMEWORK_SOURCES) {
+			sources = true;
+		}
 		this._sources = !!sources;
+
 		this._providedLibraryMetadata = providedLibraryMetadata;
 	}
 

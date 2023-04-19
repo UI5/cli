@@ -22,6 +22,7 @@ test.beforeEach(async (t) => {
 });
 
 test.afterEach.always((t) => {
+	delete process.env.UI5_PROJECT_USE_FRAMEWORK_SOURCES;
 	esmock.purge(t.context.AbstractResolver);
 	sinon.restore();
 });
@@ -42,12 +43,28 @@ test("AbstractResolver: constructor", (t) => {
 	const resolver = new MyResolver({
 		cwd: "/test-project/",
 		version: "1.75.0",
-		providedLibraryMetadata
+		providedLibraryMetadata,
+		sources: true
 	});
 	t.true(resolver instanceof MyResolver, "Constructor returns instance of sub-class");
 	t.true(resolver instanceof AbstractResolver, "Constructor returns instance of abstract class");
 	t.is(resolver._version, "1.75.0");
-	t.is(resolver._providedLibraryMetadata, providedLibraryMetadata);
+	t.true(resolver._sources, "Correct value for 'sources' flag");
+});
+
+test("AbstractResolver: constructor overwrites sources with env variable", (t) => {
+	const {MyResolver, AbstractResolver} = t.context;
+
+	process.env.UI5_PROJECT_USE_FRAMEWORK_SOURCES = true;
+	const resolver = new MyResolver({
+		cwd: "/test-project/",
+		version: "1.75.0",
+		sources: false // Environment variable overrules parameter
+	});
+	t.true(resolver instanceof MyResolver, "Constructor returns instance of sub-class");
+	t.true(resolver instanceof AbstractResolver, "Constructor returns instance of abstract class");
+	t.is(resolver._version, "1.75.0");
+	t.true(resolver._sources, "Correct value for 'sources' flag");
 });
 
 test("AbstractResolver: constructor without version", (t) => {
