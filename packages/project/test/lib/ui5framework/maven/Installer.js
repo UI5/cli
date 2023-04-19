@@ -29,6 +29,14 @@ test.beforeEach(async (t) => {
 		close = sinon.stub().resolves();
 	};
 
+	t.context.registryRequestMavenMetadataStub = sinon.stub().resolves();
+	t.context.registryRequestArtifactStub = sinon.stub().resolves();
+
+	t.context.RegistryConstructorStub = sinon.stub().returns({
+		requestMavenMetadata: t.context.registryRequestMavenMetadataStub,
+		requestArtifact: t.context.registryRequestArtifactStub
+	});
+
 	t.context.AbstractInstaller = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
 		"../../../../lib/utils/fs.js": {
 			mkdirp: t.context.mkdirpStub
@@ -40,6 +48,7 @@ test.beforeEach(async (t) => {
 	});
 
 	t.context.Installer = await esmock.p("../../../../lib/ui5Framework/maven/Installer.js", {
+		"../../../../lib/ui5Framework/maven/Registry.js": t.context.RegistryConstructorStub,
 		"../../../../lib/ui5Framework/AbstractInstaller.js": t.context.AbstractInstaller,
 		"../../../../lib/utils/fs.js": {
 			mkdirp: t.context.mkdirpStub
@@ -59,7 +68,7 @@ test.afterEach.always((t) => {
 	esmock.purge(t.context.Installer);
 });
 
-test.serial("Installer: constructor", (t) => {
+test.serial("constructor", (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -70,12 +79,12 @@ test.serial("Installer: constructor", (t) => {
 	t.true(installer instanceof Installer, "Constructor returns instance of class");
 	t.is(installer._artifactsDir, path.join("/ui5Home/", "framework", "artifacts"));
 	t.is(installer._packagesDir, path.join("/ui5Home/", "framework", "packages"));
-	t.is(installer._lockDir, path.join("/ui5Home/", "framework", "locks"));
 	t.is(installer._stagingDir, path.join("/ui5Home/", "framework", "staging"));
 	t.is(installer._metadataDir, path.join("/ui5Home/", "framework", "metadata"));
+	t.is(installer._lockDir, path.join("/ui5Home/", "framework", "locks"));
 });
 
-test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
+test.serial("constructor requires 'ui5HomeDir'", (t) => {
 	const {Installer} = t.context;
 
 	t.throws(() => {
@@ -85,7 +94,7 @@ test.serial("Installer: constructor requires 'ui5HomeDir'", (t) => {
 	}, {message: `Installer: Missing parameter "ui5HomeDir"`});
 });
 
-test.serial("Installer: constructor requires 'snapshotEndpointUrlCb' or ENV variable", (t) => {
+test.serial("constructor requires 'snapshotEndpointUrlCb'", (t) => {
 	const {Installer} = t.context;
 
 	t.throws(() => {
@@ -96,8 +105,8 @@ test.serial("Installer: constructor requires 'snapshotEndpointUrlCb' or ENV vari
 	}, {message: `Installer: Missing Snapshot-Endpoint URL callback parameter`});
 });
 
-test.serial("Installer: fetchPackageVersions", async (t) => {
-	const {Installer} = t.context;
+test.serial("getRegistry", async (t) => {
+	const {Installer, RegistryConstructorStub} = t.context;
 
 	const installer = new Installer({
 		cwd: "/cwd/",
@@ -105,8 +114,48 @@ test.serial("Installer: fetchPackageVersions", async (t) => {
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
-	const registry = await installer.getRegistry();
-	const requestMavenMetadataStub = sinon.stub(registry, "requestMavenMetadata")
+	const registry1 = await installer.getRegistry();
+
+	t.truthy(registry1, "Created registry");
+	t.is(RegistryConstructorStub.callCount, 1, "Registry constructor called once");
+	t.deepEqual(RegistryConstructorStub.firstCall.firstArg, {
+		endpointUrl: "endpoint-url"
+	}, "Registry constructor called with correct endpoint URL");
+
+	const registry2 = await installer.getRegistry();
+	t.is(registry2, registry1, "Registry instance is cached");
+	t.is(RegistryConstructorStub.callCount, 1, "Registry constructor still only called once");
+});
+
+test.serial("getRegistry: Missing endpoint URL", async (t) => {
+	const {Installer, RegistryConstructorStub} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => Promise.resolve(null)
+	});
+
+	const err = await t.throwsAsync(installer.getRegistry());
+	t.is(err.message, "Installer: Missing or empty Maven repository URL for snapshot consumption. " +
+		"This URL is required for consuming snapshot versions of UI5 libraries. " +
+		"Please configure the correct URL using the following command: " +
+		"'ui5 config set mavenSnapshotEndpointUrl <url>'",
+	"Threw with expected error message");
+
+	t.is(RegistryConstructorStub.callCount, 0, "Registry constructor did not get called");
+});
+
+test.serial("fetchPackageVersions", async (t) => {
+	const {Installer, registryRequestMavenMetadataStub} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
+	});
+
+	registryRequestMavenMetadataStub
 		.resolves({
 			versioning: {
 				versions: {
@@ -119,13 +168,13 @@ test.serial("Installer: fetchPackageVersions", async (t) => {
 
 	t.deepEqual(packageVersions, ["2.0.0-SNAPSHOT", "5.0.0-SNAPSHOT"], "Should resolve with expected versions");
 
-	t.is(requestMavenMetadataStub.callCount, 1, "requestPackagePackument should be called once");
-	t.deepEqual(requestMavenMetadataStub.getCall(0).args[0], {groupId: "ui5.corp", artifactId: "great-thing"},
+	t.is(registryRequestMavenMetadataStub.callCount, 1, "requestPackagePackument should be called once");
+	t.deepEqual(registryRequestMavenMetadataStub.getCall(0).args[0], {groupId: "ui5.corp", artifactId: "great-thing"},
 		"requestMavenMetadata was called with correct arguments");
 });
 
-test.serial("Installer: fetchPackageVersions throws", async (t) => {
-	const {Installer} = t.context;
+test.serial("fetchPackageVersions throws", async (t) => {
+	const {Installer, registryRequestMavenMetadataStub} = t.context;
 
 	const installer = new Installer({
 		cwd: "/cwd/",
@@ -133,8 +182,7 @@ test.serial("Installer: fetchPackageVersions throws", async (t) => {
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
-	const registry = await installer.getRegistry();
-	sinon.stub(registry, "requestMavenMetadata").resolves({});
+	registryRequestMavenMetadataStub.resolves({});
 
 	await t.throwsAsync(
 		installer.fetchPackageVersions({
@@ -145,7 +193,7 @@ test.serial("Installer: fetchPackageVersions throws", async (t) => {
 	);
 });
 
-test.serial("Installer: _getLockPath", (t) => {
+test.serial("_getLockPath", (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -159,7 +207,7 @@ test.serial("Installer: _getLockPath", (t) => {
 	t.is(lockPath, path.join("/ui5Home/", "framework", "locks", "package-@openui5-sap.ui.lib1@1.2.3-SNAPSHOT.lock"));
 });
 
-test.serial("Installer: readJson", async (t) => {
+test.serial("readJson", async (t) => {
 	const jsonStub = {json: "response"};
 	const {Installer} = t.context;
 
@@ -176,7 +224,7 @@ test.serial("Installer: readJson", async (t) => {
 	t.deepEqual(jsonResponse, jsonStub);
 });
 
-test.serial("Installer: installPackage", async (t) => {
+test.serial("installPackage", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -185,13 +233,122 @@ test.serial("Installer: installPackage", async (t) => {
 		snapshotEndpointUrlCb: () => {}
 	});
 
-	sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "1.22"});
+	const removeArtifactStub = sinon.stub().resolves();
+	const fetchArtifactMetadataStub = sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
 	sinon.stub(installer, "_pathExists").resolves(false);
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
-	sinon.stub(installer, "installArtifact").resolves({
-		artifactPath: "/ui5Home/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/1.22/npm-sources.zip",
-		removeArtifact: sinon.stub().resolves()
+	const installArtifactStub = sinon.stub(installer, "installArtifact").resolves({
+		artifactPath: "/ui5Home/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/5/npm-sources.zip",
+		removeArtifact: removeArtifactStub
 	});
+
+	const installedPackage = await installer.installPackage({
+		pkgName: "@sapui5/distribution-metadata",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: "npm-sources",
+		extension: "zip",
+	});
+
+	t.deepEqual(
+		installedPackage,
+		{pkgPath:
+				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+		"Install the correct package"
+	);
+
+	t.is(fetchArtifactMetadataStub.callCount, 1, "fetchArtifactMetadataStub got called once");
+	t.deepEqual(fetchArtifactMetadataStub.firstCall.firstArg, {
+		pkgName: "@sapui5/distribution-metadata",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: "npm-sources",
+		extension: "zip",
+	}, "fetchArtifactMetadataStub got called with expected arguments");
+
+	t.is(installArtifactStub.callCount, 1, "installArtifact got called once");
+	t.deepEqual(installArtifactStub.firstCall.firstArg, {
+		revision: "5",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: "npm-sources",
+		extension: "zip",
+	}, "installArtifact got called with the expected parameters");
+	t.is(removeArtifactStub.callCount, 1, "removeArtifact got called once");
+});
+
+test.serial("installPackage: No classifier", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
+	});
+
+	const removeArtifactStub = sinon.stub().resolves();
+	const fetchArtifactMetadataStub = sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
+	sinon.stub(installer, "_pathExists").resolves(false);
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+	const installArtifactStub = sinon.stub(installer, "installArtifact").resolves({
+		artifactPath: "/ui5Home/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/5/npm-sources.zip",
+		removeArtifact: removeArtifactStub
+	});
+
+	const installedPackage = await installer.installPackage({
+		pkgName: "@sapui5/distribution-metadata",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: null,
+		extension: "jar",
+	});
+
+	t.deepEqual(
+		installedPackage,
+		{pkgPath:
+				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+		"Install the correct package"
+	);
+
+	t.is(fetchArtifactMetadataStub.callCount, 1, "fetchArtifactMetadataStub got called once");
+	t.deepEqual(fetchArtifactMetadataStub.firstCall.firstArg, {
+		pkgName: "@sapui5/distribution-metadata",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: null,
+		extension: "jar",
+	}, "fetchArtifactMetadataStub got called with expected arguments");
+
+	t.is(installArtifactStub.callCount, 1, "installArtifact got called once");
+	t.deepEqual(installArtifactStub.firstCall.firstArg, {
+		revision: "5",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: null,
+		extension: "jar",
+	}, "installArtifact got called with the expected parameters");
+	t.is(removeArtifactStub.callCount, 1, "removeArtifact got called once");
+});
+
+test.serial("installPackage: Already installed", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
+	});
+
+	sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
+	sinon.stub(installer, "_projectExists").resolves(true);
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+	const installArtifactStub = sinon.stub(installer, "installArtifact");
 
 	const installedPackage = await installer.installPackage({
 		pkgName: "@sapui5/distribution-metadata",
@@ -205,12 +362,14 @@ test.serial("Installer: installPackage", async (t) => {
 	t.deepEqual(
 		installedPackage,
 		{pkgPath:
-				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "1.22")},
+				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
 		"Install the correct package"
 	);
+
+	t.is(installArtifactStub.callCount, 0, "installArtifact did not get called");
 });
 
-test.serial("Installer: installArtifact", async (t) => {
+test.serial("installPackage: Already installed only after lock acquired", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -219,14 +378,162 @@ test.serial("Installer: installArtifact", async (t) => {
 		snapshotEndpointUrlCb: () => {}
 	});
 
-	sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "1.22"});
+	sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
+	sinon.stub(installer, "_projectExists")
+		.onFirstCall().resolves(false)
+		.onSecondCall().resolves(true);
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+	const installArtifactStub = sinon.stub(installer, "installArtifact");
+
+	const installedPackage = await installer.installPackage({
+		pkgName: "@sapui5/distribution-metadata",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: "npm-sources",
+		extension: "jar",
+	});
+
+	t.deepEqual(
+		installedPackage,
+		{pkgPath:
+				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+		"Install the correct package"
+	);
+
+	t.is(installArtifactStub.callCount, 0, "installArtifact did not get called");
+});
+
+test.serial("installArtifact", async (t) => {
+	const {Installer, rmStub, registryRequestArtifactStub} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: async () => "url"
+	});
+
+	const fetchArtifactMetadataStub = sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
 	sinon.stub(installer, "_pathExists").resolves(false);
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
-	sinon.stub(installer, "getRegistry").callsFake(() => {
-		return {
-			requestArtifact: sinon.stub().resolves()
-		};
+
+	const installedArtifact = await installer.installArtifact({
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		extension: "jar",
+		classifier: null
 	});
+
+	const expectedPath = path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
+	t.is(
+		installedArtifact.artifactPath,
+		expectedPath,
+		"artifactPath correctly resolved"
+	);
+
+	t.is(fetchArtifactMetadataStub.callCount, 1, "fetchArtifactMetadataStub got called once");
+	t.deepEqual(fetchArtifactMetadataStub.firstCall.firstArg, {
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		classifier: null,
+		extension: "jar",
+	}, "fetchArtifactMetadataStub got called with expected arguments");
+
+	t.is(registryRequestArtifactStub.callCount, 1, "Registry#requestArtifact got called once");
+	t.deepEqual(registryRequestArtifactStub.firstCall.firstArg, {
+		revision: "5",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		classifier: null,
+		version: "1.75.0",
+		extension: "jar",
+	}, "Registry#requestArtifact got called with expected coordinates");
+	t.is(registryRequestArtifactStub.firstCall.args[1],
+		path.join("/ui5Home/", "framework", "staging", "com.sap.ui5.dist_sapui5-sdk-dist_5_jar"),
+		"Registry#requestArtifact got called with expected target directory");
+
+	t.is(
+		typeof installedArtifact.removeArtifact,
+		"function",
+		"removeArtifact method"
+	);
+	rmStub.resetHistory();
+	await installedArtifact.removeArtifact();
+	t.is(rmStub.callCount, 1, "fs.rm got called once");
+	t.is(rmStub.firstCall.firstArg, expectedPath, "fs.rm got called with expected argument");
+});
+
+
+test.serial("installArtifact: Target revision provided", async (t) => {
+	const {Installer, rmStub, registryRequestArtifactStub} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: async () => "url"
+	});
+
+	const fetchArtifactMetadataStub = sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
+	sinon.stub(installer, "_pathExists").resolves(false);
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+
+	const installedArtifact = await installer.installArtifact({
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		extension: "zip",
+		classifier: "npm-sources",
+		revision: "16"
+	});
+
+	const expectedPath = path.join("/ui5Home/", "framework", "artifacts",
+		"com_sap_ui5_dist-sapui5-sdk-dist", "16", "npm-sources.zip");
+	t.is(
+		installedArtifact.artifactPath,
+		expectedPath,
+		"artifactPath correctly resolved"
+	);
+
+	t.is(fetchArtifactMetadataStub.callCount, 0, "fetchArtifactMetadataStub did not get called");
+
+	t.is(registryRequestArtifactStub.callCount, 1, "Registry#requestArtifact got called once");
+	t.deepEqual(registryRequestArtifactStub.firstCall.firstArg, {
+		revision: "16",
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		classifier: "npm-sources",
+		version: "1.75.0",
+		extension: "zip",
+	}, "Registry#requestArtifact got called with expected coordinates");
+	t.is(registryRequestArtifactStub.firstCall.args[1],
+		path.join("/ui5Home/", "framework", "staging", "com.sap.ui5.dist_sapui5-sdk-dist_16_npm-sources.zip"),
+		"Registry#requestArtifact got called with expected target directory");
+
+	t.is(
+		typeof installedArtifact.removeArtifact,
+		"function",
+		"removeArtifact method"
+	);
+	rmStub.resetHistory();
+	await installedArtifact.removeArtifact();
+	t.is(rmStub.callCount, 1, "fs.rm got called once");
+	t.is(rmStub.firstCall.firstArg, expectedPath, "fs.rm got called with expected argument");
+});
+
+test.serial("installArtifact: Already installed", async (t) => {
+	const {Installer, rmStub, registryRequestArtifactStub} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
+	});
+
+	sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
+	sinon.stub(installer, "_pathExists").resolves(true);
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
 
 	const installedArtifact = await installer.installArtifact({
 		groupId: "com.sap.ui5.dist",
@@ -235,20 +542,69 @@ test.serial("Installer: installArtifact", async (t) => {
 		extension: "jar",
 	});
 
+	const expectedPath = path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
 	t.is(
 		installedArtifact.artifactPath,
-		path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "1.22.jar"),
+		expectedPath,
 		"artifactPath correctly resolved"
 	);
+
+	t.is(registryRequestArtifactStub.callCount, 0, "Registry#requestArtifact did not get called");
 
 	t.is(
 		typeof installedArtifact.removeArtifact,
 		"function",
 		"removeArtifact method"
 	);
+	rmStub.resetHistory();
+	await installedArtifact.removeArtifact();
+	t.is(rmStub.callCount, 1, "fs.rm got called once");
+	t.is(rmStub.firstCall.firstArg, expectedPath, "fs.rm got called with expected argument");
 });
 
-test.serial("Installer: _fetchArtifactMetadata", async (t) => {
+test.serial("installArtifact: Already installed only after lock acquired", async (t) => {
+	const {Installer, rmStub, registryRequestArtifactStub} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
+	});
+
+	sinon.stub(installer, "_fetchArtifactMetadata").resolves({revision: "5"});
+	sinon.stub(installer, "_pathExists")
+		.onFirstCall().resolves(false)
+		.onSecondCall().resolves(true);
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+
+	const installedArtifact = await installer.installArtifact({
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		extension: "jar",
+	});
+
+	const expectedPath = path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
+	t.is(
+		installedArtifact.artifactPath,
+		expectedPath,
+		"artifactPath correctly resolved"
+	);
+
+	t.is(registryRequestArtifactStub.callCount, 0, "Registry#requestArtifact did not get called");
+
+	t.is(
+		typeof installedArtifact.removeArtifact,
+		"function",
+		"removeArtifact method"
+	);
+	rmStub.resetHistory();
+	await installedArtifact.removeArtifact();
+	t.is(rmStub.callCount, 1, "fs.rm got called once");
+	t.is(rmStub.firstCall.firstArg, expectedPath, "fs.rm got called with expected argument");
+});
+
+test.serial("_fetchArtifactMetadata", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -265,7 +621,9 @@ test.serial("Installer: _fetchArtifactMetadata", async (t) => {
 			revision: "2",
 			staleRevisions: [],
 		});
-	sinon.stub(installer, "_getRemoteArtifactMetadata").resolves({revision: "1.22", lastUpdate: 0});
+
+	const getRemoteArtifactMetadataStub = sinon.stub(installer, "_getRemoteArtifactMetadata")
+		.resolves({revision: "5", lastUpdate: 0});
 	sinon.stub(installer, "_removeStaleRevisions").resolves();
 	sinon.stub(installer, "_writeLocalArtifactMetadata").resolves();
 
@@ -278,10 +636,121 @@ test.serial("Installer: _fetchArtifactMetadata", async (t) => {
 
 	t.truthy(artifactMetadata.lastCheck, "Proper metadata: lastCheck");
 	t.is(artifactMetadata.lastUpdate, 0, "Proper metadata: lastUpdate");
-	t.is(artifactMetadata.revision, "1.22", "Proper metadata: revision");
+	t.is(artifactMetadata.revision, "5", "Proper metadata: revision");
+
+	t.is(getRemoteArtifactMetadataStub.callCount, 1, "getRemoteArtifactMetadata got called once");
 });
 
-test.serial("Installer: _fetchArtifactMetadata throws", async (t) => {
+test.serial("_fetchArtifactMetadata: Cached", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {},
+	});
+
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+	sinon.stub(installer, "_getLocalArtifactMetadata")
+		.resolves({
+			lastCheck: new Date().getTime(),
+			lastUpdate: 0,
+			revision: "2",
+			staleRevisions: [],
+		});
+	const getRemoteArtifactMetadataStub = sinon.stub(installer, "_getRemoteArtifactMetadata")
+		.resolves({revision: "5", lastUpdate: 0});
+	sinon.stub(installer, "_removeStaleRevisions").resolves();
+	sinon.stub(installer, "_writeLocalArtifactMetadata").resolves();
+
+	const artifactMetadata = await installer._fetchArtifactMetadata({
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		extension: "jar",
+	});
+
+	t.truthy(artifactMetadata.lastCheck, "Proper metadata: lastCheck");
+	t.is(artifactMetadata.lastUpdate, 0, "Proper metadata: lastUpdate");
+	t.is(artifactMetadata.revision, "2", "Proper metadata: revision");
+
+	t.is(getRemoteArtifactMetadataStub.callCount, 0, "getRemoteArtifactMetadata did not get called");
+});
+
+test.serial("_fetchArtifactMetadata: Cache available but disabled", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {},
+		cacheMode: "off"
+	});
+
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+	sinon.stub(installer, "_getLocalArtifactMetadata")
+		.resolves({
+			lastCheck: new Date().getTime(),
+			lastUpdate: 0,
+			revision: "2",
+			staleRevisions: [],
+		});
+	const getRemoteArtifactMetadataStub = sinon.stub(installer, "_getRemoteArtifactMetadata")
+		.resolves({revision: "5", lastUpdate: 0});
+	sinon.stub(installer, "_removeStaleRevisions").resolves();
+	sinon.stub(installer, "_writeLocalArtifactMetadata").resolves();
+
+	const artifactMetadata = await installer._fetchArtifactMetadata({
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		extension: "jar",
+	});
+
+	t.truthy(artifactMetadata.lastCheck, "Proper metadata: lastCheck");
+	t.is(artifactMetadata.lastUpdate, 0, "Proper metadata: lastUpdate");
+	t.is(artifactMetadata.revision, "5", "Proper metadata: revision");
+	t.is(getRemoteArtifactMetadataStub.callCount, 1, "getRemoteArtifactMetadata got called once");
+});
+
+test.serial("_fetchArtifactMetadata: Cache outdated but enforced", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {},
+		cacheMode: "force"
+	});
+
+	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
+	sinon.stub(installer, "_getLocalArtifactMetadata")
+		.resolves({
+			lastCheck: 1, // first millisecond to indicate a cache is present but outdated
+			lastUpdate: 0,
+			revision: "2",
+			staleRevisions: [],
+		});
+	const getRemoteArtifactMetadataStub = sinon.stub(installer, "_getRemoteArtifactMetadata")
+		.resolves({revision: "5", lastUpdate: 0});
+	sinon.stub(installer, "_removeStaleRevisions").resolves();
+	sinon.stub(installer, "_writeLocalArtifactMetadata").resolves();
+
+	const artifactMetadata = await installer._fetchArtifactMetadata({
+		groupId: "com.sap.ui5.dist",
+		artifactId: "sapui5-sdk-dist",
+		version: "1.75.0",
+		extension: "jar",
+	});
+
+	t.truthy(artifactMetadata.lastCheck, "Proper metadata: lastCheck");
+	t.is(artifactMetadata.lastUpdate, 0, "Proper metadata: lastUpdate");
+	t.is(artifactMetadata.revision, "2", "Proper metadata: revision");
+
+	t.is(getRemoteArtifactMetadataStub.callCount, 0, "getRemoteArtifactMetadata did not get called");
+});
+
+test.serial("_fetchArtifactMetadata throws", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -305,8 +774,8 @@ test.serial("Installer: _fetchArtifactMetadata throws", async (t) => {
 	});
 });
 
-test.serial("Installer: _getRemoteArtifactMetadata", async (t) => {
-	const {Installer} = t.context;
+test.serial("_getRemoteArtifactMetadata", async (t) => {
+	const {Installer, registryRequestMavenMetadataStub} = t.context;
 
 	const installer = new Installer({
 		cwd: "/cwd/",
@@ -314,8 +783,7 @@ test.serial("Installer: _getRemoteArtifactMetadata", async (t) => {
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
-	const registry = await installer.getRegistry();
-	const requestMavenMetadataStub = sinon.stub(registry, "requestMavenMetadata")
+	registryRequestMavenMetadataStub
 		.resolves({
 			versioning: {
 				snapshotVersions: {
@@ -334,14 +802,14 @@ test.serial("Installer: _getRemoteArtifactMetadata", async (t) => {
 	t.truthy(remoteArtifactMetadata.lastUpdate, "Proper metadata: lastUpdate");
 	t.is(remoteArtifactMetadata.revision, "5.0.0-SNAPSHOT", "Proper metadata: revision");
 
-	t.is(requestMavenMetadataStub.callCount, 1, "requestPackagePackument should be called once");
-	t.deepEqual(requestMavenMetadataStub.getCall(0).args[0],
+	t.is(registryRequestMavenMetadataStub.callCount, 1, "requestPackagePackument should be called once");
+	t.deepEqual(registryRequestMavenMetadataStub.getCall(0).args[0],
 		{groupId: "com.sap.ui5.dist", artifactId: "sapui5-sdk-dist", version: "1.75.0"},
 		"requestMavenMetadata was called with correct arguments");
 });
 
-test.serial("Installer: _getRemoteArtifactMetadata throws", async (t) => {
-	const {Installer} = t.context;
+test.serial("_getRemoteArtifactMetadata throws", async (t) => {
+	const {Installer, registryRequestMavenMetadataStub} = t.context;
 
 	const installer = new Installer({
 		cwd: "/cwd/",
@@ -349,8 +817,7 @@ test.serial("Installer: _getRemoteArtifactMetadata throws", async (t) => {
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
-	const registry = await installer.getRegistry();
-	sinon.stub(registry, "requestMavenMetadata").resolves({});
+	registryRequestMavenMetadataStub.resolves({});
 
 	await t.throwsAsync(installer._getRemoteArtifactMetadata({
 		groupId: "com.sap.ui5.dist",
@@ -360,8 +827,8 @@ test.serial("Installer: _getRemoteArtifactMetadata throws", async (t) => {
 	}), {message: "Missing Maven snapshot metadata for artifact com.sap.ui5.dist:sapui5-sdk-dist:1.75.0"});
 });
 
-test.serial("Installer: _getRemoteArtifactMetadata throws missing deployment metadata", async (t) => {
-	const {Installer} = t.context;
+test.serial("_getRemoteArtifactMetadata throws missing deployment metadata", async (t) => {
+	const {Installer, registryRequestMavenMetadataStub} = t.context;
 
 	const installer = new Installer({
 		cwd: "/cwd/",
@@ -369,27 +836,36 @@ test.serial("Installer: _getRemoteArtifactMetadata throws missing deployment met
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
-	const registry = await installer.getRegistry();
-	sinon.stub(registry, "requestMavenMetadata")
+	registryRequestMavenMetadataStub
 		.resolves({
 			versioning: {
 				snapshotVersions: {
-					snapshotVersion: [{"value": "5.0.0-SNAPSHOT"}]
+					snapshotVersion: [
+						{"extension": "jar", "updated": "20220828080910", "value": "5.0.0-SNAPSHOT"},
+						{
+							"classifier": "pony-sources", "extension": "zip", "updated": "20220828080910",
+							"value": "5.0.0-SNAPSHOT"
+						}
+					]
 				}
 			}
 		});
-
 
 	await t.throwsAsync(installer._getRemoteArtifactMetadata({
 		groupId: "com.sap.ui5.dist",
 		artifactId: "sapui5-sdk-dist",
 		version: "1.75.0",
-		extension: "jar",
-	}), {message: "Could not find deployment undefined.jar for artifact " +
-	"com.sap.ui5.dist:sapui5-sdk-dist:1.75.0 in snapshot metadata:\n[{\"value\":\"5.0.0-SNAPSHOT\"}]"});
+		extension: "zip",
+		classifier: "npm-sources",
+	}), {
+		message: "Could not find npm-sources.zip deployment for artifact " +
+		"com.sap.ui5.dist:sapui5-sdk-dist:1.75.0 in snapshot metadata:\n" +
+		`[{"extension":"jar","updated":"20220828080910","value":"5.0.0-SNAPSHOT"},` +
+		`{"classifier":"pony-sources","extension":"zip","updated":"20220828080910","value":"5.0.0-SNAPSHOT"}]`
+	});
 });
 
-test.serial("Installer: _getLocalArtifactMetadata", async (t) => {
+test.serial("_getLocalArtifactMetadata", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -404,7 +880,7 @@ test.serial("Installer: _getLocalArtifactMetadata", async (t) => {
 	t.deepEqual(localArtifactMetadata, {foo: "bar"}, "Returns the correct metadata");
 });
 
-test.serial("Installer: _getLocalArtifactMetadata file not found", async (t) => {
+test.serial("_getLocalArtifactMetadata file not found", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -423,7 +899,7 @@ test.serial("Installer: _getLocalArtifactMetadata file not found", async (t) => 
 	);
 });
 
-test.serial("Installer: _getLocalArtifactMetadata throws", async (t) => {
+test.serial("_getLocalArtifactMetadata throws", async (t) => {
 	const {Installer} = t.context;
 
 	const installer = new Installer({
@@ -442,7 +918,7 @@ test.serial("Installer: _getLocalArtifactMetadata throws", async (t) => {
 });
 
 
-test.serial("Installer: _writeLocalArtifactMetadata", async (t) => {
+test.serial("_writeLocalArtifactMetadata", async (t) => {
 	const {Installer, writeFileStub} = t.context;
 
 	const installer = new Installer({
@@ -465,7 +941,7 @@ test.serial("Installer: _writeLocalArtifactMetadata", async (t) => {
 	);
 });
 
-test.serial("Installer: _removeStaleRevisions", async (t) => {
+test.serial("_removeStaleRevisions", async (t) => {
 	const {Installer, rmStub} = t.context;
 
 	const installer = new Installer({
@@ -500,7 +976,7 @@ test.serial("Installer: _removeStaleRevisions", async (t) => {
 	t.deepEqual(metadata, {staleRevisions: ["1"]}, "Stale revisions stay untouched if 1 or less");
 });
 
-test.serial("Installer: _pathExists", async (t) => {
+test.serial("_pathExists", async (t) => {
 	const {Installer, statStub} = t.context;
 
 	const installer = new Installer({
@@ -515,7 +991,7 @@ test.serial("Installer: _pathExists", async (t) => {
 	t.is(pathExists, true, "Resolves the target path");
 });
 
-test.serial("Installer: _pathExists file not found", async (t) => {
+test.serial("_pathExists file not found", async (t) => {
 	const {Installer, statStub} = t.context;
 
 	const installer = new Installer({
@@ -530,7 +1006,7 @@ test.serial("Installer: _pathExists file not found", async (t) => {
 	t.is(pathExists, false, "Target path is not resolved");
 });
 
-test.serial("Installer: _pathExists throws", async (t) => {
+test.serial("_pathExists throws", async (t) => {
 	const {Installer, statStub} = t.context;
 
 	const installer = new Installer({

@@ -35,20 +35,12 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
 	 * @param {string} [options.cacheMode="default"] Can be "default" (cache everything, invalidate after 9 hours),
 	 * 	"off" (do not cache) and "force" (use cache only - no requests)
-	 * @param {string} [options.artifactsDir] Where to install Maven artifacts
-	 * @param {string} [options.packagesDir] Where to install packages
-	 * @param {string} [options.metadataDir] Where to store the metadata for Maven artifacts
-	 * @param {string} [options.stagingDir] The staging directory for artifacts and packages
 	 */
 	constructor(options) {
 		super(options);
 
 		const {
 			cacheMode,
-			artifactsDir,
-			packagesDir,
-			metadataDir,
-			stagingDir,
 		} = options;
 
 		this._installer = new Installer({
@@ -56,10 +48,6 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			snapshotEndpointUrlCb:
 				Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback(options.snapshotEndpointUrl),
 			cacheMode,
-			artifactsDir,
-			packagesDir,
-			metadataDir,
-			stagingDir,
 		});
 		this._loadDistMetadata = null;
 	}
