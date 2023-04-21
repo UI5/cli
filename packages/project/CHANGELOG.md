@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.1.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.2.0...HEAD).
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2023-04-21
+### Dependency Updates
+- Bump rimraf from 4.4.1 to 5.0.0 ([#597](https://github.com/SAP/ui5-project/issues/597)) [`1da76bc`](https://github.com/SAP/ui5-project/commit/1da76bc21c218b154b1a6014808f8d3a4d101b69)
+
+### Features
+- Add Configuration ([#575](https://github.com/SAP/ui5-project/issues/575)) [`fd37cef`](https://github.com/SAP/ui5-project/commit/fd37cefffdc22b4a4bbc3fcbde20581848d937fa)
+- Enable snapshot consumption from Maven repository ([#570](https://github.com/SAP/ui5-project/issues/570)) [`ade2c49`](https://github.com/SAP/ui5-project/commit/ade2c49d66ebba229b62c6614c8bbdfed10bc6b0)
+
 
 <a name="v3.1.1"></a>
 ## [v3.1.1] - 2023-04-12
@@ -353,6 +363,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.2.0]: https://github.com/SAP/ui5-project/compare/v3.1.1...v3.2.0
 [v3.1.1]: https://github.com/SAP/ui5-project/compare/v3.1.0...v3.1.1
 [v3.1.0]: https://github.com/SAP/ui5-project/compare/v3.0.4...v3.1.0
 [v3.0.4]: https://github.com/SAP/ui5-project/compare/v3.0.3...v3.0.4
