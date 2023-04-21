@@ -35,7 +35,7 @@ class Configuration {
 	 * @public
 	 * @returns {object} The configuration in a JSON format
 	 */
-	toJSON() {
+	toJson() {
 		return {
 			mavenSnapshotEndpointUrl: this.#mavenSnapshotEndpointUrl,
 		};
@@ -94,7 +94,7 @@ class Configuration {
 		const writeFile = promisify(fs.writeFile);
 
 		try {
-			return writeFile(filePath, JSON.stringify(config.toJSON()));
+			return writeFile(filePath, JSON.stringify(config.toJson()));
 		} catch (err) {
 			throw new Error(
 				`Failed to write UI5 Tooling configuration to ${filePath}: ${err.message}`, {

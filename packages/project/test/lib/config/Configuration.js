@@ -33,7 +33,7 @@ test.serial("Build configuration with defaults", (t) => {
 
 	const config = new Configuration({});
 
-	t.deepEqual(config.toJSON(), {
+	t.deepEqual(config.toJson(), {
 		mavenSnapshotEndpointUrl: undefined
 	});
 });
@@ -48,7 +48,7 @@ test.serial("Overwrite defaults defaults", (t) => {
 
 	const config = new Configuration(params);
 
-	t.deepEqual(config.toJSON(), params);
+	t.deepEqual(config.toJson(), params);
 });
 
 test.serial("Check getters", (t) => {
@@ -76,7 +76,7 @@ test.serial("fromFile", async (t) => {
 
 	const config = await fromFile("/custom/path/.ui5rc");
 
-	t.deepEqual(config.toJSON(), ui5rcContents);
+	t.deepEqual(config.toJson(), ui5rcContents);
 });
 
 test.serial("fromFile: configuration file not found - fallback to default config", async (t) => {
@@ -130,7 +130,7 @@ test.serial("toFile", async (t) => {
 
 	t.deepEqual(
 		writeStub.getCall(0).args,
-		["/path/to/save/.ui5rc", JSON.stringify(config.toJSON())],
+		["/path/to/save/.ui5rc", JSON.stringify(config.toJson())],
 		"Write config to path"
 	);
 });

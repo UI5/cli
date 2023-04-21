@@ -163,7 +163,7 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			url = await Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven();
 			if (url) {
 				log.verbose(`Updating UI5 Tooling configuration with new mavenSnapshotEndpointUrl: ${url}`);
-				const configJson = config.toJSON();
+				const configJson = config.toJson();
 				configJson.mavenSnapshotEndpointUrl = url;
 				await Configuration.toFile(new Configuration(configJson));
 			}

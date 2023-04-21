@@ -317,7 +317,7 @@ test.serial("_resolveSnapshotEndpointUrl: Maven fallback with config update", as
 	t.is(endpoint, "maven-url", "Returned URL extracted from Maven settings.xml");
 	t.is(configFromFile.callCount, 1, "Configuration has been read once");
 	t.is(configToFile.callCount, 1, "Configuration has been written once");
-	t.deepEqual(configToFile.firstCall.firstArg.toJSON(), {
+	t.deepEqual(configToFile.firstCall.firstArg.toJson(), {
 		mavenSnapshotEndpointUrl: "maven-url"
 	}, "Correct configuration has been written");
 });
