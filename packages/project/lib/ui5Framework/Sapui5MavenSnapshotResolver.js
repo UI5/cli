@@ -24,9 +24,9 @@ const DIST_ARTIFACT_ID = "sapui5-sdk-dist";
 class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	/**
 	 * @param {*} options options
-	 * @param {string} [options.snapshotEndpointUrl] Maven Repository Snapshot URL. If not provided,
-	 *	falls back to an optional <code>UI5_MAVEN_SNAPSHOT_ENDPOINT</code> environment variable,
-	 *	or the standard Maven settings.xml file (if existing).
+	 * @param {string} [options.snapshotEndpointUrl] Maven Repository Snapshot URL. Can by overruled
+	 *	by setting the <code>UI5_MAVEN_SNAPSHOT_ENDPOINT_URL</code> environment variable. If neither is provided,
+	 *	falling back to the standard Maven settings.xml file (if existing).
 	 * @param {string} options.version SAPUI5 version to use
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * pre-built (with build manifest)
@@ -133,7 +133,7 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	}
 
 	static _createSnapshotEndpointUrlCallback(snapshotEndpointUrl) {
-		snapshotEndpointUrl = snapshotEndpointUrl || process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT;
+		snapshotEndpointUrl = process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL || snapshotEndpointUrl;
 
 		if (!snapshotEndpointUrl) {
 			// If we resolve the settings.xml at this point, we'd need to always ask the end

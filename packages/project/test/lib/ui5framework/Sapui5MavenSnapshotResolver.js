@@ -17,7 +17,7 @@ test.beforeEach(async (t) => {
 		};
 	});
 
-	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT = "_SNAPSHOT_URL_";
+	process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL = "_SNAPSHOT_URL_";
 
 	t.context.yesnoStub = sinon.stub();
 	t.context.promisifyStub = sinon.stub();
@@ -51,7 +51,7 @@ test.beforeEach(async (t) => {
 
 test.afterEach.always((t) => {
 	process.stdout.isTTY = t.context.originalIsTty;
-	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT;
+	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL;
 	esmock.purge(t.context.Sapui5MavenSnapshotResolver);
 	sinon.restore();
 });
@@ -261,7 +261,7 @@ test.serial("_createSnapshotEndpointUrlCallback: Environment variable", async (t
 	const {Sapui5MavenSnapshotResolver} = t.context;
 	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
 
-	const endpointCallback = await createSnapshotEndpointUrlCallback();
+	const endpointCallback = await createSnapshotEndpointUrlCallback("my url");
 
 	t.is(await endpointCallback(), "_SNAPSHOT_URL_",
 		"Returned a callback resolving to value of env variable");
@@ -271,6 +271,7 @@ test.serial("_createSnapshotEndpointUrlCallback: Parameter", async (t) => {
 	const {Sapui5MavenSnapshotResolver} = t.context;
 	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
 
+	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL; // Delete env variable for this test
 	const endpointCallback = await createSnapshotEndpointUrlCallback("my url");
 
 	t.is(await endpointCallback(), "my url",
@@ -281,7 +282,7 @@ test.serial("_createSnapshotEndpointUrlCallback: Fallback to configuration files
 	const {Sapui5MavenSnapshotResolver} = t.context;
 	const createSnapshotEndpointUrlCallback = Sapui5MavenSnapshotResolver._createSnapshotEndpointUrlCallback;
 
-	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT; // Delete env variable for this test
+	delete process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL; // Delete env variable for this test
 	const resolveUrlStub = sinon.stub(Sapui5MavenSnapshotResolver, "_resolveSnapshotEndpointUrl").resolves("🐱");
 
 	const endpointCallback = await createSnapshotEndpointUrlCallback();
