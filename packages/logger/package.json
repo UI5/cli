@@ -120,7 +120,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.3",
 		"docdash": "^2.0.1",
-		"eslint": "^8.38.0",
+		"eslint": "^8.39.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^41.1.2",
@@ -128,7 +128,7 @@
 		"nyc": "^15.1.0",
 		"open-cli": "^7.2.0",
 		"rimraf": "^5.0.0",
-		"sinon": "^15.0.3",
+		"sinon": "^15.0.4",
 		"strip-ansi": "^7.0.1",
 		"tap-xunit": "^2.4.1"
 	}
