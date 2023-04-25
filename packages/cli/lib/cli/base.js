@@ -4,7 +4,7 @@ import ConsoleWriter from "@ui5/logger/writers/Console";
 
 export default function(cli) {
 	cli.usage("Usage: ui5 <command> [options]")
-		.demandCommand(1, "Command required! Please have a look at the help documentation above.")
+		.demandCommand(1, "Command required")
 		.option("config", {
 			alias: "c",
 			describe: "Path to project configuration file in YAML format",
@@ -121,7 +121,7 @@ export default function(cli) {
 				console.log(chalk.bold.yellow("Command Failed:"));
 				console.log(`${msg}`);
 				console.log("");
-				console.log(chalk.dim(`See 'ui5 --help' or 'ui5 build --help' for help`));
+				console.log(chalk.dim(`See 'ui5 --help'`));
 			}
 			process.exit(1);
 		});

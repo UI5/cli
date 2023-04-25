@@ -86,7 +86,7 @@ test.serial("Yargs error handling", async (t) => {
 	t.deepEqual(consoleLogStub.getCall(1).args, ["Unknown argument: invalid"], "Correct error log");
 	t.deepEqual(consoleLogStub.getCall(2).args, [""], "Correct error log");
 	t.deepEqual(consoleLogStub.getCall(3).args, [
-		chalk.dim(`See 'ui5 --help' or 'ui5 build --help' for help`)
+		chalk.dim(`See 'ui5 --help'`)
 	], "Correct error log");
 });
 
