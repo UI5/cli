@@ -52,16 +52,27 @@ class Registry {
 			const {default: libnpmconfig} = await import("libnpmconfig");
 			const opts = {
 				cache: this._cacheDir,
-				// Disable usage of shared keep-alive agents.
-				// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
-				// that can be easily reached (Error: Socket timeout) and there doesn't
-				// seem to be another way to disable or increase it.
-				// Also see: https://github.com/node-modules/agentkeepalive/issues/106
-				agent: false,
 			};
 			const config = libnpmconfig.read(opts, {
 				cwd: this._cwd
 			}).toJSON();
+
+			// Rename https-proxy to httpsProxy so that it is picked up by npm-registry-fetch (via pacote)
+			if (config["https-proxy"]) {
+				config.httpsProxy = config["https-proxy"];
+				delete config["https-proxy"];
+			}
+
+			if (!config.proxy && !config.httpsProxy) {
+				// Disable usage of shared keep-alive agents unless a proxy is configured
+				// which only works with agents.
+
+				// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
+				// that can be easily reached (Error: Socket timeout) and there doesn't
+				// seem to be another way to disable or increase it.
+				// Also see: https://github.com/node-modules/agentkeepalive/issues/106
+				config.agent = false;
+			}
 
 			log.verbose(`Using npm configuration (extract):`);
 			// Do not log full configuration as it may contain authentication tokens
@@ -69,6 +80,7 @@ class Registry {
 			logConfig(config, "@sapui5:registry");
 			logConfig(config, "@openui5:registry");
 			logConfig(config, "proxy");
+			logConfig(config, "httpsProxy");
 			logConfig(config, "globalconfig");
 			logConfig(config, "userconfig");
 			logConfig(config, "cache");
