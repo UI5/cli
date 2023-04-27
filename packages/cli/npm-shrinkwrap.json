@@ -12,7 +12,7 @@
 				"@ui5/builder": "^3.0.3",
 				"@ui5/fs": "^3.0.3",
 				"@ui5/logger": "^3.0.0",
-				"@ui5/project": "^3.2.1",
+				"@ui5/project": "^3.2.2",
 				"@ui5/server": "^3.1.2",
 				"chalk": "^5.2.0",
 				"data-with-position": "^0.5.0",
@@ -1229,9 +1229,9 @@
 			}
 		},
 		"node_modules/@ui5/project": {
-			"version": "3.2.1",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-3.2.1.tgz",
-			"integrity": "sha512-90Yjt7MKkB6ps1WyZ5oESNdBt35JvHElYiKpVmvkYVTOHBBENApBiHqEFhT1RsfjNPXsR6wB7xE6ByfZ0ZKE0w==",
+			"version": "3.2.2",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-3.2.2.tgz",
+			"integrity": "sha512-W6mI15ujbRJwMq6ifgI19JPcOhvuS/J6NCk9Yyt/rYF5Cw/GOGkHlwieaggiA0Mf9EYwSBAOz/Ow0RJJpZ60dA==",
 			"dependencies": {
 				"@ui5/builder": "^3.0.3",
 				"@ui5/fs": "^3.0.3",
@@ -1247,7 +1247,7 @@
 				"lockfile": "^1.0.4",
 				"make-fetch-happen": "^11.1.0",
 				"node-stream-zip": "^1.15.0",
-				"pacote": "^15.1.1",
+				"pacote": "^15.1.2",
 				"pretty-hrtime": "^1.0.3",
 				"read-pkg": "^8.0.0",
 				"read-pkg-up": "^9.1.0",
