@@ -105,7 +105,6 @@ class Module {
 	 * @typedef {object} @ui5/project/graph/Module~SpecificationsResult
 	 * @property {@ui5/project/specifications/Project|null} Project found in the module (if one is found)
 	 * @property {@ui5/project/specifications/Extension[]} Array of extensions found in the module
-	 *
 	 */
 
 	/**

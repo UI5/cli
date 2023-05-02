@@ -111,7 +111,6 @@ class Installer extends AbstractInstaller {
 	 * @param {string} coordinates.extension Extension of the requested artifact
 	 * @param {string} [coordinates.pkgName] npm package name the artifact corresponds to (if any)
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~LocalMetadata}
-	 *
 	 */
 	async _fetchArtifactMetadata(coordinates) {
 		const fsId = this._generateFsIdFromCoordinates(coordinates);
@@ -176,7 +175,6 @@ class Installer extends AbstractInstaller {
 	 * @param {string|null} coordinates.classifier Classifier of the requested artifact
 	 * @param {string} coordinates.extension Extension of the requested artifact
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~LocalMetadata}
-	 *
 	 */
 	async _getRemoteArtifactMetadata({groupId, artifactId, version, classifier, extension}) {
 		const reg = await this.getRegistry();
@@ -219,7 +217,6 @@ class Installer extends AbstractInstaller {
 	 *
 	 * @param {string} id File System identifier for the artifact. Typically derived from the coordinates
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~LocalMetadata}
-	 *
 	 */
 	async _getLocalArtifactMetadata(id) {
 		try {
@@ -296,7 +293,6 @@ class Installer extends AbstractInstaller {
 	 * @param {string|null} parameters.classifier Classifier of the requested artifact
 	 * @param {string} parameters.extension Extension of the requested artifact
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~InstalledPackage}
-	 *
 	 */
 	async installPackage({pkgName, groupId, artifactId, version, classifier, extension}) {
 		const {revision} = await this._fetchArtifactMetadata({
@@ -381,7 +377,6 @@ class Installer extends AbstractInstaller {
 	 * @param {string} [parameters.revision] Optional revision of the artifact to request.
 	 * 	If not provided, the latest revision will be determined from the registry metadata.
 	 * @returns {@ui5/project/ui5Framework/maven/Installer~InstalledArtifact}
-	 *
 	 */
 	async installArtifact({groupId, artifactId, version, classifier, extension, revision}) {
 		if (!revision) {
