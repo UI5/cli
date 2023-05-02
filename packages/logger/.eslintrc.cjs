@@ -56,7 +56,6 @@ module.exports = {
 		"jsdoc/check-param-names": 2,
 		"jsdoc/check-tag-names": 2,
 		"jsdoc/check-types": 2,
-		"jsdoc/newline-after-description": 2,
 		"jsdoc/no-undefined-types": 0,
 		"jsdoc/require-description": 0,
 		"jsdoc/require-description-complete-sentence": 0,
@@ -69,6 +68,7 @@ module.exports = {
 		"jsdoc/require-returns": 0,
 		"jsdoc/require-returns-description": 0,
 		"jsdoc/require-returns-type": 2,
+		"jsdoc/tag-lines": [2, "any", {"startLines": 1}],
 		"jsdoc/valid-types": 0
 	},
 	"settings": {
