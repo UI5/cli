@@ -28,9 +28,9 @@ configCommand.builder = function(cli) {
 			builder: noop,
 			middlewares: [baseMiddleware],
 		})
-		.example("$0 set mavenSnapshotEndpointUrl http://example.com/snapshots/",
+		.example("$0 config set mavenSnapshotEndpointUrl http://example.com/snapshots/",
 			"Set a value for the mavenSnapshotEndpointUrl configuration")
-		.example("$0 set mavenSnapshotEndpointUrl",
+		.example("$0 config set mavenSnapshotEndpointUrl",
 			"Unset the current value of the mavenSnapshotEndpointUrl configuration");
 };
 
