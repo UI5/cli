@@ -4,6 +4,7 @@ import path from "node:path";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import Workspace from "../../../lib/graph/Workspace.js";
+import CacheMode from "../../../lib/ui5Framework/maven/CacheMode.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const fixturesPath = path.join(__dirname, "..", "..", "fixtures");
@@ -253,7 +254,8 @@ test.serial("graphFromPackageDependencies with inactive workspace file at custom
 		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
 		workspaceName: "default",
-		workspaceConfigPath: path.join(libraryHPath, "custom-ui5-workspace.yaml")
+		workspaceConfigPath: path.join(libraryHPath, "custom-ui5-workspace.yaml"),
+		cacheMode: CacheMode.Force
 	});
 
 	t.is(res, "graph");
@@ -276,6 +278,7 @@ test.serial("graphFromPackageDependencies with inactive workspace file at custom
 		"enrichProjectGraph got called with graph");
 	t.deepEqual(enrichProjectGraphStub.getCall(0).args[1], {
 		versionOverride: "versionOverride",
-		workspace: null
+		workspace: null,
+		cacheMode: "Force"
 	}, "enrichProjectGraph got called with correct options");
 });

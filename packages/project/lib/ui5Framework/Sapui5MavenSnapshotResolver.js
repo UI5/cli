@@ -33,8 +33,8 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
 	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
-	 * @param {string} [options.cacheMode="default"] Can be "default" (cache everything, invalidate after 9 hours),
-	 * 	"off" (do not cache) and "force" (use cache only - no requests)
+	 * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode=Default]
+	 * Cache mode to use
 	 */
 	constructor(options) {
 		super(options);
@@ -136,10 +136,10 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		snapshotEndpointUrl = process.env.UI5_MAVEN_SNAPSHOT_ENDPOINT_URL || snapshotEndpointUrl;
 
 		if (!snapshotEndpointUrl) {
-			// If we resolve the settings.xml at this point, we'd need to always ask the end
-			// user for confirmation. In some cases where the resources are already cached,
-			// this is not necessary and we could skip it as a real request to the repository won't
-			// be made.
+			// Here we return a function which returns a promise that resolves with the URL.
+			// If we would already start resolving the settings.xml at this point, we'd need to always ask the
+			// end user for confirmation whether the resolved URL should be used. In some cases where the resources
+			// are already cached, this is actually not necessary and could be skipped
 			return Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrl;
 		} else {
 			return () => Promise.resolve(snapshotEndpointUrl);

@@ -684,7 +684,7 @@ test.serial("_fetchArtifactMetadata: Cache available but disabled", async (t) =>
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/",
 		snapshotEndpointUrlCb: () => {},
-		cacheMode: "off"
+		cacheMode: "Off"
 	});
 
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
@@ -720,7 +720,7 @@ test.serial("_fetchArtifactMetadata: Cache outdated but enforced", async (t) => 
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/",
 		snapshotEndpointUrlCb: () => {},
-		cacheMode: "force"
+		cacheMode: "Force"
 	});
 
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
@@ -757,7 +757,7 @@ test.serial("_fetchArtifactMetadata throws", async (t) => {
 		cwd: "/cwd/",
 		ui5HomeDir: "/ui5Home/",
 		snapshotEndpointUrlCb: () => {},
-		cacheMode: "force"
+		cacheMode: "Force"
 	});
 
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());

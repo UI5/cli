@@ -280,15 +280,15 @@ export default {
 	 * @param {object} [options]
 	 * @param {string} [options.versionOverride] Framework version to use instead of the root projects framework
 	 *   version
+	 * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode]
+ 	 *   Cache mode to use when consuming SNAPSHOT versions of a framework
 	 * @param {@ui5/project/graph/Workspace} [options.workspace]
 	 *   Optional workspace instance to use for overriding node resolutions
-	 * @param {object} [options.resolverConfig]
-	 *   Optional configuration object to use for the resolvers
 	 * @returns {Promise<@ui5/project/graph/ProjectGraph>}
 	 *   Promise resolving with the given graph instance to allow method chaining
 	 */
 	enrichProjectGraph: async function(projectGraph, options = {}) {
-		const {workspace} = options;
+		const {workspace, cacheMode} = options;
 		const rootProject = projectGraph.getRoot();
 		const frameworkName = rootProject.getFrameworkName();
 		const frameworkVersion = rootProject.getFrameworkVersion();
@@ -369,7 +369,7 @@ export default {
 			cwd: rootProject.getRootPath(),
 			version,
 			providedLibraryMetadata,
-			...options.resolverConfig,
+			cacheMode
 		});
 
 		let startTime;

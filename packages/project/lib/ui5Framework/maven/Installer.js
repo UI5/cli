@@ -6,6 +6,7 @@ const StreamZip = _StreamZip.async;
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
+import CacheMode from "./CacheMode.js";
 import {rimraf} from "rimraf";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
@@ -26,10 +27,9 @@ class Installer extends AbstractInstaller {
 	 * @param {Function} parameters.snapshotEndpointUrlCb Callback that returns a Promise <string>,
 	 * 	resolving to the Maven repository URL.
 	 * 	Example: <code>https://registry.corp/vendor/build-snapshots/</code>
-	 * @param {string} [parameters.cacheMode="default"] Can be "default" (cache everything, invalidate after 9 hours),
-	 * 	"off" (do not cache), "force" (use cache only - no requests)
+	 * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [parameters.cacheMode=Default] Cache mode to use
 	 */
-	constructor({ui5HomeDir, snapshotEndpointUrlCb, cacheMode = "default"}) {
+	constructor({ui5HomeDir, snapshotEndpointUrlCb, cacheMode = CacheMode.Default}) {
 		super(ui5HomeDir);
 
 		this._artifactsDir = path.join(ui5HomeDir, "framework", "artifacts");
@@ -42,6 +42,10 @@ class Installer extends AbstractInstaller {
 
 		if (!this._snapshotEndpointUrlCb) {
 			throw new Error(`Installer: Missing Snapshot-Endpoint URL callback parameter`);
+		}
+		if (!Object.values(CacheMode).includes(cacheMode)) {
+			throw new Error(`Installer: Invalid value '${cacheMode}' for cacheMode parameter. ` +
+				`Must be one of ${Object.values(CacheMode).join(", ")}`);
 		}
 
 		log.verbose(`Installing Maven artifacts to: ${this._artifactsDir}`);
@@ -118,7 +122,7 @@ class Installer extends AbstractInstaller {
 		return this._synchronize("metadata-" + fsId, async () => {
 			const localMetadata = await this._getLocalArtifactMetadata(fsId);
 
-			if (this._cacheMode === "force" && !localMetadata.revision) {
+			if (this._cacheMode === CacheMode.Force && !localMetadata.revision) {
 				throw new Error(`Could not find artifact ` +
 					`${logId} in local cache`);
 			}
@@ -126,8 +130,8 @@ class Installer extends AbstractInstaller {
 			const now = new Date().getTime();
 			const timeSinceLastCheck = now - localMetadata.lastCheck;
 
-			if (this._cacheMode !== "force" &&
-				(timeSinceLastCheck > CACHE_TIME || this._cacheMode === "off")) {
+			if (this._cacheMode !== CacheMode.Force &&
+				(timeSinceLastCheck > CACHE_TIME || this._cacheMode === CacheMode.Off)) {
 				// No cached metadata (-> timeSinceLastCheck equals time since 1970) or
 				// too old metadata or disabled cache
 				// => Retrieve metadata from repository
