@@ -21,7 +21,7 @@ build.builder = function(cli) {
 		})
 		.command("self-contained",
 			"Build project and create self-contained bundle. " +
-			"Recommended to be used in conjunction with --include-dependencies", {
+			"Recommended to be used in conjunction with --include-all-dependencies", {
 				handler: handleBuild,
 				builder: noop,
 				middlewares: [baseMiddleware]
