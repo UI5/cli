@@ -64,7 +64,7 @@ class NodePackageDependencies {
 		}
 		return Promise.all(node._dependencies.map(async ({name, optional}) => {
 			const modulePath = await this._resolveModulePath(node.path, name, workspace);
-			return this._getNode(modulePath, optional);
+			return this._getNode(modulePath, optional, name);
 		}));
 	}
 
@@ -99,7 +99,17 @@ class NodePackageDependencies {
 		}
 	}
 
-	async _getNode(modulePath, optional) {
+	/**
+	 * Resolves a Node module by reading its package.json
+	 *
+	 * @param {string} modulePath Path to the module.
+	 * @param {boolean} optional Whether this dependency is optional.
+	 * @param {string} [nameAlias] The name of the module. It's usually the same as the name definfed
+	 * 	in package.json and could easily be skipped. Useful when defining dependency as an alias:
+	 * 	{@link https://github.com/npm/rfcs/blob/main/implemented/0001-package-aliases.md}
+	 * @returns {Promise<object>}
+	 */
+	async _getNode(modulePath, optional, nameAlias) {
 		log.verbose(`Reading package.json in directory ${modulePath}...`);
 		const packageJson = await readPackage({
 			cwd: modulePath,
@@ -107,7 +117,7 @@ class NodePackageDependencies {
 		});
 
 		return {
-			id: packageJson.name,
+			id: nameAlias || packageJson.name,
 			version: packageJson.version,
 			path: modulePath,
 			optional,
