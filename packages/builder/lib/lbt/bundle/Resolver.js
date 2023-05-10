@@ -295,7 +295,9 @@ class BundleResolver {
 								return modules;
 							});
 						}
-
+						if ( section.mode === SectionType.BundleInfo ) {
+							modules.sort();
+						}
 						log.silly(`      Resolved modules: ${modules}`);
 						return modules;
 					}).then( function(modules) {

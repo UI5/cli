@@ -711,12 +711,28 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 		buffer: async () => "function Two(){return 2;}"
 	});
 	pool.addResource({
-		name: "c.js",
-		getPath: () => "c.js",
+		name: "c2.js",
+		getPath: () => "c2.js",
 		string: function() {
 			return this.buffer();
 		},
-		buffer: async () => "function Three(){return 3;}"
+		buffer: async () => "function Three(){return 3.2;}"
+	});
+	pool.addResource({
+		name: "c1.js",
+		getPath: () => "c1.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "function Three(){return 3.1;}"
+	});
+	pool.addResource({
+		name: "c3.js",
+		getPath: () => "c3.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "function Three(){return 3.3;}"
 	});
 	pool.addResource({
 		name: "ui5loader.js",
@@ -762,7 +778,7 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 		}, {
 			mode: "bundleInfo",
 			name: "my-other-custom-bundle.js", // with .js
-			filters: ["c.js"]
+			filters: ["c1.js", "c2.js", "c3.js"]
 		}]
 	};
 
@@ -780,7 +796,7 @@ this.One=One;
 sap.ui.requireSync("ui5loader");
 sap.ui.loader.config({bundlesUI5:{
 "my-custom-bundle":['b.js'],
-"my-other-custom-bundle.js":['c.js']
+"my-other-custom-bundle.js":['c1.js','c2.js','c3.js']
 }});
 ${SOURCE_MAPPING_URL}=library-preload.js.map
 `;
@@ -790,7 +806,7 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 		" require part from ui5loader.js");
 	t.is(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
-	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js", "c.js"],
+	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js", "c1.js", "c2.js", "c3.js"],
 		"bundle info subModules are correct");
 
 	t.is(warnLogStub.callCount, 1);
