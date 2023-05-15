@@ -75,6 +75,7 @@ module.exports = {
 	},
 	"settings": {
 		"jsdoc": {
+			"mode": "jsdoc",
 			"tagNamePreference": {
 				"return": "returns",
 				"augments": "extends"
