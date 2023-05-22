@@ -161,6 +161,25 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 		const {nodes, parentProject} = queue.shift(); // Get and remove first entry from queue
 		const res = await Promise.all(nodes.map(async (node) => {
 			let ui5Module = moduleCollection[node.id];
+
+			if (ui5Module) {
+				log.silly(
+					`Re-visiting module ${node.id} as a dependency of ${parentProject.getName()}`);
+
+				const {project, extensions} = await ui5Module.getSpecifications();
+				if (!project && !extensions.length) {
+					// Invalidate cache if the cached module is visited through another parent project and did not
+					// resolve to a project or extension(s) before.
+					// The module being visited now might be a different version containing for example
+					// UI5 Tooling configuration, or one of the parent projects could have defined a
+					// relevant configuration shim meanwhile
+					log.silly(
+						`Cached module ${node.id} did not resolve to any projects or extensions. ` +
+						`Recreating module as a dependency of ${parentProject.getName()}...`);
+					ui5Module = null;
+				}
+			}
+
 			if (!ui5Module) {
 				log.silly(`Visiting Module ${node.id} as a dependency of ${parentProject.getName()}`);
 				log.verbose(`Creating module ${node.id}...`);
@@ -173,15 +192,11 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 					configuration: node.configuration,
 					shimCollection
 				});
-			} else {
-				log.silly(
-					`Re-visiting module ${node.id} as a dependency of ${parentProject.getName()}`);
-				if (ui5Module.getPath() !== node.path) {
-					log.verbose(
-						`Warning - Dependency ${node.id} is available at multiple paths:` +
-						`\n  Location of the already processed module (this one will be used): ${ui5Module.getPath()}` +
-						`\n  Additional location (this one will be ignored): ${node.path}`);
-				}
+			} else if (ui5Module.getPath() !== node.path) {
+				log.verbose(
+					`Warning - Dependency ${node.id} is available at multiple paths:` +
+					`\n  Location of the already processed module (this one will be used): ${ui5Module.getPath()}` +
+					`\n  Additional location (this one will be ignored): ${node.path}`);
 			}
 
 			const {project, extensions} = await ui5Module.getSpecifications();

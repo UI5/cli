@@ -674,6 +674,62 @@ test("Dependencies defined through shim", async (t) => {
 	t.deepEqual(graph.getDependencies("project-3"), ["project-2"], "Shimmed dependency has been defined");
 });
 
+test("Define external dependency as shims in sub-module", async (t) => {
+	t.context.getRootNode.resolves(createNode({
+		id: "app",
+		version: "1.0.0",
+		path: "/app"
+	}));
+
+	t.context.getDependencies.onCall(0).resolves([
+		createNode({
+			id: "lib",
+			version: "1.0.0",
+			path: "/lib"
+		}),
+		{
+			id: "external-thirdparty",
+			version: "1.0.0",
+			path: "/app/node_modules/external-thirdparty"
+		},
+		createNode({
+			id: "external-thirdparty-shim",
+			configuration: {
+				kind: "extension",
+				type: "project-shim",
+				shims: {
+					configurations: {
+						"external-thirdparty": {
+							specVersion: "3.0",
+							type: "module",
+							metadata: {name: "external-thirdparty"},
+							resources: {
+								configuration: {
+									paths: {"/resources/": ""},
+								},
+							},
+						},
+					},
+				},
+			}
+		})
+	]);
+
+	t.context.getDependencies.onCall(1).resolves([
+		createNode({
+			id: "external-thirdparty",
+			version: "1.0.0",
+			path: "/app/node_modules/external-thirdparty",
+			optional: false
+		})
+	]);
+
+	const graph = await projectGraphBuilder(t.context.provider);
+
+	t.deepEqual(graph.getDependencies("app"), ["lib"], "'app' depends on 'lib'");
+	t.deepEqual(graph.getDependencies("lib"), ["external-thirdparty"], "'lib' depends on 'external-thirdparty'");
+});
+
 test("Extension in dependencies", async (t) => {
 	t.context.getRootNode.resolves(createNode({
 		id: "id1",
