@@ -9,6 +9,8 @@ import Resource from "./Resource.js";
 import WriterCollection from "./WriterCollection.js";
 import Filter from "./readers/Filter.js";
 import Link from "./readers/Link.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("resources:resourceFactory");
 
 /**
  * @module @ui5/fs/resourceFactory
@@ -58,13 +60,31 @@ export function createAdapter({fsBasePath, virBasePath, project, excludes, useGi
  * @returns {@ui5/fs/ReaderCollection} Reader collection wrapping an adapter
  */
 export function createReader({fsBasePath, virBasePath, project, excludes = [], name}) {
-	const normalizedExcludes = excludes.map((pattern) => {
-		return prefixGlobPattern(pattern, virBasePath);
-	});
 	if (!fsBasePath) {
 		// Creating a reader with a memory adapter seems pointless right now
 		// since there would be no way to fill the adapter with resources
 		throw new Error(`Unable to create reader: Missing parameter "fsBasePath"`);
+	}
+	let normalizedExcludes = excludes;
+	// If a project is supplied, and that project is of type application,
+	// Prefix all exclude patterns with the virtual base path (unless it already starts with that)
+	// TODO 4.0: // TODO specVersion 4.0: Disallow excludes without namespaced prefix in configuration
+	// Specifying an exclude for "/test" is disambigous as it neither reflects the source path nor the
+	// ui5 runtime path of the excluded resources. Therefore, only allow paths like /resources/<namespace>/test
+	// starting with specVersion 4.0
+	if (excludes.length && project && project.getType() === "application") {
+		normalizedExcludes = excludes.map((pattern) => {
+			if (pattern.startsWith(virBasePath) || pattern.startsWith("!" + virBasePath)) {
+				return pattern;
+			}
+			log.verbose(
+				`Prefixing exclude pattern defined in application project ${project.getName()}: ${pattern}`);
+			return prefixGlobPattern(pattern, virBasePath);
+		});
+		// Flatten list of patterns
+		normalizedExcludes = Array.prototype.concat.apply([], normalizedExcludes);
+		log.verbose(`Effective exclude patterns for application project ${project.getName()}:\n` +
+			normalizedExcludes.join(", "));
 	}
 	return new ReaderCollection({
 		name,
@@ -256,5 +276,5 @@ export function prefixGlobPattern(virPattern, virBaseDir) {
 		}
 		resultGlobs.push(resultPattern);
 	}
-	return Array.prototype.concat.apply([], resultGlobs);
+	return resultGlobs;
 }

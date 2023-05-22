@@ -88,14 +88,22 @@ test("createAdapter: Memory", async (t) => {
 	t.is(resources[0].getPath(), "/resources/app/File.js", "Found correct resource");
 });
 
-test("createReader", async (t) => {
+test("createReader: application project", async (t) => {
 	const reader = createReader({
 		fsBasePath: "./test/fixtures/application.a/webapp",
 		virBasePath: "/resources/app/",
 		project: {
-			getName: () => "my.project"
+			getName: () => "my.project",
+			getType: () => "application"
 		},
-		excludes: ["**/*.html"],
+		excludes: [
+			"**/*.html",
+			"/resources/app/test/**",
+			"/test/**",
+			"test/**",
+			"!/resources/app/test/**",
+			"!/test/**/*.html"
+		],
 		name: "reader name"
 	});
 
@@ -105,6 +113,79 @@ test("createReader", async (t) => {
 	const resources = await reader.byGlob("**/*");
 	t.is(resources.length, 1, "Found one resource");
 	t.is(resources[0].getPath(), "/resources/app/test.js", "Found correct resource");
+
+	t.deepEqual(reader._readers[0]._excludes, [
+		"/resources/app/**/*.html",
+		"/resources/app/test/**", // Was already prefixed correctly
+		"/resources/app/test/**",
+		"/resources/app/test/**",
+		"!/resources/app/test/**",
+		"!/resources/app/test/**/*.html",
+	], "Some excludes got prefixed.");
+});
+
+test("createReader: library project", async (t) => {
+	const reader = createReader({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/lib/",
+		project: {
+			getName: () => "my.project",
+			getType: () => "library"
+		},
+		excludes: [
+			"**/*.html",
+			"/resources/lib/dir/**",
+			"/test-resources/lib/dir/**",
+			"/test/**",
+			"test/**"
+		],
+		name: "reader name"
+	});
+
+	t.true(reader instanceof ReaderCollection, "Returned a ReaderCollection");
+	t.is(reader._name, "reader name", "Reader has correct name");
+
+	const resources = await reader.byGlob("**/*");
+	t.is(resources.length, 1, "Found one resource");
+	t.is(resources[0].getPath(), "/resources/lib/test.js", "Found correct resource");
+
+	t.deepEqual(reader._readers[0]._excludes, [
+		"**/*.html",
+		"/resources/lib/dir/**",
+		"/test-resources/lib/dir/**",
+		"/test/**",
+		"test/**",
+	], "Excludes do not get prefixed.");
+});
+
+test("createReader: No project", async (t) => {
+	const reader = createReader({
+		fsBasePath: "./test/fixtures/application.a/webapp",
+		virBasePath: "/resources/app/",
+		excludes: [
+			"**/*.html",
+			"/resources/app/dir/**",
+			"/test-resources/app/dir/**",
+			"/test/**",
+			"test/**"
+		],
+		name: "reader name"
+	});
+
+	t.true(reader instanceof ReaderCollection, "Returned a ReaderCollection");
+	t.is(reader._name, "reader name", "Reader has correct name");
+
+	const resources = await reader.byGlob("**/*");
+	t.is(resources.length, 1, "Found one resource");
+	t.is(resources[0].getPath(), "/resources/app/test.js", "Found correct resource");
+
+	t.deepEqual(reader._readers[0]._excludes, [
+		"**/*.html",
+		"/resources/app/dir/**",
+		"/test-resources/app/dir/**",
+		"/test/**",
+		"test/**"
+	], "Excludes do not get prefixed.");
 });
 
 test("createReader: Throw error missing 'fsBasePath'", (t) => {
