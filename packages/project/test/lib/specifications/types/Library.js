@@ -169,6 +169,7 @@ test("Access project resources via reader w/ builder excludes", async (t) => {
 	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/.library")).length, 0,
 		"Did not find excluded resource for flat style");
 
+	// Excludes are not applied for "runtime" style
 	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/.library")).length, 1,
 		"Found resource in baseline project for runtime style");
 	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/.library")).length, 1,
@@ -193,6 +194,196 @@ test("Access project resources via workspace w/ builder excludes", async (t) => 
 	t.is((await baselineProject.getWorkspace().byGlob("**/.library")).length, 1,
 		"Found resource in baseline project for default style");
 	t.is((await excludesProject.getWorkspace().byGlob("**/.library")).length, 0,
+		"Did not find excluded resource for default style");
+});
+
+test("Access project resources via reader and workspace w/ absolute builder excludes", async (t) => {
+	const {projectInput} = t.context;
+	const baselineProject = await (new Library().init(projectInput));
+
+	projectInput.configuration.builder = {
+		resources: {
+			excludes: ["/resources/library/d/.library"]
+		}
+	};
+	const excludesProject = await (new Library().init(projectInput));
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getReader({}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getReader({}).byGlob("**/.library")).length, 0,
+		"Did not find excluded resource for default style");
+
+	t.is((await baselineProject.getReader({style: "buildtime"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for buildtime style");
+	t.is((await excludesProject.getReader({style: "buildtime"}).byGlob("**/.library")).length, 0,
+		"Did not find excluded resource for buildtime style");
+
+	t.is((await baselineProject.getReader({style: "dist"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for dist style");
+	t.is((await excludesProject.getReader({style: "dist"}).byGlob("**/.library")).length, 0,
+		"Did not find excluded resource for dist style");
+
+	t.is((await baselineProject.getReader({style: "flat"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for flat style");
+	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/.library")).length, 0,
+		"Did not find excluded resource for flat style");
+
+	// Excludes are not applied for "runtime" style
+	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for runtime style");
+	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/.library")).length, 1,
+		"Found excluded resource for runtime style");
+
+	t.is((await baselineProject.getWorkspace().byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getWorkspace().byGlob("**/.library")).length, 0,
+		"Did not find excluded resource for default style");
+});
+
+test("Access project resources via reader and workspace w/ incorrect builder excludes", async (t) => {
+	const {projectInput} = t.context;
+	const baselineProject = await (new Library().init(projectInput));
+
+	projectInput.configuration.builder = {
+		resources: {
+			excludes: ["/.library"] // Absolute path does not match base path
+		}
+	};
+	const excludesProject = await (new Library().init(projectInput));
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getReader({}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getReader({}).byGlob("**/.library")).length, 1,
+		"Found resource in project with incorrect exclude for default style");
+
+	t.is((await baselineProject.getReader({style: "buildtime"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for buildtime style");
+	t.is((await excludesProject.getReader({style: "buildtime"}).byGlob("**/.library")).length, 1,
+		"Found resource in project with incorrect exclude for buildtime style");
+
+	t.is((await baselineProject.getReader({style: "dist"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for dist style");
+	t.is((await excludesProject.getReader({style: "dist"}).byGlob("**/.library")).length, 1,
+		"Found resource in project with incorrect exclude for dist style");
+
+	t.is((await baselineProject.getReader({style: "flat"}).byGlob("**/.library")).length, 1,
+		"Can not read any test-resources for flat style");
+	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/.library")).length, 1,
+		"Can not read any test-resources for flat style");
+
+	// Excludes are not applied for "runtime" style
+	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for runtime style");
+	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/.library")).length, 1,
+		"Found resource for runtime style");
+
+	t.is((await baselineProject.getWorkspace().byGlob("**/.library")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getWorkspace().byGlob("**/.library")).length, 1,
+		"Found resource in project with incorrect exclude for default style");
+});
+
+test("Access project test-resources via reader and workspace w/ absolute builder excludes", async (t) => {
+	const {projectInput} = t.context;
+	const baselineProject = await (new Library().init(projectInput));
+
+	projectInput.configuration.builder = {
+		resources: {
+			excludes: ["/test-resources/library/d/Test.html"]
+		}
+	};
+	const excludesProject = await (new Library().init(projectInput));
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getReader({}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getReader({}).byGlob("**/Test.html")).length, 0,
+		"Did not find excluded resource for default style");
+
+	t.is((await baselineProject.getReader({style: "buildtime"}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for buildtime style");
+	t.is((await excludesProject.getReader({style: "buildtime"}).byGlob("**/Test.html")).length, 0,
+		"Did not find excluded resource for buildtime style");
+
+	t.is((await baselineProject.getReader({style: "dist"}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for dist style");
+	t.is((await excludesProject.getReader({style: "dist"}).byGlob("**/Test.html")).length, 0,
+		"Did not find excluded resource for dist style");
+
+	// Test resources are not available in flat reader
+	t.is((await baselineProject.getReader({style: "flat"}).byGlob("**/Test.html")).length, 0,
+		"Can not read any test-resources for flat style");
+	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/Test.html")).length, 0,
+		"Can not read any test-resources for flat style");
+
+	// Excludes are not applied for "runtime" style
+	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for runtime style");
+	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/Test.html")).length, 1,
+		"Found excluded resource for runtime style");
+
+	t.is((await baselineProject.getWorkspace().byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getWorkspace().byGlob("**/Test.html")).length, 0,
+		"Did not find excluded resource for default style");
+});
+
+test("Access project test-resources via reader and workspace w/ relative builder excludes", async (t) => {
+	const {projectInput} = t.context;
+	const baselineProject = await (new Library().init(projectInput));
+
+	projectInput.configuration.builder = {
+		resources: {
+			excludes: ["Test.html"] // Has no effect since library excludes must be absolute or use wildcards
+		}
+	};
+	const excludesProject = await (new Library().init(projectInput));
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getReader({}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getReader({}).byGlob("**/Test.html")).length, 1,
+		"Did not find excluded resource for default style");
+
+	t.is((await baselineProject.getReader({style: "buildtime"}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for buildtime style");
+	t.is((await excludesProject.getReader({style: "buildtime"}).byGlob("**/Test.html")).length, 1,
+		"Did not find excluded resource for buildtime style");
+
+	t.is((await baselineProject.getReader({style: "dist"}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for dist style");
+	t.is((await excludesProject.getReader({style: "dist"}).byGlob("**/Test.html")).length, 1,
+		"Did not find excluded resource for dist style");
+
+	// Test resources are not available in flat reader
+	t.is((await baselineProject.getReader({style: "flat"}).byGlob("**/Test.html")).length, 0,
+		"Can not read any test-resources for flat style");
+	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/Test.html")).length, 0,
+		"Can not read any test-resources for flat style");
+
+	// Excludes are not applied for "runtime" style
+	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for runtime style");
+	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/Test.html")).length, 1,
+		"Found excluded resource for runtime style");
+
+	t.is((await baselineProject.getWorkspace().byGlob("**/Test.html")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getWorkspace().byGlob("**/Test.html")).length, 1,
 		"Did not find excluded resource for default style");
 });
 

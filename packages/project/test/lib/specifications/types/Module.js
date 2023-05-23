@@ -138,6 +138,7 @@ test("Access project resources via reader w/ builder excludes", async (t) => {
 	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/devTools.js")).length, 0,
 		"Did not find excluded resource for flat style");
 
+	// Excludes are not applied for "runtime" style
 	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/devTools.js")).length, 1,
 		"Found resource in baseline project for runtime style");
 	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/devTools.js")).length, 1,
@@ -164,6 +165,59 @@ test("Access project resources via workspace w/ builder excludes", async (t) => 
 	// We now have two projects: One with excludes and one without
 	// Always compare the results of both to make sure a file is really excluded because of the
 	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getWorkspace().byGlob("**/devTools.js")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getWorkspace().byGlob("**/devTools.js")).length, 0,
+		"Did not find excluded resource for default style");
+});
+
+test("Access project resources via reader w/ absolute builder excludes", async (t) => {
+	const {projectInput, sinon} = t.context;
+	const baselineProject = await Specification.create(projectInput);
+	const excludesProject = await Specification.create(projectInput);
+
+	// As of specVersion 3.0, modules are not allowed to have a "builder.resources" configuration.
+	// Hence modules can't practically be configured with builder excludes.
+	// We still simply stub the respective API call to test the code and be prepared
+	//
+	// projectInput.configuration.builder = {
+	// 	resources: {
+	// 		excludes: ["/dev/devTools.js"]
+	// 	}
+	// };
+	// So stub instead:
+	sinon.stub(excludesProject, "getBuilderResourcesExcludes").returns(["/dev/devTools.js"]);
+
+	// We now have two projects: One with excludes and one without
+	// Always compare the results of both to make sure a file is really excluded because of the
+	// configuration and not because of a typo or because of it's absence in the fixture
+
+	t.is((await baselineProject.getReader({}).byGlob("**/devTools.js")).length, 1,
+		"Found resource in baseline project for default style");
+	t.is((await excludesProject.getReader({}).byGlob("**/devTools.js")).length, 0,
+		"Did not find excluded resource for default style");
+
+	t.is((await baselineProject.getReader({style: "buildtime"}).byGlob("**/devTools.js")).length, 1,
+		"Found resource in baseline project for buildtime style");
+	t.is((await excludesProject.getReader({style: "buildtime"}).byGlob("**/devTools.js")).length, 0,
+		"Did not find excluded resource for buildtime style");
+
+	t.is((await baselineProject.getReader({style: "dist"}).byGlob("**/devTools.js")).length, 1,
+		"Found resource in baseline project for dist style");
+	t.is((await excludesProject.getReader({style: "dist"}).byGlob("**/devTools.js")).length, 0,
+		"Did not find excluded resource for dist style");
+
+	t.is((await baselineProject.getReader({style: "flat"}).byGlob("**/devTools.js")).length, 1,
+		"Found resource in baseline project for flat style");
+	t.is((await excludesProject.getReader({style: "flat"}).byGlob("**/devTools.js")).length, 0,
+		"Did not find excluded resource for flat style");
+
+	// Excludes are not applied for "runtime" style
+	t.is((await baselineProject.getReader({style: "runtime"}).byGlob("**/devTools.js")).length, 1,
+		"Found resource in baseline project for runtime style");
+	t.is((await excludesProject.getReader({style: "runtime"}).byGlob("**/devTools.js")).length, 1,
+		"Found excluded resource for runtime style");
 
 	t.is((await baselineProject.getWorkspace().byGlob("**/devTools.js")).length, 1,
 		"Found resource in baseline project for default style");
