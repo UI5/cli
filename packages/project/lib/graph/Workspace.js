@@ -174,7 +174,7 @@ class Workspace {
 		};
 	}
 
-	async _getModulesFromPath(cwd, relPath) {
+	async _getModulesFromPath(cwd, relPath, failOnMissingFiles = true) {
 		const nodePath = path.join(cwd, relPath);
 		if (this.#visitedNodePaths.has(nodePath)) {
 			log.verbose(`Module located at ${nodePath} has already been visited`);
@@ -189,6 +189,12 @@ class Workspace {
 					`package.json must contain fields 'name' and 'version'`);
 			}
 		} catch (err) {
+			if (!failOnMissingFiles && err.code === "ENOENT") {
+				// When resolving a dynamic workspace pattern (not a static path), ignore modules that
+				// are missing a package.json (this might simply indicate an empty directory)
+				log.verbose(`Ignoring module at path ${nodePath}: Directory does not contain a package.json`);
+				return [];
+			}
 			throw new Error(
 				`Failed to resolve workspace dependency resolution path ${relPath} to ${nodePath}: ${err.message}`);
 		}
@@ -228,7 +234,7 @@ class Workspace {
 
 			const resolvedModules = new Map();
 			await Promise.all(searchPaths.map(async (pkgPath) => {
-				const modules = await this._getModulesFromPath(nodePath, pkgPath);
+				const modules = await this._getModulesFromPath(nodePath, pkgPath, staticPatterns.includes(pkgPath));
 				modules.forEach((module) => {
 					const id = module.getId();
 					if (!resolvedModules.get(id)) {
