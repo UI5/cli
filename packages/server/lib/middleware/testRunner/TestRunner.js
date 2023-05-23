@@ -108,13 +108,9 @@
 	window.sap.ui.qunit.TestRunner = {
 
 		checkTestPage: function(sTestPage, bSequential) {
-			var t0 = Date.now();
 			var oPromise =
 				this._checkTestPage(sTestPage, bSequential)
 				.then(function(aTestPages) {
-					var t1 = Date.now();
-					window.console.log("[DEBUG] checkTestPage(\"" + sTestPage + "\") found " + aTestPages.length + " pages in " + (t1 - t0) + "msec.");
-					window.console.log("[DEBUG] checkTestPage(\"" + sTestPage + "\") currently running IFrames: " + window.frames.length);
 					return aTestPages;
 				});
 			oPromise.done = oPromise.then; // compat for Deferred
@@ -139,8 +135,8 @@
 				// check for an existing test page and check for test suite or page
 				oXHRQueue.ajax(sTestPage).then(function(sData) {
 					if (/(?:window\.suite\s*=|function\s*suite\s*\(\s*\)\s*{)/.test(sData)
-							|| (/data-sap-ui-testsuite/.test(sData) && !/sap\/ui\/test\/starter\/runTest/.test(sData)) ) {
-						// window.console.log("[DEBUG] _checkTestPage checking testsuite page: " + sTestPage);
+							|| (/data-sap-ui-testsuite/.test(sData) && !/sap\/ui\/test\/starter\/runTest/.test(sData))
+							|| /sap\/ui\/test\/starter\/createSuite/.test(sData) ) {
 						var $frame = jQuery("<iframe>");
 						var that = this;
 
@@ -194,11 +190,7 @@
 		findTestPages: function(oIFrame, bSequential) {
 
 			return Promise.resolve(oIFrame.contentWindow.suite()).then(function(oSuite) {
-				window.console.log("[DEBUG] findTestPages oIFrame source: " + oIFrame.src);
 				var aPages = oSuite && oSuite.getTestPages() || [];
-				for (var i = 0; i < aPages.length; i++) {
-					window.console.log("[DEBUG] findTestPages oIFrame source " + oIFrame.src + ": " + aPages[i]);
-				}
 				return new Promise(function(resolve, reject) {
 
 					try {
@@ -303,12 +295,12 @@
 		},
 
 		printTestResultAndRemoveFrame : function (oInst, $frame, $framediv, oContext) {
-			var oCoverage = $frame[0].contentWindow._$blanket;
+			var oBlanketCoverage = $frame[0].contentWindow._$blanket;
 
 			// in case of coverage either merge it or set it on the _$blanket object
-			if (oCoverage) {
+			if (oBlanketCoverage) {
 				window._$blanket = window._$blanket || {};
-				jQuery.each(oCoverage, function(sModule, aCoverageInfo) {
+				jQuery.each(oBlanketCoverage, function(sModule, aCoverageInfo) {
 					if (!window._$blanket[sModule]) {
 						window._$blanket[sModule] = aCoverageInfo;
 					} else {
@@ -387,11 +379,8 @@
 
 						if ($qunitBanner.hasClass("qunit-fail") || $qunitBanner.hasClass("qunit-pass")) {
 
-							//IE workaround for the lack of document.baseURI property
-							var baseURI = doc.location.href;
-
 							if (sTestName == " ") {
-								sTestName = "QUnit page for " + baseURI.substring(baseURI.indexOf("test-resources") + 15, baseURI.length);
+								sTestName = "QUnit page for " + doc.baseURI.substring(doc.baseURI.indexOf("test-resources") + 15, doc.baseURI.length);
 							}
 							oContext = oInst.fnGetTestResults(sTestName, $results);
 							this.printTestResultAndRemoveFrame(oInst, $frame, $framediv, oContext);
@@ -473,7 +462,47 @@
 		},
 
 		getCoverage: function() {
-			return window._$blanket;
+			return window._$blanket || window.top.__coverage__;
+		},
+
+		reportCoverage: function (reportToEl) {
+			var oCoverage = this.getCoverage();
+
+			if (!oCoverage) {
+				return;
+			}
+
+			if ( window.blanket && !window.top.__coverage__ ) {
+				window.blanket.report({});
+			} else {
+				jQuery.ajax("/.ui5/coverage/report", {
+					method: "POST",
+					data: JSON.stringify(window.top.__coverage__),
+					headers: {
+						"Content-Type": "application/json"
+					}
+				})
+				.then(function (oData) {
+					var aReports = oData.availableReports;
+					var oHTMLReport = aReports.filter(function (oCurReport) {
+						// HTML is the only one that make sense and
+						// provides understandable information
+						return oCurReport.report === "html";
+					})[0];
+
+					if (!oHTMLReport) { // Do not render reports if HTML or lcov are not provided
+						return;
+					}
+
+					var oFrameEl = document.createElement("iframe");
+					oFrameEl.src = "/.ui5/coverage/report/" + oHTMLReport.destination;
+					oFrameEl.style.border = "none";
+					oFrameEl.style.width = "100%";
+					oFrameEl.style.height = "100vh";
+					oFrameEl.sandbox = "allow-scripts";
+					reportToEl.appendChild(oFrameEl);
+				});
+			}
 		},
 
 		getTestPageUrl: function(sFallbackUrl) {
