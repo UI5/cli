@@ -2,10 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.3.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.3.1...HEAD).
+
+<a name="v3.3.1"></a>
+## [v3.3.1] - 2023-05-23
+### Bug Fixes
+- **Workspace:** Ignore empty npm workspace modules ([#614](https://github.com/SAP/ui5-project/issues/614)) [`66e82a3`](https://github.com/SAP/ui5-project/commit/66e82a37f8c559eb7219fad0329a4d77fd3a6481)
+- **projectGraphBuilder:** Add module cache invalidation ([#612](https://github.com/SAP/ui5-project/issues/612)) [`65496ea`](https://github.com/SAP/ui5-project/commit/65496eabeaafc50348dfc276d19d135eb035b261)
+
 
 <a name="v3.3.0"></a>
-## [v3.3.0] - 2023-05-04
+## [v3.3.0] - 2023-05-05
 ### Bug Fixes
 - Resolve properly package.json dependency aliases ([#608](https://github.com/SAP/ui5-project/issues/608)) [`f8753e5`](https://github.com/SAP/ui5-project/commit/f8753e53c6bc7f89bb19107073fb52db0a725cb9)
 
@@ -384,6 +391,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.3.1]: https://github.com/SAP/ui5-project/compare/v3.3.0...v3.3.1
 [v3.3.0]: https://github.com/SAP/ui5-project/compare/v3.2.2...v3.3.0
 [v3.2.2]: https://github.com/SAP/ui5-project/compare/v3.2.1...v3.2.2
 [v3.2.1]: https://github.com/SAP/ui5-project/compare/v3.2.0...v3.2.1
