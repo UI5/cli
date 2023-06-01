@@ -329,7 +329,7 @@ export default {
 		}
 
 		let Resolver;
-		if (version && version.endsWith("-SNAPSHOT")) {
+		if (version && version.toLowerCase().endsWith("-snapshot")) {
 			Resolver = (await import("../../ui5Framework/Sapui5MavenSnapshotResolver.js")).default;
 		} else if (frameworkName === "OpenUI5") {
 			Resolver = (await import("../../ui5Framework/Openui5Resolver.js")).default;

@@ -42,17 +42,19 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5ResolverStub.resolveVersion = t.context.Sapui5ResolverResolveVersionStub;
 
 	t.context.Sapui5MavenSnapshotResolverInstallStub = sinon.stub();
-	t.context.Sapui5MavenSnapshotResolver = sinon.stub()
+	t.context.Sapui5MavenSnapshotResolverStub = sinon.stub()
 		.callsFake(() => {
 			return {
 				install: t.context.Sapui5MavenSnapshotResolverInstallStub
 			};
 		});
+	t.context.Sapui5MavenSnapshotResolverResolveVersionStub = sinon.stub();
+	t.context.Sapui5MavenSnapshotResolverStub.resolveVersion = t.context.Sapui5MavenSnapshotResolverResolveVersionStub;
 
 	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
 		"@ui5/logger": ui5Logger,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
-		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolver,
+		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolverStub,
 	});
 	t.context.utils = t.context.ui5Framework._utils;
 });
@@ -317,6 +319,118 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
+		providedLibraryMetadata: undefined
+	}], "Sapui5Resolver#constructor should be called with expected args");
+});
+
+test.serial("enrichProjectGraph: With versionOverride containing snapshot version", async (t) => {
+	const {
+		sinon, ui5Framework, utils,
+		Sapui5MavenSnapshotResolverStub, Sapui5MavenSnapshotResolverResolveVersionStub,
+		Sapui5MavenSnapshotResolverInstallStub
+	} = t.context;
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.75.0"
+			}
+		}
+	};
+
+	const referencedLibraries = ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"];
+	const libraryMetadata = {fake: "metadata"};
+
+	sinon.stub(utils, "getFrameworkLibrariesFromGraph").resolves(referencedLibraries);
+
+	Sapui5MavenSnapshotResolverInstallStub.resolves({libraryMetadata});
+
+	Sapui5MavenSnapshotResolverResolveVersionStub.resolves("1.99.9-SNAPSHOT");
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "1.99-SNAPSHOT"});
+
+	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
+		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
+	t.deepEqual(Sapui5MavenSnapshotResolverStub.getCall(0).args, [{
+		cacheMode: undefined,
+		cwd: dependencyTree.path,
+		version: "1.99.9-SNAPSHOT",
+		providedLibraryMetadata: undefined
+	}], "Sapui5Resolver#constructor should be called with expected args");
+});
+
+test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot", async (t) => {
+	const {
+		sinon, ui5Framework, utils,
+		Sapui5MavenSnapshotResolverStub, Sapui5MavenSnapshotResolverResolveVersionStub,
+		Sapui5MavenSnapshotResolverInstallStub
+	} = t.context;
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.75.0"
+			}
+		}
+	};
+
+	const referencedLibraries = ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"];
+	const libraryMetadata = {fake: "metadata"};
+
+	sinon.stub(utils, "getFrameworkLibrariesFromGraph").resolves(referencedLibraries);
+
+	Sapui5MavenSnapshotResolverInstallStub.resolves({libraryMetadata});
+
+	Sapui5MavenSnapshotResolverResolveVersionStub.resolves("1.99.9-SNAPSHOT");
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "latest-snapshot"});
+
+	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
+		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
+	t.deepEqual(Sapui5MavenSnapshotResolverStub.getCall(0).args, [{
+		cacheMode: undefined,
+		cwd: dependencyTree.path,
+		version: "1.99.9-SNAPSHOT",
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
