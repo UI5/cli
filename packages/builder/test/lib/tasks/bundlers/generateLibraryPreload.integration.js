@@ -13,6 +13,7 @@ import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
+const libraryDMinifiedPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-minified");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
 import recursive from "recursive-readdir";
@@ -51,7 +52,7 @@ test.serial("integration: build library.d with library preload", async (t) => {
 	assert.directoryDeepEqual(destPath, expectedPath);
 
 	// Check for all file contents
-	t.is(expectedFiles.length, 5, "5 files are expected");
+	t.is(expectedFiles.length, 6, "6 files are expected");
 	expectedFiles.forEach((expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
@@ -63,6 +64,59 @@ const libraryDTree = {
 	"id": "library.d",
 	"version": "1.0.0",
 	"path": libraryDPath,
+	"dependencies": [],
+	"configuration": {
+		"specVersion": "2.0",
+		"type": "library",
+		"metadata": {
+			"name": "library.d",
+			"copyright": "Some fancy copyright"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"src": "main/src",
+					"test": "main/test"
+				}
+			}
+		}
+	}
+};
+
+test.serial("integration: build library.d-minified with library preload", async (t) => {
+	const destPath = "./test/tmp/build/library.d-minified/preload";
+	const expectedPath = "./test/expected/build/library.d-minified/preload";
+	const excludedTasks = ["*"];
+	const includedTasks = ["generateLibraryPreload"];
+
+	const graph = await graphFromObject({
+		dependencyTree: libraryDMinifiedTree
+	});
+	graph.setTaskRepository(taskRepository);
+	await t.notThrowsAsync(graph.build({
+		destPath,
+		excludedTasks,
+		includedTasks
+	}));
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	assert.directoryDeepEqual(destPath, expectedPath);
+
+	// Check for all file contents
+	t.is(expectedFiles.length, 9, "9 files are expected");
+	expectedFiles.forEach((expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		assert.fileEqual(destFile, expectedFile);
+	});
+});
+
+const libraryDMinifiedTree = {
+	"id": "library.d",
+	"version": "1.0.0",
+	"path": libraryDMinifiedPath,
 	"dependencies": [],
 	"configuration": {
 		"specVersion": "2.0",
