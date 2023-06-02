@@ -439,7 +439,20 @@ class BundleBuilder {
 		} else if ( /\.js$/.test(moduleName) /* implicitly: && info != null && info.requiresTopLevelScope */ ) {
 			log.warn(
 				`Module ${moduleName} requires top level scope and can only be embedded as a string (requires 'eval')`);
-			outW.write( makeStringLiteral( (await resource.buffer()).toString() ) );
+			let moduleContent = (await resource.buffer()).toString();
+			if (this.options.sourceMap) {
+				// We are actually not interested in the source map this module might contain,
+				// but we should make sure to remove any "sourceMappingURL" from the module content before
+				// writing it to the bundle. Otherwise browser dev-tools might create unnecessary (and likely incorrect)
+				// requests for any referenced .map files
+				({moduleContent} =
+					await this.getSourceMapForModule({
+						moduleName,
+						moduleContent,
+						resourcePath: resource.getPath()
+					}));
+			}
+			outW.write( makeStringLiteral(moduleContent) );
 		} else if ( /\.html$/.test(moduleName) ) {
 			const fileContent = (await resource.buffer()).toString();
 			outW.write( makeStringLiteral( fileContent ) );
