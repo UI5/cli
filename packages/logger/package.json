@@ -120,7 +120,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.3",
 		"docdash": "^2.0.1",
-		"eslint": "^8.41.0",
+		"eslint": "^8.42.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^44.2.7",
