@@ -503,8 +503,8 @@ function defineTest(testName, {
 			"test-dependency",
 			"test-dependency-no-framework",
 			"sap.ui.lib1",
-			"sap.ui.lib8",
 			"sap.ui.lib4",
+			"sap.ui.lib8",
 		], `Non-framework dependency has correct dependencies`);
 
 		t.deepEqual(projectGraph.getDependencies("test-dependency"), [

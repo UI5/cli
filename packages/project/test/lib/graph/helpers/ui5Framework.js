@@ -540,6 +540,23 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 					}]
 				}
 			}
+		}, {
+			id: "@openui5/lib1",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib1"
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "lib3"
+					}]
+				}
+			}
 		}]
 	};
 	const referencedLibraries = ["lib1"];
@@ -562,7 +579,7 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph);
-	t.is(projectGraph.getSize(), 2, "Project graph should remain unchanged");
+	t.is(projectGraph.getSize(), 3, "Project graph should remain unchanged");
 
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGrap should be called once");
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
@@ -620,6 +637,23 @@ test.serial("enrichProjectGraph should resolve framework project " +
 					}]
 				}
 			}
+		}, {
+			id: "@openui5/lib1",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib1"
+				},
+				framework: {
+					name: "OpenUI5",
+					libraries: [{
+						name: "lib3"
+					}]
+				}
+			}
 		}]
 	};
 	const referencedLibraries = ["lib1"];
@@ -643,7 +677,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "3.4.5"});
-	t.is(projectGraph.getSize(), 2, "Project graph should remain unchanged");
+	t.is(projectGraph.getSize(), 3, "Project graph should remain unchanged");
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");
@@ -1210,6 +1244,9 @@ test.serial("utils.declareFrameworkDependenciesInGraph", async (t) => {
 				}, {
 					name: "lib3",
 					development: true
+				}, {
+					name: "lib5",
+					optional: true
 				}]
 			}
 		},
@@ -1235,6 +1272,9 @@ test.serial("utils.declareFrameworkDependenciesInGraph", async (t) => {
 						development: true
 					}, {
 						name: "lib5",
+						optional: true
+					}, {
+						name: "lib6",
 						optional: true
 					}]
 				}
@@ -1295,6 +1335,17 @@ test.serial("utils.declareFrameworkDependenciesInGraph", async (t) => {
 					deprecated: true
 				}
 			}
+		}, {
+			id: "@openui5/lib5",
+			version: "1.2.3",
+			path: libraryEPath,
+			configuration: {
+				specVersion: "2.0",
+				type: "library",
+				metadata: {
+					name: "lib5"
+				}
+			}
 		}]
 	};
 	const projectGraph = await projectGraphBuilder(new DependencyTreeProvider({
@@ -1310,21 +1361,25 @@ test.serial("utils.declareFrameworkDependenciesInGraph", async (t) => {
 	const resolveOptionalDependenciesSpy = sinon.spy(projectGraph, "resolveOptionalDependencies");
 	await utils.declareFrameworkDependenciesInGraph(projectGraph);
 
-	t.is(declareDependencySpy.callCount, 5, "declareDependency got called five times");
+	t.is(declareDependencySpy.callCount, 7, "declareDependency got called seven times");
 	t.deepEqual(declareDependencySpy.getCall(0).args, ["application.a", "lib1"],
 		"declareDependency got called with correct arguments on first call");
-	t.deepEqual(declareDependencySpy.getCall(1).args, ["application.a", "lib3"],
+	t.deepEqual(declareDependencySpy.getCall(1).args, ["application.a", "lib2"],
 		"declareDependency got called with correct arguments on second call");
-	t.deepEqual(declareDependencySpy.getCall(2).args, ["library.a", "lib2"],
+	t.deepEqual(declareDependencySpy.getCall(2).args, ["application.a", "lib3"],
 		"declareDependency got called with correct arguments on third call");
-	t.deepEqual(declareDependencySpy.getCall(3).args, ["application.a", "lib2"],
+	t.deepEqual(declareDependencySpy.getCall(3).args, ["application.a", "lib5"],
 		"declareDependency got called with correct arguments on fourth call");
-	t.deepEqual(declareDependencySpy.getCall(4).args, ["library.a", "lib3"],
+	t.deepEqual(declareDependencySpy.getCall(4).args, ["library.a", "lib2"],
 		"declareDependency got called with correct arguments on fifth call");
+	t.deepEqual(declareDependencySpy.getCall(5).args, ["library.a", "lib3"],
+		"declareDependency got called with correct arguments on sixth call");
+	t.deepEqual(declareDependencySpy.getCall(6).args, ["library.a", "lib5"],
+		"declareDependency got called with correct arguments on seventh call");
 	t.is(declareOptionalDependencySpy.callCount, 2, "declareOptionalDependency got called ");
-	t.deepEqual(declareOptionalDependencySpy.getCall(0).args, ["application.a", "lib2"],
+	t.deepEqual(declareOptionalDependencySpy.getCall(0).args, ["library.a", "lib3"],
 		"declareOptionalDependency got called with correct arguments on first call");
-	t.deepEqual(declareOptionalDependencySpy.getCall(1).args, ["library.a", "lib3"],
+	t.deepEqual(declareOptionalDependencySpy.getCall(1).args, ["library.a", "lib5"],
 		"declareOptionalDependency got called with correct arguments on second call");
 	t.is(resolveOptionalDependenciesSpy.callCount, 1,
 		"resolveOptionalDependenciesSpy got called once");
@@ -1343,13 +1398,15 @@ test.serial("utils.declareFrameworkDependenciesInGraph", async (t) => {
 	t.deepEqual(projectGraph.getDependencies("application.a"), [
 		"library.a",
 		"lib1",
+		"lib2",
 		"lib3",
-		"lib2"
+		"lib5"
 	], `Root project has correct dependencies`);
 
 	t.deepEqual(projectGraph.getDependencies("library.a"), [
 		"lib2",
-		"lib3"
+		"lib3",
+		"lib5"
 	], `Non-framework dependency has correct dependencies`);
 });
 
@@ -1457,6 +1514,7 @@ test.serial("utils.declareFrameworkDependenciesInGraph: No deprecation warnings 
 
 	t.deepEqual(projectGraph.getDependencies("testsuite"), [
 		"lib1",
+		"lib2",
 		"lib3"
 	], `Root project has correct dependencies`);
 });

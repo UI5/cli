@@ -180,7 +180,7 @@ const utils = {
 								`add the attribute "allowSapInternal: true" to its metadata configuration`);
 						}
 					}
-					if (dependency.optional) {
+					if (!isRoot && dependency.optional) {
 						if (projectGraph.getProject(dependency.name)) {
 							projectGraph.declareOptionalDependency(project.getName(), dependency.name);
 						}
