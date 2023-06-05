@@ -16,6 +16,15 @@ tree.builder = function(cli) {
 			describe:
 				"Overrides the framework version defined by the project",
 			type: "string"
+		})
+		.option("cache-mode", {
+			describe:
+				"Cache mode to use when consuming SNAPSHOT versions of a framework: 'Default', 'Force', or 'Off'. " +
+				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
+				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Force", "Off"]
 		});
 };
 
@@ -30,12 +39,14 @@ tree.handler = async function(argv) {
 	if (argv.dependencyDefinition) {
 		graph = await graphFromStaticFile({
 			filePath: argv.dependencyDefinition,
-			versionOverride: argv.frameworkVersion
+			versionOverride: argv.frameworkVersion,
+			cacheMode: argv.cacheMode,
 		});
 	} else {
 		graph = await graphFromPackageDependencies({
 			rootConfigPath: argv.config,
 			versionOverride: argv.frameworkVersion,
+			cacheMode: argv.cacheMode,
 			workspaceConfigPath: argv.workspaceConfig,
 			workspaceName: argv.workspace === false ? null : argv.workspace,
 		});

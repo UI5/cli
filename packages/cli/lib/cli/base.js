@@ -52,7 +52,7 @@ export default function(cli) {
 			"config", "dependency-definition", "workspace-config", "workspace", "log-level",
 
 			// tree.js, build.js & serve.js
-			"framework-version",
+			"framework-version", "cache-mode",
 
 			// build.js
 			"dest",
