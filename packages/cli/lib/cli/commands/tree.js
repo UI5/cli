@@ -4,6 +4,7 @@ import chalk from "chalk";
 
 const tree = {
 	command: "tree",
+	aliases: ["ls", "list"],
 	describe:
 		"Outputs the dependency tree of the current project to stdout. " +
 		"It takes all relevant parameters of ui5 build into account.",
@@ -12,6 +13,15 @@ const tree = {
 
 tree.builder = function(cli) {
 	return cli
+		.option("flat", {
+			describe: "Output a flat list of all dependencies instead of a tree hierarchy",
+			type: "boolean",
+			default: false
+		})
+		.option("level", {
+			describe: "Limit the number of levels shown in the tree hierarchy",
+			type: "number"
+		})
 		.option("framework-version", {
 			describe:
 				"Overrides the framework version defined by the project",
@@ -56,18 +66,31 @@ tree.handler = async function(argv) {
 		elapsedTime = await getElapsedTime(startTime);
 	}
 
-	const projects = Object.create(null);
+	let requestedLevels;
+	if (argv.level !== undefined && isNaN(argv.level)) {
+		throw new Error(`The provided 'level' option is not a number`);
+	} else if (argv.level !== undefined) {
+		requestedLevels = argv.level;
+	} else {
+		requestedLevels = Infinity;
+	}
+
+	const projects = new Map();
 	const indentWidth = 4;
 	await graph.traverseBreadthFirst(async ({project, dependencies}) => {
-		projects[project.getName()] = {
-			render: function(indentation, connectorIndices, lastChild) {
-				let baseString = " ".repeat(indentation * indentWidth);
+		projects.set(project.getName(), {
+			render: function(level, connectorIndices, lastChild, renderDeps = true) {
+				let baseString = " ".repeat(level * indentWidth);
 				connectorIndices.forEach((idx) => {
 					baseString = `${baseString.slice(0, idx)}│${baseString.slice(idx + 1)}`;
 				});
 				const connectorString = lastChild ? "╰─" : "├─";
+				let name = chalk.bold(project.getName());
+				if (project.isFrameworkProject()) {
+					name = chalk.blue(name);
+				}
 				console.log(
-					`${baseString}${connectorString} ${chalk.bold(project.getName())} ` +
+					`${baseString}${connectorString} ${name} ` +
 					`${project.getNamespace() ? chalk.inverse(project.getNamespace()) + " " : ""}` +
 					chalk.dim(`(${project.getVersion()}, ${project.getType()}) `) +
 					chalk.dim.italic(`${project.getRootPath()}`)
@@ -76,18 +99,39 @@ tree.handler = async function(argv) {
 				const lastIdx = dependencies.length - 1;
 				const newConnectorIndices = [...connectorIndices];
 				if (!lastChild) {
-					newConnectorIndices.push(indentation * indentWidth);
+					newConnectorIndices.push(level * indentWidth);
 				}
-				dependencies.forEach((dep, i) => {
-					projects[dep].render(indentation + 1, newConnectorIndices, i === lastIdx);
-				});
+
+				if (level >= requestedLevels) {
+					const msg = chalk.dim.italic(`Dependencies below Level ${level} are hidden`);
+					let nextBaseString = " ".repeat((level + 1) * indentWidth);
+					newConnectorIndices.forEach((idx) => {
+						nextBaseString = `${nextBaseString.slice(0, idx)}│${nextBaseString.slice(idx + 1)}`;
+					});
+					console.log(`${nextBaseString}╰─ ${msg}`);
+					return;
+				}
+				if (renderDeps) {
+					dependencies.forEach((dep, i) => {
+						projects.get(dep).render(level + 1, newConnectorIndices, i === lastIdx);
+					});
+				}
 			}
-		};
+		});
 	});
 
-	const projectKeys = Object.keys(projects);
-	console.log(chalk.bold.underline(`Dependencies (${projectKeys.length}):`));
-	projects[projectKeys[0]].render(0, [], true);
+	console.log(chalk.bold.underline(`Dependencies (${projects.size}):`));
+	if (argv.flat) {
+		// Iterate over list of projects, rendering each individually
+		// We need to transform the map into an array in order to know the index
+		// for determining whether we are rendering the last entry (lastChild param)
+		Array.from(projects.values()).forEach(({render: renderProject}, idx, arr) => {
+			renderProject(0, [], idx == arr.length -1, false);
+		});
+	} else {
+		// Recursively render the tree, starting with the first entry of the map
+		projects.values().next().value.render(0, [], true);
+	}
 	console.log("");
 
 	const extensionNames = graph.getExtensionNames();
