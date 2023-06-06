@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.1.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.2.0...HEAD).
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2023-06-06
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 3.3.1 to 3.3.2 [`a508e96`](https://github.com/SAP/ui5-cli/commit/a508e966fb15de82c64754171fbd2202af3128e3)
+- Bump [@ui5](https://github.com/ui5)/server from 3.1.2 to 3.1.3 [`888fc0c`](https://github.com/SAP/ui5-cli/commit/888fc0cf918994cab1e3c84beac757e609a61566)
+- Bump [@ui5](https://github.com/ui5)/builder from 3.0.4 to 3.0.5 [`1155cfc`](https://github.com/SAP/ui5-cli/commit/1155cfccb57f7d588063999719d1a0814fd7e939)
+
+### Features
+- **SNAPSHOT Consumption:** Add cache-mode parameter ([#633](https://github.com/SAP/ui5-cli/issues/633)) [`61d0865`](https://github.com/SAP/ui5-cli/commit/61d0865416eaee9bfc08195f636c60ad4f64e13f)
+- **ui5 tree:** Add 'level' and 'flat' parameters ([#635](https://github.com/SAP/ui5-cli/issues/635)) [`284d9ea`](https://github.com/SAP/ui5-cli/commit/284d9ea9f75967257859b7763e7b9a09a3b219cf)
+
 
 <a name="v3.1.3"></a>
 ## [v3.1.3] - 2023-05-23
@@ -1039,6 +1051,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.2.0]: https://github.com/SAP/ui5-cli/compare/v3.1.3...v3.2.0
 [v3.1.3]: https://github.com/SAP/ui5-cli/compare/v3.1.2...v3.1.3
 [v3.1.2]: https://github.com/SAP/ui5-cli/compare/v3.1.1...v3.1.2
 [v3.1.1]: https://github.com/SAP/ui5-cli/compare/v3.1.0...v3.1.1
