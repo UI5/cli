@@ -2,7 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.3.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.3.2...HEAD).
+
+<a name="v3.3.2"></a>
+## [v3.3.2] - 2023-06-05
+### Bug Fixes
+- **ui5Framework:** Treat 'optional' dependencies of root project as non-optional [`f3318f0`](https://github.com/SAP/ui5-project/commit/f3318f0daff617e12ac97050e19d41a16ecbc748)
+- **ui5Framework:** Choose correct resolver for snapshot framework version overrides [`ba860de`](https://github.com/SAP/ui5-project/commit/ba860de97bc1674fa8381706cc09bd68ee08df38)
+
+### Dependency Updates
+- Bump xml2js from 0.5.0 to 0.6.0 [`aa7d853`](https://github.com/SAP/ui5-project/commit/aa7d853f4a719006a6aaf4e51cc5c12fd00d2aa1)
+
 
 <a name="v3.3.1"></a>
 ## [v3.3.1] - 2023-05-23
@@ -391,6 +401,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.3.2]: https://github.com/SAP/ui5-project/compare/v3.3.1...v3.3.2
 [v3.3.1]: https://github.com/SAP/ui5-project/compare/v3.3.0...v3.3.1
 [v3.3.0]: https://github.com/SAP/ui5-project/compare/v3.2.2...v3.3.0
 [v3.2.2]: https://github.com/SAP/ui5-project/compare/v3.2.1...v3.2.2
