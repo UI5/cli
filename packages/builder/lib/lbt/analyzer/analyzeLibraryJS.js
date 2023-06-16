@@ -1,10 +1,18 @@
 
 import {parseJS, Syntax, VisitorKeys} from "../utils/parseUtils.js";
 import {getPropertyKey, isMethodCall, isIdentifier, getStringArray} from "../utils/ASTUtils.js";
+import SapUiDefineCall from "../calls/SapUiDefine.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("lbt:analyzer:LibraryJS");
 
 const CALL__SAP_UI_GETCORE = ["sap", "ui", "getCore"];
+const CALL_SAP_UI_DEFINE = ["sap", "ui", "define"];
+const CALL_AMD_DEFINE = ["define"];
+const AMD__LIB_INIT_RESOURCES = [
+	// Dependency definition, init library method name
+	["sap/ui/core/Core.js", "initLibrary"],
+	["sap/ui/core/Lib.js", "init"]
+];
 
 /*
  * Static Code Analyzer that extracts library information from the sap.ui.getCore().initLibrary()
@@ -19,45 +27,51 @@ async function analyze(resource) {
 		interfaces: []
 	};
 
+	const code = await resource.getBuffer();
+	const rootNode = parseJS(code);
+	let analyzedDefineCall = null;
+	visit( rootNode );
+
 	function visit(node) {
-		if ( node.type == Syntax.CallExpression &&
-				node.callee.type === Syntax.MemberExpression &&
-				isMethodCall(node.callee.object, CALL__SAP_UI_GETCORE) &&
-				isIdentifier(node.callee.property, "initLibrary") &&
-				node.arguments.length === 1 &&
-				node.arguments[0].type === Syntax.ObjectExpression ) {
-			node.arguments[0].properties.forEach( (prop) => {
-				if (prop.type === Syntax.SpreadElement) {
-					// SpreadElements are currently not supported
-					return;
-				}
+		if ( node.type === Syntax.CallExpression ) {
+			// Define call would always be at the top of the tree, so it'd
+			// be the first significant thing that's been found.
+			analyzedDefineCall = analyzedDefineCall || analyzeSapUiDefineCalls(node);
 
-				const key = getPropertyKey(prop);
-				const value = prop.value;
+			if (isInitLibraryCall(node)) {
+				node.arguments[0].properties.forEach( (prop) => {
+					if (prop.type === Syntax.SpreadElement) {
+						// SpreadElements are currently not supported
+						return;
+					}
 
-				if ( key === "noLibraryCSS" &&
-						(value.type === Syntax.Literal && typeof value.value === "boolean") ) {
-					libInfo.noLibraryCSS = value.value;
-				} else if ( key === "types" && value.type == Syntax.ArrayExpression ) {
-					libInfo.types = getStringArray(value, true);
-				} else if ( key === "interfaces" && value.type == Syntax.ArrayExpression ) {
-					libInfo.interfaces = getStringArray(value, true);
-				} else if ( key === "controls" && value.type == Syntax.ArrayExpression ) {
-					libInfo.controls = getStringArray(value, true);
-				} else if ( key === "elements" && value.type == Syntax.ArrayExpression ) {
-					libInfo.elements = getStringArray(value, true);
-				} else if ( ["designtime", "dependencies", "extensions", "name", "version"].includes(key) ) {
-					// do nothing, for all other supported properties
-				} else {
-					log.error(
-						"Unexpected property '" + key +
-						"' or wrong type for '" + key +
-						"' in sap.ui.getCore().initLibrary call in '" + resource.getPath() + "'"
-					);
-				}
-			});
+					const key = getPropertyKey(prop);
+					const value = prop.value;
 
-			return true; // abort, we're done
+					if ( key === "noLibraryCSS" &&
+							(value.type === Syntax.Literal && typeof value.value === "boolean") ) {
+						libInfo.noLibraryCSS = value.value;
+					} else if ( key === "types" && value.type == Syntax.ArrayExpression ) {
+						libInfo.types = getStringArray(value, true);
+					} else if ( key === "interfaces" && value.type == Syntax.ArrayExpression ) {
+						libInfo.interfaces = getStringArray(value, true);
+					} else if ( key === "controls" && value.type == Syntax.ArrayExpression ) {
+						libInfo.controls = getStringArray(value, true);
+					} else if ( key === "elements" && value.type == Syntax.ArrayExpression ) {
+						libInfo.elements = getStringArray(value, true);
+					} else if ( ["designtime", "dependencies", "extensions", "name", "version"].includes(key) ) {
+						// do nothing, for all other supported properties
+					} else {
+						log.error(
+							"Unexpected property '" + key +
+							"' or wrong type for '" + key +
+							"' for a library initalization call in '" + resource.getPath() + "'"
+						);
+					}
+				});
+
+				return true; // abort, we're done
+			}
 		}
 
 		for ( const key of VisitorKeys[node.type] ) {
@@ -76,8 +90,64 @@ async function analyze(resource) {
 		return false;
 	}
 
-	const code = await resource.getBuffer();
-	visit( parseJS(code) );
+	/**
+	 * Finds and extracts dependencies from sap.ui.define call
+	 *
+	 * @param {Node} node
+	 * @returns {SapUiDefineCall}
+	 */
+	function analyzeSapUiDefineCalls(node) {
+		// Analyze sap.ui.define calls
+		if ( [CALL_AMD_DEFINE, CALL_SAP_UI_DEFINE].some(
+			(defCall) => isMethodCall(node, defCall)) ) {
+			const defCall = new SapUiDefineCall(node, resource.getName());
+
+			return AMD__LIB_INIT_RESOURCES
+				// Resolve dependency variable names.
+				.map((dependency) => [defCall.findImportName(dependency[0]), dependency[1]])
+				// Remove potential dependencies that are not actually present.
+				.filter((dependency) => dependency[0]);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Determines whether the node is an initLibrary call.
+	 *
+	 * @param {Node} node
+	 * @returns {boolean}
+	 */
+	function isInitLibraryCall(node) {
+		// sap.ui.getCore()
+		if (
+			node.type == Syntax.CallExpression &&
+			node.callee.type === Syntax.MemberExpression &&
+			isMethodCall(node.callee.object, CALL__SAP_UI_GETCORE) &&
+			isIdentifier(node.callee.property, "initLibrary") &&
+			node.arguments.length === 1 &&
+			node.arguments[0].type === Syntax.ObjectExpression
+		) {
+			return true;
+		}
+
+		// Find a CallExpression that is initLibrary
+		// i.e. node.callee.object === "Core" && node.callee.property === "initLibrary"
+		if (
+			node.type === Syntax.CallExpression &&
+			node.callee.type === Syntax.MemberExpression &&
+			analyzedDefineCall &&
+			analyzedDefineCall.some((potentialDependency) =>
+				isMethodCall(node, potentialDependency)
+			) &&
+			node.arguments.length === 1 &&
+			node.arguments[0].type === Syntax.ObjectExpression
+		) {
+			return true;
+		}
+
+		return false;
+	}
 
 	return libInfo;
 }

@@ -2,13 +2,16 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 
-function createMockResource(content, path) {
+function createMockResource(content, path, name = "library.js") {
 	return {
 		async getBuffer() {
 			return content;
 		},
 		getPath() {
 			return path;
+		},
+		getName() {
+			return name;
 		}
 	};
 }
@@ -74,11 +77,11 @@ sap.ui.define([
 	t.is(errorLogStub.callCount, 2, "Error log is called twice");
 	t.is(errorLogStub.getCall(0).args[0],
 		"Unexpected property 'customProperty1' or wrong type for 'customProperty1'" +
-		" in sap.ui.getCore().initLibrary call in 'library/test/library.js'",
+		" for a library initalization call in 'library/test/library.js'",
 		"The error log message of the first call is correct");
 	t.is(errorLogStub.getCall(1).args[0],
 		"Unexpected property 'customProperty2' or wrong type for 'customProperty2'" +
-		" in sap.ui.getCore().initLibrary call in 'library/test/library.js'",
+		" for a library initalization call in 'library/test/library.js'",
 		"The error log message of the first call is correct");
 });
 
@@ -153,4 +156,97 @@ sap.ui.define([
 	t.is(errorLogStub.callCount, 0, "Error log is not called");
 	t.is(result.elements[0], "library.test.MenuItem", "The libraryjs is correctly analyzed");
 	t.true(result.noLibraryCSS, "The 'noLibraryCSS' property is correctly 'true'");
+});
+
+test.serial("analyze: library.js with AMD defined initLibrary", async (t) => {
+	let libraryJS = `
+sap.ui.define([
+	'sap/ui/core/Core',
+], function(Core) {
+	"use strict";
+	var thisLib = Core.initLibrary({
+		name : "library.test",
+		version: "1.0.0",
+		noLibraryCSS: true,
+		elements: [
+			"library.test.MenuItem"
+		],
+	});
+	return thisLib;
+});`;
+
+	const librayName = "library.js";
+	const librayJSPath = "library/test/library.js";
+	const errorLogStub = sinon.stub();
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				error: errorLogStub
+			})
+		}
+	});
+
+	let mockResource = createMockResource(libraryJS, librayJSPath, librayName);
+	let result = await analyzeLibraryJSWithStubbedLogger(mockResource);
+	t.is(errorLogStub.callCount, 0, "Error log is not called");
+	t.is(result.elements[0], "library.test.MenuItem", "The libraryjs is correctly analyzed");
+
+
+	libraryJS = `
+sap.ui.define([
+	'sap/ui/core/Lib',
+], function(Lib) {
+	"use strict";
+	var thisLib = Lib.init({
+		name : "library.test",
+		version: "1.0.0",
+		noLibraryCSS: true,
+		elements: [
+			"library.test.MenuItem"
+		],
+	});
+	return thisLib;
+});`;
+
+	mockResource = createMockResource(libraryJS, librayJSPath, librayName);
+	result = await analyzeLibraryJSWithStubbedLogger(mockResource);
+	t.is(errorLogStub.callCount, 0, "Error log is not called");
+	t.is(result.elements[0], "library.test.MenuItem", "The libraryjs is correctly analyzed");
+});
+
+test.serial("analyze: library.js with unknown initLibrary call", async (t) => {
+	const libraryJS = `
+sap.ui.define([
+	'sap/ui/core/Core',
+], function(Core) {
+	"use strict";
+	var thisLib = SomeGlobalVar.initLibrary({
+		name : "library.test",
+		version: "1.0.0",
+		noLibraryCSS: true,
+		elements: [
+			"library.test.MenuItem"
+		],
+	});
+	return thisLib;
+});`;
+
+	const librayName = "library.js";
+	const librayJSPath = "library/test/library.js";
+	const errorLogStub = sinon.stub();
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				error: errorLogStub
+			})
+		}
+	});
+
+	const mockResource = createMockResource(libraryJS, librayJSPath, librayName);
+	const result = await analyzeLibraryJSWithStubbedLogger(mockResource);
+	t.is(errorLogStub.callCount, 0, "Error log is not called");
+	t.deepEqual(result.types, [], "initLibrary is a method with unknown source and is not analyzed");
+	t.deepEqual(result.controls, [], "initLibrary is a method with unknown source and is not analyzed");
+	t.deepEqual(result.elements, [], "initLibrary is a method with unknown source and is not analyzed");
+	t.deepEqual(result.interfaces, [], "initLibrary is a method with unknown source and is not analyzed");
 });
