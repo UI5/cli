@@ -77,11 +77,11 @@ sap.ui.define([
 	t.is(errorLogStub.callCount, 2, "Error log is called twice");
 	t.is(errorLogStub.getCall(0).args[0],
 		"Unexpected property 'customProperty1' or wrong type for 'customProperty1'" +
-		" for a library initalization call in 'library/test/library.js'",
+		" for a library initialization call in 'library/test/library.js'",
 		"The error log message of the first call is correct");
 	t.is(errorLogStub.getCall(1).args[0],
 		"Unexpected property 'customProperty2' or wrong type for 'customProperty2'" +
-		" for a library initalization call in 'library/test/library.js'",
+		" for a library initialization call in 'library/test/library.js'",
 		"The error log message of the first call is correct");
 });
 

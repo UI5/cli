@@ -65,7 +65,7 @@ async function analyze(resource) {
 						log.error(
 							"Unexpected property '" + key +
 							"' or wrong type for '" + key +
-							"' for a library initalization call in '" + resource.getPath() + "'"
+							"' for a library initialization call in '" + resource.getPath() + "'"
 						);
 					}
 				});
