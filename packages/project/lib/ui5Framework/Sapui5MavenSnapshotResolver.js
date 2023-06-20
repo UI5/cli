@@ -1,5 +1,6 @@
 import path from "node:path";
 import os from "node:os";
+import semver from "semver";
 import AbstractResolver from "./AbstractResolver.js";
 import Installer from "./maven/Installer.js";
 import {getLogger} from "@ui5/logger";
@@ -50,6 +51,11 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 			cacheMode,
 		});
 		this._loadDistMetadata = null;
+
+		// TODO 4.0: Remove support for legacy snapshot versions
+		this._isLegacySnapshotVersion = semver.lt(this._version, "1.116.0-SNAPSHOT", {
+			includePrerelease: true
+		});
 	}
 	loadDistMetadata() {
 		if (!this._loadDistMetadata) {
@@ -95,8 +101,28 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		}
 		const gav = metadata.gav.split(":");
 		let pkgName = metadata.npmPackageName;
-		if (!this._sources) {
+
+		// Use "npm-dist" artifact by default
+		let classifier;
+		let extension;
+		if (this._sources) {
+			// Use npm-sources artifact if sources are requested
+			classifier = "npm-sources";
+			extension = "zip";
+		} else {
+			// Add "prebuilt" suffix to package name
 			pkgName += "-prebuilt";
+
+			if (this._isLegacySnapshotVersion) {
+				// For legacy versions < 1.116.0-SNAPSHOT where npm-dist artifact is not
+				// yet available, use "default" JAR
+				classifier = null;
+				extension = "jar";
+			} else {
+				// Use "npm-dist" artifact by default
+				classifier = "npm-dist";
+				extension = "zip";
+			}
 		}
 
 		return {
@@ -112,8 +138,8 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 				groupId: gav[0],
 				artifactId: gav[1],
 				version: metadata.version,
-				classifier: this._sources ? "npm-sources" : null,
-				extension: this._sources ? "zip" : "jar",
+				classifier,
+				extension,
 			}),
 		};
 	}

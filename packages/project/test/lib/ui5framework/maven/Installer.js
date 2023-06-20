@@ -985,10 +985,12 @@ test.serial("_pathExists", async (t) => {
 		snapshotEndpointUrlCb: () => {}
 	});
 
-	statStub.resolves("/target/path/");
-	const pathExists = await installer._pathExists();
+	statStub.resolves();
+	const pathExists = await installer._pathExists("/target/path/");
 
-	t.is(pathExists, true, "Resolves the target path");
+	t.is(pathExists, true, "Target path exists");
+	t.is(statStub.callCount, 1, "stat got called once");
+	t.is(statStub.firstCall.firstArg, "/target/path/", "stat got called with expected argument");
 });
 
 test.serial("_pathExists file not found", async (t) => {
@@ -1001,9 +1003,9 @@ test.serial("_pathExists file not found", async (t) => {
 	});
 
 	statStub.throws({code: "ENOENT"});
-	const pathExists = await installer._pathExists();
+	const pathExists = await installer._pathExists("/target/path/");
 
-	t.is(pathExists, false, "Target path is not resolved");
+	t.is(pathExists, false, "Target path does not exist");
 });
 
 test.serial("_pathExists throws", async (t) => {
@@ -1019,7 +1021,65 @@ test.serial("_pathExists throws", async (t) => {
 		throw new Error("Error message");
 	});
 
-	await t.throwsAsync(installer._pathExists(), {
+	await t.throwsAsync(installer._pathExists("/target/path/"), {
 		message: "Error message",
+	}, "Threw with expected error message");
+});
+
+test.serial("_projectExists", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
 	});
+
+	const pathExistsStub = sinon.stub(installer, "_pathExists").resolves(true);
+	const projectExists = await installer._projectExists("/target/path/");
+
+	t.is(projectExists, true, "Resolves the target path");
+	t.is(pathExistsStub.callCount, 1, "_pathExists got called once");
+	t.is(pathExistsStub.firstCall.firstArg, path.join("/target/path/package.json"),
+		"_pathExists got called with expected argument");
+});
+
+test.serial("_projectExists: Does not exist", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
+	});
+
+	const pathExistsStub = sinon.stub(installer, "_pathExists").resolves(false);
+	const projectExists = await installer._projectExists("/target/path/");
+
+	t.is(projectExists, false, "Resolves the target path");
+	t.is(pathExistsStub.callCount, 1, "_pathExists got called once");
+	t.is(pathExistsStub.firstCall.firstArg, path.join("/target/path/package.json"),
+		"_pathExists got called with expected argument");
+});
+
+test.serial("_projectExists: Throws", async (t) => {
+	const {Installer} = t.context;
+
+	const installer = new Installer({
+		cwd: "/cwd/",
+		ui5HomeDir: "/ui5Home/",
+		snapshotEndpointUrlCb: () => {}
+	});
+
+	const pathExistsStub = sinon.stub(installer, "_pathExists").throws(() => {
+		throw new Error("Error message");
+	});
+
+	await t.throwsAsync(installer._projectExists("/target/path/"), {
+		message: "Error message",
+	}, "Threw with expected error message");
+
+	t.is(pathExistsStub.callCount, 1, "_pathExists got called once");
+	t.is(pathExistsStub.firstCall.firstArg, path.join("/target/path/package.json"),
+		"_pathExists got called with expected argument");
 });

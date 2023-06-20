@@ -132,7 +132,7 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary", async (t) => {
 
 	const resolver = new Sapui5MavenSnapshotResolver({
 		cwd: "/test-project/",
-		version: "1.75.0"
+		version: "1.116.0-SNAPSHOT"
 	});
 
 	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
@@ -140,7 +140,7 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary", async (t) => {
 		libraries: {
 			"sap.ui.lib1": {
 				"npmPackageName": "@openui5/sap.ui.lib1",
-				"version": "1.75.0",
+				"version": "1.116.0-SNAPSHOT",
 				"dependencies": [],
 				"optionalDependencies": [],
 				"gav": "x:y:z"
@@ -156,7 +156,61 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary", async (t) => {
 			pkgName: "@openui5/sap.ui.lib1-prebuilt",
 			groupId: "x",
 			artifactId: "y",
-			version: "1.75.0",
+			version: "1.116.0-SNAPSHOT",
+			classifier: "npm-dist",
+			extension: "zip",
+		})
+		.resolves({pkgPath: "/foo/sap.ui.lib1"});
+
+
+	const promises = await resolver.handleLibrary("sap.ui.lib1");
+
+	t.true(promises.metadata instanceof Promise, "Metadata promise should be returned");
+	t.true(promises.install instanceof Promise, "Install promise should be returned");
+
+	const metadata = await promises.metadata;
+	t.deepEqual(metadata, {
+		"id": "@openui5/sap.ui.lib1-prebuilt",
+		"version": "1.116.0-SNAPSHOT",
+		"dependencies": [],
+		"optionalDependencies": []
+	}, "Expected library metadata should be returned");
+
+	t.deepEqual(await promises.install, {pkgPath: "/foo/sap.ui.lib1"}, "Install should resolve with expected object");
+	t.is(loadDistMetadataStub.callCount, 1, "loadDistMetadata should be called once");
+});
+
+
+test.serial("Sapui5MavenSnapshotResolver: handleLibrary - legacy version", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+
+	const resolver = new Sapui5MavenSnapshotResolver({
+		cwd: "/test-project/",
+		version: "1.75.0-SNAPSHOT"
+	});
+
+	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
+	loadDistMetadataStub.resolves({
+		libraries: {
+			"sap.ui.lib1": {
+				"npmPackageName": "@openui5/sap.ui.lib1",
+				"version": "1.75.0-SNAPSHOT",
+				"dependencies": [],
+				"optionalDependencies": [],
+				"gav": "x:y:z"
+			}
+		}
+	});
+
+	t.context.installPackageStub
+		.callsFake(async ({pkgName, version}) => {
+			throw new Error(`Unknown install call: ${pkgName}@${version}`);
+		})
+		.withArgs({
+			pkgName: "@openui5/sap.ui.lib1-prebuilt",
+			groupId: "x",
+			artifactId: "y",
+			version: "1.75.0-SNAPSHOT",
 			classifier: null,
 			extension: "jar",
 		})
@@ -171,7 +225,115 @@ test.serial("Sapui5MavenSnapshotResolver: handleLibrary", async (t) => {
 	const metadata = await promises.metadata;
 	t.deepEqual(metadata, {
 		"id": "@openui5/sap.ui.lib1-prebuilt",
-		"version": "1.75.0",
+		"version": "1.75.0-SNAPSHOT",
+		"dependencies": [],
+		"optionalDependencies": []
+	}, "Expected library metadata should be returned");
+
+	t.deepEqual(await promises.install, {pkgPath: "/foo/sap.ui.lib1"}, "Install should resolve with expected object");
+	t.is(loadDistMetadataStub.callCount, 1, "loadDistMetadata should be called once");
+});
+
+test.serial("Sapui5MavenSnapshotResolver: handleLibrary - sources requested", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+
+	const resolver = new Sapui5MavenSnapshotResolver({
+		cwd: "/test-project/",
+		version: "1.116.0-SNAPSHOT",
+		sources: true
+	});
+
+	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
+	loadDistMetadataStub.resolves({
+		libraries: {
+			"sap.ui.lib1": {
+				"npmPackageName": "@openui5/sap.ui.lib1",
+				"version": "1.116.0-SNAPSHOT",
+				"dependencies": [],
+				"optionalDependencies": [],
+				"gav": "x:y:z"
+			}
+		}
+	});
+
+	t.context.installPackageStub
+		.callsFake(async ({pkgName, version}) => {
+			throw new Error(`Unknown install call: ${pkgName}@${version}`);
+		})
+		.withArgs({
+			pkgName: "@openui5/sap.ui.lib1",
+			groupId: "x",
+			artifactId: "y",
+			version: "1.116.0-SNAPSHOT",
+			classifier: "npm-sources",
+			extension: "zip",
+		})
+		.resolves({pkgPath: "/foo/sap.ui.lib1"});
+
+
+	const promises = await resolver.handleLibrary("sap.ui.lib1");
+
+	t.true(promises.metadata instanceof Promise, "Metadata promise should be returned");
+	t.true(promises.install instanceof Promise, "Install promise should be returned");
+
+	const metadata = await promises.metadata;
+	t.deepEqual(metadata, {
+		"id": "@openui5/sap.ui.lib1",
+		"version": "1.116.0-SNAPSHOT",
+		"dependencies": [],
+		"optionalDependencies": []
+	}, "Expected library metadata should be returned");
+
+	t.deepEqual(await promises.install, {pkgPath: "/foo/sap.ui.lib1"}, "Install should resolve with expected object");
+	t.is(loadDistMetadataStub.callCount, 1, "loadDistMetadata should be called once");
+});
+
+test.serial("Sapui5MavenSnapshotResolver: handleLibrary - sources requested with legacy version", async (t) => {
+	const {Sapui5MavenSnapshotResolver} = t.context;
+
+	const resolver = new Sapui5MavenSnapshotResolver({
+		cwd: "/test-project/",
+		version: "1.75.0-SNAPSHOT",
+		sources: true
+	});
+
+	const loadDistMetadataStub = sinon.stub(resolver, "loadDistMetadata");
+	loadDistMetadataStub.resolves({
+		libraries: {
+			"sap.ui.lib1": {
+				"npmPackageName": "@openui5/sap.ui.lib1",
+				"version": "1.75.0-SNAPSHOT",
+				"dependencies": [],
+				"optionalDependencies": [],
+				"gav": "x:y:z"
+			}
+		}
+	});
+
+	t.context.installPackageStub
+		.callsFake(async ({pkgName, version}) => {
+			throw new Error(`Unknown install call: ${pkgName}@${version}`);
+		})
+		.withArgs({
+			pkgName: "@openui5/sap.ui.lib1",
+			groupId: "x",
+			artifactId: "y",
+			version: "1.75.0-SNAPSHOT",
+			classifier: "npm-sources",
+			extension: "zip",
+		})
+		.resolves({pkgPath: "/foo/sap.ui.lib1"});
+
+
+	const promises = await resolver.handleLibrary("sap.ui.lib1");
+
+	t.true(promises.metadata instanceof Promise, "Metadata promise should be returned");
+	t.true(promises.install instanceof Promise, "Install promise should be returned");
+
+	const metadata = await promises.metadata;
+	t.deepEqual(metadata, {
+		"id": "@openui5/sap.ui.lib1",
+		"version": "1.75.0-SNAPSHOT",
 		"dependencies": [],
 		"optionalDependencies": []
 	}, "Expected library metadata should be returned");

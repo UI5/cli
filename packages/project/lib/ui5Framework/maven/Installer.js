@@ -443,11 +443,7 @@ class Installer extends AbstractInstaller {
 	}
 
 	async _projectExists(targetDir) {
-		const markers = await Promise.all([
-			this._pathExists(path.join(targetDir, "package.json")),
-			this._pathExists(path.join(targetDir, ".ui5", "build-manifest.json"))
-		]);
-		return markers.includes(true);
+		return this._pathExists(path.join(targetDir, "package.json"));
 	}
 
 	async _pathExists(targetPath) {
