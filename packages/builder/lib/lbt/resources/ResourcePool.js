@@ -1,7 +1,6 @@
 import {parseJS} from "../utils/parseUtils.js";
 import ComponentAnalyzer from "../analyzer/ComponentAnalyzer.js";
 import SmartTemplateAnalyzer from "../analyzer/SmartTemplateAnalyzer.js";
-import FioriElementsAnalyzer from "../analyzer/FioriElementsAnalyzer.js";
 import XMLCompositeAnalyzer from "../analyzer/XMLCompositeAnalyzer.js";
 import JSModuleAnalyzer from "../analyzer/JSModuleAnalyzer.js";
 import XMLTemplateAnalyzer from "../analyzer/XMLTemplateAnalyzer.js";
@@ -94,8 +93,7 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 		if ( /(?:^|\/)Component\.js/.test(resource.name) ) {
 			promises.push(
 				new ComponentAnalyzer(pool).analyze(resource, info),
-				new SmartTemplateAnalyzer(pool).analyze(resource, info),
-				new FioriElementsAnalyzer(pool).analyze(resource, info)
+				new SmartTemplateAnalyzer(pool).analyze(resource, info)
 			);
 		}
 
