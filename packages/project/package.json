@@ -126,7 +126,7 @@
 		"ajv-errors": "^1.0.1",
 		"chalk": "^5.2.0",
 		"escape-string-regexp": "^5.0.0",
-		"globby": "^13.1.4",
+		"globby": "^13.2.0",
 		"graceful-fs": "^4.2.11",
 		"js-yaml": "^4.1.0",
 		"libnpmconfig": "^1.2.1",
@@ -163,7 +163,7 @@
 		"jsdoc": "^4.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.2.0",
-		"sinon": "^15.1.2",
+		"sinon": "^15.2.0",
 		"tap-xunit": "^2.4.1"
 	}
 }
