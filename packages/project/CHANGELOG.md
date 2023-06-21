@@ -2,10 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.3.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.4.0...HEAD).
+
+<a name="v3.4.0"></a>
+## [v3.4.0] - 2023-06-21
+### Bug Fixes
+- **maven/Registry:** Prevent socket timeouts when installing framework libraries [`3de767f`](https://github.com/SAP/ui5-project/commit/3de767fb7cc9278bf984ff88064a16e593db6db0)
+
+### Features
+- **Sapui5MavenSnapshotResolver:** Use npm-dist.zip artifact for 1.116.0 and later ([#622](https://github.com/SAP/ui5-project/issues/622)) [`45dcee0`](https://github.com/SAP/ui5-project/commit/45dcee00f141b6632d5a1217affbd212f6faf1f4)
+
 
 <a name="v3.3.2"></a>
-## [v3.3.2] - 2023-06-05
+## [v3.3.2] - 2023-06-06
 ### Bug Fixes
 - **ui5Framework:** Treat 'optional' dependencies of root project as non-optional [`f3318f0`](https://github.com/SAP/ui5-project/commit/f3318f0daff617e12ac97050e19d41a16ecbc748)
 - **ui5Framework:** Choose correct resolver for snapshot framework version overrides [`ba860de`](https://github.com/SAP/ui5-project/commit/ba860de97bc1674fa8381706cc09bd68ee08df38)
@@ -401,6 +410,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.4.0]: https://github.com/SAP/ui5-project/compare/v3.3.2...v3.4.0
 [v3.3.2]: https://github.com/SAP/ui5-project/compare/v3.3.1...v3.3.2
 [v3.3.1]: https://github.com/SAP/ui5-project/compare/v3.3.0...v3.3.1
 [v3.3.0]: https://github.com/SAP/ui5-project/compare/v3.2.2...v3.3.0
