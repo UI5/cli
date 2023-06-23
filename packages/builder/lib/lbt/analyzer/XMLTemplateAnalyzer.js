@@ -178,8 +178,6 @@ class XMLTemplateAnalyzer {
 				// console.log(result);
 				// clear();
 				if ( isFragment ) {
-					// all fragments implicitly depend on the fragment class
-					this.info.addImplicitDependency(FRAGMENT_MODULE);
 					this._analyzeNode(result);
 				} else {
 					// views require a special handling of the root node
@@ -196,8 +194,6 @@ class XMLTemplateAnalyzer {
 	}
 
 	_analyzeViewRootNode(node) {
-		this.info.addImplicitDependency(XMLVIEW_MODULE);
-
 		const controllerName = getAttribute(node, XMLVIEW_CONTROLLERNAME_ATTRIBUTE);
 		if ( controllerName ) {
 			this._addDependency( fromUI5LegacyName(controllerName, ".controller.js"), this.conditional );

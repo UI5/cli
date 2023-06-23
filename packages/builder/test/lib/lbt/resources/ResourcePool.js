@@ -325,7 +325,7 @@ test.serial("addResource: library and eval raw module info", async (t) => {
 
 	const actualResourceB = await resourcePool.findResourceWithInfo("moduleB.js");
 	t.true(actualResourceB.info instanceof ModuleInfo);
-	t.deepEqual(actualResourceB.info.dependencies, ["moduleC.js", "jquery.sap.global.js", "456.js"],
+	t.deepEqual(actualResourceB.info.dependencies, ["moduleC.js", "456.js"],
 		"dependencies from analsyis and raw info should have been merged");
 	t.true(actualResourceB.info.requiresTopLevelScope);
 	t.deepEqual(actualResourceB.info.exposedGlobals, ["foo", "bar", "some"],
