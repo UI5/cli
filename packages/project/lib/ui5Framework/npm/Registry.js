@@ -41,56 +41,61 @@ class Registry {
 			throw new Error(`Failed to extract package ${pkgName}@${version}: ${err.message}`);
 		}
 	}
+
 	async _getPacote() {
-		return {
-			pacote: (await import("pacote")).default,
-			pacoteOptions: await this._getPacoteOptions()
-		};
-	}
-	async _getPacoteOptions() {
-		if (!this._npmConfig) {
-			const {default: libnpmconfig} = await import("libnpmconfig");
-			const opts = {
-				cache: this._cacheDir,
+		if (this._pGetPacote) {
+			return this._pGetPacote;
+		}
+		return this._pGetPacote = (async () => {
+			return {
+				pacote: (await import("pacote")).default,
+				pacoteOptions: await this._getPacoteOptions()
 			};
-			const config = libnpmconfig.read(opts, {
-				cwd: this._cwd
-			}).toJSON();
+		})();
+	}
 
-			// Rename https-proxy to httpsProxy so that it is picked up by npm-registry-fetch (via pacote)
-			if (config["https-proxy"]) {
-				config.httpsProxy = config["https-proxy"];
-				delete config["https-proxy"];
-			}
+	async _getPacoteOptions() {
+		const {default: Config} = await import("@npmcli/config");
+		const {
+			default: {flatten, definitions, shorthands, defaults},
+		} = await import("@npmcli/config/lib/definitions/index.js");
 
-			if (!config.proxy && !config.httpsProxy) {
-				// Disable usage of shared keep-alive agents unless a proxy is configured
-				// which only works with agents.
+		const configuration = new Config({
+			cwd: this._cwd,
+			npmPath: this._cwd,
+			definitions,
+			flatten,
+			shorthands,
+			defaults
+		});
 
-				// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
-				// that can be easily reached (Error: Socket timeout) and there doesn't
-				// seem to be another way to disable or increase it.
-				// Also see: https://github.com/node-modules/agentkeepalive/issues/106
-				config.agent = false;
-			}
+		await configuration.load(); // Reads through the configurations
+		const config = configuration.flat; // JSON. Formatted via "flatten"
 
-			log.verbose(`Using npm configuration (extract):`);
-			// Do not log full configuration as it may contain authentication tokens
-			logConfig(config, "registry");
-			logConfig(config, "@sapui5:registry");
-			logConfig(config, "@openui5:registry");
-			logConfig(config, "proxy");
-			logConfig(config, "httpsProxy");
-			logConfig(config, "globalconfig");
-			logConfig(config, "userconfig");
-			logConfig(config, "cache");
-			logConfig(config, "cwd");
+		if (!config.proxy && !config.httpsProxy) {
+			// Disable usage of shared keep-alive agents unless a proxy is configured
+			// which only works with agents.
 
-			this._npmConfig = config;
+			// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
+			// that can be easily reached (Error: Socket timeout) and there doesn't
+			// seem to be another way to disable or increase it.
+			// Also see: https://github.com/node-modules/agentkeepalive/issues/106
+			config.agent = false;
 		}
 
-		// Use cached config
-		return this._npmConfig;
+		log.verbose(`Using npm configuration (extract):`);
+		// Do not log full configuration as it may contain authentication tokens
+		logConfig(config, "registry");
+		logConfig(config, "@sapui5:registry");
+		logConfig(config, "@openui5:registry");
+		logConfig(config, "proxy");
+		logConfig(config, "httpsProxy");
+		logConfig(config, "globalconfig");
+		logConfig(config, "userconfig");
+		logConfig(config, "cache");
+		logConfig(config, "cwd");
+
+		return config;
 	}
 }
 

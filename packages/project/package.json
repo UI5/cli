@@ -129,7 +129,7 @@
 		"globby": "^13.2.0",
 		"graceful-fs": "^4.2.11",
 		"js-yaml": "^4.1.0",
-		"libnpmconfig": "^1.2.1",
+		"@npmcli/config": "^6.2.1",
 		"lockfile": "^1.0.4",
 		"make-fetch-happen": "^11.1.1",
 		"node-stream-zip": "^1.15.0",

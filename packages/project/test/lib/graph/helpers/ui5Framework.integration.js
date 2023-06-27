@@ -32,20 +32,29 @@ test.beforeEach(async (t) => {
 		manifest: sinon.stub()
 	};
 
+	class Config {
+		static get typeDefs() {
+			return {};
+		}
+
+		async load() {}
+
+		get flat() {
+			return {};
+		}
+	}
+	sinon.stub(Config.prototype, "flat").value({
+		registry: "https://registry.fake",
+		cache: path.join(ui5FrameworkBaseDir, "cacache"),
+		proxy: ""
+	});
+
 	t.context.Registry = await esmock.p("../../../../lib/ui5Framework/npm/Registry.js", {
 		"@ui5/logger": ui5Logger,
 		"pacote": t.context.pacote,
-		"libnpmconfig": {
-			read: sinon.stub().returns({
-				toJSON: () => {
-					return {
-						registry: "https://registry.fake",
-						cache: path.join(ui5FrameworkBaseDir, "cacache"),
-						proxy: ""
-					};
-				}
-			})
-		},
+		"@npmcli/config": {
+			"default": Config
+		}
 	});
 
 	const AbstractInstaller = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
