@@ -20,7 +20,7 @@ function clone(obj) {
 /**
  * Raw representation of a UI5 Project. A module can contain zero to one projects and n extensions.
  * This class is intended for private use by the
- * [@ui5/project/graph/ProjectGraphFromTree]{@link @ui5/project/graph/ProjectGraphFromTree} module
+ * [@ui5/project/graph/ProjectGraphBuilder]{@link @ui5/project/graph/ProjectGraphBuilder} module
  *
  * @private
  * @class

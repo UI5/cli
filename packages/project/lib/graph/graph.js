@@ -81,8 +81,11 @@ export async function graphFromPackageDependencies({
 
 /**
  * Generates a [@ui5/project/graph/ProjectGraph]{@link @ui5/project/graph/ProjectGraph} from a
- * YAML file following the structure of the
- * [@ui5/project/graph/ProjectGraphFromTree]{@link @ui5/project/graph/ProjectGraphFromTree} API
+ * YAML file following the structure of
+ * [@ui5/project/graph/providers/DependencyTree~TreeNode]{@link @ui5/project/graph/providers/DependencyTree~TreeNode}.
+ *
+ * Documentation:
+ * [Static Dependency Definition]{@link https://sap.github.io/ui5-tooling/stable/pages/Overview/#static-dependency-definition}
  *
  * @public
  * @static
@@ -133,7 +136,7 @@ export async function graphFromStaticFile({
 
 /**
  * Generates a [@ui5/project/graph/ProjectGraph]{@link @ui5/project/graph/ProjectGraph} from the
- * given <code>dependencyTree</code> following the structure of the
+ * given <code>dependencyTree</code> following the structure of
  * [@ui5/project/graph/providers/DependencyTree~TreeNode]{@link @ui5/project/graph/providers/DependencyTree~TreeNode}
  *
  * @public
