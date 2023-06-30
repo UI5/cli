@@ -27,7 +27,8 @@ build.builder = function(cli) {
 				middlewares: [baseMiddleware]
 			})
 		.option("include-all-dependencies", {
-			describe: "Include all dependencies in the build result",
+			describe: "Include all dependencies in the build result. " +
+				"This is equivalent to '--include-dependency \"*\"'",
 			alias: ["all", "a"],
 			default: false,
 			type: "boolean"
@@ -35,7 +36,8 @@ build.builder = function(cli) {
 		.option("include-dependency", {
 			describe: "A list of dependencies to be included in the build result. You can use the asterisk '*' as" +
 				" an alias for including all dependencies in the build result. The listed dependencies cannot be" +
-				" overruled by dependencies defined in 'exclude-dependency'.",
+				" overruled by dependencies defined in 'exclude-dependency'. " +
+				"The provided name must match with the dependency name shown in 'ui5 ls --flat'",
 			type: "string",
 			array: true
 		})
@@ -54,7 +56,8 @@ build.builder = function(cli) {
 		})
 		.option("exclude-dependency", {
 			describe: "A list of dependencies to be excluded from the build result. The listed dependencies can" +
-				" be overruled by dependencies defined in 'include-dependency'.",
+				" be overruled by dependencies defined in 'include-dependency'. " +
+				"The provided name must match with the dependency name shown in 'ui5 ls --flat'",
 			type: "string",
 			array: true
 		})
