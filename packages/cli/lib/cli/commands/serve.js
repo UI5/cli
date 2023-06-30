@@ -67,7 +67,7 @@ serve.builder = function(cli) {
 		})
 		.option("cache-mode", {
 			describe:
-				"Cache mode to use when consuming SNAPSHOT versions of a framework: 'Default', 'Force', or 'Off'. " +
+				"Cache mode to use when consuming SNAPSHOT versions of framework dependencies. " +
 				"The 'Default' behavior is to invalidate the cache after 9 hours. 'Force' uses the cache only and " +
 				"does not create any requests. 'Off' invalidates any existing cache and updates from the repository",
 			type: "string",

@@ -27,7 +27,7 @@ export default function(cli) {
 		})
 		.option("loglevel", {
 			alias: "log-level",
-			describe: "Set the logging level (silent|error|warn|info|perf|verbose|silly).",
+			describe: "Set the logging level",
 			default: "info",
 			type: "string",
 			choices: ["silent", "error", "warn", "info", "perf", "verbose", "silly"]
