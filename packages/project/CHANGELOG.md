@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.4.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.4.1...HEAD).
+
+<a name="v3.4.1"></a>
+## [v3.4.1] - 2023-06-30
+### Bug Fixes
+- Migrate from libnpmconfig to [@npmcli](https://github.com/npmcli)/config ([#618](https://github.com/SAP/ui5-project/issues/618)) [`13d019b`](https://github.com/SAP/ui5-project/commit/13d019bb4d8eda05c0a1564c6a2b96fa4eb05ab1)
+
 
 <a name="v3.4.0"></a>
 ## [v3.4.0] - 2023-06-21
@@ -410,6 +416,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.4.1]: https://github.com/SAP/ui5-project/compare/v3.4.0...v3.4.1
 [v3.4.0]: https://github.com/SAP/ui5-project/compare/v3.3.2...v3.4.0
 [v3.3.2]: https://github.com/SAP/ui5-project/compare/v3.3.1...v3.3.2
 [v3.3.1]: https://github.com/SAP/ui5-project/compare/v3.3.0...v3.3.1
