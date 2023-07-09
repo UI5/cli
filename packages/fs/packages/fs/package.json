@@ -123,10 +123,10 @@
 		"@ui5/logger": "^3.0.0",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
-		"globby": "^13.2.1",
+		"globby": "^13.2.2",
 		"graceful-fs": "^4.2.11",
 		"micromatch": "^4.0.5",
-		"minimatch": "^9.0.2",
+		"minimatch": "^9.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"random-int": "^3.0.0"
 	},
