@@ -51,6 +51,16 @@ class BundleResolver {
 		let selectedResources = Object.create(null);
 		let selectedResourcesSequence = [];
 		const pool = this.pool;
+		/**
+		 * Names of modules that are required in some way but could not be found
+		 * in the resource pool.
+		 */
+		const missingModules = Object.create(null);
+		/**
+		 * Names of modules that are included in non-decomposable bundles.
+		 * If they occur in the missingModules, then this is not an error.
+		 */
+		const includedModules = new Set();
 
 		/**
 		 * @param {JSModuleSectionDefinition} section
@@ -71,11 +81,16 @@ class BundleResolver {
 			}
 
 			function checkForDecomposableBundle(resource) {
-				if ( resource == null ||
-						resource.info == null ||
-						resource.info.subModules.length === 0 ||
-						/(?:^|\/)library.js$/.test(resource.info.name) ) {
-					return {resource, decomposable: false};
+				const isBundle =
+					resource?.info?.subModules.length > 0 &&
+					!/(?:^|\/)library.js$/.test(resource.info.name);
+
+				if (!isBundle) {
+					return {
+						resource,
+						isBundle,
+						decomposable: false
+					};
 				}
 
 				return Promise.all(
@@ -83,7 +98,11 @@ class BundleResolver {
 				).then((modules) => {
 					// it might look more natural to expect 'all' embedded modules to exist in the pool,
 					// but expecting only 'some' module to exist is a more conservative approach
-					return ({resource, decomposable: modules.some(($) => ($))});
+					return {
+						resource,
+						isBundle,
+						decomposable: modules.some(($) => ($))
+					};
 				});
 			}
 
@@ -105,20 +124,29 @@ class BundleResolver {
 						.catch( (err) => {
 							// if the caller provided an error message, log it
 							if ( msg ) {
-								log.error(msg);
+								missingModules[resourceName] ??= [];
+								missingModules[resourceName].push(msg);
 							}
 							// return undefined
 						})
 						.then( (resource) => checkForDecomposableBundle(resource) )
-						.then( ({resource, decomposable}) => {
+						.then( ({resource, isBundle, decomposable}) => {
 							const dependencyInfo = resource && resource.info;
 							let promises = [];
+
+							if ( isBundle && !decomposable ) {
+								resource.info.subModules.forEach(
+									(included) => {
+										includedModules.add(included);
+									}
+								);
+							}
 
 							if ( decomposable ) {
 								// bundles are not added, only their embedded modules
 								promises = dependencyInfo.subModules.map( (included) => {
 									return checkAndAddResource(included, depth + 1,
-										"**** error: missing submodule " + included + ", included by " + resourceName);
+										`**** error: missing submodule ${included}, included by ${resourceName}`);
 								});
 							} else if ( resource != null ) {
 								// trace.trace("    checking dependencies of " + resource.name );
@@ -136,8 +164,8 @@ class BundleResolver {
 											return;
 										}
 
-										return checkAndAddResource( required, depth + 1,
-											"**** error: missing module " + required + ", required by " + resourceName);
+										return checkAndAddResource(required, depth + 1,
+											`**** error: missing module ${required}, required by ${resourceName}`);
 									});
 								}
 
@@ -317,6 +345,17 @@ class BundleResolver {
 		// NODE-TODO if ( PerfMeasurement.ACTIVE ) PerfMeasurement.stop(PerfKeys.RESOLVE_MODULE);
 
 		return previous.then( function() {
+			// ignore missing modules that have been found in non-decomposable bundles
+			includedModules.forEach((included) => delete missingModules[included]);
+
+			// report the remaining missing modules
+			Object.keys(missingModules).sort().forEach((missing) => {
+				const messages = missingModules[missing];
+				messages.sort().forEach((msg) => {
+					log.error(msg);
+				});
+			});
+
 			log.verbose("  Resolving bundle done");
 
 			return resolved;
