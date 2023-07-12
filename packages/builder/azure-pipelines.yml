@@ -69,6 +69,6 @@ steps:
     codeCoverageTool: 'cobertura'
     summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage/cobertura-coverage.xml'
 
-- script: npm run coverage
+- script: npm run coverage -- --no-worker-threads
   displayName: Run Test Natively in Case of Failures
   condition: failed()
