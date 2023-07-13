@@ -67,7 +67,8 @@
 		"nodeArguments": [
 			"--loader=esmock",
 			"--no-warnings"
-		]
+		],
+		"workerThreads": false
 	},
 	"nyc": {
 		"reporter": [
