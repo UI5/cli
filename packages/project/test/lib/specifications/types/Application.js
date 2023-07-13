@@ -583,10 +583,10 @@ test.serial("_getManifest: File does not exist", async (t) => {
 	const project = await Specification.create(projectInput);
 
 	const error = await t.throwsAsync(project._getManifest("/does-not-exist.json"));
-	t.deepEqual(error.message,
-		"Failed to read /does-not-exist.json for project application.a: " +
+	t.is(error.message,
 		"Could not find resource /does-not-exist.json in project application.a",
 		"Rejected with correct error message");
+	t.is(error.code, "ENOENT");
 });
 
 test.serial("_getManifest: result is cached", async (t) => {
