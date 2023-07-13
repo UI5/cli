@@ -62,7 +62,8 @@
 		],
 		"nodeArguments": [
 			"--no-warnings"
-		]
+		],
+		"workerThreads": false
 	},
 	"nyc": {
 		"reporter": [
