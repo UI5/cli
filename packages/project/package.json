@@ -120,7 +120,7 @@
 	},
 	"dependencies": {
 		"@npmcli/config": "^6.2.1",
-		"@ui5/builder": "^3.0.6",
+		"@ui5/builder": "^3.0.7",
 		"@ui5/fs": "^3.0.4",
 		"@ui5/logger": "^3.0.0",
 		"ajv": "^6.12.6",
