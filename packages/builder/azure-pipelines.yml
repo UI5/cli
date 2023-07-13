@@ -29,13 +29,13 @@ strategy:
       node_version: 18.x
     linux_node_current:
       imageName: 'ubuntu-22.04'
-      node_version: 19.x
+      node_version: 20.x
     mac_node_current:
       imageName: 'macos-12'
-      node_version: 19.x
+      node_version: 20.x
     windows_node_current:
       imageName: 'windows-2022'
-      node_version: 19.3.0
+      node_version: 20.x
 
 pool:
   vmImage: $(imageName)
@@ -69,6 +69,6 @@ steps:
     codeCoverageTool: 'cobertura'
     summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage/cobertura-coverage.xml'
 
-- script: npm run coverage -- --no-worker-threads
+- script: npm run coverage
   displayName: Run Test Natively in Case of Failures
   condition: failed()

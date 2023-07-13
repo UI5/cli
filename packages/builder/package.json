@@ -38,7 +38,7 @@
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
 		"unit-watch": "rimraf test/tmp && ava --watch",
-		"unit-xunit": "rimraf test/tmp && ava --no-worker-threads --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap --timeout=1m | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
+		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap --timeout=1m | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
 		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
@@ -69,7 +69,8 @@
 		"nodeArguments": [
 			"--loader=esmock",
 			"--no-warnings"
-		]
+		],
+		"workerThreads": false
 	},
 	"nyc": {
 		"reporter": [
