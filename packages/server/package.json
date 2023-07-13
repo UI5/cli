@@ -63,6 +63,7 @@
 		"ignoredByWatcher": [
 			"test/tmp/**"
 		],
+		"workerThreads": false,
 		"nodeArguments": [
 			"--loader=esmock",
 			"--no-warnings"
