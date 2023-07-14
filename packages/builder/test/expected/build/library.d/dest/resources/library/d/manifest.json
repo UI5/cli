@@ -22,7 +22,14 @@
       "libs": {}
     },
     "library": {
-      "i18n": false
+      "i18n": false,
+      "css": false,
+      "content": {
+        "controls": [],
+        "elements": [],
+        "types": [],
+        "interfaces": []
+      }
     }
   }
 }

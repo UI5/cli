@@ -95,6 +95,16 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 				new ComponentAnalyzer(pool).analyze(resource, info),
 				new SmartTemplateAnalyzer(pool).analyze(resource, info)
 			);
+		} else if ( /(?:^|\/)library\.js/.test(resource.name) ) {
+			promises.push(
+				(async () => {
+					const manifestName = resource.name.replace(/library\.js$/, "manifest.json");
+					const manifestResource = await pool.findResource(manifestName).catch(() => null);
+					if (manifestResource) {
+						info.addDependency(manifestName);
+					}
+				})()
+			);
 		}
 
 		await Promise.all(promises);

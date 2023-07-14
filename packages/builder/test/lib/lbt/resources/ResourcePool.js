@@ -160,6 +160,56 @@ test("getModuleInfo: determineDependencyInfo for raw js resources", async (t) =>
 	t.false(jsResource.requiresTopLevelScope);
 });
 
+test("getModuleInfo: determineDependencyInfo for library.js resource", async (t) => {
+	const {ResourcePool} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const code = `sap.ui.define(["sap/ui/core/Lib"], (Library) => Library.init({
+		name: "testlib"
+	}));`;
+	const libraryJsResource = {
+		name: "testlib/library.js", buffer: async () => code,
+		resource: {
+			getName: () => "testlib/library.js",
+			getBuffer: async () => code
+		}
+	};
+	resourcePool.addResource(libraryJsResource);
+
+	const manifestResource = {name: "testlib/manifest.json", buffer: async () => `{}`};
+	resourcePool.addResource(manifestResource);
+
+	const jsResource = await resourcePool.getModuleInfo("testlib/library.js");
+	t.deepEqual(jsResource.dependencies, [
+		"sap/ui/core/Lib.js",
+		"ui5loader-autoconfig.js",
+		"testlib/manifest.json"
+	]);
+});
+
+test("getModuleInfo: determineDependencyInfo for library.js resource (no manifest.json)", async (t) => {
+	const {ResourcePool} = t.context;
+
+	const resourcePool = new ResourcePool();
+	const code = `sap.ui.define(["sap/ui/core/Lib"], (Library) => Library.init({
+		name: "testlib"
+	}));`;
+	const libraryJsResource = {
+		name: "testlib/library.js", buffer: async () => code,
+		resource: {
+			getName: () => "testlib/library.js",
+			getBuffer: async () => code
+		}
+	};
+	resourcePool.addResource(libraryJsResource);
+
+	const jsResource = await resourcePool.getModuleInfo("testlib/library.js");
+	t.deepEqual(jsResource.dependencies, [
+		"sap/ui/core/Lib.js",
+		"ui5loader-autoconfig.js"
+	]);
+});
+
 test("getModuleInfo: determineDependencyInfo for js templateAssembler code", async (t) => {
 	const {ResourcePool} = t.context;
 

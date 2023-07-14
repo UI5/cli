@@ -32,7 +32,11 @@ function getDefaultLibraryPreloadFilters(namespace, excludes) {
 }
 
 function getBundleDefinition(namespace, excludes) {
-	// TODO: move to config of actual core project
+	// Note: This configuration is only used when no bundle definition in ui5.yaml exists (see "skipBundles" parameter)
+
+	// TODO: Remove this hardcoded bundle definition.
+	// sap.ui.core ui5.yaml contains a configuration since UI5 1.103.0 (specVersion 2.4)
+	// so this is still required to build UI5 versions <= 1.102.0.
 	if (namespace === "sap/ui/core") {
 		return {
 			name: `${namespace}/library-preload.js`,
@@ -51,8 +55,6 @@ function getBundleDefinition(namespace, excludes) {
 					filters: [
 						// Note: Don't pass configured preload excludes for sap.ui.core
 						// as they are already hardcoded below.
-						// In future the sap/ui/core/library-preload should be configured
-						// as a custom bundle in the ui5.yaml.
 						...getDefaultLibraryPreloadFilters(namespace),
 
 						`!${namespace}/cldr/`,

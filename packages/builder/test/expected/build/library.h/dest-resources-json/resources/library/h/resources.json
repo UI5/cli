@@ -186,6 +186,9 @@
 			"size": 548,
 			"isDebug": true,
 			"merged": true,
+			"required": [
+				"library/h/manifest.json"
+			],
 			"included": [
 				"library/h/file.js",
 				"library/h/library.js",
@@ -204,6 +207,9 @@
 			"module": "library/h/customBundle.js",
 			"size": 540,
 			"merged": true,
+			"required": [
+				"library/h/manifest.json"
+			],
 			"included": [
 				"library/h/file.js",
 				"library/h/library.js",
@@ -283,13 +289,19 @@
 			"module": "library/h/library.js",
 			"size": 58,
 			"format": "raw",
-			"isDebug": true
+			"isDebug": true,
+			"required": [
+				"library/h/manifest.json"
+			]
 		},
 		{
 			"name": "library.js",
 			"module": "library/h/library.js",
 			"size": 93,
-			"format": "raw"
+			"format": "raw",
+			"required": [
+				"library/h/manifest.json"
+			]
 		},
 		{
 			"name": "library.js.map",
@@ -321,7 +333,7 @@
 		},
 		{
 			"name": "resources.json",
-			"size": 7327
+			"size": 7539
 		},
 		{
 			"name": "some-dbg.js",
