@@ -296,8 +296,11 @@ test.serial("no errors for dependencies between non-decomposable bundles", async
 			"vendor/non-decomposable-bundle3.js"
 		], "new bundle should contain the non-decomposable bundle");
 
-	t.is(errorLogStub.callCount, 1, "One error reported");
+	t.is(errorLogStub.callCount, 2, "Two errors reported");
 	t.is(errorLogStub.firstCall.args[0],
 		"**** error: missing module external4/mod1.js, required by vendor/non-decomposable-bundle2.js",
-		"only the expected missing module is reported");
+		"the expected missing module is reported");
+	t.is(errorLogStub.secondCall.args[0],
+		"**** error: missing module ui5loader-autoconfig.js, required by lib/mod1.js",
+		"also ui5loader-autoconfig.js is reported as missing");
 });
