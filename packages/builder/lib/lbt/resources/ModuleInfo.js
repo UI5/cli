@@ -7,6 +7,14 @@
 const STRICT = 0;
 
 /**
+ * An implicit dependency is also strict, but has not been declared. E.g. each UI5 module depends on
+ * jquery.sap.global.
+ *
+ * @private
+ */
+const IMPLICIT = 1;
+
+/**
  * A conditional dependency has to be resolved only under certain conditions that typically are
  * checked at runtime.
  *
@@ -104,13 +112,17 @@ class ModuleInfo {
 		// included already as a submodule.
 		// If the dependency was known already, update the kind
 		// only when the new kind is stronger than the current one.
-		// STRICT is stronger than CONDITIONAL
+		// STRICT is stronger than IMPLICIT, IMPLICIT is stronger than CONDITIONAL
 		if ( dependency &&
 				dependency !== this.name &&
 				this.subModules.indexOf(dependency) < 0 &&
 				( !(dependency in this._dependencies) || kind < this._dependencies[dependency]) ) {
 			this._dependencies[dependency] = kind;
 		}
+	}
+
+	addImplicitDependency(dependency) {
+		this._addDependency(dependency, IMPLICIT);
 	}
 
 	addDependency(dependency, conditional) {
@@ -161,6 +173,10 @@ class ModuleInfo {
 
 	isConditionalDependency(dependency) {
 		return this._dependencies[dependency] === CONDITIONAL;
+	}
+
+	isImplicitDependency(dependency) {
+		return this._dependencies[dependency] === IMPLICIT;
 	}
 
 	get name() {

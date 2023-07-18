@@ -30,10 +30,13 @@ test("integration: Analysis of an xml view", async (t) => {
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"myController.controller.js",
 			"sap/ui/layout/HorizontalLayout.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
 test("integration: Analysis of an xml view with data binding in properties", async (t) => {
@@ -48,9 +51,12 @@ test("integration: Analysis of an xml view with data binding in properties", asy
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"myController.controller.js",
 			"sap/ui/core/ComponentContainer.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
 test.serial("integration: Analysis of an xml view with core:require from databinding", async (t) => {
@@ -94,12 +100,16 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"my/lib/theController.controller.js",
 			"sap/m/HBox.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 	t.true(
-		!moduleInfo.isConditionalDependency("sap/m/Button.js"),
+		!moduleInfo.isConditionalDependency("sap/m/Button.js") &&
+		!moduleInfo.isImplicitDependency("sap/m/Button.js"),
 		"A control outside of template:if should become a strict dependency");
 
 	t.is(errorLogStub.callCount, 1, "should be called 1 time");
@@ -146,8 +156,11 @@ test.serial("integration: Analysis of an xml view with core:require from databin
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 	t.true(moduleInfo.isConditionalDependency("sap/m/Button.js"),
 		"A control within template:if or template:repeat should become a conditional dependency");
 
@@ -191,8 +204,11 @@ test.serial("integration: Analysis of an xml view with core:require from express
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 	t.true(moduleInfo.isConditionalDependency("sap/m/Button.js"),
 		"A control within template:if should become a conditional dependency");
 
@@ -221,12 +237,15 @@ test("integration: Analysis of an xml view with core:require", async (t) => {
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"myController.controller.js",
 			"sap/ui/Foo.js",
 			"myApp/Bar.js",
 			"sap/m/MessageToast.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
 test("integration: Analysis of an xml view with core:require (invalid module name)", async (t) => {
@@ -247,9 +266,12 @@ test("integration: Analysis of an xml view with core:require (invalid module nam
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"myController.controller.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
 test("integration: Analysis of an xml view with core:require (missing comma, parsing error)", async (t) => {
@@ -270,9 +292,12 @@ test("integration: Analysis of an xml view with core:require (missing comma, par
 	await analyzer.analyzeView(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/mvc/XMLView.js",
 			"myController.controller.js",
 			"sap/m/Button.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"Implicit dependency should be added since an XMLView is analyzed");
 });
 
 test("integration: Analysis of an xml view with nested views", async (t) => {
@@ -326,6 +351,8 @@ test("integration: Analysis of an xml view with nested views", async (t) => {
 			"myapp/views/MyTemplateView2.view.tmpl",
 			"myapp/views/MyHTMLView2.view.html"
 		], "Dependencies should come from the XML template");
+	t.false(moduleInfo.isImplicitDependency("sap/ui/core/mvc/XMLView.js"),
+		"XMLView is a strict dependency as the XMLView also has a nested XMLView");
 });
 
 test("integration: Analysis of an xml fragment", async (t) => {
@@ -345,9 +372,12 @@ test("integration: Analysis of an xml fragment", async (t) => {
 	await analyzer.analyzeFragment(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/Fragment.js",
 			"sap/ui/layout/HorizontalLayout.js",
 			"sap/m/Button.js"
 		]);
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/Fragment.js"),
+		"Implicit dependency should be added since a fragment is analyzed");
 });
 
 test("integration: Analysis of an xml fragment with core:require", async (t) => {
@@ -363,8 +393,11 @@ test("integration: Analysis of an xml fragment with core:require", async (t) => 
 	await analyzer.analyzeFragment(xml, moduleInfo);
 	t.deepEqual(moduleInfo.dependencies,
 		[
+			"sap/ui/core/Fragment.js",
 			"sap/m/MessageToast.js"
 		], "Dependencies should come from the XML template");
+	t.true(moduleInfo.isImplicitDependency("sap/ui/core/Fragment.js"),
+		"Implicit dependency should be added since an XML Fragment is analyzed");
 });
 
 test("integration: Analysis of an empty xml view", async (t) => {
@@ -424,7 +457,9 @@ test("_analyze: call twice to simulate busy", async (t) => {
 	sinon.stub(analyzer._parser, "parseString").callsArgWith(1, false, "parse-result");
 	sinon.stub(analyzer, "_analyzeNode").returns();
 
-	const moduleInfo = {};
+	const moduleInfo = {
+		addImplicitDependency: function() {}
+	};
 
 	// first call sets it to busy
 	const resultPromise = analyzer._analyze(null, moduleInfo, true);
@@ -444,13 +479,20 @@ test("_analyze: node", async (t) => {
 	sinon.stub(analyzer._parser, "parseString").callsArgWith(1, false, "parse-result");
 	const stubAnalyzeNode = sinon.stub(analyzer, "_analyzeNode").returns();
 
-	const moduleInfo = {};
+	const moduleInfo = {
+		addImplicitDependency: function() {}
+	};
+	const stubAddImplicitDependency = sinon.spy(moduleInfo, "addImplicitDependency");
 
 	await analyzer._analyze(null, moduleInfo, true);
 
 	t.true(stubAnalyzeNode.calledOnce, "_analyzeNode was called");
 	t.is(stubAnalyzeNode.getCall(0).args[0], "parse-result",
 		"_analyzeNode should be called with the result");
+
+	t.true(stubAddImplicitDependency.calledOnce, "addImplicitDependency was called once");
+	t.is(stubAddImplicitDependency.getCall(0).args[0], "sap/ui/core/Fragment.js",
+		"addImplicitDependency should be called with the dependency name");
 });
 
 test("_analyze: viewRootNode", async (t) => {
@@ -470,8 +512,10 @@ test("_analyze: viewRootNode", async (t) => {
 test("_analyzeViewRootNode: process node", async (t) => {
 	const analyzer = new XMLTemplateAnalyzer();
 	analyzer.info = {
+		addImplicitDependency: function() {},
 		addDependency: function() {}
 	};
+	const stubAddImplicitDependency = sinon.spy(analyzer.info, "addImplicitDependency");
 	const stubAddDependency = sinon.spy(analyzer.info, "addDependency");
 
 	const stubAnalyzeChildren = sinon.stub(analyzer, "_analyzeChildren").returns();
@@ -492,6 +536,10 @@ test("_analyzeViewRootNode: process node", async (t) => {
 	t.deepEqual(stubAnalyzeChildren.getCall(0).args[0], node,
 		"_analyzeChildren should be called with the result");
 
+	t.true(stubAddImplicitDependency.calledOnce, "addImplicitDependency was called");
+	t.is(stubAddImplicitDependency.getCall(0).args[0], "sap/ui/core/mvc/XMLView.js",
+		"addImplicitDependency should be called with the dependency name");
+
 	t.is(stubAddDependency.callCount, 2, "addDependency was called twice");
 	t.is(stubAddDependency.getCall(0).args[0], "myController.controller.js",
 		"addDependency should be called with the dependency name");
@@ -502,8 +550,10 @@ test("_analyzeViewRootNode: process node", async (t) => {
 test("_analyzeCoreRequire: Catches error when attribute can't be parsed", async (t) => {
 	const analyzer = new XMLTemplateAnalyzer();
 	analyzer.info = {
+		addImplicitDependency: function() {},
 		addDependency: function() {}
 	};
+	const stubAddImplicitDependency = sinon.spy(analyzer.info, "addImplicitDependency");
 	const stubAddDependency = sinon.spy(analyzer.info, "addDependency");
 
 	const node = {
@@ -522,6 +572,7 @@ test("_analyzeCoreRequire: Catches error when attribute can't be parsed", async 
 	};
 	await analyzer._analyzeCoreRequire(node);
 
+	t.is(stubAddImplicitDependency.callCount, 0, "addImplicitDependency was never called");
 	t.is(stubAddDependency.callCount, 0, "addDependency was never called");
 });
 

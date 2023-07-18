@@ -272,8 +272,11 @@ test.serial("enrichWithDependencyInfo: add infos to resourceinfo", async (t) => 
 				isConditionalDependency: (dep) => {
 					return dep.includes("conditional");
 				},
+				isImplicitDependency: (dep) => {
+					return dep.includes("implicit");
+				},
 				dependencies: [
-					"mydependency.conditional", "mydependency"
+					"mydependency.conditional", "mydependency.implicit", "mydependency"
 				],
 				subModules: [
 					"mySubmodule"
@@ -431,7 +434,8 @@ test.serial("integration: Analyze debug bundle", async (t) => {
 	t.is(myRawModuleBundle.requiresTopLevelScope, false);
 	t.deepEqual(myRawModuleBundle.included,
 		new Set(["a.js", "b.js"]));
-	t.is(myRawModuleBundle.required, null);
+	t.deepEqual(myRawModuleBundle.required,
+		new Set([]));
 
 	const myRawModuleBundleDbg = resourceInfoList.resourcesByName.get("myBundle-dbg.js");
 	t.is(myRawModuleBundleDbg.name, "myBundle-dbg.js");
@@ -440,5 +444,6 @@ test.serial("integration: Analyze debug bundle", async (t) => {
 	t.is(myRawModuleBundleDbg.requiresTopLevelScope, false);
 	t.deepEqual(myRawModuleBundleDbg.included,
 		new Set(["a.js"]));
-	t.is(myRawModuleBundleDbg.required, null);
+	t.deepEqual(myRawModuleBundleDbg.required,
+		new Set());
 });

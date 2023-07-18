@@ -3,6 +3,7 @@ import escope from "escope";
 import {fromUI5LegacyName, fromRequireJSName, resolveRelativeRequireJSName} from "../utils/ModuleName.js";
 import moduleInfo from "../resources/ModuleInfo.js";
 const ModuleFormat = moduleInfo.Format;
+import {MODULE__JQUERY_SAP_GLOBAL, MODULE__UI5LOADER_AUTOCONFIG} from "../UI5ClientConstants.js";
 import {
 	findOwnProperty,
 	getLocation,
@@ -332,6 +333,17 @@ class JSModuleAnalyzer {
 				// no main module found, use the default name
 				info.name = defaultName;
 			}
+		}
+
+		// depending on the used module APIs, add an implicit dependency to the loader entry module
+		if ( info.format === ModuleFormat.UI5_LEGACY ) {
+			info.addImplicitDependency(MODULE__JQUERY_SAP_GLOBAL);
+		} else if ( info.format === ModuleFormat.UI5_DEFINE ) {
+			// Note: the implicit dependency for sap.ui.define modules points to the standard UI5
+			// loader config module. A more general approach would be to add a dependency to the loader
+			// only, but then standard configuration would be missed by dependency resolution
+			// (to be clarified)
+			info.addImplicitDependency(MODULE__UI5LOADER_AUTOCONFIG);
 		}
 
 		if ( !bIsUi5Module ) {

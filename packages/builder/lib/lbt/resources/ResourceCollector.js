@@ -124,7 +124,7 @@ class ResourceCollector {
 				moduleInfo.dependencies.forEach((dep) => {
 					if ( moduleInfo.isConditionalDependency(dep) ) {
 						resourceInfo.condRequired.add(dep);
-					} else {
+					} else if ( !moduleInfo.isImplicitDependency(dep) ) {
 						resourceInfo.required.add(dep);
 					}
 				});
@@ -158,7 +158,7 @@ class ResourceCollector {
 									if (!resourceInfo.required.has(dep)) {
 										resourceInfo.condRequired.add(dep);
 									}
-								} else {
+								} else if ( !subModuleInfo.isImplicitDependency(dep) ) {
 									// Move module from condRequired to required
 									if (resourceInfo.condRequired.has(dep)) {
 										resourceInfo.condRequired.delete(dep);
