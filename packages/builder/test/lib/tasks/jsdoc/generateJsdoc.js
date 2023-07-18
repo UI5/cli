@@ -114,7 +114,7 @@ test.serial("createTmpDirs", async (t) => {
 		"Cleanup callback: rimraf called with correct path");
 });
 
-test.serial("writeResourcesToDir with byGlobSource", async (t) => {
+test.serial("writeResourcesToDir with byGlob even if byGlobSource is available", async (t) => {
 	const {generateJsdoc, createAdapterStub, writeStub} = t.context;
 	const generateJsdocUtils = generateJsdoc._utils;
 
@@ -122,6 +122,9 @@ test.serial("writeResourcesToDir with byGlobSource", async (t) => {
 		workspace: {
 			// stub byGlobSource
 			byGlobSource: (pattern) => {
+				throw new Error("Unexpected call to byGlobSource");
+			},
+			byGlob: (pattern) => {
 				t.is(pattern, "some pattern", "Glob with correct pattern");
 				return Promise.resolve(["resource A", "resource B"]);
 			}

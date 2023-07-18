@@ -154,12 +154,7 @@ const utils = {
 			virBasePath: "/resources/"
 		});
 
-		let allResources;
-		if (workspace.byGlobSource) { // API only available on duplex collections
-			allResources = await workspace.byGlobSource(pattern);
-		} else {
-			allResources = await workspace.byGlob(pattern);
-		}
+		const allResources = await workspace.byGlob(pattern);
 
 		// write all resources to the tmp folder
 		await Promise.all(allResources.map((resource) => fsTarget.write(resource)));
