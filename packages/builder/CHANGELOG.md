@@ -2,10 +2,17 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.7...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.8...HEAD).
+
+<a name="v3.0.8"></a>
+## [v3.0.8] - 2023-07-18
+### Bug Fixes
+- Revert "[INTERNAL] Remove implicit dependencies concept ([#913](https://github.com/SAP/ui5-builder/issues/913))" [`1043714`](https://github.com/SAP/ui5-builder/commit/1043714e3b952a8280f1ff7909f79db3b750eb0c)
+- **generateJsdoc:** Also process resources created by preceeding tasks [`04447bd`](https://github.com/SAP/ui5-builder/commit/04447bdec28b8bf18c24bd53e3fe8be9bdeed6c2)
+
 
 <a name="v3.0.7"></a>
-## [v3.0.7] - 2023-07-12
+## [v3.0.7] - 2023-07-13
 ### Bug Fixes
 - Don't report a missing module that's contained in another bundle ([#915](https://github.com/SAP/ui5-builder/issues/915)) [`8f23f38`](https://github.com/SAP/ui5-builder/commit/8f23f388f6d64f313ae8a89d0fcaf39ba905a70b)
 
@@ -809,6 +816,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v3.0.8]: https://github.com/SAP/ui5-builder/compare/v3.0.7...v3.0.8
 [v3.0.7]: https://github.com/SAP/ui5-builder/compare/v3.0.6...v3.0.7
 [v3.0.6]: https://github.com/SAP/ui5-builder/compare/v3.0.5...v3.0.6
 [v3.0.5]: https://github.com/SAP/ui5-builder/compare/v3.0.4...v3.0.5
