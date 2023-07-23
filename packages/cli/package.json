@@ -142,7 +142,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^46.4.4",
-		"esmock": "^2.3.1",
+		"esmock": "^2.3.2",
 		"execa": "^7.1.1",
 		"jsdoc": "^4.0.2",
 		"nyc": "^15.1.0",
