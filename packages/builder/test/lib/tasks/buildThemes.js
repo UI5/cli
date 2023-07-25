@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import {deserializeResources} from "../../../lib/processors/themeBuilderWorker.js";
 let buildThemes;
 
 test.before(async () => {
@@ -16,17 +17,18 @@ test.beforeEach(async (t) => {
 	t.context.fsInterfaceStub.returns({});
 
 	t.context.ReaderCollectionPrioritizedStub = sinon.stub();
-	t.context.comboByGlob = sinon.stub();
+	t.context.comboByGlob = sinon.stub().resolves([]);
 	t.context.ReaderCollectionPrioritizedStub.returns({byGlob: t.context.comboByGlob});
 
-	buildThemes = await esmock("../../../lib/tasks/buildThemes.js", {
+	buildThemes = await esmock.p("../../../lib/tasks/buildThemes.js", {
 		"@ui5/fs/fsInterface": t.context.fsInterfaceStub,
 		"@ui5/fs/ReaderCollectionPrioritized": t.context.ReaderCollectionPrioritizedStub,
-		"../../../lib/processors/themeBuilder": t.context.themeBuilderStub
+		"../../../lib/processors/themeBuilder.js": t.context.themeBuilderStub
 	});
 });
 
 test.afterEach.always(() => {
+	esmock.purge(buildThemes);
 	sinon.restore();
 });
 
@@ -481,4 +483,69 @@ test.serial("buildThemes (filtering libraries + themes)", async (t) => {
 
 	t.is(workspace.write.callCount, 1,
 		"workspace.write should be called once");
+});
+
+test.serial("buildThemes (useWorkers = true)", async (t) => {
+	t.plan(4);
+
+	const taskUtilMock = {
+		registerCleanupTask: sinon.stub()
+	};
+	const lessResource = {
+		getPath: () => "/resources/test/library.source.less",
+		getBuffer: () => new Buffer("/** test comment */")
+	};
+
+	const workspace = {
+		byGlob: async (globPattern) => {
+			if (globPattern === "/resources/test/library.source.less") {
+				return [lessResource];
+			} else {
+				return [];
+			}
+		},
+		write: sinon.stub()
+	};
+
+	const cssResource = {path: "/cssResource", buffer: new Uint8Array(2)};
+	const cssRtlResource = {path: "/cssRtlResource", buffer: new Uint8Array(2)};
+	const jsonParametersResource = {path: "/jsonParametersResource", buffer: new Uint8Array(2)};
+
+	t.context.comboByGlob.resolves([lessResource]);
+
+	t.context.fsInterfaceStub.returns({
+		readFile: (...args) => {
+			if (args[0] === "/resources/test/library.source.less") {
+				args[args.length - 1](null, "/** */");
+			} else {
+				args[args.length - 1](null, "{}");
+			}
+		},
+		stat: (...args) => args[args.length - 1](null, {}),
+		readdir: (...args) => args[args.length - 1](null, {}),
+		mkdir: (...args) => args[args.length - 1](null, {}),
+	});
+
+	t.context.themeBuilderStub.returns([
+		cssResource,
+		cssRtlResource,
+		jsonParametersResource
+	]);
+
+	await buildThemes({
+		workspace,
+		taskUtil: taskUtilMock,
+		options: {
+			projectName: "sap.ui.demo.app",
+			inputPattern: "/resources/test/library.source.less"
+		}
+	});
+
+	const transferredResources = deserializeResources([cssResource, cssRtlResource, jsonParametersResource]);
+
+	t.is(workspace.write.callCount, 3,
+		"workspace.write should be called 3 times");
+	t.true(workspace.write.calledWithExactly(transferredResources[0]));
+	t.true(workspace.write.calledWithExactly(transferredResources[1]));
+	t.true(workspace.write.calledWithExactly(transferredResources[2]));
 });

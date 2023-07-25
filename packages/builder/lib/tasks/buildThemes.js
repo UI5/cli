@@ -1,9 +1,44 @@
 import path from "node:path";
-import themeBuilder from "../processors/themeBuilder.js";
 import fsInterface from "@ui5/fs/fsInterface";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:buildThemes");
+import {fileURLToPath} from "node:url";
+import os from "node:os";
+import workerpool from "workerpool";
+import {deserializeResources, serializeResources, FsMainThreadInterface} from "../processors/themeBuilderWorker.js";
+
+let pool;
+
+function getPool(taskUtil) {
+	if (!pool) {
+		const MIN_WORKERS = 2;
+		const MAX_WORKERS = 4;
+		const osCpus = os.cpus().length || 1;
+		const maxWorkers = Math.max(Math.min(osCpus - 1, MAX_WORKERS), MIN_WORKERS);
+
+		log.verbose(`Creating workerpool with up to ${maxWorkers} workers (available CPU cores: ${osCpus})`);
+		const workerPath = fileURLToPath(new URL("../processors/themeBuilderWorker.js", import.meta.url));
+		pool = workerpool.pool(workerPath, {
+			workerType: "thread",
+			maxWorkers
+		});
+		taskUtil.registerCleanupTask(() => {
+			log.verbose(`Terminating workerpool`);
+			const poolToBeTerminated = pool;
+			pool = null;
+			poolToBeTerminated.terminate();
+		});
+	}
+	return pool;
+}
+
+async function buildThemeInWorker(taskUtil, options, transferList) {
+	const toTransfer = transferList ? {transfer: transferList} : undefined;
+
+	return getPool(taskUtil).exec("execThemeBuild", [options], toTransfer);
+}
+
 
 /**
  * @public
@@ -19,6 +54,8 @@ const log = getLogger("builder:tasks:buildThemes");
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/fs/AbstractReader} parameters.dependencies Reader or Collection to read dependency files
+ * @param {@ui5/builder/tasks/TaskUtil|object} [parameters.taskUtil] TaskUtil instance.
+ *    Required to run buildThemes in parallel execution mode.
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
  * @param {string} parameters.options.inputPattern Search pattern for *.less files to be built
@@ -29,9 +66,10 @@ const log = getLogger("builder:tasks:buildThemes");
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({
-	workspace, dependencies,
+	workspace, dependencies, taskUtil,
 	options: {
-		projectName, inputPattern, librariesPattern, themesPattern, compress, cssVariables
+		projectName, inputPattern, librariesPattern, themesPattern, compress,
+		cssVariables
 	}
 }) {
 	const combo = new ReaderCollectionPrioritized({
@@ -41,7 +79,7 @@ export default async function({
 
 	compress = compress === undefined ? true : compress;
 
-	const pAllResources = workspace.byGlob(inputPattern);
+	const pThemeResources = workspace.byGlob(inputPattern);
 	let pAvailableLibraries;
 	let pAvailableThemes;
 	if (librariesPattern) {
@@ -78,7 +116,7 @@ export default async function({
 			});
 	}
 
-	let allResources = await pAllResources;
+	let themeResources = await pThemeResources;
 
 	const isAvailable = function(resource) {
 		let libraryAvailable = false;
@@ -128,17 +166,48 @@ export default async function({
 				log.verbose(`Available sap.ui.core themes: ${availableThemes.join(", ")}`);
 			}
 		}
-		allResources = allResources.filter(isAvailable);
+		themeResources = themeResources.filter(isAvailable);
 	}
 
-	const processedResources = await themeBuilder({
-		resources: allResources,
-		fs: fsInterface(combo),
-		options: {
-			compress,
-			cssVariables: !!cssVariables
-		}
-	});
+	let processedResources;
+	const useWorkers = !!taskUtil;
+	if (useWorkers) {
+		const threadMessageHandler = new FsMainThreadInterface(fsInterface(combo));
+
+		processedResources = await Promise.all(themeResources.map(async (themeRes) => {
+			const {port1, port2} = new MessageChannel();
+			threadMessageHandler.startCommunication(port1);
+
+			const result = await buildThemeInWorker(taskUtil, {
+				fsInterfacePort: port2,
+				themeResources: await serializeResources([themeRes]),
+				options: {
+					compress,
+					cssVariables: !!cssVariables,
+				},
+			}, [port2]);
+
+			threadMessageHandler.endCommunication(port1);
+
+			return result;
+		}))
+			.then((resources) => Array.prototype.concat.apply([], resources))
+			.then(deserializeResources);
+
+		threadMessageHandler.cleanup();
+	} else {
+		// Do not use workerpool
+		const themeBuilder = (await import("../processors/themeBuilder.js")).default;
+
+		processedResources = await themeBuilder({
+			resources: themeResources,
+			fs: fsInterface(combo),
+			options: {
+				compress,
+				cssVariables: !!cssVariables,
+			}
+		});
+	}
 
 	await Promise.all(processedResources.map((resource) => {
 		return workspace.write(resource);
