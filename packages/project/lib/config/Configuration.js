@@ -11,13 +11,16 @@ import os from "node:os";
  */
 class Configuration {
 	#mavenSnapshotEndpointUrl;
+	#ui5DataDir;
 
 	/**
 	 * @param {object} configuration
 	 * @param {string} [configuration.mavenSnapshotEndpointUrl]
+	 * @param {string} [configuration.ui5DataDir]
 	 */
-	constructor({mavenSnapshotEndpointUrl}) {
+	constructor({mavenSnapshotEndpointUrl, ui5DataDir}) {
 		this.#mavenSnapshotEndpointUrl = mavenSnapshotEndpointUrl;
+		this.#ui5DataDir = ui5DataDir;
 	}
 
 	/**
@@ -32,12 +35,23 @@ class Configuration {
 	}
 
 	/**
+	 * Configurable directory where the framework artefacts are stored.
+	 *
+	 * @public
+	 * @returns {string}
+	 */
+	getUi5DataDir() {
+		return this.#ui5DataDir;
+	}
+
+	/**
 	 * @public
 	 * @returns {object} The configuration in a JSON format
 	 */
 	toJson() {
 		return {
 			mavenSnapshotEndpointUrl: this.#mavenSnapshotEndpointUrl,
+			ui5DataDir: this.#ui5DataDir,
 		};
 	}
 
@@ -74,6 +88,7 @@ class Configuration {
 					});
 			}
 		}
+
 		return new Configuration(config);
 	}
 

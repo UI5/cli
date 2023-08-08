@@ -2,6 +2,8 @@ import Module from "../Module.js";
 import ProjectGraph from "../ProjectGraph.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:helpers:ui5Framework");
+import Configuration from "../../config/Configuration.js";
+import path from "node:path";
 
 class ProjectProcessor {
 	constructor({libraryMetadata, graph, workspace}) {
@@ -363,13 +365,20 @@ export default {
 			});
 		}
 
+		const config = await Configuration.fromFile();
+		// ENV var should take precedence over the dataDir from the configuration.
+		const ui5HomeDir = process.env.UI5_DATA_DIR ?
+			path.resolve(process.env.UI5_DATA_DIR) :
+			config.getUi5DataDir();
+
 		// Note: version might be undefined here and the Resolver will throw an error when calling
 		// #install and it can't be resolved via the provided library metadata
 		const resolver = new Resolver({
 			cwd: rootProject.getRootPath(),
 			version,
 			providedLibraryMetadata,
-			cacheMode
+			cacheMode,
+			ui5HomeDir
 		});
 
 		let startTime;

@@ -113,6 +113,7 @@ test.serial("enrichProjectGraph", async (t) => {
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: dependencyTree.configuration.framework.version,
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 
@@ -319,6 +320,7 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -375,6 +377,7 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -431,6 +434,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9-SNAPSHOT",
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -587,6 +591,7 @@ test.serial("enrichProjectGraph should resolve framework project with version an
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.2.3",
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -685,6 +690,7 @@ test.serial("enrichProjectGraph should resolve framework project " +
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.99.9",
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: undefined
 	}], "Sapui5Resolver#constructor should be called with expected args");
 });
@@ -949,6 +955,7 @@ test.serial("enrichProjectGraph should use framework library metadata from works
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
 		version: "1.111.1",
+		ui5HomeDir: undefined,
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
 	t.is(Sapui5ResolverStub.getCall(0).args[0].providedLibraryMetadata, workspaceFrameworkLibraryMetadata);
@@ -1006,6 +1013,7 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		cacheMode: undefined,
 		cwd: dependencyTree.path,
+		ui5HomeDir: undefined,
 		version: undefined,
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");

@@ -480,7 +480,8 @@ test.serial("_resolveSnapshotEndpointUrl: Maven fallback with config update", as
 	t.is(configFromFile.callCount, 1, "Configuration has been read once");
 	t.is(configToFile.callCount, 1, "Configuration has been written once");
 	t.deepEqual(configToFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: "maven-url"
+		mavenSnapshotEndpointUrl: "maven-url",
+		ui5DataDir: undefined
 	}, "Correct configuration has been written");
 });
 

@@ -34,7 +34,8 @@ test.serial("Build configuration with defaults", (t) => {
 	const config = new Configuration({});
 
 	t.deepEqual(config.toJson(), {
-		mavenSnapshotEndpointUrl: undefined
+		mavenSnapshotEndpointUrl: undefined,
+		ui5DataDir: undefined,
 	});
 });
 
@@ -43,7 +44,8 @@ test.serial("Overwrite defaults defaults", (t) => {
 	const {Configuration} = t.context;
 
 	const params = {
-		mavenSnapshotEndpointUrl: "https://snapshot.url"
+		mavenSnapshotEndpointUrl: "https://snapshot.url",
+		ui5DataDir: "/custom/data/dir"
 	};
 
 	const config = new Configuration(params);
@@ -55,12 +57,14 @@ test.serial("Check getters", (t) => {
 	const {Configuration} = t.context;
 
 	const params = {
-		mavenSnapshotEndpointUrl: "https://snapshot.url"
+		mavenSnapshotEndpointUrl: "https://snapshot.url",
+		ui5DataDir: "/custom/data/dir"
 	};
 
 	const config = new Configuration(params);
 
 	t.is(config.getMavenSnapshotEndpointUrl(), params.mavenSnapshotEndpointUrl);
+	t.is(config.getUi5DataDir(), params.ui5DataDir);
 });
 
 
@@ -69,7 +73,8 @@ test.serial("fromFile", async (t) => {
 	const {promisifyStub, sinon} = t.context;
 
 	const ui5rcContents = {
-		mavenSnapshotEndpointUrl: "https://snapshot.url"
+		mavenSnapshotEndpointUrl: "https://snapshot.url",
+		ui5DataDir: "/custom/data/dir"
 	};
 	const responseStub = sinon.stub().resolves(JSON.stringify(ui5rcContents));
 	promisifyStub.callsFake(() => responseStub);
@@ -90,6 +95,7 @@ test.serial("fromFile: configuration file not found - fallback to default config
 
 	t.is(config instanceof Configuration, true, "Created a default configuration");
 	t.is(config.getMavenSnapshotEndpointUrl(), undefined, "Default settings");
+	t.is(config.getUi5DataDir(), undefined, "Default settings");
 });
 
 
@@ -104,6 +110,7 @@ test.serial("fromFile: empty configuration file - fallback to default config", a
 
 	t.is(config instanceof Configuration, true, "Created a default configuration");
 	t.is(config.getMavenSnapshotEndpointUrl(), undefined, "Default settings");
+	t.is(config.getUi5DataDir(), undefined, "Default settings");
 });
 
 test.serial("fromFile: throws", async (t) => {
