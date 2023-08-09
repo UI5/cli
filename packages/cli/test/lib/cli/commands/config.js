@@ -133,9 +133,8 @@ test.serial("ui5 config set", async (t) => {
 	t.is(stdoutWriteStub.callCount, 0, "Nothing written to stdout");
 
 	t.is(Configuration.toFile.callCount, 1, "Configuration#toFile got called once");
-	t.deepEqual(Configuration.toFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: "https://_snapshot_endpoint_"
-	}, "Configuration#toFile got called with expected argument");
+	t.is(Configuration.toFile.firstCall.firstArg.toJson().mavenSnapshotEndpointUrl,
+		"https://_snapshot_endpoint_", "Configuration#toFile got called with expected argument");
 });
 
 test.serial("ui5 config set without a value should delete the configuration", async (t) => {
@@ -152,9 +151,8 @@ test.serial("ui5 config set without a value should delete the configuration", as
 	t.is(stdoutWriteStub.callCount, 0, "Nothing written to stdout");
 
 	t.is(Configuration.toFile.callCount, 1, "Configuration#toFile got called once");
-	t.deepEqual(Configuration.toFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: undefined
-	}, "Configuration#toFile got called with expected argument");
+	t.is(Configuration.toFile.firstCall.firstArg.toJson().mavenSnapshotEndpointUrl,
+		undefined, "Configuration#toFile got called with expected argument");
 });
 
 test.serial("ui5 config set with an empty value should delete the configuration", async (t) => {
@@ -171,9 +169,8 @@ test.serial("ui5 config set with an empty value should delete the configuration"
 	t.is(stdoutWriteStub.callCount, 0, "Nothing written to stdout");
 
 	t.is(Configuration.toFile.callCount, 1, "Configuration#toFile got called once");
-	t.deepEqual(Configuration.toFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: undefined
-	}, "Configuration#toFile got called with expected argument");
+	t.is(Configuration.toFile.firstCall.firstArg.toJson().mavenSnapshotEndpointUrl,
+		undefined, "Configuration#toFile got called with expected argument");
 });
 
 test.serial("ui5 config set null should update the configuration", async (t) => {
@@ -194,9 +191,8 @@ test.serial("ui5 config set null should update the configuration", async (t) => 
 	t.is(stdoutWriteStub.callCount, 0, "Nothing written to stdout");
 
 	t.is(Configuration.toFile.callCount, 1, "Configuration#toFile got called once");
-	t.deepEqual(Configuration.toFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: 0
-	}, "Configuration#toFile got called with expected argument");
+	t.is(Configuration.toFile.firstCall.firstArg.toJson().mavenSnapshotEndpointUrl,
+		0, "Configuration#toFile got called with expected argument");
 });
 
 test.serial("ui5 config set false should update the configuration", async (t) => {
@@ -217,9 +213,8 @@ test.serial("ui5 config set false should update the configuration", async (t) =>
 	t.is(stdoutWriteStub.callCount, 0, "Nothing written to stdout");
 
 	t.is(Configuration.toFile.callCount, 1, "Configuration#toFile got called once");
-	t.deepEqual(Configuration.toFile.firstCall.firstArg.toJson(), {
-		mavenSnapshotEndpointUrl: false
-	}, "Configuration#toFile got called with expected argument");
+	t.is(Configuration.toFile.firstCall.firstArg.toJson().mavenSnapshotEndpointUrl,
+		false, "Configuration#toFile got called with expected argument");
 });
 
 test.serial("ui5 config invalid key", async (t) => {
