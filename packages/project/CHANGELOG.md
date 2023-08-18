@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.5.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.5.1...HEAD).
+
+<a name="v3.5.1"></a>
+## [v3.5.1] - 2023-08-18
+### Bug Fixes
+- Resolve UI5 data directory relative to project ([#642](https://github.com/SAP/ui5-project/issues/642)) [`228b14c`](https://github.com/SAP/ui5-project/commit/228b14c63fbd736962c513fdd1656a7983f51bbc)
+
 
 <a name="v3.5.0"></a>
-## [v3.5.0] - 2023-08-08
+## [v3.5.0] - 2023-08-09
 ### Features
 - Allow to configure location of UI5 home directory ([#635](https://github.com/SAP/ui5-project/issues/635)) [`8c86083`](https://github.com/SAP/ui5-project/commit/8c860839d94abdaedaf878614a9121a89b85f116)
 
@@ -431,6 +437,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.5.1]: https://github.com/SAP/ui5-project/compare/v3.5.0...v3.5.1
 [v3.5.0]: https://github.com/SAP/ui5-project/compare/v3.4.2...v3.5.0
 [v3.4.2]: https://github.com/SAP/ui5-project/compare/v3.4.1...v3.4.2
 [v3.4.1]: https://github.com/SAP/ui5-project/compare/v3.4.0...v3.4.1
