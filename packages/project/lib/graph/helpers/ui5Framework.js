@@ -365,11 +365,15 @@ export default {
 			});
 		}
 
-		const config = await Configuration.fromFile();
 		// ENV var should take precedence over the dataDir from the configuration.
-		const ui5HomeDir = process.env.UI5_DATA_DIR ?
-			path.resolve(process.env.UI5_DATA_DIR) :
-			config.getUi5DataDir();
+		let ui5DataDir = process.env.UI5_DATA_DIR;
+		if (!ui5DataDir) {
+			const config = await Configuration.fromFile();
+			ui5DataDir = config.getUi5DataDir();
+		}
+		if (ui5DataDir) {
+			ui5DataDir = path.resolve(rootProject.getRootPath(), ui5DataDir);
+		}
 
 		// Note: version might be undefined here and the Resolver will throw an error when calling
 		// #install and it can't be resolved via the provided library metadata
@@ -378,7 +382,7 @@ export default {
 			version,
 			providedLibraryMetadata,
 			cacheMode,
-			ui5HomeDir
+			ui5HomeDir: ui5DataDir
 		});
 
 		let startTime;

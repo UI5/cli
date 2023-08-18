@@ -2,7 +2,7 @@ import path from "node:path";
 import os from "node:os";
 
 /**
- * Provides basic configuration settings for @ui5/project/ui5Framework/* resolvers.
+ * Provides basic configuration for @ui5/project.
  * Reads/writes configuration from/to ~/.ui5rc
  *
  * @public
@@ -10,17 +10,35 @@ import os from "node:os";
  * @alias @ui5/project/config/Configuration
  */
 class Configuration {
-	#mavenSnapshotEndpointUrl;
-	#ui5DataDir;
+	/**
+	 * A list of all configuration options.
+	 *
+	 * @public
+	 * @static
+	 */
+	static OPTIONS = [
+		"mavenSnapshotEndpointUrl",
+		"ui5DataDir"
+	];
+
+	#options = new Map();
 
 	/**
 	 * @param {object} configuration
 	 * @param {string} [configuration.mavenSnapshotEndpointUrl]
 	 * @param {string} [configuration.ui5DataDir]
 	 */
-	constructor({mavenSnapshotEndpointUrl, ui5DataDir}) {
-		this.#mavenSnapshotEndpointUrl = mavenSnapshotEndpointUrl;
-		this.#ui5DataDir = ui5DataDir;
+	constructor(configuration) {
+		// Initialize map with undefined values for every option so that they are
+		// returned via toJson()
+		Configuration.OPTIONS.forEach((key) => this.#options.set(key, undefined));
+
+		Object.entries(configuration).forEach(([key, value]) => {
+			if (!Configuration.OPTIONS.includes(key)) {
+				throw new Error(`Unknown configuration option '${key}'`);
+			}
+			this.#options.set(key, value);
+		});
 	}
 
 	/**
@@ -31,7 +49,7 @@ class Configuration {
 	 * @returns {string}
 	 */
 	getMavenSnapshotEndpointUrl() {
-		return this.#mavenSnapshotEndpointUrl;
+		return this.#options.get("mavenSnapshotEndpointUrl");
 	}
 
 	/**
@@ -41,7 +59,7 @@ class Configuration {
 	 * @returns {string}
 	 */
 	getUi5DataDir() {
-		return this.#ui5DataDir;
+		return this.#options.get("ui5DataDir");
 	}
 
 	/**
@@ -49,10 +67,7 @@ class Configuration {
 	 * @returns {object} The configuration in a JSON format
 	 */
 	toJson() {
-		return {
-			mavenSnapshotEndpointUrl: this.#mavenSnapshotEndpointUrl,
-			ui5DataDir: this.#ui5DataDir,
-		};
+		return Object.fromEntries(this.#options);
 	}
 
 	/**

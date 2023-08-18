@@ -16,6 +16,10 @@ const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library
 const libraryFPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.f");
 
 test.beforeEach(async (t) => {
+	// Tests either rely on not having UI5_DATA_DIR defined, or explicitly define it
+	t.context.originalUi5DataDirEnv = process.env.UI5_DATA_DIR;
+	delete process.env.UI5_DATA_DIR;
+
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.log = {
@@ -51,15 +55,30 @@ test.beforeEach(async (t) => {
 	t.context.Sapui5MavenSnapshotResolverResolveVersionStub = sinon.stub();
 	t.context.Sapui5MavenSnapshotResolverStub.resolveVersion = t.context.Sapui5MavenSnapshotResolverResolveVersionStub;
 
+	t.context.getUi5DataDirStub = sinon.stub().returns(undefined);
+
+	t.context.ConfigurationStub = {
+		fromFile: sinon.stub().resolves({
+			getUi5DataDir: t.context.getUi5DataDirStub
+		})
+	};
+
 	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
 		"@ui5/logger": ui5Logger,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5ResolverStub,
 		"../../../../lib/ui5Framework/Sapui5MavenSnapshotResolver.js": t.context.Sapui5MavenSnapshotResolverStub,
+		"../../../../lib/config/Configuration.js": t.context.ConfigurationStub,
 	});
 	t.context.utils = t.context.ui5Framework._utils;
 });
 
 test.afterEach.always((t) => {
+	// Reset UI5_DATA_DIR env
+	if (typeof t.context.originalUi5DataDirEnv === "undefined") {
+		delete process.env.UI5_DATA_DIR;
+	} else {
+		process.env.UI5_DATA_DIR = t.context.originalUi5DataDirEnv;
+	}
 	t.context.sinon.restore();
 	esmock.purge(t.context.ui5Framework);
 });
@@ -1018,6 +1037,174 @@ test.serial("enrichProjectGraph should allow omitting framework version in case 
 		providedLibraryMetadata: workspaceFrameworkLibraryMetadata
 	}], "Sapui5Resolver#constructor should be called with expected args");
 	t.is(Sapui5ResolverStub.getCall(0).args[0].providedLibraryMetadata, workspaceFrameworkLibraryMetadata);
+});
+
+test.serial("enrichProjectGraph should use UI5 data dir from env var", async (t) => {
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub} = t.context;
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.75.0"
+			}
+		}
+	};
+
+	const referencedLibraries = ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"];
+	const libraryMetadata = {fake: "metadata"};
+
+	sinon.stub(utils, "getFrameworkLibrariesFromGraph")
+		.resolves(referencedLibraries);
+
+	Sapui5ResolverInstallStub.resolves({libraryMetadata});
+
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	process.env.UI5_DATA_DIR = "./ui5-data-dir-from-env-var";
+
+	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-env-var");
+
+	await ui5Framework.enrichProjectGraph(projectGraph);
+
+	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
+	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{
+		cacheMode: undefined,
+		cwd: dependencyTree.path,
+		version: dependencyTree.configuration.framework.version,
+		ui5HomeDir: expectedUi5DataDir,
+		providedLibraryMetadata: undefined
+	}], "Sapui5Resolver#constructor should be called with expected args");
+});
+
+test.serial("enrichProjectGraph should use UI5 data dir from configuration", async (t) => {
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getUi5DataDirStub} = t.context;
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.75.0"
+			}
+		}
+	};
+
+	const referencedLibraries = ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"];
+	const libraryMetadata = {fake: "metadata"};
+
+	sinon.stub(utils, "getFrameworkLibrariesFromGraph")
+		.resolves(referencedLibraries);
+
+	Sapui5ResolverInstallStub.resolves({libraryMetadata});
+
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	getUi5DataDirStub.returns("./ui5-data-dir-from-config");
+
+	const expectedUi5DataDir = path.resolve(dependencyTree.path, "./ui5-data-dir-from-config");
+
+	await ui5Framework.enrichProjectGraph(projectGraph);
+
+	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
+	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{
+		cacheMode: undefined,
+		cwd: dependencyTree.path,
+		version: dependencyTree.configuration.framework.version,
+		ui5HomeDir: expectedUi5DataDir,
+		providedLibraryMetadata: undefined
+	}], "Sapui5Resolver#constructor should be called with expected args");
+});
+
+test.serial("enrichProjectGraph should use absolute UI5 data dir from configuration", async (t) => {
+	const {sinon, ui5Framework, utils, Sapui5ResolverInstallStub, getUi5DataDirStub} = t.context;
+
+	const dependencyTree = {
+		id: "test1",
+		version: "1.0.0",
+		path: applicationAPath,
+		configuration: {
+			specVersion: "2.0",
+			type: "application",
+			metadata: {
+				name: "application.a"
+			},
+			framework: {
+				name: "SAPUI5",
+				version: "1.75.0"
+			}
+		}
+	};
+
+	const referencedLibraries = ["sap.ui.lib1", "sap.ui.lib2", "sap.ui.lib3"];
+	const libraryMetadata = {fake: "metadata"};
+
+	sinon.stub(utils, "getFrameworkLibrariesFromGraph")
+		.resolves(referencedLibraries);
+
+	Sapui5ResolverInstallStub.resolves({libraryMetadata});
+
+
+	const addProjectToGraphStub = sinon.stub();
+	sinon.stub(utils, "ProjectProcessor")
+		.callsFake(() => {
+			return {
+				addProjectToGraph: addProjectToGraphStub
+			};
+		});
+
+	const provider = new DependencyTreeProvider({dependencyTree});
+	const projectGraph = await projectGraphBuilder(provider);
+
+	getUi5DataDirStub.returns("/absolute-ui5-data-dir-from-config");
+
+	const expectedUi5DataDir = path.resolve("/absolute-ui5-data-dir-from-config");
+
+	await ui5Framework.enrichProjectGraph(projectGraph);
+
+	t.is(t.context.Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
+	t.deepEqual(t.context.Sapui5ResolverStub.getCall(0).args, [{
+		cacheMode: undefined,
+		cwd: dependencyTree.path,
+		version: dependencyTree.configuration.framework.version,
+		ui5HomeDir: expectedUi5DataDir,
+		providedLibraryMetadata: undefined
+	}], "Sapui5Resolver#constructor should be called with expected args");
 });
 
 test.serial("utils.shouldIncludeDependency", (t) => {

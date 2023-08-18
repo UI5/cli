@@ -125,11 +125,19 @@ test.beforeEach(async (t) => {
 		"../../../../lib/specifications/Specification.js": t.context.Specification
 	});
 
+	// Stub os homedir to prevent the actual ~/.ui5rc from being used in tests
+	t.context.Configuration = await esmock.p("../../../../lib/config/Configuration.js", {
+		"node:os": {
+			homedir: sinon.stub().returns(path.join(fakeBaseDir, "homedir"))
+		}
+	});
+
 	t.context.ui5Framework = await esmock.p("../../../../lib/graph/helpers/ui5Framework.js", {
 		"@ui5/logger": ui5Logger,
 		"../../../../lib/graph/Module.js": t.context.Module,
 		"../../../../lib/ui5Framework/Openui5Resolver.js": t.context.Openui5Resolver,
 		"../../../../lib/ui5Framework/Sapui5Resolver.js": t.context.Sapui5Resolver,
+		"../../../../lib/config/Configuration.js": t.context.Configuration
 	});
 
 	t.context.projectGraphBuilder = await esmock.p("../../../../lib/graph/projectGraphBuilder.js", {

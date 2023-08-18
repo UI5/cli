@@ -28,6 +28,14 @@ test.afterEach.always((t) => {
 	esmock.purge(t.context.Configuration);
 });
 
+test.serial("Configuration options", (t) => {
+	const {Configuration} = t.context;
+	t.deepEqual(Configuration.OPTIONS, [
+		"mavenSnapshotEndpointUrl",
+		"ui5DataDir"
+	]);
+});
+
 test.serial("Build configuration with defaults", (t) => {
 	const {Configuration} = t.context;
 
@@ -38,7 +46,6 @@ test.serial("Build configuration with defaults", (t) => {
 		ui5DataDir: undefined,
 	});
 });
-
 
 test.serial("Overwrite defaults defaults", (t) => {
 	const {Configuration} = t.context;
@@ -51,6 +58,18 @@ test.serial("Overwrite defaults defaults", (t) => {
 	const config = new Configuration(params);
 
 	t.deepEqual(config.toJson(), params);
+});
+
+test.serial("Unknown configuration option", (t) => {
+	const {Configuration} = t.context;
+
+	const params = {
+		unknown: "foo"
+	};
+
+	t.throws(() => new Configuration(params), {
+		message: `Unknown configuration option 'unknown'`
+	});
 });
 
 test.serial("Check getters", (t) => {
