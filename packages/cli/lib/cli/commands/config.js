@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import process from "node:process";
 import baseMiddleware from "../middlewares/base.js";
+import Configuration from "@ui5/project/config/Configuration";
 
 const configCommand = {
 	command: "config",
@@ -12,13 +13,17 @@ const configCommand = {
 configCommand.builder = function(cli) {
 	return cli
 		.demandCommand(1, "Command required. Available commands are 'set', 'get', and 'list'")
-		.command("set <key> [value]", "Set the value for a given configuration key. " +
+		.command("set <option> [value]", "Set the value for a given configuration option. " +
 			"Clear an existing configuration by omitting the value", {
 			handler: handleConfig,
-			builder: noop,
+			builder: (cli) => {
+				cli.positional("option", {
+					choices: Configuration.OPTIONS
+				});
+			},
 			middlewares: [baseMiddleware],
 		})
-		.command("get <key>", "Get the value for a given configuration key", {
+		.command("get <option>", "Get the value for a given configuration option", {
 			handler: handleConfig,
 			builder: noop,
 			middlewares: [baseMiddleware],
@@ -28,51 +33,47 @@ configCommand.builder = function(cli) {
 			builder: noop,
 			middlewares: [baseMiddleware],
 		})
-		.example("$0 config set mavenSnapshotEndpointUrl http://example.com/snapshots/",
-			"Set a value for the mavenSnapshotEndpointUrl configuration")
-		.example("$0 config set mavenSnapshotEndpointUrl",
-			"Unset the current value of the mavenSnapshotEndpointUrl configuration");
+		.example("$0 config set ui5DataDir /path/to/.ui5",
+			"Set a value for the ui5DataDir configuration")
+		.example("$0 config set ui5DataDir",
+			"Unset the current value of the ui5DataDir configuration");
 };
 
 function noop() {}
 
 async function handleConfig(argv) {
-	const {_: commandArgs, key, value} = argv;
+	const {_: commandArgs, option, value} = argv;
 	const command = commandArgs[commandArgs.length - 1];
 
-	const {default: Configuration} = await import( "@ui5/project/config/Configuration");
-	const allowedKeys = ["mavenSnapshotEndpointUrl"];
-
-	if (["set", "get"].includes(command) && !allowedKeys.includes(key)) {
-		throw new Error(
-			`The provided key is not a valid configuration option. Valid options are: ${allowedKeys.join(", ")}`);
-	}
+	// Yargs ensures that:
+	// - "option" only contains valid values (defined as "choices" in command builder)
+	// - "command" is one of "list", "get", "set"
 
 	const config = await Configuration.fromFile();
-	if (command === "list") {
+	let jsonConfig;
+
+	switch (command) {
+	case "list":
 		// Print all configuration values to stdout
 		process.stdout.write(formatJsonForOutput(config.toJson()));
-	} else if (command === "get") {
+		break;
+	case "get":
 		// Get a single configuration value and print to stdout
-		let configValue = config.toJson()[key];
-		if (configValue === undefined) {
-			configValue = "";
-		}
-		process.stdout.write(`${configValue}\n`);
-	} else if (command === "set") {
-		const jsonConfig = config.toJson();
+		process.stdout.write(`${config.toJson()[option] ?? ""}\n`);
+		break;
+	case "set":
+		jsonConfig = config.toJson();
 		if (value === undefined || value === "") {
-			delete jsonConfig[key];
-			process.stderr.write(`Configuration option ${chalk.bold(key)} has been unset\n`);
+			delete jsonConfig[option];
+			process.stderr.write(`Configuration option ${chalk.bold(option)} has been unset\n`);
 		} else {
-			jsonConfig[key] = value;
-			process.stderr.write(`Configuration option ${chalk.bold(key)} has been updated:
-${formatJsonForOutput(jsonConfig, key)}`);
+			jsonConfig[option] = value;
+			process.stderr.write(`Configuration option ${chalk.bold(option)} has been updated:
+${formatJsonForOutput(jsonConfig, option)}`);
 		}
 
 		await Configuration.toFile(new Configuration(jsonConfig));
-	} else {
-		throw new Error(`Unknown 'ui5 config' command '${command}'`);
+		break;
 	}
 }
 
