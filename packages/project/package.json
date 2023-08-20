@@ -155,7 +155,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^46.4.6",
-		"esmock": "^2.3.6",
+		"esmock": "^2.3.8",
 		"istanbul-lib-coverage": "^3.2.0",
 		"istanbul-lib-instrument": "^6.0.0",
 		"istanbul-lib-report": "^3.0.1",
