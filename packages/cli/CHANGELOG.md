@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.4.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.4.1...HEAD).
+
+<a name="v3.4.1"></a>
+## [v3.4.1] - 2023-08-20
+### Bug Fixes
+- **ui5 config:** Allow usage of all Configuration options ([#645](https://github.com/SAP/ui5-cli/issues/645)) [`78e032e`](https://github.com/SAP/ui5-cli/commit/78e032ebd7d71ee59e6f6fd4f21dc0564e108d44)
+
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 3.5.0 to 3.5.1 [`4ca30c3`](https://github.com/SAP/ui5-cli/commit/4ca30c3dc4066919f68af47307b4dc8b0bd898f7)
+
 
 <a name="v3.4.0"></a>
 ## [v3.4.0] - 2023-08-09
@@ -1089,6 +1098,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.4.1]: https://github.com/SAP/ui5-cli/compare/v3.4.0...v3.4.1
 [v3.4.0]: https://github.com/SAP/ui5-cli/compare/v3.3.4...v3.4.0
 [v3.3.4]: https://github.com/SAP/ui5-cli/compare/v3.3.3...v3.3.4
 [v3.3.3]: https://github.com/SAP/ui5-cli/compare/v3.3.2...v3.3.3
