@@ -1,6 +1,7 @@
 import test from "ava";
 import Ajv from "ajv";
 import ajvErrors from "ajv-errors";
+import SpecificationVersion from "../../../../../../../lib/specifications/SpecificationVersion.js";
 import AjvCoverage from "../../../../../../utils/AjvCoverage.js";
 import {_Validator as Validator} from "../../../../../../../lib/validation/validator.js";
 import ValidationError from "../../../../../../../lib/validation/ValidationError.js";
@@ -45,7 +46,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=2.0").forEach(function(specVersion) {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -435,7 +436,7 @@ test.after.always((t) => {
 				keyword: "enum",
 				message: "should be equal to one of the allowed values",
 				params: {
-					allowedValues: ["3.0", "2.6", "2.5", "2.4"].includes(specVersion) ? [
+					allowedValues: ["3.1", "3.0", "2.6", "2.5", "2.4"].includes(specVersion) ? [
 						"raw",
 						"preload",
 						"require",
@@ -509,7 +510,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.2", "2.1", "2.0"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange("2.0 - 2.2").forEach(function(specVersion) {
 	test(`Unsupported builder/componentPreload/excludes configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -539,7 +540,7 @@ test.after.always((t) => {
 	});
 });
 
-["3.0", "2.6", "2.5", "2.4", "2.3"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=2.3").forEach(function(specVersion) {
 	test(`application (specVersion ${specVersion}): builder/componentPreload/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -636,7 +637,7 @@ test.after.always((t) => {
 	});
 });
 
-["3.0", "2.6", "2.5", "2.4"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=2.4").forEach(function(specVersion) {
 	// Unsupported cases for older spec-versions already tested via "allowedValues" comparison above
 	test(`application (specVersion ${specVersion}): builder/bundles/bundleDefinition/sections/mode: bundleInfo`,
 		async (t) => {
@@ -664,7 +665,7 @@ test.after.always((t) => {
 		});
 });
 
-["3.0", "2.6", "2.5"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=2.5").forEach(function(specVersion) {
 	test(`application (specVersion ${specVersion}): builder/settings/includeDependency*`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -845,7 +846,7 @@ test.after.always((t) => {
 	});
 });
 
-["3.0", "2.6"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=2.6").forEach(function(specVersion) {
 	test(`application (specVersion ${specVersion}): builder/minification/excludes`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -942,7 +943,7 @@ test.after.always((t) => {
 	});
 });
 
-["3.0"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) {
 	test(`Invalid project name (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,

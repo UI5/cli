@@ -66,11 +66,17 @@ class Application extends ComponentProject {
 		return null; // Applications do not have a dedicated test directory
 	}
 
+	/**
+	 * Get a resource reader for the sources of the project (excluding any test resources)
+	 * without a virtual base path
+	 *
+	 * @returns {@ui5/fs/ReaderCollection} Reader collection
+	*/
 	_getRawSourceReader() {
 		return createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: "/",
-			name: `Source reader for application project ${this.getName()}`,
+			name: `Raw source reader for application project ${this.getName()}`,
 			project: this
 		});
 	}

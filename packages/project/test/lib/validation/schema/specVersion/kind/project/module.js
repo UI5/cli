@@ -1,6 +1,7 @@
 import test from "ava";
 import Ajv from "ajv";
 import ajvErrors from "ajv-errors";
+import SpecificationVersion from "../../../../../../../lib/specifications/SpecificationVersion.js";
 import AjvCoverage from "../../../../../../utils/AjvCoverage.js";
 import {_Validator as Validator} from "../../../../../../../lib/validation/validator.js";
 import ValidationError from "../../../../../../../lib/validation/ValidationError.js";
@@ -45,7 +46,7 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+SpecificationVersion.getVersionsForRange(">=2.0").forEach((specVersion) => {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -106,7 +107,7 @@ test.after.always((t) => {
 	});
 });
 
-["2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+SpecificationVersion.getVersionsForRange("2.0 - 2.4").forEach((specVersion) => {
 	test(`No server configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -144,7 +145,7 @@ test.after.always((t) => {
 	});
 });
 
-["3.0", "2.6", "2.5"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=2.5").forEach(function(specVersion) {
 	test(`Server configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -349,7 +350,7 @@ test.after.always((t) => {
 	});
 });
 
-["3.0"].forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) {
 	test(`Invalid project name (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
@@ -414,6 +415,27 @@ test.after.always((t) => {
 				}]
 			},
 		}]);
+	});
+});
+
+SpecificationVersion.getVersionsForRange(">=3.1").forEach(function(specVersion) {
+	test(`Builder resource excludes (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "module",
+			"metadata": {
+				"name": "my-module"
+			},
+			"builder": {
+				"resources": {
+					"excludes": [
+						"/resources/some/project/name/test_results/**",
+						"!/test-resources/some/project/name/demo-app/**"
+					]
+				}
+			}
+		});
 	});
 });
 

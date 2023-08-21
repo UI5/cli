@@ -1,9 +1,12 @@
+import SpecificationVersion from "../../../../../lib/specifications/SpecificationVersion.js";
+
 /**
  * Common test functionality for customConfiguration section in config
  */
 export default {
 	/**
-	 * Executes the tests for different kind of projects, e.g. "application", "library", "theme-library" and "module"
+	 * Executes the tests for different kind of projects,
+	 * e.g. "application", "library", "theme-library" and "module"
 	 *
 	 * @param {Function} test ava test
 	 * @param {Function} assertValidation assertion function
@@ -13,7 +16,6 @@ export default {
 	 */
 	defineTests: function(test, assertValidation, type, additionalConfiguration) {
 		additionalConfiguration = additionalConfiguration || {};
-
 		// version specific tests for customConfiguration
 		test(`${type}: Invalid customConfiguration (specVersion 2.0)`, async (t) => {
 			await assertValidation(t, Object.assign({
@@ -35,7 +37,7 @@ export default {
 			]);
 		});
 
-		["2.6", "2.5", "2.4", "2.3", "2.2", "2.1"].forEach((specVersion) => {
+		SpecificationVersion.getVersionsForRange(">=2.1").forEach((specVersion) => {
 			test(`${type}: Valid customConfiguration (specVersion ${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign( {
 					"specVersion": specVersion,

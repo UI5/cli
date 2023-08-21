@@ -1,3 +1,5 @@
+import SpecificationVersion from "../../../../../lib/specifications/SpecificationVersion.js";
+
 /**
  * Common test functionality for builder/bundles/bundleOptions section in config
  */
@@ -7,11 +9,11 @@ export default {
 	 *
 	 * @param {Function} test ava test
 	 * @param {Function} assertValidation assertion function
-	 * @param {string} type one of "application" and "library"
+	 * @param {string} type one of "application", "library"
 	 */
 	defineTests: function(test, assertValidation, type) {
 		// Version specific tests
-		["3.0"].forEach(function(specVersion) {
+		SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) {
 			test(`${type} (specVersion ${specVersion}): builder/bundles/bundleOptions`, async (t) => {
 				await assertValidation(t, {
 					"specVersion": specVersion,

@@ -67,6 +67,12 @@ test("(instance) satisfies", (t) => {
 	t.is(new SpecificationVersion("2.2").satisfies("^2.2"), true);
 	t.is(new SpecificationVersion("2.3").satisfies("^2.2"), true);
 
+	// range: >=2.2
+	t.is(new SpecificationVersion("2.1").satisfies(">=2.2"), false);
+	t.is(new SpecificationVersion("2.2").satisfies(">=2.2"), true);
+	t.is(new SpecificationVersion("2.3").satisfies(">=2.2"), true);
+	t.is(new SpecificationVersion("3.1").satisfies(">=2.2"), true);
+
 	// range: > 1.0
 	t.is(new SpecificationVersion("1.0").satisfies("> 1.0"), false);
 	t.is(new SpecificationVersion("1.1").satisfies("> 1.0"), true);
@@ -162,6 +168,12 @@ test("(static) satisfies", (t) => {
 	t.is(SpecificationVersion.satisfies("2.2", "^2.2"), true);
 	t.is(SpecificationVersion.satisfies("2.3", "^2.2"), true);
 
+	// range: >=2.2
+	t.is(SpecificationVersion.satisfies("2.1", ">=2.2"), false);
+	t.is(SpecificationVersion.satisfies("2.2", ">=2.2"), true);
+	t.is(SpecificationVersion.satisfies("2.3", ">=2.2"), true);
+	t.is(SpecificationVersion.satisfies("3.1", ">=2.2"), true);
+
 	// range: > 1.0
 	t.is(SpecificationVersion.satisfies("1.0", "> 1.0"), false);
 	t.is(SpecificationVersion.satisfies("1.1", "> 1.0"), true);
@@ -210,6 +222,45 @@ test("(static) low level comparator", (t) => {
 
 	t.is(SpecificationVersion.neq("2.0", "2.2"), true);
 	t.is(SpecificationVersion.neq("2.2", "2.2"), false);
+});
+
+test("(static) getVersionsForRange", (t) => {
+	// range: 1.x
+	t.deepEqual(SpecificationVersion.getVersionsForRange("1.x"), [
+		"1.0", "1.1"
+	]);
+
+	// range: ^2.2
+	t.deepEqual(SpecificationVersion.getVersionsForRange("^2.2"), [
+		"2.2", "2.3", "2.4", "2.5", "2.6"
+	]);
+
+	// range: >=2.2
+	t.deepEqual(SpecificationVersion.getVersionsForRange(">=2.2"), [
+		"2.2", "2.3", "2.4", "2.5", "2.6",
+		"3.0", "3.1",
+	]);
+
+	// range: > 1.0
+	t.deepEqual(SpecificationVersion.getVersionsForRange("> 1.0"), [
+		"1.1",
+		"2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6",
+		"3.0", "3.1",
+	]);
+
+	// range: 2.2 - 2.4
+	t.deepEqual(SpecificationVersion.getVersionsForRange("2.2 - 2.4"), [
+		"2.2", "2.3", "2.4"
+	]);
+
+	// range: 0.1 || 1.0 - 1.1 || ^2.5
+	t.deepEqual(SpecificationVersion.getVersionsForRange("0.1 || 1.0 - 1.1 || ^2.5"), [
+		"0.1", "1.0", "1.1",
+		"2.5", "2.6"
+	]);
+
+	// Incorrect range returns empty array
+	t.deepEqual(SpecificationVersion.getVersionsForRange("not a range"), []);
 });
 
 test("getSemverCompatibleVersion", (t) => {

@@ -1,3 +1,4 @@
+import SpecificationVersion from "../../../../../lib/specifications/SpecificationVersion.js";
 import customConfiguration from "./customConfiguration.js";
 
 /**
@@ -18,7 +19,7 @@ export default {
 
 		customConfiguration.defineTests(test, assertValidation, type, additionalConfiguration);
 
-		["3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+		SpecificationVersion.getVersionsForRange(">=2.0").forEach((specVersion) => {
 			test(`kind: extension / type: ${type} basic (${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign({
 					"specVersion": specVersion,
@@ -67,7 +68,7 @@ export default {
 				});
 		});
 
-		["2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"].forEach((specVersion) => {
+		SpecificationVersion.getVersionsForRange("2.0 - 2.6").forEach((specVersion) => {
 			test(`kind: extension / type: ${type}: Invalid metadata.name (${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign({
 					"specVersion": specVersion,
@@ -86,7 +87,7 @@ export default {
 			});
 		});
 
-		["3.0"].forEach((specVersion) => {
+		SpecificationVersion.getVersionsForRange(">=3.0").forEach((specVersion) => {
 			test(`kind: extension / type: ${type}: Invalid metadata.name (${specVersion})`, async (t) => {
 				await assertValidation(t, Object.assign({
 					"specVersion": specVersion,
