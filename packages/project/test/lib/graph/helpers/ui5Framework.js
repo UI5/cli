@@ -898,7 +898,7 @@ test.serial("enrichProjectGraph should throw error when projectGraph contains a 
 						version: "1.100.0",
 						modulePath: libraryEPath,
 						configuration: {
-							specVersion: "3.0",
+							specVersion: "3.1",
 							kind: "project",
 							type: "library",
 							metadata: {

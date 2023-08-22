@@ -1,11 +1,11 @@
 ---
-specVersion: "3.0"
+specVersion: "3.1"
 type: application
 metadata:
   name: application.a.aliases
   
 --- # Everything below this line could also be put into the ui5.yaml of a standalone extension module
-specVersion: "3.0"
+specVersion: "3.1"
 kind: extension
 type: project-shim
 metadata:
@@ -13,7 +13,7 @@ metadata:
 shims:
   configurations:
     extension.a.esm.alias: # name as defined in package.json
-      specVersion: "3.0"
+      specVersion: "3.1"
       type: module # Use module type
       metadata:
         name: extension.a.esm.alias

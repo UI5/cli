@@ -700,7 +700,7 @@ test("Define external dependency as shims in sub-module", async (t) => {
 				shims: {
 					configurations: {
 						"external-thirdparty": {
-							specVersion: "3.0",
+							specVersion: "3.1",
 							type: "module",
 							metadata: {name: "external-thirdparty"},
 							resources: {
