@@ -576,6 +576,44 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'latest'", async (
 	}], "fetchAllVersions should be called with expected arguments");
 });
 
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const version = await MyResolver.resolveVersion("1", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.76.0", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR-prerelease'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
+
+	const version = await MyResolver.resolveVersion("1-SNAPSHOT", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.79.0-SNAPSHOT", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", async (t) => {
 	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
@@ -587,6 +625,25 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", as
 	});
 
 	t.is(version, "1.75.1", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR-prerelease'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
+
+	const version = await MyResolver.resolveVersion("1.79-SNAPSHOT", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.79.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
 	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
@@ -617,7 +674,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-prerelease'", async (t) => {
 	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
-		.returns(["1.76.0", "1.77.0", "1.78.0", "1.79.0-SNAPSHOT"]);
+		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
 
 	const version = await MyResolver.resolveVersion("1.79.0-SNAPSHOT", {
 		cwd: "/cwd",
@@ -754,20 +811,6 @@ test.serial("AbstractResolver: Static resolveVersion throws error for 'lts'", as
 	}));
 
 	t.is(error.message, `Framework version specifier "lts" is incorrect or not supported`);
-
-	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
-});
-
-test.serial("AbstractResolver: Static resolveVersion throws error for '1'", async (t) => {
-	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
-
-	const error = await t.throwsAsync(MyResolver.resolveVersion("1", {
-		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
-	}));
-
-	t.is(error.message, `Framework version specifier "1" is incorrect or not supported`);
 
 	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
 });

@@ -14,8 +14,8 @@ import semver from "semver";
 const SEMVER_VERSION_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 // Reduced Semantic Versioning pattern
-// Matches MAJOR.MINOR as a simple version range to be resolved to the latest patch
-const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-SNAPSHOT)?$/;
+// Matches MAJOR or MAJOR.MINOR as a simple version range to be resolved to the latest minor/patch
+const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:-SNAPSHOT)?$/;
 
 /**
  * Abstract Resolver
@@ -223,16 +223,20 @@ class AbstractResolver {
 		} else if (SEMVER_VERSION_REGEXP.test(version)) {
 			// Fully qualified version, can be used directly
 			spec = version;
-		} else if (VERSION_RANGE_REGEXP.test(version)) {
-			if (isSnapshotVersion) {
-				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
-				// in order to make the semver check work: "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
-				spec = version.replace(/-SNAPSHOT$/, ".x-SNAPSHOT");
-			} else {
-				spec = version;
-			}
 		} else {
-			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+			const versionMatch = version.match(VERSION_RANGE_REGEXP);
+			if (versionMatch) {
+				if (isSnapshotVersion) {
+					// For snapshot version ranges we need to insert a stand-in "x" for the patch level
+					// and - in case none is provided - another "x" for the major version in order to
+					// make the semver check work: "1-SNAPSHOT" or "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
+					spec = `${versionMatch[1]}.${versionMatch[2] || "x"}.x-SNAPSHOT`;
+				} else {
+					spec = version;
+				}
+			} else {
+				throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+			}
 		}
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
