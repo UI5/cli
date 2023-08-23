@@ -154,7 +154,8 @@ test("addProject: Add duplicate", async (t) => {
 		graph.addProject(project2);
 	});
 	t.is(error.message,
-		"Failed to add project application.a to graph: A project with that name has already been added",
+		"Failed to add project application.a to graph: A project with that name has already been added. " +
+		"This might be caused by multiple modules containing projects with the same name",
 		"Should throw with expected error message");
 
 	const res = graph.getProject("application.a");
@@ -261,7 +262,8 @@ test("addExtension: Add duplicate", async (t) => {
 		graph.addExtension(extension2);
 	});
 	t.is(error.message,
-		"Failed to add extension extension.a to graph: An extension with that name has already been added",
+		"Failed to add extension extension.a to graph: An extension with that name has already been added. " +
+		"This might be caused by multiple modules containing extensions with the same name",
 		"Should throw with expected error message");
 
 	const res = graph.getExtension("extension.a");

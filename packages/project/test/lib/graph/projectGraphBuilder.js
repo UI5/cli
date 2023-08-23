@@ -961,6 +961,8 @@ test("Multiple dependencies to different module containing the same extension", 
 		}),
 	]);
 	await t.throwsAsync(projectGraphBuilder(t.context.provider), {
-		message: "Failed to add extension task-a to graph: An extension with that name has already been added"
+		message:
+			"Failed to add extension task-a to graph: An extension with that name has already been added. " +
+			"This might be caused by multiple modules containing extensions with the same name"
 	});
 });

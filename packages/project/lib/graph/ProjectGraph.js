@@ -58,7 +58,8 @@ class ProjectGraph {
 		const projectName = project.getName();
 		if (this._projects.has(projectName)) {
 			throw new Error(
-				`Failed to add project ${projectName} to graph: A project with that name has already been added`);
+				`Failed to add project ${projectName} to graph: A project with that name has already been added. ` +
+				`This might be caused by multiple modules containing projects with the same name`);
 		}
 		if (!isNaN(projectName)) {
 			// Reject integer-like project names. They would take precedence when traversing object keys which
@@ -126,7 +127,8 @@ class ProjectGraph {
 		if (this._extensions.has(extensionName)) {
 			throw new Error(
 				`Failed to add extension ${extensionName} to graph: ` +
-				`An extension with that name has already been added`);
+				`An extension with that name has already been added. ` +
+				`This might be caused by multiple modules containing extensions with the same name`);
 		}
 		if (!isNaN(extensionName)) {
 			// Reject integer-like extension names. They would take precedence when traversing object keys which
