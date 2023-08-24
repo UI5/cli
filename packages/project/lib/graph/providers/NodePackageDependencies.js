@@ -49,10 +49,10 @@ class NodePackageDependencies {
 
 		const modulePath = path.dirname(rootPkg.path);
 		if (!rootPkg.packageJson.name) {
-			throw new Error(`Missing 'name' attribute in package.json at ${modulePath}`);
+			throw new Error(`Missing or empty 'name' attribute in package.json at ${modulePath}`);
 		}
 		if (!rootPkg.packageJson.version) {
-			throw new Error(`Missing 'version' attribute in package.json at ${modulePath}`);
+			throw new Error(`Missing or empty 'version' attribute in package.json at ${modulePath}`);
 		}
 
 		return {
