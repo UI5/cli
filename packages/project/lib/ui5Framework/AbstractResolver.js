@@ -215,6 +215,13 @@ class AbstractResolver {
 	}
 
 	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
+		if (version === "latest") {
+			const tagVersion = this.fetchTag("latest", {ui5HomeDir, cwd});
+			if (tagVersion) {
+				return tagVersion;
+			}
+		}
+
 		let spec;
 		const isSnapshotVersion = version.toLowerCase().endsWith("-snapshot");
 		if (version === "latest" || version === "latest-snapshot") {
@@ -238,6 +245,7 @@ class AbstractResolver {
 				throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 			}
 		}
+
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
 			includePrerelease: isSnapshotVersion
@@ -270,6 +278,9 @@ class AbstractResolver {
 	}
 	static fetchAllVersions(options) {
 		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
+	}
+	static fetchTag(tagName, options) {
+		throw new Error("AbstractResolver: static fetchDistTag must be implemented!");
 	}
 }
 

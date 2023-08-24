@@ -57,6 +57,11 @@ class Installer extends AbstractInstaller {
 		return Object.keys(packument.versions);
 	}
 
+	async fetchPackageDistTags({pkgName}) {
+		const packument = await this.getRegistry().requestPackagePackument(pkgName);
+		return packument["dist-tags"];
+	}
+
 	async fetchPackageManifest({pkgName, version}) {
 		const targetDir = this._getTargetDirForPackage({pkgName, version});
 		try {
