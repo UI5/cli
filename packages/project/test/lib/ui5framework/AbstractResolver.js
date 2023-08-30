@@ -815,60 +815,241 @@ test.serial("AbstractResolver: Static resolveVersion throws error for 'lts'", as
 	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
 });
 
-test.serial("AbstractResolver: Static resolveVersion throws error for '1.x'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves '1.x'", async (t) => {
 	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("1.x", {
+	const version = await MyResolver.resolveVersion("1.x", {
 		cwd: "/cwd",
 		ui5HomeDir: "/ui5HomeDir"
-	}));
+	});
 
-	t.is(error.message, `Framework version specifier "1.x" is incorrect or not supported`);
+	t.is(version, "1.76.0", "Resolved version should be correct");
 
-	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
 });
 
-test.serial("AbstractResolver: Static resolveVersion throws error for '1.75.x'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves '1.75.x'", async (t) => {
 	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("1.75.x", {
+	const version = await MyResolver.resolveVersion("1.75.x", {
 		cwd: "/cwd",
 		ui5HomeDir: "/ui5HomeDir"
-	}));
+	});
 
-	t.is(error.message, `Framework version specifier "1.75.x" is incorrect or not supported`);
+	t.is(version, "1.75.1", "Resolved version should be correct");
 
-	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
 });
 
-test.serial("AbstractResolver: Static resolveVersion throws error for '^1.75.0'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves '^1.75.0'", async (t) => {
 	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("^1.75.0", {
+	const version = await MyResolver.resolveVersion("^1.75.0", {
 		cwd: "/cwd",
 		ui5HomeDir: "/ui5HomeDir"
-	}));
+	});
 
-	t.is(error.message, `Framework version specifier "^1.75.0" is incorrect or not supported`);
+	t.is(version, "1.76.0", "Resolved version should be correct");
 
-	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
 });
 
-test.serial("AbstractResolver: Static resolveVersion throws error for '~1.75.0'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves '~1.75.0'", async (t) => {
 	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions");
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
 
-	const error = await t.throwsAsync(MyResolver.resolveVersion("~1.75.0", {
+	const version = await MyResolver.resolveVersion("~1.75.0", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.75.1", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves '> 1.75.0 < 1.75.3'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.75.2", "1.75.3"]);
+
+	const version = await MyResolver.resolveVersion("> 1.75.0 < 1.75.3", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "1.75.2", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'next' using tags", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.0.0", "2.0.0"]);
+	const fetchAllTagsStub = sinon.stub(MyResolver, "fetchAllTags")
+		.resolves({
+			"latest": "1.0.0",
+			"next": "2.0.0"
+		});
+
+	const version = await MyResolver.resolveVersion("next", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "2.0.0", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+	t.is(fetchAllTagsStub.callCount, 1, "fetchAllTagsStub should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllTags should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'next' to a pre-release using tags", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.0.0", "2.0.0-SNAPSHOT"]);
+	const fetchAllTagsStub = sinon.stub(MyResolver, "fetchAllTags")
+		.resolves({
+			"latest": "1.0.0",
+			"next": "2.0.0-SNAPSHOT"
+		});
+
+	const version = await MyResolver.resolveVersion("next", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	t.is(version, "2.0.0-SNAPSHOT", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+	t.is(fetchAllTagsStub.callCount, 1, "fetchAllTagsStub should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllTags should be called with expected arguments");
+});
+
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'latest' using tags only " +
+"when the resolver supports them", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0", "2.0.0"]);
+	const fetchAllTagsStub = sinon.stub(MyResolver, "fetchAllTags")
+		.resolves(null);
+
+	// Resolver does not support tags (resolves with "null" instead of an object)
+	// 'latest' should resolve to the highest version available
+	const version1 = await MyResolver.resolveVersion("latest", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+	t.is(version1, "2.0.0", "Resolved version should be correct");
+
+	t.is(fetchAllTagsStub.callCount, 1, "fetchAllTagsStub should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllTags should be called with expected arguments");
+
+	// Change behavior of Resolver to support tags, so that version should be used now
+	// instead of the highest version
+	fetchAllTagsStub.resolves({
+		"latest": "1.76.0"
+	});
+	const version2 = await MyResolver.resolveVersion("latest", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+	t.is(version2, "1.76.0", "Resolved version should be correct");
+
+	t.is(fetchAllTagsStub.callCount, 2, "fetchAllTagsStub should be called twice");
+	t.deepEqual(fetchAllVersionsStub.getCall(1).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllTags should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for empty string", async (t) => {
+	const {MyResolver} = t.context;
+	sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("", {
 		cwd: "/cwd",
 		ui5HomeDir: "/ui5HomeDir"
 	}));
 
-	t.is(error.message, `Framework version specifier "~1.75.0" is incorrect or not supported`);
+	t.is(error.message, `Framework version specifier "" is incorrect or not supported`);
+});
 
-	t.is(fetchAllVersionsStub.callCount, 0, "fetchAllVersions should not be called");
+test.serial("AbstractResolver: Static resolveVersion throws error for invalid tag name", async (t) => {
+	const {MyResolver} = t.context;
+	sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("%20", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Framework version specifier "%20" is incorrect or not supported`);
+});
+
+test.serial("AbstractResolver: Static resolveVersion throws error for non-existing tag", async (t) => {
+	const {MyResolver} = t.context;
+	sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0", "1.75.1", "1.76.0"]);
+	sinon.stub(MyResolver, "fetchAllTags")
+		.resolves({"latest": "1.76.0"});
+
+	const error = await t.throwsAsync(MyResolver.resolveVersion("this-tag-does-not-exist", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}));
+
+	t.is(error.message, `Could not resolve framework version via tag 'this-tag-does-not-exist'. ` +
+		`Make sure the tag is available in the configured registry.`
+	);
 });
 
 test.serial("AbstractResolver: Static resolveVersion throws error for version not found", async (t) => {

@@ -215,35 +215,54 @@ class AbstractResolver {
 	}
 
 	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
-		if (version === "latest") {
-			const tagVersion = this.fetchTag("latest", {ui5HomeDir, cwd});
-			if (tagVersion) {
-				return tagVersion;
+		// Don't allow nullish values
+		// An empty string is a valid semver range that converts to "*", which should not be supported
+		if (!version) {
+			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+		}
+
+		const isSnapshotVersion = version.toLowerCase().endsWith("-snapshot");
+		if (isSnapshotVersion) {
+			const versionMatch = version.match(VERSION_RANGE_REGEXP);
+			if (versionMatch) {
+				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
+				// and - in case none is provided - another "x" for the major version in order to
+				// convert it to a valid semver range:
+				// "1-SNAPSHOT" becomes "1.x.x-SNAPSHOT" and "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
+				version = `${versionMatch[1]}.${versionMatch[2] || "x"}.x-SNAPSHOT`;
 			}
 		}
 
 		let spec;
-		const isSnapshotVersion = version.toLowerCase().endsWith("-snapshot");
-		if (version === "latest" || version === "latest-snapshot") {
-			// Use a wildcard to resolve to the latest available version
-			spec = "*";
-		} else if (SEMVER_VERSION_REGEXP.test(version)) {
-			// Fully qualified version, can be used directly
+
+		if (semver.validRange(version)) {
+			// Note: Fully qualified versions are also valid ranges
 			spec = version;
-		} else {
-			const versionMatch = version.match(VERSION_RANGE_REGEXP);
-			if (versionMatch) {
-				if (isSnapshotVersion) {
-					// For snapshot version ranges we need to insert a stand-in "x" for the patch level
-					// and - in case none is provided - another "x" for the major version in order to
-					// make the semver check work: "1-SNAPSHOT" or "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
-					spec = `${versionMatch[1]}.${versionMatch[2] || "x"}.x-SNAPSHOT`;
-				} else {
-					spec = version;
+		} else if (encodeURIComponent(version) === version) {
+			// Valid tag name (same check as npm does)
+			const allTags = await this.fetchAllTags({ui5HomeDir, cwd});
+			if (!allTags) {
+				// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
+				if (version === "latest" || version === "latest-snapshot") {
+					// Only latest and latest-snapshot are supported which both resolve
+					// to the latest available version.
+					// See isSnapshotVersion flag for -snapshot handling
+					spec = "*";
 				}
+			} else if (allTags[version]) {
+				// Use version from tag
+				spec = allTags[version];
 			} else {
-				throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+				throw new Error(
+					`Could not resolve framework version via tag '${version}'. ` +
+					`Make sure the tag is available in the configured registry.`
+				);
 			}
+		}
+
+		// For all invalid cases which are not explicitly handled above
+		if (!spec) {
+			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
@@ -279,8 +298,8 @@ class AbstractResolver {
 	static fetchAllVersions(options) {
 		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
 	}
-	static fetchTag(tagName, options) {
-		throw new Error("AbstractResolver: static fetchDistTag must be implemented!");
+	static fetchAllTags(options) {
+		return null;
 	}
 }
 

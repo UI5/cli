@@ -94,15 +94,14 @@ class Openui5Resolver extends AbstractResolver {
 		return await installer.fetchPackageVersions({pkgName: OPENUI5_CORE_PACKAGE});
 	}
 
-	static async fetchTag(tagName, {ui5HomeDir, cwd} = {}) {
+	static async fetchAllTags({ui5HomeDir, cwd} = {}) {
 		const installer = new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
 			ui5HomeDir:
 				ui5HomeDir ? path.resolve(ui5HomeDir) :
 					path.join(os.homedir(), ".ui5")
 		});
-		const distTags = await installer.fetchPackageDistTags({pkgName: OPENUI5_CORE_PACKAGE});
-		return distTags[tagName];
+		return installer.fetchPackageDistTags({pkgName: OPENUI5_CORE_PACKAGE});
 	}
 }
 
