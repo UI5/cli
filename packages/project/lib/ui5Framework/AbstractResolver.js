@@ -4,15 +4,6 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("ui5Framework:AbstractResolver");
 import semver from "semver";
 
-// Matches Semantic Versioning 2.0.0 versions
-// https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-//
-// This needs to be aligned with the ui5.yaml JSON schema:
-// lib/validation/schema/specVersion/kind/project.json#/definitions/framework/properties/version/pattern
-//
-// eslint-disable-next-line max-len
-const SEMVER_VERSION_REGEXP = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-
 // Reduced Semantic Versioning pattern
 // Matches MAJOR or MAJOR.MINOR as a simple version range to be resolved to the latest minor/patch
 const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:-SNAPSHOT)?$/;
@@ -221,8 +212,8 @@ class AbstractResolver {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const isSnapshotVersion = version.toLowerCase().endsWith("-snapshot");
-		if (isSnapshotVersion) {
+		const isSnapshotVersionOrRange = version.toLowerCase().endsWith("-snapshot");
+		if (isSnapshotVersionOrRange) {
 			const versionMatch = version.match(VERSION_RANGE_REGEXP);
 			if (versionMatch) {
 				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
@@ -236,7 +227,6 @@ class AbstractResolver {
 		let spec;
 
 		if (semver.validRange(version)) {
-			// Note: Fully qualified versions are also valid ranges
 			spec = version;
 		} else if (encodeURIComponent(version) === version) {
 			// Valid tag name (same check as npm does)
@@ -246,7 +236,7 @@ class AbstractResolver {
 				if (version === "latest" || version === "latest-snapshot") {
 					// Only latest and latest-snapshot are supported which both resolve
 					// to the latest available version.
-					// See isSnapshotVersion flag for -snapshot handling
+					// See "isSnapshotVersionOrRange" for -snapshot handling
 					spec = "*";
 				}
 			} else if (allTags[version]) {
@@ -267,7 +257,9 @@ class AbstractResolver {
 
 		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
-			includePrerelease: isSnapshotVersion
+			// Allow ranges that end with -SNAPSHOT to match any -SNAPSHOT version
+			// like a normal version in order to support ranges like 1.x.x-SNAPSHOT.
+			includePrerelease: isSnapshotVersionOrRange
 		});
 		if (!resolvedVersion) {
 			if (semver.valid(spec)) {
@@ -301,12 +293,6 @@ class AbstractResolver {
 	static fetchAllTags(options) {
 		return null;
 	}
-}
-
-/* istanbul ignore else */
-if (process.env.NODE_ENV === "test") {
-	// Export pattern for testing to be checked against JSON schema pattern
-	AbstractResolver._SEMVER_VERSION_REGEXP = SEMVER_VERSION_REGEXP;
 }
 
 export default AbstractResolver;

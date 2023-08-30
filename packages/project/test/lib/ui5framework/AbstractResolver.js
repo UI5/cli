@@ -595,7 +595,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR'", async (t
 	}], "fetchAllVersions should be called with expected arguments");
 });
 
-test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR-prerelease'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR-SNAPSHOT'", async (t) => {
 	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
@@ -633,7 +633,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR'", as
 	}], "fetchAllVersions should be called with expected arguments");
 });
 
-test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR-prerelease'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR-SNAPSHOT'", async (t) => {
 	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
@@ -671,7 +671,7 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH
 	}], "fetchAllVersions should be called with expected arguments");
 });
 
-test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-prerelease'", async (t) => {
+test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-SNAPSHOT'", async (t) => {
 	const {MyResolver} = t.context;
 	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
 		.returns(["1.76.0", "1.77.0", "1.77.0-SNAPSHOT", "1.78.0", "1.79.0-SNAPSHOT"]);
@@ -720,44 +720,6 @@ test.serial("AbstractResolver: Static resolveVersion resolves 'latest-snapshot'"
 	});
 
 	t.is(version, "1.76.1-SNAPSHOT", "Resolved version should be correct");
-
-	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
-	}], "fetchAllVersions should be called with expected arguments");
-});
-
-test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR-SNAPSHOT'", async (t) => {
-	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
-		.returns(["1.75.0-SNAPSHOT", "1.75.1-SNAPSHOT", "1.76.0-SNAPSHOT", "1.76.1-SNAPSHOT"]);
-
-	const version = await MyResolver.resolveVersion("1.75-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
-	});
-
-	t.is(version, "1.75.1-SNAPSHOT", "Resolved version should be correct");
-
-	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
-	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
-		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
-	}], "fetchAllVersions should be called with expected arguments");
-});
-
-test.serial("AbstractResolver: Static resolveVersion resolves 'MAJOR.MINOR.PATCH-SNAPSHOT'", async (t) => {
-	const {MyResolver} = t.context;
-	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
-		.returns(["1.75.0-SNAPSHOT", "1.75.1-SNAPSHOT", "1.76.0-SNAPSHOT", "1.76.1-SNAPSHOT"]);
-
-	const version = await MyResolver.resolveVersion("1.75.0-SNAPSHOT", {
-		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
-	});
-
-	t.is(version, "1.75.0-SNAPSHOT", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
 	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
@@ -902,6 +864,69 @@ test.serial("AbstractResolver: Static resolveVersion resolves '> 1.75.0 < 1.75.3
 	});
 
 	t.is(version, "1.75.2", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves 'x.x.x-SNAPSHOT'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["1.75.0-SNAPSHOT", "1.76.0-SNAPSHOT", "1.77.0-SNAPSHOT"]);
+
+	const version = await MyResolver.resolveVersion("x.x.x-SNAPSHOT", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	// All ranges ending with -SNAPSHOT should use "includePrerelease" in order to
+	// properly match prerelease (i.e. -SNAPSHOT) versions.
+	t.is(version, "1.77.0-SNAPSHOT", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves '^2.0.0-SNAPSHOT'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["2.0.0-SNAPSHOT", "2.0.1-SNAPSHOT", "2.1.0-SNAPSHOT"]);
+
+	const version = await MyResolver.resolveVersion("^2.0.0-SNAPSHOT", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	// All ranges ending with -SNAPSHOT should use "includePrerelease" in order to
+	// properly match prerelease (i.e. -SNAPSHOT) versions.
+	t.is(version, "2.1.0-SNAPSHOT", "Resolved version should be correct");
+
+	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
+	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	}], "fetchAllVersions should be called with expected arguments");
+});
+
+test.serial("AbstractResolver: Static resolveVersion resolves '2.x.x-alpha'", async (t) => {
+	const {MyResolver} = t.context;
+	const fetchAllVersionsStub = sinon.stub(MyResolver, "fetchAllVersions")
+		.returns(["2.0.0-alpha", "2.0.1-alpha", "2.1.0-alpha"]);
+
+	const version = await MyResolver.resolveVersion("^2.0.0-alpha", {
+		cwd: "/cwd",
+		ui5HomeDir: "/ui5HomeDir"
+	});
+
+	// Prerelease ranges other than -SNAPSHOT should not use "includePrerelease"
+	// and therefore not match pre-releases like normal versions
+	t.is(version, "2.0.0-alpha", "Resolved version should be correct");
 
 	t.is(fetchAllVersionsStub.callCount, 1, "fetchAllVersions should be called once");
 	t.deepEqual(fetchAllVersionsStub.getCall(0).args, [{
@@ -1181,15 +1206,3 @@ test.serial(
 		t.is(error.message, `Could not resolve framework version 1.99. ` +
 			`Make sure the version is valid and available in the configured registry.`);
 	});
-
-test.serial("AbstractResolver: SEMVER_VERSION_REGEXP should be aligned with JSON schema", async (t) => {
-	const {AbstractResolver} = t.context;
-
-	const projectSchema = JSON.parse(
-		await readFile(fileURLToPath(
-			new URL("../../../lib/validation/schema/specVersion/kind/project.json", import.meta.url)
-		), {encoding: "utf-8"})
-	);
-	const schemaPattern = projectSchema.definitions.framework.properties.version.pattern;
-	t.is(schemaPattern, AbstractResolver._SEMVER_VERSION_REGEXP.source);
-});
