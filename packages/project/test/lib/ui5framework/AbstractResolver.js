@@ -2,8 +2,6 @@ import test from "ava";
 import sinon from "sinon";
 import path from "node:path";
 import os from "node:os";
-import {fileURLToPath} from "node:url";
-import {readFile} from "node:fs/promises";
 import esmock from "esmock";
 
 test.beforeEach(async (t) => {
