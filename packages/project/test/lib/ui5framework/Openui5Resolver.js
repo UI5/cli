@@ -6,11 +6,13 @@ import os from "node:os";
 
 test.beforeEach(async (t) => {
 	t.context.InstallerStub = sinon.stub();
+	t.context.fetchPackageDistTags = sinon.stub();
 	t.context.fetchPackageManifestStub = sinon.stub();
 	t.context.fetchPackageVersionsStub = sinon.stub();
 	t.context.installPackageStub = sinon.stub();
 	t.context.InstallerStub.callsFake(() => {
 		return {
+			fetchPackageDistTags: t.context.fetchPackageDistTags,
 			fetchPackageManifest: t.context.fetchPackageManifestStub,
 			fetchPackageVersions: t.context.fetchPackageVersionsStub,
 			installPackage: t.context.installPackageStub
@@ -139,39 +141,47 @@ test.serial("Openui5Resolver: handleLibrary", async (t) => {
 	t.deepEqual(await promises.install, {pkgPath: "/foo/sap.ui.lib1"}, "Install should resolve with expected object");
 });
 
-test.serial("Openui5Resolver: Static fetchAllVersions", async (t) => {
+test.serial("Openui5Resolver: Static _getInstaller", (t) => {
 	const {Openui5Resolver} = t.context;
 
-	const expectedVersions = ["1.75.0", "1.75.1", "1.76.0"];
 	const options = {
 		cwd: "/cwd",
 		ui5HomeDir: "/ui5HomeDir"
 	};
 
-	t.context.fetchPackageVersionsStub.returns(expectedVersions);
-
-	const versions = await Openui5Resolver.fetchAllVersions(options);
-
-	t.deepEqual(versions, expectedVersions, "Fetched versions should be correct");
-
-	t.is(t.context.fetchPackageVersionsStub.callCount, 1, "fetchPackageVersions should be called once");
-	t.deepEqual(t.context.fetchPackageVersionsStub.getCall(0).args, [{pkgName: "@openui5/sap.ui.core"}],
-		"fetchPackageVersions should be called with expected arguments");
+	const installer = Openui5Resolver._getInstaller(options);
 
 	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
 	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
+	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: path.resolve("/cwd"),
 		ui5HomeDir: path.resolve("/ui5HomeDir")
 	}], "Installer should be called with expected arguments");
 });
 
-test.serial("Openui5Resolver: Static fetchAllVersions without options", async (t) => {
+test.serial("Openui5Resolver: Static _getInstaller without options", (t) => {
+	const {Openui5Resolver} = t.context;
+
+	const installer = Openui5Resolver._getInstaller();
+
+	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
+	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
+	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
+	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
+		cwd: process.cwd(),
+		ui5HomeDir: path.join(os.homedir(), ".ui5")
+	}], "Installer should be called with expected arguments");
+});
+
+test.serial("Openui5Resolver: Static fetchAllVersions", async (t) => {
 	const {Openui5Resolver} = t.context;
 
 	const expectedVersions = ["1.75.0", "1.75.1", "1.76.0"];
 
 	t.context.fetchPackageVersionsStub.returns(expectedVersions);
+
+	const getInstallerSpy = sinon.spy(Openui5Resolver, "_getInstaller");
 
 	const versions = await Openui5Resolver.fetchAllVersions();
 
@@ -181,10 +191,27 @@ test.serial("Openui5Resolver: Static fetchAllVersions without options", async (t
 	t.deepEqual(t.context.fetchPackageVersionsStub.getCall(0).args, [{pkgName: "@openui5/sap.ui.core"}],
 		"fetchPackageVersions should be called with expected arguments");
 
-	t.is(t.context.InstallerStub.callCount, 1, "Installer should be called once");
-	t.true(t.context.InstallerStub.calledWithNew(), "Installer should be called with new");
-	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
-		cwd: process.cwd(),
-		ui5HomeDir: path.join(os.homedir(), ".ui5")
-	}], "Installer should be called with expected arguments");
+	t.is(getInstallerSpy.callCount, 1, "_getInstaller should be called once");
+	t.is(getInstallerSpy.getCall(0).args[0], undefined, "_getInstaller should be called without any options");
+});
+
+test.serial("Openui5Resolver: Static fetchAllTags", async (t) => {
+	const {Openui5Resolver} = t.context;
+
+	const expectedTags = ["latest", "latest-1.71", "latest-1"];
+
+	t.context.fetchPackageDistTags.returns(expectedTags);
+
+	const getInstallerSpy = sinon.spy(Openui5Resolver, "_getInstaller");
+
+	const tags = await Openui5Resolver.fetchAllTags();
+
+	t.deepEqual(tags, expectedTags, "Fetched tags should be correct");
+
+	t.is(t.context.fetchPackageDistTags.callCount, 1, "fetchPackageVersions should be called once");
+	t.deepEqual(t.context.fetchPackageDistTags.getCall(0).args, [{pkgName: "@openui5/sap.ui.core"}],
+		"fetchPackageVersions should be called with expected arguments");
+
+	t.is(getInstallerSpy.callCount, 1, "_getInstaller should be called once");
+	t.is(getInstallerSpy.getCall(0).args[0], undefined, "_getInstaller should be called without any options");
 });

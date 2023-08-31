@@ -212,45 +212,9 @@ class AbstractResolver {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const isSnapshotVersionOrRange = version.toLowerCase().endsWith("-snapshot");
-		if (isSnapshotVersionOrRange) {
-			const versionMatch = version.match(VERSION_RANGE_REGEXP);
-			if (versionMatch) {
-				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
-				// and - in case none is provided - another "x" for the major version in order to
-				// convert it to a valid semver range:
-				// "1-SNAPSHOT" becomes "1.x.x-SNAPSHOT" and "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
-				version = `${versionMatch[1]}.${versionMatch[2] || "x"}.x-SNAPSHOT`;
-			}
-		}
+		const spec = await this._getVersionSpec(version, {ui5HomeDir, cwd});
 
-		let spec;
-
-		if (semver.validRange(version)) {
-			spec = version;
-		} else if (encodeURIComponent(version) === version) {
-			// Valid tag name (same check as npm does)
-			const allTags = await this.fetchAllTags({ui5HomeDir, cwd});
-			if (!allTags) {
-				// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
-				if (version === "latest" || version === "latest-snapshot") {
-					// Only latest and latest-snapshot are supported which both resolve
-					// to the latest available version.
-					// See "isSnapshotVersionOrRange" for -snapshot handling
-					spec = "*";
-				}
-			} else if (allTags[version]) {
-				// Use version from tag
-				spec = allTags[version];
-			} else {
-				throw new Error(
-					`Could not resolve framework version via tag '${version}'. ` +
-					`Make sure the tag is available in the configured registry.`
-				);
-			}
-		}
-
-		// For all invalid cases which are not explicitly handled above
+		// For all invalid cases which are not explicitly handled in _getVersionSpec
 		if (!spec) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
@@ -259,8 +223,9 @@ class AbstractResolver {
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
 			// Allow ranges that end with -SNAPSHOT to match any -SNAPSHOT version
 			// like a normal version in order to support ranges like 1.x.x-SNAPSHOT.
-			includePrerelease: isSnapshotVersionOrRange
+			includePrerelease: this._isSnapshotVersionOrRange(version)
 		});
+
 		if (!resolvedVersion) {
 			if (semver.valid(spec)) {
 				if (this.name === "Sapui5Resolver" && semver.lt(spec, "1.76.0")) {
@@ -277,7 +242,58 @@ class AbstractResolver {
 				`Could not resolve framework version ${version}. ` +
 				`Make sure the version is valid and available in the configured registry.`);
 		}
+
 		return resolvedVersion;
+	}
+
+	static async _getVersionSpec(version, {ui5HomeDir, cwd}) {
+		if (this._isSnapshotVersionOrRange(version)) {
+			const versionMatch = version.match(VERSION_RANGE_REGEXP);
+			if (versionMatch) {
+				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
+				// and - in case none is provided - another "x" for the major version in order to
+				// convert it to a valid semver range:
+				// "1-SNAPSHOT" becomes "1.x.x-SNAPSHOT" and "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
+				return `${versionMatch[1]}.${versionMatch[2] || "x"}.x-SNAPSHOT`;
+			}
+		}
+
+		if (semver.validRange(version)) {
+			return version;
+		}
+
+		// Check for invalid tag name (same check as npm does)
+		if (encodeURIComponent(version) !== version) {
+			return null;
+		}
+
+		const allTags = await this.fetchAllTags({ui5HomeDir, cwd});
+
+		if (!allTags && (version === "latest" || version === "latest-snapshot")) {
+			// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
+			// Only latest and latest-snapshot are supported which both resolve
+			// to the latest available version.
+			// See "isSnapshotVersionOrRange" for -snapshot handling
+			return "*";
+		}
+
+		if (!allTags) {
+			return null;
+		}
+
+		if (!allTags[version]) {
+			throw new Error(
+				`Could not resolve framework version via tag '${version}'. ` +
+				`Make sure the tag is available in the configured registry.`
+			);
+		}
+
+		// Use version from tag
+		return allTags[version];
+	}
+
+	static _isSnapshotVersionOrRange(version) {
+		return version.toLowerCase().endsWith("-snapshot");
 	}
 
 	// To be implemented by resolver
