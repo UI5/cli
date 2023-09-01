@@ -191,7 +191,7 @@ test.serial("resolveVersion", async (t) => {
 		t.true(NpmcliConfig.alwaysCalledWithMatch(sinonGlobal.match({
 			cwd: options?.cwd ?? defaultCwd
 		})));
-		t.true(pacote.packument.alwaysCalledWithMatch("@openui5/sap.ui.core", {
+		t.true(pacote.packument.alwaysCalledWithMatch("@sapui5/distribution-metadata", {
 			cache: path.join(options?.ui5HomeDir ?? defaultUi5HomeDir, "framework", "cacache")
 		}));
 	}
