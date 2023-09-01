@@ -77,7 +77,8 @@ test.serial("_getPacoteOptions", async (t) => {
 
 	const expectedPacoteOptions = {
 		fake: "config",
-		agent: false
+		agent: false,
+		cache: "cacheDir"
 	};
 	npmConfigFlat.value(npmConfig);
 
@@ -109,7 +110,8 @@ test.serial("_getPacoteOptions (proxy config set)", async (t) => {
 	};
 
 	const expectedPacoteOptions = {
-		proxy: "http://localhost:9999"
+		proxy: "http://localhost:9999",
+		cache: "cacheDir"
 	};
 
 	npmConfigFlat.value(npmConfig);
@@ -134,7 +136,8 @@ test.serial("_getPacoteOptions (https-proxy config set)", async (t) => {
 	};
 
 	const expectedPacoteOptions = {
-		httpsProxy: "http://localhost:9999"
+		httpsProxy: "http://localhost:9999",
+		cache: "cacheDir"
 	};
 
 	npmConfigFlat.value(npmConfig);

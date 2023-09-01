@@ -72,6 +72,9 @@ class Registry {
 		await configuration.load(); // Reads through the configurations
 		const config = configuration.flat; // JSON. Formatted via "flatten"
 
+		// Always use our cache dir instead of the configured one
+		config.cache = this._cacheDir;
+
 		if (!config.proxy && !config.httpsProxy) {
 			// Disable usage of shared keep-alive agents unless a proxy is configured
 			// which only works with agents.
