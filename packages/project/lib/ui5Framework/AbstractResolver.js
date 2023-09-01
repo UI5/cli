@@ -269,16 +269,16 @@ class AbstractResolver {
 
 		const allTags = await this.fetchAllTags({ui5HomeDir, cwd});
 
-		if (!allTags && (version === "latest" || version === "latest-snapshot")) {
+		if (!allTags) {
 			// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
 			// Only latest and latest-snapshot are supported which both resolve
 			// to the latest available version.
 			// See "isSnapshotVersionOrRange" for -snapshot handling
-			return "*";
-		}
-
-		if (!allTags) {
-			return null;
+			if ((version === "latest" || version === "latest-snapshot")) {
+				return "*";
+			} else {
+				return null;
+			}
 		}
 
 		if (!allTags[version]) {

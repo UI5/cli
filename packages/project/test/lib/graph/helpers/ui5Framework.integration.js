@@ -150,6 +150,7 @@ test.afterEach.always((t) => {
 	esmock.purge(t.context.Registry);
 	esmock.purge(t.context.Installer);
 	esmock.purge(t.context.AbstractResolver);
+	esmock.purge(t.context.Openui5Resolver);
 	esmock.purge(t.context.Sapui5Resolver);
 	esmock.purge(t.context.Application);
 	esmock.purge(t.context.Library);
