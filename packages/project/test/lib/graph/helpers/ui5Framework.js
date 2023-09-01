@@ -334,6 +334,12 @@ test.serial("enrichProjectGraph: With versionOverride", async (t) => {
 
 	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "1.99"});
 
+	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
+	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["1.99", {
+		cwd: dependencyTree.path,
+		ui5HomeDir: undefined,
+	}]);
+
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.deepEqual(Sapui5ResolverStub.getCall(0).args, [{
 		cacheMode: undefined,
@@ -389,6 +395,12 @@ test.serial("enrichProjectGraph: With versionOverride containing snapshot versio
 	const projectGraph = await projectGraphBuilder(provider);
 
 	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "1.99-SNAPSHOT"});
+
+	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
+	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["1.99-SNAPSHOT", {
+		cwd: dependencyTree.path,
+		ui5HomeDir: undefined,
+	}]);
 
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
 		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
@@ -447,6 +459,12 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 
 	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "latest-snapshot"});
 
+	t.is(Sapui5MavenSnapshotResolverResolveVersionStub.callCount, 1);
+	t.deepEqual(Sapui5MavenSnapshotResolverResolveVersionStub.getCall(0).args, ["latest-snapshot", {
+		cwd: dependencyTree.path,
+		ui5HomeDir: undefined,
+	}]);
+
 	t.is(Sapui5MavenSnapshotResolverStub.callCount, 1,
 		"Sapui5MavenSnapshotResolverStub#constructor should be called once");
 	t.deepEqual(Sapui5MavenSnapshotResolverStub.getCall(0).args, [{
@@ -459,7 +477,7 @@ test.serial("enrichProjectGraph: With versionOverride containing latest-snapshot
 });
 
 test.serial("enrichProjectGraph shouldn't throw when no framework version and no libraries are provided", async (t) => {
-	const {ui5Framework, log} = t.context;
+	const {ui5Framework, log, Sapui5ResolverResolveVersionStub} = t.context;
 	const dependencyTree = {
 		id: "test-id",
 		version: "1.2.3",
@@ -483,6 +501,9 @@ test.serial("enrichProjectGraph shouldn't throw when no framework version and no
 	await ui5Framework.enrichProjectGraph(projectGraph, {
 		versionOverride: "1.75.0"
 	});
+
+	t.is(Sapui5ResolverResolveVersionStub.callCount, 0,
+		"resolveVersion should not be called when no libraries are provided");
 
 	t.is(log.verbose.callCount, 2);
 	t.deepEqual(log.verbose.getCall(0).args, [
@@ -702,6 +723,12 @@ test.serial("enrichProjectGraph should resolve framework project " +
 
 	await ui5Framework.enrichProjectGraph(projectGraph, {versionOverride: "3.4.5"});
 	t.is(projectGraph.getSize(), 3, "Project graph should remain unchanged");
+
+	t.is(Sapui5ResolverResolveVersionStub.callCount, 1);
+	t.deepEqual(Sapui5ResolverResolveVersionStub.getCall(0).args, ["3.4.5", {
+		cwd: dependencyTree.path,
+		ui5HomeDir: undefined,
+	}]);
 
 	t.is(Sapui5ResolverStub.callCount, 1, "Sapui5Resolver#constructor should be called once");
 	t.is(getFrameworkLibrariesFromGraphStub.callCount, 1, "getFrameworkLibrariesFromGraph should be called once");

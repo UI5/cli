@@ -294,6 +294,7 @@ export default {
 		const rootProject = projectGraph.getRoot();
 		const frameworkName = rootProject.getFrameworkName();
 		const frameworkVersion = rootProject.getFrameworkVersion();
+		const cwd = rootProject.getRootPath();
 
 		// It is allowed to omit the framework version in ui5.yaml and only provide one via the override
 		// This is a common use case for framework libraries, which generally should not define a
@@ -330,6 +331,14 @@ export default {
 			);
 		}
 
+		const referencedLibraries = await utils.getFrameworkLibrariesFromGraph(projectGraph);
+		if (!referencedLibraries.length) {
+			log.verbose(
+				`No ${frameworkName} libraries referenced in project ${rootProject.getName()} ` +
+				`or in any of its dependencies`);
+			return projectGraph;
+		}
+
 		let Resolver;
 		if (version && version.toLowerCase().endsWith("-snapshot")) {
 			Resolver = (await import("../../ui5Framework/Sapui5MavenSnapshotResolver.js")).default;
@@ -339,19 +348,25 @@ export default {
 			Resolver = (await import("../../ui5Framework/Sapui5Resolver.js")).default;
 		}
 
+		// ENV var should take precedence over the dataDir from the configuration.
+		let ui5DataDir = process.env.UI5_DATA_DIR;
+		if (!ui5DataDir) {
+			const config = await Configuration.fromFile();
+			ui5DataDir = config.getUi5DataDir();
+		}
+		if (ui5DataDir) {
+			ui5DataDir = path.resolve(cwd, ui5DataDir);
+		}
+
 		if (options.versionOverride) {
-			version = await Resolver.resolveVersion(options.versionOverride, {cwd: rootProject.getRootPath()});
+			version = await Resolver.resolveVersion(options.versionOverride, {
+				ui5HomeDir: ui5DataDir,
+				cwd
+			});
 			log.info(
 				`Overriding configured ${frameworkName} version ` +
 				`${frameworkVersion} with version ${version}`
 			);
-		}
-		const referencedLibraries = await utils.getFrameworkLibrariesFromGraph(projectGraph);
-		if (!referencedLibraries.length) {
-			log.verbose(
-				`No ${frameworkName} libraries referenced in project ${rootProject.getName()} ` +
-				`or in any of its dependencies`);
-			return projectGraph;
 		}
 
 		if (version) {
@@ -365,20 +380,10 @@ export default {
 			});
 		}
 
-		// ENV var should take precedence over the dataDir from the configuration.
-		let ui5DataDir = process.env.UI5_DATA_DIR;
-		if (!ui5DataDir) {
-			const config = await Configuration.fromFile();
-			ui5DataDir = config.getUi5DataDir();
-		}
-		if (ui5DataDir) {
-			ui5DataDir = path.resolve(rootProject.getRootPath(), ui5DataDir);
-		}
-
 		// Note: version might be undefined here and the Resolver will throw an error when calling
 		// #install and it can't be resolved via the provided library metadata
 		const resolver = new Resolver({
-			cwd: rootProject.getRootPath(),
+			cwd,
 			version,
 			providedLibraryMetadata,
 			cacheMode,
