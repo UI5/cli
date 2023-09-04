@@ -105,24 +105,23 @@ class Sapui5Resolver extends AbstractResolver {
 			})
 		};
 	}
-	static async fetchAllVersions({ui5HomeDir, cwd} = {}) {
-		const installer = new Installer({
-			cwd: cwd ? path.resolve(cwd) : process.cwd(),
-			ui5HomeDir:
-				ui5HomeDir ? path.resolve(ui5HomeDir) :
-					path.join(os.homedir(), ".ui5")
-		});
+	static async fetchAllVersions(options) {
+		const installer = this._getInstaller(options);
 		return await installer.fetchPackageVersions({pkgName: DIST_PKG_NAME});
 	}
 
-	static async fetchAllTags({ui5HomeDir, cwd} = {}) {
-		const installer = new Installer({
+	static async fetchAllTags(options) {
+		const installer = this._getInstaller(options);
+		return installer.fetchPackageDistTags({pkgName: DIST_PKG_NAME});
+	}
+
+	static _getInstaller({ui5HomeDir, cwd} = {}) {
+		return new Installer({
 			cwd: cwd ? path.resolve(cwd) : process.cwd(),
 			ui5HomeDir:
 				ui5HomeDir ? path.resolve(ui5HomeDir) :
 					path.join(os.homedir(), ".ui5")
 		});
-		return installer.fetchPackageDistTags({pkgName: DIST_PKG_NAME});
 	}
 }
 
