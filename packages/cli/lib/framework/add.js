@@ -1,4 +1,4 @@
-import {getRootProjectConfiguration, getFrameworkResolver} from "./utils.js";
+import {getRootProjectConfiguration, createFrameworkResolverInstance} from "./utils.js";
 
 /**
  * Adds the given set of libraries to the framework libraries section in the ui5.yaml
@@ -33,11 +33,10 @@ export default async function({projectGraphOptions, libraries}) {
 		);
 	}
 
-	const Resolver = await getFrameworkResolver(frameworkName, frameworkVersion);
-
-	const resolver = new Resolver({
-		cwd: project.getRootPath(),
-		version: frameworkVersion
+	const resolver = await createFrameworkResolverInstance({
+		frameworkName, frameworkVersion
+	}, {
+		cwd: project.getRootPath()
 	});
 
 	// Get metadata of all libraries to verify that they can be installed

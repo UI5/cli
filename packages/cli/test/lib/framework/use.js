@@ -19,16 +19,13 @@ function createMockProject(attr) {
 
 test.beforeEach(async (t) => {
 	t.context.getRootProjectConfigurationStub = sinon.stub();
-	t.context.resolveVersionStub = sinon.stub();
-	t.context.getFrameworkResolverStub = sinon.stub().resolves({
-		resolveVersion: t.context.resolveVersionStub
-	});
+	t.context.frameworkResolverResolveVersionStub = sinon.stub();
 	t.context.updateYamlStub = sinon.stub();
 	t.context.useFramework = await esmock.p("../../../lib/framework/use.js", {
 		"../../../lib/framework/updateYaml.js": t.context.updateYamlStub,
 		"../../../lib/framework/utils.js": {
 			getRootProjectConfiguration: t.context.getRootProjectConfigurationStub,
-			getFrameworkResolver: t.context.getFrameworkResolverStub
+			frameworkResolverResolveVersion: t.context.frameworkResolverResolveVersionStub
 		},
 	});
 });
@@ -40,9 +37,8 @@ test.afterEach.always((t) => {
 
 test.serial("Use with name and version (OpenUI5)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -56,7 +52,7 @@ test.serial("Use with name and version (OpenUI5)", async (t) => {
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -76,12 +72,16 @@ test.serial("Use with name and version (OpenUI5)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -98,9 +98,8 @@ test.serial("Use with name and version (OpenUI5)", async (t) => {
 
 test.serial("Use with name and version (SAPUI5)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -114,7 +113,7 @@ test.serial("Use with name and version (SAPUI5)", async (t) => {
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -134,12 +133,16 @@ test.serial("Use with name and version (SAPUI5)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -156,9 +159,8 @@ test.serial("Use with name and version (SAPUI5)", async (t) => {
 
 test.serial("Use with version only (OpenUI5)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -173,7 +175,7 @@ test.serial("Use with version only (OpenUI5)", async (t) => {
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -193,12 +195,16 @@ test.serial("Use with version only (OpenUI5)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -215,9 +221,8 @@ test.serial("Use with version only (OpenUI5)", async (t) => {
 
 test.serial("Use with version only (SAPUI5)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -232,7 +237,7 @@ test.serial("Use with version only (SAPUI5)", async (t) => {
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -252,12 +257,16 @@ test.serial("Use with version only (SAPUI5)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -274,9 +283,8 @@ test.serial("Use with version only (SAPUI5)", async (t) => {
 
 test.serial("Use with name only (no existing framework configuration)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -309,8 +317,7 @@ test.serial("Use with name only (no existing framework configuration)", async (t
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
-	t.is(resolveVersionStub.callCount, 0, "Resolver#resolveVersion should not be called");
+	t.is(frameworkResolverResolveVersionStub.callCount, 0, "frameworkResolverResolveVersion should not be called");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -326,9 +333,8 @@ test.serial("Use with name only (no existing framework configuration)", async (t
 
 test.serial("Use with name only (existing framework configuration)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -344,7 +350,7 @@ test.serial("Use with name only (existing framework configuration)", async (t) =
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -364,12 +370,16 @@ test.serial("Use with name only (existing framework configuration)", async (t) =
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["1.76.0", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "1.76.0"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -386,9 +396,8 @@ test.serial("Use with name only (existing framework configuration)", async (t) =
 
 test.serial("Use with projectGraphOptions.config", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const projectGraphOptions = {
@@ -402,7 +411,7 @@ test.serial("Use with projectGraphOptions.config", async (t) => {
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -422,12 +431,16 @@ test.serial("Use with projectGraphOptions.config", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{config: "/path/to/ui5.yaml"}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -444,7 +457,7 @@ test.serial("Use with projectGraphOptions.config", async (t) => {
 
 test.serial("Use with version only (no framework name)", async (t) => {
 	const {getRootProjectConfigurationStub,
-		resolveVersionStub, getFrameworkResolverStub, updateYamlStub, useFramework} = t.context;
+		frameworkResolverResolveVersionStub, updateYamlStub, useFramework} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -472,15 +485,14 @@ test.serial("Use with version only (no framework name)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
-	t.is(resolveVersionStub.callCount, 0, "Resolver#resolveVersion should not be called");
+	t.is(frameworkResolverResolveVersionStub.callCount, 0, "frameworkResolverResolveVersion should not be called");
 
 	t.is(updateYamlStub.callCount, 0, "updateYaml should not be called");
 });
 
 test.serial("Use with invalid name", async (t) => {
 	const {getRootProjectConfigurationStub,
-		resolveVersionStub, getFrameworkResolverStub, updateYamlStub, useFramework} = t.context;
+		frameworkResolverResolveVersionStub, updateYamlStub, useFramework} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -508,15 +520,14 @@ test.serial("Use with invalid name", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
-	t.is(resolveVersionStub.callCount, 0, "Resolver#resolveVersion should not be called");
+	t.is(frameworkResolverResolveVersionStub.callCount, 0, "frameworkResolverResolveVersion should not be called");
 
 	t.is(updateYamlStub.callCount, 0, "updateYaml should not be called");
 });
 
 test.serial("Use with specVersion 1.0", async (t) => {
 	const {getRootProjectConfigurationStub,
-		resolveVersionStub, getFrameworkResolverStub, updateYamlStub, useFramework} = t.context;
+		frameworkResolverResolveVersionStub, updateYamlStub, useFramework} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -545,17 +556,15 @@ test.serial("Use with specVersion 1.0", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
-	t.is(resolveVersionStub.callCount, 0, "Resolver#resolveVersion should not be called");
+	t.is(frameworkResolverResolveVersionStub.callCount, 0, "frameworkResolverResolveVersion should not be called");
 
 	t.is(updateYamlStub.callCount, 0, "updateYaml should not be called");
 });
 
 test.serial("Use with name and version (YAML update fails)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	const yamlUpdateError = new Error("Failed to update YAML file");
@@ -573,7 +582,7 @@ test.serial("Use with name and version (YAML update fails)", async (t) => {
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const result = await useFramework({
 		projectGraphOptions,
@@ -593,12 +602,16 @@ test.serial("Use with name and version (YAML update fails)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{
@@ -615,9 +628,8 @@ test.serial("Use with name and version (YAML update fails)", async (t) => {
 
 test.serial("Use with name and version (YAML update fails with unexpected error)", async (t) => {
 	const {
-		getRootProjectConfigurationStub, resolveVersionStub,
-		getFrameworkResolverStub, updateYamlStub,
-		useFramework
+		getRootProjectConfigurationStub, frameworkResolverResolveVersionStub,
+		updateYamlStub, useFramework
 	} = t.context;
 
 	updateYamlStub.rejects(new Error("Some unexpected error"));
@@ -633,7 +645,7 @@ test.serial("Use with name and version (YAML update fails with unexpected error)
 	});
 
 	getRootProjectConfigurationStub.resolves(project);
-	resolveVersionStub.resolves("1.76.0");
+	frameworkResolverResolveVersionStub.resolves("1.76.0");
 
 	const error = await t.throwsAsync(useFramework({
 		projectGraphOptions,
@@ -649,12 +661,16 @@ test.serial("Use with name and version (YAML update fails with unexpected error)
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
-	t.is(resolveVersionStub.callCount, 1, "Resolver#resolveVersion should be called once");
-	t.deepEqual(resolveVersionStub.getCall(0).args, ["latest", {cwd: "my-project-path"}],
-		"Resolver#resolveVersion should be called with expected args");
+	t.is(frameworkResolverResolveVersionStub.callCount, 1, "frameworkResolverResolveVersion should be called once");
+	t.deepEqual(frameworkResolverResolveVersionStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "latest"
+		},
+		{
+			cwd: "my-project-path"
+		}
+	], "frameworkResolverResolveVersion should be called with expected args");
 
 	t.is(updateYamlStub.callCount, 1, "updateYaml should be called once");
 	t.deepEqual(updateYamlStub.getCall(0).args, [{

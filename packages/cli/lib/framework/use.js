@@ -1,9 +1,4 @@
-import {getRootProjectConfiguration, getFrameworkResolver} from "./utils.js";
-
-async function resolveVersion({frameworkName, frameworkVersion}, resolverOptions) {
-	const Resolver = await getFrameworkResolver(frameworkName, frameworkVersion);
-	return Resolver.resolveVersion(frameworkVersion, resolverOptions);
-}
+import {getRootProjectConfiguration, frameworkResolverResolveVersion} from "./utils.js";
 
 function getEffectiveFrameworkName({project, frameworkOptions}) {
 	if (!project.getFrameworkName() && !frameworkOptions.name) {
@@ -39,7 +34,7 @@ export default async function({projectGraphOptions, frameworkOptions}) {
 
 	const frameworkVersion = frameworkOptions.version || project.getFrameworkVersion();
 	if (frameworkVersion) {
-		framework.version = await resolveVersion({
+		framework.version = await frameworkResolverResolveVersion({
 			frameworkName: framework.name,
 			frameworkVersion
 		}, {

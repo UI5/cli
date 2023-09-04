@@ -21,10 +21,8 @@ function createMockProject(attr) {
 test.beforeEach(async (t) => {
 	t.context.getRootProjectConfigurationStub = sinon.stub();
 	t.context.getLibraryMetadataStub = sinon.stub();
-	t.context.getFrameworkResolverStub = sinon.stub().resolves(function Resolver() {
-		return {
-			getLibraryMetadata: t.context.getLibraryMetadataStub
-		};
+	t.context.createFrameworkResolverInstanceStub = sinon.stub().resolves({
+		getLibraryMetadata: t.context.getLibraryMetadataStub
 	});
 
 	t.context.updateYamlStub = sinon.stub();
@@ -33,7 +31,7 @@ test.beforeEach(async (t) => {
 		"../../../lib/framework/updateYaml.js": t.context.updateYamlStub,
 		"../../../lib/framework/utils.js": {
 			getRootProjectConfiguration: t.context.getRootProjectConfigurationStub,
-			getFrameworkResolver: t.context.getFrameworkResolverStub
+			createFrameworkResolverInstance: t.context.createFrameworkResolverInstanceStub
 		},
 	});
 });
@@ -44,7 +42,7 @@ test.afterEach.always((t) => {
 });
 
 test.serial("Add without existing libraries in config", async (t) => {
-	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub,
+	const {addFramework, getRootProjectConfigurationStub, createFrameworkResolverInstanceStub,
 		getLibraryMetadataStub, updateYamlStub} = t.context;
 
 	const projectGraphOptions = {
@@ -73,9 +71,15 @@ test.serial("Add without existing libraries in config", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
@@ -92,7 +96,7 @@ test.serial("Add without existing libraries in config", async (t) => {
 });
 
 test.serial("Add with existing libraries in config", async (t) => {
-	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub,
+	const {addFramework, getRootProjectConfigurationStub, createFrameworkResolverInstanceStub,
 		getLibraryMetadataStub, updateYamlStub} = t.context;
 
 	const projectGraphOptions = {
@@ -126,9 +130,15 @@ test.serial("Add with existing libraries in config", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.is(getLibraryMetadataStub.callCount, 2, "Resolver.getLibraryMetadata should be called twice");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
@@ -153,7 +163,7 @@ test.serial("Add with existing libraries in config", async (t) => {
 });
 
 test.serial("Add optional with existing libraries in config", async (t) => {
-	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub,
+	const {addFramework, getRootProjectConfigurationStub, createFrameworkResolverInstanceStub,
 		getLibraryMetadataStub, updateYamlStub} = t.context;
 
 	const projectGraphOptions = {
@@ -189,9 +199,15 @@ test.serial("Add optional with existing libraries in config", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "OpenUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "OpenUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.is(getLibraryMetadataStub.callCount, 2, "Resolver.getLibraryMetadata should be called twice");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
@@ -218,7 +234,7 @@ test.serial("Add optional with existing libraries in config", async (t) => {
 test.serial("Add with specVersion 1.0", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -245,7 +261,7 @@ test.serial("Add with specVersion 1.0", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
+	t.is(createFrameworkResolverInstanceStub.callCount, 0, "createFrameworkResolverInstanceStub should not be called");
 	t.is(getLibraryMetadataStub.callCount, 0, "Resolver.getLibraryMetadata should not be called");
 
 	t.is(updateYamlStub.callCount, 0, "updateYaml should not be called");
@@ -254,7 +270,7 @@ test.serial("Add with specVersion 1.0", async (t) => {
 test.serial("Add without framework configuration", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -281,7 +297,7 @@ test.serial("Add without framework configuration", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
+	t.is(createFrameworkResolverInstanceStub.callCount, 0, "createFrameworkResolverInstanceStub should not be called");
 	t.is(getLibraryMetadataStub.callCount, 0, "Resolver.getLibraryMetadata should not be called");
 
 	t.is(updateYamlStub.callCount, 0, "updateYaml should not be called");
@@ -290,7 +306,7 @@ test.serial("Add without framework configuration", async (t) => {
 test.serial("Add without framework version configuration", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -318,7 +334,7 @@ test.serial("Add without framework version configuration", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 0, "getFrameworkResolverStub should not be called");
+	t.is(createFrameworkResolverInstanceStub.callCount, 0, "createFrameworkResolverInstanceStub should not be called");
 	t.is(getLibraryMetadataStub.callCount, 0, "Resolver.getLibraryMetadata should not be called");
 
 	t.is(updateYamlStub.callCount, 0, "updateYaml should not be called");
@@ -327,7 +343,7 @@ test.serial("Add without framework version configuration", async (t) => {
 test.serial("Add with failing library metadata call", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -358,9 +374,15 @@ test.serial("Add with failing library metadata call", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
@@ -372,7 +394,7 @@ test.serial("Add with failing library metadata call", async (t) => {
 test.serial("Add with failing YAML update", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -405,9 +427,15 @@ test.serial("Add with failing YAML update", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
@@ -428,7 +456,7 @@ test.serial("Add with failing YAML update", async (t) => {
 test.serial("Add with failing YAML update (unexpected error)", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -459,9 +487,15 @@ test.serial("Add with failing YAML update (unexpected error)", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{fakeProjectGraphOptions: true}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
@@ -480,7 +514,7 @@ test.serial("Add with failing YAML update (unexpected error)", async (t) => {
 });
 
 test.serial("Add should not modify input parameters", async (t) => {
-	const {addFramework, getRootProjectConfigurationStub, getFrameworkResolverStub} = t.context;
+	const {addFramework, getRootProjectConfigurationStub, createFrameworkResolverInstanceStub} = t.context;
 
 	const projectGraphOptions = {
 		fakeProjectGraphOptions: true
@@ -504,9 +538,15 @@ test.serial("Add should not modify input parameters", async (t) => {
 		libraries
 	});
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 
 	t.deepEqual(libraries, [{name: "sap.ui.lib2"}], "libraries array should not be changed");
 });
@@ -514,7 +554,7 @@ test.serial("Add should not modify input parameters", async (t) => {
 test.serial("Add with projectGraphOptions.config", async (t) => {
 	const {
 		addFramework,
-		getRootProjectConfigurationStub, getFrameworkResolverStub, getLibraryMetadataStub,
+		getRootProjectConfigurationStub, createFrameworkResolverInstanceStub, getLibraryMetadataStub,
 		updateYamlStub
 	} = t.context;
 
@@ -542,9 +582,15 @@ test.serial("Add with projectGraphOptions.config", async (t) => {
 	t.deepEqual(getRootProjectConfigurationStub.getCall(0).args, [{config: "/path/to/ui5.yaml"}],
 		"generateProjectGraph should be called with expected args");
 
-	t.is(getFrameworkResolverStub.callCount, 1, "getFrameworkResolverStub should be called once");
-	t.is(getFrameworkResolverStub.getCall(0).args[0], "SAPUI5",
-		"getFrameworkResolver called with expected framework");
+	t.is(createFrameworkResolverInstanceStub.callCount, 1, "createFrameworkResolverInstanceStub should be called once");
+	t.deepEqual(createFrameworkResolverInstanceStub.getCall(0).args, [
+		{
+			frameworkName: "SAPUI5",
+			frameworkVersion: "1.76.0"
+		}, {
+			cwd: "my-project-path"
+		}
+	], "createFrameworkResolverInstance called with expected arguments");
 	t.is(getLibraryMetadataStub.callCount, 1, "Resolver.getLibraryMetadata should be called once");
 	t.deepEqual(getLibraryMetadataStub.getCall(0).args, ["sap.ui.lib1"],
 		"Resolver.getLibraryMetadata should be called with expected args on first call");
