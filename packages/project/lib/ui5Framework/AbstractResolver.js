@@ -258,6 +258,7 @@ class AbstractResolver {
 			}
 		}
 
+		// Covers versions and ranges, as versions are also valid ranges
 		if (semver.validRange(version)) {
 			return version;
 		}
