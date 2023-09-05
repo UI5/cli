@@ -24,7 +24,8 @@ tree.builder = function(cli) {
 		})
 		.option("framework-version", {
 			describe:
-				"Overrides the framework version defined by the project",
+				"Overrides the framework version defined by the project. " +
+				"Takes the same value as the version part of \"ui5 use\"",
 			type: "string"
 		})
 		.option("cache-mode", {

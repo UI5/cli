@@ -12,7 +12,11 @@ useCommand.builder = function(cli) {
 		.positional("framework-info", {
 			describe: "Framework name, version or both (name@version).\n" +
 			"Name can be \"SAPUI5\" or \"OpenUI5\" (case-insensitive).\n" +
-			"Version can be \"latest\" (default), \"1.xx\" or \"1.xx.x\".",
+			"Version can be \"latest\" (default), a version or range according to the Semantic Versioning specification (https://semver.org/), " +
+			"or a tag available in the npm registry.\n" +
+			"For SAP-internal usage the version can also be \"latest-snapshot\", " +
+			"a version or range ending with -SNAPSHOT, " +
+			"or a simplified range such as \"1-SNAPSHOT\", \"1.x-SNAPSHOT\" or \"1.108-SNAPSHOT\".",
 			type: "string"
 		})
 		.example("$0 use sapui5@latest", "Use SAPUI5 in the latest available version")
