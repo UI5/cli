@@ -2,7 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.6.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.7.0...HEAD).
+
+<a name="v3.7.0"></a>
+## [v3.7.0] - 2023-09-05
+### Bug Fixes
+- Ensure usage of provided UI5 data dir [`1e0503a`](https://github.com/SAP/ui5-project/commit/1e0503a32dae06202b62408558d5ef85bb49daf1)
+- **NodePackageDependencies:** Implement validation for missing package.json attributes [`b070972`](https://github.com/SAP/ui5-project/commit/b0709725b373441fd62fe9e33cc0440b6df17401)
+- **ProjectGraph:** Improve error message when adding duplicate projects or extensions [`2b4a49e`](https://github.com/SAP/ui5-project/commit/2b4a49e2b6dc4004bf078d259c1a8f54ccc0ae2c)
+- **pacote:** Use npm cache within UI5 data dir [`f1e2178`](https://github.com/SAP/ui5-project/commit/f1e217803d0c455f61135084b00a7daf42fb9094)
+
+### Features
+- **Resolvers:** Allow ranges / npm tags for version resolution [`2841004`](https://github.com/SAP/ui5-project/commit/28410044f9d4abd348dc3e0697048543eb7796d9)
+- **Resolvers:** Use npm tags for determining 'latest' [`5cde95a`](https://github.com/SAP/ui5-project/commit/5cde95a04f2f040fffd0798822058f9692761cc4)
+
 
 <a name="v3.6.0"></a>
 ## [v3.6.0] - 2023-08-22
@@ -444,6 +457,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.7.0]: https://github.com/SAP/ui5-project/compare/v3.6.0...v3.7.0
 [v3.6.0]: https://github.com/SAP/ui5-project/compare/v3.5.1...v3.6.0
 [v3.5.1]: https://github.com/SAP/ui5-project/compare/v3.5.0...v3.5.1
 [v3.5.0]: https://github.com/SAP/ui5-project/compare/v3.4.2...v3.5.0
