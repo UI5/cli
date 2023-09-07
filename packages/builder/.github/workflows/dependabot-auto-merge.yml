@@ -1,6 +1,7 @@
 name: Dependabot auto-merge
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - main
 
@@ -11,7 +12,10 @@ permissions:
 jobs:
   dependabot:
     runs-on: ubuntu-latest
-    if: ${{ github.actor == 'dependabot[bot]' && contains(github.event.pull_request.labels.*.name, 'github_actions') }}
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.auto_merge == null &&
+      contains(github.event.pull_request.labels.*.name, 'github_actions')
     steps:
       - name: Dependabot metadata
         id: metadata
