@@ -26,13 +26,13 @@ strategy:
       node_version: 18.x
     linux_node_current:
       imageName: 'ubuntu-22.04'
-      node_version: 20.5.x
+      node_version: 20.x
     mac_node_current:
       imageName: 'macos-12'
-      node_version: 20.5.x
+      node_version: 20.x
     windows_node_current:
       imageName: 'windows-2022'
-      node_version: 20.5.x
+      node_version: 20.x
 
 pool:
   vmImage: $(imageName)
