@@ -20,7 +20,7 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: Approve and auto-merge PRs for minor/patch updates of github-actions
         if: |
-          steps.dependabot-metadata.outputs.package-ecosystem == 'github-actions' &&
+          steps.dependabot-metadata.outputs.package-ecosystem == 'github_actions' &&
           contains(fromJSON('["version-update:semver-minor", "version-update:semver-patch"]'), steps.metadata.outputs.update-type)
         run: gh pr review --approve "$PR_URL" && gh pr merge --auto --rebase "$PR_URL"
         env:
