@@ -100,6 +100,11 @@ export default function({project, taskUtil, getTask}) {
 				}, Promise.resolve());
 			}
 		});
+	} else {
+		// No bundles defined. Just set task so that it can be referenced by custom tasks
+		tasks.set("generateBundle", {
+			taskFunction: null
+		});
 	}
 
 	tasks.set("generateVersionInfo", {

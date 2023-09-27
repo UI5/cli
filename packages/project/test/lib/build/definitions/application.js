@@ -83,6 +83,9 @@ test("Standard build", (t) => {
 			requiresDependencies: true
 		},
 		transformBootstrapHtml: {},
+		generateBundle: {
+			taskFunction: null
+		},
 		generateVersionInfo: {
 			requiresDependencies: true,
 			options: {
@@ -159,6 +162,9 @@ test("Standard build with legacy spec version", (t) => {
 			requiresDependencies: true
 		},
 		transformBootstrapHtml: {},
+		generateBundle: {
+			taskFunction: null
+		},
 		generateVersionInfo: {
 			requiresDependencies: true,
 			options: {

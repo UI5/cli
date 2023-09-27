@@ -103,6 +103,8 @@ export default function({project, taskUtil, getTask}) {
 				skipBundles: existingBundleDefinitionNames
 			}
 		});
+	} else {
+		tasks.set("generateComponentPreload", {taskFunction: null});
 	}
 
 	tasks.set("generateLibraryPreload", {
@@ -133,6 +135,8 @@ export default function({project, taskUtil, getTask}) {
 				}, Promise.resolve());
 			}
 		});
+	} else {
+		tasks.set("generateBundle", {taskFunction: null});
 	}
 
 	tasks.set("buildThemes", {
@@ -153,6 +157,8 @@ export default function({project, taskUtil, getTask}) {
 				version: project.getVersion()
 			}
 		});
+	} else {
+		tasks.set("generateThemeDesignerResources", {taskFunction: null});
 	}
 
 	tasks.set("generateResourcesJson", {

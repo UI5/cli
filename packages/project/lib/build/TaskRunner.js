@@ -111,7 +111,9 @@ class TaskRunner {
 			// This would require a more robust contract to identify task executions
 			// (e.g. via an 'id' that can be assigned to a specific execution in the configuration).
 			const taskWithoutSuffixCounter = taskName.replace(/--\d+$/, "");
-			return tasksToRun.includes(taskWithoutSuffixCounter);
+			return tasksToRun.includes(taskWithoutSuffixCounter) &&
+				// Task can be explicitly excluded by making its taskFunction = null
+				this._tasks[taskName].task !== null;
 		});
 
 		this._log.setTasks(allTasks);
@@ -176,25 +178,31 @@ class TaskRunner {
 				`It has already been scheduled for execution`);
 		}
 
-		const task = async (log) => {
-			options.projectName = this._project.getName();
-			options.projectNamespace = this._project.getNamespace();
+		let task;
+		if (taskFunction === null) {
+			this._log.verbose(`Task ${taskName} is set to be explicitly skipped in definitions.`);
+			task = null;
+		} else {
+			task = async (log) => {
+				options.projectName = this._project.getName();
+				options.projectNamespace = this._project.getNamespace();
 
-			const params = {
-				workspace: this._project.getWorkspace(),
-				taskUtil: this._taskUtil,
-				options
+				const params = {
+					workspace: this._project.getWorkspace(),
+					taskUtil: this._taskUtil,
+					options
+				};
+
+				if (requiresDependencies) {
+					params.dependencies = this._allDependenciesReader;
+				}
+
+				if (!taskFunction) {
+					taskFunction = (await this._taskRepository.getTask(taskName)).task;
+				}
+				return taskFunction(params);
 			};
-
-			if (requiresDependencies) {
-				params.dependencies = this._allDependenciesReader;
-			}
-
-			if (!taskFunction) {
-				taskFunction = (await this._taskRepository.getTask(taskName)).task;
-			}
-			return taskFunction(params);
-		};
+		}
 		this._tasks[taskName] = {
 			task,
 			requiredDependencies: requiresDependencies ? this._directDependencies : new Set()

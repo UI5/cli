@@ -42,6 +42,8 @@ export default function({project, taskUtil, getTask}) {
 				version: project.getVersion()
 			}
 		});
+	} else {
+		tasks.set("generateThemeDesignerResources", {taskFunction: null});
 	}
 
 	tasks.set("generateResourcesJson", {requiresDependencies: true});

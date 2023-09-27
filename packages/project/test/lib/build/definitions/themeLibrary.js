@@ -47,6 +47,7 @@ test("Standard build", (t) => {
 	const tasks = themeLibrary({
 		project, taskUtil, getTask
 	});
+	const generateThemeDesignerResourcesTaskFunction = tasks.get("generateThemeDesignerResources");
 	t.deepEqual(Object.fromEntries(tasks), {
 		replaceCopyright: {
 			options: {
@@ -72,12 +73,17 @@ test("Standard build", (t) => {
 		},
 		generateResourcesJson: {
 			requiresDependencies: true
+		},
+		generateThemeDesignerResources: {
+			taskFunction: null
 		}
 	}, "Correct task definitions");
 
 	t.is(taskUtil.getBuildOption.callCount, 1, "taskUtil#getBuildOption got called once");
 	t.is(taskUtil.getBuildOption.getCall(0).args[0], "cssVariables",
 		"taskUtil#getBuildOption got called with correct argument");
+
+	t.is(generateThemeDesignerResourcesTaskFunction.taskFunction, null, "taskFunction is explicitly set to null");
 });
 
 test("Standard build (framework project)", (t) => {
@@ -128,6 +134,9 @@ test("Standard build for non root project", (t) => {
 		},
 		generateResourcesJson: {
 			requiresDependencies: true
+		},
+		generateThemeDesignerResources: {
+			taskFunction: null
 		}
 	}, "Correct task definitions");
 
