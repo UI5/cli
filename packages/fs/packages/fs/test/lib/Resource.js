@@ -94,8 +94,7 @@ test("Resource: constructor with duplicated content parameter", (t) => {
 test("Resource: From buffer", async (t) => {
 	const resource = new Resource({
 		path: "/my/path",
-		buffer: Buffer.from("Content"),
-		sourceMetadata: {}
+		buffer: Buffer.from("Content")
 	});
 	t.is(await resource.getSize(), 7, "Content is set");
 	t.false(resource.isModified(), "Content of new resource is not modified");
@@ -105,8 +104,7 @@ test("Resource: From buffer", async (t) => {
 test("Resource: From string", async (t) => {
 	const resource = new Resource({
 		path: "/my/path",
-		string: "Content",
-		sourceMetadata: {}
+		string: "Content"
 	});
 	t.is(await resource.getSize(), 7, "Content is set");
 	t.false(resource.isModified(), "Content of new resource is not modified");
@@ -117,8 +115,7 @@ test("Resource: From stream", async (t) => {
 	const fsPath = path.join("test", "fixtures", "application.a", "webapp", "index.html");
 	const resource = new Resource({
 		path: "/my/path",
-		stream: createReadStream(fsPath),
-		sourceMetadata: {}
+		stream: createReadStream(fsPath)
 	});
 	t.is(await resource.getSize(), 91, "Content is set");
 	t.false(resource.isModified(), "Content of new resource is not modified");
@@ -131,12 +128,76 @@ test("Resource: From createStream", async (t) => {
 		path: "/my/path",
 		createStream: () => {
 			return createReadStream(fsPath);
-		},
-		sourceMetadata: {}
+		}
 	});
 	t.is(await resource.getSize(), 91, "Content is set");
 	t.false(resource.isModified(), "Content of new resource is not modified");
 	t.false(resource.getSourceMetadata().contentModified, "Content of new resource is not modified");
+});
+
+test("Resource: Source metadata", async (t) => {
+	const resource = new Resource({
+		path: "/my/path",
+		string: "Content",
+		sourceMetadata: {
+			adapter: "My Adapter",
+			fsPath: "/some/path"
+		}
+	});
+	t.is(await resource.getSize(), 7, "Content is set");
+	t.false(resource.isModified(), "Content of new resource is not modified");
+	t.false(resource.getSourceMetadata().contentModified, "Content of new resource is not modified");
+	t.is(resource.getSourceMetadata().adapter, "My Adapter", "Correct source metadata 'adapter' value");
+	t.is(resource.getSourceMetadata().fsPath, "/some/path", "Correct source metadata 'fsPath' value");
+});
+test("Resource: Source metadata with modified content", async (t) => {
+	const resource = new Resource({
+		path: "/my/path",
+		string: "Content",
+		sourceMetadata: {
+			adapter: "My Adapter",
+			fsPath: "/some/path",
+			contentModified: true
+		}
+	});
+	t.is(await resource.getSize(), 7, "Content is set");
+	t.false(resource.isModified(), "Content of new resource is not modified");
+	t.true(resource.getSourceMetadata().contentModified, "Content of new resource is already modified");
+	t.is(resource.getSourceMetadata().adapter, "My Adapter", "Correct source metadata 'adapter' value");
+	t.is(resource.getSourceMetadata().fsPath, "/some/path", "Correct source metadata 'fsPath' value");
+});
+
+test("Resource: Illegal source metadata attribute", (t) => {
+	t.throws(() => {
+		new Resource({
+			path: "/my/path",
+			string: "Content",
+			sourceMetadata: {
+				adapter: "My Adapter",
+				fsPath: "/some/path",
+				pony: "🦄"
+			}
+		});
+	}, {
+		message: `Parameter 'sourceMetadata' contains an illegal attribute: pony`
+	}, "Threw with expected error message");
+});
+
+test("Resource: Illegal source metadata value", (t) => {
+	t.throws(() => {
+		new Resource({
+			path: "/my/path",
+			string: "Content",
+			sourceMetadata: {
+				adapter: "My Adapter",
+				fsPath: {
+					some: "value"
+				}
+			}
+		});
+	}, {
+		message: `Attribute 'fsPath' of parameter 'sourceMetadata' must be of type "string" or "boolean"`
+	}, "Threw with expected error message");
 });
 
 test("Resource: getBuffer with throwing an error", (t) => {
