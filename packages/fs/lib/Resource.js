@@ -4,6 +4,7 @@ import posixPath from "node:path/posix";
 
 const fnTrue = () => true;
 const fnFalse = () => false;
+const ALLOWED_SOURCE_METADATA_KEYS = ["adapter", "fsPath", "contentModified"];
 
 /**
  * Resource. UI5 Tooling specific representation of a file's content and metadata
@@ -54,7 +55,8 @@ class Resource {
 	 *					In some cases this is the most memory-efficient way to supply resource content
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this resource is associated with
 	 * @param {object} [parameters.sourceMetadata] Source metadata for UI5 Tooling internal use.
-	 * 	Typically set by an adapter to store information for later retrieval.
+	 * 	Some information may be set by an adapter to store information for later retrieval. Also keeps track of whether
+	 *  a resource content has been modified since it has been read from a source
 	 */
 	constructor({path, statInfo, buffer, string, createStream, stream, project, sourceMetadata}) {
 		if (!path) {
@@ -66,16 +68,34 @@ class Resource {
 				"'buffer', 'string', 'stream' or 'createStream'");
 		}
 
+		if (sourceMetadata) {
+			if (typeof sourceMetadata !== "object") {
+				throw new Error(`Parameter 'sourceMetadata' must be of type "object"`);
+			}
+
+			/* eslint-disable-next-line guard-for-in */
+			for (const metadataKey in sourceMetadata) { // Also check prototype
+				if (!ALLOWED_SOURCE_METADATA_KEYS.includes(metadataKey)) {
+					throw new Error(`Parameter 'sourceMetadata' contains an illegal attribute: ${metadataKey}`);
+				}
+				if (!["string", "boolean"].includes(typeof sourceMetadata[metadataKey])) {
+					throw new Error(
+						`Attribute '${metadataKey}' of parameter 'sourceMetadata' ` +
+						`must be of type "string" or "boolean"`);
+				}
+			}
+		}
+
 		this.setPath(path);
 
-		this.#sourceMetadata = sourceMetadata;
-		if (this.#sourceMetadata) {
-			// This flag indicates whether a resource has changed from its original source.
-			// resource.isModified() is not sufficient, since it only reflects the modification state of the
-			// current instance.
-			// Since the sourceMetadata object is inherited to clones, it is the only correct indicator
-			this.#sourceMetadata.contentModified = this.#sourceMetadata.contentModified || false;
-		}
+		this.#sourceMetadata = sourceMetadata || {};
+
+		// This flag indicates whether a resource has changed from its original source.
+		// resource.isModified() is not sufficient, since it only reflects the modification state of the
+		// current instance.
+		// Since the sourceMetadata object is inherited to clones, it is the only correct indicator
+		this.#sourceMetadata.contentModified ??= false;
+
 		this.#isModified = false;
 
 		this.#project = project;
@@ -142,9 +162,7 @@ class Resource {
 	 * @param {Buffer} buffer Buffer instance
 	 */
 	setBuffer(buffer) {
-		if (this.#sourceMetadata) {
-			this.#sourceMetadata.contentModified = true;
-		}
+		this.#sourceMetadata.contentModified = true;
 		this.#isModified = true;
 		this.#setBuffer(buffer);
 	}
@@ -234,9 +252,7 @@ class Resource {
 	 */
 	setStream(stream) {
 		this.#isModified = true;
-		if (this.#sourceMetadata) {
-			this.#sourceMetadata.contentModified = true;
-		}
+		this.#sourceMetadata.contentModified = true;
 
 		this.#buffer = null;
 		// if (this.#stream) { // TODO this may cause strange issues
@@ -424,13 +440,13 @@ class Resource {
 	}
 
 	/**
-	 * Returns source metadata if any where provided during the creation of this resource.
+	 * Returns source metadata which may contain information specific to the adapter that created the resource
 	 * Typically set by an adapter to store information for later retrieval.
 	 *
-	 * @returns {object|null}
+	 * @returns {object}
 	 */
 	getSourceMetadata() {
-		return this.#sourceMetadata || null;
+		return this.#sourceMetadata;
 	}
 
 	/**
