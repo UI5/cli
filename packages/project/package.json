@@ -134,7 +134,7 @@
 		"lockfile": "^1.0.4",
 		"make-fetch-happen": "^11.1.1",
 		"node-stream-zip": "^1.15.0",
-		"pacote": "^15.2.0",
+		"pacote": "^17.0.4",
 		"pretty-hrtime": "^1.0.3",
 		"read-pkg": "^8.1.0",
 		"read-pkg-up": "^10.1.0",
