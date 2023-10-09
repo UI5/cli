@@ -40,15 +40,7 @@ class Registry {
 				`${groupId.replaceAll(".", "/")}/${artifactId}/${optionalVersion}maven-metadata.xml`;
 
 			log.verbose(`Fetching: ${url}`);
-			const res = await fetch(url, {
-				// Disable usage of shared keep-alive agents.
-				// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
-				// that can be easily reached (Error: Socket timeout) and there doesn't
-				// seem to be another way to disable or increase it.
-				// Also see: https://github.com/node-modules/agentkeepalive/issues/106
-				// The same applies in npm/Registry.js
-				agent: false,
-			});
+			const res = await fetch(url);
 			if (!res.ok) {
 				throw new Error(`[HTTP Error] ${res.status} ${res.statusText}`);
 			}

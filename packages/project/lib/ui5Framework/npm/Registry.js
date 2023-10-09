@@ -75,17 +75,6 @@ class Registry {
 		// Always use our cache dir instead of the configured one
 		config.cache = this._cacheDir;
 
-		if (!config.proxy && !config.httpsProxy) {
-			// Disable usage of shared keep-alive agents unless a proxy is configured
-			// which only works with agents.
-
-			// make-fetch-happen uses a hard-coded 15 seconds freeSocketTimeout
-			// that can be easily reached (Error: Socket timeout) and there doesn't
-			// seem to be another way to disable or increase it.
-			// Also see: https://github.com/node-modules/agentkeepalive/issues/106
-			config.agent = false;
-		}
-
 		log.verbose(`Using npm configuration (extract):`);
 		// Do not log full configuration as it may contain authentication tokens
 		logConfig(config, "registry");

@@ -77,7 +77,6 @@ test.serial("_getPacoteOptions", async (t) => {
 
 	const expectedPacoteOptions = {
 		fake: "config",
-		agent: false,
 		cache: "cacheDir"
 	};
 	npmConfigFlat.value(npmConfig);
