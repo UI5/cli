@@ -18,7 +18,7 @@ import BundleWriter from "./BundleWriter.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("lbt:bundle:Builder");
 
-const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(.+)\s*$/;
+const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(\S+)\s*$/;
 const httpPattern = /^https?:\/\//i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
 
@@ -332,11 +332,18 @@ class BundleBuilder {
 			throw new Error("No source map provided");
 		}
 
+		// Reminder on the structure of line-segments in the map:
+		// [generatedCodeColumn, sourceIndex, sourceCodeLine, sourceCodeColumn, nameIndex]
 		if (map.mappings.startsWith(";")) {
 			// If first line is not already mapped (typical for comments or parentheses), add a mapping to
 			// make sure that dev-tools (especially Chrome's) don't choose the end of the preceding module
 			// when the user tries to set a breakpoint from the bundle file
 			map.mappings = "AAAA" + map.mappings;
+		} else if (this.outW.columnOffset === 0 && !map.mappings.startsWith("A")) {
+			// If first column of the first line is not already mapped, add a mapping for the same reason as above.
+			// This is typical for transpiled code, where there is a bunch of generated code at the beginning that
+			// can't be mapped to the original source
+			map.mappings = "AAAA," + map.mappings;
 		}
 
 		map.sourceRoot = path.posix.relative(
@@ -592,9 +599,7 @@ class BundleBuilder {
 				`Attempting to find a source map resource based on the module's path: ${sourceMapFileCandidate}`);
 			try {
 				const sourceMapResource = await this.pool.findResource(sourceMapFileCandidate);
-				if (sourceMapResource) {
-					moduleSourceMap = (await sourceMapResource.buffer()).toString();
-				}
+				moduleSourceMap = (await sourceMapResource.buffer()).toString();
 			} catch (e) {
 				// No input source map
 				log.silly(`Could not find a source map for module ${moduleName}: ${e.message}`);

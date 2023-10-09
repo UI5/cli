@@ -1,0 +1,8 @@
+---
+specVersion: "3.1"
+type: application
+metadata:
+  name: test.application
+  copyright: |
+    Test Application
+    Copyright ${currentYear}
