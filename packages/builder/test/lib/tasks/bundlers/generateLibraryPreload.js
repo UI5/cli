@@ -456,7 +456,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	});
 
 	t.is(workspace.byGlob.callCount, 3,
-		"workspace.byGlob should have been called three");
+		"workspace.byGlob should have been called three times");
 	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(1).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
@@ -464,7 +464,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
 
-	t.is(taskUtil.getTag.callCount, 3, "TaskUtil#getTag got called three times");
+	t.is(taskUtil.getTag.callCount, 2, "TaskUtil#getTag got called two times");
 	t.is(taskUtil.getTag.getCall(0).args[0], resources[2],
 		"TaskUtil#getTag got called with expected resource on first call");
 	t.is(taskUtil.getTag.getCall(0).args[1], "<IsDebugVariant>",
@@ -473,10 +473,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		"TaskUtil#getTag got called with expected resource on second call");
 	t.is(taskUtil.getTag.getCall(1).args[1], "<IsDebugVariant>",
 		"TaskUtil#getTag got called with expected tag on second call");
-	t.is(taskUtil.getTag.getCall(2).args[0], resources[0],
-		"TaskUtil#getTag got called with expected resource on third call");
-	t.is(taskUtil.getTag.getCall(2).args[1], "<IsDebugVariant>",
-		"TaskUtil#getTag got called with expected tag on third call");
 
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{

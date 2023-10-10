@@ -18,8 +18,8 @@ export default function({resources, taskUtil}) {
 	const moduleNameMapping = Object.create(null);
 	for (let i = resources.length - 1; i >= 0; i--) {
 		const resource = resources[i];
-		if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
-			const resourcePath = resource.getPath();
+		const resourcePath = resource.getPath();
+		if (resourcePath.endsWith(".js") && taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.IsDebugVariant)) {
 			const nonDbgPath = getNonDebugName(resourcePath);
 			if (!nonDbgPath) {
 				throw new Error(`Failed to resolve non-debug name for ${resourcePath}`);

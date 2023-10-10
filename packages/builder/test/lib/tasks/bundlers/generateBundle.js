@@ -307,13 +307,10 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	t.deepEqual(filteredCombo.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"filteredCombo.byGlob should have been called with expected pattern");
 
-	t.is(taskUtil.getTag.callCount, 2);
+	t.is(taskUtil.getTag.callCount, 1, "taskUtil#getTag has been called once");
 	t.deepEqual(taskUtil.getTag.getCall(0).args,
-		[resources[1], taskUtil.STANDARD_TAGS.IsDebugVariant],
-		"First resource should be checked whether it is a debug variant");
-	t.deepEqual(taskUtil.getTag.getCall(1).args,
 		[resources[0], taskUtil.STANDARD_TAGS.IsDebugVariant],
-		"Second resource should be checked whether it is a debug variant");
+		"First resource should be checked whether it is a debug variant");
 
 	t.is(taskUtil.clearTag.callCount, 1);
 	t.deepEqual(taskUtil.clearTag.getCall(0).args,
