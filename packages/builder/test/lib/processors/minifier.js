@@ -34,10 +34,23 @@ function myFunc(e){jQuery.sap.require("something");console.log("Something requir
 ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"test.controller.js",` +
-		`"names":["myFunc","myArg","jQuery","sap","require","console","log"],` +
-		`"sources":["test-dbg.controller.js"],` +
-		`"mappings":";;;AAGC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,qBACb,CACDN"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"myFunc",
+			"myArg",
+			"jQuery",
+			"sap",
+			"require",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test-dbg.controller.js"
+		],
+		"mappings": ";;;AAGC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,qBACb,CACDN"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 });
 
@@ -73,10 +86,23 @@ function myFunc(e){jQuery.sap.require("something");console.log("Something requir
 ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"test.controller.js",` +
-		`"names":["myFunc","myArg","jQuery","sap","require","console","log"],` +
-		`"sources":["test-dbg.controller.js"],` +
-		`"mappings":";;;AAGC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,qBACb,CACDN"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"myFunc",
+			"myArg",
+			"jQuery",
+			"sap",
+			"require",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test-dbg.controller.js"
+		],
+		"mappings": ";;;AAGC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,qBACb,CACDN"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 
 	// Call to registerCleanupTask indicates worker pool was used
@@ -153,18 +179,51 @@ ${SOURCE_MAPPING_URL}=test2.fragment.js.map`;
 	const expectedMinified3 = `function test3(t){var o=t;console.log(o)}test3();
 ${SOURCE_MAPPING_URL}=test3.designtime.js.map`;
 
-	const expectedSourceMap1 =
-		`{"version":3,"file":"test1.controller.js",` +
-		`"names":["test1","paramA","variableA","console","log"],"sources":["test1-dbg.controller.js"],` +
-		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
-	const expectedSourceMap2 =
-		`{"version":3,"file":"test2.fragment.js",` +
-		`"names":["test2","paramA","variableA","console","log"],"sources":["test2-dbg.fragment.js"],` +
-		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
-	const expectedSourceMap3 =
-		`{"version":3,"file":"test3.designtime.js",` +
-		`"names":["test3","paramA","variableA","console","log"],"sources":["test3-dbg.designtime.js"],` +
-		`"mappings":"AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
+	const expectedSourceMap1 = JSON.stringify({
+		"version": 3,
+		"file": "test1.controller.js",
+		"names": [
+			"test1",
+			"paramA",
+			"variableA",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test1-dbg.controller.js"
+		],
+		"mappings": "AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"
+	});
+	const expectedSourceMap2 = JSON.stringify({
+		"version": 3,
+		"file": "test2.fragment.js",
+		"names": [
+			"test2",
+			"paramA",
+			"variableA",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test2-dbg.fragment.js"
+		],
+		"mappings": "AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"
+	});
+	const expectedSourceMap3 = JSON.stringify({
+		"version": 3,
+		"file": "test3.designtime.js",
+		"names": [
+			"test3",
+			"paramA",
+			"variableA",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test3-dbg.designtime.js"
+		],
+		"mappings": "AACA,SAASA,MAAMC,GACd,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"
+	});
 
 	t.is(resources[0].resource.getPath(), "/test1.controller.js",
 		"Correct resource path for minified content of resource 1");
@@ -218,6 +277,7 @@ test("Input source map: Incorrect parameters", async (t) => {
 });
 
 test("Input source map: Provided inline", async (t) => {
+	/* eslint-disable max-len */
 	const content = `/*!
  * \${copyright}
  */
@@ -241,26 +301,12 @@ sap.ui.define(["sap/m/MessageBox", "./BaseController"], function (MessageBox, __
   return Main;
 });
 
-${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,` +
-	`eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC5jb250cm9sbGVyLmpzIiwibmFtZXMiOlsic2FwIiwidWkiLCJkZWZpbmUiLCJNZXNzYWdlQm94Ii` +
-	`wiX19CYXNlQ29udHJvbGxlciIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJvYmoiLCJfX2VzTW9kdWxlIiwiZGVmYXVsdCIsIkJhc2VDb250` +
-	`cm9sbGVyIiwiTWFpbiIsImV4dGVuZCIsInNheUhlbGxvIiwiX3NheUhlbGxvIiwic2hvdyJdLCJzb3VyY2VzIjpbInRlc3QuY29udHJvbGxlci` +
-	`50cyJdLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTtBQUNBO0FBRkE7O0FBQUFBLEdBQUEsQ0FBQUMsRUFBQSxDQUFBQyxNQUFBLHFEQUFBQyxVQUFB` +
-	`LEVBQUFDLGdCQUFBO0VBQUE7O0VBQUEsU0FBQUMsdUJBQUFDLEdBQUE7SUFBQSxPQUFBQSxHQUFBLElBQUFBLEdBQUEsQ0FBQUMsVUFBQSxXQU` +
-	`FBRCxHQUFBLENBQUFFLE9BQUEsbUJBQUFGLEdBQUEsQ0FBQUUsT0FBQSxHQUFBRixHQUFBO0VBQUE7RUFBQSxNQUlPRyxjQUFjLEdBQUFKLHNC` +
-	`QUFBLENBQUFELGdCQUFBO0VBRXJCO0FBQ0E7QUFDQTtFQUZBLE1BR3FCTSxJQUFJLEdBQVNELGNBQWMsQ0FBQUUsTUFBQTtJQUN4Q0MsUUFBUS` +
-	`xXQUFBQyxVQUFBLEVBQVM7TUFDdkJWLFVBQVUsQ0FBQ1csSUFBSSxDQUFDLGNBQWMsQ0FBQztJQUNoQztFQUFDO0VBQUEsT0FIbUJKLElBQUk7` +
-	`QUFBQSJ9`;
+${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC5jb250cm9sbGVyLmpzIiwibmFtZXMiOlsic2FwIiwidWkiLCJkZWZpbmUiLCJNZXNzYWdlQm94IiwiX19CYXNlQ29udHJvbGxlciIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJvYmoiLCJfX2VzTW9kdWxlIiwiZGVmYXVsdCIsIkJhc2VDb250cm9sbGVyIiwiTWFpbiIsImV4dGVuZCIsInNheUhlbGxvIiwiX3NheUhlbGxvIiwic2hvdyJdLCJzb3VyY2VzIjpbInRlc3QuY29udHJvbGxlci50cyJdLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTtBQUNBO0FBRkE7O0FBQUFBLEdBQUEsQ0FBQUMsRUFBQSxDQUFBQyxNQUFBLHFEQUFBQyxVQUFBLEVBQUFDLGdCQUFBO0VBQUE7O0VBQUEsU0FBQUMsdUJBQUFDLEdBQUE7SUFBQSxPQUFBQSxHQUFBLElBQUFBLEdBQUEsQ0FBQUMsVUFBQSxXQUFBRCxHQUFBLENBQUFFLE9BQUEsbUJBQUFGLEdBQUEsQ0FBQUUsT0FBQSxHQUFBRixHQUFBO0VBQUE7RUFBQSxNQUlPRyxjQUFjLEdBQUFKLHNCQUFBLENBQUFELGdCQUFBO0VBRXJCO0FBQ0E7QUFDQTtFQUZBLE1BR3FCTSxJQUFJLEdBQVNELGNBQWMsQ0FBQUUsTUFBQTtJQUN4Q0MsUUFBUSxXQUFBQyxVQUFBLEVBQVM7TUFDdkJWLFVBQVUsQ0FBQ1csSUFBSSxDQUFDLGNBQWMsQ0FBQztJQUNoQztFQUFDO0VBQUEsT0FIbUJKLElBQUk7QUFBQSJ9`;
 	/* The above is a base64 encoded version of the following string
 		(identical to one in the next input source map test below):
-		`{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
-		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
-		`"_sayHello","show"],"sources":["test.controller.ts"],"mappings":"AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,` +
-		`EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,` +
-		`UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,` +
-		`gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,` +
-		`CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}`;
+		{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox","__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello","_sayHello","show"],"sources":["test.controller.ts"],"mappings":"AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}
 	*/
+	/* eslint-enable max-len */
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, cb) => {
@@ -294,19 +340,59 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	// Existing inline source map is moved into a separate file
 	const expectedDbgContent = content.replace(/data:application\/json;charset=utf-8;base64,.+/, "test-dbg.controller.js.map\n");
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox",` +
-		`"__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend",` +
-		`"sayHello","_sayHello","show"],"sources":["test.controller.ts"],"mappings":";;;AAAA,aAAAA,IAAAC,GAAAC,OAAA,` +
-		`iDAAAC,EAAAC,GAAA,sBAAAC,EAAAC,GAAA,OAAAA,KAAAC,mBAAAD,EAAAE,UAAA,YAAAF,EAAAE,QAAAF,CAAA,OAIOG,EAAcJ,EAAAD,` +
-		`GAErB,MAGqBM,EAAaD,EAAcE,OAAA,wBACxCC,SAAQ,SAAAC,IACdV,EAAWW,KAAK,eACjB,IAAC,OAHmBJ,CAAI"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		// eslint-disable-next-line
+		"mappings": ";;;AAAA,aAAAA,IAAAC,GAAAC,OAAA,iDAAAC,EAAAC,GAAA,sBAAAC,EAAAC,GAAA,OAAAA,KAAAC,mBAAAD,EAAAE,UAAA,YAAAF,EAAAE,QAAAF,CAAA,OAIOG,EAAcJ,EAAAD,GAErB,MAGqBM,EAAaD,EAAcE,OAAA,wBACxCC,SAAQ,SAAAC,IACdV,EAAWW,KAAK,eACjB,IAAC,OAHmBJ,CAAI"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
-	const expectedDbgSourceMap = `{"version":3,"file":"test-dbg.controller.js","names":["sap","ui","define",` +
-		`"MessageBox","__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController",` +
-		`"Main","extend","sayHello","_sayHello","show"],"sources":["test.controller.ts"],"mappings":"AAAA;AACA;` +
-		`AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,` +
-		`OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,` +
-		`cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,` +
-		`EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}`;
+	const expectedDbgSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test-dbg.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		// eslint-disable-next-line
+		"mappings": "AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"
+	});
 	t.deepEqual(await dbgSourceMapResource.getString(), expectedDbgSourceMap,
 		"Correct source map content for debug variant ");
 });
@@ -338,14 +424,32 @@ sap.ui.define(["sap/m/MessageBox", "./BaseController"], function (MessageBox, __
 ${SOURCE_MAPPING_URL}=test.controller.js.map
 `;
 
-	const inputSourceMapContent =
-		`{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
-		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
-		`"_sayHello","show"],"sources":["test.controller.ts"],"mappings":"AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,` +
-		`EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,` +
-		`UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,` +
-		`gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,` +
-		`CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}`;
+	const inputSourceMapContent = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		// eslint-disable-next-line
+		"mappings": "AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"
+	});
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, cb) => {
@@ -382,24 +486,65 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	const expectedDbgContent = content.replace("test.controller.js.map", "test-dbg.controller.js.map");
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox",` +
-		`"__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend",` +
-		`"sayHello","_sayHello","show"],"sources":["test.controller.ts"],"mappings":";;;AAAA,aAAAA,IAAAC,GAAAC,OAAA,` +
-		`iDAAAC,EAAAC,GAAA,sBAAAC,EAAAC,GAAA,OAAAA,KAAAC,mBAAAD,EAAAE,UAAA,YAAAF,EAAAE,QAAAF,CAAA,OAIOG,EAAcJ,EAAAD,` +
-		`GAErB,MAGqBM,EAAaD,EAAcE,OAAA,wBACxCC,SAAQ,SAAAC,IACdV,EAAWW,KAAK,eACjB,IAAC,OAHmBJ,CAAI"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		// eslint-disable-next-line
+		"mappings": ";;;AAAA,aAAAA,IAAAC,GAAAC,OAAA,iDAAAC,EAAAC,GAAA,sBAAAC,EAAAC,GAAA,OAAAA,KAAAC,mBAAAD,EAAAE,UAAA,YAAAF,EAAAE,QAAAF,CAAA,OAIOG,EAAcJ,EAAAD,GAErB,MAGqBM,EAAaD,EAAcE,OAAA,wBACxCC,SAAQ,SAAAC,IACdV,EAAWW,KAAK,eACjB,IAAC,OAHmBJ,CAAI"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
-	const expectedDbgSourceMap = `{"version":3,"file":"test-dbg.controller.js","names":["sap","ui","define",` +
-		`"MessageBox","__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController",` +
-		`"Main","extend","sayHello","_sayHello","show"],"sources":["test.controller.ts"],"mappings":"AAAA;AACA;` +
-		`AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,` +
-		`OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,` +
-		`cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,` +
-		`EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}`;
+	const expectedDbgSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test-dbg.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		// eslint-disable-next-line
+		"mappings": "AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"
+	});
 	t.deepEqual(await dbgSourceMapResource.getString(), expectedDbgSourceMap,
 		"Correct source map content for debug variant ");
 });
 
 test("Input source map: Provided inline with sources content", async (t) => {
+	/* eslint-disable max-len */
 	const content = `/*!
  * \${copyright}
  */
@@ -423,20 +568,8 @@ sap.ui.define(["sap/m/MessageBox", "./BaseController"], function (MessageBox, __
   return Main;
 });
 
-${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,` +
-	`eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC5jb250cm9sbGVyLmpzIiwibmFtZXMiOlsic2FwIiwidWkiLCJkZWZpbmUiLCJNZXNzYWdlQm94I` +
-	`iwiX19CYXNlQ29udHJvbGxlciIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJvYmoiLCJfX2VzTW9kdWxlIiwiZGVmYXVsdCIsIkJhc2VDb2` +
-	`50cm9sbGVyIiwiTWFpbiIsImV4dGVuZCIsInNheUhlbGxvIiwiX3NheUhlbGxvIiwic2hvdyJdLCJzb3VyY2VzIjpbInRlc3QuY29udHJvbGx` +
-	`lci50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKiFcbiAqICR7Y29weXJpZ2h0fVxuICovXG5pbXBvcnQgTWVzc2FnZUJveCBmcm9tIFwic2Fw` +
-	`L20vTWVzc2FnZUJveFwiO1xuaW1wb3J0IEJhc2VDb250cm9sbGVyIGZyb20gXCIuL0Jhc2VDb250cm9sbGVyXCI7XG5cbi8qKlxuICogQG5hb` +
-	`WVzcGFjZSBjb20ubWIudHMudGVzdGFwcC5jb250cm9sbGVyXG4gKi9cbmV4cG9ydCBkZWZhdWx0IGNsYXNzIE1haW4gZXh0ZW5kcyBCYXNlQ2` +
-	`9udHJvbGxlciB7XG5cdHB1YmxpYyBzYXlIZWxsbygpOiB2b2lkIHtcblx0TWVzc2FnZUJveC5zaG93KFwiSGVsbG8gV29ybGQhXCIpO1xuXHR` +
-	`9XG59XG4iXSwibWFwcGluZ3MiOiJBQUFBO0FBQ0E7QUFDQTtBQUZBOztBQUFBQSxHQUFBLENBQUFDLEVBQUEsQ0FBQUMsTUFBQSxxREFBQUMs` +
-	`VUFBQSxFQUFBQyxnQkFBQTtFQUFBOztFQUFBLFNBQUFDLHVCQUFBQyxHQUFBO0lBQUEsT0FBQUEsR0FBQSxJQUFBQSxHQUFBLENBQUFDLFVBQ` +
-	`UEsV0FBQUQsR0FBQSxDQUFBRSxPQUFBLG1CQUFBRixHQUFBLENBQUFFLE9BQUEsR0FBQUYsR0FBQTtFQUFBO0VBQUEsTUFJT0csY0FBYyxHQU` +
-	`FBSixzQkFBQSxDQUFBRCxnQkFBQTtFQUVyQjtBQUNBO0FBQ0E7RUFGQSxNQUdxQk0sSUFBSSxHQUFTRCxjQUFjLENBQUFFLE1BQUE7SUFDeEN` +
-	`DLFFBQVEsV0FBQUMsVUFBQSxFQUFTO01BQ3ZCVixVQUFVLENBQUNXLElBQUksQ0FBQyxjQUFjLENBQUM7SUFDaEM7RUFBQztFQUFBLE9BSG1C` +
-	`SixJQUFJO0FBQUEifQ==`;
+${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC5jb250cm9sbGVyLmpzIiwibmFtZXMiOlsic2FwIiwidWkiLCJkZWZpbmUiLCJNZXNzYWdlQm94IiwiX19CYXNlQ29udHJvbGxlciIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJvYmoiLCJfX2VzTW9kdWxlIiwiZGVmYXVsdCIsIkJhc2VDb250cm9sbGVyIiwiTWFpbiIsImV4dGVuZCIsInNheUhlbGxvIiwiX3NheUhlbGxvIiwic2hvdyJdLCJzb3VyY2VzIjpbInRlc3QuY29udHJvbGxlci50cyJdLCJzb3VyY2VzQ29udGVudCI6WyIvKiFcbiAqICR7Y29weXJpZ2h0fVxuICovXG5pbXBvcnQgTWVzc2FnZUJveCBmcm9tIFwic2FwL20vTWVzc2FnZUJveFwiO1xuaW1wb3J0IEJhc2VDb250cm9sbGVyIGZyb20gXCIuL0Jhc2VDb250cm9sbGVyXCI7XG5cbi8qKlxuICogQG5hbWVzcGFjZSBjb20ubWIudHMudGVzdGFwcC5jb250cm9sbGVyXG4gKi9cbmV4cG9ydCBkZWZhdWx0IGNsYXNzIE1haW4gZXh0ZW5kcyBCYXNlQ29udHJvbGxlciB7XG5cdHB1YmxpYyBzYXlIZWxsbygpOiB2b2lkIHtcblx0TWVzc2FnZUJveC5zaG93KFwiSGVsbG8gV29ybGQhXCIpO1xuXHR9XG59XG4iXSwibWFwcGluZ3MiOiJBQUFBO0FBQ0E7QUFDQTtBQUZBOztBQUFBQSxHQUFBLENBQUFDLEVBQUEsQ0FBQUMsTUFBQSxxREFBQUMsVUFBQSxFQUFBQyxnQkFBQTtFQUFBOztFQUFBLFNBQUFDLHVCQUFBQyxHQUFBO0lBQUEsT0FBQUEsR0FBQSxJQUFBQSxHQUFBLENBQUFDLFVBQUEsV0FBQUQsR0FBQSxDQUFBRSxPQUFBLG1CQUFBRixHQUFBLENBQUFFLE9BQUEsR0FBQUYsR0FBQTtFQUFBO0VBQUEsTUFJT0csY0FBYyxHQUFBSixzQkFBQSxDQUFBRCxnQkFBQTtFQUVyQjtBQUNBO0FBQ0E7RUFGQSxNQUdxQk0sSUFBSSxHQUFTRCxjQUFjLENBQUFFLE1BQUE7SUFDeENDLFFBQVEsV0FBQUMsVUFBQSxFQUFTO01BQ3ZCVixVQUFVLENBQUNXLElBQUksQ0FBQyxjQUFjLENBQUM7SUFDaEM7RUFBQztFQUFBLE9BSG1CSixJQUFJO0FBQUEifQ==`;
+	/* eslint-enable max-len */
 
 	/* The above is a base64 encoded version of the following string
 		(identical to one in the next input source map test below): */
@@ -476,28 +609,69 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	// Both source maps still contain the "sourcesContent" attribute
 	const expectedDbgContent = content.replace(/data:application\/json;charset=utf-8;base64,.+/, "test-dbg.controller.js.map\n");
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox",` +
-		`"__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend",` +
-		`"sayHello","_sayHello","show"],"sources":["test.controller.ts"],"sourcesContent":["/*!\\n * \${copyright}` +
-		`\\n */\\nimport MessageBox from \\"sap/m/MessageBox\\";\\nimport BaseController from \\"./BaseController\\";` +
-		`\\n\\n/**\\n * @namespace com.mb.ts.testapp.controller\\n */\\nexport default class Main extends ` +
-		`BaseController {\\n\\tpublic sayHello(): void {\\n\\tMessageBox.show(\\"Hello World!\\");\\n\\t}\\n}\\n"],` +
-		`"mappings":";;;AAAA,aAAAA,IAAAC,GAAAC,OAAA,` +
-		`iDAAAC,EAAAC,GAAA,sBAAAC,EAAAC,GAAA,OAAAA,KAAAC,mBAAAD,EAAAE,UAAA,YAAAF,EAAAE,QAAAF,CAAA,OAIOG,EAAcJ,EAAAD,` +
-		`GAErB,MAGqBM,EAAaD,EAAcE,OAAA,wBACxCC,SAAQ,SAAAC,IACdV,EAAWW,KAAK,eACjB,IAAC,OAHmBJ,CAAI"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		"sourcesContent":
+		[
+			// eslint-disable-next-line
+			"/*!\n * ${copyright}\n */\nimport MessageBox from \"sap/m/MessageBox\";\nimport BaseController from \"./BaseController\";\n\n/**\n * @namespace com.mb.ts.testapp.controller\n */\nexport default class Main extends BaseController {\n\tpublic sayHello(): void {\n\tMessageBox.show(\"Hello World!\");\n\t}\n}\n"
+		],
+		// eslint-disable-next-line
+		"mappings": ";;;AAAA,aAAAA,IAAAC,GAAAC,OAAA,iDAAAC,EAAAC,GAAA,sBAAAC,EAAAC,GAAA,OAAAA,KAAAC,mBAAAD,EAAAE,UAAA,YAAAF,EAAAE,QAAAF,CAAA,OAIOG,EAAcJ,EAAAD,GAErB,MAGqBM,EAAaD,EAAcE,OAAA,wBACxCC,SAAQ,SAAAC,IACdV,EAAWW,KAAK,eACjB,IAAC,OAHmBJ,CAAI"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
-	const expectedDbgSourceMap = `{"version":3,"file":"test-dbg.controller.js","names":["sap","ui","define",` +
-		`"MessageBox","__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController",` +
-		`"Main","extend","sayHello","_sayHello","show"],"sources":["test.controller.ts"],"sourcesContent":["/*!\\n` +
-		` * \${copyright}\\n */\\nimport MessageBox from \\"sap/m/MessageBox\\";\\nimport BaseController from ` +
-		`\\"./BaseController\\";\\n\\n/**\\n * @namespace com.mb.ts.testapp.controller\\n */\\nexport default class ` +
-		`Main extends BaseController {\\n\\tpublic sayHello(): void {\\n\\tMessageBox.show(\\"Hello World!\\");` +
-		`\\n\\t}\\n}\\n"],` +
-		`"mappings":"AAAA;AACA;` +
-		`AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,` +
-		`OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,` +
-		`cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,` +
-		`EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}`;
+	const expectedDbgSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test-dbg.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		"sourcesContent":
+		[
+			// eslint-disable-next-line
+			"/*!\n * ${copyright}\n */\nimport MessageBox from \"sap/m/MessageBox\";\nimport BaseController from \"./BaseController\";\n\n/**\n * @namespace com.mb.ts.testapp.controller\n */\nexport default class Main extends BaseController {\n\tpublic sayHello(): void {\n\tMessageBox.show(\"Hello World!\");\n\t}\n}\n"
+		],
+		// eslint-disable-next-line
+		"mappings": "AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"
+	});
 	t.deepEqual(await dbgSourceMapResource.getString(), expectedDbgSourceMap,
 		"Correct source map content for debug variant ");
 });
@@ -520,16 +694,71 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 	// Note: Transitive source map generated for section "Component-preload.js?bundle-code-0" does not contain a
 	// "names" array. This reflect the behavior of the UI5 Tooling bundler and causes issues with Terser. See:
 	// https://github.com/jridgewell/trace-mapping/pull/29
-	const inputSourceMapContent =
-		`{"version":3,"file":"Component-preload.js","sections":[{"offset":{"line":1,"column":0},"map":{"version":3,` +
-		`"sources":["Component-preload.js?bundle-code-0"],"mappings":"AAAA;AACA","sourcesContent":` +
-		`["sap.ui.require.preload({\\n"],"sourceRoot":""}},{"offset":{"line":3,"column":0},"map":{"version":3,` +
-		`"file":"Main.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
-		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
-		`"_sayHello","show"],"sources":["Main-dbg.controller.js"],"mappings":"AAAA;;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,` +
-		`CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,` +
-		`EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,` +
-		`EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT","sourceRoot":"controller"}}]}`;
+	const inputSourceMapContent = JSON.stringify({
+		"version": 3,
+		"file": "Component-preload.js",
+		"sections":
+		[
+			{
+				"offset":
+				{
+					"line": 1,
+					"column": 0
+				},
+				"map":
+				{
+					"version": 3,
+					"sources":
+					[
+						"Component-preload.js?bundle-code-0"
+					],
+					"mappings": "AAAA;AACA",
+					"sourcesContent":
+					[
+						"sap.ui.require.preload({\n"
+					],
+					"sourceRoot": ""
+				}
+			},
+			{
+				"offset":
+				{
+					"line": 3,
+					"column": 0
+				},
+				"map":
+				{
+					"version": 3,
+					"file": "Main.controller.js",
+					"names":
+					[
+						"sap",
+						"ui",
+						"define",
+						"MessageBox",
+						"__BaseController",
+						"_interopRequireDefault",
+						"obj",
+						"__esModule",
+						"default",
+						"BaseController",
+						"Main",
+						"extend",
+						"sayHello",
+						"_sayHello",
+						"show"
+					],
+					"sources":
+					[
+						"Main-dbg.controller.js"
+					],
+					// eslint-disable-next-line
+					"mappings": "AAAA;;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT",
+					"sourceRoot": "controller"
+				}
+			}
+		]
+	});
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, cb) => {
@@ -567,25 +796,106 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	const expectedDbgContent = content.replace("Component-preload.js.map", "Component-preload-dbg.js.map");
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"Component-preload.js","names":["sap","ui","require","preload",` +
-	`"define","MessageBox","__BaseController","_interopRequireDefault","obj","__esModule","default",` +
-	`"BaseController","Main","extend","sayHello","_sayHello","show"],"sources":` +
-	`["Component-preload.js?bundle-code-0","controller/Main-dbg.controller.js"],"sourcesContent":` +
-	`["sap.ui.require.preload({\\n",null],"mappings":";AAAAA,IAAAC,GAAAC,QAAAC,QAAA,CACA;;;;ACEA,aAEAH,IAAIC,GAAGG,` +
-	`OAAO,CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,` +
-	`EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,` +
-	`KAAK,eAClB,IAEF,OAAOJ,CACT,E"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "Component-preload.js",
+		"names": [
+			"sap",
+			"ui",
+			"require",
+			"preload",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"Component-preload.js?bundle-code-0",
+			"controller/Main-dbg.controller.js"
+		],
+		"sourcesContent":
+		[
+			"sap.ui.require.preload({\n",
+			null
+		],
+		// eslint-disable-next-line
+		"mappings": ";AAAAA,IAAAC,GAAAC,QAAAC,QAAA,CACA;;;;ACEA,aAEAH,IAAIC,GAAGG,OAAO,CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT,E"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
-	const expectedDbgSourceMap = `{"version":3,"file":"Component-preload-dbg.js","sections":` +
-		`[{"offset":{"line":1,"column":0},"map":{"version":3,` +
-		`"sources":["Component-preload.js?bundle-code-0"],"mappings":"AAAA;AACA","sourcesContent":` +
-		`["sap.ui.require.preload({\\n"],"sourceRoot":""}},{"offset":{"line":3,"column":0},"map":{"version":3,` +
-		`"file":"Main.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
-		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
-		`"_sayHello","show"],"sources":["Main-dbg.controller.js"],"mappings":"AAAA;;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,` +
-		`CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,` +
-		`EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,` +
-		`EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT","sourceRoot":"controller"}}]}`;
+	const expectedDbgSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "Component-preload-dbg.js",
+		"sections":
+		[
+			{
+				"offset":
+				{
+					"line": 1,
+					"column": 0
+				},
+				"map":
+				{
+					"version": 3,
+					"sources":
+					[
+						"Component-preload.js?bundle-code-0"
+					],
+					"mappings": "AAAA;AACA",
+					"sourcesContent":
+					[
+						"sap.ui.require.preload({\n"
+					],
+					"sourceRoot": ""
+				}
+			},
+			{
+				"offset":
+				{
+					"line": 3,
+					"column": 0
+				},
+				"map":
+				{
+					"version": 3,
+					"file": "Main.controller.js",
+					"names":
+					[
+						"sap",
+						"ui",
+						"define",
+						"MessageBox",
+						"__BaseController",
+						"_interopRequireDefault",
+						"obj",
+						"__esModule",
+						"default",
+						"BaseController",
+						"Main",
+						"extend",
+						"sayHello",
+						"_sayHello",
+						"show"
+					],
+					"sources":
+					[
+						"Main-dbg.controller.js"
+					],
+					// eslint-disable-next-line
+					"mappings": "AAAA;;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT",
+					"sourceRoot": "controller"
+				}
+			}
+		]
+	});
 	t.deepEqual(await dbgSourceMapResource.getString(), expectedDbgSourceMap,
 		"Correct source map content for debug variant ");
 });
@@ -645,12 +955,32 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	const expectedDbgContent = content.replace(/\/\/#.*\s+$/, ""); // Remove sourceMappingURL reference
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox",` +
-	`"__BaseController","_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend",` +
-	`"sayHello","_sayHello","show"],"sources":["test-dbg.controller.js"],"mappings":";;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,` +
-	`CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,EAAIE,` +
-	`QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,KAAK,` +
-	`eAClB,IAEF,OAAOJ,CACT"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test-dbg.controller.js"
+		],
+		// eslint-disable-next-line
+		"mappings": ";;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 	t.is(dbgSourceMapResource, undefined,
 		"No source map resource has been created for the debug variant resource");
@@ -732,8 +1062,18 @@ ${SOURCE_MAPPING_URL}=Demo.view.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	const expectedDbgContent = content.replace(/\/\/#.*\s+$/, ""); // Remove sourceMappingURL reference
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"Demo.view.js","names":["console","log"],` +
-	`"sources":["Demo-dbg.view.js"],"mappings":"AAAA;;;;GAMAA,QAAQC,IAAI"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "Demo.view.js",
+		"names": [
+			"console",
+			"log"
+		],
+		"sources": [
+			"Demo-dbg.view.js"
+		],
+		"mappings": "AAAA;;;;GAMAA,QAAQC,IAAI"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 	t.is(dbgSourceMapResource, undefined,
 		"No source map resource has been created for the debug variant resource");
@@ -749,9 +1089,18 @@ test("Input source map: Non-standard name referenced", async (t) => {
 console.log("Hello");
 ${SOURCE_MAPPING_URL}=../different-name.map
 `;
-	const inputSourceMapContent =
-		`{"version":3,"file":"Demo.view.js","names":["console","log"],"sources":["Demo.view.ts"],` +
-		`"mappings":";;AAAA;AACA;AACA;AACA;AACCA,OAAO,CAACC,GAAG,CAAC,OAAO,CAAC"}`;
+	const inputSourceMapContent = JSON.stringify({
+		"version": 3,
+		"file": "Demo.view.js",
+		"names": [
+			"console",
+			"log"
+		],
+		"sources": [
+			"Demo.view.ts"
+		],
+		"mappings": ";;AAAA;AACA;AACA;AACA;AACCA,OAAO,CAACC,GAAG,CAAC,OAAO,CAAC"
+	});
 
 	const fs = {
 		readFile: sinon.stub().callsFake((filePath, cb) => {
@@ -787,8 +1136,18 @@ ${SOURCE_MAPPING_URL}=Demo.view.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	const expectedDbgContent = content.replace("../different-name.map", "Demo-dbg.view.js.map");
 	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
-	const expectedSourceMap = `{"version":3,"file":"Demo.view.js","names":["console","log"],` +
-	`"sources":["Demo.view.ts"],"mappings":";;;;GAICA,QAAQC,IAAI"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "Demo.view.js",
+		"names": [
+			"console",
+			"log"
+		],
+		"sources": [
+			"Demo.view.ts"
+		],
+		"mappings": ";;;;GAICA,QAAQC,IAAI"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 	t.is(await dbgSourceMapResource.getString(), inputSourceMapContent.replace("Demo.view.js", "Demo-dbg.view.js"),
 		"Correct source map content for debug variant");
@@ -864,10 +1223,21 @@ function test(t){var o=t;console.log(o)}test();
 ${SOURCE_MAPPING_URL}=test.view.js.map`;
 	t.deepEqual(await resource.getString(), expected, "Correct minified content");
 	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
-	const expectedSourceMap =
-		`{"version":3,"file":"test.view.js",` +
-		`"names":["test","paramA","variableA","console","log"],"sources":["test-dbg.view.js"],` +
-		`"mappings":";;;AAIA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"}`;
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.view.js",
+		"names": [
+			"test",
+			"paramA",
+			"variableA",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test-dbg.view.js"
+		],
+		"mappings": ";;;AAIA,SAASA,KAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF"
+	});
 	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
 });
 
@@ -1030,26 +1400,37 @@ this code can't be parsed!`;
 test("getSourceMapFromUrl: Base64", async (t) => {
 	const {getSourceMapFromUrl} = __localFunctions__;
 	const readFileStub = sinon.stub();
-	const sourceMappingUrl = `data:application/json;charset=utf-8;base64,` +
-	`eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC5jb250cm9sbGVyLmpzIiwibmFtZXMiOlsic2FwIiwidWkiLCJkZWZpbmUiLCJNZXNzYWdlQm94Ii` +
-	`wiX19CYXNlQ29udHJvbGxlciIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJvYmoiLCJfX2VzTW9kdWxlIiwiZGVmYXVsdCIsIkJhc2VDb250` +
-	`cm9sbGVyIiwiTWFpbiIsImV4dGVuZCIsInNheUhlbGxvIiwiX3NheUhlbGxvIiwic2hvdyJdLCJzb3VyY2VzIjpbInRlc3QuY29udHJvbGxlci` +
-	`50cyJdLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTtBQUNBO0FBRkE7O0FBQUFBLEdBQUEsQ0FBQUMsRUFBQSxDQUFBQyxNQUFBLHFEQUFBQyxVQUFB` +
-	`LEVBQUFDLGdCQUFBO0VBQUE7O0VBQUEsU0FBQUMsdUJBQUFDLEdBQUE7SUFBQSxPQUFBQSxHQUFBLElBQUFBLEdBQUEsQ0FBQUMsVUFBQSxXQU` +
-	`FBRCxHQUFBLENBQUFFLE9BQUEsbUJBQUFGLEdBQUEsQ0FBQUUsT0FBQSxHQUFBRixHQUFBO0VBQUE7RUFBQSxNQUlPRyxjQUFjLEdBQUFKLHNC` +
-	`QUFBLENBQUFELGdCQUFBO0VBRXJCO0FBQ0E7QUFDQTtFQUZBLE1BR3FCTSxJQUFJLEdBQVNELGNBQWMsQ0FBQUUsTUFBQTtJQUN4Q0MsUUFBUS` +
-	`xXQUFBQyxVQUFBLEVBQVM7TUFDdkJWLFVBQVUsQ0FBQ1csSUFBSSxDQUFDLGNBQWMsQ0FBQztJQUNoQztFQUFDO0VBQUEsT0FIbUJKLElBQUk7` +
-	`QUFBQSJ9`;
+
+	// eslint-disable-next-line
+	const sourceMappingUrl = `data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGVzdC5jb250cm9sbGVyLmpzIiwibmFtZXMiOlsic2FwIiwidWkiLCJkZWZpbmUiLCJNZXNzYWdlQm94IiwiX19CYXNlQ29udHJvbGxlciIsIl9pbnRlcm9wUmVxdWlyZURlZmF1bHQiLCJvYmoiLCJfX2VzTW9kdWxlIiwiZGVmYXVsdCIsIkJhc2VDb250cm9sbGVyIiwiTWFpbiIsImV4dGVuZCIsInNheUhlbGxvIiwiX3NheUhlbGxvIiwic2hvdyJdLCJzb3VyY2VzIjpbInRlc3QuY29udHJvbGxlci50cyJdLCJtYXBwaW5ncyI6IkFBQUE7QUFDQTtBQUNBO0FBRkE7O0FBQUFBLEdBQUEsQ0FBQUMsRUFBQSxDQUFBQyxNQUFBLHFEQUFBQyxVQUFBLEVBQUFDLGdCQUFBO0VBQUE7O0VBQUEsU0FBQUMsdUJBQUFDLEdBQUE7SUFBQSxPQUFBQSxHQUFBLElBQUFBLEdBQUEsQ0FBQUMsVUFBQSxXQUFBRCxHQUFBLENBQUFFLE9BQUEsbUJBQUFGLEdBQUEsQ0FBQUUsT0FBQSxHQUFBRixHQUFBO0VBQUE7RUFBQSxNQUlPRyxjQUFjLEdBQUFKLHNCQUFBLENBQUFELGdCQUFBO0VBRXJCO0FBQ0E7QUFDQTtFQUZBLE1BR3FCTSxJQUFJLEdBQVNELGNBQWMsQ0FBQUUsTUFBQTtJQUN4Q0MsUUFBUSxXQUFBQyxVQUFBLEVBQVM7TUFDdkJWLFVBQVUsQ0FBQ1csSUFBSSxDQUFDLGNBQWMsQ0FBQztJQUNoQztFQUFDO0VBQUEsT0FIbUJKLElBQUk7QUFBQSJ9`;
 	// The above is a base64 encoded version of the following string
 	// (identical to one in the inline-input source map test somewhere above):
-	const decodedSourceMap =
-		`{"version":3,"file":"test.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
-		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
-		`"_sayHello","show"],"sources":["test.controller.ts"],"mappings":"AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,` +
-		`EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,` +
-		`UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,` +
-		`gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,` +
-		`CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"}`;
+	const decodedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"sap",
+			"ui",
+			"define",
+			"MessageBox",
+			"__BaseController",
+			"_interopRequireDefault",
+			"obj",
+			"__esModule",
+			"default",
+			"BaseController",
+			"Main",
+			"extend",
+			"sayHello",
+			"_sayHello",
+			"show"
+		],
+		"sources": [
+			"test.controller.ts"
+		],
+		// eslint-disable-next-line
+		"mappings": "AAAA;AACA;AACA;AAFA;;AAAAA,GAAA,CAAAC,EAAA,CAAAC,MAAA,qDAAAC,UAAA,EAAAC,gBAAA;EAAA;;EAAA,SAAAC,uBAAAC,GAAA;IAAA,OAAAA,GAAA,IAAAA,GAAA,CAAAC,UAAA,WAAAD,GAAA,CAAAE,OAAA,mBAAAF,GAAA,CAAAE,OAAA,GAAAF,GAAA;EAAA;EAAA,MAIOG,cAAc,GAAAJ,sBAAA,CAAAD,gBAAA;EAErB;AACA;AACA;EAFA,MAGqBM,IAAI,GAASD,cAAc,CAAAE,MAAA;IACxCC,QAAQ,WAAAC,UAAA,EAAS;MACvBV,UAAU,CAACW,IAAI,CAAC,cAAc,CAAC;IAChC;EAAC;EAAA,OAHmBJ,IAAI;AAAA"
+	});
 
 	const res = await getSourceMapFromUrl({
 		sourceMappingUrl,
