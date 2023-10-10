@@ -62,7 +62,9 @@ export default async function execMinification({
 		// Note: err.filename contains the debug-name
 		throw new Error(
 			`Minification failed with error: ${err.message} in file ${filename} ` +
-			`(line ${err.line}, col ${err.col}, pos ${err.pos})`);
+			`(line ${err.line}, col ${err.col}, pos ${err.pos})`, {
+				cause: err
+			});
 	}
 }
 

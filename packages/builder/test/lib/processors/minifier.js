@@ -502,6 +502,94 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 		"Correct source map content for debug variant ");
 });
 
+test("Input source map: Index map", async (t) => {
+	/* eslint-disable max-len */
+	const content = `//@ui5-bundle test/Component-preload.js
+sap.ui.require.preload({
+	"test/controller/Main.controller.js":function(){
+/*!
+ * \${copyright}
+ */
+"use strict";sap.ui.define(["sap/m/MessageBox","./BaseController"],function(e,t){"use strict";function n(e){return e&&e.__esModule&&typeof e.default!=="undefined"?e.default:e}const o=n(t);const s=o.extend("test.controller.Main",{sayHello:function t(){e.show("Hello World!")}});return s});
+},
+});
+${SOURCE_MAPPING_URL}=Component-preload.js.map
+`;
+	/* eslint-enable max-len */
+
+	// Note: Transitive source map generated for section "Component-preload.js?bundle-code-0" does not contain a
+	// "names" array. This reflect the behavior of the UI5 Tooling bundler and causes issues with Terser. See:
+	// https://github.com/jridgewell/trace-mapping/pull/29
+	const inputSourceMapContent =
+		`{"version":3,"file":"Component-preload.js","sections":[{"offset":{"line":1,"column":0},"map":{"version":3,` +
+		`"sources":["Component-preload.js?bundle-code-0"],"mappings":"AAAA;AACA","sourcesContent":` +
+		`["sap.ui.require.preload({\\n"],"sourceRoot":""}},{"offset":{"line":3,"column":0},"map":{"version":3,` +
+		`"file":"Main.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
+		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
+		`"_sayHello","show"],"sources":["Main-dbg.controller.js"],"mappings":"AAAA;;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,` +
+		`CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,` +
+		`EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,` +
+		`EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT","sourceRoot":"controller"}}]}`;
+
+	const fs = {
+		readFile: sinon.stub().callsFake((filePath, cb) => {
+			switch (filePath) {
+			case "/resources/Component-preload.js.map":
+				cb(null, inputSourceMapContent);
+				return;
+			}
+			const err = new Error("ENOENT: no such file or directory, open " + filePath);
+			err.code = "ENOENT";
+			cb(err);
+		})
+	};
+
+	const testResource = createResource({
+		path: "/resources/Component-preload.js",
+		string: content
+	});
+	const [{resource, dbgResource, sourceMapResource, dbgSourceMapResource}] = await minifier({
+		resources: [testResource],
+		fs,
+		options: {
+			readSourceMappingUrl: true,
+		}
+	});
+	/* eslint-disable max-len */
+	const expected = `//@ui5-bundle test/Component-preload.js
+sap.ui.require.preload({"test/controller/Main.controller.js":function(){
+/*!
+ * \${copyright}
+ */
+"use strict";sap.ui.define(["sap/m/MessageBox","./BaseController"],function(e,t){"use strict";function n(e){return e&&e.__esModule&&typeof e.default!=="undefined"?e.default:e}const o=n(t);const r=o.extend("test.controller.Main",{sayHello:function t(){e.show("Hello World!")}});return r})}});
+${SOURCE_MAPPING_URL}=Component-preload.js.map`;
+	/* eslint-enable max-len */
+	t.deepEqual(await resource.getString(), expected, "Correct minified content");
+	const expectedDbgContent = content.replace("Component-preload.js.map", "Component-preload-dbg.js.map");
+	t.deepEqual(await dbgResource.getString(), expectedDbgContent, "Correct debug content");
+	const expectedSourceMap = `{"version":3,"file":"Component-preload.js","names":["sap","ui","require","preload",` +
+	`"define","MessageBox","__BaseController","_interopRequireDefault","obj","__esModule","default",` +
+	`"BaseController","Main","extend","sayHello","_sayHello","show"],"sources":` +
+	`["Component-preload.js?bundle-code-0","controller/Main-dbg.controller.js"],"sourcesContent":` +
+	`["sap.ui.require.preload({\\n",null],"mappings":";AAAAA,IAAAC,GAAAC,QAAAC,QAAA,CACA;;;;ACEA,aAEAH,IAAIC,GAAGG,` +
+	`OAAO,CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,` +
+	`EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,EAAWW,` +
+	`KAAK,eAClB,IAEF,OAAOJ,CACT,E"}`;
+	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
+	const expectedDbgSourceMap = `{"version":3,"file":"Component-preload-dbg.js","sections":` +
+		`[{"offset":{"line":1,"column":0},"map":{"version":3,` +
+		`"sources":["Component-preload.js?bundle-code-0"],"mappings":"AAAA;AACA","sourcesContent":` +
+		`["sap.ui.require.preload({\\n"],"sourceRoot":""}},{"offset":{"line":3,"column":0},"map":{"version":3,` +
+		`"file":"Main.controller.js","names":["sap","ui","define","MessageBox","__BaseController",` +
+		`"_interopRequireDefault","obj","__esModule","default","BaseController","Main","extend","sayHello",` +
+		`"_sayHello","show"],"sources":["Main-dbg.controller.js"],"mappings":"AAAA;;;AAGA,aAEAA,IAAIC,GAAGC,OAAO,` +
+		`CAAC,mBAAoB,oBAAqB,SAAUC,EAAYC,GAC5E,aAEA,SAASC,EAAuBC,GAC9B,OAAOA,GAAOA,EAAIC,mBAAqBD,EAAIE,UAAY,YAAcF,` +
+		`EAAIE,QAAUF,CACrF,CACA,MAAMG,EAAiBJ,EAAuBD,GAI9C,MAAMM,EAAOD,EAAeE,OAAO,uBAAwB,CACzDC,SAAU,SAASC,IACjBV,` +
+		`EAAWW,KAAK,eAClB,IAEF,OAAOJ,CACT","sourceRoot":"controller"}}]}`;
+	t.deepEqual(await dbgSourceMapResource.getString(), expectedDbgSourceMap,
+		"Correct source map content for debug variant ");
+});
+
 test("Input source map: Reference is ignored in default configuration", async (t) => {
 	const content = `/*!
  * \${copyright}

@@ -201,12 +201,32 @@ export default async function({
 				});
 
 				if (sourceMapContent) {
-					// Provide source map to terser as "input source map"
-					sourceMapOptions.content = sourceMapContent;
-
-					// Also use the source map for the debug variant of the resource
-					// First update the file reference within the source map
 					const sourceMapJson = JSON.parse(sourceMapContent);
+
+					if (sourceMapJson.sections) {
+						// TODO 4.0
+						// Module "@jridgewell/trace-mapping" (used by Terser) can't handle index map sections lacking
+						// a "names" array. Since this is a common occurrence for UI5 Tooling bundles, we search for
+						// such cases here and fix them until https://github.com/jridgewell/trace-mapping/pull/29 is
+						// resolved and Terser upgraded the dependency
+
+						// Create a dedicated clone before modifying the source map as to not alter the debug source map
+						const clonedSourceMapJson = JSON.parse(sourceMapContent);
+						clonedSourceMapJson.sections.forEach(({map}) => {
+							if (!map.names) {
+								// Add missing names array
+								map.names = [];
+							}
+						});
+						// Use modified source map as input source map
+						sourceMapOptions.content = JSON.stringify(clonedSourceMapJson);
+					} else {
+						// Provide source map to terser as "input source map"
+						sourceMapOptions.content = sourceMapContent;
+					}
+
+					// Use the original source map for the debug variant of the resource
+					// First update the file reference within the source map
 					sourceMapJson.file = dbgFilename;
 
 					// Then create a new resource
@@ -214,6 +234,7 @@ export default async function({
 						string: JSON.stringify(sourceMapJson),
 						path: dbgPath + ".map"
 					});
+					// And reference the resource in the debug resource
 					dbgResource.setString(code + `//# sourceMappingURL=${dbgFilename}.map\n`);
 				}
 			} else {
