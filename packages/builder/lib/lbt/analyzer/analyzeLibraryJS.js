@@ -61,6 +61,9 @@ async function analyze(resource) {
 						libInfo.elements = getStringArray(value, true);
 					} else if ( ["designtime", "dependencies", "extensions", "name", "version"].includes(key) ) {
 						// do nothing, for all other supported properties
+					} else if ( key === "apiVersion" &&
+						(value.type === Syntax.Literal && typeof value.value === "number") ) {
+						// just a validation
 					} else {
 						log.error(
 							"Unexpected property '" + key +

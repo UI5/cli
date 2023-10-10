@@ -250,3 +250,123 @@ sap.ui.define([
 	t.deepEqual(result.elements, [], "initLibrary is a method with unknown source and is not analyzed");
 	t.deepEqual(result.interfaces, [], "initLibrary is a method with unknown source and is not analyzed");
 });
+
+test.serial("analyze: library.js apiVersion property", async (t) => {
+	const libraryJS = `
+sap.ui.define([
+	'sap/ui/core/Core',
+], function(Core) {
+	"use strict";
+	sap.ui.getCore().initLibrary({
+		name : "library.test",
+		version: "1.0.0",
+		dependencies : ["sap.ui.core"],
+		types: [
+			"library.test.ButtonType",
+			"library.test.DialogType",
+		],
+		interfaces: [
+			"library.test.IContent",
+		],
+		controls: [
+			"library.test.Button",
+			"library.test.CheckBox",
+			"library.test.Dialog",
+			"library.test.Input",
+			"library.test.Label",
+			"library.test.Link",
+			"library.test.Menu",
+			"library.test.Text"
+		],
+		elements: [
+			"library.test.MenuItem"
+		],
+		extensions: {
+			customExtension: "UI5"
+		},
+		designtime: "library/test/library.designtime.js",
+		apiVersion: 2
+	});
+	return thisLib;
+});`;
+
+	const librayJSPath = "library/test/library.js";
+	const errorLogStub = sinon.stub();
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS.js", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				error: errorLogStub
+			})
+		}
+	});
+
+	const mockResource = createMockResource(libraryJS, librayJSPath);
+
+	await analyzeLibraryJSWithStubbedLogger(mockResource);
+
+	t.is(errorLogStub.callCount, 0,
+		"'apiVersion' is part of the allowlist and is with the correct type, so there's no error thrown.");
+});
+
+test.serial("analyze: library.js apiVersion property with incorrect type", async (t) => {
+	const libraryJS = `
+sap.ui.define([
+	'sap/ui/core/Core',
+], function(Core) {
+	"use strict";
+	sap.ui.getCore().initLibrary({
+		name : "library.test",
+		version: "1.0.0",
+		dependencies : ["sap.ui.core"],
+		types: [
+			"library.test.ButtonType",
+			"library.test.DialogType",
+		],
+		interfaces: [
+			"library.test.IContent",
+		],
+		controls: [
+			"library.test.Button",
+			"library.test.CheckBox",
+			"library.test.Dialog",
+			"library.test.Input",
+			"library.test.Label",
+			"library.test.Link",
+			"library.test.Menu",
+			"library.test.Text"
+		],
+		elements: [
+			"library.test.MenuItem"
+		],
+		extensions: {
+			customExtension: "UI5"
+		},
+		designtime: "library/test/library.designtime.js",
+		apiVersion: "invalid type for 'apiVersion'"
+	});
+	return thisLib;
+});`;
+
+	const librayJSPath = "library/test/library.js";
+	const errorLogStub = sinon.stub();
+	const analyzeLibraryJSWithStubbedLogger = await esmock("../../../../lib/lbt/analyzer/analyzeLibraryJS.js", {
+		"@ui5/logger": {
+			getLogger: () => ({
+				error: errorLogStub
+			})
+		}
+	});
+
+	const mockResource = createMockResource(libraryJS, librayJSPath);
+
+	await analyzeLibraryJSWithStubbedLogger(mockResource);
+
+	t.is(
+		errorLogStub.callCount, 1,
+		"'apiVersion' is part of the allowlist but is with an incorrect type, so there's an error."
+	);
+	t.is(errorLogStub.getCall(0).args[0],
+		"Unexpected property 'apiVersion' or wrong type for 'apiVersion'" +
+		" for a library initialization call in 'library/test/library.js'",
+		"The error log message of the first call is correct");
+});
