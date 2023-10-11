@@ -777,6 +777,7 @@ async function transform(changes, moduleContent, moduleSourceMap) {
 function createTransientSourceMap({moduleName, moduleContent, includeContent = false}) {
 	const sourceMap = {
 		version: 3,
+		names: [],
 		sources: [moduleName],
 		// TODO: check whether moduleContent.match() with \n is better w.r.t performance/memory usage
 		mappings: encodeMappings(moduleContent.split("\n").map((line, i) => {

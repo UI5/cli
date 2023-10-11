@@ -1549,6 +1549,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 
 	const expectedSourceMap2 = { // Transitive source map
 		"version": 3,
+		"names": [],
 		"sources":
 		[
 			"jquery.sap.xom.js"
@@ -1746,6 +1747,7 @@ test("rewriteDefine (with empty moduleSourceMap)", async (t) => {
 });`,
 		moduleSourceMap: {
 			"version": 3,
+			"names": [],
 			"sources": ["my/test/module.js"],
 			"mappings": encodeMappings(inputMappings)
 		}
@@ -1760,6 +1762,7 @@ test("rewriteDefine (with empty moduleSourceMap)", async (t) => {
 	t.deepEqual(decodeMappings(moduleSourceMap.mappings), expectedMappings);
 	t.deepEqual(moduleSourceMap, {
 		"version": 3,
+		"names": [],
 		"sources": ["my/test/module.js"],
 		"mappings": encodeMappings(expectedMappings)
 	});
@@ -1885,6 +1888,7 @@ test("getSourceMapForModule: No source map available for debug variant", async (
 	t.is(moduleContent, "// Some content\n", "Source map URL has been removed from module content");
 	t.deepEqual(moduleSourceMap, {
 		mappings: "AAAA;AACA",
+		names: [],
 		sources: [
 			"module-dbg.js",
 		],
@@ -1941,6 +1945,7 @@ ${SOURCE_MAPPING_URL}=module.js.map`
 	t.is(moduleContent, "// Some content\n", "Source map URL has been removed from module content");
 	t.deepEqual(moduleSourceMap, {
 		mappings: "AAAA;AACA",
+		names: [],
 		sources: [
 			"module.js",
 		],
@@ -1961,6 +1966,7 @@ ${SOURCE_MAPPING_URL}=https://ui5.sap.com/resources/my/test/module.js.map`
 	t.is(moduleContent, "// Some content\n", "Source map URL has been removed from module content");
 	t.deepEqual(moduleSourceMap, {
 		mappings: "AAAA;AACA",
+		names: [],
 		sources: [
 			"module.js",
 		],
@@ -1981,6 +1987,7 @@ ${SOURCE_MAPPING_URL}=/resources/my/test/module.js.map`
 	t.is(moduleContent, "// Some content\n", "Source map URL has been removed from module content");
 	t.deepEqual(moduleSourceMap, {
 		mappings: "AAAA;AACA",
+		names: [],
 		sources: [
 			"module.js",
 		],
@@ -2028,6 +2035,7 @@ ${SOURCE_MAPPING_URL}=data:application/pony;charset=utf-8;base64,AAAA`
 	t.is(moduleContent, "// Some content\n", "Source map URL has been removed from module content");
 	t.deepEqual(moduleSourceMap, {
 		mappings: "AAAA;AACA",
+		names: [],
 		sources: [
 			"module.js",
 		],
@@ -2048,6 +2056,7 @@ Lines`,
 	});
 	t.deepEqual(res, {
 		"version": 3,
+		"names": [],
 		"sources": ["my/test/module.js"],
 		"mappings": "AAAA;AACA;AACA;AACA"
 	}, "Expected source map has been created");
@@ -2067,6 +2076,7 @@ Lines`;
 	});
 	t.deepEqual(res, {
 		version: 3,
+		names: [],
 		sources: ["my/test/module.js"],
 		mappings: "AAAA;AACA;AACA;AACA",
 		sourcesContent: [moduleContent]

@@ -29,7 +29,7 @@
 		},
 		{
 			"name": "components/Component-preload.js.map",
-			"size": 713,
+			"size": 724,
 			"isDebug": true
 		},
 		{
@@ -86,7 +86,7 @@
 		},
 		{
 			"name": "components/subcomponent1/Component-preload.js.map",
-			"size": 520,
+			"size": 531,
 			"isDebug": true
 		},
 		{
@@ -125,7 +125,7 @@
 		},
 		{
 			"name": "components/subcomponent2/Component-preload.js.map",
-			"size": 520,
+			"size": 531,
 			"isDebug": true
 		},
 		{
@@ -164,7 +164,7 @@
 		},
 		{
 			"name": "components/subcomponent3/Component-preload.js.map",
-			"size": 520,
+			"size": 531,
 			"isDebug": true
 		},
 		{
@@ -196,7 +196,7 @@
 		},
 		{
 			"name": "customBundle-dbg.js.map",
-			"size": 784,
+			"size": 839,
 			"isDebug": true
 		},
 		{
@@ -214,7 +214,7 @@
 		},
 		{
 			"name": "customBundle.js.map",
-			"size": 942,
+			"size": 953,
 			"isDebug": true
 		},
 		{
