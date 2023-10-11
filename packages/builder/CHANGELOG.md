@@ -2,10 +2,23 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.0.9...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.1.0...HEAD).
+
+<a name="v3.1.0"></a>
+## [v3.1.0] - 2023-10-11
+### Bug Fixes
+- **bundle/Builder:** Add missing 'names' attribute to generated source maps [`57e0e50`](https://github.com/SAP/ui5-builder/commit/57e0e5047638a9a704a696b8af7780fbbceefbc4)
+
+### Features
+- Validate apiVersion property in Library.init ([#943](https://github.com/SAP/ui5-builder/issues/943)) [`52bf258`](https://github.com/SAP/ui5-builder/commit/52bf25842a59c3fa1ddbe71b482b232e18b55288)
+- **Minifier:** Support input source maps ([#780](https://github.com/SAP/ui5-builder/issues/780)) [`67ecb27`](https://github.com/SAP/ui5-builder/commit/67ecb27e44a2d84e6b2203f31049220dcbcd41f0)
+
+### Reverts
+- [INTERNAL] Azure Pipelines: Switch back to Node 20.5.x
+
 
 <a name="v3.0.9"></a>
-## [v3.0.9] - 2023-07-25
+## [v3.0.9] - 2023-07-26
 
 <a name="v3.0.8"></a>
 ## [v3.0.8] - 2023-07-19
@@ -819,6 +832,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v3.1.0]: https://github.com/SAP/ui5-builder/compare/v3.0.9...v3.1.0
 [v3.0.9]: https://github.com/SAP/ui5-builder/compare/v3.0.8...v3.0.9
 [v3.0.8]: https://github.com/SAP/ui5-builder/compare/v3.0.7...v3.0.8
 [v3.0.7]: https://github.com/SAP/ui5-builder/compare/v3.0.6...v3.0.7
