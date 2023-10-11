@@ -2,10 +2,18 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.7.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.7.2...HEAD).
+
+<a name="v3.7.2"></a>
+## [v3.7.2] - 2023-10-11
+### Dependency Updates
+- Bump make-fetch-happen from 11.1.1 to 13.0.0 [`f2e264e`](https://github.com/SAP/ui5-project/commit/f2e264e87dfef1d5a132a1a0bf35043a789f8e84)
+- Bump pacote from 15.2.0 to 17.0.4 [`f071399`](https://github.com/SAP/ui5-project/commit/f071399d994963b415c8ea35a629c465ae539f23)
+- Bump [@npmcli](https://github.com/npmcli)/config from 6.4.0 to 8.0.0 [`c9f5218`](https://github.com/SAP/ui5-project/commit/c9f521815bab022bc8c0e8a3c27658266f01c655)
+
 
 <a name="v3.7.1"></a>
-## [v3.7.1] - 2023-10-01
+## [v3.7.1] - 2023-10-02
 ### Bug Fixes
 - Allow usage of after/before task assignment for all standard tasks ([#628](https://github.com/SAP/ui5-project/issues/628)) [`1a272d2`](https://github.com/SAP/ui5-project/commit/1a272d2bd2700fa849ebb46bf9bd98806fa17fb2)
 
@@ -463,6 +471,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.7.2]: https://github.com/SAP/ui5-project/compare/v3.7.1...v3.7.2
 [v3.7.1]: https://github.com/SAP/ui5-project/compare/v3.7.0...v3.7.1
 [v3.7.0]: https://github.com/SAP/ui5-project/compare/v3.6.0...v3.7.0
 [v3.6.0]: https://github.com/SAP/ui5-project/compare/v3.5.1...v3.6.0
