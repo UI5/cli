@@ -132,7 +132,7 @@
 		"rimraf": "^5.0.5",
 		"semver": "^7.5.4",
 		"terser": "^5.21.0",
-		"workerpool": "^6.5.0",
+		"workerpool": "^6.5.1",
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
@@ -150,7 +150,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^46.8.2",
-		"esmock": "^2.5.2",
+		"esmock": "^2.5.5",
 		"line-column": "^1.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.2.0",
