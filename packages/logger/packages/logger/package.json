@@ -119,7 +119,7 @@
 		"ava": "^5.3.1",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
-		"depcheck": "^1.4.6",
+		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
 		"eslint": "^8.51.0",
 		"eslint-config-google": "^0.14.0",
@@ -129,7 +129,7 @@
 		"nyc": "^15.1.0",
 		"open-cli": "^7.2.0",
 		"rimraf": "^5.0.5",
-		"sinon": "^16.1.0",
+		"sinon": "^16.1.3",
 		"strip-ansi": "^7.1.0",
 		"tap-xunit": "^2.4.1"
 	}
