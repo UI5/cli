@@ -138,18 +138,18 @@
 		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
-		"depcheck": "^1.4.6",
+		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
 		"eslint": "^8.51.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^46.8.2",
-		"esmock": "^2.5.5",
+		"esmock": "^2.5.6",
 		"jsdoc": "^4.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.2.0",
 		"rimraf": "^5.0.5",
-		"sinon": "^16.1.0",
+		"sinon": "^16.1.3",
 		"tap-xunit": "^2.4.1"
 	}
 }
