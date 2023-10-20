@@ -731,6 +731,24 @@ test("_executeCleanupTasks", async (t) => {
 		"BuildContext#executeCleanupTasks got called with no arguments");
 });
 
+test("instantiate new logger for every ProjectBuilder", async (t) => {
+	function CreateBuildLoggerMock(moduleName) {
+		t.is(moduleName, "ProjectBuilder", "BuildLogger created with expected moduleName");
+		return {};
+	}
+
+	const {graph, taskRepository, sinon} = t.context;
+	const createBuildLoggerMockSpy = sinon.spy(CreateBuildLoggerMock);
+	const ProjectBuilder = await esmock("../../../lib/build/ProjectBuilder.js", {
+		"@ui5/logger/internal/loggers/Build": createBuildLoggerMockSpy
+	});
+
+	new ProjectBuilder({graph, taskRepository});
+	new ProjectBuilder({graph, taskRepository});
+
+	t.is(createBuildLoggerMockSpy.callCount, 2, "BuildLogger is instantiated for every ProjectBuilder instance");
+});
+
 
 function getProcessListenerCount() {
 	return ["SIGHUP", "SIGINT", "SIGTERM", "SIGBREAK"].map((eventName) => {

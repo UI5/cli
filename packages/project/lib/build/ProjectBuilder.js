@@ -1,7 +1,6 @@
 import {rimraf} from "rimraf";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import BuildLogger from "@ui5/logger/internal/loggers/Build";
-const log = new BuildLogger("ProjectBuilder");
 import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
@@ -12,6 +11,7 @@ import prettyHrtime from "pretty-hrtime";
  * @alias @ui5/project/build/ProjectBuilder
  */
 class ProjectBuilder {
+	#log;
 	/**
 	 * Build Configuration
 	 *
@@ -112,6 +112,7 @@ class ProjectBuilder {
 
 		this._graph = graph;
 		this._buildContext = new BuildContext(graph, taskRepository, buildConfig);
+		this.#log = new BuildLogger("ProjectBuilder");
 	}
 
 	/**
@@ -148,8 +149,8 @@ class ProjectBuilder {
 			}
 		}
 		const rootProjectName = this._graph.getRoot().getName();
-		log.info(`Preparing build for project ${rootProjectName}`);
-		log.info(`  Target directory: ${destPath}`);
+		this.#log.info(`Preparing build for project ${rootProjectName}`);
+		this.#log.info(`  Target directory: ${destPath}`);
 
 		// Get project filter function based on include/exclude params
 		// (also logs some info to console)
@@ -195,19 +196,19 @@ class ProjectBuilder {
 			}
 		});
 
-		log.setProjects(queue.map((projectBuildContext) => {
+		this.#log.setProjects(queue.map((projectBuildContext) => {
 			return projectBuildContext.getProject().getName();
 		}));
 		if (queue.length > 1) { // Do not log if only the root project is being built
-			log.info(`Processing ${queue.length} projects`);
+			this.#log.info(`Processing ${queue.length} projects`);
 			if (alreadyBuilt.length) {
-				log.info(`  Reusing build results of ${alreadyBuilt.length} projects`);
-				log.info(`  Building ${queue.length - alreadyBuilt.length} projects`);
+				this.#log.info(`  Reusing build results of ${alreadyBuilt.length} projects`);
+				this.#log.info(`  Building ${queue.length - alreadyBuilt.length} projects`);
 			}
 
-			if (log.isLevelEnabled("verbose")) {
-				log.verbose(`  Required projects:`);
-				log.verbose(`    ${queue
+			if (this.#log.isLevelEnabled("verbose")) {
+				this.#log.verbose(`  Required projects:`);
+				this.#log.verbose(`    ${queue
 					.map((projectBuildContext) => {
 						const projectName = projectBuildContext.getProject().getName();
 						let msg;
@@ -225,7 +226,7 @@ class ProjectBuilder {
 		}
 
 		if (cleanDest) {
-			log.info(`Cleaning target directory...`);
+			this.#log.info(`Cleaning target directory...`);
 			await rimraf(destPath);
 		}
 		const startTime = process.hrtime();
@@ -234,15 +235,15 @@ class ProjectBuilder {
 			for (const projectBuildContext of queue) {
 				const projectName = projectBuildContext.getProject().getName();
 				const projectType = projectBuildContext.getProject().getType();
-				log.verbose(`Processing project ${projectName}...`);
+				this.#log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
 				if (alreadyBuilt.includes(projectName)) {
-					log.skipProjectBuild(projectName, projectType);
+					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
-					log.startProjectBuild(projectName, projectType);
+					this.#log.startProjectBuild(projectName, projectType);
 					await projectBuildContext.getTaskRunner().runTasks();
-					log.endProjectBuild(projectName, projectType);
+					this.#log.endProjectBuild(projectName, projectType);
 				}
 				if (!requestedProjects.includes(projectName)) {
 					// Project has not been requested
@@ -250,13 +251,13 @@ class ProjectBuilder {
 					continue;
 				}
 
-				log.verbose(`Writing out files...`);
+				this.#log.verbose(`Writing out files...`);
 				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 			}
 			await Promise.all(pWrites);
-			log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
+			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
-			log.error(`Build failed in ${this._getElapsedTime(startTime)}`);
+			this.#log.error(`Build failed in ${this._getElapsedTime(startTime)}`);
 			throw err;
 		} finally {
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
@@ -272,7 +273,7 @@ class ProjectBuilder {
 		const projectBuildContexts = new Map();
 
 		for (const projectName of requiredProjects) {
-			log.verbose(`Creating build context for project ${projectName}...`);
+			this.#log.verbose(`Creating build context for project ${projectName}...`);
 			const projectBuildContext = this._buildContext.createProjectContext({
 				project: this._graph.getProject(projectName)
 			});
@@ -320,15 +321,15 @@ class ProjectBuilder {
 
 		if (includedDependencies.length) {
 			if (includedDependencies.length === this._graph.getSize() - 1) {
-				log.info(`  Including all dependencies`);
+				this.#log.info(`  Including all dependencies`);
 			} else {
-				log.info(`  Requested dependencies:`);
-				log.info(`    + ${includedDependencies.join("\n    + ")}`);
+				this.#log.info(`  Requested dependencies:`);
+				this.#log.info(`    + ${includedDependencies.join("\n    + ")}`);
 			}
 		}
 		if (excludedDependencies.length) {
-			log.info(`  Excluded dependencies:`);
-			log.info(`    - ${excludedDependencies.join("\n    + ")}`);
+			this.#log.info(`  Excluded dependencies:`);
+			this.#log.info(`    - ${excludedDependencies.join("\n    + ")}`);
 		}
 
 		const rootProjectName = this._graph.getRoot().getName();
@@ -379,7 +380,7 @@ class ProjectBuilder {
 
 		await Promise.all(resources.map((resource) => {
 			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
-				log.silly(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
+				this.#log.silly(`Skipping write of resource tagged as "OmitFromBuildResult": ` +
 					resource.getPath());
 				return; // Skip target write for this resource
 			}
@@ -388,7 +389,7 @@ class ProjectBuilder {
 	}
 
 	async _executeCleanupTasks() {
-		log.info("Executing cleanup tasks...");
+		this.#log.info("Executing cleanup tasks...");
 		await this._buildContext.executeCleanupTasks();
 	}
 
