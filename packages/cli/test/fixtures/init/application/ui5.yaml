@@ -1,4 +1,4 @@
-specVersion: '0.1'
+specVersion: "0.1"
 metadata:
   name: sample-app
 type: application
