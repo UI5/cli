@@ -145,7 +145,11 @@ class Application extends ComponentProject {
 					// 	relevant for the rather "uncommon" App Variants)
 					throw new Error(
 						`Could not find required manifest.json for project ` +
-						`${this.getName()}: ${manifestJsonError.message}`);
+						`${this.getName()}: ${manifestJsonError.message}\n\n` +
+						`If you are about to start a new project, please refer to:\n` +
+						`https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/#starting-a-new-project`, {
+							cause: manifestJsonError
+						});
 				}
 				throw appDescVarError;
 			}

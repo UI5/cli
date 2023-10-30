@@ -526,7 +526,10 @@ test("_getNamespace: Correct error message if fallback to manifest.appdescr_vari
 	const error = await t.throwsAsync(project._getNamespace());
 	t.deepEqual(error.message,
 		"Could not find required manifest.json for project application.a: " +
-		"No such stable or directory: manifest.json",
+		"No such stable or directory: manifest.json" +
+		"\n\n" +
+		"If you are about to start a new project, please refer to:\n" +
+		"https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/#starting-a-new-project",
 		"Rejected with correct error message");
 
 	t.is(_getManifestStub.callCount, 2, "_getManifest called exactly twice");
