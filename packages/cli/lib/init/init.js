@@ -48,7 +48,10 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
 
 	let message = `Could not detect project type: ${errorReason}`;
 	message += "Applications should only have a 'webapp' folder.\n";
-	message += "Libraries should only have a 'src' and (optional) 'test' folder.";
+	message += "Libraries should only have an 'src' and (optional) 'test' folder.";
+	message += "\n\n";
+	message += "If you are about to start a new project, please refer to:\n";
+	message += "https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/#starting-a-new-project";
 	throw new Error(message);
 }
 

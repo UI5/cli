@@ -40,13 +40,18 @@ test("Init for library", async (t) => {
 	});
 });
 
+const GENERAL_ERROR_MESSAGE = `Applications should only have a 'webapp' folder.
+Libraries should only have an 'src' and (optional) 'test' folder.
+
+If you are about to start a new project, please refer to:
+https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/#starting-a-new-project`;
+
 test("Init for invalid project (Found 'webapp', 'src' and 'test' folders)", async (t) => {
 	await t.throwsAsync(init({
 		cwd: getFixturePath("invalid-webapp-src-test")
 	}), {message:
 	"Could not detect project type: Found 'webapp', 'src' and 'test' folders.\n" +
-	"Applications should only have a 'webapp' folder.\n" +
-	"Libraries should only have a 'src' and (optional) 'test' folder."});
+	GENERAL_ERROR_MESSAGE});
 });
 
 test("Init for invalid project (Found 'webapp' and 'src' folders)", async (t) => {
@@ -54,8 +59,7 @@ test("Init for invalid project (Found 'webapp' and 'src' folders)", async (t) =>
 		cwd: getFixturePath("invalid-webapp-src")
 	}), {message:
 	"Could not detect project type: Found 'webapp' and 'src' folders.\n" +
-	"Applications should only have a 'webapp' folder.\n" +
-	"Libraries should only have a 'src' and (optional) 'test' folder."});
+	GENERAL_ERROR_MESSAGE});
 });
 
 test("Init for invalid project (Found 'webapp' and 'test' folders)", async (t) => {
@@ -63,8 +67,7 @@ test("Init for invalid project (Found 'webapp' and 'test' folders)", async (t) =
 		cwd: getFixturePath("invalid-webapp-test")
 	}), {message:
 	"Could not detect project type: Found 'webapp' and 'test' folders.\n" +
-	"Applications should only have a 'webapp' folder.\n" +
-	"Libraries should only have a 'src' and (optional) 'test' folder."});
+	GENERAL_ERROR_MESSAGE});
 });
 
 test("Init for invalid project (Found 'test' folder but no 'src' folder)", async (t) => {
@@ -72,8 +75,7 @@ test("Init for invalid project (Found 'test' folder but no 'src' folder)", async
 		cwd: getFixturePath("invalid-test")
 	}), {message:
 	"Could not detect project type: Found 'test' folder but no 'src' folder.\n" +
-	"Applications should only have a 'webapp' folder.\n" +
-	"Libraries should only have a 'src' and (optional) 'test' folder."});
+	GENERAL_ERROR_MESSAGE});
 });
 
 test("Init for invalid project (Could not find 'webapp' or 'src' / 'test' folders)", async (t) => {
@@ -81,8 +83,7 @@ test("Init for invalid project (Could not find 'webapp' or 'src' / 'test' folder
 		cwd: getFixturePath("invalid")
 	}), {message:
 	"Could not detect project type: Could not find 'webapp' or 'src' / 'test' folders.\n" +
-	"Applications should only have a 'webapp' folder.\n" +
-	"Libraries should only have a 'src' and (optional) 'test' folder."});
+	GENERAL_ERROR_MESSAGE});
 });
 
 test("Init for invalid project (No package.json)", async (t) => {
