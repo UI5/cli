@@ -3,35 +3,52 @@ import sinonGlobal from "sinon";
 import {fileURLToPath} from "node:url";
 import {createRequire, Module} from "node:module";
 import chalk from "chalk";
+import * as td from "testdouble";
 
 const require = createRequire(import.meta.url);
+
+// Node's module loading has changed since 20.6.xx. As 'esmock' is unable to properly
+// mock dynamic imports within CommonJS modules, we need to use another alternative for this test.
+// 'testdouble' seems to work pretty well for that case, but for NodeJS versions below 20.6.xx it needs
+// a `--loader` flag and we already use that for 'esmock'.
+// The solution would be to use the old mocking for older NodeJs versions and
+// 'testdouble' for the ones after 20.6.xx (no flag required here).
+const [nodeMajorVer, NodeMinorVer] = process.versions.node.split(".").map(Number);
+const useTestdoubleMock = nodeMajorVer > 20 || (nodeMajorVer === 20 && NodeMinorVer >= 6);
 
 const globalSinonSandbox = sinonGlobal.createSandbox();
 const importLocalStub = globalSinonSandbox.stub();
 
 test.before(() => {
-	// Mock dependencies
-	// NOTE: esmock is not able to properly mock dynamic imports within a CJS script.
-	// Also it seems that the stub is cached somewhere else, so beforeEach/afterEach
-	// can't be used to renew it. But #reset takes care of resetting the stub between tests
+	if (useTestdoubleMock === false) { // Legacy (manual) mocking
+		// Mock dependencies
+		// NOTE: esmock is not able to properly mock dynamic imports within a CJS script.
+		// Also it seems that the stub is cached somewhere else, so beforeEach/afterEach
+		// can't be used to renew it. But #reset takes care of resetting the stub between tests
 
-	const importLocalModule = new Module("import-local");
-	importLocalModule.exports = importLocalStub;
-	require.cache[require.resolve("import-local")] = importLocalModule;
+		const importLocalModule = new Module("import-local");
+		importLocalModule.exports = importLocalStub;
+		require.cache[require.resolve("import-local")] = importLocalModule;
+	}
 });
 
-test.beforeEach((t) => {
+test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 	t.context.consoleLogStub = sinon.stub(console, "log");
 	t.context.consoleInfoStub = sinon.stub(console, "info");
 	t.context.originalArgv = process.argv;
 	process.env.UI5_CLI_TEST_BIN_RUN_MAIN = "false"; // prevent automatic execution of main function
+
+	if (useTestdoubleMock === true) { // NodeJS versions 20.6 and above
+		await td.replaceEsm("import-local", {default: importLocalStub});
+	}
 });
 
 test.afterEach.always((t) => {
 	process.argv = t.context.originalArgv;
 	t.context.sinon.restore();
 	globalSinonSandbox.reset();
+	useTestdoubleMock && td.reset();
 
 	// Allow re-requiring the module
 	delete require.cache[require.resolve("../../bin/ui5.cjs")];
