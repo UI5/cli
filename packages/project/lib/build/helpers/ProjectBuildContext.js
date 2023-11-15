@@ -47,9 +47,9 @@ class ProjectBuildContext {
 		this._queues.cleanup.push(callback);
 	}
 
-	async executeCleanupTasks() {
+	async executeCleanupTasks(force) {
 		await Promise.all(this._queues.cleanup.map((callback) => {
-			return callback();
+			return callback(force);
 		}));
 	}
 

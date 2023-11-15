@@ -80,9 +80,9 @@ class BuildContext {
 		return projectBuildContext;
 	}
 
-	async executeCleanupTasks() {
+	async executeCleanupTasks(force = false) {
 		await Promise.all(this._projectBuildContexts.map((ctx) => {
-			return ctx.executeCleanupTasks();
+			return ctx.executeCleanupTasks(force);
 		}));
 	}
 }

@@ -164,6 +164,16 @@ class TaskUtil {
 	}
 
 	/**
+	 * Callback that is executed once the build has finished
+	 *
+	 * @public
+	 * @callback @ui5/project/build/helpers/TaskUtil~cleanupTaskCallback
+	 * @param {boolean} force Whether the cleanup callback should
+	 * 							gracefully wait for certain jobs to be completed (<code>false</code>)
+	 * 							or enforce immediate termination (<code>true</code>)
+	 */
+
+	/**
 	 * Register a function that must be executed once the build is finished. This can be used to, for example,
 	 * clean up files temporarily created on the file system. If the callback returns a Promise, it will be waited for.
 	 * It will also be executed in cases where the build has failed or has been aborted.
@@ -172,7 +182,8 @@ class TaskUtil {
 	 * This method is only available to custom task extensions defining
 	 * <b>Specification Version 2.2 and above</b>.
 	 *
-	 * @param {Function} callback Callback to register. If it returns a Promise, it will be waited for
+	 * @param {@ui5/project/build/helpers/TaskUtil~cleanupTaskCallback} callback Callback to
+	 * 									register; it will be waited for if it returns a Promise
 	 * @public
 	 */
 	registerCleanupTask(callback) {

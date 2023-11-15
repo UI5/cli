@@ -203,4 +203,15 @@ test("executeCleanupTasks", async (t) => {
 
 	t.is(executeCleanupTasks.callCount, 2,
 		"Project context executeCleanupTasks got called twice");
+	t.is(executeCleanupTasks.getCall(0).firstArg, false,
+		"Project context executeCleanupTasks got called with expected arguments");
+
+
+	executeCleanupTasks.reset();
+	await buildContext.executeCleanupTasks(true);
+
+	t.is(executeCleanupTasks.callCount, 2,
+		"Project context executeCleanupTasks got called twice");
+	t.is(executeCleanupTasks.getCall(0).firstArg, true,
+		"Project context executeCleanupTasks got called with expected arguments");
 });

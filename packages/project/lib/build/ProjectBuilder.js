@@ -388,9 +388,10 @@ class ProjectBuilder {
 		}));
 	}
 
-	async _executeCleanupTasks() {
+	async _executeCleanupTasks(force) {
 		this.#log.info("Executing cleanup tasks...");
-		await this._buildContext.executeCleanupTasks();
+
+		await this._buildContext.executeCleanupTasks(force);
 	}
 
 	_registerCleanupSigHooks() {
@@ -398,7 +399,7 @@ class ProjectBuilder {
 		function createListener(exitCode) {
 			return function() {
 				// Asynchronously cleanup resources, then exit
-				that._executeCleanupTasks().then(() => {
+				that._executeCleanupTasks(true).then(() => {
 					process.exit(exitCode);
 				});
 			};
