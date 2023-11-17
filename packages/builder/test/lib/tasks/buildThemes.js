@@ -549,3 +549,65 @@ test.serial("buildThemes (useWorkers = true)", async (t) => {
 	t.true(workspace.write.calledWithExactly(transferredResources[1]));
 	t.true(workspace.write.calledWithExactly(transferredResources[2]));
 });
+
+
+test.serial("buildThemes with taskUtil and unexpected termination of the workerpool", async (t) => {
+	const taskUtilMock = {
+		registerCleanupTask: sinon.stub().callsFake((cb) => {
+			// Terminate the workerpool in a timeout, so that
+			// the task is already in the queue, but not yet finished.
+			setTimeout(cb);
+		})
+	};
+	const lessResources = [];
+
+	// Create more resources so there to be some pending tasks in the pool
+	for (let i = 0; i < 50; i++) {
+		lessResources.push({
+			getPath: () => `/resources/test${i}/themes/${i}/library.source.less`,
+			getBuffer: () => Buffer.from(`/** test comment N ${i} */`),
+		});
+	}
+
+	const workspace = {
+		byGlob: async (globPattern) => {
+			if (globPattern === "/resources/test*/themes/**/library.source.less") {
+				return lessResources;
+			} else {
+				return [];
+			}
+		},
+		write: sinon.stub()
+	};
+
+	const cssResource = {path: "/cssResource", buffer: new Uint8Array(2)};
+	const cssRtlResource = {path: "/cssRtlResource", buffer: new Uint8Array(2)};
+	const jsonParametersResource = {path: "/jsonParametersResource", buffer: new Uint8Array(2)};
+
+	t.context.themeBuilderStub.returns([cssResource, cssRtlResource, jsonParametersResource]);
+	t.context.comboByGlob.resolves(lessResources);
+
+	t.context.fsInterfaceStub.returns({
+		readFile: (...args) => {
+			if (/\/resources\/test.*\/themes\/.*\/library\.source\.less/i.test(args[0])) {
+				args[args.length - 1](null, "/** */");
+			} else {
+				args[args.length - 1](null, "{}");
+			}
+		},
+		stat: (...args) => args[args.length - 1](null, {}),
+		readdir: (...args) => args[args.length - 1](null, {}),
+		mkdir: (...args) => args[args.length - 1](null, {}),
+	});
+
+	await buildThemes({
+		workspace,
+		taskUtil: taskUtilMock,
+		options: {
+			projectName: "sap.ui.demo.app",
+			inputPattern: "/resources/test*/themes/**/library.source.less"
+		}
+	});
+
+	t.pass("No exception from an earlier workerpool termination attempt.");
+});

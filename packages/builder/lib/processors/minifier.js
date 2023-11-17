@@ -6,6 +6,7 @@ import workerpool from "workerpool";
 import Resource from "@ui5/fs/Resource";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:processors:minifier");
+import {setTimeout as setTimeoutPromise} from "node:timers/promises";
 
 const debugFileRegex = /((?:\.view|\.fragment|\.controller|\.designtime|\.support)?\.js)$/;
 
@@ -28,11 +29,28 @@ function getPool(taskUtil) {
 			workerType: "auto",
 			maxWorkers
 		});
-		taskUtil.registerCleanupTask(() => {
-			log.verbose(`Terminating workerpool`);
-			const poolToBeTerminated = pool;
-			pool = null;
-			poolToBeTerminated.terminate();
+		taskUtil.registerCleanupTask((force) => {
+			const attemptPoolTermination = async () => {
+				log.verbose(`Attempt to terminate the workerpool...`);
+
+				if (!pool) {
+					return;
+				}
+
+				// There are many stats that could be used, but these ones seem the most
+				// convenient. When all the (available) workers are idle, then it's safe to terminate.
+				let {idleWorkers, totalWorkers} = pool.stats();
+				while (idleWorkers !== totalWorkers && !force) {
+					await setTimeoutPromise(100); // Wait a bit workers to finish and try again
+					({idleWorkers, totalWorkers} = pool.stats());
+				}
+
+				const poolToBeTerminated = pool;
+				pool = null;
+				return poolToBeTerminated.terminate(force);
+			};
+
+			return attemptPoolTermination();
 		});
 	}
 	return pool;

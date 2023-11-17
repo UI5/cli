@@ -7,6 +7,7 @@ import {fileURLToPath} from "node:url";
 import os from "node:os";
 import workerpool from "workerpool";
 import {deserializeResources, serializeResources, FsMainThreadInterface} from "../processors/themeBuilderWorker.js";
+import {setTimeout as setTimeoutPromise} from "node:timers/promises";
 
 let pool;
 
@@ -23,11 +24,28 @@ function getPool(taskUtil) {
 			workerType: "thread",
 			maxWorkers
 		});
-		taskUtil.registerCleanupTask(() => {
-			log.verbose(`Terminating workerpool`);
-			const poolToBeTerminated = pool;
-			pool = null;
-			poolToBeTerminated.terminate();
+		taskUtil.registerCleanupTask((force) => {
+			const attemptPoolTermination = async () => {
+				log.verbose(`Attempt to terminate the workerpool...`);
+
+				if (!pool) {
+					return;
+				}
+
+				// There are many stats that could be used, but these ones seem the most
+				// convenient. When all the (available) workers are idle, then it's safe to terminate.
+				let {idleWorkers, totalWorkers} = pool.stats();
+				while (idleWorkers !== totalWorkers && !force) {
+					await setTimeoutPromise(100); // Wait a bit workers to finish and try again
+					({idleWorkers, totalWorkers} = pool.stats());
+				}
+
+				const poolToBeTerminated = pool;
+				pool = null;
+				return poolToBeTerminated.terminate(force);
+			};
+
+			return attemptPoolTermination();
 		});
 	}
 	return pool;

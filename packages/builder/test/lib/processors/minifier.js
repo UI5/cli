@@ -109,6 +109,43 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 	t.is(taskUtilMock.registerCleanupTask.callCount, 1, "taskUtil#registerCleanupTask got called once");
 });
 
+test("Basic minifier with taskUtil and unexpected termination of the workerpool", async (t) => {
+	const taskUtilMock = {
+		registerCleanupTask: sinon.stub().callsFake((cb) => {
+			// Terminate the workerpool in a timeout, so that
+			// the task is already in the queue, but not yet finished.
+			setTimeout(cb);
+		})
+	};
+
+	// Create more resources so there to be some pending tasks in the pool
+	const testResources = [];
+	for (let i = 0; i < 50; i++) {
+		const content = `/*!
+ * \${copyright}
+ */
+ function myFunc${i}(myArg) {
+ 	jQuery.sap.require("something");
+ 	console.log("Something required")
+ }
+myFunc${i}();
+`;
+		testResources.push(createResource({
+			path: "/test.controller.js",
+			string: content
+		}));
+	}
+	await minifier({
+		resources: testResources,
+		taskUtil: taskUtilMock,
+		options: {
+			useWorkers: true
+		}
+	});
+
+	t.pass("No exception from an earlier workerpool termination attempt.");
+});
+
 test("minifier with useWorkers: true and missing taskUtil", async (t) => {
 	const content = `/*!
  * \${copyright}
