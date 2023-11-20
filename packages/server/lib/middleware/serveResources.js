@@ -3,10 +3,11 @@ const log = getLogger("server:middleware:serveResources");
 import replaceStream from "replacestream";
 import etag from "etag";
 import fresh from "fresh";
+import fsInterface from "@ui5/fs/fsInterface";
 
 const rProperties = /\.properties$/i;
 const rReplaceVersion = /\.(library|js|json)$/i;
-const rManifest = /\/manifest.json$/i;
+const rManifest = /\/manifest\.json$/i;
 const rResourcesPrefix = /^\/resources\//i;
 
 function isFresh(req, res) {
@@ -14,7 +15,6 @@ function isFresh(req, res) {
 		"etag": res.getHeader("ETag")
 	});
 }
-
 
 /**
  * Creates and returns the middleware to serve application resources.
@@ -49,6 +49,19 @@ function createMiddleware({resources, middlewareUtil}) {
 					next();
 					return;
 				}
+			} else if (rManifest.test(resource.getPath()) && resource.getProject()?.getNamespace()) {
+				// Special handling for manifest.json file by adding additional content to the served manifest.json
+				// NOTE: This should only be done for manifest.json files that exist in the sources.
+				// Files created by generateLibraryManifest (see above) should not be handled in here.
+				// Only manifest.json files in library / application projects should be handled.
+				// resource.getProject.getNamespace() returns null for all other kind of projects.
+				const {default: manifestEnhancer} = await import("@ui5/builder/processors/manifestEnhancer");
+				await manifestEnhancer({
+					resources: [resource],
+					// Ensure that only files within the manifest's project are accessible
+					// Using the "runtime" style to match the style used by the UI5 server
+					fs: fsInterface(resource.getProject().getReader({style: "runtime"}))
+				});
 			}
 
 			const resourcePath = resource.getPath();
