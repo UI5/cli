@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.1.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.1.1...HEAD).
+
+<a name="v3.1.1"></a>
+## [v3.1.1] - 2023-11-19
+### Bug Fixes
+- Handle graceful termination of workerpool for parallel builds ([#953](https://github.com/SAP/ui5-builder/issues/953)) [`f7b9f27`](https://github.com/SAP/ui5-builder/commit/f7b9f27ac5966bd89e52e4c2d5b03482a0f3dbb7)
+- **Bundling:** Detect manifest.json dependency of libraries [`6f9995f`](https://github.com/SAP/ui5-builder/commit/6f9995f5b47a6094fa93b5d433be849b1d3cdc7e)
+
 
 <a name="v3.1.0"></a>
 ## [v3.1.0] - 2023-10-11
@@ -832,6 +839,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v3.1.1]: https://github.com/SAP/ui5-builder/compare/v3.1.0...v3.1.1
 [v3.1.0]: https://github.com/SAP/ui5-builder/compare/v3.0.9...v3.1.0
 [v3.0.9]: https://github.com/SAP/ui5-builder/compare/v3.0.8...v3.0.9
 [v3.0.8]: https://github.com/SAP/ui5-builder/compare/v3.0.7...v3.0.8
