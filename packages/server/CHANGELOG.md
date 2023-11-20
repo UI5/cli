@@ -2,10 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.4...HEAD).
+
+<a name="v3.1.4"></a>
+## [v3.1.4] - 2023-11-20
 
 <a name="v3.1.3"></a>
-## [v3.1.3] - 2023-05-23
+## [v3.1.3] - 2023-06-06
 ### Bug Fixes
 - **middleware/testRunner:** Update resources from OpenUI5 [`f0c7291`](https://github.com/SAP/ui5-server/commit/f0c7291d2dc1d753e04184fdf2127c278810f0c4)
 
@@ -320,6 +323,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.1.4]: https://github.com/SAP/ui5-server/compare/v3.1.3...v3.1.4
 [v3.1.3]: https://github.com/SAP/ui5-server/compare/v3.1.2...v3.1.3
 [v3.1.2]: https://github.com/SAP/ui5-server/compare/v3.1.1...v3.1.2
 [v3.1.1]: https://github.com/SAP/ui5-server/compare/v3.1.0...v3.1.1
