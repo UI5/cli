@@ -17,6 +17,7 @@ const taskInfos = {
 	replaceCopyright: {path: "./replaceCopyright.js"},
 	replaceVersion: {path: "./replaceVersion.js"},
 	replaceBuildtime: {path: "./replaceBuildtime.js"},
+	enhanceManifest: {path: "./enhanceManifest.js"},
 	escapeNonAsciiCharacters: {path: "./escapeNonAsciiCharacters.js"},
 	executeJsdocSdkTransformation: {path: "./jsdoc/executeJsdocSdkTransformation.js"},
 	generateApiIndex: {path: "./jsdoc/generateApiIndex.js"},
