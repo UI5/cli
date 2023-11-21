@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.7.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.7.2...HEAD).
+
+<a name="v3.7.2"></a>
+## [v3.7.2] - 2023-11-20
+### Bug Fixes
+- **ui5 init:** Improve error message ([#661](https://github.com/SAP/ui5-cli/issues/661)) [`07e68b0`](https://github.com/SAP/ui5-cli/commit/07e68b00ff5cd2e80c0b1b52fa644e27752ccecb)
+- **ui5.yaml:** Use double quotes for string values ([#660](https://github.com/SAP/ui5-cli/issues/660)) [`c30e371`](https://github.com/SAP/ui5-cli/commit/c30e371be147d859539afbe9a44cc03202a8c870)
+
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 3.7.3 to 3.8.0 [`2566170`](https://github.com/SAP/ui5-cli/commit/25661708c2b84f9c21d326c2d4ccb84464d7d2b5)
+- Bump [@ui5](https://github.com/ui5)/server from 3.1.3 to 3.1.4 [`2c90ff5`](https://github.com/SAP/ui5-cli/commit/2c90ff542dd5862603ebd0cc927ca71cd243cb8c)
+- Bump [@ui5](https://github.com/ui5)/builder from 3.1.0 to 3.1.1 [`7b97356`](https://github.com/SAP/ui5-cli/commit/7b973566aa647ba1e2b271fa1c77b1bd7025c9ca)
+
 
 <a name="v3.7.1"></a>
 ## [v3.7.1] - 2023-10-20
@@ -36,11 +48,16 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 
 <a name="v3.5.0"></a>
 ## [v3.5.0] - 2023-08-22
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/project from 3.5.1 to 3.6.0 [`e5627d8`](https://github.com/SAP/ui5-cli/commit/e5627d81c9e66668bb99d128a304d403df9fd224)
+
+
+<a name="v3.4.1"></a>
+## [v3.4.1] - 2023-10-24
 ### Bug Fixes
 - **ui5 config:** Allow usage of all Configuration options ([#645](https://github.com/SAP/ui5-cli/issues/645)) [`78e032e`](https://github.com/SAP/ui5-cli/commit/78e032ebd7d71ee59e6f6fd4f21dc0564e108d44)
 
 ### Dependency Updates
-- Bump [@ui5](https://github.com/ui5)/project from 3.5.1 to 3.6.0 [`e5627d8`](https://github.com/SAP/ui5-cli/commit/e5627d81c9e66668bb99d128a304d403df9fd224)
 - Bump [@ui5](https://github.com/ui5)/project from 3.5.0 to 3.5.1 [`4ca30c3`](https://github.com/SAP/ui5-cli/commit/4ca30c3dc4066919f68af47307b4dc8b0bd898f7)
 
 
@@ -1129,11 +1146,13 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.7.2]: https://github.com/SAP/ui5-cli/compare/v3.7.1...v3.7.2
 [v3.7.1]: https://github.com/SAP/ui5-cli/compare/v3.7.0...v3.7.1
 [v3.7.0]: https://github.com/SAP/ui5-cli/compare/v3.6.1...v3.7.0
 [v3.6.1]: https://github.com/SAP/ui5-cli/compare/v3.6.0...v3.6.1
 [v3.6.0]: https://github.com/SAP/ui5-cli/compare/v3.5.0...v3.6.0
-[v3.5.0]: https://github.com/SAP/ui5-cli/compare/v3.4.0...v3.5.0
+[v3.5.0]: https://github.com/SAP/ui5-cli/compare/v3.4.1...v3.5.0
+[v3.4.1]: https://github.com/SAP/ui5-cli/compare/v3.4.0...v3.4.1
 [v3.4.0]: https://github.com/SAP/ui5-cli/compare/v3.3.4...v3.4.0
 [v3.3.4]: https://github.com/SAP/ui5-cli/compare/v3.3.3...v3.3.4
 [v3.3.3]: https://github.com/SAP/ui5-cli/compare/v3.3.2...v3.3.3
