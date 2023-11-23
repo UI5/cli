@@ -12,7 +12,7 @@ function makeFileTypePattern(fileTypes) {
 		if ( !type.startsWith(".") ) {
 			type = "." + type;
 		}
-		return type.replace(/[*+?.()|^$]/g, "\\$&");
+		return type.replace(/[*+?.()|^$\\]/g, "\\$&");
 	}).join("|") + ")";
 }
 
