@@ -1,4 +1,5 @@
 * text=auto eol=lf
+build/** -linguist-generated=false
 lib/build/** linguist-generated=false
 lib/** linguist-vendored=false
 lib/** linguist-generated=false
