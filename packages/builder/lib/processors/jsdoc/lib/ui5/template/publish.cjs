@@ -173,7 +173,7 @@ function isModuleExport($) {
 }
 
 function isaClass($) {
-	return /^(namespace|interface|class|typedef)$/.test($.kind) || ($.kind === 'member' && $.isEnum )/* isNonEmptyNamespace($) */;
+	return /^(namespace|interface|class|typedef)$/.test($.kind) || (($.kind === 'member' || $.kind === 'constant') && $.isEnum )/* isNonEmptyNamespace($) */;
 }
 
 function supportsInheritance($) {
@@ -191,7 +191,7 @@ function supportsInheritance($) {
 function isFirstClassSymbol($) {
 	return (
 		/^(namespace|interface|class|typedef)$/.test($.kind)
-		|| $.kind === 'member' && $.isEnum
+		|| ($.kind === 'member' || $.kind === 'constant') && $.isEnum
 		|| ['function', 'member'].includes($.kind) && isModuleExport($)
 	)/* isNonEmptyNamespace($) */;
 }
@@ -727,7 +727,7 @@ function getMembersOfKind(data, kind) {
 	switch (kind) {
 	case 'property':
 		fnFilter = function($) {
-			return $.kind === 'constant' || ($.kind === 'member' && !$.isEnum);
+			return ($.kind === 'constant' || $.kind === 'member') && !$.isEnum;
 		};
 		break;
 	case 'event':
@@ -2034,7 +2034,7 @@ function createAPIJSON4Symbol(symbol, omitDefaults) {
 	}
 	*/
 
-	const kind = (symbol.kind === 'member' && symbol.isEnum) ? "enum" : symbol.kind; // handle pseudo-kind 'enum'
+	const kind = ((symbol.kind === 'member' || symbol.kind === 'constant') && symbol.isEnum) ? "enum" : symbol.kind; // handle pseudo-kind 'enum'
 
 	tag(kind);
 
