@@ -233,7 +233,11 @@ async function createManifest(
 			if ( library.getDocumentation() ) {
 				let desc = library.getDocumentation();
 				// remove all tags
-				desc = desc.replace(/\s+/g, " ").replace(/<\/?[a-zA-Z][a-zA-Z0-9_$.]*(\s[^>]*)>/g, "");
+				let prevDesc;
+				do { // Safely strip tags (https://codeql.github.com/codeql-query-help/javascript/js-incomplete-multi-character-sanitization/#example)
+					prevDesc = desc;
+					desc = desc.replace(/\s+/g, " ").replace(/<\/?[a-zA-Z][a-zA-Z0-9_$.]*(\s[^>]*)>/g, "");
+				} while (prevDesc !== desc);
 				// extract summary (first sentence)
 				const m = /^([\w\W]+?[.;!?])[^a-zA-Z0-9_$]/.exec(desc);
 				return m ? m[1] : desc;
