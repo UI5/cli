@@ -291,223 +291,6 @@ SpecificationVersion.getVersionsForRange(">=2.0").forEach(function(specVersion) 
 			}
 		]);
 	});
-
-	test(`Invalid builder configuration (specVersion ${specVersion})`, async (t) => {
-		await assertValidation(t, {
-			"specVersion": specVersion,
-			"type": "application",
-			"metadata": {
-				"name": "com.sap.ui5.test",
-				"copyright": "yes"
-			},
-			"builder": {
-				// jsdoc is not supported for type application
-				"jsdoc": {
-					"excludes": [
-						"some/project/name/thirdparty/**"
-					]
-				},
-				"bundles": [
-					{
-						"bundleDefinition": {
-							"name": "sap-ui-custom.js",
-							"defaultFileTypes": [
-								".js"
-							],
-							"sections": [
-								{
-									"name": true,
-									"mode": "raw",
-									"filters": [
-										"ui5loader-autoconfig.js"
-									],
-									"resolve": true,
-									"sort": true,
-									"declareModules": true
-								}
-							]
-						},
-						"bundleOptions": {
-							"optimize": true
-						}
-					},
-					{
-						"bundleDefinition": {
-							"defaultFileTypes": [
-								".js", true
-							],
-							"sections": [
-								{
-									"filters": [
-										"some/app/Component.js"
-									],
-									"resolve": true,
-									"sort": true,
-									"declareRawModules": []
-								},
-								{
-									"mode": "provide",
-									"filters": "*",
-									"resolve": true
-								}
-							]
-						},
-						"bundleOptions": {
-							"optimize": "true",
-							"numberOfParts": "3",
-							"notAllowed": true
-						}
-					}
-				],
-				"componentPreload": {
-					"path": "some/invalid/path",
-					"paths": "some/invalid/glob/**/pattern/Component.js",
-					"namespaces": "some/invalid/namespace",
-				},
-				"libraryPreload": {} // Only supported for type library
-			}
-		}, [
-			{
-				dataPath: "/builder",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "jsdoc"
-				}
-			},
-			{
-				dataPath: "/builder",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "libraryPreload"
-				}
-			},
-			{
-				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "declareModules",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleDefinition",
-				keyword: "required",
-				message: "should have required property 'name'",
-				params: {
-					missingProperty: "name",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
-				keyword: "required",
-				message: "should have required property 'mode'",
-				params: {
-					missingProperty: "mode",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
-				keyword: "type",
-				message: "should be boolean",
-				params: {
-					type: "boolean",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
-				keyword: "enum",
-				message: "should be equal to one of the allowed values",
-				params: {
-					allowedValues: ["3.1", "3.0", "2.6", "2.5", "2.4"].includes(specVersion) ? [
-						"raw",
-						"preload",
-						"require",
-						"provided",
-						"bundleInfo"
-					] : [
-						"raw",
-						"preload",
-						"require",
-						"provided"
-					]
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
-				keyword: "type",
-				message: "should be array",
-				params: {
-					type: "array",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleOptions",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "notAllowed",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleOptions/optimize",
-				keyword: "type",
-				message: "should be boolean",
-				params: {
-					type: "boolean",
-				}
-			},
-			{
-				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
-				keyword: "type",
-				message: "should be number",
-				params: {
-					type: "number",
-				}
-			},
-			{
-				dataPath: "/builder/componentPreload",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "path",
-				}
-			},
-			{
-				dataPath: "/builder/componentPreload/paths",
-				keyword: "type",
-				message: "should be array",
-				params: {
-					type: "array",
-				}
-			},
-			{
-				dataPath: "/builder/componentPreload/namespaces",
-				keyword: "type",
-				message: "should be array",
-				params: {
-					type: "array",
-				}
-			}
-		]);
-	});
 });
 
 SpecificationVersion.getVersionsForRange("2.0 - 2.2").forEach(function(specVersion) {
@@ -1008,6 +791,440 @@ SpecificationVersion.getVersionsForRange(">=3.0").forEach(function(specVersion) 
 				}]
 			},
 		}]);
+	});
+});
+
+SpecificationVersion.getVersionsForRange("2.0 - 3.1").forEach(function(specVersion) {
+	test(`Invalid builder configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				// jsdoc is not supported for type application
+				"jsdoc": {
+					"excludes": [
+						"some/project/name/thirdparty/**"
+					]
+				},
+				"bundles": [
+					{
+						"bundleDefinition": {
+							"name": "sap-ui-custom.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": true,
+									"mode": "raw",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareModules": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true
+						}
+					},
+					{
+						"bundleDefinition": {
+							"defaultFileTypes": [
+								".js", true
+							],
+							"sections": [
+								{
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": []
+								},
+								{
+									"mode": "provide",
+									"filters": "*",
+									"resolve": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": "true",
+							"numberOfParts": "3",
+							"notAllowed": true
+						}
+					}
+				],
+				"componentPreload": {
+					"path": "some/invalid/path",
+					"paths": "some/invalid/glob/**/pattern/Component.js",
+					"namespaces": "some/invalid/namespace",
+				},
+				"libraryPreload": {} // Only supported for type library
+			}
+		}, [
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "jsdoc"
+				}
+			},
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "libraryPreload"
+				}
+			},
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "declareModules",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition",
+				keyword: "required",
+				message: "should have required property 'name'",
+				params: {
+					missingProperty: "name",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
+				keyword: "required",
+				message: "should have required property 'mode'",
+				params: {
+					missingProperty: "mode",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
+				keyword: "type",
+				message: "should be boolean",
+				params: {
+					type: "boolean",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: ["3.1", "3.0", "2.6", "2.5", "2.4"].includes(specVersion) ? [
+						"raw",
+						"preload",
+						"require",
+						"provided",
+						"bundleInfo"
+					] : [
+						"raw",
+						"preload",
+						"require",
+						"provided"
+					]
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions/optimize",
+				keyword: "type",
+				message: "should be boolean",
+				params: {
+					type: "boolean",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
+				keyword: "type",
+				message: "should be number",
+				params: {
+					type: "number",
+				}
+			},
+			{
+				dataPath: "/builder/componentPreload",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "path",
+				}
+			},
+			{
+				dataPath: "/builder/componentPreload/paths",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				}
+			},
+			{
+				dataPath: "/builder/componentPreload/namespaces",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				}
+			}
+		]);
+	});
+});
+
+SpecificationVersion.getVersionsForRange(">=3.2").forEach(function(specVersion) {
+	test(`Invalid builder configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				// jsdoc is not supported for type application
+				"jsdoc": {
+					"excludes": [
+						"some/project/name/thirdparty/**"
+					]
+				},
+				"bundles": [
+					{
+						"bundleDefinition": {
+							"name": "sap-ui-custom.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": true,
+									"mode": "raw",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareModules": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true
+						}
+					},
+					{
+						"bundleDefinition": {
+							"defaultFileTypes": [
+								".js", true
+							],
+							"sections": [
+								{
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": []
+								},
+								{
+									"mode": "provide",
+									"filters": "*",
+									"resolve": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": "true",
+							"numberOfParts": "3",
+							"notAllowed": true
+						}
+					}
+				],
+				"componentPreload": {
+					"path": "some/invalid/path",
+					"paths": "some/invalid/glob/**/pattern/Component.js",
+					"namespaces": "some/invalid/namespace",
+				},
+				"libraryPreload": {} // Only supported for type library
+			}
+		}, [
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "jsdoc"
+				}
+			},
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "libraryPreload"
+				}
+			},
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "declareModules",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0/name",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition",
+				keyword: "required",
+				message: "should have required property 'name'",
+				params: {
+					missingProperty: "name",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/defaultFileTypes/1",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/0",
+				keyword: "required",
+				message: "should have required property 'mode'",
+				params: {
+					missingProperty: "mode",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/0/declareRawModules",
+				keyword: "type",
+				message: "should be boolean",
+				params: {
+					type: "boolean",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/mode",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: [
+						"raw",
+						"preload",
+						"require",
+						"provided",
+						"bundleInfo",
+						"depCache"
+					]
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleDefinition/sections/1/filters",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions/optimize",
+				keyword: "type",
+				message: "should be boolean",
+				params: {
+					type: "boolean",
+				}
+			},
+			{
+				dataPath: "/builder/bundles/1/bundleOptions/numberOfParts",
+				keyword: "type",
+				message: "should be number",
+				params: {
+					type: "number",
+				}
+			},
+			{
+				dataPath: "/builder/componentPreload",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "path",
+				}
+			},
+			{
+				dataPath: "/builder/componentPreload/paths",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				}
+			},
+			{
+				dataPath: "/builder/componentPreload/namespaces",
+				keyword: "type",
+				message: "should be array",
+				params: {
+					type: "array",
+				}
+			}
+		]);
 	});
 });
 

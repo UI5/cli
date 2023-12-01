@@ -238,14 +238,14 @@ test("(static) getVersionsForRange", (t) => {
 	// range: >=2.2
 	t.deepEqual(SpecificationVersion.getVersionsForRange(">=2.2"), [
 		"2.2", "2.3", "2.4", "2.5", "2.6",
-		"3.0", "3.1",
+		"3.0", "3.1", "3.2",
 	]);
 
 	// range: > 1.0
 	t.deepEqual(SpecificationVersion.getVersionsForRange("> 1.0"), [
 		"1.1",
 		"2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6",
-		"3.0", "3.1",
+		"3.0", "3.1", "3.2",
 	]);
 
 	// range: 2.2 - 2.4

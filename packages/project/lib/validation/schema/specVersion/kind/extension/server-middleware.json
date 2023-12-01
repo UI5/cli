@@ -7,13 +7,13 @@
 	"required": ["specVersion", "kind", "type", "metadata", "middleware"],
 	"if": {
 		"properties": {
-			"specVersion": { "enum": ["3.0", "3.1"] }
+			"specVersion": { "enum": ["3.0", "3.1", "3.2"] }
 		}
 	},
 	"then": {
 		"additionalProperties": false,
 		"properties": {
-			"specVersion": { "enum": ["3.0", "3.1"] },
+			"specVersion": { "enum": ["3.0", "3.1", "3.2"] },
 			"kind": {
 				"enum": ["extension"]
 			},
