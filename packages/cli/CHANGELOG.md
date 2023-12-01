@@ -2,10 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.7.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.7.3...HEAD).
+
+<a name="v3.7.3"></a>
+## [v3.7.3] - 2023-12-01
 
 <a name="v3.7.2"></a>
-## [v3.7.2] - 2023-11-20
+## [v3.7.2] - 2023-11-21
 ### Bug Fixes
 - **ui5 init:** Improve error message ([#661](https://github.com/SAP/ui5-cli/issues/661)) [`07e68b0`](https://github.com/SAP/ui5-cli/commit/07e68b00ff5cd2e80c0b1b52fa644e27752ccecb)
 - **ui5.yaml:** Use double quotes for string values ([#660](https://github.com/SAP/ui5-cli/issues/660)) [`c30e371`](https://github.com/SAP/ui5-cli/commit/c30e371be147d859539afbe9a44cc03202a8c870)
@@ -1146,6 +1149,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.7.3]: https://github.com/SAP/ui5-cli/compare/v3.7.2...v3.7.3
 [v3.7.2]: https://github.com/SAP/ui5-cli/compare/v3.7.1...v3.7.2
 [v3.7.1]: https://github.com/SAP/ui5-cli/compare/v3.7.0...v3.7.1
 [v3.7.0]: https://github.com/SAP/ui5-cli/compare/v3.6.1...v3.7.0
