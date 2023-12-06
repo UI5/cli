@@ -64,7 +64,11 @@ class ResolvedBundleDefinition {
 				return Promise.all(
 					modules.map( (submodule) => {
 						return pool.getModuleInfo(submodule).then(
-							(subinfo) => bundleInfo.addSubModule(subinfo)
+							(subinfo) => {
+								if (!bundleInfo.subModules.includes(subinfo.name)) {
+									bundleInfo.addSubModule(subinfo);
+								}
+							}
 						);
 					})
 				);

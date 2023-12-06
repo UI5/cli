@@ -198,7 +198,7 @@ class BundleResolver {
 			let oldIgnoredResources;
 			let oldSelectedResourcesSequence;
 
-			if ( section.mode == SectionType.Require ) {
+			if ( [SectionType.Require, SectionType.DepCache].includes(section.mode) ) {
 				oldSelectedResources = selectedResources;
 				oldIgnoredResources = visitedResources;
 				oldSelectedResourcesSequence = selectedResourcesSequence;
@@ -254,7 +254,7 @@ class BundleResolver {
 			});
 
 			return Promise.all(promises).then( function() {
-				if ( section.mode == SectionType.Require ) {
+				if ( [SectionType.Require, SectionType.DepCache].includes(section.mode) ) {
 					newKeys = selectedResourcesSequence;
 					selectedResources = oldSelectedResources;
 					visitedResources = oldIgnoredResources;

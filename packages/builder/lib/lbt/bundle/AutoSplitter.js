@@ -41,6 +41,8 @@ class AutoSplitter {
 		const numberOfParts = options.numberOfParts;
 		let totalSize = 0;
 		const moduleSizes = Object.create(null);
+		const depCacheSizes = [];
+		let depCacheLoaderSize = 0;
 		this.optimize = !!options.optimize;
 
 		// ---- resolve module definition
@@ -72,6 +74,27 @@ class AutoSplitter {
 			case SectionType.Require:
 				section.modules.forEach( (module) => {
 					totalSize += "sap.ui.requireSync('');".length + toRequireJSName(module).length;
+				});
+				break;
+			case SectionType.DepCache:
+				depCacheLoaderSize = "sap.ui.loader.config({depCacheUI5:{}});".length;
+				totalSize += depCacheLoaderSize;
+
+				section.modules.forEach( (module) => {
+					promises.push((async () => {
+						const resource = await this.pool.findResourceWithInfo(module);
+						const deps = resource.info.dependencies.filter(
+							(dep) =>
+								!resource.info.isConditionalDependency(dep) &&
+								!resource.info.isImplicitDependency(dep)
+						);
+						if (deps.length > 0) {
+							const depSize = `"${module}": [${deps.map((dep) => `"${dep}"`).join(",")}],`.length;
+							totalSize += depSize;
+
+							depCacheSizes.push({size: depSize, module});
+						}
+					})());
 				});
 				break;
 			default:
@@ -178,6 +201,36 @@ class AutoSplitter {
 				section.modules.forEach( (module) => {
 					currentSection.filters.push( module );
 					totalSize += 21 + toRequireJSName(module).length;
+				});
+				break;
+			case SectionType.DepCache:
+				currentSection = {
+					mode: SectionType.DepCache,
+					filters: []
+				};
+				currentModule.sections.push( currentSection );
+				totalSize += depCacheLoaderSize;
+
+				depCacheSizes.forEach((depCache) => {
+					if ( part + 1 < numberOfParts && totalSize + depCache.size / 2 > partSize ) {
+						part++;
+						// start a new module
+						totalSize = depCacheLoaderSize;
+						currentSection = {
+							mode: SectionType.DepCache,
+							filters: []
+						};
+						currentModule = {
+							name: moduleNameWithPart.replace(/__part__/, part),
+							sections: [currentSection]
+						};
+						splittedModules.push(currentModule);
+					}
+
+					if (!currentSection.filters.includes(depCache.module)) {
+						currentSection.filters.push(depCache.module);
+						totalSize += depCache.size;
+					}
 				});
 				break;
 			default:

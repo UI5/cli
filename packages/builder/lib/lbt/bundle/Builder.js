@@ -71,6 +71,14 @@ const EVOBundleFormat = {
 			resolvedModule.executes(MODULE__UI5LOADER_AUTOCONFIG) ||
 			resolvedModule.executes(MODULE__JQUERY_SAP_GLOBAL) ||
 			resolvedModule.executes(MODULE__SAP_UI_CORE_CORE);
+	},
+
+	beforeDepCache(outW) {
+		outW.writeln(`sap.ui.loader.config({depCacheUI5:{`);
+	},
+
+	afterDepCache(outW) {
+		outW.writeln(`}});`);
 	}
 };
 
@@ -220,6 +228,8 @@ class BundleBuilder {
 			return this.writeBundleInfos([section]);
 		case SectionType.Require:
 			return this.writeRequires(section);
+		case SectionType.DepCache:
+			return this.writeDepCache(section);
 		default:
 			throw new Error("unknown section mode " + section.mode);
 		}
@@ -547,6 +557,59 @@ class BundleBuilder {
 		section.modules.forEach( (module) => {
 			this.writeWithSourceMap(this.targetBundleFormat.requireSync(module));
 		});
+	}
+
+	// When AutoSplit is enabled for depCache, we need to ensure that modules
+	// are not duplicated across files. This might happen due to the filters provided.
+	// So, certain modules that are included in depCache could be dependencies of another
+	// module in the next file. This will also duplicate its dependency definition if we do not filter.
+	#depCacheSet = new Set();
+	async writeDepCache(section) {
+		const outW = this.outW;
+		let hasDepCache = false;
+
+		const sequence = section.modules.slice().sort();
+
+		if (sequence.length > 0) {
+			for (const module of sequence) {
+				if (this.#depCacheSet.has(module)) {
+					continue;
+				}
+
+				this.#depCacheSet.add(module);
+				let resource = null;
+				try {
+					resource = await this.pool.findResourceWithInfo(module);
+				} catch (e) {
+					log.error(`    couldn't find ${module}`);
+				}
+
+				if (resource != null) {
+					const deps = resource.info.dependencies.filter(
+						(dep) =>
+							!resource.info.isConditionalDependency(dep) &&
+							!resource.info.isImplicitDependency(dep)
+					);
+					if (deps.length > 0) {
+						if (!hasDepCache) {
+							hasDepCache = true;
+							outW.ensureNewLine();
+							this.targetBundleFormat.beforeDepCache(outW, section);
+						}
+
+						outW.writeln(
+							`"${module}": [${deps.map((dep) => `"${dep}"`).join(",")}],`
+						);
+					} else {
+						log.verbose(`    skipped ${module}, no dependencies`);
+					}
+				}
+			}
+
+			if (hasDepCache) {
+				this.targetBundleFormat.afterDepCache(outW, section);
+			}
+		}
 	}
 
 	async getSourceMapForModule({moduleName, moduleContent, resourcePath}) {

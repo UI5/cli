@@ -75,6 +75,10 @@ test("integration: AutoSplitter with numberOfParts 2", async (t) => {
 		name: `Component-preload.js`,
 		defaultFileTypes: [".js", ".fragment.xml", ".view.xml", ".properties", ".json"],
 		sections: [{
+			mode: "depCache",
+			filters: ["*.js"],
+			modules: ["a.js", "c.js", "b.json", "c.properties", "x.view.xml"]
+		}, {
 			mode: "preload",
 			filters: ["a.js", "b.json", "x.view.xml"],
 			resolve: false,
@@ -110,12 +114,15 @@ test("integration: AutoSplitter with numberOfParts 2", async (t) => {
 	t.deepEqual(oResult[0], {
 		name: `Component-preload-0.js`,
 		sections: [{
+			filters: ["a.js", "c.js"],
+			mode: "depCache"
+		}, {
 			mode: "preload",
 			filters: ["a.js"],
 			name: undefined
 		}],
 		configuration: {}
-	}, "first part should contain only a.js since its size is only 2048");
+	}, "bundle properly and correct dependencies & sizes");
 	t.deepEqual(oResult[1], {
 		name: `Component-preload-1.js`,
 		sections: [{
@@ -138,6 +145,55 @@ test("integration: AutoSplitter with numberOfParts 2", async (t) => {
 	}, "second part should contain the other resources");
 });
 
+test("integration: Extreme AutoSplitter with numberOfParts 50", async (t) => {
+	const includedNamespace = "foo/bar/a";
+	const excludedNamespace = "fizz/buzz/b";
+	const modules = new Array(150)
+		.fill(null)
+		.map((val, index) =>
+			index % 2 ?
+				`${includedNamespace}${index}.js` :
+				`${excludedNamespace}${index}.js`
+		);
+	const pool = {
+		findResourceWithInfo: async (name) => {
+			const info = new ModuleInfo(name);
+			modules
+				.filter((moduleName) => moduleName !== name)
+				.forEach((dependency) => {
+					info.addDependency(dependency);
+				});
+			return {info};
+		},
+		resources: modules.map((res) => ({name: res}))
+	};
+	const autoSplitter = new AutoSplitter(pool, new BundleResolver(pool));
+	const bundleDefinition = {
+		name: `test-depCache-preload.js`,
+		sections: [{
+			mode: "depCache",
+			filters: ["foo/bar/**"],
+			modules
+		}]
+	};
+	const oResult = await autoSplitter.run(bundleDefinition, {numberOfParts: 50, optimize: false});
+	t.is(oResult.length, 50, "50 parts expected");
+
+	for (let i= 0; i < 50; i++) {
+		t.is(oResult[i].name, `test-depCache-preload-${i}.js`, "Correct preload bundles got created");
+	}
+
+	// Merge filters from all bundles
+	const allFilters = oResult.flatMap((res) =>
+		res.sections.flatMap((section) => section.filters)
+	).sort();
+
+	t.deepEqual(Array.from(new Set(allFilters)).sort(), allFilters, "There are no duplicate filters");
+	t.true(
+		allFilters.every((filter) => filter.startsWith("foo/bar")),
+		"Every (included) filter starts with foo/bar namespace. The rest are filtered."
+	);
+});
 
 test("_calcMinSize: compressedSize", async (t) => {
 	const pool = {

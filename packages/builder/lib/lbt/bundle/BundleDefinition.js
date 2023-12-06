@@ -27,5 +27,12 @@ export const SectionType = {
 	 * Usually used as the last section in a merged module to enforce loading and
 	 * execution of some specific module or modules.
 	 */
-	Require: "require"
+	Require: "require",
+
+	/**
+	 * Dependency cache information that lists modules and their dependencies
+	 * of all types: JS, declarative views/fragments.
+	 * Only the dependencies of the modules are stored as 'depCache' configuration.
+	 */
+	DepCache: "depCache"
 };
