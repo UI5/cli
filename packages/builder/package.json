@@ -131,7 +131,7 @@
 		"pretty-data": "^0.40.0",
 		"rimraf": "^5.0.5",
 		"semver": "^7.5.4",
-		"terser": "^5.24.0",
+		"terser": "^5.26.0",
 		"workerpool": "^6.5.1",
 		"xml2js": "^0.6.2"
 	},
