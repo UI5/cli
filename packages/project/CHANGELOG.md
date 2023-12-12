@@ -2,7 +2,14 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.8.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.9.0...HEAD).
+
+<a name="v3.9.0"></a>
+## [v3.9.0] - 2023-12-12
+### Features
+- **ProjectBuilder:** Add `outputStyle` option to request flat build output ([#624](https://github.com/SAP/ui5-project/issues/624)) [`79312fc`](https://github.com/SAP/ui5-project/commit/79312fcefea1ea97c1f3d403ac4470f890069809)
+- **specVersion 3.2:** depCache bundling mode ([#673](https://github.com/SAP/ui5-project/issues/673)) [`68c5278`](https://github.com/SAP/ui5-project/commit/68c52782afbb617ddf110aca02d96f34a39ad5f7)
+
 
 <a name="v3.8.0"></a>
 ## [v3.8.0] - 2023-11-20
@@ -486,6 +493,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v3.9.0]: https://github.com/SAP/ui5-project/compare/v3.8.0...v3.9.0
 [v3.8.0]: https://github.com/SAP/ui5-project/compare/v3.7.3...v3.8.0
 [v3.7.3]: https://github.com/SAP/ui5-project/compare/v3.7.2...v3.7.3
 [v3.7.2]: https://github.com/SAP/ui5-project/compare/v3.7.1...v3.7.2
