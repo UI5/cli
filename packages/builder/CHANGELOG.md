@@ -2,10 +2,22 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.1.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.2.0...HEAD).
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2023-12-12
+### Bug Fixes
+- Incomplete multi-character sanitization ([#959](https://github.com/SAP/ui5-builder/issues/959)) [`d61f1b7`](https://github.com/SAP/ui5-builder/commit/d61f1b744495f5428db33467218077e7996f1575)
+- Add guard against prototype pollution ([#960](https://github.com/SAP/ui5-builder/issues/960)) [`ba230d9`](https://github.com/SAP/ui5-builder/commit/ba230d922cac0acd291dfe18b0ae7a95eae8b190)
+- Incomplete string escaping or encoding ([#958](https://github.com/SAP/ui5-builder/issues/958)) [`50bb0d9`](https://github.com/SAP/ui5-builder/commit/50bb0d97e76fb312412cf29fae18b76cc88df6f4)
+- **manifestCreator:** set fallbackLocale to empty string if no locale is present ([#962](https://github.com/SAP/ui5-builder/issues/962)) [`26526a0`](https://github.com/SAP/ui5-builder/commit/26526a08ff38ee11ed3bd506f7ef0610f1d1ccb0)
+
+### Features
+- depCache bundling mode ([#951](https://github.com/SAP/ui5-builder/issues/951)) [`f2cf564`](https://github.com/SAP/ui5-builder/commit/f2cf564f0f71d635e58a743c7bdef1f427e341b2)
+
 
 <a name="v3.1.1"></a>
-## [v3.1.1] - 2023-11-19
+## [v3.1.1] - 2023-11-20
 ### Bug Fixes
 - Handle graceful termination of workerpool for parallel builds ([#953](https://github.com/SAP/ui5-builder/issues/953)) [`f7b9f27`](https://github.com/SAP/ui5-builder/commit/f7b9f27ac5966bd89e52e4c2d5b03482a0f3dbb7)
 - **Bundling:** Detect manifest.json dependency of libraries [`6f9995f`](https://github.com/SAP/ui5-builder/commit/6f9995f5b47a6094fa93b5d433be849b1d3cdc7e)
@@ -839,6 +851,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v3.2.0]: https://github.com/SAP/ui5-builder/compare/v3.1.1...v3.2.0
 [v3.1.1]: https://github.com/SAP/ui5-builder/compare/v3.1.0...v3.1.1
 [v3.1.0]: https://github.com/SAP/ui5-builder/compare/v3.0.9...v3.1.0
 [v3.0.9]: https://github.com/SAP/ui5-builder/compare/v3.0.8...v3.0.9
