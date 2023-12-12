@@ -121,6 +121,22 @@ build.builder = function(cli) {
 			default: false,
 			type: "boolean"
 		})
+		.option("output-style", {
+			describe:
+				"Processes build results into a specific directory structure. \r\n\r\n" +
+				"- Flat: Omits the project namespace and the \"resources\" directory.\r\n" +
+				"- Namespace: Respects the project namespace and the \"resources\" directory, " +
+					"maintaining the original structure.\r\n" +
+				"- Default: The default directory structure for every project type. For applications, " +
+					"this is identical to \"Flat\", and for libraries, it is \"Namespace\". Other types have a " +
+					"more distinct default output style.",
+			type: "string",
+			default: "Default",
+			choices: ["Default", "Flat", "Namespace"],
+		})
+		.coerce("output-style", (opt) => {
+			return opt.charAt(0).toUpperCase() + opt.slice(1).toLowerCase();
+		})
 		.example("ui5 build", "Preload build for project without dependencies")
 		.example("ui5 build self-contained", "Self-contained build for project")
 		.example("ui5 build --exclude-task=* --include-task=minify generateComponentPreload",
@@ -176,7 +192,8 @@ async function handleBuild(argv) {
 		jsdoc: command === "jsdoc",
 		includedTasks: argv["include-task"],
 		excludedTasks: argv["exclude-task"],
-		cssVariables: argv["experimental-css-variables"]
+		cssVariables: argv["experimental-css-variables"],
+		outputStyle: argv["output-style"],
 	});
 }
 

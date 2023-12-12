@@ -281,3 +281,27 @@ test.serial("ui5 --no-update-notifier", async (t) => {
 	t.regex(stdout, /@ui5\/cli:/, "Output includes version information");
 	t.false(failed, "Command should not fail");
 });
+
+test.serial("ui5 --output-style", async (t) => {
+	await t.throwsAsync(ui5(["build", "--output-style", "nonExistent"]), {
+		message: /Argument: output-style, Given: "Nonexistent", Choices: "Default", "Flat", "Namespace"/s
+	}, "Coercion correctly capitalizes the first letter and makes the rest lowercase");
+
+
+	// "--output-style" uses a coerce to transform the input into the correct letter case.
+	// It is hard/unmaintainable to spy on internal implementation, so we check the output.
+	// The coerce goes before the real ui5 build, so we just need to check whether
+	// an invalid "--output-style" choice exception is not thrown.
+	// Of course, the build would throw another exception, because there's nothing actually to build.
+	await t.throwsAsync(ui5(["build", "--output-style", "flat"]), {
+		message: /^((?!Argument: output-style, Given: "Flat).)*$/s
+	}, "Does not throw an exception because of the --output-style input");
+
+	await t.throwsAsync(ui5(["build", "--output-style", "nAmEsPaCe"]), {
+		message: /^((?!Argument: output-style, Given: "Namespace).)*$/s
+	}, "Does not throw an exception because of the --output-style input");
+
+	await t.throwsAsync(ui5(["build", "--output-style", "Default"]), {
+		message: /^((?!Argument: output-style, Given: "Default).)*$/s
+	}, "Does not throw an exception because of the --output-style input");
+});
