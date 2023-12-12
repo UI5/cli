@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.4...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.5...HEAD).
+
+<a name="v3.1.5"></a>
+## [v3.1.5] - 2023-12-12
+### Bug Fixes
+- Unsafe jQuery plugin ([#618](https://github.com/SAP/ui5-server/issues/618)) [`ff1dc29`](https://github.com/SAP/ui5-server/commit/ff1dc297a9221f534173ec44e38e5a6eec6b9ba5)
+
 
 <a name="v3.1.4"></a>
 ## [v3.1.4] - 2023-11-20
@@ -323,6 +329,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.1.5]: https://github.com/SAP/ui5-server/compare/v3.1.4...v3.1.5
 [v3.1.4]: https://github.com/SAP/ui5-server/compare/v3.1.3...v3.1.4
 [v3.1.3]: https://github.com/SAP/ui5-server/compare/v3.1.2...v3.1.3
 [v3.1.2]: https://github.com/SAP/ui5-server/compare/v3.1.1...v3.1.2
