@@ -560,9 +560,11 @@ async function createManifest(
 
 		const supportedLocalesArray = Array.from(supportedLocales);
 		supportedLocalesArray.sort();
+
 		return {
 			bundleUrl: i18n,
-			supportedLocales: supportedLocalesArray
+			supportedLocales: supportedLocalesArray,
+			fallbackLocale: supportedLocalesArray.length === 1 ? supportedLocalesArray[0] : undefined
 		};
 	}
 

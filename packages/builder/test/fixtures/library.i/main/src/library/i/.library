@@ -21,7 +21,7 @@
 
 	<appData>
 		<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
-			<i18n>(i18nPathRelativeToLibrary)</i18n>
+			<i18n>i18nf/custommessagebundle.properties</i18n>
 			<offline>false</offline>
 			<deviceTypes desktop="true" phone="true" tablet="true" />
 			<supportedTheme>sap_belize</supportedTheme>
