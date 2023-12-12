@@ -381,7 +381,10 @@ test.serial("createProjectContext", async (t) => {
 			create: sinon.stub().resolves(taskRunner)
 		}
 	});
-	const testBuildContext = new BuildContext("graph", "taskRepository");
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const testBuildContext = new BuildContext(graph, "taskRepository");
 
 	const projectContext = await testBuildContext.createProjectContext({
 		project

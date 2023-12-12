@@ -1,5 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
+import OutputStyleEnum from "../../../../lib/build/helpers/ProjectBuilderOutputStyle.js";
 
 test.afterEach.always((t) => {
 	sinon.restore();
@@ -22,30 +23,42 @@ test("Missing parameters", (t) => {
 });
 
 test("getRootProject", (t) => {
-	const buildContext = new BuildContext({
-		getRoot: () => "pony"
-	}, "taskRepository");
+	const rootProjectStub = sinon.stub()
+		.onFirstCall().returns({getType: () => "library"})
+		.returns("pony");
+	const graph = {getRoot: rootProjectStub};
+	const buildContext = new BuildContext(graph, "taskRepository");
 
 	t.is(buildContext.getRootProject(), "pony", "Returned correct value");
 });
 
 test("getGraph", (t) => {
-	const buildContext = new BuildContext("graph", "taskRepository");
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository");
 
-	t.is(buildContext.getGraph(), "graph", "Returned correct value");
+	t.deepEqual(buildContext.getGraph(), graph, "Returned correct value");
 });
 
 test("getTaskRepository", (t) => {
-	const buildContext = new BuildContext("graph", "taskRepository");
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository");
 
 	t.is(buildContext.getTaskRepository(), "taskRepository", "Returned correct value");
 });
 
 test("getBuildConfig: Default values", (t) => {
-	const buildContext = new BuildContext("graph", "taskRepository");
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository");
 
 	t.deepEqual(buildContext.getBuildConfig(), {
 		selfContained: false,
+		outputStyle: OutputStyleEnum.Default,
 		cssVariables: false,
 		jsdoc: false,
 		createBuildManifest: false,
@@ -63,6 +76,7 @@ test("getBuildConfig: Custom values", (t) => {
 		}
 	}, "taskRepository", {
 		selfContained: true,
+		outputStyle: OutputStyleEnum.Namespace,
 		cssVariables: true,
 		jsdoc: true,
 		createBuildManifest: false,
@@ -72,6 +86,7 @@ test("getBuildConfig: Custom values", (t) => {
 
 	t.deepEqual(buildContext.getBuildConfig(), {
 		selfContained: true,
+		outputStyle: OutputStyleEnum.Namespace,
 		cssVariables: true,
 		jsdoc: true,
 		createBuildManifest: false,
@@ -162,8 +177,79 @@ test("createBuildManifest supported for jsdoc build", (t) => {
 	});
 });
 
-test("getBuildOption", (t) => {
-	const buildContext = new BuildContext("graph", "taskRepository", {
+test("outputStyle='Namespace' supported for type application", (t) => {
+	t.notThrows(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "application"
+				};
+			}
+		}, "taskRepository", {
+			outputStyle: OutputStyleEnum.Namespace
+		});
+	});
+});
+
+test("outputStyle='Flat' not supported for type theme-library", (t) => {
+	const err = t.throws(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "theme-library"
+				};
+			}
+		}, "taskRepository", {
+			outputStyle: OutputStyleEnum.Flat
+		});
+	});
+	t.is(err.message,
+		"Flat build output style is currently not supported for projects of typetheme-library since they" +
+		" commonly have more than one namespace. Currently only the Default output style is supported" +
+		" for this project type.");
+});
+
+test("outputStyle='Flat' not supported for type module", (t) => {
+	const err = t.throws(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "module"
+				};
+			}
+		}, "taskRepository", {
+			outputStyle: OutputStyleEnum.Flat
+		});
+	});
+	t.is(err.message,
+		"Flat build output style is currently not supported for projects of typemodule. " +
+		"Their path mappings configuration can't be mapped to any namespace.Currently only the " +
+		"Default output style is supported for this project type.");
+});
+
+test("outputStyle='Flat' not supported for createBuildManifest build", (t) => {
+	const err = t.throws(() => {
+		new BuildContext({
+			getRoot: () => {
+				return {
+					getType: () => "library"
+				};
+			}
+		}, "taskRepository", {
+			createBuildManifest: true,
+			outputStyle: OutputStyleEnum.Flat
+		});
+	});
+	t.is(err.message,
+		"Build manifest creation is not supported in conjunction with flat build output",
+		"Threw with expected error message");
+});
+
+test("getOption", (t) => {
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository", {
 		cssVariables: "value",
 	});
 
@@ -171,11 +257,14 @@ test("getBuildOption", (t) => {
 		"Returned correct value for build configuration 'cssVariables'");
 	t.is(buildContext.getOption("selfContained"), undefined,
 		"Returned undefined for build configuration 'selfContained' " +
-		"(not exposed as buold option)");
+		"(not exposed as build option)");
 });
 
 test("createProjectContext", async (t) => {
-	const buildContext = new BuildContext("graph", "taskRepository");
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository");
 	const projectBuildContext = await buildContext.createProjectContext({
 		project: {
 			getName: () => "project",
@@ -188,7 +277,10 @@ test("createProjectContext", async (t) => {
 });
 
 test("executeCleanupTasks", async (t) => {
-	const buildContext = new BuildContext("graph", "taskRepository");
+	const graph = {
+		getRoot: () => ({getType: () => "library"}),
+	};
+	const buildContext = new BuildContext(graph, "taskRepository");
 
 	const executeCleanupTasks = sinon.stub().resolves();
 

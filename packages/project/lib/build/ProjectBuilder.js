@@ -4,6 +4,7 @@ import BuildLogger from "@ui5/logger/internal/loggers/Build";
 import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
+import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
 
 /**
  * @public
@@ -24,6 +25,8 @@ class ProjectBuilder {
 	 *   Whether to create a build manifest file for the root project.
 	 *   This is currently only supported for projects of type 'library' and 'theme-library'
 	 *   No other dependencies can be included in the build result.
+	 * @property {module:@ui5/project/build/ProjectBuilderOutputStyle} [outputStyle=Default]
+	 *   Processes build results into a specific directory structure.
 	 * @property {Array.<string>} [includedTasks=[]] List of tasks to be included
 	 * @property {Array.<string>} [excludedTasks=[]] List of tasks to be excluded.
 	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
@@ -165,10 +168,13 @@ class ProjectBuilder {
 			return filterProject(projectName);
 		});
 
-		if (this._buildContext.getBuildConfig().createBuildManifest && requestedProjects.length > 1) {
-			throw new Error(
-				`It is currently not supported to request the creation of a build manifest ` +
-				`while including any dependencies into the build result`);
+		if (requestedProjects.length > 1) {
+			const {createBuildManifest} = this._buildContext.getBuildConfig();
+			if (createBuildManifest) {
+				throw new Error(
+					`It is currently not supported to request the creation of a build manifest ` +
+					`while including any dependencies into the build result`);
+			}
 		}
 
 		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
@@ -360,13 +366,25 @@ class ProjectBuilder {
 		const project = projectBuildContext.getProject();
 		const taskUtil = projectBuildContext.getTaskUtil();
 		const buildConfig = this._buildContext.getBuildConfig();
+		const {createBuildManifest, outputStyle} = buildConfig;
+		// Output styles are applied only for the root project
+		const isRootProject = taskUtil.isRootProject();
+
+		let readerStyle = "dist";
+		if (createBuildManifest ||
+			(isRootProject && outputStyle === OutputStyleEnum.Namespace && project.getType() === "application")) {
+			// Ensure buildtime (=namespaced) style when writing with a build manifest or when explicitly requested
+			readerStyle = "buildtime";
+		} else if (isRootProject && outputStyle === OutputStyleEnum.Flat) {
+			readerStyle = "flat";
+		}
+
 		const reader = project.getReader({
-			// Force buildtime (=namespaced) style when writing with a build manifest
-			style: taskUtil.isRootProject() && buildConfig.createBuildManifest ? "buildtime" : "dist"
+			style: readerStyle
 		});
 		const resources = await reader.byGlob("/**/*");
 
-		if (taskUtil.isRootProject() && buildConfig.createBuildManifest) {
+		if (createBuildManifest) {
 			// Create and write a build manifest metadata file
 			const {
 				default: createBuildManifest
@@ -386,6 +404,43 @@ class ProjectBuilder {
 			}
 			return target.write(resource);
 		}));
+
+		if (isRootProject &&
+			outputStyle === OutputStyleEnum.Flat &&
+			project.getType() !== "application" /* application type is with a default flat build output structure */) {
+			const namespace = project.getNamespace();
+			const libraryResourcesPrefix = `/resources/${namespace}/`;
+			const testResourcesPrefix = "/test-resources/";
+			const namespacedRegex = new RegExp(`/(resources|test-resources)/${namespace}`);
+			const processedResourcesSet = resources.reduce((acc, resource) => acc.add(resource.getPath()), new Set());
+
+			// If outputStyle === "Flat", then the FlatReader would have filtered
+			// some resources. We now need to get all of the available resources and
+			// do an intersection with the processed/bundled ones.
+			const defaultReader = project.getReader();
+			const defaultResources = await defaultReader.byGlob("/**/*");
+			const flatDefaultResources = defaultResources.map((resource) => ({
+				flatResource: resource.getPath().replace(namespacedRegex, ""),
+				originalPath: resource.getPath(),
+			}));
+
+			const skippedResources = flatDefaultResources.filter((resource) => {
+				return processedResourcesSet.has(resource.flatResource) === false;
+			});
+
+			skippedResources.forEach((resource) => {
+				if (resource.originalPath.startsWith(testResourcesPrefix)) {
+					this.#log.verbose(
+						`Omitting ${resource.originalPath} from build result. File is part of ${testResourcesPrefix}.`
+					);
+				} else if (!resource.originalPath.startsWith(libraryResourcesPrefix)) {
+					this.#log.warn(
+						`Omitting ${resource.originalPath} from build result. ` +
+							`File is not within project namespace '${namespace}'.`
+					);
+				}
+			});
+		}
 	}
 
 	async _executeCleanupTasks(force) {

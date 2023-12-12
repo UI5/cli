@@ -3,6 +3,7 @@ import sinonGlobal from "sinon";
 import path from "node:path";
 import esmock from "esmock";
 import {setLogLevel} from "@ui5/logger";
+import OutputStyleEnum from "../../../lib/build/helpers/ProjectBuilderOutputStyle.js";
 
 function noop() {}
 
@@ -508,7 +509,7 @@ test("_writeResults", async (t) => {
 		}
 	});
 
-	const dummyResources = [{
+	const mockResources = [{
 		_resourceName: "resource.a",
 		getPath: () => "resource.a"
 	}, {
@@ -518,7 +519,7 @@ test("_writeResults", async (t) => {
 		_resourceName: "resource.c",
 		getPath: () => "resource.c"
 	}];
-	const byGlobStub = sinon.stub().resolves(dummyResources);
+	const byGlobStub = sinon.stub().resolves(mockResources);
 	const getReaderStub = sinon.stub().returns({
 		byGlob: byGlobStub
 	});
@@ -553,16 +554,16 @@ test("_writeResults", async (t) => {
 	t.is(byGlobStub.getCall(0).args[0], "/**/*", "byGlob called with expected pattern");
 
 	t.is(getTagStub.callCount, 3, "TaskUtil#getTag got called three times");
-	t.is(getTagStub.getCall(0).args[0], dummyResources[0], "TaskUtil#getTag called with first resource");
+	t.is(getTagStub.getCall(0).args[0], mockResources[0], "TaskUtil#getTag called with first resource");
 	t.is(getTagStub.getCall(0).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
-	t.is(getTagStub.getCall(1).args[0], dummyResources[1], "TaskUtil#getTag called with second resource");
+	t.is(getTagStub.getCall(1).args[0], mockResources[1], "TaskUtil#getTag called with second resource");
 	t.is(getTagStub.getCall(1).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
-	t.is(getTagStub.getCall(2).args[0], dummyResources[2], "TaskUtil#getTag called with third resource");
+	t.is(getTagStub.getCall(2).args[0], mockResources[2], "TaskUtil#getTag called with third resource");
 	t.is(getTagStub.getCall(2).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
 
 	t.is(writerMock.write.callCount, 2, "Write got called twice");
-	t.is(writerMock.write.getCall(0).args[0], dummyResources[1], "Write got called with second resource");
-	t.is(writerMock.write.getCall(1).args[0], dummyResources[2], "Write got called with third resource");
+	t.is(writerMock.write.getCall(0).args[0], mockResources[1], "Write got called with second resource");
+	t.is(writerMock.write.getCall(1).args[0], mockResources[2], "Write got called with third resource");
 });
 
 test.serial("_writeResults: Create build manifest", async (t) => {
@@ -587,7 +588,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		}
 	});
 
-	const dummyResources = [{
+	const mockResources = [{
 		_resourceName: "resource.a",
 		getPath: () => "resource.a"
 	}, {
@@ -597,7 +598,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		_resourceName: "resource.c",
 		getPath: () => "resource.c"
 	}];
-	const byGlobStub = sinon.stub().resolves(dummyResources);
+	const byGlobStub = sinon.stub().resolves(mockResources);
 	const getReaderStub = sinon.stub().returns({
 		byGlob: byGlobStub
 	});
@@ -636,6 +637,7 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 		"createBuildManifest got called with correct project");
 	t.deepEqual(createBuildManifestStub.getCall(0).args[1], {
 		createBuildManifest: true,
+		outputStyle: OutputStyleEnum.Default,
 		cssVariables: false,
 		excludedTasks: [],
 		includedTasks: [],
@@ -652,50 +654,57 @@ test.serial("_writeResults: Create build manifest", async (t) => {
 	}, "Build manifest resource has been created with correct arguments");
 
 	t.is(getTagStub.callCount, 3, "TaskUtil#getTag got called three times");
-	t.is(getTagStub.getCall(0).args[0], dummyResources[0], "TaskUtil#getTag called with first resource");
+	t.is(getTagStub.getCall(0).args[0], mockResources[0], "TaskUtil#getTag called with first resource");
 	t.is(getTagStub.getCall(0).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
-	t.is(getTagStub.getCall(1).args[0], dummyResources[1], "TaskUtil#getTag called with second resource");
+	t.is(getTagStub.getCall(1).args[0], mockResources[1], "TaskUtil#getTag called with second resource");
 	t.is(getTagStub.getCall(1).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
-	t.is(getTagStub.getCall(2).args[0], dummyResources[2], "TaskUtil#getTag called with third resource");
+	t.is(getTagStub.getCall(2).args[0], mockResources[2], "TaskUtil#getTag called with third resource");
 	t.is(getTagStub.getCall(2).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
 
 	t.is(writerMock.write.callCount, 3, "Write got called three times");
 	t.is(writerMock.write.getCall(0).args[0], "build manifest resource", "Write got called with build manifest");
-	t.is(writerMock.write.getCall(1).args[0], dummyResources[1], "Write got called with second resource");
-	t.is(writerMock.write.getCall(2).args[0], dummyResources[2], "Write got called with third resource");
+	t.is(writerMock.write.getCall(1).args[0], mockResources[1], "Write got called with second resource");
+	t.is(writerMock.write.getCall(2).args[0], mockResources[2], "Write got called with third resource");
 
 	esmock.purge(ProjectBuilder);
 });
 
-test("_writeResults: Do not create build manifest for non-root project", async (t) => {
-	const {ProjectBuilder, sinon} = t.context;
+test.serial("_writeResults: Flat build output", async (t) => {
+	const {sinon, ProjectBuilder} = t.context;
 	t.context.getRootTypeStub = sinon.stub().returns("library");
 	const {graph, taskRepository} = t.context;
 
 	const builder = new ProjectBuilder({
 		graph, taskRepository,
 		buildConfig: {
-			createBuildManifest: true
+			outputStyle: OutputStyleEnum.Flat,
+			otherBuildConfig: "yes"
 		}
 	});
 
-	const dummyResources = [{
+	const mockResources = [{
 		_resourceName: "resource.a",
 		getPath: () => "resource.a"
+	}, {
+		_resourceName: "resource.b",
+		getPath: () => "resource.b"
+	}, {
+		_resourceName: "resource.c",
+		getPath: () => "resource.c"
 	}];
-	const byGlobStub = sinon.stub().resolves(dummyResources);
+	const byGlobStub = sinon.stub().resolves(mockResources);
 	const getReaderStub = sinon.stub().returns({
 		byGlob: byGlobStub
 	});
-	const mockProject = getMockProject("library", "c");
+	const mockProject = getMockProject("library", "a");
 	mockProject.getReader = getReaderStub;
 
-	const getTagStub = sinon.stub().returns(false);
+	const getTagStub = sinon.stub().returns(false).onFirstCall().returns(true);
 	const projectBuildContextMock = {
 		getProject: () => mockProject,
 		getTaskUtil: () => {
 			return {
-				isRootProject: () => false,
+				isRootProject: () => true,
 				getTag: getTagStub,
 				STANDARD_TAGS: {
 					OmitFromBuildResult: "OmitFromBuildResultTag"
@@ -709,16 +718,27 @@ test("_writeResults: Do not create build manifest for non-root project", async (
 
 	await builder._writeResults(projectBuildContextMock, writerMock);
 
-	t.is(getReaderStub.callCount, 1, "One reader requested");
+	t.is(getReaderStub.callCount, 2, "One reader requested");
 	t.deepEqual(getReaderStub.getCall(0).args[0], {
-		style: "dist"
+		style: "flat"
 	}, "Reader requested expected style");
 
-	t.is(getTagStub.callCount, 1, "TaskUtil#getTag got called once");
+	t.is(byGlobStub.callCount, 2, "One byGlob call");
+	t.is(byGlobStub.getCall(0).args[0], "/**/*", "byGlob called with expected pattern");
 
-	t.is(writerMock.write.callCount, 1, "Write got called once");
-	t.is(writerMock.write.getCall(0).args[0], dummyResources[0], "Write got called with only resource");
+	t.is(getTagStub.callCount, 3, "TaskUtil#getTag got called three times");
+	t.is(getTagStub.getCall(0).args[0], mockResources[0], "TaskUtil#getTag called with first resource");
+	t.is(getTagStub.getCall(0).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
+	t.is(getTagStub.getCall(1).args[0], mockResources[1], "TaskUtil#getTag called with second resource");
+	t.is(getTagStub.getCall(1).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
+	t.is(getTagStub.getCall(2).args[0], mockResources[2], "TaskUtil#getTag called with third resource");
+	t.is(getTagStub.getCall(2).args[1], "OmitFromBuildResultTag", "TaskUtil#getTag called with correct tag value");
+
+	t.is(writerMock.write.callCount, 2, "Write got called twice");
+	t.is(writerMock.write.getCall(0).args[0], mockResources[1], "Write got called with second resource");
+	t.is(writerMock.write.getCall(1).args[0], mockResources[2], "Write got called with third resource");
 });
+
 
 test("_executeCleanupTasks", async (t) => {
 	const {graph, taskRepository, ProjectBuilder, sinon} = t.context;

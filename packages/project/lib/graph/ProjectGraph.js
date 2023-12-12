@@ -1,5 +1,7 @@
+import OutputStyleEnum from "../build/helpers/ProjectBuilderOutputStyle.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("graph:ProjectGraph");
+
 
 /**
  * A rooted, directed graph representing a UI5 project, its dependencies and available extensions.
@@ -540,7 +542,8 @@ class ProjectGraph {
 	 *			This is currently only supported for projects of type 'library' and 'theme-library'
 	 * @param {Array.<string>} [parameters.includedTasks=[]] List of tasks to be included
 	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
-	 * 			If the wildcard '*' is provided, only the included tasks will be executed.
+	 * @param {module:@ui5/project/build/ProjectBuilderOutputStyle} [parameters.outputStyle=Default]
+	 *   Processes build results into a specific directory structure.
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -548,7 +551,8 @@ class ProjectGraph {
 		includedDependencies = [], excludedDependencies = [],
 		dependencyIncludes,
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
-		includedTasks = [], excludedTasks = []
+		includedTasks = [], excludedTasks = [],
+		outputStyle = OutputStyleEnum.Default
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._built) {
@@ -566,7 +570,7 @@ class ProjectGraph {
 			buildConfig: {
 				selfContained, cssVariables, jsdoc,
 				createBuildManifest,
-				includedTasks, excludedTasks,
+				includedTasks, excludedTasks, outputStyle,
 			}
 		});
 		await builder.build({
