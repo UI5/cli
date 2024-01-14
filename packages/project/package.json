@@ -120,7 +120,7 @@
 		"url": "git@github.com:SAP/ui5-project.git"
 	},
 	"dependencies": {
-		"@npmcli/config": "^8.0.3",
+		"@npmcli/config": "^8.1.0",
 		"@ui5/builder": "^3.2.0",
 		"@ui5/fs": "^3.0.5",
 		"@ui5/logger": "^3.0.0",
