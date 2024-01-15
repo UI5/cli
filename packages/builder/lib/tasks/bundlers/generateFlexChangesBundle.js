@@ -83,15 +83,21 @@ export default async function({workspace, taskUtil, options = {}}) {
 	if (allResources.length > 0) {
 		const version = semver.coerce(await readManifestMinUI5Version());
 		let hasFlexBundleVersion = false;
+		let flexBundle = {};
 		if (semver.compare(version, "1.73.0") >= 0) {
 			hasFlexBundleVersion = true;
+			const flexBundleResource = await workspace.byPath(`${pathPrefix}/changes/flexibility-bundle.json`);
+			if (flexBundleResource) {
+				flexBundle = JSON.parse(await flexBundleResource.getString());
+			}
 		}
 		const processedResources = await flexChangesBundler({
 			resources: allResources,
 			options: {
 				pathPrefix,
 				hasFlexBundleVersion
-			}
+			},
+			existingFlexBundle: flexBundle
 		});
 		await Promise.all(processedResources.map((resource) => {
 			log.verbose("Writing flexibility changes bundle");

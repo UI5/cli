@@ -20,9 +20,11 @@ import {createResource} from "@ui5/fs/resourceFactory";
  * @param {string} parameters.options.pathPrefix Prefix for bundle path
  * @param {string} parameters.options.hasFlexBundleVersion true if minUI5Version >= 1.73 than
  *															create flexibility-bundle.json
+ * @param {object} [parameters.existingFlexBundle={}] Object with existing flexibility-bundle.json
+ * 															to merge with new changes
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with flex changes bundle resources
  */
-export default function({resources, options: {pathPrefix, hasFlexBundleVersion}}) {
+export default function({resources, options: {pathPrefix, hasFlexBundleVersion}, existingFlexBundle = {}}) {
 	let bundleName = "changes-bundle.json";
 
 	function sortByTimeStamp(a, b) {
@@ -86,7 +88,7 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion}}
 			return JSON.stringify(changes);
 		} else {
 			bundleName = "flexibility-bundle.json";
-			const newChangeFormat = {
+			let newChangeFormat = {
 				changes,
 				compVariants,
 				variants,
@@ -94,9 +96,31 @@ export default function({resources, options: {pathPrefix, hasFlexBundleVersion}}
 				variantDependentControlChanges,
 				variantManagementChanges
 			};
-
+			if (Object.keys(existingFlexBundle).length > 0) {
+				newChangeFormat = mergeFlexChangeBundles(newChangeFormat);
+			}
 			return JSON.stringify(newChangeFormat);
 		}
+	}
+
+	/**
+	 * Merge new and existing bundles
+	 *
+	 * @param {object} newFlexBundle Object with new content of flexibility-bundle.json
+	 * @returns {object} Object with merged content of new and existing flexibility-bundle.json
+	 */
+	function mergeFlexChangeBundles(newFlexBundle) {
+		const result = {};
+
+		Object.keys(newFlexBundle).forEach((key) => {
+			if (existingFlexBundle[key] && Array.isArray(existingFlexBundle[key])) {
+				result[key] = existingFlexBundle[key].concat(newFlexBundle[key]);
+			} else {
+				result[key] = newFlexBundle[key];
+			}
+		});
+
+		return result;
 	}
 
 	return Promise.all(resources.map((resource) => {
