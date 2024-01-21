@@ -137,7 +137,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
-		"@jridgewell/trace-mapping": "^0.3.21",
+		"@jridgewell/trace-mapping": "^0.3.22",
 		"@ui5/project": "^3.9.0",
 		"ava": "^5.3.1",
 		"chai": "^4.4.1",
