@@ -147,7 +147,7 @@ class Application extends ComponentProject {
 						`Could not find required manifest.json for project ` +
 						`${this.getName()}: ${manifestJsonError.message}\n\n` +
 						`If you are about to start a new project, please refer to:\n` +
-						`https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/#starting-a-new-project`, {
+						`https://sap.github.io/ui5-tooling/v4/pages/GettingStarted/#starting-a-new-project`, {
 							cause: manifestJsonError
 						});
 				}

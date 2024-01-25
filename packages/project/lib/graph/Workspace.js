@@ -12,7 +12,7 @@ const log = getLogger("graph:Workspace");
 
 /**
  * Workspace configuration. For details, refer to the
- * [UI5 Workspaces documentation]{@link https://sap.github.io/ui5-tooling/v3/pages/Workspace/#configuration}
+ * [UI5 Workspaces documentation]{@link https://sap.github.io/ui5-tooling/v4/pages/Workspace/#configuration}
  *
  * @public
  * @typedef {object} @ui5/project/graph/Workspace~Configuration

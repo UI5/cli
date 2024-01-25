@@ -10,9 +10,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-project/badge.svg)](https://coveralls.io/github/SAP/ui5-project)
 
 ## Documentation
-UI5 Project documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v3/pages/Project/)
+UI5 Project documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v4/pages/Project/)
 
-The UI5 Project API Reference can be found here: [`@ui5/project`](https://sap.github.io/ui5-tooling/v3/api/)
+The UI5 Project API Reference can be found here: [`@ui5/project`](https://sap.github.io/ui5-tooling/v4/api/)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/main/CONTRIBUTING.md).
