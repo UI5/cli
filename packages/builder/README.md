@@ -10,9 +10,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-builder/badge.svg)](https://coveralls.io/github/SAP/ui5-builder)
 
 ## Documentation
-UI5 Builder documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v3/pages/Builder/)
+UI5 Builder documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v4/pages/Builder/)
 
-The UI5 Builder API Reference can be found here: [`@ui5/builder`](https://sap.github.io/ui5-tooling/v3/api/)
+The UI5 Builder API Reference can be found here: [`@ui5/builder`](https://sap.github.io/ui5-tooling/v4/api/)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/main/CONTRIBUTING.md).
