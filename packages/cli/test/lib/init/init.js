@@ -44,7 +44,7 @@ const GENERAL_ERROR_MESSAGE = `Applications should only have a 'webapp' folder.
 Libraries should only have an 'src' and (optional) 'test' folder.
 
 If you are about to start a new project, please refer to:
-https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/#starting-a-new-project`;
+https://sap.github.io/ui5-tooling/v4/pages/GettingStarted/#starting-a-new-project`;
 
 test("Init for invalid project (Found 'webapp', 'src' and 'test' folders)", async (t) => {
 	await t.throwsAsync(init({
