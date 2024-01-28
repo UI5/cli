@@ -150,7 +150,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^46.10.1",
-		"esmock": "^2.6.2",
+		"esmock": "^2.6.3",
 		"line-column": "^1.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^7.2.0",
