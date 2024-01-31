@@ -10,9 +10,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-fs/badge.svg)](https://coveralls.io/github/SAP/ui5-fs)
 
 ## Documentation
-UI5 FS documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v3/pages/FileSystem/)
+UI5 FS documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v4/pages/FileSystem/)
 
-The UI5 FS API Reference can be found here: [`@ui5/fs`](https://sap.github.io/ui5-tooling/v3/api/)
+The UI5 FS API Reference can be found here: [`@ui5/fs`](https://sap.github.io/ui5-tooling/v4/api/)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/main/CONTRIBUTING.md).
