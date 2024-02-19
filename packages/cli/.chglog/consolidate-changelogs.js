@@ -1,18 +1,15 @@
 import readline from "node:readline";
 import path from "node:path";
 import fs from "node:fs";
-
-// Using CommonsJS require.resolve as long as import.meta.resolve is experimental
-import {createRequire} from "node:module";
-const require = createRequire(import.meta.url);
+import {fileURLToPath} from "node:url";
 
 function handleDependencyBump(line) {
 	line = line.replace("[@ui5](https://github.com/ui5)", "@ui5");
 	const moduleMatch = line.match(/Bump (@ui5\/[^\s]+).*to ([^ ]+)/);
 	if (moduleMatch) {
 		const [, moduleName, moduleVersion] = moduleMatch;
-		const moduleDir = path.dirname(require.resolve(`${moduleName}/package.json`));
-		const changelogPath = path.join(moduleDir, "CHANGELOG.md");
+		const changelogPath = fileURLToPath(
+			new URL(`./CHANGELOG.md`, import.meta.resolve(`${moduleName}/package.json`)));
 		const changelog = fs.readFileSync(changelogPath, {
 			encoding: "utf8"
 		});
