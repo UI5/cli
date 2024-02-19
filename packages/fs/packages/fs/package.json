@@ -32,8 +32,8 @@
 		"./internal/ResourceTagCollection": "./lib/ResourceTagCollection.js"
 	},
 	"engines": {
-		"node": "^16.18.0 || >=18.12.0",
-		"npm": ">= 8"
+		"node": "^20.11.0 || >=21.2.0",
+		"npm": ">= 10"
 	},
 	"scripts": {
 		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck",
