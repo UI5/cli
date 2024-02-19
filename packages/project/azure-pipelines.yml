@@ -6,32 +6,35 @@
 trigger:
 - main
 
+variables:
+  CI: true
+
 strategy:
   matrix:
-    linux_node_lts_16:
+    linux_node_lts_20_min_version:
       imageName: 'ubuntu-22.04'
-      node_version: 16.x
-    linux_node_lts_18_min_version:
+      node_version: 20.11.0
+    linux_node_21_min_version:
       imageName: 'ubuntu-22.04'
-      node_version: 18.12.0
-    linux_node_lts_18:
+      node_version: 21.2.0
+    linux_node_lts_20:
       imageName: 'ubuntu-22.04'
-      node_version: 18.x
-    mac_node_lts_18:
+      node_version: 20.x
+    mac_node_lts_20:
       imageName: 'macos-12'
-      node_version: 18.x
-    windows_node_lts_18:
+      node_version: 20.x
+    windows_node_lts_20:
       imageName: 'windows-2022'
-      node_version: 18.x
+      node_version: 20.x
     linux_node_current:
       imageName: 'ubuntu-22.04'
-      node_version: 20.x
+      node_version: 21.x
     mac_node_current:
       imageName: 'macos-12'
-      node_version: 20.x
+      node_version: 21.x
     windows_node_current:
       imageName: 'windows-2022'
-      node_version: 20.x
+      node_version: 21.x
 
 pool:
   vmImage: $(imageName)
