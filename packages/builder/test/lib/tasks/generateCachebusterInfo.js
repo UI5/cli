@@ -1,7 +1,6 @@
 import test from "ava";
 import fs from "node:fs";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import chai from "chai";
 import chaiFs from "chai-fs";
 chai.use(chaiFs);
@@ -10,7 +9,7 @@ const assert = chai.assert;
 import {graphFromObject} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 

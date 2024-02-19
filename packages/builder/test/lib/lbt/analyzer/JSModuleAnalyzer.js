@@ -6,10 +6,6 @@ import {ecmaVersion, parseJS, VisitorKeys} from "../../../../lib/lbt/utils/parse
 import ModuleInfo from "../../../../lib/lbt/resources/ModuleInfo.js";
 import JSModuleAnalyzer, {EnrichedVisitorKeys} from "../../../../lib/lbt/analyzer/JSModuleAnalyzer.js";
 
-import {fileURLToPath} from "node:url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const EXPECTED_MODULE_NAME = "sap/ui/testmodule.js";
 
 const EXPECTED_DECLARE_DEPENDENCIES = [
@@ -40,7 +36,7 @@ function analyze(file, name) {
 		name = file;
 	}
 	return new Promise( (resolve, reject) => {
-		file = path.join(__dirname, "..", "..", "..", "fixtures", "lbt", file);
+		file = path.join(import.meta.dirname, "..", "..", "..", "fixtures", "lbt", file);
 		fs.readFile(file, (err, buffer) => {
 			if ( err ) {
 				reject(err);

@@ -1,5 +1,4 @@
 import test from "ava";
-import {fileURLToPath} from "node:url";
 import path from "node:path";
 import chai from "chai";
 import chaiFs from "chai-fs";
@@ -11,7 +10,7 @@ import {graphFromObject} from "@ui5/project/graph";
 import generateLibraryPreload from "../../../../lib/tasks/bundlers/generateLibraryPreload.js";
 import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryDMinifiedPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-minified");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");

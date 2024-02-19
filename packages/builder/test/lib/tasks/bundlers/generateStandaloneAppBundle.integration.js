@@ -1,5 +1,4 @@
 import test from "ava";
-import {fileURLToPath} from "node:url";
 import path from "node:path";
 import chai from "chai";
 import chaiFs from "chai-fs";
@@ -10,7 +9,7 @@ import {graphFromObject} from "@ui5/project/graph";
 import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 import recursive from "recursive-readdir";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 

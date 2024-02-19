@@ -1,11 +1,10 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import sinon from "sinon";
 import esmock from "esmock";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const projectCache = {};
 

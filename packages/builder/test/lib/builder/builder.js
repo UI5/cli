@@ -1,6 +1,5 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import {createRequire} from "node:module";
 import chai from "chai";
 import chaiFs from "chai-fs";
@@ -14,10 +13,10 @@ import {graphFromObject, graphFromPackageDependencies} from "@ui5/project/graph"
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
 import {setLogLevel} from "@ui5/logger";
 
-// Using CommonsJS require as importing json files causes an ExperimentalWarning
+// Using CommonsJS require since JSON module imports are still experimental
 const require = createRequire(import.meta.url);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");

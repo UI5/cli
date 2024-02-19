@@ -98,7 +98,7 @@ export function getRemovedTaskNames() {
 	return ["createDebugFiles", "uglify", "generateManifestBundle"];
 }
 
-// Using CommonsJS require as importing json files causes an ExperimentalWarning
+// Using CommonsJS require since JSON module imports are still experimental
 const require = createRequire(import.meta.url);
 function getVersion(pkg) {
 	return require(`${pkg}/package.json`).version;
