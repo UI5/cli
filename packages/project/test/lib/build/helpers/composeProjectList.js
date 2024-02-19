@@ -2,10 +2,9 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import {graphFromObject} from "../../../../lib/graph/graph.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const libraryEPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.e");

@@ -1,6 +1,5 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import chalk from "chalk";
 import Specification from "../../../lib/specifications/Specification.js";
 
@@ -8,7 +7,7 @@ function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
 }
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const basicProjectInput = {

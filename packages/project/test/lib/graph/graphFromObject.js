@@ -1,11 +1,10 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import ValidationError from "../../../lib/validation/ValidationError.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const applicationBPath = path.join(__dirname, "..", "..", "fixtures", "application.b");

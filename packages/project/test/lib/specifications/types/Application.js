@@ -1,12 +1,11 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import {createResource} from "@ui5/fs/resourceFactory";
 import sinonGlobal from "sinon";
 import Specification from "../../../../lib/specifications/Specification.js";
 import Application from "../../../../lib/specifications/types/Application.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const applicationHPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.h");
 

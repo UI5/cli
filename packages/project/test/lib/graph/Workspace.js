@@ -1,11 +1,10 @@
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import Module from "../../../lib/graph/Module.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const libraryD = path.join(__dirname, "..", "..", "fixtures", "library.d");
 const libraryE = path.join(__dirname, "..", "..", "fixtures", "library.e");
 const collectionLibraryA = path.join(__dirname, "..", "..", "fixtures", "collection", "library.a");

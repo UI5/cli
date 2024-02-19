@@ -1,10 +1,9 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import sinonGlobal from "sinon";
 import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 test.beforeEach((t) => {

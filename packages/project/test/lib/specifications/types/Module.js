@@ -1,10 +1,9 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import sinonGlobal from "sinon";
 import Specification from "../../../../lib/specifications/Specification.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const moduleAPath = path.join(__dirname, "..", "..", "..", "fixtures", "module.a");
 
 test.beforeEach((t) => {

@@ -1,11 +1,10 @@
 import test from "ava";
-import {fileURLToPath} from "node:url";
 import path from "node:path";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import Workspace from "../../../lib/graph/Workspace.js";
 import CacheMode from "../../../lib/ui5Framework/maven/CacheMode.js";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const fixturesPath = path.join(__dirname, "..", "..", "fixtures");
 const libraryHPath = path.join(fixturesPath, "library.h");

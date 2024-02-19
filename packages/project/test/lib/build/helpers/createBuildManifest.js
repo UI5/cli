@@ -1,11 +1,10 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import semver from "semver";
 import createBuildManifest from "../../../../lib/build/helpers/createBuildManifest.js";
 import Specification from "../../../../lib/specifications/Specification.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const applicationProjectInput = {

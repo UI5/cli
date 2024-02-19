@@ -1,7 +1,6 @@
 import test from "ava";
 import esmock from "esmock";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import sinon from "sinon";
 import Specification from "../../../lib/specifications/Specification.js";
 import Application from "../../../lib/specifications/types/Application.js";
@@ -12,7 +11,7 @@ import Task from "../../../lib/specifications/extensions/Task.js";
 import ProjectShim from "../../../lib/specifications/extensions/ProjectShim.js";
 import ServerMiddleware from "../../../lib/specifications/extensions/ServerMiddleware.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "fixtures", "application.a");
 const libraryHPath = path.join(__dirname, "..", "..", "fixtures", "library.h");

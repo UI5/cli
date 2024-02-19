@@ -1,10 +1,9 @@
 import test from "ava";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import sinonGlobal from "sinon";
 import Library from "../../../../lib/specifications/types/Library.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryHPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.h");
 

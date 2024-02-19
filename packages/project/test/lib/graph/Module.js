@@ -1,10 +1,9 @@
 import test from "ava";
 import sinon from "sinon";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import Module from "../../../lib/graph/Module.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const fixturesPath = path.join(__dirname, "..", "..", "fixtures");
 const applicationAPath = path.join(fixturesPath, "application.a");

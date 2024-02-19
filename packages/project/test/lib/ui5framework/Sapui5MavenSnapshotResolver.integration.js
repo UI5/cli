@@ -2,9 +2,8 @@ import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 // Use path within project as mocking base directory to reduce chance of side effects
 // in case mocks/stubs do not work and real fs is used

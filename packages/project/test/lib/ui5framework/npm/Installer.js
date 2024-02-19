@@ -2,9 +2,8 @@ import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 test.beforeEach(async (t) => {
 	t.context.mkdirpStub = sinon.stub().resolves();

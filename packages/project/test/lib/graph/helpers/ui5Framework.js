@@ -1,5 +1,4 @@
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import test from "ava";
 import sinonGlobal from "sinon";
 import esmock from "esmock";
@@ -8,7 +7,7 @@ import projectGraphBuilder from "../../../../lib/graph/projectGraphBuilder.js";
 import Specification from "../../../../lib/specifications/Specification.js";
 import CacheMode from "../../../../lib/ui5Framework/maven/CacheMode.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const applicationAPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.a");
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
