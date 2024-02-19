@@ -2,14 +2,8 @@ import path from "node:path";
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
-import jsdocGenerator from "../../../../lib/processors/jsdoc/jsdocGenerator.js";
-import {createRequire} from "node:module";
-
-const require = createRequire(import.meta.url);
-
 import {fileURLToPath} from "node:url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import jsdocGenerator from "../../../../lib/processors/jsdoc/jsdocGenerator.js";
 
 test.serial("generateJsdocConfig", async (t) => {
 	const res = await jsdocGenerator._generateJsdocConfig({
@@ -22,7 +16,7 @@ test.serial("generateJsdocConfig", async (t) => {
 		variants: ["apijson"]
 	});
 
-	const jsdocGeneratorPath = path.resolve(__dirname, "..", "..", "..", "..", "lib", "processors",
+	const jsdocGeneratorPath = path.resolve(import.meta.dirname, "..", "..", "..", "..", "lib", "processors",
 		"jsdoc");
 
 	const backslashRegex = /\\/g;
@@ -104,7 +98,7 @@ test.serial("buildJsdoc", async (t) => {
 	const firstCallArgs = cpStub.getCall(0).args;
 	t.is(firstCallArgs[0], "node", "Spawn got called with correct process argument");
 	t.deepEqual(firstCallArgs[1], [
-		require.resolve("jsdoc/jsdoc.js"),
+		fileURLToPath(import.meta.resolve("jsdoc/jsdoc.js")),
 		"-c",
 		"/some/config/path/jsdoc-config.json",
 		"--verbose",

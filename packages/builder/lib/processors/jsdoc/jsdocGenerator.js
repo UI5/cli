@@ -4,11 +4,7 @@ import path from "node:path";
 import {promisify} from "node:util";
 const writeFile = promisify(fs.writeFile);
 import {createAdapter} from "@ui5/fs/resourceFactory";
-import {createRequire} from "node:module";
 import {fileURLToPath} from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire(import.meta.url);
 
 /**
  * @public
@@ -93,7 +89,7 @@ async function generateJsdocConfig({targetPath, tmpPath, namespace, projectName,
 	const backslashRegex = /\\/g;
 
 	// Resolve path to this script to get the path to the JSDoc extensions folder
-	const jsdocPath = path.normalize(__dirname);
+	const jsdocPath = path.normalize(import.meta.dirname);
 	const pluginPath = path.join(jsdocPath, "lib", "ui5", "plugin.cjs").replace(backslashRegex, "\\\\");
 	// Using export via package.json to allow loading the CJS template.
 	// jsdoc appends /publish to the provided path but doesn't allow to
@@ -164,7 +160,7 @@ async function writeJsdocConfig(targetDirPath, config) {
  */
 async function buildJsdoc({sourcePath, configPath}) {
 	const args = [
-		require.resolve("jsdoc/jsdoc"),
+		fileURLToPath(import.meta.resolve("jsdoc/jsdoc.js")),
 		"-c",
 		configPath,
 		"--verbose",
