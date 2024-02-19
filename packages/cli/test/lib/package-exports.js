@@ -10,11 +10,11 @@ test("export of package.json", (t) => {
 });
 
 test("export of bin/ui5.cjs", (t) => {
-	t.truthy(require.resolve("@ui5/cli/bin/ui5.cjs"));
+	t.truthy(import.meta.resolve("@ui5/cli/bin/ui5.cjs"));
 });
 
 test("export of bin/ui5.js (for compatibility with CLI v2 that might invoke a newer local installation", (t) => {
-	t.truthy(require.resolve("@ui5/cli/bin/ui5.js"));
+	t.truthy(import.meta.resolve("@ui5/cli/bin/ui5.js"));
 });
 
 // Check number of definied exports
