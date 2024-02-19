@@ -3,11 +3,10 @@ import sinon from "sinon";
 import esmock from "esmock";
 import chalk from "chalk";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import {execa} from "execa";
 import stripAnsi from "strip-ansi";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const ui5Cli = path.join(__dirname, "..", "..", "..", "..", "bin", "ui5.cjs");
 const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 

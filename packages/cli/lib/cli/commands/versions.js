@@ -1,7 +1,7 @@
 import baseMiddleware from "../middlewares/base.js";
 import {createRequire} from "node:module";
 
-// Using CommonsJS require as importing json files causes an ExperimentalWarning
+// Using CommonsJS require since JSON module imports are still experimental
 const require = createRequire(import.meta.url);
 
 const versions = {

@@ -6,12 +6,11 @@ import esmock from "esmock";
 import chalk from "chalk";
 import stripAnsi from "strip-ansi";
 import yargs from "yargs";
-import {fileURLToPath} from "node:url";
 import {readFileSync} from "node:fs";
 
 const pkgJsonPath = new URL("../../../package.json", import.meta.url);
 const pkg = JSON.parse(readFileSync(pkgJsonPath));
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const ui5Cli = path.join(__dirname, "..", "..", "..", "bin", "ui5.cjs");
 const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 
