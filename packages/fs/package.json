@@ -67,9 +67,11 @@
 		"files": [
 			"test/lib/**/*.js"
 		],
-		"ignoredByWatcher": [
-			"test/tmp/**"
-		],
+		"watchMode": {
+			"ignoreChanges": [
+				"test/tmp/**"
+			]
+		},
 		"nodeArguments": [
 			"--loader=esmock",
 			"--no-warnings"
