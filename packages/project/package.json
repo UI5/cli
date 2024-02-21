@@ -128,7 +128,7 @@
 		"ajv-errors": "^1.0.1",
 		"chalk": "^5.3.0",
 		"escape-string-regexp": "^5.0.0",
-		"globby": "^13.2.2",
+		"globby": "^14.0.1",
 		"graceful-fs": "^4.2.11",
 		"js-yaml": "^4.1.0",
 		"lockfile": "^1.0.4",
