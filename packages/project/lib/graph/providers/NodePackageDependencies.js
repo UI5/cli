@@ -1,5 +1,5 @@
 import path from "node:path";
-import {readPackageUp} from "read-pkg-up";
+import {readPackageUp} from "read-package-up";
 import {readPackage} from "read-pkg";
 import {promisify} from "node:util";
 import fs from "graceful-fs";
