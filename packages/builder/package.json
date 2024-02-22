@@ -132,7 +132,7 @@
 		"rimraf": "^5.0.5",
 		"semver": "^7.6.0",
 		"terser": "^5.27.1",
-		"workerpool": "^6.5.1",
+		"workerpool": "^9.1.0",
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
