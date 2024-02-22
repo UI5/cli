@@ -12,8 +12,7 @@ updates:
     time: "10:00"
     timezone: Etc/UCT
   reviewers:
-  - RandomByte
-  - matz3
+  - "SAP/ui5-foundation"
   versioning-strategy: increase
   commit-message:
     prefix: "[DEPENDENCY] "
