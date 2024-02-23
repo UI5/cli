@@ -126,7 +126,7 @@
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.1.0",
 		"js-yaml": "^4.1.0",
-		"open": "^9.1.0",
+		"open": "^10.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.6.0",
 		"update-notifier": "^6.0.2",
