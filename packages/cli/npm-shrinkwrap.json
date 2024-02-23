@@ -21,7 +21,7 @@
 				"open": "^10.0.3",
 				"pretty-hrtime": "^1.0.3",
 				"semver": "^7.6.0",
-				"update-notifier": "^6.0.2",
+				"update-notifier": "^7.0.0",
 				"yargs": "^17.7.2"
 			},
 			"bin": {
@@ -1909,15 +1909,6 @@
 			"dev": true,
 			"dependencies": {
 				"type-detect": "4.0.8"
-			}
-		},
-		"node_modules/@sinonjs/fake-timers": {
-			"version": "10.3.0",
-			"resolved": "https://registry.npmjs.org/@sinonjs/fake-timers/-/fake-timers-10.3.0.tgz",
-			"integrity": "sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==",
-			"dev": true,
-			"dependencies": {
-				"@sinonjs/commons": "^3.0.0"
 			}
 		},
 		"node_modules/@sinonjs/samsam": {
@@ -6104,17 +6095,6 @@
 			"integrity": "sha512-8Rf9Y83NBReMnx0gFzA8JImQACstCYWUplepDa9xprwwtmgEZUF0h/i5xSA625zB/I37EtrswSST6OXxwaaIJQ==",
 			"dev": true
 		},
-		"node_modules/has-yarn": {
-			"version": "3.0.0",
-			"resolved": "https://registry.npmjs.org/has-yarn/-/has-yarn-3.0.0.tgz",
-			"integrity": "sha512-IrsVwUHhEULx3R8f/aA8AHuEzAorplsab/v8HBzEiIukwq5i/EC+xmOW+HfP1OaDP+2JkgT1yILHN2O3UFIbcA==",
-			"engines": {
-				"node": "^12.20.0 || ^14.13.1 || >=16.0.0"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
 		"node_modules/hasha": {
 			"version": "5.2.2",
 			"resolved": "https://registry.npmjs.org/hasha/-/hasha-5.2.2.tgz",
@@ -6576,31 +6556,6 @@
 				"url": "https://github.com/sponsors/sindresorhus"
 			}
 		},
-		"node_modules/is-ci": {
-			"version": "3.0.1",
-			"resolved": "https://registry.npmjs.org/is-ci/-/is-ci-3.0.1.tgz",
-			"integrity": "sha512-ZYvCgrefwqoQ6yTyYUbQu64HsITZ3NfKX1lzaEYdkTDcfKzzCI/wthRRYKkdjHKFVgNiXKAKm65Zo1pk2as/QQ==",
-			"dependencies": {
-				"ci-info": "^3.2.0"
-			},
-			"bin": {
-				"is-ci": "bin.js"
-			}
-		},
-		"node_modules/is-ci/node_modules/ci-info": {
-			"version": "3.9.0",
-			"resolved": "https://registry.npmjs.org/ci-info/-/ci-info-3.9.0.tgz",
-			"integrity": "sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==",
-			"funding": [
-				{
-					"type": "github",
-					"url": "https://github.com/sponsors/sibiraj-s"
-				}
-			],
-			"engines": {
-				"node": ">=8"
-			}
-		},
 		"node_modules/is-core-module": {
 			"version": "2.13.1",
 			"resolved": "https://registry.npmjs.org/is-core-module/-/is-core-module-2.13.1.tgz",
@@ -6661,6 +6616,20 @@
 			},
 			"engines": {
 				"node": ">=0.10.0"
+			}
+		},
+		"node_modules/is-in-ci": {
+			"version": "0.1.0",
+			"resolved": "https://registry.npmjs.org/is-in-ci/-/is-in-ci-0.1.0.tgz",
+			"integrity": "sha512-d9PXLEY0v1iJ64xLiQMJ51J128EYHAaOR4yZqQi8aHGfw6KgifM3/Viw1oZZ1GCVmb3gBuyhLyHj0HgR2DhSXQ==",
+			"bin": {
+				"is-in-ci": "cli.js"
+			},
+			"engines": {
+				"node": ">=18"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
 			}
 		},
 		"node_modules/is-inside-container": {
@@ -6825,14 +6794,6 @@
 			},
 			"funding": {
 				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
-		"node_modules/is-yarn-global": {
-			"version": "0.4.1",
-			"resolved": "https://registry.npmjs.org/is-yarn-global/-/is-yarn-global-0.4.1.tgz",
-			"integrity": "sha512-/kppl+R+LO5VmhYSEWARUFjodS25D68gvj8W7z0I7OWhUla5xWu8KL6CtB2V0R6yqhnRgbcaREMr4EEM6htLPQ==",
-			"engines": {
-				"node": ">=12"
 			}
 		},
 		"node_modules/isarray": {
@@ -12534,27 +12495,25 @@
 			}
 		},
 		"node_modules/update-notifier": {
-			"version": "6.0.2",
-			"resolved": "https://registry.npmjs.org/update-notifier/-/update-notifier-6.0.2.tgz",
-			"integrity": "sha512-EDxhTEVPZZRLWYcJ4ZXjGFN0oP7qYvbXWzEgRm/Yql4dHX5wDbvh89YHP6PK1lzZJYrMtXUuZZz8XGK+U6U1og==",
+			"version": "7.0.0",
+			"resolved": "https://registry.npmjs.org/update-notifier/-/update-notifier-7.0.0.tgz",
+			"integrity": "sha512-Hv25Bh+eAbOLlsjJreVPOs4vd51rrtCrmhyOJtbpAojro34jS4KQaEp4/EvlHJX7jSO42VvEFpkastVyXyIsdQ==",
 			"dependencies": {
-				"boxen": "^7.0.0",
-				"chalk": "^5.0.1",
+				"boxen": "^7.1.1",
+				"chalk": "^5.3.0",
 				"configstore": "^6.0.0",
-				"has-yarn": "^3.0.0",
 				"import-lazy": "^4.0.0",
-				"is-ci": "^3.0.1",
+				"is-in-ci": "^0.1.0",
 				"is-installed-globally": "^0.4.0",
 				"is-npm": "^6.0.0",
-				"is-yarn-global": "^0.4.0",
 				"latest-version": "^7.0.0",
 				"pupa": "^3.1.0",
-				"semver": "^7.3.7",
+				"semver": "^7.5.4",
 				"semver-diff": "^4.0.0",
 				"xdg-basedir": "^5.1.0"
 			},
 			"engines": {
-				"node": ">=14.16"
+				"node": ">=18"
 			},
 			"funding": {
 				"url": "https://github.com/yeoman/update-notifier?sponsor=1"

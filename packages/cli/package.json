@@ -129,7 +129,7 @@
 		"open": "^10.0.3",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.6.0",
-		"update-notifier": "^6.0.2",
+		"update-notifier": "^7.0.0",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
