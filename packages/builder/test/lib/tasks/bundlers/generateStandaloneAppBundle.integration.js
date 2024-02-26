@@ -1,29 +1,13 @@
 import test from "ava";
 import path from "node:path";
-import chai from "chai";
-import chaiFs from "chai-fs";
-chai.use(chaiFs);
-const assert = chai.assert;
 import sinon from "sinon";
+import {directoryDeepEqual, fileEqual, findFiles} from "../../../utils/fshelper.js";
 import {graphFromObject} from "@ui5/project/graph";
 import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
-import recursive from "recursive-readdir";
 
 const __dirname = import.meta.dirname;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
-
-const findFiles = (folder) => {
-	return new Promise((resolve, reject) => {
-		recursive(folder, (err, files) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(files);
-			}
-		});
-	});
-};
 
 test.afterEach.always((t) => {
 	sinon.restore();
@@ -48,13 +32,13 @@ test("integration: build application.b standalone", async (t) => {
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	assert.directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
+	directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
 
 	// Check for all file contents
 	expectedFiles.forEach((expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
-		assert.fileEqual(destFile, expectedFile, "Correct file content");
+		fileEqual(destFile, expectedFile, "Correct file content");
 	});
 	t.pass("No assertion exception");
 });

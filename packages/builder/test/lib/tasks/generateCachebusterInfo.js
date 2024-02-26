@@ -1,10 +1,6 @@
 import test from "ava";
-import fs from "node:fs";
 import path from "node:path";
-import chai from "chai";
-import chaiFs from "chai-fs";
-chai.use(chaiFs);
-const assert = chai.assert;
+import {directoryDeepEqual, fileEqual, findFiles, readFileContent} from "../../utils/fshelper.js";
 
 import {graphFromObject} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
@@ -13,25 +9,13 @@ const __dirname = import.meta.dirname;
 
 const applicationGPath = path.join(__dirname, "..", "..", "fixtures", "application.g");
 
-import recursive from "recursive-readdir";
-
-const findFiles = (folder) => {
-	return new Promise((resolve, reject) => {
-		recursive(folder, (err, files) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(files);
-			}
-		});
-	});
-};
-
 test("integration: Build application.g", async (t) => {
 	const destPath = path.join("test", "tmp", "build", "application.g", "cachebuster");
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
+
+	const cleanupCacheBusterInfo = (fileContent) => fileContent.replace(/(:\s+)(\d+)/g, ": 0");
 
 	const graph = await graphFromObject({
 		dependencyTree: applicationGTree
@@ -46,20 +30,20 @@ test("integration: Build application.g", async (t) => {
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	assert.directoryDeepEqual(destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 
 	// Check for all file contents
-	expectedFiles.forEach((expectedFile) => {
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
 		if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
-			const currentContent = JSON.parse(fs.readFileSync(destFile, "utf-8").replace(/(:\s+)(\d+)/g, ": 0"));
-			const expectedContent = JSON.parse(fs.readFileSync(expectedFile, "utf-8").replace(/(:\s+)(\d+)/g, ": 0"));
-			assert.deepEqual(currentContent, expectedContent);
+			const destContent = JSON.parse(cleanupCacheBusterInfo(await readFileContent(destFile)));
+			const expectedContent = JSON.parse(cleanupCacheBusterInfo(await readFileContent(expectedFile)));
+			t.deepEqual(destContent, expectedContent);
 		} else {
-			assert.fileEqual(destFile, expectedFile);
+			await fileEqual(t, destFile, expectedFile);
 		}
-	});
+	}));
 	t.pass();
 });
 
@@ -68,6 +52,8 @@ test("integration: Build application.g with cachebuster using hashes", async (t)
 	const expectedPath = path.join("test", "expected", "build", "application.g", "cachebuster");
 	const excludedTasks = ["escapeNonAsciiCharacters", "generateVersionInfo"];
 	const includedTasks = ["generateCachebusterInfo"];
+
+	const cleanupCacheBusterInfo = (fileContent) => fileContent.replace(/(:\s+)("[^"]+")/g, ": \"\"");
 
 	const graph = await graphFromObject({
 		dependencyTree: applicationGTreeWithCachebusterHash
@@ -83,20 +69,20 @@ test("integration: Build application.g with cachebuster using hashes", async (t)
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	assert.directoryDeepEqual(destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 
 	// Check for all file contents
-	expectedFiles.forEach((expectedFile) => {
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
 		if (expectedFile.endsWith("sap-ui-cachebuster-info.json")) {
-			const currentContent = JSON.parse(fs.readFileSync(destFile, "utf-8").replace(/(:\s+)("[^"]+")/g, ": \"\""));
-			const expectedContent = JSON.parse(fs.readFileSync(expectedFile, "utf-8").replace(/(:\s+)(\d+)/g, ": \"\""));
-			assert.deepEqual(currentContent, expectedContent);
+			const destContent = JSON.parse(cleanupCacheBusterInfo(await readFileContent(destFile)));
+			const expectedContent = JSON.parse(cleanupCacheBusterInfo(await readFileContent(destFile)));
+			t.deepEqual(destContent, expectedContent);
 		} else {
-			assert.fileEqual(destFile, expectedFile);
+			await fileEqual(t, destFile, expectedFile);
 		}
-	});
+	}));
 	t.pass();
 });
 

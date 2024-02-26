@@ -140,8 +140,6 @@
 		"@jridgewell/trace-mapping": "^0.3.23",
 		"@ui5/project": "^3.9.0",
 		"ava": "^5.3.1",
-		"chai": "^4.4.1",
-		"chai-fs": "^2.0.0",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.7",
@@ -154,7 +152,6 @@
 		"line-column": "^1.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^8.0.0",
-		"recursive-readdir": "^2.2.3",
 		"sinon": "^17.0.1",
 		"tap-xunit": "^2.4.1"
 	}

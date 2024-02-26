@@ -1,12 +1,9 @@
 import test from "ava";
 import path from "node:path";
-import chai from "chai";
-import chaiFs from "chai-fs";
-chai.use(chaiFs);
-const assert = chai.assert;
 import {createAdapter, createResource} from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
 import {graphFromObject} from "@ui5/project/graph";
+import {directoryDeepEqual, fileEqual, findFiles} from "../../../utils/fshelper.js";
 import generateLibraryPreload from "../../../../lib/tasks/bundlers/generateLibraryPreload.js";
 import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 
@@ -14,20 +11,6 @@ const __dirname = import.meta.dirname;
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryDMinifiedPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-minified");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
-
-import recursive from "recursive-readdir";
-
-const findFiles = (folder) => {
-	return new Promise((resolve, reject) => {
-		recursive(folder, (err, files) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(files);
-			}
-		});
-	});
-};
 
 test.serial("integration: build library.d with library preload", async (t) => {
 	const destPath = "./test/tmp/build/library.d/preload";
@@ -48,15 +31,15 @@ test.serial("integration: build library.d with library preload", async (t) => {
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	assert.directoryDeepEqual(destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 
 	// Check for all file contents
 	t.is(expectedFiles.length, 7, "7 files are expected");
-	expectedFiles.forEach((expectedFile) => {
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
-		assert.fileEqual(destFile, expectedFile);
-	});
+		await fileEqual(t, destFile, expectedFile);
+	}));
 });
 
 const libraryDTree = {
@@ -101,15 +84,15 @@ test.serial("integration: build library.d-minified with library preload", async 
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	assert.directoryDeepEqual(destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 
 	// Check for all file contents
 	t.is(expectedFiles.length, 9, "9 files are expected");
-	expectedFiles.forEach((expectedFile) => {
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
-		assert.fileEqual(destFile, expectedFile);
-	});
+		await fileEqual(t, destFile, expectedFile);
+	}));
 });
 
 const libraryDMinifiedTree = {
@@ -154,14 +137,14 @@ test.serial("integration: build sap.ui.core with library preload", async (t) => 
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	assert.directoryDeepEqual(destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 
 	// Check for all file contents
-	expectedFiles.forEach((expectedFile) => {
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
-		assert.fileEqual(destFile, expectedFile);
-	});
+		await fileEqual(t, destFile, expectedFile);
+	}));
 });
 
 const sapUiCoreTree = {

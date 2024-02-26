@@ -1,7 +1,4 @@
 import test from "ava";
-import chai from "chai";
-import chaiFs from "chai-fs";
-chai.use(chaiFs);
 import sinon from "sinon";
 import esmock from "esmock";
 

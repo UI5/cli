@@ -1,13 +1,10 @@
 import test from "ava";
 import path from "node:path";
 import {createRequire} from "node:module";
-import chai from "chai";
-import chaiFs from "chai-fs";
-chai.use(chaiFs);
 import fs from "graceful-fs";
 import {promisify} from "node:util";
 const readFile = promisify(fs.readFile);
-const assert = chai.assert;
+import {directoryDeepEqual, findFiles} from "../../utils/fshelper.js";
 import sinon from "sinon";
 import {graphFromObject, graphFromPackageDependencies} from "@ui5/project/graph";
 import * as taskRepository from "../../../lib/tasks/taskRepository.js";
@@ -38,22 +35,7 @@ const libraryCore = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-ev
 const libraryCoreBuildtime = path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-buildtime");
 const themeJPath = path.join(__dirname, "..", "..", "fixtures", "theme.j");
 const themeLibraryEPath = path.join(__dirname, "..", "..", "fixtures", "theme.library.e");
-
-import recursive from "recursive-readdir";
-
 const newLineRegexp = /\r?\n|\r/g;
-
-const findFiles = (folder) => {
-	return new Promise((resolve, reject) => {
-		recursive(folder, (err, files) => {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(files);
-			}
-		});
-	});
-};
 
 function clone(obj) {
 	return JSON.parse(JSON.stringify(obj));
@@ -71,27 +53,6 @@ function cloneProjectTree(tree) {
 
 	increaseDepth(tree);
 	return tree;
-}
-
-function arrayToMap(array) {
-	const map = {};
-	array.forEach((v) => {
-		if (map[v]) {
-			throw new Error(`Unable to convert array to map because of duplicate entry '${v}'`);
-		}
-		map[v] = true;
-	});
-	return map;
-}
-
-function directoryDeepEqual(t, destPath, expectedPath) {
-	try {
-		assert.directoryDeepEqual(destPath, expectedPath);
-	} catch (err) {
-		if (err instanceof chai.AssertionError) {
-			t.deepEqual(arrayToMap(err.actual), arrayToMap(err.expected), err.message);
-		}
-	}
 }
 
 async function checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath) {
@@ -142,7 +103,7 @@ test.serial("Build application.a", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -167,7 +128,7 @@ test.serial("Build application.a with dependencies", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -193,7 +154,7 @@ test.serial("Build application.a with dependencies exclude", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -215,7 +176,7 @@ test.serial("Build application.a self-contained", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -241,7 +202,7 @@ test.serial("Build application.a with dependencies self-contained", async (t) =>
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -274,7 +235,7 @@ test.serial("Build application.a and clean target path", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -295,7 +256,7 @@ test.serial("Build application.g", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -316,7 +277,7 @@ test.serial("Build application.g with component preload paths", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -337,7 +298,7 @@ test.serial("Build application.g with excludes", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -359,7 +320,7 @@ test.serial("Build application.h", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -381,7 +342,7 @@ test.serial("Build application.h (no minify)", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -402,7 +363,7 @@ test.serial("Build application.i", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -423,7 +384,7 @@ test.serial("Build application.j", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -450,7 +411,7 @@ test.serial("Build application.j with resources.json and version info", async (t
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -472,7 +433,7 @@ test.serial("Build application.k (componentPreload excludes)", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -494,7 +455,7 @@ test.serial("Build application.k (package sub-components / componentPreload excl
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -515,7 +476,7 @@ test.serial("Build application.l: minification excludes, w/ namespace", async (t
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -536,7 +497,7 @@ test.serial("Build application.ø", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -557,7 +518,7 @@ test.serial("Build library.d with copyright from .library file", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -578,7 +539,7 @@ test.serial("Build library.e with copyright from metadata configuration of tree"
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -605,7 +566,7 @@ test.serial("Build library.e with build manifest", async (t) => {
 	let expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Filter out build-manifest.json for manual comparison
 	expectedFiles = expectedFiles.filter((filePath) => {
 		return !filePath.endsWith("build-manifest.json");
@@ -678,7 +639,7 @@ test.serial("Build library.h with custom bundles and component-preloads", async 
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -699,7 +660,7 @@ test.serial("Build library.h with custom bundles and component-preloads (no mini
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -732,7 +693,7 @@ test.serial("Build library.h w/ custom bundles, component-preloads, resources.js
 	});
 
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 
@@ -873,7 +834,7 @@ test.serial("Build library.i with manifest info taken from .library and library.
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -899,7 +860,7 @@ test.serial("Build library.j with JSDoc build only", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -920,7 +881,7 @@ test.serial("Build library.i, bundling library.h", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -969,7 +930,7 @@ test.serial("Build library.i, bundling library.h with build manifest", async (t)
 	});
 
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 
@@ -1028,7 +989,7 @@ test.serial("Build library.l", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1048,7 +1009,7 @@ test.serial("Build theme.j even without an library", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1071,7 +1032,7 @@ test.serial("Build theme.j even without an library with resources.json", async (
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1098,7 +1059,7 @@ test.serial("Build theme.j with build manifest", async (t) => {
 	let expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Filter out build-manifest.json for manual comparison
 	expectedFiles = expectedFiles.filter((filePath) => {
 		return !filePath.endsWith("build-manifest.json");
@@ -1151,7 +1112,7 @@ test.serial("Build library.ø", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1182,7 +1143,7 @@ test.serial("Build library.coreBuildtime: replaceBuildtime", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1203,7 +1164,7 @@ test.serial("Build library with theme configured for CSS variables", async (t) =
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1225,7 +1186,7 @@ test.serial("Build library with theme configured for CSS variables and theme des
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1246,7 +1207,7 @@ test.serial("Build theme-library with CSS variables", async (t) => {
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
@@ -1268,7 +1229,7 @@ test.serial("Build theme-library with CSS variables and theme designer resources
 
 	const expectedFiles = await findFiles(expectedPath);
 	// Check for all directories and files
-	directoryDeepEqual(t, destPath, expectedPath);
+	await directoryDeepEqual(t, destPath, expectedPath);
 	// Check for all file contents
 	await checkFileContentsIgnoreLineFeeds(t, expectedFiles, expectedPath, destPath);
 	t.pass();
