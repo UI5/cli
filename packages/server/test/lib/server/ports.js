@@ -62,6 +62,8 @@ test.serial("Start server - Port is already taken and an error occurs", async (t
 		3360,
 		"Correct error port"
 	);
+
+	nodeServer.close();
 });
 
 test.serial("Start server together with node server - Port is already taken and the next one is used", async (t) => {
