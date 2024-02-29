@@ -70,13 +70,13 @@ async function createAndInstallCertificate(keyPath, certPath) {
 	// the created certificate into the system)
 	// TODO: Prompt and logging should happen in CLI module rather than server
 	if (process.platform === "win32") {
-		/* eslint-disable-next-line no-console */
-		console.log("Please press allow in the opened dialog to confirm importing the newly created " +
+		process.stderr.write("Please press allow in the opened dialog to confirm importing the newly created " +
 			"SSL certificate into the operating system and browsers.");
+		process.stderr.write("\n");
 	} else {
-		/* eslint-disable-next-line no-console */
-		console.log("Please enter your root password to allow importing the newly created " +
+		process.stderr.write("Please enter your root password to allow importing the newly created " +
 			"SSL certificate into the operating system and browsers.");
+		process.stderr.write("\n");
 	}
 
 	const {key, cert} = await devCert("UI5Tooling");
