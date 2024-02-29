@@ -34,7 +34,7 @@ versions.handler = async function() {
 		})
 	)).join("\n");
 
-	console.log(`\n${output}\n`);
+	process.stdout.write(`\n${output}\n\n`);
 };
 
 export default versions;

@@ -24,10 +24,10 @@ async function assertRemoveHandler(t, {argv, expectedLibraries, expectedConsoleL
 		}],
 	"Remove function should be called with expected args");
 
-	t.is(t.context.consoleLogStub.callCount, expectedConsoleLog.length,
+	t.is(t.context.processStdoutStub.callCount, expectedConsoleLog.length,
 		"console.log should be called " + expectedConsoleLog.length + " times");
 	expectedConsoleLog.forEach((expectedLog, i) => {
-		t.deepEqual(t.context.consoleLogStub.getCall(i).args, [expectedLog],
+		t.deepEqual(t.context.processStdoutStub.getCall(i).args, [expectedLog],
 			"console.log should be called with expected string on call index " + i);
 	});
 }
@@ -50,7 +50,7 @@ async function assertFailingYamlUpdateRemoveHandler(t, {argv, expectedMessage}) 
 }
 
 test.beforeEach((t) => {
-	t.context.consoleLogStub = sinon.stub(console, "log");
+	t.context.processStdoutStub = sinon.stub(process.stdout, "write");
 });
 
 test.afterEach.always((t) => {
@@ -64,7 +64,9 @@ test.serial("Accepts single library", async (t) => {
 		expectedLibraries: [{name: "sap.ui.lib1"}],
 		expectedConsoleLog: [
 			"Updated configuration written to ui5.yaml",
-			"Removed framework library sap.ui.lib1 as dependency"
+			"\n",
+			"Removed framework library sap.ui.lib1 as dependency",
+			"\n"
 		]
 	});
 });
@@ -75,7 +77,9 @@ test.serial("Accepts multiple libraries", async (t) => {
 		expectedLibraries: [{name: "sap.ui.lib1"}, {name: "sap.ui.lib2"}],
 		expectedConsoleLog: [
 			"Updated configuration written to ui5.yaml",
-			"Removed framework libraries sap.ui.lib1 sap.ui.lib2 as dependencies"
+			"\n",
+			"Removed framework libraries sap.ui.lib1 sap.ui.lib2 as dependencies",
+			"\n"
 		]
 	});
 });
@@ -86,7 +90,9 @@ test.serial("Accepts multiple libraries duplicates", async (t) => {
 		expectedLibraries: [{name: "sap.ui.lib1"}, {name: "sap.ui.lib2"}],
 		expectedConsoleLog: [
 			"Updated configuration written to ui5.yaml",
-			"Removed framework libraries sap.ui.lib1 sap.ui.lib2 as dependencies"
+			"\n",
+			"Removed framework libraries sap.ui.lib1 sap.ui.lib2 as dependencies",
+			"\n"
 		]
 	});
 });

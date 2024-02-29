@@ -150,20 +150,26 @@ serve.handler = async function(argv) {
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
 	if (argv.acceptRemoteConnections) {
-		console.log("");
-		console.log(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
-		console.log(chalk.dim.underline("Please Note:"));
-		console.log(chalk.bold.dim(
+		process.stderr.write("\n");
+		process.stderr.write(chalk.bold("⚠️  This server is accepting connections from all hosts on your network"));
+		process.stderr.write("\n");
+		process.stderr.write(chalk.dim.underline("Please Note:"));
+		process.stderr.write("\n");
+		process.stderr.write(chalk.bold.dim(
 			"* This server is intended for development purposes only. Do not use it in production."));
-		console.log(chalk.dim(
+		process.stderr.write("\n");
+		process.stderr.write(chalk.dim(
 			"* Vulnerable (custom-)middleware can pose a threat to your system when exposed to the network"));
-		console.log(chalk.dim(
+		process.stderr.write("\n");
+		process.stderr.write(chalk.dim(
 			"* The use of proxy-middleware with preconfigured credentials might enable unauthorized access " +
 			"to a target system for third parties on your network"));
-		console.log("");
+		process.stderr.write("\n\n");
 	}
-	console.log("Server started");
-	console.log("URL: " + browserUrl);
+	process.stdout.write("Server started");
+	process.stdout.write("\n");
+	process.stdout.write("URL: " + browserUrl);
+	process.stdout.write("\n");
 
 	if (argv.open !== undefined) {
 		if (typeof argv.open === "string") {

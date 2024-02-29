@@ -38,9 +38,11 @@ test.beforeEach(async (t) => {
 	};
 
 	t.context.consoleOutput = "";
-	t.context.consoleLog = sinon.stub(console, "log").callsFake((message) => {
-		// NOTE: This fake impl only supports one string arg passed to console.log
-		t.context.consoleOutput += message + "\n";
+	t.context.processStderrWrite = sinon.stub(process.stderr, "write").callsFake((message) => {
+		t.context.consoleOutput += message;
+	});
+	t.context.processStdoutWrite = sinon.stub(process.stdout, "write").callsFake((message) => {
+		t.context.consoleOutput += message;
 	});
 
 	t.context.tree = await esmock.p("../../../../lib/cli/commands/tree.js", {

@@ -81,8 +81,10 @@ useCommand.handler = async function(argv) {
 			throw new Error(`Internal error while updating ui5.yaml to ${usedFramework} version ${usedVersion}`);
 		}
 	} else {
-		console.log(`Updated configuration written to ${argv.config || "ui5.yaml"}`);
-		console.log(`This project is now using ${usedFramework} version ${usedVersion}`);
+		process.stdout.write(`Updated configuration written to ${argv.config || "ui5.yaml"}`);
+		process.stdout.write("\n");
+		process.stdout.write(`This project is now using ${usedFramework} version ${usedVersion}`);
+		process.stdout.write("\n");
 	}
 };
 

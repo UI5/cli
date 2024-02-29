@@ -91,37 +91,44 @@ export default function(cli) {
 				ConsoleWriter.stop();
 				// Exception
 				if (isLogLevelEnabled("error")) {
-					console.log("");
-					console.log(chalk.bold.red("⚠️  Process Failed With Error"));
+					process.stderr.write("\n");
+					process.stderr.write(chalk.bold.red("⚠️  Process Failed With Error"));
 
-					console.log("");
-					console.log(chalk.underline("Error Message:"));
-					console.log(err.message);
+					process.stderr.write("\n\n");
+					process.stderr.write(chalk.underline("Error Message:"));
+					process.stderr.write("\n");
+					process.stderr.write(err.message);
+					process.stderr.write("\n");
 
 					// Unexpected errors should always be logged with stack trace
 					const unexpectedErrors = ["SyntaxError", "ReferenceError", "TypeError"];
 					if (unexpectedErrors.includes(err.name) || isLogLevelEnabled("verbose")) {
-						console.log("");
-						console.log(chalk.underline("Stack Trace:"));
-						console.log(err.stack);
-						console.log("");
-						console.log(
+						process.stderr.write("\n\n");
+						process.stderr.write(chalk.underline("Stack Trace:"));
+						process.stderr.write("\n");
+						process.stderr.write(err.stack);
+						process.stderr.write("\n");
+						process.stderr.write(
 							chalk.dim(
 								`If you think this is an issue of the UI5 Tooling, you might report it using the ` +
 								`following URL: `) +
 								chalk.dim.bold.underline(`https://github.com/SAP/ui5-tooling/issues/new/choose`));
+						process.stderr.write("\n");
 					} else {
-						console.log("");
-						console.log(chalk.dim(
+						process.stderr.write("\n\n");
+						process.stderr.write(chalk.dim(
 							`For details, execute the same command again with an additional '--verbose' parameter`));
+						process.stderr.write("\n");
 					}
 				}
 			} else {
 				// Yargs error
-				console.log(chalk.bold.yellow("Command Failed:"));
-				console.log(`${msg}`);
-				console.log("");
-				console.log(chalk.dim(`See 'ui5 --help'`));
+				process.stderr.write(chalk.bold.yellow("Command Failed:"));
+				process.stderr.write("\n");
+				process.stderr.write(`${msg}`);
+				process.stderr.write("\n\n");
+				process.stderr.write(chalk.dim(`See 'ui5 --help'`));
+				process.stderr.write("\n");
 			}
 			process.exit(1);
 		});

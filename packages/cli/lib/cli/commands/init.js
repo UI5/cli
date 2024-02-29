@@ -23,8 +23,10 @@ initCommand.handler = async function() {
 	const yaml = jsYaml.dump(projectConfig, {quotingType: `"`});
 
 	await writeFile(yamlPath, yaml);
-	console.log(`Wrote ui5.yaml to ${yamlPath}:\n`);
-	console.log(yaml);
+	process.stdout.write(`Wrote ui5.yaml to ${yamlPath}:`);
+	process.stdout.write("\n");
+	process.stdout.write(yaml);
+	process.stdout.write("\n");
 };
 
 export default initCommand;

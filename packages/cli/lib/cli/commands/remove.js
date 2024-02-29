@@ -59,10 +59,12 @@ removeCommand.handler = async function(argv) {
 			);
 		}
 	} else {
-		console.log(`Updated configuration written to ${argv.config || "ui5.yaml"}`);
+		process.stdout.write(`Updated configuration written to ${argv.config || "ui5.yaml"}`);
+		process.stdout.write("\n");
 		let logMessage = `Removed framework ${library} ${libraryNames.join(" ")} as`;
 		logMessage += libraries.length === 1 ? " dependency": " dependencies";
-		console.log(logMessage);
+		process.stdout.write(logMessage);
+		process.stdout.write("\n");
 	}
 };
 

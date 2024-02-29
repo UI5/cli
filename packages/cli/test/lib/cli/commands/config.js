@@ -227,6 +227,7 @@ test.serial("ui5 config set false should update the configuration", async (t) =>
 test.serial("ui5 config invalid option", async (t) => {
 	await t.throwsAsync(ui5(["config", "set", "_invalid_key_", "https://_snapshot_endpoint_"]), {
 		message: ($) => {
+			// stderr might include debug information
 			return $.includes("Command failed with exit code 1") &&
 				$.includes("Invalid values") &&
 				$.includes(`Given: "_invalid_key_", Choices: "`);
@@ -236,22 +237,27 @@ test.serial("ui5 config invalid option", async (t) => {
 
 test.serial("ui5 config empty option", async (t) => {
 	await t.throwsAsync(ui5(["config", "set"]), {
-		message: ($) => stripAnsi($) ===
-			`Command failed with exit code 1: ${ui5Cli} config set
-Command Failed:
+		message: ($) => {
+			const message = stripAnsi($);
+			// stderr might include debug information
+			return message.includes(`Command failed with exit code 1: ${ui5Cli} config set`) &&
+				message.includes(`Command Failed:
 Not enough non-option arguments: got 0, need at least 1
 
-See 'ui5 --help'`
+See 'ui5 --help'`);
+		}
 	});
 });
 
 test.serial("ui5 config unknown command", async (t) => {
 	await t.throwsAsync(ui5(["config", "foo"]), {
-		message: ($) => stripAnsi($) ===
-			`Command failed with exit code 1: ${ui5Cli} config foo
-Command Failed:
+		message: ($) => {
+			const message = stripAnsi($);
+			return message.includes(`Command failed with exit code 1: ${ui5Cli} config foo`) &&
+				message.includes(`Command Failed:
 Unknown argument: foo
 
-See 'ui5 --help'`
+See 'ui5 --help'`);
+		}
 	});
 });

@@ -90,12 +90,13 @@ tree.handler = async function(argv) {
 				if (project.isFrameworkProject()) {
 					name = chalk.blue(name);
 				}
-				console.log(
+				process.stdout.write(
 					`${baseString}${connectorString} ${name} ` +
 					`${project.getNamespace() ? chalk.inverse(project.getNamespace()) + " " : ""}` +
 					chalk.dim(`(${project.getVersion()}, ${project.getType()}) `) +
 					chalk.dim.italic(`${project.getRootPath()}`)
 				);
+				process.stdout.write("\n");
 
 				const lastIdx = dependencies.length - 1;
 				const newConnectorIndices = [...connectorIndices];
@@ -109,7 +110,8 @@ tree.handler = async function(argv) {
 					newConnectorIndices.forEach((idx) => {
 						nextBaseString = `${nextBaseString.slice(0, idx)}│${nextBaseString.slice(idx + 1)}`;
 					});
-					console.log(`${nextBaseString}╰─ ${msg}`);
+					process.stdout.write(`${nextBaseString}╰─ ${msg}`);
+					process.stdout.write("\n");
 					return;
 				}
 				if (renderDeps) {
@@ -121,7 +123,8 @@ tree.handler = async function(argv) {
 		});
 	});
 
-	console.log(chalk.bold.underline(`Dependencies (${projects.size}):`));
+	process.stdout.write(chalk.bold.underline(`Dependencies (${projects.size}):`));
+	process.stdout.write("\n");
 	if (argv.flat) {
 		// Iterate over list of projects, rendering each individually
 		// We need to transform the map into an array in order to know the index
@@ -133,28 +136,32 @@ tree.handler = async function(argv) {
 		// Recursively render the tree, starting with the first entry of the map
 		projects.values().next().value.render(0, [], true);
 	}
-	console.log("");
+	process.stdout.write("\n");
 
 	const extensionNames = graph.getExtensionNames();
 	const extensionCount = extensionNames.length;
-	console.log(chalk.bold.underline(`Extensions (${extensionCount}):`));
+	process.stdout.write(chalk.bold.underline(`Extensions (${extensionCount}):`));
+	process.stdout.write("\n");
 	if (extensionCount) {
 		const lastIdx = extensionCount - 1;
 		extensionNames.forEach((extensionName, idx) => {
 			const extension = graph.getExtension(extensionName);
 			const connectorString = idx === lastIdx ? "╰─" : "├─";
-			console.log(
+			process.stdout.write(
 				`${connectorString} ${extensionName} ` +
 				chalk.dim(`(${extension.getVersion()}, ${extension.getType()}) `) +
 				chalk.dim.italic(`${extension.getRootPath()}`));
+			process.stdout.write("\n");
 		});
 	} else {
-		console.log(chalk.italic(`None`));
+		process.stdout.write(chalk.italic(`None`));
+		process.stdout.write("\n");
 	}
 	if (argv.perf) {
-		console.log("");
-		console.log(chalk.blue(
+		process.stderr.write("\n");
+		process.stderr.write(chalk.blue(
 			`Dependency graph generation took ${chalk.bold(elapsedTime)}`));
+		process.stderr.write("\n");
 	}
 };
 

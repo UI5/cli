@@ -34,8 +34,8 @@ test.before(() => {
 
 test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
-	t.context.consoleLogStub = sinon.stub(console, "log");
-	t.context.consoleInfoStub = sinon.stub(console, "info");
+	t.context.processStdoutWriteStub = sinon.stub(process.stdout, "write");
+	t.context.processStderrWriteStub = sinon.stub(process.stderr, "write");
 	t.context.originalArgv = process.argv;
 	process.env.UI5_CLI_TEST_BIN_RUN_MAIN = "false"; // prevent automatic execution of main function
 
@@ -62,7 +62,7 @@ test.afterEach.always((t) => {
 });
 
 test.serial("checkRequirements: Using supported Node.js version", (t) => {
-	const {consoleLogStub} = t.context;
+	const {processStderrWriteStub} = t.context;
 
 	const {checkRequirements} = require("../../bin/ui5.cjs");
 
@@ -77,11 +77,11 @@ test.serial("checkRequirements: Using supported Node.js version", (t) => {
 	});
 
 	t.true(returnValue);
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
+	t.is(processStderrWriteStub.callCount, 0, "stderr info should not be provided");
 });
 
 test.serial("checkRequirements: Using unsupported Node.js version", (t) => {
-	const {consoleLogStub} = t.context;
+	const {processStderrWriteStub} = t.context;
 
 	const {checkRequirements} = require("../../bin/ui5.cjs");
 
@@ -96,24 +96,23 @@ test.serial("checkRequirements: Using unsupported Node.js version", (t) => {
 	});
 
 	t.false(returnValue);
-	t.is(consoleLogStub.callCount, 6, "console.log should be called 6 times");
+	t.is(processStderrWriteStub.callCount, 10, "console.log should be called 6 times");
 
-	t.deepEqual(consoleLogStub.getCall(0).args,
+	t.deepEqual(processStderrWriteStub.getCall(0).args,
 		["==================== UNSUPPORTED NODE.JS VERSION ===================="]);
-	t.deepEqual(consoleLogStub.getCall(1).args,
+	t.deepEqual(processStderrWriteStub.getCall(2).args,
 		["You are using an unsupported version of Node.js"]);
-	t.deepEqual(consoleLogStub.getCall(2).args,
+	t.deepEqual(processStderrWriteStub.getCall(4).args,
 		[`Detected version v10.0.0 but ui5-cli-engines-test requires ^999`]);
-	t.deepEqual(consoleLogStub.getCall(3).args,
-		[""]);
-	t.deepEqual(consoleLogStub.getCall(4).args,
+	t.deepEqual(processStderrWriteStub.getCall(5).args, ["\n\n"]);
+	t.deepEqual(processStderrWriteStub.getCall(6).args,
 		["=> Please upgrade to a supported version of Node.js to use this tool"]);
-	t.deepEqual(consoleLogStub.getCall(5).args,
+	t.deepEqual(processStderrWriteStub.getCall(8).args,
 		["====================================================================="]);
 });
 
 test.serial("checkRequirements: logs warning when using pre-release Node.js version", (t) => {
-	const {consoleLogStub} = t.context;
+	const {processStderrWriteStub} = t.context;
 
 	const {checkRequirements} = require("../../bin/ui5.cjs");
 
@@ -128,30 +127,29 @@ test.serial("checkRequirements: logs warning when using pre-release Node.js vers
 	});
 
 	t.true(returnValue);
-	t.is(consoleLogStub.callCount, 9, "console.log should be called 8 times");
+	t.is(processStderrWriteStub.callCount, 16, "console.log should be called 16 times");
 
-	t.is(consoleLogStub.getCall(0).args[0],
+	t.is(processStderrWriteStub.getCall(0).args[0],
 		"====================== UNSTABLE NODE.JS VERSION =====================");
-	t.is(consoleLogStub.getCall(1).args[0],
+	t.is(processStderrWriteStub.getCall(2).args[0],
 		"You are using an unstable version of Node.js");
-	t.is(consoleLogStub.getCall(2).args[0],
+	t.is(processStderrWriteStub.getCall(4).args[0],
 		"Detected Node.js version v17.0.0-v8-canary202108258414d1aed8");
-	t.is(consoleLogStub.getCall(3).args[0],
-		"");
-	t.is(consoleLogStub.getCall(4).args[0],
+	t.is(processStderrWriteStub.getCall(5).args[0], "\n\n");
+	t.is(processStderrWriteStub.getCall(6).args[0],
 		"=> Please note that an unstable version might cause unexpected");
-	t.is(consoleLogStub.getCall(5).args[0],
+	t.is(processStderrWriteStub.getCall(8).args[0],
 		"   behavior. For productive use please consider using a stable");
-	t.is(consoleLogStub.getCall(6).args[0],
+	t.is(processStderrWriteStub.getCall(10).args[0],
 		"   version of Node.js! For the release policy of Node.js, see");
-	t.is(consoleLogStub.getCall(7).args[0],
+	t.is(processStderrWriteStub.getCall(12).args[0],
 		"   https://nodejs.org/en/about/releases");
-	t.is(consoleLogStub.getCall(8).args[0],
+	t.is(processStderrWriteStub.getCall(14).args[0],
 		"=====================================================================");
 });
 
 test.serial("invokeLocalInstallation: Invokes local installation when found", async (t) => {
-	const {consoleLogStub, consoleInfoStub} = t.context;
+	const {processStdoutWriteStub} = t.context;
 
 	importLocalStub.returns({});
 
@@ -161,11 +159,10 @@ test.serial("invokeLocalInstallation: Invokes local installation when found", as
 
 	t.true(returnValue);
 
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
-	t.is(consoleInfoStub.callCount, 2, "console.info should be called 2 times");
+	t.is(processStdoutWriteStub.callCount, 2, "Information messages should be provided");
 
-	t.deepEqual(consoleInfoStub.getCall(0).args, ["INFO: Using local ui5-cli-test installation"]);
-	t.deepEqual(consoleInfoStub.getCall(1).args, [""]);
+	t.deepEqual(processStdoutWriteStub.getCall(0).args, ["INFO: Using local ui5-cli-test installation"]);
+	t.deepEqual(processStdoutWriteStub.getCall(1).args, ["\n\n"]);
 
 	t.is(importLocalStub.callCount, 1, "import-local should be called once");
 	t.is(importLocalStub.getCall(0).args.length, 1);
@@ -175,7 +172,7 @@ test.serial("invokeLocalInstallation: Invokes local installation when found", as
 });
 
 test.serial("invokeLocalInstallation: Invokes local installation when found (/w --verbose)", async (t) => {
-	const {consoleLogStub, consoleInfoStub} = t.context;
+	const {processStderrWriteStub} = t.context;
 
 	importLocalStub.returns({});
 
@@ -188,16 +185,15 @@ test.serial("invokeLocalInstallation: Invokes local installation when found (/w 
 
 	t.true(returnValue);
 
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
-	t.is(consoleInfoStub.callCount, 3, "console.info should be called 3 times");
+	t.is(processStderrWriteStub.callCount, 4, "console.info should be called 3 times");
 
-	t.deepEqual(consoleInfoStub.getCall(0).args, [
+	t.deepEqual(processStderrWriteStub.getCall(0).args, [
 		"INFO: This project contains an individual ui5-cli-test installation which " +
 		"will be used over the global one."]);
-	t.deepEqual(consoleInfoStub.getCall(1).args, [
+	t.deepEqual(processStderrWriteStub.getCall(2).args, [
 		"See https://github.com/SAP/ui5-cli#local-vs-global-installation for details."
 	]);
-	t.deepEqual(consoleInfoStub.getCall(2).args, [""]);
+	t.deepEqual(processStderrWriteStub.getCall(3).args, ["\n\n"]);
 
 	t.is(importLocalStub.callCount, 1, "import-local should be called once");
 	t.is(importLocalStub.getCall(0).args.length, 1);
@@ -207,7 +203,7 @@ test.serial("invokeLocalInstallation: Invokes local installation when found (/w 
 });
 
 test.serial("invokeLocalInstallation: Doesn't invoke local installation when UI5_CLI_NO_LOCAL is set", async (t) => {
-	const {consoleLogStub, consoleInfoStub} = t.context;
+	const {processStderrWriteStub} = t.context;
 
 	process.env.UI5_CLI_NO_LOCAL = "true";
 
@@ -217,14 +213,13 @@ test.serial("invokeLocalInstallation: Doesn't invoke local installation when UI5
 
 	t.false(returnValue);
 
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
-	t.is(consoleInfoStub.callCount, 0, "console.info should not be called");
+	t.is(processStderrWriteStub.callCount, 0, "Information messages should be provided");
 
 	t.is(importLocalStub.callCount, 0, "import-local should not be called");
 });
 
 test.serial("invokeLocalInstallation: Doesn't invoke local installation when it is not found", async (t) => {
-	const {consoleLogStub, consoleInfoStub} = t.context;
+	const {processStderrWriteStub} = t.context;
 
 	importLocalStub.returns(undefined);
 
@@ -234,14 +229,13 @@ test.serial("invokeLocalInstallation: Doesn't invoke local installation when it 
 
 	t.false(returnValue);
 
-	t.is(consoleLogStub.callCount, 0, "console.log should not be called");
-	t.is(consoleInfoStub.callCount, 0, "console.info should not be called");
+	t.is(processStderrWriteStub.callCount, 0, "stderr info should not be provided");
 
 	t.is(importLocalStub.callCount, 1, "import-local should be called");
 });
 
 test.serial("main (unsupported Node.js version)", async (t) => {
-	const {sinon, consoleLogStub} = t.context;
+	const {sinon, processStderrWriteStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -263,7 +257,7 @@ test.serial("main (unsupported Node.js version)", async (t) => {
 	const errorCode = await processExit;
 	t.is(errorCode, 1);
 
-	t.is(consoleLogStub.callCount, 0);
+	t.is(processStderrWriteStub.callCount, 0);
 
 	t.is(ui5.checkRequirements.callCount, 1);
 	t.is(ui5.invokeLocalInstallation.callCount, 0);
@@ -271,7 +265,7 @@ test.serial("main (unsupported Node.js version)", async (t) => {
 });
 
 test.serial("main (invocation of local installation)", async (t) => {
-	const {sinon, consoleLogStub} = t.context;
+	const {sinon, processStderrWriteStub} = t.context;
 
 	const processExitStub = sinon.stub(process, "exit");
 
@@ -284,7 +278,7 @@ test.serial("main (invocation of local installation)", async (t) => {
 	await main();
 
 	t.is(processExitStub.callCount, 0);
-	t.is(consoleLogStub.callCount, 0);
+	t.is(processStderrWriteStub.callCount, 0);
 
 	t.is(ui5.invokeLocalInstallation.callCount, 1);
 	t.is(ui5.invokeCLI.callCount, 0);
@@ -297,7 +291,7 @@ test.serial("integration: main / invokeCLI", async (t) => {
 	// Therefore this test is an integration test that really invokes the CLI / yargs to
 	// fail with an unknown command error
 
-	const {sinon, consoleLogStub} = t.context;
+	const {sinon, processStderrWriteStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -316,14 +310,14 @@ test.serial("integration: main / invokeCLI", async (t) => {
 	const errorCode = await processExit;
 	t.is(errorCode, 1);
 
-	t.is(consoleLogStub.callCount, 4);
+	t.is(processStderrWriteStub.callCount, 6);
 
-	t.deepEqual(consoleLogStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
-	t.deepEqual(consoleLogStub.getCall(1).args, ["Unknown argument: foo"], "Correct error log");
+	t.deepEqual(processStderrWriteStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
+	t.deepEqual(processStderrWriteStub.getCall(2).args, ["Unknown argument: foo"], "Correct error log");
 });
 
 test.serial("integration: Executing main when required as main module", async (t) => {
-	const {sinon, consoleLogStub} = t.context;
+	const {sinon, processStderrWriteStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -342,14 +336,14 @@ test.serial("integration: Executing main when required as main module", async (t
 	const errorCode = await processExit;
 	t.is(errorCode, 1);
 
-	t.is(consoleLogStub.callCount, 4);
+	t.is(processStderrWriteStub.callCount, 6);
 
-	t.deepEqual(consoleLogStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
-	t.deepEqual(consoleLogStub.getCall(1).args, ["Unknown argument: foo"], "Correct error log");
+	t.deepEqual(processStderrWriteStub.getCall(0).args, [chalk.bold.yellow("Command Failed:")], "Correct error log");
+	t.deepEqual(processStderrWriteStub.getCall(2).args, ["Unknown argument: foo"], "Correct error log");
 });
 
 test.serial("integration: Executing main when required as main module (catch initialize error)", async (t) => {
-	const {sinon, consoleLogStub} = t.context;
+	const {sinon, processStderrWriteStub} = t.context;
 
 	const processExit = new Promise((resolve) => {
 		const processExitStub = sinon.stub(process, "exit");
@@ -372,10 +366,10 @@ test.serial("integration: Executing main when required as main module (catch ini
 	const errorCode = await processExit;
 	t.is(errorCode, 1);
 
-	t.is(consoleLogStub.callCount, 2);
+	t.is(processStderrWriteStub.callCount, 3);
 
-	t.deepEqual(consoleLogStub.getCall(0).args, ["Fatal Error: Unable to initialize UI5 CLI"]);
-	t.is(consoleLogStub.getCall(1).args.length, 1);
-	t.true(consoleLogStub.getCall(1).args[0] instanceof Error);
-	t.is(consoleLogStub.getCall(1).args[0].message, "TEST: Unable to invoke CLI");
+	t.deepEqual(processStderrWriteStub.getCall(0).args, ["Fatal Error: Unable to initialize UI5 CLI"]);
+	t.is(processStderrWriteStub.getCall(2).args.length, 1);
+	t.true(processStderrWriteStub.getCall(2).args[0] instanceof Error);
+	t.is(processStderrWriteStub.getCall(2).args[0].message, "TEST: Unable to invoke CLI");
 });
