@@ -56,25 +56,6 @@ class DuplexCollection extends AbstractReaderWriter {
 	}
 
 	/**
-	 * Locates resources by glob from source reader only.
-	 * For found resources that are also available in the writer, the writer resource will be returned.
-	 *
-	 * @param {string} virPattern glob pattern for virtual directory structure
-	 * @param {object} [options] glob options
-	 * @param {boolean} [options.nodir=true] Do not match directories
-	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
-	 */
-	byGlobSource(virPattern, options = {nodir: true}) {
-		return this._reader.byGlob(virPattern, options).then((resources) => {
-			return Promise.all(resources.map((readerResource) => {
-				return this._writer.byPath(readerResource.getPath()).then((writerResource) => {
-					return writerResource || readerResource;
-				});
-			}));
-		});
-	}
-
-	/**
 	 * Locates resources by path.
 	 *
 	 * @private
