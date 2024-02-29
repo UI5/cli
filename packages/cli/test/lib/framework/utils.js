@@ -177,7 +177,7 @@ test.serial("createFrameworkResolverInstance: Without ui5DataDir", async (t) => 
 		{
 			cwd: "my-project-path",
 			version: "<framework-version>",
-			ui5HomeDir: undefined
+			ui5DataDir: undefined
 		}
 	]);
 });
@@ -217,7 +217,7 @@ test.serial("createFrameworkResolverInstance: With ui5DataDir", async (t) => {
 		{
 			cwd: "my-project-path",
 			version: "<framework-version>",
-			ui5HomeDir: "my-ui5-data-dir"
+			ui5DataDir: "my-ui5-data-dir"
 		}
 	]);
 });
@@ -246,7 +246,7 @@ test.serial("frameworkResolverResolveVersion", async (t) => {
 		"latest",
 		{
 			cwd: "my-project-path",
-			ui5HomeDir: undefined
+			ui5DataDir: undefined
 		}
 	]);
 });

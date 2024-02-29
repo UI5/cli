@@ -37,7 +37,7 @@ export async function createFrameworkResolverInstance({frameworkName, frameworkV
 	return new Resolver({
 		cwd,
 		version: frameworkVersion,
-		ui5HomeDir: await utils.getUi5DataDir({cwd})
+		ui5DataDir: await utils.getUi5DataDir({cwd})
 	});
 }
 
@@ -45,7 +45,7 @@ export async function frameworkResolverResolveVersion({frameworkName, frameworkV
 	const Resolver = await utils.getFrameworkResolver(frameworkName, frameworkVersion);
 	return Resolver.resolveVersion(frameworkVersion, {
 		cwd,
-		ui5HomeDir: await utils.getUi5DataDir({cwd})
+		ui5DataDir: await utils.getUi5DataDir({cwd})
 	});
 }
 
