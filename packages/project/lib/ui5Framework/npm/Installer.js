@@ -15,27 +15,27 @@ class Installer extends AbstractInstaller {
 	/**
 	 * @param {object} parameters Parameters
 	 * @param {string} parameters.cwd Current working directory
-	 * @param {string} parameters.ui5HomeDir UI5 home directory location. This will be used to store packages,
+	 * @param {string} parameters.ui5DataDir UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers.
-	 * @param {string} [parameters.packagesDir="${ui5HomeDir}/framework/packages"] Where to install packages
-	 * @param {string} [parameters.stagingDir="${ui5HomeDir}/framework/staging"] The staging directory for the packages
-	 * @param {string} [parameters.cacheDir="${ui5HomeDir}/framework/cacache"] Where to store temp/cached packages.
+	 * @param {string} [parameters.packagesDir="${ui5DataDir}/framework/packages"] Where to install packages
+	 * @param {string} [parameters.stagingDir="${ui5DataDir}/framework/staging"] The staging directory for the packages
+	 * @param {string} [parameters.cacheDir="${ui5DataDir}/framework/cacache"] Where to store temp/cached packages.
 	 */
-	constructor({cwd, ui5HomeDir, packagesDir, stagingDir, cacheDir}) {
-		super(ui5HomeDir);
+	constructor({cwd, ui5DataDir, packagesDir, stagingDir, cacheDir}) {
+		super(ui5DataDir);
 		if (!cwd) {
 			throw new Error(`Installer: Missing parameter "cwd"`);
 		}
 		this._packagesDir = packagesDir ?
-			path.resolve(packagesDir) : path.join(ui5HomeDir, "framework", "packages");
+			path.resolve(packagesDir) : path.join(ui5DataDir, "framework", "packages");
 
 		log.verbose(`Installing to: ${this._packagesDir}`);
 
 		this._cwd = cwd;
 		this._caCacheDir = cacheDir ?
-			path.resolve(cacheDir) : path.join(ui5HomeDir, "framework", "cacache");
+			path.resolve(cacheDir) : path.join(ui5DataDir, "framework", "cacache");
 		this._stagingDir = stagingDir ?
-			path.resolve(stagingDir) : path.join(ui5HomeDir, "framework", "staging");
+			path.resolve(stagingDir) : path.join(ui5DataDir, "framework", "staging");
 	}
 
 	getRegistry() {

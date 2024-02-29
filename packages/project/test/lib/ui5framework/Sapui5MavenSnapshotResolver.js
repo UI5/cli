@@ -365,7 +365,7 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions", async (t) =>
 	const expectedVersions = ["1.75.0-SNAPSHOT", "1.75.1-SNAPSHOT", "1.76.0-SNAPSHOT"];
 	const options = {
 		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
+		ui5DataDir: "/ui5DataDir"
 	};
 
 	t.context.fetchPackageVersionsStub.returns(expectedVersions);
@@ -388,7 +388,7 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions", async (t) =>
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: path.resolve("/cwd"),
 		snapshotEndpointUrlCb: "snapshotEndpointUrlCallback",
-		ui5HomeDir: path.resolve("/ui5HomeDir")
+		ui5DataDir: path.resolve("/ui5DataDir")
 	}], "Installer should be called with expected arguments");
 });
 
@@ -415,7 +415,7 @@ test.serial("Sapui5MavenSnapshotResolver: Static fetchAllVersions without option
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: process.cwd(),
 		snapshotEndpointUrlCb: "snapshotEndpointUrlCallback",
-		ui5HomeDir: path.join(os.homedir(), ".ui5")
+		ui5DataDir: path.join(os.homedir(), ".ui5")
 	}], "Installer should be called with expected arguments");
 });
 

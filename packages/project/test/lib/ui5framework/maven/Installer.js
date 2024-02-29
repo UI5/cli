@@ -73,25 +73,25 @@ test.serial("constructor", (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 	t.true(installer instanceof Installer, "Constructor returns instance of class");
-	t.is(installer._artifactsDir, path.join("/ui5Home/", "framework", "artifacts"));
-	t.is(installer._packagesDir, path.join("/ui5Home/", "framework", "packages"));
-	t.is(installer._stagingDir, path.join("/ui5Home/", "framework", "staging"));
-	t.is(installer._metadataDir, path.join("/ui5Home/", "framework", "metadata"));
-	t.is(installer._lockDir, path.join("/ui5Home/", "framework", "locks"));
+	t.is(installer._artifactsDir, path.join("/ui5Data/", "framework", "artifacts"));
+	t.is(installer._packagesDir, path.join("/ui5Data/", "framework", "packages"));
+	t.is(installer._stagingDir, path.join("/ui5Data/", "framework", "staging"));
+	t.is(installer._metadataDir, path.join("/ui5Data/", "framework", "metadata"));
+	t.is(installer._lockDir, path.join("/ui5Data/", "framework", "locks"));
 });
 
-test.serial("constructor requires 'ui5HomeDir'", (t) => {
+test.serial("constructor requires 'ui5DataDir'", (t) => {
 	const {Installer} = t.context;
 
 	t.throws(() => {
 		new Installer({
 			cwd: "/cwd/"
 		});
-	}, {message: `Installer: Missing parameter "ui5HomeDir"`});
+	}, {message: `Installer: Missing parameter "ui5DataDir"`});
 });
 
 test.serial("constructor requires 'snapshotEndpointUrlCb'", (t) => {
@@ -100,7 +100,7 @@ test.serial("constructor requires 'snapshotEndpointUrlCb'", (t) => {
 	t.throws(() => {
 		new Installer({
 			cwd: "/cwd/",
-			ui5HomeDir: "/ui5Home"
+			ui5DataDir: "/ui5Data"
 		});
 	}, {message: `Installer: Missing Snapshot-Endpoint URL callback parameter`});
 });
@@ -110,7 +110,7 @@ test.serial("getRegistry", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
@@ -132,7 +132,7 @@ test.serial("getRegistry: Missing endpoint URL", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve(null)
 	});
 
@@ -151,7 +151,7 @@ test.serial("fetchPackageVersions", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
@@ -178,7 +178,7 @@ test.serial("fetchPackageVersions throws", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
@@ -198,13 +198,13 @@ test.serial("_getLockPath", (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
 	const lockPath = installer._getLockPath("package-@openui5/sap.ui.lib1@1.2.3-SNAPSHOT");
 
-	t.is(lockPath, path.join("/ui5Home/", "framework", "locks", "package-@openui5-sap.ui.lib1@1.2.3-SNAPSHOT.lock"));
+	t.is(lockPath, path.join("/ui5Data/", "framework", "locks", "package-@openui5-sap.ui.lib1@1.2.3-SNAPSHOT.lock"));
 });
 
 test.serial("readJson", async (t) => {
@@ -213,7 +213,7 @@ test.serial("readJson", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -229,7 +229,7 @@ test.serial("installPackage", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -238,7 +238,7 @@ test.serial("installPackage", async (t) => {
 	sinon.stub(installer, "_pathExists").resolves(false);
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
 	const installArtifactStub = sinon.stub(installer, "installArtifact").resolves({
-		artifactPath: "/ui5Home/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/5/npm-sources.zip",
+		artifactPath: "/ui5Data/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/5/npm-sources.zip",
 		removeArtifact: removeArtifactStub
 	});
 
@@ -254,7 +254,7 @@ test.serial("installPackage", async (t) => {
 	t.deepEqual(
 		installedPackage,
 		{pkgPath:
-				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+				path.join("/ui5Data/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
 		"Install the correct package"
 	);
 
@@ -285,7 +285,7 @@ test.serial("installPackage: No classifier", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -294,7 +294,7 @@ test.serial("installPackage: No classifier", async (t) => {
 	sinon.stub(installer, "_pathExists").resolves(false);
 	sinon.stub(installer, "_synchronize").callsFake( async (pckg, callback) => await callback());
 	const installArtifactStub = sinon.stub(installer, "installArtifact").resolves({
-		artifactPath: "/ui5Home/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/5/npm-sources.zip",
+		artifactPath: "/ui5Data/framework/artifacts/com_sap_ui5_dist-sapui5-sdk-dist/5/npm-sources.zip",
 		removeArtifact: removeArtifactStub
 	});
 
@@ -310,7 +310,7 @@ test.serial("installPackage: No classifier", async (t) => {
 	t.deepEqual(
 		installedPackage,
 		{pkgPath:
-				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+				path.join("/ui5Data/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
 		"Install the correct package"
 	);
 
@@ -341,7 +341,7 @@ test.serial("installPackage: Already installed", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -362,7 +362,7 @@ test.serial("installPackage: Already installed", async (t) => {
 	t.deepEqual(
 		installedPackage,
 		{pkgPath:
-				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+				path.join("/ui5Data/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
 		"Install the correct package"
 	);
 
@@ -374,7 +374,7 @@ test.serial("installPackage: Already installed only after lock acquired", async 
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -397,7 +397,7 @@ test.serial("installPackage: Already installed only after lock acquired", async 
 	t.deepEqual(
 		installedPackage,
 		{pkgPath:
-				path.join("/ui5Home/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
+				path.join("/ui5Data/", "framework", "packages", "@sapui5", "distribution-metadata", "5")},
 		"Install the correct package"
 	);
 
@@ -409,7 +409,7 @@ test.serial("installArtifact", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: async () => "url"
 	});
 
@@ -425,7 +425,7 @@ test.serial("installArtifact", async (t) => {
 		classifier: null
 	});
 
-	const expectedPath = path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
+	const expectedPath = path.join("/ui5Data/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
 	t.is(
 		installedArtifact.artifactPath,
 		expectedPath,
@@ -451,7 +451,7 @@ test.serial("installArtifact", async (t) => {
 		extension: "jar",
 	}, "Registry#requestArtifact got called with expected coordinates");
 	t.is(registryRequestArtifactStub.firstCall.args[1],
-		path.join("/ui5Home/", "framework", "staging", "com.sap.ui5.dist_sapui5-sdk-dist_5_jar"),
+		path.join("/ui5Data/", "framework", "staging", "com.sap.ui5.dist_sapui5-sdk-dist_5_jar"),
 		"Registry#requestArtifact got called with expected target directory");
 
 	t.is(
@@ -471,7 +471,7 @@ test.serial("installArtifact: Target revision provided", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: async () => "url"
 	});
 
@@ -488,7 +488,7 @@ test.serial("installArtifact: Target revision provided", async (t) => {
 		revision: "16"
 	});
 
-	const expectedPath = path.join("/ui5Home/", "framework", "artifacts",
+	const expectedPath = path.join("/ui5Data/", "framework", "artifacts",
 		"com_sap_ui5_dist-sapui5-sdk-dist", "16", "npm-sources.zip");
 	t.is(
 		installedArtifact.artifactPath,
@@ -508,7 +508,7 @@ test.serial("installArtifact: Target revision provided", async (t) => {
 		extension: "zip",
 	}, "Registry#requestArtifact got called with expected coordinates");
 	t.is(registryRequestArtifactStub.firstCall.args[1],
-		path.join("/ui5Home/", "framework", "staging", "com.sap.ui5.dist_sapui5-sdk-dist_16_npm-sources.zip"),
+		path.join("/ui5Data/", "framework", "staging", "com.sap.ui5.dist_sapui5-sdk-dist_16_npm-sources.zip"),
 		"Registry#requestArtifact got called with expected target directory");
 
 	t.is(
@@ -527,7 +527,7 @@ test.serial("installArtifact: Already installed", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -542,7 +542,7 @@ test.serial("installArtifact: Already installed", async (t) => {
 		extension: "jar",
 	});
 
-	const expectedPath = path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
+	const expectedPath = path.join("/ui5Data/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
 	t.is(
 		installedArtifact.artifactPath,
 		expectedPath,
@@ -567,7 +567,7 @@ test.serial("installArtifact: Already installed only after lock acquired", async
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -584,7 +584,7 @@ test.serial("installArtifact: Already installed only after lock acquired", async
 		extension: "jar",
 	});
 
-	const expectedPath = path.join("/ui5Home/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
+	const expectedPath = path.join("/ui5Data/", "framework", "artifacts", "com_sap_ui5_dist-sapui5-sdk-dist", "5.jar");
 	t.is(
 		installedArtifact.artifactPath,
 		expectedPath,
@@ -609,7 +609,7 @@ test.serial("_fetchArtifactMetadata", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -646,7 +646,7 @@ test.serial("_fetchArtifactMetadata: Cached", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {},
 	});
 
@@ -682,7 +682,7 @@ test.serial("_fetchArtifactMetadata: Cache available but disabled", async (t) =>
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {},
 		cacheMode: "Off"
 	});
@@ -718,7 +718,7 @@ test.serial("_fetchArtifactMetadata: Cache outdated but enforced", async (t) => 
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {},
 		cacheMode: "Force"
 	});
@@ -755,7 +755,7 @@ test.serial("_fetchArtifactMetadata throws", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {},
 		cacheMode: "Force"
 	});
@@ -779,7 +779,7 @@ test.serial("_getRemoteArtifactMetadata", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
@@ -813,7 +813,7 @@ test.serial("_getRemoteArtifactMetadata throws", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
@@ -832,7 +832,7 @@ test.serial("_getRemoteArtifactMetadata throws missing deployment metadata", asy
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => Promise.resolve("endpoint-url")
 	});
 
@@ -870,7 +870,7 @@ test.serial("_getLocalArtifactMetadata", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -885,7 +885,7 @@ test.serial("_getLocalArtifactMetadata file not found", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -904,7 +904,7 @@ test.serial("_getLocalArtifactMetadata throws", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -923,7 +923,7 @@ test.serial("_writeLocalArtifactMetadata", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -936,7 +936,7 @@ test.serial("_writeLocalArtifactMetadata", async (t) => {
 	t.is(writeFileStub.callCount, 1, "_writeJson called");
 	t.deepEqual(
 		writeFileStub.args,
-		[[path.join("/ui5Home/", "framework", "metadata", "Id.json"), "{\"foo\":\"bar\"}"]],
+		[[path.join("/ui5Data/", "framework", "metadata", "Id.json"), "{\"foo\":\"bar\"}"]],
 		"_writeJson called with correct arguments"
 	);
 });
@@ -946,7 +946,7 @@ test.serial("_removeStaleRevisions", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -981,7 +981,7 @@ test.serial("_pathExists", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -998,7 +998,7 @@ test.serial("_pathExists file not found", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -1013,7 +1013,7 @@ test.serial("_pathExists throws", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -1031,7 +1031,7 @@ test.serial("_projectExists", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -1049,7 +1049,7 @@ test.serial("_projectExists: Does not exist", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 
@@ -1067,7 +1067,7 @@ test.serial("_projectExists: Throws", async (t) => {
 
 	const installer = new Installer({
 		cwd: "/cwd/",
-		ui5HomeDir: "/ui5Home/",
+		ui5DataDir: "/ui5Data/",
 		snapshotEndpointUrlCb: () => {}
 	});
 

@@ -26,7 +26,7 @@ class AbstractResolver {
 	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
 	 * 					pre-built (with build manifest)
 	 * @param {string} [options.cwd=process.cwd()] Current working directory
-	 * @param {string} [options.ui5HomeDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
+	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
 	 * @param {object.<string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
 	 * Resolver skips installing listed libraries and uses the dependency information to resolve their dependencies.
@@ -34,15 +34,15 @@ class AbstractResolver {
 	 * Otherwise an error is thrown.
 	 */
 	/* eslint-enable max-len */
-	constructor({cwd, version, sources, ui5HomeDir, providedLibraryMetadata}) {
+	constructor({cwd, version, sources, ui5DataDir, providedLibraryMetadata}) {
 		if (new.target === AbstractResolver) {
 			throw new TypeError("Class 'AbstractResolver' is abstract");
 		}
 
 		// In some CI environments, the homedir might be set explicitly to a relative
 		// path (e.g. "./"), but tooling requires an absolute path
-		this._ui5HomeDir = path.resolve(
-			ui5HomeDir || path.join(os.homedir(), ".ui5")
+		this._ui5DataDir = path.resolve(
+			ui5DataDir || path.join(os.homedir(), ".ui5")
 		);
 		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
 		this._version = version;
@@ -205,21 +205,21 @@ class AbstractResolver {
 		};
 	}
 
-	static async resolveVersion(version, {ui5HomeDir, cwd} = {}) {
+	static async resolveVersion(version, {ui5DataDir, cwd} = {}) {
 		// Don't allow nullish values
 		// An empty string is a valid semver range that converts to "*", which should not be supported
 		if (!version) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const spec = await this._getVersionSpec(version, {ui5HomeDir, cwd});
+		const spec = await this._getVersionSpec(version, {ui5DataDir, cwd});
 
 		// For all invalid cases which are not explicitly handled in _getVersionSpec
 		if (!spec) {
 			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
 		}
 
-		const versions = await this.fetchAllVersions({ui5HomeDir, cwd});
+		const versions = await this.fetchAllVersions({ui5DataDir, cwd});
 		const resolvedVersion = semver.maxSatisfying(versions, spec, {
 			// Allow ranges that end with -SNAPSHOT to match any -SNAPSHOT version
 			// like a normal version in order to support ranges like 1.x.x-SNAPSHOT.
@@ -246,7 +246,7 @@ class AbstractResolver {
 		return resolvedVersion;
 	}
 
-	static async _getVersionSpec(version, {ui5HomeDir, cwd}) {
+	static async _getVersionSpec(version, {ui5DataDir, cwd}) {
 		if (this._isSnapshotVersionOrRange(version)) {
 			const versionMatch = version.match(VERSION_RANGE_REGEXP);
 			if (versionMatch) {
@@ -268,7 +268,7 @@ class AbstractResolver {
 			return null;
 		}
 
-		const allTags = await this.fetchAllTags({ui5HomeDir, cwd});
+		const allTags = await this.fetchAllTags({ui5DataDir, cwd});
 
 		if (!allTags) {
 			// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)

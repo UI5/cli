@@ -132,7 +132,7 @@ test.serial("Sapui5Resolver: Static _getInstaller", (t) => {
 
 	const options = {
 		cwd: "/cwd",
-		ui5HomeDir: "/ui5HomeDir"
+		ui5DataDir: "/ui5DataDir"
 	};
 
 	const installer = Sapui5Resolver._getInstaller(options);
@@ -142,7 +142,7 @@ test.serial("Sapui5Resolver: Static _getInstaller", (t) => {
 	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: path.resolve("/cwd"),
-		ui5HomeDir: path.resolve("/ui5HomeDir")
+		ui5DataDir: path.resolve("/ui5DataDir")
 	}], "Installer should be called with expected arguments");
 });
 
@@ -156,7 +156,7 @@ test.serial("Sapui5Resolver: Static _getInstaller without options", (t) => {
 	t.is(installer, t.context.InstallerStub.getCall(0).returnValue, "Installer instance is returned");
 	t.deepEqual(t.context.InstallerStub.getCall(0).args, [{
 		cwd: process.cwd(),
-		ui5HomeDir: path.join(os.homedir(), ".ui5")
+		ui5DataDir: path.join(os.homedir(), ".ui5")
 	}], "Installer should be called with expected arguments");
 });
 

@@ -360,7 +360,7 @@ export default {
 
 		if (options.versionOverride) {
 			version = await Resolver.resolveVersion(options.versionOverride, {
-				ui5HomeDir: ui5DataDir,
+				ui5DataDir,
 				cwd
 			});
 			log.info(
@@ -387,7 +387,7 @@ export default {
 			version,
 			providedLibraryMetadata,
 			cacheMode,
-			ui5HomeDir: ui5DataDir
+			ui5DataDir
 		});
 
 		let startTime;

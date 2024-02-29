@@ -72,14 +72,14 @@ test.beforeEach(async (t) => {
 	t.context.AbstractResolver = await esmock.p("../../../lib/ui5Framework/AbstractResolver.js", {
 		"@ui5/logger": ui5Logger,
 		"node:os": {
-			homedir: sinon.stub().returns(path.join(fakeBaseDir, "homedir"))
+			homedir: sinon.stub().returns(path.join(fakeBaseDir, "datadir"))
 		},
 	});
 
 	t.context.Sapui5Resolver = await esmock.p("../../../lib/ui5Framework/Sapui5Resolver.js", {
 		"@ui5/logger": ui5Logger,
 		"node:os": {
-			homedir: sinon.stub().returns(path.join(fakeBaseDir, "homedir"))
+			homedir: sinon.stub().returns(path.join(fakeBaseDir, "datadir"))
 		},
 		"../../../lib/ui5Framework/AbstractResolver.js": t.context.AbstractResolver,
 		"../../../lib/ui5Framework/npm/Installer.js": t.context.Installer
@@ -122,14 +122,14 @@ test.serial("resolveVersion", async (t) => {
 		});
 
 	const defaultCwd = process.cwd();
-	const defaultUi5HomeDir = path.join(fakeBaseDir, "homedir", ".ui5");
+	const defaultUi5DataDir = path.join(fakeBaseDir, "datadir", ".ui5");
 
 	// Generic testing without and with options argument
 	const optionsArguments = [
 		undefined,
 		{
 			cwd: path.join(fakeBaseDir, "custom-cwd"),
-			ui5HomeDir: path.join(fakeBaseDir, "custom-homedir", ".ui5")
+			ui5DataDir: path.join(fakeBaseDir, "custom-datadir", ".ui5")
 		}
 	];
 	for (const options of optionsArguments) {
@@ -191,7 +191,7 @@ test.serial("resolveVersion", async (t) => {
 			cwd: options?.cwd ?? defaultCwd
 		})));
 		t.true(pacote.packument.alwaysCalledWithMatch("@sapui5/distribution-metadata", {
-			cache: path.join(options?.ui5HomeDir ?? defaultUi5HomeDir, "framework", "cacache")
+			cache: path.join(options?.ui5DataDir ?? defaultUi5DataDir, "framework", "cacache")
 		}));
 	}
 

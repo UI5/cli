@@ -22,20 +22,20 @@ const CACHE_TIME = 32400000; // 9 hours
 class Installer extends AbstractInstaller {
 	/**
 	 * @param {object} parameters Parameters
-	 * @param {string} parameters.ui5HomeDir UI5 home directory location. This will be used to store packages,
+	 * @param {string} parameters.ui5DataDir UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers.
 	 * @param {Function} parameters.snapshotEndpointUrlCb Callback that returns a Promise <string>,
 	 * 	resolving to the Maven repository URL.
 	 * 	Example: <code>https://registry.corp/vendor/build-snapshots/</code>
 	 * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [parameters.cacheMode=Default] Cache mode to use
 	 */
-	constructor({ui5HomeDir, snapshotEndpointUrlCb, cacheMode = CacheMode.Default}) {
-		super(ui5HomeDir);
+	constructor({ui5DataDir, snapshotEndpointUrlCb, cacheMode = CacheMode.Default}) {
+		super(ui5DataDir);
 
-		this._artifactsDir = path.join(ui5HomeDir, "framework", "artifacts");
-		this._packagesDir = path.join(ui5HomeDir, "framework", "packages");
-		this._metadataDir = path.join(ui5HomeDir, "framework", "metadata");
-		this._stagingDir = path.join(ui5HomeDir, "framework", "staging");
+		this._artifactsDir = path.join(ui5DataDir, "framework", "artifacts");
+		this._packagesDir = path.join(ui5DataDir, "framework", "packages");
+		this._metadataDir = path.join(ui5DataDir, "framework", "metadata");
+		this._stagingDir = path.join(ui5DataDir, "framework", "staging");
 
 		this._cacheMode = cacheMode;
 		this._snapshotEndpointUrlCb = snapshotEndpointUrlCb;

@@ -12,17 +12,17 @@ const illegalFileNameRegExp = /[^0-9a-zA-Z\-._@/]/;
 
 class AbstractInstaller {
 	/**
-	 * @param {string} ui5HomeDir UI5 home directory location. This will be used to store packages,
+	 * @param {string} ui5DataDir UI5 home directory location. This will be used to store packages,
 	 * metadata and configuration used by the resolvers.
 	 */
-	constructor(ui5HomeDir) {
+	constructor(ui5DataDir) {
 		if (new.target === AbstractInstaller) {
 			throw new TypeError("Class 'AbstractInstaller' is abstract");
 		}
-		if (!ui5HomeDir) {
-			throw new Error(`Installer: Missing parameter "ui5HomeDir"`);
+		if (!ui5DataDir) {
+			throw new Error(`Installer: Missing parameter "ui5DataDir"`);
 		}
-		this._lockDir = path.join(ui5HomeDir, "framework", "locks");
+		this._lockDir = path.join(ui5DataDir, "framework", "locks");
 	}
 
 	async _synchronize(lockName, callback) {
