@@ -85,52 +85,6 @@ test("DuplexCollection: _byGlob", async (t) => {
 	t.is(resourceContent, "content", "Resource has expected content");
 });
 
-test("DuplexCollection: _byGlobSource w/o found resources", async (t) => {
-	t.plan(3);
-
-	const abstractReader = {
-		byGlob: sinon.stub().returns(Promise.resolve([]))
-	};
-	const duplexCollection = new DuplexCollection({
-		name: "myCollection",
-		reader: abstractReader,
-		writer: abstractReader
-	});
-	const resources = await duplexCollection.byGlobSource("anyPattern", {someOption: true});
-
-	t.true(Array.isArray(resources), "Found resources are returned as an array");
-	t.true(resources.length === 0, "No resources found");
-	t.true(abstractReader.byGlob.calledWithExactly("anyPattern", {someOption: true}),
-		"Delegated globbing task correctly to readers");
-});
-
-test("DuplexCollection: _byGlobSource with default options and a reader finding a resource", async (t) => {
-	t.plan(3);
-
-	const resource = new Resource({
-		path: "/my/path",
-		buffer: Buffer.from("content")
-	});
-	const abstractReader = {
-		byGlob: sinon.stub().returns(Promise.resolve([resource]))
-	};
-	const abstractWriter = {
-		byPath: sinon.stub().returns(Promise.resolve())
-	};
-	const duplexCollection = new DuplexCollection({
-		name: "myCollection",
-		reader: abstractReader,
-		writer: abstractWriter
-	});
-	const resources = await duplexCollection.byGlobSource("anyPattern");
-
-	t.true(Array.isArray(resources), "Found resources are returned as an array");
-	t.true(abstractReader.byGlob.calledWithExactly("anyPattern", {nodir: true}),
-		"Delegated globbing task correctly to readers");
-	t.true(abstractWriter.byPath.calledWithExactly("/my/path"),
-		"byPath called on writer");
-});
-
 test("DuplexCollection: _byPath with reader finding a resource", async (t) => {
 	t.plan(4);
 
