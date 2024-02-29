@@ -58,7 +58,8 @@ test.serial("graphFromPackageDependencies", async (t) => {
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
-		cacheMode: CacheMode.Off
+		cacheMode: CacheMode.Off,
+		workspaceName: null
 	});
 
 	t.is(res, "graph");
@@ -147,7 +148,8 @@ test.serial("graphFromPackageDependencies with workspace object", async (t) => {
 		rootConfiguration: "rootConfiguration",
 		rootConfigPath: "/rootConfigPath",
 		versionOverride: "versionOverride",
-		workspaceConfiguration: "workspaceConfiguration"
+		workspaceConfiguration: "workspaceConfiguration",
+		workspaceName: null
 	});
 
 	t.is(res, "graph");
@@ -156,7 +158,7 @@ test.serial("graphFromPackageDependencies with workspace object", async (t) => {
 	t.deepEqual(createWorkspaceStub.getCall(0).args[0], {
 		cwd: path.join(__dirname, "..", "..", "..", "cwd"),
 		configPath: "ui5-workspace.yaml",
-		name: undefined,
+		name: null,
 		configObject: "workspaceConfiguration"
 	}, "createWorkspace called with correct parameters");
 });
@@ -279,6 +281,24 @@ test.serial("graphFromPackageDependencies: Do not resolve framework dependencies
 
 	t.is(res, "graph");
 	t.is(enrichProjectGraphStub.callCount, 0, "enrichProjectGraph did not get called");
+});
+
+test.serial("graphFromPackageDependencies: Default workspace name", async (t) => {
+	const {createWorkspaceStub} = t.context;
+	const {graphFromPackageDependencies} = t.context.graph;
+
+	const res = await graphFromPackageDependencies({
+		cwd: "cwd",
+		rootConfiguration: "rootConfiguration",
+		rootConfigPath: "/rootConfigPath",
+		versionOverride: "versionOverride",
+		resolveFrameworkDependencies: false
+	});
+
+	t.is(res, "graph");
+	t.true(createWorkspaceStub.calledOnce, "createWorkspace is called");
+	t.is(createWorkspaceStub.getCall(0).args[0].name, "default",
+		"createWorkspace is called with 'default' workspace");
 });
 
 test.serial("graphFromStaticFile", async (t) => {

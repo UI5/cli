@@ -29,8 +29,8 @@ const log = getLogger("generateProjectGraph");
  * @param {string} [options.versionOverride] Framework version to use instead of the one defined in the root project
  * @param {string} [options.resolveFrameworkDependencies=true]
  * 		Whether framework dependencies should be added to the graph
- * @param {string} [options.workspaceName]
- * 		Name of the workspace configuration that should be used if any is provided
+ * @param {string|null} [options.workspaceName=default]
+ * 		Name of the workspace configuration that should be used. "default" if not provided.
  * @param {module:@ui5/project/ui5Framework/maven/CacheMode} [options.cacheMode]
  *      Cache mode to use when consuming SNAPSHOT versions of a framework
  * @param {string} [options.workspaceConfigPath=ui5-workspace.yaml]
@@ -43,7 +43,7 @@ const log = getLogger("generateProjectGraph");
 export async function graphFromPackageDependencies({
 	cwd, rootConfiguration, rootConfigPath,
 	versionOverride, cacheMode, resolveFrameworkDependencies = true,
-	workspaceName /* TODO 4.0: default workspaceName to "default" ? */,
+	workspaceName="default",
 	workspaceConfiguration, workspaceConfigPath = "ui5-workspace.yaml"
 }) {
 	log.verbose(`Creating project graph using npm provider...`);
