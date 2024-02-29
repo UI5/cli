@@ -216,8 +216,7 @@ async function generateCssVariablesLess({workspace, combo, namespace}) {
  */
 export default async function({workspace, dependencies, options}) {
 	const {projectName, version} = options;
-	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
-	const namespace = options.projectNamespace || options.namespace;
+	const namespace = options.projectNamespace;
 
 	// Skip sap.ui.documentation since it is not intended to be available in SAP Theme Designer to create custom themes
 	if (namespace === "sap/ui/documentation") {

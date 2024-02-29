@@ -56,7 +56,7 @@ test.serial("execute module bundler and write results", async (t) => {
 		dependencies: dummyReaderWriter,
 		options: {
 			projectName: "some.project.name",
-			namespace: "some/project/namespace"
+			projectNamespace: "some/project/namespace"
 		}
 	};
 	await generateStandaloneAppBundle(params);
@@ -150,7 +150,7 @@ test.serial("execute module bundler and write results in evo mode", async (t) =>
 		dependencies: dummyReaderWriter,
 		options: {
 			projectName: "some.project.name",
-			namespace: "some/project/namespace"
+			projectNamespace: "some/project/namespace"
 		}
 	};
 	await generateStandaloneAppBundle(params);
@@ -207,7 +207,7 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 		taskUtil,
 		options: {
 			projectName: "some.project.name",
-			namespace: "some/project/namespace"
+			projectNamespace: "some/project/namespace"
 		}
 	};
 	await generateStandaloneAppBundle(params);
@@ -355,7 +355,7 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 		taskUtil,
 		options: {
 			projectName: "some.project.name",
-			namespace: "some/project/namespace"
+			projectNamespace: "some/project/namespace"
 		}
 	};
 

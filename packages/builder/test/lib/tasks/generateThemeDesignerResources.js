@@ -80,7 +80,7 @@ test.serial("generateThemeDesignerResources: Library", async (t) => {
 		options: {
 			projectName: "sap.ui.demo.lib",
 			version: "1.2.3",
-			namespace: "sap/ui/demo/lib"
+			projectNamespace: "sap/ui/demo/lib"
 		}
 	});
 
@@ -203,7 +203,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.core", async (t) => 
 		options: {
 			projectName: "sap.ui.core",
 			version: "1.2.3",
-			namespace: "sap/ui/core"
+			projectNamespace: "sap/ui/core"
 		}
 	});
 
@@ -268,7 +268,7 @@ test.serial("generateThemeDesignerResources: Library sap.ui.documentation is ski
 		options: {
 			projectName: "sap.ui.documentation",
 			version: "1.2.3",
-			namespace: "sap/ui/documentation"
+			projectNamespace: "sap/ui/documentation"
 		}
 	});
 
@@ -296,7 +296,7 @@ test.serial("generateThemeDesignerResources: Library without themes", async (t) 
 		options: {
 			projectName: "sap.ui.demo.lib",
 			version: "1.2.3",
-			namespace: "sap/ui/demo/lib"
+			projectNamespace: "sap/ui/demo/lib"
 		}
 	});
 
@@ -521,7 +521,7 @@ test.serial("generateThemeDesignerResources: Theme-Library with CSS Variables wi
 		options: {
 			projectName: "sap.ui.demo.lib",
 			version: "1.2.3",
-			namespace: "sap/ui/demo/lib"
+			projectNamespace: "sap/ui/demo/lib"
 		}
 	});
 
@@ -757,7 +757,7 @@ test.serial("generateThemeDesignerResources: .theming file missing in sap.ui.cor
 		options: {
 			projectName: "sap.ui.core",
 			version: "1.2.3",
-			namespace: "sap/ui/core"
+			projectNamespace: "sap/ui/core"
 		}
 	}), {
 		message: ".theming file for theme base missing in sap.ui.core library source"

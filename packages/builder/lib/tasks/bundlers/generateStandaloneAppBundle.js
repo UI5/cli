@@ -83,8 +83,7 @@ function getBundleDefinition(config) {
  */
 export default async function({workspace, dependencies, taskUtil, options}) {
 	const {projectName} = options;
-	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
-	const namespace = options.projectNamespace || options.namespace;
+	const namespace = options.projectNamespace;
 
 	if (!namespace) {
 		log.warn(`Namespace of project ${projectName} is not known. Self contained bundling is currently ` +

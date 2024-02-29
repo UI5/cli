@@ -29,8 +29,7 @@ import semver from "semver";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({workspace, taskUtil, options = {}}) {
-	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
-	const namespace = options.projectNamespace || options.namespace;
+	const namespace = options.projectNamespace;
 
 	// Use the given namespace if available, otherwise use no namespace
 	// (e.g. in case no manifest.json is present)

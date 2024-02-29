@@ -51,8 +51,7 @@ function getSigner(type) {
  */
 export default function({workspace, options}) {
 	const {signatureType} = options;
-	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
-	const namespace = options.projectNamespace || options.namespace;
+	const namespace = options.projectNamespace;
 
 	const basePath = `/resources/${namespace}/`;
 	return workspace.byGlob(`/resources/${namespace}/**/*`)

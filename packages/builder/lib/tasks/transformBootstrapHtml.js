@@ -11,13 +11,12 @@ import bootstrapHtmlTransformer from "../processors/bootstrapHtmlTransformer.js"
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {object} parameters.options Options
  * @param {string} parameters.options.projectName Project name
- * @param {string} [parameters.options.namespace] Project namespace
+ * @param {string} [parameters.options.projectNamespace] Project namespace
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({workspace, options}) {
 	const {projectName} = options;
-	// Backward compatibility: "namespace" option got renamed to "projectNamespace"
-	const namespace = options.projectNamespace || options.namespace;
+	const namespace = options.projectNamespace;
 
 	let indexPath;
 	if (namespace) {

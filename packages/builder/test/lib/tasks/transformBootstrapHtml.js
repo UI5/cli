@@ -48,7 +48,7 @@ test.serial("Transforms index.html resource", async (t) => {
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
-			namespace: "sap/ui/demo/app"
+			projectNamespace: "sap/ui/demo/app"
 		}
 	});
 
@@ -126,7 +126,7 @@ test.serial("No index.html resource exists", async (t) => {
 		workspace,
 		options: {
 			projectName: "sap.ui.demo.app",
-			namespace: "sap/ui/demo/app"
+			projectNamespace: "sap/ui/demo/app"
 		}
 	});
 
