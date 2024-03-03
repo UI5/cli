@@ -137,7 +137,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
-		"@jridgewell/trace-mapping": "^0.3.23",
+		"@jridgewell/trace-mapping": "^0.3.25",
 		"@ui5/project": "^3.9.0",
 		"ava": "^5.3.1",
 		"chokidar-cli": "^3.0.0",
@@ -148,7 +148,7 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
 		"eslint-plugin-jsdoc": "^48.2.0",
-		"esmock": "^2.6.3",
+		"esmock": "^2.6.4",
 		"line-column": "^1.0.2",
 		"nyc": "^15.1.0",
 		"open-cli": "^8.0.0",
