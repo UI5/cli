@@ -1,5 +1,5 @@
 import test from "ava";
-import sinon from "sinon";
+import sinonGlobal from "sinon";
 import minify from "../../../lib/tasks/minify.js";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import DuplexCollection from "@ui5/fs/DuplexCollection";
@@ -20,19 +20,23 @@ function createWorkspace() {
 	return {reader, writer, workspace};
 }
 
-test.afterEach.always((t) => {
-	sinon.restore();
+test.beforeEach((t) => {
+	t.context.sinon = sinonGlobal.createSandbox();
 });
 
-test("integration: minify omitSourceMapResources=true", async (t) => {
+test.afterEach.always((t) => {
+	t.context.sinon.restore();
+});
+
+test.serial("integration: minify omitSourceMapResources=true", async (t) => {
 	const taskUtil = {
-		setTag: sinon.stub(),
+		setTag: t.context.sinon.stub(),
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
 			OmitFromBuildResult: "3️⃣"
 		},
-		registerCleanupTask: sinon.stub()
+		registerCleanupTask: t.context.sinon.stub()
 	};
 	const {reader, writer, workspace} = createWorkspace();
 	const content = `
@@ -96,16 +100,21 @@ test();`;
 		"Fourth taskUtil.setTag call with expected first arguments");
 	t.is(taskUtil.setTag.getCall(3).args[1], "3️⃣",
 		"Fourth taskUtil.setTag call with expected second arguments");
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = taskUtil.registerCleanupTask.getCall(0).args[0];
+	await cleanupTask();
 });
 
-test("integration: minify omitSourceMapResources=false", async (t) => {
+test.serial("integration: minify omitSourceMapResources=false", async (t) => {
 	const taskUtil = {
-		setTag: sinon.stub(),
+		setTag: t.context.sinon.stub(),
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
 			OmitFromBuildResult: "3️⃣"
-		}
+		},
+		registerCleanupTask: t.context.sinon.stub()
 	};
 	const {reader, writer, workspace} = createWorkspace();
 	const content = `
@@ -165,6 +174,10 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 		"Third taskUtil.setTag call with expected first arguments");
 	t.is(taskUtil.setTag.getCall(2).args[1], "1️⃣",
 		"Third taskUtil.setTag call with expected second arguments");
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = taskUtil.registerCleanupTask.getCall(0).args[0];
+	await cleanupTask();
 });
 
 test("integration: minify omitSourceMapResources=true (without taskUtil)", async (t) => {

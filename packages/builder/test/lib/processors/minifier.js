@@ -107,6 +107,10 @@ ${SOURCE_MAPPING_URL}=test.controller.js.map`;
 
 	// Call to registerCleanupTask indicates worker pool was used
 	t.is(taskUtilMock.registerCleanupTask.callCount, 1, "taskUtil#registerCleanupTask got called once");
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = taskUtilMock.registerCleanupTask.getCall(0).args[0];
+	await cleanupTask();
 });
 
 test("Basic minifier with taskUtil and unexpected termination of the workerpool", async (t) => {

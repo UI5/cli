@@ -298,6 +298,10 @@ test.serial("generateJsdoc", async (t) => {
 	t.is(writeStub.callCount, 2, "Write got called twice");
 	t.is(writeStub.getCall(0).args[0], "resource A", "Write got called with correct arguments");
 	t.is(writeStub.getCall(1).args[0], "resource B", "Write got called with correct arguments");
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = registerCleanupTaskStub.getCall(0).args[0];
+	await cleanupTask();
 });
 
 test.serial("generateJsdoc with missing resources", async (t) => {
@@ -344,6 +348,10 @@ test.serial("generateJsdoc with missing resources", async (t) => {
 	"Correct message has been logged");
 
 	t.is(jsdocGeneratorStub.callCount, 0, "jsdocGenerator processor has *not* been called");
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = registerCleanupTaskStub.getCall(0).args[0];
+	await cleanupTask();
 });
 
 test.serial("generateJsdoc no parameters", async (t) => {

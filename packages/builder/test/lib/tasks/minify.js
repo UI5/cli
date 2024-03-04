@@ -25,7 +25,15 @@ test.beforeEach(async (t) => {
 		"../../../lib/processors/minifier.js": t.context.minifierStub
 	});
 });
-test.afterEach.always((t) => {
+test.afterEach.always(async (t) => {
+	const {registerCleanupTask} = t.context.taskUtil;
+
+	if (registerCleanupTask.callCount === 1) {
+		// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+		const cleanupTask = registerCleanupTask.getCall(0).args[0];
+		await cleanupTask();
+	}
+
 	t.context.sinon.restore();
 });
 

@@ -42,6 +42,10 @@ function getPool(taskUtil) {
 				let {idleWorkers, totalWorkers} = pool.stats();
 				while (idleWorkers !== totalWorkers && !force) {
 					await setTimeoutPromise(100); // Wait a bit workers to finish and try again
+
+					if (!pool) { // pool might have been terminated in the meantime
+						return;
+					}
 					({idleWorkers, totalWorkers} = pool.stats());
 				}
 
