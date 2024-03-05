@@ -226,7 +226,7 @@ export default async function({
 					const sourceMapJson = JSON.parse(sourceMapContent);
 
 					if (sourceMapJson.sections) {
-						// TODO 4.0
+						// TODO 5.0
 						// Module "@jridgewell/trace-mapping" (used by Terser) can't handle index map sections lacking
 						// a "names" array. Since this is a common occurrence for UI5 Tooling bundles, we search for
 						// such cases here and fix them until https://github.com/jridgewell/trace-mapping/pull/29 is
