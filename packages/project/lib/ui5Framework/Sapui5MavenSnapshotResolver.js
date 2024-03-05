@@ -52,7 +52,7 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		});
 		this._loadDistMetadata = null;
 
-		// TODO 4.0: Remove support for legacy snapshot versions
+		// TODO 5.0: Remove support for legacy snapshot versions
 		this._isLegacySnapshotVersion = semver.lt(this._version, "1.116.0-SNAPSHOT", {
 			includePrerelease: true
 		});
