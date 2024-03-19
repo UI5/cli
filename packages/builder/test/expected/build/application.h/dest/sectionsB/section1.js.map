@@ -1,1 +1,1 @@
-{"version":3,"file":"section1.js","names":["sap","ui","define","Button","console","log"],"sources":["section1-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,gBAAiB,SAASC,GACxCC,QAAQC,IAAI,qBACb"}
+{"version":3,"file":"section1.js","names":["sap","ui","define","Button","console","log"],"sources":["section1-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,gBAAiB,SAASC,GACxCC,QAAQC,IAAI,qBACb","ignoreList":[]}

@@ -1,1 +1,1 @@
-{"version":3,"file":"legacy.js","names":["topLevelVar","console","log"],"sources":["legacy-dbg.js"],"mappings":";;;AAGA,IAAIA,YAAc,YAClBC,QAAQC,IAAI,SAAWF"}
+{"version":3,"file":"legacy.js","names":["topLevelVar","console","log"],"sources":["legacy-dbg.js"],"mappings":";;;AAGA,IAAIA,YAAc,YAClBC,QAAQC,IAAI,SAAWF","ignoreList":[]}

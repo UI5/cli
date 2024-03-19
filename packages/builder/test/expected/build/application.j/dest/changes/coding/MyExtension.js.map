@@ -1,1 +1,1 @@
-{"version":3,"file":"MyExtension.js","names":["sap","ui","define"],"sources":["MyExtension-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,GAAG,WAChB,MAAO,CAAC,CACT"}
+{"version":3,"file":"MyExtension.js","names":["sap","ui","define"],"sources":["MyExtension-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,GAAG,WAChB,MAAO,CAAC,CACT","ignoreList":[]}

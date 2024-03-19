@@ -1,1 +1,1 @@
-{"version":3,"file":"test.js","names":["sap","ui","define","test","paramA","variableA","console","log"],"sources":["test-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,GAAI,WACjB,SAASC,EAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF,GACD"}
+{"version":3,"file":"test.js","names":["sap","ui","define","test","paramA","variableA","console","log"],"sources":["test-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,GAAI,WACjB,SAASC,EAAKC,GACb,IAAIC,EAAYD,EAChBE,QAAQC,IAAIF,EACb,CACAF,GACD","ignoreList":[]}

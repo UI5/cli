@@ -1,1 +1,1 @@
-{"version":3,"file":"File1.js","names":["hello","name","console","log"],"sources":["File1-dbg.js"],"mappings":"AACA,SAASA,MAAMC,GACdC,QAAQC,IAAI,SAAWF,EACxB,CACAD,MAAM"}
+{"version":3,"file":"File1.js","names":["hello","name","console","log"],"sources":["File1-dbg.js"],"mappings":"AACA,SAASA,MAAMC,GACdC,QAAQC,IAAI,SAAWF,EACxB,CACAD,MAAM","ignoreList":[]}

@@ -25,7 +25,7 @@
 		},
 		{
 			"name": "Component-preload.js.map",
-			"size": 724,
+			"size": 756,
 			"isDebug": true
 		},
 		{
@@ -38,7 +38,7 @@
 		},
 		{
 			"name": "Component.js.map",
-			"size": 219,
+			"size": 235,
 			"isDebug": true
 		},
 		{
@@ -56,7 +56,7 @@
 		},
 		{
 			"name": "TodoComponent.js.map",
-			"size": 133,
+			"size": 149,
 			"isDebug": true
 		},
 		{
@@ -86,7 +86,7 @@
 		},
 		{
 			"name": "subcomponent1/Component-preload.js.map",
-			"size": 531,
+			"size": 547,
 			"isDebug": true
 		},
 		{
@@ -99,7 +99,7 @@
 		},
 		{
 			"name": "subcomponent1/Component.js.map",
-			"size": 219,
+			"size": 235,
 			"isDebug": true
 		},
 		{
@@ -125,7 +125,7 @@
 		},
 		{
 			"name": "subcomponent2/Component-preload.js.map",
-			"size": 531,
+			"size": 547,
 			"isDebug": true
 		},
 		{
@@ -138,7 +138,7 @@
 		},
 		{
 			"name": "subcomponent2/Component.js.map",
-			"size": 219,
+			"size": 235,
 			"isDebug": true
 		},
 		{
@@ -164,7 +164,7 @@
 		},
 		{
 			"name": "subcomponent3/Component-preload.js.map",
-			"size": 531,
+			"size": 547,
 			"isDebug": true
 		},
 		{
@@ -177,7 +177,7 @@
 		},
 		{
 			"name": "subcomponent3/Component.js.map",
-			"size": 219,
+			"size": 235,
 			"isDebug": true
 		}
 	]

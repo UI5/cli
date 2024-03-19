@@ -1,1 +1,1 @@
-{"version":3,"file":"Component.js","names":["sap","ui","define","UIComponent","extend"],"sources":["Component-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,2BAA4B,SAASC,GACnD,aACA,OAAOA,EAAYC,OAAO,0BAA2B,CACrD,EACD"}
+{"version":3,"file":"Component.js","names":["sap","ui","define","UIComponent","extend"],"sources":["Component-dbg.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,2BAA4B,SAASC,GACnD,aACA,OAAOA,EAAYC,OAAO,0BAA2B,CACrD,EACD","ignoreList":[]}

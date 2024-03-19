@@ -1,1 +1,1 @@
-{"version":3,"file":"some.js","names":["someNonUglifiedVariable","console","log"],"sources":["some-dbg.js"],"mappings":";;;CAGA,WACC,IAAIA,EAA0B,QAC9BC,QAAQC,IAAI,SAAWF,EACvB,EAHD"}
+{"version":3,"file":"some.js","names":["someNonUglifiedVariable","console","log"],"sources":["some-dbg.js"],"mappings":";;;CAGA,WACC,IAAIA,EAA0B,QAC9BC,QAAQC,IAAI,SAAWF,EACvB,EAHD","ignoreList":[]}
