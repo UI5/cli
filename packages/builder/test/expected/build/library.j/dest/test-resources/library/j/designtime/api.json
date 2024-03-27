@@ -12,7 +12,7 @@
 			"export": "AnotherValidEnum",
 			"static": true,
 			"visibility": "public",
-			"description": "AnotherValidEnum",
+			"description": "AnotherValidEnum\n\nThis enum is part of the 'library/j/core/library' module export and must be accessed by the property 'AnotherValidEnum'.",
 			"ui5-metamodel": true,
 			"ui5-metadata": {
 				"stereotype": "enum"
@@ -58,7 +58,7 @@
 			"export": "MyValidEnum",
 			"static": true,
 			"visibility": "public",
-			"description": "MyValidEnum",
+			"description": "MyValidEnum\n\nThis enum is part of the 'library/j/library' module export and must be accessed by the property 'MyValidEnum'.",
 			"ui5-metamodel": true,
 			"ui5-metadata": {
 				"stereotype": "enum"
@@ -208,7 +208,7 @@
 			"export": "ThisIsEnumToo",
 			"static": true,
 			"visibility": "public",
-			"description": "ThisIsEnumToo",
+			"description": "ThisIsEnumToo\n\nThis enum is part of the 'library/j/library' module export and must be accessed by the property 'ThisIsEnumToo'.",
 			"ui5-metadata": {
 				"stereotype": "enum"
 			},
