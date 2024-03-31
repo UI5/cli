@@ -117,7 +117,7 @@
 		"url": "git@github.com:SAP/ui5-server.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^3.3.0",
+		"@ui5/builder": "^3.3.1",
 		"@ui5/fs": "^3.0.5",
 		"@ui5/logger": "^3.0.0",
 		"body-parser": "^1.20.2",
@@ -139,7 +139,7 @@
 	},
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
-		"@ui5/project": "^3.9.0",
+		"@ui5/project": "^3.9.1",
 		"ava": "^6.1.2",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
@@ -148,7 +148,7 @@
 		"eslint": "^8.57.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
-		"eslint-plugin-jsdoc": "^48.2.1",
+		"eslint-plugin-jsdoc": "^48.2.2",
 		"esmock": "^2.6.4",
 		"jsdoc": "^4.0.2",
 		"nyc": "^15.1.0",
