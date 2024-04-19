@@ -6,6 +6,8 @@ import fresh from "fresh";
 
 const rProperties = /\.properties$/i;
 const rReplaceVersion = /\.(library|js|json)$/i;
+const rManifest = /\/manifest.json$/i;
+const rResourcesPrefix = /^\/resources/i;
 
 function isFresh(req, res) {
 	return fresh(req.headers, {
@@ -20,18 +22,33 @@ function isFresh(req, res) {
  * @module @ui5/server/middleware/serveResources
  * @param {object} parameters Parameters
  * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Parameters
- * @param {object} parameters.middlewareUtil Specification version dependent interface to a
- *                                        [MiddlewareUtil]{@link @ui5/server/middleware/MiddlewareUtil} instance
+ * @param {object} parameters.middlewareUtil [MiddlewareUtil]{@link @ui5/server/middleware/MiddlewareUtil} instance
  * @returns {Function} Returns a server middleware closure.
  */
 function createMiddleware({resources, middlewareUtil}) {
 	return async function serveResources(req, res, next) {
 		try {
 			const pathname = middlewareUtil.getPathname(req);
-			const resource = await resources.all.byPath(pathname);
+			let resource = await resources.all.byPath(pathname);
 			if (!resource) { // Not found
-				next();
-				return;
+				if (!rManifest.test(pathname) || !rResourcesPrefix.test(pathname)) {
+					next();
+					return;
+				}
+				log.verbose(`Could not find manifest.json for ${pathname}. ` +
+					`Checking for .library file to generate manifest.json from.`);
+				const {default: generateLibraryManifest} = await import("./helper/generateLibraryManifest.js");
+				// Attempt to find a .library file, which is required for generating a manifest.json
+				const dotLibraryPath = pathname.replace(rManifest, "/.library");
+				const dotLibraryResource = await resources.all.byPath(dotLibraryPath);
+				if (!dotLibraryResource) {
+					log.verbose(
+						`Could not find a .library to generate manifest.json from at ${dotLibraryPath}. ` +
+						`This might indicate that the project is not a library project.`);
+					next();
+					return;
+				}
+				resource = await generateLibraryManifest(middlewareUtil, dotLibraryResource);
 			}
 
 			const resourcePath = resource.getPath();
@@ -64,7 +81,13 @@ function createMiddleware({resources, middlewareUtil}) {
 			}
 
 			// Enable ETag caching
-			res.setHeader("ETag", etag(resource.getStatInfo()));
+			const statInfo = resource.getStatInfo();
+			if (statInfo?.size !== undefined) {
+				res.setHeader("ETag", etag(statInfo));
+			} else {
+				// Fallback to buffer if stats are not available or insufficient
+				res.setHeader("ETag", etag(await resource.getBuffer()));
+			}
 
 			if (isFresh(req, res)) {
 				// client has a fresh copy of the resource
@@ -90,6 +113,7 @@ function createMiddleware({resources, middlewareUtil}) {
 
 			stream.pipe(res);
 		} catch (err) {
+			console.log(err.stack);
 			next(err);
 		}
 	};

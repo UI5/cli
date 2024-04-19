@@ -525,3 +525,176 @@ test.serial("Check if utf8 characters are correctly processed in version replace
 		});
 	});
 });
+
+test.serial("Missing manifest.json is generated", async (t) => {
+	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
+	const project = {
+		getName: () => "library",
+		getNamespace: () => "library",
+		getVersion: () => "1.0.0",
+		getSpecVersion: () => {
+			return {
+				toString: () => "3.0",
+				lte: () => false,
+			};
+		}
+	};
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/", project});
+
+	project.getReader = () => readerWriter;
+
+	const dotLibraryMock = await writeResource(readerWriter, "/resources/foo/.library", 1024 * 1024,
+		`dot library content`, project);
+
+	const manifestMock = resourceFactory.createResource({
+		path: "/resources/foo/manifest.json",
+		string: "mocked manifest.json ${version}",
+		project,
+	});
+
+	const generateLibraryManifestHelperStub = sinon.stub().resolves(manifestMock);
+	const serveResourcesMiddlewareWithMock = t.context.serveResourcesMiddlewareWithMock =
+		await esmock.p("../../../../lib/middleware/serveResources", {
+			"../../../../lib/middleware/helper/generateLibraryManifest.js": generateLibraryManifestHelperStub
+		});
+
+	const middleware = serveResourcesMiddlewareWithMock({
+		middlewareUtil: new MiddlewareUtil({
+			graph: {
+				getProject: () => project
+			},
+			project: "project"
+		}),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const req = {
+		url: "/resources/foo/manifest.json",
+		headers: {}
+	};
+	const res = new Writable();
+	const buffers = [];
+	res.setHeader = sinon.stub();
+	res.getHeader = sinon.stub();
+	res._write = function(chunk, encoding, callback) {
+		buffers.push(chunk);
+		callback();
+	};
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.message}`);
+	};
+
+	const pipeEnd = new Promise((resolve) => res.end = resolve);
+	await middleware(req, res, next);
+	await pipeEnd;
+
+	t.is(Buffer.concat(buffers).toString(), "mocked manifest.json 1.0.0");
+	t.is(res.setHeader.callCount, 2);
+	t.is(res.setHeader.getCall(0).lastArg, "application/json; charset=UTF-8");
+	t.is(generateLibraryManifestHelperStub.callCount, 1, "generateLibraryManifest helper got called once");
+	t.is(generateLibraryManifestHelperStub.getCall(0).args[1], dotLibraryMock,
+		"generateLibraryManifest helper got called with expected argument");
+});
+
+test.serial("Missing manifest.json is not generated with missing .library", async (t) => {
+	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
+	const project = {
+		getName: () => "library",
+		getNamespace: () => "library",
+		getVersion: () => "1.0.0",
+		getSpecVersion: () => {
+			return {
+				toString: () => "3.0",
+				lte: () => false,
+			};
+		}
+	};
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/", project});
+
+	const generateLibraryManifestHelperStub = sinon.stub().resolves();
+	const serveResourcesMiddlewareWithMock = t.context.serveResourcesMiddlewareWithMock =
+		await esmock.p("../../../../lib/middleware/serveResources", {
+			"../../../../lib/middleware/helper/generateLibraryManifest.js": generateLibraryManifestHelperStub
+		});
+
+	const middleware = serveResourcesMiddlewareWithMock({
+		middlewareUtil: new MiddlewareUtil({
+			graph: {
+				getProject: () => project
+			},
+			project: "project"
+		}),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const req = {
+		url: "/resources/foo/manifest.json",
+		headers: {}
+	};
+
+	return new Promise((resolve, reject) => {
+		middleware(req, undefined, function(err) {
+			if (err) {
+				throw new Error(`Next callback called with error: ${err.message}`);
+			}
+			t.is(generateLibraryManifestHelperStub.callCount, 0, "generateLibraryManifest helper never got called");
+			resolve();
+		});
+	});
+});
+
+test.serial("Missing manifest.json is not generated for request outside /resources", async (t) => {
+	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
+	const project = {
+		getName: () => "library",
+		getNamespace: () => "library",
+		getVersion: () => "1.0.0",
+		getSpecVersion: () => {
+			return {
+				toString: () => "3.0",
+				lte: () => false,
+			};
+		}
+	};
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
+
+	const generateLibraryManifestHelperStub = sinon.stub().resolves();
+	const serveResourcesMiddlewareWithMock = t.context.serveResourcesMiddlewareWithMock =
+		await esmock.p("../../../../lib/middleware/serveResources", {
+			"../../../../lib/middleware/helper/generateLibraryManifest.js": generateLibraryManifestHelperStub
+		});
+
+	const middleware = serveResourcesMiddlewareWithMock({
+		middlewareUtil: new MiddlewareUtil({
+			graph: {
+				getProject: () => project
+			},
+			project: "project"
+		}),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const req = {
+		url: "/manifest.json",
+		headers: {}
+	};
+
+	return new Promise((resolve, reject) => {
+		middleware(req, undefined, function(err) {
+			if (err) {
+				throw new Error(`Next callback called with error: ${err.message}`);
+			}
+			t.is(generateLibraryManifestHelperStub.callCount, 0, "generateLibraryManifest helper never got called");
+			resolve();
+		});
+	});
+});
