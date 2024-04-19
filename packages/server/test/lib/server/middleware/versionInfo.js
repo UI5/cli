@@ -30,7 +30,7 @@ const createProjectMetadata = (names, version) => {
 	return projectCache[key] = {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
-		getVersion: () => version || "3.0.0-" + key
+		getVersion: () => version || "3.0.0-" + key,
 	};
 };
 
@@ -121,10 +121,14 @@ const createResources = async (dependencies, resourceFactory, names, deps, embed
 function createDepWorkspace(names, oOptions = {
 	virBasePath: "/resources"
 }) {
+	const project = createProjectMetadata(names);
 	oOptions = Object.assign(oOptions, {
-		project: createProjectMetadata(names)
+		project
 	});
-	return resourceFactory.createAdapter(oOptions);
+	const workspace = resourceFactory.createAdapter(oOptions);
+	// Connect the project back to the created workspace, this allows for accessing the reader via a resources project
+	project.getReader = () => workspace;
+	return workspace;
 }
 
 async function assertCreatedVersionInfo(t, expectedVersionInfo, versionInfoContent) {
@@ -156,16 +160,23 @@ test.afterEach.always((t) => {
 });
 
 test.serial("test all inner API calls within middleware", async (t) => {
-	let stubCount = 0;
-	const manifestCreatorStub = sinon.stub().callsFake(() => `stubbed manifest ${stubCount++}`);
-	const dummyVersionInfo = resourceFactory.createResource({
-		path: "/dummy/path",
-		string: "stubbed version info"
-	});
-	const versionInfoGeneratorStub = sinon.stub().returns([dummyVersionInfo]);
+	let manifestMockCounter = 0;
+	const manifestCreatorStub = sinon.stub().callsFake(() => resourceFactory.createResource({
+		path: "/stub/path",
+		string: `mocked manifest.json ${++manifestMockCounter}`
+	}));
+	const generateLibraryManifestHelperMock = await esmock(
+		"../../../../lib/middleware/helper/generateLibraryManifest.js", {
+			"@ui5/builder/processors/manifestCreator": manifestCreatorStub
+		});
 
+	const mockedVersionInfo = resourceFactory.createResource({
+		path: "/stub/path",
+		string: "mocked version info"
+	});
+	const versionInfoGeneratorStub = sinon.stub().returns([mockedVersionInfo]);
 	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware({
-		"@ui5/builder/processors/manifestCreator": manifestCreatorStub,
+		"../../../../lib/middleware/helper/generateLibraryManifest.js": generateLibraryManifestHelperMock,
 		"@ui5/builder/processors/versionInfoGenerator": versionInfoGeneratorStub,
 	});
 
@@ -193,9 +204,11 @@ test.serial("test all inner API calls within middleware", async (t) => {
 			readers: [dependenciesA, dependenciesB, dependenciesC]
 		})
 	};
-	const graph = {
-		getRoot: () => createProjectMetadata(["myname"], "1.33.7"),
+	const middlewareUtil = {
 		getProject: (projectName) => {
+			if (!projectName) {
+				return createProjectMetadata(["myname"], "1.33.7");
+			}
 			if (projectName === "my.project") {
 				return {
 					getVersion: () => "project version"
@@ -204,7 +217,7 @@ test.serial("test all inner API calls within middleware", async (t) => {
 			return null;
 		}
 	};
-	const middleware = versionInfoMiddleware({resources, graph});
+	const middleware = versionInfoMiddleware({resources, middlewareUtil});
 
 	const endStub = sinon.stub();
 	await middleware(
@@ -247,14 +260,14 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	t.is(versionInfoGeneratorOptions.rootProjectVersion, "1.33.7");
 	t.is(versionInfoGeneratorOptions.libraryInfos.length, 3);
 	t.is(versionInfoGeneratorOptions.libraryInfos[0].name, "lib.a");
-	t.is(versionInfoGeneratorOptions.libraryInfos[0].libraryManifest, "stubbed manifest 0");
+	t.is(await versionInfoGeneratorOptions.libraryInfos[0].libraryManifest.getString(), "mocked manifest.json 1");
 	t.is(versionInfoGeneratorOptions.libraryInfos[1].name, "lib.b");
 	t.is(versionInfoGeneratorOptions.libraryInfos[1].libraryManifest.getPath(), "/resources/lib/b/manifest.json");
 	t.is(versionInfoGeneratorOptions.libraryInfos[2].name, "lib.c");
-	t.is(versionInfoGeneratorOptions.libraryInfos[2].libraryManifest, "stubbed manifest 1");
+	t.is(await versionInfoGeneratorOptions.libraryInfos[2].libraryManifest.getString(), "mocked manifest.json 2");
 
 	t.is(endStub.callCount, 1);
-	t.is(endStub.getCall(0).args[0], "stubbed version info");
+	t.is(endStub.getCall(0).args[0], "mocked version info");
 });
 
 // test case taken from: ui5-builder/test/lib/tasks/generateVersionInfo.js
@@ -311,12 +324,12 @@ test.serial("integration: Library with dependencies and subcomponent complex sce
 		})
 	};
 
-	const graph = {
-		getRoot: () => createProjectMetadata(["myname"], "1.33.7")
+	const middlewareUtil = {
+		getProject: () => createProjectMetadata(["myname"], "1.33.7")
 	};
 
 	const versionInfoMiddleware = await t.context.createVersionInfoMiddleware();
-	const middleware = versionInfoMiddleware({resources, graph});
+	const middleware = versionInfoMiddleware({resources, middlewareUtil});
 
 	const expectedVersionInfo = {
 		"name": "myname",

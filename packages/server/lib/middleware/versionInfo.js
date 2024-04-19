@@ -1,5 +1,5 @@
 import createVersionInfoProcessor from "@ui5/builder/processors/versionInfoGenerator";
-import createManifestProcessor from "@ui5/builder/processors/manifestCreator";
+import generateLibraryManifest from "./helper/generateLibraryManifest.js";
 
 const MANIFEST_JSON = "manifest.json";
 
@@ -9,10 +9,10 @@ const MANIFEST_JSON = "manifest.json";
  * @module @ui5/server/middleware/versionInfo
  * @param {object} parameters Parameters
  * @param {@ui5/server/internal/MiddlewareManager.middlewareResources} parameters.resources Parameters
- * @param {@ui5/project/graph/ProjectGraph} parameters.graph Project graph
+ * @param {object} parameters.middlewareUtil [MiddlewareUtil]{@link @ui5/server/middleware/MiddlewareUtil} instance
  * @returns {Function} Returns a server middleware closure.
  */
-function createMiddleware({resources, graph}) {
+function createMiddleware({resources, middlewareUtil}) {
 	return async function versionInfo(req, res, next) {
 		try {
 			const dependencies = resources.dependencies;
@@ -31,20 +31,7 @@ function createMiddleware({resources, graph}) {
 				const embeddedManifests =
 					manifestResources.filter((manifestResource) => manifestResource !== libraryManifest);
 				if (!libraryManifest) {
-					const extensions = "js,json,library,less,css,theming,theme,properties";
-					const libResources = await dependencies.byGlob(`/resources/${namespace}/**/*.{${extensions}}`);
-
-					libraryManifest = await createManifestProcessor({
-						libraryResource: dotLibResource,
-						namespace,
-						resources: libResources,
-						options: {
-							omitMinVersions: true
-						},
-						getProjectVersion: (projectName) => {
-							return graph.getProject(projectName)?.getVersion();
-						}
-					});
+					libraryManifest = await generateLibraryManifest(middlewareUtil, dotLibResource);
 				}
 				return {
 					libraryManifest,
@@ -53,7 +40,7 @@ function createMiddleware({resources, graph}) {
 					version: dotLibResource.getProject().getVersion()
 				};
 			});
-			const rootProject = graph.getRoot();
+			const rootProject = middlewareUtil.getProject();
 			const libraryInfos = await Promise.all(libraryInfosPromises);
 			const [versionInfoResource] = await createVersionInfoProcessor({
 				options: {

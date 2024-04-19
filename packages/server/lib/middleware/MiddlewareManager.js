@@ -220,16 +220,7 @@ class MiddlewareManager {
 		await this.addMiddleware("testRunner");
 		await this.addMiddleware("serveThemes");
 		await this.addMiddleware("versionInfo", {
-			mountPath: "/resources/sap-ui-version.json",
-			wrapperCallback: ({middleware: versionInfoModule}) => {
-				return ({resources, middlewareUtil}) => {
-					return versionInfoModule({
-						resources,
-						middlewareUtil,
-						graph: this.graph
-					});
-				};
-			}
+			mountPath: "/resources/sap-ui-version.json"
 		});
 		// Handle anything but read operations *before* the serveIndex middleware
 		//	as it will reject them with a 405 (Method not allowed) instead of 404 like our old tooling
