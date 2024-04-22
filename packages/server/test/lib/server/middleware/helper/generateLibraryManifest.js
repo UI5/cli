@@ -1,4 +1,6 @@
 import test from "ava";
+import sinon from "sinon";
+import esmock from "esmock";
 import {createResource, createAdapter} from "@ui5/fs/resourceFactory";
 import generateLibraryManifest from "../../../../../lib/middleware/helper/generateLibraryManifest.js";
 
@@ -72,3 +74,45 @@ test("Generate library manifest", async (t) => {
 	t.is(res.getProject(), project, "Created manifest.json has expected project set");
 });
 
+test("Expected manifestCreator parameters", async (t) => {
+	const setProjectStub = sinon.stub();
+	const manifest = {
+		setProject: setProjectStub
+	};
+	const manifestCreatorStub = sinon.stub().resolves(manifest);
+	const generateLibraryManifest = await esmock("../../../../../lib/middleware/helper/generateLibraryManifest.js", {
+		"@ui5/builder/processors/manifestCreator": manifestCreatorStub
+	});
+	const adapter = createAdapter({
+		virBasePath: "/"
+	});
+	const libResource = createResource({
+		path: "/resources/some-file.js",
+		string: `some file content`,
+	});
+	await adapter.write(libResource);
+	const project = {
+		getNamespace: () => "sap/foo",
+		getVersion: () => "1.0.0",
+		getReader: () => adapter
+	};
+	const middlewareUtilMock = {
+		getProject: () => project
+	};
+	const dotLibResource = createResource({
+		path: "/resources/sap/foo/.library",
+		string: `.library content`, project,
+	});
+
+	const res = await generateLibraryManifest(middlewareUtilMock, dotLibResource);
+	t.is(res, manifest, "Returned expected resource object");
+	t.is(manifestCreatorStub.callCount, 1, "manifestCreator was called once");
+	const getProjectVersion = manifestCreatorStub.firstCall.firstArg.getProjectVersion;
+	t.deepEqual(manifestCreatorStub.firstCall.firstArg, {
+		libraryResource: dotLibResource,
+		namespace: "sap/foo",
+		resources: [libResource],
+		getProjectVersion: getProjectVersion
+	}, "manifestCreator was called with expected parameters");
+	t.is(getProjectVersion(), "1.0.0", "getProjectVersion returns expected version");
+});

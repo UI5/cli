@@ -7,7 +7,7 @@ import fresh from "fresh";
 const rProperties = /\.properties$/i;
 const rReplaceVersion = /\.(library|js|json)$/i;
 const rManifest = /\/manifest.json$/i;
-const rResourcesPrefix = /^\/resources/i;
+const rResourcesPrefix = /^\/resources\//i;
 
 function isFresh(req, res) {
 	return fresh(req.headers, {
@@ -113,7 +113,6 @@ function createMiddleware({resources, middlewareUtil}) {
 
 			stream.pipe(res);
 		} catch (err) {
-			console.log(err.stack);
 			next(err);
 		}
 	};
