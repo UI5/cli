@@ -61,7 +61,7 @@ test("Generate library manifest", async (t) => {
 		{
 			"dependencies":
 			{
-				"minUI5Version": "",
+				"minUI5Version": "1.0",
 				"libs":
 				{}
 			},

@@ -228,6 +228,12 @@ test.serial("test all inner API calls within middleware", async (t) => {
 		});
 
 	t.is(manifestCreatorStub.callCount, 2);
+	t.deepEqual(Object.keys(manifestCreatorStub.getCall(0).args[0]), [
+		"libraryResource",
+		"namespace",
+		"resources",
+		"getProjectVersion"
+	], "Expected arguments provided");
 	t.is(manifestCreatorStub.getCall(0).args[0].libraryResource.getPath(), "/resources/lib/a/.library");
 	t.is(manifestCreatorStub.getCall(1).args[0].libraryResource.getPath(), "/resources/lib/c/.library");
 	t.is(manifestCreatorStub.getCall(0).args[0].namespace, "lib/a");
@@ -247,8 +253,6 @@ test.serial("test all inner API calls within middleware", async (t) => {
 			"/resources/lib/c/foo.theme",
 			"/resources/lib/c/foo.theming"
 		]);
-	t.deepEqual(manifestCreatorStub.getCall(0).args[0].options, {omitMinVersions: true});
-	t.deepEqual(manifestCreatorStub.getCall(1).args[0].options, {omitMinVersions: true});
 	const projectVersion1 = manifestCreatorStub.getCall(0).args[0].getProjectVersion("my.project");
 	t.is(projectVersion1, "project version", "getProjectVersion callback returned expected project version");
 	const projectVersion2 = manifestCreatorStub.getCall(1).args[0].getProjectVersion("my.other.project");
