@@ -142,7 +142,7 @@ function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 			workspace: placeholderWorkspace,
 			taskUtil: false,
 			options: {
-				namespace: "/mypath"
+				projectNamespace: "mypath"
 			}
 		});
 
@@ -221,7 +221,7 @@ function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 			workspace: placeholderWorkspace,
 			taskUtil: false,
 			options: {
-				namespace: "/mypath"
+				projectNamespace: "mypath"
 			}
 		});
 
