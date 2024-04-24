@@ -72,18 +72,23 @@ export default async function({workspace, taskUtil, options = {}}) {
 
 		manifestContent["sap.ui5"] = manifestContent["sap.ui5"] || {};
 		manifestContent["sap.ui5"].dependencies = manifestContent["sap.ui5"].dependencies || {};
-		return manifestContent["sap.ui5"].dependencies.minUI5Version =
-			manifestContent["sap.ui5"].dependencies.minUI5Version || "";
+		if (!Array.isArray(manifestContent["sap.ui5"].dependencies.minUI5Version)) {
+			manifestContent["sap.ui5"].dependencies.minUI5Version =
+				[manifestContent["sap.ui5"].dependencies.minUI5Version] || [""];
+		}
+		return manifestContent["sap.ui5"].dependencies.minUI5Version;
 	}
 
 	log.verbose("Collecting flexibility changes");
 	const allResources = await workspace.byGlob(
 		`${pathPrefix}/changes/*.{change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`);
 	if (allResources.length > 0) {
-		const version = semver.coerce(await readManifestMinUI5Version());
+		const versionArray = await readManifestMinUI5Version();
+		const versions = versionArray.map((version) => semver.coerce(version));
+		const versionsAllSuitableForFlexBundle = versions.every((version) => semver.compare(version, "1.73.0") >= 0);
 		let hasFlexBundleVersion = false;
 		let flexBundle = {};
-		if (semver.compare(version, "1.73.0") >= 0) {
+		if (versionsAllSuitableForFlexBundle) {
 			hasFlexBundleVersion = true;
 			const flexBundleResource = await workspace.byPath(`${pathPrefix}/changes/flexibility-bundle.json`);
 			if (flexBundleResource) {
