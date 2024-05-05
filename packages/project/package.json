@@ -120,7 +120,7 @@
 		"url": "git@github.com:SAP/ui5-project.git"
 	},
 	"dependencies": {
-		"@npmcli/config": "^8.3.0",
+		"@npmcli/config": "^8.3.1",
 		"@ui5/builder": "^3.4.0",
 		"@ui5/fs": "^3.0.5",
 		"@ui5/logger": "^3.0.0",
@@ -132,7 +132,7 @@
 		"graceful-fs": "^4.2.11",
 		"js-yaml": "^4.1.0",
 		"lockfile": "^1.0.4",
-		"make-fetch-happen": "^13.0.0",
+		"make-fetch-happen": "^13.0.1",
 		"node-stream-zip": "^1.15.0",
 		"pacote": "^17.0.7",
 		"pretty-hrtime": "^1.0.3",
@@ -161,7 +161,7 @@
 		"istanbul-lib-report": "^3.0.1",
 		"istanbul-reports": "^3.1.7",
 		"js-beautify": "^1.15.1",
-		"jsdoc": "^4.0.2",
+		"jsdoc": "^4.0.3",
 		"nyc": "^15.1.0",
 		"open-cli": "^8.0.0",
 		"sinon": "^17.0.1",
