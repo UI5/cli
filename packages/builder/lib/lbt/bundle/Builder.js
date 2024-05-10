@@ -353,7 +353,13 @@ class BundleBuilder {
 			// If first column of the first line is not already mapped, add a mapping for the same reason as above.
 			// This is typical for transpiled code, where there is a bunch of generated code at the beginning that
 			// can't be mapped to the original source
-			map.mappings = "AAAA," + map.mappings;
+			if (map.mappings) {
+				map.mappings = "AAAA," + map.mappings;
+			} else {
+				// If there are no existing mappings (e.g. if the file is empty or only comments),
+				// make sure to still define a single mapping
+				map.mappings = "AAAA";
+			}
 		}
 
 		map.sourceRoot = path.posix.relative(

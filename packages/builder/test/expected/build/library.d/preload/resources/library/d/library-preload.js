@@ -31,6 +31,11 @@ sap.ui.predefine("library/d/some", ["./library"], (_library) => {
 	console.log('Hello ' + someNonUglifiedVariable);
 });
 sap.ui.require.preload({
+	"library/d/empty.js":function(){
+/*!
+ * ${copyright}
+ */
+},
 	"library/d/legacy.js":'/*!\n * ${copyright}\n */\nvar topLevelVar = "Old World";\nconsole.log(\'Hello \' + topLevelVar);\n'
 });
 //# sourceMappingURL=library-preload.js.map
