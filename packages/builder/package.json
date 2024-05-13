@@ -131,7 +131,7 @@
 		"jsdoc": "^4.0.3",
 		"less-openui5": "^0.11.6",
 		"pretty-data": "^0.40.0",
-		"rimraf": "^5.0.6",
+		"rimraf": "^5.0.7",
 		"semver": "^7.6.2",
 		"terser": "^5.31.0",
 		"workerpool": "^9.1.1",
