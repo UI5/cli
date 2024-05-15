@@ -12,9 +12,10 @@ const projectCache = {};
  *
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {string} [version="3.0.0-<library name>"] Project version
+ * @param {string} [type="library"] Project type
  * @returns {object} Project mock
  */
-const createProjectMetadata = (names, version) => {
+const createProjectMetadata = (names, version, type) => {
 	const key = names.join(".");
 
 	// Cache projects in order to return same object instance
@@ -26,10 +27,10 @@ const createProjectMetadata = (names, version) => {
 	return projectCache[key] = {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
-		getVersion: () => version || "3.0.0-" + key
+		getVersion: () => version || "3.0.0-" + key,
+		getType: () => type || "library"
 	};
 };
-
 
 function createWorkspace() {
 	return resourceFactory.createAdapter({
@@ -42,9 +43,9 @@ function createDependencies(oOptions = {
 	virBasePath: "/resources/",
 	fsBasePath: path.join(__dirname, "..", "..", "fixtures", "sap.ui.core-evo", "main", "src")
 }) {
-	oOptions = Object.assign(oOptions, {
+	oOptions = Object.assign({
 		project: createProjectMetadata(["test", "lib3"], "3.0.0")
-	});
+	}, oOptions);
 	return resourceFactory.createAdapter(oOptions);
 }
 
@@ -246,9 +247,9 @@ const createResources = async (dependencies, resourceFactory, names, deps, embed
 function createDepWorkspace(names, oOptions = {
 	virBasePath: "/resources"
 }) {
-	oOptions = Object.assign(oOptions, {
+	oOptions = Object.assign({
 		project: createProjectMetadata(names)
-	});
+	}, oOptions);
 	return resourceFactory.createAdapter(oOptions);
 }
 
@@ -1145,4 +1146,39 @@ test.serial("integration: Library with manifest with invalid dependency", async 
 		"Cannot find dependency 'non.existing' defined in the manifest.json or .library file of project 'lib.a'. " +
 		"This might prevent some UI5 runtime performance optimizations from taking effect. " +
 		"Please double check your project's dependency configuration.");
+});
+
+test.serial("integration: Library of type 'module'", async (t) => {
+	const {infoLogStub} = t.context;
+	const workspace = createWorkspace();
+
+	await createDotLibrary(workspace, resourceFactory, ["test", "lib"]);
+
+	// dependencies
+	const dependencies = createDepWorkspace(["module", "x"], {
+		virBasePath: "/",
+		project: createProjectMetadata(["module", "x"], "1.0.0", "module")
+	});
+
+	// lib.a
+	await createResources(dependencies, resourceFactory, ["module", "x"], [{name: "non.existing"}]);
+
+
+	const oOptions = {
+		options: {
+			projectName: "Test Lib",
+			pattern: "/resources/**/.library",
+			rootProject: createProjectMetadata(["myname"], "1.33.7")
+		},
+		workspace,
+		dependencies
+	};
+	await assertCreatedVersionInfo(t, {
+		"name": "myname",
+		"scmRevision": "",
+		"version": "1.33.7",
+		"libraries": [],
+	}, oOptions);
+
+	t.is(infoLogStub.callCount, 0);
 });

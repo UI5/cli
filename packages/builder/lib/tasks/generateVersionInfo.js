@@ -23,7 +23,9 @@ const MANIFEST_JSON = "manifest.json";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async ({workspace, dependencies, options: {rootProject, pattern}}) => {
-	const resources = await dependencies.byGlob(pattern);
+	let resources = await dependencies.byGlob(pattern);
+
+	resources = resources.filter((res) => res.getProject()?.getType() === "library");
 
 	const libraryInfosPromises = resources.map((dotLibResource) => {
 		const namespace = dotLibResource.getProject().getNamespace();
