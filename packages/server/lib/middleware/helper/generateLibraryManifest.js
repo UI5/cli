@@ -13,6 +13,8 @@ export default async function generateLibraryManifest(middlewareUtil, dotLibReso
 			return middlewareUtil.getProject(projectName)?.getVersion();
 		}
 	});
-	res.setProject(project);
-	return res;
+	if (res) {
+		res.setProject(project);
+		return res;
+	}
 }

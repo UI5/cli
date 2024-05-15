@@ -16,7 +16,9 @@ function createMiddleware({resources, middlewareUtil}) {
 	return async function versionInfo(req, res, next) {
 		try {
 			const dependencies = resources.dependencies;
-			const dotLibResources = await dependencies.byGlob("/resources/**/.library");
+			let dotLibResources = await dependencies.byGlob("/resources/**/.library");
+
+			dotLibResources = dotLibResources.filter((res) => res.getProject()?.getType() === "library");
 
 			dotLibResources.sort((a, b) => {
 				return a.getProject().getName().localeCompare(b.getProject().getName());

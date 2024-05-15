@@ -41,14 +41,14 @@ function createMiddleware({resources, middlewareUtil}) {
 				// Attempt to find a .library file, which is required for generating a manifest.json
 				const dotLibraryPath = pathname.replace(rManifest, "/.library");
 				const dotLibraryResource = await resources.all.byPath(dotLibraryPath);
-				if (!dotLibraryResource) {
-					log.verbose(
-						`Could not find a .library to generate manifest.json from at ${dotLibraryPath}. ` +
-						`This might indicate that the project is not a library project.`);
+				if (dotLibraryResource && dotLibraryResource.getProject()?.getType() === "library") {
+					resource = await generateLibraryManifest(middlewareUtil, dotLibraryResource);
+				}
+				if (!resource) {
+					// Not a library project, missing .library file or other reason for failed manifest.json generation
 					next();
 					return;
 				}
-				resource = await generateLibraryManifest(middlewareUtil, dotLibraryResource);
 			}
 
 			const resourcePath = resource.getPath();

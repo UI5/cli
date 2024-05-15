@@ -16,9 +16,10 @@ const projectCache = {};
  *
  * @param {string[]} names e.g. ["lib", "a"]
  * @param {string} [version="3.0.0-<library name>"] Project version
+ * @param {string} [type="library"] Project type
  * @returns {object} Project mock
  */
-const createProjectMetadata = (names, version) => {
+const createProjectMetadata = (names, version, type) => {
 	const key = names.join(".");
 
 	// Cache projects in order to return same object instance
@@ -31,6 +32,7 @@ const createProjectMetadata = (names, version) => {
 		getName: () => key,
 		getNamespace: () => names.join("/"),
 		getVersion: () => version || "3.0.0-" + key,
+		getType: () => type || "library"
 	};
 };
 
@@ -122,9 +124,9 @@ function createDepWorkspace(names, oOptions = {
 	virBasePath: "/resources"
 }) {
 	const project = createProjectMetadata(names);
-	oOptions = Object.assign(oOptions, {
+	oOptions = Object.assign({
 		project
-	});
+	}, oOptions);
 	const workspace = resourceFactory.createAdapter(oOptions);
 	// Connect the project back to the created workspace, this allows for accessing the reader via a resources project
 	project.getReader = () => workspace;
@@ -183,12 +185,20 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	const dependenciesA = createDepWorkspace(["lib", "a"], {virBasePath: "/"});
 	const dependenciesB = createDepWorkspace(["lib", "b"], {virBasePath: "/"});
 	const dependenciesC = createDepWorkspace(["lib", "c"], {virBasePath: "/"});
+	const dependenciesX = createDepWorkspace(["module", "x"], {
+		virBasePath: "/",
+		project: createProjectMetadata(["module", "x"], "1.0.0", "module")
+	});
 	// create lib.a without manifest
 	await createDotLibrary(dependenciesA, resourceFactory, ["lib", "a"], [{name: "lib.b"}, {name: "lib.c"}]);
 	// create lib.b with manifest: no manifestCreator call expected
 	await createResources(dependenciesB, resourceFactory, ["lib", "b"], []);
 	// create lib.c without manifest but with dummy files
 	await createDotLibrary(dependenciesC, resourceFactory, ["lib", "c"]);
+	// create module.x without manifest but with dummy files
+	// Since this is not a library project, no manifest.json should be generated
+	await createDotLibrary(dependenciesX, resourceFactory, ["module", "x"]);
+
 	[
 		// relevant file extensions for manifest creation
 		"js", "json", "less", "css", "theming", "theme", "properties",
@@ -201,7 +211,7 @@ test.serial("test all inner API calls within middleware", async (t) => {
 	const resources = {
 		dependencies: resourceFactory.createReaderCollection({
 			name: "dependencies",
-			readers: [dependenciesA, dependenciesB, dependenciesC]
+			readers: [dependenciesA, dependenciesB, dependenciesC, dependenciesX]
 		})
 	};
 	const middlewareUtil = {

@@ -529,8 +529,9 @@ test.serial("Check if utf8 characters are correctly processed in version replace
 test.serial("Missing manifest.json is generated", async (t) => {
 	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
 	const project = {
-		getName: () => "library",
-		getNamespace: () => "library",
+		getName: () => "my.library",
+		getNamespace: () => "my/namespace",
+		getType: () => "library",
 		getVersion: () => "1.0.0",
 		getSpecVersion: () => {
 			return {
@@ -544,11 +545,11 @@ test.serial("Missing manifest.json is generated", async (t) => {
 
 	project.getReader = () => readerWriter;
 
-	const dotLibraryMock = await writeResource(readerWriter, "/resources/foo/.library", 1024 * 1024,
+	const dotLibraryMock = await writeResource(readerWriter, "/resources/my/namespace/.library", 1024 * 1024,
 		`dot library content`, project);
 
 	const manifestMock = resourceFactory.createResource({
-		path: "/resources/foo/manifest.json",
+		path: "/resources/my/namespace/manifest.json",
 		string: "mocked manifest.json ${version}",
 		project,
 	});
@@ -572,7 +573,7 @@ test.serial("Missing manifest.json is generated", async (t) => {
 	});
 
 	const req = {
-		url: "/resources/foo/manifest.json",
+		url: "/resources/my/namespace/manifest.json",
 		headers: {}
 	};
 	const res = new Writable();
@@ -602,8 +603,9 @@ test.serial("Missing manifest.json is generated", async (t) => {
 test.serial("Missing manifest.json is not generated with missing .library", async (t) => {
 	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
 	const project = {
-		getName: () => "library",
-		getNamespace: () => "library",
+		getName: () => "my.library",
+		getNamespace: () => "my/namespace",
+		getType: () => "library",
 		getVersion: () => "1.0.0",
 		getSpecVersion: () => {
 			return {
@@ -634,7 +636,7 @@ test.serial("Missing manifest.json is not generated with missing .library", asyn
 	});
 
 	const req = {
-		url: "/resources/foo/manifest.json",
+		url: "/resources/my/namespace/manifest.json",
 		headers: {}
 	};
 
@@ -652,8 +654,9 @@ test.serial("Missing manifest.json is not generated with missing .library", asyn
 test.serial("Missing manifest.json is not generated for request outside /resources", async (t) => {
 	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
 	const project = {
-		getName: () => "library",
-		getNamespace: () => "library",
+		getName: () => "my.library",
+		getNamespace: () => "my/namespace",
+		getType: () => "library",
 		getVersion: () => "1.0.0",
 		getSpecVersion: () => {
 			return {
@@ -664,6 +667,11 @@ test.serial("Missing manifest.json is not generated for request outside /resourc
 	};
 
 	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
+
+	project.getReader = () => readerWriter;
+
+	await writeResource(readerWriter, "/.library", 1024 * 1024,
+		`dot library content`, project);
 
 	const generateLibraryManifestHelperStub = sinon.stub().resolves();
 	const serveResourcesMiddlewareWithMock = t.context.serveResourcesMiddlewareWithMock =
@@ -685,6 +693,62 @@ test.serial("Missing manifest.json is not generated for request outside /resourc
 
 	const req = {
 		url: "/manifest.json",
+		headers: {}
+	};
+
+	return new Promise((resolve, reject) => {
+		middleware(req, undefined, function(err) {
+			if (err) {
+				throw new Error(`Next callback called with error: ${err.message}`);
+			}
+			t.is(generateLibraryManifestHelperStub.callCount, 0, "generateLibraryManifest helper never got called");
+			resolve();
+		});
+	});
+});
+
+test.serial("Missing manifest.json is not generated for non-library projects", async (t) => {
+	// For projects not extending type "ComponentProject" the method "getPropertiesFileSourceEncoding" is not available
+	const project = {
+		getName: () => "my.library",
+		getNamespace: () => "my/namespace",
+		getType: () => "module", // => Looks like a library, has a .library file but is of type module
+		getVersion: () => "1.0.0",
+		getSpecVersion: () => {
+			return {
+				toString: () => "3.0",
+				lte: () => false,
+			};
+		}
+	};
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/", project});
+
+	project.getReader = () => readerWriter;
+
+	await writeResource(readerWriter, "/resources/my/namespace/.library", 1024 * 1024,
+		`dot library content`, project);
+
+	const generateLibraryManifestHelperStub = sinon.stub().resolves();
+	const serveResourcesMiddlewareWithMock = t.context.serveResourcesMiddlewareWithMock =
+		await esmock.p("../../../../lib/middleware/serveResources", {
+			"../../../../lib/middleware/helper/generateLibraryManifest.js": generateLibraryManifestHelperStub
+		});
+
+	const middleware = serveResourcesMiddlewareWithMock({
+		middlewareUtil: new MiddlewareUtil({
+			graph: {
+				getProject: () => project
+			},
+			project: "project"
+		}),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const req = {
+		url: "/resources/my/namespace/manifest.json",
 		headers: {}
 	};
 
