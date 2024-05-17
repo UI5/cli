@@ -132,11 +132,16 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
 				bundle definition
  * @param {module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundleOptions} [parameters.options.bundleOptions] Module
 				bundle options
+ * @param {string} [parameters.options.targetUi5CoreVersion] Optional semver compliant sap.ui.core project version, e.g '2.0.0'.
+				This allows the bundler to make assumptions on available runtime APIs.
+				Omit if the ultimate UI5 version at runtime is unknown or can't be determined.
  * @returns {Promise<module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundlerResult[]>}
  * Promise resolving with module bundle resources
  */
 /* eslint-enable max-len */
-export default function({resources, options: {bundleDefinition, bundleOptions, moduleNameMapping}}) {
+export default function({resources, options: {
+	bundleDefinition, bundleOptions, moduleNameMapping, targetUi5CoreVersion
+}}) {
 	// Apply defaults without modifying the passed object
 	bundleOptions = Object.assign({}, {
 		optimize: true,
@@ -150,7 +155,7 @@ export default function({resources, options: {bundleDefinition, bundleOptions, m
 	const pool = new LocatorResourcePool({
 		ignoreMissingModules: bundleOptions.ignoreMissingModules
 	});
-	const builder = new BundleBuilder(pool);
+	const builder = new BundleBuilder(pool, targetUi5CoreVersion);
 
 	if (log.isLevelEnabled("verbose")) {
 		log.verbose(`Generating bundle:`);

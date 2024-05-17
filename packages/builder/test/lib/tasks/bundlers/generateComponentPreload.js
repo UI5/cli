@@ -229,6 +229,7 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 	]);
 
 	const taskUtil = {
+		getProject: sinon.stub(),
 		getTag: sinon.stub().returns(false),
 		setTag: sinon.stub().returns(),
 		clearTag: sinon.stub().returns(),

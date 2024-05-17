@@ -13,10 +13,11 @@ class ResolvedBundleDefinition {
 		);
 	}
 
-	get containsCore() {
+	get containsCoreSync() {
 		return this.sections.some(
 			(section) =>
-				(section.mode === SectionType.Raw || section.mode === SectionType.Require) &&
+				(section.mode === SectionType.Raw ||
+					(section.mode === SectionType.Require && section.async === false)) &&
 				section.modules.some((module) => module === MODULE__SAP_UI_CORE_CORE)
 		);
 	}
@@ -108,6 +109,10 @@ class ResolvedSection {
 
 	get declareRawModules() {
 		return this.sectionDefinition.declareRawModules;
+	}
+
+	get async() {
+		return this.sectionDefinition.async;
 	}
 }
 

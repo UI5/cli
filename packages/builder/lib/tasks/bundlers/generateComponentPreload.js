@@ -144,18 +144,22 @@ export default async function({
 					);
 				});
 			}
-
+			const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 			return Promise.all(bundleDefinitions.filter(Boolean).map((bundleDefinition) => {
 				log.verbose(`Generating ${bundleDefinition.name}...`);
+				const options = {
+					bundleDefinition,
+					bundleOptions: {
+						ignoreMissingModules: true,
+						optimize: true
+					}
+				};
+				if (coreVersion) {
+					options.targetUi5CoreVersion = coreVersion;
+				}
 				return moduleBundler({
 					resources,
-					options: {
-						bundleDefinition,
-						bundleOptions: {
-							ignoreMissingModules: true,
-							optimize: true
-						}
-					}
+					options
 				});
 			}));
 		})

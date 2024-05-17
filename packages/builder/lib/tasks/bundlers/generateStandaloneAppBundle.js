@@ -84,6 +84,7 @@ function getBundleDefinition(config) {
 export default async function({workspace, dependencies, taskUtil, options}) {
 	const {projectName} = options;
 	const namespace = options.projectNamespace;
+	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 
 	if (!namespace) {
 		log.warn(`Namespace of project ${projectName} is not known. Self contained bundling is currently ` +
@@ -137,31 +138,40 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 		});
 	}
 
+	const bundleOptions = {
+		bundleDefinition: getBundleDefinition({
+			name: "sap-ui-custom.js",
+			filters,
+			namespace,
+			preloadSection: true
+		})
+	};
+
+	const bundleDbgOptions = {
+		bundleDefinition: getBundleDefinition({
+			name: "sap-ui-custom-dbg.js",
+			filters,
+			namespace
+		}),
+		bundleOptions: {
+			optimize: false
+		},
+		moduleNameMapping: unoptimizedModuleNameMapping
+	};
+
+	if (coreVersion) {
+		bundleOptions.targetUi5CoreVersion = coreVersion;
+		bundleDbgOptions.targetUi5CoreVersion = coreVersion;
+	}
+
 	await Promise.all([
 		moduleBundler({
 			resources,
-			options: {
-				bundleDefinition: getBundleDefinition({
-					name: "sap-ui-custom.js",
-					filters,
-					namespace,
-					preloadSection: true
-				})
-			}
+			options: bundleOptions
 		}),
 		moduleBundler({
 			resources: unoptimizedResources,
-			options: {
-				bundleDefinition: getBundleDefinition({
-					name: "sap-ui-custom-dbg.js",
-					filters,
-					namespace
-				}),
-				bundleOptions: {
-					optimize: false
-				},
-				moduleNameMapping: unoptimizedModuleNameMapping
-			}
+			options: bundleDbgOptions
 		})
 	]).then((results) => {
 		const bundles = Array.prototype.concat.apply([], results);

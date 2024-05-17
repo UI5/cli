@@ -82,8 +82,9 @@ test.serial("Builder returns single bundle", async (t) => {
 
 	t.is(BundleBuilder.callCount, 1, "BundleBuilder should be created once");
 	t.true(BundleBuilder.calledWithNew());
-	t.is(BundleBuilder.getCall(0).args.length, 1);
+	t.is(BundleBuilder.getCall(0).args.length, 2);
 	t.is(BundleBuilder.getCall(0).args[0], pool, "LocatorResourcePool should be called with pool");
+	t.is(BundleBuilder.getCall(0).args[1], undefined, "Target UI5 Version is not defined");
 
 	t.is(pool.prepare.callCount, 1, "pool.prepare should be called once");
 	t.is(pool.prepare.getCall(0).args.length, 2);
@@ -193,8 +194,9 @@ test.serial("Builder returns multiple bundles", async (t) => {
 
 	t.is(BundleBuilder.callCount, 1, "BundleBuilder should be created once");
 	t.true(BundleBuilder.calledWithNew());
-	t.is(BundleBuilder.getCall(0).args.length, 1);
+	t.is(BundleBuilder.getCall(0).args.length, 2);
 	t.is(BundleBuilder.getCall(0).args[0], pool, "LocatorResourcePool should be called with pool");
+	t.is(BundleBuilder.getCall(0).args[1], undefined, "Target UI5 Version is not defined");
 
 	t.is(pool.prepare.callCount, 1, "pool.prepare should be called once");
 	t.is(pool.prepare.getCall(0).args.length, 2);
@@ -281,8 +283,9 @@ test.serial("bundleOptions default (no options passed)", async (t) => {
 
 	t.is(BundleBuilder.callCount, 1, "BundleBuilder should be created once");
 	t.true(BundleBuilder.calledWithNew());
-	t.is(BundleBuilder.getCall(0).args.length, 1);
+	t.is(BundleBuilder.getCall(0).args.length, 2);
 	t.is(BundleBuilder.getCall(0).args[0], pool, "LocatorResourcePool should be called with pool");
+	t.is(BundleBuilder.getCall(0).args[1], undefined, "Target UI5 Version is not defined");
 
 	t.is(pool.prepare.callCount, 1, "pool.prepare should be called once");
 	t.is(pool.prepare.getCall(0).args.length, 2);
@@ -483,8 +486,9 @@ test.serial("Passes ignoreMissingModules bundleOption to LocatorResourcePool", a
 
 	t.is(BundleBuilder.callCount, 1, "BundleBuilder should be created once");
 	t.true(BundleBuilder.calledWithNew());
-	t.is(BundleBuilder.getCall(0).args.length, 1);
+	t.is(BundleBuilder.getCall(0).args.length, 2);
 	t.is(BundleBuilder.getCall(0).args[0], pool, "LocatorResourcePool should be called with pool");
+	t.is(BundleBuilder.getCall(0).args[1], undefined, "Target UI5 Version is not defined");
 
 	t.is(pool.prepare.callCount, 1, "pool.prepare should be called once");
 	t.is(pool.prepare.getCall(0).args.length, 2);

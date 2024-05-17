@@ -11,6 +11,7 @@ test.beforeEach(async (t) => {
 		return params.reader;
 	});
 	t.context.taskUtil = {
+		getProject: sinon.stub(),
 		getTag: sinon.stub().returns(false),
 		setTag: sinon.stub(),
 		clearTag: sinon.stub(),
@@ -330,6 +331,175 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 		moduleNameMapping: {
 			"/resources/ponyPath2-dbg.js": "ponyPath2.js"
 		}
+	});
+});
+
+test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) => {
+	const {generateStandaloneAppBundle, taskUtil, createFilterReaderStub, moduleBundlerStub} = t.context;
+
+	const dummyResource1 = createDummyResource("1.js");
+	const dummyResource2 = createDummyResource("2-dbg.js");
+	const dummyResource3 = createDummyResource("3.js");
+	const dummyResource4 = createDummyResource("4-dbg.js");
+
+	taskUtil.getProject = () => {
+		return {
+			getVersion: () => "2.0.0"
+		};
+	};
+
+	taskUtil.getTag.withArgs(dummyResource1, taskUtil.STANDARD_TAGS.HasDebugVariant).returns(true);
+	taskUtil.getTag.withArgs(dummyResource2, taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
+
+	const ui5LoaderDummyResource = {
+		getPath: function() {
+			return "/resources/ui5loader.js"; // Triggers evo mode
+		}
+	};
+	const dummyReaderWriter = {
+		_byGlob: async function() {
+			return [
+				ui5LoaderDummyResource,
+				dummyResource1,
+				dummyResource2,
+				dummyResource3,
+				dummyResource4,
+			];
+		},
+		write: function() {}
+	};
+	sinon.stub(dummyReaderWriter, "write").resolves();
+	const params = {
+		workspace: dummyReaderWriter,
+		dependencies: dummyReaderWriter,
+		taskUtil,
+		options: {
+			projectName: "some.project.name",
+			projectNamespace: "some/project/namespace"
+		}
+	};
+	await generateStandaloneAppBundle(params);
+
+	t.is(taskUtil.getTag.callCount, 5, "TaskUtil#getTag got called six times");
+
+	t.is(createFilterReaderStub.callCount, 2, "Two filter readers have been created");
+	t.is(createFilterReaderStub.getCall(0).args[0].reader.getName(),
+		"generateStandaloneAppBundle - prioritize workspace over dependencies: some.project.name",
+		"Correct reader argument on first createFilterReader call");
+
+	taskUtil.getTag.reset();
+	// Execute first filter-reader callback and test side effect on taskUtil
+	const filterReaderCallbackRes1 = createFilterReaderStub.getCall(0).args[0].callback("resource");
+	t.is(taskUtil.getTag.callCount, 1, "TaskUtil#getTag got called once by callback");
+	t.deepEqual(taskUtil.getTag.getCall(0).args, ["resource", "<IsDebugVariant>"],
+		"TaskUtil getTag got called with correct argument");
+	t.is(filterReaderCallbackRes1, true, "First filter-reader callback returned expected value");
+
+	t.is(createFilterReaderStub.getCall(1).args[0].reader.getName(),
+		"generateStandaloneAppBundle - prioritize workspace over dependencies: some.project.name",
+		"Correct reader argument on first createFilterReader call");
+
+	taskUtil.getTag.reset();
+	// Execute second filter-callback and test side effect on taskUtil
+	const filterReaderCallbackRes2 = createFilterReaderStub.getCall(1).args[0].callback("resource");
+	t.is(taskUtil.getTag.callCount, 1, "TaskUtil#getTag got called once by callback");
+	t.deepEqual(taskUtil.getTag.getCall(0).args, ["resource", "<HasDebugVariant>"],
+		"TaskUtil getTag got called with correct argument");
+	t.is(filterReaderCallbackRes2, true, "First filter-reader callback returned expected value");
+
+
+	t.is(moduleBundlerStub.callCount, 2);
+
+	t.is(moduleBundlerStub.getCall(0).args.length, 1);
+	t.deepEqual(moduleBundlerStub.getCall(0).args[0].options, {
+		bundleDefinition: {
+			defaultFileTypes: [
+				".js",
+				".control.xml",
+				".fragment.html",
+				".fragment.json",
+				".fragment.xml",
+				".view.html",
+				".view.json",
+				".view.xml",
+				".properties",
+			],
+			name: "sap-ui-custom.js",
+			sections: [
+				{
+					declareModules: false,
+					filters: [
+						"ui5loader-autoconfig.js",
+					],
+					mode: "raw",
+					resolve: true,
+					sort: true,
+				},
+				{
+					filters: [
+						"some/project/namespace/",
+						"some/project/namespace/**/manifest.json",
+						"some/project/namespace/changes/changes-bundle.json",
+						"some/project/namespace/changes/flexibility-bundle.json",
+						"!some/project/namespace/test/",
+						"sap/ui/core/Core.js",
+					],
+					mode: "preload",
+					renderer: true,
+					resolve: true,
+					resolveConditional: true,
+				},
+				{
+					filters: [
+						"sap/ui/core/Core.js",
+					],
+					mode: "require",
+				},
+			],
+		},
+		targetUi5CoreVersion: "2.0.0"
+	});
+
+	t.is(moduleBundlerStub.getCall(1).args.length, 1);
+	t.deepEqual(moduleBundlerStub.getCall(1).args[0].options, {
+		bundleDefinition: {
+			defaultFileTypes: [
+				".js",
+				".control.xml",
+				".fragment.html",
+				".fragment.json",
+				".fragment.xml",
+				".view.html",
+				".view.json",
+				".view.xml",
+				".properties",
+			],
+			name: "sap-ui-custom-dbg.js",
+			sections: [
+				{
+					declareModules: false,
+					filters: [
+						"ui5loader-autoconfig.js",
+					],
+					mode: "raw",
+					resolve: true,
+					sort: true,
+				},
+				{
+					filters: [
+						"sap/ui/core/Core.js",
+					],
+					mode: "require",
+				},
+			],
+		},
+		bundleOptions: {
+			optimize: false
+		},
+		moduleNameMapping: {
+			"/resources/ponyPath2-dbg.js": "ponyPath2.js"
+		},
+		targetUi5CoreVersion: "2.0.0"
 	});
 });
 

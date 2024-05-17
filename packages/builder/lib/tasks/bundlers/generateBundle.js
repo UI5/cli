@@ -94,11 +94,14 @@ export default async function({
 			}
 		});
 	}
-
+	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}").then((resources) => {
 		const options = {bundleDefinition, bundleOptions};
 		if (!optimize && taskUtil) {
 			options.moduleNameMapping = createModuleNameMapping({resources, taskUtil});
+		}
+		if (coreVersion) {
+			options.targetUi5CoreVersion = coreVersion;
 		}
 		return moduleBundler({options, resources}).then((bundles) => {
 			return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {

@@ -118,10 +118,10 @@ function One(){return 1;}
 this.One=One;
 }
 },"preload-section");
-sap.ui.requireSync("ui5loader");
+sap.ui.require(["ui5loader"]);
 ${SOURCE_MAPPING_URL}=library-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle " +
 		"should contain:" +
 		" preload part from a.js" +
 		" require part from ui5loader.js");
@@ -131,7 +131,7 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 		"bundle info subModules are correct");
 });
 
-test("integration: createBundle EVOBundleFormat (ui5loader.js)", async (t) => {
+test("integration: createBundle Bundle (ui5loader.js)", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -184,10 +184,10 @@ window["sap-ui-optimized"] = true;
 sap.ui.predefine("jquery.sap.global-dbg", [], function(){return {};});
 //@ui5-bundle-raw-include myModule.js
 (function(){window.mine = {};}());
-sap.ui.requireSync("ui5loader");
+sap.ui.require(["ui5loader"]);
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -198,7 +198,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		"bundle info subModules are correct");
 });
 
-test("integration: createBundle EVOBundleFormat, using predefine calls", async (t) => {
+test("integration: createBundle Bundle, using predefine calls", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -303,10 +303,10 @@ sap.ui.require.preload({
 },"preload-section");
 //@ui5-bundle-raw-include myRawModule.js
 (function(){window.mine = {};}());
-sap.ui.requireSync("ui5loader");
+sap.ui.require(["ui5loader"]);
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -323,7 +323,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		], "bundle info subModules are correct");
 });
 
-test("integration: createBundle EVOBundleFormat, using predefine calls, no optimize", async (t) => {
+test("integration: createBundle Bundle, using predefine calls, no optimize", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -428,10 +428,10 @@ sap.ui.require.preload({
 },"preload-section");
 //@ui5-bundle-raw-include myRawModule.js
 (function(){window.mine = {};}());
-sap.ui.requireSync("ui5loader");
+sap.ui.require(["ui5loader"]);
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -448,7 +448,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		], "bundle info subModules are correct");
 });
 
-test("integration: createBundle (bootstrap bundle)", async (t) => {
+test("integration: createBundle (bootstrap bundle, UI5 Version 1.X)", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -499,15 +499,13 @@ try {
 //@ui5-bundle-raw-include ui5loader.js
 (function(__global) {sap.ui.require = function(){};}(window));
 sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
-sap.ui.requireSync("sap/ui/core/Core");
-// as this module contains the Core, we ensure that the Core has been booted
-sap.ui.getCore().boot && sap.ui.getCore().boot();
+sap.ui.require(["sap/ui/core/Core"], (Core) => Core.boot?.());
 } catch(oError) {
 if (oError.name != "Restart") { throw oError; }
 }
 ${SOURCE_MAPPING_URL}=bootstrap.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -516,6 +514,461 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
 	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
 		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, require section and async true, UI5 Version 1.X)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"],
+			async: true
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(oResult.name, "bootstrap.js");
+	const expectedContent = `//@ui5-bundle bootstrap.js
+window["sap-ui-optimized"] = true;
+try {
+//@ui5-bundle-raw-include ui5loader.js
+(function(__global) {sap.ui.require = function(){};}(window));
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
+sap.ui.require(["sap/ui/core/Core"], (Core) => Core.boot?.());
+} catch(oError) {
+if (oError.name != "Restart") { throw oError; }
+}
+${SOURCE_MAPPING_URL}=bootstrap.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
+		"should contain:" +
+		" raw part from ui5loader.js" +
+		" require part from sap/ui/core/Core.js");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
+		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, require section and async false, UI5 Version 1.X)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"],
+			async: false
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(oResult.name, "bootstrap.js");
+	const expectedContent = `//@ui5-bundle bootstrap.js
+window["sap-ui-optimized"] = true;
+try {
+//@ui5-bundle-raw-include ui5loader.js
+(function(__global) {sap.ui.require = function(){};}(window));
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
+sap.ui.requireSync("sap/ui/core/Core");
+// as this module contains the Core, we ensure that the Core has been booted
+sap.ui.getCore?.().boot?.();
+} catch(oError) {
+if (oError.name != "Restart") { throw oError; }
+}
+${SOURCE_MAPPING_URL}=bootstrap.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
+		"should contain:" +
+		" preload part from jquery.sap.global-dbg.js" +
+		" raw part from myModule.js" +
+		" require part from ui5loader.js");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
+		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, raw section, UI5 Version 1.X)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "raw",
+			filters: ["sap/ui/core/Core.js"]
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(oResult.name, "bootstrap.js");
+	const expectedContent = `//@ui5-bundle bootstrap.js
+window["sap-ui-optimized"] = true;
+try {
+//@ui5-bundle-raw-include ui5loader.js
+(function(__global) {sap.ui.require = function(){};}(window));
+//@ui5-bundle-raw-include sap/ui/core/Core.js
+sap.ui.define([],function(){return {};});
+// as this module contains the Core, we ensure that the Core has been booted
+sap.ui.getCore?.().boot?.();
+} catch(oError) {
+if (oError.name != "Restart") { throw oError; }
+}
+${SOURCE_MAPPING_URL}=bootstrap.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
+		"should contain:" +
+		" raw part from ui5loader.js" +
+		" raw part from sap/ui/core/Core.js");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
+		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, UI5 Version >= 2)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"]
+		}]
+	};
+
+	const builder = new Builder(pool, "2.0.0");
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(oResult.name, "bootstrap.js");
+	const expectedContent = `//@ui5-bundle bootstrap.js
+window["sap-ui-optimized"] = true;
+try {
+//@ui5-bundle-raw-include ui5loader.js
+(function(__global) {sap.ui.require = function(){};}(window));
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
+sap.ui.require(["sap/ui/core/Core"]);
+} catch(oError) {
+if (oError.name != "Restart") { throw oError; }
+}
+${SOURCE_MAPPING_URL}=bootstrap.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
+		"should contain:" +
+		" raw part from ui5loader.js" +
+		" preload part from sap/ui/core/Core.js" +
+		" require part from sap/ui/core/Core.js");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
+		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, UI5 Version = 2.0.0-SNAPSHOT)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"]
+		}]
+	};
+
+	const builder = new Builder(pool, "2.0.0-SNAPSHOT");
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(oResult.name, "bootstrap.js");
+	const expectedContent = `//@ui5-bundle bootstrap.js
+window["sap-ui-optimized"] = true;
+try {
+//@ui5-bundle-raw-include ui5loader.js
+(function(__global) {sap.ui.require = function(){};}(window));
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
+sap.ui.require(["sap/ui/core/Core"]);
+} catch(oError) {
+if (oError.name != "Restart") { throw oError; }
+}
+${SOURCE_MAPPING_URL}=bootstrap.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
+		"should contain:" +
+		" raw part from ui5loader.js" +
+		" preload part from sap/ui/core/Core.js" +
+		" require part from sap/ui/core/Core.js");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
+		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, require section and async true, UI5 Version >= 2)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"],
+			async: true
+		}]
+	};
+
+	const builder = new Builder(pool, "2.0.0");
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(oResult.name, "bootstrap.js");
+	const expectedContent = `//@ui5-bundle bootstrap.js
+window["sap-ui-optimized"] = true;
+try {
+//@ui5-bundle-raw-include ui5loader.js
+(function(__global) {sap.ui.require = function(){};}(window));
+sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
+sap.ui.require(["sap/ui/core/Core"]);
+} catch(oError) {
+if (oError.name != "Restart") { throw oError; }
+}
+${SOURCE_MAPPING_URL}=bootstrap.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
+		"should contain:" +
+		" raw part from ui5loader.js" +
+		" require part from sap/ui/core/Core.js");
+	t.is(oResult.bundleInfo.name, "bootstrap.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["ui5loader.js", "sap/ui/core/Core.js"],
+		"bundle info subModules are correct");
+});
+
+test("integration: createBundle (bootstrap bundle, require section and async false, UI5 Version >= 2)", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"],
+			async: false
+		}]
+	};
+
+	const builder = new Builder(pool, "2.0.0");
+	await t.throwsAsync(builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true,
+	}, "Requiring sap/ui/core/Core synchronously is not supported as of UI5 Version 2.0"));
 });
 
 test("integration: Legacy test: createBundle without ui5loader.js presence also uses modern API", async (t) => {
@@ -559,7 +1012,8 @@ test("integration: Legacy test: createBundle without ui5loader.js presence also 
 			sort: undefined
 		}, {
 			mode: "require",
-			filters: ["sap-ui-core.js"]
+			filters: ["sap-ui-core.js"],
+			async: false
 		}]
 	};
 
@@ -573,7 +1027,7 @@ sap.ui.predefine("jquery.sap.global-dbg", [], function(){/* comment */ return {}
 sap.ui.requireSync("sap-ui-core");
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "Ui5BundleFormat should start with registerPreloadedModules " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with registerPreloadedModules " +
 		"and should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -584,7 +1038,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		"bundle info subModules are correct");
 });
 
-test("integration: createBundle (bootstrap bundle, UI5BundleFormat)", async (t) => {
+test("integration: createBundle (bootstrap bundle, legacy bundle format)", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "jquery.sap.global.js",
@@ -625,7 +1079,8 @@ test("integration: createBundle (bootstrap bundle, UI5BundleFormat)", async (t) 
 			resolve: true
 		}, {
 			mode: "require",
-			filters: ["sap/ui/core/Core.js"]
+			filters: ["sap/ui/core/Core.js"],
+			async: false
 		}]
 	};
 
@@ -649,13 +1104,13 @@ jQuery.sap.declare('myRawModule', false);
 sap.ui.predefine("sap/ui/core/Core", [],function(){return {};});
 sap.ui.requireSync("sap/ui/core/Core");
 // as this module contains the Core, we ensure that the Core has been booted
-sap.ui.getCore().boot && sap.ui.getCore().boot();
+sap.ui.getCore?.().boot?.();
 } catch(oError) {
 if (oError.name != "Restart") { throw oError; }
 }
 ${SOURCE_MAPPING_URL}=bootstrap.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should start with optimization and " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle should start with optimization and " +
 		"should contain:" +
 		" preload part from jquery.sap.global-dbg.js" +
 		" raw part from myModule.js" +
@@ -781,14 +1236,14 @@ function One(){return 1;}
 this.One=One;
 }
 },"preload-section");
-sap.ui.requireSync("ui5loader");
+sap.ui.require(["ui5loader"]);
 sap.ui.loader.config({bundlesUI5:{
 "my-custom-bundle":['b.js'],
 "my-other-custom-bundle.js":['c1.js','c2.js','c3.js']
 }});
 ${SOURCE_MAPPING_URL}=library-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle " +
 		"should contain:" +
 		" preload part from a.js" +
 		" require part from ui5loader.js");
@@ -889,7 +1344,7 @@ sap.ui.loader.config({depCacheUI5:{
 }});
 ${SOURCE_MAPPING_URL}=library-depCache-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle " +
 		"should contain:" +
 		" preload part from a.js" +
 		" depCache part from a.js && c2.js");
@@ -1039,7 +1494,7 @@ test.serial("integration: createBundle with depCache with NO dependencies", asyn
 sap.ui.predefine("a", [],function(){return {};});
 ${SOURCE_MAPPING_URL}=library-depCache-preload.js.map
 `;
-	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
+	t.deepEqual(oResult.content, expectedContent, "Bundle " +
 		"should contain:" +
 		" preload part from a.js" +
 		" depCache part from a.js && c2.js");

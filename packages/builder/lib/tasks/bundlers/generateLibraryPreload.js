@@ -34,9 +34,9 @@ function getDefaultLibraryPreloadFilters(namespace, excludes) {
 function getBundleDefinition(namespace, excludes) {
 	// Note: This configuration is only used when no bundle definition in ui5.yaml exists (see "skipBundles" parameter)
 
-	// TODO: Remove this hardcoded bundle definition.
+	// TODO: Remove this hardcoded bundle definition once support for relevant versions has ended.
 	// sap.ui.core ui5.yaml contains a configuration since UI5 1.103.0 (specVersion 2.4)
-	// so this is still required to build UI5 versions <= 1.102.0.
+	// so this is still required to build UI5 versions <= 1.102.0 (such as 1.84 and 1.96)
 	if (namespace === "sap/ui/core") {
 		return {
 			name: `${namespace}/library-preload.js`,
@@ -255,11 +255,15 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 			}
 		});
 	}
+	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 
 	const execModuleBundlerIfNeeded = ({options, resources}) => {
 		if (skipBundles.includes(options.bundleDefinition.name)) {
 			log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
 			return null;
+		}
+		if (coreVersion) {
+			options.targetUi5CoreVersion = coreVersion;
 		}
 		return moduleBundler({options, resources});
 	};

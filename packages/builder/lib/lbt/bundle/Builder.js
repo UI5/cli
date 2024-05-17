@@ -16,6 +16,7 @@ import BundleSplitter from "./AutoSplitter.js";
 import {SectionType} from "./BundleDefinition.js";
 import BundleWriter from "./BundleWriter.js";
 import {getLogger} from "@ui5/logger";
+import semver from "semver";
 const log = getLogger("lbt:bundle:Builder");
 
 const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(\S+)\s*$/;
@@ -40,54 +41,68 @@ function isEmptyBundle(resolvedBundle) {
 	return resolvedBundle.sections.every((section) => section.modules.length === 0);
 }
 
-const EVOBundleFormat = {
-	beforePreloads(section) {
-		return `sap.ui.require.preload({\n`;
-	},
+class BundleBuilder {
+	constructor(pool, targetUi5CoreVersion) {
+		this.pool = pool;
+		this.resolver = new BundleResolver(pool);
+		this.splitter = new BundleSplitter(pool, this.resolver);
+		this.targetUi5CoreVersion = targetUi5CoreVersion;
+		this.targetUi5CoreVersionMajor = undefined;
+	}
 
-	afterPreloads(section) {
+	getUi5MajorVersion() {
+		if (this.targetUi5CoreVersionMajor !== undefined) {
+			return this.targetUi5CoreVersionMajor;
+		}
+
+		if (this.targetUi5CoreVersion && semver.valid(this.targetUi5CoreVersion)) {
+			this.targetUi5CoreVersionMajor = semver.major(this.targetUi5CoreVersion);
+		} else {
+			// Assume legacy version if unable to determine the version
+			this.targetUi5CoreVersionMajor === null;
+		}
+		return this.targetUi5CoreVersionMajor;
+	}
+
+	generateAfterPreloads(section) {
 		let str = `}`;
 		if ( section.name ) {
 			str += `,"${section.name}"`;
 		}
 		str += `);\n`;
 		return str;
-	},
+	}
 
-	beforeBundleInfo() {
-		return "sap.ui.loader.config({bundlesUI5:{\n";
-	},
+	generateRequire(modules) {
+		const requireCallback = this.determineRequireCallback(modules) ?? "";
+		return `sap.ui.require([${
+			modules.map(($) => `"${toRequireJSName($)}"`).join(",\n")
+		}]${requireCallback});\n`;
+	}
 
-	afterBundleInfo() {
-		return "}});\n";
-	},
+	determineRequireCallback(modules) {
+		if (this.getUi5MajorVersion() >= 2) {
+			// Starting with UI5 2.0.0, method Core.boot does not exist anymore
+			return;
+		}
+		const coreModuleIndex = modules.indexOf(MODULE__SAP_UI_CORE_CORE);
+		if (coreModuleIndex === -1) {
+			return;
+		}
+		return `, (${
+			modules.map((m, i) => i === coreModuleIndex ? `Core` : `_m${i}`)
+		}) => Core.boot?.()`;
+	}
 
-	requireSync(moduleName) {
+	generateRequireSync(moduleName) {
 		return `sap.ui.requireSync("${toRequireJSName(moduleName)}");\n`;
-	},
+	}
 
-	shouldDecorate(resolvedModule) {
+	executesLoaderOrCore(resolvedModule) {
 		return resolvedModule.executes(MODULE__UI5LOADER) ||
 			resolvedModule.executes(MODULE__UI5LOADER_AUTOCONFIG) ||
 			resolvedModule.executes(MODULE__JQUERY_SAP_GLOBAL) ||
 			resolvedModule.executes(MODULE__SAP_UI_CORE_CORE);
-	},
-
-	beforeDepCache(outW) {
-		outW.writeln(`sap.ui.loader.config({depCacheUI5:{`);
-	},
-
-	afterDepCache(outW) {
-		outW.writeln(`}});`);
-	}
-};
-
-class BundleBuilder {
-	constructor(pool) {
-		this.pool = pool;
-		this.resolver = new BundleResolver(pool);
-		this.splitter = new BundleSplitter(pool, this.resolver);
-		this.targetBundleFormat = null;
 	}
 
 	async createBundle(module, options) {
@@ -117,13 +132,10 @@ class BundleBuilder {
 			this.options.sourceMap = true;
 		}
 
-		// Since UI5 Tooling 3.0: Always use modern API
-		this.targetBundleFormat = EVOBundleFormat;
-
 		// when decorateBootstrapModule is false,
 		// we don't write the optimized flag and don't write the try catch wrapper
 		this.shouldDecorate = this.options.decorateBootstrapModule &&
-				this.targetBundleFormat.shouldDecorate(resolvedModule);
+				this.executesLoaderOrCore(resolvedModule);
 		// TODO is the following condition ok or should the availability of jquery.sap.global.js be configurable?
 		this.jqglobalAvailable = !resolvedModule.containsGlobal;
 		this.openModule(resolvedModule.name);
@@ -195,11 +207,14 @@ class BundleBuilder {
 	}
 
 	closeModule(resolvedModule) {
-		if ( resolvedModule.containsCore ) {
+		if ( resolvedModule.containsCoreSync ) {
+			if ( this.getUi5MajorVersion() >= 2 ) {
+				throw new Error("Requiring sap/ui/core/Core synchronously is not supported as of UI5 Version 2");
+			}
 			this.outW.ensureNewLine(); // for clarity and to avoid issues with single line comments
 			this.writeWithSourceMap(
 				`// as this module contains the Core, we ensure that the Core has been booted\n` +
-				`sap.ui.getCore().boot && sap.ui.getCore().boot();`);
+				`sap.ui.getCore?.().boot?.();`);
 		}
 		if ( this.shouldDecorate && this.options.addTryCatchRestartWrapper ) {
 			this.outW.ensureNewLine(); // for clarity and to avoid issues with single line comments
@@ -303,7 +318,7 @@ class BundleBuilder {
 
 		await this.rewriteAMDModules(sequence);
 		if ( sequence.length > 0 ) {
-			this.writeWithSourceMap(this.targetBundleFormat.beforePreloads(section));
+			this.writeWithSourceMap(`sap.ui.require.preload({\n`);
 			let i = 0;
 			for ( const module of sequence ) {
 				const resource = await this.pool.findResourceWithInfo(module);
@@ -326,10 +341,8 @@ class BundleBuilder {
 			if ( i > 0 ) {
 				outW.writeln();
 			}
-			outW.write(this.targetBundleFormat.afterPreloads(section));
+			outW.write(this.generateAfterPreloads(section));
 		}
-
-		// this.afterWriteFunctionPreloadSection();
 	}
 
 	beforeWriteFunctionPreloadSection(sequence) {
@@ -419,12 +432,6 @@ class BundleBuilder {
 		}
 
 		Array.prototype.splice.apply(sequence, [0, sequence.length].concat(remaining));
-	}
-
-	afterWriteFunctionPreloadSection() {
-	}
-
-	beforeWritePreloadModule(module, info, resource) {
 	}
 
 	/**
@@ -533,7 +540,7 @@ class BundleBuilder {
 
 		let bundleInfoStr = "";
 		if ( sections.length > 0 ) {
-			bundleInfoStr = this.targetBundleFormat.beforeBundleInfo();
+			bundleInfoStr = "sap.ui.loader.config({bundlesUI5:{\n";
 			sections.forEach((section, idx) => {
 				if ( idx > 0 ) {
 					bundleInfoStr += ",\n";
@@ -549,18 +556,24 @@ class BundleBuilder {
 				}
 				bundleInfoStr += `"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`;
 			});
-			bundleInfoStr += "\n";
-			bundleInfoStr += this.targetBundleFormat.afterBundleInfo();
+			bundleInfoStr += "\n}});\n";
 
 			this.writeWithSourceMap(bundleInfoStr);
 		}
 	}
 
 	writeRequires(section) {
+		if (section.modules.length === 0) {
+			return;
+		}
 		this.outW.ensureNewLine();
-		section.modules.forEach( (module) => {
-			this.writeWithSourceMap(this.targetBundleFormat.requireSync(module));
-		});
+		if (section.async === false) {
+			section.modules.forEach( (module) => {
+				this.writeWithSourceMap(this.generateRequireSync(module));
+			});
+		} else {
+			this.writeWithSourceMap(this.generateRequire(section.modules));
+		}
 	}
 
 	// When AutoSplit is enabled for depCache, we need to ensure that modules
@@ -569,7 +582,6 @@ class BundleBuilder {
 	// module in the next file. This will also duplicate its dependency definition if we do not filter.
 	#depCacheSet = new Set();
 	async writeDepCache(section) {
-		const outW = this.outW;
 		let hasDepCache = false;
 
 		const sequence = section.modules.slice().sort();
@@ -597,11 +609,11 @@ class BundleBuilder {
 					if (deps.length > 0) {
 						if (!hasDepCache) {
 							hasDepCache = true;
-							outW.ensureNewLine();
-							this.targetBundleFormat.beforeDepCache(outW, section);
+							this.outW.ensureNewLine();
+							this.outW.writeln(`sap.ui.loader.config({depCacheUI5:{`);
 						}
 
-						outW.writeln(
+						this.outW.writeln(
 							`"${module}": [${deps.map((dep) => `"${dep}"`).join(",")}],`
 						);
 					} else {
@@ -611,7 +623,7 @@ class BundleBuilder {
 			}
 
 			if (hasDepCache) {
-				this.targetBundleFormat.afterDepCache(outW, section);
+				this.outW.writeln(`}});`);
 			}
 		}
 	}
