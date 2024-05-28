@@ -101,7 +101,6 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  *   with an optimization marker
  * @property {boolean} [addTryCatchRestartWrapper=false] Whether to wrap bootable bundles with
  *   a try/catch to filter out "Restart" errors
- * @property {boolean} [usePredefineCalls=false] If set to 'true', sap.ui.predefine is used for UI5 modules
  * @property {number} [numberOfParts=1] The number of parts the module bundle should be splitted
  * @property {boolean} [ignoreMissingModules=false] When searching for modules which are optional for further
  *   processing, do not throw in case they are missing
@@ -144,7 +143,6 @@ export default function({resources, options: {bundleDefinition, bundleOptions, m
 		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
-		usePredefineCalls: false,
 		numberOfParts: 1,
 		ignoreMissingModules: false
 	}, bundleOptions);

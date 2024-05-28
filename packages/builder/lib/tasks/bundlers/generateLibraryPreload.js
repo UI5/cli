@@ -164,8 +164,7 @@ function getModuleBundlerOptions(config) {
 	moduleBundlerOptions.bundleOptions = {
 		optimize: config.preload,
 		decorateBootstrapModule: config.preload,
-		addTryCatchRestartWrapper: config.preload,
-		usePredefineCalls: config.preload
+		addTryCatchRestartWrapper: config.preload
 	};
 
 	moduleBundlerOptions.bundleDefinition = getSapUiCoreBunDef(config.name, config.filters, config.preload);
@@ -390,7 +389,6 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 									bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
 									bundleOptions: {
 										optimize: true,
-										usePredefineCalls: true,
 										ignoreMissingModules: true
 									}
 								},
@@ -401,7 +399,6 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 									bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
 									bundleOptions: {
 										optimize: true,
-										usePredefineCalls: true,
 										ignoreMissingModules: true,
 										skipIfEmpty: true
 									}
@@ -413,7 +410,6 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 									bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
 									bundleOptions: {
 										optimize: false,
-										usePredefineCalls: true,
 										ignoreMissingModules: true,
 										skipIfEmpty: true
 									}

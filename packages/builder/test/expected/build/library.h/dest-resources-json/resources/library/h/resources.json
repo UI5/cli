@@ -17,7 +17,7 @@
 		{
 			"name": "components/Component-preload.js",
 			"module": "library/h/components/Component-preload.js",
-			"size": 409,
+			"size": 394,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -29,7 +29,7 @@
 		},
 		{
 			"name": "components/Component-preload.js.map",
-			"size": 756,
+			"size": 735,
 			"isDebug": true
 		},
 		{
@@ -75,7 +75,7 @@
 		{
 			"name": "components/subcomponent1/Component-preload.js",
 			"module": "library/h/components/subcomponent1/Component-preload.js",
-			"size": 326,
+			"size": 283,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -86,7 +86,7 @@
 		},
 		{
 			"name": "components/subcomponent1/Component-preload.js.map",
-			"size": 547,
+			"size": 326,
 			"isDebug": true
 		},
 		{
@@ -114,7 +114,7 @@
 		{
 			"name": "components/subcomponent2/Component-preload.js",
 			"module": "library/h/components/subcomponent2/Component-preload.js",
-			"size": 326,
+			"size": 283,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -125,7 +125,7 @@
 		},
 		{
 			"name": "components/subcomponent2/Component-preload.js.map",
-			"size": 547,
+			"size": 326,
 			"isDebug": true
 		},
 		{
@@ -153,7 +153,7 @@
 		{
 			"name": "components/subcomponent3/Component-preload.js",
 			"module": "library/h/components/subcomponent3/Component-preload.js",
-			"size": 326,
+			"size": 283,
 			"merged": true,
 			"required": [
 				"sap/ui/core/UIComponent.js"
@@ -164,7 +164,7 @@
 		},
 		{
 			"name": "components/subcomponent3/Component-preload.js.map",
-			"size": 547,
+			"size": 326,
 			"isDebug": true
 		},
 		{

@@ -375,52 +375,50 @@ class BundleBuilder {
 	}
 
 	async rewriteAMDModules(sequence) {
-		if ( this.options.usePredefineCalls ) {
-			const outW = this.outW;
+		const outW = this.outW;
 
-			const remaining = [];
-			for ( const moduleName of sequence ) {
-				if ( /\.js$/.test(moduleName) ) {
-					// console.log("Processing " + moduleName);
-					const resource = await this.pool.findResourceWithInfo(moduleName);
-					let moduleContent = (await resource.buffer()).toString();
-					let moduleSourceMap;
-					if (this.options.sourceMap) {
-						({moduleContent, moduleSourceMap} =
-							await this.getSourceMapForModule({
-								moduleName,
-								moduleContent,
-								resourcePath: resource.getPath()
-							}));
-					}
+		const remaining = [];
+		for ( const moduleName of sequence ) {
+			if ( /\.js$/.test(moduleName) ) {
+				// console.log("Processing " + moduleName);
+				const resource = await this.pool.findResourceWithInfo(moduleName);
+				let moduleContent = (await resource.buffer()).toString();
+				let moduleSourceMap;
+				if (this.options.sourceMap) {
+					({moduleContent, moduleSourceMap} =
+						await this.getSourceMapForModule({
+							moduleName,
+							moduleContent,
+							resourcePath: resource.getPath()
+						}));
+				}
 
-					const rewriteRes = await rewriteDefine({
-						moduleName, moduleContent, moduleSourceMap
-					});
-					if (rewriteRes) {
-						const {moduleContent, moduleSourceMap} = rewriteRes;
-						outW.startSegment(moduleName);
-						outW.ensureNewLine();
-						if (moduleSourceMap) {
-							this.addSourceMap(moduleName, moduleSourceMap);
-						}
-						outW.write(moduleContent);
-						outW.ensureNewLine();
-						const compressedSize = outW.endSegment();
-						log.verbose(
-							`    ${moduleName} (${resource.info != null ? resource.info.size : -1},${compressedSize})`);
-					} else {
-						// keep unprocessed modules
-						remaining.push(moduleName);
+				const rewriteRes = await rewriteDefine({
+					moduleName, moduleContent, moduleSourceMap
+				});
+				if (rewriteRes) {
+					const {moduleContent, moduleSourceMap} = rewriteRes;
+					outW.startSegment(moduleName);
+					outW.ensureNewLine();
+					if (moduleSourceMap) {
+						this.addSourceMap(moduleName, moduleSourceMap);
 					}
+					outW.write(moduleContent);
+					outW.ensureNewLine();
+					const compressedSize = outW.endSegment();
+					log.verbose(
+						`    ${moduleName} (${resource.info != null ? resource.info.size : -1},${compressedSize})`);
 				} else {
 					// keep unprocessed modules
 					remaining.push(moduleName);
 				}
+			} else {
+				// keep unprocessed modules
+				remaining.push(moduleName);
 			}
-
-			Array.prototype.splice.apply(sequence, [0, sequence.length].concat(remaining));
 		}
+
+		Array.prototype.splice.apply(sequence, [0, sequence.length].concat(remaining));
 	}
 
 	afterWriteFunctionPreloadSection() {

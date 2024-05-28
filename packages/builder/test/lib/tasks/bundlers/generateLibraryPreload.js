@@ -79,7 +79,6 @@ test.serial("generateLibraryPreload", async (t) => {
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -108,7 +107,6 @@ test.serial("generateLibraryPreload", async (t) => {
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -134,7 +132,6 @@ test.serial("generateLibraryPreload", async (t) => {
 			},
 			bundleOptions: {
 				optimize: false,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -209,8 +206,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 			bundleOptions: {
 				optimize: true,
 				decorateBootstrapModule: true,
-				addTryCatchRestartWrapper: true,
-				usePredefineCalls: true
+				addTryCatchRestartWrapper: true
 			}
 		},
 		resources
@@ -240,8 +236,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 			bundleOptions: {
 				optimize: false,
 				decorateBootstrapModule: false,
-				addTryCatchRestartWrapper: false,
-				usePredefineCalls: false
+				addTryCatchRestartWrapper: false
 			}
 		},
 		resources
@@ -289,8 +284,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 			bundleOptions: {
 				optimize: true,
 				decorateBootstrapModule: true,
-				addTryCatchRestartWrapper: true,
-				usePredefineCalls: true
+				addTryCatchRestartWrapper: true
 			}
 		},
 		resources
@@ -331,8 +325,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 			bundleOptions: {
 				optimize: false,
 				decorateBootstrapModule: false,
-				addTryCatchRestartWrapper: false,
-				usePredefineCalls: false
+				addTryCatchRestartWrapper: false
 			}
 		},
 		resources
@@ -390,7 +383,6 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -507,8 +499,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			bundleOptions: {
 				optimize: true,
 				decorateBootstrapModule: true,
-				addTryCatchRestartWrapper: true,
-				usePredefineCalls: true
+				addTryCatchRestartWrapper: true
 			}
 		},
 		resources
@@ -538,8 +529,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			bundleOptions: {
 				optimize: false,
 				decorateBootstrapModule: false,
-				addTryCatchRestartWrapper: false,
-				usePredefineCalls: false
+				addTryCatchRestartWrapper: false
 			},
 			moduleNameMapping: {}
 		},
@@ -588,8 +578,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			bundleOptions: {
 				optimize: true,
 				decorateBootstrapModule: true,
-				addTryCatchRestartWrapper: true,
-				usePredefineCalls: true
+				addTryCatchRestartWrapper: true
 			}
 		},
 		resources
@@ -630,8 +619,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			bundleOptions: {
 				optimize: false,
 				decorateBootstrapModule: false,
-				addTryCatchRestartWrapper: false,
-				usePredefineCalls: false
+				addTryCatchRestartWrapper: false
 			},
 			moduleNameMapping: {}
 		},
@@ -690,7 +678,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -719,7 +706,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -745,7 +731,6 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 			},
 			bundleOptions: {
 				optimize: false,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -849,8 +834,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			bundleOptions: {
 				optimize: true,
 				decorateBootstrapModule: true,
-				addTryCatchRestartWrapper: true,
-				usePredefineCalls: true
+				addTryCatchRestartWrapper: true
 			}
 		},
 		resources
@@ -880,8 +864,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			bundleOptions: {
 				optimize: false,
 				decorateBootstrapModule: false,
-				addTryCatchRestartWrapper: false,
-				usePredefineCalls: false
+				addTryCatchRestartWrapper: false
 			},
 			moduleNameMapping: {}
 		},
@@ -930,8 +913,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			bundleOptions: {
 				optimize: true,
 				decorateBootstrapModule: true,
-				addTryCatchRestartWrapper: true,
-				usePredefineCalls: true
+				addTryCatchRestartWrapper: true
 			}
 		},
 		resources
@@ -972,8 +954,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			bundleOptions: {
 				optimize: false,
 				decorateBootstrapModule: false,
-				addTryCatchRestartWrapper: false,
-				usePredefineCalls: false
+				addTryCatchRestartWrapper: false
 			},
 			moduleNameMapping: {}
 		},
@@ -1032,7 +1013,6 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -1061,7 +1041,6 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -1087,7 +1066,6 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 			},
 			bundleOptions: {
 				optimize: false,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -1196,7 +1174,6 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -1225,7 +1202,6 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -1251,7 +1227,6 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			},
 			bundleOptions: {
 				optimize: false,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -1371,7 +1346,6 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -1400,7 +1374,6 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -1426,7 +1399,6 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 			},
 			bundleOptions: {
 				optimize: false,
-				usePredefineCalls: true,
 				ignoreMissingModules: true,
 				skipIfEmpty: true
 			}
@@ -1550,7 +1522,6 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},
@@ -1617,7 +1588,6 @@ test.serial("generateLibraryPreload with invalid excludes", async (t) => {
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefineCalls: true,
 				ignoreMissingModules: true
 			}
 		},

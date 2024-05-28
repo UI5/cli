@@ -100,7 +100,6 @@ test.serial("Builder returns single bundle", async (t) => {
 		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
-		usePredefineCalls: false,
 		numberOfParts: 1,
 		ignoreMissingModules: false,
 
@@ -212,7 +211,6 @@ test.serial("Builder returns multiple bundles", async (t) => {
 		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
-		usePredefineCalls: false,
 		numberOfParts: 1,
 		ignoreMissingModules: false,
 
@@ -301,7 +299,6 @@ test.serial("bundleOptions default (no options passed)", async (t) => {
 		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
-		usePredefineCalls: false,
 		numberOfParts: 1,
 		ignoreMissingModules: false
 	},
@@ -366,7 +363,6 @@ test.serial("bundleOptions default (empty options passed)", async (t) => {
 		sourceMap: true,
 		decorateBootstrapModule: false,
 		addTryCatchRestartWrapper: false,
-		usePredefineCalls: false,
 		numberOfParts: 1,
 		ignoreMissingModules: false
 	},
@@ -389,7 +385,6 @@ test.serial("bundleOptions (all options passed)", async (t) => {
 		sourceMap: false,
 		decorateBootstrapModule: true,
 		addTryCatchRestartWrapper: true,
-		usePredefineCalls: true,
 		numberOfParts: 7,
 		ignoreMissingModules: true
 	};
@@ -447,7 +442,6 @@ test.serial("Passes ignoreMissingModules bundleOption to LocatorResourcePool", a
 		"sourceMap": true,
 		"decorateBootstrapModule": false,
 		"addTryCatchRestartWrapper": false,
-		"usePredefineCalls": false,
 		"numberOfParts": 1,
 
 		"ignoreMissingModules": "foo"
@@ -535,7 +529,6 @@ test.serial("Verbose Logging", async (t) => {
 		"sourceMap": true,
 		"decorateBootstrapModule": false,
 		"addTryCatchRestartWrapper": false,
-		"usePredefineCalls": false,
 		"numberOfParts": 1,
 		"ignoreMissingModules": false,
 

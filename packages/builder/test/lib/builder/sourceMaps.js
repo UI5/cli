@@ -21,6 +21,7 @@ test.beforeEach((t) => {
 		generatedFilePath,
 		sourceFilePath,
 		code,
+		generatedCode = code,
 		tracedName = undefined
 	}) {
 		const generatedFile = await readDestFile(generatedFilePath);
@@ -28,8 +29,9 @@ test.beforeEach((t) => {
 		const sourceMap = JSON.parse(await readDestFile(generatedFilePath + ".map"));
 		const tracer = new AnyMap(sourceMap);
 
-		const generatedCodeIndex = generatedFile.indexOf(code);
-		t.not(generatedCodeIndex, -1, `Code '${code}' must be present in generated code file '${generatedFilePath}'`);
+		const generatedCodeIndex = generatedFile.indexOf(generatedCode);
+		t.not(generatedCodeIndex, -1,
+			`Code '${generatedCode}' must be present in generated code file '${generatedFilePath}'`);
 
 		const codeLineColumn = lineColumn(generatedFile).fromIndex(generatedCodeIndex);
 
@@ -44,7 +46,7 @@ test.beforeEach((t) => {
 		if (tracedName) {
 			t.is(tracedCode.name, tracedName);
 		}
-
+		// TODO: in case of bundles (sap.ui.predefine), the code below has to be adjusted
 		const sourceCodeIndex = lineColumn(sourceFile).toIndex(tracedCode.line, tracedCode.column + 1);
 		t.is(
 			sourceFile.substring(sourceCodeIndex, sourceCodeIndex + code.length), code,
@@ -115,6 +117,7 @@ test.serial("Verify source maps (test.application)", async (t) => {
 		generatedFilePath: "Component-preload.js",
 		sourceFilePath: "JavaScriptSourceWithCopyrightPlaceholder-dbg.js",
 		code: "sap.ui.define(",
+		generatedCode: "sap.ui.predefine(",
 		tracedName: "sap"
 	});
 	await t.context.assertSourceMapping(t, {

@@ -181,11 +181,7 @@ test("integration: createBundle EVOBundleFormat (ui5loader.js)", async (t) => {
 	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
 window["sap-ui-optimized"] = true;
-sap.ui.require.preload({
-	"jquery.sap.global-dbg.js":function(){
-sap.ui.define([], function(){return {};});
-}
-},"preload-section");
+sap.ui.predefine("jquery.sap.global-dbg", [], function(){return {};});
 //@ui5-bundle-raw-include myModule.js
 (function(){window.mine = {};}());
 sap.ui.requireSync("ui5loader");
@@ -289,7 +285,6 @@ test("integration: createBundle EVOBundleFormat, using predefine calls", async (
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: true
@@ -415,7 +410,6 @@ test("integration: createBundle EVOBundleFormat, using predefine calls, no optim
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: false
@@ -496,8 +490,7 @@ test("integration: createBundle (bootstrap bundle)", async (t) => {
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		addTryCatchRestartWrapper: true,
-		optimize: true,
-		usePredefineCalls: true
+		optimize: true
 	});
 	t.is(oResult.name, "bootstrap.js");
 	const expectedContent = `//@ui5-bundle bootstrap.js
@@ -574,11 +567,7 @@ test("integration: Legacy test: createBundle without ui5loader.js presence also 
 	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
 	t.is(oResult.name, "Component-preload.js");
 	const expectedContent = `//@ui5-bundle Component-preload.js
-sap.ui.require.preload({
-	"jquery.sap.global-dbg.js":function(){
-sap.ui.define([], function(){/* comment */ return {};});
-}
-},"preload-section");
+sap.ui.predefine("jquery.sap.global-dbg", [], function(){/* comment */ return {};});
 //@ui5-bundle-raw-include myModule.js
 (function(){window.mine = {};}());
 sap.ui.requireSync("sap-ui-core");
@@ -645,8 +634,7 @@ test("integration: createBundle (bootstrap bundle, UI5BundleFormat)", async (t) 
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		addTryCatchRestartWrapper: true,
-		optimize: true,
-		usePredefineCalls: true
+		optimize: true
 	});
 	t.is(oResult.name, "bootstrap.js");
 	const expectedContent = `//@ui5-bundle bootstrap.js
@@ -894,11 +882,7 @@ test.serial("integration: createBundle with depCache", async (t) => {
 	const oResult = await builder.createBundle(bundleDefinition, {});
 	t.is(oResult.name, "library-depCache-preload.js");
 	const expectedContent = `//@ui5-bundle library-depCache-preload.js
-sap.ui.require.preload({
-	"a.js":function(){
-sap.ui.define(["./b", "./c2"],function(b, c){return {};});
-}
-},"preload-section");
+sap.ui.predefine("a", ["./b", "./c2"],function(b, c){return {};});
 sap.ui.loader.config({depCacheUI5:{
 "a.js": ["b.js","c2.js"],
 "c2.js": ["c1.js","c3.js"],
@@ -1052,11 +1036,7 @@ test.serial("integration: createBundle with depCache with NO dependencies", asyn
 	const oResult = await builder.createBundle(bundleDefinition, {});
 	t.is(oResult.name, "library-depCache-preload.js");
 	const expectedContent = `//@ui5-bundle library-depCache-preload.js
-sap.ui.require.preload({
-	"a.js":function(){
-sap.ui.define([],function(){return {};});
-}
-},"preload-section");
+sap.ui.predefine("a", [],function(){return {};});
 ${SOURCE_MAPPING_URL}=library-depCache-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat " +
@@ -1122,7 +1102,6 @@ ${SOURCE_MAPPING_URL}=jquery.sap.global.js.map`
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		optimize: false
 	});
 	t.is(oResult.name, "Component-preload.js");
@@ -1221,7 +1200,6 @@ ${SOURCE_MAPPING_URL}=jquery.sap.global.js.map`
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: false
@@ -1336,7 +1314,6 @@ ${SOURCE_MAPPING_URL}=jquery.sap.global.js.map`
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: false
@@ -1556,7 +1533,6 @@ ${SOURCE_MAPPING_URL}=jquery.sap.dom.js.map`
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: false
@@ -1736,7 +1712,6 @@ sap.ui.define(function() {
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: false
@@ -1860,7 +1835,6 @@ ${SOURCE_MAPPING_URL}=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjo
 
 	const builder = new Builder(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
-		usePredefineCalls: true,
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
 		optimize: false
