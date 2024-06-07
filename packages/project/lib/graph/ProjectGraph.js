@@ -513,7 +513,13 @@ class ProjectGraph {
 
 	async _getTaskRepository() {
 		if (!this._taskRepository) {
-			this._taskRepository = await import("@ui5/builder/internal/taskRepository");
+			try {
+				this._taskRepository = await import("@ui5/builder/internal/taskRepository");
+			} catch (err) {
+				throw new Error(
+					`Failed to load task repository. Missing dependency to '@ui5/builder'? ` +
+					`Error: ${err.message}`);
+			}
 		}
 		return this._taskRepository;
 	}
