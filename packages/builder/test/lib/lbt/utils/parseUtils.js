@@ -35,3 +35,15 @@ test("successful parse step (ES2022 features)", (t) => {
 	t.true(ast != null && typeof ast === "object");
 	t.is(ast.type, "Program");
 });
+
+test("ES2023: Hashbang", (t) => {
+	// espree is able to parse the code without setting option 'comment' to true.
+	// However, the comment will only be present in the AST by setting the option to true, which ensures better testing.
+	const ast = parseJS(`#!/usr/bin/env node
+const foo="Bar";`, {comment: true}); // Hashbang
+	t.true(ast != null && typeof ast === "object");
+	t.is(ast.type, "Program");
+	t.is(ast.comments.length, 1);
+	t.is(ast.comments[0].type, "Hashbang");
+	t.is(ast.comments[0].value, "/usr/bin/env node");
+});

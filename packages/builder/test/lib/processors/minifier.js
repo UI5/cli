@@ -1572,3 +1572,50 @@ test("getSourceMapFromUrl: Absolute path reference", async (t) => {
 	t.is(readFileStub.callCount, 0, "No files has been read");
 });
 
+test("ES2023: Hashbang", async (t) => {
+	const content = `#!/usr/bin/env node
+/*!
+ * \${copyright}
+ */
+ function myFunc(myArg) {
+ 	jQuery.sap.require("something");
+ 	console.log("Something required")
+ }
+myFunc();
+`;
+	const testResource = createResource({
+		path: "/test.controller.js",
+		string: content
+	});
+	const [{resource, dbgResource, sourceMapResource}] = await minifier({
+		resources: [testResource]
+	});
+
+	const expected = `#!/usr/bin/env node
+/*!
+ * \${copyright}
+ */
+function myFunc(e){jQuery.sap.require("something");console.log("Something required")}myFunc();
+${SOURCE_MAPPING_URL}=test.controller.js.map`;
+	t.deepEqual(await resource.getString(), expected, "Correct minified content");
+	t.deepEqual(await dbgResource.getString(), content, "Correct debug content");
+	const expectedSourceMap = JSON.stringify({
+		"version": 3,
+		"file": "test.controller.js",
+		"names": [
+			"myFunc",
+			"myArg",
+			"jQuery",
+			"sap",
+			"require",
+			"console",
+			"log"
+		],
+		"sources": [
+			"test-dbg.controller.js"
+		],
+		"mappings": ";;;;AAIC,SAASA,OAAOC,GACfC,OAAOC,IAAIC,QAAQ,aACnBC,QAAQC,IAAI,qBACb,CACDN",
+		"ignoreList": []
+	});
+	t.deepEqual(await sourceMapResource.getString(), expectedSourceMap, "Correct source map content");
+});

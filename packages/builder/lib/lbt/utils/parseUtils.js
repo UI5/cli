@@ -9,7 +9,7 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
  * - Adjust the JSModuleAnalyzer test "Check for consistency between VisitorKeys and EnrichedVisitorKeys"
  *   (See comments in test for details)
 */
-export const ecmaVersion = 2022;
+export const ecmaVersion = 2023;
 
 export function parseJS(code, userOptions = {}) {
 	// allowed options and their defaults

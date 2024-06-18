@@ -2763,3 +2763,75 @@ Lines`;
 		sourcesContent: [moduleContent]
 	}, "Expected source map has been created");
 });
+
+test("integration: ES2023 Support", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "myModule.js",
+		getPath: () => "myModule.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `#!/usr/bin/env node
+sap.ui.define([], function(){return {};});`
+	});
+	pool.addResource({
+		name: "myRawModule.js",
+		getPath: () => "myRawModule.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `#!/usr/bin/env node
+(function(){const mine = {};}());`
+	});
+	pool.addResource({
+		name: "myModuleUsingGlobals.js",
+		getPath: () => "myModuleUsingGlobals.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => `#!/usr/bin/env node
+const bla = {};`
+	});
+
+	const bundleDefinition = {
+		name: `Component-preload.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "preload",
+			name: "preload-section",
+			filters: ["myModule.js"]
+		}, {
+			mode: "preload",
+			name: "preload-section-globals",
+			filters: ["myModuleUsingGlobals.js"]
+		}, {
+			declareRawModules: undefined,
+			mode: "raw",
+			filters: ["myRawModule.js"],
+			sort: undefined
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1, decorateBootstrapModule: true});
+	t.is(oResult.name, "Component-preload.js");
+	const expectedContent = `//@ui5-bundle Component-preload.js
+
+sap.ui.predefine("myModule", [], function(){return {};});
+sap.ui.require.preload({
+	"myModuleUsingGlobals.js":'\\nconst bla = {};'
+},"preload-section-globals");
+//@ui5-bundle-raw-include myRawModule.js
+
+(function(){const mine = {};}());
+${SOURCE_MAPPING_URL}=Component-preload.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should contain: " +
+		" preload part from myModule.js and myModuleUsingGlobals.js" +
+		" raw part from myModule.js");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["myModule.js", "myModuleUsingGlobals.js", "myRawModule.js"],
+		"bundle info subModules are correct");
+});

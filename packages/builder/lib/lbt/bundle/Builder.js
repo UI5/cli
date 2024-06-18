@@ -36,6 +36,9 @@ function makeStringLiteral(str) {
 		return strReplacements[char];
 	}) + "'";
 }
+function removeHashbang(str) {
+	return str.replace(/^#!(.*)/, "");
+}
 
 function isEmptyBundle(resolvedBundle) {
 	return resolvedBundle.sections.every((section) => section.modules.length === 0);
@@ -293,6 +296,7 @@ class BundleBuilder {
 	async writeRawModule(moduleName, resource) {
 		this.outW.ensureNewLine();
 		let moduleContent = (await resource.buffer()).toString();
+		moduleContent = removeHashbang(moduleContent);
 		if (this.options.sourceMap) {
 			let moduleSourceMap;
 			({moduleContent, moduleSourceMap} =
@@ -396,6 +400,7 @@ class BundleBuilder {
 				// console.log("Processing " + moduleName);
 				const resource = await this.pool.findResourceWithInfo(moduleName);
 				let moduleContent = (await resource.buffer()).toString();
+				moduleContent = removeHashbang(moduleContent);
 				let moduleSourceMap;
 				if (this.options.sourceMap) {
 					({moduleContent, moduleSourceMap} =
@@ -449,6 +454,7 @@ class BundleBuilder {
 			// The module should be written to a new line in order for dev-tools to map breakpoints to it
 			outW.ensureNewLine();
 			let moduleContent = (await resource.buffer()).toString();
+			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {
 				let moduleSourceMap;
 				({moduleContent, moduleSourceMap} =
@@ -468,6 +474,7 @@ class BundleBuilder {
 			log.warn(
 				`Module ${moduleName} requires top level scope and can only be embedded as a string (requires 'eval')`);
 			let moduleContent = (await resource.buffer()).toString();
+			moduleContent = removeHashbang(moduleContent);
 			if (this.options.sourceMap) {
 				// We are actually not interested in the source map this module might contain,
 				// but we should make sure to remove any "sourceMappingURL" from the module content before
