@@ -72,7 +72,7 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
  */
 async function init({cwd = "./"} = {}) {
 	const projectConfig = {
-		specVersion: "3.2",
+		specVersion: "4.0",
 		metadata: {}
 	};
 	let pkg;
