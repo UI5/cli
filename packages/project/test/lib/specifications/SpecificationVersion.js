@@ -72,6 +72,7 @@ test("(instance) satisfies", (t) => {
 	t.is(new SpecificationVersion("2.2").satisfies(">=2.2"), true);
 	t.is(new SpecificationVersion("2.3").satisfies(">=2.2"), true);
 	t.is(new SpecificationVersion("3.1").satisfies(">=2.2"), true);
+	t.is(new SpecificationVersion("4.0").satisfies(">=2.2"), true);
 
 	// range: > 1.0
 	t.is(new SpecificationVersion("1.0").satisfies("> 1.0"), false);
@@ -238,14 +239,14 @@ test("(static) getVersionsForRange", (t) => {
 	// range: >=2.2
 	t.deepEqual(SpecificationVersion.getVersionsForRange(">=2.2"), [
 		"2.2", "2.3", "2.4", "2.5", "2.6",
-		"3.0", "3.1", "3.2",
+		"3.0", "3.1", "3.2", "4.0"
 	]);
 
 	// range: > 1.0
 	t.deepEqual(SpecificationVersion.getVersionsForRange("> 1.0"), [
 		"1.1",
 		"2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6",
-		"3.0", "3.1", "3.2",
+		"3.0", "3.1", "3.2", "4.0"
 	]);
 
 	// range: 2.2 - 2.4

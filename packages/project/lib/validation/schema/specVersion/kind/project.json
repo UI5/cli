@@ -5,7 +5,7 @@
 	"type": "object",
 	"required": ["specVersion", "type"],
 	"properties": {
-		"specVersion": { "enum": ["3.2", "3.1", "3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"specVersion": { "enum": ["4.0", "3.2", "3.1", "3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
 		"kind": {
 			"enum": ["project", null],
 			"$comment": "Using null to allow not defining 'kind' which defaults to project"
@@ -19,7 +19,6 @@
 			]
 		}
 	},
-
 	"if": {
 		"properties": {
 			"type": {"const": null}
@@ -207,6 +206,22 @@
 				}
 			}
 		},
+		"builder-bundles-4.0": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-4.0"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions-4.0"
+					}
+				}
+			}
+		},
 		"builder-bundles-bundleDefinition": {
 			"type": "object",
 			"additionalProperties": false,
@@ -381,6 +396,120 @@
 				}
 			}
 		},
+		"builder-bundles-bundleDefinition-4.0": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"if": {
+						"$comment": "Add async prop only if mode = 'require'",
+						"items": {
+							"type": "object",
+							"mode": {
+								"enum": ["require"]
+							}
+						}
+					},
+					"then": {
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["mode", "filters"],
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"mode": {
+									"enum": ["raw", "preload", "require", "provided", "bundleInfo", "depCache"]
+								},
+								"filters": {
+									"type": "array",
+									"items": {
+										"type": "string"
+									}
+								},
+								"resolve": {
+									"type": "boolean",
+									"default": false
+								},
+								"resolveConditional": {
+									"type": "boolean",
+									"default": false
+								},
+								"renderer": {
+									"type": "boolean",
+									"default": false
+								},
+								"sort": {
+									"type": "boolean",
+									"default": true
+								},
+								"declareRawModules": {
+									"type": "boolean",
+									"default": false
+								},
+								"async": {
+									"type": "boolean",
+									"default": true
+								}
+							}
+						}
+					},
+					"else": {
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["mode", "filters"],
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"mode": {
+									"enum": ["raw", "preload", "require", "provided", "bundleInfo", "depCache"]
+								},
+								"filters": {
+									"type": "array",
+									"items": {
+										"type": "string"
+									}
+								},
+								"resolve": {
+									"type": "boolean",
+									"default": false
+								},
+								"resolveConditional": {
+									"type": "boolean",
+									"default": false
+								},
+								"renderer": {
+									"type": "boolean",
+									"default": false
+								},
+								"sort": {
+									"type": "boolean",
+									"default": true
+								},
+								"declareRawModules": {
+									"type": "boolean",
+									"default": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"builder-bundles-bundleOptions": {
 			"type": "object",
 			"additionalProperties": false,
@@ -424,6 +553,32 @@
 					"default": false
 				},
 				"usePredefineCalls": {
+					"type": "boolean",
+					"default": false
+				},
+				"numberOfParts": {
+					"type": "number",
+					"default": 1
+				},
+				"sourceMap": {
+					"type": "boolean",
+					"default": true
+				}
+			}
+		},
+		"builder-bundles-bundleOptions-4.0": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"optimize": {
+					"type": "boolean",
+					"default": true
+				},
+				"decorateBootstrapModule": {
+					"type": "boolean",
+					"default": true
+				},
+				"addTryCatchRestartWrapper": {
 					"type": "boolean",
 					"default": false
 				},

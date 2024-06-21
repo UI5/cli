@@ -46,7 +46,181 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-SpecificationVersion.getVersionsForRange(">=2.0").forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) {
+	test(`library (specVersion ${specVersion}): Valid configuration`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"resources": {
+				"configuration": {
+					"propertiesFileSourceEncoding": "UTF-8",
+					"paths": {
+						"src": "src/main/uilib",
+						"test": "src/test/uilib"
+					}
+				}
+			},
+			"builder": {
+				"resources": {
+					"excludes": [
+						"/resources/some/project/name/test_results/**",
+						"!/test-resources/some/project/name/demo-app/**"
+					]
+				},
+				"bundles": [
+					{
+						"bundleDefinition": {
+							"name": "sap-ui-custom.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": "my-raw-section",
+									"mode": "raw",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"resolveConditional": true,
+									"renderer": true,
+									"sort": true
+								},
+								{
+									"mode": "provided",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": false,
+									"resolveConditional": false,
+									"renderer": false,
+									"sort": false,
+									"declareRawModules": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"decorateBootstrapModule": true,
+							"addTryCatchRestartWrapper": true
+						}
+					},
+					{
+						"bundleDefinition": {
+							"name": "app.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": "some-app-preload",
+									"mode": "preload",
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": false
+								},
+								{
+									"mode": "require",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"async": false
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"numberOfParts": 3
+						}
+					}
+				],
+				"componentPreload": {
+					"paths": [
+						"some/glob/**/pattern/Component.js",
+						"some/other/glob/**/pattern/Component.js"
+					],
+					"namespaces": [
+						"some/namespace",
+						"some/other/namespace"
+					]
+				},
+				"jsdoc": {
+					"excludes": [
+						"some/project/name/thirdparty/**"
+					]
+				},
+				"customTasks": [
+					{
+						"name": "custom-task-1",
+						"beforeTask": "replaceCopyright",
+						"configuration": {
+							"some-key": "some value"
+						}
+					},
+					{
+						"name": "custom-task-2",
+						"afterTask": "custom-task-1",
+						"configuration": {
+							"color": "blue"
+						}
+					}
+				]
+			},
+			"server": {
+				"settings": {
+					"httpPort": 1337,
+					"httpsPort": 1443
+				},
+				"customMiddleware": [
+					{
+						"name": "myCustomMiddleware",
+						"mountPath": "/myapp",
+						"afterMiddleware": "compression",
+						"configuration": {
+							"debug": true
+						}
+					}
+				]
+			}
+		});
+	});
+
+	test(`library (specVersion ${specVersion}): Invalid builder configuration`, async (t) => {
+		const config = {
+			"specVersion": specVersion,
+			"type": "library",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "yes"
+			},
+			"builder": {
+				// cachebuster is only supported for type application
+				"cachebuster": {
+					"signatureType": "time"
+				}
+			}
+		};
+		await assertValidation(t, config, [{
+			dataPath: "/builder",
+			keyword: "additionalProperties",
+			message: "should NOT have additional properties",
+			params: {
+				additionalProperty: "cachebuster"
+			}
+		}]);
+	});
+});
+
+SpecificationVersion.getVersionsForRange("2.0 - 3.2").forEach(function(specVersion) {
 	test(`library (specVersion ${specVersion}): Valid configuration`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,

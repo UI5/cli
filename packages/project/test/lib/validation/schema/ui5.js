@@ -102,7 +102,7 @@ test("Invalid specVersion", async (t) => {
 			message:
 "Unsupported \"specVersion\"\n" +
 "Your UI5 CLI installation might be outdated.\n" +
-"Supported specification versions: \"3.2\", \"3.1\", \"3.0\", \"2.6\", " +
+"Supported specification versions: \"4.0\", \"3.2\", \"3.1\", \"3.0\", \"2.6\", " +
 "\"2.5\", \"2.4\", \"2.3\", \"2.2\", \"2.1\", \"2.0\", \"1.1\", \"1.0\", \"0.1\"\n" +
 "For details, see: https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
 			params: {
@@ -113,6 +113,7 @@ test("Invalid specVersion", async (t) => {
 						message: "should be equal to one of the allowed values",
 						params: {
 							allowedValues: [
+								"4.0",
 								"3.2",
 								"3.1",
 								"3.0",

@@ -46,7 +46,254 @@ test.after.always((t) => {
 	t.context.ajvCoverage.verify(thresholds);
 });
 
-SpecificationVersion.getVersionsForRange(">=2.0").forEach(function(specVersion) {
+SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) {
+	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"kind": "project",
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test",
+				"copyright": "okay"
+			},
+			"resources": {
+				"configuration": {
+					"propertiesFileSourceEncoding": "UTF-8",
+					"paths": {
+						"webapp": "/my/path"
+					}
+				}
+			},
+			"builder": {
+				"resources": {
+					"excludes": [
+						"/resources/some/project/name/test_results/**",
+						"/test-resources/**",
+						"!/test-resources/some/project/name/demo-app/**"
+					]
+				},
+				"bundles": [
+					{
+						"bundleDefinition": {
+							"name": "sap-ui-custom.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": "my-raw-section",
+									"mode": "raw",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"resolveConditional": true,
+									"renderer": true,
+									"sort": true
+								},
+								{
+									"mode": "provided",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": false,
+									"resolveConditional": false,
+									"renderer": false,
+									"sort": false,
+									"declareRawModules": true
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"decorateBootstrapModule": true,
+							"addTryCatchRestartWrapper": true
+						}
+					},
+					{
+						"bundleDefinition": {
+							"name": "app.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": "some-app-preload",
+									"mode": "preload",
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": false
+								},
+								{
+									"mode": "require",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"async": false
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"numberOfParts": 3
+						}
+					}
+				],
+				"componentPreload": {
+					"paths": [
+						"some/glob/**/pattern/Component.js",
+						"some/other/glob/**/pattern/Component.js"
+					],
+					"namespaces": [
+						"some/namespace",
+						"some/other/namespace"
+					]
+				},
+				"cachebuster": {
+					"signatureType": "hash"
+				},
+				"customTasks": [
+					{
+						"name": "custom-task-1",
+						"beforeTask": "replaceCopyright",
+						"configuration": {
+							"some-key": "some value"
+						}
+					},
+					{
+						"name": "custom-task-2",
+						"afterTask": "custom-task-1",
+						"configuration": {
+							"color": "blue"
+						}
+					},
+					{
+						"name": "custom-task-2",
+						"beforeTask": "not-valid",
+						"configuration": false
+					}
+				]
+			},
+			"server": {
+				"settings": {
+					"httpPort": 1337,
+					"httpsPort": 1443
+				},
+				"customMiddleware": [
+					{
+						"name": "myCustomMiddleware",
+						"mountPath": "/myapp",
+						"afterMiddleware": "compression",
+						"configuration": {
+							"debug": true
+						}
+					},
+					{
+						"name": "myCustomMiddleware-2",
+						"beforeMiddleware": "myCustomMiddleware",
+						"configuration": {
+							"debug": true
+						}
+					}
+				]
+			}
+		});
+	});
+
+	test(`Invalid resources configuration (specVersion ${specVersion})`, async (t) => {
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test"
+			},
+			"resources": {
+				"configuration": {
+					"propertiesFileSourceEncoding": "FOO",
+					"paths": {
+						"app": "webapp",
+						"webapp": {
+							"path": "invalid"
+						}
+					},
+					"notAllowed": true
+				},
+				"notAllowed": true
+			}
+		}, [
+			{
+				dataPath: "/resources",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				}
+			},
+			{
+				dataPath: "/resources/configuration",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "notAllowed",
+				}
+			},
+			{
+				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: [
+						"UTF-8",
+						"ISO-8859-1"
+					],
+				}
+			},
+			{
+				dataPath: "/resources/configuration/paths",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "app",
+				}
+			},
+			{
+				dataPath: "/resources/configuration/paths/webapp",
+				keyword: "type",
+				message: "should be string",
+				params: {
+					type: "string"
+				}
+			}
+		]);
+		await assertValidation(t, {
+			"specVersion": specVersion,
+			"type": "application",
+			"metadata": {
+				"name": "com.sap.ui5.test"
+			},
+			"resources": {
+				"configuration": {
+					"paths": "webapp"
+				}
+			}
+		}, [
+			{
+				dataPath: "/resources/configuration/paths",
+				keyword: "type",
+				message: "should be object",
+				params: {
+					type: "object"
+				}
+			}
+		]);
+	});
+});
+
+SpecificationVersion.getVersionsForRange("2.0 - 3.2").forEach(function(specVersion) {
 	test(`Valid configuration (specVersion ${specVersion})`, async (t) => {
 		await assertValidation(t, {
 			"specVersion": specVersion,
