@@ -4,7 +4,7 @@ module.exports = {
 	},
 	"env": {
 		"node": true,
-		"es2022": true
+		"es2023": true
 	},
 	"extends": ["eslint:recommended", "plugin:ava/recommended", "google"],
 	"plugins": [
