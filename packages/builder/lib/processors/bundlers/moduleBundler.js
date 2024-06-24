@@ -152,6 +152,15 @@ export default function({resources, options: {
 		ignoreMissingModules: false
 	}, bundleOptions);
 
+	// Apply defaults without modifying the passed object
+	bundleDefinition = Object.assign({
+		resolve: false,
+		resolveConditional: false,
+		renderer: false,
+		sort: true,
+		declareRawModules: false,
+	}, bundleDefinition);
+
 	const pool = new LocatorResourcePool({
 		ignoreMissingModules: bundleOptions.ignoreMissingModules
 	});
