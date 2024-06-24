@@ -152,7 +152,7 @@
 		"eslint-plugin-jsdoc": "^48.3.0",
 		"esmock": "^2.6.6",
 		"line-column": "^1.0.2",
-		"nyc": "^15.1.0",
+		"nyc": "^17.0.0",
 		"open-cli": "^8.0.0",
 		"sinon": "^18.0.0",
 		"tap-xunit": "^2.4.1"
