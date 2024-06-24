@@ -7,6 +7,7 @@ import * as taskRepository from "../../../../lib/tasks/taskRepository.js";
 
 const __dirname = import.meta.dirname;
 const applicationBPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.b");
+const applicationNPath = path.join(__dirname, "..", "..", "..", "fixtures", "application.n");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
 
 test.afterEach.always((t) => {
@@ -174,4 +175,90 @@ const applicationBTree = {
 			}
 		}
 	},
+};
+
+test("integration: build application.n standalone without enabled string bundling", async (t) => {
+	const destPath = "./test/tmp/build/application.n/dest";
+	const expectedPath = "./test/expected/build/application.n/dest";
+	const excludedTasks = ["*"];
+	const includedTasks = ["minify", "generateStandaloneAppBundle"];
+
+	const graph = await graphFromObject({
+		dependencyTree: applicationNTree
+	});
+
+	graph.setTaskRepository(taskRepository);
+	await graph.build({
+		destPath,
+		excludedTasks,
+		includedTasks
+	});
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	await directoryDeepEqual(t, destPath, expectedPath, "Result directory structure correct");
+
+	// Check for all file contents
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		await fileEqual(t, destFile, expectedFile, "Correct file content");
+	}));
+});
+
+const applicationNTree = {
+	"id": "application.n",
+	"version": "1.0.0",
+	"path": applicationNPath,
+	"dependencies": [],
+	"configuration": {
+		"specVersion": "4.0",
+		"type": "application",
+		"metadata": {
+			"name": "application.n"
+		}
+	}
+};
+
+test("integration: build application.n standalone with enabled string bundling", async (t) => {
+	const destPath = "./test/tmp/build/application.n/legacy";
+	const expectedPath = "./test/expected/build/application.n/legacy";
+	const excludedTasks = ["*"];
+	const includedTasks = ["minify", "generateStandaloneAppBundle"];
+
+	const graph = await graphFromObject({
+		dependencyTree: applicationNTreeLegacy
+	});
+
+	graph.setTaskRepository(taskRepository);
+	await graph.build({
+		destPath,
+		excludedTasks,
+		includedTasks
+	});
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	await directoryDeepEqual(t, destPath, expectedPath, "Result directory structure correct");
+
+	// Check for all file contents
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		await fileEqual(t, destFile, expectedFile, "Correct file content");
+	}));
+});
+
+const applicationNTreeLegacy = {
+	"id": "application.n",
+	"version": "1.0.0",
+	"path": applicationNPath,
+	"dependencies": [],
+	"configuration": {
+		"specVersion": "3.1",
+		"type": "application",
+		"metadata": {
+			"name": "application.n"
+		}
+	}
 };

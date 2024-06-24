@@ -96,9 +96,12 @@ export default async function({
 		});
 	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
+	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}").then((resources) => {
 		const options = {
-			bundleDefinition: applyDefaultsToBundleDefinition(bundleDefinition, taskUtil), bundleOptions
+			bundleDefinition: applyDefaultsToBundleDefinition(bundleDefinition, taskUtil),
+			bundleOptions,
+			allowStringBundling
 		};
 		if (!optimize && taskUtil) {
 			options.moduleNameMapping = createModuleNameMapping({resources, taskUtil});

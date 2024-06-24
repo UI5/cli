@@ -139,6 +139,7 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 		});
 	}
 
+	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
 	const bundleOptions = {
 		bundleDefinition: applyDefaultsToBundleDefinition(
 			getBundleDefinition({
@@ -149,6 +150,7 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 			}),
 			taskUtil
 		),
+		allowStringBundling
 	};
 
 	const bundleDbgOptions = {
@@ -164,6 +166,7 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 			optimize: false,
 		},
 		moduleNameMapping: unoptimizedModuleNameMapping,
+		allowStringBundling
 	};
 
 	if (coreVersion) {

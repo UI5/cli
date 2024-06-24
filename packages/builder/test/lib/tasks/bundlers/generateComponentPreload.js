@@ -62,6 +62,7 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -119,6 +120,235 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 		"workspace.write should have been called with exact resource returned by moduleBundler");
 });
 
+test.serial("generateComponentPreload - one namespace, with taskUtil and specVersion < 4", async (t) => {
+	const {
+		generateComponentPreload, moduleBundlerStub,
+		workspace, dependencies, byGlob
+	} = t.context;
+
+	const resources = [
+		{"fake": "resource"}
+	];
+	byGlob.resolves(resources);
+
+	moduleBundlerStub.resolves([
+		{
+			name: "my/app/Component-preload.js",
+			bundle: {"fake": "bundle"},
+			sourceMap: {"fake": "sourceMap"}
+		}
+	]);
+
+	const project = {
+		getVersion: () => "1.120.0",
+		getSpecVersion() {
+			return {
+				lt: sinon.stub().withArgs("4.0").returns(true)
+			};
+		}
+	};
+
+	const taskUtil = {
+		getProject: () => project,
+		getTag: sinon.stub().returns(false),
+		setTag: sinon.stub().returns(),
+		clearTag: sinon.stub().returns(),
+		STANDARD_TAGS: {
+			IsBundle: "<IsBundle>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
+		}
+	};
+
+	await generateComponentPreload({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {
+			projectName: "Test Application",
+			namespaces: ["my/app"]
+		}
+	});
+
+	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
+	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
+		options: {
+			allowStringBundling: true,
+			bundleDefinition: {
+				defaultFileTypes: [
+					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
+					".fragment.xml",
+					".view.html",
+					".view.json",
+					".view.xml",
+					".properties"
+				],
+				name: "my/app/Component-preload.js",
+				sections: [
+					{
+						filters: [
+							"my/app/",
+							"my/app/**/manifest.json",
+							"my/app/changes/changes-bundle.json",
+							"my/app/changes/flexibility-bundle.json",
+							"!my/app/test/",
+						],
+						mode: "preload",
+						renderer: false,
+						resolve: false,
+						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
+					}
+				]
+			},
+			bundleOptions: {
+				optimize: true,
+				ignoreMissingModules: true
+			},
+			targetUi5CoreVersion: "1.120.0"
+		},
+		resources
+	}]);
+
+	t.is(byGlob.callCount, 1,
+		"combo.byGlob should have been called once");
+	t.deepEqual(byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"combo.byGlob should have been called with expected pattern");
+
+	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should have been called twice");
+	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0].bundle],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(0).args[0], bundleResources[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(1).args, [bundleResources[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+});
+
+test.serial("generateComponentPreload - one namespace, with taskUtil and specVersion >= 4", async (t) => {
+	const {
+		generateComponentPreload, moduleBundlerStub,
+		workspace, dependencies, byGlob
+	} = t.context;
+
+	const resources = [
+		{"fake": "resource"}
+	];
+	byGlob.resolves(resources);
+
+	moduleBundlerStub.resolves([
+		{
+			name: "my/app/Component-preload.js",
+			bundle: {"fake": "bundle"},
+			sourceMap: {"fake": "sourceMap"}
+		}
+	]);
+
+	const project = {
+		getVersion: () => "1.120.0",
+		getSpecVersion() {
+			return {
+				lt: sinon.stub().withArgs("4.0").returns(false)
+			};
+		}
+	};
+
+	const taskUtil = {
+		getProject: () => project,
+		getTag: sinon.stub().returns(false),
+		setTag: sinon.stub().returns(),
+		clearTag: sinon.stub().returns(),
+		STANDARD_TAGS: {
+			IsBundle: "<IsBundle>",
+			OmitFromBuildResult: "<OmitFromBuildResult>"
+		},
+		resourceFactory: {
+			createFilterReader: () => workspace
+		}
+	};
+
+	await generateComponentPreload({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {
+			projectName: "Test Application",
+			namespaces: ["my/app"]
+		}
+	});
+
+	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
+	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
+		options: {
+			allowStringBundling: false,
+			bundleDefinition: {
+				defaultFileTypes: [
+					".js",
+					".control.xml",
+					".fragment.html",
+					".fragment.json",
+					".fragment.xml",
+					".view.html",
+					".view.json",
+					".view.xml",
+					".properties"
+				],
+				name: "my/app/Component-preload.js",
+				sections: [
+					{
+						filters: [
+							"my/app/",
+							"my/app/**/manifest.json",
+							"my/app/changes/changes-bundle.json",
+							"my/app/changes/flexibility-bundle.json",
+							"!my/app/test/",
+						],
+						mode: "preload",
+						renderer: false,
+						resolve: false,
+						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
+					}
+				]
+			},
+			bundleOptions: {
+				optimize: true,
+				ignoreMissingModules: true
+			},
+			targetUi5CoreVersion: "1.120.0"
+		},
+		resources
+	}]);
+
+	t.is(byGlob.callCount, 1,
+		"combo.byGlob should have been called once");
+	t.deepEqual(byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"combo.byGlob should have been called with expected pattern");
+
+	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should have been called twice");
+	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0].bundle],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(0).args[0], bundleResources[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(1).args, [bundleResources[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+});
+
+
 test.serial("generateComponentPreload - one namespace - excludes", async (t) => {
 	const {
 		generateComponentPreload, moduleBundlerStub,
@@ -154,6 +384,7 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -232,8 +463,17 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 		}
 	]);
 
+	const project = {
+		getVersion: () => "1.120.0",
+		getSpecVersion() {
+			return {
+				lt: sinon.stub().withArgs("4.0").returns(false)
+			};
+		}
+	};
+
 	const taskUtil = {
-		getProject: sinon.stub(),
+		getProject: () => project,
 		getTag: sinon.stub().returns(false),
 		setTag: sinon.stub().returns(),
 		clearTag: sinon.stub().returns(),
@@ -262,6 +502,7 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -297,7 +538,8 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 			bundleOptions: {
 				optimize: true,
 				ignoreMissingModules: true
-			}
+			},
+			targetUi5CoreVersion: "1.120.0"
 		},
 		resources
 	}]);
@@ -383,6 +625,7 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 	t.is(moduleBundlerStub.callCount, 2, "moduleBundler should have been called twice");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -426,6 +669,7 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -572,6 +816,7 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -615,6 +860,7 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",
@@ -666,6 +912,7 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				defaultFileTypes: [
 					".js",

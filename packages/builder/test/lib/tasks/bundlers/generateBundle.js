@@ -21,7 +21,12 @@ test.beforeEach(async (t) => {
 	t.context.createFilterReaderStub = sinon.stub().returns(t.context.combo);
 
 	const project = {
-		getVersion: () => "1.120.0"
+		getVersion: () => "1.120.0",
+		getSpecVersion() {
+			return {
+				lt: sinon.stub().withArgs("4.0").returns(false)
+			};
+		}
 	};
 
 	t.context.taskUtil = {
@@ -95,6 +100,7 @@ test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition,
 			bundleOptions: undefined
 		},
@@ -167,6 +173,124 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
+			bundleDefinition,
+			bundleOptions: undefined,
+			targetUi5CoreVersion: "1.120.0",
+		},
+		resources
+	}]);
+
+	t.is(combo.byGlob.callCount, 0,
+		"combo.byGlob should not have been called");
+
+	t.is(createFilterReaderStub.callCount, 1,
+		"createFilterReader should have been called once");
+	t.is(createFilterReaderStub.getCall(0).args.length, 1,
+		"createFilterReader should have been called with one argument");
+	const filterFunction = createFilterReaderStub.getCall(0).args[0].callback;
+	t.is(typeof filterFunction, "function",
+		"createFilterReader should have been called with a function");
+	const filterReader = createFilterReaderStub.getCall(0).args[0].reader;
+	t.is(filterReader, combo,
+		"createFilterReader should have been called with correct reader instance");
+
+	t.is(filteredCombo.byGlob.callCount, 1,
+		"filteredCombo.byGlob should have been called once");
+	t.deepEqual(filteredCombo.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
+		"filteredCombo.byGlob should have been called with expected pattern");
+
+	t.is(taskUtil.clearTag.callCount, 1);
+	t.deepEqual(taskUtil.clearTag.getCall(0).args,
+		[{"fake": "sourceMap"}, taskUtil.STANDARD_TAGS.OmitFromBuildResult],
+		"OmitFromBuildResult tag should be cleared on source map resource");
+
+	t.is(ReaderCollectionPrioritizedStub.callCount, 1,
+		"ReaderCollectionPrioritized should have been called once");
+	t.true(ReaderCollectionPrioritizedStub.calledWithNew(),
+		"ReaderCollectionPrioritized should have been called with 'new'");
+
+	const bundleResources = await moduleBundlerStub.getCall(0).returnValue;
+	t.is(workspace.write.callCount, 2,
+		"workspace.write should have been called twice");
+	t.deepEqual(workspace.write.getCall(0).args, [bundleResources[0].bundle],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(0).args[0], bundleResources[0].bundle,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+	t.deepEqual(workspace.write.getCall(1).args, [bundleResources[0].sourceMap],
+		"workspace.write should have been called with expected args");
+	t.is(workspace.write.getCall(1).args[0], bundleResources[0].sourceMap,
+		"workspace.write should have been called with exact resource returned by moduleBundler");
+
+	t.is(taskUtil.getTag.callCount, 0, "taskUtil.getTag should not have been called by the task");
+
+	// Testing the createFilterReader function
+
+	const resourceForFilterTest = {};
+	taskUtil.getTag.returns(true);
+	t.false(filterFunction(resourceForFilterTest),
+		"Filter function should return false if the tag is set");
+	taskUtil.getTag.returns(false);
+	t.true(filterFunction(resourceForFilterTest),
+		"Filter function should return true if the tag is not set");
+
+	t.is(taskUtil.getTag.callCount, 2);
+	t.deepEqual(taskUtil.getTag.getCall(0).args, [resourceForFilterTest, taskUtil.STANDARD_TAGS.IsDebugVariant],
+		"Resource filtering should be done for debug variants as optimize=true is the default");
+	t.deepEqual(taskUtil.getTag.getCall(1).args, [resourceForFilterTest, taskUtil.STANDARD_TAGS.IsDebugVariant],
+		"Resource filtering should be done for debug variants as optimize=true is the default");
+});
+
+test.serial("generateBundle: No bundleOptions, with taskUtil and specVersion < 4", async (t) => {
+	const {
+		generateBundle, moduleBundlerStub, ReaderCollectionPrioritizedStub,
+		workspace, dependencies, combo, createFilterReaderStub,
+		taskUtil
+	} = t.context;
+
+	const resources = [
+		{"fake": "resource"}
+	];
+
+	const legacyProject = {
+		getVersion: () => "1.120.0",
+		getSpecVersion() {
+			return {
+				lt: sinon.stub().withArgs("4.0").returns(true)
+			};
+		}
+	};
+	taskUtil.getProject = () => legacyProject;
+	const filteredCombo = {
+		byGlob: sinon.stub().resolves(resources)
+	};
+	createFilterReaderStub.returns(filteredCombo);
+
+	moduleBundlerStub.resolves([
+		{
+			name: "my/app/customBundle.js",
+			bundle: {"fake": "bundle"},
+			sourceMap: {"fake": "sourceMap"}
+		}
+	]);
+
+	// bundleDefinition can be empty here as the moduleBundler is mocked
+	const bundleDefinition = {};
+
+	await generateBundle({
+		workspace,
+		dependencies,
+		taskUtil,
+		options: {
+			projectName: "Test Application",
+			bundleDefinition
+		}
+	});
+
+	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
+	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
+		options: {
+			allowStringBundling: true,
 			bundleDefinition,
 			bundleOptions: undefined,
 			targetUi5CoreVersion: "1.120.0",
@@ -285,6 +409,7 @@ test.serial("generateBundle: bundleOptions: optimize=false, with taskUtil", asyn
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition,
 			bundleOptions,
 			moduleNameMapping: {
@@ -411,6 +536,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition,
 			bundleOptions,
 			targetUi5CoreVersion: "1.120.0"
@@ -509,6 +635,7 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition,
 			bundleOptions,
 			targetUi5CoreVersion: "1.120.0"
@@ -599,7 +726,12 @@ test.serial("generateBundle: No bundleOptions, with taskUtil, UI5 Version >= 2",
 
 	taskUtil.getProject = () => {
 		return {
-			getVersion: () => "2.0.0"
+			getVersion: () => "2.0.0",
+			getSpecVersion() {
+				return {
+					lt: sinon.stub().withArgs("4.0").returns(false)
+				};
+			}
 		};
 	};
 
@@ -636,6 +768,7 @@ test.serial("generateBundle: No bundleOptions, with taskUtil, UI5 Version >= 2",
 	t.is(moduleBundlerStub.callCount, 1, "moduleBundler should have been called once");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition,
 			bundleOptions: undefined,
 			targetUi5CoreVersion: "2.0.0",

@@ -58,6 +58,7 @@ test.serial("generateLibraryPreload", async (t) => {
 	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "my/lib/library-preload.js",
 				sections: [
@@ -88,6 +89,7 @@ test.serial("generateLibraryPreload", async (t) => {
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "my/lib/designtime/library-preload.designtime.js",
 				sections: [
@@ -119,6 +121,7 @@ test.serial("generateLibraryPreload", async (t) => {
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "my/lib/library-preload.support.js",
 				sections: [
@@ -182,6 +185,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "sap-ui-core.js",
 				sections: [
@@ -232,6 +236,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "sap-ui-core-dbg.js",
 				sections: [
@@ -271,6 +276,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery.js",
 				sections: [
@@ -337,6 +343,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(3).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery-dbg.js",
 				sections: [
@@ -392,6 +399,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(4).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -485,8 +493,9 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 		getSpecVersion: () => {
 			return {
 				toString: () => "0.1",
-				lte: () => true,
-				gte: sinon.stub().withArgs("4.0").returns(false)
+				gte: sinon.stub().withArgs("4.0").returns(false),
+				lte: sinon.stub().withArgs("2.0").returns(true),
+				lt: sinon.stub().withArgs("4.0").returns(true)
 			};
 		},
 		getVersion: () => "1.120.0"
@@ -536,6 +545,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core.js",
 				sections: [
@@ -586,6 +596,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core-dbg.js",
 				sections: [
@@ -626,6 +637,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery.js",
 				sections: [
@@ -692,6 +704,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(3).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery-dbg.js",
 				sections: [
@@ -748,6 +761,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(4).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -813,6 +827,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(5).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap/ui/core/designtime/library-preload.designtime.js",
 				sections: [
@@ -845,6 +860,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(6).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.support.js",
 				sections: [
@@ -895,8 +911,9 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 		getSpecVersion: () => {
 			return {
 				toString: () => "0.1",
-				lte: () => true,
-				gte: sinon.stub().withArgs("4.0").returns(false)
+				gte: sinon.stub().withArgs("4.0").returns(false),
+				lte: sinon.stub().withArgs("2.0").returns(true),
+				lt: sinon.stub().withArgs("4.0").returns(true),
 			};
 		},
 		getVersion: () => "1.120.0"
@@ -940,6 +957,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core.js",
 				sections: [
@@ -990,6 +1008,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core-dbg.js",
 				sections: [
@@ -1030,6 +1049,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery.js",
 				sections: [
@@ -1096,6 +1116,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(3).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery-dbg.js",
 				sections: [
@@ -1152,6 +1173,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(4).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -1217,6 +1239,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(5).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap/ui/core/designtime/library-preload.designtime.js",
 				sections: [
@@ -1249,6 +1272,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(6).args, [{
 		options: {
+			allowStringBundling: true,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.support.js",
 				sections: [
@@ -1298,8 +1322,9 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		getSpecVersion: () => {
 			return {
 				toString: () => "2.4",
-				lte: () => false,
-				gte: sinon.stub().withArgs("4.0").returns(false)
+				gte: sinon.stub().withArgs("4.0").returns(false),
+				lte: sinon.stub().withArgs("2.0").returns(false),
+				lt: sinon.stub().withArgs("4.0").returns(false),
 			};
 		},
 		getVersion: () => "1.120.0"
@@ -1328,6 +1353,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -1393,6 +1419,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/designtime/library-preload.designtime.js",
 				sections: [
@@ -1425,6 +1452,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.support.js",
 				sections: [
@@ -1482,8 +1510,9 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 		getSpecVersion: () => {
 			return {
 				toString: () => "2.6",
-				lte: () => false,
-				gte: sinon.stub().withArgs("4.0").returns(false)
+				gte: sinon.stub().withArgs("4.0").returns(false),
+				lte: sinon.stub().withArgs("2.0").returns(false),
+				lt: sinon.stub().withArgs("4.0").returns(false),
 			};
 		},
 		getVersion: () => "1.120.0"
@@ -1515,6 +1544,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -1580,6 +1610,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/designtime/library-preload.designtime.js",
 				sections: [
@@ -1612,6 +1643,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.support.js",
 				sections: [
@@ -1666,8 +1698,9 @@ test.serial("Error: Failed to resolve non-debug name", async (t) => {
 		getSpecVersion: () => {
 			return {
 				toString: () => "0.1",
-				lte: () => true,
-				gte: sinon.stub().withArgs("4.0").returns(false)
+				gte: sinon.stub().withArgs("4.0").returns(false),
+				lte: sinon.stub().withArgs("2.0").returns(true),
+				lt: sinon.stub().withArgs("4.0").returns(false)
 			};
 		},
 		getVersion: () => "1.120.0"
@@ -1732,6 +1765,7 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "my/lib/library-preload.js",
 				sections: [
@@ -1803,6 +1837,7 @@ test.serial("generateLibraryPreload with invalid excludes", async (t) => {
 	t.is(moduleBundlerStub.callCount, 3, "moduleBundler should have been called 3 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: undefined,
 			bundleDefinition: {
 				name: "my/lib/library-preload.js",
 				sections: [
@@ -1867,9 +1902,10 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	const coreProject = {
 		getSpecVersion: () => {
 			return {
-				toString: () => "0.1",
-				lte: () => true,
-				gte: sinon.stub().withArgs("4.0").returns(false)
+				gte: sinon.stub().withArgs("4.0").returns(false),
+				toString: () => "4.0",
+				lte: sinon.stub().withArgs("2.0").returns(true),
+				lt: sinon.stub().withArgs("4.0").returns(false)
 			};
 		},
 		getVersion: () => "2.0.0"
@@ -1919,6 +1955,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	t.is(moduleBundlerStub.callCount, 7, "moduleBundler should have been called 7 times");
 	t.deepEqual(moduleBundlerStub.getCall(0).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap-ui-core.js",
 				sections: [
@@ -1969,6 +2006,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(1).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap-ui-core-dbg.js",
 				sections: [
@@ -2009,6 +2047,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(2).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery.js",
 				sections: [
@@ -2075,6 +2114,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(3).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap-ui-core-nojQuery-dbg.js",
 				sections: [
@@ -2131,6 +2171,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(4).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.js",
 				sections: [
@@ -2196,6 +2237,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(5).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/designtime/library-preload.designtime.js",
 				sections: [
@@ -2228,6 +2270,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 	}]);
 	t.deepEqual(moduleBundlerStub.getCall(6).args, [{
 		options: {
+			allowStringBundling: false,
 			bundleDefinition: {
 				name: "sap/ui/core/library-preload.support.js",
 				sections: [

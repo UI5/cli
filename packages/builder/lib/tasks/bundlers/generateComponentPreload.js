@@ -146,6 +146,7 @@ export default async function({
 				});
 			}
 			const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
+			const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
 			return Promise.all(bundleDefinitions.filter(Boolean).map((bundleDefinition) => {
 				log.verbose(`Generating ${bundleDefinition.name}...`);
 				const options = {
@@ -153,7 +154,8 @@ export default async function({
 					bundleOptions: {
 						ignoreMissingModules: true,
 						optimize: true
-					}
+					},
+					allowStringBundling
 				};
 				if (coreVersion) {
 					options.targetUi5CoreVersion = coreVersion;

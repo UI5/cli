@@ -11,6 +11,7 @@ const __dirname = import.meta.dirname;
 const libraryDPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d");
 const libraryDMinifiedPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.d-minified");
 const sapUiCorePath = path.join(__dirname, "..", "..", "..", "fixtures", "sap.ui.core");
+const libraryNPath = path.join(__dirname, "..", "..", "..", "fixtures", "library.n");
 
 test.serial("integration: build library.d with library preload", async (t) => {
 	const destPath = "./test/tmp/build/library.d/preload";
@@ -320,3 +321,93 @@ test.serial("integration: generateLibraryPreload with designtime and support fil
 		JSON.parse(supportPreloadSourceMapContent);
 	}, "Source map file should have valid JSON content");
 });
+
+test.serial("integration: build library.n without enabled string bundling", async (t) => {
+	const destPath = "./test/tmp/build/library.n/dest";
+	const expectedPath = "./test/expected/build/library.n/dest";
+	const excludedTasks = ["*"];
+	const includedTasks = ["generateLibraryPreload"];
+
+	const graph = await graphFromObject({
+		dependencyTree: libraryNTree
+	});
+	graph.setTaskRepository(taskRepository);
+	await t.notThrowsAsync(graph.build({
+		destPath,
+		excludedTasks,
+		includedTasks
+	}));
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	await directoryDeepEqual(t, destPath, expectedPath);
+
+	// Check for all file contents
+	t.is(expectedFiles.length, 6, "6 files are expected");
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		await fileEqual(t, destFile, expectedFile);
+	}));
+});
+
+const libraryNTree = {
+	"id": "library.n",
+	"version": "1.0.0",
+	"path": libraryNPath,
+	"dependencies": [],
+	"configuration": {
+		"specVersion": "4.0",
+		"type": "library",
+		"metadata": {
+			"name": "library.n",
+			"copyright": "Some fancy copyright"
+		}
+	}
+};
+
+test.serial("integration: build library.n with enabled string bundling", async (t) => {
+	const destPath = "./test/tmp/build/library.n/legacy";
+	const expectedPath = "./test/expected/build/library.n/legacy";
+	const excludedTasks = ["*"];
+	const includedTasks = ["generateLibraryPreload"];
+
+	const graph = await graphFromObject({
+		dependencyTree: libraryNTreeLegacy
+	});
+	graph.setTaskRepository(taskRepository);
+	await t.notThrowsAsync(graph.build({
+		destPath,
+		excludedTasks,
+		includedTasks
+	}));
+
+	const expectedFiles = await findFiles(expectedPath);
+
+	// Check for all directories and files
+	await directoryDeepEqual(t, destPath, expectedPath);
+
+	// Check for all file contents
+	t.is(expectedFiles.length, 6, "6 files are expected");
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
+		const relativeFile = path.relative(expectedPath, expectedFile);
+		const destFile = path.join(destPath, relativeFile);
+		await fileEqual(t, destFile, expectedFile);
+	}));
+});
+
+const libraryNTreeLegacy = {
+	"id": "library.n",
+	"version": "1.0.0",
+	"path": libraryNPath,
+	"dependencies": [],
+	"configuration": {
+		"specVersion": "3.1",
+		"type": "library",
+		"metadata": {
+			"name": "library.n",
+			"copyright": "Some fancy copyright"
+		}
+	}
+};

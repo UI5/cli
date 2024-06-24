@@ -45,12 +45,13 @@ function isEmptyBundle(resolvedBundle) {
 }
 
 class BundleBuilder {
-	constructor(pool, targetUi5CoreVersion) {
+	constructor(pool, targetUi5CoreVersion, allowStringBundling) {
 		this.pool = pool;
 		this.resolver = new BundleResolver(pool);
 		this.splitter = new BundleSplitter(pool, this.resolver);
 		this.targetUi5CoreVersion = targetUi5CoreVersion;
 		this.targetUi5CoreVersionMajor = undefined;
+		this.allowStringBundling = allowStringBundling;
 	}
 
 	getUi5MajorVersion() {
@@ -172,7 +173,7 @@ class BundleBuilder {
 
 		this.closeModule(resolvedModule);
 
-		const bundleInfo = await resolvedModule.createModuleInfo(this.pool);
+		const bundleInfo = await resolvedModule.createModuleInfo(this.pool, this.allowStringBundling);
 		bundleInfo.size = this.outW.length;
 
 		return {
@@ -231,7 +232,7 @@ class BundleBuilder {
 		}
 	}
 
-	addSection(section) {
+	async addSection(section) {
 		this.ensureRawDeclarations();
 
 		switch (section.mode) {
@@ -239,15 +240,15 @@ class BundleBuilder {
 			// do nothing
 			return undefined; // nothing to wait for
 		case SectionType.Raw:
-			return this.writeRaw(section);
+			return await this.writeRaw(section);
 		case SectionType.Preload:
-			return this.writePreloadFunction(section);
+			return await this.writePreloadFunction(section);
 		case SectionType.BundleInfo:
-			return this.writeBundleInfos([section]);
+			return await this.writeBundleInfos([section]);
 		case SectionType.Require:
-			return this.writeRequires(section);
+			return await this.writeRequires(section);
 		case SectionType.DepCache:
-			return this.writeDepCache(section);
+			return await this.writeDepCache(section);
 		default:
 			throw new Error("unknown section mode " + section.mode);
 		}
@@ -330,7 +331,6 @@ class BundleBuilder {
 					if ( i>0 ) {
 						outW.writeln(",");
 					}
-					// this.beforeWritePreloadModule(module, resource.info, resource);
 					outW.write(`\t"${module.toString()}":`);
 					outW.startSegment(module);
 					await this.writePreloadModule(module, resource.info, resource);
@@ -397,8 +397,13 @@ class BundleBuilder {
 		const remaining = [];
 		for ( const moduleName of sequence ) {
 			if ( /\.js$/.test(moduleName) ) {
-				// console.log("Processing " + moduleName);
 				const resource = await this.pool.findResourceWithInfo(moduleName);
+
+				if (resource.info?.requiresTopLevelScope && !this.allowStringBundling) {
+					this.logStringBundlingError(moduleName);
+					continue;
+				}
+
 				let moduleContent = (await resource.buffer()).toString();
 				moduleContent = removeHashbang(moduleContent);
 				let moduleSourceMap;
@@ -478,8 +483,8 @@ class BundleBuilder {
 			if (this.options.sourceMap) {
 				// We are actually not interested in the source map this module might contain,
 				// but we should make sure to remove any "sourceMappingURL" from the module content before
-				// writing it to the bundle. Otherwise browser dev-tools might create unnecessary (and likely incorrect)
-				// requests for any referenced .map files
+				// writing it to the bundle. Otherwise browser dev-tools might create unnecessary
+				// (and likely incorrect) requests for any referenced .map files
 				({moduleContent} =
 					await this.getSourceMapForModule({
 						moduleName,
@@ -542,15 +547,43 @@ class BundleBuilder {
 		});
 	}
 
-	writeBundleInfos(sections) {
+	logStringBundlingError(moduleName) {
+		log.error(
+			"Module " + moduleName + " requires top level scope and can only be embedded as a string " +
+			"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
+			"For more information, see the UI5 Tooling documentation " +
+			"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+	}
+
+	async checkForStringBundling(moduleName) {
+		if (!this.allowStringBundling && /\.js$/.test(moduleName)) {
+			const resource = await this.pool.findResourceWithInfo(moduleName);
+			if (resource.info?.requiresTopLevelScope) {
+				this.logStringBundlingError(moduleName);
+				return null;
+			}
+		}
+		return moduleName;
+	}
+
+	async writeBundleInfos(sections) {
 		this.outW.ensureNewLine();
 
 		let bundleInfoStr = "";
 		if ( sections.length > 0 ) {
 			bundleInfoStr = "sap.ui.loader.config({bundlesUI5:{\n";
-			sections.forEach((section, idx) => {
-				if ( idx > 0 ) {
+			let initial = true;
+			for (let idx = 0; idx < sections.length; idx++) {
+				const section = sections[idx];
+
+				// Remove modules requiring string bundling
+				let modules = await Promise.all(section.modules.map(this.checkForStringBundling.bind(this)));
+				modules = modules.filter(($) => $) || [];
+
+				if (!initial) {
 					bundleInfoStr += ",\n";
+				} else {
+					initial = false;
 				}
 
 				if (!section.name) {
@@ -561,8 +594,8 @@ class BundleBuilder {
 						`The info might not work as expected. ` +
 						`The name must match the bundle filename (incl. extension such as '.js')`);
 				}
-				bundleInfoStr += `"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`;
-			});
+				bundleInfoStr += `"${section.name}":[${modules.map(makeStringLiteral).join(",")}]`;
+			}
 			bundleInfoStr += "\n}});\n";
 
 			this.writeWithSourceMap(bundleInfoStr);

@@ -257,7 +257,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 		});
 	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
-
+	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
 	const execModuleBundlerIfNeeded = ({options, resources}) => {
 		if (skipBundles.includes(options.bundleDefinition.name)) {
 			log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
@@ -267,6 +267,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 			options.targetUi5CoreVersion = coreVersion;
 		}
 		options.bundleDefinition = applyDefaultsToBundleDefinition(options.bundleDefinition, taskUtil);
+		options.allowStringBundling = allowStringBundling;
 		return moduleBundler({options, resources});
 	};
 

@@ -10,16 +10,19 @@ test.beforeEach(async (t) => {
 	t.context.createFilterReaderStub = sinon.stub().callsFake((params) => {
 		return params.reader;
 	});
+
+	const project = {
+		getSpecVersion() {
+			return {
+				toString: () => "0.1",
+				lt: sinon.stub().withArgs("4.0").returns(false),
+				gte: sinon.stub().withArgs("4.0").returns(false),
+			};
+		},
+		getVersion: () => "1.120.0"
+	};
 	t.context.taskUtil = {
-		getProject: () => ({
-			getSpecVersion: () => {
-				return {
-					toString: () => "0.1",
-					gte: sinon.stub().withArgs("4.0").returns(false),
-				};
-			},
-			getVersion: () => "1.120.0"
-		}),
+		getProject: sinon.stub().returns(project),
 		getTag: sinon.stub().returns(false),
 		setTag: sinon.stub(),
 		clearTag: sinon.stub(),
@@ -253,6 +256,7 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 
 	t.is(moduleBundlerStub.getCall(0).args.length, 1);
 	t.deepEqual(moduleBundlerStub.getCall(0).args[0].options, {
+		allowStringBundling: false,
 		bundleDefinition: {
 			defaultFileTypes: [
 				".js",
@@ -313,6 +317,7 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 
 	t.is(moduleBundlerStub.getCall(1).args.length, 1);
 	t.deepEqual(moduleBundlerStub.getCall(1).args[0].options, {
+		allowStringBundling: false,
 		bundleDefinition: {
 			defaultFileTypes: [
 				".js",
@@ -369,6 +374,18 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 	const dummyResource2 = createDummyResource("2-dbg.js");
 	const dummyResource3 = createDummyResource("3.js");
 	const dummyResource4 = createDummyResource("4-dbg.js");
+
+	taskUtil.getProject = () => {
+		return {
+			getVersion: () => "2.0.0",
+			getSpecVersion: () => {
+				return {
+					lt: sinon.stub().withArgs("4.0").returns(false),
+					gte: sinon.stub().withArgs("4.0").returns(true)
+				};
+			}
+		};
+	};
 
 	taskUtil.getTag.withArgs(dummyResource1, taskUtil.STANDARD_TAGS.HasDebugVariant).returns(true);
 	taskUtil.getTag.withArgs(dummyResource2, taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
@@ -434,6 +451,7 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 
 	t.is(moduleBundlerStub.getCall(0).args.length, 1);
 	t.deepEqual(moduleBundlerStub.getCall(0).args[0].options, {
+		allowStringBundling: false,
 		bundleDefinition: {
 			defaultFileTypes: [
 				".js",
@@ -481,6 +499,7 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 						"sap/ui/core/Core.js",
 					],
 					mode: "require",
+					async: true,
 					declareRawModules: false,
 					renderer: false,
 					resolve: false,
@@ -489,11 +508,12 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 				},
 			],
 		},
-		targetUi5CoreVersion: "1.120.0"
+		targetUi5CoreVersion: "2.0.0"
 	});
 
 	t.is(moduleBundlerStub.getCall(1).args.length, 1);
 	t.deepEqual(moduleBundlerStub.getCall(1).args[0].options, {
+		allowStringBundling: false,
 		bundleDefinition: {
 			defaultFileTypes: [
 				".js",
@@ -525,6 +545,7 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 						"sap/ui/core/Core.js",
 					],
 					mode: "require",
+					async: true,
 					declareRawModules: false,
 					renderer: false,
 					resolve: false,
@@ -539,7 +560,7 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 		moduleNameMapping: {
 			"/resources/ponyPath2-dbg.js": "ponyPath2.js"
 		},
-		targetUi5CoreVersion: "1.120.0"
+		targetUi5CoreVersion: "2.0.0"
 	});
 });
 

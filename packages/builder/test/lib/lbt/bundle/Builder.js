@@ -12,21 +12,32 @@ import ResourcePool from "../../../../lib/lbt/resources/ResourcePool.js";
 // Therefore use this constant to never write the actual string.
 const SOURCE_MAPPING_URL = "//" + "# sourceMappingURL";
 
+test.beforeEach(async (t) => {
+	t.context.verboseLogStub = sinon.stub();
+	t.context.warnLogStub = sinon.stub();
+	t.context.errorLogStub = sinon.stub();
+	const myLoggerInstance = {
+		silly: sinon.stub(),
+		verbose: t.context.verboseLogStub,
+		warn: t.context.warnLogStub,
+		error: t.context.errorLogStub,
+	};
+
+	t.context.BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
+		"@ui5/logger": {
+			getLogger: () => myLoggerInstance
+		}
+	});
+});
+
 test.afterEach.always((t) => {
 	sinon.restore();
 });
 
 test.serial("writePreloadModule: with invalid json content", async (t) => {
 	const writeStub = sinon.stub();
-	const verboseLogStub = sinon.stub();
-	const myLoggerInstance = {
-		verbose: verboseLogStub
-	};
-	const BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
-		"@ui5/logger": {
-			getLogger: () => myLoggerInstance
-		}
-	});
+	const {BuilderWithStub, verboseLogStub} = t.context;
+
 	const invalidJsonContent = `{
 	"a": 47,
 	"b": {{include: asd}}
@@ -199,6 +210,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 });
 
 test("integration: createBundle Bundle, using predefine calls", async (t) => {
+	const {BuilderWithStub, errorLogStub} = t.context;
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -207,6 +219,14 @@ test("integration: createBundle Bundle, using predefine calls", async (t) => {
 			return this.buffer();
 		},
 		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "myModuleUsingGlobalScope.js",
+		getPath: () => "myModuleUsingGlobalScope.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "var magic = {};"
 	});
 	pool.addResource({ // the pool must contain this to activate optimization markers
 		name: "jquery.sap.global-dbg.js",
@@ -251,14 +271,6 @@ test("integration: createBundle Bundle, using predefine calls", async (t) => {
 		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
-	pool.addResource({
-		name: "myModuleUsingGlobalScope.js",
-		getPath: () => "myModuleUsingGlobalScope.js",
-		string: function() {
-			return this.buffer();
-		},
-		buffer: async () => "var magic = {};"
-	});
 
 	const bundleDefinition = {
 		name: `Component-preload.js`,
@@ -268,9 +280,9 @@ test("integration: createBundle Bundle, using predefine calls", async (t) => {
 			name: "preload-section",
 			filters: [
 				"jquery.sap.global.js",
-				"myModuleUsingGlobalScope.js",
 				"jquery.sap.pony1.js",
-				"jquery.sap.pony2.js"
+				"jquery.sap.pony2.js",
+				"myModuleUsingGlobalScope.js"
 			]
 		}, {
 			declareRawModules: undefined,
@@ -283,7 +295,7 @@ test("integration: createBundle Bundle, using predefine calls", async (t) => {
 		}]
 	};
 
-	const builder = new Builder(pool);
+	const builder = new BuilderWithStub(pool);
 	const oResult = await builder.createBundle(bundleDefinition, {
 		numberOfParts: 1,
 		decorateBootstrapModule: true,
@@ -298,9 +310,6 @@ sap.
 		ui.predefine
 		/*hello*/
 				("jquery.sap.pony2");
-sap.ui.require.preload({
-	"myModuleUsingGlobalScope.js":'var magic = {};'
-},"preload-section");
 //@ui5-bundle-raw-include myRawModule.js
 (function(){window.mine = {};}());
 sap.ui.require(["ui5loader"]);
@@ -318,9 +327,62 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 			"jquery.sap.global.js",
 			"jquery.sap.pony1.js",
 			"jquery.sap.pony2.js",
-			"myModuleUsingGlobalScope.js",
 			"myRawModule.js"
 		], "bundle info subModules are correct");
+	t.is(errorLogStub.callCount, 1, "Error message was called once");
+	t.is(
+		errorLogStub.getCall(0).args[0],
+		"Module myModuleUsingGlobalScope.js requires top level scope and can only " +
+			"be embedded as a string (requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
+			"For more information, see the UI5 Tooling documentation " +
+			"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope",
+		"Error message was called for myModuleUsingGlobalScope.js"
+	);
+});
+
+test("integration (legacy): createBundle Bundle, using predefine calls with allowStringBundling=true", async (t) => {
+	const {BuilderWithStub, errorLogStub} = t.context;
+	const pool = new ResourcePool();
+
+	pool.addResource({
+		name: "myModuleUsingGlobalScope.js",
+		getPath: () => "myModuleUsingGlobalScope.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "var magic = {};"
+	});
+	const bundleDefinition = {
+		name: `Component-preload.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "preload",
+			name: "preload-section",
+			filters: [
+				"myModuleUsingGlobalScope.js"
+			]
+		}]
+	};
+	const builder = new BuilderWithStub(pool, "1.120.0", true);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+	});
+	t.is(oResult.name, "Component-preload.js");
+	const expectedContent = `//@ui5-bundle Component-preload.js
+sap.ui.require.preload({
+	"myModuleUsingGlobalScope.js":'var magic = {};'
+},"preload-section");
+${SOURCE_MAPPING_URL}=Component-preload.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should contain only " +
+		"stringified myModuleUsingGlobalScope.js");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules,
+		[
+			"myModuleUsingGlobalScope.js"
+		], "bundle info subModules are correct");
+	t.is(errorLogStub.callCount, 0, "Error log was not called at all");
 });
 
 test("integration: createBundle Bundle, using predefine calls, no optimize", async (t) => {
@@ -376,14 +438,6 @@ test("integration: createBundle Bundle, using predefine calls, no optimize", asy
 		},
 		buffer: async () => "(function(){window.mine = {};}());"
 	});
-	pool.addResource({
-		name: "myModuleUsingGlobalScope.js",
-		getPath: () => "myModuleUsingGlobalScope.js",
-		string: function() {
-			return this.buffer();
-		},
-		buffer: async () => "var magic = {};"
-	});
 
 	const bundleDefinition = {
 		name: `Component-preload.js`,
@@ -393,7 +447,6 @@ test("integration: createBundle Bundle, using predefine calls, no optimize", asy
 			name: "preload-section",
 			filters: [
 				"jquery.sap.global.js",
-				"myModuleUsingGlobalScope.js",
 				"jquery.sap.pony1.js",
 				"jquery.sap.pony2.js"
 			]
@@ -423,9 +476,6 @@ sap.
 		ui.predefine
 		/*hello*/
 				("jquery.sap.pony2");
-sap.ui.require.preload({
-	"myModuleUsingGlobalScope.js":'var magic = {};'
-},"preload-section");
 //@ui5-bundle-raw-include myRawModule.js
 (function(){window.mine = {};}());
 sap.ui.require(["ui5loader"]);
@@ -443,9 +493,58 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 			"jquery.sap.global.js",
 			"jquery.sap.pony1.js",
 			"jquery.sap.pony2.js",
-			"myModuleUsingGlobalScope.js",
 			"myRawModule.js"
 		], "bundle info subModules are correct");
+});
+
+test("integration(legacy): createBundle Bundle with module requiresTopLevelScope=true", async (t) => {
+	const pool = new ResourcePool();
+
+	pool.addResource({
+		name: "myModule.js",
+		getPath: () => "myModule.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define(); // hello"
+	});
+	pool.addResource({
+		name: "myModuleUsingGlobalScope.js",
+		getPath: () => "myModuleUsingGlobalScope.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "var magic = {};"
+	});
+
+	const bundleDefinition = {
+		name: `Component-preload.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "preload",
+			name: "preload-section",
+			filters: [
+				"myModule.js",
+				"myModuleUsingGlobalScope.js"
+			]
+		}]
+	};
+
+	const builder = new Builder(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		optimize: false
+	});
+	t.is(oResult.name, "Component-preload.js");
+	const expectedContent = `//@ui5-bundle Component-preload.js
+sap.ui.predefine("myModule"); // hello
+${SOURCE_MAPPING_URL}=Component-preload.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should only contain preload part from myModule");
+	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["myModule.js"], "bundle info subModules are correct");
 });
 
 test("integration: createBundle (bootstrap bundle, UI5 Version 1.X)", async (t) => {
@@ -1121,14 +1220,16 @@ ${SOURCE_MAPPING_URL}=bootstrap.js.map
 		"bundle info subModules are correct");
 });
 
-test.serial("integration: createBundle with bundleInfo", async (t) => {
+test.serial("integration(legacy): createBundle with bundleInfo with requiresTopLevelScope=true", async (t) => {
 	const sillyLogStub = sinon.stub();
 	const verboseLogStub = sinon.stub();
 	const warnLogStub = sinon.stub();
+	const errorLogStub = sinon.stub();
 	const myLoggerInstance = {
 		silly: sillyLogStub,
 		verbose: verboseLogStub,
-		warn: warnLogStub
+		warn: warnLogStub,
+		error: errorLogStub
 	};
 	const BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
 		"@ui5/logger": {
@@ -1167,7 +1268,7 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 		string: function() {
 			return this.buffer();
 		},
-		buffer: async () => "function Three(){return 3.1;}"
+		buffer: async () => "sap.ui.define(() => 3.1);"
 	});
 	pool.addResource({
 		name: "c3.js",
@@ -1176,6 +1277,134 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 			return this.buffer();
 		},
 		buffer: async () => "function Three(){return 3.3;}"
+	});
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => ""
+	});
+
+	const bundleDefinition = {
+		name: `library-preload.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "preload",
+			name: "preload-section",
+			filters: ["a.js"]
+		}, {
+			mode: "require",
+			filters: ["ui5loader.js"]
+		}, {
+			mode: "bundleInfo",
+			name: "my-custom-bundle.js",
+			filters: ["b.js"]
+		}, {
+			mode: "bundleInfo",
+			name: "my-other-custom-bundle.js",
+			filters: ["c1.js", "c2.js", "c3.js"]
+		}]
+	};
+
+	const builder = new BuilderWithStub(pool);
+	const oResult = await builder.createBundle(bundleDefinition, {numberOfParts: 1});
+	t.is(oResult.name, "library-preload.js");
+	const expectedContent = `//@ui5-bundle library-preload.js
+sap.ui.require(["ui5loader"]);
+sap.ui.loader.config({bundlesUI5:{
+"my-custom-bundle.js":[],
+"my-other-custom-bundle.js":['c1.js']
+}});
+${SOURCE_MAPPING_URL}=library-preload.js.map
+`;
+	t.deepEqual(oResult.content, expectedContent, "Bundle should contain require part from ui5loader.js");
+	t.is(oResult.bundleInfo.name, "library-preload.js", "bundle info name is correct");
+	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
+	t.deepEqual(oResult.bundleInfo.subModules, ["c1.js"], "bundle info subModules are correct");
+
+	t.is(warnLogStub.callCount, 0);
+	t.is(errorLogStub.callCount, 4);
+	t.is(errorLogStub.getCall(0).args[0],
+		"Module a.js requires top level scope and can only be embedded as a string " +
+		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
+		"For more information, see the UI5 Tooling documentation " +
+		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+	t.is(errorLogStub.getCall(1).args[0],
+		"Module b.js requires top level scope and can only be embedded as a string " +
+		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
+		"For more information, see the UI5 Tooling documentation " +
+		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+	t.is(errorLogStub.getCall(2).args[0],
+		"Module c2.js requires top level scope and can only be embedded as a string " +
+		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
+		"For more information, see the UI5 Tooling documentation " +
+		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+	t.is(errorLogStub.getCall(3).args[0],
+		"Module c3.js requires top level scope and can only be embedded as a string " +
+		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
+		"For more information, see the UI5 Tooling documentation " +
+		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+});
+
+test.serial("integration: createBundle with bundleInfo", async (t) => {
+	const sillyLogStub = sinon.stub();
+	const verboseLogStub = sinon.stub();
+	const warnLogStub = sinon.stub();
+	const errorLogStub = sinon.stub();
+	const myLoggerInstance = {
+		silly: sillyLogStub,
+		verbose: verboseLogStub,
+		warn: warnLogStub,
+		error: errorLogStub
+	};
+	const BuilderWithStub = await esmock("../../../../lib/lbt/bundle/Builder", {
+		"@ui5/logger": {
+			getLogger: () => myLoggerInstance
+		}
+	});
+
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "a.js",
+		getPath: () => "a.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([], function(){ return 1;});"
+	});
+	pool.addResource({
+		name: "b.js",
+		getPath: () => "b.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([], function(){ return 2;});"
+	});
+	pool.addResource({
+		name: "c2.js",
+		getPath: () => "c2.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([], function(){ return 3.2;});"
+	});
+	pool.addResource({
+		name: "c1.js",
+		getPath: () => "c1.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([], function(){ return 3.1;});"
+	});
+	pool.addResource({
+		name: "c3.js",
+		getPath: () => "c3.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([], function(){ return 3.3;});"
 	});
 	pool.addResource({
 		name: "ui5loader.js",
@@ -1230,12 +1459,7 @@ test.serial("integration: createBundle with bundleInfo", async (t) => {
 	t.is(oResult.name, "library-preload.js");
 	const expectedContent = `//@ui5-bundle library-preload.js
 window["sap-ui-optimized"] = true;
-sap.ui.require.preload({
-	"a.js":function(){
-function One(){return 1;}
-this.One=One;
-}
-},"preload-section");
+sap.ui.predefine("a", [], function(){ return 1;});
 sap.ui.require(["ui5loader"]);
 sap.ui.loader.config({bundlesUI5:{
 "my-custom-bundle":['b.js'],
@@ -1258,6 +1482,8 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 		`The info might not work as expected. ` +
 		`The name must match the bundle filename (incl. extension such as '.js')`
 	]);
+
+	t.is(errorLogStub.callCount, 0);
 });
 
 test.serial("integration: createBundle with depCache", async (t) => {
@@ -1350,7 +1576,7 @@ ${SOURCE_MAPPING_URL}=library-depCache-preload.js.map
 		" depCache part from a.js && c2.js");
 	t.is(oResult.bundleInfo.name, "library-depCache-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
-	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js", "c2.js", "c1.js", "c3.js"],
+	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "c2.js"],
 		"bundle info subModules are correct");
 });
 
@@ -1500,7 +1726,7 @@ ${SOURCE_MAPPING_URL}=library-depCache-preload.js.map
 		" depCache part from a.js && c2.js");
 	t.is(oResult.bundleInfo.name, "library-depCache-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
-	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "b.js", "c2.js", "c1.js", "c3.js"],
+	t.deepEqual(oResult.bundleInfo.subModules, ["a.js", "c2.js"],
 		"bundle info subModules are correct");
 });
 
@@ -2784,15 +3010,6 @@ sap.ui.define([], function(){return {};});`
 		buffer: async () => `#!/usr/bin/env node
 (function(){const mine = {};}());`
 	});
-	pool.addResource({
-		name: "myModuleUsingGlobals.js",
-		getPath: () => "myModuleUsingGlobals.js",
-		string: function() {
-			return this.buffer();
-		},
-		buffer: async () => `#!/usr/bin/env node
-const bla = {};`
-	});
 
 	const bundleDefinition = {
 		name: `Component-preload.js`,
@@ -2801,10 +3018,6 @@ const bla = {};`
 			mode: "preload",
 			name: "preload-section",
 			filters: ["myModule.js"]
-		}, {
-			mode: "preload",
-			name: "preload-section-globals",
-			filters: ["myModuleUsingGlobals.js"]
 		}, {
 			declareRawModules: undefined,
 			mode: "raw",
@@ -2819,20 +3032,17 @@ const bla = {};`
 	const expectedContent = `//@ui5-bundle Component-preload.js
 
 sap.ui.predefine("myModule", [], function(){return {};});
-sap.ui.require.preload({
-	"myModuleUsingGlobals.js":'\\nconst bla = {};'
-},"preload-section-globals");
 //@ui5-bundle-raw-include myRawModule.js
 
 (function(){const mine = {};}());
 ${SOURCE_MAPPING_URL}=Component-preload.js.map
 `;
 	t.deepEqual(oResult.content, expectedContent, "EVOBundleFormat should contain: " +
-		" preload part from myModule.js and myModuleUsingGlobals.js" +
-		" raw part from myModule.js");
+		" preload part from myModule.js and" +
+		" raw part from myRawModule.js");
 	t.is(oResult.bundleInfo.name, "Component-preload.js", "bundle info name is correct");
 	t.deepEqual(oResult.bundleInfo.size, expectedContent.length, "bundle info size is correct");
-	t.deepEqual(oResult.bundleInfo.subModules, ["myModule.js", "myModuleUsingGlobals.js", "myRawModule.js"],
+	t.deepEqual(oResult.bundleInfo.subModules, ["myModule.js", "myRawModule.js"],
 		"bundle info subModules are correct");
 });
 

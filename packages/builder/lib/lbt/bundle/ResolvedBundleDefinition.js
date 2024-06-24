@@ -38,7 +38,7 @@ class ResolvedBundleDefinition {
 		);
 	}
 
-	createModuleInfo(pool) {
+	createModuleInfo(pool, allowStringBundling) {
 		const bundleInfo = new ModuleInfo();
 		bundleInfo.name = this.name;
 
@@ -66,7 +66,9 @@ class ResolvedBundleDefinition {
 					modules.map( (submodule) => {
 						return pool.getModuleInfo(submodule).then(
 							(subinfo) => {
-								if (!bundleInfo.subModules.includes(subinfo.name)) {
+								if (!bundleInfo.subModules.includes(subinfo.name) &&
+									(!subinfo.requiresTopLevelScope ||
+										(subinfo.requiresTopLevelScope && allowStringBundling))) {
 									bundleInfo.addSubModule(subinfo);
 								}
 							}
@@ -78,19 +80,6 @@ class ResolvedBundleDefinition {
 
 		return promise.then( () => bundleInfo );
 	}
-
-/*
-		public JSModuleDefinition getDefinition() {
-			return moduleDefinition;
-		}
-
-		public Configuration getConfiguration() {
-			return moduleDefinition.getConfiguration();
-		}
-
-
-	}
-	*/
 }
 
 class ResolvedSection {
