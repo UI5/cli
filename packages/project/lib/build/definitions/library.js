@@ -35,7 +35,7 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("replaceBuildtime", {
 		options: {
-			pattern: "/resources/sap/ui/Global.js"
+			pattern: "/resources/sap/ui/{Global,core/Core}.js"
 		}
 	});
 
