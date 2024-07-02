@@ -1,4 +1,5 @@
 import {enhancePatternWithExcludes} from "./_utils.js";
+import {enhanceBundlesWithDefaults} from "../../validation/validator.js";
 
 /**
  * Get tasks and their configuration for a given application project
@@ -119,7 +120,10 @@ export default function({project, taskUtil, getTask}) {
 			requiresDependencies: true,
 			taskFunction: async ({workspace, dependencies, taskUtil, options}) => {
 				const generateBundleTask = await getTask("generateBundle");
-				return bundles.reduce(function(sequence, bundle) {
+				// Async resolve default values for bundle definitions and options
+				const bundlesDefaults = await enhanceBundlesWithDefaults(bundles, taskUtil.getProject());
+
+				return bundlesDefaults.reduce(function(sequence, bundle) {
 					return sequence.then(function() {
 						return generateBundleTask.task({
 							workspace,

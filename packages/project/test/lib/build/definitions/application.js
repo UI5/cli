@@ -31,13 +31,14 @@ function getMockProject() {
 }
 
 test.beforeEach((t) => {
+	t.context.project = getMockProject();
 	t.context.taskUtil = {
+		getProject: sinon.stub().returns(t.context.project),
 		isRootProject: sinon.stub().returns(true),
 		getBuildOption: sinon.stub(),
 		getInterface: sinon.stub()
 	};
 
-	t.context.project = getMockProject();
 	t.context.getTask = sinon.stub();
 });
 
@@ -198,12 +199,14 @@ test("Custom bundles", async (t) => {
 					"project/b/sectionsA/",
 					"!project/b/sectionsA/section2**",
 				]
-			}],
-			sort: true
+			}]
 		},
 		bundleOptions: {
 			optimize: true,
-			usePredefinedCalls: true
+			usePredefineCalls: true,
+			addTryCatchRestartWrapper: false,
+			decorateBootstrapModule: true,
+			numberOfParts: 1,
 		}
 	}, {
 		bundleDefinition: {
@@ -215,12 +218,14 @@ test("Custom bundles", async (t) => {
 					"project/b/sectionsB/",
 					"!project/b/sectionsB/section2**",
 				]
-			}],
-			sort: true
+			}]
 		},
 		bundleOptions: {
 			optimize: false,
-			usePredefinedCalls: true
+			usePredefineCalls: true,
+			addTryCatchRestartWrapper: false,
+			decorateBootstrapModule: true,
+			numberOfParts: 1,
 		}
 	}];
 
@@ -322,13 +327,20 @@ test("Custom bundles", async (t) => {
 					filters: [
 						"project/b/sectionsA/",
 						"!project/b/sectionsA/section2**",
-					]
-				}],
-				sort: true
+					],
+					declareRawModules: false,
+					renderer: false,
+					resolve: false,
+					resolveConditional: false,
+					sort: true,
+				}]
 			},
 			bundleOptions: {
 				optimize: true,
-				usePredefinedCalls: true
+				usePredefineCalls: true,
+				addTryCatchRestartWrapper: false,
+				decorateBootstrapModule: true,
+				numberOfParts: 1,
 			}
 		}
 	}, "generateBundle task got called with correct arguments");
@@ -346,13 +358,20 @@ test("Custom bundles", async (t) => {
 					filters: [
 						"project/b/sectionsB/",
 						"!project/b/sectionsB/section2**",
-					]
-				}],
-				sort: true
+					],
+					declareRawModules: false,
+					renderer: false,
+					resolve: false,
+					resolveConditional: false,
+					sort: true,
+				}]
 			},
 			bundleOptions: {
 				optimize: false,
-				usePredefinedCalls: true
+				usePredefineCalls: true,
+				addTryCatchRestartWrapper: false,
+				decorateBootstrapModule: true,
+				numberOfParts: 1,
 			}
 		}
 	}, "generateBundle task got called with correct arguments");
@@ -415,12 +434,14 @@ test("generateComponentPreload with custom paths, excludes and custom bundle", (
 					"project/b/sectionsA/",
 					"!project/b/sectionsA/section2**",
 				]
-			}],
-			sort: true
+			}]
 		},
 		bundleOptions: {
 			optimize: true,
-			usePredefinedCalls: true
+			usePredefineCalls: true,
+			addTryCatchRestartWrapper: false,
+			decorateBootstrapModule: true,
+			numberOfParts: 1,
 		}
 	}];
 
