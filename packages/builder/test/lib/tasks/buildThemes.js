@@ -493,7 +493,7 @@ test.serial("buildThemes (useWorkers = true)", async (t) => {
 	};
 	const lessResource = {
 		getPath: () => "/resources/test/library.source.less",
-		getBuffer: () => new Buffer("/** test comment */")
+		getBuffer: () => Buffer.from("/** test comment */")
 	};
 
 	const workspace = {

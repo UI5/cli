@@ -1512,7 +1512,7 @@ test("getSourceMapFromUrl: Unexpected data: format", async (t) => {
 
 test("getSourceMapFromUrl: File reference", async (t) => {
 	const {getSourceMapFromUrl} = __localFunctions__;
-	const readFileStub = sinon.stub().resolves(new Buffer("Source Map Content"));
+	const readFileStub = sinon.stub().resolves(Buffer.from("Source Map Content"));
 	const sourceMappingUrl = `./other/file.map`;
 
 	const res = await getSourceMapFromUrl({
@@ -1544,7 +1544,7 @@ test("getSourceMapFromUrl: File reference not found", async (t) => {
 
 test("getSourceMapFromUrl: HTTPS URL reference", async (t) => {
 	const {getSourceMapFromUrl} = __localFunctions__;
-	const readFileStub = sinon.stub().resolves(new Buffer("Source Map Content"));
+	const readFileStub = sinon.stub().resolves(Buffer.from("Source Map Content"));
 	const sourceMappingUrl = `https://ui5.sap.com/resources/my/test/module.js.map`;
 
 	const res = await getSourceMapFromUrl({
@@ -1559,7 +1559,7 @@ test("getSourceMapFromUrl: HTTPS URL reference", async (t) => {
 
 test("getSourceMapFromUrl: Absolute path reference", async (t) => {
 	const {getSourceMapFromUrl} = __localFunctions__;
-	const readFileStub = sinon.stub().resolves(new Buffer("Source Map Content"));
+	const readFileStub = sinon.stub().resolves(Buffer.from("Source Map Content"));
 	const sourceMappingUrl = `/some/file.map`;
 
 	const res = await getSourceMapFromUrl({
