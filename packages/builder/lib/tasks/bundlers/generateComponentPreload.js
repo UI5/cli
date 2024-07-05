@@ -1,5 +1,6 @@
 import path from "node:path";
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import {applyDefaultsToBundleDefinition} from "./utils/applyDefaultsToBundleDefinition.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:bundlers:generateComponentPreload");
 import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
@@ -148,7 +149,7 @@ export default async function({
 			return Promise.all(bundleDefinitions.filter(Boolean).map((bundleDefinition) => {
 				log.verbose(`Generating ${bundleDefinition.name}...`);
 				const options = {
-					bundleDefinition,
+					bundleDefinition: applyDefaultsToBundleDefinition(bundleDefinition, taskUtil),
 					bundleOptions: {
 						ignoreMissingModules: true,
 						optimize: true

@@ -88,6 +88,8 @@ test.serial("generateComponentPreload - one namespace", async (t) => {
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},
@@ -180,6 +182,8 @@ test.serial("generateComponentPreload - one namespace - excludes", async (t) => 
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},
@@ -285,6 +289,8 @@ test.serial("generateComponentPreload - one namespace - excludes w/o namespace",
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},
@@ -406,6 +412,8 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},
@@ -447,6 +455,8 @@ test.serial("generateComponentPreload - multiple namespaces - excludes", async (
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},
@@ -591,6 +601,8 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true,
 					}
 				]
 			},
@@ -640,6 +652,8 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},
@@ -682,6 +696,8 @@ test.serial("generateComponentPreload - nested namespaces - excludes", async (t)
 						renderer: false,
 						resolve: false,
 						resolveConditional: false,
+						declareRawModules: false,
+						sort: true
 					}
 				]
 			},

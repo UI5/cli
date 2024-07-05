@@ -11,7 +11,15 @@ test.beforeEach(async (t) => {
 		return params.reader;
 	});
 	t.context.taskUtil = {
-		getProject: sinon.stub(),
+		getProject: () => ({
+			getSpecVersion: () => {
+				return {
+					toString: () => "0.1",
+					gte: sinon.stub().withArgs("4.0").returns(false),
+				};
+			},
+			getVersion: () => "1.120.0"
+		}),
 		getTag: sinon.stub().returns(false),
 		setTag: sinon.stub(),
 		clearTag: sinon.stub(),
@@ -267,6 +275,9 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 					mode: "raw",
 					resolve: true,
 					sort: true,
+					declareRawModules: false,
+					renderer: false,
+					resolveConditional: false
 				},
 				{
 					filters: [
@@ -281,15 +292,23 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 					renderer: true,
 					resolve: true,
 					resolveConditional: true,
+					declareRawModules: false,
+					sort: true
 				},
 				{
 					filters: [
 						"sap/ui/core/Core.js",
 					],
 					mode: "require",
+					declareRawModules: false,
+					renderer: false,
+					resolve: false,
+					resolveConditional: false,
+					sort: true,
 				},
 			],
-		}
+		},
+		targetUi5CoreVersion: "1.120.0"
 	});
 
 	t.is(moduleBundlerStub.getCall(1).args.length, 1);
@@ -316,12 +335,20 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 					mode: "raw",
 					resolve: true,
 					sort: true,
+					resolveConditional: false,
+					renderer: false,
+					declareRawModules: false
 				},
 				{
 					filters: [
 						"sap/ui/core/Core.js",
 					],
 					mode: "require",
+					renderer: false,
+					resolve: false,
+					resolveConditional: false,
+					sort: true,
+					declareRawModules: false,
 				},
 			],
 		},
@@ -330,7 +357,8 @@ test.serial("execute module bundler with taskUtil", async (t) => {
 		},
 		moduleNameMapping: {
 			"/resources/ponyPath2-dbg.js": "ponyPath2.js"
-		}
+		},
+		targetUi5CoreVersion: "1.120.0"
 	});
 });
 
@@ -341,12 +369,6 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 	const dummyResource2 = createDummyResource("2-dbg.js");
 	const dummyResource3 = createDummyResource("3.js");
 	const dummyResource4 = createDummyResource("4-dbg.js");
-
-	taskUtil.getProject = () => {
-		return {
-			getVersion: () => "2.0.0"
-		};
-	};
 
 	taskUtil.getTag.withArgs(dummyResource1, taskUtil.STANDARD_TAGS.HasDebugVariant).returns(true);
 	taskUtil.getTag.withArgs(dummyResource2, taskUtil.STANDARD_TAGS.IsDebugVariant).returns(true);
@@ -434,6 +456,9 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 					mode: "raw",
 					resolve: true,
 					sort: true,
+					declareRawModules: false,
+					renderer: false,
+					resolveConditional: false,
 				},
 				{
 					filters: [
@@ -448,16 +473,23 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 					renderer: true,
 					resolve: true,
 					resolveConditional: true,
+					declareRawModules: false,
+					sort: true
 				},
 				{
 					filters: [
 						"sap/ui/core/Core.js",
 					],
 					mode: "require",
+					declareRawModules: false,
+					renderer: false,
+					resolve: false,
+					resolveConditional: false,
+					sort: true,
 				},
 			],
 		},
-		targetUi5CoreVersion: "2.0.0"
+		targetUi5CoreVersion: "1.120.0"
 	});
 
 	t.is(moduleBundlerStub.getCall(1).args.length, 1);
@@ -484,12 +516,20 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 					mode: "raw",
 					resolve: true,
 					sort: true,
+					declareRawModules: false,
+					renderer: false,
+					resolveConditional: false,
 				},
 				{
 					filters: [
 						"sap/ui/core/Core.js",
 					],
 					mode: "require",
+					declareRawModules: false,
+					renderer: false,
+					resolve: false,
+					resolveConditional: false,
+					sort: true,
 				},
 			],
 		},
@@ -499,7 +539,7 @@ test.serial("execute module bundler with taskUtil, UI5 Version >= 2", async (t) 
 		moduleNameMapping: {
 			"/resources/ponyPath2-dbg.js": "ponyPath2.js"
 		},
-		targetUi5CoreVersion: "2.0.0"
+		targetUi5CoreVersion: "1.120.0"
 	});
 });
 

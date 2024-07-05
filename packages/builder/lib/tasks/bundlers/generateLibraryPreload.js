@@ -1,6 +1,7 @@
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:bundlers:generateLibraryPreload");
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import {applyDefaultsToBundleDefinition} from "./utils/applyDefaultsToBundleDefinition.js";
 import {negateFilters} from "../../lbt/resources/ResourceFilterList.js";
 import createModuleNameMapping from "./utils/createModuleNameMapping.js";
 
@@ -265,6 +266,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 		if (coreVersion) {
 			options.targetUi5CoreVersion = coreVersion;
 		}
+		options.bundleDefinition = applyDefaultsToBundleDefinition(options.bundleDefinition, taskUtil);
 		return moduleBundler({options, resources});
 	};
 

@@ -135,6 +135,7 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  * @param {string} [parameters.options.targetUi5CoreVersion] Optional semver compliant sap.ui.core project version, e.g '2.0.0'.
 				This allows the bundler to make assumptions on available runtime APIs.
 				Omit if the ultimate UI5 version at runtime is unknown or can't be determined.
+ * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
  * @returns {Promise<module:@ui5/builder/processors/bundlers/moduleBundler~ModuleBundlerResult[]>}
  * Promise resolving with module bundle resources
  */
@@ -152,14 +153,7 @@ export default function({resources, options: {
 		ignoreMissingModules: false
 	}, bundleOptions);
 
-	// Apply defaults without modifying the passed object
-	bundleDefinition = Object.assign({
-		resolve: false,
-		resolveConditional: false,
-		renderer: false,
-		sort: true,
-		declareRawModules: false,
-	}, bundleDefinition);
+	// bundleDefinition's defaults get applied in the corresponding standard tasks
 
 	const pool = new LocatorResourcePool({
 		ignoreMissingModules: bundleOptions.ignoreMissingModules

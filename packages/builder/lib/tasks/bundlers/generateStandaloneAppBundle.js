@@ -2,6 +2,7 @@ import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:bundlers:generateStandaloneAppBundle");
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import {applyDefaultsToBundleDefinition} from "./utils/applyDefaultsToBundleDefinition.js";
 import createModuleNameMapping from "./utils/createModuleNameMapping.js";
 
 function getBundleDefinition(config) {
@@ -139,24 +140,30 @@ export default async function({workspace, dependencies, taskUtil, options}) {
 	}
 
 	const bundleOptions = {
-		bundleDefinition: getBundleDefinition({
-			name: "sap-ui-custom.js",
-			filters,
-			namespace,
-			preloadSection: true
-		})
+		bundleDefinition: applyDefaultsToBundleDefinition(
+			getBundleDefinition({
+				name: "sap-ui-custom.js",
+				filters,
+				namespace,
+				preloadSection: true,
+			}),
+			taskUtil
+		),
 	};
 
 	const bundleDbgOptions = {
-		bundleDefinition: getBundleDefinition({
-			name: "sap-ui-custom-dbg.js",
-			filters,
-			namespace
-		}),
+		bundleDefinition: applyDefaultsToBundleDefinition(
+			getBundleDefinition({
+				name: "sap-ui-custom-dbg.js",
+				filters,
+				namespace,
+			}),
+			taskUtil
+		),
 		bundleOptions: {
-			optimize: false
+			optimize: false,
 		},
-		moduleNameMapping: unoptimizedModuleNameMapping
+		moduleNameMapping: unoptimizedModuleNameMapping,
 	};
 
 	if (coreVersion) {

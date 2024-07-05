@@ -1,4 +1,5 @@
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
+import {applyDefaultsToBundleDefinition} from "./utils/applyDefaultsToBundleDefinition.js";
 import createModuleNameMapping from "./utils/createModuleNameMapping.js";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 
@@ -96,7 +97,9 @@ export default async function({
 	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}").then((resources) => {
-		const options = {bundleDefinition, bundleOptions};
+		const options = {
+			bundleDefinition: applyDefaultsToBundleDefinition(bundleDefinition, taskUtil), bundleOptions
+		};
 		if (!optimize && taskUtil) {
 			options.moduleNameMapping = createModuleNameMapping({resources, taskUtil});
 		}
