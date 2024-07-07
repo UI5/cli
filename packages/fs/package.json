@@ -126,7 +126,7 @@
 		"@ui5/logger": "^3.0.0",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
-		"globby": "^14.0.1",
+		"globby": "^14.0.2",
 		"graceful-fs": "^4.2.11",
 		"micromatch": "^4.0.7",
 		"minimatch": "^9.0.5",
@@ -143,12 +143,12 @@
 		"eslint": "^8.57.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
-		"eslint-plugin-jsdoc": "^48.5.0",
+		"eslint-plugin-jsdoc": "^48.5.2",
 		"esmock": "^2.6.6",
 		"jsdoc": "^4.0.3",
 		"nyc": "^17.0.0",
 		"open-cli": "^8.0.0",
-		"rimraf": "^5.0.7",
+		"rimraf": "^5.0.8",
 		"sinon": "^18.0.0",
 		"tap-xunit": "^2.4.1"
 	}
