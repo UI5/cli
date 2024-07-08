@@ -13,7 +13,7 @@ test.afterEach.always((t) => {
 	sinon.restore();
 });
 
-test("integration: build application.b standalone", async (t) => {
+test.serial("integration: build application.b standalone", async (t) => {
 	const destPath = "./test/tmp/build/application.b/standalone";
 	const expectedPath = "./test/expected/build/application.b/standalone";
 	const excludedTasks = ["*"];
@@ -32,15 +32,14 @@ test("integration: build application.b standalone", async (t) => {
 	const expectedFiles = await findFiles(expectedPath);
 
 	// Check for all directories and files
-	directoryDeepEqual(destPath, expectedPath, "Result directory structure correct");
+	await directoryDeepEqual(t, destPath, expectedPath);
 
 	// Check for all file contents
-	expectedFiles.forEach((expectedFile) => {
+	await Promise.all(expectedFiles.map(async (expectedFile) => {
 		const relativeFile = path.relative(expectedPath, expectedFile);
 		const destFile = path.join(destPath, relativeFile);
-		fileEqual(destFile, expectedFile, "Correct file content");
-	});
-	t.pass("No assertion exception");
+		await fileEqual(t, destFile, expectedFile);
+	}));
 });
 
 const applicationBTree = {
