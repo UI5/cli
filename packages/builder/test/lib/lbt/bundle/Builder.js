@@ -2835,3 +2835,148 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 	t.deepEqual(oResult.bundleInfo.subModules, ["myModule.js", "myModuleUsingGlobals.js", "myRawModule.js"],
 		"bundle info subModules are correct");
 });
+
+test.serial("getUi5MajorVersion without cache", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const bundleDefinition = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"],
+			async: false
+		}]
+	};
+
+	// UI5 sap.ui.core version not defined
+	const builder = new Builder(pool);
+	const getUi5MajorVersionSpy = sinon.spy(builder, "getUi5MajorVersion");
+
+	t.is(builder.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
+	await builder.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(getUi5MajorVersionSpy.callCount, 1, "getUi5MajorVersion has been called once");
+	t.is(getUi5MajorVersionSpy.getCall(0).returnValue, null, "UI5 Major Version can not correctly determined");
+
+	// UI5 sap.ui.core 1.X
+	const builderUI5v1 = new Builder(pool, "1.120.0");
+	const getUi5MajorVersionUI5v1Spy = sinon.spy(builderUI5v1, "getUi5MajorVersion");
+
+	t.is(builderUI5v1.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
+	await builderUI5v1.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(getUi5MajorVersionUI5v1Spy.callCount, 1, "getUi5MajorVersion has been called once");
+	t.is(getUi5MajorVersionUI5v1Spy.getCall(0).returnValue, 1, "UI5 Major Version correctly determined");
+
+	// UI5 sap.ui.core 2.X
+	const builderUI5v2 = new Builder(pool, "2.0.0");
+	const getUi5MajorVersionUI5v2Spy = sinon.spy(builderUI5v2, "getUi5MajorVersion");
+	t.is(builderUI5v2.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
+
+	await t.throwsAsync(builderUI5v2.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	}));
+	t.is(getUi5MajorVersionUI5v2Spy.callCount, 1, "getUi5MajorVersion has been called once");
+	t.is(getUi5MajorVersionUI5v2Spy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
+});
+
+test.serial("getUi5MajorVersion with cache", async (t) => {
+	const pool = new ResourcePool();
+	pool.addResource({
+		name: "ui5loader.js",
+		getPath: () => "ui5loader.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "(function(__global) {sap.ui.require = function(){};}(window));"
+	});
+	pool.addResource({
+		name: "sap/ui/core/Core.js",
+		getPath: () => "sap/ui/core/Core.js",
+		string: function() {
+			return this.buffer();
+		},
+		buffer: async () => "sap.ui.define([],function(){return {};});"
+	});
+
+	const mySemverValidStub = sinon.stub().returns(true);
+	const BuilderWithSemverStub = await esmock("../../../../lib/lbt/bundle/Builder", {
+		"semver": {
+			valid: mySemverValidStub,
+		}
+	});
+
+	const bundleDefinitionUsingCache = {
+		name: `bootstrap.js`,
+		defaultFileTypes: [".js"],
+		sections: [{
+			mode: "raw",
+			filters: ["ui5loader.js"],
+			declareRawModules: undefined,
+			sort: undefined
+		}, {
+			mode: "preload",
+			filters: ["sap/ui/core/Core.js"],
+			resolve: true
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"],
+		}, {
+			mode: "require",
+			filters: ["sap/ui/core/Core.js"]
+		}]
+	};
+
+	// UI5 sap.ui.core 2.X using cache at the second call
+	const builderUI5v2WithCache = new BuilderWithSemverStub(pool, "2.0.0");
+	const getUi5MajorVersionUI5v2WithCacheSpy = sinon.spy(builderUI5v2WithCache, "getUi5MajorVersion");
+	t.is(builderUI5v2WithCache.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
+
+	await builderUI5v2WithCache.createBundle(bundleDefinitionUsingCache, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	});
+	t.is(getUi5MajorVersionUI5v2WithCacheSpy.callCount, 2, "getUi5MajorVersion has been called twice");
+	t.is(getUi5MajorVersionUI5v2WithCacheSpy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
+	t.is(getUi5MajorVersionUI5v2WithCacheSpy.getCall(1).returnValue, 2, "UI5 Major Version correctly determined");
+	t.is(mySemverValidStub.callCount, 1, "semver.valid has been called only once");
+});

@@ -62,7 +62,7 @@ class BundleBuilder {
 			this.targetUi5CoreVersionMajor = semver.major(this.targetUi5CoreVersion);
 		} else {
 			// Assume legacy version if unable to determine the version
-			this.targetUi5CoreVersionMajor === null;
+			this.targetUi5CoreVersionMajor = null;
 		}
 		return this.targetUi5CoreVersionMajor;
 	}
