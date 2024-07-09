@@ -5,9 +5,12 @@ import chalk from "chalk";
 import path from "node:path";
 import {execa} from "execa";
 import stripAnsi from "strip-ansi";
+import {platform} from "node:process";
 
 const __dirname = import.meta.dirname;
 const ui5Cli = path.join(__dirname, "..", "..", "..", "..", "bin", "ui5.cjs");
+// On Windows, execa@>=9 returns quotes around the path, so it is necessary to add them here
+const ui5CliPath = platform === "win32" ? `"${ui5Cli}"` : ui5Cli;
 const ui5 = (args, options = {}) => execa(ui5Cli, args, options);
 
 function getDefaultArgv() {
@@ -240,7 +243,8 @@ test.serial("ui5 config empty option", async (t) => {
 		message: ($) => {
 			const message = stripAnsi($);
 			// stderr might include debug information
-			return message.includes(`Command failed with exit code 1: ${ui5Cli} config set`) &&
+
+			return message.includes(`Command failed with exit code 1: ${ui5CliPath} config set`) &&
 				message.includes(`Command Failed:
 Not enough non-option arguments: got 0, need at least 1
 
@@ -253,7 +257,7 @@ test.serial("ui5 config unknown command", async (t) => {
 	await t.throwsAsync(ui5(["config", "foo"]), {
 		message: ($) => {
 			const message = stripAnsi($);
-			return message.includes(`Command failed with exit code 1: ${ui5Cli} config foo`) &&
+			return message.includes(`Command failed with exit code 1: ${ui5CliPath} config foo`) &&
 				message.includes(`Command Failed:
 Unknown argument: foo
 
