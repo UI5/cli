@@ -2,7 +2,19 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.1.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.2.1...HEAD).
+
+<a name="v3.2.1"></a>
+## [v3.2.1] - 2024-05-15
+### Bug Fixes
+- **middleware/versionInfo:** Only process dependencies of type 'library' [`4c99455`](https://github.com/SAP/ui5-server/commit/4c99455cf21539c2d1403cca81c603ead7124351)
+
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2024-04-24
+### Features
+- **serveResources:** Dynamically generate missing library manifest.json [`d31f2c5`](https://github.com/SAP/ui5-server/commit/d31f2c57aa0b0c72fb033c41587ff257312838d1)
+
 
 <a name="v3.1.5"></a>
 ## [v3.1.5] - 2023-12-12
@@ -329,6 +341,8 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v3.2.1]: https://github.com/SAP/ui5-server/compare/v3.2.0...v3.2.1
+[v3.2.0]: https://github.com/SAP/ui5-server/compare/v3.1.5...v3.2.0
 [v3.1.5]: https://github.com/SAP/ui5-server/compare/v3.1.4...v3.1.5
 [v3.1.4]: https://github.com/SAP/ui5-server/compare/v3.1.3...v3.1.4
 [v3.1.3]: https://github.com/SAP/ui5-server/compare/v3.1.2...v3.1.3
