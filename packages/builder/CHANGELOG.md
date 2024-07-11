@@ -2,7 +2,28 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.3.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.5.0...HEAD).
+
+<a name="v3.5.0"></a>
+## [v3.5.0] - 2024-06-21
+### Features
+- ES2023 Support [`097049d`](https://github.com/SAP/ui5-builder/commit/097049daeec5c54c2d5e858b12e0c54c826ff663)
+
+
+<a name="v3.4.1"></a>
+## [v3.4.1] - 2024-05-13
+### Bug Fixes
+- **bundle/Builder:** Correct bundling of resources with empty source map [`1228db7`](https://github.com/SAP/ui5-builder/commit/1228db78e7e655cea58c20517662b08dd09db87b)
+
+
+<a name="v3.4.0"></a>
+## [v3.4.0] - 2024-04-24
+### Features
+- **generateFlexChangesBundle:** Handle minUI5Version as array ([#1009](https://github.com/SAP/ui5-builder/issues/1009)) [`45c9b7e`](https://github.com/SAP/ui5-builder/commit/45c9b7efc255e1d62dfed82ccf67b61d54dd8627)
+
+
+<a name="v3.3.1"></a>
+## [v3.3.1] - 2024-03-27
 
 <a name="v3.3.0"></a>
 ## [v3.3.0] - 2024-01-18
@@ -857,6 +878,10 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v3.5.0]: https://github.com/SAP/ui5-builder/compare/v3.4.1...v3.5.0
+[v3.4.1]: https://github.com/SAP/ui5-builder/compare/v3.4.0...v3.4.1
+[v3.4.0]: https://github.com/SAP/ui5-builder/compare/v3.3.1...v3.4.0
+[v3.3.1]: https://github.com/SAP/ui5-builder/compare/v3.3.0...v3.3.1
 [v3.3.0]: https://github.com/SAP/ui5-builder/compare/v3.2.0...v3.3.0
 [v3.2.0]: https://github.com/SAP/ui5-builder/compare/v3.1.1...v3.2.0
 [v3.1.1]: https://github.com/SAP/ui5-builder/compare/v3.1.0...v3.1.1
