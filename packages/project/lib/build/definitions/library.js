@@ -89,6 +89,8 @@ export default function({project, taskUtil, getTask}) {
 
 	tasks.set("generateLibraryManifest", {});
 
+	tasks.set("enhanceManifest", {});
+
 	const bundles = project.getBundles();
 	const existingBundleDefinitionNames =
 		bundles.map(({bundleDefinition}) => bundleDefinition.name).filter(Boolean);
