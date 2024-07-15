@@ -9681,9 +9681,9 @@
 			}
 		},
 		"node_modules/package-json": {
-			"version": "10.0.0",
-			"resolved": "https://registry.npmjs.org/package-json/-/package-json-10.0.0.tgz",
-			"integrity": "sha512-w34pqp733w35nElGG6eH1OnDnHEWud4uxruQ2nKzY/Uy0uOJmWFdjDcAC+xAD4goVuBZStwaAEBS21BANv83HQ==",
+			"version": "10.0.1",
+			"resolved": "https://registry.npmjs.org/package-json/-/package-json-10.0.1.tgz",
+			"integrity": "sha512-ua1L4OgXSBdsu1FPb7F3tYH0F48a6kxvod4pLUlGY9COeJAJQNX/sNH2IiEmsxw7lqYiAwrdHMjz1FctOsyDQg==",
 			"dependencies": {
 				"ky": "^1.2.0",
 				"registry-auth-token": "^5.0.2",
@@ -10042,9 +10042,9 @@
 			}
 		},
 		"node_modules/peek-readable": {
-			"version": "5.1.1",
-			"resolved": "https://registry.npmjs.org/peek-readable/-/peek-readable-5.1.1.tgz",
-			"integrity": "sha512-4hEOSH7KeEaZpMDF/xfm1W9fS5rT7Ett3BkXWHqAEzRLLwLaHkwOL+GvvpIEh9UrvX9BDhzfkvteslgraoH69w==",
+			"version": "5.1.2",
+			"resolved": "https://registry.npmjs.org/peek-readable/-/peek-readable-5.1.2.tgz",
+			"integrity": "sha512-RXwDkKgcwPyi1AJs7qcKk00Q7v9vZdy8HQNQrJ0QOCTshdebt14dfsGYeO33Uz6bvi3DFE24RSzqshxyx5qjUw==",
 			"dev": true,
 			"engines": {
 				"node": ">=14.16"
@@ -11934,9 +11934,9 @@
 			}
 		},
 		"node_modules/synckit": {
-			"version": "0.9.0",
-			"resolved": "https://registry.npmjs.org/synckit/-/synckit-0.9.0.tgz",
-			"integrity": "sha512-7RnqIMq572L8PeEzKeBINYEJDDxpcH8JEgLwUqBd3TkofhFRbkq4QLR0u+36avGAhCRbk2nnmjcW9SE531hPDg==",
+			"version": "0.9.1",
+			"resolved": "https://registry.npmjs.org/synckit/-/synckit-0.9.1.tgz",
+			"integrity": "sha512-7gr8p9TQP6RAHusBOSLs46F4564ZrjV8xFmw5zCmgmhGUcw2hxsShhJ6CEiHQMgPDwAQ1fWHPM0ypc4RMAig4A==",
 			"dev": true,
 			"dependencies": {
 				"@pkgr/core": "^0.1.0",
