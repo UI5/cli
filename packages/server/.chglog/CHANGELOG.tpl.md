@@ -33,6 +33,59 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 
+<a name="v3.2.1"></a>
+## [v3.2.1] - 2024-05-15
+### Bug Fixes
+- **middleware/versionInfo:** Only process dependencies of type 'library' [`4c99455`](https://github.com/SAP/ui5-server/commit/4c99455cf21539c2d1403cca81c603ead7124351)
+
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2024-04-24
+### Features
+- **serveResources:** Dynamically generate missing library manifest.json [`d31f2c5`](https://github.com/SAP/ui5-server/commit/d31f2c57aa0b0c72fb033c41587ff257312838d1)
+
+
+<a name="v3.1.5"></a>
+## [v3.1.5] - 2023-12-12
+### Bug Fixes
+- Unsafe jQuery plugin ([#618](https://github.com/SAP/ui5-server/issues/618)) [`ff1dc29`](https://github.com/SAP/ui5-server/commit/ff1dc297a9221f534173ec44e38e5a6eec6b9ba5)
+
+
+<a name="v3.1.4"></a>
+## [v3.1.4] - 2023-11-20
+
+<a name="v3.1.3"></a>
+## [v3.1.3] - 2023-06-06
+### Bug Fixes
+- **middleware/testRunner:** Update resources from OpenUI5 [`f0c7291`](https://github.com/SAP/ui5-server/commit/f0c7291d2dc1d753e04184fdf2127c278810f0c4)
+
+
+<a name="v3.1.2"></a>
+## [v3.1.2] - 2023-04-12
+### Bug Fixes
+- Fix JSDoc names of typedefs in MiddlewareUtil. [`dbd6fe1`](https://github.com/SAP/ui5-server/commit/dbd6fe19c229471ba2b8621b97b8f5a9bca56a78)
+
+
+<a name="v3.1.1"></a>
+## [v3.1.1] - 2023-03-16
+### Bug Fixes
+- Allow serving of propertyfiles of non component project types [`1bc6ec7`](https://github.com/SAP/ui5-server/commit/1bc6ec72a15ae7df558c4938b2670d0e78af710b)
+
+
+<a name="v3.1.0"></a>
+## [v3.1.0] - 2023-03-01
+### Features
+- **CSP:** Increase defaultPolicy2 to sap-target-level-3 ([#580](https://github.com/SAP/ui5-server/issues/580)) [`5a981a1`](https://github.com/SAP/ui5-server/commit/5a981a1d7f2d2aaffbcd2f68e02206a8bdb0494b)
+
+
+<a name="v3.0.1"></a>
+## [v3.0.1] - 2023-02-16
+### Bug Fixes
+- **MiddlewareUtil:** Provide framework configuration getters to custom tasks ([#579](https://github.com/SAP/ui5-server/issues/579)) [`58bf4f5`](https://github.com/SAP/ui5-server/commit/58bf4f5953aed3a1fc6f4f4353e37fe6c3b7094f)
+
+
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
 - Transform to ES Modules ([#501](https://github.com/SAP/ui5-server/issues/501)) [`05e3013`](https://github.com/SAP/ui5-server/commit/05e3013605e28e9ab5a785aa57616473d40e5710)
 - Remove "/proxy" endpoint ([#550](https://github.com/SAP/ui5-server/issues/550)) [`4bdf839`](https://github.com/SAP/ui5-server/commit/4bdf839e96f67ddbc4cb2a18216921d54df4006e)
