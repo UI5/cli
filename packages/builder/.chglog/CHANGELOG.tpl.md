@@ -33,6 +33,116 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 
+<a name="v3.5.0"></a>
+## [v3.5.0] - 2024-06-21
+### Features
+- ES2023 Support [`097049d`](https://github.com/SAP/ui5-builder/commit/097049daeec5c54c2d5e858b12e0c54c826ff663)
+
+
+<a name="v3.4.1"></a>
+## [v3.4.1] - 2024-05-13
+### Bug Fixes
+- **bundle/Builder:** Correct bundling of resources with empty source map [`1228db7`](https://github.com/SAP/ui5-builder/commit/1228db78e7e655cea58c20517662b08dd09db87b)
+
+
+<a name="v3.4.0"></a>
+## [v3.4.0] - 2024-04-24
+### Features
+- **generateFlexChangesBundle:** Handle minUI5Version as array ([#1009](https://github.com/SAP/ui5-builder/issues/1009)) [`45c9b7e`](https://github.com/SAP/ui5-builder/commit/45c9b7efc255e1d62dfed82ccf67b61d54dd8627)
+
+
+<a name="v3.3.1"></a>
+## [v3.3.1] - 2024-03-27
+
+<a name="v3.3.0"></a>
+## [v3.3.0] - 2024-01-18
+### Features
+- **flexChangesBundler:** Merge existing with new flexibility-bundle.json [`fd070ab`](https://github.com/SAP/ui5-builder/commit/fd070abaa22680ee70b448fa0ac406a8f2b57cc5)
+
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2023-12-12
+### Bug Fixes
+- Incomplete multi-character sanitization ([#959](https://github.com/SAP/ui5-builder/issues/959)) [`d61f1b7`](https://github.com/SAP/ui5-builder/commit/d61f1b744495f5428db33467218077e7996f1575)
+- Add guard against prototype pollution ([#960](https://github.com/SAP/ui5-builder/issues/960)) [`ba230d9`](https://github.com/SAP/ui5-builder/commit/ba230d922cac0acd291dfe18b0ae7a95eae8b190)
+- Incomplete string escaping or encoding ([#958](https://github.com/SAP/ui5-builder/issues/958)) [`50bb0d9`](https://github.com/SAP/ui5-builder/commit/50bb0d97e76fb312412cf29fae18b76cc88df6f4)
+- **manifestCreator:** set fallbackLocale to empty string if no locale is present ([#962](https://github.com/SAP/ui5-builder/issues/962)) [`26526a0`](https://github.com/SAP/ui5-builder/commit/26526a08ff38ee11ed3bd506f7ef0610f1d1ccb0)
+
+### Features
+- depCache bundling mode ([#951](https://github.com/SAP/ui5-builder/issues/951)) [`f2cf564`](https://github.com/SAP/ui5-builder/commit/f2cf564f0f71d635e58a743c7bdef1f427e341b2)
+
+
+<a name="v3.1.1"></a>
+## [v3.1.1] - 2023-11-20
+### Bug Fixes
+- Handle graceful termination of workerpool for parallel builds ([#953](https://github.com/SAP/ui5-builder/issues/953)) [`f7b9f27`](https://github.com/SAP/ui5-builder/commit/f7b9f27ac5966bd89e52e4c2d5b03482a0f3dbb7)
+- **Bundling:** Detect manifest.json dependency of libraries [`6f9995f`](https://github.com/SAP/ui5-builder/commit/6f9995f5b47a6094fa93b5d433be849b1d3cdc7e)
+
+
+<a name="v3.1.0"></a>
+## [v3.1.0] - 2023-10-11
+### Bug Fixes
+- **bundle/Builder:** Add missing 'names' attribute to generated source maps [`57e0e50`](https://github.com/SAP/ui5-builder/commit/57e0e5047638a9a704a696b8af7780fbbceefbc4)
+
+### Features
+- Validate apiVersion property in Library.init ([#943](https://github.com/SAP/ui5-builder/issues/943)) [`52bf258`](https://github.com/SAP/ui5-builder/commit/52bf25842a59c3fa1ddbe71b482b232e18b55288)
+- **Minifier:** Support input source maps ([#780](https://github.com/SAP/ui5-builder/issues/780)) [`67ecb27`](https://github.com/SAP/ui5-builder/commit/67ecb27e44a2d84e6b2203f31049220dcbcd41f0)
+
+### Reverts
+- [INTERNAL] Azure Pipelines: Switch back to Node 20.5.x
+
+
+<a name="v3.0.9"></a>
+## [v3.0.9] - 2023-07-26
+
+<a name="v3.0.8"></a>
+## [v3.0.8] - 2023-07-19
+### Bug Fixes
+- Revert "[INTERNAL] Remove implicit dependencies concept ([#913](https://github.com/SAP/ui5-builder/issues/913))" [`1043714`](https://github.com/SAP/ui5-builder/commit/1043714e3b952a8280f1ff7909f79db3b750eb0c)
+- **generateJsdoc:** Also process resources created by preceeding tasks [`04447bd`](https://github.com/SAP/ui5-builder/commit/04447bdec28b8bf18c24bd53e3fe8be9bdeed6c2)
+
+
+<a name="v3.0.7"></a>
+## [v3.0.7] - 2023-07-13
+### Bug Fixes
+- Don't report a missing module that's contained in another bundle ([#915](https://github.com/SAP/ui5-builder/issues/915)) [`8f23f38`](https://github.com/SAP/ui5-builder/commit/8f23f388f6d64f313ae8a89d0fcaf39ba905a70b)
+
+
+<a name="v3.0.6"></a>
+## [v3.0.6] - 2023-06-21
+
+<a name="v3.0.5"></a>
+## [v3.0.5] - 2023-06-05
+### Bug Fixes
+- **bundle/Builder:** Remove sourceMappingURL from modules embedded as string [`a2f410c`](https://github.com/SAP/ui5-builder/commit/a2f410c32945a6a25fdf47b7b06ccb7f21ef5716)
+
+### Dependency Updates
+- Bump xml2js from 0.5.0 to 0.6.0 [`9679830`](https://github.com/SAP/ui5-builder/commit/967983000d64324089740c5ffc0460dcca23866f)
+
+
+<a name="v3.0.4"></a>
+## [v3.0.4] - 2023-05-23
+### Bug Fixes
+- **lbt/Resolver:** ensure stable module order in generated bundleInfo [`482b8a0`](https://github.com/SAP/ui5-builder/commit/482b8a011d9f0e3fc24d0485be7caf1509195c82)
+
+
+<a name="v3.0.3"></a>
+## [v3.0.3] - 2023-04-21
+### Dependency Updates
+- Bump rimraf from 4.4.1 to 5.0.0 ([#897](https://github.com/SAP/ui5-builder/issues/897)) [`7b5e442`](https://github.com/SAP/ui5-builder/commit/7b5e442be80ff2e070c249a2c3c3cbe11a34b956)
+
+
+<a name="v3.0.2"></a>
+## [v3.0.2] - 2023-04-12
+### Dependency Updates
+- Bump xml2js from 0.4.23 to 0.5.0 [`5269fc2`](https://github.com/SAP/ui5-builder/commit/5269fc206b30a13d28493892cc658f1614e7cc74)
+
+
+<a name="v3.0.1"></a>
+## [v3.0.1] - 2023-02-16
+
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
 - Transform to ES Modules ([#790](https://github.com/SAP/ui5-builder/issues/790)) [`a439aa9`](https://github.com/SAP/ui5-builder/commit/a439aa9f679dfe2e18b8c540f54876f94c0de119)
 - **generateJsDoc:** Remove internal 'buildContext' parameter [`4ec80c8`](https://github.com/SAP/ui5-builder/commit/4ec80c874e177b658b1cd819431b6cb0660ded87)
