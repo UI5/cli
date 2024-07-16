@@ -123,7 +123,7 @@
 		"url": "git@github.com:SAP/ui5-fs.git"
 	},
 	"dependencies": {
-		"@ui5/logger": "^3.0.0",
+		"@ui5/logger": "^4.0.0",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^14.0.2",
