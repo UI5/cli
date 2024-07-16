@@ -33,7 +33,8 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 
-
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
 
 - Replace npmlog with @ui5/logger/Logger (#363) [`66a159a`](https://github.com/SAP/ui5-logger/commit/66a159acd9b67a27dd66d1e8056c362585f51bcf)
