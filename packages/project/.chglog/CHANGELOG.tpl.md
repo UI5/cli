@@ -33,6 +33,205 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 
+<a name="v3.9.2"></a>
+## [v3.9.2] - 2024-06-24
+### Dependency Updates
+- Bump pacote from 17.0.7 to 18.0.6 [`9b6d580`](https://github.com/SAP/ui5-project/commit/9b6d58085bb74e4a2dfc1dccf528434db217e868)
+
+
+<a name="v3.9.1"></a>
+## [v3.9.1] - 2024-03-27
+
+<a name="v3.9.0"></a>
+## [v3.9.0] - 2023-12-12
+### Features
+- **ProjectBuilder:** Add `outputStyle` option to request flat build output ([#624](https://github.com/SAP/ui5-project/issues/624)) [`79312fc`](https://github.com/SAP/ui5-project/commit/79312fcefea1ea97c1f3d403ac4470f890069809)
+- **specVersion 3.2:** depCache bundling mode ([#673](https://github.com/SAP/ui5-project/issues/673)) [`68c5278`](https://github.com/SAP/ui5-project/commit/68c52782afbb617ddf110aca02d96f34a39ad5f7)
+
+
+<a name="v3.8.0"></a>
+## [v3.8.0] - 2023-11-20
+### Bug Fixes
+- **application:** Improve error message for missing manifest.json [`016a846`](https://github.com/SAP/ui5-project/commit/016a84692aa1645f2e4267673d99495457c28458)
+
+### Features
+- **TaskUtil:** Add 'force' flag to cleanup task callback ([#677](https://github.com/SAP/ui5-project/issues/677)) [`a0a21b7`](https://github.com/SAP/ui5-project/commit/a0a21b7ecd2805ff3d8d78ba9a453df64012556a)
+
+
+<a name="v3.7.3"></a>
+## [v3.7.3] - 2023-10-20
+### Bug Fixes
+- ProjectBuilder now can be executed in parallel  ([#669](https://github.com/SAP/ui5-project/issues/669)) [`f652461`](https://github.com/SAP/ui5-project/commit/f652461455a28718835cc66c7265f628be1e13b9)
+
+
+<a name="v3.7.2"></a>
+## [v3.7.2] - 2023-10-11
+### Dependency Updates
+- Bump make-fetch-happen from 11.1.1 to 13.0.0 [`f2e264e`](https://github.com/SAP/ui5-project/commit/f2e264e87dfef1d5a132a1a0bf35043a789f8e84)
+- Bump pacote from 15.2.0 to 17.0.4 [`f071399`](https://github.com/SAP/ui5-project/commit/f071399d994963b415c8ea35a629c465ae539f23)
+- Bump [@npmcli](https://github.com/npmcli)/config from 6.4.0 to 8.0.0 [`c9f5218`](https://github.com/SAP/ui5-project/commit/c9f521815bab022bc8c0e8a3c27658266f01c655)
+
+
+<a name="v3.7.1"></a>
+## [v3.7.1] - 2023-10-02
+### Bug Fixes
+- Allow usage of after/before task assignment for all standard tasks ([#628](https://github.com/SAP/ui5-project/issues/628)) [`1a272d2`](https://github.com/SAP/ui5-project/commit/1a272d2bd2700fa849ebb46bf9bd98806fa17fb2)
+
+
+<a name="v3.7.0"></a>
+## [v3.7.0] - 2023-09-06
+### Bug Fixes
+- Ensure usage of provided UI5 data dir [`1e0503a`](https://github.com/SAP/ui5-project/commit/1e0503a32dae06202b62408558d5ef85bb49daf1)
+- **NodePackageDependencies:** Implement validation for missing package.json attributes [`b070972`](https://github.com/SAP/ui5-project/commit/b0709725b373441fd62fe9e33cc0440b6df17401)
+- **ProjectGraph:** Improve error message when adding duplicate projects or extensions [`2b4a49e`](https://github.com/SAP/ui5-project/commit/2b4a49e2b6dc4004bf078d259c1a8f54ccc0ae2c)
+- **pacote:** Use npm cache within UI5 data dir [`f1e2178`](https://github.com/SAP/ui5-project/commit/f1e217803d0c455f61135084b00a7daf42fb9094)
+
+### Features
+- **Resolvers:** Allow ranges / npm tags for version resolution [`2841004`](https://github.com/SAP/ui5-project/commit/28410044f9d4abd348dc3e0697048543eb7796d9)
+- **Resolvers:** Use npm tags for determining 'latest' [`5cde95a`](https://github.com/SAP/ui5-project/commit/5cde95a04f2f040fffd0798822058f9692761cc4)
+
+
+<a name="v3.6.0"></a>
+## [v3.6.0] - 2023-08-22
+### Features
+- Add specVersion 3.1 and builder resource excludes for modules ([#639](https://github.com/SAP/ui5-project/issues/639)) [`2ac053e`](https://github.com/SAP/ui5-project/commit/2ac053ef299bbaf02e73e12e2876f301d2b07d1b)
+- **AbstractResolver:** Resolve version ranges specifying major version only [`1f8cfdf`](https://github.com/SAP/ui5-project/commit/1f8cfdf3c72745904fbdceab049ae5d2cbf86b06)
+
+
+<a name="v3.5.1"></a>
+## [v3.5.1] - 2023-08-18
+### Bug Fixes
+- Resolve UI5 data directory relative to project ([#642](https://github.com/SAP/ui5-project/issues/642)) [`228b14c`](https://github.com/SAP/ui5-project/commit/228b14c63fbd736962c513fdd1656a7983f51bbc)
+
+
+<a name="v3.5.0"></a>
+## [v3.5.0] - 2023-08-09
+### Features
+- Allow to configure location of UI5 home directory ([#635](https://github.com/SAP/ui5-project/issues/635)) [`8c86083`](https://github.com/SAP/ui5-project/commit/8c860839d94abdaedaf878614a9121a89b85f116)
+
+
+<a name="v3.4.2"></a>
+## [v3.4.2] - 2023-07-13
+### Bug Fixes
+- **Application:** Fallback to manifest.appdescr_variant if manifest.json is not found ([#631](https://github.com/SAP/ui5-project/issues/631)) [`43c6b22`](https://github.com/SAP/ui5-project/commit/43c6b224cf7ecad39a060baf8c6922f919e6dd59)
+
+### Dependency Updates
+- Bump read-pkg-up from 9.1.0 to 10.0.0 [`557cb36`](https://github.com/SAP/ui5-project/commit/557cb36790ba53aa43a15cf7211560461dabb9e5)
+
+
+<a name="v3.4.1"></a>
+## [v3.4.1] - 2023-07-03
+### Bug Fixes
+- Migrate from libnpmconfig to [@npmcli](https://github.com/npmcli)/config ([#618](https://github.com/SAP/ui5-project/issues/618)) [`13d019b`](https://github.com/SAP/ui5-project/commit/13d019bb4d8eda05c0a1564c6a2b96fa4eb05ab1)
+
+
+<a name="v3.4.0"></a>
+## [v3.4.0] - 2023-06-21
+### Bug Fixes
+- **maven/Registry:** Prevent socket timeouts when installing framework libraries [`3de767f`](https://github.com/SAP/ui5-project/commit/3de767fb7cc9278bf984ff88064a16e593db6db0)
+
+### Features
+- **Sapui5MavenSnapshotResolver:** Use npm-dist.zip artifact for 1.116.0 and later ([#622](https://github.com/SAP/ui5-project/issues/622)) [`45dcee0`](https://github.com/SAP/ui5-project/commit/45dcee00f141b6632d5a1217affbd212f6faf1f4)
+
+
+<a name="v3.3.2"></a>
+## [v3.3.2] - 2023-06-06
+### Bug Fixes
+- **ui5Framework:** Treat 'optional' dependencies of root project as non-optional [`f3318f0`](https://github.com/SAP/ui5-project/commit/f3318f0daff617e12ac97050e19d41a16ecbc748)
+- **ui5Framework:** Choose correct resolver for snapshot framework version overrides [`ba860de`](https://github.com/SAP/ui5-project/commit/ba860de97bc1674fa8381706cc09bd68ee08df38)
+
+### Dependency Updates
+- Bump xml2js from 0.5.0 to 0.6.0 [`aa7d853`](https://github.com/SAP/ui5-project/commit/aa7d853f4a719006a6aaf4e51cc5c12fd00d2aa1)
+
+
+<a name="v3.3.1"></a>
+## [v3.3.1] - 2023-05-23
+### Bug Fixes
+- **Workspace:** Ignore empty npm workspace modules ([#614](https://github.com/SAP/ui5-project/issues/614)) [`66e82a3`](https://github.com/SAP/ui5-project/commit/66e82a37f8c559eb7219fad0329a4d77fd3a6481)
+- **projectGraphBuilder:** Add module cache invalidation ([#612](https://github.com/SAP/ui5-project/issues/612)) [`65496ea`](https://github.com/SAP/ui5-project/commit/65496eabeaafc50348dfc276d19d135eb035b261)
+
+
+<a name="v3.3.0"></a>
+## [v3.3.0] - 2023-05-05
+### Bug Fixes
+- Resolve properly package.json dependency aliases ([#608](https://github.com/SAP/ui5-project/issues/608)) [`f8753e5`](https://github.com/SAP/ui5-project/commit/f8753e53c6bc7f89bb19107073fb52db0a725cb9)
+
+### Features
+- **Sapui5MavenSnapshotResolver:** Expose cacheMode parameter through all APIs ([#607](https://github.com/SAP/ui5-project/issues/607)) [`78eb482`](https://github.com/SAP/ui5-project/commit/78eb4825ecab9534426f517e764451f53d232fed)
+
+
+<a name="v3.2.2"></a>
+## [v3.2.2] - 2023-04-27
+### Bug Fixes
+- **ui5Framework:** Respect npm proxy configuration to fetch libraries [`5e3da0c`](https://github.com/SAP/ui5-project/commit/5e3da0c552593ff521c8e27cdbb4aeb849f56aa4)
+
+
+<a name="v3.2.1"></a>
+## [v3.2.1] - 2023-04-21
+### Bug Fixes
+- **Configuration:** Rename toJSON => toJson [`4dfbf28`](https://github.com/SAP/ui5-project/commit/4dfbf28a20d67ce8d482c9d8ca18331d7fa69629)
+
+
+<a name="v3.2.0"></a>
+## [v3.2.0] - 2023-04-21
+### Dependency Updates
+- Bump rimraf from 4.4.1 to 5.0.0 ([#597](https://github.com/SAP/ui5-project/issues/597)) [`1da76bc`](https://github.com/SAP/ui5-project/commit/1da76bc21c218b154b1a6014808f8d3a4d101b69)
+
+### Features
+- Add Configuration ([#575](https://github.com/SAP/ui5-project/issues/575)) [`fd37cef`](https://github.com/SAP/ui5-project/commit/fd37cefffdc22b4a4bbc3fcbde20581848d937fa)
+- Enable snapshot consumption from Maven repository ([#570](https://github.com/SAP/ui5-project/issues/570)) [`ade2c49`](https://github.com/SAP/ui5-project/commit/ade2c49d66ebba229b62c6614c8bbdfed10bc6b0)
+
+
+<a name="v3.1.1"></a>
+## [v3.1.1] - 2023-04-12
+### Dependency Updates
+- Bump xml2js from 0.4.23 to 0.5.0 [`d6d86c9`](https://github.com/SAP/ui5-project/commit/d6d86c93db5c4d288161aa11b72bb6537c4f4cf4)
+- Bump read-pkg from 7.1.0 to 8.0.0 [`9800c06`](https://github.com/SAP/ui5-project/commit/9800c06004e44a4af8b86492b0f15cab465be0c0)
+
+
+<a name="v3.1.0"></a>
+## [v3.1.0] - 2023-03-31
+### Bug Fixes
+- **Taskrunner:** pass new taskutil options to determineRequiredDependencies hook [`94bcd99`](https://github.com/SAP/ui5-project/commit/94bcd9931d6709170b78a92e7372bbd0de44ae03)
+- **ui5Framework:** Prevent install of libraries within workspace ([#589](https://github.com/SAP/ui5-project/issues/589)) [`8ffc676`](https://github.com/SAP/ui5-project/commit/8ffc676434defd320c70b615960efc9182a29de9)
+
+### Features
+- **Specification:** Add getId method [`7bdb47a`](https://github.com/SAP/ui5-project/commit/7bdb47a2925c0936ee33faf23f51f6c6ab396369)
+- **Workspace:** Add getModules method [`1e2aa0e`](https://github.com/SAP/ui5-project/commit/1e2aa0e48bb2d895728f3d5f4cb74d55fbc8ec34)
+
+
+<a name="v3.0.4"></a>
+## [v3.0.4] - 2023-03-10
+### Bug Fixes
+- Resolve properly absolute path for ui5HomeDir ([#588](https://github.com/SAP/ui5-project/issues/588)) [`9b414a7`](https://github.com/SAP/ui5-project/commit/9b414a77a1d86f6a3560231ae04db407e2f022c5)
+
+
+<a name="v3.0.3"></a>
+## [v3.0.3] - 2023-03-01
+### Bug Fixes
+- **jsdoc:** enable generateVersionInfo task [`a58e5eb`](https://github.com/SAP/ui5-project/commit/a58e5eb0769a9ba63a0b0aa267675ef2f9c08769)
+
+
+<a name="v3.0.2"></a>
+## [v3.0.2] - 2023-02-17
+### Bug Fixes
+- **ComponentProject#getWorkspace:** Apply builder resource excludes [`5257e59`](https://github.com/SAP/ui5-project/commit/5257e5977c4e92e2aca5b0ce4b2ed55688a66646)
+
+
+<a name="v3.0.1"></a>
+## [v3.0.1] - 2023-02-16
+### Bug Fixes
+- Prevent socket timeouts when installing framework libraries [`a198356`](https://github.com/SAP/ui5-project/commit/a198356c9c5f39dd94fb8cf7542d9059ee628f3b)
+- **Library:** Do not throw for missing .library file [`1163821`](https://github.com/SAP/ui5-project/commit/11638210994fd9511b2ab5ee3da40e3ccf294e58)
+- **Project#getReader:** Do not apply builder resource excludes for style 'runtime' [`1cd94f7`](https://github.com/SAP/ui5-project/commit/1cd94f7f15ed07283e198238edb546517ee25691)
+- **TaskUtil:** Provide framework configuration getters to custom tasks ([#580](https://github.com/SAP/ui5-project/issues/580)) [`6a40927`](https://github.com/SAP/ui5-project/commit/6a409278285252da59ea4d42fcf154814518661d)
+- **graph:** Always resolve rootConfigPath to CWD [`ef3e569`](https://github.com/SAP/ui5-project/commit/ef3e56996111233aaa04410c95f11b1c3495a9b2)
+- **projectGraphBuilder:** Apply extensions of the same module only once [`6d753a8`](https://github.com/SAP/ui5-project/commit/6d753a850f2a4ca34a50f64a404472bf0081054e)
+- **ui5Framework:** Improve error handling for duplicate lib declaration [`fb1db6d`](https://github.com/SAP/ui5-project/commit/fb1db6d7cb74dee9c4754ffb62a2a970cb0e2fbe)
+
+
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
 - Implement Project Graph, build execution [`161f462`](https://github.com/SAP/ui5-project/commit/161f462cf6a9955337fff512007125128c6c39dd)
 - Run 'generateThemeDesignerResources' only on framework libs [`e4bb108`](https://github.com/SAP/ui5-project/commit/e4bb1084df3e0ae906df27aba4a674d187ff8069)
