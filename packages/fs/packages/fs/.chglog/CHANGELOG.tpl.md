@@ -33,6 +33,36 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 
+<a name="v3.0.5"></a>
+## [v3.0.5] - 2023-10-09
+
+<a name="v3.0.4"></a>
+## [v3.0.4] - 2023-05-23
+### Bug Fixes
+- Do not prefix excludes when creating a reader ([#504](https://github.com/SAP/ui5-fs/issues/504)) [`f765894`](https://github.com/SAP/ui5-fs/commit/f765894df3854242dc308b32581e3d234bbcf27e)
+
+
+<a name="v3.0.3"></a>
+## [v3.0.3] - 2023-04-21
+### Dependency Updates
+- Bump minimatch from 8.0.4 to 9.0.0 ([#497](https://github.com/SAP/ui5-fs/issues/497)) [`56d4542`](https://github.com/SAP/ui5-fs/commit/56d45423458564db7c2bdf7d1cdbd174c2057232)
+- Bump minimatch from 7.4.4 to 8.0.2 [`a53a4e3`](https://github.com/SAP/ui5-fs/commit/a53a4e3e531cc880de29a4e8176844dd2c743196)
+
+
+<a name="v3.0.2"></a>
+## [v3.0.2] - 2023-03-01
+### Dependency Updates
+- Bump minimatch from 6.2.0 to 7.2.0 [`d2c37d4`](https://github.com/SAP/ui5-fs/commit/d2c37d4be518b4cc812cb55b9a431796010725dc)
+
+
+<a name="v3.0.1"></a>
+## [v3.0.1] - 2023-02-16
+### Dependency Updates
+- Bump minimatch from 6.1.8 to 6.2.0 [`20e9311`](https://github.com/SAP/ui5-fs/commit/20e931149ce87d374e607f0f4e4357ae0abe3f97)
+
+
+<a name="v3.0.0"></a>
+## [v3.0.0] - 2023-02-09
 ### Breaking Changes
 - Transform to ES Modules ([#398](https://github.com/SAP/ui5-fs/issues/398)) [`2b61580`](https://github.com/SAP/ui5-fs/commit/2b615807a610dd7dfeb5423496ec7aebc9169011)
 - Throw an error on write of a resource when path does not starts with virBasePath of the respective adapter ([#453](https://github.com/SAP/ui5-fs/issues/453)) [`d76575f`](https://github.com/SAP/ui5-fs/commit/d76575f8f05a0b6695285200ba595e532620daed)
