@@ -25,7 +25,7 @@
 		"./internal/loggers/*": "./lib/loggers/*.js"
 	},
 	"engines": {
-		"node": "^20.11.0 || >=21.2.0",
+		"node": "^20.11.0 || >=22.0.0",
 		"npm": ">= 8"
 	},
 	"scripts": {
