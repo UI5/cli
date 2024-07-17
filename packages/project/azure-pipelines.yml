@@ -26,15 +26,6 @@ strategy:
     windows_node_lts_20:
       imageName: 'windows-2022'
       node_version: 20.x
-    linux_node_21:
-      imageName: 'ubuntu-22.04'
-      node_version: 21.x
-    mac_node_21:
-      imageName: 'macos-13'
-      node_version: 21.x
-    windows_node_21:
-      imageName: 'windows-2022'
-      node_version: 21.x
     linux_node_22:
       imageName: 'ubuntu-22.04'
       node_version: 22.x
