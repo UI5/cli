@@ -412,17 +412,16 @@
 				},
 				"sections": {
 					"type": "array",
-					"if": {
-						"$comment": "Add async prop only if mode = 'require'",
-						"items": {
-							"type": "object",
-							"mode": {
-								"enum": ["require"]
-							}
-						}
-					},
-					"then": {
-						"items": {
+					"items": {
+						"if": {
+							"properties": {
+								"mode": {
+									"const": "require"
+								}
+							},
+							"$comment": "Add async prop only if mode = 'require'"
+						}, 
+						"then": {
 							"type": "object",
 							"additionalProperties": false,
 							"required": ["mode", "filters"],
@@ -431,7 +430,7 @@
 									"type": "string"
 								},
 								"mode": {
-									"enum": ["raw", "preload", "require", "provided", "bundleInfo", "depCache"]
+									"enum": ["require"]
 								},
 								"filters": {
 									"type": "array",
@@ -464,10 +463,8 @@
 									"default": true
 								}
 							}
-						}
-					},
-					"else": {
-						"items": {
+						},
+						"else": {
 							"type": "object",
 							"additionalProperties": false,
 							"required": ["mode", "filters"],

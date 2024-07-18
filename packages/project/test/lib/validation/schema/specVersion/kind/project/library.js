@@ -125,7 +125,7 @@ SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) 
 									],
 									"resolve": true,
 									"sort": true,
-									"declareRawModules": false
+									"declareRawModules": false,
 								},
 								{
 									"mode": "require",
@@ -206,17 +206,62 @@ SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) 
 				// cachebuster is only supported for type application
 				"cachebuster": {
 					"signatureType": "time"
-				}
+				},
+				"bundles": [
+					{
+						"bundleDefinition": {
+							"name": "app.js",
+							"defaultFileTypes": [
+								".js"
+							],
+							"sections": [
+								{
+									"name": "some-app-preload",
+									"mode": "preload",
+									"filters": [
+										"some/app/Component.js"
+									],
+									"resolve": true,
+									"sort": true,
+									"declareRawModules": false,
+									"async": false
+								},
+								{
+									"mode": "require",
+									"filters": [
+										"ui5loader-autoconfig.js"
+									],
+									"resolve": true,
+									"async": false
+								}
+							]
+						},
+						"bundleOptions": {
+							"optimize": true,
+							"numberOfParts": 3
+						}
+					}
+				],
 			}
 		};
-		await assertValidation(t, config, [{
-			dataPath: "/builder",
-			keyword: "additionalProperties",
-			message: "should NOT have additional properties",
-			params: {
-				additionalProperty: "cachebuster"
-			}
-		}]);
+		await assertValidation(t, config, [
+			{
+				dataPath: "/builder",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "cachebuster",
+				},
+			},
+			{
+				dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+				keyword: "additionalProperties",
+				message: "should NOT have additional properties",
+				params: {
+					additionalProperty: "async",
+				},
+			},
+		]);
 	});
 });
 

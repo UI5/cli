@@ -205,70 +205,115 @@ SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) 
 	});
 
 	test(`Invalid resources configuration (specVersion ${specVersion})`, async (t) => {
-		await assertValidation(t, {
-			"specVersion": specVersion,
-			"type": "application",
-			"metadata": {
-				"name": "com.sap.ui5.test"
-			},
-			"resources": {
-				"configuration": {
-					"propertiesFileSourceEncoding": "FOO",
-					"paths": {
-						"app": "webapp",
-						"webapp": {
-							"path": "invalid"
-						}
-					},
-					"notAllowed": true
+		await assertValidation(
+			t,
+			{
+				specVersion: specVersion,
+				type: "application",
+				metadata: {
+					name: "com.sap.ui5.test",
 				},
-				"notAllowed": true
-			}
-		}, [
-			{
-				dataPath: "/resources",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "notAllowed",
-				}
-			},
-			{
-				dataPath: "/resources/configuration",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "notAllowed",
-				}
-			},
-			{
-				dataPath: "/resources/configuration/propertiesFileSourceEncoding",
-				keyword: "enum",
-				message: "should be equal to one of the allowed values",
-				params: {
-					allowedValues: [
-						"UTF-8",
-						"ISO-8859-1"
+				resources: {
+					configuration: {
+						propertiesFileSourceEncoding: "FOO",
+						paths: {
+							app: "webapp",
+							webapp: {
+								path: "invalid",
+							},
+						},
+						notAllowed: true,
+					},
+					notAllowed: true,
+				},
+				builder: {
+					// cachebuster is only supported for type application
+					cachebuster: {
+						signatureType: "time",
+					},
+					bundles: [
+						{
+							bundleDefinition: {
+								name: "app.js",
+								defaultFileTypes: [".js"],
+								sections: [
+									{
+										name: "some-app-preload",
+										mode: "preload",
+										filters: ["some/app/Component.js"],
+										resolve: true,
+										sort: true,
+										declareRawModules: false,
+										async: false,
+									},
+									{
+										mode: "require",
+										filters: ["ui5loader-autoconfig.js"],
+										resolve: true,
+										async: false,
+									},
+								],
+							},
+							bundleOptions: {
+								optimize: true,
+								numberOfParts: 3,
+							},
+						},
 					],
-				}
+				},
 			},
-			{
-				dataPath: "/resources/configuration/paths",
-				keyword: "additionalProperties",
-				message: "should NOT have additional properties",
-				params: {
-					additionalProperty: "app",
-				}
-			},
-			{
-				dataPath: "/resources/configuration/paths/webapp",
-				keyword: "type",
-				message: "should be string",
-				params: {
-					type: "string"
-				}
-			}
-		]);
+			[
+				{
+					dataPath: "/resources",
+					keyword: "additionalProperties",
+					message: "should NOT have additional properties",
+					params: {
+						additionalProperty: "notAllowed",
+					},
+				},
+				{
+					dataPath: "/resources/configuration",
+					keyword: "additionalProperties",
+					message: "should NOT have additional properties",
+					params: {
+						additionalProperty: "notAllowed",
+					},
+				},
+				{
+					dataPath:
+						"/resources/configuration/propertiesFileSourceEncoding",
+					keyword: "enum",
+					message: "should be equal to one of the allowed values",
+					params: {
+						allowedValues: ["UTF-8", "ISO-8859-1"],
+					},
+				},
+				{
+					dataPath: "/resources/configuration/paths",
+					keyword: "additionalProperties",
+					message: "should NOT have additional properties",
+					params: {
+						additionalProperty: "app",
+					},
+				},
+				{
+					dataPath: "/resources/configuration/paths/webapp",
+					keyword: "type",
+					message: "should be string",
+					params: {
+						type: "string",
+					},
+				},
+				{
+					dataPath: "/builder/bundles/0/bundleDefinition/sections/0",
+					keyword: "additionalProperties",
+					message: "should NOT have additional properties",
+					params: {
+						additionalProperty: "async",
+					},
+				},
+			]
+		);
 		await assertValidation(t, {
 			"specVersion": specVersion,
 			"type": "application",
