@@ -33,6 +33,11 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 
+<a name="v3.5.1"></a>
+## [v3.5.1] - 2024-07-22
+### Bug Fixes
+- **generateThemeDesignerResources:** Allow core .theming in sources ([#1062](https://github.com/SAP/ui5-builder/issues/1062)) [`dda3011`](https://github.com/SAP/ui5-builder/commit/dda30114461314e81da43bd739e709186744f592)
+
 <a name="v3.5.0"></a>
 ## [v3.5.0] - 2024-06-21
 ### Features
@@ -916,6 +921,24 @@ to load the custom bundle file instead.
 {{ end -}}
 {{ end -}}
 {{ end -}}
+[v3.5.1]: https://github.com/SAP/ui5-builder/compare/v3.5.0...v3.5.1
+[v3.5.0]: https://github.com/SAP/ui5-builder/compare/v3.4.1...v3.5.0
+[v3.4.1]: https://github.com/SAP/ui5-builder/compare/v3.4.0...v3.4.1
+[v3.4.0]: https://github.com/SAP/ui5-builder/compare/v3.3.1...v3.4.0
+[v3.3.1]: https://github.com/SAP/ui5-builder/compare/v3.3.0...v3.3.1
+[v3.3.0]: https://github.com/SAP/ui5-builder/compare/v3.2.0...v3.3.0
+[v3.2.0]: https://github.com/SAP/ui5-builder/compare/v3.1.1...v3.2.0
+[v3.1.1]: https://github.com/SAP/ui5-builder/compare/v3.1.0...v3.1.1
+[v3.1.0]: https://github.com/SAP/ui5-builder/compare/v3.0.9...v3.1.0
+[v3.0.9]: https://github.com/SAP/ui5-builder/compare/v3.0.8...v3.0.9
+[v3.0.8]: https://github.com/SAP/ui5-builder/compare/v3.0.7...v3.0.8
+[v3.0.7]: https://github.com/SAP/ui5-builder/compare/v3.0.6...v3.0.7
+[v3.0.6]: https://github.com/SAP/ui5-builder/compare/v3.0.5...v3.0.6
+[v3.0.5]: https://github.com/SAP/ui5-builder/compare/v3.0.4...v3.0.5
+[v3.0.4]: https://github.com/SAP/ui5-builder/compare/v3.0.3...v3.0.4
+[v3.0.3]: https://github.com/SAP/ui5-builder/compare/v3.0.2...v3.0.3
+[v3.0.2]: https://github.com/SAP/ui5-builder/compare/v3.0.1...v3.0.2
+[v3.0.1]: https://github.com/SAP/ui5-builder/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-builder/compare/v2.11.2...v3.0.0
 [v2.11.9]: https://github.com/SAP/ui5-builder/compare/v2.11.8...v2.11.9
 [v2.11.8]: https://github.com/SAP/ui5-builder/compare/v2.11.7...v2.11.8
