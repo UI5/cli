@@ -216,6 +216,11 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 {{ end -}}
 {{ end -}}
 {{ end -}}
+[v3.0.5]: https://github.com/SAP/ui5-fs/compare/v3.0.4...v3.0.5
+[v3.0.4]: https://github.com/SAP/ui5-fs/compare/v3.0.3...v3.0.4
+[v3.0.3]: https://github.com/SAP/ui5-fs/compare/v3.0.2...v3.0.3
+[v3.0.2]: https://github.com/SAP/ui5-fs/compare/v3.0.1...v3.0.2
+[v3.0.1]: https://github.com/SAP/ui5-fs/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-fs/compare/v2.0.6...v3.0.0
 [v2.0.6]: https://github.com/SAP/ui5-fs/compare/v2.0.5...v2.0.6
 [v2.0.5]: https://github.com/SAP/ui5-fs/compare/v2.0.4...v2.0.5
