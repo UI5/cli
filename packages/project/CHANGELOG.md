@@ -2,7 +2,49 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v3.9.2...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.0...HEAD).
+
+<a name="v4.0.0"></a>
+## [v4.0.0] - 2024-07-23
+### Breaking Changes
+- Drop node v21 support [`b017633`](https://github.com/SAP/ui5-project/commit/b01763338ceff80f9df459b246f12b06c77891d0)
+- Make '[@ui5](https://github.com/ui5)/builder' an optional peerDependency [`cb2e99d`](https://github.com/SAP/ui5-project/commit/cb2e99dbc7804fed4d8e10a2e95063b6357e963d)
+- Rename ui5HomeDir to ui5DataDir in APIs ([#707](https://github.com/SAP/ui5-project/issues/707)) [`5103c3e`](https://github.com/SAP/ui5-project/commit/5103c3ee63bc9c5b5fa6db136badec78e89ee28d)
+- Set default workspaceName to "default" for API usage ([#706](https://github.com/SAP/ui5-project/issues/706)) [`a2d8f9d`](https://github.com/SAP/ui5-project/commit/a2d8f9d03154cfc330ccbeaf0c0aaa10032c2337)
+- Require Node.js 20.11.x/>=21.2.0 and npm >=10 [`6a444a0`](https://github.com/SAP/ui5-project/commit/6a444a077166451ada16334ef62f1357e2c15bd7)
+
+### Dependency Updates
+- Bump rimraf from 5.0.9 to 6.0.1 [`9c3c70f`](https://github.com/SAP/ui5-project/commit/9c3c70f71963ba24734f02380b0f468c505e6482)
+- Bump pacote from 17.0.7 to 18.0.6 [`c6b17c4`](https://github.com/SAP/ui5-project/commit/c6b17c48a1021226b0a51826c889a549ae459983)
+- Bump read-pkg-up from 10.1.0 to 11.0.0 [`83e93aa`](https://github.com/SAP/ui5-project/commit/83e93aab5c90dfb8133921eaf5785b06eb51b6cc)
+- Bump read-pkg from 8.1.0 to 9.0.1 [`0279ac9`](https://github.com/SAP/ui5-project/commit/0279ac9dd248e7d2215c44ed5e3a7ebc19894de2)
+- Bump globby from 13.2.2 to 14.0.1 [`eb9d6d8`](https://github.com/SAP/ui5-project/commit/eb9d6d8501123cd48b1e7b8375d2c9fb70ad7334)
+
+### Features
+- Apply specVersion defaults from ui5.yaml.json schema ([#733](https://github.com/SAP/ui5-project/issues/733)) [`e3e8f85`](https://github.com/SAP/ui5-project/commit/e3e8f855506c23cc0bac3e57cbca0ab6779956de)
+- **Schema:** Introduce specVersion 4.0 ([#731](https://github.com/SAP/ui5-project/issues/731)) [`c5a9fde`](https://github.com/SAP/ui5-project/commit/c5a9fde02b53b36af25f7691cadd79a434ddd0aa)
+- **manifest.json:** Auto-fill supportedLocales ([#683](https://github.com/SAP/ui5-project/issues/683)) [`c905d4f`](https://github.com/SAP/ui5-project/commit/c905d4f7ee022a60596c6d867abf588275f8f1d2)
+
+### BREAKING CHANGE
+
+Consumers of the Node.js API that make use of the ProjectGraph#build
+
+Installers and Resolvers' argument `ui5HomeDir` is now renamed to
+`ui5DataDir`
+
+JIRA: CPOUI5FOUNDATION-802
+Relates to: https://github.com/SAP/ui5-tooling/issues/701
+
+Set default workspaceName to "default" for API usage
+(https://github.com/SAP/ui5-project/pull/586)
+
+JIRA: CPOUI5FOUNDATION-802
+Relates to: https://github.com/SAP/ui5-tooling/issues/701
+
+---------
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js 20.11.x and >=21.2.0 as well as npm v10 or higher are supported.
 
 <a name="v3.9.2"></a>
 ## [v3.9.2] - 2024-06-24
@@ -502,6 +544,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v4.0.0]: https://github.com/SAP/ui5-project/compare/v3.9.0...v4.0.0
 [v3.9.2]: https://github.com/SAP/ui5-project/compare/v3.9.1...v3.9.2
 [v3.9.1]: https://github.com/SAP/ui5-project/compare/v3.9.0...v3.9.1
 [v3.9.0]: https://github.com/SAP/ui5-project/compare/v3.8.0...v3.9.0
