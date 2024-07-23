@@ -2,16 +2,51 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v3.5.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.0...HEAD).
+
+<a name="v4.0.0"></a>
+## [v4.0.0] - 2024-07-23
+### Breaking Changes
+- Drop node v21 support [`7b27171`](https://github.com/SAP/ui5-builder/commit/7b2717166686aeef8d19b1f3134ef4f39de25a80)
+- Discontinue bundling of JavaScript modules as string [`7691b08`](https://github.com/SAP/ui5-builder/commit/7691b08c4cd8abc7fe3922ec913f80dca372ba4f)
+- Task API arguments rename ([#995](https://github.com/SAP/ui5-builder/issues/995)) [`d1f87e0`](https://github.com/SAP/ui5-builder/commit/d1f87e0cb8b65005b034ff00b7e0d66f4a5d279e)
+- Require Node.js 20.11.x/>=21.2.0 and npm >=10 [`b76ff75`](https://github.com/SAP/ui5-builder/commit/b76ff7588d65c5b5ff8fb9861a3562680e8c2e74)
+- **Bundling:** Enforce usage of sap.ui.predefine instead function wrappers ([#1021](https://github.com/SAP/ui5-builder/issues/1021)) [`4bda728`](https://github.com/SAP/ui5-builder/commit/4bda7289383e8645556c68976a05db0ab5698a2b)
+
+### Dependency Updates
+- Bump rimraf from 5.0.8 to 6.0.1 [`2b4f309`](https://github.com/SAP/ui5-builder/commit/2b4f3094107bfa7ace18091731fe2f048b233754)
+- Bump terser from 5.29.1 to 5.29.2 ([#1000](https://github.com/SAP/ui5-builder/issues/1000)) [`2b6da9e`](https://github.com/SAP/ui5-builder/commit/2b6da9ed131ab21c18fdbd9a7c7328dee83bd41c)
+- Bump espree from 9.6.1 to 10.0.1 [`08eb716`](https://github.com/SAP/ui5-builder/commit/08eb7165d638ccf3b078eeb3feed763765821f53)
+- Bump terser from 5.27.1 to 5.27.2 ([#991](https://github.com/SAP/ui5-builder/issues/991)) [`204145d`](https://github.com/SAP/ui5-builder/commit/204145d8db2a0f76d134206b33fbef3bf1edabbf)
+- Bump workerpool from 6.5.1 to 9.1.0 [`b78a70c`](https://github.com/SAP/ui5-builder/commit/b78a70cf1adec6b78d78593898942f0c7c47edca)
+
+### Features
+- Apply default values to bunde definitions for standard tasks ([#1033](https://github.com/SAP/ui5-builder/issues/1033)) [`4178e1a`](https://github.com/SAP/ui5-builder/commit/4178e1a0315ad16b7774183a18e326f8c52f5f44)
+- **Bundle 'require' section with async flag for specVersion:** 4.0 ([#1042](https://github.com/SAP/ui5-builder/issues/1042)) [`dfa67fe`](https://github.com/SAP/ui5-builder/commit/dfa67feb91b7de0d61c2713eafa639f001484d9b)
+- **bundle/Builder:** Support async require sections and conditional core boot [`e421e2f`](https://github.com/SAP/ui5-builder/commit/e421e2ff7e604d9035b86d666ebaf75d29212332)
+- **manifest.json:** Auto-fill supportedLocales [`b085634`](https://github.com/SAP/ui5-builder/commit/b085634555193acc669ed37e8e4b817b9798698b)
+
+### BREAKING CHANGE
+
+Created bundles use sap.ui.predefine instead function wrappers. For
+projects this is a compatible change. Only the produced bundle content
+changes.
+
+Task API `namespace` option got renamed to `projectNamespace`
+
+JIRA: CPOUI5FOUNDATION-802
+Relates to: https://github.com/SAP/ui5-tooling/issues/701
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js 20.11.x and >=21.2.0 as well as npm v10 or higher are supported.
 
 <a name="v3.5.1"></a>
 ## [v3.5.1] - 2024-07-22
 ### Bug Fixes
 - **generateThemeDesignerResources:** Allow core .theming in sources ([#1062](https://github.com/SAP/ui5-builder/issues/1062)) [`dda3011`](https://github.com/SAP/ui5-builder/commit/dda30114461314e81da43bd739e709186744f592)
 
-
 <a name="v3.5.0"></a>
-## [v3.5.0] - 2024-06-24
+## [v3.5.0] - 2024-06-21
 ### Features
 - ES2023 Support [`097049d`](https://github.com/SAP/ui5-builder/commit/097049daeec5c54c2d5e858b12e0c54c826ff663)
 
@@ -884,6 +919,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v4.0.0]: https://github.com/SAP/ui5-builder/compare/v3.3.0...v4.0.0
 [v3.5.1]: https://github.com/SAP/ui5-builder/compare/v3.5.0...v3.5.1
 [v3.5.0]: https://github.com/SAP/ui5-builder/compare/v3.4.1...v3.5.0
 [v3.4.1]: https://github.com/SAP/ui5-builder/compare/v3.4.0...v3.4.1
