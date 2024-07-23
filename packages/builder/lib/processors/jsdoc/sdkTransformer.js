@@ -1,5 +1,5 @@
 import {createResource} from "@ui5/fs/resourceFactory";
-import transformer from "./lib/transformApiJson.cjs";
+import transformer from "./lib/transformApiJson.js";
 
 /**
  * @public

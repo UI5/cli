@@ -26,7 +26,7 @@
 		"./tasks/bundlers/utils/*": null,
 		"./package.json": "./package.json",
 		"./internal/taskRepository": "./lib/tasks/taskRepository.js",
-		"./internal/jsdoc/template/publish": "./lib/processors/jsdoc/lib/ui5/template/publish.cjs"
+		"./internal/jsdoc/template/publish": "./lib/processors/jsdoc/lib/ui5/template/publish.js"
 	},
 	"engines": {
 		"node": "^20.11.0 || >=22.0.0",

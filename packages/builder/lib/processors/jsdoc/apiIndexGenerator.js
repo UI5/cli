@@ -1,5 +1,5 @@
 import {createResource} from "@ui5/fs/resourceFactory";
-import createIndex from "./lib/createIndexFiles.cjs";
+import createIndex from "./lib/createIndexFiles.js";
 
 /**
  * @public

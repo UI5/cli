@@ -26,7 +26,7 @@ const info = logger.info.bind(logger);
 const warning = logger.warn.bind(logger);
 const error = logger.error.bind(logger);
 
-const {extractVersion, extractSince} = require("./utils/versionUtil.cjs");
+const {extractVersion, extractSince} = require("./utils/versionUtil");
 
 /* errors that might fail the build in future */
 function future(msg) {

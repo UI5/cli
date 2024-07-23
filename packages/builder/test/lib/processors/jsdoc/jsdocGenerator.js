@@ -21,9 +21,10 @@ test.serial("generateJsdocConfig", async (t) => {
 
 	const backslashRegex = /\\/g;
 
-	const pluginPath = path.join(jsdocGeneratorPath, "lib", "ui5", "plugin.cjs")
+	const pluginPath = path.join(jsdocGeneratorPath, "lib", "ui5", "plugin.js")
 		.replace(backslashRegex, "\\\\");
-	const templatePath = "@ui5/builder/internal/jsdoc/template";
+	const templatePath = path.join(jsdocGeneratorPath, "lib", "ui5", "template")
+		.replace(backslashRegex, "\\\\");
 	const destinationPath = path.join("/", "some", "tm\\p", "path")
 		.replace(backslashRegex, "\\\\");
 	const jsapiFilePath = path.join("/", "some", "target", "path", "libraries", "some.projectName.js")

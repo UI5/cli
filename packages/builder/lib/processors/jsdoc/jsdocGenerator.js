@@ -90,11 +90,8 @@ async function generateJsdocConfig({targetPath, tmpPath, namespace, projectName,
 
 	// Resolve path to this script to get the path to the JSDoc extensions folder
 	const jsdocPath = path.normalize(import.meta.dirname);
-	const pluginPath = path.join(jsdocPath, "lib", "ui5", "plugin.cjs").replace(backslashRegex, "\\\\");
-	// Using export via package.json to allow loading the CJS template.
-	// jsdoc appends /publish to the provided path but doesn't allow to
-	// add the .cjs extension, so loading won't work otherwise.
-	const templatePath = "@ui5/builder/internal/jsdoc/template";
+	const pluginPath = path.join(jsdocPath, "lib", "ui5", "plugin.js").replace(backslashRegex, "\\\\");
+	const templatePath = path.join(jsdocPath, "lib", "ui5", "template").replace(backslashRegex, "\\\\");
 	const destinationPath = path.normalize(tmpPath).replace(backslashRegex, "\\\\");
 	const jsapiFilePath = path.join(targetPath, "libraries", projectName + ".js").replace(backslashRegex, "\\\\");
 	const apiJsonFolderPath = path.join(tmpPath, "dependency-apis").replace(backslashRegex, "\\\\");

@@ -11,7 +11,7 @@ test.beforeEach(async (t) => {
 	t.context.createResourceStub = sinon.stub().returns("result resource");
 
 	t.context.sdkTransformer = await esmock("../../../../lib/processors/jsdoc/sdkTransformer.js", {
-		"../../../../lib/processors/jsdoc/lib/transformApiJson.cjs": t.context.transformApiJsonStub,
+		"../../../../lib/processors/jsdoc/lib/transformApiJson.js": t.context.transformApiJsonStub,
 		"@ui5/fs/resourceFactory": {
 			createResource: t.context.createResourceStub
 		}

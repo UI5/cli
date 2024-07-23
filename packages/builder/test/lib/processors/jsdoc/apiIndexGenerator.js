@@ -22,7 +22,7 @@ test.serial("apiIndexGenerator", async (t) => {
 		.onCall(3).returns("result resource D");
 
 	const apiIndexGenerator = await esmock("../../../../lib/processors/jsdoc/apiIndexGenerator.js", {
-		"../../../../lib/processors/jsdoc/lib/createIndexFiles.cjs": createApiIndexStub,
+		"../../../../lib/processors/jsdoc/lib/createIndexFiles.js": createApiIndexStub,
 		"@ui5/fs/resourceFactory": {
 			createResource: createResourceStub
 		}

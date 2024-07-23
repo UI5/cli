@@ -4,7 +4,12 @@
 	},
 	"source": {
 		"include": ["README.md"],
-		"exclude": ["lib/lbt/utils/JSTokenizer.js"],
+		"exclude": [
+			"lib/lbt/utils/JSTokenizer.js",
+			"lib/processors/jsdoc/lib/ui5/plugin.js",
+			"lib/processors/jsdoc/lib/ui5/template/publish.js",
+			"lib/processors/jsdoc/lib/ui5/template/utils/versionUtil.js"
+		],
 		"includePattern": ".+\\.js$",
 		"excludePattern": "(node_modules(\\\\|/))"
 	},
