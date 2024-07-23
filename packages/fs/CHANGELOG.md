@@ -2,7 +2,28 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v3.0.5...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.0...HEAD).
+
+<a name="v4.0.0"></a>
+## [v4.0.0] - 2024-07-23
+### Breaking Changes
+- Drop node v21 support [`2d2f125`](https://github.com/SAP/ui5-fs/commit/2d2f125a6031361172ee820ae5f5abc6a6636f0b)
+- Require Node.js 20.11.x/>=21.2.0 and npm >=10 [`b98bd9a`](https://github.com/SAP/ui5-fs/commit/b98bd9ababc1e0b6be8a50a1e97706265a4f805e)
+- **DuplexCollection:** remove byGlobSource method ([#552](https://github.com/SAP/ui5-fs/issues/552)) [`e26338b`](https://github.com/SAP/ui5-fs/commit/e26338bf6c8fa3139fc9c06a8dff53d192d8feea)
+
+### Dependency Updates
+- Bump minimatch from 9.0.5 to 10.0.1 [`7de313a`](https://github.com/SAP/ui5-fs/commit/7de313a139de63cef2d43daea01efa4ff7e778f3)
+- Bump globby from 13.2.2 to 14.0.1 [`465638d`](https://github.com/SAP/ui5-fs/commit/465638d6d8b30fe8e2588b7b928fb8acd98960f2)
+
+### BREAKING CHANGE
+
+`byGlobSource` method is removed from `DuplexCollection`
+
+JIRA: CPOUI5FOUNDATION-802
+Relates to: https://github.com/SAP/ui5-tooling/issues/701
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js 20.11.x and >=21.2.0 as well as npm v10 or higher are supported.
 
 <a name="v3.0.5"></a>
 ## [v3.0.5] - 2023-10-09
@@ -179,6 +200,7 @@ Adapters "AbstractAdapter", "FileSystem" and "Memory" used to be accessible via 
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **AbstractAdapter:** Fix normalization of globstar [`6d484e8`](https://github.com/SAP/ui5-fs/commit/6d484e847b62aa0829641f25a76dcc89b0840d44)
+[v4.0.0]: https://github.com/SAP/ui5-fs/compare/v3.0.5...v4.0.0
 [v3.0.5]: https://github.com/SAP/ui5-fs/compare/v3.0.4...v3.0.5
 [v3.0.4]: https://github.com/SAP/ui5-fs/compare/v3.0.3...v3.0.4
 [v3.0.3]: https://github.com/SAP/ui5-fs/compare/v3.0.2...v3.0.3
