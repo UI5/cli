@@ -32,6 +32,11 @@ A list of unreleased changes can be found [here]({{ .Info.RepositoryURL }}/compa
 {{ end -}}
 {{ end -}}
 {{ end -}}
+<a name="v3.11.1"></a>
+## [v3.11.1] - 2024-07-22
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/builder from 3.5.0 to 3.5.1 [`00c050f`](https://github.com/SAP/ui5-cli/commit/00c050f929aa6204a5d57ead9845dd24fe5f8704)
+
 <a name="v3.11.0"></a>
 ## [v3.11.0] - 2024-06-24
 ### Dependency Updates
@@ -1231,6 +1236,42 @@ Only Node.js v10 or higher is supported.
 {{ end -}}
 {{ end -}}
 {{ end -}}
+[v3.11.1]: https://github.com/SAP/ui5-cli/compare/v3.11.0...v3.11.1
+[v3.11.0]: https://github.com/SAP/ui5-cli/compare/v3.10.3...v3.11.0
+[v3.10.3]: https://github.com/SAP/ui5-cli/compare/v3.10.2...v3.10.3
+[v3.10.2]: https://github.com/SAP/ui5-cli/compare/v3.10.1...v3.10.2
+[v3.10.1]: https://github.com/SAP/ui5-cli/compare/v3.10.0...v3.10.1
+[v3.10.0]: https://github.com/SAP/ui5-cli/compare/v3.9.2...v3.10.0
+[v3.9.2]: https://github.com/SAP/ui5-cli/compare/v3.9.1...v3.9.2
+[v3.9.1]: https://github.com/SAP/ui5-cli/compare/v3.9.0...v3.9.1
+[v3.9.0]: https://github.com/SAP/ui5-cli/compare/v3.8.0...v3.9.0
+[v3.8.0]: https://github.com/SAP/ui5-cli/compare/v3.7.3...v3.8.0
+[v3.7.3]: https://github.com/SAP/ui5-cli/compare/v3.7.2...v3.7.3
+[v3.7.2]: https://github.com/SAP/ui5-cli/compare/v3.7.1...v3.7.2
+[v3.7.1]: https://github.com/SAP/ui5-cli/compare/v3.7.0...v3.7.1
+[v3.7.0]: https://github.com/SAP/ui5-cli/compare/v3.6.1...v3.7.0
+[v3.6.1]: https://github.com/SAP/ui5-cli/compare/v3.6.0...v3.6.1
+[v3.6.0]: https://github.com/SAP/ui5-cli/compare/v3.5.0...v3.6.0
+[v3.5.0]: https://github.com/SAP/ui5-cli/compare/v3.4.1...v3.5.0
+[v3.4.1]: https://github.com/SAP/ui5-cli/compare/v3.4.0...v3.4.1
+[v3.4.0]: https://github.com/SAP/ui5-cli/compare/v3.3.4...v3.4.0
+[v3.3.4]: https://github.com/SAP/ui5-cli/compare/v3.3.3...v3.3.4
+[v3.3.3]: https://github.com/SAP/ui5-cli/compare/v3.3.2...v3.3.3
+[v3.3.2]: https://github.com/SAP/ui5-cli/compare/v3.3.1...v3.3.2
+[v3.3.1]: https://github.com/SAP/ui5-cli/compare/v3.3.0...v3.3.1
+[v3.3.0]: https://github.com/SAP/ui5-cli/compare/v3.2.0...v3.3.0
+[v3.2.0]: https://github.com/SAP/ui5-cli/compare/v3.1.3...v3.2.0
+[v3.1.3]: https://github.com/SAP/ui5-cli/compare/v3.1.2...v3.1.3
+[v3.1.2]: https://github.com/SAP/ui5-cli/compare/v3.1.1...v3.1.2
+[v3.1.1]: https://github.com/SAP/ui5-cli/compare/v3.1.0...v3.1.1
+[v3.1.0]: https://github.com/SAP/ui5-cli/compare/v3.0.7...v3.1.0
+[v3.0.7]: https://github.com/SAP/ui5-cli/compare/v3.0.6...v3.0.7
+[v3.0.6]: https://github.com/SAP/ui5-cli/compare/v3.0.5...v3.0.6
+[v3.0.5]: https://github.com/SAP/ui5-cli/compare/v3.0.4...v3.0.5
+[v3.0.4]: https://github.com/SAP/ui5-cli/compare/v3.0.3...v3.0.4
+[v3.0.3]: https://github.com/SAP/ui5-cli/compare/v3.0.2...v3.0.3
+[v3.0.2]: https://github.com/SAP/ui5-cli/compare/v3.0.1...v3.0.2
+[v3.0.1]: https://github.com/SAP/ui5-cli/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-cli/compare/v2.14.1...v3.0.0
 [v2.14.17]: https://github.com/SAP/ui5-cli/compare/v2.14.16...v2.14.17
 [v2.14.16]: https://github.com/SAP/ui5-cli/compare/v2.14.15...v2.14.16
