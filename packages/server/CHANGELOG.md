@@ -2,7 +2,29 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v3.2.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.0...HEAD).
+
+<a name="v4.0.0"></a>
+## [v4.0.0] - 2024-07-23
+### Breaking Changes
+- Drop node v21 support [`2af0d4f`](https://github.com/SAP/ui5-server/commit/2af0d4fd94c720899bc5978d27ca176c7b2feecb)
+- Replace console.log with process.stderr  ([#643](https://github.com/SAP/ui5-server/issues/643)) [`d42c79f`](https://github.com/SAP/ui5-server/commit/d42c79f0a6e6fa5e685f736dd0ae79b353767051)
+- Require Node.js 20.11.x/>=21.2.0 and npm >=10 [`39cc1a2`](https://github.com/SAP/ui5-server/commit/39cc1a2dea8e081888ae1f5f2c47a74bb7efe693)
+
+### Features
+- **manifest.json:** Auto-fill supportedLocales [`a39c8de`](https://github.com/SAP/ui5-server/commit/a39c8debaabe259800ed8f861071b00817c10350)
+
+### BREAKING CHANGE
+
+Messages will now be written to stderr instead of stdout.
+
+JIRA: CPOUI5FOUNDATION-802
+Related to: https://github.com/SAP/ui5-tooling/issues/701
+Sibling of: https://github.com/SAP/ui5-tooling/pull/930,
+https://github.com/SAP/ui5-cli/pull/686
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js 20.11.x and >=21.2.0 as well as npm v10 or higher are supported.
 
 <a name="v3.2.1"></a>
 ## [v3.2.1] - 2024-05-15
@@ -341,6 +363,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v4.0.0]: https://github.com/SAP/ui5-server/compare/v3.1.5...v4.0.0
 [v3.2.1]: https://github.com/SAP/ui5-server/compare/v3.2.0...v3.2.1
 [v3.2.0]: https://github.com/SAP/ui5-server/compare/v3.1.5...v3.2.0
 [v3.1.5]: https://github.com/SAP/ui5-server/compare/v3.1.4...v3.1.5

@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/server",
-	"version": "4.0.0-alpha",
+	"version": "4.0.0",
 	"description": "UI5 Tooling - Server",
 	"author": {
 		"name": "SAP SE",
