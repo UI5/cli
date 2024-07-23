@@ -2,6 +2,7 @@ import posixPath from "node:path/posix";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:generateThemeDesignerResources");
 import libraryLessGenerator from "../processors/libraryLessGenerator.js";
+import {updateLibraryDotTheming} from "./utils/dotTheming.js";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import Resource from "@ui5/fs/Resource";
 import fsInterface from "@ui5/fs/fsInterface";
@@ -44,6 +45,10 @@ function generateLibraryDotTheming({namespace, version, hasThemes}) {
 		sVersion: version
 	};
 
+	// Note that with sap.ui.core version 1.127.0 the .theming file has been put into
+	// the library sources so that "aFiles" can be maintained from there.
+	// The below configuration is still needed for older versions of sap.ui.core which do not
+	// contain the file.
 	if (namespace === "sap/ui/core") {
 		dotTheming.aFiles = [
 			"library",
@@ -240,12 +245,33 @@ export default async function({workspace, dependencies, options}) {
 	// Only for type "library". Type "theme-library" does not provide a namespace
 	// Also needs to be created in case a library does not have any themes (see bIgnore flag)
 	if (namespace) {
-		log.verbose(`Generating .theming for namespace ${namespace}`);
-		const libraryDotThemingResource = generateLibraryDotTheming({
-			namespace,
-			version,
-			hasThemes
-		});
+		let libraryDotThemingResource;
+
+		// Do not generate a .theming file for the sap.ui.core library
+		if (namespace === "sap/ui/core") {
+			// Check if the .theming file already exists
+			libraryDotThemingResource = await workspace.byPath(`/resources/${namespace}/.theming`);
+			if (libraryDotThemingResource) {
+				// Update the existing .theming resource
+				log.verbose(`Updating .theming for namespace ${namespace}`);
+				await updateLibraryDotTheming({
+					resource: libraryDotThemingResource,
+					namespace,
+					version,
+					hasThemes
+				});
+			}
+		}
+
+		if (!libraryDotThemingResource) {
+			log.verbose(`Generating .theming for namespace ${namespace}`);
+			libraryDotThemingResource = generateLibraryDotTheming({
+				namespace,
+				version,
+				hasThemes
+			});
+		}
+
 		await workspace.write(libraryDotThemingResource);
 	}
 

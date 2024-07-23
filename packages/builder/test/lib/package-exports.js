@@ -9,10 +9,10 @@ test("export of package.json", (t) => {
 	t.truthy(require("@ui5/builder/package.json").version);
 });
 
-// Check number of definied exports
+// Check number of defined exports
 test("check number of exports", (t) => {
 	const packageJson = require("@ui5/builder/package.json");
-	t.is(Object.keys(packageJson.exports).length, 8);
+	t.is(Object.keys(packageJson.exports).length, 9);
 });
 
 // Public API contract (exported modules)
@@ -78,6 +78,13 @@ test("no export of processors/jsdoc/lib/ui5/plugin", async (t) => {
 		any: true
 	});
 	await t.throwsAsync(import("@ui5/builder/processors/jsdoc/lib/ui5/plugin.cjs"), {
+		code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
+		any: true
+	});
+});
+
+test("no export of tasks/utils/dotTheming", async (t) => {
+	await t.throwsAsync(import("@ui5/builder/tasks/utils/dotTheming"), {
 		code: "ERR_PACKAGE_PATH_NOT_EXPORTED",
 		any: true
 	});

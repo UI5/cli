@@ -22,6 +22,7 @@
 		"./processors/jsdoc/lib/*": null,
 		"./tasks/*": "./lib/tasks/*.js",
 		"./tasks/taskRepository": null,
+		"./tasks/utils/*": null,
 		"./tasks/bundlers/utils/*": null,
 		"./package.json": "./package.json",
 		"./internal/taskRepository": "./lib/tasks/taskRepository.js",
