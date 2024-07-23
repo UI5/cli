@@ -14,9 +14,9 @@ strategy:
     linux_node_lts_20_min_version:
       imageName: 'ubuntu-22.04'
       node_version: 20.11.0
-    linux_node_21_min_version:
+    linux_node_22_min_version:
       imageName: 'ubuntu-22.04'
-      node_version: 21.2.0
+      node_version: 22.1.0
     linux_node_lts_20:
       imageName: 'ubuntu-22.04'
       node_version: 20.x
