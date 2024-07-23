@@ -379,6 +379,15 @@ Only Node.js v10 or higher is supported.
 {{ end -}}
 {{ end -}}
 {{ end -}}
+[v3.2.1]: https://github.com/SAP/ui5-server/compare/v3.2.0...v3.2.1
+[v3.2.0]: https://github.com/SAP/ui5-server/compare/v3.1.5...v3.2.0
+[v3.1.5]: https://github.com/SAP/ui5-server/compare/v3.1.4...v3.1.5
+[v3.1.4]: https://github.com/SAP/ui5-server/compare/v3.1.3...v3.1.4
+[v3.1.3]: https://github.com/SAP/ui5-server/compare/v3.1.2...v3.1.3
+[v3.1.2]: https://github.com/SAP/ui5-server/compare/v3.1.1...v3.1.2
+[v3.1.1]: https://github.com/SAP/ui5-server/compare/v3.1.0...v3.1.1
+[v3.1.0]: https://github.com/SAP/ui5-server/compare/v3.0.1...v3.1.0
+[v3.0.1]: https://github.com/SAP/ui5-server/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-server/compare/v2.4.0...v3.0.0
 [v2.4.1]: https://github.com/SAP/ui5-server/compare/v2.4.0...v2.4.1
 [v2.4.0]: https://github.com/SAP/ui5-server/compare/v2.3.1...v2.4.0
