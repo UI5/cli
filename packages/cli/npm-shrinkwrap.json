@@ -11,7 +11,7 @@
 			"dependencies": {
 				"@ui5/builder": "^3.5.1",
 				"@ui5/fs": "^3.0.5",
-				"@ui5/logger": "^3.0.0",
+				"@ui5/logger": "^4.0.1",
 				"@ui5/project": "^3.9.2",
 				"@ui5/server": "^4.0.0",
 				"chalk": "^5.3.0",
@@ -2333,6 +2333,46 @@
 				"npm": ">= 8"
 			}
 		},
+		"node_modules/@ui5/builder/node_modules/@ui5/logger": {
+			"version": "3.0.0",
+			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0.tgz",
+			"integrity": "sha512-Np9pHhr+dnyL2gDFwIx6c6Xy0yhtpBIqUQM9An8uLX/wIcRjIjBSQ/r16o3YgS9roY59I/uj5ZEbIa1cdS3Dzg==",
+			"dependencies": {
+				"chalk": "^5.2.0",
+				"cli-progress": "^3.11.2",
+				"figures": "^5.0.0"
+			},
+			"engines": {
+				"node": "^16.18.0 || >=18.12.0",
+				"npm": ">= 8"
+			}
+		},
+		"node_modules/@ui5/builder/node_modules/figures": {
+			"version": "5.0.0",
+			"resolved": "https://registry.npmjs.org/figures/-/figures-5.0.0.tgz",
+			"integrity": "sha512-ej8ksPF4x6e5wvK9yevct0UCXh8TTFlWGVLlgjZuoBH1HwjIfKE/IdL5mq89sFA7zELi1VhKpmtDnrs7zWyeyg==",
+			"dependencies": {
+				"escape-string-regexp": "^5.0.0",
+				"is-unicode-supported": "^1.2.0"
+			},
+			"engines": {
+				"node": ">=14"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
+			}
+		},
+		"node_modules/@ui5/builder/node_modules/is-unicode-supported": {
+			"version": "1.3.0",
+			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-1.3.0.tgz",
+			"integrity": "sha512-43r2mRvz+8JRIKnWJ+3j8JtjRKZ6GmjzfaE/qiBJnikNnYv/6bagRJ1kUhNk8R5EX/GkobD+r+sfxCPJsiKBLQ==",
+			"engines": {
+				"node": ">=12"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
+			}
+		},
 		"node_modules/@ui5/builder/node_modules/rimraf": {
 			"version": "5.0.9",
 			"resolved": "https://registry.npmjs.org/rimraf/-/rimraf-5.0.9.tgz",
@@ -2370,7 +2410,7 @@
 				"npm": ">= 8"
 			}
 		},
-		"node_modules/@ui5/logger": {
+		"node_modules/@ui5/fs/node_modules/@ui5/logger": {
 			"version": "3.0.0",
 			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0.tgz",
 			"integrity": "sha512-Np9pHhr+dnyL2gDFwIx6c6Xy0yhtpBIqUQM9An8uLX/wIcRjIjBSQ/r16o3YgS9roY59I/uj5ZEbIa1cdS3Dzg==",
@@ -2381,6 +2421,46 @@
 			},
 			"engines": {
 				"node": "^16.18.0 || >=18.12.0",
+				"npm": ">= 8"
+			}
+		},
+		"node_modules/@ui5/fs/node_modules/figures": {
+			"version": "5.0.0",
+			"resolved": "https://registry.npmjs.org/figures/-/figures-5.0.0.tgz",
+			"integrity": "sha512-ej8ksPF4x6e5wvK9yevct0UCXh8TTFlWGVLlgjZuoBH1HwjIfKE/IdL5mq89sFA7zELi1VhKpmtDnrs7zWyeyg==",
+			"dependencies": {
+				"escape-string-regexp": "^5.0.0",
+				"is-unicode-supported": "^1.2.0"
+			},
+			"engines": {
+				"node": ">=14"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
+			}
+		},
+		"node_modules/@ui5/fs/node_modules/is-unicode-supported": {
+			"version": "1.3.0",
+			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-1.3.0.tgz",
+			"integrity": "sha512-43r2mRvz+8JRIKnWJ+3j8JtjRKZ6GmjzfaE/qiBJnikNnYv/6bagRJ1kUhNk8R5EX/GkobD+r+sfxCPJsiKBLQ==",
+			"engines": {
+				"node": ">=12"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
+			}
+		},
+		"node_modules/@ui5/logger": {
+			"version": "4.0.1",
+			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-4.0.1.tgz",
+			"integrity": "sha512-M6ftnWiUXq3SVLLQ5XTBoJNdxzDvu71FoGh4iIR2kpaDCgpQ5DbHuBRhKAlrUB6EmIFzOxKepgYN95z09xbCbA==",
+			"dependencies": {
+				"chalk": "^5.3.0",
+				"cli-progress": "^3.12.0",
+				"figures": "^6.1.0"
+			},
+			"engines": {
+				"node": "^20.11.0 || >=22.0.0",
 				"npm": ">= 8"
 			}
 		},
@@ -2416,6 +2496,46 @@
 			"engines": {
 				"node": "^16.18.0 || >=18.12.0",
 				"npm": ">= 8"
+			}
+		},
+		"node_modules/@ui5/project/node_modules/@ui5/logger": {
+			"version": "3.0.0",
+			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-3.0.0.tgz",
+			"integrity": "sha512-Np9pHhr+dnyL2gDFwIx6c6Xy0yhtpBIqUQM9An8uLX/wIcRjIjBSQ/r16o3YgS9roY59I/uj5ZEbIa1cdS3Dzg==",
+			"dependencies": {
+				"chalk": "^5.2.0",
+				"cli-progress": "^3.11.2",
+				"figures": "^5.0.0"
+			},
+			"engines": {
+				"node": "^16.18.0 || >=18.12.0",
+				"npm": ">= 8"
+			}
+		},
+		"node_modules/@ui5/project/node_modules/figures": {
+			"version": "5.0.0",
+			"resolved": "https://registry.npmjs.org/figures/-/figures-5.0.0.tgz",
+			"integrity": "sha512-ej8ksPF4x6e5wvK9yevct0UCXh8TTFlWGVLlgjZuoBH1HwjIfKE/IdL5mq89sFA7zELi1VhKpmtDnrs7zWyeyg==",
+			"dependencies": {
+				"escape-string-regexp": "^5.0.0",
+				"is-unicode-supported": "^1.2.0"
+			},
+			"engines": {
+				"node": ">=14"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
+			}
+		},
+		"node_modules/@ui5/project/node_modules/is-unicode-supported": {
+			"version": "1.3.0",
+			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-1.3.0.tgz",
+			"integrity": "sha512-43r2mRvz+8JRIKnWJ+3j8JtjRKZ6GmjzfaE/qiBJnikNnYv/6bagRJ1kUhNk8R5EX/GkobD+r+sfxCPJsiKBLQ==",
+			"engines": {
+				"node": ">=12"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
 			}
 		},
 		"node_modules/@ui5/project/node_modules/rimraf": {
@@ -2523,20 +2643,6 @@
 				"npm": ">= 8"
 			}
 		},
-		"node_modules/@ui5/server/node_modules/@ui5/logger": {
-			"version": "4.0.1",
-			"resolved": "https://registry.npmjs.org/@ui5/logger/-/logger-4.0.1.tgz",
-			"integrity": "sha512-M6ftnWiUXq3SVLLQ5XTBoJNdxzDvu71FoGh4iIR2kpaDCgpQ5DbHuBRhKAlrUB6EmIFzOxKepgYN95z09xbCbA==",
-			"dependencies": {
-				"chalk": "^5.3.0",
-				"cli-progress": "^3.12.0",
-				"figures": "^6.1.0"
-			},
-			"engines": {
-				"node": "^20.11.0 || >=22.0.0",
-				"npm": ">= 8"
-			}
-		},
 		"node_modules/@ui5/server/node_modules/eslint-visitor-keys": {
 			"version": "4.0.0",
 			"resolved": "https://registry.npmjs.org/eslint-visitor-keys/-/eslint-visitor-keys-4.0.0.tgz",
@@ -2564,20 +2670,6 @@
 				"url": "https://opencollective.com/eslint"
 			}
 		},
-		"node_modules/@ui5/server/node_modules/figures": {
-			"version": "6.1.0",
-			"resolved": "https://registry.npmjs.org/figures/-/figures-6.1.0.tgz",
-			"integrity": "sha512-d+l3qxjSesT4V7v2fh+QnmFnUWv9lSpjarhShNTgBOfA0ttejbQUAlHLitbjkoRiDulW0OPoQPYIGhIC8ohejg==",
-			"dependencies": {
-				"is-unicode-supported": "^2.0.0"
-			},
-			"engines": {
-				"node": ">=18"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
 		"node_modules/@ui5/server/node_modules/globby": {
 			"version": "14.0.2",
 			"resolved": "https://registry.npmjs.org/globby/-/globby-14.0.2.tgz",
@@ -2590,17 +2682,6 @@
 				"slash": "^5.1.0",
 				"unicorn-magic": "^0.1.0"
 			},
-			"engines": {
-				"node": ">=18"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
-		"node_modules/@ui5/server/node_modules/is-unicode-supported": {
-			"version": "2.0.0",
-			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-2.0.0.tgz",
-			"integrity": "sha512-FRdAyx5lusK1iHG0TWpVtk9+1i+GjrzRffhDg4ovQ7mcidMQ6mj+MhKPmvh7Xwyv5gIS06ns49CA7Sqg7lC22Q==",
 			"engines": {
 				"node": ">=18"
 			},
@@ -3155,21 +3236,6 @@
 				"url": "https://github.com/sponsors/sindresorhus"
 			}
 		},
-		"node_modules/ava/node_modules/figures": {
-			"version": "6.1.0",
-			"resolved": "https://registry.npmjs.org/figures/-/figures-6.1.0.tgz",
-			"integrity": "sha512-d+l3qxjSesT4V7v2fh+QnmFnUWv9lSpjarhShNTgBOfA0ttejbQUAlHLitbjkoRiDulW0OPoQPYIGhIC8ohejg==",
-			"dev": true,
-			"dependencies": {
-				"is-unicode-supported": "^2.0.0"
-			},
-			"engines": {
-				"node": ">=18"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
 		"node_modules/ava/node_modules/globby": {
 			"version": "14.0.2",
 			"resolved": "https://registry.npmjs.org/globby/-/globby-14.0.2.tgz",
@@ -3183,18 +3249,6 @@
 				"slash": "^5.1.0",
 				"unicorn-magic": "^0.1.0"
 			},
-			"engines": {
-				"node": ">=18"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
-		"node_modules/ava/node_modules/is-unicode-supported": {
-			"version": "2.0.0",
-			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-2.0.0.tgz",
-			"integrity": "sha512-FRdAyx5lusK1iHG0TWpVtk9+1i+GjrzRffhDg4ovQ7mcidMQ6mj+MhKPmvh7Xwyv5gIS06ns49CA7Sqg7lC22Q==",
-			"dev": true,
 			"engines": {
 				"node": ">=18"
 			},
@@ -5834,33 +5888,6 @@
 				"url": "https://github.com/sindresorhus/execa?sponsor=1"
 			}
 		},
-		"node_modules/execa/node_modules/figures": {
-			"version": "6.1.0",
-			"resolved": "https://registry.npmjs.org/figures/-/figures-6.1.0.tgz",
-			"integrity": "sha512-d+l3qxjSesT4V7v2fh+QnmFnUWv9lSpjarhShNTgBOfA0ttejbQUAlHLitbjkoRiDulW0OPoQPYIGhIC8ohejg==",
-			"dev": true,
-			"dependencies": {
-				"is-unicode-supported": "^2.0.0"
-			},
-			"engines": {
-				"node": ">=18"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
-		"node_modules/execa/node_modules/is-unicode-supported": {
-			"version": "2.0.0",
-			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-2.0.0.tgz",
-			"integrity": "sha512-FRdAyx5lusK1iHG0TWpVtk9+1i+GjrzRffhDg4ovQ7mcidMQ6mj+MhKPmvh7Xwyv5gIS06ns49CA7Sqg7lC22Q==",
-			"dev": true,
-			"engines": {
-				"node": ">=18"
-			},
-			"funding": {
-				"url": "https://github.com/sponsors/sindresorhus"
-			}
-		},
 		"node_modules/expand-tilde": {
 			"version": "2.0.2",
 			"resolved": "https://registry.npmjs.org/expand-tilde/-/expand-tilde-2.0.2.tgz",
@@ -5997,15 +6024,14 @@
 			}
 		},
 		"node_modules/figures": {
-			"version": "5.0.0",
-			"resolved": "https://registry.npmjs.org/figures/-/figures-5.0.0.tgz",
-			"integrity": "sha512-ej8ksPF4x6e5wvK9yevct0UCXh8TTFlWGVLlgjZuoBH1HwjIfKE/IdL5mq89sFA7zELi1VhKpmtDnrs7zWyeyg==",
+			"version": "6.1.0",
+			"resolved": "https://registry.npmjs.org/figures/-/figures-6.1.0.tgz",
+			"integrity": "sha512-d+l3qxjSesT4V7v2fh+QnmFnUWv9lSpjarhShNTgBOfA0ttejbQUAlHLitbjkoRiDulW0OPoQPYIGhIC8ohejg==",
 			"dependencies": {
-				"escape-string-regexp": "^5.0.0",
-				"is-unicode-supported": "^1.2.0"
+				"is-unicode-supported": "^2.0.0"
 			},
 			"engines": {
-				"node": ">=14"
+				"node": ">=18"
 			},
 			"funding": {
 				"url": "https://github.com/sponsors/sindresorhus"
@@ -7330,11 +7356,11 @@
 			"integrity": "sha512-cyA56iCMHAh5CdzjJIa4aohJyeO1YbwLi3Jc35MmRU6poroFjIGZzUzupGiRPOjgHg9TLu43xbpwXk523fMxKA=="
 		},
 		"node_modules/is-unicode-supported": {
-			"version": "1.3.0",
-			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-1.3.0.tgz",
-			"integrity": "sha512-43r2mRvz+8JRIKnWJ+3j8JtjRKZ6GmjzfaE/qiBJnikNnYv/6bagRJ1kUhNk8R5EX/GkobD+r+sfxCPJsiKBLQ==",
+			"version": "2.0.0",
+			"resolved": "https://registry.npmjs.org/is-unicode-supported/-/is-unicode-supported-2.0.0.tgz",
+			"integrity": "sha512-FRdAyx5lusK1iHG0TWpVtk9+1i+GjrzRffhDg4ovQ7mcidMQ6mj+MhKPmvh7Xwyv5gIS06ns49CA7Sqg7lC22Q==",
 			"engines": {
-				"node": ">=12"
+				"node": ">=18"
 			},
 			"funding": {
 				"url": "https://github.com/sponsors/sindresorhus"
