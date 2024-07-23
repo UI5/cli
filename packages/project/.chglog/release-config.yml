@@ -3,7 +3,7 @@ template: RELEASE.tpl.md
 info:
   repository_url: https://github.com/SAP/ui5-project
 options:
-  tag_filter_pattern: '^v[^012]' # For release notes ignore versions below v4 to that we always compare the _last v4+_ tag with the current release
+  tag_filter_pattern: '^v[^0123]' # For release notes ignore versions below v4 to that we always compare the _last v4+_ tag with the current release
   commits:
     filters:
       Type:
