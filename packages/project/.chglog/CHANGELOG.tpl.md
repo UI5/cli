@@ -540,6 +540,32 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 {{ end -}}
 {{ end -}}
 {{ end -}}
+[v3.9.2]: https://github.com/SAP/ui5-project/compare/v3.9.1...v3.9.2
+[v3.9.1]: https://github.com/SAP/ui5-project/compare/v3.9.0...v3.9.1
+[v3.9.0]: https://github.com/SAP/ui5-project/compare/v3.8.0...v3.9.0
+[v3.8.0]: https://github.com/SAP/ui5-project/compare/v3.7.3...v3.8.0
+[v3.7.3]: https://github.com/SAP/ui5-project/compare/v3.7.2...v3.7.3
+[v3.7.2]: https://github.com/SAP/ui5-project/compare/v3.7.1...v3.7.2
+[v3.7.1]: https://github.com/SAP/ui5-project/compare/v3.7.0...v3.7.1
+[v3.7.0]: https://github.com/SAP/ui5-project/compare/v3.6.0...v3.7.0
+[v3.6.0]: https://github.com/SAP/ui5-project/compare/v3.5.1...v3.6.0
+[v3.5.1]: https://github.com/SAP/ui5-project/compare/v3.5.0...v3.5.1
+[v3.5.0]: https://github.com/SAP/ui5-project/compare/v3.4.2...v3.5.0
+[v3.4.2]: https://github.com/SAP/ui5-project/compare/v3.4.1...v3.4.2
+[v3.4.1]: https://github.com/SAP/ui5-project/compare/v3.4.0...v3.4.1
+[v3.4.0]: https://github.com/SAP/ui5-project/compare/v3.3.2...v3.4.0
+[v3.3.2]: https://github.com/SAP/ui5-project/compare/v3.3.1...v3.3.2
+[v3.3.1]: https://github.com/SAP/ui5-project/compare/v3.3.0...v3.3.1
+[v3.3.0]: https://github.com/SAP/ui5-project/compare/v3.2.2...v3.3.0
+[v3.2.2]: https://github.com/SAP/ui5-project/compare/v3.2.1...v3.2.2
+[v3.2.1]: https://github.com/SAP/ui5-project/compare/v3.2.0...v3.2.1
+[v3.2.0]: https://github.com/SAP/ui5-project/compare/v3.1.1...v3.2.0
+[v3.1.1]: https://github.com/SAP/ui5-project/compare/v3.1.0...v3.1.1
+[v3.1.0]: https://github.com/SAP/ui5-project/compare/v3.0.4...v3.1.0
+[v3.0.4]: https://github.com/SAP/ui5-project/compare/v3.0.3...v3.0.4
+[v3.0.3]: https://github.com/SAP/ui5-project/compare/v3.0.2...v3.0.3
+[v3.0.2]: https://github.com/SAP/ui5-project/compare/v3.0.1...v3.0.2
+[v3.0.1]: https://github.com/SAP/ui5-project/compare/v3.0.0...v3.0.1
 [v3.0.0]: https://github.com/SAP/ui5-project/compare/v2.6.0...v3.0.0
 [v2.6.0]: https://github.com/SAP/ui5-project/compare/v2.5.0...v2.6.0
 [v2.5.0]: https://github.com/SAP/ui5-project/compare/v2.4.0...v2.5.0
