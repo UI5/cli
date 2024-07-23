@@ -4,5 +4,7 @@
 	var thisIsTheUi5LoaderAutoconfig = true;
 	console.log(thisIsTheUi5LoaderAutoconfig);
 })()
-sap.ui.require(["sap/ui/core/Core"], (Core) => Core.boot?.());
+sap.ui.requireSync("sap/ui/core/Core");
+// as this module contains the Core, we ensure that the Core has been booted
+sap.ui.getCore?.().boot?.();
 //# sourceMappingURL=sap-ui-custom-dbg.js.map

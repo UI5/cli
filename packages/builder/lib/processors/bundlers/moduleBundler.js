@@ -33,10 +33,10 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  *      the ui5loader is available.
  *	</li>
  *	<li>
- *		<code>require</code>: A 'require' section is transformed into a sequence of jQuery.sap.require calls. The
- *		list will be resolved like an include pattern list in any of the other sections and for each of the resolved
- *		modules, a jQuery.sap.require will be created. In case the ui5loader is available, 'sap.ui.requireSync' is
- *		used instead.
+ *		<code>require</code>: A `require` section is transformed into a `sap.ui.require` call with all the dependencies
+ *		resolved. This module comes with an `async` flag. When set to false, the modules
+ *		are loaded using `sap.ui.requireSync` instead of `sap.ui.require`.
+ *		**Note:** The `sap.ui.requireSync` API is not available in UI5 version 2.x.
  *	</li>
  *	<li>
  *		<code>bundleInfo</code>: A 'bundleInfo' section describes the content of another named bundle. This information
@@ -75,6 +75,11 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  * @property {boolean} [declareRawModules=false] Whether raw modules should be declared after jQuery.sap.global
  *		became available. With the usage of the ui5loader, this flag should be set to 'false'
  * @property {boolean} [sort=true] Whether the modules should be sorted by their dependencies
+ * @property {boolean} [async=true] Whether the `require` section of the module should be loaded asynchronously.
+ * 		When set to true, the modules are loaded using a single `sap.ui.require` call instead of multiple
+ *      `sap.ui.requireSync` calls.
+ * 		The latter API is not available in UI5 version 2.x.
+ * 		**Note:** This property is available only for `mode=require`.
  */
 
 /* eslint-disable max-len */

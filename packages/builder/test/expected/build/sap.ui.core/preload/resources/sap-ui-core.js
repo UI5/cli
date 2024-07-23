@@ -8,7 +8,9 @@ sap.ui.require.preload({
 (function(){var o=true;console.log(o)})();
 }
 });
-sap.ui.require(["sap/ui/core/Core"], (Core) => Core.boot?.());
+sap.ui.requireSync("sap/ui/core/Core");
+// as this module contains the Core, we ensure that the Core has been booted
+sap.ui.getCore?.().boot?.();
 } catch(oError) {
 if (oError.name != "Restart") { throw oError; }
 }

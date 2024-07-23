@@ -20,8 +20,12 @@ export function applyDefaultsToBundleDefinition(bundleDefinition, taskUtil) {
 		// Since specVersion: 4.0 "require" section starts loading asynchronously.
 		// If specVersion cannot be determined, the latest spec is taken into account.
 		// This is a breaking change in specVersion: 4.0
-		if (section.mode === "require" && (!taskUtil || taskUtil.getProject().getSpecVersion().gte("4.0"))) {
-			defaultValues.async = true;
+		if (section.mode === "require") {
+			// Builder.js already treats missing async flag as truthy value and builds asynchronously by default
+
+			if (taskUtil && taskUtil.getProject().getSpecVersion().lt("4.0")) {
+				defaultValues.async = false;
+			}
 		}
 
 		return Object.assign(defaultValues, section);

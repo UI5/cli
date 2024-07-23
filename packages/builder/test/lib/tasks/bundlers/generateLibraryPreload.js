@@ -217,7 +217,6 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 						filters: [
 							"sap/ui/core/Core.js"
 						],
-						async: true,
 						resolve: false,
 						sort: true,
 						resolveConditional: false,
@@ -257,7 +256,6 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 						filters: [
 							"sap/ui/core/Core.js"
 						],
-						async: true,
 						declareRawModules: false,
 						renderer: false,
 						resolve: false,
@@ -324,7 +322,6 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 						filters: [
 							"sap/ui/core/Core.js"
 						],
-						async: true,
 						declareRawModules: false,
 						renderer: false,
 						resolve: false,
@@ -380,7 +377,6 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 						filters: [
 							"sap/ui/core/Core.js"
 						],
-						async: true,
 						declareRawModules: false,
 						renderer: false,
 						resolve: false,
@@ -582,6 +578,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 						resolveConditional: false,
 						renderer: false,
 						declareRawModules: false,
+						async: false
 					}
 				]
 			},
@@ -622,6 +619,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 						resolve: false,
 						resolveConditional: false,
 						sort: true,
+						async: false
 					}
 				]
 			},
@@ -690,6 +688,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 						resolve: false,
 						resolveConditional: false,
 						sort: true,
+						async: false
 					}
 				]
 			},
@@ -746,6 +745,7 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 						resolve: false,
 						resolveConditional: false,
 						sort: true,
+						async: false
 					}
 				]
 			},
@@ -994,6 +994,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 						resolveConditional: false,
 						renderer: false,
 						declareRawModules: false,
+						async: false
 					}
 				]
 			},
@@ -1034,6 +1035,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 						resolve: false,
 						resolveConditional: false,
 						sort: true,
+						async: false
 					}
 				]
 			},
@@ -1102,6 +1104,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 						resolve: false,
 						resolveConditional: false,
 						sort: true,
+						async: false
 					}
 				]
 			},
@@ -1158,6 +1161,7 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 						resolve: false,
 						resolveConditional: false,
 						sort: true,
+						async: false
 					}
 				]
 			},
