@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/cli",
-	"version": "4.0.0-alpha",
+	"version": "4.0.0",
 	"description": "UI5 Tooling - CLI",
 	"author": {
 		"name": "SAP SE",

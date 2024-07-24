@@ -2,20 +2,49 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v3.11.1...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.0...HEAD).
+
+<a name="v4.0.0"></a>
+## [v4.0.0] - 2024-07-23
+### Breaking Changes
+- Drop node v21 support ([#720](https://github.com/SAP/ui5-cli/issues/720)) [`891306f`](https://github.com/SAP/ui5-cli/commit/891306f736eaf6cfebd1bf7a04511fcbac65ef02)
+- Replace console.log with process.stderr ([#686](https://github.com/SAP/ui5-cli/issues/686)) [`48d1975`](https://github.com/SAP/ui5-cli/commit/48d1975c09686e9bd28312cf59a73ede3bc3d47b)
+- Rename ui5HomeDir to ui5DataDir in APIs ([#687](https://github.com/SAP/ui5-cli/issues/687)) [`772ac29`](https://github.com/SAP/ui5-cli/commit/772ac29515a55637cc55924ef0462ca76058a073)
+- Require Node.js 20.11.x/>=21.2.0 and npm >=10 [`59314fa`](https://github.com/SAP/ui5-cli/commit/59314fabae8c66dbefcc21e2557a11373dc8a8c7)
+
+### Dependency Updates
+- Bump [@ui5](https://github.com/ui5)/builder from 3.5.1 to 4.0.0 [`0ce3196`](https://github.com/SAP/ui5-cli/commit/0ce3196c0c8c8780b6d3e940caf9fd99a9e89f6b)
+- Bump [@ui5](https://github.com/ui5)/project from 3.9.2 to 4.0.0 [`0d7302b`](https://github.com/SAP/ui5-cli/commit/0d7302b4d5e83c2083ef850f81f4007f74809d4b)
+- Bump [@ui5](https://github.com/ui5)/fs from 3.0.5 to 4.0.0 [`ce51fc2`](https://github.com/SAP/ui5-cli/commit/ce51fc2442ca1ae80a5468b7288a8d51f176bc01)
+- Bump [@ui5](https://github.com/ui5)/logger from 3.0.0 to 4.0.1 [`04b201c`](https://github.com/SAP/ui5-cli/commit/04b201c14439fb33f1de4c50a7cf4d00cc80ec49)
+- Bump [@ui5](https://github.com/ui5)/server from 3.2.1 to 4.0.0 [`095f31d`](https://github.com/SAP/ui5-cli/commit/095f31dbeb90bbaf310a02b2b25ad1a088d1347f)
+- Bump update-notifier from 6.0.2 to 7.0.0 [`cd33dbd`](https://github.com/SAP/ui5-cli/commit/cd33dbd95f9364f882a91515187e48ff5b3f3c94)
+- Bump open from 9.1.0 to 10.0.3 [`486f8ef`](https://github.com/SAP/ui5-cli/commit/486f8efb98f82626fb32b7af04af94375ac41618)
+
+### BREAKING CHANGE
+
+System messages will now be written to stderr instead of stdout.
+
+JIRA: CPOUI5FOUNDATION-802
+Related to: https://github.com/SAP/ui5-tooling/issues/701
+Sibling of: https://github.com/SAP/ui5-server/pull/643,
+https://github.com/SAP/ui5-tooling/pull/930
+
+
+
+Support for older Node.js and npm releases has been dropped.
+Only Node.js 20.11.x and >=21.2.0 as well as npm v10 or higher are supported.
 
 <a name="v3.11.1"></a>
 ## [v3.11.1] - 2024-07-22
 ### Dependency Updates
 - Bump [@ui5](https://github.com/ui5)/builder from 3.5.0 to 3.5.1 [`00c050f`](https://github.com/SAP/ui5-cli/commit/00c050f929aa6204a5d57ead9845dd24fe5f8704)
 
-
 <a name="v3.11.0"></a>
 ## [v3.11.0] - 2024-06-24
 ### Dependency Updates
 - Bump [@ui5](https://github.com/ui5)/project from 3.9.1 to 3.9.2 [`e74c280`](https://github.com/SAP/ui5-cli/commit/e74c28018eafb9b15da56dcb45de58fbedec5ced)
 - Bump [@ui5](https://github.com/ui5)/builder from 3.4.1 to 3.5.0 [`d8bf229`](https://github.com/SAP/ui5-cli/commit/d8bf2295933998e64c4241942b2d93cb663eb068)
-
 
 <a name="v3.10.3"></a>
 ## [v3.10.3] - 2024-05-22
@@ -263,15 +292,6 @@ A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/
 
 <a name="v3.0.0"></a>
 ## [v3.0.0] - 2023-02-09
-### Dependency Updates
-- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-rc.9 to 3.0.0 [`180c378`](https://github.com/SAP/ui5-cli/commit/180c378b138e0d2896eea8fd64b9b684a14dee10)
-- Bump [@ui5](https://github.com/ui5)/server from 3.0.0-rc.3 to 3.0.0 [`aa0c020`](https://github.com/SAP/ui5-cli/commit/aa0c020a4eba17971ed3bee51e733dcdcd0e13ed)
-- Bump [@ui5](https://github.com/ui5)/builder from 3.0.0-rc.6 to 3.0.0 [`9184e85`](https://github.com/SAP/ui5-cli/commit/9184e85be7bd4c654caa3f4aee242f64ec639494)
-- Bump [@ui5](https://github.com/ui5)/fs from 3.0.0-rc.6 to 3.0.0 [`aa4107f`](https://github.com/SAP/ui5-cli/commit/aa4107f3ecbe31205370973cf1552b225bd7c557)
-- Bump [@ui5](https://github.com/ui5)/logger from 3.0.1-rc.3 to 3.0.0 [`086b8de`](https://github.com/SAP/ui5-cli/commit/086b8de30341b2a5d3722ea3fcce93ec5604f35f)
-- Bump [@ui5](https://github.com/ui5)/builder from 3.0.0-rc.5 to 3.0.0-rc.6 [`9120399`](https://github.com/SAP/ui5-cli/commit/912039946912c867569ba31cef549ef6eb778bd4)
-- Bump [@ui5](https://github.com/ui5)/project from 3.0.0-rc.8 to 3.0.0-rc.9 [`ed9dde4`](https://github.com/SAP/ui5-cli/commit/ed9dde4b56cab3d8bc458162a0e0f25241654190)
-
 ## Overview
 UI5 Tooling v3 provides general support for ES2022 ECMAScript language features. See [ECMAScript Support](https://sap.github.io/ui5-tooling/v3/pages/ESSupport/) for details.
 
@@ -1210,6 +1230,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v4.0.0]: https://github.com/SAP/ui5-cli/compare/v3.9.0...v4.0.0
 [v3.11.1]: https://github.com/SAP/ui5-cli/compare/v3.11.0...v3.11.1
 [v3.11.0]: https://github.com/SAP/ui5-cli/compare/v3.10.3...v3.11.0
 [v3.10.3]: https://github.com/SAP/ui5-cli/compare/v3.10.2...v3.10.3
