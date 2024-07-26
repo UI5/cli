@@ -79,6 +79,33 @@ test("Application: No replacement (No properties files)", async (t) => {
 	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
 });
 
+test("Application: Missing sap.app/id", async (t) => {
+	const {manifestEnhancer, fs, createResource} = t.context;
+
+	const input = JSON.stringify({
+		"_version": "1.58.0",
+		"sap.app": {
+			"type": "application"
+		}
+	}, null, 2);
+
+	const resource = createResource("/resources/sap/ui/demo/app/manifest.json", true, input);
+
+	const processedResources = await manifestEnhancer({
+		resources: [resource],
+		fs
+	});
+
+	t.deepEqual(processedResources, [], "Only enhanced resources are returned");
+
+	t.is(resource.setString.callCount, 0, "setString should not be called");
+
+	t.is(t.context.logVerboseSpy.callCount, 1, "One verbose messages should be logged");
+	t.is(t.context.logVerboseSpy.getCall(0).args[0],
+		"/resources/sap/ui/demo/app/manifest.json: sap.app/id is not defined. No supportedLocales can be generated");
+	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
+});
 
 test("Application: sap.app/i18n (without templates, default bundle): " +
 	"Adds supportedLocales based on available properties files",
@@ -1115,7 +1142,7 @@ test("Application: sap.ui5/models: Log verbose if manifest version is not define
 
 	t.is(t.context.logVerboseSpy.callCount, 1, "1 verbose should be logged");
 	t.is(t.context.logVerboseSpy.getCall(0).args[0],
-		"/resources/sap/ui/demo/app/manifest.json: _version is not defined. No supportedLocales are generated");
+		"/resources/sap/ui/demo/app/manifest.json: _version is not defined. No supportedLocales can be generated");
 	t.true(t.context.logWarnSpy.notCalled, "No warning should be logged");
 	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
 	t.is(fs.readdir.callCount, 0, "readdir should not be called because _version is not defined");
@@ -1718,6 +1745,72 @@ test("Library: No replacement at all", async (t) => {
 	t.is(resource.setString.callCount, 0, "setString should not be called");
 
 	t.true(t.context.logVerboseSpy.notCalled, "No verbose messages should be logged");
+	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
+});
+
+test("Library: Missing sap.app section", async (t) => {
+	const {manifestEnhancer, fs, createResource} = t.context;
+	const input = JSON.stringify({
+		"_version": "1.58.0",
+		"sap.ui5": {
+			"library": {
+				"i18n": {
+					"bundleUrl": "i18n.properties"
+				}
+			}
+		}
+	}, null, 2);
+
+	const resource = createResource("/resources/sap/ui/demo/lib/manifest.json", true, input);
+
+	const processedResources = await manifestEnhancer({
+		resources: [resource],
+		fs
+	});
+
+	t.deepEqual(processedResources, [], "Only enhanced resources are returned");
+
+	t.is(resource.setString.callCount, 0, "setString should not be called");
+
+	t.is(t.context.logVerboseSpy.callCount, 1, "One verbose messages should be logged");
+	t.is(t.context.logVerboseSpy.getCall(0).args[0],
+		"/resources/sap/ui/demo/lib/manifest.json: sap.app/id is not defined. No supportedLocales can be generated");
+	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
+});
+
+test("Library: Missing sap.app/id", async (t) => {
+	const {manifestEnhancer, fs, createResource} = t.context;
+
+	const input = JSON.stringify({
+		"_version": "1.58.0",
+		"sap.app": {
+			"type": "library"
+		},
+		"sap.ui5": {
+			"library": {
+				"i18n": {
+					"bundleUrl": "i18n.properties"
+				}
+			}
+		}
+	}, null, 2);
+
+	const resource = createResource("/resources/sap/ui/demo/lib/manifest.json", true, input);
+
+	const processedResources = await manifestEnhancer({
+		resources: [resource],
+		fs
+	});
+
+	t.deepEqual(processedResources, [], "Only enhanced resources are returned");
+
+	t.is(resource.setString.callCount, 0, "setString should not be called");
+
+	t.is(t.context.logVerboseSpy.callCount, 1, "One verbose messages should be logged");
+	t.is(t.context.logVerboseSpy.getCall(0).args[0],
+		"/resources/sap/ui/demo/lib/manifest.json: sap.app/id is not defined. No supportedLocales can be generated");
 	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
 	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
 });

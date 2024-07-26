@@ -359,12 +359,17 @@ class ManifestEnhancer {
 		this.runInvoked = true;
 
 		if (!this.manifest._version) {
-			log.verbose(`${this.filePath}: _version is not defined. No supportedLocales are generated`);
+			log.verbose(`${this.filePath}: _version is not defined. No supportedLocales can be generated`);
 			return;
 		}
 
 		if (lt(this.manifest._version, APP_DESCRIPTOR_V22)) {
 			log.verbose(`${this.filePath}: _version is lower than 1.21.0 so no supportedLocales can be generated`);
+			return;
+		}
+
+		if (!this.manifest["sap.app"]?.id) {
+			log.verbose(`${this.filePath}: sap.app/id is not defined. No supportedLocales can be generated`);
 			return;
 		}
 
