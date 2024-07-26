@@ -974,6 +974,115 @@ async (t) => {
 	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
 });
 
+test("Application: sap.ui5/models: " +
+	"No warning when fallbackLocale is empty string and is part of supportedLocales",
+async (t) => {
+	const {manifestEnhancer, fs, createResource} = t.context;
+	const input = JSON.stringify({
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"models": {
+				"i18n": {
+					"type": "sap.ui.model.resource.ResourceModel",
+					"settings": {
+						"bundleName": "sap.ui.demo.app.i18nModel.i18n",
+						"fallbackLocale": ""
+					}
+				}
+			}
+		}
+	}, null, 2);
+
+	const expected = JSON.stringify({
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"models": {
+				"i18n": {
+					"type": "sap.ui.model.resource.ResourceModel",
+					"settings": {
+						"bundleName": "sap.ui.demo.app.i18nModel.i18n",
+						"fallbackLocale": "",
+						"supportedLocales": [""]
+					}
+				}
+			}
+		}
+	}, null, 2);
+
+	const resource = createResource("/resources/sap/ui/demo/app/manifest.json", true, input);
+
+	fs.readdir.withArgs("/resources/sap/ui/demo/app/i18nModel")
+		.callsArgWith(1, null, ["i18n.properties"]);
+
+	const processedResources = await manifestEnhancer({
+		resources: [resource],
+		fs
+	});
+
+	t.deepEqual(processedResources, [resource], "Input resource is returned");
+
+	t.is(resource.setString.callCount, 1, "setString should be called once");
+	t.deepEqual(resource.setString.getCall(0).args, [expected], "Correct file content should be set");
+
+	t.true(t.context.logVerboseSpy.notCalled, "No verbose messages should be logged");
+	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.true(t.context.logErrorSpy.notCalled, "No errors should be logged");
+});
+
+test("Application: sap.ui5/models: " +
+	"Error when fallbackLocale is empty string and is not part of supportedLocales",
+async (t) => {
+	const {manifestEnhancer, fs, createResource} = t.context;
+	const input = JSON.stringify({
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"models": {
+				"i18n": {
+					"type": "sap.ui.model.resource.ResourceModel",
+					"settings": {
+						"bundleName": "sap.ui.demo.app.i18nModel.i18n",
+						"fallbackLocale": ""
+					}
+				}
+			}
+		}
+	}, null, 2);
+
+	const resource = createResource("/resources/sap/ui/demo/app/manifest.json", true, input);
+
+	fs.readdir.withArgs("/resources/sap/ui/demo/app/i18nModel")
+		.callsArgWith(1, null, ["i18n_en.properties"]);
+
+	const processedResources = await manifestEnhancer({
+		resources: [resource],
+		fs
+	});
+
+	t.deepEqual(processedResources, [], "Only enhanced resources are returned");
+
+	t.is(resource.setString.callCount, 0, "setString should not be called");
+
+	t.true(t.context.logVerboseSpy.notCalled, "No verbose messages should be logged");
+	t.true(t.context.logWarnSpy.notCalled, "No warnings should be logged");
+	t.is(t.context.logErrorSpy.callCount, 1, "One error should be logged");
+	t.deepEqual(t.context.logErrorSpy.getCall(0).args, [
+		"/resources/sap/ui/demo/app/manifest.json: Generated supported locales ('en') for " +
+		"bundle 'i18nModel/i18n.properties' not containing the defined fallback locale ''. " +
+		"Either provide a properties file for defined fallbackLocale or configure another available fallbackLocale"]);
+});
+
 test("Application: sap.ui5/models: Log verbose if manifest version is not defined at all", async (t) => {
 	const {manifestEnhancer, fs, createResource} = t.context;
 	const input = JSON.stringify({

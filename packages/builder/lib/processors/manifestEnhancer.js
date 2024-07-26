@@ -212,7 +212,7 @@ class ManifestEnhancer {
 		}
 		const supportedLocales = await this.findSupportedLocales(normalizedBundleUrl);
 		if (!isTerminologyBundle && supportedLocales.length > 0) {
-			if (fallbackLocale && !supportedLocales.includes(fallbackLocale)) {
+			if (typeof fallbackLocale === "string" && !supportedLocales.includes(fallbackLocale)) {
 				log.error(
 					`${this.filePath}: ` +
 					`Generated supported locales ('${supportedLocales.join("', '")}') for ` +
@@ -221,7 +221,7 @@ class ManifestEnhancer {
 					"properties file for defined fallbackLocale or configure another available fallbackLocale"
 				);
 				return [];
-			} else if (!fallbackLocale && !supportedLocales.includes("en")) {
+			} else if (typeof fallbackLocale === "undefined" && !supportedLocales.includes("en")) {
 				log.warn(
 					`${this.filePath}: ` +
 					`Generated supported locales ('${supportedLocales.join("', '")}') for ` +
