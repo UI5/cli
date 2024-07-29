@@ -337,7 +337,8 @@ test.serial("Check verbose logging", async (t) => {
 			return {
 				getVersion: () => "1.0.0"
 			};
-		}
+		},
+		isModified: () => false
 	};
 
 	const resources = {
@@ -404,7 +405,8 @@ test.serial("Check if version replacement is done", (t) => {
 				getVersion: () => "1.0.0"
 			};
 		},
-		getPathTree: () => ""
+		getPathTree: () => "",
+		isModified: () => false
 	};
 
 	const resources = {
@@ -483,7 +485,8 @@ test.serial("Check if utf8 characters are correctly processed in version replace
 				getVersion: () => "1.0.0"
 			};
 		},
-		getPathTree: () => ""
+		getPathTree: () => "",
+		isModified: () => false
 	};
 
 	const resources = {

@@ -95,10 +95,18 @@ function createMiddleware({resources, middlewareUtil}) {
 
 			// Enable ETag caching
 			const statInfo = resource.getStatInfo();
-			if (statInfo?.size !== undefined) {
-				res.setHeader("ETag", etag(statInfo));
+			if (statInfo?.size !== undefined && !resource.isModified()) {
+				let etagHeader = etag(statInfo);
+				if (resource.getProject()) {
+					// Add project version to ETag to invalidate cache when project version changes.
+					// This is necessary to invalidate files with ${version} placeholders.
+					etagHeader = etagHeader.slice(0, -1) + `-${resource.getProject().getVersion()}"`;
+				}
+				res.setHeader("ETag", etagHeader);
 			} else {
-				// Fallback to buffer if stats are not available or insufficient
+				// Fallback to buffer if stats are not available or insufficient or resource is modified.
+				// Modified resources must use the buffer for cache invalidation so that UI5 Tooling changes
+				// invalidate the cache even when the original resource is not modified.
 				res.setHeader("ETag", etag(await resource.getBuffer()));
 			}
 
