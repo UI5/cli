@@ -1,5 +1,5 @@
 import os from "node:os";
-import {stat, readFile, writeFile, mkdir} from "node:fs/promises";
+import {stat, readFile, writeFile, mkdir, chmod, constants} from "node:fs/promises";
 import path from "node:path";
 import {getLogger} from "@ui5/logger";
 
@@ -27,17 +27,35 @@ export function getSslCertificate(
 ) {
 	// checks the certificates if they are present
 	return Promise.all([
-		fileExists(keyPath).then((bExists) => {
-			if (!bExists) {
+		fileExists(keyPath).then(async (statsOrFalse) => {
+			if (!statsOrFalse) {
 				log.verbose(`No SSL private key found at ${keyPath}`);
 				return false;
 			}
+			if (statsOrFalse.mode & constants.S_IWUSR || statsOrFalse.mode & constants.S_IROTH) {
+				// Note: According to the Node.js docs, "On Windows, only S_IRUSR and S_IWUSR are available"
+				// Therefore we first check for "writable by owner" (S_IWUSR), even though we are more interested in
+				// "readable by others", which we still check on platforms where it's supported
+				log.verbose(`Detected outdated file permissions for private key file at ${keyPath}. ` +
+					`Fixing permissions...`);
+				await chmod(keyPath, 0o400).catch((err) => {
+					log.error(`Failed to update permissions of private key file at ${keyPath}: ${err}`);
+				});
+			}
 			return readFile(keyPath);
 		}),
-		fileExists(certPath).then((bExists) => {
-			if (!bExists) {
+		fileExists(certPath).then(async (statsOrFalse) => {
+			if (!statsOrFalse) {
 				log.verbose(`No SSL certificate found at ${certPath}`);
 				return false;
+			}
+
+			if (statsOrFalse.mode & constants.S_IWUSR || statsOrFalse.mode & constants.S_IROTH) {
+				log.verbose(`Detected outdated file permissions for certificate file at ${keyPath}. ` +
+					`Fixing permissions...`);
+				await chmod(certPath, 0o400).catch((err) => {
+					log.error(`Failed to update permissions of certificate file at ${certPath}: ${err}`);
+				});
 			}
 			return readFile(certPath);
 		})
@@ -84,14 +102,14 @@ async function createAndInstallCertificate(keyPath, certPath) {
 	await Promise.all([
 		// Write certificates to the ui5 certificate folder
 		// such that they are used by default upon next startup
-		mkdir(path.dirname(keyPath), {recursive: true}).then(() => writeFile(keyPath, key)),
-		mkdir(path.dirname(certPath), {recursive: true}).then(() => writeFile(certPath, cert))
+		mkdir(path.dirname(keyPath), {recursive: true}).then(() => writeFile(keyPath, key, {mode: 0o400})),
+		mkdir(path.dirname(certPath), {recursive: true}).then(() => writeFile(certPath, cert, {mode: 0o400}))
 	]);
 	return {key, cert};
 }
 
 function fileExists(filePath) {
-	return stat(filePath).then(() => true, (err) => {
+	return stat(filePath).then((s) => s, (err) => {
 		if (err.code === "ENOENT") { // "File or directory does not exist"
 			return false;
 		} else {
