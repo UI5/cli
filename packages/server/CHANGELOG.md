@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.0...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.1...HEAD).
+
+<a name="v4.0.1"></a>
+## [v4.0.1] - 2024-07-31
+### Bug Fixes
+- **serveResources:** Improve cache invalidation ([#688](https://github.com/SAP/ui5-server/issues/688)) [`777afa5`](https://github.com/SAP/ui5-server/commit/777afa52e459f988e0799ae63b8a9b024db0c398)
+
 
 <a name="v4.0.0"></a>
 ## [v4.0.0] - 2024-07-23
@@ -363,6 +369,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v4.0.1]: https://github.com/SAP/ui5-server/compare/v4.0.0...v4.0.1
 [v4.0.0]: https://github.com/SAP/ui5-server/compare/v3.1.5...v4.0.0
 [v3.2.1]: https://github.com/SAP/ui5-server/compare/v3.2.0...v3.2.1
 [v3.2.0]: https://github.com/SAP/ui5-server/compare/v3.1.5...v3.2.0
