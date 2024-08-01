@@ -161,7 +161,7 @@
 		"eslint": "^8.57.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^14.0.0",
-		"eslint-plugin-jsdoc": "^48.9.2",
+		"eslint-plugin-jsdoc": "^48.10.2",
 		"esmock": "^2.6.7",
 		"istanbul-lib-coverage": "^3.2.2",
 		"istanbul-lib-instrument": "^6.0.3",
