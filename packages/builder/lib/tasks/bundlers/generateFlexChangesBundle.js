@@ -74,6 +74,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 		manifestContent["sap.ui5"].dependencies = manifestContent["sap.ui5"].dependencies || {};
 		if (!Array.isArray(manifestContent["sap.ui5"].dependencies.minUI5Version)) {
 			manifestContent["sap.ui5"].dependencies.minUI5Version =
+				// eslint-disable-next-line no-constant-binary-expression
 				[manifestContent["sap.ui5"].dependencies.minUI5Version] || [""];
 		}
 		return manifestContent["sap.ui5"].dependencies.minUI5Version;

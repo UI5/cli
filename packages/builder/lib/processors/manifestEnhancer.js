@@ -15,7 +15,7 @@ function isAbsoluteUrl(url) {
 		const parsedUrl = new URL(url);
 		// URL with ui5 protocol shouldn't be treated as absolute URL and will be handled separately
 		return parsedUrl.protocol !== "ui5:";
-	} catch (err) {
+	} catch {
 		// URL constructor without base requires absolute URL and throws an error for relative URLs
 		return false;
 	}

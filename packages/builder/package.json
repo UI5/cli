@@ -139,6 +139,7 @@
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
+		"@eslint/js": "^9.8.0",
 		"@istanbuljs/esm-loader-hook": "^0.2.0",
 		"@jridgewell/trace-mapping": "^0.3.25",
 		"@ui5/project": "^4.0.2",
@@ -147,11 +148,12 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
-		"eslint": "^8.57.0",
+		"eslint": "^9.8.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-ava": "^14.0.0",
+		"eslint-plugin-ava": "^15.0.1",
 		"eslint-plugin-jsdoc": "^48.10.2",
 		"esmock": "^2.6.7",
+		"globals": "^15.9.0",
 		"line-column": "^1.0.2",
 		"nyc": "^17.0.0",
 		"open-cli": "^8.0.0",

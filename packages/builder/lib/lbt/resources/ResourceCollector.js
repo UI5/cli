@@ -140,7 +140,7 @@ class ResourceCollector {
 					let subModuleInfo;
 					try {
 						subModuleInfo = await this._pool.getModuleInfo(subModule);
-					} catch (err) {
+					} catch {
 						log.verbose(`	Missing submodule ${subModule} included by ${moduleInfo.name}`);
 					}
 					if (subModuleInfo) {

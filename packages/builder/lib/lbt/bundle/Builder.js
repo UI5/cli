@@ -636,7 +636,7 @@ class BundleBuilder {
 				let resource = null;
 				try {
 					resource = await this.pool.findResourceWithInfo(module);
-				} catch (e) {
+				} catch {
 					log.error(`    couldn't find ${module}`);
 				}
 

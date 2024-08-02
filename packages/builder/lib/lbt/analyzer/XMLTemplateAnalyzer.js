@@ -402,7 +402,7 @@ class XMLTemplateAnalyzer {
 					}
 				}
 			}
-		} catch (err) {
+		} catch {
 			// ignore missing resources
 			// console.warn( "node not found %s", moduleName);
 		}
