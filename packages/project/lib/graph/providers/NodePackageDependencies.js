@@ -159,7 +159,7 @@ class NodePackageDependencies {
 						name: depName,
 						optional: true
 					});
-				} catch (err) {
+				} catch {
 					// Ignore error since it's a development dependency of a non-root module
 				}
 			}));
@@ -172,7 +172,7 @@ class NodePackageDependencies {
 						name: depName,
 						optional: false
 					});
-				} catch (err) {
+				} catch {
 					// Ignore error since it's an optional dependency
 				}
 			}));
