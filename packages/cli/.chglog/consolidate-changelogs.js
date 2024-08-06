@@ -1,5 +1,4 @@
 import readline from "node:readline";
-import path from "node:path";
 import fs from "node:fs";
 import {fileURLToPath} from "node:url";
 
@@ -13,13 +12,15 @@ function handleDependencyBump(line) {
 		const changelog = fs.readFileSync(changelogPath, {
 			encoding: "utf8"
 		});
-		const sectionRegExp = new RegExp(`^## \\[v${moduleVersion.replace(".", "\\.")}\\].+\\n((?:.|\\n)+?)(?=^<a )`, "m");
+		const sectionRegExp =
+			new RegExp(`^## \\[v${moduleVersion.replace(".", "\\.")}\\].+\\n((?:.|\\n)+?)(?=^<a )`, "m");
 		const changelogMatch = changelog.match(sectionRegExp);
 		if (!changelogMatch) {
-			throw new Error(`Failed to find relevant changelog for ${moduleName}@${moduleVersion}`)
+			throw new Error(`Failed to find relevant changelog for ${moduleName}@${moduleVersion}`);
 		}
 		let versionChangelog = changelogMatch[1];
-		if (versionChangelog.length > 1) { // In case of an empty changelog, we still match the newline with a length of 1
+		// In case of an empty changelog, we still match the newline with a length of 1
+		if (versionChangelog.length > 1) {
 			versionChangelog = versionChangelog.replace(/^### /gm, "#### ");
 			versionChangelog = versionChangelog.replace(/^./gm, "      $&");
 			const repoUrl = `https://github.com/SAP/${moduleName.replace("@ui5/", "ui5-")}/tree/v${moduleVersion}`;
@@ -38,24 +39,24 @@ ${versionChangelog}`;
 function readStdin() {
 	return new Promise((resolve, reject) => {
 		const rl = readline.createInterface({
-		    input: process.stdin
+			input: process.stdin,
 		});
 
 		let buffer = "";
 		rl.on("line", (line) => {
 			try {
 				if (line.startsWith("- Bump")) {
-					buffer += `${handleDependencyBump(line)}`
+					buffer += `${handleDependencyBump(line)}`;
 				} else {
 					buffer += `${line}\n`;
 				}
 			} catch (err) {
-				reject(err)
+				reject(err);
 			}
 		});
 
 		rl.on("pause", () => {
-		  resolve(buffer);
+			resolve(buffer);
 		});
 	});
 }

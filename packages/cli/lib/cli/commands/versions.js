@@ -15,7 +15,7 @@ versions.getVersion = (pkg) => {
 	try {
 		const packageInfo = require(`${pkg}/package.json`);
 		return packageInfo.version || NOT_FOUND;
-	} catch (err) {
+	} catch {
 		return NOT_FOUND;
 	}
 };
