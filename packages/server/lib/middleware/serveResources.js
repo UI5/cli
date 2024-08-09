@@ -9,6 +9,7 @@ const rProperties = /\.properties$/i;
 const rReplaceVersion = /\.(library|js|json)$/i;
 const rManifest = /\/manifest\.json$/i;
 const rResourcesPrefix = /^\/resources\//i;
+const rTestResourcesPrefix = /^\/test-resources\//i;
 
 function isFresh(req, res) {
 	return fresh(req.headers, {
@@ -49,9 +50,13 @@ function createMiddleware({resources, middlewareUtil}) {
 					next();
 					return;
 				}
-			} else if (rManifest.test(resource.getPath()) && resource.getProject()?.getNamespace()) {
+			} else if (
+				rManifest.test(pathname) && !rTestResourcesPrefix.test(pathname) &&
+				resource.getProject()?.getNamespace()
+			) {
 				// Special handling for manifest.json file by adding additional content to the served manifest.json
-				// NOTE: This should only be done for manifest.json files that exist in the sources.
+				// NOTE: This should only be done for manifest.json files that exist in the sources,
+				// not in test-resources.
 				// Files created by generateLibraryManifest (see above) should not be handled in here.
 				// Only manifest.json files in library / application projects should be handled.
 				// resource.getProject.getNamespace() returns null for all other kind of projects.

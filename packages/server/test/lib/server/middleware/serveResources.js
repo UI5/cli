@@ -1338,3 +1338,69 @@ test.serial("manifestEnhancer: no generation of supported locales for theme libr
 	t.is(setStringSpy.callCount, 0);
 	t.is(setHeaderSpy.getCall(0).lastArg, "application/json; charset=UTF-8");
 });
+
+test.serial("manifestEnhancer: no processing of files within /test-resources/", async (t) => {
+	t.plan(4);
+
+	const readerWriter = resourceFactory.createAdapter({virBasePath: "/"});
+
+	const input = `{
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.lib",
+			"type": "library"
+		},
+		"sap.ui5": {
+			"library": {
+				"i18n": "messagebundle.properties"
+			}
+		}
+	}`;
+
+	const expected = input;
+
+	const project = {
+		getNamespace: () => "sap.ui.demo.lib",
+		getVersion: () => "1.0.0",
+		getReader: () => readerWriter
+	};
+
+	const resource = await writeResource(readerWriter, "/test-resources/sap/ui/demo/lib/manifest.json", 1024 * 1024,
+		input, "utf8", project
+	);
+	const setStringSpy = sinon.spy(resource, "setString");
+
+	const serveResourcesMiddlewareWithMock = t.context.serveResourcesMiddlewareWithMock =
+		await esmock.p("../../../../lib/middleware/serveResources", {
+			"@ui5/fs/fsInterface": sinon.stub().returns({
+				readdir(fsPath, callback) {
+					t.fail("fs.readdir should never be called");
+				}
+			})
+		});
+	const middleware = serveResourcesMiddlewareWithMock({
+		middlewareUtil: new MiddlewareUtil({graph: "graph", project: "project"}),
+		resources: {
+			all: readerWriter
+		}
+	});
+
+	const response = fakeResponse;
+
+	const setHeaderSpy = sinon.spy(response, "setHeader");
+	const req = {
+		url: "/test-resources/sap/ui/demo/lib/manifest.json",
+		headers: {}
+	};
+	const next = function(err) {
+		throw new Error(`Next callback called with error: ${err.stack}`);
+	};
+
+	await middleware(req, response, next);
+	const content = await resource.getString();
+
+	t.is(content, expected);
+	t.is(setHeaderSpy.callCount, 2);
+	t.is(setStringSpy.callCount, 0);
+	t.is(setHeaderSpy.getCall(0).lastArg, "application/json; charset=UTF-8");
+});
