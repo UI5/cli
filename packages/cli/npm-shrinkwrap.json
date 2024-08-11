@@ -35,7 +35,7 @@
 				"cross-env": "^7.0.3",
 				"depcheck": "^1.4.7",
 				"docdash": "^2.0.2",
-				"eslint": "^9.8.0",
+				"eslint": "^9.9.0",
 				"eslint-config-google": "^0.14.0",
 				"eslint-plugin-ava": "^15.0.1",
 				"eslint-plugin-jsdoc": "^48.11.0",
@@ -549,9 +549,9 @@
 			}
 		},
 		"node_modules/@eslint/js": {
-			"version": "9.8.0",
-			"resolved": "https://registry.npmjs.org/@eslint/js/-/js-9.8.0.tgz",
-			"integrity": "sha512-MfluB7EUfxXtv3i/++oh89uzAr4PDI4nn201hsp+qaXqsjAWzinlZEHEfPgAX4doIlKvPG/i0A9dpKxOLII8yA==",
+			"version": "9.9.0",
+			"resolved": "https://registry.npmjs.org/@eslint/js/-/js-9.9.0.tgz",
+			"integrity": "sha512-hhetes6ZHP3BlXLxmd8K2SNgkhNSi+UcecbnwWKwpP7kyi/uC75DJ1lOOBO3xrC4jyojtGE3YxKZPHfk4yrgug==",
 			"dev": true,
 			"engines": {
 				"node": "^18.18.0 || ^20.9.0 || >=21.1.0"
@@ -2070,9 +2070,9 @@
 			"integrity": "sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA=="
 		},
 		"node_modules/@pnpm/npm-conf": {
-			"version": "2.3.0",
-			"resolved": "https://registry.npmjs.org/@pnpm/npm-conf/-/npm-conf-2.3.0.tgz",
-			"integrity": "sha512-DqrO+oXGR7HCuicNy6quk6ALJSDDPKI7RZz1bP5im8mSL8J2e+9w26LdkjuAfpAjOutYUJVbnXnx4IbTQeIgfw==",
+			"version": "2.3.1",
+			"resolved": "https://registry.npmjs.org/@pnpm/npm-conf/-/npm-conf-2.3.1.tgz",
+			"integrity": "sha512-c83qWb22rNRuB0UaVCI0uRPNRr8Z0FWnEIvT47jiHAmOIUHbBOg5XvV7pM5x+rKn9HRpjxquDbXYSXr3fAKFcw==",
 			"dependencies": {
 				"@pnpm/config.env-replace": "^1.1.0",
 				"@pnpm/network.ca-file": "^1.0.1",
@@ -4804,9 +4804,9 @@
 			"integrity": "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 		},
 		"node_modules/electron-to-chromium": {
-			"version": "1.5.5",
-			"resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.5.tgz",
-			"integrity": "sha512-QR7/A7ZkMS8tZuoftC/jfqNkZLQO779SSW3YuZHP4eXpj3EffGLFcB/Xu9AAZQzLccTiCV+EmUo3ha4mQ9wnlA==",
+			"version": "1.5.6",
+			"resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.6.tgz",
+			"integrity": "sha512-jwXWsM5RPf6j9dPYzaorcBSUg6AiqocPEyMpkchkvntaH9HGfOOMZwxMJjDY/XEs3T5dM7uyH1VhRMkqUU9qVw==",
 			"dev": true
 		},
 		"node_modules/emittery": {
@@ -4988,16 +4988,16 @@
 			}
 		},
 		"node_modules/eslint": {
-			"version": "9.8.0",
-			"resolved": "https://registry.npmjs.org/eslint/-/eslint-9.8.0.tgz",
-			"integrity": "sha512-K8qnZ/QJzT2dLKdZJVX6W4XOwBzutMYmt0lqUS+JdXgd+HTYFlonFgkJ8s44d/zMPPCnOOk0kMWCApCPhiOy9A==",
+			"version": "9.9.0",
+			"resolved": "https://registry.npmjs.org/eslint/-/eslint-9.9.0.tgz",
+			"integrity": "sha512-JfiKJrbx0506OEerjK2Y1QlldtBxkAlLxT5OEcRF8uaQ86noDe2k31Vw9rnSWv+MXZHj7OOUV/dA0AhdLFcyvA==",
 			"dev": true,
 			"dependencies": {
 				"@eslint-community/eslint-utils": "^4.2.0",
 				"@eslint-community/regexpp": "^4.11.0",
 				"@eslint/config-array": "^0.17.1",
 				"@eslint/eslintrc": "^3.1.0",
-				"@eslint/js": "9.8.0",
+				"@eslint/js": "9.9.0",
 				"@humanwhocodes/module-importer": "^1.0.1",
 				"@humanwhocodes/retry": "^0.3.0",
 				"@nodelib/fs.walk": "^1.2.8",
@@ -5036,6 +5036,14 @@
 			},
 			"funding": {
 				"url": "https://eslint.org/donate"
+			},
+			"peerDependencies": {
+				"jiti": "*"
+			},
+			"peerDependenciesMeta": {
+				"jiti": {
+					"optional": true
+				}
 			}
 		},
 		"node_modules/eslint-config-google": {
