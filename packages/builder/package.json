@@ -124,7 +124,7 @@
 		"@jridgewell/sourcemap-codec": "^1.5.0",
 		"@ui5/fs": "^4.0.0",
 		"@ui5/logger": "^4.0.1",
-		"cheerio": "1.0.0-rc.12",
+		"cheerio": "1.0.0",
 		"escape-unicode": "^0.2.0",
 		"escope": "^4.0.0",
 		"espree": "^10.1.0",

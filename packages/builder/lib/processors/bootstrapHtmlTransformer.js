@@ -1,6 +1,6 @@
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:processors:bootstrapHtmlTransformer");
-import cheerio from "cheerio";
+import * as cheerio from "cheerio";
 
 /**
  * @module @ui5/builder/processors/bootstrapHtmlTransformer
