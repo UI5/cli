@@ -108,6 +108,11 @@ export default function(cli) {
 						process.stderr.write("\n");
 						process.stderr.write(err.stack);
 						process.stderr.write("\n");
+						if (err.cause instanceof Error && err.cause.stack) {
+							process.stderr.write(chalk.underline("Error Cause Stack Trace:\n"));
+							process.stderr.write(err.cause.stack + "\n");
+							process.stderr.write("\n");
+						}
 						process.stderr.write(
 							chalk.dim(
 								`If you think this is an issue of the UI5 Tooling, you might report it using the ` +
