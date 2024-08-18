@@ -134,7 +134,7 @@
 		"pretty-data": "^0.40.0",
 		"rimraf": "^6.0.1",
 		"semver": "^7.6.3",
-		"terser": "^5.31.5",
+		"terser": "^5.31.6",
 		"workerpool": "^9.1.3",
 		"xml2js": "^0.6.2"
 	},
@@ -151,7 +151,7 @@
 		"eslint": "^9.9.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.0.1",
-		"eslint-plugin-jsdoc": "^50.0.1",
+		"eslint-plugin-jsdoc": "^50.2.2",
 		"esmock": "^2.6.7",
 		"globals": "^15.9.0",
 		"line-column": "^1.0.2",
