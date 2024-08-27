@@ -12,7 +12,7 @@
 				"@ui5/builder": "^4.0.3",
 				"@ui5/fs": "^4.0.1",
 				"@ui5/logger": "^4.0.1",
-				"@ui5/project": "^4.0.2",
+				"@ui5/project": "^4.0.3",
 				"@ui5/server": "^4.0.3",
 				"chalk": "^5.3.0",
 				"data-with-position": "^0.5.0",
@@ -2384,12 +2384,12 @@
 			}
 		},
 		"node_modules/@ui5/project": {
-			"version": "4.0.2",
-			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-4.0.2.tgz",
-			"integrity": "sha512-6oPVMfQBN9ppu5fLJuJ3dnC1PLqDRbJTuORj5u4/jPOJ4kbXcAqgmB57gssRc+i44mQqUIgW2dIaGnFi0mQb1g==",
+			"version": "4.0.3",
+			"resolved": "https://registry.npmjs.org/@ui5/project/-/project-4.0.3.tgz",
+			"integrity": "sha512-6APsQ2iicR3A8ZBZyr+tKaod5kZCBVPWEBEV8fnzZ2DhXd73Z1KSeyVFPtm3cHgf/0vW9I9+EwIyNBtK5zAGWw==",
 			"dependencies": {
 				"@npmcli/config": "^8.3.4",
-				"@ui5/fs": "^4.0.0",
+				"@ui5/fs": "^4.0.1",
 				"@ui5/logger": "^4.0.1",
 				"ajv": "^6.12.6",
 				"ajv-errors": "^1.0.1",
