@@ -13,7 +13,7 @@
 				"@ui5/fs": "^4.0.1",
 				"@ui5/logger": "^4.0.1",
 				"@ui5/project": "^4.0.3",
-				"@ui5/server": "^4.0.3",
+				"@ui5/server": "^4.0.4",
 				"chalk": "^5.3.0",
 				"data-with-position": "^0.5.0",
 				"import-local": "^3.2.0",
@@ -2425,12 +2425,12 @@
 			}
 		},
 		"node_modules/@ui5/server": {
-			"version": "4.0.3",
-			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-4.0.3.tgz",
-			"integrity": "sha512-OkI2StioAep+rYhxeu3v+J9KUGF9fvy2YLOUUI/HGV22E50ys+WW5B+9ynVH11Gv5ZgoIt5wqcvB8YlSc5Q2cA==",
+			"version": "4.0.4",
+			"resolved": "https://registry.npmjs.org/@ui5/server/-/server-4.0.4.tgz",
+			"integrity": "sha512-EQNKVCH/fZwaGLDabltkthOWQ4N0h8dqt0l5Ldombo/BNRywMA9BFGwKReqhxJBabYfBZTC1IkQq9EVdICFs9w==",
 			"dependencies": {
-				"@ui5/builder": "^4.0.1",
-				"@ui5/fs": "^4.0.0",
+				"@ui5/builder": "^4.0.3",
+				"@ui5/fs": "^4.0.1",
 				"@ui5/logger": "^4.0.1",
 				"body-parser": "^1.20.2",
 				"compression": "^1.7.4",
