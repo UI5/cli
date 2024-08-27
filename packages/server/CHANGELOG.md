@@ -2,7 +2,13 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.4...HEAD).
+
+<a name="v4.0.4"></a>
+## [v4.0.4] - 2024-08-27
+### Bug Fixes
+- Ensure SSL credentials are only readable by owner [`7220dbb`](https://github.com/SAP/ui5-server/commit/7220dbb2237dbf3104dcb88c15c1ca86b61ba49d)
+
 
 <a name="v4.0.3"></a>
 ## [v4.0.3] - 2024-08-09
@@ -381,6 +387,7 @@ Only Node.js v10 or higher is supported.
 
 <a name="v0.0.1"></a>
 ## v0.0.1 - 2018-06-06
+[v4.0.4]: https://github.com/SAP/ui5-server/compare/v4.0.3...v4.0.4
 [v4.0.3]: https://github.com/SAP/ui5-server/compare/v4.0.2...v4.0.3
 [v4.0.2]: https://github.com/SAP/ui5-server/compare/v4.0.1...v4.0.2
 [v4.0.1]: https://github.com/SAP/ui5-server/compare/v4.0.0...v4.0.1
