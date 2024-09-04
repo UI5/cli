@@ -111,8 +111,19 @@ function generateDoc() {
 		if (!(obj.commands.length <= 1)) {
 			for (const all of obj.commands) {
 				const temp = checkChars(all);
-				const {command, description} = splitString(temp);
-				commandsObj.push({childCommand: command, commandDescription: description});
+				let {command, description, details} = splitString(temp);
+
+				// Check and remove "<option>" from command, description, and details
+				// after "<opt" spaced out with U+200B is added to prevent Vitepress to render "<option>" as HTML.
+				if (command.includes("<option>")) {
+					command = command.replace(/<option>/g, "<opt​ion>");
+				}
+
+				if (details && details.includes("<option>")) {
+					details = details.replace(/<option>/g, "");
+				}
+
+				commandsObj.push({childCommand: command, commandDescription: description, details});
 			}
 		}
 
@@ -182,12 +193,12 @@ function generateDoc() {
 	content = content.split("&lt;").join("<").split("&gt;").join(">");
 	content = content.split("&#x3D;").join("=");
 	try {
-		writeFileSync("./docs/pages/CLI.md", content);
+		writeFileSync("./docs/CLI.md", content);
 	} catch (err) {
-		console.error(`Failed to generate docs/pages/CLI.md: ${err.message}.`);
+		console.error(`Failed to generate /docs/CLI.md: ${err.message}.`);
 		throw err;
 	}
-	console.log("Generated docs/pages/CLI.md");
+	console.log("Generated /docs/CLI.md");
 }
 
 function splitString(temp) {

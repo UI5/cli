@@ -1,0 +1,77 @@
+{
+    "name": "log syntax",
+    "scopeName": "text.log",
+    "fileTypes": [
+        "log"
+    ],
+    "patterns": [
+        {
+            "name": "comment.indented",
+            "match": "^\\s+(.*)"
+        },
+        {
+            "begin": "\\{",
+            "end": "\\}",
+            "patterns": [
+                {
+                    "include": "$self"
+                },
+                {
+                    "name": "string.quoted.single",
+                    "match": "('.*?')"
+                },
+                {
+                    "name": "constant.numeric",
+                    "match": "\\b(\\d+)\\b"
+                },
+                {
+                    "name": "constant.language",
+                    "match": "\\b(true|false)\\b"
+                }
+            ]
+        },
+        {
+            "match": "([\\w]+\\.)*[\\w]+ = (\\d*)(true|false)?(.*)",
+            "captures": {
+                "2": {
+                    "name": "constant.numeric"
+                },
+                "3": {
+                    "name": "constant.language"
+                },
+                "4": {
+                    "name": "string.quoted.single"
+                }
+            }
+        },
+        {
+            "match": "^(?:\\[.*?\\]|\\$) (cds) (.*)$",
+            "captures": {
+                "1": {
+                    "name": "constant.other.key"
+                },
+                "2": {
+                    "name": "string"
+                }
+            }
+        }
+    ],
+    "repository": {
+        "main": {
+            "patterns": [
+                {
+                    "include": "#comment.indented"
+                },
+                {
+                    "include": "#string.quoted.single"
+                },
+                {
+                    "include": "#constant.numeric"
+                },
+                {
+                    "include": "#constant.boolean"
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "outDir": "./site",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "strict": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
+    "paths": {
+      "@components/*": [
+        "components/*"
+      ],
+      "@theme/*": [
+        ".vitepress/theme/*"
+      ]
+    }
+  },
+  "exclude": [
+    "**/node_modules/**",
+    "**/site/**"
+  ]
+}

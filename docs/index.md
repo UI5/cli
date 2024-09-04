@@ -1,8 +1,8 @@
-![UI5 logo](images/UI5_logo_wide.png)
+---
+layout: home
 
 # UI5 CLI
 
-An open and modular toolchain to develop state-of-the-art applications based on the [UI5](https://ui5.sap.com) framework.
 
 !!! abstract "Project Rename"
 	**UI5 Tooling has been renamed to UI5 CLI 🚨**

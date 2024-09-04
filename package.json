@@ -29,11 +29,14 @@
 		"jsdoc-generate": "node ./scripts/isWorkspace.js && npm run jsdoc-generate-workspace || npm run jsdoc-generate-local",
 		"jsdoc-generate-local": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"jsdoc-generate-workspace": "jsdoc -c ./jsdoc-workspace.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ../ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
-		"docs": "bash ./scripts/serveDocs.sh",
-		"docs-generate": "bash ./scripts/buildDocs.sh && open-cli http://localhost:8000 && ws --compress -d site",
+		"start": "vitepress --open",
+		"serve-docs": "vitepress build && vitepress preview --port 8080",
+		"docs-generate": "vitepress build",
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
+		"replace-base-path-next": "node ./scripts/generatenextConfig.js",
+		"replace-base-path-stable": "node ./scripts/generateStableConfig.js",
 		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server"
 	},
 	"repository": {
