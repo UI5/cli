@@ -133,7 +133,7 @@
 		"parseurl": "^1.3.3",
 		"portscanner": "^2.2.0",
 		"replacestream": "^4.0.3",
-		"router": "^1.3.8",
+		"router": "^2.0.0",
 		"spdy": "^4.0.2",
 		"yesno": "^0.4.0"
 	},
