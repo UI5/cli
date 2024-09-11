@@ -126,7 +126,7 @@
 		"devcert-sanscache": "^0.5.1",
 		"escape-html": "^1.0.3",
 		"etag": "^1.8.1",
-		"express": "^4.19.2",
+		"express": "^4.20.0",
 		"fresh": "^0.5.2",
 		"graceful-fs": "^4.2.11",
 		"mime-types": "^2.1.35",
@@ -156,7 +156,7 @@
 		"nyc": "^17.0.0",
 		"open-cli": "^8.0.0",
 		"rimraf": "^6.0.1",
-		"sinon": "^18.0.0",
+		"sinon": "^18.0.1",
 		"supertest": "^7.0.0",
 		"tap-xunit": "^2.4.1"
 	}
