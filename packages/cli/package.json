@@ -128,7 +128,7 @@
 		"open": "^10.1.0",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.6.3",
-		"update-notifier": "^7.3.0",
+		"update-notifier": "^7.3.1",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
@@ -151,7 +151,7 @@
 		"nyc": "^17.0.0",
 		"open-cli": "^8.0.0",
 		"rimraf": "^6.0.1",
-		"sinon": "^18.0.0",
+		"sinon": "^18.0.1",
 		"strip-ansi": "^7.1.0",
 		"tap-xunit": "^2.4.1",
 		"testdouble": "^3.20.2"
