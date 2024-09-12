@@ -126,7 +126,7 @@
 		"devcert-sanscache": "^0.5.1",
 		"escape-html": "^1.0.3",
 		"etag": "^1.8.1",
-		"express": "^4.20.0",
+		"express": "^4.21.0",
 		"fresh": "^0.5.2",
 		"graceful-fs": "^4.2.11",
 		"mime-types": "^2.1.35",
