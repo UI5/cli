@@ -131,7 +131,7 @@
 		"graceful-fs": "^4.2.11",
 		"js-yaml": "^4.1.0",
 		"lockfile": "^1.0.4",
-		"make-fetch-happen": "^14.0.2",
+		"make-fetch-happen": "^14.0.3",
 		"node-stream-zip": "^1.15.0",
 		"pacote": "^19.0.1",
 		"pretty-hrtime": "^1.0.3",
