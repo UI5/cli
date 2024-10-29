@@ -28,7 +28,7 @@ jobs:
       run: npm test
 
     - name: Send report to Coveralls
-      uses: coverallsapp/github-action@v2.3.1
+      uses: coverallsapp/github-action@v2.3.4
 
     - name: Build e2e test image
       run: ./test/e2e/build-image.sh
