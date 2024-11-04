@@ -141,6 +141,7 @@ class Console {
 	}
 
 	#handleBuildMetadataEvent({projectsToBuild}) {
+		this.#projectMetadata = new Map();
 		projectsToBuild.forEach((projectName) => {
 			this.#projectMetadata.set(projectName, {
 				buildStarted: false,
