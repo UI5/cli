@@ -125,7 +125,7 @@ test("Check for consistency between VisitorKeys and EnrichedVisitorKeys", (t) =>
 	// Only then, the if-clause below should be changed to the new ecmaVersion to prevent the test
 	// from failing when new VisitorKeys are available via espree.
 
-	if (ecmaVersion > 2022) {
+	if (ecmaVersion > 2023) {
 		Object.keys(VisitorKeys).forEach( (type) => {
 			// Ignore deprecated keys:
 			// - ExperimentalSpreadProperty => SpreadElement
