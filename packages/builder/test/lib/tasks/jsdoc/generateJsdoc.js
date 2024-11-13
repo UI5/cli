@@ -8,8 +8,8 @@ test.beforeEach(async (t) => {
 	const sinon = t.context.sinon = sinonGlobal.createSandbox();
 
 	t.context.mkdtempStub = sinon.stub();
-	t.context.mkdirStub = sinon.stub().yieldsAsync();
-	t.context.rimrafStub = sinon.stub().resolves();
+	t.context.mkdirpStub = sinon.stub().resolves();
+	t.context.rmrfStub = sinon.stub().resolves();
 	t.context.jsdocGeneratorStub = sinon.stub();
 
 	t.context.writeStub = sinon.stub().resolves();
@@ -24,10 +24,10 @@ test.beforeEach(async (t) => {
 	t.context.generateJsdoc = await esmock("../../../../lib/tasks/jsdoc/generateJsdoc.js", {
 		"graceful-fs": {
 			mkdtemp: t.context.mkdtempStub,
-			mkdir: t.context.mkdirStub
 		},
-		"rimraf": {
-			rimraf: t.context.rimrafStub
+		"../../../../lib/utils/fs.js": {
+			mkdirp: t.context.mkdirpStub,
+			rmrf: t.context.rmrfStub
 		},
 		"@ui5/fs/resourceFactory": {
 			createAdapter: t.context.createAdapterStub
@@ -44,7 +44,7 @@ test.afterEach.always((t) => {
 });
 
 test.serial("createTmpDir successful", async (t) => {
-	const {generateJsdoc, mkdirStub, mkdtempStub} = t.context;
+	const {generateJsdoc, mkdirpStub, mkdtempStub} = t.context;
 	const generateJsdocUtils = generateJsdoc._utils;
 
 	mkdtempStub.callsArgWithAsync(1, undefined, "some/path");
@@ -53,9 +53,8 @@ test.serial("createTmpDir successful", async (t) => {
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
-	t.is(mkdirStub.callCount, 1, "One directory got created");
-	t.is(mkdirStub.getCall(0).args[0], tmpRootPath, "Correct tmp root dir got created");
-	t.deepEqual(mkdirStub.getCall(0).args[1], {recursive: true});
+	t.is(mkdirpStub.callCount, 1, "One directory got created");
+	t.deepEqual(mkdirpStub.getCall(0).args, [tmpRootPath], "Correct tmp root dir got created");
 
 	t.is(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenam3space-"));
@@ -63,7 +62,7 @@ test.serial("createTmpDir successful", async (t) => {
 });
 
 test.serial("createTmpDir error", async (t) => {
-	const {generateJsdoc, mkdirStub, mkdtempStub} = t.context;
+	const {generateJsdoc, mkdirpStub, mkdtempStub} = t.context;
 	const generateJsdocUtils = generateJsdoc._utils;
 
 	mkdtempStub.callsArgWithAsync(1, new Error("Dir creation failed"), "some/path");
@@ -72,9 +71,8 @@ test.serial("createTmpDir error", async (t) => {
 
 	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
 
-	t.is(mkdirStub.callCount, 1, "One directory got created");
-	t.deepEqual(mkdirStub.getCall(0).args[0], tmpRootPath, "Correct tmp root dir got created");
-	t.deepEqual(mkdirStub.getCall(0).args[1], {recursive: true});
+	t.is(mkdirpStub.callCount, 1, "One directory got created");
+	t.deepEqual(mkdirpStub.getCall(0).args, [tmpRootPath], "Correct tmp root dir got created");
 
 	t.is(mkdtempStub.callCount, 1, "mkdtemp is called once");
 	t.deepEqual(mkdtempStub.getCall(0).args[0], path.join(tmpRootPath, "jsdoc-somenamespace-"));
@@ -82,7 +80,7 @@ test.serial("createTmpDir error", async (t) => {
 });
 
 test.serial("createTmpDirs", async (t) => {
-	const {sinon, generateJsdoc, mkdirStub, rimrafStub} = t.context;
+	const {sinon, generateJsdoc, mkdirpStub, rmrfStub} = t.context;
 	const generateJsdocUtils = generateJsdoc._utils;
 
 	const createTmpDirStub = sinon.stub(generateJsdocUtils, "createTmpDir")
@@ -93,25 +91,22 @@ test.serial("createTmpDirs", async (t) => {
 	t.is(createTmpDirStub.callCount, 1, "creteTmpDir called once");
 	t.is(createTmpDirStub.getCall(0).args[0], "some.namespace", "creteTmpDir called with correct argument");
 
-	t.is(mkdirStub.callCount, 3, "Three directory got created");
-	t.deepEqual(mkdirStub.getCall(0).args[0], path.join("/", "some", "path", "src"),
+	t.is(mkdirpStub.callCount, 3, "Three directory got created");
+	t.deepEqual(mkdirpStub.getCall(0).args, [path.join("/", "some", "path", "src")],
 		"Correct srcdir path got created");
-	t.deepEqual(mkdirStub.getCall(0).args[1], {recursive: true});
-	t.deepEqual(mkdirStub.getCall(1).args[0], path.join("/", "some", "path", "target"),
+	t.deepEqual(mkdirpStub.getCall(1).args, [path.join("/", "some", "path", "target")],
 		"Correct target dir path got created");
-	t.deepEqual(mkdirStub.getCall(1).args[1], {recursive: true});
-	t.deepEqual(mkdirStub.getCall(2).args[0], path.join("/", "some", "path", "tmp"),
+	t.deepEqual(mkdirpStub.getCall(2).args, [path.join("/", "some", "path", "tmp")],
 		"Correct tmp dir path got created");
-	t.deepEqual(mkdirStub.getCall(2).args[1], {recursive: true});
 
 	t.deepEqual(res.sourcePath, path.join("/", "some", "path", "src"), "Correct temporary src dir path returned");
 	t.deepEqual(res.targetPath, path.join("/", "some", "path", "target"), "Correct temporary target dir path returned");
 	t.deepEqual(res.tmpPath, path.join("/", "some", "path", "tmp"), "Correct temporary tmp dir path returned");
 
 	res.cleanup();
-	t.is(rimrafStub.callCount, 1, "Cleanup callback: rimraf called once");
-	t.deepEqual(rimrafStub.getCall(0).args[0], path.join("/", "some", "path"),
-		"Cleanup callback: rimraf called with correct path");
+	t.is(rmrfStub.callCount, 1, "Cleanup callback: rmrf called once");
+	t.deepEqual(rmrfStub.getCall(0).args[0], path.join("/", "some", "path"),
+		"Cleanup callback: rmrf called with correct path");
 });
 
 test.serial("writeResourcesToDir with byGlob even if byGlobSource is available", async (t) => {

@@ -3,10 +3,9 @@ const log = getLogger("builder:tasks:jsdoc:generateJsdoc");
 import path from "node:path";
 import os from "node:os";
 import fs from "graceful-fs";
-import {rimraf} from "rimraf";
+import {mkdirp, rmrf} from "../../utils/fs.js";
 import {promisify} from "node:util";
 const mkdtemp = promisify(fs.mkdtemp);
-const mkdir = promisify(fs.mkdir);
 import jsdocGenerator from "../../processors/jsdoc/jsdocGenerator.js";
 import {createAdapter} from "@ui5/fs/resourceFactory";
 
@@ -104,19 +103,19 @@ const utils = {
 		const tmpDirPath = await utils.createTmpDir(projectName);
 
 		const sourcePath = path.join(tmpDirPath, "src"); // dir will be created by writing project resources below
-		await mkdir(sourcePath, {recursive: true});
+		await mkdirp(sourcePath);
 		const targetPath = path.join(tmpDirPath, "target"); // dir will be created by jsdoc itself
-		await mkdir(targetPath, {recursive: true});
+		await mkdirp(targetPath);
 
 		const tmpPath = path.join(tmpDirPath, "tmp"); // dir needs to be created by us
-		await mkdir(tmpPath, {recursive: true});
+		await mkdirp(tmpPath);
 
 		return {
 			sourcePath,
 			targetPath,
 			tmpPath,
 			cleanup: async () => {
-				return rimraf(tmpDirPath);
+				return rmrf(tmpDirPath);
 			}
 		};
 	},
@@ -132,7 +131,7 @@ const utils = {
 		const sanitizedProjectName = projectName.replace(/[^A-Za-z0-9]/g, "");
 
 		const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
-		await mkdir(tmpRootPath, {recursive: true});
+		await mkdirp(tmpRootPath);
 
 		// Appending minus sign also because node docs advise to "avoid trailing X characters in prefix"
 		return mkdtemp(path.join(tmpRootPath, `jsdoc-${sanitizedProjectName}-`));
