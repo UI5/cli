@@ -7,7 +7,7 @@ const __dirname = import.meta.dirname;
 
 test.beforeEach(async (t) => {
 	t.context.mkdirpStub = sinon.stub().resolves();
-	t.context.rimrafStub = sinon.stub().resolves();
+	t.context.rmrfStub = sinon.stub().resolves();
 
 	t.context.lockStub = sinon.stub();
 	t.context.unlockStub = sinon.stub();
@@ -16,10 +16,8 @@ test.beforeEach(async (t) => {
 
 	t.context.AbstractResolver = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
 		"../../../../lib/utils/fs.js": {
-			mkdirp: t.context.mkdirpStub
-		},
-		"rimraf": {
-			rimraf: t.context.rimrafStub
+			mkdirp: t.context.mkdirpStub,
+			rmrf: t.context.rmrfStub
 		},
 		"lockfile": {
 			lock: t.context.lockStub,
@@ -29,10 +27,8 @@ test.beforeEach(async (t) => {
 	t.context.Installer = await esmock.p("../../../../lib/ui5Framework/npm/Installer.js", {
 		"../../../../lib/ui5Framework/AbstractInstaller.js": t.context.AbstractResolver,
 		"../../../../lib/utils/fs.js": {
-			mkdirp: t.context.mkdirpStub
-		},
-		"rimraf": {
-			rimraf: t.context.rimrafStub
+			mkdirp: t.context.mkdirpStub,
+			rmrf: t.context.rmrfStub
 		},
 		"graceful-fs": {
 			rename: t.context.renameStub,
@@ -512,7 +508,7 @@ test.serial("Installer: installPackage with new package", async (t) => {
 		"_packageJsonExists should be called with the correct arguments");
 	t.is(pathExistsStub.getCall(1).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments");
-	t.is(t.context.rimrafStub.callCount, 0, "rimraf should never be called");
+	t.is(t.context.rmrfStub.callCount, 0, "rmrf should never be called");
 
 	t.is(extractPackageStub.callCount, 1, "_extractPackage should be called once");
 
@@ -577,7 +573,7 @@ test.serial("Installer: installPackage with already installed package", async (t
 	t.is(t.context.unlockStub.callCount, 0, "unlock should never be called");
 	t.is(getStagingDirForPackageStub.callCount, 0, "_getStagingDirForPackage should never be called");
 	t.is(pathExistsStub.callCount, 0, "_pathExists should never be called");
-	t.is(t.context.rimrafStub.callCount, 0, "rimraf should never be called");
+	t.is(t.context.rmrfStub.callCount, 0, "rmrf should never be called");
 	t.is(extractPackageStub.callCount, 0, "_extractPackage should never be called");
 	t.is(t.context.mkdirpStub.callCount, 0, "mkdirp should never be called");
 	t.is(t.context.renameStub.callCount, 0, "fs.rename should never be called");
@@ -633,7 +629,7 @@ test.serial("Installer: installPackage with install already in progress", async 
 	t.is(t.context.lockStub.callCount, 1, "lock should be called once");
 	t.is(t.context.unlockStub.callCount, 1, "unlock should be called once");
 
-	t.is(t.context.rimrafStub.callCount, 0, "rimraf should never be called");
+	t.is(t.context.rmrfStub.callCount, 0, "rmrf should never be called");
 
 	t.is(t.context.mkdirpStub.callCount, 1, "mkdirp should be called once");
 	t.is(t.context.mkdirpStub.getCall(0).args[0], path.join("/", "ui5Data", "framework", "locks"),
@@ -709,11 +705,11 @@ test.serial("Installer: installPackage with new package and existing target and 
 	t.is(pathExistsStub.getCall(1).args[0], targetDir,
 		"_packageJsonExists should be called with the correct arguments");
 
-	t.is(t.context.rimrafStub.callCount, 2, "rimraf should be called twice");
-	t.is(t.context.rimrafStub.getCall(0).args[0], "staging-dir-path",
-		"rimraf should be called with the correct arguments");
-	t.is(t.context.rimrafStub.getCall(1).args[0], targetDir,
-		"rimraf should be called with the correct arguments");
+	t.is(t.context.rmrfStub.callCount, 2, "rmrf should be called twice");
+	t.is(t.context.rmrfStub.getCall(0).args[0], "staging-dir-path",
+		"rmrf should be called with the correct arguments");
+	t.is(t.context.rmrfStub.getCall(1).args[0], targetDir,
+		"rmrf should be called with the correct arguments");
 
 	t.is(extractPackageStub.callCount, 1, "_extractPackage should be called once");
 

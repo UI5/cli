@@ -3,11 +3,10 @@ import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
 import fs from "graceful-fs";
-import {rimraf} from "rimraf";
 
 test.beforeEach(async (t) => {
 	t.context.mkdirpStub = sinon.stub().resolves();
-	t.context.rimrafStub = sinon.stub().resolves();
+	t.context.rmrfStub = sinon.stub().resolves();
 	t.context.readFileStub = sinon.stub();
 	t.context.writeFileStub = sinon.stub();
 	t.context.renameStub = sinon.stub().returns();
@@ -20,7 +19,6 @@ test.beforeEach(async (t) => {
 	t.context.promisifyStub.withArgs(fs.rename).callsFake(() => t.context.renameStub);
 	t.context.promisifyStub.withArgs(fs.rm).callsFake(() => t.context.rmStub);
 	t.context.promisifyStub.withArgs(fs.stat).callsFake(() => t.context.statStub);
-	t.context.promisifyStub.withArgs(rimraf).callsFake(() => t.context.rimrafStub);
 
 	t.context.lockStub = sinon.stub();
 	t.context.unlockStub = sinon.stub();
@@ -39,7 +37,8 @@ test.beforeEach(async (t) => {
 
 	t.context.AbstractInstaller = await esmock.p("../../../../lib/ui5Framework/AbstractInstaller.js", {
 		"../../../../lib/utils/fs.js": {
-			mkdirp: t.context.mkdirpStub
+			mkdirp: t.context.mkdirpStub,
+			rmrf: t.context.rmrfStub
 		},
 		"lockfile": {
 			lock: t.context.lockStub,

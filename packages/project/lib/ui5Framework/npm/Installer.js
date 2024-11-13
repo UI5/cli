@@ -4,7 +4,7 @@ import fs from "graceful-fs";
 import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
-import {rimraf} from "rimraf";
+import {rmrf} from "../../utils/fs.js";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const rename = promisify(fs.rename);
@@ -99,7 +99,7 @@ class Installer extends AbstractInstaller {
 					// Check whether staging dir already exists and remove it
 					if (await this._pathExists(stagingDir)) {
 						log.verbose(`Removing existing staging directory at ${stagingDir}...`);
-						await rimraf(stagingDir);
+						await rmrf(stagingDir);
 					}
 
 					// Check whether target dir already exists and remove it.
@@ -108,7 +108,7 @@ class Installer extends AbstractInstaller {
 					// directory so that the rename operation won't have any no trouble.
 					if (await this._pathExists(targetDir)) {
 						log.verbose(`Removing existing target directory at ${targetDir}...`);
-						await rimraf(targetDir);
+						await rmrf(targetDir);
 					}
 
 					log.verbose(`Installing ${pkgName} in version ${version} to ${stagingDir}...`);

@@ -7,7 +7,7 @@ import {promisify} from "node:util";
 import Registry from "./Registry.js";
 import AbstractInstaller from "../AbstractInstaller.js";
 import CacheMode from "./CacheMode.js";
-import {rimraf} from "rimraf";
+import {rmrf} from "../../utils/fs.js";
 const stat = promisify(fs.stat);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
@@ -275,7 +275,7 @@ class Installer extends AbstractInstaller {
 			if (pkgName) {
 				const packageDir = this._getTargetDirForPackage(pkgName, revision);
 				log.verbose(`Removing directory ${packageDir}...`);
-				await rimraf(packageDir);
+				await rmrf(packageDir);
 			}
 		}
 	}
@@ -326,7 +326,7 @@ class Installer extends AbstractInstaller {
 				// Check whether staging dir already exists and remove it
 				if (await this._pathExists(stagingDir)) {
 					log.verbose(`Removing stale staging directory at ${stagingDir}...`);
-					await rimraf(stagingDir);
+					await rmrf(stagingDir);
 				}
 
 				await mkdirp(stagingDir);
@@ -345,7 +345,7 @@ class Installer extends AbstractInstaller {
 				// Check whether target dir already exists and remove it
 				if (await this._pathExists(targetDir)) {
 					log.verbose(`Removing existing target directory at ${targetDir}...`);
-					await rimraf(targetDir);
+					await rmrf(targetDir);
 				}
 
 				// Do not create target dir itself to prevent EPERM error in following rename operation

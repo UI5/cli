@@ -1,4 +1,4 @@
-import {rimraf} from "rimraf";
+import {rmrf} from "../utils/fs.js";
 import * as resourceFactory from "@ui5/fs/resourceFactory";
 import BuildLogger from "@ui5/logger/internal/loggers/Build";
 import composeProjectList from "./helpers/composeProjectList.js";
@@ -233,7 +233,7 @@ class ProjectBuilder {
 
 		if (cleanDest) {
 			this.#log.info(`Cleaning target directory...`);
-			await rimraf(destPath);
+			await rmrf(destPath);
 		}
 		const startTime = process.hrtime();
 		try {
