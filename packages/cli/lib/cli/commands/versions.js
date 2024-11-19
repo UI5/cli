@@ -1,4 +1,6 @@
 import baseMiddleware from "../middlewares/base.js";
+import path from "node:path";
+import {isLogLevelEnabled} from "@ui5/logger";
 import {createRequire} from "node:module";
 
 // Using CommonsJS require since JSON module imports are still experimental
@@ -14,7 +16,15 @@ const NOT_FOUND = "===(not installed)";
 versions.getVersion = (pkg) => {
 	try {
 		const packageInfo = require(`${pkg}/package.json`);
-		return packageInfo.version || NOT_FOUND;
+		if (!packageInfo?.version) {
+			return NOT_FOUND;
+		}
+		let res = packageInfo.version;
+		if (isLogLevelEnabled("verbose")) {
+			const packageDir = path.dirname(require.resolve(`${pkg}/package.json`));
+			res += ` (from ${packageDir})`;
+		}
+		return res;
 	} catch {
 		return NOT_FOUND;
 	}
