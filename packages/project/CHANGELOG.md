@@ -2,7 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.3...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.4...HEAD).
+
+<a name="v4.0.4"></a>
+## [v4.0.4] - 2024-11-29
+### Dependency Updates
+- Switch from "rimraf" to native "fs.rm" ([#780](https://github.com/SAP/ui5-project/issues/780)) [`1998257`](https://github.com/SAP/ui5-project/commit/1998257295be7038dd4222f1b241848c1fd0a05f)
+- Bump [@npmcli](https://github.com/npmcli)/config from 8.3.4 to 9.0.0 ([#773](https://github.com/SAP/ui5-project/issues/773)) [`ad38e17`](https://github.com/SAP/ui5-project/commit/ad38e1788c2b4b4407ea7250c04d74e4faf3a1d6)
+- Bump pacote from 18.0.6 to 19.0.0 ([#772](https://github.com/SAP/ui5-project/issues/772)) [`df4bbfe`](https://github.com/SAP/ui5-project/commit/df4bbfef98923c48d43c742b13feefd640cc9529)
+- Bump make-fetch-happen from 13.0.1 to 14.0.0 ([#771](https://github.com/SAP/ui5-project/issues/771)) [`d52255c`](https://github.com/SAP/ui5-project/commit/d52255c3c1ca50ee255cb28c9bbef24007b16d51)
+
 
 <a name="v4.0.3"></a>
 ## [v4.0.3] - 2024-08-27
@@ -559,6 +568,7 @@ Renamed parameter "translator" of functions generateDependencyTree and generateP
 ## v0.0.1 - 2018-06-06
 ### Bug Fixes
 - **npm t8r:** Fix collection fallback with missing package.json [`578466f`](https://github.com/SAP/ui5-project/commit/578466fdedf871091874c93d1a9305859e34e3ed)
+[v4.0.4]: https://github.com/SAP/ui5-project/compare/v4.0.3...v4.0.4
 [v4.0.3]: https://github.com/SAP/ui5-project/compare/v4.0.2...v4.0.3
 [v4.0.2]: https://github.com/SAP/ui5-project/compare/v4.0.1...v4.0.2
 [v4.0.1]: https://github.com/SAP/ui5-project/compare/v4.0.0...v4.0.1
