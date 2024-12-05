@@ -36,6 +36,7 @@ function normalizeToUI5GlobalNotation(sModuleName){
 	return sModuleName.replace(/\//g, ".");
 }
 
+
 function fnCreateTypesArr(sTypes) {
 	return sTypes.split("|").map(function (sType) {
 		return { value: sType }
