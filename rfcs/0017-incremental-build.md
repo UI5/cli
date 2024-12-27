@@ -271,3 +271,4 @@ An alternative to using the incremental build in the UI5 Tooling server would be
 * Allow tasks to store additional information in the cache
 * Some tasks might be relevant for the server only (e.g. code coverage)
 * What if a task ceases to create a resource because of a change in another resource? The previously create version of the resource would still be used from the cache
+* Test with current custom tasks
