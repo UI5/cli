@@ -139,7 +139,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.14.0",
-		"@istanbuljs/esm-loader-hook": "^0.2.0",
+		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"@jridgewell/trace-mapping": "^0.3.25",
 		"@ui5/project": "^4.0.4",
 		"ava": "^6.2.0",
