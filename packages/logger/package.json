@@ -116,7 +116,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.8.0",
-		"@istanbuljs/esm-loader-hook": "^0.2.0",
+		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"ava": "^6.2.0",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
