@@ -40,7 +40,7 @@ This setup allows a build task to always access to the result of a previous task
 
 ### Incremental Build Cache
 
-For the incremental build cache feature, a new entity `Build Task Cache` shall be created, which is managed by a `Project Build Cache`. In addition, the current concept of the project-`workspace` shall be extended to allow for `writer stages`. These stages build upon each other. Essentially, instead of one writer being shared across all tasks, each task is assigned it's own writer stage. And each task reads from the combined stages of the preceding tasks.
+For the incremental build cache feature, a new entity `Build Task Cache` shall be created, which is managed by a `Project Build Cache`. In addition, the current concept of the project-`workspace` shall be extended to allow for `writer stages` (which can each have multiple `versions`). These stages build upon each other. Essentially, instead of one writer being shared across all tasks, each task is assigned it's own writer stage. And each task reads from the combined stages of the preceding tasks.
 
 This shall enable the following workflow:
 
@@ -58,7 +58,7 @@ This shall enable the following workflow:
     * Based on that, Task A may decide to only process the changed resources and ignore the others.
     * Task A can't access v1 of its writer stage. It can only access the combined resources of all previous writer stages.
 1. The `Project Build Cache` determines whether the resources produced in this latest execution of Task A are relevant for Task B. If yes, the content of those resources is compared to the cached content of the resources Task B has received during its last execution. In this example, the output of Task A is not relevant for Task B and it is skipped.
-1. Task C is called and has access to both versions (v1 and v2) of the writer stage of Task A. Allowing it to access all resources produced in all previous execution of Task A.
+1. Task C is called and has access to both versions (v1 and v2) of the writer stage of Task A. Allowing it to access all resources produced in all previous executions of Task A.
 1. *Writer stages and `cache-info.json` are serialized onto disk.*
 1. The build finishes. The combined resources of all writer stages and the source reader are written to the target output directory.
 
@@ -70,7 +70,7 @@ The build cache shall be serialized onto disk in order to use it in successive U
 
 Every project has its own cache. This allows for reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications.
 
-The cache consists of a `cache-info.json` file with the below data structure and and multiple directories with the serialized writer stages.
+The cache consists of a `cache-info.json` file with the below data structure and multiple directories with the serialized writer stages.
 
 #### cache-info.json
 
@@ -121,7 +121,7 @@ The cache key can be used to identify the cache. It shall be based on the projec
 
 **taskCache**
 
-An array of objects, each representing a task that was executed during the build. The object contains the name of the task, the project resources that were read and written by the task, and the resources that were read from the project's dependencies. If the task used globs patterns to read resources, those patterns are stored instead of the resolved paths so that the pattern can later be matched against newly created resources that might invalidate the task.
+An array of objects, each representing a task that was executed during the build. The object contains the name of the task, the project resources that were read and written by the task, and the resources that were read from the project's dependencies. If the task used glob patterns to read resources, those patterns are stored instead of the resolved paths so that the pattern can later be matched against newly created resources that might invalidate the task.
 
 For each resource that has been read or written, the SHA256 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the resource has changed since the last build and whether the task cache is still valid.
 
@@ -233,6 +233,10 @@ If any project (root or dependency) configures custom tasks, those tasks are exe
 
 Since executing a full build requires more time than the on-the-fly processing of resources currently implemented in the UI5 Tooling server, users shall be able to disable individual tasks that are not necessarily needed during development. This can be done using CLI parameters as well as ui5.yaml configuration.
 
+While a build is running, the server shall pause responding to incoming requests for the duration of the build. This is necessary to ensure that the server does not serve outdated resources.
+
+The server may implement "live-reload" functionality to inform client side code to refresh the page whenever changes have been detected and the build has finished.
+
 ## How we teach this
 
 This is a big change in the UI5 Tooling architecture and especially impacts the way the UI5 Tooling server works. By always building projects, developers might experience a slower startup time of the server. After modifying a file, it might also take longer until all processing is finished and the change is being served to the browser.
@@ -270,5 +274,5 @@ An alternative to using the incremental build in the UI5 Tooling server would be
 * Compress cache to reduce memory pressure
 * Allow tasks to store additional information in the cache
 * Some tasks might be relevant for the server only (e.g. code coverage)
-* What if a task ceases to create a resource because of a change in another resource? The previously create version of the resource would still be used from the cache
+* What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be used from the cache
 * Test with current custom tasks
