@@ -123,11 +123,11 @@ The cache key can be used to identify the cache. It shall be based on the projec
 
 An array of objects, each representing a task that was executed during the build. The object contains the name of the task, the project resources that were read and written by the task, and the resources that were read from the project's dependencies. If the task used globs patterns to read resources, those patterns are stored instead of the resolved paths so that the pattern can later be matched against newly created resources that might invalidate the task.
 
-For each resource that has been read or written, the MD5 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the resource has changed since the last build and whether the task cache is still valid.
+For each resource that has been read or written, the SHA256 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the resource has changed since the last build and whether the task cache is still valid.
 
 **sourceMetadata**
 
-For each *source* file of the project, the MD5 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the source files have changed since the last build.
+For each *source* file of the project, the SHA256 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the source files have changed since the last build.
 
 #### Cache directory structure
 
