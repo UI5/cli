@@ -274,3 +274,70 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 	}
 	t.deepEqual(await resSourceMap.getString(), expectedSourceMap, "Correct source map content");
 });
+
+test.serial("integration: minify error", async (t) => {
+	const taskUtil = {
+		setTag: t.context.sinon.stub(),
+		STANDARD_TAGS: {
+			HasDebugVariant: "1️⃣",
+			IsDebugVariant: "2️⃣",
+			OmitFromBuildResult: "3️⃣"
+		},
+		registerCleanupTask: t.context.sinon.stub()
+	};
+	const {reader, workspace} = createWorkspace();
+	const content = `
+// Top level return will cause a parsing error
+return;`;
+	const testResource = resourceFactory.createResource({
+		path: "/resources/my/namespace/test.js",
+		string: content
+	});
+	await reader.write(testResource);
+
+	await t.throwsAsync(() => {
+		return minify({
+			workspace,
+			taskUtil,
+			options: {
+				pattern: "/resources/my/namespace/test.js",
+				omitSourceMapResources: true
+			}
+		});
+	}, {
+		message:
+			`Minification failed with error: 'return' outside of function in file ` +
+			`/resources/my/namespace/test.js (line 3, col 0, pos 48)`
+	}, `Threw with expected error message`);
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = taskUtil.registerCleanupTask.getCall(0).args[0];
+	await cleanupTask();
+});
+
+
+test.serial("integration: minify error (without taskUtil)", async (t) => {
+	const {reader, workspace} = createWorkspace();
+	const content = `
+// Top level return will cause a parsing error
+return;`;
+	const testResource = resourceFactory.createResource({
+		path: "/resources/my/namespace/test.js",
+		string: content
+	});
+	await reader.write(testResource);
+
+	await t.throwsAsync(() => {
+		return minify({
+			workspace,
+			options: {
+				pattern: "/resources/my/namespace/test.js",
+				omitSourceMapResources: true
+			}
+		});
+	}, {
+		message:
+			`Minification failed with error: 'return' outside of function in file ` +
+			`/resources/my/namespace/test.js (line 3, col 0, pos 48)`
+	}, `Threw with expected error message`);
+});

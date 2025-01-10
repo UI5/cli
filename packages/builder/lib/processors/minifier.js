@@ -274,6 +274,7 @@ export default async function({
 			filename,
 			dbgFilename,
 			code,
+			resourcePath,
 			sourceMapOptions
 		}, taskUtil);
 		resource.setString(result.code);
