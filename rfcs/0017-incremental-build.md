@@ -93,13 +93,13 @@ The cache consists of a `cache-info.json` file with the below data structure and
 			},
 			"resourcesRead": {
 				"/resources/project/namespace/Component.js": {
-					"md5": "d41d8cd98f00b204e9899998ecf8427e",
+					"sha256": "d41d8cd98f00b204e9899998ecf8427e",
 					"lastModified": 1734005532120
 				}
 			},
 			"resourcesWritten": {
 				"/resources/project/namespace/Component.js": {
-					"md5": "c1c77edc5c689a471b12fe8ba79c51d1",
+					"sha256": "c1c77edc5c689a471b12fe8ba79c51d1",
 					"lastModified": 1734005532120
 				}
 			}
@@ -107,7 +107,7 @@ The cache consists of a `cache-info.json` file with the below data structure and
 	}],
 	"sourceMetadata": {
 		"/resources/project/namespace/Component.js": {
-			"md5": "d41d8cd98f00b204e9800998ecf8427e",
+			"sha256": "d41d8cd98f00b204e9800998ecf8427e",
 			"lastModified": 1734005532120
 		}
 	}
@@ -116,7 +116,7 @@ The cache consists of a `cache-info.json` file with the below data structure and
 
 **cacheKey**
 
-The cache key can be used to identify the cache. It shall be based on the project's name and version as well as a SHA-256 hash of the versions of the relevant UI5 Tooling modules (`@ui5/project`, `@ui5/builder`
+The cache key can be used to identify the cache. It shall be based on the project's name and version as well as a SHA256 hash of the versions of the relevant UI5 Tooling modules (`@ui5/project`, `@ui5/builder`
 `@ui5/fs`), the names and versions of the project's dependencies and the current build configuration (ui5.yaml + CLI parameters). This shall allow the UI5 Tooling to determine whether the cache is still valid or not.
 
 **taskCache**
@@ -213,9 +213,9 @@ After a *project* has finished building, a list of all the modified resource is 
 
 ![Activity Diagram illustrating how a build cache is used when building a project](./resources/0017-incremental-build/Activity_Diagram.png)
 
-### Task Purging
+### Cache Purging
 
-**TOOD** A mechanism to purge unused cache on disk is required. The cache can grow very large and consume a lot of disk space. The latest PoC produced cache entries with a size ranging from few kilobytes for applications up to 70 MB for framework libraries like sap.ui.core or sap.m.
+A mechanism to purge unused cache on disk is required. The cache can grow very large and consume a lot of disk space. The latest PoC produced cache entries with a size ranging from few kilobytes for applications up to 70 MB for framework libraries like sap.ui.core or sap.m.
 
 This should probably use some sort of LRU-cache to purge unused cache entries dynamically. The same mechanism could be applied to the npm artifacts downloaded by UI5 Tooling.
 
@@ -264,15 +264,16 @@ An alternative to using the incremental build in the UI5 Tooling server would be
 
 ## Unresolved Questions and Bikeshedding
 
-* Adapt tasks to use new cache API
-* Clarify cache key 
-    * Current POC: project version + dependency versions + build config + UI5 Tooling module versions
-* How to distinguish from pre-built projects (with project manifest)
-* Pre-built UI5 libraries become especially important with this concept. Otherwise consumers will always have to build framework libraries, even in the server
-* Include resource tags in cache
-* Measure performance in BAS
-* Compress cache to reduce memory pressure
-* Allow tasks to store additional information in the cache
-* Some tasks might be relevant for the server only (e.g. code coverage)
+* Measure performance in BAS. Find out whether this approach results in acceptable performance.
+* How to distinguish projects with build cache from pre-built projects (with project manifest)
+* Cache related topics
+	* Clarify cache key 
+		* Current POC: project version + dependency versions + build config + UI5 Tooling module versions
+	* Include resource tags in cache
+	* Compress cache to reduce memory pressure
+	* Allow tasks to store additional information in the cache
+	* Cache Purging
+* Some tasks might be relevant for the server only (e.g. code coverage), come up with a way to configure that
 * What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be used from the cache
-* Test with current custom tasks
+* Test with selected (community) custom tasks
+* With this concept, providing pre-built UI5 libraries becomes especially important. Otherwise consumers will always have to locally build framework libraries, even in the server
