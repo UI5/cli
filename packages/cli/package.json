@@ -127,7 +127,7 @@
 		"js-yaml": "^4.1.0",
 		"open": "^10.1.0",
 		"pretty-hrtime": "^1.0.3",
-		"semver": "^7.6.3",
+		"semver": "^7.7.0",
 		"update-notifier": "^7.3.1",
 		"yargs": "^17.7.2"
 	},
