@@ -132,7 +132,7 @@
 		"jsdoc": "^4.0.4",
 		"less-openui5": "^0.11.6",
 		"pretty-data": "^0.40.0",
-		"semver": "^7.6.3",
+		"semver": "^7.7.0",
 		"terser": "^5.37.0",
 		"workerpool": "^9.2.0",
 		"xml2js": "^0.6.2"
