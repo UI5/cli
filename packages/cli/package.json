@@ -127,7 +127,7 @@
 		"js-yaml": "^4.1.0",
 		"open": "^10.1.0",
 		"pretty-hrtime": "^1.0.3",
-		"semver": "^7.7.0",
+		"semver": "^7.7.1",
 		"update-notifier": "^7.3.1",
 		"yargs": "^17.7.2"
 	},
@@ -139,7 +139,7 @@
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
-		"eslint": "^9.19.0",
+		"eslint": "^9.20.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.0.1",
 		"eslint-plugin-jsdoc": "^50.6.3",
