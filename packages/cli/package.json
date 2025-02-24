@@ -145,7 +145,7 @@
 		"eslint-plugin-jsdoc": "^50.6.3",
 		"esmock": "^2.7.0",
 		"execa": "^9.5.2",
-		"globals": "^15.15.0",
+		"globals": "^16.0.0",
 		"jsdoc": "^4.0.4",
 		"licensee": "^11.1.1",
 		"nyc": "^17.1.0",
