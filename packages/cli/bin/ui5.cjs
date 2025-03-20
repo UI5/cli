@@ -67,10 +67,14 @@ const ui5 = {
 		}
 		// Prefer a local installation of @ui5/cli.
 		// This will invoke the local CLI, so no further action required
-		// NOTE: Using ui5.js, NOT ui5.cjs to also support CLI versions < v3.
-		//       Starting with v3, both extensions can be used (see package.json "exports").
 		const {default: importLocal} = await import("import-local");
-		const ui5Local = importLocal(path.join(__dirname, "ui5.js"));
+		let ui5Local = importLocal(path.join(__dirname, "ui5.cjs"));
+		if (!ui5Local) {
+			// Fallback to ui5.js (CLI version < v3)
+			// NOTE: Entries within package.json "exports" are not respected on Windows,
+			// so only checking for ui5.js does not work.
+			ui5Local = importLocal(path.join(__dirname, "ui5.js"));
+		}
 		if (!ui5Local || ui5Local === module.exports) {
 			// Either no local installation found or this script is the local installation
 			// (invocation within ui5-cli repo)

@@ -167,8 +167,8 @@ test.serial("invokeLocalInstallation: Invokes local installation when found", as
 	t.is(importLocalStub.callCount, 1, "import-local should be called once");
 	t.is(importLocalStub.getCall(0).args.length, 1);
 	const importLocaPath = importLocalStub.getCall(0).args[0];
-	t.is(importLocaPath, fileURLToPath(new URL("../../bin/ui5.js", import.meta.url)),
-		"import-local should be called with bin/ui5.js filename");
+	t.is(importLocaPath, fileURLToPath(new URL("../../bin/ui5.cjs", import.meta.url)),
+		"import-local should be called with bin/ui5.cjs filename");
 });
 
 test.serial("invokeLocalInstallation: Invokes local installation when found (/w --verbose)", async (t) => {
@@ -198,8 +198,8 @@ test.serial("invokeLocalInstallation: Invokes local installation when found (/w 
 	t.is(importLocalStub.callCount, 1, "import-local should be called once");
 	t.is(importLocalStub.getCall(0).args.length, 1);
 	const importLocaPath = importLocalStub.getCall(0).args[0];
-	t.is(importLocaPath, fileURLToPath(new URL("../../bin/ui5.js", import.meta.url)),
-		"import-local should be called with bin/ui5.js filename");
+	t.is(importLocaPath, fileURLToPath(new URL("../../bin/ui5.cjs", import.meta.url)),
+		"import-local should be called with bin/ui5.cjs filename");
 });
 
 test.serial("invokeLocalInstallation: Doesn't invoke local installation when UI5_CLI_NO_LOCAL is set", async (t) => {
@@ -231,7 +231,11 @@ test.serial("invokeLocalInstallation: Doesn't invoke local installation when it 
 
 	t.is(processStderrWriteStub.callCount, 0, "stderr info should not be provided");
 
-	t.is(importLocalStub.callCount, 1, "import-local should be called");
+	t.is(importLocalStub.callCount, 2, "import-local should be called twice (ui5.cjs and ui5.js)");
+	t.deepEqual(importLocalStub.getCall(0).args, [fileURLToPath(new URL("../../bin/ui5.cjs", import.meta.url))],
+		"import-local should be called with bin/ui5.cjs filename");
+	t.deepEqual(importLocalStub.getCall(1).args, [fileURLToPath(new URL("../../bin/ui5.js", import.meta.url))],
+		"import-local should be called with bin/ui5.js filename");
 });
 
 test.serial("main (unsupported Node.js version)", async (t) => {
