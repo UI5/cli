@@ -7,7 +7,7 @@ SPDX-PackageComment = "The code in this project may include calls to APIs (“AP
 [[annotations]]
 path = "**"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2018-2024 SAP SE or an SAP affiliate company and UI5 Tooling contributors"
+SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and UI5 Tooling contributors"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
@@ -19,5 +19,5 @@ SPDX-License-Identifier = "MIT"
 [[annotations]]
 path = "lib/middleware/testRunner/**"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2009-2024 SAP SE or an SAP affiliate company and OpenUI5 contributors"
+SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and OpenUI5 contributors"
 SPDX-License-Identifier = "Apache-2.0"
