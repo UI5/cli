@@ -54,13 +54,23 @@ class BundleBuilder {
 		this.allowStringBundling = allowStringBundling;
 	}
 
-	getUi5MajorVersion() {
+	getEffectiveUi5MajorVersion() {
 		if (this.targetUi5CoreVersionMajor !== undefined) {
 			return this.targetUi5CoreVersionMajor;
 		}
 
-		if (this.targetUi5CoreVersion && semver.valid(this.targetUi5CoreVersion)) {
-			this.targetUi5CoreVersionMajor = semver.major(this.targetUi5CoreVersion);
+		const parsedVersion = semver.parse(this.targetUi5CoreVersion);
+		if (parsedVersion) {
+			this.targetUi5CoreVersionMajor = parsedVersion.major;
+
+			// legacy-free versions include changes of the upcoming major version
+			// so we should treat them the same as the next major version
+			if (
+				parsedVersion.prerelease.includes("legacy-free") ||
+				parsedVersion.prerelease.includes("legacy-free-SNAPSHOT") // Maven snapshot version
+			) {
+				this.targetUi5CoreVersionMajor += 1;
+			}
 		} else {
 			// Assume legacy version if unable to determine the version
 			this.targetUi5CoreVersionMajor = null;
@@ -85,7 +95,7 @@ class BundleBuilder {
 	}
 
 	determineRequireCallback(modules) {
-		if (this.getUi5MajorVersion() >= 2) {
+		if (this.getEffectiveUi5MajorVersion() >= 2) {
 			// Starting with UI5 2.0.0, method Core.boot does not exist anymore
 			return;
 		}
@@ -212,7 +222,7 @@ class BundleBuilder {
 
 	closeModule(resolvedModule) {
 		if ( resolvedModule.containsCoreSync ) {
-			if ( this.getUi5MajorVersion() >= 2 ) {
+			if ( this.getEffectiveUi5MajorVersion() >= 2 ) {
 				throw new Error("Requiring sap/ui/core/Core synchronously is not supported as of UI5 Version 2");
 			}
 			this.outW.ensureNewLine(); // for clarity and to avoid issues with single line comments

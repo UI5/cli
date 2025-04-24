@@ -3,6 +3,7 @@ import test from "ava";
 
 import sinon from "sinon";
 import esmock from "esmock";
+import semver from "semver";
 import Builder from "../../../../lib/lbt/bundle/Builder.js";
 import {__localFunctions__} from "../../../../lib/lbt/bundle/Builder.js";
 import ResourcePool from "../../../../lib/lbt/resources/ResourcePool.js";
@@ -3046,7 +3047,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		"bundle info subModules are correct");
 });
 
-test.serial("getUi5MajorVersion without cache", async (t) => {
+test.serial("getEffectiveUi5MajorVersion without cache", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -3086,7 +3087,7 @@ test.serial("getUi5MajorVersion without cache", async (t) => {
 
 	// UI5 sap.ui.core version not defined
 	const builder = new Builder(pool);
-	const getUi5MajorVersionSpy = sinon.spy(builder, "getUi5MajorVersion");
+	const getEffectiveUi5MajorVersionSpy = sinon.spy(builder, "getEffectiveUi5MajorVersion");
 
 	t.is(builder.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
 	await builder.createBundle(bundleDefinition, {
@@ -3095,12 +3096,12 @@ test.serial("getUi5MajorVersion without cache", async (t) => {
 		addTryCatchRestartWrapper: true,
 		optimize: true
 	});
-	t.is(getUi5MajorVersionSpy.callCount, 1, "getUi5MajorVersion has been called once");
-	t.is(getUi5MajorVersionSpy.getCall(0).returnValue, null, "UI5 Major Version can not correctly determined");
+	t.is(getEffectiveUi5MajorVersionSpy.callCount, 1, "getEffectiveUi5MajorVersion has been called once");
+	t.is(getEffectiveUi5MajorVersionSpy.getCall(0).returnValue, null, "UI5 Major Version can not correctly determined");
 
 	// UI5 sap.ui.core 1.X
 	const builderUI5v1 = new Builder(pool, "1.120.0");
-	const getUi5MajorVersionUI5v1Spy = sinon.spy(builderUI5v1, "getUi5MajorVersion");
+	const getEffectiveUi5MajorVersionUI5v1Spy = sinon.spy(builderUI5v1, "getEffectiveUi5MajorVersion");
 
 	t.is(builderUI5v1.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
 	await builderUI5v1.createBundle(bundleDefinition, {
@@ -3109,12 +3110,12 @@ test.serial("getUi5MajorVersion without cache", async (t) => {
 		addTryCatchRestartWrapper: true,
 		optimize: true
 	});
-	t.is(getUi5MajorVersionUI5v1Spy.callCount, 1, "getUi5MajorVersion has been called once");
-	t.is(getUi5MajorVersionUI5v1Spy.getCall(0).returnValue, 1, "UI5 Major Version correctly determined");
+	t.is(getEffectiveUi5MajorVersionUI5v1Spy.callCount, 1, "getEffectiveUi5MajorVersion has been called once");
+	t.is(getEffectiveUi5MajorVersionUI5v1Spy.getCall(0).returnValue, 1, "UI5 Major Version correctly determined");
 
 	// UI5 sap.ui.core 2.X
 	const builderUI5v2 = new Builder(pool, "2.0.0");
-	const getUi5MajorVersionUI5v2Spy = sinon.spy(builderUI5v2, "getUi5MajorVersion");
+	const getEffectiveUi5MajorVersionUI5v2Spy = sinon.spy(builderUI5v2, "getEffectiveUi5MajorVersion");
 	t.is(builderUI5v2.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
 
 	await t.throwsAsync(builderUI5v2.createBundle(bundleDefinition, {
@@ -3123,11 +3124,39 @@ test.serial("getUi5MajorVersion without cache", async (t) => {
 		addTryCatchRestartWrapper: true,
 		optimize: true
 	}));
-	t.is(getUi5MajorVersionUI5v2Spy.callCount, 1, "getUi5MajorVersion has been called once");
-	t.is(getUi5MajorVersionUI5v2Spy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
+	t.is(getEffectiveUi5MajorVersionUI5v2Spy.callCount, 1, "getEffectiveUi5MajorVersion has been called once");
+	t.is(getEffectiveUi5MajorVersionUI5v2Spy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
+
+	// UI5 sap.ui.core 1.X-legacy-free
+	const builderUI5legacyFree = new Builder(pool, "1.0.0-legacy-free");
+	const getEffectiveUi5MajorVersionUI5legacyFreeSpy = sinon.spy(builderUI5legacyFree, "getEffectiveUi5MajorVersion");
+	t.is(builderUI5legacyFree.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
+
+	await t.throwsAsync(builderUI5legacyFree.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	}));
+	t.is(getEffectiveUi5MajorVersionUI5legacyFreeSpy.callCount, 1, "getEffectiveUi5MajorVersion has been called once");
+	t.is(getEffectiveUi5MajorVersionUI5legacyFreeSpy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
+
+	// UI5 sap.ui.core 1.X-legacy-free-SNAPSHOT
+	const builderUI5legacyFreeSnapshot = new Builder(pool, "1.0.0-legacy-free-SNAPSHOT");
+	const getEffectiveUi5MajorVersionUI5legacyFreeSnapshotSpy = sinon.spy(builderUI5legacyFreeSnapshot, "getEffectiveUi5MajorVersion");
+	t.is(builderUI5legacyFreeSnapshot.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
+
+	await t.throwsAsync(builderUI5legacyFreeSnapshot.createBundle(bundleDefinition, {
+		numberOfParts: 1,
+		decorateBootstrapModule: true,
+		addTryCatchRestartWrapper: true,
+		optimize: true
+	}));
+	t.is(getEffectiveUi5MajorVersionUI5legacyFreeSnapshotSpy.callCount, 1, "getEffectiveUi5MajorVersion has been called once");
+	t.is(getEffectiveUi5MajorVersionUI5legacyFreeSnapshotSpy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
 });
 
-test.serial("getUi5MajorVersion with cache", async (t) => {
+test.serial("getEffectiveUi5MajorVersion with cache", async (t) => {
 	const pool = new ResourcePool();
 	pool.addResource({
 		name: "ui5loader.js",
@@ -3146,12 +3175,7 @@ test.serial("getUi5MajorVersion with cache", async (t) => {
 		buffer: async () => "sap.ui.define([],function(){return {};});"
 	});
 
-	const mySemverValidStub = sinon.stub().returns(true);
-	const BuilderWithSemverStub = await esmock("../../../../lib/lbt/bundle/Builder", {
-		"semver": {
-			valid: mySemverValidStub,
-		}
-	});
+	const mySemverParseSpy = sinon.spy(semver, "parse");
 
 	const bundleDefinitionUsingCache = {
 		name: `bootstrap.js`,
@@ -3175,8 +3199,8 @@ test.serial("getUi5MajorVersion with cache", async (t) => {
 	};
 
 	// UI5 sap.ui.core 2.X using cache at the second call
-	const builderUI5v2WithCache = new BuilderWithSemverStub(pool, "2.0.0");
-	const getUi5MajorVersionUI5v2WithCacheSpy = sinon.spy(builderUI5v2WithCache, "getUi5MajorVersion");
+	const builderUI5v2WithCache = new Builder(pool, "2.0.0");
+	const getEffectiveUi5MajorVersionUI5v2WithCacheSpy = sinon.spy(builderUI5v2WithCache, "getEffectiveUi5MajorVersion");
 	t.is(builderUI5v2WithCache.targetUi5CoreVersionMajor, undefined, "Target UI5 major version is set to undefined");
 
 	await builderUI5v2WithCache.createBundle(bundleDefinitionUsingCache, {
@@ -3185,8 +3209,8 @@ test.serial("getUi5MajorVersion with cache", async (t) => {
 		addTryCatchRestartWrapper: true,
 		optimize: true
 	});
-	t.is(getUi5MajorVersionUI5v2WithCacheSpy.callCount, 2, "getUi5MajorVersion has been called twice");
-	t.is(getUi5MajorVersionUI5v2WithCacheSpy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
-	t.is(getUi5MajorVersionUI5v2WithCacheSpy.getCall(1).returnValue, 2, "UI5 Major Version correctly determined");
-	t.is(mySemverValidStub.callCount, 1, "semver.valid has been called only once");
+	t.is(getEffectiveUi5MajorVersionUI5v2WithCacheSpy.callCount, 2, "getEffectiveUi5MajorVersion has been called twice");
+	t.is(getEffectiveUi5MajorVersionUI5v2WithCacheSpy.getCall(0).returnValue, 2, "UI5 Major Version correctly determined");
+	t.is(getEffectiveUi5MajorVersionUI5v2WithCacheSpy.getCall(1).returnValue, 2, "UI5 Major Version correctly determined");
+	t.is(mySemverParseSpy.callCount, 1, "semver.parse has been called only once");
 });
