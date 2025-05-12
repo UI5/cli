@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+# No permissions are required for this workflow
+permissions: {}
+
 jobs:
   test:
     name: General checks, tests and coverage reporting
