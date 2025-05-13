@@ -3,7 +3,7 @@ import path from "node:path";
 
 export async function findFiles(dirPath) {
 	const files = await readdir(dirPath, {withFileTypes: true, recursive: true});
-	return files.filter((file) => file.isFile()).map((file) => path.join(file.path, file.name));
+	return files.filter((file) => file.isFile()).map((file) => path.join(file.parentPath || file.path, file.name));
 }
 
 export async function readFileContent(filePath) {
