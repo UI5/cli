@@ -35,6 +35,15 @@ strategy:
     windows_node_22:
       imageName: 'windows-2022'
       node_version: 22.x
+    linux_node_24:
+      imageName: 'ubuntu-24.04'
+      node_version: 24.x
+    mac_node_24:
+      imageName: 'macos-13'
+      node_version: 24.x
+    windows_node_24:
+      imageName: 'windows-2022'
+      node_version: 24.x
 
 pool:
   vmImage: $(imageName)
