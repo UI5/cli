@@ -12,8 +12,8 @@
       "supportedLocales": [
         "",
         "en",
-        "en_US",
-        "en_US_sapprc"
+        "en-US",
+        "en-US-x-saptrc"
       ]
     }
   },
@@ -26,8 +26,8 @@
           "supportedLocales": [
             "",
             "en",
-            "en_US",
-            "en_US_sapprc"
+            "en-US",
+            "en-US-x-saptrc"
           ]
         }
       },
@@ -38,8 +38,8 @@
           "supportedLocales": [
             "",
             "en",
-            "en_US",
-            "en_US_sapprc"
+            "en-US",
+            "en-US-x-saptrc"
           ]
         }
       }
