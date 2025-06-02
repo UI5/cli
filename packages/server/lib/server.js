@@ -3,7 +3,9 @@ import portscanner from "portscanner";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
+import {getLogger} from "@ui5/logger";
 
+const log = getLogger("server");
 /**
  * @public
  * @module @ui5/server
@@ -178,6 +180,12 @@ export async function serve(graph, {
 	await middlewareManager.applyMiddleware(app);
 
 	if (h2) {
+		const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
+		if (nodeVersion >= 24) {
+			log.error("ERROR: With Node v24, usage of HTTP/2 is no longer supported. Please check https://github.com/SAP/ui5-tooling/issues/327 for updates.");
+			process.exit(1);
+		}
+
 		app = await _addSsl({app, key, cert});
 	}
 
