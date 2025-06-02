@@ -133,7 +133,7 @@
 		"less-openui5": "^0.11.6",
 		"pretty-data": "^0.40.0",
 		"semver": "^7.7.2",
-		"terser": "^5.39.2",
+		"terser": "^5.40.0",
 		"workerpool": "^9.2.0",
 		"xml2js": "^0.6.2"
 	},
