@@ -383,9 +383,10 @@ class BundleBuilder {
 			if (map.mappings) {
 				map.mappings = "AAAA," + map.mappings;
 			} else {
-				// If there are no existing mappings (e.g. if the file is empty or only comments),
-				// make sure to still define a single mapping
-				map.mappings = "AAAA";
+				// If there are no existing mappings (e.g. if the file is empty or contains only comments),
+				// do not specify any mapping. Especially Safari would otherwise reject the source map due to
+				// "Invalid Mappings"
+				map.mappings = "";
 			}
 		}
 
