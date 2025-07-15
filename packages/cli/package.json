@@ -116,7 +116,7 @@
 		"url": "git@github.com:SAP/ui5-cli.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^4.0.7",
+		"@ui5/builder": "^4.0.8",
 		"@ui5/fs": "^4.0.1",
 		"@ui5/logger": "^4.0.1",
 		"@ui5/project": "^4.0.4",
@@ -125,7 +125,7 @@
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.2.0",
 		"js-yaml": "^4.1.0",
-		"open": "^10.1.2",
+		"open": "^10.2.0",
 		"pretty-hrtime": "^1.0.3",
 		"semver": "^7.7.2",
 		"update-notifier": "^7.3.1",
