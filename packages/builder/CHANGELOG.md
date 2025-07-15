@@ -2,10 +2,20 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.7...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.8...HEAD).
+
+<a name="v4.0.8"></a>
+## [v4.0.8] - 2025-07-14
+### Bug Fixes
+- **bundle/Builder:** Skip source map for empty or trivia-only files [`4763253`](https://github.com/SAP/ui5-builder/commit/4763253985ae869c541875d82d0609cb5ef28216)
+
+### Dependency Updates
+- Bump cheerio from 1.0.0 to 1.1.0 ([#1126](https://github.com/SAP/ui5-builder/issues/1126)) [`bade2bc`](https://github.com/SAP/ui5-builder/commit/bade2bc9f8a623a332d5768dc4ce6bd0036ba4bf)
+- Bump terser from 5.39.2 to 5.40.0 ([#1118](https://github.com/SAP/ui5-builder/issues/1118)) [`80a5975`](https://github.com/SAP/ui5-builder/commit/80a5975c037e7c0bf9a041c284ec4a510bf2cbfd)
+
 
 <a name="v4.0.7"></a>
-## [v4.0.7] - 2025-05-18
+## [v4.0.7] - 2025-05-19
 ### Bug Fixes
 - **manifestEnhancer:** Only use valid files for supportedLocales ([#1080](https://github.com/SAP/ui5-builder/issues/1080)) [`a6c04d2`](https://github.com/SAP/ui5-builder/commit/a6c04d26ae964566c82e82d1be2ef6a7fd836530)
 
@@ -957,6 +967,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v4.0.8]: https://github.com/SAP/ui5-builder/compare/v4.0.7...v4.0.8
 [v4.0.7]: https://github.com/SAP/ui5-builder/compare/v4.0.6...v4.0.7
 [v4.0.6]: https://github.com/SAP/ui5-builder/compare/v4.0.5...v4.0.6
 [v4.0.5]: https://github.com/SAP/ui5-builder/compare/v4.0.4...v4.0.5
