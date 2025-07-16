@@ -344,7 +344,46 @@ test.serial("ui5 serve --dependency-definition", async (t) => {
 	t.is(graph.graphFromStaticFile.callCount, 1);
 	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
 		filePath: fakePath, versionOverride: undefined,
-		cacheMode: "Default",
+		cacheMode: "Default", rootConfigPath: undefined
+	}]);
+
+	t.is(t.context.consoleOutput, `Server started
+URL: http://localhost:8080
+`);
+
+	t.is(server.serve.callCount, 1);
+	t.deepEqual(server.serve.getCall(0).args, [
+		fakeGraph,
+		{
+			acceptRemoteConnections: false,
+			cert: undefined,
+			changePortIfInUse: true,
+			h2: false,
+			key: undefined,
+			port: 8080,
+			sendSAPTargetCSP: false,
+			serveCSPReports: false,
+			simpleIndex: false
+		}
+	]);
+});
+
+test.serial("ui5 serve --dependency-definition / --config", async (t) => {
+	const {argv, serve, graph, server, fakeGraph} = t.context;
+
+	const fakeDependenciesPath = path.join("/", "path", "to", "dependencies.yaml");
+	argv.dependencyDefinition = fakeDependenciesPath;
+
+	const fakeConfigPath = path.join("/", "path", "to", "ui5.yaml");
+	argv.config = fakeConfigPath;
+
+	await serve.handler(argv);
+
+	t.is(graph.graphFromPackageDependencies.callCount, 0);
+	t.is(graph.graphFromStaticFile.callCount, 1);
+	t.deepEqual(graph.graphFromStaticFile.getCall(0).args, [{
+		filePath: fakeDependenciesPath, versionOverride: undefined,
+		cacheMode: "Default", rootConfigPath: fakeConfigPath
 	}]);
 
 	t.is(t.context.consoleOutput, `Server started
