@@ -123,10 +123,10 @@ build.builder = function(cli) {
 		})
 		.option("output-style", {
 			describe:
-				"Processes build results into a specific directory structure. \r\n\r\n" +
-				"- Flat: Omits the project namespace and the \"resources\" directory.\r\n" +
+				"Processes build results into a specific directory structure.<br>" +
+				"- Flat: Omits the project namespace and the \"resources\" directory.<br>" +
 				"- Namespace: Respects the project namespace and the \"resources\" directory, " +
-					"maintaining the original structure.\r\n" +
+					"maintaining the original structure.<br>" +
 				"- Default: The default directory structure for every project type. For applications, " +
 					"this is identical to \"Flat\", and for libraries, it is \"Namespace\". Other types have a " +
 					"more distinct default output style.",
