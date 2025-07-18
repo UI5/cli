@@ -38,7 +38,7 @@
 				"eslint": "^9.31.0",
 				"eslint-config-google": "^0.14.0",
 				"eslint-plugin-ava": "^15.0.1",
-				"eslint-plugin-jsdoc": "^51.3.4",
+				"eslint-plugin-jsdoc": "^51.4.1",
 				"esmock": "^2.7.1",
 				"execa": "^9.6.0",
 				"globals": "^16.3.0",
@@ -4396,15 +4396,15 @@
 			}
 		},
 		"node_modules/compression": {
-			"version": "1.8.0",
-			"resolved": "https://registry.npmjs.org/compression/-/compression-1.8.0.tgz",
-			"integrity": "sha512-k6WLKfunuqCYD3t6AsuPGvQWaKwuLLh2/xHNcX4qE+vIfDNXpSqnrhwA7O53R7WVQUnt8dVAIW+YHr7xTgOgGA==",
+			"version": "1.8.1",
+			"resolved": "https://registry.npmjs.org/compression/-/compression-1.8.1.tgz",
+			"integrity": "sha512-9mAqGPHLakhCLeNyxPkK4xVo746zQ/czLH1Ky+vkitMnWfWZps8r0qXuwhwizagCRttsL4lfG4pIOvaWLpAP0w==",
 			"dependencies": {
 				"bytes": "3.1.2",
 				"compressible": "~2.0.18",
 				"debug": "2.6.9",
 				"negotiator": "~0.6.4",
-				"on-headers": "~1.0.2",
+				"on-headers": "~1.1.0",
 				"safe-buffer": "5.2.1",
 				"vary": "~1.1.2"
 			},
@@ -5234,9 +5234,9 @@
 			"integrity": "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow=="
 		},
 		"node_modules/electron-to-chromium": {
-			"version": "1.5.183",
-			"resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.183.tgz",
-			"integrity": "sha512-vCrDBYjQCAEefWGjlK3EpoSKfKbT10pR4XXPdn65q7snuNOZnthoVpBfZPykmDapOKfoD+MMIPG8ZjKyyc9oHA==",
+			"version": "1.5.187",
+			"resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.187.tgz",
+			"integrity": "sha512-cl5Jc9I0KGUoOoSbxvTywTa40uspGJt/BDBoDLoxJRSBpWh4FFXBsjNRHfQrONsV/OoEjDfHUmZQa2d6Ze4YgA==",
 			"dev": true
 		},
 		"node_modules/emittery": {
@@ -5565,9 +5565,9 @@
 			}
 		},
 		"node_modules/eslint-plugin-jsdoc": {
-			"version": "51.3.4",
-			"resolved": "https://registry.npmjs.org/eslint-plugin-jsdoc/-/eslint-plugin-jsdoc-51.3.4.tgz",
-			"integrity": "sha512-maz6qa95+sAjMr9m5oRyfejc+mnyQWsWSe9oyv9371bh4/T0kWOMryJNO4h8rEd97wo/9lbzwi3OOX4rDhnAzg==",
+			"version": "51.4.1",
+			"resolved": "https://registry.npmjs.org/eslint-plugin-jsdoc/-/eslint-plugin-jsdoc-51.4.1.tgz",
+			"integrity": "sha512-y4CA9OkachG8v5nAtrwvcvjIbdcKgSyS6U//IfQr4FZFFyeBFwZFf/tfSsMr46mWDJgidZjBTqoCRlXywfFBMg==",
 			"dev": true,
 			"dependencies": {
 				"@es-joy/jsdoccomment": "~0.52.0",
@@ -7784,9 +7784,9 @@
 			}
 		},
 		"node_modules/ky": {
-			"version": "1.8.1",
-			"resolved": "https://registry.npmjs.org/ky/-/ky-1.8.1.tgz",
-			"integrity": "sha512-7Bp3TpsE+L+TARSnnDpk3xg8Idi8RwSLdj6CMbNWoOARIrGrbuLGusV0dYwbZOm4bB3jHNxSw8Wk/ByDqJEnDw==",
+			"version": "1.8.2",
+			"resolved": "https://registry.npmjs.org/ky/-/ky-1.8.2.tgz",
+			"integrity": "sha512-XybQJ3d4Ea1kI27DoelE5ZCT3bSJlibYTtQuMsyzKox3TMyayw1asgQdl54WroAm+fIA3ZCr8zXW2RpR7qWVpA==",
 			"engines": {
 				"node": ">=18"
 			},
@@ -9488,9 +9488,9 @@
 			}
 		},
 		"node_modules/on-headers": {
-			"version": "1.0.2",
-			"resolved": "https://registry.npmjs.org/on-headers/-/on-headers-1.0.2.tgz",
-			"integrity": "sha512-pZAE+FJLoyITytdqK0U5s+FIpjN0JP3OzFi/u8Rx+EV5/W+JTWGXG8xFzevE7AjBfDqHv/8vL8qQsIhHnqRkrA==",
+			"version": "1.1.0",
+			"resolved": "https://registry.npmjs.org/on-headers/-/on-headers-1.1.0.tgz",
+			"integrity": "sha512-737ZY3yNnXy37FHkQxPzt4UZ2UWPWiCZWLvFZ4fu5cueciegX0zGPnrlY6bwRg4FdQOe9YU8MkmJwGhoMybl8A==",
 			"engines": {
 				"node": ">= 0.8"
 			}
@@ -10285,9 +10285,9 @@
 			"integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA=="
 		},
 		"node_modules/picomatch": {
-			"version": "4.0.2",
-			"resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.2.tgz",
-			"integrity": "sha512-M7BAV6Rlcy5u+m6oPhAPFgJTzAioX/6B0DxyvDlo9l8+T3nLKbrczg2WLUyzd45L8RqfUMyGPzekbMvX2Ldkwg==",
+			"version": "4.0.3",
+			"resolved": "https://registry.npmjs.org/picomatch/-/picomatch-4.0.3.tgz",
+			"integrity": "sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==",
 			"engines": {
 				"node": ">=12"
 			},
