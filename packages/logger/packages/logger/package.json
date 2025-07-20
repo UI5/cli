@@ -124,7 +124,7 @@
 		"docdash": "^2.0.2",
 		"eslint": "^9.31.0",
 		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-ava": "^15.0.1",
+		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^51.4.1",
 		"globals": "^16.3.0",
 		"jsdoc": "^4.0.4",
