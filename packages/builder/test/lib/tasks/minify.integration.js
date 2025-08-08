@@ -28,9 +28,11 @@ test.afterEach.always((t) => {
 	t.context.sinon.restore();
 });
 
+
 test.serial("integration: minify omitSourceMapResources=true", async (t) => {
 	const taskUtil = {
 		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().returns(false),
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
@@ -109,6 +111,7 @@ test();`;
 test.serial("integration: minify omitSourceMapResources=false", async (t) => {
 	const taskUtil = {
 		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().returns(false),
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
@@ -278,6 +281,7 @@ ${SOURCE_MAPPING_URL}=test.js.map`;
 test.serial("integration: minify error", async (t) => {
 	const taskUtil = {
 		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().returns(false),
 		STANDARD_TAGS: {
 			HasDebugVariant: "1️⃣",
 			IsDebugVariant: "2️⃣",
@@ -340,4 +344,91 @@ return;`;
 			`Minification failed with error: 'return' outside of function in file ` +
 			`/resources/my/namespace/test.js (line 3, col 0, pos 48)`
 	}, `Threw with expected error message`);
+});
+
+test.serial("integration: minify with taskUtil and resources tagged with OmitFromBuildResult", async (t) => {
+	const {reader, workspace} = createWorkspace();
+
+	const testFilePath1 = "/resources/my/namespace/test1.js";
+	const testFilePath2 = "/resources/my/namespace/test2.js";
+	const testFileContent1 = "function test(param1) { var variableA = param1; console.log(variableA); } test();";
+	const testFileContent2 = "function test(param2) { var variableB = param2; console.log(variableB); } test();";
+
+	const testResource1 = resourceFactory.createResource({
+		path: testFilePath1,
+		string: testFileContent1
+	});
+	const testResource2 = resourceFactory.createResource({
+		path: testFilePath2,
+		string: testFileContent2
+	});
+
+	await reader.write(testResource1);
+	await reader.write(testResource2);
+
+	const taskUtil = {
+		STANDARD_TAGS: {
+			HasDebugVariant: "1️⃣",
+			IsDebugVariant: "2️⃣",
+			OmitFromBuildResult: "3️⃣"
+		},
+		setTag: t.context.sinon.stub(),
+		getTag: t.context.sinon.stub().callsFake((resource, tag) => {
+			if (resource.getPath() === testFilePath1 &&
+				tag === taskUtil.STANDARD_TAGS.OmitFromBuildResult) {
+				return true; // OmitFromBuildResult for testFilePath1
+			}
+			return false; // No OmitFromBuildResult for testFilePath2
+		}),
+		registerCleanupTask: t.context.sinon.stub()
+	};
+
+	await minify({
+		workspace,
+		taskUtil,
+		options: {
+			pattern: "/**/*.js",
+		}
+	});
+
+	t.is(taskUtil.setTag.callCount, 8, "taskUtil.setTag was called 8 times");
+
+	const taggedResources = [];
+	for (const call of taskUtil.setTag.getCalls()) {
+		const resourcePath = call.args[0].getPath();
+		const tag = call.args[1];
+		taggedResources.push({resourcePath, tag});
+	}
+
+	taggedResources.sort((a, b) => a.resourcePath.localeCompare(b.resourcePath));
+
+	t.deepEqual(taggedResources, [{
+		resourcePath: "/resources/my/namespace/test1-dbg.js",
+		tag: taskUtil.STANDARD_TAGS.OmitFromBuildResult,
+	}, {
+		resourcePath: "/resources/my/namespace/test1-dbg.js",
+		tag: taskUtil.STANDARD_TAGS.IsDebugVariant,
+	}, {
+		resourcePath: "/resources/my/namespace/test1.js",
+		tag: taskUtil.STANDARD_TAGS.HasDebugVariant,
+	}, {
+		resourcePath: "/resources/my/namespace/test1.js.map",
+		tag: taskUtil.STANDARD_TAGS.OmitFromBuildResult,
+	}, {
+		resourcePath: "/resources/my/namespace/test1.js.map",
+		tag: taskUtil.STANDARD_TAGS.HasDebugVariant,
+	}, {
+		resourcePath: "/resources/my/namespace/test2-dbg.js",
+		tag: taskUtil.STANDARD_TAGS.IsDebugVariant,
+	}, {
+		resourcePath: "/resources/my/namespace/test2.js",
+		tag: taskUtil.STANDARD_TAGS.HasDebugVariant,
+	}, {
+		resourcePath: "/resources/my/namespace/test2.js.map",
+		tag: taskUtil.STANDARD_TAGS.HasDebugVariant,
+	}], "Correct tags set on resources");
+
+	// Ensure to call cleanup task so that workerpool is terminated - otherwise the test will time out!
+	const cleanupTask = taskUtil.registerCleanupTask.getCall(0).args[0];
+	await cleanupTask();
 });

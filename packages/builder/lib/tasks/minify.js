@@ -44,6 +44,11 @@ export default async function({
 		resource, dbgResource, sourceMapResource, dbgSourceMapResource
 	}) => {
 		if (taskUtil) {
+			// Carry over OmitFromBuildResult from input resource to all derived resources
+			if (taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.OmitFromBuildResult)) {
+				taskUtil.setTag(dbgResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+				taskUtil.setTag(sourceMapResource, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
+			}
 			taskUtil.setTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
 			taskUtil.setTag(dbgResource, taskUtil.STANDARD_TAGS.IsDebugVariant);
 			taskUtil.setTag(sourceMapResource, taskUtil.STANDARD_TAGS.HasDebugVariant);

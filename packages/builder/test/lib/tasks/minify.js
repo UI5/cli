@@ -10,6 +10,7 @@ test.beforeEach(async (t) => {
 	};
 	t.context.taskUtil = {
 		setTag: sinon.stub(),
+		getTag: sinon.stub(),
 		STANDARD_TAGS: {
 			HasDebugVariant: "has debug variant",
 			IsDebugVariant: "is debug variant",
