@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.8...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.9...HEAD).
+
+<a name="v4.0.9"></a>
+## [v4.0.9] - 2025-08-10
+### Bug Fixes
+- **minify:** Apply value of a resource's OmitFromBuildResult-tag to derived resources [`112d204`](https://github.com/SAP/ui5-builder/commit/112d204b230c973b6c209105e4e8a383fc1da35d)
+
 
 <a name="v4.0.8"></a>
-## [v4.0.8] - 2025-07-14
+## [v4.0.8] - 2025-07-15
 ### Bug Fixes
 - **bundle/Builder:** Skip source map for empty or trivia-only files [`4763253`](https://github.com/SAP/ui5-builder/commit/4763253985ae869c541875d82d0609cb5ef28216)
 
@@ -967,6 +973,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v4.0.9]: https://github.com/SAP/ui5-builder/compare/v4.0.8...v4.0.9
 [v4.0.8]: https://github.com/SAP/ui5-builder/compare/v4.0.7...v4.0.8
 [v4.0.7]: https://github.com/SAP/ui5-builder/compare/v4.0.6...v4.0.7
 [v4.0.6]: https://github.com/SAP/ui5-builder/compare/v4.0.5...v4.0.6
