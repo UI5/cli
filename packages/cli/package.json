@@ -116,7 +116,7 @@
 		"url": "git@github.com:SAP/ui5-cli.git"
 	},
 	"dependencies": {
-		"@ui5/builder": "^4.0.8",
+		"@ui5/builder": "^4.0.9",
 		"@ui5/fs": "^4.0.1",
 		"@ui5/logger": "^4.0.1",
 		"@ui5/project": "^4.0.4",
