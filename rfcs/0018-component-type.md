@@ -35,9 +35,13 @@ The above diagram illustrates a common scenario where multiple UI5 components ar
 ### Key design aspects include:
 
 * **Serving Path:** Unlike ["application" projects](https://sap.github.io/ui5-tooling/stable/pages/Project/#application) served at the root path "/", "component" projects will be served under their namespace, for example, "/resources/my/bookstore/admin". This enables multiple component projects to coexist alongside a single root application (like in the FLP).
-* **Folder Structure:** Similar to the "library" type, "component" projects will maintain an explicit folder structure reflecting their namespace rather than a flat structure.
+* **Folder Structure:** Similar to the "library" type, "component" projects may use a flat folder structure or a namespace structure. In case of a flat structure, the project namespace will be derived from the manifest.json "sap.app".id property.
 * **Entry Point:** Component projects will not have a dedicated `index.html` in their regular resources (like application-type projects often do). They can still be run standalone though. For instance via a dedicated HTML-site located in their test-resources, or by declaring a development-dependency to an application-type project which is capable of serving the component.
 * **Build Options:** The "component" type will support [all output-styles](https://sap.github.io/ui5-tooling/stable/pages/Project/#build-output-style) that are currently supported by library projects, ensuring compatibility with current deployment practices where namespaces may need to be omitted in the directory structure ("flat" output style).
+
+### Project Structure
+
+A component type project must contain both, a `Component.js` and a `manifest.json` file.
 
 ### Specification Version
 
