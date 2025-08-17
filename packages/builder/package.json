@@ -121,7 +121,7 @@
 		"url": "git@github.com:SAP/ui5-builder.git"
 	},
 	"dependencies": {
-		"@jridgewell/sourcemap-codec": "^1.5.4",
+		"@jridgewell/sourcemap-codec": "^1.5.5",
 		"@ui5/fs": "^4.0.1",
 		"@ui5/logger": "^4.0.1",
 		"cheerio": "1.1.0",
@@ -140,7 +140,7 @@
 	"devDependencies": {
 		"@eslint/js": "^9.14.0",
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
-		"@jridgewell/trace-mapping": "^0.3.29",
+		"@jridgewell/trace-mapping": "^0.3.30",
 		"@ui5/project": "^4.0.4",
 		"ava": "^6.4.1",
 		"chokidar-cli": "^3.0.0",
