@@ -195,6 +195,71 @@ test("integration: Extreme AutoSplitter with numberOfParts 50", async (t) => {
 	);
 });
 
+test("integration: AutoSplitter with bundleInfo", async (t) => {
+	const modules = new Array(10)
+		.fill(null)
+		.map((val, index) =>
+			index % 2 ?
+				`foo/bar0/module${index}.js` :
+				`foo/bar1/module${index}.js`
+		);
+	const pool = {
+		findResourceWithInfo: async (name) => {
+			const info = new ModuleInfo(name);
+			return {info};
+		},
+		resources: modules.map((res) => ({name: res}))
+	};
+	const autoSplitter = new AutoSplitter(pool, new BundleResolver(pool));
+	const bundleDefinition = {
+		name: `test-bundleInfo.js`,
+		sections: [{
+			mode: "bundleInfo",
+			name: "bundle-0.js",
+			filters: ["foo/bar0/**"],
+			modules
+		}, {
+			mode: "bundleInfo",
+			name: "bundle-1.js",
+			filters: ["foo/bar1/**"],
+			modules
+		}]
+	};
+	// Requesting 3 parts, but as there are 2 sections, only 2 parts should be created
+	// (bundleInfo section can't be split up)
+	const oResult = await autoSplitter.run(bundleDefinition, {numberOfParts: 3, optimize: false});
+	t.deepEqual(oResult, [
+		{
+			name: "test-bundleInfo-0.js",
+			sections: [{
+				mode: "bundleInfo",
+				name: "bundle-0.js",
+				filters: [
+					"foo/bar0/module1.js",
+					"foo/bar0/module3.js",
+					"foo/bar0/module5.js",
+					"foo/bar0/module7.js",
+					"foo/bar0/module9.js",
+				]
+			}]
+		},
+		{
+			name: "test-bundleInfo-1.js",
+			sections: [{
+				mode: "bundleInfo",
+				name: "bundle-1.js",
+				filters: [
+					"foo/bar1/module0.js",
+					"foo/bar1/module2.js",
+					"foo/bar1/module4.js",
+					"foo/bar1/module6.js",
+					"foo/bar1/module8.js",
+				]
+			}]
+		}
+	]);
+});
+
 test("_calcMinSize: compressedSize", async (t) => {
 	const pool = {
 		findResourceWithInfo: function() {

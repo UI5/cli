@@ -11,6 +11,7 @@ import {
 	MODULE__UI5LOADER, MODULE__UI5LOADER_AUTOCONFIG,
 	MODULE__JQUERY_SAP_GLOBAL, MODULE__SAP_UI_CORE_CORE} from "../UI5ClientConstants.js";
 import escapePropertiesFile from "../utils/escapePropertiesFile.js";
+import {makeStringLiteral, removeHashbang} from "../utils/stringUtils.js";
 import BundleResolver from "./Resolver.js";
 import BundleSplitter from "./AutoSplitter.js";
 import {SectionType} from "./BundleDefinition.js";
@@ -22,23 +23,6 @@ const log = getLogger("lbt:bundle:Builder");
 const sourceMappingUrlPattern = /\/\/# sourceMappingURL=(\S+)\s*$/;
 const httpPattern = /^https?:\/\//i;
 const xmlHtmlPrePattern = /<(?:\w+:)?pre\b/;
-
-const strReplacements = {
-	"\r": "\\r",
-	"\t": "\\t",
-	"\n": "\\n",
-	"'": "\\'",
-	"\\": "\\\\"
-};
-
-function makeStringLiteral(str) {
-	return "'" + String(str).replace(/['\r\n\t\\]/g, function(char) {
-		return strReplacements[char];
-	}) + "'";
-}
-function removeHashbang(str) {
-	return str.replace(/^#!(.*)/, "");
-}
 
 function isEmptyBundle(resolvedBundle) {
 	return resolvedBundle.sections.every((section) => section.modules.length === 0);

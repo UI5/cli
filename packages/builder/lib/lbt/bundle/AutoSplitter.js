@@ -3,6 +3,7 @@ import {pd} from "pretty-data";
 import {toRequireJSName} from "../utils/ModuleName.js";
 import {SectionType} from "./BundleDefinition.js";
 import escapePropertiesFile from "../utils/escapePropertiesFile.js";
+import {makeStringLiteral} from "../utils/stringUtils.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("lbt:bundle:AutoSplitter");
 
@@ -43,6 +44,7 @@ class AutoSplitter {
 		const moduleSizes = Object.create(null);
 		const depCacheSizes = [];
 		let depCacheLoaderSize = 0;
+		let bundleInfoLoaderSize = 0;
 		this.optimize = !!options.optimize;
 
 		// ---- resolve module definition
@@ -97,8 +99,14 @@ class AutoSplitter {
 					})());
 				});
 				break;
-			default:
+			case SectionType.BundleInfo:
+				bundleInfoLoaderSize = "sap.ui.loader.config({bundlesUI5:{\n\n}});\n".length;
+				totalSize += bundleInfoLoaderSize;
+				totalSize +=
+					`"${section.name}":[${section.modules.map(makeStringLiteral).join(",")}]`.length;
 				break;
+			default:
+				throw new Error(`Unknown section mode: ${section.mode}`);
 			}
 		});
 
@@ -134,6 +142,7 @@ class AutoSplitter {
 		resolvedModule.sections.forEach( (section) => {
 			let currentSection;
 			let sequence;
+			let bundleInfoModuleStringLiterals;
 			switch ( section.mode ) {
 			case SectionType.Provided:
 				// 'provided' sections are no longer needed in a fully resolved module
@@ -233,8 +242,39 @@ class AutoSplitter {
 					}
 				});
 				break;
-			default:
+			case SectionType.BundleInfo:
+
+				// Create new part if size is already exceeded
+				if (part + 1 < numberOfParts && totalSize > partSize) {
+					part++;
+					currentModule = {
+						name: moduleNameWithPart.replace(/__part__/, part),
+						sections: []
+					};
+					splittedModules.push(currentModule);
+				}
+
+				// bundleInfo sections are always copied as a whole
+				currentSection = {
+					mode: SectionType.BundleInfo,
+					name: section.name,
+					filters: []
+				};
+				currentModule.sections.push(currentSection);
+
+				bundleInfoModuleStringLiterals = [];
+				section.modules.forEach((module) => {
+					currentSection.filters.push(module);
+					bundleInfoModuleStringLiterals.push(makeStringLiteral(module));
+				});
+
+				totalSize += bundleInfoLoaderSize;
+				totalSize +=
+					`"${section.name}":[${bundleInfoModuleStringLiterals.join(",")}]`.length;
+
 				break;
+			default:
+				throw new Error(`Unknown section mode: ${section.mode}`);
 			}
 		});
 
