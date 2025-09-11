@@ -1,7 +1,7 @@
 {
 	"name": "@ui5/logger",
 	"version": "4.0.1",
-	"description": "UI5 Tooling - Internal Logger",
+	"description": "UI5 CLI - Internal Logger",
 	"author": {
 		"name": "SAP SE",
 		"email": "openui5@sap.com",
