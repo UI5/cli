@@ -462,7 +462,7 @@ test.serial("_resolveSnapshotEndpointUrl: From configuration", async (t) => {
 
 	const endpoint = await resolveSnapshotEndpointUrl();
 
-	t.is(endpoint, "config-url", "Returned URL extracted from UI5 Tooling configuration");
+	t.is(endpoint, "config-url", "Returned URL extracted from UI5 CLI configuration");
 	t.is(configFromFile.callCount, 1, "Configuration has been read once");
 	t.is(configToFile.callCount, 0, "Configuration has not been written");
 	t.is(fromMavenStub.callCount, 0, "Maven configuration has not been requested");

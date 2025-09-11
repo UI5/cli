@@ -361,8 +361,8 @@ class TaskRunner {
 					throw new Error(
 						`Standard task ${refTaskName}, referenced by custom task ${newTaskName} ` +
 						`in project ${project.getName()}, ` +
-						`has been removed in this version of UI5 Tooling and can't be referenced anymore. ` +
-						`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`);
+						`has been removed in this version of UI5 CLI and can't be referenced anymore. ` +
+						`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
 				}
 				throw new Error(`Could not find task ${refTaskName}, referenced by custom task ${newTaskName}, ` +
 					`to be scheduled for project ${project.getName()}`);

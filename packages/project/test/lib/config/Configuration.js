@@ -140,7 +140,7 @@ test.serial("fromFile: throws", async (t) => {
 	promisifyStub.callsFake(() => responseStub);
 
 	await t.throwsAsync(fromFile(), {
-		message: `Failed to read UI5 Tooling configuration from ~/.ui5rc: Error`
+		message: `Failed to read UI5 CLI configuration from ~/.ui5rc: Error`
 	});
 });
 
@@ -169,6 +169,6 @@ test.serial("toFile: throws", async (t) => {
 	promisifyStub.callsFake(() => responseStub);
 
 	await t.throwsAsync(toFile(new Configuration({})), {
-		message: "Failed to write UI5 Tooling configuration to ~/.ui5rc: Error"
+		message: "Failed to write UI5 CLI configuration to ~/.ui5rc: Error"
 	});
 });

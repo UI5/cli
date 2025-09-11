@@ -579,8 +579,8 @@ test("_initTasks: Custom tasks with removed beforeTask", async (t) => {
 	});
 	t.is(err.message,
 		`Standard task removedTask, referenced by custom task myTask in project project.b, ` +
-		`has been removed in this version of UI5 Tooling and can't be referenced anymore. ` +
-		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		`has been removed in this version of UI5 CLI and can't be referenced anymore. ` +
+		`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`,
 		"Threw with expected error message");
 });
 

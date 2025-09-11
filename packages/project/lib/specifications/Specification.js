@@ -127,7 +127,7 @@ class Specification {
 				throw new Error(
 					`${config.kind} ${config.metadata.name} defines unsupported Specification Version ` +
 					`${originalSpecVersion}. Please manually upgrade to 3.0 or higher. ` +
-					`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions - ` +
+					`For details see https://ui5.github.io/cli/pages/Configuration/#specification-versions - ` +
 					`An attempted migration to a supported specification version failed, ` +
 					`likely due to unrecognized configuration. Check verbose log for details.`);
 			}

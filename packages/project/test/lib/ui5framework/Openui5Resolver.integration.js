@@ -177,7 +177,7 @@ test.serial("resolveVersion", async (t) => {
 		});
 		await t.throwsAsync(Openui5Resolver.resolveVersion("1.0.0", options), {
 			message: `Could not resolve framework version 1.0.0. ` +
-				`Note that OpenUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+				`Note that OpenUI5 framework libraries can only be consumed by the UI5 CLI ` +
 				`starting with OpenUI5 v1.52.5`
 		});
 		await t.throwsAsync(Openui5Resolver.resolveVersion("^999", options), {

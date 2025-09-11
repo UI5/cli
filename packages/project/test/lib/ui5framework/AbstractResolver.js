@@ -1106,7 +1106,7 @@ test.serial(
 
 		t.is(error.message,
 			`Could not resolve framework version 1.50.0. Note that OpenUI5 framework libraries can only be ` +
-			`consumed by the UI5 Tooling starting with OpenUI5 v1.52.5`);
+			`consumed by the UI5 CLI starting with OpenUI5 v1.52.5`);
 	});
 
 test.serial(
@@ -1126,7 +1126,7 @@ test.serial(
 
 		t.is(error.message,
 			`Could not resolve framework version 1.75.0. Note that SAPUI5 framework libraries can only be ` +
-			`consumed by the UI5 Tooling starting with SAPUI5 v1.76.0`);
+			`consumed by the UI5 CLI starting with SAPUI5 v1.76.0`);
 	});
 
 test.serial(

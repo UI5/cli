@@ -174,7 +174,7 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 
 	/**
 	 * Read the Maven repository snapshot endpoint URL from the central
-	 * UI5 Tooling configuration, with a fallback to central Maven configuration (is existing)
+	 * UI5 CLI configuration, with a fallback to central Maven configuration (is existing)
 	 *
 	 * @returns {Promise<string>} The resolved snapshotEndpointUrl
 	 */
@@ -183,12 +183,12 @@ class Sapui5MavenSnapshotResolver extends AbstractResolver {
 		const config = await Configuration.fromFile();
 		let url = config.getMavenSnapshotEndpointUrl();
 		if (url) {
-			log.verbose(`Using UI5 Tooling configuration for mavenSnapshotEndpointUrl: ${url}`);
+			log.verbose(`Using UI5 CLI configuration for mavenSnapshotEndpointUrl: ${url}`);
 		} else {
 			log.verbose(`No mavenSnapshotEndpointUrl configuration found`);
 			url = await Sapui5MavenSnapshotResolver._resolveSnapshotEndpointUrlFromMaven();
 			if (url) {
-				log.verbose(`Updating UI5 Tooling configuration with new mavenSnapshotEndpointUrl: ${url}`);
+				log.verbose(`Updating UI5 CLI configuration with new mavenSnapshotEndpointUrl: ${url}`);
 				const configJson = config.toJson();
 				configJson.mavenSnapshotEndpointUrl = url;
 				await Configuration.toFile(new Configuration(configJson));

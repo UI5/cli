@@ -230,11 +230,11 @@ class AbstractResolver {
 			if (semver.valid(spec)) {
 				if (this.name === "Sapui5Resolver" && semver.lt(spec, "1.76.0")) {
 					throw new Error(`Could not resolve framework version ${version}. ` +
-						`Note that SAPUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+						`Note that SAPUI5 framework libraries can only be consumed by the UI5 CLI ` +
 						`starting with SAPUI5 v1.76.0`);
 				} else if (this.name === "Openui5Resolver" && semver.lt(spec, "1.52.5")) {
 					throw new Error(`Could not resolve framework version ${version}. ` +
-						`Note that OpenUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+						`Note that OpenUI5 framework libraries can only be consumed by the UI5 CLI ` +
 						`starting with OpenUI5 v1.52.5`);
 				}
 			}

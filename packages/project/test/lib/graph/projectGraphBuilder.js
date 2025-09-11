@@ -218,7 +218,7 @@ test("Legacy node with specVersion attribute as root", async (t) => {
 	const err = await t.throwsAsync(projectGraphBuilder(t.context.provider));
 
 	t.is(err.message,
-		"Provided node with ID id1 contains a top-level 'specVersion' property. With UI5 Tooling 3.0, " +
+		"Provided node with ID id1 contains a top-level 'specVersion' property. With UI5 CLI 3.0, " +
 		"project configuration needs to be provided in a dedicated 'configuration' object",
 		"Threw with expected error message");
 });
@@ -235,7 +235,7 @@ test("Legacy node with metadata attribute in dependencies", async (t) => {
 	const err = await t.throwsAsync(projectGraphBuilder(t.context.provider));
 
 	t.is(err.message,
-		"Provided node with ID id2 contains a top-level 'metadata' property. With UI5 Tooling 3.0, " +
+		"Provided node with ID id2 contains a top-level 'metadata' property. With UI5 CLI 3.0, " +
 		"project configuration needs to be provided in a dedicated 'configuration' object",
 		"Threw with expected error message");
 });

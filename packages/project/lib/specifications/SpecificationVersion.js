@@ -284,7 +284,7 @@ class SpecificationVersion {
 
 function getUnsupportedSpecVersionMessage(specVersion) {
 	return `Unsupported Specification Version ${specVersion} defined. Your UI5 CLI installation might be outdated. ` +
-		`For details, see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`;
+		`For details, see https://ui5.github.io/cli/pages/Configuration/#specification-versions`;
 }
 
 function getSemverCompatibleVersion(specVersion) {

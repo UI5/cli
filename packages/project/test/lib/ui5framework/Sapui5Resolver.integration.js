@@ -177,7 +177,7 @@ test.serial("resolveVersion", async (t) => {
 		});
 		await t.throwsAsync(Sapui5Resolver.resolveVersion("1.0.0", options), {
 			message: `Could not resolve framework version 1.0.0. ` +
-				`Note that SAPUI5 framework libraries can only be consumed by the UI5 Tooling ` +
+				`Note that SAPUI5 framework libraries can only be consumed by the UI5 CLI ` +
 				`starting with SAPUI5 v1.76.0`
 		});
 		await t.throwsAsync(Sapui5Resolver.resolveVersion("^999", options), {

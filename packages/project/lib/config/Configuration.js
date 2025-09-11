@@ -98,7 +98,7 @@ class Configuration {
 				config = {};
 			} else {
 				throw new Error(
-					`Failed to read UI5 Tooling configuration from ${filePath}: ${err.message}`, {
+					`Failed to read UI5 CLI configuration from ${filePath}: ${err.message}`, {
 						cause: err
 					});
 			}
@@ -127,7 +127,7 @@ class Configuration {
 			return writeFile(filePath, JSON.stringify(config.toJson()));
 		} catch (err) {
 			throw new Error(
-				`Failed to write UI5 Tooling configuration to ${filePath}: ${err.message}`, {
+				`Failed to write UI5 CLI configuration to ${filePath}: ${err.message}`, {
 					cause: err
 				});
 		}

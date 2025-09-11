@@ -97,7 +97,7 @@ test("setTag with resource path is not supported anymore", (t) => {
 		taskUtil.setTag("my resource", "my tag", "my value");
 	});
 	t.is(err.message,
-		"Deprecated parameter: Since UI5 Tooling 3.0, #setTag " +
+		"Deprecated parameter: Since UI5 CLI 3.0, #setTag " +
 		"requires a resource instance. Strings are no longer accepted",
 		"Threw with expected error message");
 });
@@ -111,7 +111,7 @@ test("getTag with resource path is not supported anymore", (t) => {
 		taskUtil.getTag("my resource", "my tag", "my value");
 	});
 	t.is(err.message,
-		"Deprecated parameter: Since UI5 Tooling 3.0, #getTag " +
+		"Deprecated parameter: Since UI5 CLI 3.0, #getTag " +
 		"requires a resource instance. Strings are no longer accepted",
 		"Threw with expected error message");
 });
@@ -125,7 +125,7 @@ test("clearTag with resource path is not supported anymore", (t) => {
 		taskUtil.clearTag("my resource", "my tag", "my value");
 	});
 	t.is(err.message,
-		"Deprecated parameter: Since UI5 Tooling 3.0, #clearTag " +
+		"Deprecated parameter: Since UI5 CLI 3.0, #clearTag " +
 		"requires a resource instance. Strings are no longer accepted",
 		"Threw with expected error message");
 });

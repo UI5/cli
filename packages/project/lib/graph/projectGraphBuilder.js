@@ -28,13 +28,13 @@ function validateNode(node) {
 	if (node.specVersion) {
 		throw new Error(
 			`Provided node with ID ${node.id} contains a top-level 'specVersion' property. ` +
-			`With UI5 Tooling 3.0, project configuration needs to be provided in a dedicated ` +
+			`With UI5 CLI 3.0, project configuration needs to be provided in a dedicated ` +
 			`'configuration' object`);
 	}
 	if (node.metadata) {
 		throw new Error(
 			`Provided node with ID ${node.id} contains a top-level 'metadata' property. ` +
-			`With UI5 Tooling 3.0, project configuration needs to be provided in a dedicated ` +
+			`With UI5 CLI 3.0, project configuration needs to be provided in a dedicated ` +
 			`'configuration' object`);
 	}
 }
@@ -171,7 +171,7 @@ async function projectGraphBuilder(nodeProvider, workspace) {
 					// Invalidate cache if the cached module is visited through another parent project and did not
 					// resolve to a project or extension(s) before.
 					// The module being visited now might be a different version containing for example
-					// UI5 Tooling configuration, or one of the parent projects could have defined a
+					// UI5 CLI configuration, or one of the parent projects could have defined a
 					// relevant configuration shim meanwhile
 					log.silly(
 						`Cached module ${node.id} did not resolve to any projects or extensions. ` +

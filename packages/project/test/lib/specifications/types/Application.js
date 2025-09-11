@@ -528,7 +528,7 @@ test("_getNamespace: Correct error message if fallback to manifest.appdescr_vari
 		"No such stable or directory: manifest.json" +
 		"\n\n" +
 		"If you are about to start a new project, please refer to:\n" +
-		"https://sap.github.io/ui5-tooling/v4/pages/GettingStarted/#starting-a-new-project",
+		"https://ui5.github.io/cli/v4/pages/GettingStarted/#starting-a-new-project",
 		"Rejected with correct error message");
 
 	t.is(_getManifestStub.callCount, 2, "_getManifest called exactly twice");

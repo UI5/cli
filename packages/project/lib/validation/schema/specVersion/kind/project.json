@@ -105,7 +105,7 @@
 					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
 					"title": "Project Name",
 					"description": "Unique identifier for the project, for example: organization.product.project",
-					"errorMessage": "Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://sap.github.io/ui5-tooling/stable/pages/Configuration/#name"
+					"errorMessage": "Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name"
 				},
 				"copyright": {
 					"type": "string"
@@ -128,7 +128,7 @@
 			"enum": ["UTF-8", "ISO-8859-1"],
 			"default": "UTF-8",
 			"title": "Encoding of *.properties files",
-			"description": "By default, the UI5 Tooling expects *.properties files to be UTF-8 encoded."
+			"description": "By default, the UI5 CLI expects *.properties files to be UTF-8 encoded."
 		},
 		"builder-resources": {
 			"type": "object",

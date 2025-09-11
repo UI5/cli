@@ -193,7 +193,7 @@ test("Migrate legacy project unexpected configuration", async (t) => {
 
 	t.is(err.message,
 		"project application.a defines unsupported Specification Version 1.0. Please manually upgrade to 3.0 or " +
-		"higher. For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions - " +
+		"higher. For details see https://ui5.github.io/cli/pages/Configuration/#specification-versions - " +
 		"An attempted migration to a supported specification version failed, likely due to unrecognized " +
 		"configuration. Check verbose log for details.",
 		"Threw with expected error message");
@@ -366,7 +366,7 @@ test("Invalid specVersion", async (t) => {
 	await t.throwsAsync(Specification.create(t.context.basicProjectInput), {
 		message:
 		"Unsupported Specification Version 0.5 defined. Your UI5 CLI installation might be outdated. " +
-		"For details, see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions"
+		"For details, see https://ui5.github.io/cli/pages/Configuration/#specification-versions"
 	}, "Threw with expected error message");
 });
 

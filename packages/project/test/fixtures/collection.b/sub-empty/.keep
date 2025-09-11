@@ -1,2 +1,2 @@
 This file is a stand-in for an empty project directory.
-This directory, even though matching the npm workspace configuration pattern, should be ignored by UI5 Tooling.
+This directory, even though matching the npm workspace configuration pattern, should be ignored by UI5 CLI.

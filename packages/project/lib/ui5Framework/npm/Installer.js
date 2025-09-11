@@ -115,7 +115,7 @@ class Installer extends AbstractInstaller {
 					await this.getRegistry().extractPackage(pkgName, version, stagingDir);
 
 					// Do not create target dir itself to prevent EPERM error in following rename operation
-					// (https://github.com/SAP/ui5-tooling/issues/487)
+					// (https://github.com/UI5/cli/issues/487)
 					await mkdirp(path.dirname(targetDir));
 					log.verbose(`Promoting staging directory from ${stagingDir} to ${targetDir}...`);
 					await rename(stagingDir, targetDir);

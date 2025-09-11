@@ -23,8 +23,8 @@ import {
  */
 class TaskUtil {
 	/**
-	 * Standard Build Tags. See UI5 Tooling
-	 * [RFC 0008]{@link https://github.com/SAP/ui5-tooling/blob/main/rfcs/0008-resource-tagging-during-build.md}
+	 * Standard Build Tags. See UI5 CLI
+	 * [RFC 0008]{@link https://github.com/UI5/cli/blob/main/rfcs/0008-resource-tagging-during-build.md}
 	 * for details.
 	 *
 	 * @public
@@ -87,7 +87,7 @@ class TaskUtil {
 	setTag(resource, tag, value) {
 		if (typeof resource === "string") {
 			throw new Error("Deprecated parameter: " +
-				"Since UI5 Tooling 3.0, #setTag requires a resource instance. Strings are no longer accepted");
+				"Since UI5 CLI 3.0, #setTag requires a resource instance. Strings are no longer accepted");
 		}
 
 		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
@@ -110,7 +110,7 @@ class TaskUtil {
 	getTag(resource, tag) {
 		if (typeof resource === "string") {
 			throw new Error("Deprecated parameter: " +
-				"Since UI5 Tooling 3.0, #getTag requires a resource instance. Strings are no longer accepted");
+				"Since UI5 CLI 3.0, #getTag requires a resource instance. Strings are no longer accepted");
 		}
 		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
 		return collection.getTag(resource, tag);
@@ -131,7 +131,7 @@ class TaskUtil {
 	clearTag(resource, tag) {
 		if (typeof resource === "string") {
 			throw new Error("Deprecated parameter: " +
-				"Since UI5 Tooling 3.0, #clearTag requires a resource instance. Strings are no longer accepted");
+				"Since UI5 CLI 3.0, #clearTag requires a resource instance. Strings are no longer accepted");
 		}
 		const collection = this._projectBuildContext.getResourceTagCollection(resource, tag);
 		return collection.clearTag(resource, tag);
