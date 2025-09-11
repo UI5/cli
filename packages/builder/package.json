@@ -123,7 +123,7 @@
 	"dependencies": {
 		"@jridgewell/sourcemap-codec": "^1.5.5",
 		"@ui5/fs": "^4.0.1",
-		"@ui5/logger": "^4.0.1",
+		"@ui5/logger": "^4.0.2",
 		"cheerio": "1.0.0",
 		"escape-unicode": "^0.2.0",
 		"escope": "^4.0.0",
@@ -134,13 +134,13 @@
 		"pretty-data": "^0.40.0",
 		"semver": "^7.7.2",
 		"terser": "^5.44.0",
-		"workerpool": "^9.3.3",
+		"workerpool": "^9.3.4",
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.14.0",
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
-		"@jridgewell/trace-mapping": "^0.3.30",
+		"@jridgewell/trace-mapping": "^0.3.31",
 		"@ui5/project": "^4.0.4",
 		"ava": "^6.4.1",
 		"chokidar-cli": "^3.0.0",
@@ -152,7 +152,7 @@
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^52.0.4",
 		"esmock": "^2.7.2",
-		"globals": "^16.3.0",
+		"globals": "^16.4.0",
 		"line-column": "^1.0.2",
 		"nyc": "^17.1.0",
 		"open-cli": "^8.0.0",
