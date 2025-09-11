@@ -182,7 +182,7 @@ export async function serve(graph, {
 	if (h2) {
 		const nodeVersion = parseInt(process.versions.node.split(".")[0], 10);
 		if (nodeVersion >= 24) {
-			log.error("ERROR: With Node v24, usage of HTTP/2 is no longer supported. Please check https://github.com/SAP/ui5-tooling/issues/327 for updates.");
+			log.error("ERROR: With Node v24, usage of HTTP/2 is no longer supported. Please check https://github.com/UI5/cli/issues/327 for updates.");
 			process.exit(1);
 		}
 

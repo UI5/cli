@@ -1,8 +1,8 @@
-![UI5 icon](https://raw.githubusercontent.com/SAP/ui5-tooling/main/docs/images/UI5_logo_wide.png)
+![UI5 icon](https://raw.githubusercontent.com/UI5/cli/main/docs/images/UI5_logo_wide.png)
 
 # ui5-server
 > Modules for running a UI5 development server  
-> Part of the [UI5 Tooling](https://github.com/SAP/ui5-tooling)
+> Part of the [UI5 CLI](https://github.com/UI5/cli)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP/ui5-server)](https://api.reuse.software/info/github.com/SAP/ui5-server)
 [![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-server?branchName=main)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=34&branchName=main)
@@ -10,17 +10,17 @@
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-server/badge.svg)](https://coveralls.io/github/SAP/ui5-server)
 
 ## Documentation
-UI5 Server documentation can be found here: [sap.github.io/ui5-tooling](https://sap.github.io/ui5-tooling/v4/pages/Server/)
+UI5 Server documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/v4/pages/Server/)
 
-The UI5 Server API Reference can be found here: [`@ui5/server`](https://sap.github.io/ui5-tooling/v4/api/module-@ui5_server.html)
+The UI5 Server API Reference can be found here: [`@ui5/server`](https://ui5.github.io/cli/v4/api/module-@ui5_server.html)
 
 ## Contributing
-Please check our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/main/CONTRIBUTING.md).
+Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
 
 ## Support
-Please follow our [Contribution Guidelines](https://github.com/SAP/ui5-tooling/blob/main/CONTRIBUTING.md#report-an-issue) on how to report an issue.
+Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
-Please report issues in the main [UI5 Tooling](https://github.com/SAP/ui5-tooling) repository.
+Please report issues in the main [UI5 CLI](https://github.com/UI5/cli) repository.
 
 ## Release History
 See [CHANGELOG.md](CHANGELOG.md).

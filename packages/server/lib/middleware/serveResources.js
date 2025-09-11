@@ -110,7 +110,7 @@ function createMiddleware({resources, middlewareUtil}) {
 				res.setHeader("ETag", etagHeader);
 			} else {
 				// Fallback to buffer if stats are not available or insufficient or resource is modified.
-				// Modified resources must use the buffer for cache invalidation so that UI5 Tooling changes
+				// Modified resources must use the buffer for cache invalidation so that UI5 CLI changes
 				// invalidate the cache even when the original resource is not modified.
 				res.setHeader("ETag", etag(await resource.getBuffer()));
 			}

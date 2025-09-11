@@ -101,8 +101,8 @@ class MiddlewareManager {
 				throw new Error(
 					`Standard middleware "connectUi5Proxy", referenced by middleware "${middlewareName}" ` +
 					`in project ${this.middlewareUtil.getProject()}, ` +
-					`has been removed in this version of UI5 Tooling and can't be referenced anymore. ` +
-					`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`);
+					`has been removed in this version of UI5 CLI and can't be referenced anymore. ` +
+					`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`);
 			}
 			if (refMiddlewareIdx === -1) {
 				throw new Error(`Could not find middleware ${refMiddlewareName}, referenced by custom ` +

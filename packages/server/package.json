@@ -1,7 +1,7 @@
 {
 	"name": "@ui5/server",
 	"version": "4.0.6",
-	"description": "UI5 Tooling - Server",
+	"description": "UI5 CLI - Server",
 	"author": {
 		"name": "SAP SE",
 		"email": "openui5@sap.com",

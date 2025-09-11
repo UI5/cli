@@ -388,6 +388,6 @@ test("getInterface: specVersion unknown", (t) => {
 
 	t.is(err.message,
 		"Unsupported Specification Version 1.5 defined. Your UI5 CLI installation might be outdated. " +
-		"For details, see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions",
+		"For details, see https://ui5.github.io/cli/pages/Configuration/#specification-versions",
 		"Throw with correct error message");
 });
