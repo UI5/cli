@@ -2,10 +2,16 @@
 All notable changes to this project will be documented in this file.  
 This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.10...HEAD).
+A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
+
+<a name="v4.0.11"></a>
+## [v4.0.11] - 2025-09-11
+### Bug Fixes
+- Rename project to UI5 CLI [`2d0cb3a`](https://github.com/SAP/ui5-builder/commit/2d0cb3a222508facec0a4103d048f92c2fd0b41f)
+
 
 <a name="v4.0.10"></a>
-## [v4.0.10] - 2025-09-01
+## [v4.0.10] - 2025-09-03
 ### Bug Fixes
 - Downgrade cheerio to v1.0.0 to resolve Node compatibility issues [`4dc3a6e`](https://github.com/SAP/ui5-builder/commit/4dc3a6ef3029fca50d6b3ab45ed9667c206c6435)
 - **Bundler:** Include 'bundleInfo' section in multipart bundles [`e7ab31e`](https://github.com/SAP/ui5-builder/commit/e7ab31e859c5659612f0cc726e0410064f0b3174)
@@ -980,6 +986,7 @@ to load the custom bundle file instead.
 
 ### Features
 - Add ability to configure component preloads and custom bundles [`2241e5f`](https://github.com/SAP/ui5-builder/commit/2241e5ff98fd95f1f80cc74959655ae7a9c660e7)
+[v4.0.11]: https://github.com/SAP/ui5-builder/compare/v4.0.10...v4.0.11
 [v4.0.10]: https://github.com/SAP/ui5-builder/compare/v4.0.9...v4.0.10
 [v4.0.9]: https://github.com/SAP/ui5-builder/compare/v4.0.8...v4.0.9
 [v4.0.8]: https://github.com/SAP/ui5-builder/compare/v4.0.7...v4.0.8
