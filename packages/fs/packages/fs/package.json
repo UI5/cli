@@ -1,7 +1,7 @@
 {
 	"name": "@ui5/fs",
 	"version": "4.0.1",
-	"description": "UI5 Tooling - File System Abstraction",
+	"description": "UI5 CLI - File System Abstraction",
 	"author": {
 		"name": "SAP SE",
 		"email": "openui5@sap.com",
