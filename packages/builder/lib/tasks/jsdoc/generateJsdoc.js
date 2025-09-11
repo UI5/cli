@@ -130,7 +130,7 @@ const utils = {
 	createTmpDir: async function(projectName) {
 		const sanitizedProjectName = projectName.replace(/[^A-Za-z0-9]/g, "");
 
-		const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
+		const tmpRootPath = path.join(os.tmpdir(), "ui5-cli");
 		await mkdirp(tmpRootPath);
 
 		// Appending minus sign also because node docs advise to "avoid trailing X characters in prefix"

@@ -51,7 +51,7 @@ test.serial("createTmpDir successful", async (t) => {
 
 	const res = await generateJsdocUtils.createTmpDir("som$e.nam3/space"); // non alphanum characters get removed
 
-	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
+	const tmpRootPath = path.join(os.tmpdir(), "ui5-cli");
 
 	t.is(mkdirpStub.callCount, 1, "One directory got created");
 	t.deepEqual(mkdirpStub.getCall(0).args, [tmpRootPath], "Correct tmp root dir got created");
@@ -69,7 +69,7 @@ test.serial("createTmpDir error", async (t) => {
 
 	const res = await t.throwsAsync(generateJsdocUtils.createTmpDir("some.namespace"));
 
-	const tmpRootPath = path.join(os.tmpdir(), "ui5-tooling");
+	const tmpRootPath = path.join(os.tmpdir(), "ui5-cli");
 
 	t.is(mkdirpStub.callCount, 1, "One directory got created");
 	t.deepEqual(mkdirpStub.getCall(0).args, [tmpRootPath], "Correct tmp root dir got created");

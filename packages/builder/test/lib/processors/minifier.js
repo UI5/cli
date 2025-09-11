@@ -741,7 +741,7 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 	/* eslint-enable max-len */
 
 	// Note: Transitive source map generated for section "Component-preload.js?bundle-code-0" does not contain a
-	// "names" array. This reflect the behavior of the UI5 Tooling bundler and causes issues with Terser. See:
+	// "names" array. This reflect the behavior of the UI5 CLI bundler and causes issues with Terser. See:
 	// https://github.com/jridgewell/trace-mapping/pull/29
 	const inputSourceMapContent = JSON.stringify({
 		"version": 3,

@@ -182,7 +182,7 @@ class ComponentAnalyzer {
 					} else {
 						log.warn(`Provided OData version "${odataVersion}" in ` +
 							`dataSource "${options.dataSource}" for model "${model}" is unknown. ` +
-							`You might be using an outdated version of the UI5 Tooling.`);
+							`You might be using an outdated version of the UI5 CLI.`);
 						return;
 					}
 					break;

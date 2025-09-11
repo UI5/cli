@@ -47,20 +47,20 @@ test("Unknown task retrieval", async (t) => {
 test("Removed task retrieval", async (t) => {
 	const error = await t.throwsAsync(getTask("createDebugFiles"));
 	t.deepEqual(error.message,
-		`Standard task createDebugFiles has been removed in UI5 Tooling 3.0. ` +
-		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		`Standard task createDebugFiles has been removed in UI5 CLI 3.0. ` +
+		`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`,
 		"Correct exception");
 
 	const error2 = await t.throwsAsync(getTask("uglify"));
 	t.deepEqual(error2.message,
-		`Standard task uglify has been removed in UI5 Tooling 3.0. ` +
-		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		`Standard task uglify has been removed in UI5 CLI 3.0. ` +
+		`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`,
 		"Correct exception");
 
 	const error3 = await t.throwsAsync(getTask("generateManifestBundle"));
 	t.deepEqual(error3.message,
-		`Standard task generateManifestBundle has been removed in UI5 Tooling 3.0. ` +
-		`Please see the migration guide at https://sap.github.io/ui5-tooling/updates/migrate-v3/`,
+		`Standard task generateManifestBundle has been removed in UI5 CLI 3.0. ` +
+		`Please see the migration guide at https://ui5.github.io/cli/updates/migrate-v3/`,
 		"Correct exception");
 });
 

@@ -335,8 +335,8 @@ ${SOURCE_MAPPING_URL}=Component-preload.js.map
 		errorLogStub.getCall(0).args[0],
 		"Module myModuleUsingGlobalScope.js requires top level scope and can only " +
 			"be embedded as a string (requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
-			"For more information, see the UI5 Tooling documentation " +
-			"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope",
+			"For more information, see the UI5 CLI documentation " +
+			"https://ui5.github.io/cli/stable/pages/Builder/#javascript-files-requiring-top-level-scope",
 		"Error message was called for myModuleUsingGlobalScope.js"
 	);
 });
@@ -1330,23 +1330,23 @@ ${SOURCE_MAPPING_URL}=library-preload.js.map
 	t.is(errorLogStub.getCall(0).args[0],
 		"Module a.js requires top level scope and can only be embedded as a string " +
 		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
-		"For more information, see the UI5 Tooling documentation " +
-		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+		"For more information, see the UI5 CLI documentation " +
+		"https://ui5.github.io/cli/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
 	t.is(errorLogStub.getCall(1).args[0],
 		"Module b.js requires top level scope and can only be embedded as a string " +
 		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
-		"For more information, see the UI5 Tooling documentation " +
-		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+		"For more information, see the UI5 CLI documentation " +
+		"https://ui5.github.io/cli/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
 	t.is(errorLogStub.getCall(2).args[0],
 		"Module c2.js requires top level scope and can only be embedded as a string " +
 		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
-		"For more information, see the UI5 Tooling documentation " +
-		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+		"For more information, see the UI5 CLI documentation " +
+		"https://ui5.github.io/cli/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
 	t.is(errorLogStub.getCall(3).args[0],
 		"Module c3.js requires top level scope and can only be embedded as a string " +
 		"(requires 'eval'), which is not supported with specVersion 4.0 and higher. " +
-		"For more information, see the UI5 Tooling documentation " +
-		"https://sap.github.io/ui5-tooling/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
+		"For more information, see the UI5 CLI documentation " +
+		"https://ui5.github.io/cli/stable/pages/Builder/#javascript-files-requiring-top-level-scope");
 });
 
 test.serial("integration: createBundle with bundleInfo", async (t) => {
