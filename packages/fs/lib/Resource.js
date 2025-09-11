@@ -7,7 +7,7 @@ const fnFalse = () => false;
 const ALLOWED_SOURCE_METADATA_KEYS = ["adapter", "fsPath", "contentModified"];
 
 /**
- * Resource. UI5 Tooling specific representation of a file's content and metadata
+ * Resource. UI5 CLI specific representation of a file's content and metadata
  *
  * @public
  * @class
@@ -54,7 +54,7 @@ class Resource {
 	 *					string or stream).
 	 *					In some cases this is the most memory-efficient way to supply resource content
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this resource is associated with
-	 * @param {object} [parameters.sourceMetadata] Source metadata for UI5 Tooling internal use.
+	 * @param {object} [parameters.sourceMetadata] Source metadata for UI5 CLI internal use.
 	 * 	Some information may be set by an adapter to store information for later retrieval. Also keeps track of whether
 	 *  a resource content has been modified since it has been read from a source
 	 */
@@ -374,8 +374,8 @@ class Resource {
 	/**
 	 * Retrieve the project assigned to the resource
 	 * <br/>
-	 * <b>Note for UI5 Tooling extensions (i.e. custom tasks, custom middleware):</b>
-	 * In order to ensure compatibility across UI5 Tooling versions, consider using the
+	 * <b>Note for UI5 CLI extensions (i.e. custom tasks, custom middleware):</b>
+	 * In order to ensure compatibility across UI5 CLI versions, consider using the
 	 * <code>getProject(resource)</code> method provided by
 	 * [TaskUtil]{@link module:@ui5/project/build/helpers/TaskUtil} and
 	 * [MiddlewareUtil]{@link module:@ui5/server.middleware.MiddlewareUtil}, which will

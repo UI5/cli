@@ -195,8 +195,8 @@ class ResourceFacade {
 	/**
 	 * Retrieve the project assigned to the resource
 	 * <br/>
-	 * <b>Note for UI5 Tooling extensions (i.e. custom tasks, custom middleware):</b>
-	 * In order to ensure compatibility across UI5 Tooling versions, consider using the
+	 * <b>Note for UI5 CLI extensions (i.e. custom tasks, custom middleware):</b>
+	 * In order to ensure compatibility across UI5 CLI versions, consider using the
 	 * <code>getProject(resource)</code> method provided by
 	 * [TaskUtil]{@link module:@ui5/project/build/helpers/TaskUtil} and
 	 * [MiddlewareUtil]{@link module:@ui5/server.middleware.MiddlewareUtil}, which will
