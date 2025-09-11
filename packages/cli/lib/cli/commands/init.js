@@ -3,7 +3,7 @@ import baseMiddleware from "../middlewares/base.js";
 
 const initCommand = {
 	command: "init",
-	describe: "Initialize the UI5 Tooling configuration for an application or library project.",
+	describe: "Initialize the UI5 CLI configuration for an application or library project.",
 	middlewares: [baseMiddleware]
 };
 

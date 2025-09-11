@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 
 const versions = {
 	command: "versions",
-	describe: "Shows the versions of all UI5 Tooling modules",
+	describe: "Shows the versions of all UI5 CLI modules",
 	middlewares: [baseMiddleware]
 };
 

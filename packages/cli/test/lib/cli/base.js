@@ -216,9 +216,9 @@ test.serial("Exception error handling with verbose logging", async (t) => {
 
 	t.deepEqual(consoleLogStub.getCall(consoleLogStub.callCount - 2).args,
 		[chalk.dim(
-			`If you think this is an issue of the UI5 Tooling, you might report it using the ` +
+			`If you think this is an issue of the UI5 CLI, you might report it using the ` +
 			`following URL: `) +
-			chalk.dim.bold.underline(`https://github.com/SAP/ui5-tooling/issues/new/choose`)],
+			chalk.dim.bold.underline(`https://github.com/UI5/cli/issues/new/choose`)],
 		"Correct last log line");
 });
 
@@ -269,9 +269,9 @@ test.serial("Unexpected error handling", async (t) => {
 
 	t.deepEqual(consoleLogStub.getCall(consoleLogStub.callCount - 2).args,
 		[chalk.dim(
-			`If you think this is an issue of the UI5 Tooling, you might report it using the ` +
+			`If you think this is an issue of the UI5 CLI, you might report it using the ` +
 			`following URL: `) +
-			chalk.dim.bold.underline(`https://github.com/SAP/ui5-tooling/issues/new/choose`)],
+			chalk.dim.bold.underline(`https://github.com/UI5/cli/issues/new/choose`)],
 		"Correct last log line");
 });
 

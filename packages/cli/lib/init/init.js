@@ -51,7 +51,7 @@ function getProjectType(hasWebapp, hasSrc, hasTest) {
 	message += "Libraries should only have an 'src' and (optional) 'test' folder.";
 	message += "\n\n";
 	message += "If you are about to start a new project, please refer to:\n";
-	message += "https://sap.github.io/ui5-tooling/v4/pages/GettingStarted/#starting-a-new-project";
+	message += "https://ui5.github.io/cli/v4/pages/GettingStarted/#starting-a-new-project";
 	throw new Error(message);
 }
 

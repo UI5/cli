@@ -5,7 +5,7 @@ import Configuration from "@ui5/project/config/Configuration";
 
 const configCommand = {
 	command: "config",
-	describe: "Get and set UI5 Tooling configuration options",
+	describe: "Get and set UI5 CLI configuration options",
 	middlewares: [baseMiddleware],
 	handler: handleConfig
 };
