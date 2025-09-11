@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/logger",
-	"version": "4.0.1",
+	"version": "4.0.2",
 	"description": "UI5 CLI - Internal Logger",
 	"author": {
 		"name": "SAP SE",
