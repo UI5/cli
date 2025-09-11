@@ -7,7 +7,7 @@ import Logger from "../loggers/Logger.js";
 /**
  * Standard handler for events emitted by @ui5/logger modules. Writes messages to
  * [<code>process.stderr</code>]{@link https://nodejs.org/api/process.html#processstderr} stream
- * and renders a progress bar for UI5 Tooling build processes.
+ * and renders a progress bar for UI5 CLI build processes.
  * <br><br>
  * The progress bar is only used in interactive terminals. If verbose logging is enabled, the progress
  * bar is disabled.

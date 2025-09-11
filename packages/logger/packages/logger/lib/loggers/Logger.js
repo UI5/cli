@@ -5,7 +5,7 @@ import {inspect} from "node:util";
 const rIllegalModuleNameChars = /[^0-9a-zA-Z-_:@./]/i;
 
 /**
- * Standard logging module for UI5 Tooling and extensions.
+ * Standard logging module for UI5 CLI and extensions.
  * <br><br>
  * Emits <code>ui5.log</code> events on the [<code>process</code>]{@link https://nodejs.org/api/process.html} object,
  * which can be handled by dedicated writers,

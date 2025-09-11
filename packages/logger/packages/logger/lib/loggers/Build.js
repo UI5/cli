@@ -1,7 +1,7 @@
 import Logger from "./Logger.js";
 
 /**
- * Logger for emitting status events on the progress a UI5 Tooling build process.
+ * Logger for emitting status events on the progress a UI5 CLI build process.
  * <br><br>
  * Emits <code>ui5.log</code>, <code>ui5.build-metadata</code> and <code>ui5.build-status</code> events on the
  * [<code>process</code>]{@link https://nodejs.org/api/process.html} object, which can which can be handled

@@ -1,7 +1,7 @@
 import Logger from "./loggers/Logger.js";
 
 /**
- * Interface for the UI5 Tooling logging module
+ * Interface for the UI5 CLI logging module
  *
  * @public
  * @module @ui5/logger
