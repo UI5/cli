@@ -140,7 +140,7 @@
 	"devDependencies": {
 		"@eslint/js": "^9.8.0",
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
-		"@ui5/project": "^4.0.4",
+		"@ui5/project": "^4.0.5",
 		"ava": "^6.4.1",
 		"chokidar-cli": "^3.0.0",
 		"cross-env": "^7.0.3",
