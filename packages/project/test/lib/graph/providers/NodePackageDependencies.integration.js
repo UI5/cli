@@ -187,7 +187,7 @@ test("AppG: project with npm 'optionalDependencies' should not fail if optional 
 	});
 
 test("AppCycleA: cyclic dev deps", async (t) => {
-	const applicationCycleAPath = path.join(cycleDepsBasePath, "application.cycle.a");
+	const applicationCycleAPath = path.join(cycleDepsBasePath, "@ui5-internal/application.cycle.a");
 
 	const npmProvider = new NodePackageDependenciesProvider({
 		cwd: applicationCycleAPath
@@ -201,7 +201,7 @@ test("AppCycleA: cyclic dev deps", async (t) => {
 });
 
 test("AppCycleB: cyclic npm deps - Cycle via devDependency on second level", async (t) => {
-	const applicationCycleBPath = path.join(cycleDepsBasePath, "application.cycle.b");
+	const applicationCycleBPath = path.join(cycleDepsBasePath, "@ui5-internal/application.cycle.b");
 	const npmProvider = new NodePackageDependenciesProvider({
 		cwd: applicationCycleBPath
 	});
@@ -213,7 +213,7 @@ test("AppCycleB: cyclic npm deps - Cycle via devDependency on second level", asy
 });
 
 test("AppCycleC: cyclic npm deps - Cycle on third level (one indirection)", async (t) => {
-	const applicationCycleCPath = path.join(cycleDepsBasePath, "application.cycle.c");
+	const applicationCycleCPath = path.join(cycleDepsBasePath, "@ui5-internal/application.cycle.c");
 	const npmProvider = new NodePackageDependenciesProvider({
 		cwd: applicationCycleCPath
 	});
@@ -230,7 +230,7 @@ test("AppCycleC: cyclic npm deps - Cycle on third level (one indirection)", asyn
 });
 
 test("AppCycleD: cyclic npm deps - Cycles everywhere", async (t) => {
-	const applicationCycleDPath = path.join(cycleDepsBasePath, "application.cycle.d");
+	const applicationCycleDPath = path.join(cycleDepsBasePath, "@ui5-internal/application.cycle.d");
 	const npmProvider = new NodePackageDependenciesProvider({
 		cwd: applicationCycleDPath
 	});
@@ -241,7 +241,7 @@ test("AppCycleD: cyclic npm deps - Cycles everywhere", async (t) => {
 });
 
 test("AppCycleE: cyclic npm deps - Cycle via devDependency", async (t) => {
-	const applicationCycleEPath = path.join(cycleDepsBasePath, "application.cycle.e");
+	const applicationCycleEPath = path.join(cycleDepsBasePath, "@ui5-internal/application.cycle.e");
 	const npmProvider = new NodePackageDependenciesProvider({
 		cwd: applicationCycleEPath
 	});

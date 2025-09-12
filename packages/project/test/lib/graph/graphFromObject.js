@@ -686,47 +686,47 @@ function getApplicationATree() {
 
 
 const applicationCycleATreeIncDeduped = {
-	id: "application.cycle.a",
+	id: "@ui5-internal/application.cycle.a",
 	version: "1.0.0",
-	path: path.join(cycleDepsBasePath, "application.cycle.a"),
+	path: path.join(cycleDepsBasePath, "@ui5-internal", "application.cycle.a"),
 	dependencies: [
 		{
-			id: "component.cycle.a",
+			id: "@ui5-internal/component.cycle.a",
 			version: "1.0.0",
-			path: path.join(cycleDepsBasePath, "component.cycle.a"),
+			path: path.join(cycleDepsBasePath, "@ui5-internal", "component.cycle.a"),
 			dependencies: [
 				{
-					id: "library.cycle.a",
+					id: "@ui5-internal/library.cycle.a",
 					version: "1.0.0",
-					path: path.join(cycleDepsBasePath, "library.cycle.a"),
+					path: path.join(cycleDepsBasePath, "@ui5-internal", "library.cycle.a"),
 					dependencies: [
 						{
-							id: "component.cycle.a",
+							id: "@ui5-internal/component.cycle.a",
 							version: "1.0.0",
-							path: path.join(cycleDepsBasePath, "component.cycle.a"),
+							path: path.join(cycleDepsBasePath, "@ui5-internal", "component.cycle.a"),
 							dependencies: [],
 							deduped: true
 						}
 					]
 				},
 				{
-					id: "library.cycle.b",
+					id: "@ui5-internal/library.cycle.b",
 					version: "1.0.0",
-					path: path.join(cycleDepsBasePath, "library.cycle.b"),
+					path: path.join(cycleDepsBasePath, "@ui5-internal", "library.cycle.b"),
 					dependencies: [
 						{
-							id: "component.cycle.a",
+							id: "@ui5-internal/component.cycle.a",
 							version: "1.0.0",
-							path: path.join(cycleDepsBasePath, "component.cycle.a"),
+							path: path.join(cycleDepsBasePath, "@ui5-internal", "component.cycle.a"),
 							dependencies: [],
 							deduped: true
 						}
 					]
 				},
 				{
-					id: "application.cycle.a",
+					id: "@ui5-internal/application.cycle.a",
 					version: "1.0.0",
-					path: path.join(cycleDepsBasePath, "application.cycle.a"),
+					path: path.join(cycleDepsBasePath, "@ui5-internal", "application.cycle.a"),
 					dependencies: [],
 					deduped: true
 				}
@@ -736,24 +736,24 @@ const applicationCycleATreeIncDeduped = {
 };
 
 const applicationCycleBTreeIncDeduped = {
-	id: "application.cycle.b",
+	id: "@ui5-internal/application.cycle.b",
 	version: "1.0.0",
-	path: path.join(cycleDepsBasePath, "application.cycle.b"),
+	path: path.join(cycleDepsBasePath, "@ui5-internal", "application.cycle.b"),
 	dependencies: [
 		{
-			id: "module.d",
+			id: "@ui5-internal/module.d",
 			version: "1.0.0",
-			path: path.join(cycleDepsBasePath, "module.d"),
+			path: path.join(cycleDepsBasePath, "@ui5-internal", "module.d"),
 			dependencies: [
 				{
-					id: "module.e",
+					id: "@ui5-internal/module.e",
 					version: "1.0.0",
-					path: path.join(cycleDepsBasePath, "module.e"),
+					path: path.join(cycleDepsBasePath, "@ui5-internal", "module.e"),
 					dependencies: [
 						{
-							id: "module.d",
+							id: "@ui5-internal/module.d",
 							version: "1.0.0",
-							path: path.join(cycleDepsBasePath, "module.d"),
+							path: path.join(cycleDepsBasePath, "@ui5-internal", "module.d"),
 							dependencies: [],
 							deduped: true
 						}
@@ -762,19 +762,19 @@ const applicationCycleBTreeIncDeduped = {
 			]
 		},
 		{
-			id: "module.e",
+			id: "@ui5-internal/module.e",
 			version: "1.0.0",
-			path: path.join(cycleDepsBasePath, "module.e"),
+			path: path.join(cycleDepsBasePath, "@ui5-internal", "module.e"),
 			dependencies: [
 				{
-					id: "module.d",
+					id: "@ui5-internal/module.d",
 					version: "1.0.0",
-					path: path.join(cycleDepsBasePath, "module.d"),
+					path: path.join(cycleDepsBasePath, "@ui5-internal", "module.d"),
 					dependencies: [
 						{
-							id: "module.e",
+							id: "@ui5-internal/module.e",
 							version: "1.0.0",
-							path: path.join(cycleDepsBasePath, "module.e"),
+							path: path.join(cycleDepsBasePath, "@ui5-internal", "module.e"),
 							dependencies: [],
 							deduped: true
 						}
