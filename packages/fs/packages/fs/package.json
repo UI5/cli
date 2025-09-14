@@ -123,7 +123,7 @@
 		"url": "git@github.com:SAP/ui5-fs.git"
 	},
 	"dependencies": {
-		"@ui5/logger": "^4.0.1",
+		"@ui5/logger": "^4.0.2",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^14.1.0",
@@ -145,8 +145,8 @@
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^52.0.4",
-		"esmock": "^2.7.2",
-		"globals": "^16.3.0",
+		"esmock": "^2.7.3",
+		"globals": "^16.4.0",
 		"jsdoc": "^4.0.4",
 		"nyc": "^17.1.0",
 		"open-cli": "^8.0.0",
