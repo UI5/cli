@@ -131,7 +131,7 @@
 		"micromatch": "^4.0.8",
 		"minimatch": "^10.0.3",
 		"pretty-hrtime": "^1.0.3",
-		"random-int": "^3.0.0"
+		"random-int": "^3.1.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.8.0",
