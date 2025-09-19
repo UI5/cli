@@ -2,7 +2,7 @@ name: Build and Deploy Docs
 on:
   push:
     branches:
-      - main
+      - v4
 
 permissions:
   contents: write
