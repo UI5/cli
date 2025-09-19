@@ -125,7 +125,7 @@
 		"eslint": "^9.35.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
-		"eslint-plugin-jsdoc": "^57.0.7",
+		"eslint-plugin-jsdoc": "^57.2.1",
 		"globals": "^16.4.0",
 		"jsdoc": "^4.0.4",
 		"nyc": "^17.1.0",
