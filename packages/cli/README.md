@@ -5,7 +5,7 @@
 > Part of the [UI5 CLI](https://github.com/UI5/cli)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP/ui5-cli)](https://api.reuse.software/info/github.com/SAP/ui5-cli)
-[![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-cli?branchName=main)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=33&branchName=main)
+[![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-cli?branchName=v4)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=33&branchName=v4)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fcli.svg)](https://www.npmjs.com/package/@ui5/cli)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-cli/badge.svg)](https://coveralls.io/github/SAP/ui5-cli)
 
