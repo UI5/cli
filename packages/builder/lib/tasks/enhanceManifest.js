@@ -3,6 +3,10 @@ import fsInterface from "@ui5/fs/fsInterface";
 
 /* eslint "jsdoc/check-param-names": ["error", {"disableExtraPropertyReporting":true}] */
 /**
+ * @public
+ * @module @ui5/builder/tasks/enhanceManifest
+ */
+/**
  * Task for transforming the manifest.json file.
  * Adds missing information based on the available project resources,
  * for example the locales supported by the present i18n resources.
