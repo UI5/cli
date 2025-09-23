@@ -138,8 +138,8 @@ class FileSystem extends AbstractAdapter {
 		}
 		const results = await Promise.all(promises);
 
-		// Flatten results
-		return Array.prototype.concat.apply([], results).filter(($) => $);
+		// Remove 'null' results
+		return results.filter(($) => $);
 	}
 
 	/**

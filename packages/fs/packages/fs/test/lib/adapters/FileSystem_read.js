@@ -3,6 +3,8 @@ import sinon from "sinon";
 import esmock from "esmock";
 import path from "node:path";
 import {createAdapter} from "../../../lib/resourceFactory.js";
+import {fileURLToPath} from "node:url";
+import Resource from "../../../lib/Resource.js";
 
 test("glob resources from application.a w/ virtual base path prefix", async (t) => {
 	const readerWriter = createAdapter({
@@ -581,4 +583,51 @@ test("byPath with useGitignore: true", async (t) => {
 	t.is(srcResource.getPath(), "/src/library/l/some.js", "Found resource has correct path");
 
 	t.is(isGitIgnoredSpy.callCount, 1, "isGitIgnored should only be called once per FileSystem instance");
+});
+
+test("byGlob with a larger number of results", async (t) => {
+	const globbyStub = sinon.stub().callsFake(async (_patterns, _options) => {
+		return Array.from({length: 1_000_000}).map((_, i) => `/file${i}.js`);
+	});
+
+	const fakeStat = {
+		isFile: () => true,
+		isDirectory: () => false
+	};
+
+	const FileSystem = await esmock("../../../lib/adapters/FileSystem.js", {
+		"globby": {
+			globby: globbyStub,
+			isGitIgnored: async () => false
+		},
+		"graceful-fs": {
+			stat: ((filePath, cb) => {
+				if (filePath.startsWith(fsBasePath)) {
+					cb(null, fakeStat);
+				} else {
+					cb({code: "ENOENT"});
+				}
+			})
+		}
+	});
+
+	const fsBasePath = fileURLToPath(new URL("../../tmp/virtual/large-project/", import.meta.url));
+
+	const reader = new FileSystem({
+		fsBasePath,
+		virBasePath: "/"
+	});
+
+	const resources = await reader.byGlob("/**/*.js");
+
+	t.is(resources.length, 1_000_000);
+
+	// Picking just one resource in between for testing
+	const resource = resources[500_000];
+
+	t.true(resource instanceof Resource, "Resource should be an instance of Resource");
+	t.true(
+		resource.getPath().startsWith("/file") && resource.getPath().endsWith(".js"),
+		"Resource should have correct path"
+	);
 });
