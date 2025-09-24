@@ -1,0 +1,61 @@
+{
+	"tags": {
+		"allowUnknownTags": false
+	},
+	"source": {
+		"include": ["README.md"],
+		"includePattern": ".+\\.js$",
+		"excludePattern": "(node_modules(\\\\|/))"
+	},
+	"plugins": [
+		"jsdoc-plugin.cjs"
+	],
+	"opts": {
+		"encoding": "utf8",
+		"destination": "jsdocs/",
+		"recurse": true,
+		"verbose": true,
+		"access": "public"
+	},
+	"templates": {
+		"cleverLinks": false,
+		"monospaceLinks": false,
+		"default": {
+			"useLongnameInNav": true
+		}
+	},
+	"openGraph": {
+		"title": "UI5 CLI - API Reference",
+		"type": "website",
+		"image": "https://ui5.github.io/cli/v4/images/UI5_logo_wide.png",
+		"site_name": "UI5 CLI - API Reference",
+		"url": "https://ui5.github.io/cli/"
+	},
+	"docdash": {
+		"sectionOrder": [
+			"Modules",
+			"Namespaces",
+			"Classes",
+			"Externals",
+			"Events",
+			"Mixins",
+			"Tutorials",
+			"Interfaces"
+		],
+		"meta": {
+			"title": "UI5 CLI - API Reference - UI5 Logger",
+			"description": "UI5 CLI - API Reference - UI5 Logger",
+			"keyword": "openui5 sapui5 ui5 build development tool api reference"
+		},
+		"search": true,
+		"wrap": true,
+		"menu": {
+			"GitHub": {
+				"href": "https://github.com/SAP/ui5-logger",
+				"target": "_blank",
+				"class": "menu-item",
+				"id": "github_link"
+			}
+		}
+	}
+}
