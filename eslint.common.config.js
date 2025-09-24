@@ -8,15 +8,11 @@ export default [{
 	ignores: [ // Common ignore patterns across all UI5 CLI repos
 		"**/coverage/",
 		"test/tmp/",
-		"packages/**/test/tmp/",
 		"test/expected/",
-		"packages/**/test/expected/",
 		"test/fixtures/",
-		"packages/**/test/fixtures/",
 		"**/docs/",
 		"**/jsdocs/",
-		"**/site/",
-		"packages/builder/lib/processors/jsdoc/",
+		"packages/"
 	],
 }, js.configs.recommended, google, ava.configs["flat/recommended"], {
 	name: "Common ESLint config used for all UI5 CLI repos",
