@@ -8,8 +8,11 @@ export default [{
 	ignores: [ // Common ignore patterns across all UI5 CLI repos
 		"**/coverage/",
 		"test/tmp/",
+		"packages/**/test/tmp/",
 		"test/expected/",
+		"packages/**/test/expected/",
 		"test/fixtures/",
+		"packages/**/test/fixtures/",
 		"**/docs/",
 		"**/jsdocs/",
 	],
