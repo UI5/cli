@@ -12,6 +12,7 @@ export default [{
 		"test/fixtures/",
 		"**/docs/",
 		"**/jsdocs/",
+		"packages/"
 	],
 }, js.configs.recommended, google, ava.configs["flat/recommended"], {
 	name: "Common ESLint config used for all UI5 CLI repos",
