@@ -1,0 +1,2 @@
+sap.ui.define(["sap/ui/core/UIComponent","sap/ui/core/mvc/View"],(e,t)=>{"use strict";return e.extend("application.m.Component",{metadata:{manifest:"json",interfaces:["sap.ui.core.IAsyncContentCreation"]},createContent(){return t.create({viewName:"module:application/m/MyView"})}})});
+//# sourceMappingURL=Component.js.map

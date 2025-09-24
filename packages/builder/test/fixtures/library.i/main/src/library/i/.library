@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+
+	<name>library.i</name>
+	<vendor>SAP SE</vendor>
+	<copyright>${copyright}</copyright>
+	<version>${version}</version>
+
+	<title>{{title}}</title>
+	<documentation>{{description}}</documentation>
+
+	<dependencies>
+		<dependency>
+			<libraryName>sap.ui.core</libraryName>
+		</dependency>
+		<dependency>
+			<libraryName>library.d</libraryName>
+			<lazy>true</lazy>
+		</dependency>
+	</dependencies>
+
+	<appData>
+		<manifest xmlns="http://www.sap.com/ui5/buildext/manifest">
+			<i18n>i18nf/custommessagebundle.properties</i18n>
+			<offline>false</offline>
+			<deviceTypes desktop="true" phone="true" tablet="true" />
+			<supportedTheme>sap_belize</supportedTheme>
+			<supportedTheme>sap_belize_plus</supportedTheme>
+			<supportedTheme>sap_belize_hcw</supportedTheme>
+			<supportedTheme>sap_belize_hcb</supportedTheme>
+			<contentDensities cozy="true" compact="false" />
+			<openSourceComponent name="D3.js" packagedWithMySelf="false" />
+			<openSourceComponent name="Hammer.js" version="2.0.4" packagedWithMySelf="true" />
+			<sap.fiori>
+				<registrationId>F0042</registrationId>
+				<archeType>fancycomponent</archeType>
+			</sap.fiori>			
+		</manifest>
+		<ownership xmlns="http://www.sap.com/ui5/buildext/ownership">
+			<component>NOT-ME</component>
+		</ownership>
+	</appData>
+
+</library>

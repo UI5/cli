@@ -1,0 +1,2 @@
+sap.ui.define(["sap/ui/core/UIComponent","sap/m/Button","application/n/MyModuleRequiringGlobalScope"],(e,t)=>{"use strict";return e.extend("application.n.Component",{metadata:{manifest:"json"},createContent(){return new t({text:magic.text})}})});
+//# sourceMappingURL=Component.js.map

@@ -1,0 +1,8 @@
+{
+  "name": "application.m",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

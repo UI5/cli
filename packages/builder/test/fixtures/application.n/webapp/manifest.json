@@ -1,0 +1,23 @@
+{
+	"_version": "1.21.0",
+	"sap.app": {
+		"id": "application.n",
+		"type": "application",
+		"applicationVersion": {
+			"version": "1.0.0"
+		}
+	},
+	"sap.ui5": {
+		"contentDensities": {
+			"compact": true,
+			"cozy": true
+		},
+		"dependencies": {
+			"minUI5Version": "1.108.0",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.m": {}
+			}
+		}
+	}
+}

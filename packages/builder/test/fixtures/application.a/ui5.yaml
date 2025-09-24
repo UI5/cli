@@ -1,0 +1,5 @@
+---
+specVersion: "2.6"
+type: application
+metadata:
+  name: application.a

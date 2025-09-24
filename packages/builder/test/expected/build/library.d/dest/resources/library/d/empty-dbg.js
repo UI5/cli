@@ -1,0 +1,3 @@
+/*!
+ * Some fancy copyright
+ */

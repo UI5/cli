@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<library xmlns="http://www.sap.com/sap.ui.library.xsd" >
+
+	<name>library.h</name>
+	<vendor>SAP SE</vendor>
+	<copyright>Some fancy copyright</copyright>
+	<version>1.0.0</version>
+
+	<documentation>Library H</documentation>
+	<appData>
+		<packaging xmlns="http://www.sap.com/ui5/buildext/packaging" version="2.0" >
+			  <module-infos>
+
+				<raw-module name="library/h/not.js" />
+			</module-infos>
+		</packaging>
+	</appData>
+
+</library>

@@ -1,0 +1,8 @@
+{
+  "name": "application.n",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application - test for disabled string bundling",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

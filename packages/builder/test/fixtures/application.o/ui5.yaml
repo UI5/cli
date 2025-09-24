@@ -1,0 +1,5 @@
+---
+specVersion: "3.2"
+type: application
+metadata:
+  name: application.o

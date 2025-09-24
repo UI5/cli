@@ -1,0 +1,48 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": "Component-dbg.js",
+			"module": "library/h/components/subcomponent2/Component.js",
+			"size": 146,
+			"isDebug": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "Component-preload.js",
+			"module": "library/h/components/subcomponent2/Component-preload.js",
+			"size": 283,
+			"merged": true,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			],
+			"included": [
+				"library/h/components/subcomponent2/Component.js"
+			]
+		},
+		{
+			"name": "Component-preload.js.map",
+			"size": 326,
+			"isDebug": true
+		},
+		{
+			"name": "Component.js",
+			"module": "library/h/components/subcomponent2/Component.js",
+			"size": 153,
+			"required": [
+				"sap/ui/core/UIComponent.js"
+			]
+		},
+		{
+			"name": "Component.js.map",
+			"size": 235,
+			"isDebug": true
+		},
+		{
+			"name": "resources.json",
+			"size": 903
+		}
+	]
+}

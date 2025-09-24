@@ -1,0 +1,10 @@
+{
+  "name": "application.ø",
+  "version": "1.0.0",
+  "description": "SAPUI5 application for unicode testing",
+  "main": "index.html",
+  "dependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "_version": "1.22.0",
+  "sap.app": {
+    "id": "application.o",
+    "type": "application",
+    "applicationVersion": {
+      "version": "1.0.0"
+    },
+    "title": "{{title}}",
+    "i18n": {
+      "bundleUrl": "i18n/i18n.properties",
+      "supportedLocales": [
+        "",
+        "en",
+        "en-US",
+        "en-US-x-saptrc"
+      ]
+    }
+  },
+  "sap.ui5": {
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "application.o.i18n.i18n",
+          "supportedLocales": [
+            "",
+            "en",
+            "en-US",
+            "en-US-x-saptrc"
+          ]
+        }
+      },
+      "i18n-ui5": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleUrl": "ui5://application/o/i18n/i18n.properties",
+          "supportedLocales": [
+            "",
+            "en",
+            "en-US",
+            "en-US-x-saptrc"
+          ]
+        }
+      }
+    }
+  }
+}

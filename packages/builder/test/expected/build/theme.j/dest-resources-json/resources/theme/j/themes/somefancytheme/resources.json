@@ -1,0 +1,37 @@
+{
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": "Button.less",
+			"size": 34,
+			"designtime": true,
+			"theme": "somefancytheme"
+		},
+		{
+			"name": "library-RTL.css",
+			"size": 162,
+			"theme": "somefancytheme"
+		},
+		{
+			"name": "library-parameters.json",
+			"module": "theme/j/themes/somefancytheme/library-parameters.json",
+			"size": 20,
+			"theme": "somefancytheme"
+		},
+		{
+			"name": "library.css",
+			"size": 162,
+			"theme": "somefancytheme"
+		},
+		{
+			"name": "library.source.less",
+			"size": 42,
+			"designtime": true,
+			"theme": "somefancytheme"
+		},
+		{
+			"name": "resources.json",
+			"size": 633
+		}
+	]
+}

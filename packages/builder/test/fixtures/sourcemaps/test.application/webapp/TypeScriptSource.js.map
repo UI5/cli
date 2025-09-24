@@ -1,0 +1,1 @@
+{"version":3,"file":"TypeScriptSource.js","names":["functionWithinTypeScriptSource","functionCallWithinTypeScriptSource","__exports"],"sources":["TypeScriptSource.ts"],"sourcesContent":["export default {\n\tfunctionWithinTypeScriptSource() {\n\t\tfunctionCallWithinTypeScriptSource();\n\t}\n}\n"],"mappings":"4DAAe,CACdA,iCACCC,oCACD,GACA,OAAAC,CAAA"}
