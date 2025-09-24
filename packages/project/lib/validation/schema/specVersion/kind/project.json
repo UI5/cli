@@ -1,0 +1,856 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/kind/project.json",
+
+	"type": "object",
+	"required": ["specVersion", "type"],
+	"properties": {
+		"specVersion": { "enum": ["4.0", "3.2", "3.1", "3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"kind": {
+			"enum": ["project", null],
+			"$comment": "Using null to allow not defining 'kind' which defaults to project"
+		},
+		"type": {
+			"enum": [
+				"application",
+				"library",
+				"theme-library",
+				"module"
+			]
+		}
+	},
+	"if": {
+		"properties": {
+			"type": {"const": null}
+		},
+		"$comment": "Using 'if' with null and empty 'then' to ensure no other schemas are applied when the property is not set. Otherwise the first 'if' condition might still be met, causing unexpected errors."
+	},
+	"then": {},
+	"else": {
+		"if": {
+			"properties": {
+				"type": {"const": "application"}
+			}
+		},
+		"then": {
+			"$ref": "project/application.json"
+		},
+		"else": {
+			"if": {
+				"properties": {
+					"type": {"const": "library"}
+				}
+			},
+			"then": {
+				"$ref": "project/library.json"
+			},
+			"else": {
+				"if": {
+					"properties": {
+						"type": {"const": "theme-library"}
+					}
+				},
+				"then": {
+					"$ref": "project/theme-library.json"
+				},
+				"else": {
+					"if": {
+						"properties": {
+							"type": {"const": "module"}
+						}
+					},
+					"then": {
+						"$ref": "project/module.json"
+					}
+				}
+			}
+		}
+	},
+
+	"definitions": {
+		"metadata": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"copyright": {
+					"type": "string"
+				},
+				"deprecated": {
+					"type": "boolean",
+					"default": false
+				},
+				"sapInternal": {
+					"type": "boolean",
+					"default": false
+				},
+				"allowSapInternal": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
+		"metadata-3.0": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string",
+					"minLength": 3,
+					"maxLength": 80,
+					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
+					"title": "Project Name",
+					"description": "Unique identifier for the project, for example: organization.product.project",
+					"errorMessage": "Not a valid project name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name"
+				},
+				"copyright": {
+					"type": "string"
+				},
+				"deprecated": {
+					"type": "boolean",
+					"default": false
+				},
+				"sapInternal": {
+					"type": "boolean",
+					"default": false
+				},
+				"allowSapInternal": {
+					"type": "boolean",
+					"default": false
+				}
+			}
+		},
+		"resources-configuration-propertiesFileSourceEncoding": {
+			"enum": ["UTF-8", "ISO-8859-1"],
+			"default": "UTF-8",
+			"title": "Encoding of *.properties files",
+			"description": "By default, the UI5 CLI expects *.properties files to be UTF-8 encoded."
+		},
+		"builder-resources": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-bundles": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions"
+					}
+				}
+			}
+		},
+		"builder-bundles-2.4": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-2.4"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions"
+					}
+				}
+			}
+		},
+		"builder-bundles-3.0": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-2.4"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions-3.0"
+					}
+				}
+			}
+		},
+		"builder-bundles-3.2": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-3.2"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions-3.0"
+					}
+				}
+			}
+		},
+		"builder-bundles-4.0": {
+			"type": "array",
+			"additionalProperties": false,
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"bundleDefinition": {
+						"$ref": "#/definitions/builder-bundles-bundleDefinition-4.0"
+					},
+					"bundleOptions": {
+						"$ref": "#/definitions/builder-bundles-bundleOptions-4.0"
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleDefinition": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["mode", "filters"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"mode": {
+								"enum": ["raw", "preload", "require", "provided"]
+							},
+							"filters": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"resolve": {
+								"type": "boolean",
+								"default": false
+							},
+							"resolveConditional": {
+								"type": "boolean",
+								"default": false
+							},
+							"renderer": {
+								"type": "boolean",
+								"default": false
+							},
+							"sort": {
+								"type": "boolean",
+								"default": true
+							},
+							"declareRawModules": {
+								"type": "boolean",
+								"default": false
+							}
+						}
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleDefinition-2.4": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["mode", "filters"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"mode": {
+								"enum": ["raw", "preload", "require", "provided", "bundleInfo"]
+							},
+							"filters": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"resolve": {
+								"type": "boolean",
+								"default": false
+							},
+							"resolveConditional": {
+								"type": "boolean",
+								"default": false
+							},
+							"renderer": {
+								"type": "boolean",
+								"default": false
+							},
+							"sort": {
+								"type": "boolean",
+								"default": true
+							},
+							"declareRawModules": {
+								"type": "boolean",
+								"default": false
+							}
+						}
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleDefinition-3.2": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["mode", "filters"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"mode": {
+								"enum": ["raw", "preload", "require", "provided", "bundleInfo", "depCache"]
+							},
+							"filters": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							"resolve": {
+								"type": "boolean",
+								"default": false
+							},
+							"resolveConditional": {
+								"type": "boolean",
+								"default": false
+							},
+							"renderer": {
+								"type": "boolean",
+								"default": false
+							},
+							"sort": {
+								"type": "boolean",
+								"default": true
+							},
+							"declareRawModules": {
+								"type": "boolean",
+								"default": false
+							}
+						}
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleDefinition-4.0": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"defaultFileTypes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"sections": {
+					"type": "array",
+					"items": {
+						"if": {
+							"properties": {
+								"mode": {
+									"const": "require"
+								}
+							},
+							"$comment": "Add async prop only if mode = 'require'"
+						},
+						"then": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["mode", "filters"],
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"mode": {
+									"enum": ["require"]
+								},
+								"filters": {
+									"type": "array",
+									"items": {
+										"type": "string"
+									}
+								},
+								"resolve": {
+									"type": "boolean",
+									"default": false
+								},
+								"resolveConditional": {
+									"type": "boolean",
+									"default": false
+								},
+								"renderer": {
+									"type": "boolean",
+									"default": false
+								},
+								"sort": {
+									"type": "boolean",
+									"default": true
+								},
+								"declareRawModules": {
+									"type": "boolean",
+									"default": false
+								},
+								"async": {
+									"type": "boolean",
+									"default": true
+								}
+							}
+						},
+						"else": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["mode", "filters"],
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"mode": {
+									"enum": ["raw", "preload", "require", "provided", "bundleInfo", "depCache"]
+								},
+								"filters": {
+									"type": "array",
+									"items": {
+										"type": "string"
+									}
+								},
+								"resolve": {
+									"type": "boolean",
+									"default": false
+								},
+								"resolveConditional": {
+									"type": "boolean",
+									"default": false
+								},
+								"renderer": {
+									"type": "boolean",
+									"default": false
+								},
+								"sort": {
+									"type": "boolean",
+									"default": true
+								},
+								"declareRawModules": {
+									"type": "boolean",
+									"default": false
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"builder-bundles-bundleOptions": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"optimize": {
+					"type": "boolean",
+					"default": false
+				},
+				"decorateBootstrapModule": {
+					"type": "boolean",
+					"default": false
+				},
+				"addTryCatchRestartWrapper": {
+					"type": "boolean",
+					"default": false
+				},
+				"usePredefineCalls": {
+					"type": "boolean",
+					"default": false
+				},
+				"numberOfParts": {
+					"type": "number",
+					"default": 1
+				}
+			}
+		},
+		"builder-bundles-bundleOptions-3.0": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"optimize": {
+					"type": "boolean",
+					"default": true
+				},
+				"decorateBootstrapModule": {
+					"type": "boolean",
+					"default": false
+				},
+				"addTryCatchRestartWrapper": {
+					"type": "boolean",
+					"default": false
+				},
+				"usePredefineCalls": {
+					"type": "boolean",
+					"default": false
+				},
+				"numberOfParts": {
+					"type": "number",
+					"default": 1
+				},
+				"sourceMap": {
+					"type": "boolean",
+					"default": true
+				}
+			}
+		},
+		"builder-bundles-bundleOptions-4.0": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"optimize": {
+					"type": "boolean",
+					"default": true
+				},
+				"decorateBootstrapModule": {
+					"type": "boolean",
+					"default": false
+				},
+				"addTryCatchRestartWrapper": {
+					"type": "boolean",
+					"default": false
+				},
+				"numberOfParts": {
+					"type": "number",
+					"default": 1
+				},
+				"sourceMap": {
+					"type": "boolean",
+					"default": true
+				}
+			}
+		},
+		"builder-componentPreload": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"paths": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"namespaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-componentPreload-specVersion-2.3": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"paths": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"namespaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-libraryPreload": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"server": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"settings": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"httpPort": {
+							"type": "number"
+						},
+						"httpsPort": {
+							"type": "number"
+						}
+					}
+				},
+				"customMiddleware": {
+					"type": "array",
+					"items": {
+						"oneOf": [
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["name", "beforeMiddleware"],
+								"properties": {
+									"name": {
+										"type": "string"
+									},
+									"mountPath": {
+										"type": "string"
+									},
+									"beforeMiddleware": {
+										"type": "string"
+									},
+									"configuration": {}
+								}
+							},
+							{
+								"type": "object",
+								"additionalProperties": false,
+								"required": ["name", "afterMiddleware"],
+								"properties": {
+									"name": {
+										"type": "string"
+									},
+									"mountPath": {
+										"type": "string"
+									},
+									"afterMiddleware": {
+										"type": "string"
+									},
+									"configuration": {}
+								}
+							}
+						]
+					}
+				}
+			}
+		},
+		"framework": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["name"],
+			"properties": {
+				"name": {
+					"enum": ["OpenUI5", "SAPUI5"]
+				},
+				"version": {
+					"type": "string",
+					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+					"title": "Version",
+					"description": "Framework version to use in this project",
+					"errorMessage":  "Not a valid version according to the Semantic Versioning specification (https://semver.org/)"
+				},
+				"libraries": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"optional": {
+								"type": "boolean",
+								"default": false
+							},
+							"development": {
+								"type": "boolean",
+								"default": false
+							}
+						},
+						"if": {
+							"not": {
+								"anyOf": [
+									{
+										"properties": {
+											"optional": {"enum": [false, null]}
+										}
+									},
+									{
+										"properties": {
+											"development": {"enum": [false, null]}
+										}
+									},
+									{
+										"not": {
+											"properties": {
+												"optional": {"type": "boolean"}
+											}
+										}
+									},
+									{
+										"not": {
+											"properties": {
+												"development": {"type": "boolean"}
+											}
+										}
+									}
+								],
+								"$comment": "Unfortunately it doesn't seem to work to check for both properties to be true, so instead checking for not having any of the properties to other values like false, not defined or any other type."
+							}
+						},
+						"then": {
+							"additionalProperties": false,
+							"properties": {
+								"name": {
+									"type": "string"
+								}
+							},
+							"errorMessage": "Either \"development\" or \"optional\" can be true, but not both",
+							"$comment": "Defining a custom error message and only allowing the \"name\" property causes editors to show the custom error on both properties."
+						}
+					}
+				}
+			}
+		},
+		"customTasks": {
+			"type": "array",
+			"items": {
+				"oneOf": [
+					{
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name", "beforeTask"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"beforeTask": {
+								"type": "string"
+							},
+							"configuration": {}
+						}
+					},
+					{
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["name", "afterTask"],
+						"properties": {
+							"name": {
+								"type": "string"
+							},
+							"afterTask": {
+								"type": "string"
+							},
+							"configuration": {}
+						}
+					}
+				]
+			}
+		},
+		"builder-settings": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"includeDependency": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"includeDependencyRegExp": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"includeDependencyTree": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		},
+		"builder-minification": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"excludes": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				}
+			}
+		}
+	}
+}

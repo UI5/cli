@@ -1,0 +1,175 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/kind/project/theme-library.json",
+
+	"type": "object",
+	"required": ["specVersion", "type", "metadata"],
+	"if": {
+		"properties": {
+			"specVersion": { "enum": ["3.0", "3.1", "3.2", "4.0"] }
+		}
+	},
+	"then": {
+		"additionalProperties": false,
+		"properties": {
+			"specVersion": { "enum": ["3.0", "3.1", "3.2", "4.0"] },
+			"kind": {
+				"enum": ["project", null]
+			},
+			"type": {
+				"enum": ["theme-library"]
+			},
+			"metadata": {
+				"$ref": "../project.json#/definitions/metadata-3.0"
+			},
+			"framework": {
+				"$ref": "../project.json#/definitions/framework"
+			},
+			"resources": {
+				"$ref": "library.json#/definitions/resources"
+			},
+			"builder": {
+				"$ref": "#/definitions/builder-specVersion-2.5"
+			},
+			"server": {
+				"$ref": "../project.json#/definitions/server"
+			},
+			"customConfiguration": {
+				"type": "object",
+				"additionalProperties": true
+			}
+		}
+	},
+	"else": {
+		"if": {
+			"properties": {
+				"specVersion": { "enum": ["2.5", "2.6"] }
+			}
+		},
+		"then": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.5", "2.6"] },
+				"kind": {
+					"enum": ["project", null]
+				},
+				"type": {
+					"enum": ["theme-library"]
+				},
+				"metadata": {
+					"$ref": "../project.json#/definitions/metadata"
+				},
+				"framework": {
+					"$ref": "../project.json#/definitions/framework"
+				},
+				"resources": {
+					"$ref": "library.json#/definitions/resources"
+				},
+				"builder": {
+					"$ref": "#/definitions/builder-specVersion-2.5"
+				},
+				"server": {
+					"$ref": "../project.json#/definitions/server"
+				},
+				"customConfiguration": {
+					"type": "object",
+					"additionalProperties": true
+				}
+			}
+		},
+		"else": {
+			"if": {
+				"properties": {
+					"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] }
+				}
+			},
+			"then": {
+				"additionalProperties": false,
+				"properties": {
+					"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4"] },
+					"kind": {
+						"enum": ["project", null]
+					},
+					"type": {
+						"enum": ["theme-library"]
+					},
+					"metadata": {
+						"$ref": "../project.json#/definitions/metadata"
+					},
+					"framework": {
+						"$ref": "../project.json#/definitions/framework"
+					},
+					"resources": {
+						"$ref": "library.json#/definitions/resources"
+					},
+					"builder": {
+						"$ref": "#/definitions/builder"
+					},
+					"server": {
+						"$ref": "../project.json#/definitions/server"
+					},
+					"customConfiguration": {
+						"type": "object",
+						"additionalProperties": true
+					}
+				}
+			},
+			"else": {
+				"additionalProperties": false,
+				"properties": {
+					"specVersion": { "enum": ["2.0"] },
+					"kind": {
+						"enum": ["project", null]
+					},
+					"type": {
+						"enum": ["theme-library"]
+					},
+					"metadata": {
+						"$ref": "../project.json#/definitions/metadata"
+					},
+					"framework": {
+						"$ref": "../project.json#/definitions/framework"
+					},
+					"resources": {
+						"$ref": "library.json#/definitions/resources"
+					},
+					"builder": {
+						"$ref": "#/definitions/builder"
+					},
+					"server": {
+						"$ref": "../project.json#/definitions/server"
+					}
+				}
+			}
+		}
+	},
+	"definitions": {
+		"builder": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"resources": {
+					"$ref": "../project.json#/definitions/builder-resources"
+				},
+				"customTasks": {
+					"$ref": "../project.json#/definitions/customTasks"
+				}
+			}
+		},
+		"builder-specVersion-2.5": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"resources": {
+					"$ref": "../project.json#/definitions/builder-resources"
+				},
+				"customTasks": {
+					"$ref": "../project.json#/definitions/customTasks"
+				},
+				"settings": {
+					"$ref": "../project.json#/definitions/builder-settings"
+				}
+			}
+		}
+	}
+}

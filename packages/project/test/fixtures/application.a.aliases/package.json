@@ -1,0 +1,12 @@
+{
+  "name": "application.a.aliases",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application",
+  "main": "index.html",
+  "dependencies": {
+    "extension.a.esm.alias": "file:../extension.a.esm"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

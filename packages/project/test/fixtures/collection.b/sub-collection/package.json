@@ -1,0 +1,10 @@
+{
+  "name": "sub-collection",
+  "version": "1.0.0",
+  "description": "Sub-Collection package",
+  "ui5": {
+    "workspaces": [
+      "../../library.d"
+    ]
+  }
+}

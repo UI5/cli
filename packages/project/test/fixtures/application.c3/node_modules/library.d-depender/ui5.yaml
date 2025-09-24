@@ -1,0 +1,11 @@
+---
+specVersion: "2.3"
+type: library
+metadata:
+  name: library.d-depender
+resources:
+  configuration:
+    paths:
+      src: main/src
+      test: main/test
+

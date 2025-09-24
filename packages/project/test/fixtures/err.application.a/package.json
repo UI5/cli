@@ -1,0 +1,12 @@
+{
+  "name": "err.application.a",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application - test for missing dependencies",
+  "main": "index.html",
+  "dependencies": {
+    "library.xx": "file:../not.existing"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
