@@ -1,8 +1,8 @@
 {
-	"name": "@ui5/tooling",
+	"name": "@ui5/cli-monorepo",
 	"private": true,
 	"version": "0.0.1",
-	"description": "UI5 CLI - Main Repository",
+	"description": "UI5 CLI - Main Monorepo",
 	"author": {
 		"name": "SAP SE",
 		"email": "openui5@sap.com",
