@@ -1,0 +1,8 @@
+---
+specVersion: "2.6"
+type: application
+metadata:
+  name: application.a
+resources:
+  configuration:
+    propertiesFileSourceEncoding: ISO-8859-1

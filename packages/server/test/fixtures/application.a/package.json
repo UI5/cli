@@ -1,0 +1,15 @@
+{
+  "name": "application.a",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application",
+  "main": "index.html",
+  "dependencies": {
+    "library.a": "file:../library.a",
+    "library.b": "file:../library.b",
+    "library.c": "file:../library.c",
+    "library.d": "file:../library.d"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
