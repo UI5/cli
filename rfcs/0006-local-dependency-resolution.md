@@ -2,12 +2,12 @@
 - RFC PR: [#157](https://github.com/UI5/cli/pull/157)
 - Issue: -
 - Affected components
-    + [ ] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [ ] [ui5-server](https://github.com/SAP/ui5-server)
-    + [X] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [X] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+    + [ ] ui5-builder
+    + [ ] ui5-server
+    + [x] ui5-cli
+    + [ ] ui5-fs
+    + [x] ui5-project
+    + [ ] ui5-logger
 
 
 # RFC 0006 Local Dependency Resolution
