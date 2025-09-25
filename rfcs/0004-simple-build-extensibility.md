@@ -2,12 +2,12 @@
 - RFC PR: [#54](https://github.com/UI5/cli/pull/54)
 - Issue: -
 - Affected components
-    + [x] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [ ] [ui5-server](https://github.com/SAP/ui5-server)
-    + [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [x] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+    + [x] ui5-builder
+    + [ ] ui5-server
+    + [ ] ui5-cli
+    + [ ] ui5-fs
+    + [x] ui5-project
+    + [ ] ui5-logger
 
 # RFC 0004 Simple Build Extensibility
 ## Summary
