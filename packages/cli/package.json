@@ -1,0 +1,159 @@
+{
+	"name": "@ui5/cli",
+	"version": "4.0.26",
+	"description": "UI5 CLI - CLI",
+	"author": {
+		"name": "SAP SE",
+		"email": "openui5@sap.com",
+		"url": "https://www.sap.com"
+	},
+	"license": "Apache-2.0",
+	"keywords": [
+		"openui5",
+		"sapui5",
+		"ui5",
+		"build",
+		"development",
+		"tool"
+	],
+	"bin": {
+		"ui5": "./bin/ui5.cjs"
+	},
+	"type": "module",
+	"exports": {
+		"./bin/ui5.js": "./bin/ui5.cjs",
+		"./bin/ui5.cjs": "./bin/ui5.cjs",
+		"./package.json": "./package.json"
+	},
+	"engines": {
+		"node": "^20.11.0 || >=22.0.0",
+		"npm": ">= 8"
+	},
+	"scripts": {
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck && npm run check-licenses",
+		"test-azure": "npm run coverage-xunit",
+		"lint": "eslint ./",
+		"unit": "rimraf test/tmp && ava",
+		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
+		"unit-watch": "npm run unit -- --watch",
+		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
+		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
+		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
+		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
+		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
+		"jsdoc-generate": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
+		"jsdoc-watch": "npm run jsdoc && chokidar \"./lib/**/*.js\" -c \"npm run jsdoc-generate\"",
+		"preversion": "npm test",
+		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md v4.0.0.. && git add CHANGELOG.md",
+		"prepublishOnly": "git push --follow-tags",
+		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version | node .chglog/consolidate-changelogs.js",
+		"depcheck": "depcheck --ignores @ui5/cli,rimraf,docdash,@istanbuljs/esm-loader-hook,@ui5/fs,@ui5/builder",
+		"check-licenses": "licensee --errors-only"
+	},
+	"files": [
+		"CHANGELOG.md",
+		"CONTRIBUTING.md",
+		"jsdoc.json",
+		"npm-shrinkwrap.json",
+		"bin/**",
+		"lib/**",
+		"LICENSES/**",
+		".reuse/**"
+	],
+	"ava": {
+		"files": [
+			"test/bin/**/*.js",
+			"test/lib/**/*.js"
+		],
+		"nodeArguments": [
+			"--loader=esmock",
+			"--no-warnings"
+		],
+		"workerThreads": false
+	},
+	"nyc": {
+		"reporter": [
+			"lcov",
+			"text",
+			"text-summary"
+		],
+		"exclude": [
+			".chglog/**",
+			"docs/**",
+			"jsdocs/**",
+			"coverage/**",
+			"test/**",
+			"jsdoc-plugin.cjs"
+		],
+		"check-coverage": true,
+		"statements": 80,
+		"branches": 75,
+		"functions": 75,
+		"lines": 80,
+		"watermarks": {
+			"statements": [
+				70,
+				90
+			],
+			"branches": [
+				70,
+				90
+			],
+			"functions": [
+				70,
+				90
+			],
+			"lines": [
+				70,
+				90
+			]
+		},
+		"cache": true,
+		"all": true
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:SAP/ui5-cli.git"
+	},
+	"dependencies": {
+		"@ui5/builder": "^4.0.11",
+		"@ui5/fs": "^4.0.2",
+		"@ui5/logger": "^4.0.2",
+		"@ui5/project": "^4.0.6",
+		"@ui5/server": "^4.0.7",
+		"chalk": "^5.6.2",
+		"data-with-position": "^0.5.0",
+		"import-local": "^3.2.0",
+		"js-yaml": "^4.1.0",
+		"open": "^10.2.0",
+		"pretty-hrtime": "^1.0.3",
+		"semver": "^7.7.2",
+		"update-notifier": "^7.3.1",
+		"yargs": "^17.7.2"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.8.0",
+		"@istanbuljs/esm-loader-hook": "^0.3.0",
+		"ava": "^6.4.1",
+		"chokidar-cli": "^3.0.0",
+		"cross-env": "^7.0.3",
+		"depcheck": "^1.4.7",
+		"docdash": "^2.0.2",
+		"eslint": "^9.36.0",
+		"eslint-config-google": "^0.14.0",
+		"eslint-plugin-ava": "^15.1.0",
+		"eslint-plugin-jsdoc": "^52.0.4",
+		"esmock": "^2.7.3",
+		"execa": "^9.6.0",
+		"globals": "^16.4.0",
+		"jsdoc": "^4.0.4",
+		"licensee": "^11.1.1",
+		"nyc": "^17.1.0",
+		"open-cli": "^8.0.0",
+		"rimraf": "^6.0.1",
+		"sinon": "^21.0.0",
+		"strip-ansi": "^7.1.2",
+		"tap-xunit": "^2.4.1",
+		"testdouble": "^3.20.2"
+	}
+}
