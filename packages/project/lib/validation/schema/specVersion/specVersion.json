@@ -1,0 +1,37 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/2.0.json",
+
+	"type": "object",
+	"required": ["specVersion"],
+	"properties": {
+		"specVersion": { "enum": ["4.0", "3.2", "3.1", "3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"kind": {
+			"enum": ["project", "extension", null],
+			"$comment": "Using null to allow not defining 'kind' which defaults to project"
+		}
+	},
+	"if": {
+		"properties": {
+			"kind": {
+				"enum": ["project", null],
+				"$comment": "Using null to allow not defining 'kind' which defaults to project"
+			}
+		}
+	},
+	"then": {
+		"$ref": "kind/project.json"
+	},
+	"else": {
+		"if": {
+			"properties": {
+				"kind": {
+					"enum": ["extension"]
+				}
+			}
+		},
+		"then": {
+			"$ref": "kind/extension.json"
+		}
+	}
+}

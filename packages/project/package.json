@@ -1,0 +1,179 @@
+{
+	"name": "@ui5/project",
+	"version": "4.0.6",
+	"description": "UI5 CLI - Project ",
+	"author": {
+		"name": "SAP SE",
+		"email": "openui5@sap.com",
+		"url": "https://www.sap.com"
+	},
+	"license": "Apache-2.0",
+	"keywords": [
+		"openui5",
+		"sapui5",
+		"ui5",
+		"build",
+		"development",
+		"tool"
+	],
+	"type": "module",
+	"exports": {
+		"./config/Configuration": "./lib/config/Configuration.js",
+		"./specifications/Specification": "./lib/specifications/Specification.js",
+		"./specifications/SpecificationVersion": "./lib/specifications/SpecificationVersion.js",
+		"./ui5Framework/Sapui5MavenSnapshotResolver": "./lib/ui5Framework/Sapui5MavenSnapshotResolver.js",
+		"./ui5Framework/Openui5Resolver": "./lib/ui5Framework/Openui5Resolver.js",
+		"./ui5Framework/Sapui5Resolver": "./lib/ui5Framework/Sapui5Resolver.js",
+		"./ui5Framework/maven/CacheMode": "./lib/ui5Framework/maven/CacheMode.js",
+		"./validation/validator": "./lib/validation/validator.js",
+		"./validation/ValidationError": "./lib/validation/ValidationError.js",
+		"./graph/ProjectGraph": "./lib/graph/ProjectGraph.js",
+		"./graph/projectGraphBuilder": "./lib/graph/projectGraphBuilder.js",
+		"./graph": "./lib/graph/graph.js",
+		"./package.json": "./package.json"
+	},
+	"engines": {
+		"node": "^20.11.0 || >=22.0.0",
+		"npm": ">= 8"
+	},
+	"scripts": {
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck",
+		"test-azure": "npm run coverage-xunit",
+		"lint": "eslint ./",
+		"unit": "rimraf test/tmp && ava",
+		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
+		"unit-watch": "npm run unit -- --watch",
+		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
+		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
+		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
+		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
+		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
+		"jsdoc-generate": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
+		"jsdoc-watch": "npm run jsdoc && chokidar \"./lib/**/*.js\" -c \"npm run jsdoc-generate\"",
+		"preversion": "npm test",
+		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md v4.0.0.. && git add CHANGELOG.md",
+		"prepublishOnly": "git push --follow-tags",
+		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version",
+		"depcheck": "depcheck --ignores @ui5/project,docdash,@istanbuljs/esm-loader-hook,rimraf"
+	},
+	"files": [
+		"CHANGELOG.md",
+		"CONTRIBUTING.md",
+		"jsdoc.json",
+		"lib/**",
+		"LICENSES/**",
+		".reuse/**"
+	],
+	"ava": {
+		"files": [
+			"test/lib/**/*.js",
+			"!test/**/__helper__/**"
+		],
+		"nodeArguments": [
+			"--loader=esmock",
+			"--no-warnings"
+		],
+		"workerThreads": false
+	},
+	"nyc": {
+		"reporter": [
+			"lcov",
+			"text",
+			"text-summary"
+		],
+		"exclude": [
+			"docs/**",
+			"jsdocs/**",
+			"coverage/**",
+			"test/**",
+			".eslintrc.cjs",
+			"jsdoc-plugin.cjs"
+		],
+		"check-coverage": true,
+		"statements": 90,
+		"branches": 85,
+		"functions": 90,
+		"lines": 90,
+		"watermarks": {
+			"statements": [
+				70,
+				90
+			],
+			"branches": [
+				70,
+				90
+			],
+			"functions": [
+				70,
+				90
+			],
+			"lines": [
+				70,
+				90
+			]
+		},
+		"cache": true,
+		"all": true
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:SAP/ui5-project.git"
+	},
+	"dependencies": {
+		"@npmcli/config": "^10.4.0",
+		"@ui5/fs": "^4.0.2",
+		"@ui5/logger": "^4.0.2",
+		"ajv": "^6.12.6",
+		"ajv-errors": "^1.0.1",
+		"chalk": "^5.6.2",
+		"escape-string-regexp": "^5.0.0",
+		"globby": "^14.1.0",
+		"graceful-fs": "^4.2.11",
+		"js-yaml": "^4.1.0",
+		"lockfile": "^1.0.4",
+		"make-fetch-happen": "^14.0.3",
+		"node-stream-zip": "^1.15.0",
+		"pacote": "^19.0.1",
+		"pretty-hrtime": "^1.0.3",
+		"read-package-up": "^11.0.0",
+		"read-pkg": "^9.0.1",
+		"resolve": "^1.22.10",
+		"semver": "^7.7.2",
+		"xml2js": "^0.6.2",
+		"yesno": "^0.4.0"
+	},
+	"peerDependencies": {
+		"@ui5/builder": "^4.0.11"
+	},
+	"peerDependenciesMeta": {
+		"@ui5/builder": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.8.0",
+		"@istanbuljs/esm-loader-hook": "^0.3.0",
+		"ava": "^6.4.1",
+		"chokidar-cli": "^3.0.0",
+		"cross-env": "^7.0.3",
+		"depcheck": "^1.4.7",
+		"docdash": "^2.0.2",
+		"eslint": "^9.36.0",
+		"eslint-config-google": "^0.14.0",
+		"eslint-plugin-ava": "^15.1.0",
+		"eslint-plugin-jsdoc": "^52.0.4",
+		"esmock": "^2.7.3",
+		"globals": "^16.4.0",
+		"istanbul-lib-coverage": "^3.2.2",
+		"istanbul-lib-instrument": "^6.0.3",
+		"istanbul-lib-report": "^3.0.1",
+		"istanbul-reports": "^3.2.0",
+		"js-beautify": "^1.15.4",
+		"jsdoc": "^4.0.4",
+		"nyc": "^17.1.0",
+		"open-cli": "^8.0.0",
+		"rimraf": "^6.0.1",
+		"sinon": "^21.0.0",
+		"tap-xunit": "^2.4.1"
+	}
+}

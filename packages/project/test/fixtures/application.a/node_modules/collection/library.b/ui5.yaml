@@ -1,0 +1,5 @@
+---
+specVersion: "2.3"
+type: library
+metadata:
+  name: library.b

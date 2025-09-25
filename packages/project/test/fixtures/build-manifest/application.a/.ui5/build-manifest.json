@@ -1,0 +1,42 @@
+{
+	"project": {
+		"specVersion": "2.3",
+		"type": "application",
+		"metadata": {
+			"name": "application.a"
+		},
+		"resources": {
+			"configuration": {
+				"paths": {
+					"webapp": "resources/id1"
+				}
+			}
+		}
+	},
+	"buildManifest": {
+		"manifestVersion": "0.1",
+		"timestamp": "2022-05-04T12:45:30.024Z",
+		"versions": {
+			"builderVersion": "3.0.0",
+			"projectVersion": "3.0.0",
+			"fsVersion": "3.0.0"
+		},
+		"buildConfig": {
+			"selfContained": false,
+			"jsdoc": false,
+			"includedTasks": [],
+			"excludedTasks": []
+		},
+		"id": "application.a",
+		"version": "0.2.0",
+		"namespace": "id1",
+		"tags": {
+			"/resources/id1/test.js": {
+				"ui5:HasDebugVariant": true
+			},
+			"/resources/id1/test-dbg.js": {
+				"ui5:IsDebugVariant": true
+			}
+		}
+	}
+}

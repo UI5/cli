@@ -1,0 +1,13 @@
+{
+  "name": "application.g",
+  "version": "1.0.0",
+  "description": "Simple SAPUI5 based application - test for npm optionalDependencies",
+  "main": "index.html",
+  "optionalDependencies": {
+    "library.d": "file:../library.d",
+    "library.nonexistent": "file:../library.nonexistent"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

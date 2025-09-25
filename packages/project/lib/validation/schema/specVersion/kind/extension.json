@@ -1,0 +1,94 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/kind/extension.json",
+
+	"type": "object",
+	"required": ["specVersion", "kind", "type", "metadata"],
+	"properties": {
+		"specVersion": { "enum": ["4.0", "3.2", "3.1", "3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
+		"kind": {
+			"enum": ["extension"]
+		},
+		"type": {
+			"enum": [
+				"task",
+				"server-middleware",
+				"project-shim"
+			]
+		},
+		"metadata": {
+			"$ref": "#/definitions/metadata"
+		}
+	},
+	"if": {
+		"properties": {
+			"type": {"const": null}
+		},
+		"$comment": "Using 'if' with null and empty 'then' to ensure no other schemas are applied when the property is not set. Otherwise the first 'if' condition might still be met, causing unexpected errors."
+	},
+	"then": {},
+	"else": {
+		"if": {
+			"properties": {
+				"type": {"const": "task"}
+			}
+		},
+		"then": {
+			"$ref": "extension/task.json"
+		},
+		"else": {
+			"if": {
+				"properties": {
+					"type": {"const": "server-middleware"}
+				}
+			},
+			"then": {
+				"$ref": "extension/server-middleware.json"
+			},
+			"else": {
+				"if": {
+					"properties": {
+						"type": {"const": "project-shim"}
+					}
+				},
+				"then": {
+					"$ref": "extension/project-shim.json"
+				}
+			}
+		}
+	},
+	"definitions": {
+		"metadata": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string"
+				},
+				"copyright": {
+					"type": "string"
+				}
+			}
+		},
+		"metadata-3.0": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"type": "string",
+					"minLength": 3,
+					"maxLength": 80,
+					"pattern": "^(?:@[0-9a-z-_.]+\\/)?[a-z][0-9a-z-_.]*$",
+					"title": "Extension Name",
+					"description": "Unique identifier for the extension, for example: ui5-task-fearless-rock",
+					"errorMessage": "Not a valid extension name. It must consist of lowercase alphanumeric characters, dash, underscore, and period only. Additionally, it may contain an npm-style package scope. For details, see: https://ui5.github.io/cli/stable/pages/Configuration/#name"
+				},
+				"copyright": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}

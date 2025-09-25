@@ -1,0 +1,93 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"$id": "http://ui5.sap/schema/specVersion/kind/extension/server-middleware.json",
+
+	"type": "object",
+
+	"required": ["specVersion", "kind", "type", "metadata", "middleware"],
+	"if": {
+		"properties": {
+			"specVersion": { "enum": ["3.0", "3.1", "3.2", "4.0"] }
+		}
+	},
+	"then": {
+		"additionalProperties": false,
+		"properties": {
+			"specVersion": { "enum": ["3.0", "3.1", "3.2", "4.0"] },
+			"kind": {
+				"enum": ["extension"]
+			},
+			"type": {
+				"enum": ["server-middleware"]
+			},
+			"metadata": {
+				"$ref": "../extension.json#/definitions/metadata-3.0"
+			},
+			"middleware": {
+				"$ref": "#/definitions/middleware"
+			},
+			"customConfiguration": {
+				"type": "object",
+				"additionalProperties": true
+			}
+		}
+	},
+	"else": {
+		"if": {
+			"properties": {
+				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] }
+			}
+		},
+		"then": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] },
+				"kind": {
+					"enum": ["extension"]
+				},
+				"type": {
+					"enum": ["server-middleware"]
+				},
+				"metadata": {
+					"$ref": "../extension.json#/definitions/metadata"
+				},
+				"middleware": {
+					"$ref": "#/definitions/middleware"
+				},
+				"customConfiguration": {
+					"type": "object",
+					"additionalProperties": true
+				}
+			}
+		},
+		"else": {
+			"additionalProperties": false,
+			"properties": {
+				"specVersion": { "enum": ["2.0"] },
+				"kind": {
+					"enum": ["extension"]
+				},
+				"type": {
+					"enum": ["server-middleware"]
+				},
+				"metadata": {
+					"$ref": "../extension.json#/definitions/metadata"
+				},
+				"middleware": {
+					"$ref": "#/definitions/middleware"
+				}
+			}
+		}
+	},
+	"definitions": {
+		"middleware": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"path": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}
