@@ -6,15 +6,15 @@
 4. [💻 **Contributing Code**](#-contributing-code)
 
 ### ⚡️ Quick Links for Maintainers
-- [All Open Pull Requests (cross-repo)](https://github.com/pulls?utf8=%E2%9C%93&q=is%3Aopen+is%3Apr+repo%3AUI5%2Fcli+repo%3ASAP%2Fui5-cli+repo%3ASAP%2Fui5-logger+repo%3ASAP%2Fui5-project+repo%3ASAP%2Fui5-server+repo%3ASAP%2Fui5-builder+repo%3ASAP%2Fui5-fs)
-- [Pull Request Queue (cross-repo)](https://github.com/pulls?utf8=%E2%9C%93&q=is%3Apr+-label%3Adependencies+-label%3ARFC+is%3Aopen+no%3Aassignee+sort%3Aupdated-desc+repo%3AUI5%2Fcli+repo%3ASAP%2Fui5-cli+repo%3ASAP%2Fui5-logger+repo%3ASAP%2Fui5-project+repo%3ASAP%2Fui5-server+repo%3ASAP%2Fui5-builder+repo%3ASAP%2Fui5-fs+repo%3ASAP%2Fgrunt-openui5+repo%3ASAP%2Fless-openui5+repo%3ASAP%2Fconnect-openui5+repo%3ASAP%2Fkarma-openui5+repo%3ASAP%2Fopenui5-sample-app)
+- [All Open Pull Requests](https://github.com/UI5/cli/pulls?q=is%3Aopen+is%3Apr)
+- [Pull Request Queue](https://github.com/UI5/cli/pulls?q=is%3Apr+-label%3Adependencies+-label%3ARFC+is%3Aopen+no%3Aassignee+sort%3Aupdated-desc)
 
 ## 📝 Reporting Issues
 ### Seeking Help / Not a Bug
 If you need help setting something up, or if you have questions regarding UI5 CLI, please seek help on a community platform like [StackOverflow](http://stackoverflow.com/questions/tagged/ui5-tooling) or the [`#tooling`](https://openui5.slack.com/archives/C0A7QFN6B) channel of the [OpenUI5 Community Slack](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com).
 
 ### How to Report an Issue
-Note that we collect issues for all UI5 CLI modules (*[ui5-cli](https://github.com/SAP/ui5-cli), [ui5-server](https://github.com/SAP/ui5-server), [ui5-project](https://github.com/SAP/ui5-project), [ui5-builder](https://github.com/SAP/ui5-builder), [ui5-fs](https://github.com/SAP/ui5-fs) and [ui5-logger](https://github.com/SAP/ui5-logger)*) in the central [UI5 CLI](https://github.com/UI5/cli) repository.
+We collect issues for all UI5 CLI packages (*ui5-cli*, *ui5-server*, *ui5-project*, *ui5-builder*, *ui5-fs*, and *ui5-logger*) in this [UI5 CLI](https://github.com/UI5/cli) monorepo. All packages are developed and maintained within this single mono repository.
 
 1. **Only UI5 CLI issues**
     * Please do not report:
@@ -57,12 +57,12 @@ GitHub offers labels to categorize issues. The labels can only be set and modifi
 #### Specific issue categories for UI5 CLI:
 * **`documentation`**: This issue is about wrong documentation.
 * **`needs triage`**: This issue needs to be investigated and confirmed as a valid issue that is not a duplicate
-* **`module/ui5-builder`**: This issue is related to the UI5 Builder module
-* **`module/ui5-cli`**: This issue is related to the UI5 CLI module
-* **`module/ui5-fs`**: This issue is related to the UI5 FS module
-* **`module/ui5-logger`**: This issue is related to the UI5 Logger module
-* **`module/ui5-project`**: This issue is related to the UI5 Project module
-* **`module/ui5-server`**: This issue is related to the UI5 Server module
+* **`module/ui5-builder`**: This issue is related to the UI5 Builder package
+* **`module/ui5-cli`**: This issue is related to the UI5 CLI package
+* **`module/ui5-fs`**: This issue is related to the UI5 FS package
+* **`module/ui5-logger`**: This issue is related to the UI5 Logger package
+* **`module/ui5-project`**: This issue is related to the UI5 Project package
+* **`module/ui5-server`**: This issue is related to the UI5 Server package
 
 ##### Status of an open issue:
 * **`information required`**: The author is required to provide information.
@@ -89,7 +89,7 @@ For bigger features an RFC (Request for Comment) might be necessary. You should 
 ## 🔍 Analyzing Issues
 Analyzing issue reports can be a lot of effort. Any help is welcome! 👍
 
-Open the [Bug Triage Project Board](https://github.com/orgs/SAP/projects/2) and look for open issues which require triage, additional work, or a bugfix.  
+Open the [Issues Page](https://github.com/UI5/cli/issues) and look for open issues which require triage, additional work, or a bugfix.  
 Especially check for issues in the **`Needs Triage`** column, or for issues with the labels **`good first issue`**, **`help wanted`**, or **`information required`**.
 
 You may be able to add additional or missing information, such as a step-by-step guide on how to reproduce an issue or an analysis of the root cause. In case of the latter, you might even be able to [contribute](#-contributing-code) a bugfix. 🙌
@@ -113,11 +113,11 @@ This DCO replaces the previously used CLA ("Contributor License Agreement") as w
 
 ### How to Contribute
 1. Make sure the change is welcome (see [General Remarks](#general-remarks)).
-    - Also check on the [UI5 CLI Task Board](https://github.com/orgs/SAP/projects/1) whether related tasks are already being worked on, blocked, or in discussion.
-1. Create a branch by forking the relevant module repository and apply your change.
+    - Also check on the [UI5 CLI Issues](https://github.com/UI5/cli/issues) whether related tasks are already being worked on, blocked, or in discussion.
+1. Create a branch by forking this repository and apply your change.
 1. Commit and push your change on that branch.
     - 👉 **Please follow our [Development Conventions and Guidelines](docs/Guidelines.md).**
-1. Create a pull request in the relevant repository.
+1. Create a pull request in this repository.
 1. Follow the link posted by the CLA assistant to your pull request and accept it, as described above.
 1. Wait for our code review and approval, possibly enhancing your change on request.
     - Note that the UI5 developers have many duties. So, depending on the required effort for reviewing, testing, and clarification, this may take a while.
