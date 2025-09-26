@@ -27,16 +27,16 @@
 - [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md)
 - [Roadmap](https://github.com/UI5/cli/issues/701)
 
-## Modules
+## Packages
 
-UI5 CLI consists of multiple modules. Each one is managed in a separate repository:
+UI5 CLI consists of multiple packages managed within this monorepo:
 
-- [ui5-cli](https://github.com/SAP/ui5-cli): UI5 Command Line Interface, utilizing all of the following modules
-- [ui5-project](https://github.com/SAP/ui5-project): Modules for building a UI5 project's dependency tree, including configuration
-- [ui5-server](https://github.com/SAP/ui5-server): Modules for running a UI5 development server
-- [ui5-builder](https://github.com/SAP/ui5-builder): Modules for building UI5 projects
-- [ui5-fs](https://github.com/SAP/ui5-fs): UI5 specific file system abstraction
-- [ui5-logger](https://github.com/SAP/ui5-logger): Internal logging module
+- **packages/cli**: UI5 Command Line Interface, utilizing all of the following packages
+- **packages/project**: Modules for building a UI5 project's dependency tree, including configuration
+- **packages/server**: Modules for running a UI5 development server
+- **packages/builder**: Modules for building UI5 projects
+- **packages/fs**: UI5 specific file system abstraction
+- **packages/logger**: Internal logging module
 
 **Usage Overview** *(arrows indicate dependencies)*
 ![Module Overview](./docs/images/Module_overview.png)

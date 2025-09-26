@@ -3,13 +3,13 @@
 - Start Date: 2019-07-15
 - RFC PR: [#168](https://github.com/UI5/cli/pull/168)
 - Issue: [#161](https://github.com/UI5/cli/issues/161)
-- Affected components
-  - [x] [ui5-builder](https://github.com/SAP/ui5-builder)
-  - [x] [ui5-server](https://github.com/SAP/ui5-server)
-  - [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
-  - [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-  - [ ] [ui5-project](https://github.com/SAP/ui5-project)
-  - [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+- Affected components <!-- Check affected components by writing an "X" into the brackets -->
+    + [x] [ui5-builder](./packages/builder)
+    + [x] [ui5-server](./packages/server)
+    + [ ] [ui5-cli](./packages/cli)
+    + [ ] [ui5-fs](./packages/fs)
+    + [ ] [ui5-project](./packages/project)
+    + [ ] [ui5-logger](./packages/logger)
 
 ## Summary
 

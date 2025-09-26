@@ -2,12 +2,12 @@
 - RFC PR: [#664](https://github.com/UI5/cli/pull/664)
 - Issue: -
 - Affected components <!-- Check affected components by writing an "X" into the brackets -->
-    + [ ] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [x] [ui5-server](https://github.com/SAP/ui5-server)
-    + [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [x] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+    + [ ] [ui5-builder](./packages/builder)
+    + [x] [ui5-server](./packages/server)
+    + [ ] [ui5-cli](./packages/cli)
+    + [ ] [ui5-fs](./packages/fs)
+    + [x] [ui5-project](./packages/project)
+    + [ ] [ui5-logger](./packages/logger)
 
 
 # RFC 0012 UI5 CLI Extension API v3

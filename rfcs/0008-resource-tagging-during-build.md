@@ -2,12 +2,12 @@
 - RFC PR: [#243](https://github.com/UI5/cli/pull/243)
 - Issue: Related to https://github.com/SAP/ui5-fs/issues/155
 - Affected components <!-- Check affected components by writing an "X" into the brackets -->
-    + [x] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [ ] [ui5-server](https://github.com/SAP/ui5-server)
-    + [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [x] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [ ] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+    + [x] [ui5-builder](./packages/builder)
+    + [ ] [ui5-server](./packages/server)
+    + [ ] [ui5-cli](./packages/cli)
+    + [x] [ui5-fs](./packages/fs)
+    + [ ] [ui5-project](./packages/project)
+    + [ ] [ui5-logger](./packages/logger)
 
 
 # RFC 0008 Resource Tagging During Build

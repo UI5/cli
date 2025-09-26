@@ -1,13 +1,13 @@
 - Start Date: 2019-04-23
 - RFC PR: [#151](https://github.com/UI5/cli/pull/151)
 - Issue: [#113](https://github.com/SAP/ui5-server/issues/113)
-- Affected components
-    + [ ] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [x] [ui5-server](https://github.com/SAP/ui5-server)
-    + [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [x] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+- Affected components <!-- Check affected components by writing an "X" into the brackets -->
+    + [ ] [ui5-builder](./packages/builder)
+    + [x] [ui5-server](./packages/server)
+    + [ ] [ui5-cli](./packages/cli)
+    + [ ] [ui5-fs](./packages/fs)
+    + [x] [ui5-project](./packages/project)
+    + [ ] [ui5-logger](./packages/logger)
 
 # RFC 0005 Server Middleware Extensibility
 ## Summary

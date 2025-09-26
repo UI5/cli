@@ -1,13 +1,13 @@
 - Start Date: 2019-06-11
 - RFC PR: [#157](https://github.com/UI5/cli/pull/157)
 - Issue: -
-- Affected components
-    + [ ] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [ ] [ui5-server](https://github.com/SAP/ui5-server)
-    + [X] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [X] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+- Affected components <!-- Check affected components by writing an "X" into the brackets -->
+    + [ ] [ui5-builder](./packages/builder)
+    + [ ] [ui5-server](./packages/server)
+    + [x] [ui5-cli](./packages/cli)
+    + [ ] [ui5-fs](./packages/fs)
+    + [x] [ui5-project](./packages/project)
+    + [ ] [ui5-logger](./packages/logger)
 
 
 # RFC 0006 Local Dependency Resolution
