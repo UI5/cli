@@ -4,6 +4,14 @@ import {fileURLToPath} from "node:url";
 import Handlebars from "handlebars";
 
 const source = readFileSync(fileURLToPath(new URL("../scripts/resources/CLI.template.md", import.meta.url)), "utf8");
+
+// Register Handlebars helper to escape URLs for VitePress
+Handlebars.registerHelper("escapeUrls", function(text) {
+	if (!text) return text;
+	// Escape localhost URLs to prevent VitePress from treating them as dead links
+	return text.replace(/http:\/\/localhost:\d+\/[^\s)]+/g, (match) => `\`${match}\``);
+});
+
 const template = Handlebars.compile(source);
 
 

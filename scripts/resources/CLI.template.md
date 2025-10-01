@@ -35,7 +35,7 @@ These options you can use with each command.
 ## Examples
 
 {{#each commonExamples}}
-{{commonExampleDescription}}
+{{{escapeUrls commonExampleDescription}}}
 ```
 {{commonExample}}
 ```
@@ -90,7 +90,7 @@ These options you can use with each command.
 **Examples**
 
 {{#each examples}}
-{{exampleDescription}}
+{{{escapeUrls exampleDescription}}}
 ```
 {{example}}
 ```
