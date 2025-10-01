@@ -6,8 +6,9 @@ Note that projects using the SAPUI5 framework can depend on projects using the O
 
 Please also refer to our documentation on the [differences between OpenUI5 and SAPUI5](./FAQ.md#whats-the-difference-between-openui5-and-sapui5).
 
-!!! info
-    The minimum OpenUI5 version that can be consumed by UI5 CLI is **1.52.5**
+::: info
+The minimum OpenUI5 version that can be consumed by UI5 CLI is **1.52.5**
+:::
 
 ## Configuration
 Your project's `ui5.yaml` provides a configuration section dedicated to framework dependency handling.

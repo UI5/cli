@@ -103,38 +103,38 @@ This allows you to rely on UI5 CLI for UI5-specific build functionality and proj
 
 All available APIs are documented in the [UI5 CLI API Reference](https://ui5.github.io/cli/v4/api/index.html).
 
-=== "ESM"
+::: code-group
 
-    ```js linenums="1"
-    import {graphFromPackageDependencies} from "@ui5/project/graph";
+```js [ESM]
+import {graphFromPackageDependencies} from "@ui5/project/graph";
 
-    async function buildApp(projectPath, destinationPath) {
-        const graph = await graphFromPackageDependencies({
-            cwd: projectPath
-        });
-        await graph.build({
-            destPath: destinationPath,
-            selfContained: true,
-            excludedTasks: ["transformBootstrapHtml"],
-            includedDependencies: ["*"]
-        });
-    }
-    ```
+async function buildApp(projectPath, destinationPath) {
+    const graph = await graphFromPackageDependencies({
+        cwd: projectPath
+    });
+    await graph.build({
+        destPath: destinationPath,
+        selfContained: true,
+        excludedTasks: ["transformBootstrapHtml"],
+        includedDependencies: ["*"]
+    });
+}
+```
 
-=== "CommonJS"
+```js [CommonJS]
+async function buildApp(projectPath, destinationPath) {
+    const {graphFromPackageDependencies} = 
+        await import("@ui5/project/graph");
+    const graph = await graphFromPackageDependencies({
+        cwd: projectPath
+    });
+    await graph.build({
+        destPath: destinationPath,
+        selfContained: true,
+        excludedTasks: ["transformBootstrapHtml"],
+        includedDependencies: ["*"]
+    });
+}
+```
 
-    ```js linenums="1"
-    async function buildApp(projectPath, destinationPath) {
-        const {graphFromPackageDependencies} = 
-            await import("@ui5/project/graph");
-        const graph = await graphFromPackageDependencies({
-            cwd: projectPath
-        });
-        await graph.build({
-            destPath: destinationPath,
-            selfContained: true,
-            excludedTasks: ["transformBootstrapHtml"],
-            includedDependencies: ["*"]
-        });
-    }
-    ```
+:::

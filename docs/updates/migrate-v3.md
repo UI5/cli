@@ -1,12 +1,11 @@
 # Migrate to v3
 
-!!! warning "Superseded"
-	**UI5 CLI 3.0 has been superseded by version 4.0. See [Migrate to v4](./migrate-v4.md).**
+::: warning "Superseded"
+**UI5 CLI 3.0 has been superseded by version 4.0. See [Migrate to v4](./migrate-v4.md).**
 
-	Find the announcement blog post for version 3.0 here: **[SAP Community: UI5 CLI 3.0](https://blogs.sap.com/2023/02/10/ui5-tooling-3.0/)**
-
-Find the announcement blog post for version 3.0 here: **[SAP Community: UI5 Tooling 3.0](https://blogs.sap.com/2023/02/10/ui5-tooling-3.0/)**
+Find the announcement blog post for version 3.0 here: **[SAP Community: UI5 CLI 3.0](https://blogs.sap.com/2023/02/10/ui5-tooling-3.0/)**
 :::
+
 ## Node.js and npm Version Support
 
 **This release requires Node.js versions v16.18.0, v18.12.0 or higher as well as npm v8 or higher.**
@@ -21,10 +20,10 @@ This means your old projects might still work. Unless they have non-standard con
 
 ## Changes for Projects
 
-!!! info
-    ✅ Projects defining **Specification Version 2.x** are expected to be **fully compatible with UI5 CLI v3**
-
+::: info
+✅ Projects defining **Specification Version 2.x** are expected to be **fully compatible with UI5 CLI v3**
 :::
+
 For projects defining the latest **Specification Versions 3.0 and higher**, some changes apply:
 
 * **Breaking Change:** The `metadata.name` property is now restricted to contain only certain characters and no uppercase letters. See [Configuration: `name`](../pages/Configuration.md#name) for details
@@ -33,8 +32,9 @@ See also [Configuration: Specification Version 3.0](../pages/Configuration.md#sp
 
 ## Changes for Extensions
 
-!!! info
-    ✅ Custom Tasks and Custom Middleware defining **Specification Version 2.x** are expected to be **fully compatible with UI5 CLI v3**
+::: info
+✅ Custom Tasks and Custom Middleware defining **Specification Version 2.x** are expected to be **fully compatible with UI5 CLI v3**
+:::
 
 For extensions defining the latest **Specification Versions 3.0 and higher**, some changes and improvements apply:
 
@@ -47,9 +47,9 @@ For extensions defining the latest **Specification Versions 3.0 and higher**, so
 
 ## Changes to Dependency Configuration
 
-!!! info
-    ✅ The **`ui5.dependencies` package.json configuration** becomes obsolete and is ignored in UI5 CLI v3.
-
+::: info
+✅ The **`ui5.dependencies` package.json configuration** becomes obsolete and is ignored in UI5 CLI v3.
+:::
 
 Configuration like the following is not needed anymore:
 

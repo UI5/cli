@@ -1,14 +1,11 @@
 # Migrate to v4
 
-!!! tip "New Release"
-    **UI5 CLI 4.0 has been released on July 24, 2024 🎉**
+::: tip "New Release"
+**UI5 CLI 4.0 has been released on July 24, 2024 🎉**
 
-**UI5 Tooling 4.0 has been released on July 24, 2024 🎉**
-
-    And find the announcement blog post here: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
-
-And find the announcement blog post here: **[SAP Community: UI5 Tooling 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
+And find the announcement blog post here: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
 :::
+
 ## UI5 2.x Compatibility
 
 *Also see the blog post [SAP Community: Introducing OpenUI5 2.x](https://community.sap.com/t5/open-source-blogs/introducing-openui5-2-x/ba-p/13580633)*
@@ -31,10 +28,11 @@ Old projects might therefore still work, unless they have a non-standard configu
 
 ## Changes for Projects
 
-!!! success "No changes for Specification Versions 2.x and 3.x"
-    Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
+::: tip "No changes for Specification Versions 2.x and 3.x"
+Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
+:::
 
-::: tip No changes for Specification Versions 2.x and 3.x
+### Changes for Specification Version 4.0
 
 Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 Tooling v4**
 
