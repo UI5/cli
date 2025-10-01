@@ -6,7 +6,7 @@ Based on a project's type, the UI5 Builder defines a series of build steps to ex
 
 For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI.md#ui5-build), and you can include tasks using the `--include-task` parameter.
 
-[**API Reference**](https://ui5.github.io/cli/v4/api/index.html){: .md-button .sap-icon-initiative }
+[**API Reference**](https://ui5.github.io/cli/v4/api/index.html)
 
 ## Tasks
 Tasks are specific build steps to be executed during build phase.
@@ -82,9 +82,9 @@ Standard tasks which may modify resources without updating the associated source
 :::
 Expand the block below to view a diagram illustrating the minification process and source map handling.
 
-??? info "Minification Activity Diagram"
-    ![minify Task Activity](../images/UI5_CLI/Task_Minify.svg){ loading=lazy }
-
+::: details Minification Activity Diagram
+![minify Task Activity](./images/UI5_CLI/Task_Minify.svg)
+:::
 
 ### Generation of Supported Locales
 

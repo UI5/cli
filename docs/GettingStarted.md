@@ -98,5 +98,4 @@ Find more information here:
     git commit -m "Enable use with UI5 CLI"
     ```
 
-**Hooray! You can now use UI5 CLI in your project!**
-{: .sap-icon-ui5-after }
+**Hooray! You can now use UI5 CLI in your project!** 🎉

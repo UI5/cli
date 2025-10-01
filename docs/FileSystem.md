@@ -2,7 +2,7 @@
 
 The [UI5 FS](https://github.com/SAP/ui5-fs) provides a UI5-specific file system abstraction.
 
-[**API Reference**](https://ui5.github.io/cli/v4/api/){: .md-button .sap-icon-initiative }
+[**API Reference**](https://ui5.github.io/cli/v4/api/)
 
 ## Overview
 

@@ -67,4 +67,4 @@ In the table below you can find the available combinations of project type & out
 ³ Modules have explicit path mappings configured and no namespace concept.  
 
 
-[**API Reference**](https://ui5.github.io/cli/v4/api/@ui5_project_build_ProjectBuilder.html){: .md-button .sap-icon-initiative }
+[**API Reference**](https://ui5.github.io/cli/v4/api/@ui5_project_build_ProjectBuilder.html)

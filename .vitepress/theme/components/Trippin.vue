@@ -29,7 +29,7 @@ import UI5WebComponentsMixin from "../mixins/UI5WebComponentsMixin.js";
 import "@ui5/webcomponents/dist/Title.js";
 import "@ui5/webcomponents/dist/Input.js";
 import "@ui5/webcomponents/dist/List.js";
-import "@ui5/webcomponents/dist/StandardListItem.js";
+import "@ui5/webcomponents/dist/ListItemStandard.js";
 
 // UI5 Icons
 import "@ui5/webcomponents-icons/dist/search.js";

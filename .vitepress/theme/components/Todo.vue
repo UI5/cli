@@ -204,7 +204,8 @@ export default defineComponent({
       this.todoBeingEdittedText = todoObj.text;
       this.todoBeingEdittedDate = todoObj.deadline;
       this.selectedEditTodo = todoObj.id;
-      this.$refs.editDialog.show();
+      this.$refs.editDialog.open = true;
+      //this.$refs.editDialog.show();
     },
     saveEdits() {
       const edittedText = this.$refs["titleEditInput"].value;
@@ -223,10 +224,12 @@ export default defineComponent({
         }
         return todo;
       });
-      this.$refs.editDialog.close();
+      //this.$refs.editDialog.close();
+      this.$refs.editDialog.open = false;
     },
     cancelEdits() {
-      this.$refs.editDialog.close();
+      //this.$refs.editDialog.close();
+      this.$refs.editDialog.open = false;
     },
   },
 });
