@@ -1,1 +1,0 @@
-import{_ as a,c as r,o as t,ae as n}from"./chunks/framework.CBTkueSR.js";const u=JSON.parse('{"title":"FAQ","description":"","frontmatter":{},"headers":[],"relativePath":"FAQ.md","filePath":"FAQ.md"}'),o={name:"FAQ.md"};function s(i,e,p,h,c,l){return t(),r("div",null,[...e[0]||(e[0]=[n("",16)])])}const f=a(o,[["render",s]]);export{u as __pageData,f as default};
