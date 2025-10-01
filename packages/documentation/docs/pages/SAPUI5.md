@@ -1,15 +1,20 @@
 # Consuming SAPUI5 Libraries
 
+::: info Info
+Make sure you have installed the UI5 CLI in Version 2.0 or later: `npm install --global @ui5/cli`
 
-    The minimum version of SAPUI5 that can be consumed by UI5 CLI as described below is **1.76.0.**  
-    For lower versions, consider using the [CDN bootstrap](https://ui5.sap.com/#/topic/2d3eb2f322ea4a82983c1c62a33ec4ae) or a custom middleware like [ui5-middleware-simpleproxy](https://www.npmjs.com/package/ui5-middleware-simpleproxy).
+The minimum version of SAPUI5 that can be consumed by UI5 CLI as described below is **1.76.0.**  
+For lower versions, consider using the [CDN bootstrap](https://ui5.sap.com/#/topic/2d3eb2f322ea4a82983c1c62a33ec4ae) or a custom middleware like [ui5-middleware-simpleproxy](https://www.npmjs.com/package/ui5-middleware-simpleproxy).
+
+:::
 
 ## Overview
 
 SAPUI5 libraries are hosted on the public npm registry at `registry.npmjs.org`. However, you should not install them using node package managers such as npm. Let UI5 CLI handle them instead by following this guide.
 
-::: info
+::: info Note
 For more background information also see the Blog Post ["UI5ers Buzz #49: The UI5 CLI and SAPUI5 – The Next Step"](https://blogs.sap.com/2020/04/01/ui5ers-buzz-49-the-ui5-tooling-and-sapui5-the-next-step/)
+
 :::
 
 ## Usage
@@ -23,17 +28,19 @@ Your project's `ui5.yaml` provides a configuration section dedicated to framewor
 
 This configuration can be maintained by editing the file, or by using the UI5 CLI:
 
-> [!IMPORTANT]
->**Using the [UI5 CLI](./CLI.md):**
->```sh
->ui5 use sapui5@latest
->ui5 add sap.ui.core sap.m sap.ui.comp themelib_sap_fiori_3
->ui5 add -D sap.ushell
->```
+::: details Example
+  Using the [UI5 CLI](./CLI):
+  ```sh
+  ui5 use sapui5@latest
+  ui5 add sap.ui.core sap.m sap.ui.comp themelib_sap_fiori_3
+  ui5 add -D sap.ushell
+  ```
+
+:::
 
 **Example ui5.yaml of an application**
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: application
 metadata:
   name: some.project.name
@@ -51,7 +58,7 @@ framework:
 
 **Example ui5.yaml of a library**
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: library
 metadata:
   name: some.library
@@ -68,10 +75,10 @@ framework:
       optional: true
 ```
 
-Please make sure that your project defines [Specification Version 2.0](./Configuration.md#specification-version-20) or higher.
+Please make sure that your project defines [Specification Version 2.0](./Configuration#specification-version-20) or higher.
 
-For details please refer to the [framework configuration documentation](././Configuration.md#framework-configuratio).
+For details please refer to the [framework configuration documentation](././Configuration#framework-configuratio).
 
 ## Differences Between OpenUI5 and SAPUI5
 
-Please refer to our documentation on the [differences between OpenUI5 and SAPUI5](./FAQ.md##whats-the-difference-between-openui5-and-sapui5)
+Please refer to our documentation on the [differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5)

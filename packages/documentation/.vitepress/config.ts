@@ -185,11 +185,11 @@ function guide() {
 
         {
           text: "Home",
-          link: "/HomePage",
+          link: "/pages/index",
         },
         {
           text: "Getting Started",
-          link: "/GettingStarted",
+          link: "/pages/GettingStarted",
         },
 
       ],
@@ -198,7 +198,7 @@ function guide() {
     {
       text: "UI5 CLI",
       collapsed: true,
-      link: "/CLI",
+      link: "/pages/CLI",
 
 
     },
@@ -206,7 +206,7 @@ function guide() {
       text: "Configuration",
       collapsed: true,
 
-      link: "/Configuration",
+      link: "/pages/Configuration",
 
     },
     {
@@ -215,19 +215,19 @@ function guide() {
       items: [
         {
           text: "Overview",
-          link: "/Overview",
+          link: "/pages/Overview",
         },
         {
           text: "OpenUI5",
-          link: "/OpenUI5",
+          link: "/pages/OpenUI5",
         },
         {
           text: "SAPUI5",
-          link: "/SAPUI5",
+          link: "/pages/SAPUI5",
         },
         {
           text: "Workspace",
-          link: "/Workspace",
+          link: "/pages/Workspace",
         },
 
       ],
@@ -239,15 +239,15 @@ function guide() {
       items: [
         {
           text: "Custom Tasks",
-          link: "/extensibility/CustomTasks",
+          link: "/pages/extensibility/CustomTasks",
         },
         {
           text: "Custom Server Middleware",
-          link: "/extensibility/CustomServerMiddleware",
+          link: "/pages/extensibility/CustomServerMiddleware",
         },
         {
           text: "Project Shims",
-          link: "/extensibility/ProjectShims",
+          link: "/pages/extensibility/ProjectShims",
         },
       ],
     },
@@ -257,26 +257,26 @@ function guide() {
       items: [
         {
           text: "Server",
-          link: "/Server",
+          link: "/pages/Server",
         },
         {
           text: "Builder",
-          link: "/Builder",
+          link: "/pages/Builder",
         },
         {
           text: "Project",
-          link: "/Project",
+          link: "/pages/Project",
         },
         {
           text: "File System",
-          link: "/FileSystem",
+          link: "/pages/FileSystem",
         },
       ],
     },
     {
       text: "FAQ",
       collapsed: false,
-      link: "/FAQ",
+      link: "/pages/FAQ",
 
     },
     {
@@ -307,19 +307,19 @@ function guide() {
       items: [
         {
           text: "Troubleshooting",
-          link: "/Troubleshooting",
+          link: "/pages/Troubleshooting",
         },
         {
           text: "Benchmarking",
-          link: "/Benchmarking",
+          link: "/pages/Benchmarking",
         },
         {
           text: "ECMAScript Support",
-          link: "/ESSupport",
+          link: "/pages/ESSupport",
         },
         {
           text: "Code Analysis",
-          link: "/CodeAnalysis",
+          link: "/pages/CodeAnalysis",
         },
       ],
     },

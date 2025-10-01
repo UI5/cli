@@ -16,7 +16,7 @@ npm install --save-dev @ui5/cli
 ui5 --help
 ```
 
-The globally installed UI5 CLI will always try to invoke a locally installed version of the UI5 CLI (if present). This way you can use different versions of the UI5 CLI across your projects. Please see the [UI5 CLI documentation](./CLI.md#local-vs-global-installation) for details.
+The globally installed UI5 CLI will always try to invoke a locally installed version of the UI5 CLI (if present). This way you can use different versions of the UI5 CLI across your projects. Please see the [UI5 CLI documentation](./CLI#local-vs-global-installation) for details.
 
 ## ⚡️ Quick Start: OpenUI5 Sample App
 Check out the [OpenUI5 Sample App](https://github.com/SAP/openui5-sample-app) featuring a full blown [How-to](https://github.com/SAP/openui5-sample-app/#openui5-sample-app) to play around with UI5 CLI!
@@ -50,23 +50,21 @@ If your project is not set up for use with the UI5 CLI yet, follow these steps:
 
 1. Define the framework you want to use
 
+    === "OpenUI5
 
+        ```sh
+        ui5 use openui5@latest
+        ```
 
-::: code-group
-    
-  ``` sh [OpenUI5]
-  ui5 use openui5@latest
-  ```
+    === "SAPUI5
 
-   ```sh [SAPUI5]
-   ui5 use sapui5@latest
-   ```
-   
-:::
+        ```sh
+        ui5 use sapui5@latest
+        ```
 
-   You can choose between the OpenUI5 and the SAPUI5 framework.
+    You can choose between the OpenUI5 and the SAPUI5 framework.
 
-   Don't know which one to choose? Check out our [documentation on the differences between OpenUI5 and SAPUI5](/FAQ.html#what-s-the-difference-between-openui5-and-sapui5).
+    Don't know which one to choose? Check out our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5).
 
 1. Add required libraries
     ```sh
@@ -83,19 +81,19 @@ If your project is not set up for use with the UI5 CLI yet, follow these steps:
     ui5 serve
     ```
 
-::: tip Tip
-Use `ui5 serve` to start a local development server and `ui5 build --all` to produce an optimized, static version of your project, which you can then deploy to your production environment.
+    !!! tip
+        Use `ui5 serve` to start a local development server and `ui5 build --all` to produce an optimized, static version of your project, which you can then deploy to your production environment.
 
-Find more information here:
+        Find more information here:
 
- - [Server](./Server.md) 
- - [Builder](./Builder.md) 
- - [CLI](./CLI.md)
-:::
+        - [Server](./Server)
+        - [Builder](./Builder)
+        - [CLI](./CLI)
+
 1. If you are using Git or similar version control, commit `package.json` and `ui5.yaml` to your repository.
     ```sh
     git add package.json ui5.yaml
-    git commit -m "Enable use with UI5 CLI"
+    git commit -m "Enable use with UI5 CLI
     ```
 
-**Hooray! You can now use UI5 CLI in your project!** 🎉
+**🎉 Hooray! You can now use UI5 CLI in your project! 🎉**

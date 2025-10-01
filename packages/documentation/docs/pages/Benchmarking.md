@@ -67,7 +67,6 @@ The following is a walk-through on how to evaluate the performance impact of an 
         UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs --version
         ```
         On Windows:
-        
         ```sh
         set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs --version
         ```
@@ -89,7 +88,6 @@ The following is a walk-through on how to evaluate the performance impact of an 
         --export-markdown ./baseline.md
         ```
         On Windows:
-        
         ```sh
         hyperfine --warmup 1 \
         'set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
@@ -104,11 +102,11 @@ The following is a walk-through on how to evaluate the performance impact of an 
 1. Prepare your change
     1. Switch to the branch that contains your change
         ```sh
-        (cd ../ui5-builder && git checkout my-change)
+        (cd ../pages/ui5-builder && git checkout my-change)
         ```
     1. If your change requires different npm dependencies, reinstall them
         ```sh
-        (cd ../ui5-builder && npm install)
+        (cd ../pages/ui5-builder && npm install)
         ```
     1. The link from UI5 CLI is still in place. However, if you have changes in **multiple** UI5 CLI modules, you might need to `npm link` those again
 
@@ -120,7 +118,6 @@ The following is a walk-through on how to evaluate the performance impact of an 
         --export-markdown ./my_change.md
         ```
         On Windows:
-        
         ```sh
         hyperfine --warmup 1 \
         'set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
