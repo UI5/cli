@@ -6,7 +6,8 @@ export default [
 		// to add to common config
 		ignores: [
 			"**/site/",
-			"packages/"
+			"packages/",
+			".vitepress/"
 		]
 	},
 	...eslintCommonConfig, // Load common ESLint config
