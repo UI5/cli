@@ -1,0 +1,1 @@
+import{_ as r,c as t,o as a,ae as s}from"./chunks/framework.CBTkueSR.js";const u=JSON.parse('{"title":"UI5 Server","description":"","frontmatter":{},"headers":[],"relativePath":"Server.md","filePath":"Server.md"}'),o={name:"Server.md"};function i(d,e,n,c,l,h){return a(),t("div",null,[...e[0]||(e[0]=[s("",36)])])}const f=r(o,[["render",i]]);export{u as __pageData,f as default};

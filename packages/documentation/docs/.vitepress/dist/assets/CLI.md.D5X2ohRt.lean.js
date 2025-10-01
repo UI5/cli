@@ -1,0 +1,1 @@
+import{_ as t,c as a,o as s,ae as i}from"./chunks/framework.CBTkueSR.js";const h=JSON.parse('{"title":"UI5 CLI","description":"","frontmatter":{},"headers":[],"relativePath":"CLI.md","filePath":"CLI.md"}'),o={name:"CLI.md"};function n(d,e,r,l,p,c){return s(),a("div",null,[...e[0]||(e[0]=[i("",140)])])}const g=t(o,[["render",n]]);export{h as __pageData,g as default};

@@ -193,12 +193,12 @@ function generateDoc() {
 	content = content.split("&lt;").join("<").split("&gt;").join(">");
 	content = content.split("&#x3D;").join("=");
 	try {
-		writeFileSync("./docs/CLI.md", content);
+		writeFileSync("./packages/documentation/docs/CLI.md", content);
 	} catch (err) {
-		console.error(`Failed to generate /docs/CLI.md: ${err.message}.`);
+		console.error(`Failed to generate /packages/documentation/docs/CLI.md: ${err.message}.`);
 		throw err;
 	}
-	console.log("Generated /docs/CLI.md");
+	console.log("Generated /packages/documentation/docs/CLI.md");
 }
 
 function splitString(temp) {

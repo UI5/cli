@@ -47,6 +47,8 @@ jobs:
         uses: actions/configure-pages@v4
       - name: Install dependencies
         run: npm ci
+      - name: Install documentation dependencies
+        run: cd packages/documentation && npm ci
       - name: Fetch gh-pages branch
         run: git fetch origin gh-pages --depth=1
       - name: Set /site ownership to current user
@@ -60,7 +62,7 @@ jobs:
       - name: Build jsdoc
         run:  npm run jsdoc-generate
       - name: Build vitepress build
-        run:  npm run docs-generate
+        run:  npm run docs:build
       - name: Build Schema
         run: |
           npm run schema-generate
@@ -75,7 +77,7 @@ jobs:
           rm -rf ./gh-pages/schema
           cp -R ./site/schema ./gh-pages/
           rm -rf ./gh-pages/next/
-          cp -R ./site ./gh-pages/next/
+          cp -R ./packages/documentation/dist ./gh-pages/next/
           cp ./scripts/resources/custom404.html ./gh-pages/404.html
       - name: Publish Docs
         run: |
