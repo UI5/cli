@@ -7,7 +7,7 @@ An HTTPS server or proxy that was previously running on a domain (e.g. `localhos
 You need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. `localhost`) and pressing "delete".
 
 ## Issues Not Listed Here
-Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING#report-an-issue) on how to report an issue.
+Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#report-an-issue) on how to report an issue.
 
 ## UI5 Project
 ### `~/.ui5` Taking too Much Disk Space
@@ -50,10 +50,8 @@ UI5 + Karma:
 `cross-env UI5_LOG_LVL=verbose npm run karma`
 
 
-::: warning Warning
-The combination of the `UI5_LOG_LVL` environment variable with the `--log-level` CLI parameter might lead to unexpected results; they should be used interchangeably but not together. The CLI parameter takes precedence over the `UI5_LOG_LVL` environment variable.
-
-:::
+!!! warning
+    The combination of the `UI5_LOG_LVL` environment variable with the `--log-level` CLI parameter might lead to unexpected results; they should be used interchangeably but not together. The CLI parameter takes precedence over the `UI5_LOG_LVL` environment variable.
 
 ### Changing UI5 CLI's Data Directory
 
@@ -62,10 +60,8 @@ In some cases and environments this is not a convenient location and the user ne
 
 The path to it can either be provided via environment variable or permanently set in the configuration.
 
-::: info Info
-Paths are resolved relative to the current root project path (i.e. where the package.json is located).
-
-:::
+!!! info
+    Paths are resolved relative to the current root project path (i.e. where the package.json is located).
 
 #### Environment variable  `UI5_DATA_DIR`
 
