@@ -50,7 +50,7 @@ UI5 + Karma:
 `cross-env UI5_LOG_LVL=verbose npm run karma`
 
 
-::: warning
+::: warning Warning
 The combination of the `UI5_LOG_LVL` environment variable with the `--log-level` CLI parameter might lead to unexpected results; they should be used interchangeably but not together. The CLI parameter takes precedence over the `UI5_LOG_LVL` environment variable.
 
 :::
@@ -62,7 +62,7 @@ In some cases and environments this is not a convenient location and the user ne
 
 The path to it can either be provided via environment variable or permanently set in the configuration.
 
-::: info
+::: info Info
 Paths are resolved relative to the current root project path (i.e. where the package.json is located).
 
 :::

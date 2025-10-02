@@ -1,16 +1,16 @@
 # UI5 Workspaces
 
-::: info
+::: info Info
 **UI5 Workspaces is a new feature available since UI5 CLI [`v3.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.0.0)** 
 
-::: details
-```yaml title="ui5-workspace.yaml"
+::: details Example
+```yaml
 specVersion: workspace/1.0
 metadata:
     name: default
 dependencyManagement:
    	    resolutions:
-   	    - path: ../heavy.library
+   	    - path: ../pages/heavy.library
 ```
 
 :::
@@ -22,22 +22,22 @@ UI5 Workspaces can be used to create a personalized local development environmen
 Workspaces are typically configured in a `ui5-workspace.yaml` file, located next to the project's `ui5.yaml`. The file can contain one or many workspace configurations, each separated by [three dashes](https://yaml.org/spec/1.2.2/#22-structures). For example:
 
 ::: details Example
-```yaml title="ui5-workspace.yaml"
+```yaml
 specVersion: workspace/1.0
 metadata:
     name: default
 dependencyManagement:
    	    resolutions:
-   	    - path: ../heavy.library
+   	    - path: ../pages/heavy.library
 ---
 specVersion: workspace/1.0
 metadata:
     name: extended
 dependencyManagement:
    	    resolutions:
-   	    - path: ../heavy.library
-   	    - path: ../light.library
-   	    - path: ../test.library
+   	    - path: ../pages/heavy.library
+   	    - path: ../pages/light.library
+   	    - path: ../pages/test.library
 ```
 
 :::
@@ -46,13 +46,13 @@ If a workspace configuration named `default` exists, it will be used automatical
 
 Workspaces can only be used in the project that is currently being worked on, i.e. the current root project. Workspace configurations of dependencies are ignored. The workspace file, however, does not necessarily have to be located within the project. You can reference any workspace configuration file via the UI5 CLI parameter `--workspace-config`.
 
-This concept has been discussed in an RFC: [RFC 0006 Local Dependency Resolution](https://github.com/UI5/cli/blob/main/rfcs/0006-local-dependency-resolution.md)
+This concept has been discussed in an RFC: [RFC 0006 Local Dependency Resolution](https://github.com/UI5/cli/blob/main/rfcs/0006-local-dependency-resolution)
 
 ## Configuration
 A UI5 Workspace configuration must define a specification version (`specVersion`) compatible with its configuration. For more information, see [Workspace Specification Versions](#workspace-specification-versions).
 
 ```yaml
-specVersion: "workspace/1.0"
+specVersion: "workspace/1.0
 ```
 
 ### Metadata
@@ -89,16 +89,16 @@ The `name` property must satisfy the following conditions. They are identical to
 
 UI5 Workspace configurations allow to influence the dependency resolution when working with a UI5 project.
 
-::: details
+::: details Example
 ```yaml
 specVersion: workspace/1.0
 metadata:
     name: dolphin
 dependencyManagement:
    		resolutions:
-   		- path: ../light.library
-   		- path: ../heavy.library
-   		- path: ../test.library
+   		- path: ../pages/light.library
+   		- path: ../pages/heavy.library
+   		- path: ../pages/test.library
 ```
 
 :::
@@ -108,7 +108,7 @@ dependencyManagement:
 ```yaml
 dependencyManagement:
    	resolutions:
-       	- path: ../test.library
+       	- path: ../pages/test.library
 ```
 
 Resolution paths will be used by UI5 CLI to look for project dependencies. Any dependencies found via these paths will be used over the ones found with the regular dependency resolution mechanism. This includes UI5 CLI extensions.
@@ -123,7 +123,7 @@ Note that this configuration only affects the resolution of dependencies which h
 A workspace configuration must define a Specification Version by setting the `specVersion` property. UI5 CLI uses this information to detect whether the currently installed version is compatible with a workspace's configuration.
 
 ```yaml
-specVersion: "workspace/1.0"
+specVersion: "workspace/1.0
 [...]
 ```
 

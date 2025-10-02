@@ -2,12 +2,10 @@
 
 The [UI5 Server](https://github.com/SAP/ui5-server) module provides server capabilities for local development of UI5 projects.
 
-<script setup>
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-</script>
-
 <div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/module-@ui5_server.html"/>
+  <a href="https://ui5.github.io/cli/v4/api/module-@ui5_server.html" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
+    📚 API Reference
+  </a>
 </div>
 
 ## Standard Middleware
@@ -79,13 +77,7 @@ When starting the UI5 Server in HTTPS- or HTTP/2 mode, for example by using UI5 
 
 Follow the given instructions and enter your password to install the generated certificate as trusted. You can find the generated certificate and corresponding private key under `.ui5/server` in your user's home directory.
 
-::: tip
+::: tip Tip
 If Chrome unintentionally redirects an HTTP-URL to HTTPS, you need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. localhost) and pressing "delete".
 
 :::
-
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>

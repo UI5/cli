@@ -90,25 +90,25 @@ The [XML Composite Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lb
 
 #### Name of the XMLComposite is equal to fragment name
 
-```js
-sap.ui.define([
-    "sap/ui/core/XMLComposite"
-], function(XMLComposite) {
-    return XMLComposite.extend("composites.MyComposite", {} 
-});
-```
+    ```javascript
+    sap.ui.define([
+        "sap/ui/core/XMLComposite
+    ], function(XMLComposite) {
+        return XMLComposite.extend("composites.MyComposite", {} 
+    });
+    ```
 
 #### Dedicated fragment name
 
-```js
-sap.ui.define([
-    "sap/ui/core/XMLComposite"
-], function(XMLComposite) {
-    return XMLComposite.extend("composites.MyComposite", {
-        fragment: "composites.custom.MyComposite"
-    } 
-});
-```
+    ```javascript
+    sap.ui.define([
+        "sap/ui/core/XMLComposite
+    ], function(XMLComposite) {
+        return XMLComposite.extend("composites.MyComposite", {
+            fragment: "composites.custom.MyComposite
+        } 
+    });
+    ```
 
 ## Library Initialization
 

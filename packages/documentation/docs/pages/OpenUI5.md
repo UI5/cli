@@ -6,7 +6,7 @@ Note that projects using the SAPUI5 framework can depend on projects using the O
 
 Please also refer to our documentation on the [differences between OpenUI5 and SAPUI5](./FAQ#whats-the-difference-between-openui5-and-sapui5).
 
-::: info
+::: info Info
 The minimum OpenUI5 version that can be consumed by UI5 CLI is **1.52.5**
 
 :::
@@ -17,17 +17,17 @@ Your project's `ui5.yaml` provides a configuration section dedicated to framewor
 This configuration can be maintained by editing the file, or by using the UI5 CLI:
 
 ::: details Example
-Using the [UI5 CLI](./CLI):
-```sh
-ui5 use openui5@latest
-ui5 add sap.ui.core sap.m sap.ui.table themelib_sap_fiori_3
-```
+  Using the [UI5 CLI](./CLI):
+  ```sh
+  ui5 use openui5@latest
+  ui5 add sap.ui.core sap.m sap.ui.table themelib_sap_fiori_3
+  ```
 
 :::
 
 **Example ui5.yaml of an application**
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: application
 metadata:
   name: some.project.name
@@ -43,7 +43,7 @@ framework:
 
 **Example ui5.yaml of a library**
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: library
 metadata:
   name: some.library

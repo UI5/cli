@@ -29,18 +29,18 @@ Your project's `ui5.yaml` provides a configuration section dedicated to framewor
 This configuration can be maintained by editing the file, or by using the UI5 CLI:
 
 ::: details Example
-Using the [UI5 CLI](./CLI):
-```sh
-ui5 use sapui5@latest
-ui5 add sap.ui.core sap.m sap.ui.comp themelib_sap_fiori_3
-ui5 add -D sap.ushell
-```
+  Using the [UI5 CLI](./CLI):
+  ```sh
+  ui5 use sapui5@latest
+  ui5 add sap.ui.core sap.m sap.ui.comp themelib_sap_fiori_3
+  ui5 add -D sap.ushell
+  ```
 
 :::
 
 **Example ui5.yaml of an application**
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: application
 metadata:
   name: some.project.name
@@ -58,7 +58,7 @@ framework:
 
 **Example ui5.yaml of a library**
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: library
 metadata:
   name: some.library

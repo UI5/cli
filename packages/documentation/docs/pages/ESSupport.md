@@ -9,7 +9,7 @@ UI5 CLI offers general support for `ES2023` ECMAScript features. While a `ui5 bu
 | v3.0+               | ECMAScript 2022              |      |
 | v2.0+               | ECMAScript 2009/ES5          | Note that code up to ECMAScript 2020 can be parsed, however required code analysis might not work correctly for specific language features |
 
-The following section describes all restrictions grouped by the kind of ECMAScript language feature. To get more insights into the code analyzing executed by UI5 CLI check out [Code Analysis](./CodeAnalysis).
+The following section describes all restrictions grouped by the kind of ECMAScript language feature. To get more insights into the code analysing executed by UI5 CLI check out [Code Analysis](./CodeAnalysis).
 
 ## Language Features with Restrictions
 
@@ -23,22 +23,22 @@ UI5 CLI and the UI5 Runtime does not support the usage of `export` and `import` 
 
 #### Supported
 
-```js
-sap.ui.define([
-    "ModuleA",
-    "ModuleB"
-], function(ModuleA, ModuleB) {
-    return ModuleA.extend("ModuleC", {});
-});
-```
+    ```javascript
+    sap.ui.define([
+        "ModuleA",
+        "ModuleB
+    ], function(ModuleA, ModuleB) {
+        return ModuleA.extend("ModuleC", {});
+    });
+    ```
 
 #### Not Supported
 
-```js
-import ModuleA from "ModuleA";
-import ModuleB from "ModuleB";
-export default class ModuleC extends ModuleA {};
-```
+    ```javascript
+    import ModuleA from "ModuleA";
+    import ModuleB from "ModuleB";
+    export default class ModuleC extends ModuleA {};
+    ```
 
 ### Template Literal
 
@@ -50,24 +50,24 @@ Template Literals with one or more expressions inside a `sap.ui.define` or `sap.
 
 #### Supported
 
-```js
-sap.ui.define([
-    `ModuleA`,
-    `ModuleB`
-], function(ModuleA, ModuleB) {
-});
-```
+    ```javascript
+    sap.ui.define([
+        `ModuleA`,
+        `ModuleB`
+    ], function(ModuleA, ModuleB) {
+    });
+    ```
 
 #### Not Supported
 
-```js
-const i = `B`;
-sap.ui.define([
-    `ModuleA`,
-    `Module${i}`
-], function(ModuleA, ModuleB) {
-});
-```
+    ```javascript
+    const i = `B`;
+    sap.ui.define([
+        `ModuleA`,
+        `Module${i}`
+    ], function(ModuleA, ModuleB) {
+    });
+    ```
 
 The same rule applies also for the usage of deprecated or no longer recommended APIs `jQuery.sap.declare`, `jQuery.sap.declare`, `define`, `require`, `require.predefine`, `sap.ui.predefine`, `sap.ui.requireSync` and `sap.ui.require.preload`.
 
@@ -77,48 +77,48 @@ When declaring a **Smart Template** using a **Template Literal** with one or mor
 
 #### Supported
 
-```js
-sap.ui.define([
-    `sap/suite/ui/generic/template/lib/TemplateAssembler`
-], function(TemplateAssembler) {
-    return TemplateAssembler.getTemplateComponent(getMethods, 
-        `sap.suite.ui.generic.templates.Page.Component`, {
-            metadata: {
-                properties: {
-                    templateName: {
-                        type: `string`,
-                        defaultValue: `sap.suite.ui.generic.templates.Page.view.Page`
-                    }
-                },
-                manifest: `json`
+    ```javascript
+    sap.ui.define([
+        `sap/suite/ui/generic/template/lib/TemplateAssembler`
+    ], function(TemplateAssembler) {
+        return TemplateAssembler.getTemplateComponent(getMethods, 
+            `sap.suite.ui.generic.templates.Page.Component`, {
+                metadata: {
+                    properties: {
+                        templateName: {
+                            type: `string`,
+                            defaultValue: `sap.suite.ui.generic.templates.Page.view.Page`
+                        }
+                    },
+                    manifest: `json`
+                }
             }
-        }
-    );
-});
-```
+        );
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    `sap/suite/ui/generic/template/lib/TemplateAssembler`
-], function(TemplateAssembler) {
-    const name = `Component`;
-    return TemplateAssembler.getTemplateComponent(getMethods,
-        `sap.suite.ui.generic.templates.Page.${name}`, {
-            metadata: {
-                properties: {
-                    templateName: {
-                        type: `string`,
-                        defaultValue: `sap.suite.ui.generic.templates.Page.view.Page`
-                    }
-                },
-                manifest: `json`
+    ```javascript
+    sap.ui.define([
+        `sap/suite/ui/generic/template/lib/TemplateAssembler`
+    ], function(TemplateAssembler) {
+        const name = `Component`;
+        return TemplateAssembler.getTemplateComponent(getMethods,
+            `sap.suite.ui.generic.templates.Page.${name}`, {
+                metadata: {
+                    properties: {
+                        templateName: {
+                            type: `string`,
+                            defaultValue: `sap.suite.ui.generic.templates.Page.view.Page`
+                        }
+                    },
+                    manifest: `json`
+                }
             }
-        }
-    );
-});
-```
+        );
+    });
+    ```
 
 #### Template Literal in XMLComposite Declaration
 
@@ -128,24 +128,24 @@ Declaring an **XMLComposite** control using a **Template Literal** with one or m
 
 #### Supported
 
-```js
-sap.ui.define([
-    `sap/ui/core/XMLComposite`
-], function(XMLComposite) {
-    return XMLComposite.extend(`composites.MyComposite`, {} 
-});
-```
+    ```javascript
+    sap.ui.define([
+        `sap/ui/core/XMLComposite`
+    ], function(XMLComposite) {
+        return XMLComposite.extend(`composites.MyComposite`, {} 
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    `sap/ui/core/XMLComposite`
-], function(XMLComposite) {
-    const name = `MyComposite`;
-    return XMLComposite.extend(`composites.${name}`, {});
-});
-```
+    ```javascript
+    sap.ui.define([
+        `sap/ui/core/XMLComposite`
+    ], function(XMLComposite) {
+        const name = `MyComposite`;
+        return XMLComposite.extend(`composites.${name}`, {});
+    });
+    ```
 
 #### Template Literal in sap/ui/core/Core#initLibrary Call
 
@@ -153,20 +153,20 @@ A library is typically initialized via an accompanying `library.js`. Within that
 
 #### Supported
 
-```js
-sap.ui.getCore().initLibrary({
-    name: `my.lib`
-});
-```
+    ```javascript
+    sap.ui.getCore().initLibrary({
+        name: `my.lib`
+    });
+    ```
 
 #### Not Supported
 
-```js
-const libraryName = `lib`;
-sap.ui.getCore().initLibrary({
-    name: `my.${libraryName}`
-});
-```
+    ```javascript
+    const libraryName = `lib`;
+    sap.ui.getCore().initLibrary({
+        name: `my.${libraryName}`
+    });
+    ```
 
 #### Reserved Variable Names in a Template Literal
 
@@ -179,17 +179,17 @@ While UI5 CLI performs a build placeholders are replaced with a values offered b
 
 #### Supported
 
-```js
-const myVersion = `1.2`;
-const transformedVersion `v${myVersion}`
-```
+    ```javascript
+    const myVersion = `1.2`;
+    const transformedVersion `v${myVersion}`
+    ```
 
 #### Not Supported
 
-```js
-const version = `1.2`;
-const transformedVersion `v${version}`
-```
+    ```javascript
+    const version = `1.2`;
+    const transformedVersion `v${version}`
+    ```
 
 UI5 CLI searches for the exact match of `${version}`, so with adding whitespaces before and after the variable name `${ version }` UI5 CLI won't replace this occurence. This can be enforced by the dedicated ESLint config [template-curly-spacing](https://eslint.org/docs/latest/rules/template-curly-spacing) with option `always`.
 
@@ -203,23 +203,23 @@ A **Spread Element** as a parameter in a `sap.ui.define` or `sap.ui.require` cal
 
 #### Supported
 
-```js
-sap.ui.define([
-    "ModuleA",
-    "ModuleB"
-], function(ModuleA, ModuleB) {
-});
-```
+    ```javascript
+    sap.ui.define([
+        "ModuleA",
+        "ModuleB
+    ], function(ModuleA, ModuleB) {
+    });
+    ```
 
 #### Not Supported
 
-```js
-const dependencies = ["ModuleA", "ModuleB"];
-sap.ui.define([
-    ...dependencies
-], function(ModuleA, ModuleB) {
-});
-```
+    ```javascript
+    const dependencies = ["ModuleA", "ModuleB"];
+    sap.ui.define([
+        ...dependencies
+    ], function(ModuleA, ModuleB) {
+    });
+    ```
 
 The same rule applies also for the usage of deprecated or no longer recommended APIs `jQuery.sap.declare`, `jQuery.sap.declare`, `define`, `require`, `require.predefine`, `sap.ui.predefine`, `sap.ui.requireSync` and `sap.ui.require.preload`.
 
@@ -229,50 +229,50 @@ When declaring a **Smart Template**, the usage of a **Spread Element** in the co
 
 #### Supported
 
-```js
-sap.ui.define([
-    "sap/suite/ui/generic/template/lib/TemplateAssembler
-], function(TemplateAssembler) {
-    return TemplateAssembler.getTemplateComponent(getMethods, 
-        "sap.suite.ui.generic.templates.Page.Component", {
-            metadata: {
-                properties: {
-                    templateName: {
-                        type: "string",
-                        defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
-                    }
-                },
-                manifest: "json
+    ```javascript
+    sap.ui.define([
+        "sap/suite/ui/generic/template/lib/TemplateAssembler
+    ], function(TemplateAssembler) {
+        return TemplateAssembler.getTemplateComponent(getMethods, 
+            "sap.suite.ui.generic.templates.Page.Component", {
+                metadata: {
+                    properties: {
+                        templateName: {
+                            type: "string",
+                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                        }
+                    },
+                    manifest: "json
+                }
             }
-        }
-    );
-});
-```
+        );
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    "sap/suite/ui/generic/template/lib/TemplateAssembler"
-], function(TemplateAssembler) {
-    const myTemplate = {
-        templateName: {
-            type: "string",
-            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
-        }
-    };
-    return TemplateAssembler.getTemplateComponent(getMethods,
-        "sap.suite.ui.generic.templates.Page.Component", {
-            metadata: {
-                properties: {
-                    ...myTemplate
-                }
-                manifest: "json"
+    ```javascript
+    sap.ui.define([
+        "sap/suite/ui/generic/template/lib/TemplateAssembler
+    ], function(TemplateAssembler) {
+        const myTemplate = {
+            templateName: {
+                type: "string",
+                defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
             }
-        }
-    );
-});
-```
+        };
+        return TemplateAssembler.getTemplateComponent(getMethods,
+            "sap.suite.ui.generic.templates.Page.Component", {
+                metadata: {
+                    properties: {
+                        ...myTemplate
+                    }
+                    manifest: "json
+                }
+            }
+        );
+    });
+    ```
 
 #### Spread Element in XMLComposite Declaration
 
@@ -282,30 +282,30 @@ When declaring an **XMLComposite**, the usage of a **Spread Element** in the con
 
 #### Supported
 
-```js
-sap.ui.define([
-    "sap/ui/core/XMLComposite"
-], function(XMLComposite) {
-    return XMLComposite.extend("composites.MyComposite", {
-        fragment: "composites.custom.MyComposite"
-    } 
-});
-```
+    ```javascript
+    sap.ui.define([
+        "sap/ui/core/XMLComposite
+    ], function(XMLComposite) {
+        return XMLComposite.extend("composites.MyComposite", {
+            fragment: "composites.custom.MyComposite
+        } 
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    "sap/ui/core/XMLComposite"
-], function(XMLComposite) {
-    const myXMLComposite = {
-            fragment: "composites.custom.MyComposite"
-    };
-    return XMLComposite.extend(`composites.MyComposite`, {
-        ...myXMLComposite
+    ```javascript
+    sap.ui.define([
+        "sap/ui/core/XMLComposite
+    ], function(XMLComposite) {
+        const myXMLComposite = {
+              fragment: "composites.custom.MyComposite
+        };
+        return XMLComposite.extend(`composites.MyComposite`, {
+            ...myXMLComposite
+        });
     });
-});
-```
+    ```
 
 #### Spread Element in sap/ui/core/Core#initLibrary Call
 
@@ -313,22 +313,22 @@ A library is typically initialized via an accompanying `library.js`. Within that
 
 #### Supported
 
-```js
-sap.ui.getCore().initLibrary({
-    name: "my.lib"
-});
-```
+    ```javascript
+    sap.ui.getCore().initLibrary({
+        name: "my.lib
+    });
+    ```
 
 #### Not Supported
 
-```js
-const mylib = {
-    name: "my.lib"
-};
-sap.ui.getCore().initLibrary({
-    ...mylib
-});
-```
+    ```javascript
+    const mylib = {
+        name: "my.lib
+    };
+    sap.ui.getCore().initLibrary({
+        ...mylib
+    });
+    ```
 
 ```js [Not Supported]
 const mylib = {
@@ -349,23 +349,23 @@ An **Object Expression** as a parameter in a `sap.ui.define` or `sap.ui.require`
 
 #### Supported
 
-```js
-sap.ui.define([
-    "Bar"
-], function(Bar){
-});
+    ```javascript
+    sap.ui.define([
+        "Bar
+    ], function(Bar){
+    });
 
-```
+    ```
 
 #### Not Supported
 
-```js
-const dependency = "Bar";
-sap.ui.define([
-    dependency
-], function(Bar){
-});
-```
+    ```javascript
+    const dependency = "Bar";
+    sap.ui.define([
+        dependency
+    ], function(Bar){
+    });
+    ```
 
 The same rule applies also for the usage of deprecated or no longer recommended APIs `jQuery.sap.declare`, `jQuery.sap.declare`, `define`, `require`, `require.predefine`, `sap.ui.predefine`, `sap.ui.requireSync` and `sap.ui.require.preload`.
 
@@ -375,48 +375,48 @@ When declaring a **Smart Template**, the usage of an **Object Expression** in th
 
 #### Supported
 
-```js
-sap.ui.define([
-    "sap/suite/ui/generic/template/lib/TemplateAssembler
-], function(TemplateAssembler) {
-    return TemplateAssembler.getTemplateComponent(getMethods, 
-        "sap.suite.ui.generic.templates.Page.Component", {
-            metadata: {
-                properties: {
-                    templateName: {
-                        type: "string",
-                        defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
-                    }
-                },
-                manifest: "json"
+    ```javascript
+    sap.ui.define([
+        "sap/suite/ui/generic/template/lib/TemplateAssembler
+    ], function(TemplateAssembler) {
+        return TemplateAssembler.getTemplateComponent(getMethods, 
+            "sap.suite.ui.generic.templates.Page.Component", {
+                metadata: {
+                    properties: {
+                        templateName: {
+                            type: "string",
+                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                        }
+                    },
+                    manifest: "json
+                }
             }
-        }
-    );
-});
-```
+        );
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    "sap/suite/ui/generic/template/lib/TemplateAssembler"
-], function(TemplateAssembler) {
-    const key = "templateName"
-    return TemplateAssembler.getTemplateComponent(getMethods,
-        `sap.suite.ui.generic.templates.Page.${name}`, {
-            metadata: {
-                properties: {
-                    [key]: {
-                        type: "string",
-                        defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
+    ```javascript
+    sap.ui.define([
+        "sap/suite/ui/generic/template/lib/TemplateAssembler
+    ], function(TemplateAssembler) {
+        const key = "templateName
+        return TemplateAssembler.getTemplateComponent(getMethods,
+            `sap.suite.ui.generic.templates.Page.${name}`, {
+                metadata: {
+                    properties: {
+                        [key]: {
+                            type: "string",
+                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                        }
                     }
+                    manifest: "json
                 }
-                manifest: "json"
             }
-        }
-    );
-});
-```
+        );
+    });
+    ```
 
 #### Object Expression in XMLComposite Declaration
 
@@ -426,28 +426,28 @@ When declaring an **XMLComposite**, the usage of an **Object Expression** in the
 
 #### Supported
 
-```js
-sap.ui.define([
-    "sap/ui/core/XMLComposite"
-], function(XMLComposite) {
-    return XMLComposite.extend("composites.MyComposite", {
-        fragment: "composites.custom.MyComposite"
-    } 
-});
-```
+    ```javascript
+    sap.ui.define([
+        "sap/ui/core/XMLComposite
+    ], function(XMLComposite) {
+        return XMLComposite.extend("composites.MyComposite", {
+            fragment: "composites.custom.MyComposite
+        } 
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    "sap/ui/core/XMLComposite"
-], function(XMLComposite) {
-    const key = "fragment";
-    return XMLComposite.extend("composites.MyComposite", {
-        [key]: "composites.custom.MyComposite"
+    ```javascript
+    sap.ui.define([
+        "sap/ui/core/XMLComposite
+    ], function(XMLComposite) {
+        const key = "fragment";
+        return XMLComposite.extend("composites.MyComposite", {
+            [key]: "composites.custom.MyComposite
+        });
     });
-});
-```
+    ```
 
 #### Object Expression in sap/ui/core/Core#initLibrary Call
 
@@ -455,20 +455,20 @@ A library is typically initialized via an accompanying `library.js`. Within that
 
 #### Supported
 
-```js
-sap.ui.getCore().initLibrary({
-    name: "my.lib"
-});
-```
+    ```javascript
+    sap.ui.getCore().initLibrary({
+        name: "my.lib
+    });
+    ```
 
 #### Not Supported
 
-```js
-const key = "name";
-sap.ui.getCore().initLibrary({
-    [key]: "my.lib"
-});
-```
+    ```javascript
+    const key = "name";
+    sap.ui.getCore().initLibrary({
+        [key]: "my.lib
+    });
+    ```
 
 ### Computed Property
 
@@ -480,25 +480,25 @@ One or more **Computed Property** as a parameter in an UI5 Module `extend` call 
 
 #### Supported
 
-```js
-sap.ui.define([
-    "Bar"
-], function(Bar){
-    return Bar.extend("my.Bar" {});
-});
+    ```javascript
+    sap.ui.define([
+        "Bar
+    ], function(Bar){
+        return Bar.extend("my.Bar" {});
+    });
 
-```
+    ```
 
 #### Not Supported
 
-```js
-const name = "my";
-sap.ui.define([
-    "Bar"
-], function(Bar){
-    return Bar.extend(name + ".Bar", {});
-});
-```
+    ```javascript
+    const name = "my";
+    sap.ui.define([
+        "Bar
+    ], function(Bar){
+        return Bar.extend(name + ".Bar", {});
+    });
+    ```
 
 #### Computed Properties in sap/ui/core/Core#initLibrary Call
 
@@ -506,20 +506,20 @@ A library is typically initialized via an accompanying `library.js`. Within that
 
 #### Supported
 
-```js
-sap.ui.getCore().initLibrary({
-    name: "my.lib"
-});
-```
+    ```javascript
+    sap.ui.getCore().initLibrary({
+        name: "my.lib
+    });
+    ```
 
 #### Not Supported
 
-```js
-const name = "my";
-sap.ui.getCore().initLibrary({
-    name: name + ".lib"
-});
-```
+    ```javascript
+    const name = "my";
+    sap.ui.getCore().initLibrary({
+        name: name + ".lib
+    });
+    ```
 
 ### Class Declaration
 
@@ -527,35 +527,35 @@ If you want to generate a JSDoc build of your project and using a **Class Declar
 
 #### Supported
 
-```js
-sap.ui.define([
-    "Bar"
-], function(Bar){
-    /**
-     * JSDoc block here
-     */
-    class Foo extends Bar {
-        make () {}
-    }
+    ```javascript
+    sap.ui.define([
+        "Bar
+    ], function(Bar){
+        /**
+         * JSDoc block here
+         */
+        class Foo extends Bar {
+            make () {}
+        }
 
-    return Foo;
-});
-```
+        return Foo;
+    });
+    ```
 
 #### Not Supported
 
-```js
-sap.ui.define([
-    "Bar"
-], function(Bar){
-    /**
-     * JSDoc block here
-     */
-    return class Foo extends Bar {
-        make () {}
-    }
-});
-```
+    ```javascript
+    sap.ui.define([
+        "Bar
+    ], function(Bar){
+        /**
+         * JSDoc block here
+         */
+        return class Foo extends Bar {
+            make () {}
+        }
+    });
+    ```
 
 ### Arrow Function Expression
 
@@ -563,27 +563,27 @@ If you want to generate a JSDoc build of your project and use an **Arrow Functio
 
 #### Supported
 
-```js
-sap.ui.define([
-    "Bar"
-], 
-/**
- * JSDoc block here
- */
-(Bar) => Bar.extends("Foo", {
+    ```javascript
+    sap.ui.define([
+        "Bar
+    ], 
+    /**
+     * JSDoc block here
+     */
+    (Bar) => Bar.extends("Foo", {
 
-}));
-```
+    }));
+    ```
 
 #### Not Supported
 
-```js
-/**
- * JSDoc block here
- */
-sap.ui.define([
-    "Bar"
-], (Bar) => Bar.extends("Foo", {
+    ```javascript
+    /**
+     * JSDoc block here
+     */
+    sap.ui.define([
+        "Bar
+    ], (Bar) => Bar.extends("Foo", {
 
-}));
-```
+    }));
+    ```
