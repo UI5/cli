@@ -26,7 +26,7 @@ If a library contains both a manifest.json and a .library file, they must be loc
 
 For projects of types **other** than `application` or `library`, the UI5 Server now expects `*.properties` files to be UTF-8 encoded as opposed to `ISO-8859-1` before.
 
-_**Note:** This change does not affect most projects as `*.properties` files are typically only located in applications or libraries, for which their project specific [configuration](../pages/Configuration#encoding-of-properties-files) is used._
+_**Note:** This change does not affect most projects as `*.properties` files are typically only located in applications or libraries, for which their project specific [configuration](../pages/Configuration.md#encoding-of-properties-files) is used._
 
 **UI5 FS: Remove deprecated parameter useNamespaces ([SAP/ui5-fs#223](https://github.com/SAP/ui5-fs/pull/223))**
 
@@ -56,12 +56,12 @@ npm install --save-dev @ui5/cli@^2
 
 #### `specVersion: "2.0"`
 
-We have introduced the [specification version `2.0`](../pages/Configuration#specification-version-10).
+We have introduced the [specification version `2.0`](../pages/Configuration.md#specification-version-10).
 New features will only be available for projects with specVersion `2.0` or newer.  
 Most projects defining specVersion `0.1` or `1.0` can still be used.
 
 ```yaml
-specVersion: "2.0
+specVersion: "2.0"
 metadata:
   name: <project-name>
 type: <project-type>
