@@ -59,5 +59,8 @@ deploy_key
 jsdocs/
 site/
 
-# Custom files
+# Documentation
 packages/documentation/docs/pages/CLI.md
+packages/documentation/docs/.vitepress/dist
+packages/documentation/docs/.vitepress/cache
+packages/documentation/dist
