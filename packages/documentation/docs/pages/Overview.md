@@ -41,13 +41,13 @@ In its `package.json`, `my-app` should already define a dependency to `my-reuse-
 
 In the `my-app` directory, create a new file named `ui5-workspace.yaml` with the following content:
 
-```yaml title="ui5-workspace.yaml"
+```yaml
 specVersion: workspace/1.0
 metadata:
     name: default
 dependencyManagement:
     resolutions:
-        - path: ../my-reuse-library
+        - path: ../pages/my-reuse-library
 ```
 
 That's it! Start a server via `ui5 serve`, and you will see that any changes you make in `my-reuse-library` are immediately visible in `my-app`.
@@ -100,12 +100,12 @@ To use such a file in UI5 CLI, provide a path to it using the [`--dependency-def
 
 ```yaml
 id: my.app
-version: "local"
-path: "."
+version: "local
+path: ".
 dependencies:
   - id: my.lib
-    version: "local"
-    path: "../my.lib"
+    version: "local
+    path: "../pages/my.lib
 ```
 
 By placing this file in the root directory of the `my.app` application project, you can start a server with a local copy of the `my.lib` dependency, located in the same parent directory, using the command `ui5 serve --dependency-definition ./projectDependencies.yaml`.

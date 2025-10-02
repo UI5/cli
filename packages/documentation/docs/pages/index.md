@@ -1,16 +1,4 @@
----
-next:
-  text: 'Getting Started'
-  link: '/pages/GettingStarted'
----
-
-<script setup>
-import { useData } from 'vitepress'
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-const { isDark } = useData()
-</script>
-
-<img :src="isDark ? '/ui5-cli/stable/images/O_UI5_H_noBG.png' : '/ui5-cli/stable/images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
+![UI5 logo](../images/UI5_logo_wide.png)
 
 # UI5 CLI
 
@@ -31,7 +19,9 @@ And checkout the **[Migrate to v4](../updates/migrate-v4)** documentation.
 :::
 
 <div style="margin: 2rem 0;">
-  <VPButton class="no-decoration" text="🚀 Get Started" href="./GettingStarted"/>
+  <a href="./GettingStarted" style="display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+    🚀 Get Started
+  </a>
 </div>
 
 ## Main Features
@@ -119,42 +109,36 @@ All available APIs are documented in the [UI5 CLI API Reference](https://ui5.git
 
 #### ESM
 
-```js
-import {graphFromPackageDependencies} from "@ui5/project/graph";
+    ```js linenums="1
+    import {graphFromPackageDependencies} from "@ui5/project/graph";
 
-async function buildApp(projectPath, destinationPath) {
-    const graph = await graphFromPackageDependencies({
-        cwd: projectPath
-    });
-    await graph.build({
-        destPath: destinationPath,
-        selfContained: true,
-        excludedTasks: ["transformBootstrapHtml"],
-        includedDependencies: ["*"]
-    });
-}
-```
+    async function buildApp(projectPath, destinationPath) {
+        const graph = await graphFromPackageDependencies({
+            cwd: projectPath
+        });
+        await graph.build({
+            destPath: destinationPath,
+            selfContained: true,
+            excludedTasks: ["transformBootstrapHtml"],
+            includedDependencies: ["*"]
+        });
+    }
+    ```
 
 #### CommonJS
 
-```js
-async function buildApp(projectPath, destinationPath) {
-    const {graphFromPackageDependencies} = 
-        await import("@ui5/project/graph");
-    const graph = await graphFromPackageDependencies({
-        cwd: projectPath
-    });
-    await graph.build({
-        destPath: destinationPath,
-        selfContained: true,
-        excludedTasks: ["transformBootstrapHtml"],
-        includedDependencies: ["*"]
-    });
-}
-```
-
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>
+    ```js linenums="1
+    async function buildApp(projectPath, destinationPath) {
+        const {graphFromPackageDependencies} = 
+            await import("@ui5/project/graph");
+        const graph = await graphFromPackageDependencies({
+            cwd: projectPath
+        });
+        await graph.build({
+            destPath: destinationPath,
+            selfContained: true,
+            excludedTasks: ["transformBootstrapHtml"],
+            includedDependencies: ["*"]
+        });
+    }
+    ```

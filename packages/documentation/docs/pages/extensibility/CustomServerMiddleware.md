@@ -15,7 +15,7 @@ A middleware may be executed before or after any other middleware. This can eith
 ### Example: Basic configuration
 
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: application
 metadata:
   name: my.application
@@ -45,7 +45,7 @@ A custom middleware extension consists of a `ui5.yaml` and a [custom middleware 
 ### Example: ui5.yaml
 
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 kind: extension
 type: server-middleware
 metadata:
@@ -65,7 +65,7 @@ The UI5 Server will detect the custom middleware configuration of the project an
 
 ```yaml
 # Project configuration for the above example
-specVersion: "4.0"
+specVersion: "4.0
 kind: project
 type: application
 metadata:
@@ -76,7 +76,7 @@ server:
       beforeMiddleware: serveResources
 ---
 # Custom middleware extension as part of your project
-specVersion: "4.0"
+specVersion: "4.0
 kind: extension
 type: server-middleware
 metadata:
@@ -91,148 +91,148 @@ A custom middleware implementation needs to return a function with the following
 
 #### ESM
 
-```js
-/**
- * Custom UI5 Server middleware API
- * 
- * @param {object} parameters Parameters
- * @param {@ui5/logger/Logger} parameters.log
- *      Logger instance for use in the custom middleware.
- *      This parameter is only provided to custom middleware
- *      extensions defining Specification Version 3.0 and later.
- * @param {@ui5/server.middleware.MiddlewareUtil} parameters.middlewareUtil
- *      Specification version-dependent interface to a
- *      MiddlewareUtil instance. See the corresponding API reference for details:
- *      https://ui5.github.io/cli/v4/api/@ui5_server_middleware_MiddlewareUtil.html
- * @param {object} parameters.options Options
- * @param {string} parameters.options.configuration
- *      Custom middleware configuration, as defined in the project's ui5.yaml
- * @param {string} parameters.options.middlewareName
- *      Name of the custom middleware.
- *      This parameter is only provided to custom middleware extensions
- *      defining Specification Version 3.0 and later
- * @param {object} parameters.resources Readers for accessing resources
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.all
- *      Reader to access resources of the root project and its dependencies
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.rootProject
- *      Reader to access resources of the root project
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.dependencies
- *      Reader to access resources of the project's dependencies.
- * @returns {function} Middleware function to use
- */
-export default function({log, middlewareUtil, options, resources}) {
-    return async function (req, res, next) {
-        // [...]
-    }
-};
-```
+    ```js linenums="1
+    /**
+     * Custom UI5 Server middleware API
+     * 
+     * @param {object} parameters Parameters
+     * @param {@ui5/logger/Logger} parameters.log
+     *      Logger instance for use in the custom middleware.
+     *      This parameter is only provided to custom middleware
+     *      extensions defining Specification Version 3.0 and later.
+     * @param {@ui5/server.middleware.MiddlewareUtil} parameters.middlewareUtil
+     *      Specification version-dependent interface to a
+     *      MiddlewareUtil instance. See the corresponding API reference for details:
+     *      https://ui5.github.io/cli/v4/api/@ui5_server_middleware_MiddlewareUtil.html
+     * @param {object} parameters.options Options
+     * @param {string} parameters.options.configuration
+     *      Custom middleware configuration, as defined in the project's ui5.yaml
+     * @param {string} parameters.options.middlewareName
+     *      Name of the custom middleware.
+     *      This parameter is only provided to custom middleware extensions
+     *      defining Specification Version 3.0 and later
+     * @param {object} parameters.resources Readers for accessing resources
+     * @param {module:@ui5/fs.AbstractReader} parameters.resources.all
+     *      Reader to access resources of the root project and its dependencies
+     * @param {module:@ui5/fs.AbstractReader} parameters.resources.rootProject
+     *      Reader to access resources of the root project
+     * @param {module:@ui5/fs.AbstractReader} parameters.resources.dependencies
+     *      Reader to access resources of the project's dependencies.
+     * @returns {function} Middleware function to use
+     */
+    export default function({log, middlewareUtil, options, resources}) {
+        return async function (req, res, next) {
+            // [...]
+        }
+    };
+    ```
 
 #### CommonJS
 
-```js
-/**
- * Custom UI5 Server middleware API
- * 
- * @param {object} parameters Parameters
- * @param {@ui5/logger/Logger} parameters.log
- *      Logger instance for use in the custom middleware.
- *      This parameter is only provided to custom middleware
- *      extensions defining Specification Version 3.0 and later.
- * @param {@ui5/server.middleware.MiddlewareUtil} parameters.middlewareUtil
- *      Specification version-dependent interface to a
- *      MiddlewareUtil instance. See the corresponding API reference for details:
- *      https://ui5.github.io/cli/v4/api/@ui5_server_middleware_MiddlewareUtil.html
- * @param {object} parameters.options Options
- * @param {string} parameters.options.configuration
- *      Custom middleware configuration, as defined in the project's ui5.yaml
- * @param {string} parameters.options.middlewareName
- *      Name of the custom middleware.
- *      This parameter is only provided to custom middleware extensions
- *      defining Specification Version 3.0 and later
- * @param {object} parameters.resources Readers for accessing resources
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.all
- *      Reader to access resources of the root project and its dependencies
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.rootProject
- *      Reader to access resources of the root project
- * @param {module:@ui5/fs.AbstractReader} parameters.resources.dependencies
- *      Reader to access resources of the project's dependencies.
- * @returns {function} Middleware function to use
- */
-module.exports = function({log, middlewareUtil, options, resources}) {
-    return async function (req, res, next) {
-        // [...]
-    }
-};
-```
+    ```js linenums="1
+    /**
+     * Custom UI5 Server middleware API
+     * 
+     * @param {object} parameters Parameters
+     * @param {@ui5/logger/Logger} parameters.log
+     *      Logger instance for use in the custom middleware.
+     *      This parameter is only provided to custom middleware
+     *      extensions defining Specification Version 3.0 and later.
+     * @param {@ui5/server.middleware.MiddlewareUtil} parameters.middlewareUtil
+     *      Specification version-dependent interface to a
+     *      MiddlewareUtil instance. See the corresponding API reference for details:
+     *      https://ui5.github.io/cli/v4/api/@ui5_server_middleware_MiddlewareUtil.html
+     * @param {object} parameters.options Options
+     * @param {string} parameters.options.configuration
+     *      Custom middleware configuration, as defined in the project's ui5.yaml
+     * @param {string} parameters.options.middlewareName
+     *      Name of the custom middleware.
+     *      This parameter is only provided to custom middleware extensions
+     *      defining Specification Version 3.0 and later
+     * @param {object} parameters.resources Readers for accessing resources
+     * @param {module:@ui5/fs.AbstractReader} parameters.resources.all
+     *      Reader to access resources of the root project and its dependencies
+     * @param {module:@ui5/fs.AbstractReader} parameters.resources.rootProject
+     *      Reader to access resources of the root project
+     * @param {module:@ui5/fs.AbstractReader} parameters.resources.dependencies
+     *      Reader to access resources of the project's dependencies.
+     * @returns {function} Middleware function to use
+     */
+    module.exports = function({log, middlewareUtil, options, resources}) {
+        return async function (req, res, next) {
+            // [...]
+        }
+    };
+    ```
 
 ### Example: lib/middleware/markdownHandler.(m)js
 
 #### ESM
 
-```js
-import MarkdownIt from "markdown-it";
+    ```js linenums="1
+    import MarkdownIt from "markdown-it";
 
-export default async function({log, middlewareUtil, options, resources}) {
-    const md = new MarkdownIt();
-    return function (req, res, next) {
-        if (!req.path || !req.path.endsWith(".html")) {
-            // Do not handle non-HTML requests
-            next();
-            return;
-        }
-        // Try to read a corresponding markdown file
-        resources.rootProject.byPath(req.path.replace(".html", ".md")).then(async (resource) => {
-            if (!resource) {
-                // No file found, hand over to next middleware
+    export default async function({log, middlewareUtil, options, resources}) {
+        const md = new MarkdownIt();
+        return function (req, res, next) {
+            if (!req.path || !req.path.endsWith(".html")) {
+                // Do not handle non-HTML requests
                 next();
                 return;
             }
-            log.info(`Rendering markdown for ${resource.getPath()}`);
-            const markdown = await resource.getBuffer();
-            // Generate HTML from markdown string
-            const html = md.render(markdown.toString());
-            res.type('.html');
-            res.end(html);
-        }).catch((err) => {
-            next(err);
-        });
-    }
-};
-```
-Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3-esm)
+            // Try to read a corresponding markdown file
+            resources.rootProject.byPath(req.path.replace(".html", ".md")).then(async (resource) => {
+                if (!resource) {
+                    // No file found, hand over to next middleware
+                    next();
+                    return;
+                }
+                log.info(`Rendering markdown for ${resource.getPath()}`);
+                const markdown = await resource.getBuffer();
+                // Generate HTML from markdown string
+                const html = md.render(markdown.toString());
+                res.type('.html');
+                res.end(html);
+            }).catch((err) => {
+                next(err);
+            });
+        }
+    };
+    ```
+    Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3-esm)
 
 #### CommonJS
 
-```js
-module.exports = async function({log, middlewareUtil, options, resources}) {
-    const MarkdownIt = require("markdown-it");
-    const md = new MarkdownIt();
-    return function (req, res, next) {
-        if (!req.path || !req.path.endsWith(".html")) {
-            // Do not handle non-HTML requests
-            next();
-            return;
-        }
-        // Try to read a corresponding markdown file
-        resources.rootProject.byPath(req.path.replace(".html", ".md")).then(async (resource) => {
-            if (!resource) {
-                // No file found, hand over to next middleware
+    ```js linenums="1
+    module.exports = async function({log, middlewareUtil, options, resources}) {
+        const MarkdownIt = require("markdown-it");
+        const md = new MarkdownIt();
+        return function (req, res, next) {
+            if (!req.path || !req.path.endsWith(".html")) {
+                // Do not handle non-HTML requests
                 next();
                 return;
             }
-            log.info(`Rendering markdown for ${resource.getPath()}`);
-            const markdown = await resource.getBuffer();
-            // Generate HTML from markdown string
-            const html = md.render(markdown.toString());
-            res.type('.html');
-            res.end(html);
-        }).catch((err) => {
-            next(err);
-        });
-    }
-};
-```
-Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3)
+            // Try to read a corresponding markdown file
+            resources.rootProject.byPath(req.path.replace(".html", ".md")).then(async (resource) => {
+                if (!resource) {
+                    // No file found, hand over to next middleware
+                    next();
+                    return;
+                }
+                log.info(`Rendering markdown for ${resource.getPath()}`);
+                const markdown = await resource.getBuffer();
+                // Generate HTML from markdown string
+                const html = md.render(markdown.toString());
+                res.type('.html');
+                res.end(html);
+            }).catch((err) => {
+                next(err);
+            });
+        }
+    };
+    ```
+    Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3)
 
 ## Helper Class `MiddlewareUtil`
 
@@ -242,9 +242,8 @@ In this case, a `middlewareUtil` object is provided as a part of the custom midd
 
 ## Integration with `karma-ui5`
 
-::: warning
-The Karma project has been [deprecated](https://github.com/karma-runner/karma#karma-is-deprecated-and-is-not-accepting-new-features-or-general-bug-fixes) as of 2023
-:::
+!!! Warning
+    The Karma project has been [deprecated](https://github.com/karma-runner/karma#karma-is-deprecated-and-is-not-accepting-new-features-or-general-bug-fixes) as of 2023
 
 [`karma-ui5`](https://github.com/SAP/karma-ui5) is a plugin for the popular [Karma test runner](https://karma-runner.github.io/). Based on your [configuration](https://github.com/SAP/karma-ui5#url), it can fetch resources from a dedicated server or start an internal server using parts of UI5 CLI.
 

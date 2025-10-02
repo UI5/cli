@@ -2,16 +2,14 @@
 
 The [UI5 Builder](https://github.com/SAP/ui5-builder) module takes care of building your project.
 
-<script setup>
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-</script>
-
 Based on a project's type, the UI5 Builder defines a series of build steps to execute; these are also called "tasks".
 
 For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI#ui5-build), and you can include tasks using the `--include-task` parameter.
 
 <div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/index.html"/>
+  <a href="https://ui5.github.io/cli/v4/api/index.html" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
+    📚 API Reference
+  </a>
 </div>
 
 ## Tasks
@@ -91,10 +89,8 @@ Standard tasks which may modify resources without updating the associated source
 
 Expand the block below to view a diagram illustrating the minification process and source map handling.
 
-::: info Minification Activity Diagram
- ![minify Task Activity](../images/UI5_CLI/Task_Minify.svg)
-
-:::
+??? info "Minification Activity Diagram
+    ![minify Task Activity](../images/UI5_CLI/Task_Minify.svg)
 
 
 ### Generation of Supported Locales
@@ -126,7 +122,7 @@ In the `manifest.json` the `supportedLocales` property will be enhanced as follo
     "i18n": {
         "type": "sap.ui.model.resource.ResourceModel",
         "settings": {
-            "bundleName": "my.app.i18n.i18n"
+            "bundleName": "my.app.i18n.i18n
         }
     }
 }
@@ -144,7 +140,7 @@ In the `manifest.json` the `supportedLocales` property will be enhanced as follo
                 "de",
                 "de_DE",
                 "en",
-                "en_US"
+                "en_US
             ]
         }
     }
@@ -194,8 +190,3 @@ sap.ui.define([], () => {
 ```
 
 :::
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>

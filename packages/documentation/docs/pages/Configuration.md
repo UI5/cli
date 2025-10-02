@@ -18,7 +18,7 @@ See the list of [clients](https://github.com/redhat-developer/yaml-language-serv
 ## Example
 
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: application|library|theme-library|module
 metadata:
   name: some.project.name
@@ -37,31 +37,31 @@ The type defines the default path mappings and build tasks. See [UI5 Builder: Ty
 
 #### application
 
-```yaml
-specVersion: "4.0"
-type: application
-```
+    ```yaml
+    specVersion: "4.0
+    type: application
+    ```
 
 #### library
 
-```yaml
-specVersion: "4.0"
-type: library
-```
+    ```yaml
+    specVersion: "4.0
+    type: library
+    ```
 
 #### theme-library
 
-```yaml
-specVersion: "4.0"
-type: theme-library
-```
+    ```yaml
+    specVersion: "4.0
+    type: theme-library
+    ```
 
 #### module
 
-```yaml
-specVersion: "4.0"
-type: module
-```
+    ```yaml
+    specVersion: "4.0
+    type: module
+    ```
 
 :::
 
@@ -126,37 +126,37 @@ Note that all configured paths must be written in POSIX (i.e. using only forward
 #### Applications
     - `webapp`: Mapped to runtime path `/` (root)
 
-```yaml title="Default Configuration"
-resources:
-  configuration:
-    paths:
-      webapp: webapp
-```
+    ```yaml
+    resources:
+      configuration:
+        paths:
+          webapp: webapp
+    ```
 
 #### Libraries
     - `src`: Mapped to runtime path `/resources`
     - `test`: Mapped to runtime path `/test-resources`
 
-```yaml title="Default Configuration"
-resources:
-  configuration:
-    paths:
-      src: src
-      test: test
-```
+    ```yaml
+    resources:
+      configuration:
+        paths:
+          src: src
+          test: test
+    ```
 
 #### Modules
-Modules can map any virtual paths to any physical path within the project.
+    Modules can map any virtual paths to any physical path within the project.
 
-However, it is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/library/module-xy/`) to avoid name clashes with other projects.
+    However, it is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/library/module-xy/`) to avoid name clashes with other projects.
 
-```yaml title="Example Configuration"
-resources:
-  configuration:
-    paths:
-      /resources/my/library/module-xy/: lib
-      /resources/my/library/module-xy-min/: dist
-```
+    ```yaml
+    resources:
+      configuration:
+        paths:
+          /resources/my/library/module-xy/: lib
+          /resources/my/library/module-xy-min/: dist
+    ```
 
 ::: details Example
 For an application project with the following directory structure, you need the path mapping configuration given below:
@@ -187,19 +187,19 @@ This configuration is available since UI5 CLI [`v1.7.0`](https://github.com/SAP/
 ::: details Example
 #### UTF-8
 
-```yaml
-resources:
-  configuration:
-    propertiesFileSourceEncoding: UTF-8
-```
+    ```yaml
+    resources:
+      configuration:
+        propertiesFileSourceEncoding: UTF-8
+    ```
 
 #### ISO-8859-1
 
-```yaml
-resources:
-  configuration:
-    propertiesFileSourceEncoding: ISO-8859-1
-```
+    ```yaml
+    resources:
+      configuration:
+        propertiesFileSourceEncoding: ISO-8859-1
+    ```
 
 :::
 
@@ -216,7 +216,7 @@ UI5 CLI will read the corresponding files of the project in the given encoding. 
 
 ## Custom Configuration
 
-::: info
+::: info Info
 This configuration is available since UI5 CLI [`v2.2.0`](https://github.com/SAP/ui5-cli/releases/tag/v2.2.0)
 and applies only to projects defining [Specification Version](#specification-versions)
 2.1 or higher.
@@ -240,7 +240,7 @@ For third-party tools it is recommended to follow a namespace-like structure.
 
 ## Framework Configuration
 
-::: info
+::: info Info
 This configuration is available since UI5 CLI [`v2.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v2.0.0)
 and applies only to projects defining [Specification Version](#specification-versions)
 2.0 or higher.
@@ -254,18 +254,18 @@ Define your project's framework dependencies.
 In your project's framework configuration you must define whether you want to use the OpenUI5 or the SAPUI5 framework and which version:
 
 #### OpenUI5
-```yaml
-framework:
-  name: OpenUI5
-  version: 1.82.0
-```
+    ```yaml
+    framework:
+      name: OpenUI5
+      version: 1.82.0
+    ```
 
 #### SAPUI5
-```yaml
-framework:
-  name: SAPUI5
-  version: 1.82.0
-```
+    ```yaml
+    framework:
+      name: SAPUI5
+      version: 1.82.0
+    ```
 
 If you are not sure which framework is right for you, see our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5).
 
@@ -276,7 +276,7 @@ You can find an overview of the available versions for each framework here:
 - [**SAPUI5** Version Overview](http://ui5.sap.com/versionoverview.html)
     - *The lowest version supported by UI5 CLI is __1.76.0__*
 
-::: info
+::: info Info
 Projects that use the OpenUI5 framework cannot depend on projects that use the SAPUI5 framework.
 
 :::
@@ -285,40 +285,40 @@ Projects that use the OpenUI5 framework cannot depend on projects that use the S
 
 ::: details Example
 #### application
-```yaml
-specVersion: "4.0"
-type: application
-metadata:
-  name: my.company.app
-framework:
-  name: OpenUI5
-  version: 1.82.0
-  libraries:
-    - name: sap.ui.core
-    - name: sap.m
-    - name: sap.ui.table
-    - name: themelib_sap_fiori_3
-```
+    ```yaml
+    specVersion: "4.0
+    type: application
+    metadata:
+      name: my.company.app
+    framework:
+      name: OpenUI5
+      version: 1.82.0
+      libraries:
+        - name: sap.ui.core
+        - name: sap.m
+        - name: sap.ui.table
+        - name: themelib_sap_fiori_3
+    ```
 
 #### library
-```yaml
-specVersion: "4.0"
-type: library
-metadata:
-  name: my.company.library
-framework:
-  name: SAPUI5
-  version: 1.82.0
-  libraries:
-    - name: sap.ui.core
-    - name: sap.m
-    - name: themelib_sap_belize
-      optional: true
-    - name: themelib_sap_bluecrystal
-      optional: true
-    - name: themelib_sap_fiori_3
-      optional: true
-```
+    ```yaml
+    specVersion: "4.0
+    type: library
+    metadata:
+      name: my.company.library
+    framework:
+      name: SAPUI5
+      version: 1.82.0
+      libraries:
+        - name: sap.ui.core
+        - name: sap.m
+        - name: themelib_sap_belize
+          optional: true
+        - name: themelib_sap_bluecrystal
+          optional: true
+        - name: themelib_sap_fiori_3
+          optional: true
+    ```
 
     When building an application depending on this library as well as one of the theme libraries, only that theme is built for this library.
 
@@ -329,26 +329,26 @@ framework:
 All libraries required by your project must be listed in the `libraries` section of the framework configuration:
 
 #### OpenUI5
-```yaml
-framework:
-  name: OpenUI5
-  version: 1.82.0
-  libraries:
-    - name: sap.ui.core
-    - name: sap.m
-    - name: sap.ui.table
-```
+    ```yaml
+    framework:
+      name: OpenUI5
+      version: 1.82.0
+      libraries:
+        - name: sap.ui.core
+        - name: sap.m
+        - name: sap.ui.table
+    ```
 
 #### SAPUI5
-```yaml
-framework:
-  name: SAPUI5
-  version: 1.82.0
-  libraries:
-    - name: sap.ui.core
-    - name: sap.m
-    - name: sap.ui.comp
-```
+    ```yaml
+    framework:
+      name: SAPUI5
+      version: 1.82.0
+      libraries:
+        - name: sap.ui.core
+        - name: sap.m
+        - name: sap.ui.comp
+    ```
 
 #### Development Dependencies
 Development dependencies are only installed if the project defining them is the current root project.
@@ -376,46 +376,43 @@ You can choose which theme library to use by the application that is consuming t
 ### Exclude Resources
 
 ::: details Example
-
 #### application
-```yaml
-builder:
-  resources:
-    excludes:
-      # You can specify paths relative to the configured "webapp" directory
-      - "index.html"
-      # When defining absolute paths, make sure to specify the namespace plus the "/resources/" prefix
-      - "/resources/my/project/namespace/test/**"
-```
+    ```yaml
+    builder:
+      resources:
+        excludes:
+          # You can specify paths relative to the configured "webapp" directory
+          - "index.html
+          # When defining absolute paths, make sure to specify the namespace plus the "/resources/" prefix
+          - "/resources/my/project/namespace/test/**
+    ```
 
 #### library or theme-library
-```yaml
-builder:
-  resources:
-    excludes:
-      # For libraries, all paths must be absolute, except for wildcards
-      - "/resources/some/project/name/test_results/**"
-      - "/test-resources/**"
-      - "!/test-resources/some/project/name/demo-app/**"
-      - "**/*.svg"
-```
+    ```yaml
+    builder:
+      resources:
+        excludes:
+          # For libraries, all paths must be absolute, except for wildcards
+          - "/resources/some/project/name/test_results/**
+          - "/test-resources/**
+          - "!/test-resources/some/project/name/demo-app/**
+          - "**/*.svg
+	```
 
 #### module
+    !!! info
+        For projects of type `module`, this configuration is available since UI5 CLI [`v3.5.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.5.0)
+        and applies only to projects defining [Specification Version](#specification-versions) 3.1 or higher.
+    ```yaml
+    builder:
+      resources:
+        excludes:
+          # For modules, all paths must be absolute, except for wildcards
+          - "/resources/my/library/module-xy/min/**
+          - "!/resources/my/library/module-xy/min/module-xy-bundle.js
+          - "**/*.svg
+    ```
 
-::: info
-
-For projects of type `module`, this configuration is available since UI5 CLI [`v3.5.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.5.0)
-and applies only to projects defining [Specification Version](#specification-versions) 3.1 or higher.
-
-```yaml
-builder:
-  resources:
-    excludes:
-      # For modules, all paths must be absolute, except for wildcards
-      - "/resources/my/library/module-xy/min/**"
-      - "!/resources/my/library/module-xy/min/module-xy-bundle.js"
-      - "**/*.svg"
-```
 :::
 
 You can exclude a projects resources from the build process using a list of glob patterns. Matching resources will be ignored by the builder and all build tasks.
@@ -426,17 +423,17 @@ Patterns are applied to the **virtual resource paths** (i.e. the UI5 runtime pat
 
 ::: details Example
 #### time (default)
-```yaml
-builder:
-  cachebuster:
-    signatureType: time
-```
+    ```yaml
+    builder:
+      cachebuster:
+        signatureType: time
+    ```
 #### hash
-```yaml
-builder:
-  cachebuster:
-    signatureType: hash
-```
+    ```yaml
+    builder:
+      cachebuster:
+        signatureType: hash
+    ```
 
 :::
 
@@ -459,7 +456,7 @@ There are two ways to define the set of components for which preload bundles sho
 builder:
   componentPreload:
     paths:
-        - "my/awesome/app/**/Component.js"
+        - "my/awesome/app/**/Component.js
 ```
 
 :::
@@ -473,9 +470,9 @@ The `paths` option takes one or multiple patterns. For every matched file a sepa
 builder:
   componentPreload:
     namespaces:
-      - "my/awesome/app"
-      - "my/awesome/app/componentOne"
-      - "my/awesome/app/componentTwo"
+      - "my/awesome/app
+      - "my/awesome/app/componentOne
+      - "my/awesome/app/componentTwo
 ```
 
 :::
@@ -484,7 +481,7 @@ The `namespaces` option takes one or multiple component namespaces, which corres
 
 #### excludes
 
-::: info
+::: info Info
 This configuration is available since UI5 CLI [`v2.10.0`](https://github.com/SAP/ui5-cli/releases/tag/v2.10.0)
 and applies only to projects defining [Specification Version](#specification-versions)
 2.3 or higher.
@@ -492,26 +489,26 @@ and applies only to projects defining [Specification Version](#specification-ver
 ::: details Example
 #### Single Component
 
-```yaml
-builder:
-  componentPreload:
-    excludes:
-      - "my/awesome/app/localService/**"
-```
+    ```yaml
+    builder:
+      componentPreload:
+        excludes:
+          - "my/awesome/app/localService/**
+    ```
 
 #### Multiple Components
 
-```yaml
-builder:
-  componentPreload:
-    namespaces:
-      - "my/awesome/app"
-      - "my/awesome/app/componentOne"
-      - "my/awesome/app/componentTwo"
-    excludes:
-      - "my/awesome/app/**/thirdparty/"
-      - "!my/awesome/app/componentTwo/thirdparty/NotExcluded.js"
-```
+    ```yaml
+    builder:
+      componentPreload:
+        namespaces:
+          - "my/awesome/app
+          - "my/awesome/app/componentOne
+          - "my/awesome/app/componentTwo
+        excludes:
+          - "my/awesome/app/**/thirdparty/
+          - "!my/awesome/app/componentTwo/thirdparty/NotExcluded.js
+    ```
 
 :::
 
@@ -525,7 +522,7 @@ For projects of type `library` a `library-preload.js` bundle is generated by def
 
 #### excludes
 
-::: info
+::: info Info
 This configuration is available since UI5 CLI [`v2.10.0`](https://github.com/SAP/ui5-cli/releases/tag/v2.10.0)
 and applies only to projects defining [Specification Version](#specification-versions)
 2.3 or higher.
@@ -535,8 +532,8 @@ and applies only to projects defining [Specification Version](#specification-ver
 builder:
   libraryPreload:
     excludes:
-      - "my/lib/thirdparty/"
-      - "!my/lib/thirdparty/NotExcluded.js"
+      - "my/lib/thirdparty/
+      - "!my/lib/thirdparty/NotExcluded.js
 ```
 :::
 
@@ -577,7 +574,7 @@ Optionally, arbitrary `configuration` can be passed to the custom task.
 builder:
   jsdoc:
     excludes:
-      - "some/project/name/thirdparty/**"
+      - "some/project/name/thirdparty/**
 ```
 
 :::
@@ -590,7 +587,7 @@ These excludes are applied *before* any general builder excludes that have been 
 
 ### Include Dependencies
 
-::: info
+::: info Info
 This configuration is available since UI5 CLI [`v2.12.0`](https://github.com/SAP/ui5-cli/releases/tag/v2.12.0)
 and applies only to projects defining [Specification Version](#specification-versions)
 2.5 or higher.
@@ -621,7 +618,7 @@ The project's `ui5.yaml` file can contain a list of modules declared as glob pat
 
 Note that patterns are always applied relative to the project's virtual source directory `/resources/`.
 
-::: info
+::: info Info
 This configuration is available since UI5 CLI [`v2.14.0`](https://github.com/SAP/ui5-cli/releases/tag/v2.14.0)
 and applies only to projects defining [Specification Version](#specification-versions)
 2.6 or higher.
@@ -631,8 +628,8 @@ and applies only to projects defining [Specification Version](#specification-ver
 builder:
   minification:
     excludes:
-      - "my/lib/thirdparty/"
-      - "!my/lib/thirdparty/NotExcluded.js"
+      - "my/lib/thirdparty/
+      - "!my/lib/thirdparty/NotExcluded.js
 ```
 
 :::
@@ -661,12 +658,12 @@ The default and configured server ports can always be overwritten with the CLI p
 
 ::: details Example
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 type: application
 metadata:
   name: my.application
 ---
-specVersion: "4.0"
+specVersion: "4.0
 kind: extension
 type: project-shim
 metadata:
@@ -674,14 +671,14 @@ metadata:
 shims:
   configurations:
     lodash:
-      specVersion: "4.0"
+      specVersion: "4.0
       type: module
       metadata:
         name: lodash
       resources:
         configuration:
           paths:
-            /resources/my/application/thirdparty/: ""
+            /resources/my/application/thirdparty/: "
 ```
 
 :::
@@ -704,7 +701,7 @@ Extensions can be identified by the `kind: extension` configuration. Note that i
 builder:
   bundles:
     - bundleDefinition:
-        name: "sap-ui-custom.js"
+        name: "sap-ui-custom.js
         sections:
           - mode: raw
             filters:
@@ -714,7 +711,7 @@ builder:
       bundleOptions:
         optimize: true
     - bundleDefinition:
-        name: "app.js"
+        name: "app.js
         sections:
           - mode: preload
             filters:
@@ -767,7 +764,7 @@ A list of bundle definitions. A `bundleDefinition` contains of the following opt
 A project must define a specification version by setting the `specVersion` property. UI5 CLI uses this information to detect whether the currently installed version is compatible to a project's configuration.
 
 ```yaml
-specVersion: "4.0"
+specVersion: "4.0
 [...]
 ```
 
