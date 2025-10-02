@@ -1,14 +1,12 @@
 # Migrate to v4
 
-::: tip New Release
-**UI5 CLI 4.0 has been released on July 24, 2024 🎉**
+!!! tip "New Release"
+    **UI5 CLI 4.0 has been released on July 24, 2024 🎉**
 
-Install the latest version in your projects via: `npm i --save-dev @ui5/cli@latest`  
-And update your global install via `npm i --global @ui5/cli@latest`
+    Install the latest version in your projects via: `npm i --save-dev @ui5/cli@latest`  
+    And update your global install via `npm i --global @ui5/cli@latest`
 
-And find the announcement blog post here: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
-
-:::
+    And find the announcement blog post here: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
 
 ## UI5 2.x Compatibility
 
@@ -32,12 +30,10 @@ Old projects might therefore still work, unless they have a non-standard configu
 
 ## Changes for Projects
 
-::: tip No changes for Specification Versions 2.x and 3.x
-Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
+!!! success "No changes for Specification Versions 2.x and 3.x"
+    Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
 
-The following does not apply to them.
-
-:::
+    The following does not apply to them.
 
 For projects defining the latest **Specification Version 4.0 or higher**, the following changes apply:
 
@@ -45,7 +41,7 @@ For projects defining the latest **Specification Version 4.0 or higher**, the fo
     
     In UI5 2.x, the feature of evaluating modules from a string is expected to be removed. Therefore, when using the latest Specification Version, UI5 CLI will **omit affected module from the bundle and log an error message instead.**
 
-    For more details, see [Builder: JavaScript Files Requiring Top Level Scope](../pages/Builder#javascript-files-requiring-top-level-scope).
+    For more details, see [Builder: JavaScript Files Requiring Top Level Scope](../pages/Builder.md#javascript-files-requiring-top-level-scope).
 
 * **Breaking Change:** New `async` option for the `require` sections of bundle definitions.
     
@@ -53,13 +49,13 @@ For projects defining the latest **Specification Version 4.0 or higher**, the fo
 
     Note that the same default applies for all standard bundles as well, like the component- or library preloads as well as self-contained bundles.
 
-    See [Configuration: `bundleDefinition.sections`](../pages/Configuration#properties) for more on the new `async` option.
+    See [Configuration: `bundleDefinition.sections`](../pages/Configuration.md#properties) for more on the new `async` option.
 
-* **Breaking Change:** Removal of the `usePredefineCalls` [bundle option](../pages/Configuration#properties). UI5 CLI v4 will _always_ use `sap.ui.predefine` calls in bundles, making this option obsolete.
+* **Breaking Change:** Removal of the `usePredefineCalls` [bundle option](../pages/Configuration.md#properties). UI5 CLI v4 will _always_ use `sap.ui.predefine` calls in bundles, making this option obsolete.
     
     **We do not expect any negative impact** on projects due to this change, therefore it is active independently of the Specification Version. However, when upgrading to Specification Version 4.0 you might need to remove the property if you have it in your ui5.yaml configuration.
 
-You can find a summary of the above at [Configuration: Specification Version 4.0](../pages/Configuration#specification-version-40).
+You can find a summary of the above at [Configuration: Specification Version 4.0](../pages/Configuration.md#specification-version-40).
 
 ## Migrate Your Code
 
@@ -78,55 +74,49 @@ Non-public `DuplexCollection#byGlobSource` API has been removed.
 
 - **Bundling**: The `usePredefineCalls` option has been removed. Bundling now enforces the use of `sap.ui.predefine` instead of function wrappers.  
 
-- **Task API**: The `namespace` option has been renamed to `projectNamespace`. For more information, check the documentation for [CustomTasks API](../pages/extensibility/CustomTasks#task-implementation)  
+- **Task API**: The `namespace` option has been renamed to `projectNamespace`. For more information, check the documentation for [CustomTasks API](../pages/extensibility/CustomTasks.md#task-implementation)  
 
 - **New Option**: Added a new `async` option for `builder.bundles.bundleDefinition.section`.
 
-::: details Example
-```yaml
-builder:
-  bundles:
-    - bundleDefinition:
-        name: "app.js
-        sections:
-          - mode: require
-            filters:
-              - some/app/Component.js
-            resolve: true
-            sort: true
-            async: true
-```
-
-:::
+!!! example
+    ```yaml
+    builder:
+      bundles:
+        - bundleDefinition:
+            name: "app.js"
+            sections:
+              - mode: require
+                filters:
+                  - some/app/Component.js
+                resolve: true
+                sort: true
+                async: true
+    ```
 
 ### Changes to @ui5/project
 
 - **Default Workspace Name**: The default `workspaceName` is now `"default"` for API usage.
 
-::: details Example
-```js
-import {graphFromPackageDependencies} from "@ui5/project/graph";
+!!! example
+    ```js
+    import {graphFromPackageDependencies} from "@ui5/project/graph";
 	
-graphFromPackageDependencies({
-	/* workspaceName: "default" */
-});
-```
-
-:::
+	graphFromPackageDependencies({
+		/* workspaceName: "default" */
+	});
+    ```
 
 - **Directory Naming**: The `ui5HomeDir` has been renamed to `ui5DataDir` in APIs.
 
-::: details Example
-```js
-import Resolver from "@ui5/project/ui5Framework/Openui5Resolver";
+!!! example
+    ```js
+    import Resolver from "@ui5/project/ui5Framework/Openui5Resolver";
 
-await Resolver.resolveVersion("1.120.15", {
-    ui5DataDir: "~/.ui5",
-    cwd: process.cwd()
-});
-```
-
-:::
+    await Resolver.resolveVersion("1.120.15", {
+        ui5DataDir: "~/.ui5",
+        cwd: process.cwd()
+    });
+    ```
 
 - **Dependencies**: The `@ui5/builder` is now an optional dependency to the `@ui5/project`
 
@@ -138,7 +128,7 @@ Consumers of the Node.js API that make use of the `ProjectGraph#build` method ne
 
 This might be caused by a mismatch of your project's manifest version and your UI5 version.
 
-UI5 CLI v4 enhances the manifest.json with information about the `supportedLocales` (also see [Builder: Generation of Supported Locales](../pages/Builder#generation-of-supported-locales)). In UI5 1.71 this configuration is not supported and leads to an ambiguous error message `TypeError: invalid input` and a failure to process the manifest file.
+UI5 CLI v4 enhances the manifest.json with information about the `supportedLocales` (also see [Builder: Generation of Supported Locales](../pages/Builder.md#generation-of-supported-locales)). In UI5 1.71 this configuration is not supported and leads to an ambiguous error message `TypeError: invalid input` and a failure to process the manifest file.
 
 UI5 CLI uses the manifest's `_version` property to decide whether the `supportedLocales` can be generated. For UI5 1.71, only versions up to `1.17.0` are supported. See [UI5 Demo Kit: Descriptor for Applications, Components, and Libraries (manifest.json)](https://sdk.openui5.org/#/topic/be0cf40f61184b358b5faedaec98b2da) for a mapping per manifest version.
 
