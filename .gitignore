@@ -66,4 +66,5 @@ packages/documentation/docs/.vitepress/dist
 packages/documentation/docs/.vitepress/cache
 packages/documentation/.vitepress/dist
 packages/documentation/.vitepress/cache
+packages/documentation/dist
 

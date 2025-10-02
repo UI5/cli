@@ -22,10 +22,10 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"start": "vitepress dev docs --open",
-		"dev": "vitepress dev docs",
-		"build": "vitepress build docs",
-		"preview": "vitepress preview docs --port 8080",
+		"start": "vitepress dev --open",
+		"dev": "vitepress dev",
+		"build": "vitepress build",
+		"preview": "vitepress preview --port 8080",
 		"serve-docs": "npm run build && npm run preview"
 	},
 	"dependencies": {
