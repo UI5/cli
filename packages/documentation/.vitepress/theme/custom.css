@@ -1,0 +1,303 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+    * Colors
+    * -------------------------------------------------------------------------- */
+  :root {
+    /* Fire */
+    --ui5-fire-main: #ff5a37;         /* outrageous-orange-400 */
+    --ui5-fire-secondary: #ffa42c;    /* sunshade-400 */
+    --ui5-fire-background: #000000;   /* black */
+
+    /* Water */
+    --ui5-water-main: #1873b4;        /* denim-600 */
+    --ui5-water-secondary: #53b8de;   /* viking-400 */ 
+    --ui5-water-background: #ffffff;  /* white */
+
+    /* Tailwind CSS Color Generator
+    ** https://uicolors.app/create
+    */
+
+    /* VP */    
+    /* The most solid color used mainly for colored text. */
+    --vp-c-brand-1: #1873b4; /* lochmara-600 */
+    /* The color used mainly for hover state of the button. */
+    --vp-c-brand-2: #53b8de; /* lochmara-500 */
+    /* The color for solid background, such as bg color of the button. */
+    --vp-c-brand-3: #1873b4; /* endeavour-700 */
+    /* The color used for subtle background such as custom container or badges. */
+    /* The soft color must be semi transparent alpha channel. */
+    /*--vp-c-brand-soft: rgba(12, 72, 120, 0.14);*/ /* --brand-dark-blue */
+    --vp-c-brand-soft: rgba(3, 103, 161, 0.14); /* lochmara-700 */
+  }
+  .dark {
+    /* The most solid color used mainly for colored text. */
+    --vp-c-brand-1: #ff5a37; /* lochmara-600 */
+    /* The color used mainly for hover state of the button. */
+    --vp-c-brand-2: #ffa42c; /* lochmara-500 */
+    /* The color for solid background, such as bg color of the button. */
+    --vp-c-brand-3: #ff5a37; /* endeavour-700 */
+
+    /* The bg color used for main screen */
+    --vp-c-bg: #000000;
+    /* The alternative bg color used in places such as "sidebar" or "code block". */
+    
+    /* The elevated bg color. This is used at parts where it "floats", such as "dialog". */
+    /*--vp-c-bg-elv: red;*/ /* #1d2025;*/
+    /* The bg color to slightly ditinguish some components from the page. 
+    ** Used for things like "carbon ads" or "table". 
+    */
+    --vp-c-bg-soft: #2b313a; /* 202127 */
+    /* This is used for separators. This is used to divide sections within the same components, 
+    ** such as having separator on "h2" heading. 
+    */
+    --vp-c-divider: rgba(82,82,89,0.32); /*#2e2e32;*/
+    /* This is designed for borders on interactive components.
+    ** For example this should be used for a button outline. */
+    /*--vp-c-border: #3c3f44; */
+    /* This is used to divide components in the page. For example the header and the rest of the page. */
+    /*--vp-c-gutter: var(--vp-c-bg-alt);*/ /* #000000 */
+    --vp-c-gutter: transparent; /* #000000 */
+  }
+
+  img {
+    @apply rounded-md;
+  }
+
+  /* fix Tailwind default issue for Search button */
+  .DocSearch.button,
+  .DocSearch[type="button"] {
+    background-color: var(--vp-c-bg-alt);
+  }
+}
+
+/* Implement udina design language by avoiding repeated utility patterns */
+@layer components {
+  /* reset vpdoc */
+  .vp-doc .u-list-reset {
+    @apply list-none list-image-none p-0 m-0;
+  }
+
+  .vp-doc .u-list-reset li + li {
+    @apply mt-0;
+  }
+
+  /* Default KBD
+    ** https://flowbite.com/docs/components/kbd/ 
+    */
+  .u-kbd {
+    @apply px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-50 border border-gray-300 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500;
+  }
+
+  /* udina design language */
+  .udina {
+    @apply font-sans font-extrabold;
+  }
+
+  .u-right-brand {
+    @apply float-right ml-4 w-12 md:ml-8 md:w-20 lg:w-24;
+  }
+
+  .u-p-white {
+    @apply p-2 bg-white;
+  }
+
+  .u-bar {
+    @apply flex flex-col md:flex-row md:justify-between md:items-center space-y-2 md:space-y-0;
+  }
+
+  .u-bar-content {
+    @apply flex items-center;
+  }
+
+  .u-bar-singleLineContent {
+    @apply flex md:items-center flex-col md:flex-row space-y-2 md:space-y-0;
+  }
+}
+
+/**
+ * Prototypes
+ * -------------------------------------------------------------------------- */
+
+/* disable anchor undeline */
+.vp-doc a {
+  text-decoration: none;
+}
+
+.u-pi {
+  color: transparent;
+  font-size: 1rem;
+  transition: all .2s ease-in-out;
+}
+
+.u-pi:hover {
+  font-size: 2rem;
+  color: inherit;
+}
+
+/**
+* Custom Block
+* -------------------------------------------------------------------------- */
+.vp-doc .custom-block {
+  padding: 16px;  
+}
+
+.vp-doc .custom-block.tip {
+  border-color: var(--vp-c-tip-1);
+}
+
+.vp-doc .custom-block.warning {
+  border-color: var(--vp-c-warning-1);
+}
+
+.vp-doc .custom-block.danger {
+  border-color: var(--vp-c-danger-1);
+}
+
+.vp-doc .custom-block:not(.info) {
+  /*font-size: 95%;*/
+  border-width: 0 0 0 7px;
+}
+
+/* allow blue/udina color links in blocks */
+.vp-doc .custom-block a {
+  color: var(--vp-c-brand);
+}
+
+/* clearfix to avoid overlapping float-right image inside custom block */
+.vp-doc .custom-block:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/**
+* zoom vanilla
+* -------------------------------------------------------------------------- */
+img[data-action="zoom"] {
+  cursor: zoom-in;
+}
+
+.zoom-img,
+.zoom-img-wrap {
+  position: relative;
+  z-index: 666;
+  /*z-index: 20;*/
+  transition: all 300ms;
+}
+
+img.zoom-img {
+  cursor: zoom-out;
+  /* UDINA */
+  /*z-index: 21;*/
+  /* reset u-right-brand margin-left */
+  margin: 0;
+}
+
+.zoom-overlay {
+  cursor: zoom-out;
+  z-index: 420;
+  background: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  filter: "alpha(opacity=0)";
+  opacity: 0;
+  transition: opacity 300ms;
+  /* UDINA */
+  background-color: var(--vp-c-bg);
+}
+
+.zoom-overlay-open .zoom-overlay {
+  filter: "alpha(opacity=100)";
+  opacity: 1;
+}
+
+/**
+* Blockquotes
+* -------------------------------------------------------------------------- */
+.udina-quote {
+  font-family: Georgia, Times, "Times New Roman", serif;
+  font-size: 1.25em;
+  font-style: italic;
+  position: relative;
+  z-index: 0;
+}
+
+.udina-quote:before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  height: 1em;
+  background-color: var(--c-bg);
+  width: 5px;
+  margin-top: -0.5em;
+}
+
+.udina-quote:after {
+  content: "“";
+  position: absolute;
+  top: 50%;
+  left: -0.5em;
+  color: var(--c-border-dark);
+  font-size: 2em;
+  line-height: 2em;
+  text-align: center;
+  text-indent: -2px;
+  width: 0.8em;
+  margin-top: -0.75em;
+}
+
+.udina-quote cite {
+  display: block;
+  font-size: 0.75em;
+  margin-top: 0.5em;
+}
+
+/**
+* Figure (used by markdown-it-figure)
+* -------------------------------------------------------------------------- */
+figure {
+  margin-inline-start: 0;
+  margin-inline-end: 0;
+  text-align: center;
+  text-align: -webkit-center;
+  margin: 1rem 0;
+}
+
+figcaption {
+  margin-top: 0.5rem;
+  font-style: italic;
+  font-size: small;
+  text-align: center;
+  text-align: -webkit-center;
+}
+
+/**
+* Learn more
+* -------------------------------------------------------------------------- */
+.learn-more {
+  font-style: italic;
+  margin-top: -5px;
+  margin-bottom: 5px;
+  display: block;
+}
+
+li .learn-more {
+  margin-top: 0;
+}
+
+.learn-more:before {
+  content: url(/learn-more.svg);
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  vertical-align: middle;
+}

@@ -60,4 +60,4 @@ jsdocs/
 site/
 
 # Custom files
-docs/pages/CLI.md
+packages/documentation/docs/pages/CLI.md
