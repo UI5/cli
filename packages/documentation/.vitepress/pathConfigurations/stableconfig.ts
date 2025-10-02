@@ -20,7 +20,7 @@ export default defineConfig({
   
   base: "/ui5-tooling/stable/", // use this for github pages deployment or remove for CF
   srcDir: "docs",
-  outDir: "dist",
+  outDir: "site",
   lang: "en-US",
   title: "UI5 Tooling",
 
@@ -91,9 +91,7 @@ export default defineConfig({
   },
 
   markdown: {
-    externalLinks:{
-      
-    },
+   
     
     //theme: "material-theme-palenight", // pre rc5 default
     // Add support for your own languages.
@@ -185,11 +183,11 @@ function guide() {
 
         {
           text: "Home",
-          link: "/pages/index",
+          link: "/HomePage",
         },
         {
           text: "Getting Started",
-          link: "/pages/GettingStarted",
+          link: "/GettingStarted",
         },
 
       ],
@@ -198,7 +196,7 @@ function guide() {
     {
       text: "UI5 CLI",
       collapsed: true,
-      link: "/pages/CLI",
+      link: "/CLI",
 
 
     },
@@ -206,7 +204,7 @@ function guide() {
       text: "Configuration",
       collapsed: true,
 
-      link: "/pages/Configuration",
+      link: "/Configuration",
 
     },
     {
@@ -215,19 +213,19 @@ function guide() {
       items: [
         {
           text: "Overview",
-          link: "/pages/Overview",
+          link: "/Overview",
         },
         {
           text: "OpenUI5",
-          link: "/pages/OpenUI5",
+          link: "/OpenUI5",
         },
         {
           text: "SAPUI5",
-          link: "/pages/SAPUI5",
+          link: "/SAPUI5",
         },
         {
           text: "Workspace",
-          link: "/pages/Workspace",
+          link: "/Workspace",
         },
 
       ],
@@ -239,15 +237,15 @@ function guide() {
       items: [
         {
           text: "Custom Tasks",
-          link: "/pages/extensibility/CustomTasks",
+          link: "/extensibility/CustomTasks",
         },
         {
           text: "Custom Server Middleware",
-          link: "/pages/extensibility/CustomServerMiddleware",
+          link: "/extensibility/CustomServerMiddleware",
         },
         {
           text: "Project Shims",
-          link: "/pages/extensibility/ProjectShims",
+          link: "/extensibility/ProjectShims",
         },
       ],
     },
@@ -257,26 +255,26 @@ function guide() {
       items: [
         {
           text: "Server",
-          link: "/pages/Server",
+          link: "/Server",
         },
         {
           text: "Builder",
-          link: "/pages/Builder",
+          link: "/Builder",
         },
         {
           text: "Project",
-          link: "/pages/Project",
+          link: "/Project",
         },
         {
           text: "File System",
-          link: "/pages/FileSystem",
+          link: "/FileSystem",
         },
       ],
     },
     {
       text: "FAQ",
       collapsed: false,
-      link: "/pages/FAQ",
+      link: "/FAQ",
 
     },
     {
@@ -307,19 +305,19 @@ function guide() {
       items: [
         {
           text: "Troubleshooting",
-          link: "/pages/Troubleshooting",
+          link: "/Troubleshooting",
         },
         {
           text: "Benchmarking",
-          link: "/pages/Benchmarking",
+          link: "/Benchmarking",
         },
         {
           text: "ECMAScript Support",
-          link: "/pages/ESSupport",
+          link: "/ESSupport",
         },
         {
           text: "Code Analysis",
-          link: "/pages/CodeAnalysis",
+          link: "/CodeAnalysis",
         },
       ],
     },
