@@ -1,17 +1,19 @@
 # UI5 Workspaces
 
-!!! info
-    **UI5 Workspaces is a new feature available since UI5 CLI [`v3.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.0.0)** 
+::: info
+**UI5 Workspaces is a new feature available since UI5 CLI [`v3.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.0.0)** 
 
-!!! example
-    ```yaml title="ui5-workspace.yaml"
-    specVersion: workspace/1.0
-    metadata:
-        name: default
-    dependencyManagement:
+::: details
+```yaml title="ui5-workspace.yaml"
+specVersion: workspace/1.0
+metadata:
+    name: default
+dependencyManagement:
    	    resolutions:
-       	    - path: ../heavy.library
-    ```
+   	    - path: ../heavy.library
+```
+
+:::
 
 ## General Concept
 
@@ -19,24 +21,26 @@ UI5 Workspaces can be used to create a personalized local development environmen
 
 Workspaces are typically configured in a `ui5-workspace.yaml` file, located next to the project's `ui5.yaml`. The file can contain one or many workspace configurations, each separated by [three dashes](https://yaml.org/spec/1.2.2/#22-structures). For example:
 
-!!! example
-    ```yaml title="ui5-workspace.yaml"
-    specVersion: workspace/1.0
-    metadata:
-        name: default
-    dependencyManagement:
+::: details Example
+```yaml title="ui5-workspace.yaml"
+specVersion: workspace/1.0
+metadata:
+    name: default
+dependencyManagement:
    	    resolutions:
-       	    - path: ../heavy.library
-    ---
-    specVersion: workspace/1.0
-    metadata:
-        name: extended
-    dependencyManagement:
+   	    - path: ../heavy.library
+---
+specVersion: workspace/1.0
+metadata:
+    name: extended
+dependencyManagement:
    	    resolutions:
-       	    - path: ../heavy.library
-       	    - path: ../light.library
-       	    - path: ../test.library
-    ```
+   	    - path: ../heavy.library
+   	    - path: ../light.library
+   	    - path: ../test.library
+```
+
+:::
 
 If a workspace configuration named `default` exists, it will be used automatically; otherwise the workspace must be specified using the UI5 CLI parameter `--workspace`.
 
@@ -53,12 +57,14 @@ specVersion: "workspace/1.0"
 
 ### Metadata
 
-!!! example
-    ```yaml
-    specVersion: workspace/1.0
-    metadata:
-        name: dolphin
-    ```
+::: details Example
+```yaml
+specVersion: workspace/1.0
+metadata:
+    name: dolphin
+```
+
+:::
 
 #### name
 
@@ -66,7 +72,7 @@ A workspace must have a `name`. This allows to easily switch between individual 
 
 If a workspace is named `default`, **it will be used automatically**, unless a different workspace is selected using the `--workspace` CLI parameter.
 
-The `name` property must satisfy the following conditions. They are identical to [project names](./Configuration.md#name):
+The `name` property must satisfy the following conditions. They are identical to [project names](./Configuration#name):
 
 * Must be at least 3 characters long
 * Must be no longer than 80 characters
@@ -83,17 +89,19 @@ The `name` property must satisfy the following conditions. They are identical to
 
 UI5 Workspace configurations allow to influence the dependency resolution when working with a UI5 project.
 
-!!! example
-    ```yaml
-    specVersion: workspace/1.0
-    metadata:
-        name: dolphin
-    dependencyManagement:
+::: details
+```yaml
+specVersion: workspace/1.0
+metadata:
+    name: dolphin
+dependencyManagement:
    		resolutions:
-       		- path: ../light.library
-       		- path: ../heavy.library
-       		- path: ../test.library
-    ```
+   		- path: ../light.library
+   		- path: ../heavy.library
+   		- path: ../test.library
+```
+
+:::
 
 ### Resolutions
 
