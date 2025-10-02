@@ -26,9 +26,13 @@
 		"dev": "vitepress dev",
 		"build": "vitepress build",
 		"preview": "vitepress preview --port 8080",
+<<<<<<< HEAD
 		"serve-docs": "npm run build && npm run preview",
 		"jsdoc": "npm run jsdoc-generate && open-cli dist/api/index.html",
 		"jsdoc-generate": "jsdoc -c jsdoc/jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)"
+=======
+		"serve-docs": "npm run build && npm run preview"
+>>>>>>> fcaefa2e00 (feat: Add vitepress & config)
 	},
 	"dependencies": {
 		"@types/markdown-it-plantuml": "^1.4.5",
@@ -43,6 +47,7 @@
 		"tailwindcss": "^3.4.10",
 		"vitepress": "^1.3.4",
 		"vue": "^3.4.38"
+<<<<<<< HEAD
 	},
 	"devDependencies": {
 		"@ui5/builder": "^4.0.11",
@@ -53,5 +58,7 @@
 		"docdash": "^2.0.2",
 		"jsdoc": "^4.0.4",
 		"open-cli": "^8.0.0"
+=======
+>>>>>>> fcaefa2e00 (feat: Add vitepress & config)
 	}
 }
