@@ -10,12 +10,12 @@ Please note that custom middleware packages from third parties can not only modi
 
 In a projects `ui5.yaml` file, you can define additional server middleware modules that will be executed when the request is received by the server. This configuration exclusively affects the server started in this project. Custom middleware configurations defined in any dependencies are ignored.
 
-A middleware may be executed before or after any other middleware. This can either be a [standard middleware](../Server#standard-middleware) or another custom middleware.
+A middleware may be executed before or after any other middleware. This can either be a [standard middleware](../Server.md#standard-middleware) or another custom middleware.
 
 ### Example: Basic configuration
 
 ```yaml
-specVersion: "4.0
+specVersion: "4.0"
 type: application
 metadata:
   name: my.application
@@ -45,7 +45,7 @@ A custom middleware extension consists of a `ui5.yaml` and a [custom middleware 
 ### Example: ui5.yaml
 
 ```yaml
-specVersion: "4.0
+specVersion: "4.0"
 kind: extension
 type: server-middleware
 metadata:
@@ -65,7 +65,7 @@ The UI5 Server will detect the custom middleware configuration of the project an
 
 ```yaml
 # Project configuration for the above example
-specVersion: "4.0
+specVersion: "4.0"
 kind: project
 type: application
 metadata:
@@ -76,7 +76,7 @@ server:
       beforeMiddleware: serveResources
 ---
 # Custom middleware extension as part of your project
-specVersion: "4.0
+specVersion: "4.0"
 kind: extension
 type: server-middleware
 metadata:
@@ -89,9 +89,9 @@ middleware:
 
 A custom middleware implementation needs to return a function with the following signature:
 
-#### ESM
+=== "ESM"
 
-    ```js linenums="1
+    ```js linenums="1"
     /**
      * Custom UI5 Server middleware API
      * 
@@ -127,9 +127,9 @@ A custom middleware implementation needs to return a function with the following
     };
     ```
 
-#### CommonJS
+=== "CommonJS"
 
-    ```js linenums="1
+    ```js linenums="1"
     /**
      * Custom UI5 Server middleware API
      * 
@@ -167,9 +167,9 @@ A custom middleware implementation needs to return a function with the following
 
 ### Example: lib/middleware/markdownHandler.(m)js
 
-#### ESM
+=== "ESM"
 
-    ```js linenums="1
+    ```js linenums="1"
     import MarkdownIt from "markdown-it";
 
     export default async function({log, middlewareUtil, options, resources}) {
@@ -201,9 +201,9 @@ A custom middleware implementation needs to return a function with the following
     ```
     Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3-esm)
 
-#### CommonJS
+=== "CommonJS"
 
-    ```js linenums="1
+    ```js linenums="1"
     module.exports = async function({log, middlewareUtil, options, resources}) {
         const MarkdownIt = require("markdown-it");
         const md = new MarkdownIt();
@@ -236,7 +236,7 @@ A custom middleware implementation needs to return a function with the following
 
 ## Helper Class `MiddlewareUtil`
 
-Custom middleware defining [Specification Version](../Configuration#specification-versions) 2.0 or higher have access to an interface of a [MiddlewareUtil](https://ui5.github.io/cli/v4/api/@ui5_server_middleware_MiddlewareUtil.html) instance.
+Custom middleware defining [Specification Version](../Configuration.md#specification-versions) 2.0 or higher have access to an interface of a [MiddlewareUtil](https://ui5.github.io/cli/v4/api/@ui5_server_middleware_MiddlewareUtil.html) instance.
 
 In this case, a `middlewareUtil` object is provided as a part of the custom middleware's [parameters](#custom-middleware-implementation). Depending on the specification version of the custom middleware, a set of helper functions is available to the implementation. The lowest required specification version for every function is listed in the [MiddlewareUtil API reference](https://ui5.github.io/cli/v5/api/@ui5_server_middleware_MiddlewareUtil.html).
 

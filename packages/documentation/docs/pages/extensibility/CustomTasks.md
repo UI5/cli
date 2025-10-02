@@ -1,6 +1,6 @@
 # Custom UI5 Builder Tasks
 
-The UI5 Build Extensibility enables you to enhance the build process of any UI5 project. In addition to the [standard tasks](../Builder#standard-tasks), custom tasks can be created.
+The UI5 Build Extensibility enables you to enhance the build process of any UI5 project. In addition to the [standard tasks](../Builder.md#standard-tasks), custom tasks can be created.
 
 The UI5 community already created many custom tasks which you can integrate into your project. They are often prefixed by `ui5-task-` to make them easily searchable in the [npm registry](https://www.npmjs.com/search?q=ui5-task-).
 
@@ -8,9 +8,9 @@ Please note that custom tasks from third parties can not only modify your projec
 
 ## Configuration
 
-You can configure your build process with additional build task. These custom tasks are defined in the project [configuration](../Configuration).
+You can configure your build process with additional build task. These custom tasks are defined in the project [configuration](../Configuration.md).
 
-To hook your custom tasks into the different build phases of a project, they need to reference other tasks to be executed before or after. This can be a [standard task](../Builder#standard-tasks) or another custom task. 
+To hook your custom tasks into the different build phases of a project, they need to reference other tasks to be executed before or after. This can be a [standard task](../Builder.md#standard-tasks) or another custom task. 
 Standard tasks that are disabled, even though they are not executed, can still be referenced by custom tasks, which will be performed in their designated position.
 
 In the below example, when building the library `my.library` the custom `babel` task will be executed before the standard task `generateComponentPreload`.  
@@ -20,7 +20,7 @@ Another custom task called `render-markdown-files` is then executed immediately 
 
 ```yaml
 # In this example configuration, two custom tasks are defined: 'babel' and 'render-markdown-files'.
-specVersion: "4.0
+specVersion: "4.0"
 type: library
 metadata:
   name: my.library
@@ -41,7 +41,7 @@ You can also connect multiple custom tasks with each other. The order in the con
 
 ```yaml
 # In this example, 'my-custom-task-2' gets executed after 'my-custom-task-1'.
-specVersion: "4.0
+specVersion: "4.0"
 type: library
 metadata:
   name: my.library
@@ -60,7 +60,7 @@ A custom task extension consists of a `ui5.yaml` and a [task implementation](#ta
 ### Example: ui5.yaml
 
 ```yaml
-specVersion: "4.0
+specVersion: "4.0"
 kind: extension
 type: task
 metadata:
@@ -80,7 +80,7 @@ The task extension will then be automatically collected and processed during the
 
 ```yaml
 # Project configuration for the above example
-specVersion: "4.0
+specVersion: "4.0"
 kind: project
 type: library
 metadata:
@@ -94,7 +94,7 @@ builder:
             firstH1IsTitle: true
 ---
 # Task extension as part of your project
-specVersion: "4.0
+specVersion: "4.0"
 kind: extension
 type: task
 metadata:
@@ -107,9 +107,9 @@ task:
 
 A custom task implementation needs to return a function with the following signature:
 
-#### ESM
+=== "ESM"
 
-    ```js linenums="1
+    ```js linenums="1"
     /**
      * Custom task API
      *
@@ -147,9 +147,9 @@ A custom task implementation needs to return a function with the following signa
     };
     ```
 
-#### CommonJS
+=== "CommonJS"
 
-    ```js linenums="1
+    ```js linenums="1"
     /**
      * Custom task API
      *
@@ -189,10 +189,8 @@ A custom task implementation needs to return a function with the following signa
 
 ### Required Dependencies
 
-::: info Info
-This functionality has been added with UI5 CLI [`v3.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.0.0)
-
-:::
+!!! info
+    This functionality has been added with UI5 CLI [`v3.0.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.0.0)
 
 Custom tasks can export an optional callback function `determineRequiredDependencies` to control which dependency-resources are made available through the `dependencies`-reader that is provided to the task. By reducing the amount of required dependencies or by not requiring any, UI5 CLI might be able to build a project faster.
 
@@ -204,11 +202,11 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
 * **Specification Versions before 3.0:** If no callback is provided, UI5 CLI assumes that all dependencies are required.
 
 
-*For more details, see also [RFC 0012 UI5 CLI Extension API v3](https://github.com/UI5/cli/blob/rfc-ui5-tooling-extension-api-v3/rfcs/0012-UI5-Tooling-Extension-API-3#3-tasks-requiring-dependencies)*
+*For more details, see also [RFC 0012 UI5 CLI Extension API v3](https://github.com/UI5/cli/blob/rfc-ui5-tooling-extension-api-v3/rfcs/0012-UI5-Tooling-Extension-API-3.md#3-tasks-requiring-dependencies)*
 
-#### ESM
+=== "ESM"
 
-    ```js linenums="1
+    ```js linenums="1"
     /**
      * Callback function to define the list of required dependencies
      *
@@ -247,9 +245,9 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
     }
     ```
 
-#### CommonJS
+=== "CommonJS"
 
-    ```js linenums="1
+    ```js linenums="1"
     /**
      * Callback function to define the list of required dependencies
      *
@@ -298,9 +296,9 @@ This example is making use of the `resourceFactory` [TaskUtil](https://ui5.githu
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
 
-#### ESM
+=== "ESM"
 
-    ```js linenums="1
+    ```js linenums="1"
     import path from "node:path";
     import renderMarkdown from "./renderMarkdown.js";
 
@@ -329,9 +327,9 @@ result by writing them into the provided `workspace`.
     };
     ```
 
-#### CommonJS
+=== "CommonJS"
 
-    ```js linenums="1
+    ```js linenums="1"
     const path = require("node:path");
     const renderMarkdown = require("./renderMarkdown.js");
 
@@ -360,12 +358,10 @@ result by writing them into the provided `workspace`.
     };
     ```
 
-::: warning Warning
-Depending on your project setup, UI5 CLI tends to open many files simultaneously during a build. To prevent errors like `EMFILE: too many open files`, we urge custom task implementations to use the [graceful-fs](https://github.com/isaacs/node-graceful-fs#readme) module as a drop-in replacement for the native `fs` module in case it is used.
+!!! warning
+    Depending on your project setup, UI5 CLI tends to open many files simultaneously during a build. To prevent errors like `EMFILE: too many open files`, we urge custom task implementations to use the [graceful-fs](https://github.com/isaacs/node-graceful-fs#readme) module as a drop-in replacement for the native `fs` module in case it is used.
 
-Tasks should ideally use the reader/writer APIs provided by UI5 CLI for working with project resources.
-
-:::
+    Tasks should ideally use the reader/writer APIs provided by UI5 CLI for working with project resources.
 
 ### Example: lib/tasks/compileLicenseSummary.js
 
@@ -373,14 +369,14 @@ This example is making use of multiple [TaskUtil](https://ui5.github.io/cli/v5/a
 APIs to retrieve additional information about the project currently being built (`taskUtil.getProject()`) and its direct dependencies
 (`taskUtil.getDependencies()`). Project configuration files like `package.json` can be accessed directly using `project.getRootReader()`.
 
-#### ESM
+=== "ESM"
 
-    ```js linenums="1
+    ```js linenums="1"
     import path from "node:path";
 
     /*
     * Compile a list of all licenses of the project's dependencies
-    * and write it to "dependency-license-summary.json
+    * and write it to "dependency-license-summary.json"
     */
     export default async function({dependencies, log, options, taskUtil, workspace}) {
         const {createResource} = taskUtil.resourceFactory;
@@ -394,7 +390,7 @@ APIs to retrieve additional information about the project currently being built 
                 }
                 projectsVisited.add(projectName);
                 const project = taskUtil.getProject(projectName);
-                const pkgResource = await project.getRootReader().byPath(../package.json");
+                const pkgResource = await project.getRootReader().byPath("/package.json");
                 if (pkgResource) {
                     const pkg = JSON.parse(await pkgResource.getString())
 
@@ -423,14 +419,14 @@ APIs to retrieve additional information about the project currently being built 
     };
     ```
 
-#### CommonJS
+=== "CommonJS"
 
-    ```js linenums="1
+    ```js linenums="1"
     const path = require("node:path");
 
     /*
     * Compile a list of all licenses of the project's dependencies
-    * and write it to "dependency-license-summary.json
+    * and write it to "dependency-license-summary.json"
     */
     module.exports = async function({dependencies, log, options, taskUtil, workspace}) {
         const {createResource} = taskUtil.resourceFactory;
@@ -444,7 +440,7 @@ APIs to retrieve additional information about the project currently being built 
                 }
                 projectsVisited.add(projectName);
                 const project = taskUtil.getProject(projectName);
-                const pkgResource = await project.getRootReader().byPath(../package.json");
+                const pkgResource = await project.getRootReader().byPath("/package.json");
                 if (pkgResource) {
                     const pkg = JSON.parse(await pkgResource.getString())
 
@@ -475,6 +471,6 @@ APIs to retrieve additional information about the project currently being built 
 
 ## Helper Class `TaskUtil`
 
-Custom tasks defining [Specification Version](../Configuration#specification-versions) 2.2 or higher have access to an interface of a [TaskUtil](https://ui5.github.io/cli/v4/api/@ui5_project_build_helpers_TaskUtil.html) instance.
+Custom tasks defining [Specification Version](../Configuration.md#specification-versions) 2.2 or higher have access to an interface of a [TaskUtil](https://ui5.github.io/cli/v4/api/@ui5_project_build_helpers_TaskUtil.html) instance.
 
 In this case, a `taskUtil` object is provided as a part of the custom task's [parameters](#task-implementation). Depending on the specification version of the custom task, a set of helper functions is available to the implementation. The lowest required specification version for every function is listed in the [TaskUtil API reference](https://ui5.github.io/cli/v5/api/@ui5_project_build_helpers_TaskUtil.html).

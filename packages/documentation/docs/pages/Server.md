@@ -2,17 +2,13 @@
 
 The [UI5 Server](https://github.com/SAP/ui5-server) module provides server capabilities for local development of UI5 projects.
 
-<div style="margin: 1rem 0;">
-  <a href="https://ui5.github.io/cli/v4/api/module-@ui5_server.html" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
-    📚 API Reference
-  </a>
-</div>
+[**API Reference**](https://ui5.github.io/cli/v4/api/module-@ui5_server.html){: .md-button .sap-icon-initiative }
 
 ## Standard Middleware
 
 All available standard middleware are listed below in the order of their execution.
 
-A project can also add custom middleware to the server by using the [Custom Server Middleware Extensibility](./extensibility/CustomServerMiddleware).
+A project can also add custom middleware to the server by using the [Custom Server Middleware Extensibility](./extensibility/CustomServerMiddleware.md).
 
 | Middleware | Description |
 | ---- | ---- |
@@ -52,8 +48,8 @@ This middleware resolves requests using the [ui5-fs](https://github.com/SAP/ui5-
 
 The following file content transformations are executed:
 
-- Escaping non-ASCII characters in `.properties` translation files based on a project's [configuration](./Configuration#encoding-of-properties-files)
-- Enhancing the `manifest.json` with supported locales determined by available `.properties` [translation files](./Builder#generation-of-supported-locales)
+- Escaping non-ASCII characters in `.properties` translation files based on a project's [configuration](./Configuration.md#encoding-of-properties-files)
+- Enhancing the `manifest.json` with supported locales determined by available `.properties` [translation files](./Builder.md#generation-of-supported-locales)
 
 ### testRunner
 Serves a static version of the UI5 QUnit TestRunner at `/test-resources/sap/ui/qunit/testrunner.html`.
@@ -77,7 +73,5 @@ When starting the UI5 Server in HTTPS- or HTTP/2 mode, for example by using UI5 
 
 Follow the given instructions and enter your password to install the generated certificate as trusted. You can find the generated certificate and corresponding private key under `.ui5/server` in your user's home directory.
 
-::: tip Tip
-If Chrome unintentionally redirects an HTTP-URL to HTTPS, you need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. localhost) and pressing "delete".
-
-:::
+!!! tip
+    If Chrome unintentionally redirects an HTTP-URL to HTTPS, you need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. localhost) and pressing "delete".

@@ -9,7 +9,7 @@ UI5 CLI offers general support for `ES2023` ECMAScript features. While a `ui5 bu
 | v3.0+               | ECMAScript 2022              |      |
 | v2.0+               | ECMAScript 2009/ES5          | Note that code up to ECMAScript 2020 can be parsed, however required code analysis might not work correctly for specific language features |
 
-The following section describes all restrictions grouped by the kind of ECMAScript language feature. To get more insights into the code analysing executed by UI5 CLI check out [Code Analysis](./CodeAnalysis).
+The following section describes all restrictions grouped by the kind of ECMAScript language feature. To get more insights into the code analysing executed by UI5 CLI check out [Code Analysis](./CodeAnalysis.md).
 
 ## Language Features with Restrictions
 
@@ -21,20 +21,20 @@ In general, UI5 CLI only analyzes **JavaScript** files of type `script`. [JavaSc
 
 UI5 CLI and the UI5 Runtime does not support the usage of `export` and `import` of JavaScript Modules. Therefore, `sap.ui.define` has to be used.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
         "ModuleA",
-        "ModuleB
+        "ModuleB"
     ], function(ModuleA, ModuleB) {
         return ModuleA.extend("ModuleC", {});
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="1 2 3"
     import ModuleA from "ModuleA";
     import ModuleB from "ModuleB";
     export default class ModuleC extends ModuleA {};
@@ -48,7 +48,7 @@ UI5 CLI and the UI5 Runtime does not support the usage of `export` and `import` 
 
 Template Literals with one or more expressions inside a `sap.ui.define` or `sap.ui.require` call are not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
@@ -58,9 +58,9 @@ Template Literals with one or more expressions inside a `sap.ui.define` or `sap.
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="4"
     const i = `B`;
     sap.ui.define([
         `ModuleA`,
@@ -75,7 +75,7 @@ The same rule applies also for the usage of deprecated or no longer recommended 
 
 When declaring a **Smart Template** using a **Template Literal** with one or more expressions in the name of the **Smart Template** is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
@@ -97,9 +97,9 @@ When declaring a **Smart Template** using a **Template Literal** with one or mor
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="6"
     sap.ui.define([
         `sap/suite/ui/generic/template/lib/TemplateAssembler`
     ], function(TemplateAssembler) {
@@ -126,7 +126,7 @@ The **XMLComposite** control is deprecated since version UI5 1.88. Nevertheless 
 
 Declaring an **XMLComposite** control using a **Template Literal** with one or more expressions in the name, is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
@@ -136,9 +136,9 @@ Declaring an **XMLComposite** control using a **Template Literal** with one or m
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="5"
     sap.ui.define([
         `sap/ui/core/XMLComposite`
     ], function(XMLComposite) {
@@ -151,7 +151,7 @@ Declaring an **XMLComposite** control using a **Template Literal** with one or m
 
 A library is typically initialized via an accompanying `library.js`. Within that file, the object which is supplied to the `sap/ui/core/Core#initLibrary` method, must not use a **Template Literal** with one or more expressions for the library name.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.getCore().initLibrary({
@@ -159,9 +159,9 @@ A library is typically initialized via an accompanying `library.js`. Within that
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const libraryName = `lib`;
     sap.ui.getCore().initLibrary({
         name: `my.${libraryName}`
@@ -177,16 +177,16 @@ While UI5 CLI performs a build placeholders are replaced with a values offered b
 - `buildtime`
 - `copyright`
 
-#### Supported
+=== "Supported"
 
     ```javascript
     const myVersion = `1.2`;
     const transformedVersion `v${myVersion}`
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const version = `1.2`;
     const transformedVersion `v${version}`
     ```
@@ -201,19 +201,19 @@ A [Spread Element](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Refer
 
 A **Spread Element** as a parameter in a `sap.ui.define` or `sap.ui.require` call is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
         "ModuleA",
-        "ModuleB
+        "ModuleB"
     ], function(ModuleA, ModuleB) {
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const dependencies = ["ModuleA", "ModuleB"];
     sap.ui.define([
         ...dependencies
@@ -227,11 +227,11 @@ The same rule applies also for the usage of deprecated or no longer recommended 
 
 When declaring a **Smart Template**, the usage of a **Spread Element** in the configuration is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "sap/suite/ui/generic/template/lib/TemplateAssembler
+        "sap/suite/ui/generic/template/lib/TemplateAssembler"
     ], function(TemplateAssembler) {
         return TemplateAssembler.getTemplateComponent(getMethods, 
             "sap.suite.ui.generic.templates.Page.Component", {
@@ -239,26 +239,26 @@ When declaring a **Smart Template**, the usage of a **Spread Element** in the co
                     properties: {
                         templateName: {
                             type: "string",
-                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
                         }
                     },
-                    manifest: "json
+                    manifest: "json"
                 }
             }
         );
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="6"
     sap.ui.define([
-        "sap/suite/ui/generic/template/lib/TemplateAssembler
+        "sap/suite/ui/generic/template/lib/TemplateAssembler"
     ], function(TemplateAssembler) {
         const myTemplate = {
             templateName: {
                 type: "string",
-                defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
             }
         };
         return TemplateAssembler.getTemplateComponent(getMethods,
@@ -267,7 +267,7 @@ When declaring a **Smart Template**, the usage of a **Spread Element** in the co
                     properties: {
                         ...myTemplate
                     }
-                    manifest: "json
+                    manifest: "json"
                 }
             }
         );
@@ -280,26 +280,26 @@ The **XMLComposite** control is deprecated since version UI5 1.88. Nevertheless 
 
 When declaring an **XMLComposite**, the usage of a **Spread Element** in the configuration is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "sap/ui/core/XMLComposite
+        "sap/ui/core/XMLComposite"
     ], function(XMLComposite) {
         return XMLComposite.extend("composites.MyComposite", {
-            fragment: "composites.custom.MyComposite
+            fragment: "composites.custom.MyComposite"
         } 
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="5"
     sap.ui.define([
-        "sap/ui/core/XMLComposite
+        "sap/ui/core/XMLComposite"
     ], function(XMLComposite) {
         const myXMLComposite = {
-              fragment: "composites.custom.MyComposite
+              fragment: "composites.custom.MyComposite"
         };
         return XMLComposite.extend(`composites.MyComposite`, {
             ...myXMLComposite
@@ -311,19 +311,19 @@ When declaring an **XMLComposite**, the usage of a **Spread Element** in the con
 
 A library is typically initialized via an accompanying `library.js`. Within that file, the object which is supplied to the `sap/ui/core/Core#initLibrary` method, must not use a **Spread Element**.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.getCore().initLibrary({
-        name: "my.lib
+        name: "my.lib"
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="5"
     const mylib = {
-        name: "my.lib
+        name: "my.lib"
     };
     sap.ui.getCore().initLibrary({
         ...mylib
@@ -347,19 +347,19 @@ An **Object Expression** can be used in all places except in following places.
 
 An **Object Expression** as a parameter in a `sap.ui.define` or `sap.ui.require` call is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "Bar
+        "Bar"
     ], function(Bar){
     });
 
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const dependency = "Bar";
     sap.ui.define([
         dependency
@@ -373,11 +373,11 @@ The same rule applies also for the usage of deprecated or no longer recommended 
 
 When declaring a **Smart Template**, the usage of an **Object Expression** in the configuration is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "sap/suite/ui/generic/template/lib/TemplateAssembler
+        "sap/suite/ui/generic/template/lib/TemplateAssembler"
     ], function(TemplateAssembler) {
         return TemplateAssembler.getTemplateComponent(getMethods, 
             "sap.suite.ui.generic.templates.Page.Component", {
@@ -385,33 +385,33 @@ When declaring a **Smart Template**, the usage of an **Object Expression** in th
                     properties: {
                         templateName: {
                             type: "string",
-                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
                         }
                     },
-                    manifest: "json
+                    manifest: "json"
                 }
             }
         );
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="9"
     sap.ui.define([
-        "sap/suite/ui/generic/template/lib/TemplateAssembler
+        "sap/suite/ui/generic/template/lib/TemplateAssembler"
     ], function(TemplateAssembler) {
-        const key = "templateName
+        const key = "templateName"
         return TemplateAssembler.getTemplateComponent(getMethods,
             `sap.suite.ui.generic.templates.Page.${name}`, {
                 metadata: {
                     properties: {
                         [key]: {
                             type: "string",
-                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page
+                            defaultValue: "sap.suite.ui.generic.templates.Page.view.Page"
                         }
                     }
-                    manifest: "json
+                    manifest: "json"
                 }
             }
         );
@@ -424,27 +424,27 @@ The **XMLComposite** control is deprecated since version UI5 1.88. Nevertheless 
 
 When declaring an **XMLComposite**, the usage of an **Object Expression** in the configuration is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "sap/ui/core/XMLComposite
+        "sap/ui/core/XMLComposite"
     ], function(XMLComposite) {
         return XMLComposite.extend("composites.MyComposite", {
-            fragment: "composites.custom.MyComposite
+            fragment: "composites.custom.MyComposite"
         } 
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="6"
     sap.ui.define([
-        "sap/ui/core/XMLComposite
+        "sap/ui/core/XMLComposite"
     ], function(XMLComposite) {
         const key = "fragment";
         return XMLComposite.extend("composites.MyComposite", {
-            [key]: "composites.custom.MyComposite
+            [key]: "composites.custom.MyComposite"
         });
     });
     ```
@@ -453,20 +453,20 @@ When declaring an **XMLComposite**, the usage of an **Object Expression** in the
 
 A library is typically initialized via an accompanying `library.js`. Within that file, the object which is supplied to the `sap/ui/core/Core#initLibrary` method, must not use an **Object Expression**.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.getCore().initLibrary({
-        name: "my.lib
+        name: "my.lib"
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const key = "name";
     sap.ui.getCore().initLibrary({
-        [key]: "my.lib
+        [key]: "my.lib"
     });
     ```
 
@@ -478,23 +478,23 @@ A **Computed Property** can be used in all places except in following places.
 
 One or more **Computed Property** as a parameter in an UI5 Module `extend` call is not supported.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "Bar
+        "Bar"
     ], function(Bar){
         return Bar.extend("my.Bar" {});
     });
 
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const name = "my";
     sap.ui.define([
-        "Bar
+        "Bar"
     ], function(Bar){
         return Bar.extend(name + ".Bar", {});
     });
@@ -504,20 +504,20 @@ One or more **Computed Property** as a parameter in an UI5 Module `extend` call 
 
 A library is typically initialized via an accompanying `library.js`. Within that file, the object which is supplied to the `sap/ui/core/Core#initLibrary` method, must not use an **Computed Property**.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.getCore().initLibrary({
-        name: "my.lib
+        name: "my.lib"
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="3"
     const name = "my";
     sap.ui.getCore().initLibrary({
-        name: name + ".lib
+        name: name + ".lib"
     });
     ```
 
@@ -525,11 +525,11 @@ A library is typically initialized via an accompanying `library.js`. Within that
 
 If you want to generate a JSDoc build of your project and using a **Class Declaration** the class declaration should not be returned directly. Declare the class and return the class in a separate statement. If not JSDoc treats the the class declaration as a return statement and does not recognize any JSDoc if such is provided right above the class declaration.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "Bar
+        "Bar"
     ], function(Bar){
         /**
          * JSDoc block here
@@ -542,11 +542,11 @@ If you want to generate a JSDoc build of your project and using a **Class Declar
     });
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="7"
     sap.ui.define([
-        "Bar
+        "Bar"
     ], function(Bar){
         /**
          * JSDoc block here
@@ -561,11 +561,11 @@ If you want to generate a JSDoc build of your project and using a **Class Declar
 
 If you want to generate a JSDoc build of your project and use an **Arrow Function Expression** the JSDoc has to be written above the arrow function and not above the `sap.ui.define/sap.ui.require` command.
 
-#### Supported
+=== "Supported"
 
     ```javascript
     sap.ui.define([
-        "Bar
+        "Bar"
     ], 
     /**
      * JSDoc block here
@@ -575,14 +575,14 @@ If you want to generate a JSDoc build of your project and use an **Arrow Functio
     }));
     ```
 
-#### Not Supported
+=== "Not Supported"
 
-    ```javascript
+    ```javascript hl_lines="1 2 3"
     /**
      * JSDoc block here
      */
     sap.ui.define([
-        "Bar
+        "Bar"
     ], (Bar) => Bar.extends("Foo", {
 
     }));

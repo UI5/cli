@@ -12,7 +12,7 @@ to load the custom bundle file instead.
 
 **ui5-project: normalizer: Rename optional parameter "translator" ([SAP/ui5-project#96](https://github.com/SAP/ui5-project/pull/96))**
 
-Renamed parameter "translator" of functions generateDependencyTree and generateProjectTree to "translatorName
+Renamed parameter "translator" of functions generateDependencyTree and generateProjectTree to "translatorName"
 
 **ui5-fs: Remove top-level access to adapters ([SAP/ui5-fs#69](https://github.com/SAP/ui5-fs/pull/69))**
 
@@ -52,12 +52,12 @@ npm install @ui5/cli@^1
 
 #### `specVersion: "1.0"`
 
-We have introduced the [specification version `1.0`](../pages/Configuration#specification-version-10).
+We have introduced the [specification version `1.0`](../pages/Configuration.md#specification-version-10).
 New features will only be available for projects with specVersion `1.0` or newer.  
 The specVersion `0.1` will be compatible with the UI5 CLI v1.0.0, but we still recommend to adopt your projects.
 
 ```yaml
-specVersion: "1.0
+specVersion: "1.0"
 metadata:
   name: <project-name>
 type: <project-type>
