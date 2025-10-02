@@ -1,0 +1,24 @@
+{
+	"name": "@ui5/documentation",
+	"private": true,
+	"version": "0.0.1",
+	"description": "UI5 CLI Documentation",
+	"author": {
+		"name": "SAP SE",
+		"email": "openui5@sap.com",
+		"url": "https://www.sap.com"
+	},
+	"license": "Apache-2.0",
+	"keywords": [
+		"openui5",
+		"sapui5",
+		"ui5",
+		"documentation",
+		"vitepress"
+	],
+	"type": "module",
+	"engines": {
+		"node": "^20.11.0 || >=22.0.0",
+		"npm": ">= 8"
+	}
+}
