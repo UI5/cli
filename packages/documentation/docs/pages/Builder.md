@@ -4,16 +4,20 @@ The [UI5 Builder](https://github.com/SAP/ui5-builder) module takes care of build
 
 Based on a project's type, the UI5 Builder defines a series of build steps to execute; these are also called "tasks".
 
-For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI.md#ui5-build), and you can include tasks using the `--include-task` parameter.
+For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI#ui5-build), and you can include tasks using the `--include-task` parameter.
 
-[**API Reference**](https://ui5.github.io/cli/v4/api/index.html){: .md-button .sap-icon-initiative }
+<div style="margin: 1rem 0;">
+  <a href="https://ui5.github.io/cli/v4/api/index.html" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
+    📚 API Reference
+  </a>
+</div>
 
 ## Tasks
 Tasks are specific build steps to be executed during build phase.
 
 They are responsible for collecting resources which can be modified by a processor. A task configures one or more processors and supplies them with the collected resources. After the respective processor processed the resources, the task is able to continue with its workflow.
 
-A project can add custom tasks to the build by using the [Custom Tasks Extensibility](./extensibility/CustomTasks.md).
+A project can add custom tasks to the build by using the [Custom Tasks Extensibility](./extensibility/CustomTasks).
 
 ### Standard Tasks
 
@@ -43,14 +47,14 @@ All available standard tasks are documented [in the API reference](https://ui5.g
 | generateApiIndex               | *disabled* ^1^     |                |                      |
 | generateResourcesJson          | *disabled*         | *disabled*     | *disabled*           |
 
-*Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](./CLI.md#ui5-build). See footnotes where given*
+*Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](./CLI#ui5-build). See footnotes where given*
 
 ---
 
 ^1^ Enabled in `jsdoc` build, which disables most of the other tasks  
-^2^ Enabled for projects defining a [component preload configuration](./Configuration.md#component-preload-generation)  
+^2^ Enabled for projects defining a [component preload configuration](./Configuration#component-preload-generation)  
 ^3^ Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
-^4^ Enabled for projects defining a [bundle configuration](./Configuration.md#custom-bundling)  
+^4^ Enabled for projects defining a [bundle configuration](./Configuration#custom-bundling)  
 ^5^ Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped
 
 ### minify
@@ -65,24 +69,30 @@ Related to this, the bundling tasks will also incorporate the generated source m
 
 #### Input Source Maps
 
-!!! info
-	Support for input source maps has been added in UI5 CLI [`v3.7.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.7.0).
+::: info Info
+Support for input source maps has been added in UI5 CLI [`v3.7.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.7.0).
+
+:::
 
 For projects facilitating transpilation (such as TypeScript-based projects), it is commonly desired to debug in the browser using the original sources, e.g. TypeScript files. To make this work, the transpilation process first needs to create source maps and reference them in the generated JavaScript code.
 
 UI5 CLI's `minify` task will then find this reference and incorporate the source map into the minification process. In the end, the minified JavaScript resources will reference an updated source map, which reflects the transpilation as well as the minification. The browser can use this to map every statement back to the original TypeScript file, making debugging a breeze.
 
-!!! warning
-    If a resource has been modified by another build task before `minify` is executed, any referenced source map will be ignored. This is to ensure the integrity of the source maps in the build result.
+::: warning Warning
+If a resource has been modified by another build task before `minify` is executed, any referenced source map will be ignored. This is to ensure the integrity of the source maps in the build result.
 
-    It is possible that the modification of the resource content is not reflected in the associated source map, rendering it corrupted. A corrupt source map can make it impossible to properly analyze and debug a resource in the browser development tools.
+It is possible that the modification of the resource content is not reflected in the associated source map, rendering it corrupted. A corrupt source map can make it impossible to properly analyze and debug a resource in the browser development tools.
 
-    Standard tasks which may modify resources without updating the associated source maps currently include `replaceVersion`, `replaceCopyright` and `replaceBuildtime`.
+Standard tasks which may modify resources without updating the associated source maps currently include `replaceVersion`, `replaceCopyright` and `replaceBuildtime`.
+
+:::
 
 Expand the block below to view a diagram illustrating the minification process and source map handling.
 
-??? info "Minification Activity Diagram"
-    ![minify Task Activity](../images/UI5_CLI/Task_Minify.svg){ loading=lazy }
+::: info Minification Activity Diagram
+ ![minify Task Activity](../images/UI5_CLI/Task_Minify.svg)
+
+:::
 
 
 ### Generation of Supported Locales
@@ -156,7 +166,7 @@ UI5 CLI packages JavaScript files that require "top level scope" as a string, pr
 
 This ensures that the script works as expected, e.g. with regards to implicitly used globals. However, this `eval` runtime feature will be discontinued with UI5 2.x because of [security best practices](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval) and to comply with stricter CSP settings (i.e. [unsafe-eval](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_eval_expressions)).
 
-If your project defines [Specification Version 4.0](./Configuration.md#specification-version-40) or higher, files requiring top level scope are no longer part of the created bundle and following error is logged by UI5 CLI:
+If your project defines [Specification Version 4.0](./Configuration#specification-version-40) or higher, files requiring top level scope are no longer part of the created bundle and following error is logged by UI5 CLI:
 >  Module myFancyModule requires top level scope and can only be embedded as a string (requires 'eval'), which is not supported with specVersion 4.0 and higher.
 
 If you see this error message, please adjust your code by applying one of the following options:
@@ -166,17 +176,19 @@ If you see this error message, please adjust your code by applying one of the fo
 **Option 2**: Wrap the respective files manually in `sap.ui.define` modules as shown below:
 
 
-!!! example
-    **Before**:
-    ```js
-    const myFancyModule = {};
-    ```
+::: details Example
+**Before**:
+```js
+const myFancyModule = {};
+```
     
-    **After**:
-    ```js
-    sap.ui.define([], () => {
-        "use strict";
-        const myFancyModule = {};
-        return myFancyModule;
-    });
-    ```
+**After**:
+```js
+sap.ui.define([], () => {
+    "use strict";
+    const myFancyModule = {};
+    return myFancyModule;
+});
+```
+
+:::
