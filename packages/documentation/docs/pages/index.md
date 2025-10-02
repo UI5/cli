@@ -1,4 +1,4 @@
-![UI5 logo](./images/UI5_logo_wide.png)
+![UI5 logo](../images/UI5_logo_wide.png)
 
 # UI5 CLI
 
@@ -15,11 +15,11 @@ Read the announcement blog post: **[SAP Community: Goodbye UI5 Tooling - Hello U
 
 Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
 
-And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
+And checkout the **[Migrate to v4](../updates/migrate-v4)** documentation.
 :::
 
 <div style="margin: 2rem 0;">
-  <a href="./pages/GettingStarted" style="display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
+  <a href="./GettingStarted" style="display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
     🚀 Get Started
   </a>
 </div>
@@ -28,7 +28,7 @@ And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
 
 ### 💻 UI5 CLI
 
-*Also see the [UI5 CLI Documentation](./pages/CLI)*
+*Also see the [UI5 CLI Documentation](./CLI)*
 
 ```sh
 # Global
@@ -41,13 +41,13 @@ npm install --save-dev @ui5/cli
 #### ⚙️ Project Setup
 
 Configure your project for use with UI5 CLI.  
-*Also see the [Configuration Documentation](./pages/Configuration)*
+*Also see the [Configuration Documentation](./Configuration)*
 
 ```
 ❯ ui5 init
 Wrote ui5.yaml:
 
-specVersion: "4.0"
+specVersion: "4.0
 metadata:
   name: my-app
 type: application
@@ -70,7 +70,7 @@ Added framework libraries sap.ui.core sap.m themelib_sap_fiori_3 as dependencies
 #### 🏄 Development Server
 
 Start a local development server to work on your project.  
-*Also see the [Server Documentation](./pages/Server)*
+*Also see the [Server Documentation](./Server)*
 
 ```
 ❯ ui5 serve
@@ -81,7 +81,7 @@ URL: http://localhost:8080
 #### 🛠 Build for Production
 
 Build an optimized version of your project.  
-*Also see the [Builder Documentation](./pages/Builder)*
+*Also see the [Builder Documentation](./Builder)*
 
 ``` bash
 ❯ ui5 build
@@ -105,7 +105,7 @@ info ProjectBuilder Executing cleanup tasks...
 Most UI5 CLI modules provide JavaScript APIs for direct consumption in other Node.js projects.
 This allows you to rely on UI5 CLI for UI5-specific build functionality and project handling, while creating your own tools to perfectly match the needs of your project.
 
-All available APIs are documented in the [UI5 CLI API Reference](https://ui5.github.io/cli/v5/api/index.html).
+All available APIs are documented in the [UI5 CLI API Reference](https://ui5.github.io/cli/v4/api/index.html).
 
 #### ESM
 

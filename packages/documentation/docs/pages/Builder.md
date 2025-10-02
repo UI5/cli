@@ -8,10 +8,12 @@ import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vu
 
 Based on a project's type, the UI5 Builder defines a series of build steps to execute; these are also called "tasks".
 
-For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI.md#ui5-build), and you can include tasks using the `--include-task` parameter.
+For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI#ui5-build), and you can include tasks using the `--include-task` parameter.
 
 <div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/index.html"/>
+  <a href="https://ui5.github.io/cli/v4/api/index.html" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
+    📚 API Reference
+  </a>
 </div>
 
 ## Tasks
@@ -19,7 +21,7 @@ Tasks are specific build steps to be executed during build phase.
 
 They are responsible for collecting resources which can be modified by a processor. A task configures one or more processors and supplies them with the collected resources. After the respective processor processed the resources, the task is able to continue with its workflow.
 
-A project can add custom tasks to the build by using the [Custom Tasks Extensibility](./extensibility/CustomTasks.md).
+A project can add custom tasks to the build by using the [Custom Tasks Extensibility](./extensibility/CustomTasks).
 
 ### Standard Tasks
 
@@ -49,14 +51,14 @@ All available standard tasks are documented [in the API reference](https://ui5.g
 | generateApiIndex               | *disabled* ^1^     |                |                      |
 | generateResourcesJson          | *disabled*         | *disabled*     | *disabled*           |
 
-*Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](./CLI.md#ui5-build). See footnotes where given*
+*Disabled tasks can be activated by certain build modes, the project configuration, or by using the `--include-task` [CLI parameter](./CLI#ui5-build). See footnotes where given*
 
 ---
 
 ^1^ Enabled in `jsdoc` build, which disables most of the other tasks  
-^2^ Enabled for projects defining a [component preload configuration](./Configuration.md#component-preload-generation)  
+^2^ Enabled for projects defining a [component preload configuration](./Configuration#component-preload-generation)  
 ^3^ Enabled in `self-contained` build, which disables `generateComponentPreload` and `generateLibraryPreload`  
-^4^ Enabled for projects defining a [bundle configuration](./Configuration.md#custom-bundling)  
+^4^ Enabled for projects defining a [bundle configuration](./Configuration#custom-bundling)  
 ^5^ Can be enabled for framework projects via the `includeTask` option. For other projects, this task is skipped
 
 ### minify
@@ -168,7 +170,7 @@ UI5 CLI packages JavaScript files that require "top level scope" as a string, pr
 
 This ensures that the script works as expected, e.g. with regards to implicitly used globals. However, this `eval` runtime feature will be discontinued with UI5 2.x because of [security best practices](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval) and to comply with stricter CSP settings (i.e. [unsafe-eval](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#unsafe_eval_expressions)).
 
-If your project defines [Specification Version 4.0](./Configuration.md#specification-version-40) or higher, files requiring top level scope are no longer part of the created bundle and following error is logged by UI5 CLI:
+If your project defines [Specification Version 4.0](./Configuration#specification-version-40) or higher, files requiring top level scope are no longer part of the created bundle and following error is logged by UI5 CLI:
 >  Module myFancyModule requires top level scope and can only be embedded as a string (requires 'eval'), which is not supported with specVersion 4.0 and higher.
 
 If you see this error message, please adjust your code by applying one of the following options:
@@ -194,8 +196,3 @@ sap.ui.define([], () => {
 ```
 
 :::
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>

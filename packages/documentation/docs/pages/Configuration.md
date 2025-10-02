@@ -13,7 +13,7 @@ Starting with [Specification Version 2.0](#specification-version-2-0) the config
 The current version of the schema can be found here: https://ui5.github.io/cli/schema/ui5.yaml.json
 
 The schema is also part of the [JSON Schema Store Catalog](http://schemastore.org/json/) which is used by the [YAML Language Server](https://github.com/redhat-developer/yaml-language-server).  
-See the list of [clients](https://github.com/redhat-developer/yaml-language-server/blob/main/README.md#clients) to find extensions for various IDEs and editors.
+See the list of [clients](https://github.com/redhat-developer/yaml-language-server/blob/main/README#clients) to find extensions for various IDEs and editors.
 
 ## Example
 
@@ -31,26 +31,34 @@ A project must define a specification version (`specVersion`), to which its conf
 
 In addition, a project must define a `type`. This can be either `application`, `library`, `theme-library` (since Specification Version 1.1), or `module`.
 
-The type defines the default path mappings and build tasks. See [UI5 Builder: Types](./Builder.md#types) for details.
+The type defines the default path mappings and build tasks. See [UI5 Builder: Types](./Builder#types) for details.
 
-:::code-group Example
+::: details Example
 
-```yaml [application]
+#### application
+
+```yaml
 specVersion: "4.0"
 type: application
 ```
 
-```yaml [library]
+#### library
+
+```yaml
 specVersion: "4.0"
 type: library
 ```
 
-```yaml [theme-library]
+#### theme-library
+
+```yaml
 specVersion: "4.0"
 type: theme-library
 ```
 
-```yaml [module]
+#### module
+
+```yaml
 specVersion: "4.0"
 type: module
 ```
@@ -61,7 +69,7 @@ type: module
 
 The configuration may also contain a `kind` property. This is used to differentiate between projects and extensions.
 
-This configuration defaults to `kind: project`, which means you typically only need to specify it for extensions like [Custom Tasks](./extensibility/CustomTasks.md#custom-task-extension).
+This configuration defaults to `kind: project`, which means you typically only need to specify it for extensions like [Custom Tasks](./extensibility//CustomTasks#custom-task-extension).
 
 ### Metadata
 
@@ -116,7 +124,7 @@ Note that all configured paths must be written in POSIX (i.e. using only forward
 #### Available Path Mappings
 
 #### Applications
-- `webapp`: Mapped to runtime path `/` (root)
+    - `webapp`: Mapped to runtime path `/` (root)
 
 ```yaml title="Default Configuration"
 resources:
@@ -126,8 +134,8 @@ resources:
 ```
 
 #### Libraries
-- `src`: Mapped to runtime path `/resources`
-- `test`: Mapped to runtime path `/test-resources`
+    - `src`: Mapped to runtime path `/resources`
+    - `test`: Mapped to runtime path `/test-resources`
 
 ```yaml title="Default Configuration"
 resources:
@@ -176,15 +184,18 @@ resources:
 ::: info Info
 This configuration is available since UI5 CLI [`v1.7.0`](https://github.com/SAP/ui5-cli/releases/tag/v1.7.0)
 
-::: code-group Example
+::: details Example
+#### UTF-8
 
-```yaml [UTF-8]
+```yaml
 resources:
   configuration:
     propertiesFileSourceEncoding: UTF-8
 ```
 
-```yaml [ISO-8859-1]
+#### ISO-8859-1
+
+```yaml
 resources:
   configuration:
     propertiesFileSourceEncoding: ISO-8859-1
@@ -201,7 +212,7 @@ Specification Version | Default `propertiesFileSourceEncoding`
 
 If your project uses a different encoding for `*.properties` files, you need to set the `propertiesFileSourceEncoding` configuration property.
 
-UI5 CLI will read the corresponding files of the project in the given encoding. Any non-ASCII characters will be replaced with the respective Unicode escape sequences. This allows you to deploy the resulting files to any environment, independent of how it expects `*.properties` files to be encoded. Please refer to [RFC 7](https://github.com/UI5/cli/blob/main/rfcs/0007-properties-file-encoding.md) for details.
+UI5 CLI will read the corresponding files of the project in the given encoding. Any non-ASCII characters will be replaced with the respective Unicode escape sequences. This allows you to deploy the resulting files to any environment, independent of how it expects `*.properties` files to be encoded. Please refer to [RFC 7](https://github.com/UI5/cli/blob/main/rfcs/0007-properties-file-encoding) for details.
 
 ## Custom Configuration
 
@@ -242,22 +253,21 @@ Define your project's framework dependencies.
 
 In your project's framework configuration you must define whether you want to use the OpenUI5 or the SAPUI5 framework and which version:
 
-::: code-group
-
-```yaml [OpenUI5]
+#### OpenUI5
+```yaml
 framework:
   name: OpenUI5
   version: 1.82.0
 ```
 
-```yaml [SAPUI5]
+#### SAPUI5
+```yaml
 framework:
   name: SAPUI5
   version: 1.82.0
 ```
-:::
 
-If you are not sure which framework is right for you, see our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ.md#whats-the-difference-between-openui5-and-sapui5).
+If you are not sure which framework is right for you, see our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5).
 
 You can find an overview of the available versions for each framework here:
 
@@ -273,9 +283,9 @@ Projects that use the OpenUI5 framework cannot depend on projects that use the S
 
 ### Dependencies
 
-::: code-group Example
-
-```yaml [application]
+::: details Example
+#### application
+```yaml
 specVersion: "4.0"
 type: application
 metadata:
@@ -290,7 +300,8 @@ framework:
     - name: themelib_sap_fiori_3
 ```
 
-```yaml [library]
+#### library
+```yaml
 specVersion: "4.0"
 type: library
 metadata:
@@ -317,9 +328,8 @@ framework:
 
 All libraries required by your project must be listed in the `libraries` section of the framework configuration:
 
-::: code-group
-
-```yaml [OpenUI5]
+#### OpenUI5
+```yaml
 framework:
   name: OpenUI5
   version: 1.82.0
@@ -329,7 +339,8 @@ framework:
     - name: sap.ui.table
 ```
 
-```yaml [SAPUI5]
+#### SAPUI5
+```yaml
 framework:
   name: SAPUI5
   version: 1.82.0
@@ -338,7 +349,6 @@ framework:
     - name: sap.m
     - name: sap.ui.comp
 ```
-:::
 
 #### Development Dependencies
 Development dependencies are only installed if the project defining them is the current root project.
@@ -365,9 +375,10 @@ You can choose which theme library to use by the application that is consuming t
 ## Build Configuration
 ### Exclude Resources
 
-::: code-group Example
+::: details Example
 
-```yaml [application]
+#### application
+```yaml
 builder:
   resources:
     excludes:
@@ -377,7 +388,8 @@ builder:
       - "/resources/my/project/namespace/test/**"
 ```
 
-```yaml [library or theme-library]
+#### library or theme-library
+```yaml
 builder:
   resources:
     excludes:
@@ -387,7 +399,15 @@ builder:
       - "!/test-resources/some/project/name/demo-app/**"
       - "**/*.svg"
 ```
-```yaml [module]
+
+#### module
+
+::: info
+
+For projects of type `module`, this configuration is available since UI5 CLI [`v3.5.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.5.0)
+and applies only to projects defining [Specification Version](#specification-versions) 3.1 or higher.
+
+```yaml
 builder:
   resources:
     excludes:
@@ -398,28 +418,21 @@ builder:
 ```
 :::
 
-::: info
-
-For projects of type `module`, this configuration is available since UI5 CLI [`v3.5.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.5.0)
-and applies only to projects defining [Specification Version](#specification-versions) 3.1 or higher.
-
-:::
-
 You can exclude a projects resources from the build process using a list of glob patterns. Matching resources will be ignored by the builder and all build tasks.
 
 Patterns are applied to the **virtual resource paths** (i.e. the UI5 runtime paths). Exclude patterns are always applied after any includes.
 
 ### Cachebuster
 
-::: code-group Example
-
-```yaml [time (default)]
+::: details Example
+#### time (default)
+```yaml
 builder:
   cachebuster:
     signatureType: time
 ```
-
-```yaml [hash]
+#### hash
+```yaml
 builder:
   cachebuster:
     signatureType: hash
@@ -476,17 +489,19 @@ This configuration is available since UI5 CLI [`v2.10.0`](https://github.com/SAP
 and applies only to projects defining [Specification Version](#specification-versions)
 2.3 or higher.
 
-::: code-group Example
+::: details Example
+#### Single Component
 
-```yaml [Single Component]
+```yaml
 builder:
   componentPreload:
     excludes:
       - "my/awesome/app/localService/**"
 ```
 
+#### Multiple Components
 
-```yaml [Multiple Components]
+```yaml
 builder:
   componentPreload:
     namespaces:
@@ -547,11 +562,11 @@ builder:
 
 :::
 
-You can define custom build tasks that will be executed for the project. Please refer to the [Custom Tasks Documentation](./extensibility/CustomTasks.md) for a detailed explanation and examples of the build extensibility.
+You can define custom build tasks that will be executed for the project. Please refer to the [Custom Tasks Documentation](./extensibility/CustomTasks) for a detailed explanation and examples of the build extensibility.
 
 Each `customTasks` entry must define the `name` of the custom task as defined in its `metadata.name` property.
 
-In addition, the execution order needs to be defined by referencing a [standard task](./Builder.md#tasks) or an already configured custom task using the `afterTask` or `beforeTask` property.
+In addition, the execution order needs to be defined by referencing a [standard task](./Builder#tasks) or an already configured custom task using the `afterTask` or `beforeTask` property.
 
 Optionally, arbitrary `configuration` can be passed to the custom task.
 
@@ -678,9 +693,9 @@ In cases where an extension shall be reused across multiple projects you can mak
 Extensions can be identified by the `kind: extension` configuration. Note that if no `kind` configuration is given, [`project`](#project-configuration) is assumed.
 
 ### Available Extensions
-- [Custom Tasks](./extensibility/CustomTasks.md)
-- [Custom Server Middleware](./extensibility/CustomServerMiddleware.md)
-- [Project Shims](./extensibility/ProjectShims.md)
+- [Custom Tasks](./extensibility/CustomTasks)
+- [Custom Server Middleware](./extensibility/CustomServerMiddleware)
+- [Project Shims](./extensibility/ProjectShims)
 
 ## Custom Bundling
 
@@ -791,11 +806,11 @@ Version | UI5 CLI Release
 **Breaking changes:**
 
 - Removed bundle option [`usePredefineCalls`](#properties). UI5 CLI v4.0.0 and above will always use predefine calls in bundles, making this option obsolete.
-- Adds new a new option `async` for `bundleDefinition`-section configuration, see [Configuration: `bundleDefinition.sections`](./Configuration.md#properties) for details.
+- Adds new a new option `async` for `bundleDefinition`-section configuration, see [Configuration: `bundleDefinition.sections`](./Configuration#properties) for details.
 
 Specification Version 4.0 projects are supported by [UI5 CLI](https://github.com/SAP/ui5-cli) v4.0.0 and above.
 
-Also see [Migrate to v4](../updates/migrate-v4.md#changes-for-projects) for details on these breaking changes.
+Also see [Migrate to v4](../updates/migrate-v4#changes-for-projects) for details on these breaking changes.
 
 ### Specification Version 3.2
 
@@ -862,7 +877,7 @@ Specification Version 2.3 projects are supported by [UI5 CLI](https://github.com
 
 **Features:**
 
-- Custom task extensions can make use of the [`TaskUtil` Helper Class](./extensibility/CustomTasks.md#helper-class-taskutil)
+- Custom task extensions can make use of the [`TaskUtil` Helper Class](./extensibility/CustomTasks#helper-class-taskutil)
 
 Specification Version 2.2 projects are supported by [UI5 CLI](https://github.com/SAP/ui5-cli) v2.4.0 and above.
 
@@ -871,7 +886,7 @@ Specification Version 2.2 projects are supported by [UI5 CLI](https://github.com
 **Features:**
 
 - Adds support for the ["customConfiguration"](#custom-configuration) configuration
-- Custom middleware extensions can make use of the [`MiddlewareUtil` Helper Class](./extensibility/CustomServerMiddleware.md#helper-class-middlewareutil)
+- Custom middleware extensions can make use of the [`MiddlewareUtil` Helper Class](./extensibility/CustomServerMiddleware#helper-class-middlewareutil)
 
 Specification Version 2.1 projects are supported by [UI5 CLI](https://github.com/SAP/ui5-cli) v2.2.0 and above.
 

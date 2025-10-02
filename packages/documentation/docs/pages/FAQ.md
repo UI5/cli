@@ -1,9 +1,9 @@
 # FAQ
 ### How Can I Contribute?
-Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
+Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING).
 
 ### How Can I Obtain Support?
-Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#report-an-issue) on how to report an issue.
+Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING#report-an-issue) on how to report an issue.
 
 ### What's the Difference Between OpenUI5 and SAPUI5?
 The open source project [OpenUI5](https://openui5.org/) provides most of the fundamental framework features. [SAPUI5](https://ui5.sap.com/) enhances this by providing **additional libraries** under a **different license**.

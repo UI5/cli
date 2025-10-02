@@ -72,7 +72,7 @@ A workspace must have a `name`. This allows to easily switch between individual 
 
 If a workspace is named `default`, **it will be used automatically**, unless a different workspace is selected using the `--workspace` CLI parameter.
 
-The `name` property must satisfy the following conditions. They are identical to [project names](./Configuration.md#name):
+The `name` property must satisfy the following conditions. They are identical to [project names](./Configuration#name):
 
 * Must be at least 3 characters long
 * Must be no longer than 80 characters

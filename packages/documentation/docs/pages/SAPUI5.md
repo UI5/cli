@@ -29,7 +29,7 @@ Your project's `ui5.yaml` provides a configuration section dedicated to framewor
 This configuration can be maintained by editing the file, or by using the UI5 CLI:
 
 ::: details Example
-Using the [UI5 CLI](./CLI.md):
+Using the [UI5 CLI](./CLI):
 ```sh
 ui5 use sapui5@latest
 ui5 add sap.ui.core sap.m sap.ui.comp themelib_sap_fiori_3
@@ -75,10 +75,10 @@ framework:
       optional: true
 ```
 
-Please make sure that your project defines [Specification Version 2.0](./Configuration.md#specification-version-2-0) or higher.
+Please make sure that your project defines [Specification Version 2.0](./Configuration#specification-version-20) or higher.
 
-For details please refer to the [framework configuration documentation](././Configuration.md#framework-configuratio).
+For details please refer to the [framework configuration documentation](././Configuration#framework-configuratio).
 
 ## Differences Between OpenUI5 and SAPUI5
 
-Please refer to our documentation on the [differences between OpenUI5 and SAPUI5](./FAQ.md#whats-the-difference-between-openui5-and-sapui5)
+Please refer to our documentation on the [differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5)
