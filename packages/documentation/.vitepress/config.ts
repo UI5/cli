@@ -18,11 +18,11 @@ const loadSyntax = async (file: string, name: string, alias: string = name): Pro
 
 export default defineConfig({
   
-  base: "/ui5-tooling/stable/", // use this for github pages deployment or remove for CF
+  base: "/ui5-cli/stable/", // use this for github pages deployment or remove for CF
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
-  title: "UI5 Tooling",
+  title: "UI5 CLI",
 
   description: "An open and modular toolchain to develop state-of-the-art applications based on the UI5 framework.",
   lastUpdated: false, // disable git author info
@@ -65,13 +65,13 @@ export default defineConfig({
 
     socialLinks: [
 
-      { icon: "github", link: "https://github.com/SAP/ui5-tooling" },
+      { icon: "github", link: "https://github.com/UI5/cli" },
     ],
 
     footer: {
 
       message: `
-        &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 Tooling Contributors <br/>
+        &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
           <a  style="margin:25px" href="https://sap.github.io/ui25-tooling/stable/pages/Privacy/">Privacy</a>
