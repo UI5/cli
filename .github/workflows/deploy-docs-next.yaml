@@ -57,8 +57,8 @@ jobs:
                   sudo chown -R $(id -u):$(id -g) ./site
             - name: generate CLI doc
               run: npm run generate-cli-doc
-            - name: generate next config
-              run: npm run replace-base-path-next
+            # - name: generate next config
+            #   run: npm run replace-base-path-next
             - name: Build jsdoc
               run: npm run jsdoc-generate
             - name: Build vitepress build

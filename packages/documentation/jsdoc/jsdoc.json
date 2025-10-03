@@ -3,6 +3,7 @@
 		"allowUnknownTags": false
 	},
 	"source": {
+<<<<<<< HEAD:packages/documentation/jsdoc/jsdoc.json
 		"include": ["jsdoc/index.md"],
 		"exclude": [
 			"node_modules/@ui5/builder/lib/lbt/utils/JSTokenizer.js",
@@ -12,6 +13,11 @@
 		],
 		"includePattern": "node_modules/@ui5/[^\/]*/(lib/.+|index)\\.js$",
 		"excludePattern": "node_modules/@ui5/.*/node_modules/@ui5"
+=======
+		"include": ["packages/documentation/docs/indexJsdoc.md"],
+		"exclude": ["../ui5-builder/lib/lbt/utils/JSTokenizer.js"],
+		"includePattern": "ui5-[^\/]+\/(lib/.+|index)\\.js$"
+>>>>>>> 381075c5e1 (refactor: Adjust scripts):jsdoc-workspace.json
 	},
 	"plugins": [
 		"jsdoc/jsdoc-plugin.cjs"
