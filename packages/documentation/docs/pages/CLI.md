@@ -180,8 +180,8 @@ ui5 config
 
 | Command | Description |
 | --- | --- |
-| ui5 config set <option> [value] | Set the value for a given configuration option. Clear an existing configuration by omitting the value |
-| ui5 config get <option> | Get the value for a given configuration option |
+| ui5 config set &lt;option&gt; [value] | Set the value for a given configuration option. Clear an existing configuration by omitting the value |
+| ui5 config get &lt;option&gt; | Get the value for a given configuration option |
 | ui5 config list | Display the current configuration |
 
 
