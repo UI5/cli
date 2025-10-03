@@ -76,8 +76,8 @@ jobs:
               run: |
                   rm -rf ./gh-pages/schema
                   cp -R ./site/schema ./gh-pages/
-                  rm -rf ./gh-pages/next/
-                  cp -R ./packages/documentation/dist ./gh-pages/next/
+                  rm -rf ./gh-pages/v5/
+                  cp -R ./packages/documentation/dist ./gh-pages/v5/
                   cp ./scripts/resources/custom404.html ./gh-pages/404.html
             - name: Publish Docs
               run: |
