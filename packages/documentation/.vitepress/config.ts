@@ -129,8 +129,13 @@ function nav() {
   return [
     {
 
-      text: 'V4',
+      text: 'V5',
       items: [
+        {
+          text: 'V4',
+          link: '../v4/',
+          target: "_self"
+        },
         {
           text: 'V3',
           link: '../v3/',
