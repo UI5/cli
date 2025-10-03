@@ -8,7 +8,7 @@ import MarkdownItPlantuml from "markdown-it-plantuml";
 
 export default defineConfig({
   
-  base: "/ui5-tooling/stable/", // use this for github pages deployment or remove for CF
+  base: "/test-mono/v5/", // use this for github pages deployment or remove for CF
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
