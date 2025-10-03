@@ -183,10 +183,7 @@ function generateDoc() {
 		.split("&lt;").join("<")
 		.split("&gt;").join(">")
 		// Escape <option> as it's considered HTML tag to prevent rendering issues
-		.replaceAll("<option>", "&lt;option&gt;")
-		// Wrap standalone URLs in backticks to prevent VitePress from treating them as live links
-		// Only target URLs that are not already in markdown link syntax [text](url)
-		.replace(/(?<!\()(https?:\/\/[^\s)]+)(?!\))/g, "`$1`");
+		.replaceAll("<option>", "&lt;option&gt;");
 	content = content.split("&#x3D;").join("=");
 	try {
 		writeFileSync("./packages/documentation/docs/pages/CLI.md", content);
