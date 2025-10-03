@@ -1,0 +1,89 @@
+# Sample workflow for building and deploying a VitePress site to GitHub Pages
+#
+name: Deploy VitePress site to Pages (next)
+
+on:
+    # Runs on pushes targeting the `main` branch. Change this to `master` if you're
+    # using the `master` branch as the default branch.
+    push:
+        branches: [enable-documentation-ci]
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+    contents: write
+    pages: write
+    id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+    group: pages
+    cancel-in-progress: false
+
+jobs:
+    # Build job
+    build:
+        runs-on: ubuntu-latest
+        env:
+            DOC_VERSION: v5
+            DOC_ALIAS: stable
+            GIT_COMMITTER_NAME: "Konrad Kost"
+            GIT_COMMITTER_EMAIL: "xxxx"
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: npm
+            - name: Setup Pages
+              uses: actions/configure-pages@v4
+            - name: Install dependencies
+              run: npm ci
+            - name: Install documentation dependencies
+              run: cd packages/documentation && npm ci
+            - name: Fetch gh-pages branch
+              run: git fetch origin gh-pages --depth=1
+            - name: Set /site ownership to current user
+              run: |
+                  mkdir site
+                  sudo chown -R $(id -u):$(id -g) ./site
+            - name: generate CLI doc
+              run: npm run generate-cli-doc
+            - name: generate next config
+              run: npm run replace-base-path-next
+            - name: Build jsdoc
+              run: npm run jsdoc-generate
+            - name: Build vitepress build
+              run: npm run docs:build
+            - name: Build Schema
+              run: |
+                  npm run schema-generate
+                  npm run schema-workspace-generate
+            - name: Checkout gh-pages
+              uses: actions/checkout@v4
+              with:
+                  ref: gh-pages
+                  path: gh-pages
+            - name: Copy the additional resources to gh-pages
+              run: |
+                  rm -rf ./gh-pages/schema
+                  cp -R ./site/schema ./gh-pages/
+                  rm -rf ./gh-pages/next/
+                  cp -R ./packages/documentation/dist ./gh-pages/next/
+                  cp ./scripts/resources/custom404.html ./gh-pages/404.html
+            - name: Publish Docs
+              run: |
+                  cd ./gh-pages
+                  git config --local user.email $GIT_COMMITTER_EMAIL
+                  git config --local user.name $GIT_COMMITTER_NAME
+                  git add .
+                  git commit -m "Updating supplemental resources for ${DOC_VERSION} documentation deployment"
+                  git push
