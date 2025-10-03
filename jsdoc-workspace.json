@@ -3,7 +3,7 @@
 		"allowUnknownTags": false
 	},
 	"source": {
-		"include": ["docs/indexJsdoc.md"],
+		"include": ["packages/documentation/docs/indexJsdoc.md"],
 		"exclude": ["../ui5-builder/lib/lbt/utils/JSTokenizer.js"],
 		"includePattern": "ui5-[^\/]+\/(lib/.+|index)\\.js$"
 	},
