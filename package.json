@@ -50,7 +50,7 @@
 	},
 	"devDependencies": {
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",
-		"@eslint/js": "^9.8.0",
+		"@eslint/js": "^9.37.0",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
 		"eslint": "^9.35.0",
