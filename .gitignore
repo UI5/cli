@@ -55,7 +55,7 @@ yarn.lock
 deploy_key
 
 # Custom directories
-test/tmp/
+**/test/tmp/
 jsdocs/
 site/
 

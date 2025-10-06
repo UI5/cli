@@ -1,18 +1,17 @@
 ![UI5 icon](https://raw.githubusercontent.com/UI5/cli/main/docs/images/UI5_logo_wide.png)
 
-# ui5-fs
+# @ui5/fs
 > UI5-specific file system abstraction  
 > Part of the [UI5 CLI](https://github.com/UI5/cli)
 
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP/ui5-fs)](https://api.reuse.software/info/github.com/SAP/ui5-fs)
-[![Build Status](https://dev.azure.com/sap/opensource/_apis/build/status/SAP.ui5-fs?branchName=v4)](https://dev.azure.com/sap/opensource/_build/latest?definitionId=36&branchName=v4)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Ffs.svg)](https://www.npmjs.com/package/@ui5/fs)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-fs/badge.svg)](https://coveralls.io/github/SAP/ui5-fs)
 
 ## Documentation
-UI5 FS documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/v4/pages/FileSystem/)
+UI5 FS documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/stable/pages/FileSystem/)
 
-The UI5 FS API Reference can be found here: [`@ui5/fs`](https://ui5.github.io/cli/v4/api/)
+The UI5 FS API Reference can be found here: [`@ui5/fs`](https://ui5.github.io/cli/stable/api/)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
