@@ -21,3 +21,9 @@ path = "packages/server/lib/middleware/testRunner/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and OpenUI5 contributors"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "packages/builder/lib/processors/jsdoc/lib/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and OpenUI5 contributors"
+SPDX-License-Identifier = "Apache-2.0"
