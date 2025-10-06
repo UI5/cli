@@ -1,6 +1,6 @@
 ![UI5 icon](https://raw.githubusercontent.com/UI5/cli/main/docs/images/UI5_logo_wide.png)
 
-# ui5-logger
+# @ui5/logger
 > Providing logging functionality for all UI5 CLI modules and extensions.  
 > Features log levels and rendering of a progress bar.  
 > Part of [UI5 CLI](https://github.com/UI5/cli)
@@ -13,7 +13,7 @@
 ## Documentation
 General UI5 CLI documentation can be found here: [ui5.github.io/cli](https://ui5.github.io/cli/)
 
-The UI5 Logger API Reference can be found here: [`@ui5/logger`](https://ui5.github.io/cli/v3/api/module-@ui5_logger.html)
+The UI5 Logger API Reference can be found here: [`@ui5/logger`](https://ui5.github.io/cli/stable/api/module-@ui5_logger.html)
 
 ## Contributing
 Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
