@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  checks:
-    name: Linting, dependency check and unit tests
+  test:
+    name: General checks and tests
     runs-on: ubuntu-24.04
     steps:
 
@@ -39,3 +39,12 @@ jobs:
 
     - name: Run unit tests
       run: npm run coverage
+
+    - name: Generate JSDoc documentation
+      run: npm run jsdoc-generate
+
+    - name: Generate merged JSON schema
+      run: npm run schema-generate
+
+    - name: Generate CLI documentation
+      run: npm run generate-cli-doc

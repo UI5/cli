@@ -23,7 +23,7 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run jsdoc-generate && npm run schema-generate && npm run generate-cli-doc",
+		"test": "npm run lint && npm run depcheck && npm run coverage && npm run jsdoc-generate && npm run schema-generate && npm run generate-cli-doc",
 		"lint": "eslint ./ && npm run lint --workspaces",
 		"coverage": "npm run coverage --workspaces",
 		"jsdoc": "npm run jsdoc-generate && open-cli site/api/index.html",
