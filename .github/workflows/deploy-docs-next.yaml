@@ -28,10 +28,10 @@ jobs:
     build:
         runs-on: ubuntu-latest
         env:
-            DOC_VERSION: v5
-            DOC_ALIAS: stable
-            GIT_COMMITTER_NAME: "Konrad Kost"
-            GIT_COMMITTER_EMAIL: "xxxx"
+            DOC_VERSION: v5 # The directory in gh-pages where the documentation would be deployed
+            DOC_ALIAS: next # Change this to update the alias route. Note: Check the old alias when changing this!
+            GIT_COMMITTER_NAME: "OpenUI5 Bot"
+            GIT_COMMITTER_EMAIL: "openui5@sap.com"
             GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         steps:
             - name: Checkout
@@ -57,8 +57,6 @@ jobs:
                   sudo chown -R $(id -u):$(id -g) ./site
             - name: generate CLI doc
               run: npm run generate-cli-doc
-            # - name: generate next config
-            #   run: npm run replace-base-path-next
             - name: Build jsdoc
               run: npm run jsdoc-generate
             - name: Build vitepress build
@@ -76,9 +74,16 @@ jobs:
               run: |
                   rm -rf ./gh-pages/schema
                   cp -R ./site/schema ./gh-pages/
-                  rm -rf ./gh-pages/v5/
-                  cp -R ./packages/documentation/dist ./gh-pages/v5/
+                  rm -rf ./gh-pages/${DOC_VERSION}/
+                  cp -R ./packages/documentation/dist ./gh-pages/${DOC_VERSION}/
                   cp ./scripts/resources/custom404.html ./gh-pages/404.html
+            - name: Create or update alias route
+              run: |
+                  cd ./gh-pages
+                  # Remove existing alias if it exists (file or symlink)
+                  rm -rf "${DOC_ALIAS}"
+                  # Create symlink from alias to version directory
+                  ln -s "${DOC_VERSION}" "${DOC_ALIAS}"
             - name: Publish Docs
               run: |
                   cd ./gh-pages
