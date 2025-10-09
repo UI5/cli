@@ -2,11 +2,17 @@
 
 The [UI5 FS](https://github.com/SAP/ui5-fs) provides a UI5-specific file system abstraction.
 
-<div style="margin: 1rem 0;">
-  <a href="https://ui5.github.io/cli/v4/api/" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
-    📚 API Reference
-  </a>
-</div>
+<script setup>
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+</script>
+
+<VPButton class="api-button" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/" target="_blank"/>
+
+<style>
+.api-button {
+  margin: 1rem 0;
+}
+</style>
 
 ## Overview
 
