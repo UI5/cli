@@ -202,7 +202,7 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
 * **Specification Versions before 3.0:** If no callback is provided, UI5 CLI assumes that all dependencies are required.
 
 
-*For more details, see also [RFC 0012 UI5 CLI Extension API v3](https://github.com/UI5/cli/blob/rfc-ui5-tooling-extension-api-v3/rfcs/0012-UI5-Tooling-Extension-API-3.md#3-tasks-requiring-dependencies)*
+*For more details, see also [RFC 0012 UI5 CLI Extension API v3](https://github.com/UI5/cli/blob/v3/rfcs/0012-UI5-Tooling-Extension-API-3.md#3-tasks-requiring-dependencies)*
 
 === "ESM"
 
