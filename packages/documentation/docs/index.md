@@ -18,11 +18,17 @@ Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://communit
 And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
 :::
 
-<div style="margin: 2rem 0;">
-  <a href="./pages/GettingStarted" style="display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
-    🚀 Get Started
-  </a>
-</div>
+<script setup>
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+</script>
+
+<VPButton class="no-decoration" text="🚀 Get Started" href="./pages/GettingStarted"/>
+
+<style>
+.no-decoration {
+    text-decoration: inherit;
+}
+</style>
 
 ## Main Features
 

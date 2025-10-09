@@ -63,9 +63,14 @@ In the table below you can find the available combinations of project type & out
 ^2^ Theme libraries in most cases have more than one namespace.  
 ^3^ Modules have explicit path mappings configured and no namespace concept.  
 
+<script setup>
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+</script>
 
-<div style="margin: 1rem 0;">
-  <a href="https://ui5.github.io/cli/v4/api/@ui5_project_build_ProjectBuilder.html" target="_blank" style="display: inline-block; padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 14px;">
-    📚 API Reference
-  </a>
-</div>
+<VPButton class="api-button" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/@ui5_project_build_ProjectBuilder.html" target="_blank"/>
+
+<style>
+.api-button {
+  margin: 1rem 0;
+}
+</style>
