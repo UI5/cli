@@ -18,10 +18,10 @@
 
 ## Resources
 
-- [Documentation](https://ui5.github.io/cli/stable/)
-- [API Reference](https://ui5.github.io/cli/stable/api/)
-- [CLI Documentation](https://ui5.github.io/cli/stable/pages/CLI/)
-- [Project Configuration](https://ui5.github.io/cli/stable/pages/Configuration/)
+- [Documentation](https://ui5.github.io/cli/v4/)
+- [API Reference](https://ui5.github.io/cli/v4/api/)
+- [CLI Documentation](https://ui5.github.io/cli/v4/pages/CLI/)
+- [Project Configuration](https://ui5.github.io/cli/v4/pages/Configuration/)
 - 🎬 [UI5con@SAP 2020 Talk](https://www.youtube.com/watch?v=8IHoVJLKN34)
 - 🎬 [UI5con@SAP 2018 Talk](https://www.youtube.com/watch?v=iQ07oe26y_k)
 - [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md)
