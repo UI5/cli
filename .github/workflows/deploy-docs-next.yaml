@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
     # Build job
-    build:
+    deploy-docs:
         runs-on: ubuntu-latest
         env:
             DOC_VERSION: v5 # The directory in gh-pages where the documentation would be deployed
