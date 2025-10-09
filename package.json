@@ -43,8 +43,7 @@
 	},
 	"dependencies": {
 		"@ui5/cli": "^4.0.26",
-		"@ui5/project": "^4.0.6",
-		"@ui5/server": "^4.0.7"
+		"@ui5/project": "^4.0.6"
 	},
 	"devDependencies": {
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",
@@ -65,6 +64,7 @@
 	"workspaces": [
 		"packages/logger",
 		"packages/builder",
-		"packages/fs"
+		"packages/fs",
+		"packages/server"
 	]
 }

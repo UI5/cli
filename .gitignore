@@ -61,3 +61,6 @@ site/
 
 # Custom files
 docs/pages/CLI.md
+
+# Needed for packages/server
+!**/test/fixtures/**/node_modules
