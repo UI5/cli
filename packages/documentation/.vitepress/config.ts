@@ -147,7 +147,7 @@ function nav() {
           target: "_self"
         }
       ]
-    },
+    }
   ];
 }
 

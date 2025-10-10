@@ -1,3 +1,9 @@
+---
+next:
+  text: 'Getting Started'
+  link: '/pages/GettingStarted'
+---
+
 ![UI5 logo](./images/UI5_logo_wide.png)
 
 # UI5 CLI
