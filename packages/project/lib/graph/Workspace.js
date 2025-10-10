@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/check-tag-names */
 import fs from "graceful-fs";
 import {globby, isDynamicPattern} from "globby";
 import path from "node:path";
