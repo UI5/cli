@@ -27,3 +27,9 @@ path = "packages/builder/lib/processors/jsdoc/lib/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 SAP SE or an SAP affiliate company and OpenUI5 contributors"
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "packages/documentation/.vitepress/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2019-present, Konrad Kost, Yuxi (Evan) and VitePress contributors"]
+SPDX-License-Identifier = "MIT"
