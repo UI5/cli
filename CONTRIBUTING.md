@@ -11,7 +11,7 @@
 
 ## 📝 Reporting Issues
 ### Seeking Help / Not a Bug
-If you need help setting something up, or if you have questions regarding UI5 CLI, please seek help on a community platform like [StackOverflow](http://stackoverflow.com/questions/tagged/ui5-tooling) or the [`#tooling`](https://openui5.slack.com/archives/C0A7QFN6B) channel of the [OpenUI5 Community Slack](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com).
+If you need help setting something up, or if you have questions regarding UI5 CLI, please seek help on a community platform like [StackOverflow](https://stackoverflow.com/questions/tagged/ui5-cli) or the [`#tooling`](https://openui5.slack.com/archives/C0A7QFN6B) channel of the [OpenUI5 Community Slack](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com).
 
 ### How to Report an Issue
 We collect issues for all UI5 CLI packages (*ui5-cli*, *ui5-server*, *ui5-project*, *ui5-builder*, *ui5-fs*, and *ui5-logger*) in [this](https://github.com/UI5/cli) monorepo. All packages are developed and maintained within this single mono repository.
