@@ -65,6 +65,7 @@
 		"packages/logger",
 		"packages/builder",
 		"packages/fs",
-		"packages/server"
+		"packages/server",
+		"packages/project"
 	]
 }

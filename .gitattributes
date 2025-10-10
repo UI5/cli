@@ -1,1 +1,7 @@
 * text=auto eol=lf
+
+# Needed for packages/project
+packages/project/build/** linguist-generated=false
+packages/project/lib/build/** linguist-generated=false
+packages/project/lib/** linguist-vendored=false
+packages/project/lib/** linguist-generated=false
