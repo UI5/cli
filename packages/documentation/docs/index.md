@@ -4,7 +4,9 @@ next:
   link: '/pages/GettingStarted'
 ---
 
-![UI5 logo](./images/UI5_logo_wide.png)
+![UI5 logo](./images/UI5_logo_wide.png) { .light-only }
+
+![UI5 logo](./images/UI5_logo_wide_dark.svg) { .dark-only }
 
 # UI5 CLI
 
@@ -33,6 +35,23 @@ import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vu
 <style>
 .no-decoration {
     text-decoration: inherit;
+}
+
+/* Theme-based image visibility */
+.light-only {
+    display: block;
+}
+
+.dark-only {
+    display: none;
+}
+
+html.dark .light-only {
+    display: none;
+}
+
+html.dark .dark-only {
+    display: block;
 }
 </style>
 
