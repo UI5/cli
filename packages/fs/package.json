@@ -121,7 +121,7 @@
 		"@ui5/logger": "^4.0.2",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
-		"globby": "^14.1.0",
+		"globby": "^15.0.0",
 		"graceful-fs": "^4.2.11",
 		"micromatch": "^4.0.8",
 		"minimatch": "^10.0.3",
