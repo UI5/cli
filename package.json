@@ -59,7 +59,7 @@
 		"eslint-plugin-jsdoc": "^52.0.4",
 		"globals": "^16.4.0",
 		"handlebars": "^4.7.8",
-		"jsdoc": "^4.0.4",
+		"jsdoc": "^4.0.5",
 		"local-web-server": "^5.4.0",
 		"open-cli": "^8.0.0",
 		"traverse": "^0.6.11"
