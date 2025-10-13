@@ -11,7 +11,7 @@ jobs:
     name: Flag and close stale issues
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v9
+      - uses: actions/stale@v10
         with:
           stale-issue-message: 'This issue has been automatically marked as stale because it has been open for 60 days with no activity. It will be closed in 10 days if no further activity occurs.'
           stale-issue-label: 'stale'
