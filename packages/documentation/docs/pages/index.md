@@ -6,7 +6,7 @@ next:
 
 ![UI5 logo](../images/UI5_logo_wide.png) { .light-only }
 
-![UI5 logo](../images/UI5_logo_wide_dark.svg) { .dark-only }
+![UI5 logo](../images/UI5_logo_wide_dark.png) { .dark-only }
 
 # UI5 CLI
 
