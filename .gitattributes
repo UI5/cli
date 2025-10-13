@@ -1,6 +1,6 @@
 * text=auto eol=lf
 
-# Needed for packages/project
+# Needed for packages/project, see https://github.com/SAP/ui5-project/pull/679
 packages/project/build/** linguist-generated=false
 packages/project/lib/build/** linguist-generated=false
 packages/project/lib/** linguist-vendored=false
