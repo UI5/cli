@@ -1,4 +1,9 @@
-![UI5 logo](../images/UI5_logo_wide.png)
+<script setup>
+import { useData } from 'vitepress'
+const { isDark } = useData()
+</script>
+
+<img :src="isDark ? '/ui5-cli/stable/images/O_UI5_H_noBG.png' : '/ui5-cli/stable/images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
 
 # UI5 CLI
 

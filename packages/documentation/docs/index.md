@@ -1,4 +1,15 @@
-![UI5 logo](./images/UI5_logo_wide.png)
+---
+next:
+  text: 'Getting Started'
+  link: '/pages/GettingStarted'
+---
+
+<script setup>
+import { useData } from 'vitepress'
+const { isDark } = useData()
+</script>
+
+<img :src="isDark ? '/ui5-cli/stable/images/O_UI5_H_noBG.png' : '/ui5-cli/stable/images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
 
 # UI5 CLI
 
@@ -63,15 +74,6 @@ Updated configuration written to ui5.yaml
 This project is now using SAPUI5 version 1.117.0
 
 ❯ ui5 add sap.ui.core sap.m themelib_sap_fiori_3
-Updated configuration written to ui5.yaml
-Added framework libraries sap.ui.core sap.m themelib_sap_fiori_3 as dependencies
-```
-
-#### 🏄 Development Server
-
-Start a local development server to work on your project.  
-*Also see the [Server Documentation](./pages/Server)*
-
 ```
 ❯ ui5 serve
 Server started
