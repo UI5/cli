@@ -41,8 +41,8 @@ export default defineConfig({
 
 
     logo:  {
-      light: "/icons/ui5/B.svg",
-      dark: "/icons/ui5/O.svg"
+      light: "/images/Logo_B_RGB.png",
+      dark: "/images/Logo_O_RGB.png"
     },
     externalLinkIcon: false,
     outline: [1, 3],
@@ -55,13 +55,13 @@ export default defineConfig({
 
     socialLinks: [
 
-      { icon: "github", link: "https://github.com/SAP/ui5-tooling" },
+      { icon: "github", link: "https://github.com/UI5/cli" },
     ],
 
     footer: {
 
       message: `
-        &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 Tooling Contributors <br/>
+        &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
           <a  style="margin:25px" href="https://ui5.github.io/cli/stable/pages/Privacy/">Privacy</a>
