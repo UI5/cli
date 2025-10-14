@@ -64,6 +64,6 @@ site/
 
 # Documentation
 packages/documentation/docs/pages/CLI.md
-packages/documentation/docs/.vitepress/dist
-packages/documentation/docs/.vitepress/cache
+packages/documentation/.vitepress/dist
+packages/documentation/.vitepress/cache
 packages/documentation/dist
