@@ -6,6 +6,7 @@ next:
 
 <script setup>
 import { useData } from 'vitepress'
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
 const { isDark } = useData()
 </script>
 
@@ -30,9 +31,7 @@ And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
 :::
 
 <div style="margin: 2rem 0;">
-  <a href="./pages/GettingStarted" style="display: inline-block; padding: 12px 24px; background: #1976d2; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">
-    🚀 Get Started
-  </a>
+  <VPButton class="no-decoration" text="🚀 Get Started" href="./pages/GettingStarted"/>
 </div>
 
 ## Main Features
