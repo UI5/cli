@@ -51,8 +51,8 @@ export default defineConfig({
 
 
     logo:  {
-      light: "/icons/ui5/B.svg",
-      dark: "/icons/ui5/O.svg"
+      light: "/images/Logo_B_RGB.png",
+      dark: "/images/Logo_O_RGB.png"
     },
     externalLinkIcon: false,
     outline: [1,3],
