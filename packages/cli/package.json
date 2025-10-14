@@ -31,15 +31,12 @@
 	},
 	"scripts": {
 		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck && npm run check-licenses",
-		"test-azure": "npm run coverage-xunit",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
 		"unit-watch": "npm run unit -- --watch",
-		"unit-xunit": "rimraf test/tmp && ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\" --tap | tap-xunit --dontUseCommentsAsTestNames=true > test-results.xml",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
-		"coverage-xunit": "nyc --reporter=text --reporter=text-summary --reporter=cobertura npm run unit-xunit",
 		"jsdoc": "npm run jsdoc-generate && open-cli jsdocs/index.html",
 		"jsdoc-generate": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./lib/ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"jsdoc-watch": "npm run jsdoc && chokidar \"./lib/**/*.js\" -c \"npm run jsdoc-generate\"",
@@ -52,13 +49,11 @@
 	},
 	"files": [
 		"CHANGELOG.md",
-		"CONTRIBUTING.md",
 		"jsdoc.json",
 		"npm-shrinkwrap.json",
 		"bin/**",
 		"lib/**",
-		"LICENSES/**",
-		".reuse/**"
+		"LICENSES/**"
 	],
 	"ava": {
 		"files": [
@@ -78,7 +73,6 @@
 			"text-summary"
 		],
 		"exclude": [
-			".chglog/**",
 			"docs/**",
 			"jsdocs/**",
 			"coverage/**",
@@ -113,7 +107,8 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git@github.com:SAP/ui5-cli.git"
+		"url": "git@github.com:UI5/cli.git",
+		"directory": "packages/cli"
 	},
 	"dependencies": {
 		"@ui5/builder": "^4.0.11",
@@ -132,7 +127,6 @@
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.8.0",
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"ava": "^6.4.1",
 		"chokidar-cli": "^3.0.0",
@@ -140,12 +134,8 @@
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
 		"eslint": "^9.36.0",
-		"eslint-config-google": "^0.14.0",
-		"eslint-plugin-ava": "^15.1.0",
-		"eslint-plugin-jsdoc": "^52.0.4",
 		"esmock": "^2.7.3",
 		"execa": "^9.6.0",
-		"globals": "^16.4.0",
 		"jsdoc": "^4.0.4",
 		"licensee": "^11.1.1",
 		"nyc": "^17.1.0",
@@ -153,7 +143,6 @@
 		"rimraf": "^6.0.1",
 		"sinon": "^21.0.0",
 		"strip-ansi": "^7.1.2",
-		"tap-xunit": "^2.4.1",
 		"testdouble": "^3.20.2"
 	}
 }
