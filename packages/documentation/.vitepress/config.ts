@@ -1,23 +1,13 @@
 // using the defineConfig helper will provide TypeScript-powered
 // intellisense for config options
 import { defineConfig } from "vitepress";
-import { join } from "node:path";
 
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 import MarkdownItPlantuml from "markdown-it-plantuml";
 
-// shikiji loading
-import { promises as fs, truncate } from 'node:fs'
-import type { LanguageInput, RawGrammar } from 'shiki'
-const loadSyntax = async (file: string, name: string, alias: string = name): Promise<LanguageInput> => {
-  const src = await fs.readFile(join(__dirname, file))
-  const grammar: RawGrammar = JSON.parse(src.toString())
-  return { name, aliases: [name, alias], ...grammar }
-}
-
 export default defineConfig({
-  
+
   base: "/ui5-cli/stable/", // use this for github pages deployment or remove for CF
   srcDir: "docs",
   outDir: "dist",
@@ -50,12 +40,12 @@ export default defineConfig({
   themeConfig: {
 
 
-    logo:  {
+    logo: {
       light: "/images/Logo_B_RGB.png",
       dark: "/images/Logo_O_RGB.png"
     },
     externalLinkIcon: false,
-    outline: [1,3],
+    outline: [1, 3],
 
     nav: nav(),
 
@@ -74,7 +64,7 @@ export default defineConfig({
         &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
-          <a  style="margin:25px" href="https://sap.github.io/ui25-tooling/stable/pages/Privacy/">Privacy</a>
+          <a  style="margin:25px" href="https://ui5.github.io/cli/stable/pages/Privacy/">Privacy</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/trademark.html">Trademarks</a>
     `,
 
@@ -91,24 +81,14 @@ export default defineConfig({
   },
 
   markdown: {
-    externalLinks:{
-      
+    externalLinks: {
+
     },
-    
+
     //theme: "material-theme-palenight", // pre rc5 default
     // Add support for your own languages.
     // https://github.com/shikijs/shiki/blob/main/languages.md#supporting-your-own-languages-with-shiki
     languages: [
-      // https://github.com/SAP-samples/vscode-abap-cds/blob/main/syntaxes/cds.tmLanguage.json
-      await loadSyntax('syntaxes/abapcds.tmLanguage.json', 'abapcds'),
-      // https://github.com/SAP/cds-textmate-grammar/blob/main/syntaxes/cds.tmLanguage.json
-      await loadSyntax('syntaxes/cds.tmLanguage.json', 'cds'),
-      // https://github.com/mechatroner/vscode_rainbow_csv/blob/master/syntaxes/csv.tmLanguage.json
-      await loadSyntax('syntaxes/csv.tmLanguage.json', 'csv'),
-      // https://github.com/mechatroner/vscode_rainbow_csv/blob/master/syntaxes/csv.tmLanguage.json
-      await loadSyntax('syntaxes/scsv.tmLanguage.json', 'csvs'),
-      // https://github.com/Huachao/vscode-restclient/blob/master/syntaxes/http.tmLanguage.json
-      await loadSyntax('syntaxes/http.tmLanguage.json', 'rest'),
     ],
 
     // Configure the Markdown-it instance
@@ -137,7 +117,7 @@ export default defineConfig({
     },
   },
 
- 
+
   vite: {
     build: {
       chunkSizeWarningLimit: 4000, // chunk for local search index dominates
@@ -153,23 +133,16 @@ function nav() {
       items: [
         {
           text: 'V3',
-          link: 'https://konnraad.github.io/ui5-tooling/v3/',
+          link: '../v3/',
           target: "_self"
         },
         {
           text: 'V2',
-          link: 'https://konnraad.github.io/ui5-tooling/v2/',
+          link: '../v2/',
           target: "_self"
         }
       ]
     },
-   // {
-   //   text: "Home",
-   //   link: "/Home/",
-   //   activeMatch: "/",
-   // },
-   // { text: "About", link: "/about" },
-
   ];
 }
 
@@ -325,7 +298,7 @@ function guide() {
     },
     {
       text: "API Reference",
-      link: "https://sap.github.io/ui5-tooling/v4/api/index.html",
+      link: "https://ui5.github.io/cli/stable/api/index.html",
 
     },
 
