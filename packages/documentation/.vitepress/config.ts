@@ -7,8 +7,8 @@ import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 import MarkdownItPlantuml from "markdown-it-plantuml";
 
 export default defineConfig({
-
-  base: "/ui5-cli/stable/", // use this for github pages deployment or remove for CF
+  
+  base: "/ui5-cli/v5/", // use this for github pages deployment or remove for CF
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
@@ -129,8 +129,13 @@ function nav() {
   return [
     {
 
-      text: 'V4',
+      text: 'V5',
       items: [
+        {
+          text: 'V4',
+          link: '../v4/',
+          target: "_self"
+        },
         {
           text: 'V3',
           link: '../v3/',
@@ -142,7 +147,7 @@ function nav() {
           target: "_self"
         }
       ]
-    },
+    }
   ];
 }
 

@@ -2,17 +2,21 @@
 
 The [UI5 Builder](https://github.com/SAP/ui5-builder) module takes care of building your project.
 
-<script setup>
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-</script>
-
 Based on a project's type, the UI5 Builder defines a series of build steps to execute; these are also called "tasks".
 
 For every type there is a set of default tasks. You can disable single tasks using the `--exclude-task` [CLI parameter](./CLI#ui5-build), and you can include tasks using the `--include-task` parameter.
 
-<div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/index.html"/>
-</div>
+<script setup>
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+</script>
+
+<VPButton class="api-button" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/index.html" target="_blank"/>
+
+<style>
+.api-button {
+  margin: 1rem 0;
+}
+</style>
 
 ## Tasks
 Tasks are specific build steps to be executed during build phase.
@@ -194,8 +198,3 @@ sap.ui.define([], () => {
 ```
 
 :::
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>

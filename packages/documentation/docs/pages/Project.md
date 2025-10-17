@@ -2,10 +2,6 @@
 
 The [UI5 Project](https://github.com/SAP/ui5-project) module provides functionality to build a UI5 project. Also see [Development Overview: Project Dependencies](./Overview#project-dependencies).
 
-<script setup>
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-</script>
-
 ## Types
 Types define how a project can be configured and how it is built. A type orchestrates a set of tasks and defines the order in which they get applied during build phase. Furthermore, it takes care of formatting and validating the project-specific configuration.
 
@@ -67,13 +63,14 @@ In the table below you can find the available combinations of project type & out
 ^2^ Theme libraries in most cases have more than one namespace.  
 ^3^ Modules have explicit path mappings configured and no namespace concept.  
 
+<script setup>
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+</script>
 
-<div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/@ui5_project_build_ProjectBuilder.html"/>
-</div>
+<VPButton class="api-button" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/@ui5_project_build_ProjectBuilder.html" target="_blank"/>
 
 <style>
-.no-decoration {
-    text-decoration: inherit;
+.api-button {
+  margin: 1rem 0;
 }
 </style>

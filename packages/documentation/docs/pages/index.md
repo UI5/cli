@@ -1,10 +1,12 @@
-<script setup>
-import { useData } from 'vitepress'
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-const { isDark } = useData()
-</script>
+---
+next:
+  text: 'Getting Started'
+  link: '/pages/GettingStarted'
+---
 
-<img :src="isDark ? '/ui5-cli/stable/images/O_UI5_H_noBG.png' : '/ui5-cli/stable/images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
+![UI5 logo](../images/UI5_logo_wide.png) { .light-only }
+
+![UI5 logo](../images/UI5_logo_wide_dark.png) { .dark-only }
 
 # UI5 CLI
 
@@ -24,9 +26,37 @@ Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://communit
 And checkout the **[Migrate to v4](../updates/migrate-v4)** documentation.
 :::
 
-<div style="margin: 2rem 0;">
-  <VPButton class="no-decoration" text="🚀 Get Started" href="./GettingStarted"/>
-</div>
+<script setup>
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+</script>
+
+<VPButton class="margin-button" text="🚀 Get Started" href="./GettingStarted"/>
+
+<style>
+.margin-button {
+  margin: 2rem 0;
+}
+
+/* Theme-based image visibility */
+.light-only {
+    visibility: visible;
+}
+
+.dark-only {
+    visibility: hidden;
+    position: absolute;
+}
+
+html.dark .light-only {
+    visibility: hidden;
+    position: absolute;
+}
+
+html.dark .dark-only {
+    visibility: visible;
+    position: static;
+}
+</style>
 
 ## Main Features
 
@@ -146,9 +176,3 @@ async function buildApp(projectPath, destinationPath) {
     });
 }
 ```
-
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>

@@ -6,9 +6,13 @@ The [UI5 Server](https://github.com/SAP/ui5-server) module provides server capab
 import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
 </script>
 
-<div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/module-@ui5_server.html"/>
-</div>
+<VPButton class="api-button" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/module-@ui5_server.html" target="_blank"/>
+
+<style>
+.api-button {
+  margin: 1rem 0;
+}
+</style>
 
 ## Standard Middleware
 
@@ -83,9 +87,3 @@ Follow the given instructions and enter your password to install the generated c
 If Chrome unintentionally redirects an HTTP-URL to HTTPS, you need to delete the HSTS mapping in [chrome://net-internals/#hsts](chrome://net-internals/#hsts) by entering the domain name (e.g. localhost) and pressing "delete".
 
 :::
-
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-</style>
