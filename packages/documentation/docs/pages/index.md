@@ -1,9 +1,3 @@
----
-next:
-  text: 'Getting Started'
-  link: '/pages/GettingStarted'
----
-
 <script setup>
 import { useData } from 'vitepress'
 import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
@@ -27,18 +21,18 @@ Read the announcement blog post: **[SAP Community: Goodbye UI5 Tooling - Hello U
 
 Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
 
-And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
+And checkout the **[Migrate to v4](../updates/migrate-v4)** documentation.
 :::
 
 <div style="margin: 2rem 0;">
-  <VPButton class="no-decoration" text="🚀 Get Started" href="./pages/GettingStarted"/>
+  <VPButton class="no-decoration" text="🚀 Get Started" href="./GettingStarted"/>
 </div>
 
 ## Main Features
 
 ### 💻 UI5 CLI
 
-*Also see the [UI5 CLI Documentation](./pages/CLI)*
+*Also see the [UI5 CLI Documentation](./CLI)*
 
 ```sh
 # Global
@@ -51,13 +45,13 @@ npm install --save-dev @ui5/cli
 #### ⚙️ Project Setup
 
 Configure your project for use with UI5 CLI.  
-*Also see the [Configuration Documentation](./pages/Configuration)*
+*Also see the [Configuration Documentation](./Configuration)*
 
 ```
 ❯ ui5 init
 Wrote ui5.yaml:
 
-specVersion: "4.0"
+specVersion: "4.0
 metadata:
   name: my-app
 type: application
@@ -73,6 +67,15 @@ Updated configuration written to ui5.yaml
 This project is now using SAPUI5 version 1.117.0
 
 ❯ ui5 add sap.ui.core sap.m themelib_sap_fiori_3
+Updated configuration written to ui5.yaml
+Added framework libraries sap.ui.core sap.m themelib_sap_fiori_3 as dependencies
+```
+
+#### 🏄 Development Server
+
+Start a local development server to work on your project.  
+*Also see the [Server Documentation](./Server)*
+
 ```
 ❯ ui5 serve
 Server started
@@ -82,7 +85,7 @@ URL: http://localhost:8080
 #### 🛠 Build for Production
 
 Build an optimized version of your project.  
-*Also see the [Builder Documentation](./pages/Builder)*
+*Also see the [Builder Documentation](./Builder)*
 
 ``` bash
 ❯ ui5 build
@@ -143,3 +146,9 @@ async function buildApp(projectPath, destinationPath) {
     });
 }
 ```
+
+<style>
+.no-decoration {
+    text-decoration: inherit;
+}
+</style>
