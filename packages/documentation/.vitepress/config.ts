@@ -12,7 +12,7 @@ export default defineConfig({
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
-  title: "UI5 Tooling",
+  title: "UI5 CLI",
 
   description: "An open and modular toolchain to develop state-of-the-art applications based on the UI5 framework.",
   lastUpdated: false, // disable git author info
@@ -40,7 +40,7 @@ export default defineConfig({
   themeConfig: {
 
 
-    logo:  {
+    logo: {
       light: "/images/Logo_B_RGB.png",
       dark: "/images/Logo_O_RGB.png"
     },
