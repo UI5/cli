@@ -53,7 +53,7 @@
 		"@eslint/js": "^9.8.0",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
-		"eslint": "^9.37.0",
+		"eslint": "^9.38.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^52.0.4",
