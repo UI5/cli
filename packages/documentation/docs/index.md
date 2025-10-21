@@ -110,7 +110,7 @@ All available APIs are documented in the [UI5 CLI API Reference](https://ui5.git
 
 #### ESM
 
-```js linenums="1
+```js
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 
 async function buildApp(projectPath, destinationPath) {
@@ -128,7 +128,7 @@ async function buildApp(projectPath, destinationPath) {
 
 #### CommonJS
 
-```js linenums="1
+```js
 async function buildApp(projectPath, destinationPath) {
     const {graphFromPackageDependencies} = 
         await import("@ui5/project/graph");

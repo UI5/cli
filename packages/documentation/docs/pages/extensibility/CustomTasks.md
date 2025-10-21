@@ -109,7 +109,7 @@ A custom task implementation needs to return a function with the following signa
 
 #### ESM
 
-```js linenums="1
+```js
 /**
  * Custom task API
  *
@@ -149,7 +149,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 
 #### CommonJS
 
-```js linenums="1
+```js
 /**
  * Custom task API
  *
@@ -208,7 +208,7 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
 
 #### ESM
 
-```js linenums="1
+```js
 /**
  * Callback function to define the list of required dependencies
  *
@@ -249,7 +249,7 @@ export async function determineRequiredDependencies({availableDependencies, getD
 
 #### CommonJS
 
-```js linenums="1
+```js
 /**
  * Callback function to define the list of required dependencies
  *
@@ -300,7 +300,7 @@ result by writing them into the provided `workspace`.
 
 #### ESM
 
-```js linenums="1
+```js
 import path from "node:path";
 import renderMarkdown from "./renderMarkdown.js";
 
@@ -331,7 +331,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 
 #### CommonJS
 
-```js linenums="1
+```js
 const path = require("node:path");
 const renderMarkdown = require("./renderMarkdown.js");
 
@@ -375,7 +375,7 @@ APIs to retrieve additional information about the project currently being built 
 
 #### ESM
 
-```js linenums="1
+```js
 import path from "node:path";
 
 /*
@@ -425,7 +425,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 
 #### CommonJS
 
-```js linenums="1"
+```js
 const path = require("node:path");
 
 /*
