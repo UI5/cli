@@ -23,6 +23,7 @@
 					"lazy": false
 				}
 			}
-		}
+		},
+		"flexBundle": true
 	}
 }

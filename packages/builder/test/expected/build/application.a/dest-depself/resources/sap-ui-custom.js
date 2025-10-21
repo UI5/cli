@@ -9,6 +9,6 @@ sap.ui.predefine("library/d/library", ["sap/ui/core/Lib","sap/ui/core/library"],
  */
 sap.ui.predefine("library/d/some", ["./library"],l=>{var o="World";console.log("Hello "+o)});
 sap.ui.require.preload({
-	"id1/manifest.json":'{"_version":"1.1.0","sap.app":{"_version":"1.1.0","id":"id1","type":"application","applicationVersion":{"version":"1.2.2"},"embeds":["embedded"],"title":"{{title}}"}}'
+	"id1/manifest.json":'{"_version":"1.1.0","sap.app":{"_version":"1.1.0","id":"id1","type":"application","applicationVersion":{"version":"1.2.2"},"embeds":["embedded"],"title":"{{title}}"},"sap.ui5":{"flexBundle":false}}'
 });
 //# sourceMappingURL=sap-ui-custom.js.map

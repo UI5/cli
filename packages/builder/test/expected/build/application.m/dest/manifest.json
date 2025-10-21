@@ -18,6 +18,7 @@
 				"sap.ui.core": {},
 				"sap.m": {}
 			}
-		}
+		},
+		"flexBundle": false
 	}
 }

@@ -14,7 +14,7 @@ import semver from "semver";
  * at runtime.
  * If a change bundle is created, "sap.ui.fl" is added as a dependency to the manifest.json if not already present -
  * if the dependency is already listed but lazy-loaded, lazy loading is disabled.
- * If minUI5Version >= 1.73 flexibility-bundle.json will be create.
+ * If minUI5Version >= 1.73 flexibility-bundle.json is created.
  * If there are control variants and minUI5Version < 1.73 build will break and throw an error.
  *
  * @public
@@ -38,29 +38,34 @@ export default async function({workspace, taskUtil, options = {}}) {
 		pathPrefix = `/resources/${namespace}`;
 	}
 
-	function updateJson(data) {
-		// ensure the existence of the libs section in the dependencies
+	function updateJson(data, bBundleCreated) {
 		data["sap.ui5"] = data["sap.ui5"] || {};
-		data["sap.ui5"].dependencies = data["sap.ui5"].dependencies || {};
-		const mLibs = data["sap.ui5"].dependencies.libs = data["sap.ui5"].dependencies.libs || {};
+		// explicit set the flag to inform the runtime if a bundle is present before the preload can be interpreted
+		data["sap.ui5"].flexBundle = bBundleCreated;
 
-		if (mLibs["sap.ui.fl"]) {
-			log.verbose("sap.ui.fl found in manifest.json");
-			if (mLibs["sap.ui.fl"].lazy) {
-				log.verbose("sap.ui.fl 'lazy' attribute found in manifest.json, setting it to false...");
-				mLibs["sap.ui.fl"].lazy = false;
+		if (bBundleCreated) {
+			// ensure the existence of the libs section in the dependencies
+			data["sap.ui5"].dependencies = data["sap.ui5"].dependencies || {};
+			const mLibs = data["sap.ui5"].dependencies.libs = data["sap.ui5"].dependencies.libs || {};
+
+			if (mLibs["sap.ui.fl"]) {
+				log.verbose("sap.ui.fl found in manifest.json");
+				if (mLibs["sap.ui.fl"].lazy) {
+					log.verbose("sap.ui.fl 'lazy' attribute found in manifest.json, setting it to false...");
+					mLibs["sap.ui.fl"].lazy = false;
+				}
+			} else {
+				log.verbose("sap.ui.fl not found in manifest.json, inserting it...");
+				mLibs["sap.ui.fl"] = {};
 			}
-		} else {
-			log.verbose("sap.ui.fl not found in manifest.json, inserting it...");
-			mLibs["sap.ui.fl"] = {};
 		}
 	}
 
-	async function updateFLdependency() {
+	async function updateManifestWithFlDependencyAndFlexBundleFlag(bBundleCreated) {
 		const manifestResource = await workspace.byPath(`${pathPrefix}/manifest.json`);
 		const manifestContent = JSON.parse(await manifestResource.getString());
 
-		updateJson(manifestContent);
+		updateJson(manifestContent, bBundleCreated);
 		manifestResource.setString(JSON.stringify(manifestContent, null, "\t"));
 
 		await workspace.write(manifestResource);
@@ -83,6 +88,9 @@ export default async function({workspace, taskUtil, options = {}}) {
 	log.verbose("Collecting flexibility changes");
 	const allResources = await workspace.byGlob(
 		`${pathPrefix}/changes/*.{change,variant,ctrl_variant,ctrl_variant_change,ctrl_variant_management_change}`);
+
+	let bBundleCreated = false;
+
 	if (allResources.length > 0) {
 		const versionArray = await readManifestMinUI5Version();
 		const versions = versionArray.map((version) => semver.coerce(version));
@@ -109,9 +117,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 			return workspace.write(resource);
 		}));
 		// Add the sap.ui.fl dependency if a bundle has been created
-		if (processedResources.length > 0) {
-			await updateFLdependency();
-		}
+		bBundleCreated = processedResources.length > 0;
 
 		// Do not write bundled source files to build result
 		if (taskUtil) {
@@ -120,4 +126,7 @@ export default async function({workspace, taskUtil, options = {}}) {
 			});
 		}
 	}
+
+	// Always append the flexBundle flag to the manifest.json, even if no bundle was created
+	await updateManifestWithFlDependencyAndFlexBundleFlag(bBundleCreated);
 }
