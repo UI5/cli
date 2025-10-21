@@ -23,7 +23,7 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run depcheck && npm run coverage && npm run jsdoc-generate && npm run schema-generate && npm run generate-cli-doc",
+		"test": "npm run lint && npm run check-licenses && npm run depcheck && npm run coverage && npm run jsdoc-generate && npm run schema-generate && npm run generate-cli-doc",
 		"lint": "eslint ./ && npm run lint --workspaces",
 		"coverage": "npm run coverage --workspaces",
 		"jsdoc": "npm run jsdoc-generate && open-cli site/api/index.html",
@@ -35,7 +35,8 @@
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
-		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server && npm run depcheck --workspaces"
+		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server && npm run depcheck --workspaces",
+		"check-licenses": "licensee --errors-only"
 	},
 	"repository": {
 		"type": "git",
@@ -57,6 +58,7 @@
 		"globals": "^16.4.0",
 		"handlebars": "^4.7.8",
 		"jsdoc": "^4.0.4",
+		"licensee": "^11.1.1",
 		"local-web-server": "^5.4.0",
 		"open-cli": "^8.0.0",
 		"traverse": "^0.6.11"

@@ -30,7 +30,7 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck && npm run check-licenses",
+		"test": "npm run lint && npm run jsdoc-generate && npm run coverage && npm run depcheck",
 		"lint": "eslint ./",
 		"unit": "rimraf test/tmp && ava",
 		"unit-verbose": "rimraf test/tmp && cross-env UI5_LOG_LVL=verbose ava --verbose --serial",
@@ -44,8 +44,7 @@
 		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md v4.0.0.. && git add CHANGELOG.md",
 		"prepublishOnly": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version | node .chglog/consolidate-changelogs.js",
-		"depcheck": "depcheck --ignores @ui5/cli,rimraf,docdash,@istanbuljs/esm-loader-hook,@ui5/fs,@ui5/builder",
-		"check-licenses": "licensee --errors-only"
+		"depcheck": "depcheck --ignores @ui5/cli,rimraf,docdash,@istanbuljs/esm-loader-hook,@ui5/fs,@ui5/builder"
 	},
 	"files": [
 		"CHANGELOG.md",
@@ -137,7 +136,6 @@
 		"esmock": "^2.7.3",
 		"execa": "^9.6.0",
 		"jsdoc": "^4.0.4",
-		"licensee": "^11.1.1",
 		"nyc": "^17.1.0",
 		"open-cli": "^8.0.0",
 		"rimraf": "^6.0.1",

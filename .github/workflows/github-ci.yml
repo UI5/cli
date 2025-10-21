@@ -30,9 +30,8 @@ jobs:
     - name: Perform ESLint check
       run: npm run lint
 
-    # TODO: Enable when "cli" package has been integrated into monorepo
-    # - name: Perform Licenses check
-    #   run: npm run check-licenses
+    - name: Perform Licenses check
+      run: npm run check-licenses
 
     - name: Perform dependency check
       run: npm run depcheck
