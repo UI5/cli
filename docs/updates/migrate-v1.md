@@ -38,7 +38,7 @@ To upgrade your global installation, just run the installation command again, wh
 npm install --global @ui5/cli
 ```
 
-**Note:** Your local CLI installation will still be preferred, so you need to make sure to upgrade it as well (see [Local vs. Global installation](https://github.com/SAP/ui5-cli#local-vs-global-installation)).
+**Note:** Your local CLI installation will still be preferred, so you need to make sure to upgrade it as well (see [Local vs. Global installation](https://ui5.github.io/cli/stable/pages/CLI/#local-vs-global-installation)).
 
 ### Local installation
 
