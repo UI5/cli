@@ -73,6 +73,15 @@ Updated configuration written to ui5.yaml
 This project is now using SAPUI5 version 1.117.0
 
 ❯ ui5 add sap.ui.core sap.m themelib_sap_fiori_3
+Updated configuration written to ui5.yaml
+Added framework libraries sap.ui.core sap.m themelib_sap_fiori_3 as dependencies
+```
+
+#### 🏄 Development Server
+
+Start a local development server to work on your project.  
+*Also see the [Server Documentation](./Server)*
+
 ```
 ❯ ui5 serve
 Server started
