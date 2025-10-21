@@ -91,7 +91,7 @@ A custom middleware implementation needs to return a function with the following
 
 #### ESM
 
-```js linenums="1
+```js
 /**
  * Custom UI5 Server middleware API
  * 
@@ -129,7 +129,7 @@ export default function({log, middlewareUtil, options, resources}) {
 
 #### CommonJS
 
-```js linenums="1
+```js
 /**
  * Custom UI5 Server middleware API
  * 
@@ -169,7 +169,7 @@ module.exports = function({log, middlewareUtil, options, resources}) {
 
 #### ESM
 
-```js linenums="1
+```js
 import MarkdownIt from "markdown-it";
 
 export default async function({log, middlewareUtil, options, resources}) {
@@ -203,7 +203,7 @@ Live demo of the above example: [openui5-sample-app with custom middleware](http
 
 #### CommonJS
 
-```js linenums="1
+```js
 module.exports = async function({log, middlewareUtil, options, resources}) {
     const MarkdownIt = require("markdown-it");
     const md = new MarkdownIt();
