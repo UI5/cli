@@ -1,3 +1,9 @@
+---
+next:
+  text: 'Getting Started'
+  link: '/pages/GettingStarted'
+---
+
 <script setup>
 import { useData } from 'vitepress'
 import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
@@ -21,7 +27,7 @@ Read the announcement blog post: **[SAP Community: Goodbye UI5 Tooling - Hello U
 
 Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
 
-And checkout the **[Migrate to v4](../updates/migrate-v4)** documentation.
+And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
 :::
 
 <div style="margin: 2rem 0;">
@@ -51,7 +57,7 @@ Configure your project for use with UI5 CLI.
 ❯ ui5 init
 Wrote ui5.yaml:
 
-specVersion: "4.0
+specVersion: "4.0"
 metadata:
   name: my-app
 type: application
