@@ -4,9 +4,13 @@ next:
   link: '/pages/GettingStarted'
 ---
 
-![UI5 logo](./images/UI5_logo_wide.png) { .light-only }
+<script setup>
+import { useData } from 'vitepress'
+import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
+const { isDark } = useData()
+</script>
 
-![UI5 logo](./images/UI5_logo_wide_dark.png) { .dark-only }
+<img :src="isDark ? '/ui5-cli/stable/images/O_UI5_H_noBG.png' : '/ui5-cli/stable/images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
 
 # UI5 CLI
 
@@ -26,34 +30,9 @@ Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://communit
 And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
 :::
 
-<script setup>
-import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
-</script>
-
-<VPButton class="no-decoration" text="🚀 Get Started" href="./pages/GettingStarted"/>
-
-<style>
-.no-decoration {
-    text-decoration: inherit;
-}
-
-/* Theme-based image visibility */
-.light-only {
-    display: block;
-}
-
-.dark-only {
-    display: none;
-}
-
-html.dark .light-only {
-    display: none;
-}
-
-html.dark .dark-only {
-    display: block;
-}
-</style>
+<div style="margin: 2rem 0;">
+  <VPButton class="no-decoration" text="🚀 Get Started" href="./pages/GettingStarted"/>
+</div>
 
 ## Main Features
 
@@ -101,7 +80,7 @@ Added framework libraries sap.ui.core sap.m themelib_sap_fiori_3 as dependencies
 #### 🏄 Development Server
 
 Start a local development server to work on your project.  
-*Also see the [Server Documentation](./pages/Server)*
+*Also see the [Server Documentation](./Server)*
 
 ```
 ❯ ui5 serve
@@ -140,7 +119,7 @@ All available APIs are documented in the [UI5 CLI API Reference](https://ui5.git
 
 #### ESM
 
-```js linenums="1
+```js
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 
 async function buildApp(projectPath, destinationPath) {
@@ -158,7 +137,7 @@ async function buildApp(projectPath, destinationPath) {
 
 #### CommonJS
 
-```js linenums="1
+```js
 async function buildApp(projectPath, destinationPath) {
     const {graphFromPackageDependencies} = 
         await import("@ui5/project/graph");
