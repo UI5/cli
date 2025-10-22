@@ -9,7 +9,7 @@ This document describes the configuration of UI5 CLI-based projects and extensio
 
 ## Validation / IDE support
 
-Starting with [Specification Version 2.0](#specification-version-20) the configuration is validated according to a JSON schema.  
+Starting with [Specification Version 2.0](#specification-version-2-0) the configuration is validated according to a JSON schema.  
 The current version of the schema can be found here: https://ui5.github.io/cli/schema/ui5.yaml.json
 
 The schema is also part of the [JSON Schema Store Catalog](http://schemastore.org/json/) which is used by the [YAML Language Server](https://github.com/redhat-developer/yaml-language-server).  
