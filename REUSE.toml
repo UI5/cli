@@ -31,5 +31,5 @@ SPDX-License-Identifier = "Apache-2.0"
 [[annotations]]
 path = "packages/documentation/.vitepress/**"
 precedence = "aggregate"
-SPDX-FileCopyrightText = ["2019-present, Konrad Kost, Yuxi (Evan) and VitePress contributors"]
+SPDX-FileCopyrightText = ["2019-present, Konrad Kost, Holger Schäfer, Yuxi (Evan) and VitePress contributors"]
 SPDX-License-Identifier = "MIT"
