@@ -80,7 +80,7 @@ Added framework libraries sap.ui.core sap.m themelib_sap_fiori_3 as dependencies
 #### 🏄 Development Server
 
 Start a local development server to work on your project.  
-*Also see the [Server Documentation](./Server)*
+*Also see the [Server Documentation](./pages/Server)*
 
 ```
 ❯ ui5 serve
