@@ -65,7 +65,7 @@ ui5 use sapui5@latest
 :::
 You can choose between the OpenUI5 and the SAPUI5 framework.
 
-Don't know which one to choose? Check out our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5).
+Don't know which one to choose? Check out our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ#what-s-the-difference-between-openui5-and-sapui5).
 
 1. Add required libraries
 ```sh
