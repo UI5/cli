@@ -6,13 +6,9 @@ The [UI5 FS](https://github.com/SAP/ui5-fs) provides a UI5-specific file system 
 import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vue"
 </script>
 
-<VPButton class="api-button" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/" target="_blank"/>
-
-<style>
-.api-button {
-  margin: 1rem 0;
-}
-</style>
+<div style="margin: 1rem 0;">
+  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/"/>
+</div>
 
 ## Overview
 
@@ -51,3 +47,9 @@ They implement the same API for **retrieving** resources as adapters (`byPath` a
 * [ReaderCollectionPrioritized](https://ui5.github.io/cli/v4/api/@ui5_fs_ReaderCollectionPrioritized.html): Contains a list of readers which are searched in-order. This allows one reader to "overlay" resources of another
 * [DuplexCollection](https://ui5.github.io/cli/v4/api/@ui5_fs_DuplexCollection.html): Contains a single reader and a single "writer". It therefore also implements the Adapter API for **persisting** resources (`write()`). When retrieving resources, the writer is prioritized over the reader
 * [WriterCollection](https://ui5.github.io/cli/v4/api/@ui5_fs_WriterCollection.html): Contains a set of writers and a mapping for each of them. When writing a resource, the writer is chosen based on the resource's virtual path.
+
+<style>
+.no-decoration {
+    text-decoration: inherit;
+}
+</style>

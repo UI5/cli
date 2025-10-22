@@ -101,25 +101,10 @@ await builder.build({
 
 **New: @ui5/project v3**
 
-**ESM**
+=== "ESM"
 
-```js
-import {graphFromPackageDependencies} from "@ui5/project/graph";
-
-let graph = await graphFromPackageDependencies({cwd: "."});
-
-await graph.build({
-    destPath: "./dist",
-    includedDependencies: ["*"], // Parameter "buildDependencies" has been removed
-});
-```
-
-**CommonJS**
-
-```js
-// Since CommonJS does not suport top-level await, the code must be wrapped in an asynchronous function
-async function buildProject() {
-    const {graphFromPackageDependencies} = await import("@ui5/project/graph");
+    ```js
+    import {graphFromPackageDependencies} from "@ui5/project/graph";
 
     let graph = await graphFromPackageDependencies({cwd: "."});
 
@@ -127,8 +112,23 @@ async function buildProject() {
         destPath: "./dist",
         includedDependencies: ["*"], // Parameter "buildDependencies" has been removed
     });
-}
-```
+    ```
+
+=== "CommonJS"
+
+    ```js
+    // Since CommonJS does not suport top-level await, the code must be wrapped in an asynchronous function
+    async function buildProject() {
+	    const {graphFromPackageDependencies} = await import("@ui5/project/graph");
+
+	    let graph = await graphFromPackageDependencies({cwd: "."});
+
+	    await graph.build({
+	        destPath: "./dist",
+	        includedDependencies: ["*"], // Parameter "buildDependencies" has been removed
+	    });
+    }
+    ```
 
 ## Changes to @ui5/cli
 
