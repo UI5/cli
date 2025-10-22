@@ -1,6 +1,6 @@
 # Migrate to v4
 
-::: tip "New Release"
+::: tip New Release
 **UI5 CLI 4.0 has been released on July 24, 2024 🎉**
 
 Install the latest version in your projects via: `npm i --save-dev @ui5/cli@latest`  
