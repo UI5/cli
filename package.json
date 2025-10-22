@@ -64,11 +64,11 @@
 		"traverse": "^0.6.11"
 	},
 	"workspaces": [
-		"packages/logger",
 		"packages/builder",
+		"packages/cli",
 		"packages/fs",
-		"packages/server",
+		"packages/logger",
 		"packages/project",
-		"packages/cli"
+		"packages/server"
 	]
 }

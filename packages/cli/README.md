@@ -24,4 +24,3 @@ Please report issues in the main [UI5 CLI](https://github.com/UI5/cli) repositor
 ## Release History
 
 See [CHANGELOG.md](CHANGELOG.md).
-A consolidated changelog (including changes from the other UI5 CLI modules) is available on the [Releases tab](https://github.com/SAP/ui5-cli/releases).
