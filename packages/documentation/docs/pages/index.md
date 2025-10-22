@@ -27,7 +27,7 @@ Read the announcement blog post: **[SAP Community: Goodbye UI5 Tooling - Hello U
 
 Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
 
-And checkout the **[Migrate to v4](./updates/migrate-v4)** documentation.
+And checkout the **[Migrate to v4](../updates/migrate-v4)** documentation.
 :::
 
 <div style="margin: 2rem 0;">
