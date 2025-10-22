@@ -1,6 +1,6 @@
 # Migrate to v3
 
-::: warning Superseded
+::: warning "Superseded"
 **UI5 CLI 3.0 has been superseded by version 4.0. See [Migrate to v4](./migrate-v4.md).**
 
 Find the announcement blog post for version 3.0 here: **[SAP Community: UI5 CLI 3.0](https://blogs.sap.com/2023/02/10/ui5-tooling-3.0/)**
