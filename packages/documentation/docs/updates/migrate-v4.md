@@ -1,12 +1,13 @@
 # Migrate to v4
 
-!!! tip "New Release"
-    **UI5 CLI 4.0 has been released on July 24, 2024 🎉**
+::: tip "New Release"
+**UI5 CLI 4.0 has been released on July 24, 2024 🎉**
 
-    Install the latest version in your projects via: `npm i --save-dev @ui5/cli@latest`  
-    And update your global install via `npm i --global @ui5/cli@latest`
+Install the latest version in your projects via: `npm i --save-dev @ui5/cli@latest`  
+And update your global install via `npm i --global @ui5/cli@latest`
 
-    And find the announcement blog post here: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
+And find the announcement blog post here: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
+:::
 
 ## UI5 2.x Compatibility
 
@@ -30,15 +31,16 @@ Old projects might therefore still work, unless they have a non-standard configu
 
 ## Changes for Projects
 
-!!! success "No changes for Specification Versions 2.x and 3.x"
-    Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
+::: info "No changes for Specification Versions 2.x and 3.x"
+Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
 
-    The following does not apply to them.
+The following does not apply to them.
+:::
 
 For projects defining the latest **Specification Version 4.0 or higher**, the following changes apply:
 
 * **Breaking Change:** Bundling of JavaScript modules requiring "top level scope" as a string is terminated. 
-    
+
     In UI5 2.x, the feature of evaluating modules from a string is expected to be removed. Therefore, when using the latest Specification Version, UI5 CLI will **omit affected module from the bundle and log an error message instead.**
 
     For more details, see [Builder: JavaScript Files Requiring Top Level Scope](../pages/Builder.md#javascript-files-requiring-top-level-scope).
@@ -78,45 +80,48 @@ Non-public `DuplexCollection#byGlobSource` API has been removed.
 
 - **New Option**: Added a new `async` option for `builder.bundles.bundleDefinition.section`.
 
-!!! example
-    ```yaml
-    builder:
-      bundles:
-        - bundleDefinition:
-            name: "app.js"
-            sections:
-              - mode: require
-                filters:
-                  - some/app/Component.js
-                resolve: true
-                sort: true
-                async: true
-    ```
+::: code-group
+```yaml
+builder:
+    bundles:
+    - bundleDefinition:
+        name: "app.js"
+        sections:
+            - mode: require
+            filters:
+                - some/app/Component.js
+            resolve: true
+            sort: true
+            async: true
+```
+:::
 
 ### Changes to @ui5/project
 
 - **Default Workspace Name**: The default `workspaceName` is now `"default"` for API usage.
 
-!!! example
-    ```js
-    import {graphFromPackageDependencies} from "@ui5/project/graph";
-	
-	graphFromPackageDependencies({
-		/* workspaceName: "default" */
-	});
-    ```
+::: code-group
+```js
+import {graphFromPackageDependencies} from "@ui5/project/graph";
+
+graphFromPackageDependencies({
+    /* workspaceName: "default" */
+});
+```
+:::
 
 - **Directory Naming**: The `ui5HomeDir` has been renamed to `ui5DataDir` in APIs.
 
-!!! example
-    ```js
-    import Resolver from "@ui5/project/ui5Framework/Openui5Resolver";
+::: code-group
+```js
+import Resolver from "@ui5/project/ui5Framework/Openui5Resolver";
 
-    await Resolver.resolveVersion("1.120.15", {
-        ui5DataDir: "~/.ui5",
-        cwd: process.cwd()
-    });
-    ```
+await Resolver.resolveVersion("1.120.15", {
+    ui5DataDir: "~/.ui5",
+    cwd: process.cwd()
+});
+```
+:::
 
 - **Dependencies**: The `@ui5/builder` is now an optional dependency to the `@ui5/project`
 
