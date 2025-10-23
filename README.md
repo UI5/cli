@@ -24,7 +24,7 @@
 - [Project Configuration](https://ui5.github.io/cli/v3/pages/Configuration/)
 - 🎬 [UI5con@SAP 2020 Talk](https://www.youtube.com/watch?v=8IHoVJLKN34)
 - 🎬 [UI5con@SAP 2018 Talk](https://www.youtube.com/watch?v=iQ07oe26y_k)
-- [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md)
+- [Contribution Guidelines](https://github.com/UI5/cli/blob/v4/CONTRIBUTING.md)
 - [Roadmap](https://github.com/UI5/cli/issues/701)
 
 ## Modules
@@ -43,8 +43,8 @@ UI5 CLI consists of multiple modules. Each one is managed in a separate reposito
 
 ## Contributing
 
-Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md).
+Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/v4/CONTRIBUTING.md).
 
 ## Support
 
-Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#report-an-issue) on how to report an issue. Or chat with us in the [`#tooling`](https://openui5.slack.com/archives/C0A7QFN6B) channel of the [OpenUI5 Community Slack](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com). For public Q&A, use the [`ui5-tooling` tag on Stack Overflow](https://stackoverflow.com/questions/tagged/ui5-tooling).
+Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/v4/CONTRIBUTING.md#report-an-issue) on how to report an issue. Or chat with us in the [`#tooling`](https://openui5.slack.com/archives/C0A7QFN6B) channel of the [OpenUI5 Community Slack](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com). For public Q&A, use the [`ui5-tooling` tag on Stack Overflow](https://stackoverflow.com/questions/tagged/ui5-tooling).
