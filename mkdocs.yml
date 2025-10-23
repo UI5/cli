@@ -2,7 +2,7 @@ site_name: UI5 CLI
 site_url: 'https://ui5.github.io/cli/' # required for working 404 page
 repo_name: 'UI5/cli'
 repo_url: 'https://github.com/UI5/cli'
-edit_uri: ./edit/main/docs # default points to "master" branch
+edit_uri: ./edit/v4/docs
 docs_dir: 'docs' # default
 site_dir: 'site' # default
 copyright: '© Copyright 2025, SAP SE and UI5 CLI Contributors'

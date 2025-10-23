@@ -9,7 +9,7 @@ assignees: ''
 
 <!--
 Hey there 👋 Please also have a look at our guidelines on feature requests:
-https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#-feature-requests
+https://github.com/UI5/cli/blob/v4/CONTRIBUTING.md#-feature-requests
 -->
 
 ## Is your feature request related to a problem? Please describe.

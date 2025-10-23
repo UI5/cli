@@ -27,7 +27,7 @@ The following APIs are analyzed by the JSModule Analyzer:
 - sap.ui.preload (restricted)
 - sap.ui.require.preload (restricted)
 
-The [JSModule Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/JSModuleAnalyzer.js) uses the ["Abstract Syntax Tree"](https://en.wikipedia.org/wiki/Abstract_syntax_tree) (AST) of a JavaScript file to decide whether a code block is executed *conditionally* or *unconditionally*.
+The [JSModule Analyzer](https://github.com/SAP/ui5-builder/blob/v4/lib/lbt/analyzer/JSModuleAnalyzer.js) uses the ["Abstract Syntax Tree"](https://en.wikipedia.org/wiki/Abstract_syntax_tree) (AST) of a JavaScript file to decide whether a code block is executed *conditionally* or *unconditionally*.
 
 The analyzer uses a set of rules to decide whether one of the above APIs is called whenever the module is executed or whether the API is only called under certain conditions.
 
@@ -41,7 +41,7 @@ When a dependency in one of the mentioned APIs is not a "simple literal" but an 
 
 ### Component Analyzer
 
-The [Component Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/ComponentAnalyzer.js) analyzes JavaScript files named `Component.js` to collect dependency information by searching for a `manifest.json` located in the same folder as the `Component.js`. If one is found, the `sap.ui5` section is evaluated in the following way:
+The [Component Analyzer](https://github.com/SAP/ui5-builder/blob/v4/lib/lbt/analyzer/ComponentAnalyzer.js) analyzes JavaScript files named `Component.js` to collect dependency information by searching for a `manifest.json` located in the same folder as the `Component.js`. If one is found, the `sap.ui5` section is evaluated in the following way:
 
 - Any library dependency is added as a dependency to the `library.js` module of that library. If the library dependency is modeled as 'lazy', the
  module dependency will be added as 'conditional'.
@@ -51,7 +51,7 @@ The [Component Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/an
 
 ### Smart Template Analyzer
 
-The [Smart Template Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/SmartTemplateAnalyzer.js) analyzes a Smart Template app and its underlying template components to collect dependency information. It searches for a `manifest.json` located in the same folder as the `Component.js`. If it is found and if it is valid JSON, an `sap.ui.generic.app` section is searched and evaluated in the following way:
+The [Smart Template Analyzer](https://github.com/SAP/ui5-builder/blob/v4/lib/lbt/analyzer/SmartTemplateAnalyzer.js) analyzes a Smart Template app and its underlying template components to collect dependency information. It searches for a `manifest.json` located in the same folder as the `Component.js`. If it is found and if it is valid JSON, an `sap.ui.generic.app` section is searched and evaluated in the following way:
 
 - For each page configuration, the configured component is added as a dependency to the template app module.
 - If the page configuration contains a `templateName`, a dependency to that template view is added to the app.
@@ -71,7 +71,7 @@ The manifest of the template app could in theory specify an alternative template
 
 ### XML Template Analyzer
 
-The [XML Template Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/XMLTemplateAnalyzer.js) tackles `XMLView` and `XMLFragment`. It parses the XML, collects controls, and adds them as dependency to the ModuleInfo object.
+The [XML Template Analyzer](https://github.com/SAP/ui5-builder/blob/v4/lib/lbt/analyzer/XMLTemplateAnalyzer.js) tackles `XMLView` and `XMLFragment`. It parses the XML, collects controls, and adds them as dependency to the ModuleInfo object.
 Additionally, some special dependencies are handled:
 
 - controller of the view
@@ -86,7 +86,7 @@ For example, if the qualified node name is `sap.m.Text`, the analyzer checks whe
 
 The **XMLComposite** control is deprecated since version UI5 1.88. Nevertheless, UI5 CLI will attempt to analyze the declaration of any such controls in a project.
 
-The [XML Composite Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/XMLCompositeAnalyzer.js) searches for the name of the configured fragment containing the **XMLComposite** control.
+The [XML Composite Analyzer](https://github.com/SAP/ui5-builder/blob/v4/lib/lbt/analyzer/XMLCompositeAnalyzer.js) searches for the name of the configured fragment containing the **XMLComposite** control.
 
 === "Name of the XMLComposite is equal to fragment name"
 
@@ -112,7 +112,7 @@ The [XML Composite Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lb
 
 ## Library Initialization
 
-The [library.js Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/analyzeLibraryJS.js) checks every `library.js` file in the namespace of a library for occurences of a `sap/ui/core/Core#initLibrary` call. If found, the following information will be placed in the generated manifest.json:
+The [library.js Analyzer](https://github.com/SAP/ui5-builder/blob/v4/lib/lbt/analyzer/analyzeLibraryJS.js) checks every `library.js` file in the namespace of a library for occurences of a `sap/ui/core/Core#initLibrary` call. If found, the following information will be placed in the generated manifest.json:
 
 - noLibraryCSS: false when the noLibraryCSS property had been set in the initLibrary info object
 - types: string array with the names of the types contained in the library
@@ -130,22 +130,22 @@ The UI5 CLI offers a JSDoc build, which is enhanced by UI5-specific JSDoc featur
 
 An UI5 SDK can be built locally. To get more insight into the local UI5 SDK build setup, have a look at our [Developer's Guide](https://github.com/SAP/openui5/blob/-/docs/developing.md#building-the-openui5-sdk-demo-kit).
 
-Currently, the resources needed for a UI5 SDK build are stored in [openui5](https://github.com/SAP/openui5/tree/-/lib/jsdoc) and in [ui5-builder](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc). This double maintenance is needed because these files are not part of the `sap.ui.core` library artefact, so building JSDoc for any library has no access to the needed resources. It's therefore necessary to have these resources also available in the *ui5-builder*. This might change in the future.
+Currently, the resources needed for a UI5 SDK build are stored in [openui5](https://github.com/SAP/openui5/tree/-/lib/jsdoc) and in [ui5-builder](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc). This double maintenance is needed because these files are not part of the `sap.ui.core` library artefact, so building JSDoc for any library has no access to the needed resources. It's therefore necessary to have these resources also available in the *ui5-builder*. This might change in the future.
 
 The following artefacts contribute to the JSDoc build:
 
-- [jsdocGenerator.js](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/jsdocGenerator.js):
+- [jsdocGenerator.js](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/jsdocGenerator.js):
   Executes the actual JSDoc build. UI5 CLI wrapper for `plugin.cjs`.
-- [sdkTransformer.js](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/sdkTransformer.js):
+- [sdkTransformer.js](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/sdkTransformer.js):
   UI5 CLI wrapper for `transformApiJson.cjs`.
-- [apiIndexGenerator.js](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/apiIndexGenerator.js):
+- [apiIndexGenerator.js](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/apiIndexGenerator.js):
   UI5 CLI wrapper for `createIndexFiles.cjs`.
-- [createIndexFiles.cjs](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/lib/createIndexFiles.cjs):
+- [createIndexFiles.cjs](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/lib/createIndexFiles.cjs):
   Creates API index resources from all `api.json` resources and by interpreting the `sap-ui-version.json` available in the given test resources directory. The resulting index resources (e.g. `api-index.json`,  `api-index-deprecated.json`,
   `api-index-experimental.json` and `api-index-since.json`) are only to be used in a UI5 SDK.
-- [transformApiJson.cjs](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/lib/transformApiJson.cjs): 
+- [transformApiJson.cjs](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/lib/transformApiJson.cjs): 
   Preprocesses `api.json` files for use in UI5 SDKs. Transforms the `api.json` as created by the JSDoc build into a pre-processed `api.json` file suitable for the SDK. The pre-processing includes formatting of type references, rewriting of links, and other time-consuming calculations.
-- [plugin.cjs](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/lib/ui5/plugin.cjs):
+- [plugin.cjs](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/lib/ui5/plugin.cjs):
   UI5 plugin for JSDoc3. The plugin adds the following UI5-specific tag definitions to JSDoc3:
 
     - disclaimer
@@ -165,7 +165,7 @@ The following artefacts contribute to the JSDoc build:
 
     Last but not least, it implements an astNodeVisitor to detect UI5-specific "extend" calls and to create documentation for the properties, aggregations, etc. that are created with the "extend" call.
 
-- [publish.cjs](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/lib/ui5/template/publish.cjs): JSDoc3 template for UI5 documentation generation.
+- [publish.cjs](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/lib/ui5/template/publish.cjs): JSDoc3 template for UI5 documentation generation.
 
     - adds missing namespaces
     - determines the export names of exported APIs
@@ -174,4 +174,4 @@ The following artefacts contribute to the JSDoc build:
 	- checks for cyclic dependencies
 	- removes unnecessary whitespace from an HTML document
 
-- [versionUtil.cjs](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc/lib/ui5/template/utils/versionUtil.cjs): Provides helper methods to determine version-related information.
+- [versionUtil.cjs](https://github.com/SAP/ui5-builder/blob/v4/lib/processors/jsdoc/lib/ui5/template/utils/versionUtil.cjs): Provides helper methods to determine version-related information.

@@ -10,7 +10,7 @@ assignees: ''
 
 <!--
 Hey there 👋 Please have a look at our guidelines on reporting issues:
-https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#-reporting-issues
+https://github.com/UI5/cli/blob/v4/CONTRIBUTING.md#-reporting-issues
 
 Please use this template and replace as many "{...}" and "unknown" as possible.
 Thank you 🧡
