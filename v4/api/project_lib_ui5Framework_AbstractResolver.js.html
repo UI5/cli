@@ -1,0 +1,411 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>project/lib/ui5Framework/AbstractResolver.js - UI5 CLI - API Reference</title>
+    
+    <meta name="description" content="UI5 CLI - API Reference" />
+    
+        <meta name="keywords" content="openui5 sapui5 ui5 build development tool api reference" />
+        <meta name="keyword" content="openui5 sapui5 ui5 build development tool api reference" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+     <link type="text/css" rel="stylesheet" href="custom.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/UI5/cli" target="_blank" class="menu-item" id="github_link" >GitHub</a></h2><h3>Modules</h3><ul><li><a href="module-@ui5_builder_processors_ThemeBuilder.html">@ui5/builder/processors/ThemeBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_ThemeBuilder.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_bundlers_flexChangesBundler.html">@ui5/builder/processors/bundlers/flexChangesBundler</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_bundlers_flexChangesBundler.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_bundlers_moduleBundler.html">@ui5/builder/processors/bundlers/moduleBundler</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_bundlers_moduleBundler.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_jsdoc_apiIndexGenerator.html">@ui5/builder/processors/jsdoc/apiIndexGenerator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_jsdoc_apiIndexGenerator.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_jsdoc_jsdocGenerator.html">@ui5/builder/processors/jsdoc/jsdocGenerator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_jsdoc_jsdocGenerator.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_jsdoc_sdkTransformer.html">@ui5/builder/processors/jsdoc/sdkTransformer</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_jsdoc_sdkTransformer.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_libraryLessGenerator.html">@ui5/builder/processors/libraryLessGenerator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_libraryLessGenerator.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_minifier.html">@ui5/builder/processors/minifier</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_minifier.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_nonAsciiEscaper.html">@ui5/builder/processors/nonAsciiEscaper</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_nonAsciiEscaper.html#.default">default</a></li><li data-type='method'><a href="module-@ui5_builder_processors_nonAsciiEscaper.html#.getEncodingFromAlias">getEncodingFromAlias</a></li></ul></li><li><a href="module-@ui5_builder_processors_stringReplacer.html">@ui5/builder/processors/stringReplacer</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_stringReplacer.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_processors_versionInfoGenerator.html">@ui5/builder/processors/versionInfoGenerator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_versionInfoGenerator.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_buildThemes.html">@ui5/builder/tasks/buildThemes</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_buildThemes.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_bundlers_generateBundle.html">@ui5/builder/tasks/bundlers/generateBundle</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_bundlers_generateBundle.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_bundlers_generateComponentPreload.html">@ui5/builder/tasks/bundlers/generateComponentPreload</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_bundlers_generateComponentPreload.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_bundlers_generateFlexChangesBundle.html">@ui5/builder/tasks/bundlers/generateFlexChangesBundle</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_bundlers_generateFlexChangesBundle.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_bundlers_generateLibraryPreload.html">@ui5/builder/tasks/bundlers/generateLibraryPreload</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_bundlers_generateLibraryPreload.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_bundlers_generateStandaloneAppBundle.html">@ui5/builder/tasks/bundlers/generateStandaloneAppBundle</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_bundlers_generateStandaloneAppBundle.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_enhanceManifest.html">@ui5/builder/tasks/enhanceManifest</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_enhanceManifest.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_escapeNonAsciiCharacters.html">@ui5/builder/tasks/escapeNonAsciiCharacters</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_escapeNonAsciiCharacters.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_generateCachebusterInfo.html">@ui5/builder/tasks/generateCachebusterInfo</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_generateCachebusterInfo.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_generateLibraryManifest.html">@ui5/builder/tasks/generateLibraryManifest</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_generateLibraryManifest.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_generateResourcesJson.html">@ui5/builder/tasks/generateResourcesJson</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_generateResourcesJson.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_generateThemeDesignerResources.html">@ui5/builder/tasks/generateThemeDesignerResources</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_generateThemeDesignerResources.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_generateVersionInfo.html">@ui5/builder/tasks/generateVersionInfo</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_generateVersionInfo.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_jsdoc_executeJsdocSdkTransformation.html">@ui5/builder/tasks/jsdoc/executeJsdocSdkTransformation</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_jsdoc_executeJsdocSdkTransformation.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_jsdoc_generateApiIndex.html">@ui5/builder/tasks/jsdoc/generateApiIndex</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_jsdoc_generateApiIndex.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_jsdoc_generateJsdoc.html">@ui5/builder/tasks/jsdoc/generateJsdoc</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_jsdoc_generateJsdoc.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_minify.html">@ui5/builder/tasks/minify</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_minify.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_replaceBuildtime.html">@ui5/builder/tasks/replaceBuildtime</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_replaceBuildtime.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_replaceCopyright.html">@ui5/builder/tasks/replaceCopyright</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_replaceCopyright.html#.default">default</a></li></ul></li><li><a href="module-@ui5_builder_tasks_replaceVersion.html">@ui5/builder/tasks/replaceVersion</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_tasks_replaceVersion.html#.default">default</a></li></ul></li><li><a href="module-@ui5_fs_fsInterface.html">@ui5/fs/fsInterface</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs_fsInterface.html#.default">default</a></li></ul></li><li><a href="module-@ui5_fs_resourceFactory.html">@ui5/fs/resourceFactory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createAdapter">createAdapter</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createFilterReader">createFilterReader</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createFlatReader">createFlatReader</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createLinkReader">createLinkReader</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createReader">createReader</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createReaderCollection">createReaderCollection</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createReaderCollectionPrioritized">createReaderCollectionPrioritized</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createResource">createResource</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createWorkspace">createWorkspace</a></li><li data-type='method'><a href="module-@ui5_fs_resourceFactory.html#.createWriterCollection">createWriterCollection</a></li></ul></li><li><a href="module-@ui5_logger.html">@ui5/logger</a><ul class='methods'><li data-type='method'><a href="module-@ui5_logger.html#.getLogLevel">getLogLevel</a></li><li data-type='method'><a href="module-@ui5_logger.html#.getLogger">getLogger</a></li><li data-type='method'><a href="module-@ui5_logger.html#.isLogLevelEnabled">isLogLevelEnabled</a></li><li data-type='method'><a href="module-@ui5_logger.html#.setLogLevel">setLogLevel</a></li></ul></li><li><a href="module-@ui5_project_build_ProjectBuilderOutputStyle.html">@ui5/project/build/ProjectBuilderOutputStyle</a></li><li><a href="module-@ui5_project_graph.html">@ui5/project/graph</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project_graph.html#.graphFromObject">graphFromObject</a></li><li data-type='method'><a href="module-@ui5_project_graph.html#.graphFromPackageDependencies">graphFromPackageDependencies</a></li><li data-type='method'><a href="module-@ui5_project_graph.html#.graphFromStaticFile">graphFromStaticFile</a></li></ul></li><li><a href="module-@ui5_project_graph_ProjectGraphBuilder.html">@ui5/project/graph/ProjectGraphBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project_graph_ProjectGraphBuilder.html#.default">default</a></li></ul></li><li><a href="module-@ui5_project_ui5Framework_maven_CacheMode.html">@ui5/project/ui5Framework/maven/CacheMode</a></li><li><a href="module-@ui5_project_validation_validator.html">@ui5/project/validation/validator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project_validation_validator.html#.getDefaults">getDefaults</a></li><li data-type='method'><a href="module-@ui5_project_validation_validator.html#.validate">validate</a></li><li data-type='method'><a href="module-@ui5_project_validation_validator.html#.validateWorkspace">validateWorkspace</a></li></ul></li><li><a href="module-@ui5_server.html">@ui5/server</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.html#.serve">serve</a></li></ul></li></ul><h3>Classes</h3><ul><li><a href="@ui5_fs_AbstractReader.html">@ui5/fs/AbstractReader</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_AbstractReader.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_AbstractReader.html#byPath">byPath</a></li></ul></li><li><a href="@ui5_fs_AbstractReaderWriter.html">@ui5/fs/AbstractReaderWriter</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_AbstractReaderWriter.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_AbstractReaderWriter.html#byPath">byPath</a></li><li data-type='method'><a href="@ui5_fs_AbstractReaderWriter.html#write">write</a></li></ul></li><li><a href="@ui5_fs_DuplexCollection.html">@ui5/fs/DuplexCollection</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_DuplexCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_DuplexCollection.html#byPath">byPath</a></li><li data-type='method'><a href="@ui5_fs_DuplexCollection.html#write">write</a></li></ul></li><li><a href="@ui5_fs_ReaderCollection.html">@ui5/fs/ReaderCollection</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_ReaderCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_ReaderCollection.html#byPath">byPath</a></li></ul></li><li><a href="@ui5_fs_ReaderCollectionPrioritized.html">@ui5/fs/ReaderCollectionPrioritized</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_ReaderCollectionPrioritized.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_ReaderCollectionPrioritized.html#byPath">byPath</a></li></ul></li><li><a href="@ui5_fs_Resource.html">@ui5/fs/Resource</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_Resource.html#clone">clone</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getBuffer">getBuffer</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getName">getName</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getPath">getPath</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getProject">getProject</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getStatInfo">getStatInfo</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getStream">getStream</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#getString">getString</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#hasProject">hasProject</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#isModified">isModified</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#setBuffer">setBuffer</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#setPath">setPath</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#setProject">setProject</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#setStream">setStream</a></li><li data-type='method'><a href="@ui5_fs_Resource.html#setString">setString</a></li></ul></li><li><a href="@ui5_fs_ResourceFacade.html">@ui5/fs/ResourceFacade</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#clone">clone</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getBuffer">getBuffer</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getName">getName</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getPath">getPath</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getProject">getProject</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getStatInfo">getStatInfo</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getStream">getStream</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#getString">getString</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#hasProject">hasProject</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#isModified">isModified</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#setBuffer">setBuffer</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#setPath">setPath</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#setProject">setProject</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#setStream">setStream</a></li><li data-type='method'><a href="@ui5_fs_ResourceFacade.html#setString">setString</a></li></ul></li><li><a href="@ui5_fs_WriterCollection.html">@ui5/fs/WriterCollection</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_WriterCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_WriterCollection.html#byPath">byPath</a></li><li data-type='method'><a href="@ui5_fs_WriterCollection.html#write">write</a></li></ul></li><li><a href="@ui5_fs_adapters_AbstractAdapter.html">@ui5/fs/adapters/AbstractAdapter</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_adapters_AbstractAdapter.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_adapters_AbstractAdapter.html#byPath">byPath</a></li><li data-type='method'><a href="@ui5_fs_adapters_AbstractAdapter.html#write">write</a></li></ul></li><li><a href="@ui5_fs_adapters_FileSystem.html">@ui5/fs/adapters/FileSystem</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_adapters_FileSystem.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_adapters_FileSystem.html#byPath">byPath</a></li><li data-type='method'><a href="@ui5_fs_adapters_FileSystem.html#write">write</a></li></ul></li><li><a href="@ui5_fs_adapters_Memory.html">@ui5/fs/adapters/Memory</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_adapters_Memory.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_adapters_Memory.html#byPath">byPath</a></li><li data-type='method'><a href="@ui5_fs_adapters_Memory.html#write">write</a></li></ul></li><li><a href="@ui5_fs_readers_Filter.html">@ui5/fs/readers/Filter</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_readers_Filter.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_readers_Filter.html#byPath">byPath</a></li></ul></li><li><a href="@ui5_fs_readers_Link.html">@ui5/fs/readers/Link</a><ul class='methods'><li data-type='method'><a href="@ui5_fs_readers_Link.html#byGlob">byGlob</a></li><li data-type='method'><a href="@ui5_fs_readers_Link.html#byPath">byPath</a></li></ul></li><li><a href="@ui5_logger_Logger.html">@ui5/logger/Logger</a><ul class='methods'><li data-type='method'><a href="@ui5_logger_Logger.html#error">error</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#info">info</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#isLevelEnabled">isLevelEnabled</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#perf">perf</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#silly">silly</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#verbose">verbose</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#warn">warn</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#.getLevel">getLevel</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#.isLevelEnabled">isLevelEnabled</a></li><li data-type='method'><a href="@ui5_logger_Logger.html#.setLevel">setLevel</a></li></ul></li><li><a href="@ui5_logger_writers_Console.html">@ui5/logger/writers/Console</a><ul class='methods'><li data-type='method'><a href="@ui5_logger_writers_Console.html#disable">disable</a></li><li data-type='method'><a href="@ui5_logger_writers_Console.html#enable">enable</a></li><li data-type='method'><a href="@ui5_logger_writers_Console.html#.init">init</a></li></ul></li><li><a href="@ui5_project_build_ProjectBuilder.html">@ui5/project/build/ProjectBuilder</a><ul class='methods'><li data-type='method'><a href="@ui5_project_build_ProjectBuilder.html#build">build</a></li></ul></li><li><a href="@ui5_project_build_helpers_TaskUtil.html">@ui5/project/build/helpers/TaskUtil</a><ul class='methods'><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#clearTag">clearTag</a></li><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#getDependencies">getDependencies</a></li><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#getProject">getProject</a></li><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#getTag">getTag</a></li><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#isRootProject">isRootProject</a></li><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#registerCleanupTask">registerCleanupTask</a></li><li data-type='method'><a href="@ui5_project_build_helpers_TaskUtil.html#setTag">setTag</a></li></ul></li><li><a href="@ui5_project_config_Configuration.html">@ui5/project/config/Configuration</a><ul class='methods'><li data-type='method'><a href="@ui5_project_config_Configuration.html#getMavenSnapshotEndpointUrl">getMavenSnapshotEndpointUrl</a></li><li data-type='method'><a href="@ui5_project_config_Configuration.html#getUi5DataDir">getUi5DataDir</a></li><li data-type='method'><a href="@ui5_project_config_Configuration.html#toJson">toJson</a></li><li data-type='method'><a href="@ui5_project_config_Configuration.html#.fromFile">fromFile</a></li><li data-type='method'><a href="@ui5_project_config_Configuration.html#.toFile">toFile</a></li></ul></li><li><a href="@ui5_project_graph_ProjectGraph.html">@ui5/project/graph/ProjectGraph</a><ul class='methods'><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#addExtension">addExtension</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#addProject">addProject</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#build">build</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#declareDependency">declareDependency</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#declareOptionalDependency">declareOptionalDependency</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getDependencies">getDependencies</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getExtension">getExtension</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getExtensionNames">getExtensionNames</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getExtensions">getExtensions</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getProject">getProject</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getProjectNames">getProjectNames</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getProjects">getProjects</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getRoot">getRoot</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getSize">getSize</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#getTransitiveDependencies">getTransitiveDependencies</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#isSealed">isSealed</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#join">join</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#resolveOptionalDependencies">resolveOptionalDependencies</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#seal">seal</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#traverseBreadthFirst">traverseBreadthFirst</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraph.html#traverseDepthFirst">traverseDepthFirst</a></li></ul></li><li><a href="@ui5_project_graph_Workspace.html">@ui5/project/graph/Workspace</a><ul class='methods'><li data-type='method'><a href="@ui5_project_graph_Workspace.html#getModuleByNodeId">getModuleByNodeId</a></li><li data-type='method'><a href="@ui5_project_graph_Workspace.html#getModuleByProjectName">getModuleByProjectName</a></li><li data-type='method'><a href="@ui5_project_graph_Workspace.html#getModules">getModules</a></li><li data-type='method'><a href="@ui5_project_graph_Workspace.html#getName">getName</a></li></ul></li><li><a href="@ui5_project_graph_providers_DependencyTree.html">@ui5/project/graph/providers/DependencyTree</a></li><li><a href="@ui5_project_graph_providers_NodePackageDependencies.html">@ui5/project/graph/providers/NodePackageDependencies</a></li><li><a href="@ui5_project_specifications_ComponentProject.html">@ui5/project/specifications/ComponentProject</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getCustomConfiguration">getCustomConfiguration</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getFrameworkDependencies">getFrameworkDependencies</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getFrameworkName">getFrameworkName</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getFrameworkVersion">getFrameworkVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getNamespace">getNamespace</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getReader">getReader</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getSourcePath">getSourcePath</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#getWorkspace">getWorkspace</a></li><li data-type='method'><a href="@ui5_project_specifications_ComponentProject.html#isFrameworkProject">isFrameworkProject</a></li></ul></li><li><a href="@ui5_project_specifications_Extension.html">@ui5/project/specifications/Extension</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_Extension.html#getVersion">getVersion</a></li></ul></li><li><a href="@ui5_project_specifications_Project.html">@ui5/project/specifications/Project</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_Project.html#getCustomConfiguration">getCustomConfiguration</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getFrameworkDependencies">getFrameworkDependencies</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getFrameworkName">getFrameworkName</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getFrameworkVersion">getFrameworkVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getNamespace">getNamespace</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getReader">getReader</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getSourcePath">getSourcePath</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#getWorkspace">getWorkspace</a></li><li data-type='method'><a href="@ui5_project_specifications_Project.html#isFrameworkProject">isFrameworkProject</a></li></ul></li><li><a href="@ui5_project_specifications_Specification.html">@ui5/project/specifications/Specification</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_Specification.html#.create">create</a></li></ul></li><li><a href="@ui5_project_specifications_extensions_ProjectShim.html">@ui5/project/specifications/extensions/ProjectShim</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getCollectionShims">getCollectionShims</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getConfigurationShims">getConfigurationShims</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getDependencyShims">getDependencyShims</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ProjectShim.html#getVersion">getVersion</a></li></ul></li><li><a href="@ui5_project_specifications_extensions_ServerMiddleware.html">@ui5/project/specifications/extensions/ServerMiddleware</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getMiddleware">getMiddleware</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_ServerMiddleware.html#getVersion">getVersion</a></li></ul></li><li><a href="@ui5_project_specifications_extensions_Task.html">@ui5/project/specifications/extensions/Task</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getRequiredDependenciesCallback">getRequiredDependenciesCallback</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getTask">getTask</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_extensions_Task.html#getVersion">getVersion</a></li></ul></li><li><a href="@ui5_project_specifications_types_Application.html">@ui5/project/specifications/types/Application</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getCustomConfiguration">getCustomConfiguration</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getFrameworkDependencies">getFrameworkDependencies</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getFrameworkName">getFrameworkName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getFrameworkVersion">getFrameworkVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getNamespace">getNamespace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getReader">getReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getSourcePath">getSourcePath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#getWorkspace">getWorkspace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Application.html#isFrameworkProject">isFrameworkProject</a></li></ul></li><li><a href="@ui5_project_specifications_types_Library.html">@ui5/project/specifications/types/Library</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getCustomConfiguration">getCustomConfiguration</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getFrameworkDependencies">getFrameworkDependencies</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getFrameworkName">getFrameworkName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getFrameworkVersion">getFrameworkVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getNamespace">getNamespace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getReader">getReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getSourcePath">getSourcePath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#getWorkspace">getWorkspace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Library.html#isFrameworkProject">isFrameworkProject</a></li></ul></li><li><a href="@ui5_project_specifications_types_Module.html">@ui5/project/specifications/types/Module</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getCustomConfiguration">getCustomConfiguration</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getFrameworkDependencies">getFrameworkDependencies</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getFrameworkName">getFrameworkName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getFrameworkVersion">getFrameworkVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getNamespace">getNamespace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getReader">getReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getSourcePath">getSourcePath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#getWorkspace">getWorkspace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_Module.html#isFrameworkProject">isFrameworkProject</a></li></ul></li><li><a href="@ui5_project_specifications_types_ThemeLibrary.html">@ui5/project/specifications/types/ThemeLibrary</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getCustomConfiguration">getCustomConfiguration</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getFrameworkDependencies">getFrameworkDependencies</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getFrameworkName">getFrameworkName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getFrameworkVersion">getFrameworkVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getId">getId</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getKind">getKind</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getName">getName</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getNamespace">getNamespace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getReader">getReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getRootPath">getRootPath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getRootReader">getRootReader</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getSourcePath">getSourcePath</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getSpecVersion">getSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getType">getType</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getVersion">getVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#getWorkspace">getWorkspace</a></li><li data-type='method'><a href="@ui5_project_specifications_types_ThemeLibrary.html#isFrameworkProject">isFrameworkProject</a></li></ul></li><li><a href="@ui5_project_specifications_utils_SpecificationVersion.html">@ui5/project/specifications/utils/SpecificationVersion</a><ul class='methods'><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#eq">eq</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#gt">gt</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#gte">gte</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#lt">lt</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#lte">lte</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#major">major</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#minor">minor</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#neq">neq</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#satisfies">satisfies</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#toString">toString</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.eq">eq</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.getVersionsForRange">getVersionsForRange</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.gt">gt</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.gte">gte</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.isSupportedSpecVersion">isSupportedSpecVersion</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.lt">lt</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.lte">lte</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.major">major</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.minor">minor</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.neq">neq</a></li><li data-type='method'><a href="@ui5_project_specifications_utils_SpecificationVersion.html#.satisfies">satisfies</a></li></ul></li><li><a href="@ui5_project_ui5Framework_AbstractResolver.html">@ui5/project/ui5Framework/AbstractResolver</a><ul class='methods'><li data-type='method'><a href="@ui5_project_ui5Framework_AbstractResolver.html#install">install</a></li></ul></li><li><a href="@ui5_project_ui5Framework_Openui5Resolver.html">@ui5/project/ui5Framework/Openui5Resolver</a><ul class='methods'><li data-type='method'><a href="@ui5_project_ui5Framework_Openui5Resolver.html#install">install</a></li></ul></li><li><a href="@ui5_project_ui5Framework_Sapui5MavenSnapshotResolver.html">@ui5/project/ui5Framework/Sapui5MavenSnapshotResolver</a><ul class='methods'><li data-type='method'><a href="@ui5_project_ui5Framework_Sapui5MavenSnapshotResolver.html#install">install</a></li></ul></li><li><a href="@ui5_project_ui5Framework_Sapui5Resolver.html">@ui5/project/ui5Framework/Sapui5Resolver</a><ul class='methods'><li data-type='method'><a href="@ui5_project_ui5Framework_Sapui5Resolver.html#install">install</a></li></ul></li><li><a href="@ui5_project_validation_ValidationError.html">@ui5/project/validation/ValidationError</a></li><li><a href="@ui5_server_middleware_MiddlewareUtil.html">@ui5/server/middleware/MiddlewareUtil</a><ul class='methods'><li data-type='method'><a href="@ui5_server_middleware_MiddlewareUtil.html#getDependencies">getDependencies</a></li><li data-type='method'><a href="@ui5_server_middleware_MiddlewareUtil.html#getMimeInfo">getMimeInfo</a></li><li data-type='method'><a href="@ui5_server_middleware_MiddlewareUtil.html#getPathname">getPathname</a></li><li data-type='method'><a href="@ui5_server_middleware_MiddlewareUtil.html#getProject">getProject</a></li></ul></li><li><a href="module-@ui5_builder_processors_ThemeBuilder.ThemeBuilder.html">@ui5/builder/processors/ThemeBuilder.ThemeBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder_processors_ThemeBuilder.ThemeBuilder.html#build">build</a></li><li data-type='method'><a href="module-@ui5_builder_processors_ThemeBuilder.ThemeBuilder.html#clearCache">clearCache</a></li></ul></li></ul><h3>Interfaces</h3><ul><li><a href="@ui5_project_graph_ProjectGraphBuilder-NodeProvider.html">@ui5/project/graph/ProjectGraphBuilder~NodeProvider</a><ul class='methods'><li data-type='method'><a href="@ui5_project_graph_ProjectGraphBuilder-NodeProvider.html#getDependencies">getDependencies</a></li><li data-type='method'><a href="@ui5_project_graph_ProjectGraphBuilder-NodeProvider.html#getRootNode">getRootNode</a></li></ul></li></ul>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">project/lib/ui5Framework/AbstractResolver.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import path from "node:path";
+import os from "node:os";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("ui5Framework:AbstractResolver");
+import semver from "semver";
+
+// Reduced Semantic Versioning pattern
+// Matches MAJOR or MAJOR.MINOR as a simple version range to be resolved to the latest minor/patch
+const VERSION_RANGE_REGEXP = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:-SNAPSHOT)?$/;
+
+/**
+ * Abstract Resolver
+ *
+ * @abstract
+ * @public
+ * @class
+ * @alias @ui5/project/ui5Framework/AbstractResolver
+ * @hideconstructor
+ */
+class AbstractResolver {
+	/* eslint-disable max-len */
+	/**
+	 * @param {*} options options
+	 * @param {string} [options.version] Framework version to use. When omitted, all libraries need to be available
+	 * via &lt;code>providedLibraryMetadata&lt;/code> parameter. Otherwise an error is thrown.
+	 * @param {boolean} [options.sources=false] Whether to install framework libraries as sources or
+	 * 					pre-built (with build manifest)
+	 * @param {string} [options.cwd=process.cwd()] Current working directory
+	 * @param {string} [options.ui5DataDir="~/.ui5"] UI5 home directory location. This will be used to store packages,
+	 * metadata and configuration used by the resolvers. Relative to `process.cwd()`
+	 * @param {object.&lt;string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} [options.providedLibraryMetadata]
+	 * Resolver skips installing listed libraries and uses the dependency information to resolve their dependencies.
+	 * &lt;code>version&lt;/code> can be omitted in case all libraries can be resolved via the &lt;code>providedLibraryMetadata&lt;/code>.
+	 * Otherwise an error is thrown.
+	 */
+	/* eslint-enable max-len */
+	constructor({cwd, version, sources, ui5DataDir, providedLibraryMetadata}) {
+		if (new.target === AbstractResolver) {
+			throw new TypeError("Class 'AbstractResolver' is abstract");
+		}
+
+		// In some CI environments, the homedir might be set explicitly to a relative
+		// path (e.g. "./"), but tooling requires an absolute path
+		this._ui5DataDir = path.resolve(
+			ui5DataDir || path.join(os.homedir(), ".ui5")
+		);
+		this._cwd = cwd ? path.resolve(cwd) : process.cwd();
+		this._version = version;
+
+		// Environment variable should always enforce usage of sources
+		if (process.env.UI5_PROJECT_USE_FRAMEWORK_SOURCES) {
+			sources = true;
+		}
+		this._sources = !!sources;
+
+		this._providedLibraryMetadata = providedLibraryMetadata;
+	}
+
+	async _processLibrary(libraryName, libraryMetadata, errors) {
+		// Check if library is already processed
+		if (libraryMetadata[libraryName]) {
+			return;
+		}
+		// Mark library as handled
+		libraryMetadata[libraryName] = Object.create(null);
+
+		log.verbose("Processing " + libraryName);
+
+		let promises;
+		const providedLibraryMetadata = this._providedLibraryMetadata?.[libraryName];
+		if (providedLibraryMetadata) {
+			log.verbose(`Skipping install for ${libraryName} (provided)`);
+			promises = {
+				// Use existing metadata if library is provided from outside (e.g. workspace)
+				metadata: Promise.resolve(providedLibraryMetadata),
+				// Provided libraries are already "installed"
+				install: Promise.resolve({
+					pkgPath: providedLibraryMetadata.path
+				})
+			};
+		} else if (!this._version) {
+			throw new Error(`Unable to install library ${libraryName}. No framework version provided.`);
+		} else {
+			promises = await this.handleLibrary(libraryName);
+		}
+
+		const [metadata, {pkgPath}] = await Promise.all([
+			promises.metadata.then((metadata) =>
+				this._processDependencies(libraryName, metadata, libraryMetadata, errors)),
+			promises.install
+		]);
+
+		// Add path to installed package to metadata
+		metadata.path = pkgPath;
+
+		// Add metadata entry
+		libraryMetadata[libraryName] = metadata;
+	}
+
+	async _processDependencies(libraryName, metadata, libraryMetadata, errors) {
+		if (metadata.dependencies.length > 0) {
+			log.verbose("Processing dependencies of " + libraryName);
+			await this._processLibraries(metadata.dependencies, libraryMetadata, errors);
+			log.verbose("Done processing dependencies of " + libraryName);
+		}
+		return metadata;
+	}
+
+	async _processLibraries(libraryNames, libraryMetadata, errors) {
+		const sourceErrors = new Set();
+		const results = await Promise.all(libraryNames.map(async (libraryName) => {
+			try {
+				await this._processLibrary(libraryName, libraryMetadata, errors);
+			} catch (err) {
+				if (sourceErrors.has(err.message)) {
+					return `Failed to resolve library ${libraryName}: Error already logged`;
+				}
+				sourceErrors.add(err.message);
+				log.verbose(`Failed to process library ${libraryName}`);
+				log.verbose(`Error: ${err.message}`);
+				log.verbose(`Call stack: ${err.stack}`);
+				return `Failed to resolve library ${libraryName}: ${err.message}`;
+			}
+		}));
+		// Don't add empty results (success)
+		errors.push(...results.filter(($) => $));
+	}
+
+	/**
+	 * Library metadata entry
+	 *
+	 * @example
+	 * const libraryMetadataEntry = {
+	 *		"id": "@openui5/sap.ui.core",
+	 *		"version": "1.75.0",
+	 *		"path": "~/.ui5/framework/packages/@openui5/sap.ui.core/1.75.0",
+	 *		"dependencies": [],
+	 *		"optionalDependencies": []
+	 * };
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry
+	 * @property {string} id Identifier
+	 * @property {string} version Version
+	 * @property {string} path Path
+	 * @property {string[]} dependencies List of dependency ids
+	 * @property {string[]} optionalDependencies List of optional dependency ids
+	 */
+
+	/**
+	 * Install result
+	 *
+	 * @example
+	 * const resolverInstallResult = {
+	 * 	"libraryMetadata": {
+	 * 		"sap.ui.core": {
+	 * 			// ...
+	 * 		},
+	 * 		"sap.m": {
+	 * 			// ...
+	 * 		}
+	 * 	}
+	 * };
+	 *
+	 * @public
+	 * @typedef {object} @ui5/project/ui5Framework/AbstractResolver~ResolverInstallResult
+	 * @property {object.&lt;string, @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry>} libraryMetadata
+	 *   Object containing all installed libraries with library name as key
+	 */
+
+	/**
+	 * Installs the provided libraries and their dependencies
+	 *
+	 * @example
+	 * const resolver = new Sapui5Resolver({version: "1.76.0"});
+	 * // Or for OpenUI5:
+	 * // const resolver = new Openui5Resolver({version: "1.76.0"});
+	 *
+	 * resolver.install(["sap.ui.core", "sap.m"]).then(({libraryMetadata}) => {
+	 * 	// Installation done
+	 * }).catch((err) => {
+	 * 	// Handle installation errors
+	 * });
+	 *
+	 * @public
+	 * @param {string[]} libraryNames List of library names to be installed
+	 * @returns {@ui5/project/ui5Framework/AbstractResolver~ResolverInstallResult}
+	 *   Resolves with an object containing the &lt;code>libraryMetadata&lt;/code>
+	 */
+	async install(libraryNames) {
+		const libraryMetadata = Object.create(null);
+		const errors = [];
+
+		await this._processLibraries(libraryNames, libraryMetadata, errors);
+
+		if (errors.length === 1) {
+			throw new Error(errors[0]);
+		} if (errors.length > 1) {
+			const msg = errors.map((err, idx) => `  ${idx + 1}. ${err}`).join("\n");
+			throw new Error(`Resolution of framework libraries failed with errors:\n${msg}`);
+		}
+
+		return {
+			libraryMetadata
+		};
+	}
+
+	static async resolveVersion(version, {ui5DataDir, cwd} = {}) {
+		// Don't allow nullish values
+		// An empty string is a valid semver range that converts to "*", which should not be supported
+		if (!version) {
+			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+		}
+
+		const spec = await this._getVersionSpec(version, {ui5DataDir, cwd});
+
+		// For all invalid cases which are not explicitly handled in _getVersionSpec
+		if (!spec) {
+			throw new Error(`Framework version specifier "${version}" is incorrect or not supported`);
+		}
+
+		const versions = await this.fetchAllVersions({ui5DataDir, cwd});
+		const resolvedVersion = semver.maxSatisfying(versions, spec, {
+			// Allow ranges that end with -SNAPSHOT to match any -SNAPSHOT version
+			// like a normal version in order to support ranges like 1.x.x-SNAPSHOT.
+			includePrerelease: this._isSnapshotVersionOrRange(version)
+		});
+
+		if (!resolvedVersion) {
+			if (semver.valid(spec)) {
+				if (this.name === "Sapui5Resolver" &amp;&amp; semver.lt(spec, "1.76.0")) {
+					throw new Error(`Could not resolve framework version ${version}. ` +
+						`Note that SAPUI5 framework libraries can only be consumed by the UI5 CLI ` +
+						`starting with SAPUI5 v1.76.0`);
+				} else if (this.name === "Openui5Resolver" &amp;&amp; semver.lt(spec, "1.52.5")) {
+					throw new Error(`Could not resolve framework version ${version}. ` +
+						`Note that OpenUI5 framework libraries can only be consumed by the UI5 CLI ` +
+						`starting with OpenUI5 v1.52.5`);
+				}
+			}
+			throw new Error(
+				`Could not resolve framework version ${version}. ` +
+				`Make sure the version is valid and available in the configured registry.`);
+		}
+
+		return resolvedVersion;
+	}
+
+	static async _getVersionSpec(version, {ui5DataDir, cwd}) {
+		if (this._isSnapshotVersionOrRange(version)) {
+			const versionMatch = version.match(VERSION_RANGE_REGEXP);
+			if (versionMatch) {
+				// For snapshot version ranges we need to insert a stand-in "x" for the patch level
+				// and - in case none is provided - another "x" for the major version in order to
+				// convert it to a valid semver range:
+				// "1-SNAPSHOT" becomes "1.x.x-SNAPSHOT" and "1.112-SNAPSHOT" becomes "1.112.x-SNAPSHOT"
+				return `${versionMatch[1]}.${versionMatch[2] || "x"}.x-SNAPSHOT`;
+			}
+		}
+
+		// Covers versions and ranges, as versions are also valid ranges
+		if (semver.validRange(version)) {
+			return version;
+		}
+
+		// Check for invalid tag name (same check as npm does)
+		if (encodeURIComponent(version) !== version) {
+			return null;
+		}
+
+		const allTags = await this.fetchAllTags({ui5DataDir, cwd});
+
+		if (!allTags) {
+			// Resolver doesn't support tags (e.g. Sapui5MavenSnapshotResolver)
+			// Only latest and latest-snapshot are supported which both resolve
+			// to the latest available version.
+			// See "isSnapshotVersionOrRange" for -snapshot handling
+			if ((version === "latest" || version === "latest-snapshot")) {
+				return "*";
+			} else {
+				return null;
+			}
+		}
+
+		if (!allTags[version]) {
+			throw new Error(
+				`Could not resolve framework version via tag '${version}'. ` +
+				`Make sure the tag is available in the configured registry.`
+			);
+		}
+
+		// Use version from tag
+		return allTags[version];
+	}
+
+	static _isSnapshotVersionOrRange(version) {
+		return version.toLowerCase().endsWith("-snapshot");
+	}
+
+	// To be implemented by resolver
+	async getLibraryMetadata(libraryName) {
+		throw new Error("AbstractResolver: getLibraryMetadata must be implemented!");
+	}
+	async handleLibrary(libraryName) {
+		throw new Error("AbstractResolver: handleLibrary must be implemented!");
+	}
+	static fetchAllVersions(options) {
+		throw new Error("AbstractResolver: static fetchAllVersions must be implemented!");
+	}
+	static fetchAllTags(options) {
+		return null;
+	}
+}
+
+export default AbstractResolver;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+
+<footer>
+    <div class="ui5-footer-item ui5-footer-item-growing">
+        <div>© Copyright 2025, SAP SE and UI5 CLI Contributors</div>
+        <div>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.5</a> using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.</div>
+        
+        <div>Build: 2025-10-24 07:07:23 UTC</div>
+        
+    </div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/impressum.html" target="_blank" rel="noopener">Legal Disclosure</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/terms-of-use.html" target="_blank" rel="noopener">Terms of Use</a></div>
+    <div class="ui5-footer-item"><a href="../pages/Privacy/" target="_blank">Privacy</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/trademark.html" target="_blank" rel="noopener">Trademarks</a></div>
+</footer>
+
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>
