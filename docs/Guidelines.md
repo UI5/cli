@@ -6,7 +6,7 @@ You may also find an ESLint integration for your favorite IDE [here](https://esl
 ## Testing
 Unit testing is based on the [ava](https://github.com/avajs/ava) test-framework. You can run all tests using `npm test` (this is what our CI will do for all pull requests).
 
-During development, you might want to use `npm run unit` or `npm run unit-watch` (re-runs tests automatically after file changes) to quickly execute all unit tests and see whether your change just broke one of them. 😉
+During development, you might want to use `npm run unit` or `npm run unit-watch` (re-runs tests automatically after file changes; only available within a specific package) to quickly execute all unit tests and see whether your change just broke one of them. 😉
 
 ## Git Guidelines
 ### No Merge Commits
