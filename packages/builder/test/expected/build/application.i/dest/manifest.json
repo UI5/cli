@@ -21,6 +21,7 @@
 				"sap.m": {},
 				"sap.ui.fl": {}
 			}
-		}
+		},
+		"flexBundle": true
 	}
 }
