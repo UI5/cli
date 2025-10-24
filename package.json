@@ -25,6 +25,7 @@
 	"scripts": {
 		"test": "npm run lint && npm run check-licenses && npm run depcheck && npm run coverage && npm run jsdoc-generate && npm run schema-generate && npm run generate-cli-doc",
 		"lint": "eslint ./ && npm run lint --workspaces",
+		"lint:commit": "commitlint",
 		"coverage": "npm run coverage --workspaces",
 		"jsdoc": "npm run jsdoc-generate && open-cli site/api/index.html",
 		"jsdoc-generate": "node ./scripts/isWorkspace.js && npm run jsdoc-generate-workspace || npm run jsdoc-generate-local",
@@ -48,6 +49,8 @@
 	},
 	"devDependencies": {
 		"@apidevtools/json-schema-ref-parser": "^14.2.1",
+		"@commitlint/cli": "^20.1.0",
+		"@commitlint/config-conventional": "^20.0.0",
 		"@eslint/js": "^9.8.0",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
@@ -57,6 +60,7 @@
 		"eslint-plugin-jsdoc": "^61.1.0",
 		"globals": "^16.4.0",
 		"handlebars": "^4.7.8",
+		"husky": "^9.1.7",
 		"jsdoc": "^4.0.4",
 		"licensee": "^11.1.1",
 		"local-web-server": "^5.4.0",
