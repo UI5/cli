@@ -31,7 +31,7 @@ Old projects might therefore still work, unless they have a non-standard configu
 
 ## Changes for Projects
 
-::: info "No changes for Specification Versions 2.x and 3.x"
+::: info No changes for Specification Versions 2.x and 3.x
 Projects defining **Specification Version 2.x or 3.x** are expected to be **fully compatible with UI5 CLI v4**
 
 The following does not apply to them.
