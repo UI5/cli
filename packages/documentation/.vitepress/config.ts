@@ -16,7 +16,6 @@ export default defineConfig({
   description: "An open and modular toolchain to develop state-of-the-art applications based on the UI5 framework.",
   lastUpdated: false, // disable git author info
   cleanUrls: true,
-  ignoreDeadLinks: true,
 
   vue: {
     template: {
