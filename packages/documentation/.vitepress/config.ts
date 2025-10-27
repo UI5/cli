@@ -31,7 +31,7 @@ export default defineConfig({
   head: [
     [
       "link",
-      { rel: "icon", type: "image/svg+xml", href: "/icons/ui5/O.svg" }
+      { rel: "icon", type: "image/png", href: "./images/favicon.png" }
 
     ]
   ],
@@ -80,16 +80,6 @@ export default defineConfig({
   },
 
   markdown: {
-    externalLinks: {
-
-    },
-
-    //theme: "material-theme-palenight", // pre rc5 default
-    // Add support for your own languages.
-    // https://github.com/shikijs/shiki/blob/main/languages.md#supporting-your-own-languages-with-shiki
-    languages: [
-    ],
-
     // Configure the Markdown-it instance
     config: (md) => {
       // https://www.npmjs.com/package/markdown-it-implicit-figures
