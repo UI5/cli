@@ -128,7 +128,7 @@ Note: Currently only the usage via the global `sap.ui.getCore().initLibrary` is 
 
 The UI5 CLI offers a JSDoc build, which is enhanced by UI5-specific JSDoc features.
 
-An UI5 SDK can be built locally. To get more insight into the local UI5 SDK build setup, have a look at our [Developer's Guide](https://github.com/SAP/openui5/blob/-/docs/developing#building-the-openui5-sdk-demo-kit).
+An UI5 SDK can be built locally. To get more insight into the local UI5 SDK build setup, have a look at our [Developer's Guide](https://github.com/SAP/openui5/blob/-/docs/developing.md#building-the-openui5-sdk-demo-kit).
 
 Currently, the resources needed for a UI5 SDK build are stored in [openui5](https://github.com/SAP/openui5/tree/-/lib/jsdoc) and in [ui5-builder](https://github.com/SAP/ui5-builder/blob/main/lib/processors/jsdoc). This double maintenance is needed because these files are not part of the `sap.ui.core` library artefact, so building JSDoc for any library has no access to the needed resources. It's therefore necessary to have these resources also available in the *ui5-builder*. This might change in the future.
 
