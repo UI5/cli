@@ -89,9 +89,9 @@ middleware:
 
 A custom middleware implementation needs to return a function with the following signature:
 
-#### ESM
+:::code-group
 
-```js
+```js [ESM]
 /**
  * Custom UI5 Server middleware API
  * 
@@ -127,9 +127,7 @@ export default function({log, middlewareUtil, options, resources}) {
 };
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 /**
  * Custom UI5 Server middleware API
  * 
@@ -164,12 +162,13 @@ module.exports = function({log, middlewareUtil, options, resources}) {
     }
 };
 ```
+:::
 
 ### Example: lib/middleware/markdownHandler.(m)js
 
-#### ESM
+:::code-group
 
-```js
+```js [ESM]
 import MarkdownIt from "markdown-it";
 
 export default async function({log, middlewareUtil, options, resources}) {
@@ -201,9 +200,7 @@ export default async function({log, middlewareUtil, options, resources}) {
 ```
 Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3-esm)
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 module.exports = async function({log, middlewareUtil, options, resources}) {
     const MarkdownIt = require("markdown-it");
     const md = new MarkdownIt();
@@ -233,6 +230,8 @@ module.exports = async function({log, middlewareUtil, options, resources}) {
 };
 ```
 Live demo of the above example: [openui5-sample-app with custom middleware](https://github.com/SAP/openui5-sample-app/tree/demo-server-middleware-extensibility-v3)
+
+:::
 
 ## Helper Class `MiddlewareUtil`
 

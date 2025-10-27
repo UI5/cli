@@ -50,16 +50,13 @@ If your project is not set up for use with the UI5 CLI yet, follow these steps:
 	```
 
 1. Define the framework you want to use
-	::: info
-	**OpenUI5**
+	:::code-group
 
-	```sh
+	```sh [OpenUI5]
 	ui5 use openui5@latest
 	```
 
-	**SAPUI5**
-
-	```sh
+	```sh [SAPUI5]
 	ui5 use sapui5@latest
 	```
 	:::

@@ -117,9 +117,8 @@ This allows you to rely on UI5 CLI for UI5-specific build functionality and proj
 
 All available APIs are documented in the [UI5 CLI API Reference](https://ui5.github.io/cli/v5/api/index.html).
 
-#### ESM
-
-```js
+::: code-group
+```js [ESM]
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 
 async function buildApp(projectPath, destinationPath) {
@@ -135,9 +134,7 @@ async function buildApp(projectPath, destinationPath) {
 }
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 async function buildApp(projectPath, destinationPath) {
     const {graphFromPackageDependencies} = 
         await import("@ui5/project/graph");
@@ -152,3 +149,4 @@ async function buildApp(projectPath, destinationPath) {
     });
 }
 ```
+:::
