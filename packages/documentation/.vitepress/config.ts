@@ -134,7 +134,7 @@ function guide() {
 
         {
           text: "Home",
-          link: "/pages/index",
+          link: "../",
         },
         {
           text: "Getting Started",
