@@ -101,9 +101,8 @@ await builder.build({
 
 **New: @ui5/project v3**
 
-#### ESM
-
-```js
+::: code-group
+```js [ESM]
 import {graphFromPackageDependencies} from "@ui5/project/graph";
 
 let graph = await graphFromPackageDependencies({cwd: "."});
@@ -114,9 +113,7 @@ await graph.build({
 });
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 // Since CommonJS does not suport top-level await, the code must be wrapped in an asynchronous function
 async function buildProject() {
     const {graphFromPackageDependencies} = await import("@ui5/project/graph");
@@ -129,6 +126,7 @@ async function buildProject() {
     });
 }
 ```
+:::
 
 ## Changes to @ui5/cli
 
