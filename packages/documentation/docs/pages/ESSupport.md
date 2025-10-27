@@ -9,7 +9,7 @@ UI5 CLI offers general support for `ES2023` ECMAScript features. While a `ui5 bu
 | v3.0+               | ECMAScript 2022              |      |
 | v2.0+               | ECMAScript 2009/ES5          | Note that code up to ECMAScript 2020 can be parsed, however required code analysis might not work correctly for specific language features |
 
-The following section describes all restrictions grouped by the kind of ECMAScript language feature. To get more insights into the code analyzing executed by UI5 CLI check out [Code Analysis](./CodeAnalysis).
+The following section describes all restrictions grouped by the kind of ECMAScript language feature. To get more insights into the code analysing executed by UI5 CLI check out [Code Analysis](./CodeAnalysis.md).
 
 ## Language Features with Restrictions
 

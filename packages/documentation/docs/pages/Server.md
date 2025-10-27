@@ -7,14 +7,14 @@ import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vu
 </script>
 
 <div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/module-@ui5_server.html"/>
+  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/module-@ui5_server.html"/>
 </div>
 
 ## Standard Middleware
 
 All available standard middleware are listed below in the order of their execution.
 
-A project can also add custom middleware to the server by using the [Custom Server Middleware Extensibility](./extensibility/CustomServerMiddleware).
+A project can also add custom middleware to the server by using the [Custom Server Middleware Extensibility](./extensibility/CustomServerMiddleware.md).
 
 | Middleware | Description |
 | ---- | ---- |
@@ -54,8 +54,8 @@ This middleware resolves requests using the [ui5-fs](https://github.com/SAP/ui5-
 
 The following file content transformations are executed:
 
-- Escaping non-ASCII characters in `.properties` translation files based on a project's [configuration](./Configuration#encoding-of-properties-files)
-- Enhancing the `manifest.json` with supported locales determined by available `.properties` [translation files](./Builder#generation-of-supported-locales)
+- Escaping non-ASCII characters in `.properties` translation files based on a project's [configuration](./Configuration.md#encoding-of-properties-files)
+- Enhancing the `manifest.json` with supported locales determined by available `.properties` [translation files](./Builder.md#generation-of-supported-locales)
 
 ### testRunner
 Serves a static version of the UI5 QUnit TestRunner at `/test-resources/sap/ui/qunit/testrunner.html`.

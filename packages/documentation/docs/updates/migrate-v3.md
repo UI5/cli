@@ -218,7 +218,7 @@ The following processors have been removed:
 
 ## Removal of Standard Middleware
 
-The following middleware has been removed from the [standard middlewares list](../pages/Server#standard-middleware):
+The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
 
 * connectUi5Proxy
 
