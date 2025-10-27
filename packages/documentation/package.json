@@ -24,7 +24,7 @@
 	"scripts": {
 		"start": "vitepress dev --open",
 		"dev": "vitepress dev",
-		"build": "vitepress build",
+		"build": "vitepress build && cp -r ./docs/images ./dist/images",
 		"preview": "vitepress preview --port 8080",
 		"serve-docs": "npm run build && npm run preview"
 	},
