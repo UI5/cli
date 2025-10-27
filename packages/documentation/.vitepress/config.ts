@@ -4,7 +4,6 @@ import { defineConfig } from "vitepress";
 
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
-import MarkdownItPlantuml from "markdown-it-plantuml";
 
 export default defineConfig({
 
@@ -96,23 +95,6 @@ export default defineConfig({
       // https://www.npmjs.com/package/markdown-it-implicit-figures
       md.use(MarkdownItImplicitFigures, {
         figcaption: true,
-      });
-      md.use(MarkdownItPlantuml, {
-        //imageFormat: 'png'
-      });
-      // https://github.com/gmunguia/markdown-it-plantuml/issues/35
-      md.use(MarkdownItPlantuml, {
-        openMarker: "```plantuml",
-        closeMarker: "```",
-        diagramName: "uml",
-        imageFormat: "svg",
-      });
-      // Textik https://textik.com/
-      md.use(MarkdownItPlantuml, {
-        openMarker: "```ditaa",
-        closeMarker: "```",
-        diagramName: "ditaa",
-        imageFormat: "png",
       });
     },
   },
