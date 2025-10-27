@@ -115,7 +115,7 @@ info ProjectBuilder Executing cleanup tasks...
 Most UI5 CLI modules provide JavaScript APIs for direct consumption in other Node.js projects.
 This allows you to rely on UI5 CLI for UI5-specific build functionality and project handling, while creating your own tools to perfectly match the needs of your project.
 
-All available APIs are documented in the [UI5 CLI API Reference](https://ui5.github.io/cli/v4/api/index.html).
+All available APIs are documented in the [UI5 CLI API Reference](https://ui5.github.io/cli/v5/api/index.html).
 
 #### ESM
 

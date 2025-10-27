@@ -124,4 +124,4 @@ This requires an SSL certificate. You are guided through the automatic generatio
 ## Integration in Other Tools
 One of the key features of the UI5 CLI is its modularization. Single parts of UI5 CLI can easily be integrated in other `Node.js`-based tools and frameworks like [Grunt](https://gruntjs.com/) or [Gulp](https://gulpjs.com/).
 
-All JavaScript APIs available for direct consumption are listed [here](https://ui5.github.io/cli/v4/api/index.html). However, for standard UI5 development, the [UI5 CLI](./CLI) should always be the first choice.
+All JavaScript APIs available for direct consumption are listed [here](https://ui5.github.io/cli/v5/api/index.html). However, for standard UI5 development, the [UI5 CLI](./CLI) should always be the first choice.
