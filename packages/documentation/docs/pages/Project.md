@@ -59,7 +59,7 @@ In the table below you can find the available combinations of project type & out
 | `Flat` | **Unsupported** ^2^ |
 | `Namespace` | **Unsupported** ^2^ |
 | **module** | |
-| `Default` | Root project is written with the [configured paths](https://ui5.github.io/cli/stable/pages/Configuration/#available-path-mappings). ^1^ |
+| `Default` | Root project is written with the [configured paths](https://ui5.github.io/cli/v5/pages/Configuration/#available-path-mappings). ^1^ |
 | `Flat` | **Unsupported** ^3^  |
 | `Namespace` | **Unsupported**  ^3^ |
 

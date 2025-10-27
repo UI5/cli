@@ -7,7 +7,7 @@ import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 
 export default defineConfig({
 
-  base: "/ui5-cli/stable/", // use this for github pages deployment or remove for CF
+  base: "/cli/v5/", // GitHub Pages deployment base path
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
@@ -62,7 +62,7 @@ export default defineConfig({
         &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
-          <a  style="margin:25px" href="https://ui5.github.io/cli/stable/pages/Privacy/">Privacy</a>
+          <a  style="margin:25px" href="https://ui5.github.io/cli/v5/pages/Privacy/">Privacy</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/trademark.html">Trademarks</a>
     `,
 
@@ -269,7 +269,7 @@ function guide() {
     },
     {
       text: "API Reference",
-      link: "https://ui5.github.io/cli/stable/api/index.html",
+      link: "https://ui5.github.io/cli/api/index.html",
 
     },
 

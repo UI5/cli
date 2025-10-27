@@ -110,7 +110,7 @@ dependencies:
 
 By placing this file in the root directory of the `my.app` application project, you can start a server with a local copy of the `my.lib` dependency, located in the same parent directory, using the command `ui5 serve --dependency-definition ./projectDependencies.yaml`.
 
-The structure of the dependency definition file follows that of the [`@ui5/project/graph/providers/DependencyTree~TreeNode`](https://ui5.github.io/cli/stable/api/@ui5_project_graph_providers_DependencyTree.html#~TreeNode) type.
+The structure of the dependency definition file follows that of the [`@ui5/project/graph/providers/DependencyTree~TreeNode`](https://ui5.github.io/cli/v5/api/@ui5_project_graph_providers_DependencyTree.html#~TreeNode) type.
 
 ## HTTP/2 Development Webserver
 The UI5 CLI contains a web server to serve the project via HTTP/2 protocol.
