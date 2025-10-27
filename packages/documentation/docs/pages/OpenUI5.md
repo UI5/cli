@@ -17,7 +17,7 @@ Your project's `ui5.yaml` provides a configuration section dedicated to framewor
 This configuration can be maintained by editing the file, or by using the UI5 CLI:
 
 ::: details Example
-Using the [UI5 CLI](./CLI):
+Using the [UI5 CLI](./CLI.md):
 ```sh
 ui5 use openui5@latest
 ui5 add sap.ui.core sap.m sap.ui.table themelib_sap_fiori_3

@@ -88,9 +88,10 @@ The **XMLComposite** control is deprecated since version UI5 1.88. Nevertheless,
 
 The [XML Composite Analyzer](https://github.com/SAP/ui5-builder/blob/main/lib/lbt/analyzer/XMLCompositeAnalyzer.js) searches for the name of the configured fragment containing the **XMLComposite** control.
 
-#### Name of the XMLComposite is equal to fragment name
 
-```js
+:::code-group
+
+```js [Name of the XMLComposite is equal to fragment name]
 sap.ui.define([
     "sap/ui/core/XMLComposite"
 ], function(XMLComposite) {
@@ -98,9 +99,7 @@ sap.ui.define([
 });
 ```
 
-#### Dedicated fragment name
-
-```js
+```js [Dedicated fragment name]
 sap.ui.define([
     "sap/ui/core/XMLComposite"
 ], function(XMLComposite) {
@@ -109,6 +108,7 @@ sap.ui.define([
     } 
 });
 ```
+:::
 
 ## Library Initialization
 

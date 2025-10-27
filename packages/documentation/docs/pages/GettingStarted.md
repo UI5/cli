@@ -62,7 +62,7 @@ If your project is not set up for use with the UI5 CLI yet, follow these steps:
 	:::
 	You can choose between the OpenUI5 and the SAPUI5 framework.
 
-	Don't know which one to choose? Check out our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ##whats-the-difference-between-openui5-and-sapui5).
+	Don't know which one to choose? Check out our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ#whats-the-difference-between-openui5-and-sapui5).
 
 1. Add required libraries
 	```sh

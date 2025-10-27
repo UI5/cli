@@ -107,9 +107,9 @@ task:
 
 A custom task implementation needs to return a function with the following signature:
 
-#### ESM
+::: code-group
 
-```js
+```js [ESM]
 /**
  * Custom task API
  *
@@ -147,9 +147,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 };
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 /**
  * Custom task API
  *
@@ -186,6 +184,7 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
     // [...]
 };
 ```
+:::
 
 ### Required Dependencies
 
@@ -206,9 +205,9 @@ If this callback is not provided, UI5 CLI will make an assumption as to whether 
 
 *For more details, see also [RFC 0012 UI5 CLI Extension API v3](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md)*
 
-#### ESM
+::: code-group
 
-```js
+```js [ESM]
 /**
  * Callback function to define the list of required dependencies
  *
@@ -247,9 +246,7 @@ export async function determineRequiredDependencies({availableDependencies, getD
 }
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 /**
  * Callback function to define the list of required dependencies
  *
@@ -287,6 +284,7 @@ module.exports.determineRequiredDependencies = async function({availableDependen
     return availableDependencies;
 }
 ```
+:::
 
 ### Examples
 
@@ -298,9 +296,9 @@ This example is making use of the `resourceFactory` [TaskUtil](https://ui5.githu
 API to create new resources based on the output of a third-party module for rendering Markdown files. The created resources are added to the build
 result by writing them into the provided `workspace`.
 
-#### ESM
+::: code-group
 
-```js
+```js [ESM]
 import path from "node:path";
 import renderMarkdown from "./renderMarkdown.js";
 
@@ -329,9 +327,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 };
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 const path = require("node:path");
 const renderMarkdown = require("./renderMarkdown.js");
 
@@ -359,6 +355,7 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
     }));
 };
 ```
+:::
 
 ::: warning
 Depending on your project setup, UI5 CLI tends to open many files simultaneously during a build. To prevent errors like `EMFILE: too many open files`, we urge custom task implementations to use the [graceful-fs](https://github.com/isaacs/node-graceful-fs#readme) module as a drop-in replacement for the native `fs` module in case it is used.
@@ -373,9 +370,9 @@ This example is making use of multiple [TaskUtil](https://ui5.github.io/cli/v5/a
 APIs to retrieve additional information about the project currently being built (`taskUtil.getProject()`) and its direct dependencies
 (`taskUtil.getDependencies()`). Project configuration files like `package.json` can be accessed directly using `project.getRootReader()`.
 
-#### ESM
+::: code-group
 
-```js
+```js [ESM]
 import path from "node:path";
 
 /*
@@ -423,9 +420,7 @@ export default async function({dependencies, log, options, taskUtil, workspace})
 };
 ```
 
-#### CommonJS
-
-```js
+```js [CommonJS]
 const path = require("node:path");
 
 /*
@@ -472,6 +467,7 @@ module.exports = async function({dependencies, log, options, taskUtil, workspace
     await workspace.write(summaryResource);
 };
 ```
+:::
 
 ## Helper Class `TaskUtil`
 

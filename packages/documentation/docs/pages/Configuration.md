@@ -33,32 +33,24 @@ In addition, a project must define a `type`. This can be either `application`, `
 
 The type defines the default path mappings and build tasks. See [UI5 Builder: Types](./Builder.md#types) for details.
 
-::: details Example
+:::code-group Example
 
-#### application
-
-```yaml
+```yaml [application]
 specVersion: "4.0"
 type: application
 ```
 
-#### library
-
-```yaml
+```yaml [library]
 specVersion: "4.0"
 type: library
 ```
 
-#### theme-library
-
-```yaml
+```yaml [theme-library]
 specVersion: "4.0"
 type: theme-library
 ```
 
-#### module
-
-```yaml
+```yaml [module]
 specVersion: "4.0"
 type: module
 ```
@@ -124,7 +116,7 @@ Note that all configured paths must be written in POSIX (i.e. using only forward
 #### Available Path Mappings
 
 #### Applications
-    - `webapp`: Mapped to runtime path `/` (root)
+- `webapp`: Mapped to runtime path `/` (root)
 
 ```yaml title="Default Configuration"
 resources:
@@ -134,8 +126,8 @@ resources:
 ```
 
 #### Libraries
-    - `src`: Mapped to runtime path `/resources`
-    - `test`: Mapped to runtime path `/test-resources`
+- `src`: Mapped to runtime path `/resources`
+- `test`: Mapped to runtime path `/test-resources`
 
 ```yaml title="Default Configuration"
 resources:
@@ -184,18 +176,15 @@ resources:
 ::: info Info
 This configuration is available since UI5 CLI [`v1.7.0`](https://github.com/SAP/ui5-cli/releases/tag/v1.7.0)
 
-::: details Example
-#### UTF-8
+::: code-group Example
 
-```yaml
+```yaml [UTF-8]
 resources:
   configuration:
     propertiesFileSourceEncoding: UTF-8
 ```
 
-#### ISO-8859-1
-
-```yaml
+```yaml [ISO-8859-1]
 resources:
   configuration:
     propertiesFileSourceEncoding: ISO-8859-1
@@ -253,19 +242,20 @@ Define your project's framework dependencies.
 
 In your project's framework configuration you must define whether you want to use the OpenUI5 or the SAPUI5 framework and which version:
 
-#### OpenUI5
-```yaml
+::: code-group
+
+```yaml [OpenUI5]
 framework:
   name: OpenUI5
   version: 1.82.0
 ```
 
-#### SAPUI5
-```yaml
+```yaml [SAPUI5]
 framework:
   name: SAPUI5
   version: 1.82.0
 ```
+:::
 
 If you are not sure which framework is right for you, see our [documentation on the differences between OpenUI5 and SAPUI5](./FAQ.md#whats-the-difference-between-openui5-and-sapui5).
 
@@ -283,9 +273,9 @@ Projects that use the OpenUI5 framework cannot depend on projects that use the S
 
 ### Dependencies
 
-::: details Example
-#### application
-```yaml
+::: code-group Example
+
+```yaml [application]
 specVersion: "4.0"
 type: application
 metadata:
@@ -300,8 +290,7 @@ framework:
     - name: themelib_sap_fiori_3
 ```
 
-#### library
-```yaml
+```yaml [library]
 specVersion: "4.0"
 type: library
 metadata:
@@ -328,8 +317,9 @@ framework:
 
 All libraries required by your project must be listed in the `libraries` section of the framework configuration:
 
-#### OpenUI5
-```yaml
+::: code-group
+
+```yaml [OpenUI5]
 framework:
   name: OpenUI5
   version: 1.82.0
@@ -339,8 +329,7 @@ framework:
     - name: sap.ui.table
 ```
 
-#### SAPUI5
-```yaml
+```yaml [SAPUI5]
 framework:
   name: SAPUI5
   version: 1.82.0
@@ -349,6 +338,7 @@ framework:
     - name: sap.m
     - name: sap.ui.comp
 ```
+:::
 
 #### Development Dependencies
 Development dependencies are only installed if the project defining them is the current root project.
@@ -375,10 +365,9 @@ You can choose which theme library to use by the application that is consuming t
 ## Build Configuration
 ### Exclude Resources
 
-::: details Example
+::: code-group Example
 
-#### application
-```yaml
+```yaml [application]
 builder:
   resources:
     excludes:
@@ -388,8 +377,7 @@ builder:
       - "/resources/my/project/namespace/test/**"
 ```
 
-#### library or theme-library
-```yaml
+```yaml [library or theme-library]
 builder:
   resources:
     excludes:
@@ -399,15 +387,7 @@ builder:
       - "!/test-resources/some/project/name/demo-app/**"
       - "**/*.svg"
 ```
-
-#### module
-
-::: info
-
-For projects of type `module`, this configuration is available since UI5 CLI [`v3.5.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.5.0)
-and applies only to projects defining [Specification Version](#specification-versions) 3.1 or higher.
-
-```yaml
+```yaml [module]
 builder:
   resources:
     excludes:
@@ -418,21 +398,28 @@ builder:
 ```
 :::
 
+::: info
+
+For projects of type `module`, this configuration is available since UI5 CLI [`v3.5.0`](https://github.com/SAP/ui5-cli/releases/tag/v3.5.0)
+and applies only to projects defining [Specification Version](#specification-versions) 3.1 or higher.
+
+:::
+
 You can exclude a projects resources from the build process using a list of glob patterns. Matching resources will be ignored by the builder and all build tasks.
 
 Patterns are applied to the **virtual resource paths** (i.e. the UI5 runtime paths). Exclude patterns are always applied after any includes.
 
 ### Cachebuster
 
-::: details Example
-#### time (default)
-```yaml
+::: code-group Example
+
+```yaml [time (default)]
 builder:
   cachebuster:
     signatureType: time
 ```
-#### hash
-```yaml
+
+```yaml [hash]
 builder:
   cachebuster:
     signatureType: hash
@@ -489,19 +476,17 @@ This configuration is available since UI5 CLI [`v2.10.0`](https://github.com/SAP
 and applies only to projects defining [Specification Version](#specification-versions)
 2.3 or higher.
 
-::: details Example
-#### Single Component
+::: code-group Example
 
-```yaml
+```yaml [Single Component]
 builder:
   componentPreload:
     excludes:
       - "my/awesome/app/localService/**"
 ```
 
-#### Multiple Components
 
-```yaml
+```yaml [Multiple Components]
 builder:
   componentPreload:
     namespaces:
