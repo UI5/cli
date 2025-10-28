@@ -1,6 +1,6 @@
 # Migrate to v3
 
-::: warning "Superseded"
+::: warning Superseded
 **UI5 CLI 3.0 has been superseded by version 4.0. See [Migrate to v4](./migrate-v4.md).**
 
 Find the announcement blog post for version 3.0 here: **[SAP Community: UI5 CLI 3.0](https://blogs.sap.com/2023/02/10/ui5-tooling-3.0/)**
@@ -101,10 +101,22 @@ await builder.build({
 
 **New: @ui5/project v3**
 
-=== "ESM"
+::: code-group
+```js [ESM]
+import {graphFromPackageDependencies} from "@ui5/project/graph";
 
-    ```js
-    import {graphFromPackageDependencies} from "@ui5/project/graph";
+let graph = await graphFromPackageDependencies({cwd: "."});
+
+await graph.build({
+    destPath: "./dist",
+    includedDependencies: ["*"], // Parameter "buildDependencies" has been removed
+});
+```
+
+```js [CommonJS]
+// Since CommonJS does not suport top-level await, the code must be wrapped in an asynchronous function
+async function buildProject() {
+    const {graphFromPackageDependencies} = await import("@ui5/project/graph");
 
     let graph = await graphFromPackageDependencies({cwd: "."});
 
@@ -112,23 +124,9 @@ await builder.build({
         destPath: "./dist",
         includedDependencies: ["*"], // Parameter "buildDependencies" has been removed
     });
-    ```
-
-=== "CommonJS"
-
-    ```js
-    // Since CommonJS does not suport top-level await, the code must be wrapped in an asynchronous function
-    async function buildProject() {
-	    const {graphFromPackageDependencies} = await import("@ui5/project/graph");
-
-	    let graph = await graphFromPackageDependencies({cwd: "."});
-
-	    await graph.build({
-	        destPath: "./dist",
-	        includedDependencies: ["*"], // Parameter "buildDependencies" has been removed
-	    });
-    }
-    ```
+}
+```
+:::
 
 ## Changes to @ui5/cli
 
@@ -218,7 +216,7 @@ The following processors have been removed:
 
 ## Removal of Standard Middleware
 
-The following middleware has been removed from the [standard middlewares list](../../pages/Server/#standard-middleware):
+The following middleware has been removed from the [standard middlewares list](../pages/Server.md#standard-middleware):
 
 * connectUi5Proxy
 

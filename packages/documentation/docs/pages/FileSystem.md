@@ -7,7 +7,7 @@ import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vu
 </script>
 
 <div style="margin: 1rem 0;">
-  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v4/api/"/>
+  <VPButton class="no-decoration" text="📚 API Reference" href="https://ui5.github.io/cli/v5/api/"/>
 </div>
 
 ## Overview
@@ -43,10 +43,10 @@ Reader collections allow grouped access to multiple adapters, which might even b
 
 They implement the same API for **retrieving** resources as adapters (`byPath` and `byGlob`). Multiple flavors exist:
 
-* [ReaderCollection](https://ui5.github.io/cli/v4/api/@ui5_fs_ReaderCollection.html): The most basic collection. Allows parallel read access to multiple readers (i.e. adapters or collections)
-* [ReaderCollectionPrioritized](https://ui5.github.io/cli/v4/api/@ui5_fs_ReaderCollectionPrioritized.html): Contains a list of readers which are searched in-order. This allows one reader to "overlay" resources of another
-* [DuplexCollection](https://ui5.github.io/cli/v4/api/@ui5_fs_DuplexCollection.html): Contains a single reader and a single "writer". It therefore also implements the Adapter API for **persisting** resources (`write()`). When retrieving resources, the writer is prioritized over the reader
-* [WriterCollection](https://ui5.github.io/cli/v4/api/@ui5_fs_WriterCollection.html): Contains a set of writers and a mapping for each of them. When writing a resource, the writer is chosen based on the resource's virtual path.
+* [ReaderCollection](https://ui5.github.io/cli/v5/api/@ui5_fs_ReaderCollection.html): The most basic collection. Allows parallel read access to multiple readers (i.e. adapters or collections)
+* [ReaderCollectionPrioritized](https://ui5.github.io/cli/v5/api/@ui5_fs_ReaderCollectionPrioritized.html): Contains a list of readers which are searched in-order. This allows one reader to "overlay" resources of another
+* [DuplexCollection](https://ui5.github.io/cli/v5/api/@ui5_fs_DuplexCollection.html): Contains a single reader and a single "writer". It therefore also implements the Adapter API for **persisting** resources (`write()`). When retrieving resources, the writer is prioritized over the reader
+* [WriterCollection](https://ui5.github.io/cli/v5/api/@ui5_fs_WriterCollection.html): Contains a set of writers and a mapping for each of them. When writing a resource, the writer is chosen based on the resource's virtual path.
 
 <style>
 .no-decoration {

@@ -4,11 +4,10 @@ import { defineConfig } from "vitepress";
 
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
-import MarkdownItPlantuml from "markdown-it-plantuml";
 
 export default defineConfig({
-  
-  base: "/ui5-cli/v5/", // use this for github pages deployment or remove for CF
+
+  base: "/cli/v5/", // GitHub Pages deployment base path
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
@@ -16,8 +15,7 @@ export default defineConfig({
 
   description: "An open and modular toolchain to develop state-of-the-art applications based on the UI5 framework.",
   lastUpdated: false, // disable git author info
-  cleanUrls: false,
-  ignoreDeadLinks: true,
+  cleanUrls: true,
 
   vue: {
     template: {
@@ -32,7 +30,7 @@ export default defineConfig({
   head: [
     [
       "link",
-      { rel: "icon", type: "image/svg+xml", href: "/icons/ui5/O.svg" }
+      { rel: "icon", type: "image/png", href: "./images/favicon.png" }
 
     ]
   ],
@@ -64,7 +62,7 @@ export default defineConfig({
         &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
-          <a  style="margin:25px" href="https://ui5.github.io/cli/stable/pages/Privacy/">Privacy</a>
+          <a  style="margin:25px" href="https://ui5.github.io/cli/v5/pages/Privacy/">Privacy</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/trademark.html">Trademarks</a>
     `,
 
@@ -81,38 +79,11 @@ export default defineConfig({
   },
 
   markdown: {
-    externalLinks: {
-
-    },
-
-    //theme: "material-theme-palenight", // pre rc5 default
-    // Add support for your own languages.
-    // https://github.com/shikijs/shiki/blob/main/languages.md#supporting-your-own-languages-with-shiki
-    languages: [
-    ],
-
     // Configure the Markdown-it instance
     config: (md) => {
       // https://www.npmjs.com/package/markdown-it-implicit-figures
       md.use(MarkdownItImplicitFigures, {
         figcaption: true,
-      });
-      md.use(MarkdownItPlantuml, {
-        //imageFormat: 'png'
-      });
-      // https://github.com/gmunguia/markdown-it-plantuml/issues/35
-      md.use(MarkdownItPlantuml, {
-        openMarker: "```plantuml",
-        closeMarker: "```",
-        diagramName: "uml",
-        imageFormat: "svg",
-      });
-      // Textik https://textik.com/
-      md.use(MarkdownItPlantuml, {
-        openMarker: "```ditaa",
-        closeMarker: "```",
-        diagramName: "ditaa",
-        imageFormat: "png",
       });
     },
   },
@@ -147,7 +118,7 @@ function nav() {
           target: "_self"
         }
       ]
-    }
+    },
   ];
 }
 
@@ -163,7 +134,7 @@ function guide() {
 
         {
           text: "Home",
-          link: "/pages/index",
+          link: "/",
         },
         {
           text: "Getting Started",
@@ -303,7 +274,7 @@ function guide() {
     },
     {
       text: "API Reference",
-      link: "https://ui5.github.io/cli/stable/api/index.html",
+      link: "https://ui5.github.io/cli/api/index.html",
 
     },
 
