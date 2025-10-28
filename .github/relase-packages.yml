@@ -1,0 +1,67 @@
+name: release-packages
+
+on:
+  # Manually trigger the release chain starting from a specific package
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "🚀 Start AUTOMATIC release chain from this package (will auto-release this and all packages after it)"
+        required: true
+        type: choice
+        options:
+          - logger
+          - fs
+          - builder
+          - server
+          - project
+          - cli
+        default: logger
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  start-release-chain:
+    runs-on: ubuntu-24.04
+    outputs:
+      started_package: ${{ steps.start_chain.outputs.started_package }}
+      chain_length: ${{ steps.start_chain.outputs.chain_length }}
+    steps:
+      - uses: actions/checkout@v5
+      
+      - name: Start release chain
+        id: start_chain
+        run: |
+          ALL_PACKAGES=("logger" "fs" "builder" "server" "project" "cli")
+          SELECTED_PKG="${{ github.event.inputs.package }}"
+          
+          echo "🚀 Starting release chain from: $SELECTED_PKG"
+          
+          # Find position and show chain
+          for i in "${!ALL_PACKAGES[@]}"; do
+            [[ "${ALL_PACKAGES[$i]}" == "$SELECTED_PKG" ]] && START_IDX=$i && break
+          done
+          
+          [[ -z "$START_IDX" ]] && echo "❌ Package not found" && exit 1
+          
+          CHAIN_LENGTH=$((${#ALL_PACKAGES[@]} - START_IDX))
+          echo "📦 Will release $CHAIN_LENGTH packages: ${ALL_PACKAGES[@]:$START_IDX}"
+          echo "started_package=$SELECTED_PKG" >> $GITHUB_OUTPUT
+          echo "chain_length=$CHAIN_LENGTH" >> $GITHUB_OUTPUT
+      
+      - name: Merge first PR
+        id: merge-pr
+        uses: ./.github/actions/merge-release-pr
+        with:
+          package: ${{ github.event.inputs.package }}
+          github-token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      
+      - name: Check merge result
+        run: |
+          if [[ "${{ steps.merge-pr.outputs.merged }}" != "true" ]]; then
+            echo "❌ Failed to start chain - no PR found"
+            exit 1
+          fi
+          echo "✅ Chain started successfully!"
