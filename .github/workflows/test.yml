@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false # Do not stop other jobs if one fails
       matrix:
-        version: [20, 22, 24]
+        version: [22, 24]
         os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
