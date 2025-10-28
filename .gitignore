@@ -59,10 +59,10 @@ deploy_key
 jsdocs/
 site/
 
-# Needed for packages/server	# Custom files
-!packages/**/test/fixtures/**/node_modules	
+# Needed for packages/server
+!packages/**/test/fixtures/**/node_modules
 
-# Documentation	
+# Documentation
 packages/documentation/docs/pages/CLI.md
 packages/documentation/.vitepress/dist
 packages/documentation/.vitepress/cache
