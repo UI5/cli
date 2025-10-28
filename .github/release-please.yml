@@ -32,14 +32,14 @@ jobs:
         uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }} # TODO: Change token on prod
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # This step is mandatory because release-please nor its plugin
       # node-workspace does not update the manifest automatically.
       # Also adds missing release tags that node-workspace plugin doesn't create.
       - name: Update manifest and add tags to release PRs
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Configure git identity
           git config user.name "github-actions[bot]"
@@ -160,15 +160,13 @@ jobs:
         run: |
           cd "${{ needs.release-please.outputs.package_path }}"
           echo "📦 Installing dependencies for ${{ needs.release-please.outputs.package_name }}@${{ needs.release-please.outputs.package_version }}"
-          # TODO: Uncomment the following lines when ready to publish
-          # npm ci
+          npm ci
       
       - name: Publish to NPM
         run: |
           cd "${{ needs.release-please.outputs.package_path }}"
           echo "🚀 Publishing ${{ needs.release-please.outputs.package_name }}@${{ needs.release-please.outputs.package_version }} to NPM..."
-          
-          # TODO: Uncomment the following lines when ready to publish
-          # npm publish --access public
-          
+
+          npm publish --access public
+
           echo "✅ Successfully published ${{ needs.release-please.outputs.package_name }}@${{ needs.release-please.outputs.package_version }}"

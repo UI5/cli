@@ -56,7 +56,7 @@ jobs:
         uses: ./.github/actions/merge-release-pr
         with:
           package: ${{ github.event.inputs.package }}
-          github-token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Check merge result
         run: |

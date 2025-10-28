@@ -51,4 +51,4 @@ jobs:
         uses: ./.github/actions/merge-release-pr
         with:
           package: ${{ steps.next-pkg.outputs.next_package }}
-          github-token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
