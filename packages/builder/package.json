@@ -29,7 +29,7 @@
 		"./internal/jsdoc/template/publish": "./lib/processors/jsdoc/lib/ui5/template/publish.js"
 	},
 	"engines": {
-		"node": "^20.11.0 || >=22.0.0",
+		"node": "^22.21.0 || >=24.0.0",
 		"npm": ">= 8"
 	},
 	"scripts": {
