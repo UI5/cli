@@ -8,6 +8,9 @@
 [![OpenUI5 Community Slack (#tooling channel)](https://img.shields.io/badge/slack-join-44cc11.svg)](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
+This repository contains the current **development state** of the upcoming UI5 CLI v5 release.  
+Note that previous versions (up to v4) are maintained in [dedicated repositories](https://github.com/UI5/cli/tree/v4?tab=readme-ov-file#modules).
+
 > [UI5 CLI v4](https://ui5.github.io/cli/v4) is the latest and stable version 🎉
 >
 > [UI5 CLI v3](https://ui5.github.io/cli/v3) is a stable version and in maintenance mode 🚢
