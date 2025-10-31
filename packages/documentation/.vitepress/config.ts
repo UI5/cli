@@ -105,17 +105,17 @@ function nav() {
       items: [
         {
           text: 'V4',
-          link: '../v4/',
+          link: `/../v4/`,
           target: "_self"
         },
         {
           text: 'V3',
-          link: '../v3/',
+          link: `/../v3/`,
           target: "_self"
         },
         {
           text: 'V2',
-          link: '../v2/',
+          link: `/../v2/`,
           target: "_self"
         }
       ]
@@ -275,7 +275,8 @@ function guide() {
     },
     {
       text: "API Reference",
-      link: "./api/index.html",
+      link: "/api/index.html",
+      target: "_blank"
 
     },
 
