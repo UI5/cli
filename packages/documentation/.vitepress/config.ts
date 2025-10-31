@@ -7,7 +7,8 @@ import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 
 export default defineConfig({
 
-  base: "/cli/v5/", // GitHub Pages deployment base path
+  // Would be set in CI job via CLI arguments. For local development, it's just root.
+  base: "/",
   srcDir: "docs",
   outDir: "dist",
   lang: "en-US",
@@ -274,7 +275,7 @@ function guide() {
     },
     {
       text: "API Reference",
-      link: "https://ui5.github.io/cli/api/index.html",
+      link: "./api/index.html",
 
     },
 

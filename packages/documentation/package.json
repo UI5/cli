@@ -24,7 +24,8 @@
 	"scripts": {
 		"start": "vitepress dev --open",
 		"dev": "vitepress dev",
-		"build": "vitepress build && cp -r ./docs/images ./dist/images",
+		"build:vitepress": "vitepress build",
+		"build:assets": "sh -c 'DEST_DIR=${1:-./dist}; cp -r ./docs/images \"$DEST_DIR/images\"' --",
 		"preview": "vitepress preview --port 8080",
 <<<<<<< HEAD
 		"serve-docs": "npm run build && npm run preview",

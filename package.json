@@ -32,10 +32,13 @@
 =======
 		"jsdoc": "npm run jsdoc-generate && open-cli site/api/index.html",
 		"jsdoc-generate": "jsdoc -c ./jsdoc-workspace.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
+<<<<<<< HEAD
 		"docs:dev": "npm --prefix packages/documentation run dev",
 		"docs:build": "npm --prefix packages/documentation run build",
 		"docs:preview": "npm --prefix packages/documentation run preview",
 >>>>>>> 381075c5e1 (refactor: Adjust scripts)
+=======
+>>>>>>> 35c8a313b2 (refactor: Dynamic docs upload configuration)
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
