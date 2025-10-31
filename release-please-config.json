@@ -23,7 +23,7 @@
 	"release-type": "node",
 	"always-update": true,
 	"pull-request-header": ":tractor: New release prepared",
-	"pull-request-title-pattern": "release: UI5 CLI v${version}",
+	"pull-request-title-pattern": "release: UI5 CLI packages",
 	"changelog-sections": [
 		{
 			"type": "feat",
