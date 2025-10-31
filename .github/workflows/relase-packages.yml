@@ -1,0 +1,69 @@
+name: release-packages
+
+on:
+  # Manually trigger the release chain starting from a specific package
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "🚀 Start AUTOMATIC release chain from this package"
+        required: true
+        type: choice
+        options:
+          - logger
+          - fs
+          - builder
+          - server
+          - project
+          - cli
+        default: logger
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  start-release-chain:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      
+      - name: Setup git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge first PR to start chain
+        id: merge-pr
+        uses: ./.github/actions/merge-release-pr
+        with:
+          package: ${{ github.event.inputs.package }}
+          github-token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+      
+      - name: Trigger auto-release-chain with chain mode
+        if: steps.merge-pr.outputs.pr_merged == 'true'
+        run: |
+          SELECTED_PKG="${{ github.event.inputs.package }}"
+          echo "🚀 Setting chain mode flag for release chain starting from: $SELECTED_PKG"
+          
+          # Set repository variable to indicate chain mode is active
+          gh variable set CHAIN_MODE --body "true"
+          gh variable set CHAIN_START_PACKAGE --body "$SELECTED_PKG"
+          
+          echo "✅ Chain mode activated"
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - name: Check result
+        run: |
+          if [[ "${{ steps.merge-pr.outputs.pr_merged }}" == "true" ]]; then
+            echo "🎉 Release chain started successfully!"
+            echo "📋 Started from package: ${{ github.event.inputs.package }}"
+            echo "🔗 Chain mode activated"
+          else
+            echo "❌ Failed to start release chain"
+            echo "📋 No PR found for package: ${{ github.event.inputs.package }}"
+            exit 1
+          fi
