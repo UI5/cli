@@ -1,4 +1,4 @@
-name: release-please
+name: Release Please
 
 on:
   push:
@@ -26,10 +26,13 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-  publish-package:
+  publish-packages:
     runs-on: ubuntu-24.04
     needs: release-please
-    if: needs.release-please.outputs.package_released == 'true'
+    if: needs.release-please.outputs.releases_created == 'true'
+    strategy:
+      matrix:
+        package: [logger, fs, builder, server, project, cli]
     steps:
       - uses: actions/checkout@v5
 
@@ -38,10 +41,10 @@ jobs:
         with:
          node-version: 24.x
 
-      - name: Install and publish package
+      - name: Install and publish ${{ matrix.package }}
         run: |
-          cd "${{ needs.release-please.outputs.package_path }}"
-          echo "🚀 Publishing ${{ needs.release-please.outputs.package_name }}@${{ needs.release-please.outputs.package_version }}"
+          cd packages/${{ matrix.package }}
+          echo "🚀 Publishing @ui5/${{ matrix.package }}"
           
           # TODO: Uncomment when ready to publish
           # npm ci
