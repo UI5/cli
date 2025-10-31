@@ -10,7 +10,7 @@ import VPButton from "vitepress/dist/client/theme-default/components/VPButton.vu
 const { isDark } = useData()
 </script>
 
-<img :src="isDark ? '/cli/v5/images/O_UI5_H_noBG.png' : '/cli/v5/images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
+<img :src="isDark ? './images/O_UI5_H_noBG.png' : './images/UI5_logo_wide.png'" alt="UI5 logo" style="max-width: 100%; height: auto;">
 
 # UI5 CLI
 
