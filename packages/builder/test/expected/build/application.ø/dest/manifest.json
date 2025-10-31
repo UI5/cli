@@ -7,7 +7,9 @@
 		"applicationVersion": {
 			"version": "1.2.2"
 		},
-		"embeds": ["embedded"],
+		"embeds": [
+			"embedded"
+		],
 		"title": "{{title}}"
 	},
 	"sap.ui5": {
@@ -16,6 +18,7 @@
 			"libs": {
 				"sap.ui.core": {}
 			}
-		}
+		},
+		"flexBundle": false
 	}
 }

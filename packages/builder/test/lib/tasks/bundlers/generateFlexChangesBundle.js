@@ -3,18 +3,22 @@ import sinon from "sinon";
 import generateFlexChangesBundle from "../../../../lib/tasks/bundlers/generateFlexChangesBundle.js";
 
 
-function createPlaceholderResource(content) {
+function createPlaceholderResource(content, path = "unknown") {
+	let currentContent = content;
 	return {
 		name: "file",
-		getBuffer: async () => JSON.stringify(content),
-		getString: () => JSON.stringify(content),
-		setString: (string) => undefined
+		getBuffer: async () => JSON.stringify(currentContent),
+		getString: () => JSON.stringify(currentContent),
+		setString: (string) => {
+			currentContent = JSON.parse(string);
+		},
+		getPath: () => path
 	};
 }
 
 function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 	return {
-		byGlob: async (path) => changes.map(createPlaceholderResource),
+		byGlob: async () => changes.map(createPlaceholderResource),
 		byPath: async (path) => {
 			if ( path.includes("manifest.json") ) {
 				return createPlaceholderResource(manifest);
@@ -151,6 +155,19 @@ function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 
 		const path = await stub.getCall(0).args[0].getPath();
 		t.is(path, "/resources/mypath/changes/flexibility-bundle.json");
+
+		const writtenManifest = JSON.parse(await stub.getCall(1).args[0].getString());
+		t.deepEqual(writtenManifest, {
+			"sap.ui5": {
+				dependencies: {
+					minUI5Version: minVersion,
+					libs: {
+						"sap.ui.fl": {}
+					}
+				},
+				flexBundle: true
+			}
+		}, "Result must contain the same content");
 	});
 });
 
@@ -231,4 +248,334 @@ function createPlaceholderWorkspace(changes, manifest, flexBundle) {
 		const path = await stub.getCall(0).args[0].getPath();
 		t.is(path, "/resources/mypath/changes/changes-bundle.json");
 	});
+});
+
+test("flexBundle property set to true when bundle is created", async (t) => {
+	const manifest = {
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"dependencies": {
+				"minUI5Version": "1.75.0"
+			}
+		}
+	};
+
+	const changeList = [{
+		"fileName": "test_change",
+		"fileType": "change",
+		"changeType": "rename",
+		"reference": "test.Component",
+		"content": {},
+		"selector": {"id": "testId"},
+		"layer": "CUSTOMER"
+	}];
+
+	const placeholderWorkspace = {
+		byGlob: async () => changeList.map(createPlaceholderResource),
+		byPath: async (path) => {
+			if (path.includes("manifest.json")) {
+				return createPlaceholderResource(manifest, path);
+			} else if (path.includes("flexibility-bundle.json")) {
+				// Return non-null to indicate file exists
+				return createPlaceholderResource({}, path);
+			}
+			return null;
+		},
+		write: sinon.stub().returnsArg(0)
+	};
+
+	await generateFlexChangesBundle({
+		workspace: placeholderWorkspace,
+		taskUtil: false,
+		options: {
+			projectNamespace: "sap/ui/demo/app"
+		}
+	});
+
+	// Check that manifest was updated with flexBundle: true
+	t.true(placeholderWorkspace.write.callCount > 0, "workspace.write should be called");
+
+	// Find the manifest write call
+	let manifestCall;
+	for (let i = 0; i < placeholderWorkspace.write.callCount; i++) {
+		const call = placeholderWorkspace.write.getCall(i);
+		const path = call.args[0].getPath ? await call.args[0].getPath() : "unknown";
+		if (path && path.includes("manifest.json")) {
+			manifestCall = call;
+			break;
+		}
+	}
+
+	t.truthy(manifestCall, "Manifest should be written");
+	const manifestContent = JSON.parse(await manifestCall.args[0].getString());
+
+	t.truthy(manifestContent["sap.ui5"], "sap.ui5 section should exist");
+	t.true(manifestContent["sap.ui5"].flexBundle, "flexBundle should be set to true when bundle is created");
+	t.deepEqual(manifestContent["sap.ui5"].dependencies.libs["sap.ui.fl"], {}, "sap.ui.fl dependency should be added");
+});
+
+test("flexBundle property set to true when bundle is created even without existing flexibility-bundle.json",
+	async (t) => {
+		const manifest = {
+			"_version": "1.58.0",
+			"sap.app": {
+				"id": "sap.ui.demo.app",
+				"type": "application"
+			},
+			"sap.ui5": {
+				"dependencies": {
+					"minUI5Version": "1.75.0"
+				}
+			}
+		};
+
+		const changeList = [{
+			"fileName": "test_change",
+			"fileType": "change",
+			"changeType": "rename",
+			"reference": "test.Component",
+			"content": {},
+			"selector": {"id": "testId"},
+			"layer": "CUSTOMER"
+		}];
+
+		const placeholderWorkspace = {
+			byGlob: async () => changeList.map(createPlaceholderResource),
+			byPath: async (path) => {
+				if (path.includes("manifest.json")) {
+					return createPlaceholderResource(manifest, path);
+				} else if (path.includes("flexibility-bundle.json")) {
+					// Return null to indicate file does not exist
+					return null;
+				}
+				return null;
+			},
+			write: sinon.stub().returnsArg(0)
+		};
+
+		await generateFlexChangesBundle({
+			workspace: placeholderWorkspace,
+			taskUtil: false,
+			options: {
+				projectNamespace: "sap/ui/demo/app"
+			}
+		});
+
+		// Check that manifest was updated with flexBundle: true
+		t.true(placeholderWorkspace.write.callCount > 0, "workspace.write should be called");
+
+		// Find the manifest write call
+		let manifestCall;
+		for (let i = 0; i < placeholderWorkspace.write.callCount; i++) {
+			const call = placeholderWorkspace.write.getCall(i);
+			const path = call.args[0].getPath ? await call.args[0].getPath() : "unknown";
+			if (path && path.includes("manifest.json")) {
+				manifestCall = call;
+				break;
+			}
+		}
+
+		t.truthy(manifestCall, "Manifest should be written");
+		const manifestContent = JSON.parse(await manifestCall.args[0].getString());
+
+		t.truthy(manifestContent["sap.ui5"], "sap.ui5 section should exist");
+		t.true(manifestContent["sap.ui5"].flexBundle, "flexBundle should be set to true when bundle is created");
+		t.deepEqual(
+			manifestContent["sap.ui5"].dependencies.libs["sap.ui.fl"], {}, "sap.ui.fl dependency should be added");
+	});
+
+test("sap.ui.fl dependency disables lazy loading if already present", async (t) => {
+	const manifest = {
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"dependencies": {
+				"minUI5Version": "1.75.0",
+				"libs": {
+					"sap.ui.fl": {
+						"lazy": true
+					}
+				}
+			}
+		}
+	};
+
+	const changeList = [{
+		"fileName": "test_change",
+		"fileType": "change",
+		"changeType": "rename",
+		"reference": "test.Component",
+		"content": {},
+		"selector": {"id": "testId"},
+		"layer": "CUSTOMER"
+	}];
+
+	const placeholderWorkspace = {
+		byGlob: async () => changeList.map((change) => createPlaceholderResource(change)),
+		byPath: async (path) => {
+			if (path.includes("manifest.json")) {
+				return createPlaceholderResource(manifest, path);
+			} else if (path.includes("flexibility-bundle.json")) {
+				return createPlaceholderResource({}, path);
+			}
+			return null;
+		},
+		write: sinon.stub().returnsArg(0)
+	};
+
+	await generateFlexChangesBundle({
+		workspace: placeholderWorkspace,
+		taskUtil: false,
+		options: {
+			projectNamespace: "sap/ui/demo/app"
+		}
+	});
+
+	// Find the manifest write call
+	let manifestCall;
+	for (let i = 0; i < placeholderWorkspace.write.callCount; i++) {
+		const call = placeholderWorkspace.write.getCall(i);
+		const path = call.args[0].getPath ? await call.args[0].getPath() : "unknown";
+		if (path && path.includes("manifest.json")) {
+			manifestCall = call;
+			break;
+		}
+	}
+
+	t.truthy(manifestCall, "Manifest should be written");
+	const manifestContent = JSON.parse(await manifestCall.args[0].getString());
+
+	const sapUiFlDependency = manifestContent["sap.ui5"].dependencies.libs["sap.ui.fl"];
+	t.false(sapUiFlDependency.lazy, "sap.ui.fl lazy loading should be disabled when bundle is created");
+});
+
+test("manifest updated with flexBundle false when no changes exist", async (t) => {
+	const manifest = {
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"dependencies": {
+				"minUI5Version": "1.75.0"
+			}
+		}
+	};
+
+	const placeholderWorkspace = {
+		byGlob: async () => [], // No changes
+		byPath: async (path) => {
+			if (path.includes("manifest.json")) {
+				return createPlaceholderResource(manifest, path);
+			} else if (path.includes("flexibility-bundle.json")) {
+				// Even if file exists, task won't run without changes
+				return createPlaceholderResource({}, path);
+			}
+			return null;
+		},
+		write: sinon.stub().returnsArg(0)
+	};
+
+	await generateFlexChangesBundle({
+		workspace: placeholderWorkspace,
+		taskUtil: false,
+		options: {
+			projectNamespace: "sap/ui/demo/app"
+		}
+	});
+
+	// Manifest should always be updated, even when no changes exist
+	t.is(placeholderWorkspace.write.callCount, 1, "workspace.write should be called to update manifest");
+
+	// Find the manifest write call
+	let manifestCall;
+	for (let i = 0; i < placeholderWorkspace.write.callCount; i++) {
+		const call = placeholderWorkspace.write.getCall(i);
+		const path = call.args[0].getPath ? await call.args[0].getPath() : "unknown";
+		if (path && path.includes("manifest.json")) {
+			manifestCall = call;
+			break;
+		}
+	}
+
+	t.truthy(manifestCall, "Manifest should be written");
+	const manifestContent = JSON.parse(await manifestCall.args[0].getString());
+
+	t.truthy(manifestContent["sap.ui5"], "sap.ui5 section should exist");
+	t.false(manifestContent["sap.ui5"].flexBundle, "flexBundle should be set to false when no bundle is created");
+	t.is(manifestContent["sap.ui5"].dependencies.libs, undefined,
+		"sap.ui.fl dependency should not be added when no bundle is created");
+});
+
+test("flexBundle property overrides existing value when bundle is created", async (t) => {
+	const manifest = {
+		"_version": "1.58.0",
+		"sap.app": {
+			"id": "sap.ui.demo.app",
+			"type": "application"
+		},
+		"sap.ui5": {
+			"dependencies": {
+				"minUI5Version": "1.75.0"
+			},
+			"flexBundle": false // Pre-existing value that should be overridden
+		}
+	};
+
+	const changeList = [{
+		"fileName": "test_change",
+		"fileType": "change",
+		"changeType": "rename",
+		"reference": "test.Component",
+		"content": {},
+		"selector": {"id": "testId"},
+		"layer": "CUSTOMER"
+	}];
+
+	const placeholderWorkspace = {
+		byGlob: async () => changeList.map((change) => createPlaceholderResource(change)),
+		byPath: async (path) => {
+			if (path.includes("manifest.json")) {
+				return createPlaceholderResource(manifest, path);
+			} else if (path.includes("flexibility-bundle.json")) {
+				// Return non-null to indicate file exists
+				return createPlaceholderResource({}, path);
+			}
+			return null;
+		},
+		write: sinon.stub().returnsArg(0)
+	};
+
+	await generateFlexChangesBundle({
+		workspace: placeholderWorkspace,
+		taskUtil: false,
+		options: {
+			projectNamespace: "sap/ui/demo/app"
+		}
+	});
+
+	// Check that manifest was updated and existing flexBundle: false was overridden to true
+	let manifestCall;
+	for (let i = 0; i < placeholderWorkspace.write.callCount; i++) {
+		const call = placeholderWorkspace.write.getCall(i);
+		const path = call.args[0].getPath ? await call.args[0].getPath() : "unknown";
+		if (path && path.includes("manifest.json")) {
+			manifestCall = call;
+			break;
+		}
+	}
+
+	t.truthy(manifestCall, "Manifest should be written");
+	const manifestContent = JSON.parse(await manifestCall.args[0].getString());
+
+	t.true(manifestContent["sap.ui5"].flexBundle, "flexBundle should be overridden to true when bundle is created");
+	t.deepEqual(manifestContent["sap.ui5"].dependencies.libs["sap.ui.fl"], {}, "sap.ui.fl dependency should be added");
 });
