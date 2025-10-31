@@ -1,0 +1,51 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+         node-version: 24.x
+
+      - name: Run Release Please to update PRs and create releases
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  publish-packages:
+    runs-on: ubuntu-24.04
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    strategy:
+      matrix:
+        package: [logger, fs, builder, server, project, cli]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+         node-version: 24.x
+
+      - name: Install and publish ${{ matrix.package }}
+        run: |
+          cd packages/${{ matrix.package }}
+          echo "🚀 Publishing @ui5/${{ matrix.package }}"
+          
+          # TODO: Uncomment when ready to publish
+          # npm ci
+          # npm publish --access public
