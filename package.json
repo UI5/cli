@@ -29,6 +29,7 @@
 		"unit": "npm run unit --workspaces",
 		"coverage": "npm run coverage --workspaces",
 		"jsdoc": "npm run jsdoc-generate && open-cli site/api/index.html",
+		"apijson-to-html": "node ./tools/convert-apijson-to-html.cjs workspace/apiref/api.json site/api/index.html",
 		"jsdoc-generate": "node ./scripts/isWorkspace.js && npm run jsdoc-generate-workspace || npm run jsdoc-generate-local",
 		"jsdoc-generate-local": "jsdoc -c ./jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"jsdoc-generate-workspace": "jsdoc -c ./jsdoc-workspace.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ../ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
