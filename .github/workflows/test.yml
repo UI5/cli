@@ -30,7 +30,7 @@ jobs:
         node-version: ${{ matrix.version }}
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
 
     - name: Run unit tests
       run: npm run unit
