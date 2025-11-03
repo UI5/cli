@@ -53,13 +53,19 @@ The following rules are enforced by commitlint:
 **Features and fixes:**
 ```
 feat(cli): Add "versions" command
+```
+```
 fix(fs): Correctly handle paths containing non-ASCII characters on Windows
+```
+```
 perf(builder): Improve bundle generation speed by 25%
 ```
 
 **Dependencies:**
 ```
 deps(cli): Update @ui5/logger to v4.0.0
+```
+```
 build(deps-dev): Update eslint to v9.0.0
 ```
 
@@ -73,7 +79,11 @@ BREAKING CHANGE: The "init" command has been removed. Use "create" instead.
 **Workspace-wide changes (no scope):**
 ```
 ci: Update GitHub Actions to use Node.js 20
+```
+```
 docs: Update contribution guidelines
+```
+```
 build: Configure new linting rules
 ```
 
@@ -92,7 +102,11 @@ When making changes that affect multiple packages, create individual commits for
 For a feature spanning multiple packages:
 ```
 feat(cli): Add support for new build option
+```
+```
 feat(builder): Implement new build option processing
+```
+```
 feat(fs): Add helper methods for new build option
 ```
 
