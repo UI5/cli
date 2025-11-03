@@ -50,11 +50,11 @@ Fixes: #45
 ```
 
 ## Work on Release Branches
-Major releases are typically prepared on dedicated branches like `next`.
+Currently, the `v4` branch is the latest stable release, while the next major release (`v5`) is being developed on the `main` branch.
 
-There are some things to be aware of when working on these branches.
+There are some things to be aware of when working across these branches.
 
-### Implementing Changes in Multiple Code Lines
-While working on a new major release (e.g. `5.0.0`), any fixes or new features implemented on the **current** (main) code line (e.g. 4.x) should be cherry-picked as `[INTERNAL]` to the dedicated (pre-)release branch (typically `next`). This is to prevent changes declared as `[FEATURE]` or `[FIX]` from appearing in the changelog twice, which can be confusing since the new major version has not yet been released and should naturally contain any fixes or features released in any of the preceding releases. Listing them twice might confuse users. Note that our changelog is generated based on all tags of the repository, independent of the currently checked out branch (also see [git-chglog/issues/123](https://github.com/git-chglog/git-chglog/issues/123)).
+### Implementing Fixes Across `v4` and `main` Branches
+During the development period until the first `v5` release, fixes should be implemented on the **`v4` branch first**, and then up-ported to the **`main` branch**. This ensures that the stable release receives fixes promptly while maintaining consistency across both code lines.
 
-However, once a new major release becomes **current** (i.e. "main", not a pre-release), any changes applied to multiple code lines should be cherry picked with the original prefix, so that they appear for multiple versions in the changelog.
+When up-porting fixes from `v4` to `main`, note that the commit message guidelines differ between branches. The `v4` branch uses the OpenUI5-style commit message format (as documented above), while the `main` branch uses conventional commits. Please refer to the [Guidelines.md file on the main branch](https://github.com/UI5/cli/blob/main/docs/Guidelines.md) for the appropriate commit message format when working there.
