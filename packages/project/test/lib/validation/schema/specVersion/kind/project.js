@@ -81,6 +81,27 @@ test("Type library (no kind)", async (t) => {
 	});
 });
 
+test("Type component", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "3.1",
+		"kind": "project",
+		"type": "component",
+		"metadata": {
+			"name": "my-component"
+		}
+	});
+});
+
+test("Type component (no kind)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "3.1",
+		"type": "component",
+		"metadata": {
+			"name": "my-component"
+		}
+	});
+});
+
 test("Type theme-library", async (t) => {
 	await assertValidation(t, {
 		"specVersion": "2.0",
@@ -172,6 +193,7 @@ test("Invalid type", async (t) => {
 			allowedValues: [
 				"application",
 				"library",
+				"component",
 				"theme-library",
 				"module",
 			],

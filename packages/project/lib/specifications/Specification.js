@@ -39,6 +39,9 @@ class Specification {
 		case "application": {
 			return createAndInitializeSpec("types/Application.js", parameters);
 		}
+		case "component": {
+			return createAndInitializeSpec("types/Component.js", parameters);
+		}
 		case "library": {
 			return createAndInitializeSpec("types/Library.js", parameters);
 		}
