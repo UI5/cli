@@ -6,14 +6,18 @@ import SpecificationVersion from "../../../../../lib/specifications/Specificatio
 export default {
 	/**
 	 * Executes the tests for different types of kind project,
-	 * e.g. "application", library" and "theme-library"
+	 * e.g. "application", library", "component" and "theme-library"
 	 *
 	 * @param {Function} test ava test
 	 * @param {Function} assertValidation assertion function
-	 * @param {string} type one of "application", library" and "theme-library"
+	 * @param {string} type one of "application", library", "component" and "theme-library"
 	 */
 	defineTests: function(test, assertValidation, type) {
 		SpecificationVersion.getVersionsForRange(">=2.0").forEach((specVersion) => {
+			if (type === "component" && SpecificationVersion.lt(specVersion, "5.0")) {
+				// Component type only became available with specVersion 5.0
+				return;
+			}
 			test(`${type} (specVersion ${specVersion}): framework configuration: OpenUI5`, async (t) => {
 				const config = {
 					"specVersion": specVersion,

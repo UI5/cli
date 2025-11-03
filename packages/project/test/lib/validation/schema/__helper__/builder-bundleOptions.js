@@ -5,15 +5,20 @@ import SpecificationVersion from "../../../../../lib/specifications/Specificatio
  */
 export default {
 	/**
-	 * Executes the tests for different kind of projects, e.g. "application", "library"
+	 * Executes the tests for different kind of projects, e.g. "application", "library", "component"
 	 *
 	 * @param {Function} test ava test
 	 * @param {Function} assertValidation assertion function
-	 * @param {string} type one of "application", "library"
+	 * @param {string} type one of "application", "library", "component"
 	 */
 	defineTests: function(test, assertValidation, type) {
 		// Version specific tests
 		SpecificationVersion.getVersionsForRange(">=4.0").forEach(function(specVersion) {
+			if (type === "component" && SpecificationVersion.lt(specVersion, "5.0")) {
+				// Component type only became available with specVersion 5.0
+				return;
+			}
+
 			test(`${type} (specVersion ${specVersion}): builder/bundles/bundleOptions`, async (t) => {
 				await assertValidation(t, {
 					"specVersion": specVersion,
@@ -134,6 +139,9 @@ export default {
 			});
 		});
 
+		if (type === "component") { // Component type only became available with specVersion 5.0
+			return;
+		}
 		SpecificationVersion.getVersionsForRange("3.0 - 3.2").forEach(function(specVersion) {
 			test(`${type} (specVersion ${specVersion}): builder/bundles/bundleOptions`, async (t) => {
 				await assertValidation(t, {
