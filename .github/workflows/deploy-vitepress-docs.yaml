@@ -86,7 +86,8 @@ jobs:
                   # Alias route. E.g., next, latest, stable, etc.
                   # For vitepress must be a copy with different config, not a symlink
                   cp -R ./packages/documentation/dist-${DOC_ALIAS} ./gh-pages/${DOC_ALIAS}/
-                  cp -R ./site/api ./gh-pages/${DOC_ALIAS}/api
+                  # Symlink the api docs to avoid duplication
+                  ln -s ../${DOC_VERSION}/api ./gh-pages/${DOC_ALIAS}/api
 
                   cp ./scripts/resources/custom404.html ./gh-pages/404.html
             - name: Publish Docs
