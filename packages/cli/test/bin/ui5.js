@@ -191,7 +191,7 @@ test.serial("invokeLocalInstallation: Invokes local installation when found (/w 
 		"INFO: This project contains an individual ui5-cli-test installation which " +
 		"will be used over the global one."]);
 	t.deepEqual(processStderrWriteStub.getCall(2).args, [
-		"See https://github.com/SAP/ui5-cli#local-vs-global-installation for details."
+		"See https://ui5.github.io/cli/stable/pages/CLI/#local-vs-global-installation for details."
 	]);
 	t.deepEqual(processStderrWriteStub.getCall(3).args, ["\n\n"]);
 

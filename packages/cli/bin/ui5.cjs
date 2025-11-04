@@ -84,7 +84,7 @@ const ui5 = {
 			process.stderr.write(`INFO: This project contains an individual ${pkg.name} installation which ` +
 			"will be used over the global one.");
 			process.stderr.write("\n");
-			process.stderr.write("See https://github.com/SAP/ui5-cli#local-vs-global-installation for details.");
+			process.stderr.write("See https://ui5.github.io/cli/stable/pages/CLI/#local-vs-global-installation for details.");
 			process.stderr.write("\n\n");
 		} else {
 			process.stdout.write(`INFO: Using local ${pkg.name} installation`);
