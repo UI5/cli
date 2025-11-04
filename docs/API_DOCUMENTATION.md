@@ -10,7 +10,7 @@ The UI5 tooling supports two complementary approaches to API documentation:
 
 ### 1. JSDoc HTML Output (Classic Documentation)
 
-**What it is:** Traditional HTML documentation pages generated using JSDoc with custom UI5 plugins and templates.
+**What it is:** Standard HTML documentation pages generated using JSDoc with custom UI5 plugins and templates.
 
 **When to use:**
 - Quick local documentation browsing
