@@ -4,6 +4,26 @@
 
 	"type": "object",
 	"required": ["specVersion", "type"],
+	"allOf": [
+		{
+			"if": {
+				"required": ["type"],
+				"properties": {
+					"type": {
+						"const": "component"
+					}
+				}
+			},
+			"then": {
+				"properties": {
+					"specVersion": {
+						"const": "5.0",
+						"errorMessage": "The 'component' type is only supported with specVersion '5.0' and higher."
+					}
+				}
+			}
+		}
+	],
 	"properties": {
 		"specVersion": { "enum": ["5.0", "4.0", "3.2", "3.1", "3.0", "2.6", "2.5", "2.4", "2.3", "2.2", "2.1", "2.0"] },
 		"kind": {

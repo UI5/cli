@@ -17,7 +17,7 @@ test.beforeEach((t) => {
 		version: "1.0.0",
 		modulePath: componentAPath,
 		configuration: {
-			specVersion: "3.1",
+			specVersion: "5.0",
 			kind: "project",
 			type: "component",
 			metadata: {name: "component.a"}
@@ -29,7 +29,7 @@ test.beforeEach((t) => {
 		version: "1.0.0",
 		modulePath: componentHPath,
 		configuration: {
-			specVersion: "3.1",
+			specVersion: "5.0",
 			kind: "project",
 			type: "component",
 			metadata: {name: "component.h"},
@@ -405,7 +405,7 @@ test("_configureAndValidatePaths: Custom src directory", async (t) => {
 		version: "1.0.0",
 		modulePath: componentHPath,
 		configuration: {
-			specVersion: "3.1",
+			specVersion: "5.0",
 			kind: "project",
 			type: "component",
 			metadata: {name: "component.h"},
