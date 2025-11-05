@@ -42,7 +42,7 @@
 	},
 	"dependencies": {
 		"@ui5/builder": "^4.1.1",
-		"@ui5/cli": "^4.0.33",
+		"@ui5/cli": "^4.0.34",
 		"@ui5/fs": "^4.0.3",
 		"@ui5/logger": "^4.0.2",
 		"@ui5/project": "^4.0.8",
@@ -53,7 +53,7 @@
 		"@eslint/js": "^9.8.0",
 		"depcheck": "^1.4.7",
 		"docdash": "^2.0.2",
-		"eslint": "^9.39.0",
+		"eslint": "^9.39.1",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
 		"eslint-plugin-jsdoc": "^52.0.4",
