@@ -63,10 +63,11 @@ jobs:
                 # The alias output
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
                 npm run build:assets -- ./dist-${DOC_ALIAS}
-            - name: Build Schema
-              run: |
-                  npm run schema-generate
-                  npm run schema-workspace-generate
+            # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
+            # - name: Build Schema
+            #   run: |
+            #       npm run schema-generate
+            #       npm run schema-workspace-generate
             - name: Checkout gh-pages
               uses: actions/checkout@v4
               with:
@@ -74,8 +75,9 @@ jobs:
                   path: gh-pages
             - name: Copy the additional resources to gh-pages
               run: |
-                  rm -rf ./gh-pages/schema
-                  cp -R ./site/schema ./gh-pages/
+                  # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
+                  # rm -rf ./gh-pages/schema
+                  # cp -R ./site/schema ./gh-pages/
                   rm -rf ./gh-pages/${DOC_VERSION}
                   rm -rf ./gh-pages/${DOC_ALIAS}
 
