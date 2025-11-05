@@ -1,3 +1,5 @@
+![UI5 icon](https://raw.githubusercontent.com/UI5/cli/main/docs/images/UI5_logo_wide.png)
+
 # UI5 CLI API Reference
 
 ## Support

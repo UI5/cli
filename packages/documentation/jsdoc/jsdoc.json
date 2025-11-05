@@ -3,7 +3,7 @@
 		"allowUnknownTags": false
 	},
 	"source": {
-		"include": ["packages/documentation/docs/indexJsdoc.md"],
+		"include": ["packages/documentation/jsdoc/index.md"],
 		"exclude": [
 			"node_modules/@ui5/builder/lib/lbt/utils/JSTokenizer.js",
 			"node_modules/@ui5/builder/lib/processors/jsdoc/lib/ui5/plugin.js",
@@ -14,11 +14,11 @@
 		"excludePattern": "node_modules/@ui5/.*/node_modules/@ui5"
 	},
 	"plugins": [
-		"./jsdoc-plugin.cjs"
+		"packages/documentation/jsdoc/jsdoc-plugin.cjs"
 	],
 	"opts": {
 		"encoding": "utf8",
-		"destination": "site/api/",
+		"destination": "packages/documentation/jsdoc/site/api/",
 		"recurse": true,
 		"verbose": true,
 		"access": "public"
@@ -28,9 +28,9 @@
 		"monospaceLinks": false,
 		"default": {
 			"useLongnameInNav": true,
-			"layoutFile": "lib/jsdoc/plugin/template/layout.tmpl",
+			"layoutFile": "packages/documentation/jsdoc/templates/layout.tmpl",
 			"staticFiles": {
-				"include": ["lib/jsdoc/plugin/template/custom.css"]
+				"include": ["packages/documentation/jsdoc/templates/custom.css"]
 			}
 		}
 	},
