@@ -49,8 +49,8 @@ jobs:
           node-version: 24.x
 
       - name: Install and publish ${{ matrix.package }}
+        working-directory: packages/${{ matrix.package }}
         run: |
-          cd packages/${{ matrix.package }}
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
           
           # TODO: Uncomment when ready to publish
@@ -82,7 +82,7 @@ jobs:
           rm -f npm-shrinkwrap.json
           npm shrinkwrap
           echo "✅ npm-shrinkwrap.json generated"
-      - name: (Dry Run) Publish @ui5/cli
+      - name: Publish @ui5/cli
         working-directory: packages/cli
         run: |
           echo "🚀 Publishing @ui5/cli"
