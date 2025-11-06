@@ -112,7 +112,7 @@
 		"directory": "packages/fs"
 	},
 	"dependencies": {
-		"@ui5/logger": "^5.0.0-0",
+		"@ui5/logger": "5.0.0-0",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^15.0.0",
