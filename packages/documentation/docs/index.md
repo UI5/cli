@@ -22,14 +22,6 @@ An open and modular toolchain to develop state-of-the-art applications based on 
 Read the announcement blog post: **[SAP Community: Goodbye UI5 Tooling - Hello UI5 CLI!](https://community.sap.com/t5/technology-blog-posts-by-sap/goodbye-ui5-tooling-hello-ui5-cli/ba-p/14211769)**
 :::
 
-::: tip New Release
-**UI5 CLI V4 is here 🎉**
-
-Read the announcement blog post: **[SAP Community: UI5 CLI 4.0](https://community.sap.com/t5/technology-blogs-by-sap/ui5-tooling-4-0/ba-p/13769578)**
-
-And checkout the **[Migrate to v4](./updates/migrate-v4.md)** documentation.
-:::
-
 <div style="margin: 2rem 0;">
   <VPButton class="no-decoration" text="🚀 Get Started" href="./pages/GettingStarted.md"/>
 </div>
@@ -57,7 +49,7 @@ Configure your project for use with UI5 CLI.
 ❯ ui5 init
 Wrote ui5.yaml:
 
-specVersion: "4.0"
+specVersion: "5.0"
 metadata:
   name: my-app
 type: application

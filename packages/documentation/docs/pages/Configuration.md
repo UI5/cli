@@ -18,7 +18,7 @@ See the list of [clients](https://github.com/redhat-developer/yaml-language-serv
 ## Example
 
 ```yaml
-specVersion: "4.0"
+specVersion: "5.0"
 type: application|library|theme-library|module
 metadata:
   name: some.project.name
@@ -36,22 +36,22 @@ The type defines the default path mappings and build tasks. See [UI5 Builder: Ty
 :::code-group Example
 
 ```yaml [application]
-specVersion: "4.0"
+specVersion: "5.0"
 type: application
 ```
 
 ```yaml [library]
-specVersion: "4.0"
+specVersion: "5.0"
 type: library
 ```
 
 ```yaml [theme-library]
-specVersion: "4.0"
+specVersion: "5.0"
 type: theme-library
 ```
 
 ```yaml [module]
-specVersion: "4.0"
+specVersion: "5.0"
 type: module
 ```
 
@@ -276,7 +276,7 @@ Projects that use the OpenUI5 framework cannot depend on projects that use the S
 ::: code-group Example
 
 ```yaml [application]
-specVersion: "4.0"
+specVersion: "5.0"
 type: application
 metadata:
   name: my.company.app
@@ -291,7 +291,7 @@ framework:
 ```
 
 ```yaml [library]
-specVersion: "4.0"
+specVersion: "5.0"
 type: library
 metadata:
   name: my.company.library
@@ -646,12 +646,12 @@ The default and configured server ports can always be overwritten with the CLI p
 
 ::: details Example
 ```yaml
-specVersion: "4.0"
+specVersion: "5.0"
 type: application
 metadata:
   name: my.application
 ---
-specVersion: "4.0"
+specVersion: "5.0"
 kind: extension
 type: project-shim
 metadata:
@@ -659,7 +659,7 @@ metadata:
 shims:
   configurations:
     lodash:
-      specVersion: "4.0"
+      specVersion: "5.0"
       type: module
       metadata:
         name: lodash
@@ -752,7 +752,7 @@ A list of bundle definitions. A `bundleDefinition` contains of the following opt
 A project must define a specification version by setting the `specVersion` property. UI5 CLI uses this information to detect whether the currently installed version is compatible to a project's configuration.
 
 ```yaml
-specVersion: "4.0"
+specVersion: "5.0"
 [...]
 ```
 
@@ -771,6 +771,7 @@ Unless otherwise noted in the table below, UI5 CLI modules are backward compatib
 
 Version | UI5 CLI Release
 --- | ---
+**5.0** | v5.0.0+
 **4.0** | v4.0.0+
 **3.2** | v3.8.0+
 **3.1** | v3.5.0+
@@ -785,6 +786,10 @@ Version | UI5 CLI Release
 **1.1** | v1.13.0+
 **1.0** | v1.0.0+
 **0.1** | v0.0.1+
+
+### Specification Version 5.0
+
+Specification Version 5.0 projects are supported by [UI5 CLI](https://github.com/UI5/cli) v5.0.0 and above.
 
 ### Specification Version 4.0
 
