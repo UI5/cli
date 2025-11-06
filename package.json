@@ -31,7 +31,7 @@
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
-		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces",
+		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces",
 		"check-licenses": "licensee --errors-only"
 	},
 	"repository": {
@@ -48,7 +48,6 @@
 		"@commitlint/config-conventional": "^20.0.0",
 		"@eslint/js": "^9.8.0",
 		"depcheck": "^1.4.7",
-		"docdash": "^2.0.2",
 		"eslint": "^9.35.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
