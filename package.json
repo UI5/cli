@@ -23,17 +23,15 @@
 		"npm": ">= 8"
 	},
 	"scripts": {
-		"test": "npm run lint && npm run check-licenses && npm run depcheck && npm run coverage && npm run jsdoc-generate && npm run schema-generate && npm run generate-cli-doc",
+		"test": "npm run lint && npm run check-licenses && npm run depcheck && npm run coverage && npm run schema-generate && npm run generate-cli-doc",
 		"lint": "eslint ./ && npm run lint --workspaces",
 		"lint:commit": "commitlint",
 		"unit": "npm run unit --workspaces",
 		"coverage": "npm run coverage --workspaces",
-		"jsdoc": "npm run jsdoc-generate && open-cli packages/documentation/jsdoc/site/api/index.html",
-		"jsdoc-generate": "jsdoc -c packages/documentation/jsdoc/jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
-		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,docdash,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces",
+		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces",
 		"check-licenses": "licensee --errors-only"
 	},
 	"repository": {
@@ -50,7 +48,6 @@
 		"@commitlint/config-conventional": "^20.0.0",
 		"@eslint/js": "^9.8.0",
 		"depcheck": "^1.4.7",
-		"docdash": "^2.0.2",
 		"eslint": "^9.35.0",
 		"eslint-config-google": "^0.14.0",
 		"eslint-plugin-ava": "^15.1.0",
@@ -58,10 +55,8 @@
 		"globals": "^16.4.0",
 		"handlebars": "^4.7.8",
 		"husky": "^9.1.7",
-		"jsdoc": "^4.0.4",
 		"licensee": "^11.1.1",
 		"local-web-server": "^5.4.0",
-		"open-cli": "^8.0.0",
 		"traverse": "^0.6.11"
 	},
 	"workspaces": [
