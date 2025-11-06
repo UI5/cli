@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/project",
-	"version": "4.0.6",
+	"version": "5.0.0-0",
 	"description": "UI5 CLI - Project",
 	"author": {
 		"name": "SAP SE",
@@ -110,8 +110,8 @@
 	},
 	"dependencies": {
 		"@npmcli/config": "^10.4.0",
-		"@ui5/fs": "^4.0.2",
-		"@ui5/logger": "^4.0.2",
+		"@ui5/fs": "^5.0.0-0",
+		"@ui5/logger": "^5.0.0-0",
 		"ajv": "^6.12.6",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^5.6.2",
@@ -132,7 +132,7 @@
 		"yesno": "^0.4.0"
 	},
 	"peerDependencies": {
-		"@ui5/builder": "^4.0.11"
+		"@ui5/builder": "^5.0.0-0"
 	},
 	"peerDependenciesMeta": {
 		"@ui5/builder": {
