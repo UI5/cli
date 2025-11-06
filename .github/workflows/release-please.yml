@@ -76,11 +76,16 @@ jobs:
           echo "📦 Installing production dependencies for CLI"
           npm ci --omit=dev
       - name: Generate npm-shrinkwrap.json (prod only)
-        working-directory: packages/cli
         run: |
           echo "🔒 Creating npm-shrinkwrap.json without devDependencies"
+          # Create temporary directory outside workspace for shrinkwrap generation
+          mkdir -p /tmp/cli-shrinkwrap
+          cp -r packages/cli/* /tmp/cli-shrinkwrap/
+          cd /tmp/cli-shrinkwrap
           rm -f npm-shrinkwrap.json
           npm shrinkwrap
+          # Copy shrinkwrap back to CLI package
+          cp npm-shrinkwrap.json ${{ github.workspace }}/packages/cli/
           echo "✅ npm-shrinkwrap.json generated"
       - name: Publish @ui5/cli
         working-directory: packages/cli
