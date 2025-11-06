@@ -24,6 +24,9 @@ jobs:
       with:
         node-version: 22.20.0
 
+    - name: DEBUG - Show all files #TODO: remove
+      run: tree
+
     - name: Install dependencies
       run: npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
 
@@ -40,7 +43,7 @@ jobs:
       run: npm run coverage
 
     - name: Generate JSDoc documentation
-      run: npm run jsdoc-generate
+      run: cd packages/documentation && npm run jsdoc-generate
 
     - name: Generate merged JSON schema
       run: npm run schema-generate
