@@ -24,7 +24,7 @@ jobs:
         uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: "${{ secrets.GITHUB_TOKEN }}"
 
   publish-packages:
     runs-on: ubuntu-24.04
@@ -68,17 +68,22 @@ jobs:
         with:
           node-version: 24.x
 
-      - name: Update CLI shrinkwrap and publish
+      
+      - name: Prepare production dependency tree
+        working-directory: packages/cli
         run: |
-          cd packages/cli
-          echo "🔄 Updating npm-shrinkwrap.json for CLI"
-          
+          echo "📦 Installing production dependencies for CLI"
+          npm ci --omit=dev
+      - name: Generate npm-shrinkwrap.json (prod only)
+        working-directory: packages/cli
+        run: |
+          echo "🔒 Creating npm-shrinkwrap.json without devDependencies"
           rm -f npm-shrinkwrap.json
-          npm install --package-lock-only
           npm shrinkwrap
-          
+          echo "✅ npm-shrinkwrap.json generated"
+      - name: (Dry Run) Publish @ui5/cli
+        working-directory: packages/cli
+        run: |
           echo "🚀 Publishing @ui5/cli"
-          
           # TODO: Uncomment when ready to publish
-          # npm ci
           # npm publish --access public
