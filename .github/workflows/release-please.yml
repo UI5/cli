@@ -32,19 +32,46 @@ jobs:
     if: needs.release-please.outputs.releases_created == 'true'
     strategy:
       matrix:
-        package: [logger, fs, builder, server, project, cli]
+        package: [logger, fs, builder, server, project]
     steps:
       - uses: actions/checkout@v5
 
       - name: Node.js LTS
         uses: actions/setup-node@v5
         with:
-         node-version: 24.x
+          node-version: 24.x
 
       - name: Install and publish ${{ matrix.package }}
         run: |
           cd packages/${{ matrix.package }}
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
+          
+          # TODO: Uncomment when ready to publish
+          # npm ci
+          # npm publish --access public
+
+  publish-cli:
+    runs-on: ubuntu-24.04
+    needs: [release-please, publish-packages]
+    if: needs.release-please.outputs.releases_created == 'true'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.x
+
+      - name: Update CLI shrinkwrap and publish
+        run: |
+          cd packages/cli
+          echo "🔄 Updating npm-shrinkwrap.json for CLI"
+          
+          rm -f npm-shrinkwrap.json
+          npm install --package-lock-only
+          npm shrinkwrap
+          
+          echo "🚀 Publishing @ui5/cli"
           
           # TODO: Uncomment when ready to publish
           # npm ci
