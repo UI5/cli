@@ -27,7 +27,7 @@ ui5 add sap.ui.core sap.m sap.ui.table themelib_sap_fiori_3
 
 **Example ui5.yaml of an application**
 ```yaml
-specVersion: "4.0"
+specVersion: "5.0"
 type: application
 metadata:
   name: some.project.name
@@ -43,7 +43,7 @@ framework:
 
 **Example ui5.yaml of a library**
 ```yaml
-specVersion: "4.0"
+specVersion: "5.0"
 type: library
 metadata:
   name: some.library

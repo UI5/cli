@@ -20,7 +20,7 @@ Another custom task called `render-markdown-files` is then executed immediately 
 
 ```yaml
 # In this example configuration, two custom tasks are defined: 'babel' and 'render-markdown-files'.
-specVersion: "4.0"
+specVersion: "5.0"
 type: library
 metadata:
   name: my.library
@@ -41,7 +41,7 @@ You can also connect multiple custom tasks with each other. The order in the con
 
 ```yaml
 # In this example, 'my-custom-task-2' gets executed after 'my-custom-task-1'.
-specVersion: "4.0"
+specVersion: "5.0"
 type: library
 metadata:
   name: my.library
@@ -60,7 +60,7 @@ A custom task extension consists of a `ui5.yaml` and a [task implementation](#ta
 ### Example: ui5.yaml
 
 ```yaml
-specVersion: "4.0"
+specVersion: "5.0"
 kind: extension
 type: task
 metadata:
@@ -80,7 +80,7 @@ The task extension will then be automatically collected and processed during the
 
 ```yaml
 # Project configuration for the above example
-specVersion: "4.0"
+specVersion: "5.0"
 kind: project
 type: library
 metadata:
@@ -94,7 +94,7 @@ builder:
             firstH1IsTitle: true
 ---
 # Task extension as part of your project
-specVersion: "4.0"
+specVersion: "5.0"
 kind: extension
 type: task
 metadata:
