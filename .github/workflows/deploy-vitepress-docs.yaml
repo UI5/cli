@@ -89,7 +89,8 @@ jobs:
                   # Symlink the api docs to avoid duplication
                   ln -s ../${DOC_VERSION}/api ./gh-pages/${DOC_ALIAS}/api
 
-                  cp ./packages/documentation/scripts/resources/custom404.html ./gh-pages/404.html
+                  # TODO: Enable when v5 release is done
+                  # cp ./packages/documentation/scripts/resources/custom404.html ./gh-pages/404.html
             - name: Publish Docs
               run: |
                   cd ./gh-pages
