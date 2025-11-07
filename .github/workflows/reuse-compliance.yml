@@ -43,11 +43,10 @@ jobs:
         args: --root ${{ matrix.package }} lint
 
   final-report:
+    name: Compliance Check
     needs: [root-compliance-check, packages-compliance-check]
     runs-on: ubuntu-24.04
     steps:
-    - name: Compliance Check
+    - name: Report
       run: |
-        echo "📊 Final Report:"
-        echo "   Root workspace compliance: ${{ needs.root-compliance-check.outputs.status }}"
-        echo "   Packages compliance: ${{ needs.packages-compliance-check.outputs.status }}"
+        echo "📊 Final Report: OK"
