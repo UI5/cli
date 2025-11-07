@@ -42,7 +42,7 @@ jobs:
     - name: Generate JSDoc documentation
       working-directory: packages/documentation
       run: |
-        npm ci
+        npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
         npm run jsdoc-generate
 
     - name: Generate merged JSON schema
