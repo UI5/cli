@@ -15,7 +15,20 @@ jobs:
   compliance-check:
     name: Compliance Check
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - "."
+          - "packages/builder"
+          - "packages/cli"
+          - "packages/documentation"
+          - "packages/fs"
+          - "packages/logger"
+          - "packages/project"
+          - "packages/server"
     steps:
     - uses: actions/checkout@v5
-    - name: Execute REUSE Compliance Check
+    - name: Execute REUSE Compliance Check for ${{ matrix.package }}
       uses: fsfe/reuse-action@v6
+      with:
+        args: --root ${{ matrix.package }} lint

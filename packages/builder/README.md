@@ -4,7 +4,7 @@
 > Modules for building UI5 projects  
 > Part of the [UI5 CLI](https://github.com/UI5/cli)
 
-[![REUSE status](https://api.reuse.software/badge/github.com/SAP/ui5-builder)](https://api.reuse.software/info/github.com/SAP/ui5-builder)
+[![REUSE status](https://api.reuse.software/badge/github.com/UI5/cli)](https://api.reuse.software/info/github.com/UI5/cli)
 [![npm Package Version](https://badge.fury.io/js/%40ui5%2Fbuilder.svg)](https://www.npmjs.com/package/@ui5/builder)
 [![Coverage Status](https://coveralls.io/repos/github/SAP/ui5-builder/badge.svg)](https://coveralls.io/github/SAP/ui5-builder)
 
