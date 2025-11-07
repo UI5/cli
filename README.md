@@ -53,4 +53,4 @@ Please check our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/
 Please follow our [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md#report-an-issue) on how to report an issue. Or chat with us in the [`#tooling`](https://openui5.slack.com/archives/C0A7QFN6B) channel of the [OpenUI5 Community Slack](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com). For public Q&A, use the [`ui5-tooling` tag on Stack Overflow](https://stackoverflow.com/questions/tagged/ui5-tooling).
 
 ## Kudos
-Thanks goes out for the amazing [UI5 VitePress](https://github.com/hschaefer123/ui5-vitepress) project offered by [Holger Schäfer](https://github.com/hschaefer123) on which the UI5 CLI documentation is based.
+Thanks go out to [Holger Schäfer](https://github.com/hschaefer123) for the amazing [UI5 VitePress](https://github.com/hschaefer123/ui5-vitepress) project, which serves as the foundation for the UI5 CLI documentation.
