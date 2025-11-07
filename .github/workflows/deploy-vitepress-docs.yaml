@@ -54,19 +54,18 @@ jobs:
             - name: generate CLI doc
               working-directory: packages/documentation
               run: npm run generate-cli-doc
-            - name: Build jsdoc
-              working-directory: packages/documentation
-              run: npm run jsdoc-generate
             - name: Build vitepress build
               working-directory: packages/documentation
               run: |
-                cd packages/documentation
                 # The base output
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_VERSION}/"
                 npm run build:assets -- ./dist
                 # The alias output
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
                 npm run build:assets -- ./dist-${DOC_ALIAS}
+            - name: Build jsdoc
+              working-directory: packages/documentation
+              run: npm run jsdoc-generate
             # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
             # - name: Build Schema
             #   run: |
@@ -87,7 +86,6 @@ jobs:
 
                   # Main version route
                   cp -R ./packages/documentation/dist ./gh-pages/${DOC_VERSION}/
-                  cp -R ./site/api ./gh-pages/${DOC_VERSION}/api
 
                   # Alias route. E.g., next, latest, stable, etc.
                   # For vitepress must be a copy with different config, not a symlink
@@ -95,7 +93,7 @@ jobs:
                   # Symlink the api docs to avoid duplication
                   ln -s ../${DOC_VERSION}/api ./gh-pages/${DOC_ALIAS}/api
 
-                  cp ./scripts/resources/custom404.html ./gh-pages/404.html
+                  cp ./packages/documentation/scripts/resources/custom404.html ./gh-pages/404.html
             - name: Publish Docs
               run: |
                   cd ./gh-pages
