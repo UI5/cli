@@ -14,11 +14,10 @@ permissions: {}
 jobs:
   compliance-check:
     name: Compliance Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         package:
-          - "."
           - "packages/builder"
           - "packages/cli"
           - "packages/documentation"
@@ -28,6 +27,15 @@ jobs:
           - "packages/server"
     steps:
     - uses: actions/checkout@v5
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 22.20.0
+        
+    - name: Execute REUSE Compliance Check for root package only
+      run: ./scripts/check-root-reuse-compliance.sh
+
     - name: Execute REUSE Compliance Check for ${{ matrix.package }}
       uses: fsfe/reuse-action@v6
       with:
