@@ -21,6 +21,7 @@ jobs:
       run: ./scripts/check-root-reuse-compliance.sh
 
   packages-compliance-check:
+    needs: root-compliance-check
     name: Packages Compliance Check
     runs-on: ubuntu-24.04
     strategy:
@@ -40,3 +41,13 @@ jobs:
       uses: fsfe/reuse-action@v6
       with:
         args: --root ${{ matrix.package }} lint
+
+  final-report:
+    needs: [root-compliance-check, packages-compliance-check]
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Compliance Check
+      run: |
+        echo "📊 Final Report:"
+        echo "   Root workspace compliance: ${{ needs.root-compliance-check.outputs.status }}"
+        echo "   Packages compliance: ${{ needs.packages-compliance-check.outputs.status }}"
