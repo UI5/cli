@@ -50,6 +50,7 @@
 		"@ui5/server": "^4.0.7",
 		"docdash": "^2.0.2",
 		"jsdoc": "^4.0.4",
-		"open-cli": "^8.0.0"
+		"open-cli": "^8.0.0",
+		"handlebars": "^4.7.8"
 	}
 }
