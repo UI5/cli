@@ -16,7 +16,7 @@ FAILED_FILES=0
 
 # Function to check a single file
 check_file() {
-    if npx reuse lint-file "$1" >/dev/null 2>&1; then
+    if pipx run reuse lint-file "$1" 2>&1; then
         return 0
     else
         FAILED_FILES=$((FAILED_FILES + 1))
