@@ -3,7 +3,7 @@ import {readFileSync, writeFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import Handlebars from "handlebars";
 
-const source = readFileSync(fileURLToPath(new URL("../scripts/resources/CLI.template.md", import.meta.url)), "utf8");
+const source = readFileSync(fileURLToPath(new URL("./resources/CLI.template.md", import.meta.url)), "utf8");
 const template = Handlebars.compile(source);
 
 
@@ -189,7 +189,7 @@ function generateDoc() {
 		.replace(/(?<!\()(https?:\/\/[^\s)]+)(?!\))/g, "`$1`");
 	content = content.split("&#x3D;").join("=");
 	try {
-		writeFileSync("./packages/documentation/docs/pages/CLI.md", content);
+		writeFileSync("./docs/pages/CLI.md", content);
 	} catch (err) {
 		console.error(`Failed to generate docs/pages/CLI.md: ${err.message}.`);
 		throw err;
