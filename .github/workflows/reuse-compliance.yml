@@ -17,12 +17,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v5
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v6
-      with:
-        node-version: 22.20.0
-        
     - name: Execute REUSE Compliance Check for root workspace only
       run: ./scripts/check-root-reuse-compliance.sh
 
