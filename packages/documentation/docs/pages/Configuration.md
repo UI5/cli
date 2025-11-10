@@ -309,7 +309,7 @@ framework:
       optional: true
 ```
 
-    When building an application depending on this library as well as one of the theme libraries, only that theme is built for this library.
+When building an application depending on this library as well as one of the theme libraries, only that theme is built for this library.
 
 :::
 
