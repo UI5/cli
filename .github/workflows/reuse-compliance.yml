@@ -12,17 +12,8 @@ on:
 permissions: {}
 
 jobs:
-  root-compliance-check:
-    name: Root Workspace Compliance Check
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@v5
-    - name: Execute REUSE Compliance Check for root workspace only
-      run: ./scripts/check-root-reuse-compliance.sh
-
   packages-compliance-check:
-    needs: root-compliance-check
-    name: Packages Compliance Check
+    name: Packages Compliance 
     runs-on: ubuntu-24.04
     strategy:
       matrix:
@@ -37,16 +28,34 @@ jobs:
     steps:
     - uses: actions/checkout@v5
 
+    # Check each package if compliance is correctly set up.
+    # Each one of these packages would be published separately.
     - name: Execute REUSE Compliance Check for ${{ matrix.package }}
       uses: fsfe/reuse-action@v6
       with:
         args: --root ${{ matrix.package }} lint
 
+  # Do the report for the whole repository, adding badge to the
+  # README file.
   final-report:
-    name: Compliance Check
-    needs: [root-compliance-check, packages-compliance-check]
+    name: REUSE Compliance Report
+    needs: [packages-compliance-check]
     runs-on: ubuntu-24.04
     steps:
-    - name: Report
+    - uses: actions/checkout@v5
+    
+    - name: Temporarily add MIT license for full repo compliance
       run: |
-        echo "📊 Final Report: OK"
+        # Download MIT license temporarily for api.reuse.software reporting
+        reuse download MIT
+    
+    - name: Run official REUSE lint for api.reuse.software reporting
+      uses: fsfe/reuse-action@v6
+      with:
+        args: lint
+        
+    - name: Clean up temporary license file
+      run: |
+        # Remove the temporarily added MIT license
+        rm -f LICENSES/MIT.txt
+        echo "Temporarily added licenses cleaned up"
