@@ -7,6 +7,7 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/UI5/cli)](https://api.reuse.software/info/github.com/UI5/cli)
 [![OpenUI5 Community Slack (#tooling channel)](https://img.shields.io/badge/slack-join-44cc11.svg)](https://ui5-slack-invite.cfapps.eu10.hana.ondemand.com)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+[![Coverage Status](https://coveralls.io/repos/github/UI5/cli/badge.svg)](https://coveralls.io/github/UI5/cli)
 
 This repository contains the current **development state** of the upcoming UI5 CLI v5 release.  
 Note that previous versions (up to v4) are maintained in [dedicated repositories](https://github.com/UI5/cli/tree/v4?tab=readme-ov-file#modules).

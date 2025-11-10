@@ -37,7 +37,7 @@ jobs:
       run: npm run depcheck
 
     - name: Run unit tests
-      run: npm run coverage
+      run: npm run unit
 
     - name: Generate JSDoc documentation
       working-directory: packages/documentation
