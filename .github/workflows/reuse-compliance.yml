@@ -47,7 +47,7 @@ jobs:
     - name: Temporarily add MIT license for full repo compliance
       run: |
         # Download MIT license temporarily for api.reuse.software reporting
-        reuse download MIT
+        pipx run reuse download MIT
     
     - name: REUSE check for full repository
       uses: fsfe/reuse-action@v6
