@@ -38,7 +38,7 @@ jobs:
   # Do the report for the whole repository, adding badge to the
   # README file.
   final-report:
-    name: REUSE Compliance Report
+    name: Compliance Check
     needs: [packages-compliance-check]
     runs-on: ubuntu-24.04
     steps:
@@ -49,7 +49,7 @@ jobs:
         # Download MIT license temporarily for api.reuse.software reporting
         reuse download MIT
     
-    - name: Run official REUSE lint for api.reuse.software reporting
+    - name: REUSE check for full repository
       uses: fsfe/reuse-action@v6
       with:
         args: lint
