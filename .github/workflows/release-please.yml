@@ -69,23 +69,24 @@ jobs:
         with:
           node-version: 24.x
 
-      - name: Generate npm-shrinkwrap.json (isolated staging)
-        run: |
-          set -e
-          echo "📦 Isolating @ui5/cli for shrinkwrap"
-          npm ci --omit=dev
-          STAGE=cli-publish
-          rm -rf "$STAGE" && mkdir "$STAGE"
-          echo "↪️ Copying CLI sources"
-          rsync -a --exclude 'node_modules' packages/cli/ "$STAGE"/
-          echo "↪️ Copying resolved production dependencies"
-          rsync -a node_modules/ "$STAGE"/node_modules/
-          echo "🧹 Pruning extraneous modules inside staging"
-          (cd "$STAGE" && npm prune --production)
-          echo "🔒 Running npm shrinkwrap in isolated directory (post-prune)"
-          (cd "$STAGE" && npm shrinkwrap)
-          mv "$STAGE"/npm-shrinkwrap.json packages/cli/
-          echo "✅ npm-shrinkwrap.json placed into packages/cli"
+      # TODO: Still undecided whether we want to generate shrinkwrap again for the CLI package
+      # - name: Generate npm-shrinkwrap.json (isolated staging)
+      #   run: |
+      #     set -e
+      #     echo "📦 Isolating @ui5/cli for shrinkwrap"
+      #     npm ci --omit=dev
+      #     STAGE=cli-publish
+      #     rm -rf "$STAGE" && mkdir "$STAGE"
+      #     echo "↪️ Copying CLI sources"
+      #     rsync -a --exclude 'node_modules' packages/cli/ "$STAGE"/
+      #     echo "↪️ Copying resolved production dependencies"
+      #     rsync -a node_modules/ "$STAGE"/node_modules/
+      #     echo "🧹 Pruning extraneous modules inside staging"
+      #     (cd "$STAGE" && npm prune --production)
+      #     echo "🔒 Running npm shrinkwrap in isolated directory (post-prune)"
+      #     (cd "$STAGE" && npm shrinkwrap)
+      #     mv "$STAGE"/npm-shrinkwrap.json packages/cli/
+      #     echo "✅ npm-shrinkwrap.json placed into packages/cli"
 
       - name: Publish @ui5/cli
         working-directory: packages/cli
