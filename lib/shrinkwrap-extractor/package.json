@@ -1,0 +1,32 @@
+{
+  "name": "shrinkwrap-extractor",
+  "version": "1.0.0",
+  "description": "Convert npm package-lock.json files to npm-shrinkwrap.json format for specific packages in monorepos",
+  "main": "lib/convertPackageLockToShrinkwrap.js",
+  "bin": {
+    "shrinkwrap-extractor": "./cli.js"
+  },
+  "scripts": {
+    "test": "npm run lint && npm run unit",
+    "unit": "node --test test/lib/convertToShrinkwrap.js",
+    "unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "npm",
+    "shrinkwrap",
+    "package-lock",
+    "monorepo",
+    "dependencies"
+  ],
+  "type": "module",
+  "dependencies": {
+    "@npmcli/arborist": "^9.1.6",
+    "pacote": "^21.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint-config-google": "^0.14.0",
+    "globals": "^16.5.0"
+  }
+}
