@@ -11,8 +11,23 @@ Types define how a project can be configured and how it is built. A type orchest
 
 Also see [UI5 Project: Configuration](./Configuration.md#general-configuration)
 
+### component
+*Available since [Specification Version 5.0](./Configuration.md#specification-version-50)*
+
+Projects of type `component` are your typical component-like UI5 applications. These will usually run in container-like root application, such as the Fiori Launchpad (FLP) Sandbox, along with other UI5 applications.
+
+In order to allow multiple component projects to coexist in the same environment, the projects are served under their namespace. For example: `/resources/my/bookstore/admin`. Opposing to `application`-type projects which act as root projects and are therefore served without a namespace, at `/`.
+
+By default, component projects use the same directory structure as library projects. This means there are `src` and `test` directories in the root. The integrated server will use both directories, however when building the project, the `test` directory will be ignored since it should not be deployed to production environments. Both directories may contain a flat-, _or_ a namespace structure. In case of a flat structure, the project namespace will be derived from the `"sap.app".id` property in the `manifest.json`.
+
+A component project must contain both, a `Component.js` and a `manifest.json` file.
+
+Unlike `application`-type projects, component projects usually do not have dedicated `index.html` files in their regular resources (`src/`). They can still be run standalone though. For instance via a dedicated HTML file located in their test-resources, or by declaring a development-dependency to an application-type project which is capable of serving the component (such as the FLP Sandbox).
+
+Component projects supports all [output-styles](./CLI.md#ui5-build) that are currently supported by library projects, allowing a deployment where the namespace may be omitted from the final directory structure (output-style `flat`).
+
 ### application
-Projects of type `application` are typically the main or root project. In a projects dependency tree, there should only be one project of type `application`. If multiple are found, those further away from the root are ignored.
+Projects of type `application` are typically the main or root project. In a projects dependency tree, there should only be one project of type `application`. If additional ones are found, those further away from the root are ignored.
 
 The source directory of an application (typically named `webapp`) is mapped to the virtual root path `/`.
 
@@ -26,7 +41,7 @@ A project of type `library` must have a source directory (typically named `src`)
 These directories should contain a directory structure representing the namespace of the library (e.g. `src/my/first/library`) to prevent name clashes between the resources of different libraries.
 
 ### theme-library
-*Available since [Specification Version](./Configuration.md#specification-versions) 1.1*
+*Available since [Specification Version 1.1](./Configuration.md#specification-version-11)*
 
 UI5 theme libraries provide theming resources for the controls of one or multiple libraries.
 
@@ -50,6 +65,10 @@ In the table below you can find the available combinations of project type & out
 | `Default` | Root project is written `Flat`-style. ^1^ |
 | `Flat` | Same as `Default`. |
 | `Namespace` | Root project is written `Namespace`-style (resources are prefixed with the project's namespace). ^1^ |
+| **component** | |
+| `Default` | Root project is written `Namespace`-style. ^1^ |
+| `Flat` | Root project is written `Flat`-style (without its namespace, logging warnings for resources outside of it). ^1^ |
+| `Namespace` | Same as `Default`. |
 | **library** | |
 | `Default` | Root project is written `Namespace`-style. ^1^ |
 | `Flat` | Root project is written `Flat`-style (without its namespace, logging warnings for resources outside of it). ^1^ |
