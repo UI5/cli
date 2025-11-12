@@ -1,26 +1,26 @@
 - Start Date: 2025-07-15
-- RFC PR: [#1083](https://github.com/SAP/ui5-tooling/pull/1083)
-- Issue: [#45](https://github.com/SAP/ui5-tooling/issues/45)
+- RFC PR: [#1083](https://github.com/UI5/cli/pull/1083)
+- Issue: [#45](https://github.com/UI5/cli/issues/45)
 - Affected components
-    + [ ] [ui5-builder](https://github.com/SAP/ui5-builder)
-    + [ ] [ui5-server](https://github.com/SAP/ui5-server)
-    + [ ] [ui5-cli](https://github.com/SAP/ui5-cli)
-    + [ ] [ui5-fs](https://github.com/SAP/ui5-fs)
-    + [x] [ui5-project](https://github.com/SAP/ui5-project)
-    + [ ] [ui5-logger](https://github.com/SAP/ui5-logger)
+    + [ ] [ui5-builder](./packages/builder)
+    + [ ] [ui5-server](./packages/server)
+    + [ ] [ui5-cli](./packages/cli)
+    + [ ] [ui5-fs](./packages/fs)
+    + [x] [ui5-project](./packages/project)
+    + [ ] [ui5-logger](./packages/logger)
 
 
 # RFC 0018 Component Type
 
 ## Summary
 
-The "component" type feature aims to introduce a new project type within the UI5 Tooling ecosystem to support the development of UI5 component-like applications intended to run in container apps such as the Fiori Launchpad (FLP) Sandbox or testsuite environments.
+The "component" type feature aims to introduce a new project type within the UI5 CLI ecosystem to support the development of UI5 component-like applications intended to run in container apps such as the Fiori Launchpad (FLP) Sandbox or testsuite environments.
 
 This feature will allow developers to serve and build multiple UI5 application components concurrently, enhancing the local development environment for integration scenarios.
 
 ## Motivation
 
-Currently, the UI5 Tooling requires a project's dependency tree to contain either zero or exactly one project of type "application" which also must be the root project. This limitation restricts the ability to serve or build multiple component-like applications simultaneously, which is a common requirement in UI5 development, especially in cases where cross-application integration is required.
+Currently, the UI5 CLI requires a project's dependency tree to contain either zero or exactly one project of type "application" which also must be the root project. This limitation restricts the ability to serve or build multiple component-like applications simultaneously, which is a common requirement in UI5 development, especially in cases where cross-application integration is required.
 
 The introduction of a dedicated "component" type will facilitate local development and testing of these multi-component applications by clearly distinguishing them from the root application.
 
@@ -49,7 +49,7 @@ The new component type shall be released together with a new [Specification Vers
 
 ## How we teach this
 
-The introduction of the "component" type requires updates to the UI5 Tooling documentation. Specific focus should be given on illustrating the distinctions between "application" and "component" types and guiding users on selecting the appropriate type for different development scenarios.
+The introduction of the "component" type requires updates to the UI5 CLI documentation. Specific focus should be given on illustrating the distinctions between "application" and "component" types and guiding users on selecting the appropriate type for different development scenarios.
 
 Dedicated guides should be offered to help users adopt the new component type, especially in existing projects where component-libraries, proxy setups or similar workarounds are currently being used.
 
@@ -59,7 +59,7 @@ Potential drawbacks include increased complexity for developers to distinguish b
 
 ## Alternatives
 
-Alternatives considered include enhancing the "application" type to support serving multiple applications simultaneously, or introducing generic "shell" functionality in UI5 Tooling, negating the need for a new "component" type. By choosing not to go forward with these alternatives, and instead introducing the proposed "component" type, UI5 Tooling will stay consistent with the current concept of application-type projects acting as the single point of entry and introduce a new type that is consistent with the expectations of a UI5 application component. This should make it easy to understand the purpose and usage of each project type and reduce complexity in the configurations of projects.
+Alternatives considered include enhancing the "application" type to support serving multiple applications simultaneously, or introducing generic "shell" functionality in UI5 CLI, negating the need for a new "component" type. By choosing not to go forward with these alternatives, and instead introducing the proposed "component" type, UI5 CLI will stay consistent with the current concept of application-type projects acting as the single point of entry and introduce a new type that is consistent with the expectations of a UI5 application component. This should make it easy to understand the purpose and usage of each project type and reduce complexity in the configurations of projects.
 
 ## Unresolved Questions and Bikeshedding
 
