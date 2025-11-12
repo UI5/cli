@@ -1,0 +1,66 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    outputs:
+      package_released: ${{ steps.detect_package.outputs.is_release }}
+      package_name: ${{ steps.detect_package.outputs.package_name }}
+      package_version: ${{ steps.detect_package.outputs.package_version }}
+      package_path: ${{ steps.detect_package.outputs.package_path }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+         node-version: 24.x
+
+      - name: Run Release Please to update PRs and create releases
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - name: Detect which package was released
+        id: detect_package
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          if [[ "$COMMIT_MSG" =~ ^release:\ @ui5/\ ([a-z-]+)\ v([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            echo "package_name=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            echo "package_version=${BASH_REMATCH[2]}" >> $GITHUB_OUTPUT
+            echo "package_path=packages/${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+
+  publish-package:
+    runs-on: ubuntu-24.04
+    needs: release-please
+    if: needs.release-please.outputs.package_released == 'true'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+         node-version: 24.x
+
+      - name: Install and publish package
+        run: |
+          cd "${{ needs.release-please.outputs.package_path }}"
+          echo "🚀 Publishing ${{ needs.release-please.outputs.package_name }}@${{ needs.release-please.outputs.package_version }}"
+          
+          # TODO: Uncomment when ready to publish
+          # npm ci
+          # npm publish --access public
