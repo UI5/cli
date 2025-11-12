@@ -14,7 +14,7 @@ Also see [UI5 Project: Configuration](./Configuration.md#general-configuration)
 ### component
 *Available since [Specification Version 5.0](./Configuration.md#specification-version-50)*
 
-> **Note:** The term `component` as used in the UI5 CLI project type differs from the `type` property in the `manifest.json` file at runtime. In most cases, a CLI project of type `component` is still a runtime "application". For details on the `type` property in `manifest.json`, refer to the [manifest documentation](https://ui5.sap.com/#/topic/be0cf40f61184b358b5faedaec98b2da.html#loiobe0cf40f61184b358b5faedaec98b2da/section_sap_app).
+> **Note:** The term `component` as used in the UI5 CLI project type differs from the `sap.app/type` property in the `manifest.json` file at runtime. In most cases, a CLI project of type `component` is still a runtime "application". For details on the `sap.app/type` property in `manifest.json`, refer to the [manifest documentation](https://ui5.sap.com/#/topic/be0cf40f61184b358b5faedaec98b2da.html#loiobe0cf40f61184b358b5faedaec98b2da/section_sap_app).
 
 Projects of the `component` type are typical component-like UI5 applications. They usually run in a container-like root application, such as the SAP Fiori launchpad (FLP) sandbox, alongside other UI5 applications.
 
@@ -29,7 +29,7 @@ Unlike `application`-type projects, component projects typically don't have dedi
 Component projects support all [output styles](./CLI.md#ui5-build) that library projects currently support. This allows a deployment where you can omit the namespace from the final directory structure using the output style: `flat`.
 
 ### application
-Projects of the type `application` typically serve as the main or root project. In a project's dependency tree, there should be only one project of this type. If the system detects additional application projects, it ignores those that are further away from the root.
+Projects of the `application` type typically serve as the main or root project. In a project's dependency tree, there should be only one project of this type. If the system detects additional application projects, it ignores those that are further away from the root.
 
 The source directory of an application (typically named `webapp`) is mapped to the virtual root path `/`.
 
@@ -38,7 +38,7 @@ An applications source directory may or may not contain a `Component.js` file. I
 ### library
 UI5 libraries are often referred to as reuse-, custom- or [control libraries](https://github.com/SAP/openui5/blob/-/docs/controllibraries.md). They are a key component in sharing code across multiple projects in UI5.
 
-A project of type `library` must have a source directory (typically named `src`). It may also feature a "test" directory. These directories are mapped to the virtual directories `/resources` for the sources and `/test-resources` for the test resources.
+A project of the `library` type must have a source directory (typically named `src`). It may also feature a "test" directory. These directories are mapped to the virtual directories `/resources` for the sources and `/test-resources` for the test resources.
 
 These directories should contain a directory structure representing the namespace of the library (e.g. `src/my/first/library`) to prevent name clashes between the resources of different libraries.
 
