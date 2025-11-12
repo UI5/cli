@@ -3,7 +3,7 @@
 A projects UI5 CLI configuration is typically located in a [YAML](https://yaml.org/) file named `ui5.yaml`, located in the root directory.
 
 ::: info Info
-This document describes the configuration of UI5 CLI-based projects and extensions. It represents **[Specification Version 3.0](#specification-versions)**.
+This document describes the configuration of UI5 CLI-based projects and extensions. It represents **[Specification Version 5.0](#specification-versions)**.
 
 :::
 
