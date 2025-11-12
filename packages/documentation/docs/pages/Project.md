@@ -14,20 +14,20 @@ Also see [UI5 Project: Configuration](./Configuration.md#general-configuration)
 ### component
 *Available since [Specification Version 5.0](./Configuration.md#specification-version-50)*
 
-Projects of type `component` are your typical component-like UI5 applications. These will usually run in container-like root application, such as the Fiori Launchpad (FLP) Sandbox, along with other UI5 applications.
+Projects of the `component` type are typical component-like UI5 applications. They usually run in a container-like root application, such as the SAP Fiori launchpad (FLP) sandbox, alongside other UI5 applications.
 
-In order to allow multiple component projects to coexist in the same environment, the projects are served under their namespace. For example: `/resources/my/bookstore/admin`. Opposing to `application`-type projects which act as root projects and are therefore served without a namespace, at `/`.
+To allow multiple component projects to coexist in the same environment, each project is served under its own namespace, for example `/resources/my/bookstore/admin`. In contrast, `application`-type projects act as root projects and are served at `/`, without a namespace.
 
-By default, component projects use the same directory structure as library projects. This means there are `src` and `test` directories in the root. The integrated server will use both directories, however when building the project, the `test` directory will be ignored since it should not be deployed to production environments. Both directories may contain a flat-, _or_ a namespace structure. In case of a flat structure, the project namespace will be derived from the `"sap.app".id` property in the `manifest.json`.
+By default, component projects use the same directory structure as library projects: they include `src` and `test` directories in the root. The integrated server uses both directories. However, when you build the project, the `test` directory is ignored because it shouldn't be deployed to production environments. Both directories can have either a flat or a namespace structure. If you use a flat structure, the project namespace derives from the `"sap.app".id` property in the `manifest.json`.
 
 A component project must contain both, a `Component.js` and a `manifest.json` file.
 
-Unlike `application`-type projects, component projects usually do not have dedicated `index.html` files in their regular resources (`src/`). They can still be run standalone though. For instance via a dedicated HTML file located in their test-resources, or by declaring a development-dependency to an application-type project which is capable of serving the component (such as the FLP Sandbox).
+Unlike `application`-type projects, component projects typically don't have dedicated `index.html` files in their regular resources (`src/`). However, you can still run them standalone. You can do this by using a dedicated HTML file located in their test resources or by declaring a development dependency to an application-type project that can serve the component, such as the FLP sandbox.
 
-Component projects supports all [output-styles](./CLI.md#ui5-build) that are currently supported by library projects, allowing a deployment where the namespace may be omitted from the final directory structure (output-style `flat`).
+Component projects support all [output styles](./CLI.md#ui5-build) that library projects currently support. This allows a deployment where you can omit the namespace from the final directory structure using the output style: `flat`.
 
 ### application
-Projects of type `application` are typically the main or root project. In a projects dependency tree, there should only be one project of type `application`. If additional ones are found, those further away from the root are ignored.
+Projects of the type `application` typically serve as the main or root project. In a project's dependency tree, there should be only one project of this type. If the system detects additional application projects, it ignores those that are further away from the root.
 
 The source directory of an application (typically named `webapp`) is mapped to the virtual root path `/`.
 
