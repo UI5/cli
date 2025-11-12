@@ -14,6 +14,8 @@ Also see [UI5 Project: Configuration](./Configuration.md#general-configuration)
 ### component
 *Available since [Specification Version 5.0](./Configuration.md#specification-version-50)*
 
+> **Note:** The term `component` as used in the UI5 CLI project type differs from the `type` property in the `manifest.json` file at runtime. In most cases, a CLI project of type `component` is still a runtime "application". For details on the `type` property in `manifest.json`, refer to the [manifest documentation](https://ui5.sap.com/#/topic/be0cf40f61184b358b5faedaec98b2da.html#loiobe0cf40f61184b358b5faedaec98b2da/section_sap_app).
+
 Projects of the `component` type are typical component-like UI5 applications. They usually run in a container-like root application, such as the SAP Fiori launchpad (FLP) sandbox, alongside other UI5 applications.
 
 To allow multiple component projects to coexist in the same environment, each project is served under its own namespace, for example `/resources/my/bookstore/admin`. In contrast, `application`-type projects act as root projects and are served at `/`, without a namespace.
