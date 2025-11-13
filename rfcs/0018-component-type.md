@@ -32,6 +32,14 @@ The new "component" type will borrow characteristics from both, the existing "ap
 
 The above diagram illustrates a common scenario where multiple UI5 components are developed and tested concurrently. Each component is represented as a separate project with its own namespace, allowing them to coexist without conflicts. The "component" type will enable these projects to be served and built independently while still being able to reference each other, for example for the purpose of navigating between them.
 
+Projects of the `component` type cover a range of use cases beyond typical standalone UI5 applications:
+
+- **Application components:** These are typical UI5 applications, designed to run in container-like application such as the SAP Fiori launchpad (FLP). These generally inherit from `sap.ui.core.UIComponent` (or a subclass) and define the `manifest.json` property `sap.app/type: application`.
+- **Reusable UI components:** Provide UI elements or features that can be embedded in different contexts. These typically inherit from `sap.ui.core.UIComponent` and define the `manifest.json` property `sap.app/type: component`.
+- **Faceless components:** Provide functionality without a user interface. These are defined with `manifest.json` property `sap.app/type: component` and inherit from `sap.ui.core.Component` (not `UIComponent`).
+
+See the [components documentation](https://ui5.sap.com/#/topic/958ead51e2e94ab8bcdc90fb7e9d53d0) for more details.
+
 ### Key design aspects include:
 
 * **Serving Path:** Unlike ["application" projects](https://sap.github.io/ui5-tooling/stable/pages/Project/#application) served at the root path "/", "component" projects will be served under their namespace, for example, "/resources/my/bookstore/admin". This enables multiple component projects to coexist alongside a single root application (like in the FLP).
