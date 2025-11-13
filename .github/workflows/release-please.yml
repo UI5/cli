@@ -54,7 +54,7 @@ jobs:
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
           
           # TODO: Uncomment when ready to publish
-          # npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
+          # npm ci
           # npm publish --access public
 
   publish-cli:
@@ -73,11 +73,11 @@ jobs:
         run: |
           set -e
           # Install dependencies
-          npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
+          npm ci
 
           # Build the extractor
           cd ./packages/shrinkwrap-extractor
-          npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
+          npm ci
 
           # Generate npm-shrinkwrap.json
           cd ../cli
