@@ -56,4 +56,4 @@ jobs:
       working-directory: packages/shrinkwrap-extractor
       run: |
         npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
-        npm run unit # The lint is done generally for the whole repo, so only unit tests are needed here
+        npm run test
