@@ -17,7 +17,7 @@
 			"then": {
 				"properties": {
 					"specVersion": {
-						"const": "5.0",
+						"enum": ["5.0"],
 						"errorMessage": "The 'component' type is only supported with specVersion '5.0' and higher."
 					}
 				}

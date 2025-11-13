@@ -117,12 +117,12 @@ test("Type component, legacy specVersion", async (t) => {
 		params: {
 			errors: [{
 				dataPath: "/specVersion",
-				keyword: "const",
-				message: "should be equal to constant",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
 				params: {
-					allowedValue: "5.0",
+					allowedValues: ["5.0"],
 				},
-				schemaPath: "#/allOf/0/then/properties/specVersion/const",
+				schemaPath: "#/allOf/0/then/properties/specVersion/enum",
 			}],
 		}
 	}]);
