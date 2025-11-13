@@ -63,7 +63,7 @@ site/
 !packages/**/test/fixtures/**/node_modules
 
 # Documentation
-packages/documentation/docs/pages/CLI.md
-packages/documentation/.vitepress/dist
-packages/documentation/.vitepress/cache
-packages/documentation/dist
+internal/documentation/docs/pages/CLI.md
+internal/documentation/.vitepress/dist
+internal/documentation/.vitepress/cache
+internal/documentation/dist

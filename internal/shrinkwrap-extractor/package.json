@@ -1,17 +1,29 @@
 {
-	"name": "shrinkwrap-extractor",
+	"name": "@ui5/shrinkwrap-extractor",
 	"version": "1.0.0",
 	"private": true,
 	"description": "Convert npm package-lock.json files to npm-shrinkwrap.json format for specific packages in monorepos",
+	"author": {
+		"name": "SAP SE",
+		"email": "openui5@sap.com",
+		"url": "https://www.sap.com"
+	},
+	"license": "Apache-2.0",
 	"main": "lib/convertPackageLockToShrinkwrap.js",
 	"bin": {
 		"shrinkwrap-extractor": "./cli.js"
 	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:UI5/cli.git"
+	},
 	"scripts": {
-		"test": "npm run lint && npm run unit",
+		"test": "npm run lint && npm run coverage && npm run depcheck",
 		"unit": "node --test test/lib/convertToShrinkwrap.js",
 		"unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
-		"lint": "eslint ."
+		"coverage": "nyc node --test test/lib/convertToShrinkwrap.js",
+		"lint": "eslint .",
+		"depcheck": "depcheck --ignores @ui5/shrinkwrap-extractor,@eslint/js,eslint-config-google,globals,nyc"
 	},
 	"keywords": [
 		"npm",
@@ -27,7 +39,25 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.1",
+		"depcheck": "^1.4.7",
+		"nyc": "^17.1.0",
 		"eslint-config-google": "^0.14.0",
 		"globals": "^16.5.0"
+	},
+	"nyc": {
+		"reporter": [
+			"lcov",
+			"text",
+			"text-summary"
+		],
+		"exclude": [
+			"coverage/**",
+			"test/**"
+		],
+		"check-coverage": true,
+		"statements": 80,
+		"branches": 75,
+		"functions": 75,
+		"lines": 80
 	}
 }
