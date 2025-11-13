@@ -22,7 +22,7 @@ The following is a walk-through on how to evaluate the performance impact of an 
         ```sh
         git clone git@github.com:SAP/ui5-builder.git
         ```
-        Make sure you check out the `main` branch, since we'll perform the baseline test first
+        Make sure you check out the `v4` branch, since we'll perform the baseline test first
     1. Install npm dependencies in both directories
         ```sh
         (cd ui5-cli && npm install)
@@ -45,24 +45,24 @@ The following is a walk-through on how to evaluate the performance impact of an 
 
         For example:
         ```
-        3.0.0 (from /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs)
+        4.0.0 (from /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs)
         ```
 
-1. Prepare your test project (we choose the [openui5-sample-app](https://github.com/SAP/openui5-sample-app))
+2. Prepare your test project (we choose the UI5 [sample-app](https://github.com/UI5/sample-app))
     1. Clone the project
         ```sh
-        git clone git@github.com:SAP/openui5-sample-app.git
+        git clone git@github.com:UI5/sample-app.git
         ```
-    1. Navigate into the project
+    2. Navigate into the project
         ```sh
-        cd openui5-sample-app
+        cd sample-app
         ```
-    1. Install any required npm dependencies
+    3. Install any required npm dependencies
         ```sh
         npm install
         ```
         Note: We won't link UI5 CLI into this project. Instead, we'll call it directly.
-    1. Verify that the previously installed UI5 CLI can be called with the following command:
+    4. Verify that the previously installed UI5 CLI can be called with the following command:
         ```sh
         UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs --version
         ```
@@ -148,14 +148,14 @@ The following is a walk-through on how to evaluate the performance impact of an 
         ```md
         ui5-builder Ref | Command | Mean [s] | Min [s] | Max [s] | Relative
         |:---|:---|---:|---:|---:|---:|
-        | main ([`1234567`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
+        | v4 ([`1234567`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
         | feature-duck ([`9101112`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.584 ± 0.074 | 1.477 | 1.680 | **+10%** |
         ```
         Rendering like this:
 
         | ui5-builder Ref | Command | Mean [s] | Min [s] | Max [s] | Relative |
         |:---|:---|---:|---:|---:|---:|
-        | main ([`1234567`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
+        | v4 ([`1234567`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
         | feature-duck ([`9101112`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.584 ± 0.074 | 1.477 | 1.680 | **+10%** |
 
 1. You can now share these results on GitHub or wherever you might need them.
