@@ -58,11 +58,7 @@
 		"traverse": "^0.6.11"
 	},
 	"workspaces": [
-		"packages/builder",
-		"packages/cli",
-		"packages/fs",
-		"packages/logger",
-		"packages/project",
-		"packages/server"
+		"packages/*",
+		"internal/*"
 	]
 }
