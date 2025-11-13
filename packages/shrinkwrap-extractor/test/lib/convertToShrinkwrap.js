@@ -146,69 +146,72 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 		"Generated shrinkwrap packages should match expected");
 });
 
-// // Error handling tests
-// test("Error handling - invalid package-lock.json", async (t) => {
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap(null, "@ui5/cli"),
-// 		/Invalid package-lock.json: must be a valid JSON object/
-// 	);
+// Error handling tests
+test("Error handling - invalid target package name", async (t) => {
+	const __dirname = import.meta.dirname;
+	const validCwd = path.join(__dirname, "..", "fixture", "project.a");
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap({}, "@ui5/cli"),
-// 		/Invalid package-lock.json: missing packages field/
-// 	);
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(validCwd, null),
+		/Invalid target package name: must be a non-empty string/
+	);
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap({packages: "not-an-object"}, "@ui5/cli"),
-// 		/Invalid package-lock.json: packages field must be an object/
-// 	);
-// });
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(validCwd, ""),
+		/Invalid target package name: must be a non-empty string/
+	);
 
-// test("Error handling - invalid target package name", async (t) => {
-// 	const validPackageLock = {packages: {}};
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(validCwd, "   "),
+		/Invalid target package name: must be a non-empty string/
+	);
+});
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap(validPackageLock, null),
-// 		/Invalid target package name: must be a non-empty string/
-// 	);
+test("Error handling - target package not found", async (t) => {
+	const __dirname = import.meta.dirname;
+	const validCwd = path.join(__dirname, "..", "fixture", "project.a");
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap(validPackageLock, ""),
-// 		/Invalid target package name: must be a non-empty string/
-// 	);
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(validCwd, "non-existent-package"),
+		/Target package "non-existent-package" not found in workspace/
+	);
+});
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap(validPackageLock, "   "),
-// 		/Invalid target package name: must be a non-empty string/
-// 	);
-// });
+test("Error handling - invalid workspace directory", async (t) => {
+	await assert.rejects(
+		convertPackageLockToShrinkwrap("/non/existent/path", "@ui5/cli"),
+		/ENOENT.*package-lock\.json/
+	);
+});
 
-// test("Error handling - target package not found", async (t) => {
-// 	const packageLock = {
-// 		packages: {
-// 			"": {name: "root-package", version: "1.0.0"}
-// 		}
-// 	};
+test("Error handling - invalid package-lock.json files", async (t) => {
+	const __dirname = import.meta.dirname;
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap(packageLock, "non-existent-package"),
-// 		/Target package "non-existent-package" not found in package-lock.json/
-// 	);
-// });
+	// Test malformed JSON
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(path.join(__dirname, "..", "fixture", "invalid", "malformed"), "@ui5/cli"),
+		/Unexpected token/
+	);
 
-// test("Error handling - unsupported lockfile version", async (t) => {
-// 	const packageLock = {
-// 		lockfileVersion: 2,
-// 		packages: {
-// 			"": {name: "@ui5/cli", version: "1.0.0"}
-// 		}
-// 	};
+	// Test missing packages field
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(path.join(__dirname, "..", "fixture", "invalid", "no-packages"), "@ui5/cli"),
+		/Invalid package-lock\.json: missing packages field/
+	);
 
-// 	await assert.rejects(
-// 		convertPackageLockToShrinkwrap(packageLock, "@ui5/cli"),
-// 		/Unsupported lockfile version: 2. Only lockfile version 3 is supported/
-// 	);
-// });
+	// Test invalid packages field
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(
+			path.join(__dirname, "..", "fixture", "invalid", "invalid-packages"), "@ui5/cli"),
+		/Invalid package-lock\.json: packages field must be an object/
+	);
+
+	// Test unsupported lockfile version
+	await assert.rejects(
+		convertPackageLockToShrinkwrap(path.join(__dirname, "..", "fixture", "invalid", "v2"), "@ui5/cli"),
+		/Unsupported lockfile version: 2\. Only lockfile version 3 is supported/
+	);
+});
 
 async function readJson(filePath) {
 	const jsonString = await readFile(filePath, {encoding: "utf-8"});
