@@ -40,7 +40,7 @@ jobs:
       run: npm run unit
 
     - name: Generate JSDoc documentation
-      working-directory: packages/documentation
+      working-directory: internal/documentation
       run: |
         npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
         npm run jsdoc-generate
@@ -49,11 +49,11 @@ jobs:
       run: npm run schema-generate
 
     - name: Generate CLI documentation
-      working-directory: packages/documentation
+      working-directory: internal/documentation
       run: npm run generate-cli-doc
 
     - name: Check shrinkwrap integrity
-      working-directory: packages/shrinkwrap-extractor
+      working-directory: internal/shrinkwrap-extractor
       run: |
         npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
         npm run test

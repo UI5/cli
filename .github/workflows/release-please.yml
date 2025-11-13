@@ -76,7 +76,7 @@ jobs:
           npm ci
 
           # Build the extractor
-          cd ./packages/shrinkwrap-extractor
+          cd ./internal/shrinkwrap-extractor
           npm ci
 
           # Generate npm-shrinkwrap.json

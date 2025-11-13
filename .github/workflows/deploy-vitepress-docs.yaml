@@ -43,15 +43,15 @@ jobs:
             - name: Install dependencies
               run: npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
             - name: Install documentation dependencies
-              working-directory: packages/documentation
+              working-directory: internal/documentation
               run: npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
             - name: Fetch gh-pages branch
               run: git fetch origin gh-pages --depth=1
             - name: generate CLI doc
-              working-directory: packages/documentation
+              working-directory: internal/documentation
               run: npm run generate-cli-doc
             - name: Build vitepress build
-              working-directory: packages/documentation
+              working-directory: internal/documentation
               run: |
                 # The base output
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_VERSION}/"
@@ -60,7 +60,7 @@ jobs:
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
                 npm run build:assets -- ./dist-${DOC_ALIAS}
             - name: Build jsdoc
-              working-directory: packages/documentation
+              working-directory: internal/documentation
               run: npm run jsdoc-generate
             # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
             # - name: Build Schema
@@ -81,16 +81,16 @@ jobs:
                   rm -rf ./gh-pages/${DOC_ALIAS}
 
                   # Main version route
-                  cp -R ./packages/documentation/dist ./gh-pages/${DOC_VERSION}/
+                  cp -R ./internal/documentation/dist ./gh-pages/${DOC_VERSION}/
 
                   # Alias route. E.g., next, latest, stable, etc.
                   # For vitepress must be a copy with different config, not a symlink
-                  cp -R ./packages/documentation/dist-${DOC_ALIAS} ./gh-pages/${DOC_ALIAS}/
+                  cp -R ./internal/documentation/dist-${DOC_ALIAS} ./gh-pages/${DOC_ALIAS}/
                   # Symlink the api docs to avoid duplication
                   ln -s ../${DOC_VERSION}/api ./gh-pages/${DOC_ALIAS}/api
 
                   # TODO: Enable when v5 release is done
-                  # cp ./packages/documentation/scripts/resources/custom404.html ./gh-pages/404.html
+                  # cp ./internal/documentation/scripts/resources/custom404.html ./gh-pages/404.html
             - name: Publish Docs
               run: |
                   cd ./gh-pages
