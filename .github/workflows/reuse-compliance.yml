@@ -44,18 +44,5 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     
-    - name: Temporarily add MIT license for full repo compliance
-      run: |
-        # Download MIT license temporarily for api.reuse.software reporting
-        pipx run reuse download MIT
-    
     - name: REUSE check for full repository
       uses: fsfe/reuse-action@v6
-      with:
-        args: lint
-        
-    - name: Clean up temporary license file
-      run: |
-        # Remove the temporarily added MIT license
-        rm -f LICENSES/MIT.txt
-        echo "Temporarily added licenses cleaned up"
