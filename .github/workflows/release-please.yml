@@ -1,0 +1,91 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+         node-version: 24.x
+
+      - name: Run Release Please to update PRs and create releases
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+
+  publish-packages:
+    runs-on: ubuntu-24.04
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    strategy:
+      # Publish packages in dependency order: logger → fs → builder → server → project
+      # CLI is handled separately to update shrinkwrap
+      # Order of packages in the matrix does matter and is important!
+      # release-please updates the package.json dependencies with ones that do not exist yet on NPM
+      # Publish in the correct order is important, so that dependencies are available and resolved properly!
+      max-parallel: 1
+      matrix:
+        package: [logger, fs, builder, server, project]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.x
+
+      - name: Install and publish ${{ matrix.package }}
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          echo "🚀 Publishing @ui5/${{ matrix.package }}"
+          
+          # TODO: Uncomment when ready to publish
+          # npm ci
+          # npm publish --access public
+
+  publish-cli:
+    runs-on: ubuntu-24.04
+    needs: [release-please, publish-packages]
+    if: needs.release-please.outputs.releases_created == 'true'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.x
+
+      - name: Generate npm-shrinkwrap.json
+        run: |
+          set -e
+          # Install dependencies
+          npm ci
+
+          # Build the extractor
+          cd ./internal/shrinkwrap-extractor
+          npm ci
+
+          # Generate npm-shrinkwrap.json
+          cd ../cli
+          node ../../internal/shrinkwrap-extractor/cli.js ../../
+
+      - name: Publish @ui5/cli
+        working-directory: packages/cli
+        run: |
+          echo "🚀 Publishing @ui5/cli"
+          # TODO: Uncomment when ready to publish
+          # npm publish --access public

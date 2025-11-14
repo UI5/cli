@@ -43,7 +43,7 @@ UI5 CLI consists of multiple packages managed within this monorepo:
 - **packages/logger**: Internal logging module
 
 **Usage Overview** *(arrows indicate dependencies)*
-![Module Overview](./packages/documentation/docs/images/Module_overview.png)
+![Module Overview](./internal/documentation/docs/images/Module_overview.png)
 
 ## Contributing
 
