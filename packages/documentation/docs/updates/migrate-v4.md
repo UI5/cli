@@ -135,7 +135,7 @@ This might be caused by a mismatch of your project's manifest version and your U
 
 UI5 CLI v4 enhances the manifest.json with information about the `supportedLocales` (also see [Builder: Generation of Supported Locales](../pages/Builder.md#generation-of-supported-locales)). In UI5 1.71 this configuration is not supported and leads to an ambiguous error message `TypeError: invalid input` and a failure to process the manifest file.
 
-UI5 CLI uses the manifest's `_version` property to decide whether the `supportedLocales` can be generated. For UI5 1.71, only versions up to `1.17.0` are supported. See [UI5 Demo Kit: Descriptor for Applications, Components, and Libraries (manifest.json)](https://sdk.openui5.org/#/topic/be0cf40f61184b358b5faedaec98b2da) for a mapping per manifest version.
+UI5 CLI uses the manifest's `_version` property to decide whether the `supportedLocales` can be generated. For UI5 1.71, only versions up to `1.17.0` are supported. See [UI5 Demo Kit: Descriptor for Applications, Components, and Libraries (manifest.json)](https://ui5.sap.com/#/topic/be0cf40f61184b358b5faedaec98b2da) for a mapping per manifest version.
 
 To resolve this issue, adjust the manifest version according to the UI5 version you are using.
 
