@@ -1,0 +1,7 @@
+---
+specVersion: "5.0"
+type: component
+metadata:
+  name: component.a
+customConfiguration:
+  configPathTest: true

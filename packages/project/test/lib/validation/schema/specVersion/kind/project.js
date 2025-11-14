@@ -81,6 +81,53 @@ test("Type library (no kind)", async (t) => {
 	});
 });
 
+test("Type component", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "5.0",
+		"kind": "project",
+		"type": "component",
+		"metadata": {
+			"name": "my-component"
+		}
+	});
+});
+
+test("Type component (no kind)", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "5.0",
+		"type": "component",
+		"metadata": {
+			"name": "my-component"
+		}
+	});
+});
+
+test("Type component, legacy specVersion", async (t) => {
+	await assertValidation(t, {
+		"specVersion": "4.0",
+		"kind": "project",
+		"type": "component",
+		"metadata": {
+			"name": "my-component"
+		}
+	}, [{
+		dataPath: "/specVersion",
+		keyword: "errorMessage",
+		message: "The 'component' type is only supported with specVersion '5.0' and higher.",
+		params: {
+			errors: [{
+				dataPath: "/specVersion",
+				keyword: "enum",
+				message: "should be equal to one of the allowed values",
+				params: {
+					allowedValues: ["5.0"],
+				},
+				schemaPath: "#/allOf/0/then/properties/specVersion/enum",
+			}],
+		}
+	}]);
+});
+
 test("Type theme-library", async (t) => {
 	await assertValidation(t, {
 		"specVersion": "2.0",
@@ -172,6 +219,7 @@ test("Invalid type", async (t) => {
 			allowedValues: [
 				"application",
 				"library",
+				"component",
 				"theme-library",
 				"module",
 			],

@@ -53,6 +53,9 @@ class TaskRunner {
 		case "library":
 			buildDefinition = "./definitions/library.js";
 			break;
+		case "component":
+			buildDefinition = "./definitions/component.js";
+			break;
 		case "module":
 			buildDefinition = "./definitions/module.js";
 			break;
