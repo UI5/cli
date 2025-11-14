@@ -14,19 +14,19 @@ Also see [UI5 Project: Configuration](./Configuration.md#general-configuration)
 ### component
 *Available since [Specification Version 5.0](./Configuration.md#specification-version-50)*
 
-> **Note:** The term `component` as used in the UI5 CLI project type differs from the `sap.app/type` property in the `manifest.json` file at runtime. In most cases, a CLI project of type `component` is still a runtime "application". For details on the `sap.app/type` property in `manifest.json`, refer to the [manifest documentation](https://ui5.sap.com/#/topic/be0cf40f61184b358b5faedaec98b2da.html#loiobe0cf40f61184b358b5faedaec98b2da/section_sap_app).
+> **Note:** The UI5 CLI project type `component` differs from the `sap.app/type` runtime property with the same name defined in the `manifest.json` file. In most cases, a CLI project of type `component` is still a runtime `application`. For more information, see the [manifest documentation](https://ui5.sap.com/#/topic/be0cf40f61184b358b5faedaec98b2da.html#loiobe0cf40f61184b358b5faedaec98b2da/section_sap_app).
 
 Projects of the `component` type cover a range of use cases beyond typical standalone UI5 applications:
 
-- **Application components:** These are typical UI5 applications, designed to run in container-like application such as the SAP Fiori launchpad (FLP). These generally inherit from `sap.ui.core.UIComponent` (or a subclass) and define the `manifest.json` property `sap.app/type: application`.
-- **Reusable UI components:** Provide UI elements or features that can be embedded in different contexts. These typically inherit from `sap.ui.core.UIComponent` and define the `manifest.json` property `sap.app/type: component`.
-- **Faceless components:** Provide functionality without a user interface. These are defined with `manifest.json` property `sap.app/type: component` and inherit from `sap.ui.core.Component` (not `UIComponent`).
+- **Application components:** These are typical UI5 applications designed to run in container-like applications such as the SAP Fiori launchpad (FLP). They generally inherit from `sap.ui.core.UIComponent` (or a subclass) and define the `manifest.json` property `sap.app/type: application`.
+- **Reusable UI components:** These provide UI elements or features that you can embed in different contexts. They typically inherit from `sap.ui.core.UIComponent` and define the `manifest.json` property `sap.app/type: component`.
+- **Faceless components:** These provide functionality without a user interface. They are defined with `manifest.json` property `sap.app/type: component` and inherit from `sap.ui.core.Component` (not `UIComponent`).
 
-Please also refer to the [components documentation](https://ui5.sap.com/#/topic/958ead51e2e94ab8bcdc90fb7e9d53d0) for more details.
+For more information, see [Components](https://ui5.sap.com/#/topic/958ead51e2e94ab8bcdc90fb7e9d53d0).
 
 To allow multiple component projects to coexist in the same environment, each project is served under its own namespace, for example `/resources/my/bookstore/admin`. In contrast, `application`-type projects act as root projects and are served at `/`, without a namespace.
 
-By default, component projects use the same directory structure as library projects: they include `src` and `test` directories in the root. Both directories can have either a flat or a namespace structure. If you use a flat structure, the project namespace derives from the `"sap.app".id` property in the `manifest.json`.
+By default, component projects use the same directory structure as library projects: they include `src` and `test` directories in the root. Both directories can have either a flat or a namespace structure. If you use a flat structure, the project namespace derives from the `sap.app/id` property in the `manifest.json`.
 
 A component project must contain both, a `Component.js` and a `manifest.json` file.
 
@@ -87,7 +87,7 @@ In the table below you can find the available combinations of project type & out
 | | `Flat` | **Unsupported** ³ |
 | | `Namespace` | **Unsupported** ³ |
 
-¹ The Output Style is only applied to the root project's output folder structure. Any dependencies included in the build would retain their `Default` output style.  
+¹ The output style is only applied to the root project's output folder structure. Any dependencies included in the build would retain their `Default` output style.  
 ² Theme libraries in most cases have more than one namespace.  
 ³ Modules have explicit path mappings configured and no namespace concept.  
 
