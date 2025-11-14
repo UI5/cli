@@ -2,6 +2,9 @@ import {readFile} from "node:fs/promises";
 import path from "path";
 import {Arborist} from "@npmcli/arborist";
 import pacote from "pacote";
+import Config from "@npmcli/config";
+import pkg from "@npmcli/config/lib/definitions/index.js";
+const {shorthands, definitions, flatten} = pkg;
 
 async function readJson(filePath) {
 	const jsonString = await readFile(filePath, {encoding: "utf-8"});
@@ -71,7 +74,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
 			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
 			// from local cache)
-			const {resolved, integrity} = await fetchPackageMetadata(node.packageName, node.version);
+			const {resolved, integrity} = await fetchPackageMetadata(node.packageName, node.version, workspaceRootDir);
 			pkg.resolved = resolved;
 			pkg.integrity = integrity;
 		}
@@ -119,18 +122,35 @@ function collectDependencies(node, relevantPackageLocations) {
  *
  * @param {string} packageName - Name of the package
  * @param {string} version - Version of the package
+ * @param {string} workspaceRoot - Root directory of the workspace to read npm config from
  * @returns {Promise<{resolved: string, integrity: string}>} - Resolved URL and integrity hash
  */
-async function fetchPackageMetadata(packageName, version) {
+async function fetchPackageMetadata(packageName, version, workspaceRoot) {
 	try {
 		const spec = `${packageName}@${version}`;
-		const manifest = await pacote.manifest(spec);
+
+		const conf = new Config({
+			npmPath: workspaceRoot,
+			definitions,
+			shorthands,
+			flatten,
+			argv: process.argv,
+			env: process.env,
+			execPath: process.execPath,
+			platform: process.platform,
+			cwd: process.cwd(),
+		});
+		await conf.load();
+		const registry = conf.get("registry") || "https://registry.npmjs.org/";
+
+		const manifest = await pacote.manifest(spec, {registry});
 
 		return {
 			resolved: manifest.dist.tarball,
-			integrity: manifest.dist.integrity
+			integrity: manifest.dist.integrity || ""
 		};
 	} catch (error) {
-		throw new Error(`Could not fetch registry metadata for ${packageName}@${version}: ${error.message}`);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		throw new Error(`Could not fetch registry metadata for ${packageName}@${version}: ${errorMessage}`);
 	}
 }
