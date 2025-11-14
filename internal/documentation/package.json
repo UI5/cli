@@ -27,7 +27,7 @@
 		"lint": "eslint .",
 		"unit": "echo 'No unit tests defined for documentation package'",
 		"coverage": "echo 'Coverage skipped for documentation package'",
-		"depcheck": "depcheck --ignores @ui5/documentation,vitepress,docdash,jsdoc,open-cli,handlebars,@types/node,@ui5/webcomponents,autoprefixer,cssnano,@ui5/builder,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,@theme/components",
+		"depcheck": "depcheck --ignores @ui5/documentation,vitepress,docdash,jsdoc,open-cli,handlebars,@types/node,@ui5/webcomponents,autoprefixer,cssnano,@ui5/cli,@ui5/builder,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,@theme/components",
 		"dev": "vitepress dev",
 		"build:vitepress": "vitepress build",
 		"build:assets": "sh -c 'DEST_DIR=${1:-./dist}; cp -r ./docs/images \"$DEST_DIR/images\"' --",
