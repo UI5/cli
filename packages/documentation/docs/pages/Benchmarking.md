@@ -94,7 +94,7 @@ The following is a walk-through on how to evaluate the performance impact of cha
         ```
     1. If your change requires different npm dependencies, reinstall them
         ```sh
-         npm install
+        npm install
         ```
     2. The link from UI5 CLI is still in place.
 
