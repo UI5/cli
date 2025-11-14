@@ -81,7 +81,7 @@ jobs:
 
           # Generate npm-shrinkwrap.json
           cd ../cli
-          node ../shrinkwrap-extractor/cli.js @ui5/cli ../../package-lock.json
+          node ../../internal/shrinkwrap-extractor/cli.js ../../
 
       - name: Publish @ui5/cli
         working-directory: packages/cli
