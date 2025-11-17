@@ -4,40 +4,27 @@ For benchmarking UI5 CLI we typically make use of the open source tool [hyperfin
 
 In general we only benchmark calls to the UI5 CLI. However, we might add scripted benchmarks for some components in the future.
 
-The following is a walk-through on how to evaluate the performance impact of an imaginary change in the UI5 Builder project.
+The following is a walk-through on how to evaluate the performance impact of changes to the UI5 CLI `build` command.
 
 ## Setup
 
 1. Install [hyperfine](https://github.com/sharkdp/hyperfine#installation)
-1. Prepare the UI5 CLI projects you want to measure *(optional if your development environment already reflects this)*:
-    1. Start in an empty directory
+2. Prepare the UI5 CLI repository *(optional if your development environment already reflects this)*:
+    1. Clone [UI5 CLI](https://github.com/UI5/cli) (or your fork) and navigate into it
         ```sh
-        mkdir ui5-cli-benchmark && cd ui5-cli-benchmark/
-        ```
-    1. Clone [UI5 CLI](https://github.com/SAP/ui5-cli)
-        ```sh
-        git clone git@github.com:SAP/ui5-cli.git
-        ```
-    1. Clone [UI5 Builder](https://github.com/SAP/ui5-builder) (or your fork)
-        ```sh
-        git clone git@github.com:SAP/ui5-builder.git
+        git clone git@github.com:UI5/cli.git
+        cd cli
         ```
         Make sure you check out the `main` branch, since we'll perform the baseline test first
-    1. Install npm dependencies in both directories
+    2. Install npm dependencies
         ```sh
-        (cd ui5-cli && npm install)
-        (cd ui5-builder && npm install)
+        npm install
         ```
-    1. Create global npm links for both projects
+    3. Create a global npm link for `@ui5/cli`
         ```sh
-        (cd ui5-cli && npm link)
-        (cd ui5-builder && npm link)
+        (cd packages/cli && npm link)
         ```
-    1. Link UI5 Builder into UI5 CLI
-        ```sh
-        (cd ui5-cli && npm link @ui5/builder)
-        ```
-    1. Verify your setup
+    4. Verify your setup
         ```sh
         ui5 --version
         ```
@@ -45,30 +32,31 @@ The following is a walk-through on how to evaluate the performance impact of an 
 
         For example:
         ```
-        3.0.0 (from /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs)
+        5.0.0 (from /my/home/UI5/cli/packages/cli/bin/ui5.cjs)
         ```
 
-1. Prepare your test project (we choose the [openui5-sample-app](https://github.com/SAP/openui5-sample-app))
+3. Prepare your test project (we choose the UI5 [sample-app](https://github.com/UI5/sample-app))
     1. Clone the project
         ```sh
-        git clone git@github.com:SAP/openui5-sample-app.git
+        git clone git@github.com:UI5/sample-app.git
         ```
-    1. Navigate into the project
+    2. Navigate into the project
         ```sh
-        cd openui5-sample-app
+        cd sample-app
         ```
-    1. Install any required npm dependencies
+    3. Install any required npm dependencies
         ```sh
         npm install
         ```
         Note: We won't link UI5 CLI into this project. Instead, we'll call it directly.
-    1. Verify that the previously installed UI5 CLI can be called with the following command:
+    4. Verify that the previously installed UI5 CLI can be called with the following command:
         ```sh
-        UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs --version
+        UI5_CLI_NO_LOCAL=X node /my/home/UI5/cli/packages/cli/bin/ui5.cjs --version
         ```
         On Windows:
         ```sh
-        set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs --version
+        set UI5_CLI_NO_LOCAL=X
+        node C:\my\home\UI5\cli\packages\cli\bin\ui5.cjs --version
         ```
         *(Replace the path to ui5.cjs with the one shown in the previous `ui5 --version` output)*
 
@@ -84,46 +72,45 @@ The following is a walk-through on how to evaluate the performance impact of an 
     1. In the project, start your first benchmark
         ```sh
         hyperfine --warmup 1 \
-        'UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+        'UI5_CLI_NO_LOCAL=X node /my/home/UI5/cli/packages/cli/bin/ui5.cjs build' \
         --export-markdown ./baseline.md
         ```
         On Windows:
         ```sh
-        hyperfine --warmup 1 \
-        'set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
-        --export-markdown ./baseline.md
+        set UI5_CLI_NO_LOCAL=X
+        hyperfine --warmup 1 "node C:\my\home\UI5\cli\packages\cli\bin\ui5.cjs build" --export-markdown
+ ./baseline.md
         ```
     1. Your baseline benchmark is now stored in `baseline.md` and should look similar to this:
 
         | Command | Mean [s] | Min [s] | Max [s] | Relative |
         |:---|---:|---:|---:|---:|
-        | `UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build` | 1.439 ± 0.036 | 1.400 | 1.507 | 1.00 |
+        | `UI5_CLI_NO_LOCAL=X node /my/home/UI5/cli/packages/cli/bin/ui5.cjs build` | 1.439 ± 0.036 | 1.400 | 1.507 | 1.00 |
 
 1. Prepare your change
     1. Switch to the branch that contains your change
         ```sh
-        (cd ../packages/builder && git checkout my-change)
+        git checkout my-change
         ```
     1. If your change requires different npm dependencies, reinstall them
         ```sh
-        (cd ../packages/builder && npm install)
+        npm install
         ```
-    1. The link from UI5 CLI is still in place. However, if you have changes in **multiple** UI5 CLI modules, you might need to `npm link` those again
+    2. The link from UI5 CLI is still in place.
 
-1. Perform the change measurement
+2. Perform the change measurement
     1. In the project, start your second benchmark
         ```sh
         hyperfine --warmup 1 \
-        'UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
+        'UI5_CLI_NO_LOCAL=X node /my/home/UI5/cli/packages/cli/bin/ui5.cjs build' \
         --export-markdown ./my_change.md
         ```
         On Windows:
         ```sh
-        hyperfine --warmup 1 \
-        'set UI5_CLI_NO_LOCAL=X node /my/home/ui5-cli-benchmark/ui5-cli/bin/ui5.cjs build' \
-        --export-markdown ./my_change.md
+        set UI5_CLI_NO_LOCAL=X
+        hyperfine --warmup 1 "node C:\my\home\UI5\cli\packages\cli\bin\ui5.cjs build" --export-markdown ./my_change.md
         ```
-    1. Your change's benchmark is now stored in `my_change.md`
+    2. Your change's benchmark is now stored in `my_change.md`
 
 ## Compile Results
 
@@ -131,8 +118,8 @@ The following is a walk-through on how to evaluate the performance impact of an 
     1. In this setup, Hyperfine can't correctly calculate the relative difference between results. The respective column always reads "1". Either remove the "Relative" column or calculate the relative difference yourself:  
         * Use this formula to calculate the percentage increase based on the *Mean* result:  
             `(newMean - baselineMean) / baselineMean * 100`  
-           ^^JavaScript function:^^  
-            `#!js function calcDiff(baseVal, newVal) {return (newVal - baseVal) / baseVal * 100;}`
+            JavaScript function:  
+            ``` function calcDiff(baseVal, newVal) {return (newVal - baseVal) / baseVal * 100;}```
 
         * **Example for a performance improvement:**  
             Baseline of 10 seconds decreased to 7 seconds:  
@@ -146,17 +133,17 @@ The following is a walk-through on how to evaluate the performance impact of an 
     1. Change the command column to only contain the relevant `ui5 build` command, including any parameters. E.g. `ui5 build --all`
     1. You should end up with a markdown like this:
         ```md
-        ui5-builder Ref | Command | Mean [s] | Min [s] | Max [s] | Relative
+        | UI5/cli Ref | Command | Mean [s] | Min [s] | Max [s] | Relative |
         |:---|:---|---:|---:|---:|---:|
-        | main ([`1234567`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
-        | feature-duck ([`9101112`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.584 ± 0.074 | 1.477 | 1.680 | **+10%** |
+        | main ([`1234567`](https://github.com/UI5/cli/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
+        | feature-duck ([`9101112`](https://github.com/UI5/cli/commit/<sha>)) | `ui5 build` | 1.584 ± 0.074 | 1.477 | 1.680 | **+10%** |
         ```
         Rendering like this:
 
-        | ui5-builder Ref | Command | Mean [s] | Min [s] | Max [s] | Relative |
+        | UI5/cli Ref | Command | Mean [s] | Min [s] | Max [s] | Relative |
         |:---|:---|---:|---:|---:|---:|
-        | main ([`1234567`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
-        | feature-duck ([`9101112`](https://github.com/SAP/ui5-builder/commit/<sha>)) | `ui5 build` | 1.584 ± 0.074 | 1.477 | 1.680 | **+10%** |
+        | main ([`1234567`](https://github.com/UI5/cli/commit/<sha>)) | `ui5 build` | 1.439 ± 0.036 | 1.400 | 1.507 | Baseline |
+        | feature-duck ([`9101112`](https://github.com/UI5/cli/commit/<sha>)) | `ui5 build` | 1.584 ± 0.074 | 1.477 | 1.680 | **+10%** |
 
 1. You can now share these results on GitHub or wherever you might need them.
 
