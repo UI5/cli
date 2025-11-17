@@ -80,7 +80,7 @@ jobs:
           npm ci
 
           # Generate npm-shrinkwrap.json
-          cd ../cli
+          cd ../../packages/cli
           node ../../internal/shrinkwrap-extractor/cli.js ../../
 
       - name: Publish @ui5/cli

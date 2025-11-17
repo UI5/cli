@@ -43,6 +43,8 @@ jobs:
             - name: Copy documentation package to isolated directory
               run: |
                   # Create isolated directory for documentation
+                  # So, that API.json will be build from the NPM packages,
+                  # and not from workspace packages
                   mkdir -p /tmp/isolated-docs
                   cp -r internal/documentation/. /tmp/isolated-docs/
             - name: Install documentation dependencies from NPM
