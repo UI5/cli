@@ -21,6 +21,7 @@ class Console {
 	#progressBarContainer;
 	#progressBar;
 	#progressProjectWeight;
+	#moduleFilter;
 
 	constructor() {
 		this._handleLogEvent = this.#handleLogEvent.bind(this);
@@ -29,6 +30,72 @@ class Console {
 		this._handleBuildMetadataEvent = this.#handleBuildMetadataEvent.bind(this);
 		this._handleProjectBuildMetadataEvent = this.#handleProjectBuildMetadataEvent.bind(this);
 		this._handleStop = this.disable.bind(this);
+		this.#initFiters();
+	}
+
+	#initFiters() {
+		const modulesPatterns = process.env.UI5_LOG_MODULES;
+		if (!modulesPatterns) {
+			this.#moduleFilter = null;
+			return;
+		}
+		const enabledModules = [];
+		const enabledNamespaces = [];
+		const disabledModules = [];
+		const disabledNamespaces = [];
+		// Example of modulePattern: "module1,module2:submodule:subsubmodule,module3:*:-module3:submodule"
+		modulesPatterns.split(",").forEach((modulePattern) => {
+			const pattern = modulePattern.trim();
+			if (pattern.startsWith("-")) {
+				if (pattern.endsWith(":*")) {
+					disabledNamespaces.push(pattern.substring(1, pattern.length - 2));
+				} else {
+					disabledModules.push(pattern.substring(1));
+				}
+			} else {
+				if (pattern.endsWith(":*")) {
+					enabledNamespaces.push(pattern.substring(0, pattern.length - 2));
+				} else {
+					enabledModules.push(pattern);
+				}
+			}
+		});
+
+		this.#moduleFilter = {
+			enabledModules,
+			enabledNamespaces,
+			disabledModules,
+			disabledNamespaces,
+		};
+	}
+
+	#filterModule(moduleName) {
+		if (!this.#moduleFilter) {
+			return true;
+		}
+		if (this.#moduleFilter.disabledModules.includes(moduleName)) {
+			return false;
+		}
+		if (this.#moduleFilter.enabledModules.includes(moduleName)) {
+			return true;
+		}
+		const moduleParts = moduleName.split(":");
+		for (let i = moduleParts.length - 1; i > 0; i--) {
+			const namespace = moduleParts.slice(0, i).join(":");
+			if (this.#moduleFilter.disabledNamespaces.includes(namespace)) {
+				return false;
+			}
+			if (this.#moduleFilter.enabledNamespaces.includes(namespace)) {
+				return true;
+			}
+		}
+
+		// If any module or namespace is enabled, all other modules are disabled by default
+		if (this.#moduleFilter.enabledModules.length > 0 || this.#moduleFilter.enabledNamespaces.length > 0) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -137,7 +204,9 @@ class Console {
 	}
 
 	#handleLogEvent({level, message, moduleName}) {
-		this.#writeMessage(level, `${chalk.blue(moduleName)} ${message}`);
+		if (this.#filterModule(moduleName)) {
+			this.#writeMessage(level, `${chalk.blue(moduleName)} ${message}`);
+		}
 	}
 
 	#handleBuildMetadataEvent({projectsToBuild}) {
@@ -327,6 +396,27 @@ class Console {
 			}
 			taskMetadata.executionEnded = true;
 			message = `${chalk.green(figures.tick)} Finished task ${chalk.bold(taskName)}`;
+
+			// Update progress bar (if used)
+			this._getProgressBar()?.increment(1);
+			break;
+		case "task-skip":
+			if (taskMetadata.executionSkipped) {
+				throw new Error(`writers/Console: ` +
+					`Unexpected duplicate task-skip event for project ${projectName}, task ${taskName}`);
+			}
+			if (taskMetadata.executionStarted) {
+				throw new Error(`writers/Console: ` +
+					`Unexpected task-skip event for project ${projectName}, task ${taskName}. ` +
+					`Task execution already started`);
+			}
+			if (taskMetadata.executionEnded) {
+				throw new Error(`writers/Console: ` +
+					`Unexpected task-skip event for project ${projectName}, task ${taskName}. ` +
+					`Task execution already ended`);
+			}
+			taskMetadata.executionEnded = true;
+			message = `${chalk.green(figures.tick)} Skipping task ${chalk.bold(taskName)}`;
 
 			// Update progress bar (if used)
 			this._getProgressBar()?.increment(1);

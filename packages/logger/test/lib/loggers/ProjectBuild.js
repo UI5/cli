@@ -228,3 +228,58 @@ test.serial("End task: Unknown task", (t) => {
 	}, "Threw with expected error message");
 });
 
+test.serial("Skip task", (t) => {
+	const {projectBuildLogger, logHandler, metadataHandler, statusHandler, logStub} = t.context;
+	projectBuildLogger.setTasks(["task.a"]);
+
+	projectBuildLogger.skipTask("task.a");
+
+	t.is(statusHandler.callCount, 1, "One build-status event emitted");
+	t.deepEqual(statusHandler.getCall(0).args[0], {
+		level: "info",
+		projectName: "projectName",
+		projectType: "projectType",
+		status: "task-skip",
+		taskName: "task.a",
+	}, "Metadata event has expected payload");
+
+	t.is(logHandler.callCount, 0, "No log event emitted");
+	t.is(metadataHandler.callCount, 1, "One build-metadata event emitted");
+	t.is(logStub.callCount, 0, "_log was never called");
+});
+
+test.serial("No event listener: Skip task", (t) => {
+	const {projectBuildLogger, logHandler, metadataHandler, statusHandler, logStub} = t.context;
+	process.off(ProjectBuildLogger.PROJECT_BUILD_STATUS_EVENT_NAME, statusHandler);
+	projectBuildLogger.setTasks(["task.a"]);
+
+	projectBuildLogger.skipTask("task.a");
+	t.is(logStub.callCount, 1, "_log got called once");
+	t.is(logStub.getCall(0).args[0], "info", "Logged with expected log-level");
+	t.is(logStub.getCall(0).args[1],
+		"projectName: Skipping task task.a",
+		"Logged expected message");
+
+	t.is(logHandler.callCount, 0, "No log event emitted");
+	t.is(metadataHandler.callCount, 1, "One build-metadata event emitted");
+});
+
+test.serial("Skip task: Unknown task", (t) => {
+	const {projectBuildLogger} = t.context;
+
+	// Throws because no projects are set
+	t.throws(() => {
+		projectBuildLogger.skipTask("task.x");
+	}, {
+		message: `loggers/ProjectBuild#skipTask: Unknown task task.x`
+	}, "Threw with expected error message");
+
+	projectBuildLogger.setTasks(["task.a"]);
+	// Throws because given project is unknown
+	t.throws(() => {
+		projectBuildLogger.skipTask("task.x");
+	}, {
+		message: `loggers/ProjectBuild#skipTask: Unknown task task.x`
+	}, "Threw with expected error message");
+});
+

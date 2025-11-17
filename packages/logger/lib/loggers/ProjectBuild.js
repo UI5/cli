@@ -83,6 +83,24 @@ class ProjectBuild extends Logger {
 			this._log(level, `${this.#projectName}: Finished task ${taskName}`);
 		}
 	}
+
+	skipTask(taskName) {
+		if (!this.#tasksToRun || !this.#tasksToRun.includes(taskName)) {
+			throw new Error(`loggers/ProjectBuild#skipTask: Unknown task ${taskName}`);
+		}
+		const level = "info";
+		const hasListeners = this._emit(ProjectBuild.PROJECT_BUILD_STATUS_EVENT_NAME, {
+			level,
+			projectName: this.#projectName,
+			projectType: this.#projectType,
+			taskName,
+			status: "task-skip",
+		});
+
+		if (!hasListeners) {
+			this._log(level, `${this.#projectName}: Skipping task ${taskName}`);
+		}
+	}
 }
 
 export default ProjectBuild;
