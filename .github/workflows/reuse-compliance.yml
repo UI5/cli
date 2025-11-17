@@ -12,10 +12,37 @@ on:
 permissions: {}
 
 jobs:
-  compliance-check:
-    name: Compliance Check
-    runs-on: ubuntu-latest
+  packages-compliance-check:
+    name: Packages Compliance 
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        package:
+          - "packages/builder"
+          - "packages/cli"
+          - "packages/documentation"
+          - "packages/fs"
+          - "packages/logger"
+          - "packages/project"
+          - "packages/server"
     steps:
     - uses: actions/checkout@v5
-    - name: Execute REUSE Compliance Check
+
+    # Check each package if compliance is correctly set up.
+    # Each one of these packages would be published separately.
+    - name: Execute REUSE Compliance Check for ${{ matrix.package }}
+      uses: fsfe/reuse-action@v6
+      with:
+        args: --root ${{ matrix.package }} lint
+
+  # Do the report for the whole repository, adding badge to the
+  # README file.
+  final-report:
+    name: Compliance Check
+    needs: [packages-compliance-check]
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: REUSE check for full repository
       uses: fsfe/reuse-action@v6
