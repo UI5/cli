@@ -47,6 +47,9 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24.x
+          
+      - name: Install dependencies
+        run: npm ci
 
       - name: Install and publish ${{ matrix.package }}
         working-directory: packages/${{ matrix.package }}
@@ -54,7 +57,6 @@ jobs:
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
           
           # TODO: Uncomment when ready to publish
-          # npm ci
           # npm publish --access public
 
   publish-cli:
@@ -69,18 +71,13 @@ jobs:
         with:
           node-version: 24.x
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Generate npm-shrinkwrap.json
+        working-directory: packages/cli
         run: |
           set -e
-          # Install dependencies
-          npm ci
-
-          # Build the extractor
-          cd ./internal/shrinkwrap-extractor
-          npm ci
-
-          # Generate npm-shrinkwrap.json
-          cd ../../packages/cli
           node ../../internal/shrinkwrap-extractor/cli.js ../../
 
       - name: Publish @ui5/cli
