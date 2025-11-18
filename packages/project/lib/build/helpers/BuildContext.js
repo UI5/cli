@@ -1,5 +1,8 @@
+import path from "node:path";
 import ProjectBuildContext from "./ProjectBuildContext.js";
 import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
+import {createCacheKey} from "./createBuildManifest.js";
+import WatchHandler from "./WatchHandler.js";
 
 /**
  * Context of a build process
@@ -8,11 +11,14 @@ import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
  * @memberof @ui5/project/build/helpers
  */
 class BuildContext {
+	#watchHandler;
+
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
 		cssVariables = false,
 		jsdoc = false,
 		createBuildManifest = false,
+		useCache = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
 	} = {}) {
@@ -67,6 +73,7 @@ class BuildContext {
 			outputStyle,
 			includedTasks,
 			excludedTasks,
+			useCache,
 		};
 
 		this._taskRepository = taskRepository;
@@ -97,13 +104,41 @@ class BuildContext {
 		return this._graph;
 	}
 
-	createProjectContext({project}) {
+	async createProjectContext({project, cacheDir}) {
+		const cacheKey = await this.#createCacheKeyForProject(project);
+		if (cacheDir) {
+			cacheDir = path.join(cacheDir, cacheKey);
+		}
 		const projectBuildContext = new ProjectBuildContext({
 			buildContext: this,
-			project
+			project,
+			cacheKey,
+			cacheDir,
 		});
 		this._projectBuildContexts.push(projectBuildContext);
 		return projectBuildContext;
+	}
+
+	initWatchHandler(projects, updateBuildResult) {
+		const watchHandler = new WatchHandler(this, updateBuildResult);
+		watchHandler.watch(projects);
+		this.#watchHandler = watchHandler;
+		return watchHandler;
+	}
+
+	getWatchHandler() {
+		return this.#watchHandler;
+	}
+
+	async #createCacheKeyForProject(project) {
+		return createCacheKey(project, this._graph,
+			this.getBuildConfig(), this.getTaskRepository());
+	}
+
+	getBuildContext(projectName) {
+		if (projectName) {
+			return this._projectBuildContexts.find((ctx) => ctx.getProject().getName() === projectName);
+		}
 	}
 
 	async executeCleanupTasks(force = false) {

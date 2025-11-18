@@ -2,6 +2,7 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
+import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -11,7 +12,16 @@ import TaskRunner from "../TaskRunner.js";
  * @memberof @ui5/project/build/helpers
  */
 class ProjectBuildContext {
-	constructor({buildContext, project}) {
+	/**
+	 *
+	 * @param {object} parameters Parameters
+	 * @param {object} parameters.buildContext The build context.
+	 * @param {object} parameters.project The project instance.
+	 * @param {string} parameters.cacheKey The cache key.
+	 * @param {string} parameters.cacheDir The cache directory.
+	 * @throws {Error} Throws an error if 'buildContext' or 'project' is missing.
+	 */
+	constructor({buildContext, project, cacheKey, cacheDir}) {
 		if (!buildContext) {
 			throw new Error(`Missing parameter 'buildContext'`);
 		}
@@ -25,6 +35,8 @@ class ProjectBuildContext {
 			projectName: project.getName(),
 			projectType: project.getType()
 		});
+		this._cacheKey = cacheKey;
+		this._cache = new ProjectBuildCache(this._project, cacheKey, cacheDir);
 		this._queues = {
 			cleanup: []
 		};
@@ -33,6 +45,10 @@ class ProjectBuildContext {
 			allowedTags: ["ui5:OmitFromBuildResult", "ui5:IsBundle"],
 			allowedNamespaces: ["build"]
 		});
+		const buildManifest = this.#getBuildManifest();
+		if (buildManifest) {
+			this._cache.deserialize(buildManifest.buildManifest.cache);
+		}
 	}
 
 	isRootProject() {
@@ -111,6 +127,7 @@ class ProjectBuildContext {
 			this._taskRunner = new TaskRunner({
 				project: this._project,
 				log: this._log,
+				cache: this._cache,
 				taskUtil: this.getTaskUtil(),
 				graph: this._buildContext.getGraph(),
 				taskRepository: this._buildContext.getTaskRepository(),
@@ -126,23 +143,106 @@ class ProjectBuildContext {
 	 *
 	 * @returns {boolean} True if the project needs to be built
 	 */
-	requiresBuild() {
-		return !this._project.getBuildManifest();
+	async requiresBuild() {
+		if (this.#getBuildManifest()) {
+			return false;
+		}
+
+		if (!this._cache.hasCache()) {
+			await this._cache.attemptDeserializationFromDisk();
+		}
+
+		return this._cache.requiresBuild();
+	}
+
+	async runTasks() {
+		await this.getTaskRunner().runTasks();
+		const updatedResourcePaths = this._cache.harvestUpdatedResources();
+
+		if (updatedResourcePaths.size === 0) {
+			return;
+		}
+		this._log.verbose(
+			`Project ${this._project.getName()} updated resources: ${Array.from(updatedResourcePaths).join(", ")}`);
+		const graph = this._buildContext.getGraph();
+		const emptySet = new Set();
+
+		// Propagate changes to all dependents of the project
+		for (const {project: dep} of graph.traverseDependents(this._project.getName())) {
+			const projectBuildContext = this._buildContext.getBuildContext(dep.getName());
+			projectBuildContext.getBuildCache().resourceChanged(emptySet, updatedResourcePaths);
+		}
+	}
+
+	#getBuildManifest() {
+		const manifest = this._project.getBuildManifest();
+		if (!manifest) {
+			return;
+		}
+		// Check whether the manifest can be used for this build
+		if (manifest.buildManifest.manifestVersion === "0.1" || manifest.buildManifest.manifestVersion === "0.2") {
+			// Manifest version 0.1 and 0.2 are always used without further checks for legacy reasons
+			return manifest;
+		}
+		if (manifest.buildManifest.manifestVersion === "0.3" &&
+			manifest.buildManifest.cacheKey === this.getCacheKey()) {
+			// Manifest version 0.3 is used with a matching cache key
+			return manifest;
+		}
+		// Unknown manifest version can't be used
+		return;
 	}
 
 	getBuildMetadata() {
-		const buildManifest = this._project.getBuildManifest();
+		const buildManifest = this.#getBuildManifest();
 		if (!buildManifest) {
 			return null;
 		}
 		const timeDiff = (new Date().getTime() - new Date(buildManifest.timestamp).getTime());
 
-		// TODO: Format age properly via a new @ui5/logger util module
+		// TODO: Format age properly
 		return {
 			timestamp: buildManifest.timestamp,
 			age: timeDiff / 1000 + " seconds"
 		};
 	}
+
+	getBuildCache() {
+		return this._cache;
+	}
+
+	getCacheKey() {
+		return this._cacheKey;
+	}
+
+	// async watchFileChanges() {
+	// 	// const paths = this._project.getSourcePaths();
+	// 	// this._log.verbose(`Watching source paths: ${paths.join(", ")}`);
+	// 	// const {default: chokidar} = await import("chokidar");
+	// 	// const watcher = chokidar.watch(paths, {
+	// 	// 	ignoreInitial: true,
+	// 	// 	persistent: false,
+	// 	// });
+	// 	// watcher.on("add", async (filePath) => {
+	// 	// });
+	// 	// watcher.on("change", async (filePath) => {
+	// 	// 	const resourcePath = this._project.getVirtualPath(filePath);
+	// 	// 	this._log.info(`File changed: ${resourcePath} (${filePath})`);
+	// 	// 	// Inform cache
+	// 	// 	this._cache.fileChanged(resourcePath);
+	// 	// 	// Inform dependents
+	// 	// 	for (const dependent of this._buildContext.getGraph().getTransitiveDependents(this._project.getName())) {
+	// 	// 		await this._buildContext.getProjectBuildContext(dependent).dependencyFileChanged(resourcePath);
+	// 	// 	}
+	// 	// 	// Inform build context
+	// 	// 	await this._buildContext.fileChanged(this._project.getName(), resourcePath);
+	// 	// });
+	// }
+
+	// dependencyFileChanged(resourcePath) {
+	// 	this._log.info(`Dependency file changed: ${resourcePath}`);
+	// 	this._cache.fileChanged(resourcePath);
+	// }
 }
 
 export default ProjectBuildContext;

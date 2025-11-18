@@ -16,6 +16,8 @@ function getMockProject(type, id = "b") {
 		getVersion: noop,
 		getReader: () => "reader",
 		getWorkspace: () => "workspace",
+		sealWorkspace: noop,
+		createNewWorkspaceVersion: noop,
 	};
 }
 
