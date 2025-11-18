@@ -39,7 +39,7 @@ jobs:
                 node-version: 22.20.0
                 cache: npm
             - name: Setup Pages
-              uses: actions/configure-pages@v4
+              uses: actions/configure-pages@v5
             - name: Copy documentation package to isolated directory
               run: |
                   # Create isolated directory for documentation
