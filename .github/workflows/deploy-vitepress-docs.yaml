@@ -45,18 +45,18 @@ jobs:
                   # Create isolated directory for documentation
                   # So, that API.json will be build from the NPM packages,
                   # and not from workspace packages
-                  mkdir -p /tmp/isolated-docs
-                  cp -r internal/documentation/. /tmp/isolated-docs/
+                  mkdir -p ${{ runner.temp }}/isolated-docs
+                  cp -r internal/documentation/. ${{ runner.temp }}/isolated-docs/
             - name: Install documentation dependencies from NPM
-              working-directory: /tmp/isolated-docs
+              working-directory: ${{ runner.temp }}/isolated-docs
               run: npm ci --engine-strict
             - name: Fetch gh-pages branch
               run: git fetch origin gh-pages --depth=1
             - name: generate CLI doc
-              working-directory: /tmp/isolated-docs
+              working-directory: ${{ runner.temp }}/isolated-docs
               run: npm run generate-cli-doc
             - name: Build vitepress build
-              working-directory: /tmp/isolated-docs
+              working-directory: ${{ runner.temp }}/isolated-docs
               run: |
                 # The base output
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_VERSION}/"
@@ -65,7 +65,7 @@ jobs:
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
                 npm run build:assets -- ./dist-${DOC_ALIAS}
             - name: Build jsdoc
-              working-directory: /tmp/isolated-docs
+              working-directory: ${{ runner.temp }}/isolated-docs
               run: npm run jsdoc-generate
             # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
             # - name: Build Sch3 |
@@ -85,16 +85,16 @@ jobs:
                   rm -rf ./gh-pages/${DOC_ALIAS}
 
                   # Main version route
-                  cp -R /tmp/isolated-docs/dist ./gh-pages/${DOC_VERSION}/
+                  cp -R ${{ runner.temp }}/isolated-docs/dist ./gh-pages/${DOC_VERSION}/
 
                   # Alias route. E.g., next, latest, stable, etc.
                   # For vitepress must be a copy with different config, not a symlink
-                  cp -R /tmp/isolated-docs/dist-${DOC_ALIAS} ./gh-pages/${DOC_ALIAS}/
+                  cp -R ${{ runner.temp }}/isolated-docs/dist-${DOC_ALIAS} ./gh-pages/${DOC_ALIAS}/
                   # Symlink the api docs to avoid duplication
                   ln -s ../${DOC_VERSION}/api ./gh-pages/${DOC_ALIAS}/api
 
                   # TODO: Enable when v5 release is done
-                  # cp /tmp/isolated-docs/scripts/resources/custom404.html ./gh-pages/404.html
+                  # cp ${{ runner.temp }}/isolated-docs/scripts/resources/custom404.html ./gh-pages/404.html
             - name: Publish Docs
               run: |
                   cd ./gh-pages
