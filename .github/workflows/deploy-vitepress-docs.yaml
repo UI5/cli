@@ -49,7 +49,9 @@ jobs:
                   cp -r internal/documentation/. ${{ runner.temp }}/isolated-docs/
             - name: Install documentation dependencies from NPM
               working-directory: ${{ runner.temp }}/isolated-docs
-              run: npm ci --engine-strict
+              # npm ci won't work as this package relies on the monorepo's package-lock.json
+              # Run npm install instead as we want latest @ui5/* packages to be installed from NPM
+              run: npm install --engine-strict
             - name: Fetch gh-pages branch
               run: git fetch origin gh-pages --depth=1
             - name: generate CLI doc
