@@ -284,6 +284,40 @@ class ProjectGraph {
 		processDependency(projectName);
 		return Array.from(dependencies);
 	}
+
+	getDependents(projectName) {
+		if (!this._projects.has(projectName)) {
+			throw new Error(
+				`Failed to get dependents for project ${projectName}: ` +
+				`Unable to find project in project graph`);
+		}
+		const dependents = [];
+		for (const [fromProjectName, adjacencies] of this._adjList) {
+			if (adjacencies.has(projectName)) {
+				dependents.push(fromProjectName);
+			}
+		}
+		return dependents;
+	}
+
+	getTransitiveDependents(projectName) {
+		const dependents = new Set();
+		if (!this._projects.has(projectName)) {
+			throw new Error(
+				`Failed to get transitive dependents for project ${projectName}: ` +
+				`Unable to find project in project graph`);
+		}
+		const addDependents = (projectName) => {
+			const projectDependents = this.getDependents(projectName);
+			projectDependents.forEach((dependent) => {
+				dependents.add(dependent);
+				addDependents(dependent);
+			});
+		};
+		addDependents(projectName);
+		return Array.from(dependents);
+	}
+
 	/**
 	 * Checks whether a dependency is optional or not.
 	 * Currently only used in tests.
@@ -475,6 +509,54 @@ class ProjectGraph {
 		})();
 	}
 
+	* traverseDependents(startName, includeStartModule = false) {
+		if (typeof startName === "boolean") {
+			includeStartModule = startName;
+			startName = undefined;
+		}
+		if (!startName) {
+			startName = this._rootProjectName;
+		} else if (!this.getProject(startName)) {
+			throw new Error(`Failed to start graph traversal: Could not find project ${startName} in project graph`);
+		}
+
+		const queue = [{
+			projectNames: [startName],
+			ancestors: []
+		}];
+
+		const visited = Object.create(null);
+
+		while (queue.length) {
+			const {projectNames, ancestors} = queue.shift(); // Get and remove first entry from queue
+
+			for (const projectName of projectNames) {
+				this._checkCycle(ancestors, projectName);
+				if (visited[projectName]) {
+					continue;
+				}
+
+				visited[projectName] = true;
+
+				const newAncestors = [...ancestors, projectName];
+				const dependents = this.getDependents(projectName);
+
+				queue.push({
+					projectNames: dependents,
+					ancestors: newAncestors
+				});
+
+				if (includeStartModule || projectName !== startName) {
+					// Do not yield the start module itself
+					yield {
+						project: this.getProject(projectName),
+						dependents
+					};
+				}
+			}
+		}
+	}
+
 	/**
 	 * Join another project graph into this one.
 	 * Projects and extensions which already exist in this graph will cause an error to be thrown
@@ -558,7 +640,8 @@ class ProjectGraph {
 		dependencyIncludes,
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
-		outputStyle = OutputStyleEnum.Default
+		outputStyle = OutputStyleEnum.Default,
+		cacheDir, watch,
 	}) {
 		this.seal(); // Do not allow further changes to the graph
 		if (this._built) {
@@ -579,10 +662,11 @@ class ProjectGraph {
 				includedTasks, excludedTasks, outputStyle,
 			}
 		});
-		await builder.build({
+		return await builder.build({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
+			cacheDir, watch,
 		});
 	}
 

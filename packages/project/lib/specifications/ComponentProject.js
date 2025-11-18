@@ -164,24 +164,26 @@ class ComponentProject extends Project {
 	// 	return resourceFactory.createWorkspace({
 	// 		name: `Workspace for project ${this.getName()}`,
 	// 		reader: this._getPlainReader(excludes),
-	// 		writer: this._getWriter().collection
+	// 		writer: this._createWriter().collection
 	// 	});
 	// }
 
-	_getWriter() {
+	_createWriter() {
 		// writer is always of style "buildtime"
 		const namespaceWriter = resourceFactory.createAdapter({
+			name: `Namespace writer for project ${this.getName()} (${this.getCurrentStage()} stage)`,
 			virBasePath: "/",
 			project: this
 		});
 
 		const generalWriter = resourceFactory.createAdapter({
+			name: `General writer for project ${this.getName()} (${this.getCurrentStage()} stage)`,
 			virBasePath: "/",
 			project: this
 		});
 
 		const collection = resourceFactory.createWriterCollection({
-			name: `Writers for project ${this.getName()}`,
+			name: `Writers for project ${this.getName()} (${this.getCurrentStage()} stage)`,
 			writerMapping: {
 				[`/resources/${this._namespace}/`]: namespaceWriter,
 				[`/test-resources/${this._namespace}/`]: namespaceWriter,
@@ -208,8 +210,13 @@ class ComponentProject extends Project {
 		return reader;
 	}
 
-	_addReadersFromWriter(style, readers, writer) {
-		const {namespaceWriter, generalWriter} = writer;
+	_addWriterToReaders(style, readers, writer) {
+		let {namespaceWriter, generalWriter} = writer;
+		if (!namespaceWriter || !generalWriter) {
+			// TODO: Too hacky
+			namespaceWriter = writer;
+			generalWriter = writer;
+		}
 
 		if ((style === "runtime" || style === "dist") && this._isRuntimeNamespaced) {
 			// If the project's type requires a namespace at runtime, the

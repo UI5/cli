@@ -56,6 +56,39 @@ class Library extends ComponentProject {
 		return fsPath.join(this.getRootPath(), this._srcPath);
 	}
 
+	getSourcePaths() {
+		const paths = [this.getSourcePath()];
+		if (this._testPathExists) {
+			paths.push(fsPath.join(this.getRootPath(), this._testPath));
+		}
+		return paths;
+	}
+
+	getVirtualPath(sourceFilePath) {
+		const sourcePath = this.getSourcePath();
+		if (sourceFilePath.startsWith(sourcePath)) {
+			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath);
+			let virBasePath = "/resources/";
+			if (!this._isSourceNamespaced) {
+				virBasePath += `${this._namespace}/`;
+			}
+			return posixPath.join(virBasePath, relSourceFilePath);
+		}
+
+		const testPath = fsPath.join(this.getRootPath(), this._testPath);
+		if (sourceFilePath.startsWith(testPath)) {
+			const relSourceFilePath = fsPath.relative(testPath, sourceFilePath);
+			let virBasePath = "/test-resources/";
+			if (!this._isSourceNamespaced) {
+				virBasePath += `${this._namespace}/`;
+			}
+			return posixPath.join(virBasePath, relSourceFilePath);
+		}
+
+		throw new Error(
+			`Unable to convert source path ${sourceFilePath} to virtual path for project ${this.getName()}`);
+	}
+
 	/* === Resource Access === */
 	/**
 	* Get a resource reader for the sources of the project (excluding any test resources)
@@ -156,13 +189,13 @@ class Library extends ComponentProject {
 	/**
 	 * @private
 	 * @param {object} config Configuration object
-	 * @param {object} buildDescription Cache metadata object
+	 * @param {object} buildManifest Cache metadata object
 	*/
-	async _parseConfiguration(config, buildDescription) {
-		await super._parseConfiguration(config, buildDescription);
+	async _parseConfiguration(config, buildManifest) {
+		await super._parseConfiguration(config, buildManifest);
 
-		if (buildDescription) {
-			this._namespace = buildDescription.namespace;
+		if (buildManifest) {
+			this._namespace = buildManifest.namespace;
 			return;
 		}
 
