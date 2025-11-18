@@ -401,19 +401,15 @@ class Console {
 			this._getProgressBar()?.increment(1);
 			break;
 		case "task-skip":
-			if (taskMetadata.executionSkipped) {
+			if (taskMetadata.executionEnded) {
 				throw new Error(`writers/Console: ` +
-					`Unexpected duplicate task-skip event for project ${projectName}, task ${taskName}`);
+					`Unexpected task-skip event for project ${projectName}, task ${taskName}. ` +
+					`Task execution already ended`);
 			}
 			if (taskMetadata.executionStarted) {
 				throw new Error(`writers/Console: ` +
 					`Unexpected task-skip event for project ${projectName}, task ${taskName}. ` +
 					`Task execution already started`);
-			}
-			if (taskMetadata.executionEnded) {
-				throw new Error(`writers/Console: ` +
-					`Unexpected task-skip event for project ${projectName}, task ${taskName}. ` +
-					`Task execution already ended`);
 			}
 			taskMetadata.executionEnded = true;
 			message = `${chalk.green(figures.tick)} Skipping task ${chalk.bold(taskName)}`;
