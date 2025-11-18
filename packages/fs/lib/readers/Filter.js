@@ -27,8 +27,8 @@ class Filter extends AbstractReader {
 	 * @param {@ui5/fs/readers/Filter~callback} parameters.callback
 	 * 				Filter function. Will be called for every resource read through this reader.
 	 */
-	constructor({reader, callback}) {
-		super();
+	constructor({name, reader, callback}) {
+		super(name);
 		if (!reader) {
 			throw new Error(`Missing parameter "reader"`);
 		}
