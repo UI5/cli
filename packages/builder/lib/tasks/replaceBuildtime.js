@@ -32,22 +32,24 @@ function getTimestamp() {
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default function({workspace, options: {pattern}}) {
-	const timestamp = getTimestamp();
+export default async function({workspace, buildCache, options: {pattern}}) {
+	let resources = await workspace.byGlob(pattern);
 
-	return workspace.byGlob(pattern)
-		.then((processedResources) => {
-			return stringReplacer({
-				resources: processedResources,
-				options: {
-					pattern: "${buildtime}",
-					replacement: timestamp
-				}
-			});
-		})
-		.then((processedResources) => {
-			return Promise.all(processedResources.map((resource) => {
-				return workspace.write(resource);
-			}));
-		});
+	if (buildCache.hasCache()) {
+		const changedPaths = buildCache.getChangedProjectResourcePaths();
+		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
+	}
+	const timestamp = getTimestamp();
+	const processedResources = await stringReplacer({
+		resources,
+		options: {
+			pattern: "${buildtime}",
+			replacement: timestamp
+		}
+	});
+	return Promise.all(processedResources.map((resource) => {
+		if (resource) {
+			return workspace.write(resource);
+		}
+	}));
 }

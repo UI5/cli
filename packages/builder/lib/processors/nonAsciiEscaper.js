@@ -83,8 +83,8 @@ async function nonAsciiEscaper({resources, options: {encoding}}) {
 		// only modify the resource's string if it was changed
 		if (escaped.modified) {
 			resource.setString(escaped.string);
+			return resource;
 		}
-		return resource;
 	}
 
 	return Promise.all(resources.map(processResource));

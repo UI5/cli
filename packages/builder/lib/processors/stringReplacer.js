@@ -23,7 +23,8 @@ export default function({resources, options: {pattern, replacement}}) {
 		const newContent = content.replaceAll(pattern, replacement);
 		if (content !== newContent) {
 			resource.setString(newContent);
+			return resource;
 		}
-		return resource;
+		// return resource;
 	}));
 }

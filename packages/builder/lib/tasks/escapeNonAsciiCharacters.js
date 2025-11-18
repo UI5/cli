@@ -19,12 +19,17 @@ import nonAsciiEscaper from "../processors/nonAsciiEscaper.js";
  * @param {string} parameters.options.encoding source file encoding either "UTF-8" or "ISO-8859-1"
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default async function({workspace, options: {pattern, encoding}}) {
+export default async function({workspace, invalidatedResources, options: {pattern, encoding}}) {
 	if (!encoding) {
 		throw new Error("[escapeNonAsciiCharacters] Mandatory option 'encoding' not provided");
 	}
 
-	const allResources = await workspace.byGlob(pattern);
+	let allResources;
+	if (invalidatedResources) {
+		allResources = await Promise.all(invalidatedResources.map((resource) => workspace.byPath(resource)));
+	} else {
+		allResources = await workspace.byGlob(pattern);
+	}
 
 	const processedResources = await nonAsciiEscaper({
 		resources: allResources,
@@ -33,5 +38,5 @@ export default async function({workspace, options: {pattern, encoding}}) {
 		}
 	});
 
-	await Promise.all(processedResources.map((resource) => workspace.write(resource)));
+	await Promise.all(processedResources.map((resource) => resource && workspace.write(resource)));
 }
