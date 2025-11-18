@@ -45,6 +45,21 @@ class Application extends ComponentProject {
 		return fsPath.join(this.getRootPath(), this._webappPath);
 	}
 
+	getSourcePaths() {
+		return [this.getSourcePath()];
+	}
+
+	getVirtualPath(sourceFilePath) {
+		const sourcePath = this.getSourcePath();
+		if (sourceFilePath.startsWith(sourcePath)) {
+			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath);
+			return `/resources/${this._namespace}/${relSourceFilePath}`;
+		}
+
+		throw new Error(
+			`Unable to convert source path ${sourceFilePath} to virtual path for project ${this.getName()}`);
+	}
+
 	/* === Resource Access === */
 	/**
 	* Get a resource reader for the sources of the project (excluding any test resources)
@@ -107,13 +122,13 @@ class Application extends ComponentProject {
 	/**
 	 * @private
 	 * @param {object} config Configuration object
-	 * @param {object} buildDescription Cache metadata object
+	 * @param {object} buildManifest Cache metadata object
 	*/
-	async _parseConfiguration(config, buildDescription) {
-		await super._parseConfiguration(config, buildDescription);
+	async _parseConfiguration(config, buildManifest) {
+		await super._parseConfiguration(config, buildManifest);
 
-		if (buildDescription) {
-			this._namespace = buildDescription.namespace;
+		if (buildManifest) {
+			this._namespace = buildManifest.namespace;
 			return;
 		}
 		this._namespace = await this._getNamespace();

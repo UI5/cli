@@ -1,6 +1,7 @@
 import test from "ava";
 import sinon from "sinon";
 import esmock from "esmock";
+import ProjectBuildCache from "../../../../lib/build/helpers/ProjectBuildCache.js";
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 
 test.beforeEach((t) => {
@@ -315,7 +316,7 @@ test("getTaskUtil", (t) => {
 });
 
 test.serial("getTaskRunner", async (t) => {
-	t.plan(3);
+	t.plan(4);
 	const project = {
 		getName: () => "project",
 		getType: () => "type",
@@ -325,10 +326,13 @@ test.serial("getTaskRunner", async (t) => {
 		constructor(params) {
 			t.true(params.log instanceof ProjectBuildLogger, "TaskRunner receives an instance of ProjectBuildLogger");
 			params.log = "log"; // replace log instance with string for deep comparison
+			t.true(params.cache instanceof ProjectBuildCache, "TaskRunner receives an instance of ProjectBuildCache");
+			params.cache = "cache"; // replace cache instance with string for deep comparison
 			t.deepEqual(params, {
 				graph: "graph",
 				project: project,
 				log: "log",
+				cache: "cache",
 				taskUtil: "taskUtil",
 				taskRepository: "taskRepository",
 				buildConfig: "buildConfig"
