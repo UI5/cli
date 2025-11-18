@@ -33,65 +33,29 @@ class Module extends Project {
 
 	/* === Resource Access === */
 
-	/**
-	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
-	 * project in the specified "style":
-	 *
-	 * <ul>
-	 * <li><b>buildtime:</b> Resource paths are always prefixed with <code>/resources/</code>
-	 *  or <code>/test-resources/</code> followed by the project's namespace.
-	 *  Any configured build-excludes are applied</li>
-	 * <li><b>dist:</b> Resource paths always match with what the UI5 runtime expects.
-	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
-	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  Any configured build-excludes are applied</li>
-	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
-	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
-	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied
-	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
-	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
-	 *  Any configured build-excludes are applied</li>
-	 * </ul>
-	 *
-	 * If project resources have been changed through the means of a workspace, those changes
-	 * are reflected in the provided reader too.
-	 *
-	 * Resource readers always use POSIX-style paths.
-	 *
-	 * @public
-	 * @param {object} [options]
-	 * @param {string} [options.style=buildtime] Path style to access resources.
-	 *   Can be "buildtime", "dist", "runtime" or "flat"
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getReader({style = "buildtime"} = {}) {
+	_getStyledReader(style) {
 		// Apply builder excludes to all styles but "runtime"
 		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
 
-		const reader = this._getReader(excludes);
-		return resourceFactory.createReaderCollectionPrioritized({
-			name: `Reader/Writer collection for project ${this.getName()}`,
-			readers: [this._getWriter(), reader]
-		});
+		return this._getReader(excludes);
 	}
 
-	/**
-	 * Get a resource reader/writer for accessing and modifying a project's resources
-	 *
-	 * @public
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getWorkspace() {
-		const excludes = this.getBuilderResourcesExcludes();
-		const reader = this._getReader(excludes);
+	// /**
+	//  * Get a resource reader/writer for accessing and modifying a project's resources
+	//  *
+	//  * @public
+	//  * @returns {@ui5/fs/ReaderCollection} A reader collection instance
+	//  */
+	// getWorkspace() {
+	// 	const excludes = this.getBuilderResourcesExcludes();
+	// 	const reader = this._getReader(excludes);
 
-		const writer = this._getWriter();
-		return resourceFactory.createWorkspace({
-			reader,
-			writer
-		});
-	}
+	// 	const writer = this._getWriter();
+	// 	return resourceFactory.createWorkspace({
+	// 		reader,
+	// 		writer
+	// 	});
+	// }
 
 	_getReader(excludes) {
 		const readers = this._paths.map(({name, virBasePath, fsBasePath}) => {
