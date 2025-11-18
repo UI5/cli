@@ -3,8 +3,6 @@ const log = getLogger("resources:adapters:Memory");
 import micromatch from "micromatch";
 import AbstractAdapter from "./AbstractAdapter.js";
 
-const ADAPTER_NAME = "Memory";
-
 /**
  * Virtual resource Adapter
  *
@@ -15,17 +13,17 @@ const ADAPTER_NAME = "Memory";
  */
 class Memory extends AbstractAdapter {
 	/**
-	 * The constructor.
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
+	 * @param {string} parameters.name
 	 * @param {string} parameters.virBasePath
 	 *   Virtual base path. Must be absolute, POSIX-style, and must end with a slash
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
 	 */
-	constructor({virBasePath, project, excludes}) {
-		super({virBasePath, project, excludes});
+	constructor({name, virBasePath, project, excludes}) {
+		super({name, virBasePath, project, excludes});
 		this._virFiles = Object.create(null); // map full of files
 		this._virDirs = Object.create(null); // map full of directories
 	}
@@ -72,18 +70,7 @@ class Memory extends AbstractAdapter {
 	async _runGlob(patterns, options = {nodir: true}, trace) {
 		if (patterns[0] === "" && !options.nodir) { // Match virtual root directory
 			return [
-				this._createResource({
-					project: this._project,
-					statInfo: { // TODO: make closer to fs stat info
-						isDirectory: function() {
-							return true;
-						}
-					},
-					sourceMetadata: {
-						adapter: ADAPTER_NAME
-					},
-					path: this._virBasePath.slice(0, -1)
-				})
+				this._createDirectoryResource(this._virBasePath.slice(0, -1))
 			];
 		}
 
@@ -157,18 +144,7 @@ class Memory extends AbstractAdapter {
 		for (let i = pathSegments.length - 1; i >= 0; i--) {
 			const segment = pathSegments[i];
 			if (!this._virDirs[segment]) {
-				this._virDirs[segment] = this._createResource({
-					project: this._project,
-					sourceMetadata: {
-						adapter: ADAPTER_NAME
-					},
-					statInfo: { // TODO: make closer to fs stat info
-						isDirectory: function() {
-							return true;
-						}
-					},
-					path: this._virBasePath + segment
-				});
+				this._virDirs[segment] = this._createDirectoryResource(this._virBasePath + segment);
 			}
 		}
 	}
