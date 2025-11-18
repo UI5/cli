@@ -1,4 +1,5 @@
 import baseMiddleware from "../middlewares/base.js";
+import path from "node:path";
 
 const build = {
 	command: "build",
@@ -173,6 +174,7 @@ async function handleBuild(argv) {
 	const buildSettings = graph.getRoot().getBuilderSettings() || {};
 	await graph.build({
 		graph,
+		cacheDir: path.join(graph.getRoot().getRootPath(), ".ui5-cache"),
 		destPath: argv.dest,
 		cleanDest: argv["clean-dest"],
 		createBuildManifest: argv["create-build-manifest"],
