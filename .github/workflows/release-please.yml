@@ -51,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install and publish ${{ matrix.package }}
+      - name: Publish ${{ matrix.package }} package
         working-directory: packages/${{ matrix.package }}
         run: |
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
@@ -80,7 +80,7 @@ jobs:
           set -e
           node ../../internal/shrinkwrap-extractor/cli.js ../../
 
-      - name: Publish @ui5/cli
+      - name: Publish @ui5/cli package
         working-directory: packages/cli
         run: |
           echo "🚀 Publishing @ui5/cli"
