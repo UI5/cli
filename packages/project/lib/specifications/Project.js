@@ -1,5 +1,6 @@
 import Specification from "./Specification.js";
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
+import {createWorkspace, createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 
 /**
  * Project
@@ -12,6 +13,12 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
  * @hideconstructor
  */
 class Project extends Specification {
+	#latestWriter;
+	#latestWorkspace;
+	#latestReader = new Map();
+	#writerVersions = [];
+	#workspaceSealed = false;
+
 	constructor(parameters) {
 		super(parameters);
 		if (new.target === Project) {
@@ -220,6 +227,7 @@ class Project extends Specification {
 	}
 
 	/* === Resource Access === */
+
 	/**
 	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
 	 * project in the specified "style":
@@ -241,16 +249,82 @@ class Project extends Specification {
 	 *  Any configured build-excludes are applied</li>
 	 * </ul>
 	 *
+	 * If project resources have been changed through the means of a workspace, those changes
+	 * are reflected in the provided reader too.
+	 *
 	 * Resource readers always use POSIX-style paths.
 	 *
 	 * @public
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources.
 	 *   Can be "buildtime", "dist", "runtime" or "flat"
-	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of the project
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	getReader(options) {
-		throw new Error(`getReader must be implemented by subclass ${this.constructor.name}`);
+	getReader({style = "buildtime"} = {}) {
+		let reader = this.#latestReader.get(style);
+		if (reader) {
+			return reader;
+		}
+		const readers = [];
+		this._addReadersFromWriter(style, readers, this.getWriter());
+		readers.push(this._getStyledReader(style));
+		reader = createReaderCollectionPrioritized({
+			name: `Reader collection for project ${this.getName()}`,
+			readers
+		});
+		this.#latestReader.set(style, reader);
+		return reader;
+	}
+
+	getWriter() {
+		return this.#latestWriter || this.createNewWriterVersion();
+	}
+
+	createNewWriterVersion() {
+		const writer = this._getWriter();
+		this.#writerVersions.push(writer);
+		this.#latestWriter = writer;
+
+		// Invalidate dependents
+		this.#latestWorkspace = null;
+		this.#latestReader = new Map();
+
+		return writer;
+	}
+
+	/**
+	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
+	* project's resources. This is always of style <code>buildtime</code>.
+	*
+	* Once a project has finished building, this method will throw to prevent further modifications
+	* since those would have no effect. Use the getReader method to access the project's (modified) resources
+	*
+	* @public
+	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
+	*/
+	getWorkspace() {
+		if (this.#workspaceSealed) {
+			throw new Error(
+				`Workspace of project ${this.getName()} has been sealed. Use method #getReader for read-only access`);
+		}
+		if (this.#latestWorkspace) {
+			return this.#latestWorkspace;
+		}
+		const excludes = this.getBuilderResourcesExcludes(); // TODO: Do not apply in server context
+		const writer = this.getWriter();
+		this.#latestWorkspace = createWorkspace({
+			reader: this._getReader(excludes),
+			writer: writer.collection || writer
+		});
+		return this.#latestWorkspace;
+	}
+
+	sealWorkspace() {
+		this.#workspaceSealed = true;
+	}
+
+	_addReadersFromWriter(style, readers, writer) {
+		readers.push(writer);
 	}
 
 	getResourceTagCollection() {
@@ -262,17 +336,6 @@ class Project extends Specification {
 			});
 		}
 		return this._resourceTagCollection;
-	}
-
-	/**
-	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
-	* project's resources. This is always of style <code>buildtime</code>.
-	*
-	* @public
-	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
-	*/
-	getWorkspace() {
-		throw new Error(`getWorkspace must be implemented by subclass ${this.constructor.name}`);
 	}
 
 	/* === Internals === */
