@@ -12,7 +12,7 @@ import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
 
 const READ_ONLY_MODE = 0o444;
-const ADAPTER_NAME = "FileSystem";
+
 /**
  * File system resource adapter
  *
@@ -23,9 +23,9 @@ const ADAPTER_NAME = "FileSystem";
  */
 class FileSystem extends AbstractAdapter {
 	/**
-	 * The Constructor.
 	 *
 	 * @param {object} parameters Parameters
+	 * @param {string} parameters.name
 	 * @param {string} parameters.virBasePath
 	 *   Virtual base path. Must be absolute, POSIX-style, and must end with a slash
 	 * @param {string} parameters.fsBasePath
@@ -35,8 +35,8 @@ class FileSystem extends AbstractAdapter {
 	 *   Whether to apply any excludes defined in an optional .gitignore in the given <code>fsBasePath</code> directory
 	 * @param {@ui5/project/specifications/Project} [parameters.project] Project this adapter belongs to (if any)
 	 */
-	constructor({virBasePath, project, fsBasePath, excludes, useGitignore=false}) {
-		super({virBasePath, project, excludes});
+	constructor({name, virBasePath, project, fsBasePath, excludes, useGitignore=false}) {
+		super({name, virBasePath, project, excludes});
 
 		if (!fsBasePath) {
 			throw new Error(`Unable to create adapter: Missing parameter 'fsBasePath'`);
@@ -80,7 +80,7 @@ class FileSystem extends AbstractAdapter {
 							statInfo: stat,
 							path: this._virBaseDir,
 							sourceMetadata: {
-								adapter: ADAPTER_NAME,
+								adapter: this.constructor.name,
 								fsPath: this._fsBasePath
 							},
 							createStream: () => {
@@ -124,7 +124,7 @@ class FileSystem extends AbstractAdapter {
 								statInfo: stat,
 								path: virPath,
 								sourceMetadata: {
-									adapter: ADAPTER_NAME,
+									adapter: this.constructor.name,
 									fsPath: fsPath
 								},
 								createStream: () => {
@@ -158,16 +158,8 @@ class FileSystem extends AbstractAdapter {
 			// Neither starts with basePath, nor equals baseDirectory
 			if (!options.nodir && this._virBasePath.startsWith(virPath)) {
 				// Create virtual directories for the virtual base path (which has to exist)
-				// TODO: Maybe improve this by actually matching the base paths segments to the virPath
-				return this._createResource({
-					project: this._project,
-					statInfo: { // TODO: make closer to fs stat info
-						isDirectory: function() {
-							return true;
-						}
-					},
-					path: virPath
-				});
+				// FUTURE: Maybe improve this by actually matching the base paths segments to the virPath
+				return this._createDirectoryResource(virPath);
 			} else {
 				return null;
 			}
@@ -200,7 +192,7 @@ class FileSystem extends AbstractAdapter {
 				statInfo,
 				path: virPath,
 				sourceMetadata: {
-					adapter: ADAPTER_NAME,
+					adapter: this.constructor.name,
 					fsPath
 				}
 			};
@@ -260,7 +252,7 @@ class FileSystem extends AbstractAdapter {
 		await mkdir(dirPath, {recursive: true});
 
 		const sourceMetadata = resource.getSourceMetadata();
-		if (sourceMetadata && sourceMetadata.adapter === ADAPTER_NAME && sourceMetadata.fsPath) {
+		if (sourceMetadata && sourceMetadata.adapter === this.constructor.name && sourceMetadata.fsPath) {
 			// Resource has been created by FileSystem adapter. This means it might require special handling
 
 			/* The following code covers these four conditions:
