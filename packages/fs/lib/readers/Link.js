@@ -44,8 +44,8 @@ class Link extends AbstractReader {
 	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader or collection to wrap
 	 * @param {@ui5/fs/readers/Link/PathMapping} parameters.pathMapping
 	 */
-	constructor({reader, pathMapping}) {
-		super();
+	constructor({name, reader, pathMapping}) {
+		super(name);
 		if (!reader) {
 			throw new Error(`Missing parameter "reader"`);
 		}
@@ -55,6 +55,29 @@ class Link extends AbstractReader {
 		this._reader = reader;
 		this._pathMapping = pathMapping;
 		Link._validatePathMapping(pathMapping);
+	}
+
+	resolvePattern(patterns) {
+		if (!(patterns instanceof Array)) {
+			patterns = [patterns];
+		}
+		patterns = patterns.map((pattern) => {
+			if (pattern.startsWith(this._pathMapping.linkPath)) {
+				pattern = pattern.substr(this._pathMapping.linkPath.length);
+			}
+			return prefixGlobPattern(pattern, this._pathMapping.targetPath);
+		});
+
+		// Flatten prefixed patterns
+		return Array.prototype.concat.apply([], patterns);
+	}
+
+	resolvePath(virPath) {
+		if (!virPath.startsWith(this._pathMapping.linkPath)) {
+			return null;
+		}
+		const targetPath = this._pathMapping.targetPath + virPath.substr(this._pathMapping.linkPath.length);
+		return targetPath;
 	}
 
 	/**
@@ -68,18 +91,7 @@ class Link extends AbstractReader {
 	 * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving to list of resources
 	 */
 	async _byGlob(patterns, options, trace) {
-		if (!(patterns instanceof Array)) {
-			patterns = [patterns];
-		}
-		patterns = patterns.map((pattern) => {
-			if (pattern.startsWith(this._pathMapping.linkPath)) {
-				pattern = pattern.substr(this._pathMapping.linkPath.length);
-			}
-			return prefixGlobPattern(pattern, this._pathMapping.targetPath);
-		});
-
-		// Flatten prefixed patterns
-		patterns = Array.prototype.concat.apply([], patterns);
+		patterns = this.resolvePattern(patterns);
 
 		// Keep resource's internal path unchanged for now
 		const resources = await this._reader._byGlob(patterns, options, trace);
@@ -104,10 +116,10 @@ class Link extends AbstractReader {
 	 * @returns {Promise<@ui5/fs/Resource>} Promise resolving to a single resource
 	 */
 	async _byPath(virPath, options, trace) {
-		if (!virPath.startsWith(this._pathMapping.linkPath)) {
+		const targetPath = this.resolvePath(virPath);
+		if (!targetPath) {
 			return null;
 		}
-		const targetPath = this._pathMapping.targetPath + virPath.substr(this._pathMapping.linkPath.length);
 		log.silly(`byPath: Rewriting virtual path ${virPath} to ${targetPath}`);
 
 		const resource = await this._reader._byPath(targetPath, options, trace);
