@@ -29,27 +29,30 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default function({workspace, options: {copyright, pattern}}) {
+export default async function({workspace, buildCache, options: {copyright, pattern}}) {
 	if (!copyright) {
-		return Promise.resolve();
+		return;
 	}
 
 	// Replace optional placeholder ${currentYear} with the current year
 	copyright = copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
 
-	return workspace.byGlob(pattern)
-		.then((processedResources) => {
-			return stringReplacer({
-				resources: processedResources,
-				options: {
-					pattern: /(?:\$\{copyright\}|@copyright@)/g,
-					replacement: copyright
-				}
-			});
-		})
-		.then((processedResources) => {
-			return Promise.all(processedResources.map((resource) => {
-				return workspace.write(resource);
-			}));
-		});
+	let resources = await workspace.byGlob(pattern);
+	if (buildCache.hasCache()) {
+		const changedPaths = buildCache.getChangedProjectResourcePaths();
+		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
+	}
+
+	const processedResources = await stringReplacer({
+		resources,
+		options: {
+			pattern: /(?:\$\{copyright\}|@copyright@)/g,
+			replacement: copyright
+		}
+	});
+	return Promise.all(processedResources.map((resource) => {
+		if (resource) {
+			return workspace.write(resource);
+		}
+	}));
 }

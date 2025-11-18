@@ -26,9 +26,17 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({
-	workspace, taskUtil, options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true
-	}}) {
-	const resources = await workspace.byGlob(pattern);
+	workspace, taskUtil, buildCache,
+	options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true}
+}) {
+	let resources = await workspace.byGlob(pattern);
+	if (buildCache.hasCache()) {
+		const changedPaths = buildCache.getChangedProjectResourcePaths();
+		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
+	}
+	if (resources.length === 0) {
+		return;
+	}
 	const processedResources = await minifier({
 		resources,
 		fs: fsInterface(workspace),
