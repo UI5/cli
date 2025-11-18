@@ -194,7 +194,7 @@ function generateDoc() {
 		console.error(`Failed to generate docs/pages/CLI.md: ${err.message}.`);
 		throw err;
 	}
-	console.log("Generated packages/documentation/docs/pages/CLI.md");
+	console.log("Generated internal/documentation/docs/pages/CLI.md");
 }
 
 function splitString(temp) {

@@ -1,0 +1,85 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # Required for trusted publishing via OIDC (https://docs.npmjs.com/trusted-publishers)
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+         node-version: 24.x
+
+      - name: Run Release Please to update PRs and create releases
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+
+  publish-packages:
+    runs-on: ubuntu-24.04
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    strategy:
+      # Sequential publishing ensures dependencies exist on NPM before dependents are published
+      # Order: logger → fs → builder → server → project (CLI handled separately for shrinkwrap generation)
+      max-parallel: 1
+      matrix:
+        package: [logger, fs, builder, server, project]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.x
+          
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish ${{ matrix.package }} package
+        working-directory: packages/${{ matrix.package }}
+        run: |
+          echo "🚀 Publishing @ui5/${{ matrix.package }}"
+          
+          # TODO: Uncomment when ready to publish
+          # npm publish --access public
+
+  publish-cli:
+    runs-on: ubuntu-24.04
+    needs: [release-please, publish-packages]
+    if: needs.release-please.outputs.releases_created == 'true'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Node.js LTS
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.x
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate npm-shrinkwrap.json
+        working-directory: packages/cli
+        run: |
+          set -e
+          node ../../internal/shrinkwrap-extractor/cli.js ../../
+
+      - name: Publish @ui5/cli package
+        working-directory: packages/cli
+        run: |
+          echo "🚀 Publishing @ui5/cli"
+          # TODO: Uncomment when ready to publish
+          # npm publish --access public

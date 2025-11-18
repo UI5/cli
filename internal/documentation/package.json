@@ -23,6 +23,8 @@
 	},
 	"scripts": {
 		"start": "vitepress dev --open",
+		"lint": "eslint .",
+		"depcheck": "depcheck --ignores @ui5/documentation,vitepress,docdash,jsdoc,open-cli,handlebars,@types/node,@ui5/webcomponents,autoprefixer,cssnano,@ui5/cli,@ui5/builder,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,@theme/components",
 		"dev": "vitepress dev",
 		"build:vitepress": "vitepress build",
 		"build:assets": "sh -c 'DEST_DIR=${1:-./dist}; cp -r ./docs/images \"$DEST_DIR/images\"' --",
@@ -43,11 +45,12 @@
 		"vue": "^3.4.38"
 	},
 	"devDependencies": {
-		"@ui5/builder": "^4.0.11",
-		"@ui5/fs": "^4.0.2",
-		"@ui5/logger": "^4.0.2",
-		"@ui5/project": "^4.0.6",
-		"@ui5/server": "^4.0.7",
+		"@ui5/builder": "^4",
+		"@ui5/cli": "^4",
+		"@ui5/fs": "^4",
+		"@ui5/logger": "^4",
+		"@ui5/project": "^4",
+		"@ui5/server": "^4",
 		"docdash": "^2.0.2",
 		"jsdoc": "^4.0.4",
 		"open-cli": "^8.0.0",

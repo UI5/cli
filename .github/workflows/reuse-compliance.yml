@@ -18,9 +18,10 @@ jobs:
     strategy:
       matrix:
         package:
+          - "internal/documentation"
+          - "internal/shrinkwrap-extractor"
           - "packages/builder"
           - "packages/cli"
-          - "packages/documentation"
           - "packages/fs"
           - "packages/logger"
           - "packages/project"
