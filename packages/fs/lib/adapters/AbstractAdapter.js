@@ -17,20 +17,20 @@ import Resource from "../Resource.js";
  */
 class AbstractAdapter extends AbstractReaderWriter {
 	/**
-	 * The constructor
 	 *
 	 * @public
 	 * @param {object} parameters Parameters
+	 * @param {string} parameters.name
 	 * @param {string} parameters.virBasePath
 	 *   Virtual base path. Must be absolute, POSIX-style, and must end with a slash
 	 * @param {string[]} [parameters.excludes] List of glob patterns to exclude
 	 * @param {object} [parameters.project] Experimental, internal parameter. Do not use
 	 */
-	constructor({virBasePath, excludes = [], project}) {
+	constructor({name, virBasePath, excludes = [], project}) {
 		if (new.target === AbstractAdapter) {
 			throw new TypeError("Class 'AbstractAdapter' is abstract");
 		}
-		super();
+		super(name);
 
 		if (!virBasePath) {
 			throw new Error(`Unable to create adapter: Missing parameter 'virBasePath'`);
@@ -81,17 +81,7 @@ class AbstractAdapter extends AbstractReaderWriter {
 				if (patterns[i] && idx !== -1 && idx < this._virBaseDir.length) {
 					const subPath = patterns[i];
 					return [
-						this._createResource({
-							statInfo: { // TODO: make closer to fs stat info
-								isDirectory: function() {
-									return true;
-								}
-							},
-							source: {
-								adapter: "Abstract"
-							},
-							path: subPath
-						})
+						this._createDirectoryResource(subPath)
 					];
 				}
 			}
@@ -201,6 +191,10 @@ class AbstractAdapter extends AbstractReaderWriter {
 		if (this._project) {
 			parameters.project = this._project;
 		}
+		if (!parameters.source) {
+			parameters.source = Object.create(null);
+		}
+		parameters.source.adapter = this.constructor.name;
 		return new Resource(parameters);
 	}
 
@@ -288,6 +282,38 @@ class AbstractAdapter extends AbstractReaderWriter {
 
 		const relPath = virPath.substr(this._virBasePath.length);
 		return relPath;
+	}
+
+	_createDirectoryResource(dirPath) {
+		const now = new Date();
+		const fnFalse = function() {
+			return false;
+		};
+		const fnTrue = function() {
+			return true;
+		};
+		const statInfo = {
+			isFile: fnFalse,
+			isDirectory: fnTrue,
+			isBlockDevice: fnFalse,
+			isCharacterDevice: fnFalse,
+			isSymbolicLink: fnFalse,
+			isFIFO: fnFalse,
+			isSocket: fnFalse,
+			size: 0,
+			atimeMs: now.getTime(),
+			mtimeMs: now.getTime(),
+			ctimeMs: now.getTime(),
+			birthtimeMs: now.getTime(),
+			atime: now,
+			mtime: now,
+			ctime: now,
+			birthtime: now,
+		};
+		return this._createResource({
+			statInfo: statInfo,
+			path: dirPath,
+		});
 	}
 }
 
