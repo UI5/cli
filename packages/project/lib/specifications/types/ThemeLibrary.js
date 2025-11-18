@@ -39,6 +39,25 @@ class ThemeLibrary extends Project {
 		return fsPath.join(this.getRootPath(), this._srcPath);
 	}
 
+	getSourcePaths() {
+		return [this.getSourcePath()];
+	}
+
+	getVirtualPath(sourceFilePath) {
+		const sourcePath = this.getSourcePath();
+		if (sourceFilePath.startsWith(sourcePath)) {
+			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath);
+			let virBasePath = "/resources/";
+			if (!this._isSourceNamespaced) {
+				virBasePath += `${this._namespace}/`;
+			}
+			return `${virBasePath}${relSourceFilePath}`;
+		}
+
+		throw new Error(
+			`Unable to convert source path ${sourceFilePath} to virtual path for project ${this.getName()}`);
+	}
+
 	/* === Resource Access === */
 
 	_getStyledReader(style) {
@@ -62,7 +81,7 @@ class ThemeLibrary extends Project {
 	// 	const excludes = this.getBuilderResourcesExcludes();
 	// 	const reader = this._getReader(excludes);
 
-	// 	const writer = this._getWriter();
+	// 	const writer = this._createWriter();
 	// 	return resourceFactory.createWorkspace({
 	// 		reader,
 	// 		writer
@@ -93,7 +112,7 @@ class ThemeLibrary extends Project {
 		return reader;
 	}
 
-	_getWriter() {
+	_createWriter() {
 		if (!this._writer) {
 			this._writer = resourceFactory.createAdapter({
 				virBasePath: "/",

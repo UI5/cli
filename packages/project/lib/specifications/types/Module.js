@@ -31,6 +31,12 @@ class Module extends Project {
 		throw new Error(`Projects of type module have more than one source path`);
 	}
 
+	getSourcePaths() {
+		return this._paths.map(({fsBasePath}) => {
+			return fsBasePath;
+		});
+	}
+
 	/* === Resource Access === */
 
 	_getStyledReader(style) {
@@ -50,7 +56,7 @@ class Module extends Project {
 	// 	const excludes = this.getBuilderResourcesExcludes();
 	// 	const reader = this._getReader(excludes);
 
-	// 	const writer = this._getWriter();
+	// 	const writer = this._createWriter();
 	// 	return resourceFactory.createWorkspace({
 	// 		reader,
 	// 		writer
@@ -76,7 +82,7 @@ class Module extends Project {
 		});
 	}
 
-	_getWriter() {
+	_createWriter() {
 		if (!this._writer) {
 			this._writer = resourceFactory.createAdapter({
 				virBasePath: "/"

@@ -1,6 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
-import {createReaderCollection} from "@ui5/fs/resourceFactory";
+import {createReaderCollection, createTracker} from "@ui5/fs/resourceFactory";
 
 /**
  * TaskRunner
@@ -21,8 +21,8 @@ class TaskRunner {
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
 	 */
-	constructor({graph, project, log, taskUtil, taskRepository, buildConfig}) {
-		if (!graph || !project || !log || !taskUtil || !taskRepository || !buildConfig) {
+	constructor({graph, project, log, cache, taskUtil, taskRepository, buildConfig}) {
+		if (!graph || !project || !log || !cache || !taskUtil || !taskRepository || !buildConfig) {
 			throw new Error("TaskRunner: One or more mandatory parameters not provided");
 		}
 		this._project = project;
@@ -31,6 +31,7 @@ class TaskRunner {
 		this._taskRepository = taskRepository;
 		this._buildConfig = buildConfig;
 		this._log = log;
+		this._cache = cache;
 
 		this._directDependencies = new Set(this._taskUtil.getDependencies());
 	}
@@ -190,20 +191,62 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 
-				const params = {
-					workspace: this._project.getWorkspace(),
-					taskUtil: this._taskUtil,
-					options
-				};
+				// TODO: Apply cache and stage handling for custom tasks as well
+				this._project.useStage(taskName);
 
+				// Check whether any of the relevant resources have changed
+				if (this._cache.hasCacheForTask(taskName)) {
+					await this._cache.validateChangedProjectResources(
+						taskName, this._project.getReader(), this._allDependenciesReader);
+					if (this._cache.hasValidCacheForTask(taskName)) {
+						this._log.skipTask(taskName);
+						return;
+					}
+				}
+				this._log.info(
+					`Executing task ${taskName} for project ${this._project.getName()}`);
+				const workspace = createTracker(this._project.getWorkspace());
+				const params = {
+					workspace,
+					taskUtil: this._taskUtil,
+					options,
+					buildCache: {
+						// TODO: Create a proper interface for this
+						hasCache: () => {
+							return this._cache.hasCacheForTask(taskName);
+						},
+						getChangedProjectResourcePaths: () => {
+							return this._cache.getChangedProjectResourcePaths(taskName);
+						},
+						getChangedDependencyResourcePaths: () => {
+							return this._cache.getChangedDependencyResourcePaths(taskName);
+						},
+					}
+				};
+				// const invalidatedResources = this._cache.getDepsOfInvalidatedResourcesForTask(taskName);
+				// if (invalidatedResources) {
+				// 	params.invalidatedResources = invalidatedResources;
+				// }
+
+				let dependencies;
 				if (requiresDependencies) {
-					params.dependencies = this._allDependenciesReader;
+					dependencies = createTracker(this._allDependenciesReader);
+					params.dependencies = dependencies;
 				}
 
 				if (!taskFunction) {
 					taskFunction = (await this._taskRepository.getTask(taskName)).task;
 				}
-				return taskFunction(params);
+
+				this._log.startTask(taskName);
+				this._taskStart = performance.now();
+				await taskFunction(params);
+				if (this._log.isLevelEnabled("perf")) {
+					this._log.perf(
+						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
+				}
+				this._log.endTask(taskName);
+				await this._cache.updateTaskResult(taskName, workspace, dependencies);
 			};
 		}
 		this._tasks[taskName] = {
@@ -445,13 +488,15 @@ class TaskRunner {
 	 * @returns {Promise} Resolves when task has finished
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
-		this._log.startTask(taskName);
+		if (this._cache.hasValidCacheForTask(taskName)) {
+			this._log.skipTask(taskName);
+			return;
+		}
 		this._taskStart = performance.now();
 		await taskFunction(taskParams, this._log);
 		if (this._log.isLevelEnabled("perf")) {
 			this._log.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
-		this._log.endTask(taskName);
 	}
 
 	async _createDependenciesReader(requiredDirectDependencies) {
