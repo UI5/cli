@@ -76,6 +76,37 @@ class ThemeLibrary extends Project {
 		// Apply builder excludes to all styles but "runtime"
 		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
 
+		const reader = this._getReader(excludes);
+		const writer = this._getWriter();
+
+		return resourceFactory.createReaderCollectionPrioritized({
+			name: `Reader/Writer collection for project ${this.getName()}`,
+			readers: [writer, reader]
+		});
+	}
+
+	/**
+	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
+	* project's resources.
+	*
+	* This is always of style <code>buildtime</code>, wich for theme libraries is identical to style
+	* <code>runtime</code>.
+	*
+	* @public
+	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
+	*/
+	getWorkspace() {
+		const excludes = this.getBuilderResourcesExcludes();
+		const reader = this._getReader(excludes);
+
+		const writer = this._getWriter();
+		return resourceFactory.createWorkspace({
+			reader,
+			writer
+		});
+	}
+
+	_getReader(excludes) {
 		let reader = resourceFactory.createReader({
 			fsBasePath: this.getSourcePath(),
 			virBasePath: "/resources/",
@@ -96,32 +127,7 @@ class ThemeLibrary extends Project {
 				readers: [reader, testReader]
 			});
 		}
-		const writer = this._getWriter();
-
-		return resourceFactory.createReaderCollectionPrioritized({
-			name: `Reader/Writer collection for project ${this.getName()}`,
-			readers: [writer, reader]
-		});
-	}
-
-	/**
-	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
-	* project's resources.
-	*
-	* This is always of style <code>buildtime</code>, wich for theme libraries is identical to style
-	* <code>runtime</code>.
-	*
-	* @public
-	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
-	*/
-	getWorkspace() {
-		const reader = this.getReader();
-
-		const writer = this._getWriter();
-		return resourceFactory.createWorkspace({
-			reader,
-			writer
-		});
+		return reader;
 	}
 
 	_getWriter() {

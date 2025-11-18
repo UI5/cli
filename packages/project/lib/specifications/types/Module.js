@@ -69,6 +69,31 @@ class Module extends Project {
 		// Apply builder excludes to all styles but "runtime"
 		const excludes = style === "runtime" ? [] : this.getBuilderResourcesExcludes();
 
+		const reader = this._getReader(excludes);
+		return resourceFactory.createReaderCollectionPrioritized({
+			name: `Reader/Writer collection for project ${this.getName()}`,
+			readers: [this._getWriter(), reader]
+		});
+	}
+
+	/**
+	 * Get a resource reader/writer for accessing and modifying a project's resources
+	 *
+	 * @public
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
+	 */
+	getWorkspace() {
+		const excludes = this.getBuilderResourcesExcludes();
+		const reader = this._getReader(excludes);
+
+		const writer = this._getWriter();
+		return resourceFactory.createWorkspace({
+			reader,
+			writer
+		});
+	}
+
+	_getReader(excludes) {
 		const readers = this._paths.map(({name, virBasePath, fsBasePath}) => {
 			return resourceFactory.createReader({
 				name,
@@ -81,29 +106,9 @@ class Module extends Project {
 		if (readers.length === 1) {
 			return readers[0];
 		}
-		const readerCollection = resourceFactory.createReaderCollection({
+		return resourceFactory.createReaderCollection({
 			name: `Reader collection for module project ${this.getName()}`,
 			readers
-		});
-		return resourceFactory.createReaderCollectionPrioritized({
-			name: `Reader/Writer collection for project ${this.getName()}`,
-			readers: [this._getWriter(), readerCollection]
-		});
-	}
-
-	/**
-	 * Get a resource reader/writer for accessing and modifying a project's resources
-	 *
-	 * @public
-	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	 */
-	getWorkspace() {
-		const reader = this.getReader();
-
-		const writer = this._getWriter();
-		return resourceFactory.createWorkspace({
-			reader,
-			writer
 		});
 	}
 
