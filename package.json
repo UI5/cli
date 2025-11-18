@@ -24,13 +24,13 @@
 	},
 	"scripts": {
 		"test": "npm run lint && npm run check-licenses && npm run depcheck && npm run coverage && npm run schema-generate && npm run generate-cli-doc",
-		"lint": "eslint ./ && npm run lint --workspaces",
+		"lint": "eslint ./ && npm run lint --workspaces --if-present",
 		"lint:commit": "commitlint",
-		"unit": "npm run unit --workspaces",
-		"coverage": "npm run coverage --workspaces",
+		"unit": "npm run unit --workspaces --if-present",
+		"coverage": "npm run coverage --workspaces --if-present",
 		"schema-generate": "node ./scripts/buildSchema.js ui5",
 		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace",
-		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces",
+		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces --if-present",
 		"check-licenses": "licensee --errors-only",
 		"generate-cli-doc": "npm run generate-cli-doc --workspace=@ui5/documentation"
 	},
