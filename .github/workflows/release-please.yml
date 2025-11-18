@@ -32,11 +32,8 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.releases_created == 'true'
     strategy:
-      # Publish packages in dependency order: logger → fs → builder → server → project
-      # CLI is handled separately to update shrinkwrap
-      # Order of packages in the matrix does matter and is important!
-      # release-please updates the package.json dependencies with ones that do not exist yet on NPM
-      # Publish in the correct order is important, so that dependencies are available and resolved properly!
+      # Sequential publishing ensures dependencies exist on NPM before dependents are published
+      # Order: logger → fs → builder → server → project (CLI handled separately for shrinkwrap generation)
       max-parallel: 1
       matrix:
         package: [logger, fs, builder, server, project]
