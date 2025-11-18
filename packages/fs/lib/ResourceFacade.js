@@ -46,6 +46,16 @@ class ResourceFacade {
 	}
 
 	/**
+	 * Gets the resources path
+	 *
+	 * @public
+	 * @returns {string} (Virtual) path of the resource
+	 */
+	getOriginalPath() {
+		return this.#resource.getPath();
+	}
+
+	/**
 	 * Gets the resource name
 	 *
 	 * @public
@@ -148,6 +158,10 @@ class ResourceFacade {
 	 */
 	setStream(stream) {
 		return this.#resource.setStream(stream);
+	}
+
+	getHash() {
+		return this.#resource.getHash();
 	}
 
 	/**

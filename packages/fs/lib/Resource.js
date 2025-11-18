@@ -1,9 +1,8 @@
 import stream from "node:stream";
+import crypto from "node:crypto";
 import clone from "clone";
 import posixPath from "node:path/posix";
 
-const fnTrue = () => true;
-const fnFalse = () => false;
 const ALLOWED_SOURCE_METADATA_KEYS = ["adapter", "fsPath", "contentModified"];
 
 /**
@@ -100,24 +99,6 @@ class Resource {
 
 		this.#project = project;
 
-		this.#statInfo = statInfo || { // TODO
-			isFile: fnTrue,
-			isDirectory: fnFalse,
-			isBlockDevice: fnFalse,
-			isCharacterDevice: fnFalse,
-			isSymbolicLink: fnFalse,
-			isFIFO: fnFalse,
-			isSocket: fnFalse,
-			atimeMs: new Date().getTime(),
-			mtimeMs: new Date().getTime(),
-			ctimeMs: new Date().getTime(),
-			birthtimeMs: new Date().getTime(),
-			atime: new Date(),
-			mtime: new Date(),
-			ctime: new Date(),
-			birthtime: new Date()
-		};
-
 		if (createStream) {
 			this.#createStream = createStream;
 		} else if (stream) {
@@ -128,6 +109,15 @@ class Resource {
 		} else if (typeof string === "string" || string instanceof String) {
 			// Use private setter, not to accidentally set any modified flags
 			this.#setBuffer(Buffer.from(string, "utf8"));
+		}
+
+		if (statInfo) {
+			this.#statInfo = parseStat(statInfo);
+		} else {
+			if (createStream || stream) {
+				throw new Error("Unable to create Resource: Please provide statInfo for stream content");
+			}
+			this.#statInfo = createStat(this.#buffer.byteLength);
 		}
 
 		// Tracing:
@@ -164,6 +154,7 @@ class Resource {
 	setBuffer(buffer) {
 		this.#sourceMetadata.contentModified = true;
 		this.#isModified = true;
+		this.#updateStatInfo(buffer);
 		this.#setBuffer(buffer);
 	}
 
@@ -269,6 +260,21 @@ class Resource {
 		this.#streamDrained = false;
 	}
 
+	async getHash() {
+		if (this.#statInfo.isDirectory()) {
+			return;
+		}
+		const buffer = await this.getBuffer();
+		return crypto.createHash("md5").update(buffer).digest("hex");
+	}
+
+	#updateStatInfo(buffer) {
+		const now = new Date();
+		this.#statInfo.mtimeMs = now.getTime();
+		this.#statInfo.mtime = now;
+		this.#statInfo.size = buffer.byteLength;
+	}
+
 	/**
 	 * Gets the virtual resources path
 	 *
@@ -276,6 +282,10 @@ class Resource {
 	 * @returns {string} Virtual path of the resource
 	 */
 	getPath() {
+		return this.#path;
+	}
+
+	getOriginalPath() {
 		return this.#path;
 	}
 
@@ -318,6 +328,10 @@ class Resource {
 		return this.#statInfo;
 	}
 
+	getLastModified() {
+
+	}
+
 	/**
 	 * Size in bytes allocated by the underlying buffer.
 	 *
@@ -325,12 +339,13 @@ class Resource {
 	 * @returns {Promise<number>} size in bytes, <code>0</code> if there is no content yet
 	 */
 	async getSize() {
-		// if resource does not have any content it should have 0 bytes
-		if (!this.#buffer && !this.#createStream && !this.#stream) {
-			return 0;
-		}
-		const buffer = await this.getBuffer();
-		return buffer.byteLength;
+		return this.#statInfo.size;
+		// // if resource does not have any content it should have 0 bytes
+		// if (!this.#buffer && !this.#createStream && !this.#stream) {
+		// 	return 0;
+		// }
+		// const buffer = await this.getBuffer();
+		// return buffer.byteLength;
 	}
 
 	/**
@@ -356,7 +371,7 @@ class Resource {
 	async #getCloneOptions() {
 		const options = {
 			path: this.#path,
-			statInfo: clone(this.#statInfo),
+			statInfo: this.#statInfo, // Will be cloned in constructor
 			sourceMetadata: clone(this.#sourceMetadata)
 		};
 
@@ -493,6 +508,64 @@ class Resource {
 			});
 		});
 	}
+}
+
+const fnTrue = function() {
+	return true;
+};
+const fnFalse = function() {
+	return false;
+};
+
+/**
+ * Parses a Node.js stat object to a UI5 Tooling stat object
+ *
+ * @param {fs.Stats} statInfo Node.js stat
+ * @returns {object} UI5 Tooling stat
+*/
+function parseStat(statInfo) {
+	return {
+		isFile: statInfo.isFile.bind(statInfo),
+		isDirectory: statInfo.isDirectory.bind(statInfo),
+		isBlockDevice: statInfo.isBlockDevice.bind(statInfo),
+		isCharacterDevice: statInfo.isCharacterDevice.bind(statInfo),
+		isSymbolicLink: statInfo.isSymbolicLink.bind(statInfo),
+		isFIFO: statInfo.isFIFO.bind(statInfo),
+		isSocket: statInfo.isSocket.bind(statInfo),
+		ino: statInfo.ino,
+		size: statInfo.size,
+		atimeMs: statInfo.atimeMs,
+		mtimeMs: statInfo.mtimeMs,
+		ctimeMs: statInfo.ctimeMs,
+		birthtimeMs: statInfo.birthtimeMs,
+		atime: statInfo.atime,
+		mtime: statInfo.mtime,
+		ctime: statInfo.ctime,
+		birthtime: statInfo.birthtime,
+	};
+}
+
+function createStat(size) {
+	const now = new Date();
+	return {
+		isFile: fnTrue,
+		isDirectory: fnFalse,
+		isBlockDevice: fnFalse,
+		isCharacterDevice: fnFalse,
+		isSymbolicLink: fnFalse,
+		isFIFO: fnFalse,
+		isSocket: fnFalse,
+		ino: 0,
+		size,
+		atimeMs: now.getTime(),
+		mtimeMs: now.getTime(),
+		ctimeMs: now.getTime(),
+		birthtimeMs: now.getTime(),
+		atime: now,
+		mtime: now,
+		ctime: now,
+		birthtime: now,
+	};
 }
 
 export default Resource;
