@@ -64,6 +64,8 @@ To allow the UI5 runtime to identify libraries built with this new approach, the
 
 The presence of `"bundleVersion": 2` signals to the UI5 runtime that the library uses the "Bundle-Info Preload" format. The runtime can then safely and efficiently load the `library-preload.js` bundles for any lazy dependencies. If this flag is absent, the runtime can assume a legacy bundling format and issue a warning or error, as it expects all libraries for UI5 2.0+ to be built with a compatible UI5 CLI version.
 
+Note that this manifest attribute will only be added in a later manifest version. Therefore, the UI5 CLI must also adapt the manifest version accordingly when building libraries.
+
 ### Planned Runtime Behavior
 
 In a future UI5 framework release the following behavior might be implemented:
@@ -94,6 +96,8 @@ The "Bundle-Info Preload" feature is designed to work transparently for most dev
 ## Drawbacks
 
 UI5 releases prior to version 1.74 do not provide all required UI5 loader features, making the new bundling incompatible with these versions. Developers still targeting older releases (such as 1.71) will need to stick with an older release of UI5 CLI where the new bundling is not used.
+
+Similarly, the addition of the manifest flag requires the use of a specific manifest version which might not be supported by older UI5 releases. However, due to lack of validation of the manifest version in older UI5 releases, this is not expected to cause practical issues.
 
 Another drawback is the introduction of an additional request for the `_library-content.js` file. However, this request only occurs if the library is actually used, and it happens in parallel with other requests. For libraries that are declared but never used, this approach saves bandwidth by not loading the large content bundle at all. For eagerly used libraries, the performance impact is expected to be negligible and outweighed by the benefits of parallel loading and simplified development.
 
