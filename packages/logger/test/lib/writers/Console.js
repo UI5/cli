@@ -721,6 +721,114 @@ test.serial("ProjectBuild status (end): Task execution not started", (t) => {
 	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
 });
 
+test.serial("ProjectBuild status (skip)", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.build-metadata", {
+		projectsToBuild: ["project.a"]
+	});
+
+	process.emit("ui5.project-build-metadata", {
+		projectName: "project.a",
+		projectType: "project-type",
+		tasksToRun: ["task.a"]
+	});
+
+	process.emit("ui5.project-build-status", {
+		level: "info",
+		projectName: "project.a",
+		projectType: "project-type",
+		taskName: "task.a",
+		status: "task-skip",
+	});
+
+	t.is(stderrWriteStub.callCount, 1, "Logged one message");
+	t.is(stripAnsi(stderrWriteStub.getCall(0).args[0]),
+		`info project.a ${figures.tick} Skipping task task.a\n`,
+		"Logged expected message");
+});
+
+test.serial("ProjectBuild status (skip): Task execution already started", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.build-metadata", {
+		projectsToBuild: ["project.a"]
+	});
+
+	process.emit("ui5.project-build-metadata", {
+		projectName: "project.a",
+		projectType: "project-type",
+		tasksToRun: ["task.a"]
+	});
+
+	process.emit("ui5.project-build-status", {
+		level: "silly",
+		projectName: "project.a",
+		projectType: "project-type",
+		taskName: "task.a",
+		status: "task-start",
+	});
+
+	t.throws(() => {
+		process.emit("ui5.project-build-status", {
+			level: "info",
+			projectName: "project.a",
+			projectType: "project-type",
+			taskName: "task.a",
+			status: "task-skip",
+		});
+	}, {
+		message:
+			"writers/Console: Unexpected task-skip event for project project.a, task task.a. " +
+			"Task execution already started"
+	});
+
+	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
+});
+
+test.serial("ProjectBuild status (skip): Task execution already ended", (t) => {
+	const {stderrWriteStub} = t.context;
+	process.emit("ui5.build-metadata", {
+		projectsToBuild: ["project.a"]
+	});
+
+	process.emit("ui5.project-build-metadata", {
+		projectName: "project.a",
+		projectType: "project-type",
+		tasksToRun: ["task.a"]
+	});
+
+	process.emit("ui5.project-build-status", {
+		level: "silly",
+		projectName: "project.a",
+		projectType: "project-type",
+		taskName: "task.a",
+		status: "task-start",
+	});
+
+	process.emit("ui5.project-build-status", {
+		level: "silly",
+		projectName: "project.a",
+		projectType: "project-type",
+		taskName: "task.a",
+		status: "task-end",
+	});
+
+	t.throws(() => {
+		process.emit("ui5.project-build-status", {
+			level: "info",
+			projectName: "project.a",
+			projectType: "project-type",
+			taskName: "task.a",
+			status: "task-skip",
+		});
+	}, {
+		message:
+			"writers/Console: Unexpected task-skip event for project project.a, task task.a. " +
+			"Task execution already ended"
+	});
+
+	t.is(stderrWriteStub.callCount, 0, "Logged zero messages");
+});
+
 test.serial("ProjectBuild status: Unknown status", (t) => {
 	const {stderrWriteStub} = t.context;
 	process.emit("ui5.build-metadata", {
