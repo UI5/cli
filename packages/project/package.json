@@ -118,7 +118,7 @@
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^14.1.0",
 		"graceful-fs": "^4.2.11",
-		"js-yaml": "^4.1.0",
+		"js-yaml": "^4.1.1",
 		"lockfile": "^1.0.4",
 		"make-fetch-happen": "^14.0.3",
 		"node-stream-zip": "^1.15.0",
