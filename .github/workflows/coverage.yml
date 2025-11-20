@@ -1,4 +1,4 @@
-name: Coverage Reporting
+name: Coverage
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   coverage:
-    name: Check coverage and report to Coveralls
+    name: Check and Upload (packages/${{ matrix.package }})
     runs-on: ubuntu-24.04
     strategy:
       matrix:
