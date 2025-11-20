@@ -3,6 +3,8 @@
     "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
     "low": true,
     "allowlist": [
+        // Transitive dependency in vitepress (dev-only, documentation tool).
+        // Cannot be fixed until upstream vite updates esbuild. Excluded to avoid scan noise.
         "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild"
     ]
 }
