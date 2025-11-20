@@ -16,6 +16,15 @@ jobs:
   coverage:
     name: Check coverage and report to Coveralls
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        package:
+          - builder
+          - cli
+          - fs
+          - logger
+          - project
+          - server
     steps:
 
     - uses: actions/checkout@v5
@@ -31,44 +40,19 @@ jobs:
     - name: Check coverage
       run: npm run coverage
 
-    - name: Send report to Coveralls for package @ui5/builder
+    - name: Send parallel reports to Coveralls for all packages
       uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
-        file: packages/builder/coverage/lcov.info
-        base-path: packages/builder
+        parallel: true
+        base-path: packages/${{ matrix.package }}
 
-    - name: Send report to Coveralls for package @ui5/cli
-      uses: coverallsapp/github-action@v2.3.7
-      continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
-      with:
-        file: packages/cli/coverage/lcov.info
-        base-path: packages/cli
-
-    - name: Send report to Coveralls for package @ui5/fs
-      uses: coverallsapp/github-action@v2.3.7
-      continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
-      with:
-        file: packages/fs/coverage/lcov.info
-        base-path: packages/fs
-
-    - name: Send report to Coveralls for package @ui5/logger
-      uses: coverallsapp/github-action@v2.3.7
-      continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
-      with:
-        file: packages/logger/coverage/lcov.info
-        base-path: packages/logger
-
-    - name: Send report to Coveralls for package @ui5/project
-      uses: coverallsapp/github-action@v2.3.7
-      continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
-      with:
-        file: packages/project/coverage/lcov.info
-        base-path: packages/project
-
-    - name: Send report to Coveralls for package @ui5/server
-      uses: coverallsapp/github-action@v2.3.7
-      continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
-      with:
-        file: packages/server/coverage/lcov.info
-        base-path: packages/server
+  finish:
+    needs: coverage
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Close parallel build
+        uses: coverallsapp/github-action@v2.3.7
+        with:
+          parallel-finished: true
