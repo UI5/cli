@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.2...HEAD).
 
 <a name="v4.0.2"></a>
+## [5.0.0-alpha.0](https://github.com/UI5/cli/compare/fs-v4.0.2...fs-v5.0.0-alpha.0) (2025-11-20)
+
+
+### Dependencies
+
+* bump globby from 14.1.0 to 15.0.0 ([#1152](https://github.com/UI5/cli/issues/1152)) ([2cb5cd1](https://github.com/UI5/cli/commit/2cb5cd1380f43086a2cf52ca7c15aa4a6ff09877))
+
 ## [v4.0.2] - 2025-09-11
 ### Bug Fixes
 - Rename project to UI5 CLI [`e8491c3`](https://github.com/SAP/ui5-fs/commit/e8491c39e879560eaa5056b1ee0e2377a4e88f0d)
