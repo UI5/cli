@@ -5,6 +5,30 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-cli/compare/v4.0.26...HEAD).
 
 <a name="v4.0.26"></a>
+## [5.0.0-alpha.0](https://github.com/UI5/cli/compare/cli-v4.0.26...cli-v5.0.0-alpha.0) (2025-11-20)
+
+
+### Features
+
+* **cli:** Use specVersion 5.0 in init command ([c1b1432](https://github.com/UI5/cli/commit/c1b1432e6aeace8f5bd6cb5a8fa42685e1701c9b))
+
+
+### Bug Fixes
+
+* **cli:** Link to "Local vs. Global Installation" docs ([9312283](https://github.com/UI5/cli/commit/93122834a60d565ce4c37223b6b2f140930bc86c))
+
+
+### Dependencies
+
+* Bump js-yaml ([#1197](https://github.com/UI5/cli/issues/1197)) ([78d312b](https://github.com/UI5/cli/commit/78d312bc62fa7004ddca87f44ca6acac94e9d1fa))
+* **cli:** Remove npm-shrinkwrap.json ([fe48278](https://github.com/UI5/cli/commit/fe48278d8f1ee6ef810a627e0492298e52df1e43))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^4.0.11 to ^5.0.0-alpha.0
+    * @ui5/fs bumped from ^4.0.2 to ^5.0.0-alpha.0
+    * @ui5/project bumped from ^4.0.6 to ^5.0.0-alpha.0
+    * @ui5/server bumped from ^4.0.7 to ^4.0.8
+
 ## [v4.0.26] - 2025-09-12
 ### Dependency Updates
 - Bump [@ui5](https://github.com/ui5)/project from 4.0.5 to 4.0.6 [`797e069`](https://github.com/SAP/ui5-cli/commit/797e069bdfaa76e26396cb6b1a74c2ccb49b76f1)
