@@ -12,7 +12,7 @@ const SOURCE_SCHEMA_PATH = fileURLToPath(
 	new URL(`./lib/validation/schema/${schemaName}.json`, import.meta.resolve("@ui5/project/package.json"))
 );
 const TARGET_SCHEMA_PATH = fileURLToPath(
-	new URL(`../site/schema/${schemaName}.yaml.json`, import.meta.url)
+	new URL(`../schema/${schemaName}.yaml.json`, import.meta.url)
 );
 
 try {
