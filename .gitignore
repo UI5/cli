@@ -67,3 +67,4 @@ internal/documentation/docs/pages/CLI.md
 internal/documentation/.vitepress/dist
 internal/documentation/.vitepress/cache
 internal/documentation/dist
+internal/documentation/schema/*
