@@ -47,6 +47,7 @@ jobs:
       with:
         parallel: true
         base-path: packages/${{ matrix.package }}
+        flag-name: ${{ matrix.package }}
 
   finish:
     needs: coverage
