@@ -46,11 +46,11 @@ This shall enable the following workflow:
 
 1. **Action:** Build is started
 1. Task A, Task B and Task C are executed in sequence, writing their results into individual writer stages.
-1. *The writer stages and `cache-info.json` are serialized onto disk.*
+1. *Task outputs are written to a content-addressable store and the `cache-info.json` metadata is serialized to disk.*
 1. Build finishes and the resources of all writer stages and the source reader are combined and written into the target output directory.
     * Resources present in later writer stages (and higher versions) are preferred over competing resources with the same path.
 1. **Action:** A source file is modified and a new build is triggered
-1. *The `cache-info.json` is read from disk and the writer stages are imported into the project instance.*
+1. *The `cache-info.json` is read from disk, allowing the build to access cached content from the content-addressable store.*
 1. The build determines which tasks need to be executed using the imported cache and information about the modified source file.
     * In this example, it is determined that Task A and Task C need to be executed since they requested the modified resource in their previous execution.
 1. Task A is executed. The output is written into a new **version** (v2) of the associated writer stage.
@@ -59,18 +59,20 @@ This shall enable the following workflow:
     * Task A can't access v1 of its writer stage. It can only access the combined resources of all previous writer stages.
 1. The `Project Build Cache` determines whether the resources produced in this latest execution of Task A are relevant for Task B. If yes, the content of those resources is compared to the cached content of the resources Task B has received during its last execution. In this example, the output of Task A is not relevant for Task B and it is skipped.
 1. Task C is called and has access to both versions (v1 and v2) of the writer stage of Task A. Allowing it to access all resources produced in all previous executions of Task A.
-1. *Writer stages and `cache-info.json` are serialized onto disk.*
+1. *Task outputs are written to the content-addressable store and the `cache-info.json` is updated.*
 1. The build finishes. The combined resources of all writer stages and the source reader are written to the target output directory.
 
 ![Diagram illustrating an initial and a successive build leveraging the build cache](./resources/0017-incremental-build/Build_With_Cache.png)
 
 ### Cache Creation
 
-The build cache shall be serialized onto disk in order to use it in successive UI5 Tooling executions. A standardized directory should be used for this, so that UI5 Tooling can automatically find and use the cache.
+The build cache shall be serialized onto disk in order to use it in successive UI5 Tooling executions. This will be done using a **Content-Addressable Store (CAS)** model, which separates file content from metadata. This ensures that each unique piece of content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
 
-Every project has its own cache. This allows for reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications.
+Every project has its own cache metadata. This allows for reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications.
 
-The cache consists of a `cache-info.json` file with the below data structure and multiple directories with the serialized writer stages.
+The cache consists of two main parts:
+1. A global **object store (the CAS)** where all file contents are stored, named by a hash of their content.
+2. A per-project `cache-info.json` file which acts as a lightweight **metadata index**, mapping logical file paths to their content hashes in the object store.
 
 #### cache-info.json
 
@@ -91,25 +93,19 @@ The cache consists of a `cache-info.json` file with the below data structure and
 				"pathsRead": [],
 				"patterns": []
 			},
-			"resourcesRead": {
-				"/resources/project/namespace/Component.js": {
-					"sha256": "d41d8cd98f00b204e9899998ecf8427e",
-					"lastModified": 1734005532120
-				}
+			"inputs": {
+                // Map of logical paths read to their content hashes
+				"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9899998ecf8427e"
 			},
-			"resourcesWritten": {
-				"/resources/project/namespace/Component.js": {
-					"sha256": "c1c77edc5c689a471b12fe8ba79c51d1",
-					"lastModified": 1734005532120
-				}
+			"outputs": {
+                // Map of logical paths written to their content hashes
+				"/resources/project/namespace/Component.js": "c1c77edc5c689a471b12fe8ba79c51d1"
 			}
 		}
 	}],
 	"sourceMetadata": {
-		"/resources/project/namespace/Component.js": {
-			"sha256": "d41d8cd98f00b204e9800998ecf8427e",
-			"lastModified": 1734005532120
-		}
+        // Map of source paths to their content hashes
+		"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9800998ecf8427e"
 	}
 }
 ````
@@ -121,83 +117,42 @@ The cache key can be used to identify the cache. It shall be based on the projec
 
 **taskCache**
 
-An array of objects, each representing a task that was executed during the build. The object contains the name of the task, the project resources that were read and written by the task, and the resources that were read from the project's dependencies. If the task used glob patterns to read resources, those patterns are stored instead of the resolved paths so that the pattern can later be matched against newly created resources that might invalidate the task.
-
-For each resource that has been read or written, the SHA256 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the resource has changed since the last build and whether the task cache is still valid.
+An array of objects, each representing a task that was executed during the build. The object contains the name of the task and its resource requests. `inputs` maps the logical path of resources read by the task to their content hash, and `outputs` does the same for resources written by the task. This hash acts as a pointer to the actual file content in the shared CAS object store. If the task used glob patterns to read resources, those patterns are stored so that they can be matched against newly created resources.
 
 **sourceMetadata**
 
-For each *source* file of the project, the SHA256 hash of the content and the timestamp of last modification are stored. This allows the UI5 Tooling to determine whether the source files have changed since the last build.
+For each *source* file of the project, this object maps the logical path to the SHA256 hash of its content. This allows the UI5 Tooling to quickly determine whether source files have changed since the last build.
 
 #### Cache directory structure
 
+The directory structure is flat and efficient. A global `cas/` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
+
 ```
 .ui5-cache
+├── cas/  <-- Global Content-Addressable Store (shared across all projects)
+│   ├── c1c77edc5c689a471b12fe8ba79c51d1  (Content of one file)
+│   ├── d41d8cd98f00b204e9899998ecf8427e  (Content of another file)
+│   └── ... (all other unique file contents)
+│
 ├── openui5-sample-app-0.5.0-bb0a3262d093fcb9acf16
-│    ├── cache-info.json
-│    └── taskCache
-│         ├── 0-escapeNonAsciiCharacters
-│         │    └── resources
-│         ├── 3-minify
-│         │    └── resources
-│         ├── 4-enhanceManifest
-│         │    └── resources
-│         └── 6-generateComponentPreload
-│              └── resources
+│    └── cache-info.json
 ├── sap.m-1.132.0-SNAPSHOT-bb0a3262d093fcb9acf16
-│    ├── cache-info.json
-│    └── taskCache
-│         ├── 0-escapeNonAsciiCharacters
-│         │    └── test-resources
-│         ├── 1-replaceCopyright
-│         │    ├── resources
-│         │    └── test-resources
-│         ├── 2-replaceVersion
-│         │    └── resources
-│         ├── 4-minify
-│         │    └── resources
-│         ├── 5-generateLibraryManifest
-│         │    └── resources
-│         ├── 7-generateLibraryPreload
-│         │    └── resources
-│         └── 8-buildThemes
-│              └── resources
+│    └── cache-info.json
 └── sap.ui.core-1.132.0-SNAPSHOT-bb0a3262d093fcb9acf16
-     ├── cache-info.json
-     └── taskCache
-          ├── 0-escapeNonAsciiCharacters
-          │    └── test-resources
-          ├── 1-replaceCopyright
-          │    ├── resources
-          │    └── test-resources
-          ├── 2-replaceVersion
-          │    ├── resources
-          │    └── test-resources
-          ├── 3-replaceBuildtime
-          │    └── resources
-          ├── 4-minify
-          │    └── resources
-          ├── 5-generateLibraryManifest
-          │    └── resources
-          ├── 7-generateLibraryPreload
-          │    └── resources
-          ├── 8-generateBundle
-          │    └── resources
-          └── 9-buildThemes
-               └── resources
+     └── cache-info.json
 ```
 
-The directories inside `taskCache/` shall each represent a writer stage, prefixed by an integer number reflecting the order of creation in the build. The directories contain all resources that have been *written* by the task associated with that stage.
+All unique file contents from all projects and their builds are stored **once** in the global `cas` directory, named by their content hash. This automatic deduplication leads to significant disk space savings.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
 ### Cache Import
 
-Before building a project, UI5 Tooling shall scan for a cache directory with the respective cache key and import the cache if one is found. 
+Before building a project, UI5 Tooling shall scan for a cache directory with the respective cache key and import the cache if one is found.
 
-The import process mainly populates the `Build Task Cache` instances with the information from the `cache-info.json` file and creates readers for the individual `taskCache` directories (representing the writers of each task's previous execution). Those readers are then set as the initial version (v1) writer stages in the corresponding `Project` instance.
+The import process is very fast, as it only involves reading the lightweight `cache-info.json` file to populate the `Build Task Cache` instances with their metadata. When the build process needs to access a cached resource, it uses the metadata map to find the content hash and reads the corresponding file directly from the global `cas` store.
 
-This allows executing individual tasks and provide them with the results of all tasks that would normally have been executed before them. Also, the task can decide to only process a few changed resources while the build result will still contain all resources that were written by any of the the task's previous executions.
+This allows executing individual tasks and providing them with the results of all preceding tasks without the overhead of creating numerous file system readers or managing physical copies of files for each build stage.
 
 ![Diagram illustrating the import of a build cache](./resources/0017-incremental-build/Import_Cache.png)
 
@@ -229,7 +184,7 @@ The UI5 Tooling server shall integrate the incremental build as a mean to pre-pr
 
 Middleware like `serveThemes` (used for compiling LESS resources to CSS) would become obsolete with this, since the `buildThemes` task will be executed instead.
 
-If any project (root or dependency) configures custom tasks, those tasks are executed in the server as well. This makes it possible to easily integrate projects with custom tasks as dependencies.
+If any project (root or dependency) defines custom tasks, those tasks are executed in the server as well. This makes it possible to easily integrate projects with custom tasks as dependencies.
 
 Since executing a full build requires more time than the on-the-fly processing of resources currently implemented in the UI5 Tooling server, users shall be able to disable individual tasks that are not necessarily needed during development. This can be done using CLI parameters as well as ui5.yaml configuration.
 
@@ -256,7 +211,7 @@ All of this should be communicated in the UI5 Tooling documentation and in blog 
 * Projects might have to adapt their configurations
 * Custom tasks might need to be adapted. Before they could only access the sources of a project. With this change, they will access the build result instead. Access to the sources is still possible but requires the use of a dedicated API
 * UI5 Tooling standard tasks need to be adapted to use the new cache API. Especially the bundling tasks currently have no concept for partially re-creating bundles. However, this is an essential requirement to achieve fast incremental builds.
-* The project build cache might become very large and consume a lot of disk space. On systems with restricted disk space or slow I/O operations, this could lead to a worse performance.
+* While the content-addressable cache is highly efficient at deduplication, the central cache can still grow very large over time. A robust purging mechanism is critical for managing disk space.
 
 ## Alternatives
 
@@ -267,10 +222,9 @@ An alternative to using the incremental build in the UI5 Tooling server would be
 * Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * How to distinguish projects with build cache from pre-built projects (with project manifest)
 * Cache related topics
-	* Clarify cache key 
+	* Clarify cache key
 		* Current POC: project version + dependency versions + build config + UI5 Tooling module versions
 	* Include resource tags in cache
-	* Compress cache to reduce memory pressure
 	* Allow tasks to store additional information in the cache
 	* Cache Purging
 * Some tasks might be relevant for the server only (e.g. code coverage), come up with a way to configure that
