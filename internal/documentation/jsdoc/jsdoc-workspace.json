@@ -37,9 +37,9 @@
 	"openGraph": {
 		"title": "UI5 CLI - API Reference",
 		"type": "website",
-		"image": "https://ui5.github.io/cli/v4/images/UI5_logo_wide.png",
+		"image": "https://ui5.github.io/cli/v5/images/UI5_logo_wide.png",
 		"site_name": "UI5 CLI - API Reference",
-		"url": "https://ui5.github.io/cli/v4/"
+		"url": "https://ui5.github.io/cli/v5/"
 	},
 	"docdash": {
 		"sectionOrder": [
