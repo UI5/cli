@@ -1,7 +1,8 @@
 import express from "express";
 import portscanner from "portscanner";
+import path from "node:path/posix";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
-import {createReaderCollection} from "@ui5/fs/resourceFactory";
+import {createAdapter, createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
 
@@ -136,34 +137,58 @@ export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
 }) {
+	// const rootReader = createAdapter({
+	// 	virBasePath: "/",
+	// });
+	// const dependencies = createAdapter({
+	// 	virBasePath: "/",
+	// });
+
 	const rootProject = graph.getRoot();
-
-	const readers = [];
-	await graph.traverseBreadthFirst(async function({project: dep}) {
-		if (dep.getName() === rootProject.getName()) {
-			// Ignore root project
-			return;
-		}
-		readers.push(dep.getReader({style: "runtime"}));
+	const watchHandler = await graph.build({
+		cacheDir: path.join(rootProject.getRootPath(), ".ui5-cache"),
+		includedDependencies: ["*"],
+		watch: true,
 	});
 
-	const dependencies = createReaderCollection({
-		name: `Dependency reader collection for project ${rootProject.getName()}`,
-		readers
-	});
+	async function createReaders() {
+		const readers = [];
+		await graph.traverseBreadthFirst(async function({project: dep}) {
+			if (dep.getName() === rootProject.getName()) {
+				// Ignore root project
+				return;
+			}
+			readers.push(dep.getReader({style: "runtime"}));
+		});
 
-	const rootReader = rootProject.getReader({style: "runtime"});
+		const dependencies = createReaderCollection({
+			name: `Dependency reader collection for project ${rootProject.getName()}`,
+			readers
+		});
 
-	// TODO change to ReaderCollection once duplicates are sorted out
-	const combo = new ReaderCollectionPrioritized({
-		name: "server - prioritize workspace over dependencies",
-		readers: [rootReader, dependencies]
+		const rootReader = rootProject.getReader({style: "runtime"});
+		// TODO change to ReaderCollection once duplicates are sorted out
+		const combo = new ReaderCollectionPrioritized({
+			name: "server - prioritize workspace over dependencies",
+			readers: [rootReader, dependencies]
+		});
+		const resources = {
+			rootProject: rootReader,
+			dependencies: dependencies,
+			all: combo
+		};
+		return resources;
+	}
+
+	const resources = await createReaders();
+
+	watchHandler.on("buildUpdated", async () => {
+		const newResources = await createReaders();
+		// Patch resources
+		resources.rootProject = newResources.rootProject;
+		resources.dependencies = newResources.dependencies;
+		resources.all = newResources.all;
 	});
-	const resources = {
-		rootProject: rootReader,
-		dependencies: dependencies,
-		all: combo
-	};
 
 	const middlewareManager = new MiddlewareManager({
 		graph,
