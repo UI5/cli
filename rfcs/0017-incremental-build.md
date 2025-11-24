@@ -14,7 +14,7 @@
 
 ## Summary
 
-This concept aims at adding incremental build support to UI5 Tooling. It should be possible to execute a build where only a small set of modified resources is re-processed while the rest is reused from a previous build.
+This concept aims at adding incremental build support to UI5 CLI. It should be possible to execute a build where only a small set of modified resources is re-processed while the rest is reused from a previous build.
 
 ## Motivation
 
@@ -22,11 +22,11 @@ The current build process is slow, especially for large projects. This is becaus
 
 It has also become increasingly common for UI5 projects to use [custom build tasks](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomTasks/). Examples include custom tasks for TypeScript compilation, or for consuming third-party libraries.
 
-These tasks can greatly enhance the development experience with UI5. However, when working on projects that depend on projects using such custom tasks, it can become cumbersome to set up a good development environment. This is because the current UI5 Tooling server does not execute custom tasks (or any tasks at all), and instead relies on [custom middleware](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomServerMiddleware/) for things like the mentioned examples.
+These tasks can greatly enhance the development experience with UI5. However, when working on projects that depend on projects using such custom tasks, it can become cumbersome to set up a good development environment. This is because the current UI5 CLI server does not execute custom tasks (or any tasks at all), and instead relies on [custom middleware](https://sap.github.io/ui5-tooling/stable/pages/extensibility/CustomServerMiddleware/) for things like the mentioned examples.
 
 However, only custom middleware defined for the current root project is used by the server. This means that the root project often needs to configure custom middleware *for its dependencies*.
 
-By enhancing the UI5 Tooling server to execute build tasks before serving a project's resources, this problem can be solved. And by making use of an incremental build feature, the server can efficiently re-process resources when needed, hopefully preventing negative impacts on the server's performance.
+By enhancing the UI5 CLI server to execute build tasks before serving a project's resources, this problem can be solved. And by making use of an incremental build feature, the server can efficiently re-process resources when needed, hopefully preventing negative impacts on the server's performance.
 
 ## Detailed design
 
@@ -66,7 +66,7 @@ This shall enable the following workflow:
 
 ### Cache Creation
 
-The build cache shall be serialized onto disk in order to use it in successive UI5 Tooling executions. This will be done using a **Content-Addressable Store (CAS)** model, which separates file content from metadata. This ensures that each unique piece of content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
+The build cache shall be serialized onto disk in order to use it in successive UI5 CLI executions. This will be done using a **Content-Addressable Store (CAS)** model, which separates file content from metadata. This ensures that each unique piece of content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
 
 Every project has its own cache metadata. This allows for reuse of a project's cache across multiple consuming projects. For example, the `sap.ui.core` library could be built once and the build cache can then be reused in the build of multiple applications.
 
@@ -157,7 +157,7 @@ An array of objects, each representing a task that was executed during the build
 
 **sourceMetadata**
 
-For each *source* file of the project, this object maps the logical path to the SHA256 hash of its content. This allows the UI5 Tooling to quickly determine whether source files have changed since the last build.
+For each *source* file of the project, this object maps the logical path to the SHA256 hash of its content. This allows the UI5 CLI to quickly determine whether source files have changed since the last build.
 
 #### Cache directory structure
 
@@ -185,7 +185,7 @@ The `manifests` directory contains one build manifest file per project build cac
 
 ### Cache Import
 
-Before building a project, UI5 Tooling shall scan for a cache directory with the respective cache key and import the cache if one is found.
+Before building a project, UI5 CLI shall scan for a cache directory with the respective cache key and import the cache if one is found.
 
 The import process is very fast, as it only involves reading the lightweight `build-manifest.json` file to populate the `Build Task Cache` instances with their metadata. When the build process needs to access a cached resource, it uses the metadata map to find the content hash and reads the corresponding file directly from the global `cas` store.
 
@@ -209,7 +209,7 @@ After a *project* has finished building, a list of all the modified resource is 
 
 A mechanism to purge unused cache on disk is required. The cache can grow very large and consume a lot of disk space. The latest PoC produced cache entries with a size ranging from few kilobytes for applications up to 70 MB for framework libraries like sap.ui.core or sap.m.
 
-This should probably use some sort of LRU-cache to purge unused cache entries dynamically. The same mechanism could be applied to the npm artifacts downloaded by UI5 Tooling.
+This should probably use some sort of LRU-cache to purge unused cache entries dynamically. The same mechanism could be applied to the npm artifacts downloaded by UI5 CLI.
 
 To avoid slowing down core commands, the purge check should run as a non-blocking process after a successful ui5 build or ui5 serve command completes. This process checks if either of the configured thresholds (age or size) has been exceeded. If so, it proceeds with the purge. Some of this functionality might be provided by the underlying content-addressable store library, such as cacache's internal garbage collection.
 
@@ -217,17 +217,17 @@ A dedicated command, such as `ui5 cache clean`, should be introduced in addition
 
 ### Watch Mode
 
-The build API should provide a "watch" mode that will re-trigger the build when a source file is modified. The watch mode shall select the projects to watch based on which projects have been requested to be built. If a [UI5 Tooling workspace](https://sap.github.io/ui5-tooling/stable/pages/Workspace/) is used, this can be fine-tuned in the workspace configuration.
+The build API should provide a "watch" mode that will re-trigger the build when a source file is modified. The watch mode shall select the projects to watch based on which projects have been requested to be built. If a [UI5 CLI workspace](https://sap.github.io/ui5-tooling/stable/pages/Workspace/) is used, this can be fine-tuned in the workspace configuration.
 
 ### Server Integration
 
-The UI5 Tooling server shall integrate the incremental build as a mean to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild the projects when source files are modified, so that always the latest resources are served.
+The UI5 CLI server shall integrate the incremental build as a mean to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild the projects when source files are modified, so that always the latest resources are served.
 
 Middleware like `serveThemes` (used for compiling LESS resources to CSS) would become obsolete with this, since the `buildThemes` task will be executed instead.
 
 If any project (root or dependency) defines custom tasks, those tasks are executed in the server as well. This makes it possible to easily integrate projects with custom tasks as dependencies.
 
-Since executing a full build requires more time than the on-the-fly processing of resources currently implemented in the UI5 Tooling server, users shall be able to disable individual tasks that are not necessarily needed during development. This can be done using CLI parameters as well as ui5.yaml configuration.
+Since executing a full build requires more time than the on-the-fly processing of resources currently implemented in the UI5 CLI server, users shall be able to disable individual tasks that are not necessarily needed during development. This can be done using CLI parameters as well as ui5.yaml configuration.
 
 While a build is running, the server shall pause responding to incoming requests for the duration of the build. This is necessary to ensure that the server does not serve outdated resources.
 
@@ -235,13 +235,13 @@ The server may implement "live-reload" functionality to inform client side code 
 
 ## How we teach this
 
-This is a big change in the UI5 Tooling architecture and especially impacts the way the UI5 Tooling server works. By always building projects, developers might experience a slower startup time of the server. After modifying a file, it might also take longer until all processing is finished and the change is being served to the browser.
+This is a big change in the UI5 CLI architecture and especially impacts the way the UI5 CLI server works. By always building projects, developers might experience a slower startup time of the server. After modifying a file, it might also take longer until all processing is finished and the change is being served to the browser.
 
 The incremental build hopefully mitigates this performance impact to some extend. The ability to disable individual tasks can further improve the performance again. However this needs to be taught to developers and sane defaults should be picked to make the experience as good as possible.
 
 With the execution of tasks in the server, some (custom) middleware might become obsolete or even cause problems. This means that **projects might need to adapt their configuration**.
 
-All of this should be communicated in the UI5 Tooling documentation and in blog posts. A phase of pre-releases should be used to gather feedback from the community.
+All of this should be communicated in the UI5 CLI documentation and in blog posts. A phase of pre-releases should be used to gather feedback from the community.
 
 ## Drawbacks
 
@@ -251,12 +251,12 @@ All of this should be communicated in the UI5 Tooling documentation and in blog 
 		* Would this create a distinction between tasks that are relevant for the production build only and those relevant to the server only?
 * Projects might have to adapt their configurations
 * Custom tasks might need to be adapted. Before they could only access the sources of a project. With this change, they will access the build result instead. Access to the sources is still possible but requires the use of a dedicated API
-* UI5 Tooling standard tasks need to be adapted to use the new cache API. Especially the bundling tasks currently have no concept for partially re-creating bundles. However, this is an essential requirement to achieve fast incremental builds.
+* UI5 CLI standard tasks need to be adapted to use the new cache API. Especially the bundling tasks currently have no concept for partially re-creating bundles. However, this is an essential requirement to achieve fast incremental builds.
 * While the content-addressable cache is highly efficient at deduplication, the central cache can still grow very large over time. A robust purging mechanism is critical for managing disk space.
 
 ## Alternatives
 
-An alternative to using the incremental build in the UI5 Tooling server would be to apply custom middleware of dependencies.
+An alternative to using the incremental build in the UI5 CLI server would be to apply custom middleware of dependencies.
 
 ## Unresolved Questions and Bikeshedding
 
@@ -264,7 +264,7 @@ An alternative to using the incremental build in the UI5 Tooling server would be
 * How to distinguish projects with build cache from pre-built projects (with project manifest)
 * Cache related topics
 	* Clarify cache key
-		* Current POC: project version + dependency versions + build config + UI5 Tooling module versions
+		* Current POC: project version + dependency versions + build config + UI5 CLI module versions
 	* Include resource tags in cache
 	* Allow tasks to store additional information in the cache
 	* Cache Purging
