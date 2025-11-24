@@ -46,11 +46,11 @@ This shall enable the following workflow:
 
 1. **Action:** Build is started
 1. Task A, Task B and Task C are executed in sequence, writing their results into individual writer stages.
-1. *Task outputs are written to a content-addressable store and the `cache-info.json` metadata is serialized to disk.*
+1. *Task outputs are written to a content-addressable store and the `build-manifest.json` metadata is serialized to disk.*
 1. Build finishes and the resources of all writer stages and the source reader are combined and written into the target output directory.
     * Resources present in later writer stages (and higher versions) are preferred over competing resources with the same path.
 1. **Action:** A source file is modified and a new build is triggered
-1. *The `cache-info.json` is read from disk, allowing the build to access cached content from the content-addressable store.*
+1. *The `build-manifest.json` is read from disk, allowing the build to access cached content from the content-addressable store.*
 1. The build determines which tasks need to be executed using the imported cache and information about the modified source file.
     * In this example, it is determined that Task A and Task C need to be executed since they requested the modified resource in their previous execution.
 1. Task A is executed. The output is written into a new **version** (v2) of the associated writer stage.
@@ -59,7 +59,7 @@ This shall enable the following workflow:
     * Task A can't access v1 of its writer stage. It can only access the combined resources of all previous writer stages.
 1. The `Project Build Cache` determines whether the resources produced in this latest execution of Task A are relevant for Task B. If yes, the content of those resources is compared to the cached content of the resources Task B has received during its last execution. In this example, the output of Task A is not relevant for Task B and it is skipped.
 1. Task C is called and has access to both versions (v1 and v2) of the writer stage of Task A. Allowing it to access all resources produced in all previous executions of Task A.
-1. *Task outputs are written to the content-addressable store and the `cache-info.json` is updated.*
+1. *Task outputs are written to the content-addressable store and the `build-manifest.json` is updated.*
 1. The build finishes. The combined resources of all writer stages and the source reader are written to the target output directory.
 
 ![Diagram illustrating an initial and a successive build leveraging the build cache](./resources/0017-incremental-build/Build_With_Cache.png)
@@ -72,14 +72,45 @@ Every project has its own cache metadata. This allows for reuse of a project's c
 
 The cache consists of two main parts:
 1. A global **object store (the CAS)** where all file contents are stored, named by a hash of their content.
-2. A per-project `cache-info.json` file which acts as a lightweight **metadata index**, mapping logical file paths to their content hashes in the object store.
+2. A per-project `build-manifest.json` file which acts as a lightweight **metadata index**, mapping logical file paths to their content hashes in the object store.
 
-#### cache-info.json
+#### build-manifest.json
 
 ````jsonc
 {
-	"timestamp": 1734005532124,
 	"cacheKey": "project-name-1.0.0-bb3a3262d893fcb9adf16bff63f",
+	"buildManifest": {
+		"manifestVersion": "1.0",
+		"timestamp": "2025-11-24T13:43:24.612Z",
+		"versions": {
+			"builderVersion": "5.0.0",
+			"projectVersion": "5.0.0",
+			"fsVersion": "5.0.0"
+		},
+		"buildConfig": {
+			"selfContained": false,
+			"cssVariables": false,
+			"jsdoc": false,
+			"createBuildManifest": false,
+			"outputStyle": "Default",
+			"includedTasks": [],
+			"excludedTasks": []
+		},
+		"version": "1.0.0",
+		"namespace": "project/namespace",
+		"tags": {
+			"/resources/project/namespace/Component-dbg.js": {
+				"ui5:IsDebugVariant": true
+			},
+			"/resources/project/namespace/Component.js": {
+				"ui5:HasDebugVariant": true
+			}
+		}
+	},
+	"sourceMetadata": {
+		// Map of source paths to their content hashes
+		"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9800998ecf8427e"
+	},
 	"taskCache": [{
 		"taskName": "replaceCopyright",
 		"resourceMetadata": {
@@ -102,13 +133,11 @@ The cache consists of two main parts:
 				"/resources/project/namespace/Component.js": "c1c77edc5c689a471b12fe8ba79c51d1"
 			}
 		}
-	}],
-	"sourceMetadata": {
-		// Map of source paths to their content hashes
-		"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9800998ecf8427e"
-	}
+	}]
 }
 ````
+
+The concept of a `build-manifest.json` has already been explored in [RFC 0011 Reuse Build Results](https://github.com/SAP/ui5-tooling/pull/612) and found an implementation for consumption of pre-built UI5 framework libraries in [UI5 3.0](https://github.com/UI5/cli/pull/612). The **buildManifest** object is based on that concept.
 
 **cacheKey**
 
@@ -141,17 +170,16 @@ The directory structure is flat and efficient. A global `cas/` directory stores 
 │   ├── d41d8cd98f00b204e9899998ecf8427e  (Content of another file)
 │   └── ... (all other unique file contents)
 │
-├── openui5-sample-app-0.5.0-bb0a3262d093fcb9acf16
-│    └── cache-info.json
-├── sap.m-1.132.0-SNAPSHOT-bb0a3262d093fcb9acf16
-│    └── cache-info.json
-└── sap.ui.core-1.132.0-SNAPSHOT-bb0a3262d093fcb9acf16
-     └── cache-info.json
+└── manifests/
+	├── @ui5/
+	│   └── sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
+	├── sap.m-1.142.0-xy3a3262d893fcb9adf16bff63f.json.json
+	└── sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
 ```
 
-Besides the `cas` directory, each project has its own directory named after its cache key. This directory contains only the `cache-info.json` file for that project.
+The `cas` directory contains files named by their SHA256 content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](https://www.npmjs.com/package/cacache) should be used to manage the content-addressable store.
 
-All unique file contents from all projects and their builds are stored **once** in the global `cas` directory, named by their content hash.
+The `manifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and cache key.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
@@ -159,7 +187,7 @@ All unique file contents from all projects and their builds are stored **once** 
 
 Before building a project, UI5 Tooling shall scan for a cache directory with the respective cache key and import the cache if one is found.
 
-The import process is very fast, as it only involves reading the lightweight `cache-info.json` file to populate the `Build Task Cache` instances with their metadata. When the build process needs to access a cached resource, it uses the metadata map to find the content hash and reads the corresponding file directly from the global `cas` store.
+The import process is very fast, as it only involves reading the lightweight `build-manifest.json` file to populate the `Build Task Cache` instances with their metadata. When the build process needs to access a cached resource, it uses the metadata map to find the content hash and reads the corresponding file directly from the global `cas` store.
 
 This allows executing individual tasks and providing them with the results of all preceding tasks without the overhead of creating numerous file system readers or managing physical copies of files for each build stage.
 
@@ -183,7 +211,7 @@ A mechanism to purge unused cache on disk is required. The cache can grow very l
 
 This should probably use some sort of LRU-cache to purge unused cache entries dynamically. The same mechanism could be applied to the npm artifacts downloaded by UI5 Tooling.
 
-To avoid slowing down core commands, the purge check should run as a non-blocking process after a successful ui5 build or ui5 serve command completes. This process checks if either of the configured thresholds (age or size) has been exceeded. If so, it proceeds with the purge.
+To avoid slowing down core commands, the purge check should run as a non-blocking process after a successful ui5 build or ui5 serve command completes. This process checks if either of the configured thresholds (age or size) has been exceeded. If so, it proceeds with the purge. Some of this functionality might be provided by the underlying content-addressable store library, such as cacache's internal garbage collection.
 
 A dedicated command, such as `ui5 cache clean`, should be introduced in addition. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size for cache entries to be removed. Similarly, a command `ui5 cache verify` could be provided to check the integrity of the cache.
 
