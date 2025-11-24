@@ -14,7 +14,7 @@ jobs:
   release-please:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Node.js LTS
         uses: actions/setup-node@v5
@@ -38,7 +38,7 @@ jobs:
       matrix:
         package: [logger, fs, builder, server, project]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Node.js LTS
         uses: actions/setup-node@v5
@@ -59,7 +59,7 @@ jobs:
     needs: [release-please, publish-packages]
     if: needs.release-please.outputs.releases_created == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Node.js LTS
         uses: actions/setup-node@v5
