@@ -13,6 +13,8 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-24.04
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
       - uses: actions/checkout@v5
 
@@ -26,6 +28,18 @@ jobs:
         id: release
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Update PR title with version
+        if: steps.release.outputs.pr
+        run: |
+          PR_NUMBER="${{ fromJSON(steps.release.outputs.pr).number }}"
+          PR_BRANCH="${{ fromJSON(steps.release.outputs.pr).headBranchName }}"
+          git fetch origin $PR_BRANCH
+          git checkout $PR_BRANCH
+          VERSION=$(jq -r .version packages/cli/package.json)
+          gh pr edit $PR_NUMBER --title "release: UI5 CLI packages $VERSION"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-packages:
     runs-on: ubuntu-24.04
