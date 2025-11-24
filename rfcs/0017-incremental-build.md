@@ -76,7 +76,7 @@ The cache consists of two main parts:
 
 #### cache-info.json
 
-````json
+````jsonc
 {
 	"timestamp": 1734005532124,
 	"cacheKey": "project-name-1.0.0-bb3a3262d893fcb9adf16bff63f",
@@ -94,17 +94,17 @@ The cache consists of two main parts:
 				"patterns": []
 			},
 			"inputs": {
-                // Map of logical paths read to their content hashes
+				// Map of logical paths read to their content hashes
 				"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9899998ecf8427e"
 			},
 			"outputs": {
-                // Map of logical paths written to their content hashes
+				// Map of logical paths written to their content hashes
 				"/resources/project/namespace/Component.js": "c1c77edc5c689a471b12fe8ba79c51d1"
 			}
 		}
 	}],
 	"sourceMetadata": {
-        // Map of source paths to their content hashes
+		// Map of source paths to their content hashes
 		"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9800998ecf8427e"
 	}
 }
@@ -112,8 +112,15 @@ The cache consists of two main parts:
 
 **cacheKey**
 
-The cache key can be used to identify the cache. It shall be based on the project's name and version as well as a SHA256 hash of the versions of the relevant UI5 Tooling modules (`@ui5/project`, `@ui5/builder`
-`@ui5/fs`), the names and versions of the project's dependencies and the current build configuration (ui5.yaml + CLI parameters). This shall allow the UI5 Tooling to determine whether the cache is still valid or not.
+The cache key can be used to identify the cache for a project. It shall be based on the project's name and package version, as well as a SHA256 hash compiled from the following information:
+
+* The versions of all UI5 CLI packages used to create the cache: `@ui5/project`, `@ui5/builder` and `@ui5/fs`
+	* Different UI5 CLI versions must produce a new cache. Alternatively, we could introduce a dedicated "cache version" that is incremented whenever a breaking change to the cache format is introduced. This would allow reusing the cache across minor UI5 CLI updates.
+* The relevant build configuration (ui5.yaml + CLI parameters).
+	* Changes in the build configuration must result in dedicated cache.
+	* Some configuration options might not be relevant for the build process (e.g. server configuration). Those could be excluded from the hash calculation to improve cache reusability.
+* _**To be decided:** the names and versions of all UI5 project in the dependency tree_
+	* Changes in dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes.
 
 **taskCache**
 
@@ -142,7 +149,9 @@ The directory structure is flat and efficient. A global `cas/` directory stores 
      └── cache-info.json
 ```
 
-All unique file contents from all projects and their builds are stored **once** in the global `cas` directory, named by their content hash. This automatic deduplication leads to significant disk space savings.
+Besides the `cas` directory, each project has its own directory named after its cache key. This directory contains only the `cache-info.json` file for that project.
+
+All unique file contents from all projects and their builds are stored **once** in the global `cas` directory, named by their content hash.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
@@ -173,6 +182,10 @@ After a *project* has finished building, a list of all the modified resource is 
 A mechanism to purge unused cache on disk is required. The cache can grow very large and consume a lot of disk space. The latest PoC produced cache entries with a size ranging from few kilobytes for applications up to 70 MB for framework libraries like sap.ui.core or sap.m.
 
 This should probably use some sort of LRU-cache to purge unused cache entries dynamically. The same mechanism could be applied to the npm artifacts downloaded by UI5 Tooling.
+
+To avoid slowing down core commands, the purge check should run as a non-blocking process after a successful ui5 build or ui5 serve command completes. This process checks if either of the configured thresholds (age or size) has been exceeded. If so, it proceeds with the purge.
+
+A dedicated command, such as `ui5 cache clean`, should be introduced in addition. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size for cache entries to be removed. Similarly, a command `ui5 cache verify` could be provided to check the integrity of the cache.
 
 ### Watch Mode
 
