@@ -32,42 +32,42 @@ jobs:
       run: npm run coverage
 
     - name: Send report to Coveralls for package @ui5/builder
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
         file: packages/builder/coverage/lcov.info
         base-path: packages/builder
 
     - name: Send report to Coveralls for package @ui5/cli
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
         file: packages/cli/coverage/lcov.info
         base-path: packages/cli
 
     - name: Send report to Coveralls for package @ui5/fs
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
         file: packages/fs/coverage/lcov.info
         base-path: packages/fs
 
     - name: Send report to Coveralls for package @ui5/logger
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
         file: packages/logger/coverage/lcov.info
         base-path: packages/logger
 
     - name: Send report to Coveralls for package @ui5/project
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
         file: packages/project/coverage/lcov.info
         base-path: packages/project
 
     - name: Send report to Coveralls for package @ui5/server
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.7
       continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
       with:
         file: packages/server/coverage/lcov.info
