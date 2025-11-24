@@ -34,6 +34,18 @@
 	"plugins": [
 		{
 			"type": "node-workspace"
+		},
+		{
+			"type": "linked-versions",
+			"groupName": "ui5-cli-packages",
+			"components": [
+				"logger",
+				"fs",
+				"builder",
+				"server",
+				"project",
+				"cli"
+			]
 		}
 	],
 	"changelog-sections": [
