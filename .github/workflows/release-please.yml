@@ -16,7 +16,7 @@ jobs:
     outputs:
       releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Node.js LTS
         uses: actions/setup-node@v6
@@ -67,7 +67,7 @@ jobs:
       matrix:
         package: [logger, fs, builder, server, project]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Node.js LTS
         uses: actions/setup-node@v6
@@ -88,7 +88,7 @@ jobs:
     needs: [release-please, publish-packages]
     if: needs.release-please.outputs.releases_created == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Node.js LTS
         uses: actions/setup-node@v6
