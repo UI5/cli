@@ -165,16 +165,17 @@ The directory structure is flat and efficient. A global `cas/` directory stores 
 
 ```
 .ui5-cache
-├── cas/  <-- Global Content-Addressable Store (shared across all projects)
+├── cas/  <-- Global Content-Addressable Store (shared across all projects) - actual representation might differ
 │   ├── c1c77edc5c689a471b12fe8ba79c51d1  (Content of one file)
 │   ├── d41d8cd98f00b204e9899998ecf8427e  (Content of another file)
 │   └── ... (all other unique file contents)
 │
 └── manifests/
-	├── @ui5/
-	│   └── sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
-	├── sap.m-1.142.0-xy3a3262d893fcb9adf16bff63f.json.json
-	└── sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
+    ├── @ui5/
+    │    └── sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
+    └── @openui5/
+        ├── sap.m-1.142.0-xy3a3262d893fcb9adf16bff63f.json.json
+        └── sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
 ```
 
 The `cas` directory contains files named by their SHA256 content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](https://www.npmjs.com/package/cacache) should be used to manage the content-addressable store.
@@ -260,15 +261,12 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 
 ## Unresolved Questions and Bikeshedding
 
-* Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * How to distinguish projects with build cache from pre-built projects (with project manifest)
+	* Check presence of "sourceMetadata" attribute. Only with "sourceMetadata", the cache can be used for incremental (re-)builds the project. Otherwise it is "only" a build *result* that can be used for building dependent projects.
 * Cache related topics
-	* Clarify cache key
-		* Current POC: project version + dependency versions + build config + UI5 CLI module versions
-	* Include resource tags in cache
 	* Allow tasks to store additional information in the cache
-	* Cache Purging
 * Some tasks might be relevant for the server only (e.g. code coverage), come up with a way to configure that
+	* This will implicitly cause the creation of different caches for server and build. This might just be an acceptable and easy to understand trade-off.
 * What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be used from the cache
+* Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * Test with selected (community) custom tasks
-* With this concept, providing pre-built UI5 libraries becomes especially important. Otherwise consumers will always have to locally build framework libraries, even in the server
