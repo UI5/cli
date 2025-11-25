@@ -23,7 +23,7 @@ This allows the UI5 runtime to always load the small `library-preload.js` for al
 
 ## Motivation
 
-Currently, UI5 applications often declare library dependencies as "lazy" in their `manifest.json` to improve initial loading times. However, this requires developers to explicitly load these libraries using `sap/ui/core/Lib.load("sap.m")` (or the deprecated variant `sap.ui.getCore().loadLibrary("sap.m")`) before any of their modules can be used. This is a manual and error-prone process.
+Currently, UI5 applications often declare library dependencies as "lazy" in their `manifest.json` to improve initial loading times. However, this requires developers to explicitly load these libraries using `sap/ui/core/Lib.load({name: "sap.m"})` (or the deprecated variant `sap.ui.getCore().loadLibrary("sap.m")`) before any of their modules can be used. This is a manual and error-prone process.
 
 By splitting the library preload, the essential part of a library can be loaded eagerly without a significant performance penalty. The UI5 loader can then automatically fetch the larger part of the library when it's first needed.
 
