@@ -61,9 +61,7 @@ jobs:
               run: npm run jsdoc-generate
             - name: Build Schema
               working-directory: internal/documentation
-              run: |
-                  npm run schema-generate
-                  npm run schema-workspace-generate
+              run: npm run schema-generate
             - name: Checkout gh-pages
               uses: actions/checkout@v5
               with:

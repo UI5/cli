@@ -33,8 +33,8 @@
 		"jsdoc-generate": "jsdoc -c jsdoc/jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"jsdoc-generate-workspace": "jsdoc -c jsdoc/jsdoc-workspace.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
-		"schema-generate": "node ./scripts/buildSchema.js ui5",
-		"schema-workspace-generate": "node ./scripts/buildSchema.js ui5-workspace"
+		"schema-generate": "node ./scripts/buildSchema.js",
+		"schema-generate-workspace": "node ./scripts/buildSchema-workspace.js"
 	},
 	"dependencies": {
 		"@types/node": "^22.5.1",

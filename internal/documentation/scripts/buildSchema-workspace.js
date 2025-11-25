@@ -9,9 +9,9 @@ try {
 	const schemaNames = ["ui5", "ui5-workspace"];
 
 	schemaNames.forEach(async (schemaName) => {
-		// Using the npm version of @ui5/project to use the latest published version for Github Pages
+		// Using the local version of @ui5/project to use the current development version for local testing
 		const SOURCE_SCHEMA_PATH = fileURLToPath(
-			new URL(`./lib/validation/schema/${schemaName}.json`, import.meta.resolve("@ui5/project-npm/package.json"))
+			new URL(`./lib/validation/schema/${schemaName}.json`, import.meta.resolve("@ui5/project/package.json"))
 		);
 		const TARGET_SCHEMA_PATH = fileURLToPath(
 			new URL(`../schema/${schemaName}.yaml.json`, import.meta.url)
