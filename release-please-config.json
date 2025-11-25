@@ -1,8 +1,11 @@
 {
 	"$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-	"group-pull-request-title-pattern": "release: UI5 CLI packages",
-	"prerelease-type": "alpha",
+	"group-pull-request-title-pattern": "release: UI5 CLI packages ${branch}",
+	"release-type": "node",
+	"always-update": true,
+	"pull-request-header": ":tractor: New release prepared",
 	"prerelease": true,
+	"prerelease-type": "alpha",
 	"release-as": "5.0.0-alpha.0",
 	"packages": {
 		"packages/logger": {
@@ -27,12 +30,10 @@
 			]
 		}
 	},
-	"release-type": "node",
-	"always-update": true,
-	"pull-request-header": ":tractor: New release prepared",
 	"plugins": [
 		{
-			"type": "node-workspace"
+			"type": "node-workspace",
+			"merge": false
 		},
 		{
 			"type": "linked-versions",
