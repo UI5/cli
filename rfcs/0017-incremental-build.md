@@ -178,11 +178,18 @@ The directory structure is flat and efficient. A global `cas/` directory stores 
         └── sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
 ```
 
-The `cas` directory contains files named by their SHA256 content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](https://www.npmjs.com/package/cacache) should be used to manage the content-addressable store.
+The `cas` directory contains files named by their SHA256 content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store.
 
 The `manifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and cache key.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
+
+#### cacache
+
+The [`cacache`](https://www.npmjs.com/package/cacache) library is a well-established content-addressable cache implementation used by npm itself. It provides efficient storage and retrieval of file contents based on their content hash, along with built-in mechanisms for cache integrity verification and garbage collection.
+
+It allows to store and retrieve files using a unique key.
+
 
 ### Cache Import
 
