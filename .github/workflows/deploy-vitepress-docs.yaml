@@ -60,7 +60,7 @@ jobs:
               working-directory: internal/documentation
               run: npm run jsdoc-generate
             - name: Build Schema
-              working-directory: ${{ runner.temp }}/isolated-docs
+              working-directory: internal/documentation
               run: |
                   npm run schema-generate
                   npm run schema-workspace-generate
@@ -73,7 +73,7 @@ jobs:
               run: |
                   # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
                   # rm -rf ./gh-pages/schema
-                  # cp -R ${{ runner.temp }}/isolated-docs/schema ./gh-pages/schema/
+                  # cp -R internal/documentation/schema ./gh-pages/schema/
                   rm -rf ./gh-pages/${DOC_VERSION}
                   rm -rf ./gh-pages/${DOC_ALIAS}
 
