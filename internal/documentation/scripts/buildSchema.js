@@ -4,14 +4,21 @@ import {writeFile, mkdir} from "node:fs/promises";
 import {$RefParser} from "@apidevtools/json-schema-ref-parser";
 import traverse from "traverse";
 
+// Read the given CLI parameter to set which UI5/project version to use.
+// Default to "@ui5/project-npm" to use the latest published version (for Github Pages).
+// For testing, the local version can be used by providing "@ui5/project".
+// Example: node buildSchema.js @ui5/project-npm
+// Example: node buildSchema.js @ui5/project
+const UI5_PROJECT_VERSION = process.argv[2] || "@ui5/project-npm";
+
 try {
 	// Use ui5.yaml.json and ui5-workspace.yaml.json
 	const schemaNames = ["ui5", "ui5-workspace"];
 
 	schemaNames.forEach(async (schemaName) => {
-		// Using the npm version of @ui5/project to use the latest published version for Github Pages
 		const SOURCE_SCHEMA_PATH = fileURLToPath(
-			new URL(`./lib/validation/schema/${schemaName}.json`, import.meta.resolve("@ui5/project-npm/package.json"))
+			new URL(`./lib/validation/schema/${schemaName}.json`,
+				import.meta.resolve(`${UI5_PROJECT_VERSION}/package.json`))
 		);
 		const TARGET_SCHEMA_PATH = fileURLToPath(
 			new URL(`../schema/${schemaName}.yaml.json`, import.meta.url)
