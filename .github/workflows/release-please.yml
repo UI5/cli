@@ -50,9 +50,9 @@ jobs:
 
       - name: Publish ${{ matrix.package }} package
         working-directory: packages/${{ matrix.package }}
-        run: |
+        run: | 
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
-          npm publish --access public
+          npm publish --access public --tag next
 
   publish-cli:
     runs-on: ubuntu-24.04
@@ -79,4 +79,4 @@ jobs:
         working-directory: packages/cli
         run: |
           echo "🚀 Publishing @ui5/cli"
-          npm publish --access public
+          npm publish --access public --tag next
