@@ -2,12 +2,12 @@
 - RFC PR: [#1194](https://github.com/UI5/cli/pull/1194)
 - Issue: -
 - Affected components <!-- Check affected components by writing an "X" into the brackets -->
-    + [x] [ui5-builder](./packages/builder)
-    + [ ] [ui5-server](./packages/server)
-    + [ ] [ui5-cli](./packages/cli)
-    + [ ] [ui5-fs](./packages/fs)
-    + [ ] [ui5-project](./packages/project)
-    + [ ] [ui5-logger](./packages/logger)
+    + [x] [builder](./packages/builder)
+    + [ ] [server](./packages/server)
+    + [ ] [cli](./packages/cli)
+    + [ ] [fs](./packages/fs)
+    + [ ] [project](./packages/project)
+    + [ ] [logger](./packages/logger)
 
 
 # RFC 0019 Bundle Info Preload
@@ -23,7 +23,7 @@ This allows the UI5 runtime to always load the small `library-preload.js` for al
 
 ## Motivation
 
-Currently, UI5 applications often declare library dependencies as "lazy" in their `manifest.json` to improve initial loading times. However, this requires developers to explicitly load these libraries using `sap/ui/core/Lib#load("sap.m")` (or the deprecated variant `sap.ui.getCore().loadLibrary("sap.m")`) before any of their modules can be used. This is a manual and error-prone process.
+Currently, UI5 applications often declare library dependencies as "lazy" in their `manifest.json` to improve initial loading times. However, this requires developers to explicitly load these libraries using `sap/ui/core/Lib.load("sap.m")` (or the deprecated variant `sap.ui.getCore().loadLibrary("sap.m")`) before any of their modules can be used. This is a manual and error-prone process.
 
 By splitting the library preload, the essential part of a library can be loaded eagerly without a significant performance penalty. The UI5 loader can then automatically fetch the larger part of the library when it's first needed.
 
@@ -34,7 +34,7 @@ This leads to the following benefits:
 
 ## Detailed design
 
-The implementation of "Bundle-Info Preload" shall be handled by the UI5 CLI, specifically in the `ui5-builder` package.
+The implementation of "Bundle-Info Preload" shall be handled by the UI5 CLI, specifically in the `builder` package.
 
 ### Bundling Process
 
@@ -68,13 +68,14 @@ Note that this manifest attribute will only be added in a later manifest version
 
 ### Planned Runtime Behavior
 
-In a future UI5 framework release the following behavior might be implemented:
+In a future UI5 framework release the following behavior might be implemented. Note that the detailed design for this is out of scope of this RFC, which rather focuses on the UI5 CLI implementation.
 
 1. The application's `manifest.json` is loaded first.
 2. The UI5 runtime analyzes the library dependencies.
-3. For every library dependency (eager or lazy), it requests the corresponding `library-preload.js` file.
-4. When application code requests a module from a library for the first time, the UI5 loader checks the bundle-info from the already loaded `library-preload.js`.
-5. If the module is located in the secondary bundle, the loader requests the `_library-content.js` file and then provides the requested module. Subsequent requests for modules from that bundle are served directly from the loaded bundle similar to the "legacy" `library-preload.js`.
+3. For every library dependency (eager or lazy), it requests the corresponding `library-preload.js` as well as the `manifest.json`
+4. The UI5 loader checks the presence of the `"bundleVersion": 2` flag in the library's manifest and produces an error in case it is missing.
+5. When application code requests a module from a library for the first time, the UI5 loader checks the bundle-info from the already loaded `library-preload.js`.
+6. If the module is located in the secondary bundle, the loader requests the `_library-content.js` file and then provides the requested module. Subsequent requests for modules from that bundle are served directly from the loaded bundle similar to the "legacy" `library-preload.js`.
 
 ### Handling `manifest.json` in `library-preload.js`
 
@@ -95,9 +96,9 @@ The "Bundle-Info Preload" feature is designed to work transparently for most dev
 
 ## Drawbacks
 
-UI5 releases prior to version 1.74 do not provide all required UI5 loader features, making the new bundling incompatible with these versions. Developers still targeting older releases (such as 1.71) will need to stick with an older release of UI5 CLI where the new bundling is not used.
+UI5 releases prior to version 1.74 do not provide all required UI5 loader features, making the new bundling incompatible with these versions. Developers still targeting older releases (such as 1.71) will need to be able to disable the new bundling behavior, or be provided with a long-term maintenance version of UI5 CLI v4, which continues to use the legacy bundling strategy.
 
-Similarly, the addition of the manifest flag requires the use of a specific manifest version which might not be supported by older UI5 releases. However, due to lack of validation of the manifest version in older UI5 releases, this is not expected to cause practical issues.
+Similarly, the addition of the manifest flag requires the use of a specific minimum manifest version which might not be supported by older UI5 releases. This might cause problems if any validation is done on the final manifest, e.g. during deployment or at runtime.
 
 Another drawback is the introduction of an additional request for the `_library-content.js` file. However, this request only occurs if the library is actually used, and it happens in parallel with other requests. For libraries that are declared but never used, this approach saves bandwidth by not loading the large content bundle at all. For eagerly used libraries, the performance impact is expected to be negligible and outweighed by the benefits of parallel loading and simplified development.
 
@@ -113,5 +114,6 @@ There is also a minor risk of confusion if developers are not aware of the new b
 
 *This section should be removed (i.e. resolved) before merging*
 
-The core concepts seem to be well-defined. The main points for final confirmation are:
-- Final confirmation from colleagues on the name and location of the manifest flag (`"sap.ui5".library.bundleVersion`)
+- Final confirmation from colleagues on the name and location of the manifest flag (`"sap.ui5".library.bundleVersion`) as well as the required minimum manifest version
+- Clarification on how the new manifest version can be used in old UI5 versions
+- Clarification on how UI5 1.71 development can still be supported
