@@ -59,7 +59,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add packages/project/package.json package-lock.json
-          git commit -m "chore: update @ui5/builder peer dependency and regenerate lockfile"
+          git commit -m "ci(release-please): update @ui5/builder peer dependency and regenerate lockfile"
           git push
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
