@@ -63,6 +63,10 @@ export default async function({workspace, taskUtil, options = {}}) {
 
 	async function updateManifestWithFlDependencyAndFlexBundleFlag(bBundleCreated) {
 		const manifestResource = await workspace.byPath(`${pathPrefix}/manifest.json`);
+		if (!manifestResource) {
+			log.verbose("No manifest.json found, skipping update of sap.ui.fl dependency and flexBundle flag");
+			return;
+		}
 		const manifestContent = JSON.parse(await manifestResource.getString());
 
 		updateJson(manifestContent, bBundleCreated);
@@ -73,6 +77,10 @@ export default async function({workspace, taskUtil, options = {}}) {
 
 	async function readManifestMinUI5Version() {
 		const manifestResource = await workspace.byPath(`${pathPrefix}/manifest.json`);
+		if (!manifestResource) {
+			log.verbose("No manifest.json found, cannot read minUI5Version");
+			return [];
+		}
 		const manifestContent = JSON.parse(await manifestResource.getString());
 
 		manifestContent["sap.ui5"] = manifestContent["sap.ui5"] || {};
