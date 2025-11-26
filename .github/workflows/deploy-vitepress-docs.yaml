@@ -59,10 +59,9 @@ jobs:
             - name: Build jsdoc
               working-directory: internal/documentation
               run: npm run jsdoc-generate
-            # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
-            # - name: Build Sch3 |
-            #       npm run schema-generate
-            #       npm run schema-workspace-generate
+            - name: Build Schema
+              working-directory: internal/documentation
+              run: npm run schema-generate
             - name: Checkout gh-pages
               uses: actions/checkout@v5
               with:
@@ -72,7 +71,7 @@ jobs:
               run: |
                   # TODO: Skip for now deployment of the schema until we do a Schema Version 5 release
                   # rm -rf ./gh-pages/schema
-                  # cp -R ./site/schema ./gh-pages/
+                  # cp -R internal/documentation/schema ./gh-pages/schema/
                   rm -rf ./gh-pages/${DOC_VERSION}
                   rm -rf ./gh-pages/${DOC_ALIAS}
 

@@ -44,6 +44,7 @@ jobs:
       run: npm run jsdoc-generate
 
     - name: Generate merged JSON schema
+      working-directory: internal/documentation
       run: npm run schema-generate
 
     - name: Generate CLI documentation

@@ -32,7 +32,9 @@
 		"jsdoc": "npm run jsdoc-generate && open-cli dist/api/index.html",
 		"jsdoc-generate": "jsdoc -c jsdoc/jsdoc.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
 		"jsdoc-generate-workspace": "jsdoc -c jsdoc/jsdoc-workspace.json -t $(node -p 'path.dirname(require.resolve(\"docdash\"))') ./ || (echo 'Error during JSDoc generation! Check log.' && exit 1)",
-		"generate-cli-doc": "node ./scripts/generateCliDoc.js"
+		"generate-cli-doc": "node ./scripts/generateCliDoc.js",
+		"schema-generate": "node ./scripts/buildSchema.js @ui5/project-npm",
+		"schema-generate-workspace": "node ./scripts/buildSchema.js @ui5/project"
 	},
 	"dependencies": {
 		"@types/node": "^22.5.1",
@@ -46,6 +48,7 @@
 		"vue": "^3.4.38"
 	},
 	"devDependencies": {
+		"@apidevtools/json-schema-ref-parser": "^14.2.1",
 		"@ui5/builder-npm": "npm:@ui5/builder@^4.0.11",
 		"@ui5/cli-npm": "npm:@ui5/cli@^4.0.26",
 		"@ui5/fs-npm": "npm:@ui5/fs@^4.0.2",
@@ -53,8 +56,9 @@
 		"@ui5/project-npm": "npm:@ui5/project@^4.0.6",
 		"@ui5/server-npm": "npm:@ui5/server@^4.0.7",
 		"docdash": "^2.0.2",
+		"handlebars": "^4.7.8",
 		"jsdoc": "^4.0.4",
 		"open-cli": "^8.0.0",
-		"handlebars": "^4.7.8"
+		"traverse": "^0.6.11"
 	}
 }
