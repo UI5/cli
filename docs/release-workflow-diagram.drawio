@@ -1,0 +1,91 @@
+<mxfile host="65bd71144e">
+    <diagram name="Release Workflow" id="release-workflow">
+        <mxGraphModel dx="342" dy="1550" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="trigger" value="Push to main&lt;br&gt;branch" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="460" y="-10" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="trigger" target="job1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="job1" value="Job 1: release-please" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;arcSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="340" y="90" width="360" height="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="job1-step1" value="• Analyzes commits since last release" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="120" width="330" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="job1-step2" value="• Creates/updates release PR with version bumps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="163" width="330" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="job1-step3" value="• Generates CHANGELOGs for each package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="240" width="330" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="job1-step4" value="• Fixes circular peerDependency &amp;amp; lockfile issues ** (Not handled by Release Please)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="279" width="330" height="28" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="job1" target="merge-event" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="merge-event" value="👤 Developer&lt;br&gt;Merges Release PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;fontStyle=1;arcSize=20;" parent="1" vertex="1">
+                    <mxGeometry x="440" y="350" width="160" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="merge-event" target="info-box" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="info-box" value="✓ Release Please creates GitHub releases &amp; tags&lt;br&gt;✓ Workflow triggers package publishing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;strokeWidth=2;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="440" width="320" height="45" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="info-box" target="job2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2" value="Job 2: publish-packages (Matrix Strategy)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;arcSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="340" y="520" width="360" height="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2-note" value="max-parallel: 1 (Sequential Execution)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffcc99;strokeColor=none;fontSize=10;fontStyle=2;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="548" width="320" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2-step1" value="1. Publish @ui5/logger" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="573" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2-step2" value="2. Publish @ui5/fs (depends on logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="603" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2-step3" value="3. Publish @ui5/builder (depends on fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="633" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2-step4" value="4. Publish @ui5/server (depends on fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="663" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="job2-step5" value="5. Publish @ui5/project (depends on fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="693" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="job2" target="job3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="job3" value="Job 3: publish-cli" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;verticalAlign=top;fontStyle=1;fontSize=14;arcSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="340" y="760" width="360" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="job3-step1" value="1. Generate npm-shrinkwrap.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="790" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="job3-step2" value="2. Publish @ui5/cli with shrinkwrap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="820" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="job3-complete" value="✓ All packages published to npm" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#b1ddf0;strokeColor=#10739e;fontStyle=1;fontSize=11;" parent="1" vertex="1">
+                    <mxGeometry x="360" y="850" width="320" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="note-sequential" value="&lt;b&gt;Why Sequential Publishing?&lt;/b&gt;&lt;br&gt;• Packages have dependencies on each other&lt;br&gt;• NPM must have dependencies available&lt;br&gt;&amp;nbsp;&amp;nbsp;before publishing dependents&lt;br&gt;• max-parallel: 1 ensures proper order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;dashed=1;dashPattern=3 3;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="740" y="580" width="280" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="note-cli" value="&lt;b&gt;Why CLI Published Last?&lt;/b&gt;&lt;br&gt;• Shrinkwrap needs all dependencies&lt;br&gt;&amp;nbsp;&amp;nbsp;to exist on npm registry&lt;br&gt;• Ensures production-only locked deps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;dashed=1;dashPattern=3 3;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="20" y="780" width="280" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" value="• Syncronizes package.json intra dependency versions for the packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="200" width="330" height="28" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
