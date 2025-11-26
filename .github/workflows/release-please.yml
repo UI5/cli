@@ -56,11 +56,11 @@ jobs:
           done
 
           # Commit the change back to the PR branch
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Amend the Release Please commit to include our fixes
+          # This keeps the PR clean with a single commit
           git add packages/project/package.json package-lock.json
-          git commit -m "ci(release-please): update @ui5/builder peer dependency and regenerate lockfile"
-          git push
+          git commit --amend --no-edit
+          git push --force-with-lease
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
