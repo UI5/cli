@@ -220,7 +220,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 ---
 
-#### Linked Versions Plugin
+#### `linked-versions` Plugin
 
 ```json
 {
