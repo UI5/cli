@@ -8,42 +8,16 @@ var logger = require('jsdoc/util/logger');
 var path = require('jsdoc/path');
 var taffy = require('@jsdoc/salty').taffy;
 var template = require('jsdoc/template');
-var util = require('util');
+var util = require('node:util');
 
 var htmlsafe = helper.htmlsafe;
-var linkto = helper.linkto;
 var resolveAuthorLinks = helper.resolveAuthorLinks;
-var scopeToPunc = helper.scopeToPunc;
-var hasOwnProp = Object.prototype.hasOwnProperty;
 
 var data;
 var view;
+var githubSourceBaseUrl;
 
 var outdir = path.normalize(env.opts.destination);
-
-function copyFile(source, target, cb) {
-  var cbCalled = false;
-
-  var rd = fs.createReadStream(source);
-  rd.on("error", function(err) {
-    done(err);
-  });
-  var wr = fs.createWriteStream(target);
-  wr.on("error", function(err) {
-    done(err);
-  });
-  wr.on("close", function(ex) {
-    done();
-  });
-  rd.pipe(wr);
-
-  function done(err) {
-    if (!cbCalled) {
-      cb(err);
-      cbCalled = true;
-    }
-  }
-}
 
 function find(spec) {
     return helper.find(data, spec);
@@ -63,7 +37,7 @@ function hashToLink(doclet, hash) {
     var url = helper.createLink(doclet);
 
     url = url.replace(/(#.+|$)/, hash);
-    return '<a href="' + url + '">' + hash + '</a>';
+    return '[' + hash + '](' + url + ')';
 }
 
 function needsSignature(doclet) {
@@ -83,11 +57,11 @@ function needsSignature(doclet) {
             }
         }
     }
-    // and namespaces that are functions get a signature (but finding them is a		
-    // bit messy)		
-    else if (doclet.kind === 'namespace' && doclet.meta && doclet.meta.code &&		
-        doclet.meta.code.type && doclet.meta.code.type.match(/[Ff]unction/)) {		
-        needsSig = true;		
+    // and namespaces that are functions get a signature (but finding them is a
+    // bit messy)
+    else if (doclet.kind === 'namespace' && doclet.meta && doclet.meta.code &&
+        doclet.meta.code.type && doclet.meta.code.type.match(/[Ff]unction/)) {
+        needsSig = true;
     }
 
     return needsSig;
@@ -137,7 +111,7 @@ function buildItemTypeStrings(item) {
 
     if (item && item.type && item.type.names) {
         item.type.names.forEach(function(name) {
-            types.push( linkto(name, htmlsafe(name)) );
+            types.push( linkTo(name, htmlsafe(name)) );
         });
     }
 
@@ -199,24 +173,24 @@ function addSignatureReturns(f) {
     }
 
     f.signature = '<span class="signature">' + (f.signature || '') + '</span>' +
-        '<span class="type-signature">' + returnTypesString + '</span>';
+        '<span class="type-signature">' + returnTypesString + '</span></div>';
 }
 
 function addSignatureTypes(f) {
     var types = f.type ? buildItemTypeStrings(f) : [];
 
     f.signature = (f.signature || '') + '<span class="type-signature">' +
-        (types.length ? ' :' + types.join('|') : '') + '</span>';
+        (types.length ? ' :' + types.join('|') : '') + '</span></div>';
 }
 
 function addAttribs(f) {
     var attribs = helper.getAttribs(f);
     var attribsString = buildAttribsString(attribs);
     if (attribsString && attribsString.length) {
-        f.attribs = util.format('<span class="type-signature type-signature-' + attribsString.replace(/\(/g, '').replace(/\)/g, '').trim() +'">%s</span>', attribsString);
+        f.attribs = "<div class='jsdoc-object'>" + util.format('<span class="type-signature type-signature-' + attribsString.replace(/\(/g, '').replace(/\)/g, '').trim() +'">%s</span>', attribsString);
     }
     else {
-        f.attribs = util.format('<span class="type-signature">%s</span>', attribsString);
+        f.attribs = "<div class='jsdoc-object'>" + util.format('<span class="type-signature">%s</span>', attribsString);
     }
 }
 
@@ -322,192 +296,14 @@ function attachModuleSymbols(doclets, modules) {
     });
 }
 
-function buildMemberNav(items, itemHeading, itemsSeen, linktoFn) {
-    var nav = '';
-
-    if (items && items.length) {
-        var itemsNav = '';
-        var docdash = env && env.conf && env.conf.docdash || {};
-        var level = typeof docdash.navLevel === 'number' && docdash.navLevel >= 0 ?
-            docdash.navLevel :
-            Infinity;
-
-        items.forEach(function(item) {
-            var displayName;
-            var methods = find({kind:'function', memberof: item.longname});
-            var members = find({kind:'member', memberof: item.longname});
-            var conf = env && env.conf || {};
-            var classes = '';
-
-            // show private class?
-            if (docdash.private === false && item.access === 'private') return;
-
-            // depth to show?
-            if (item.ancestors && item.ancestors.length > level) {
-                classes += 'level-hide';
-            }
-
-            classes = classes ? ' class="'+ classes + '"' : '';
-            itemsNav +=  '<li'+ classes +'>';
-            if ( !hasOwnProp.call(item, 'longname') ) {
-                itemsNav += linktoFn('', item.name);
-            } else if ( !hasOwnProp.call(itemsSeen, item.longname) ) {
-                if (conf.templates.default.useLongnameInNav) {
-                    displayName = item.longname;
-                } else {
-                    displayName = item.name;
-                }
-                itemsNav += linktoFn(item.longname, displayName.replace(/\b(module|event):/g, ''));
-
-                if (docdash.static && members.find(function (m) { return m.scope === 'static'; } )) {
-                    itemsNav += "<ul class='members'>";
-
-                    members.forEach(function (member) {
-                        if (!member.scope === 'static') return;
-                        itemsNav += "<li data-type='member'";
-                        if(docdash.collapse)
-                            itemsNav += " style='display: none;'";
-                        itemsNav += ">";
-                        itemsNav += linkto(member.longname, member.name);
-                        itemsNav += "</li>";
-                    });
-
-                    itemsNav += "</ul>";
-                }
-
-                if (methods.length) {
-                    itemsNav += "<ul class='methods'>";
-
-                    methods.forEach(function (method) {
-                        if (docdash.static === false && method.scope === 'static') return;
-                        if (docdash.private === false && method.access === 'private') return;
-
-                        var navItem = '';
-                        var navItemLink = linkto(method.longname, method.name);
-
-                        navItem += "<li data-type='method'";
-                        if(docdash.collapse)
-                            navItem += " style='display: none;'";
-                        navItem += ">";
-                        navItem += navItemLink;
-                        navItem += "</li>";
-
-                        itemsNav += navItem;
-                    });
-
-                    itemsNav += "</ul>";
-                }
-
-                itemsSeen[item.longname] = true;
-            }
-            itemsNav += '</li>';
-        });
-
-        if (itemsNav !== '') {
-            if(docdash.collapse === "top") {
-                nav += '<h3 class="collapsed_header">' + itemHeading + '</h3><ul class="collapse_top">' + itemsNav + '</ul>';
-            }
-            else {
-                nav += '<h3>' + itemHeading + '</h3><ul>' + itemsNav + '</ul>';
-            }
-        }
-    }
-
-    return nav;
-}
-
-function linktoTutorial(longName, name) {
-    return tutoriallink(name);
-}
-
-function linktoExternal(longName, name) {
-    return linkto(longName, name.replace(/(^"|"$)/g, ''));
-}
-
-/**
- * Create the navigation sidebar.
- * @param {object} members The members that will be used to create the sidebar.
- * @param {array<object>} members.classes
- * @param {array<object>} members.externals
- * @param {array<object>} members.globals
- * @param {array<object>} members.mixins
- * @param {array<object>} members.modules
- * @param {array<object>} members.namespaces
- * @param {array<object>} members.tutorials
- * @param {array<object>} members.events
- * @param {array<object>} members.interfaces
- * @return {string} The HTML for the navigation sidebar.
- */
-
-function buildNav(members) {
-    var nav = '<h2><a href="index.html">Home</a></h2>';
-    var seen = {};
-    var seenTutorials = {};
-    var docdash = env && env.conf && env.conf.docdash || {};
-    if(docdash.menu){
-        for(var menu in docdash.menu){
-            nav += '<h2><a ';
-            //add attributes
-            for(var attr in docdash.menu[menu]){
-                nav += attr+'="' + docdash.menu[menu][attr] + '" ';
-            }
-            nav += '>' + menu + '</a></h2>';
-        }
-    }
-
-    function buildMemberNavGlobal() {
-        var ret = "";
-        if (members.globals.length) {
-            var globalNav = '';
-    
-            members.globals.forEach(function(g) {
-                if ( (docdash.typedefs || g.kind !== 'typedef') && !hasOwnProp.call(seen, g.longname) ) {
-                    globalNav += '<li>' + linkto(g.longname, g.name) + '</li>';
-                }
-                seen[g.longname] = true;
-            });
-    
-            if (!globalNav) {
-                // turn the heading into a link so you can actually get to the global page
-                ret += '<h3>' + linkto('global', 'Global') + '</h3>';
-            }
-            else {
-                if(docdash.collapse === "top") {
-                    ret += '<h3 class="collapsed_header">Global</h3><ul class="collapse_top">' + globalNav + '</ul>';
-                }
-                else {
-                    ret += '<h3>Global</h3><ul>' + globalNav + '</ul>';
-                }
-            }
-        }
-        return ret;
-    }
-    var defaultOrder = [
-        'Classes', 'Modules', 'Externals', 'Events', 'Namespaces', 'Mixins', 'Tutorials', 'Interfaces', 'Global'
-    ];
-    var order = docdash.sectionOrder || defaultOrder;
-    var sections = {
-        Classes: buildMemberNav(members.classes, 'Classes', seen, linkto),
-        Modules: buildMemberNav(members.modules, 'Modules', {}, linkto),
-        Externals: buildMemberNav(members.externals, 'Externals', seen, linktoExternal),
-        Events: buildMemberNav(members.events, 'Events', seen, linkto),
-        Namespaces: buildMemberNav(members.namespaces, 'Namespaces', seen, linkto),
-        Mixins: buildMemberNav(members.mixins, 'Mixins', seen, linkto),
-        Tutorials: buildMemberNav(members.tutorials, 'Tutorials', seenTutorials, linktoTutorial),
-        Interfaces: buildMemberNav(members.interfaces, 'Interfaces', seen, linkto),
-        Global: buildMemberNavGlobal()
-    };
-    order.forEach(member => nav += sections[member]);
-
-    return nav;
-}
-
 /**
     @param {TAFFY} taffyData See <http://taffydb.com/>.
     @param {object} opts
     @param {Tutorial} tutorials
  */
 exports.publish = function(taffyData, opts, tutorials) {
+    helper.fileExtension = ".md";
+
     var docdash = env && env.conf && env.conf.docdash || {};
     data = taffyData;
 
@@ -516,6 +312,9 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     var templatePath = path.normalize(opts.template);
     view = new template.Template( path.join(templatePath, 'tmpl') );
+
+    // Store GitHub base URL for source file links
+    githubSourceBaseUrl = docdash.githubSourceBaseUrl || null;
 
     // claim some special filenames in advance, so the All-Powerful Overseer of Filename Uniqueness
     // doesn't try to hand them out later
@@ -626,43 +425,8 @@ exports.publish = function(taffyData, opts, tutorials) {
             outdir = path.join.apply(null, subdirs);
         }
     }
-    
+
     fs.mkPath(outdir);
-
-    // copy the template's static files to outdir
-    var fromDir = path.join(templatePath, 'static');
-    var staticFiles = fs.ls(fromDir, 3);
-
-    staticFiles.forEach(function(fileName) {
-        var toDir = fs.toDir( fileName.replace(fromDir, outdir) );
-        fs.mkPath(toDir);
-        copyFile(fileName, path.join(toDir, path.basename(fileName)), function(err){if(err) console.err(err);});
-    });
-
-    // copy user-specified static files to outdir
-    var staticFilePaths;
-    var staticFileFilter;
-    var staticFileScanner;
-    if (conf.default.staticFiles) {
-        // The canonical property name is `include`. We accept `paths` for backwards compatibility
-        // with a bug in JSDoc 3.2.x.
-        staticFilePaths = conf.default.staticFiles.include ||
-            conf.default.staticFiles.paths ||
-            [];
-        staticFileFilter = new (require('jsdoc/src/filter')).Filter(conf.default.staticFiles);
-        staticFileScanner = new (require('jsdoc/src/scanner')).Scanner();
-
-        staticFilePaths.forEach(function(filePath) {
-            var extraStaticFiles = staticFileScanner.scan([filePath], 10, staticFileFilter);
-
-            extraStaticFiles.forEach(function(fileName) {
-                var sourcePath = fs.toDir(filePath);
-                var toDir = fs.toDir( fileName.replace(sourcePath, outdir) );
-                fs.mkPath(toDir);
-                copyFile(fileName, path.join(toDir, path.basename(fileName)), function(err){if(err) console.err(err);});
-            });
-        });
-    }
 
     if (sourceFilePaths.length) {
         sourceFiles = shortenPaths( sourceFiles, path.commonPrefix(sourceFilePaths) );
@@ -728,14 +492,13 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     // add template helpers
     view.find = find;
-    view.linkto = linkto;
+    view.linkto = linkTo;
     view.resolveAuthorLinks = resolveAuthorLinks;
     view.tutoriallink = tutoriallink;
     view.htmlsafe = htmlsafe;
     view.outputSourceFiles = outputSourceFiles;
 
     // once for all
-    view.nav = buildNav(members);
     attachModuleSymbols( find({ longname: {left: 'module:'} }), members.modules );
 
     // generate the pretty-printed source files first so other pages can link to them
@@ -756,11 +519,6 @@ exports.publish = function(taffyData, opts, tutorials) {
             [{kind: 'mainpage', readme: opts.readme, longname: (opts.mainpagetitle) ? opts.mainpagetitle : 'Main Page'}]
         ).concat(files),
     indexUrl);
-
-    // common nav generation, no need for templating here, we already have full html
-    if (docdash.commonNav) {
-        fs.writeFileSync(path.join(outdir, 'nav.inc.html'), view.nav, 'utf8');
-    }
 
     // set up the lists that we'll use to generate pages
     var classes = taffy(members.classes);
@@ -829,3 +587,177 @@ exports.publish = function(taffyData, opts, tutorials) {
 
     saveChildren(tutorials);
 };
+
+function linkTo(longname, linkText, cssClass, fragmentId) {
+    const classString = cssClass ? util.format(' class="%s"', cssClass) : '';
+    let fileUrl;
+    let fragmentString = fragmentId ? `#${fragmentId}` : '';
+    let stripped;
+    let text;
+
+    // handle cases like:
+    // @see <http://example.org>
+    // @see http://example.org
+    stripped = longname ? longname.replace(/^<|>$/g, '') : '';
+    const hasUrlPrefix = /^(http|ftp)s?:\/\//.test(stripped);
+
+    if (hasUrlPrefix) {
+        fileUrl = stripped;
+        text = linkText || stripped;
+        // Add target and rel attributes for external links
+        return util.format('<a href="%s"%s target="_blank" rel="noopener noreferrer">%s</a>',
+            encodeURI(fileUrl + fragmentString), classString, text);
+    }
+    // handle complex type expressions that may require multiple links
+    // (but skip anything that looks like an inline tag or HTML tag)
+    else if (longname && isComplexTypeExpression(longname) &&
+             !/\{@.+\}/.test(longname) && !/^<[\s\S]+>/.test(longname)) {
+        // Parse complex types and create links for nested types
+        return linkComplexType(longname, linkText, cssClass);
+    }
+    else {
+        fileUrl = helper.longnameToUrl[longname] || '';
+        text = linkText || longname;
+
+        // If the URL contains a fragment (hash), extract it
+        if (fileUrl && fileUrl.indexOf('#') > -1) {
+            const parts = fileUrl.split('#');
+            fileUrl = parts[0];
+            // Only use the URL's fragment if no explicit fragmentId was provided
+            if (!fragmentId) {
+                fragmentString = '#' + parts[1];
+            }
+        }
+
+        // Convert source file links to GitHub URLs if configured
+        if (fileUrl && githubSourceBaseUrl && (fileUrl.endsWith('.js.md') || longname.endsWith('.js'))) {
+            fileUrl = convertSourceLinkToGitHub(fileUrl, longname);
+            // GitHub links should open in new tab
+            return util.format('<a href="%s"%s target="_blank" rel="noopener noreferrer">%s</a>',
+                encodeURI(fileUrl + fragmentString), classString, text);
+        }
+        // Remove .md extension from internal links for VitePress compatibility
+        // Handle both cases: with and without fragment identifiers
+        else if (fileUrl) {
+            fileUrl = fileUrl.replace(/\.md$/, '');
+        }
+    }
+
+    text = text || longname;
+
+    if (!fileUrl) {
+        return text;
+    }
+    else {
+        return util.format('<a href="%s"%s>%s</a>', encodeURI(fileUrl + fragmentString),
+            classString, text);
+    }
+}
+
+function convertSourceLinkToGitHub(fileUrl, longname) {
+    if (!githubSourceBaseUrl) {
+        return fileUrl;
+    }
+
+    // Look up the original source path from the reverse mapping
+    let sourcePath = helper.longnameToUrl.urlToLongname || {};
+
+    // Try to find the original path from the URL
+    for (let originalPath in helper.longnameToUrl) {
+        if (helper.longnameToUrl[originalPath] === fileUrl) {
+            sourcePath = originalPath;
+            break;
+        }
+    }
+
+    // If we found a valid source path, convert it to GitHub URL
+    if (typeof sourcePath === 'string' && sourcePath.endsWith('.js')) {
+        // Clean up the path - remove any leading slashes or backslashes
+        sourcePath = sourcePath.replace(/^[\/\\]+/, '');
+
+        // Return the GitHub URL
+        return `${githubSourceBaseUrl}/${sourcePath}`;
+    }
+
+    // Fallback: if no mapping found, return original fileUrl
+    return fileUrl;
+}
+
+function isComplexTypeExpression(expr) {
+    // record types, type unions, and type applications all count as "complex"
+    return /^{.+}$/.test(expr) || /^.+\|.+$/.test(expr) || /^.+<.+>$/.test(expr);
+}
+
+function linkComplexType(longname, linkText, cssClass) {
+    const classString = cssClass ? util.format(' class="%s"', cssClass) : '';
+
+    // Handle type unions (e.g., "string | number")
+    if (/^.+\|.+$/.test(longname) && !/<.+>/.test(longname)) {
+        const types = longname.split('|').map(t => t.trim());
+        return types.map(type => {
+            let url = helper.longnameToUrl[type];
+            if (url) {
+                // Remove .md extension for VitePress compatibility
+                url = url.replace(/\.md$/, '');
+                return util.format('<a href="%s"%s>%s</a>', encodeURI(url), classString, htmlsafe(type));
+            }
+            return htmlsafe(type);
+        }).join(' | ');
+    }
+
+    // Handle generic types (e.g., "Array.<string>", "Promise.<@ui5/fs/Resource>")
+    if (/<.+>/.test(longname)) {
+        return linkGenericType(longname, classString);
+    }
+
+    // Handle record types (e.g., "{a: string, b: number}")
+    if (/^{.+}$/.test(longname)) {
+        return htmlsafe(longname);
+    }
+
+    // Fallback
+    return linkText || htmlsafe(longname);
+}
+
+function linkGenericType(type, classString) {
+    // Match patterns like "Promise.<Type>" or "Array.<Type>" or "Promise.<Array.<Type>>"
+    const match = type.match(/^([^<]+)<(.+)>$/);
+
+    if (!match) {
+        return htmlsafe(type);
+    }
+
+    const baseType = match[1];
+    const innerType = match[2];
+
+    // Link the base type if it has a URL
+    let result = '';
+    let baseUrl = helper.longnameToUrl[baseType];
+    if (baseUrl) {
+        // Remove .md extension for VitePress compatibility
+        baseUrl = baseUrl.replace(/\.md$/, '');
+        result = util.format('<a href="%s"%s>%s</a>', encodeURI(baseUrl), classString, htmlsafe(baseType));
+    } else {
+        result = htmlsafe(baseType);
+    }
+
+    result += '.&lt;';
+
+    // Recursively handle the inner type
+    if (isComplexTypeExpression(innerType)) {
+        result += linkComplexType(innerType, null, classString.replace(' class="', '').replace('"', ''));
+    } else {
+        let innerUrl = helper.longnameToUrl[innerType];
+        if (innerUrl) {
+            // Remove .md extension for VitePress compatibility
+            innerUrl = innerUrl.replace(/\.md$/, '');
+            result += util.format('<a href="%s"%s>%s</a>', encodeURI(innerUrl), classString, htmlsafe(innerType));
+        } else {
+            result += htmlsafe(innerType);
+        }
+    }
+
+    result += '>';
+
+    return result;
+}
