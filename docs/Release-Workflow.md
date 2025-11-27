@@ -283,4 +283,4 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Our Configuration**:
 - **Visible**: Features, Bug Fixes, Performance Improvements, Dependencies, Reverts
-- **Hidden**: Documentation, Styles, Refactoring, Tests, Build, CI, Release
+- **Hidden**: Documentation, styles, refactoring, tests, build, CI, release
