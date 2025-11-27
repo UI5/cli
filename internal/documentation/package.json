@@ -59,6 +59,14 @@
 		"handlebars": "^4.7.8",
 		"jsdoc": "^4.0.4",
 		"open-cli": "^8.0.0",
-		"traverse": "^0.6.11"
+		"rehype": "^13.0.2",
+		"rehype-format": "^5.0.1",
+		"rehype-ignore": "^2.0.2",
+		"rehype-remark": "^10.0.1",
+		"rehype-video": "^2.3.0",
+		"remark-gfm": "^4.0.1",
+		"remark-stringify": "^11.0.0",
+		"traverse": "^0.6.11",
+		"unified": "^11.0.5"
 	}
 }
