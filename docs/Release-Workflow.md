@@ -230,7 +230,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 }
 ```
 
-**Purpose**: Synchronizes version numbers across multiple packages in a monorepo.
+**Purpose**: Synchronizes version numbers across multiple packages in a monorepo
 
 **Behavior**:
 - All specified components get the same version number
