@@ -86,7 +86,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "always-update": true
 ```
 
-**Purpose**: Ensures the release PR is updated with every commit to the main branch.
+**Purpose**: Ensures the release PR is updated with every commit to the main branch
 
 **Behavior**: 
 - Scans commits since last release
