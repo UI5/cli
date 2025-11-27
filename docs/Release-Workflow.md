@@ -38,7 +38,7 @@ The workflow consists of three main jobs:
 
 ### 3. `publish-cli` Job
 - **Trigger**: All other packages have been published
-- **Purpose**: Generate `npm-shrinkwrap.json` and publish the CLI package
+- **Purpose**: Generates `npm-shrinkwrap.json` and publishes the CLI package
 - **Dependency**: Requires all other packages to be available on npm registry
 
 ## Release Please Configuration
