@@ -116,7 +116,7 @@ test("Write modified resource in drain mode", async (t) => {
 
 	await t.notThrowsAsync(fileEqual(t, destFsPath, "./test/fixtures/application.a/webapp/index.html"));
 	await t.throwsAsync(resource.getBuffer(),
-		{message: /Content of Resource \/app\/index.html has been drained/});
+		{message: /Timeout waiting for content of Resource \/app\/index.html to become available./});
 });
 
 test("Write with readOnly and drain options set should fail", async (t) => {
@@ -216,7 +216,7 @@ test("Write modified resource into same file in drain mode", async (t) => {
 
 	await t.notThrowsAsync(fileEqual(t, destFsPath, "./test/fixtures/application.a/webapp/index.html"));
 	await t.throwsAsync(resource.getBuffer(),
-		{message: /Content of Resource \/app\/index.html has been drained/});
+		{message: /Timeout waiting for content of Resource \/app\/index.html to become available./});
 });
 
 test("Write modified resource into same file in read-only mode", async (t) => {
@@ -268,7 +268,7 @@ test("Write new resource in drain mode", async (t) => {
 	await readerWriters.dest.write(resource, {drain: true});
 	await t.notThrowsAsync(fileContent(t, destFsPath, "Resource content"));
 	await t.throwsAsync(resource.getBuffer(),
-		{message: /Content of Resource \/app\/index.html has been drained/});
+		{message: /Timeout waiting for content of Resource \/app\/index.html to become available./});
 });
 
 test("Write new resource in read-only mode", async (t) => {
