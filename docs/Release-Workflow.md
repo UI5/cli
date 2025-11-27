@@ -68,7 +68,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "release-type": "node"
 ```
 
-**Purpose**: Specifies the project type, which determines default behavior for versioning and changelog generation.
+**Purpose**: Specifies the project type, which determines the default behavior for versioning and changelog generation
 
 **Behavior**: 
 - Uses Node.js/npm conventions
