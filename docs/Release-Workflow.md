@@ -122,7 +122,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "release-as": "5.0.0-alpha.0"
 ```
 
-**Purpose**: Configures prerelease versioning for alpha/beta releases.
+**Purpose**: Configures prerelease versioning for alpha/beta releases
 
 **`prerelease`**: 
 - Enables prerelease mode
