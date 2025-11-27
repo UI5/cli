@@ -20,7 +20,4 @@
     if (longname) {
         link = link.replace(longname, resolvedName);
     }
-    ?>
-<span class="param-type"><?js= link?></span>
-<?js if (i < data.length-1) { ?>|<?js } ?>
-<?js }); ?>
+    ?><?js= link?><?js if (i < data.length-1) { ?> \| <?js } ?><?js }); ?>

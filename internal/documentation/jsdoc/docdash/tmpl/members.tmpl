@@ -1,38 +1,35 @@
 <?js
 var data = obj;
 var self = this;
+var signature = data.signature ? data.signature : '';
+// Check if signature already contains closing </div>, if so don't add another one
+var hasClosingDiv = signature.includes('</div>');
 ?>
-<h4 class="name" id="<?js= id ?>"><?js= data.attribs + name + (data.signature ? data.signature : '') ?></h4>
+#### <div class='jsdoc-object' id='<?js= data.id ?>'><?js= data.attribs.replace(/<div class='jsdoc-object'>/, '').replace(/<\/div>$/, '') + name + signature + (hasClosingDiv ? '' : '</div>') ?>
 
 <?js if (data.summary) { ?>
-<p class="summary"><?js= summary ?></p>
+<?js= summary ?>
 <?js } ?>
 
 <?js= this.partial('details.tmpl', data) ?>
 
 <?js if (data.description) { ?>
-<div class="description usertext">
-    <?js= data.description ?>
-</div>
+<?js= data.description ?>
 <?js } ?>
 
 <?js if (data.type && data.type.names) {?>
-    <h5 class="h5-types">Type:</h5>
-    <ul>
-        <li>
-            <?js= self.partial('type.tmpl', data.type.names) ?>
-        </li>
-    </ul>
+##### Type:
+- <?js= self.partial('type.tmpl', data.type.names) ?>
 <?js } ?>
 
 <?js if (data.fires && fires.length) { ?>
-    <h5 class="h5-fires">Fires:</h5>
-    <ul><?js fires.forEach(function(f) { ?>
-        <li><?js= self.linkto(f) ?></li>
-    <?js }); ?></ul>
+##### Fires:
+<?js fires.forEach(function(f) { ?>
+- <?js= self.linkto(f) ?>
+<?js }); ?>
 <?js } ?>
 
 <?js if (data.examples && examples.length) { ?>
-    <h5 class="h5-examples">Example<?js= examples.length > 1? 's':'' ?></h5>
-    <?js= this.partial('examples.tmpl', examples) ?>
+##### Example<?js= examples.length > 1? 's':'' ?>:
+<?js= this.partial('examples.tmpl', examples) ?>
 <?js } ?>

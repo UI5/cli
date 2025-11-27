@@ -5,6 +5,18 @@ import { defineConfig } from "vitepress";
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 
+import fs from "node:fs";
+import path from "node:path";
+
+// Create items for all api pages
+const apiPages: { text: string; link: string; }[] = [];
+for (const file of fs.readdirSync(path.join("docs", "api"))) {
+  apiPages.push({
+    text: file.replaceAll("_", "/").replace(".md", ""),
+    link: "api/" + file
+  });
+}
+
 export default defineConfig({
 
   // Would be set in CI job via CLI arguments. For local development, it's just root.
@@ -36,30 +48,30 @@ export default defineConfig({
     ]
   ],
 
-  themeConfig: {
+	themeConfig: {
 
 
-    logo: {
-      light: "/images/Logo_B_RGB.png",
-      dark: "/images/Logo_O_RGB.png"
-    },
-    externalLinkIcon: false,
-    outline: [1, 3],
+		logo: {
+			light: "/images/Logo_B_RGB.png",
+			dark: "/images/Logo_O_RGB.png"
+		},
+		externalLinkIcon: false,
+		outline: [1, 3],
 
-    nav: nav(),
+		nav: nav(),
 
-    sidebar: {
-      "/": guide(),
-    },
+		sidebar: {
+			"/": guide(),
+		},
 
-    socialLinks: [
+		socialLinks: [
 
-      { icon: "github", link: "https://github.com/UI5/cli" },
-    ],
+			{ icon: "github", link: "https://github.com/UI5/cli" },
+		],
 
-    footer: {
+		footer: {
 
-      message: `
+			message: `
         &copy; Copyright ${new Date().getFullYear()}, SAP SE and UI5 CLI Contributors <br/>
           <a style="margin:25px"href="https://www.sap.com/corporate/en/legal/impressum.html">Legal Disclosure</a>
           <a  style="margin:25px" href="https://www.sap.com/corporate/en/legal/terms-of-use.html">Terms of Use</a>
@@ -68,222 +80,218 @@ export default defineConfig({
     `,
 
 
-    },
+		},
 
-    search: {
-      provider: "local",
-      //hotKeys: [], // disable hotkeys to avoid search while using UI5 web components input
-    },
+		search: {
+			provider: "local",
+			//hotKeys: [], // disable hotkeys to avoid search while using UI5 web components input
+		},
+	},
 
-
-
-  },
-
-  markdown: {
-    // Configure the Markdown-it instance
-    config: (md) => {
-      // https://www.npmjs.com/package/markdown-it-implicit-figures
-      md.use(MarkdownItImplicitFigures, {
-        figcaption: true,
-      });
-    },
-  },
+	markdown: {
+		// Configure the Markdown-it instance
+		config: (md) => {
+			// https://www.npmjs.com/package/markdown-it-implicit-figures
+			md.use(MarkdownItImplicitFigures, {
+				figcaption: true,
+			});
+		},
+	},
 
 
-  vite: {
-    build: {
-      chunkSizeWarningLimit: 4000, // chunk for local search index dominates
-    }
-  }
+	vite: {
+		build: {
+			chunkSizeWarningLimit: 4000, // chunk for local search index dominates
+		},
+	}
 });
 
 function nav() {
-  return [
-    {
+	return [
+		{
 
-      text: 'V5',
-      items: [
-        {
-          text: 'V4',
-          link: `/../v4/`,
-          target: "_self"
-        },
-        {
-          text: 'V3',
-          link: `/../v3/`,
-          target: "_self"
-        },
-        {
-          text: 'V2',
-          link: `/../v2/`,
-          target: "_self"
-        }
-      ]
-    },
-  ];
+			text: 'V5',
+			items: [
+				{
+					text: 'V4',
+					link: `/../v4/`,
+					target: "_self"
+				},
+				{
+					text: 'V3',
+					link: `/../v3/`,
+					target: "_self"
+				},
+				{
+					text: 'V2',
+					link: `/../v2/`,
+					target: "_self"
+				}
+			]
+		},
+	];
 }
 
 function guide() {
 
-  return [
+	return [
 
-    {
-      text: "Introduction",
-      collapsed: false,
+		{
+			text: "Introduction",
+			collapsed: false,
 
-      items: [
+			items: [
 
-        {
-          text: "Home",
-          link: "/",
-        },
-        {
-          text: "Getting Started",
-          link: "/pages/GettingStarted",
-        },
+				{
+					text: "Home",
+					link: "/",
+				},
+				{
+					text: "Getting Started",
+					link: "/pages/GettingStarted",
+				},
 
-      ],
+			],
 
-    },
-    {
-      text: "UI5 CLI",
-      collapsed: true,
-      link: "/pages/CLI",
+		},
+		{
+			text: "UI5 CLI",
+			collapsed: true,
+			link: "/pages/CLI",
 
 
-    },
-    {
-      text: "Configuration",
-      collapsed: true,
+		},
+		{
+			text: "Configuration",
+			collapsed: true,
 
-      link: "/pages/Configuration",
+			link: "/pages/Configuration",
 
-    },
-    {
-      text: "Development",
-      collapsed: false,
-      items: [
-        {
-          text: "Overview",
-          link: "/pages/Overview",
-        },
-        {
-          text: "OpenUI5",
-          link: "/pages/OpenUI5",
-        },
-        {
-          text: "SAPUI5",
-          link: "/pages/SAPUI5",
-        },
-        {
-          text: "Workspace",
-          link: "/pages/Workspace",
-        },
+		},
+		{
+			text: "Development",
+			collapsed: false,
+			items: [
+				{
+					text: "Overview",
+					link: "/pages/Overview",
+				},
+				{
+					text: "OpenUI5",
+					link: "/pages/OpenUI5",
+				},
+				{
+					text: "SAPUI5",
+					link: "/pages/SAPUI5",
+				},
+				{
+					text: "Workspace",
+					link: "/pages/Workspace",
+				},
 
-      ],
-    },
+			],
+		},
 
-    {
-      text: "Extensibility",
-      collapsed: false,
-      items: [
-        {
-          text: "Custom Tasks",
-          link: "/pages/extensibility/CustomTasks",
-        },
-        {
-          text: "Custom Server Middleware",
-          link: "/pages/extensibility/CustomServerMiddleware",
-        },
-        {
-          text: "Project Shims",
-          link: "/pages/extensibility/ProjectShims",
-        },
-      ],
-    },
-    {
-      text: "Modules",
-      collapsed: false,
-      items: [
-        {
-          text: "Server",
-          link: "/pages/Server",
-        },
-        {
-          text: "Builder",
-          link: "/pages/Builder",
-        },
-        {
-          text: "Project",
-          link: "/pages/Project",
-        },
-        {
-          text: "File System",
-          link: "/pages/FileSystem",
-        },
-      ],
-    },
-    {
-      text: "FAQ",
-      collapsed: false,
-      link: "/pages/FAQ",
+		{
+			text: "Extensibility",
+			collapsed: false,
+			items: [
+				{
+					text: "Custom Tasks",
+					link: "/pages/extensibility/CustomTasks",
+				},
+				{
+					text: "Custom Server Middleware",
+					link: "/pages/extensibility/CustomServerMiddleware",
+				},
+				{
+					text: "Project Shims",
+					link: "/pages/extensibility/ProjectShims",
+				},
+			],
+		},
+		{
+			text: "Modules",
+			collapsed: false,
+			items: [
+				{
+					text: "Server",
+					link: "/pages/Server",
+				},
+				{
+					text: "Builder",
+					link: "/pages/Builder",
+				},
+				{
+					text: "Project",
+					link: "/pages/Project",
+				},
+				{
+					text: "File System",
+					link: "/pages/FileSystem",
+				},
+			],
+		},
+		{
+			text: "FAQ",
+			collapsed: false,
+			link: "/pages/FAQ",
 
-    },
-    {
-      text: "Upgrade Guides",
-      collapsed: false,
-      items: [
-        {
-          text: "Migrate to v5",
-          link: "/updates/migrate-v5",
-        },
-        {
-          text: "Migrate to v4",
-          link: "/updates/migrate-v4",
-        },
-        {
-          text: "Migrate to v3",
-          link: "/updates/migrate-v3",
-        },
-        {
-          text: "Migrate to v2",
-          link: "/updates/migrate-v2",
-        },
-        {
-          text: "Migrate to v1",
-          link: "/updates/migrate-v1",
-        },
-      ],
-    },
-    {
-      text: "Miscellaneous",
-      collapsed: false,
-      items: [
-        {
-          text: "Troubleshooting",
-          link: "/pages/Troubleshooting",
-        },
-        {
-          text: "Benchmarking",
-          link: "/pages/Benchmarking",
-        },
-        {
-          text: "ECMAScript Support",
-          link: "/pages/ESSupport",
-        },
-        {
-          text: "Code Analysis",
-          link: "/pages/CodeAnalysis",
-        },
-      ],
-    },
-    {
-      text: "API Reference",
-      link: "/api/index.html",
-      target: "_blank"
+		},
+		{
+			text: "Upgrade Guides",
+			collapsed: false,
+			items: [
+				{
+					text: "Migrate to v5",
+					link: "/updates/migrate-v5",
+				},
+				{
+					text: "Migrate to v4",
+					link: "/updates/migrate-v4",
+				},
+				{
+					text: "Migrate to v3",
+					link: "/updates/migrate-v3",
+				},
+				{
+					text: "Migrate to v2",
+					link: "/updates/migrate-v2",
+				},
+				{
+					text: "Migrate to v1",
+					link: "/updates/migrate-v1",
+				},
+			],
+		},
+		{
+			text: "Miscellaneous",
+			collapsed: false,
+			items: [
+				{
+					text: "Troubleshooting",
+					link: "/pages/Troubleshooting",
+				},
+				{
+					text: "Benchmarking",
+					link: "/pages/Benchmarking",
+				},
+				{
+					text: "ECMAScript Support",
+					link: "/pages/ESSupport",
+				},
+				{
+					text: "Code Analysis",
+					link: "/pages/CodeAnalysis",
+				},
+			],
+		},
+		{
+			text: "API",
+			collapsed: true,
+			items: apiPages
+		},
 
-    },
-
-  ];
+	];
 }
 

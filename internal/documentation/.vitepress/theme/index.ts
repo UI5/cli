@@ -5,6 +5,7 @@ import { onMounted, watch, nextTick } from "vue";
 
 // custom css
 import "./custom.css";
+import "./apidocs.css";
 
 // global components
 import Badgen from "@theme/components/Badgen.vue";
@@ -25,7 +26,7 @@ export default {
   },
 
   setup() {
-    // this function will be executed inside VitePressApp's setup hook. 
+    // this function will be executed inside VitePressApp's setup hook.
     // all composition APIs are available here.
     const route = useRoute();
     let initZoom: () => void;
