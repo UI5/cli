@@ -194,7 +194,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Purpose**: Extend Release Please functionality with additional behaviors.
 
-#### Node Workspace Plugin
+#### `node-workspace` Plugin
 
 ```json
 {
