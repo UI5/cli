@@ -156,7 +156,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 }
 ```
 
-**Purpose**: Defines which packages in the monorepo should be managed by Release Please.
+**Purpose**: Defines which packages in the monorepo are managed by Release Please
 
 **Structure**:
 - **Key**: Path to package directory (relative to repo root)
