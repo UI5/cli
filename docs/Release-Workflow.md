@@ -267,7 +267,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 ]
 ```
 
-**Purpose**: Defines which commit types appear in the changelog and how they're grouped.
+**Purpose**: Defines which commit types appear in the changelog and how they're grouped
 
 **Structure**:
 - **`type`**: Conventional commit type (feat, fix, docs, etc.)
