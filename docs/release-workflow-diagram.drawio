@@ -28,7 +28,7 @@
                 <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="job1" target="merge-event" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="merge-event" value="👤 Developer&lt;br&gt;Merges Release PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;fontStyle=1;arcSize=20;" parent="1" vertex="1">
+                <mxCell id="merge-event" value="👤 Developer&lt;br&gt;merges release PR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;fontStyle=1;arcSize=20;" parent="1" vertex="1">
                     <mxGeometry x="440" y="350" width="160" height="60" as="geometry"/>
                 </mxCell>
                 <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="merge-event" target="info-box" edge="1">
