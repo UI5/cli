@@ -160,7 +160,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Structure**:
 - **Key**: Path to package directory (relative to repo root)
-- **`component`**: Name used in changelog and release notes. Avoid scopes (@ui5) as it might tag something wrongly on GitHub
+- **`component`**: Name used in changelog and release notes. Avoid scopes (@ui5) as this might tag something wrongly on GitHub
 - **`extra-files`**: Additional files to version-bump (beyond `package.json`)
 
 **Behavior**:
