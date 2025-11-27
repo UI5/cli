@@ -203,7 +203,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 }
 ```
 
-**Purpose**: Automatically updates workspace dependency versions in `package.json` files.
+**Purpose**: Automatically updates workspace dependency versions in `package.json` files
 
 **Behavior**:
 - Scans all `package.json` files in the workspace
