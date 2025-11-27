@@ -161,16 +161,16 @@ For each *source* file of the project, this object maps the logical path to the 
 
 #### Cache directory structure
 
-The directory structure is flat and efficient. A global `cas/` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
+The directory structure is flat and efficient. A global `cas` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
 
 ```
-.ui5-cache
+~/.ui5/buildCache/
 ├── cas/  <-- Global Content-Addressable Store (shared across all projects) - actual representation might differ
 │   ├── c1c77edc5c689a471b12fe8ba79c51d1  (Content of one file)
 │   ├── d41d8cd98f00b204e9899998ecf8427e  (Content of another file)
 │   └── ... (all other unique file contents)
 │
-└── manifests/
+└── buildManifests/
     ├── @ui5/
     │    └── sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
     └── @openui5/
@@ -178,9 +178,11 @@ The directory structure is flat and efficient. A global `cas/` directory stores 
         └── sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
 ```
 
+A new `buildCache` directory shall be added to the ~/.ui5/ directory. The location of this directory can be configured using the [`UI5_DATA_DIR` environment variable](https://ui5.github.io/cli/stable/pages/Troubleshooting/#environment-variable-ui5_data_dir).
+
 The `cas` directory contains files named by their SHA256 content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store.
 
-The `manifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and cache key.
+The `buildManifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and cache key.
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
@@ -188,7 +190,9 @@ The `manifests` directory contains one build manifest file per project build cac
 
 The [`cacache`](https://www.npmjs.com/package/cacache) library is a well-established content-addressable cache implementation used by npm itself. It provides efficient storage and retrieval of file contents based on their content hash, along with built-in mechanisms for cache integrity verification and garbage collection.
 
-It allows to store and retrieve files using a unique key.
+It allows to store and retrieve files using a unique key. Files can also be retrieved directly by their hash.
+
+To be decided: What to use as key? Project name and version, project path, etc.?
 
 
 ### Cache Import
