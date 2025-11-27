@@ -80,7 +80,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 ---
 
-### Always Update
+### `always-update`
 
 ```json
 "always-update": true
