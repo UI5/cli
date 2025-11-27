@@ -33,29 +33,11 @@
     <link type="text/css" rel="stylesheet" href="styles/prettify.css">
     <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
      <link type="text/css" rel="stylesheet" href="custom.css">
-    <script src="scripts/nav.js" defer></script>
-    <?js if (env.conf.docdash.commonNav) { ?>
-    <script src="scripts/commonNav.js" defer></script>
-    <?js } ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-<input type="checkbox" id="nav-trigger" class="nav-trigger" />
-<label for="nav-trigger" class="navicon-button x">
-  <div class="navicon"></div>
-</label>
 
-<label for="nav-trigger" class="overlay"></label>
-
-<nav <?js if (env.conf.docdash.wrap) { ?>class="wrap"<?js } ?>>
-    <?js if (env.conf.docdash.search) { ?>
-    <input type="text" id="nav-search" placeholder="Search" />
-    <?js } ?>
-    <?js if (!env.conf.docdash.commonNav) { ?>
-    <?js= this.nav ?>
-    <?js } ?>
-</nav>
 
 <div id="main">
     <?js if (title != 'Home') { ?>
