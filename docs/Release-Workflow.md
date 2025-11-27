@@ -36,7 +36,7 @@ The workflow consists of three main jobs:
   - Packages are published to npm sequentially (logger → fs → builder → server → project)
 - **Strategy**: Sequential execution (`max-parallel: 1`) to ensure dependencies exist before dependents
 
-### 3. Publish CLI Job
+### 3. `publish-cli` Job
 - **Trigger**: After all other packages are published
 - **Purpose**: Generate `npm-shrinkwrap.json` and publish the CLI package
 - **Dependency**: Requires all other packages to be available on npm registry
