@@ -52,7 +52,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "group-pull-request-title-pattern": "release: UI5 CLI packages ${branch}"
 ```
 
-**Purpose**: Defines the title format for release pull requests in monorepos.
+**Purpose**: Defines the title format for release pull requests in monorepos
 
 **Behavior**: 
 - Uses `${branch}` placeholder, which gets replaced with the branch name
