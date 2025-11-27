@@ -19,7 +19,7 @@
                 <mxCell id="job1-step2" value="• Creates/updates release PR with version bumps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="163" width="330" height="28" as="geometry"/>
                 </mxCell>
-                <mxCell id="job1-step3" value="• Generates CHANGELOGs for each package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="job1-step3" value="• Generates changelogs for each package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="240" width="330" height="28" as="geometry"/>
                 </mxCell>
                 <mxCell id="job1-step4" value="• Fixes circular peer dependency &amp;amp; lockfile issues ** (not handled by Release Please)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
