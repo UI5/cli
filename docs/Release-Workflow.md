@@ -210,7 +210,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 - Updates `dependencies` and `devDependencies` when workspace packages are bumped
 - `merge: false` means it updates versions but doesn't merge PRs automatically
 
-**Known Limitations**:
+**Known limitations**:
 - Cannot resolve circular peer dependencies (e.g., `@ui5/project` ↔ `@ui5/builder`)
 - May update lockfile entries for npm aliases incorrectly
 
