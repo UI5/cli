@@ -4,21 +4,30 @@ import {writeFile, mkdir} from "node:fs/promises";
 import {$RefParser} from "@apidevtools/json-schema-ref-parser";
 import traverse from "traverse";
 
-// Read the given CLI parameter to set which UI5/project version to use.
-// Default to "@ui5/project-npm" to use the latest published version (for Github Pages).
-// For testing, the local version can be used by providing "@ui5/project".
-// Example: node buildSchema.js @ui5/project-npm
-// Example: node buildSchema.js @ui5/project
-const UI5_PROJECT_VERSION = process.argv[2] || "@ui5/project-npm";
+// Read the given CLI parameter to determine in which mode to run the script:
+// - workspace (default): Use @ui5/project from local workspace (packages/project)
+// - gh-pages: Use published version of @ui5/project from npm (downloaded via "downloadPackages.sh" beforehand)
+const MODE = process.argv[2] || "workspace";
 
 try {
+	// Determine base URL for resolving schema files based on the mode
+	let BASE_URL;
+	if (MODE === "workspace") {
+		BASE_URL = import.meta.resolve(`@ui5/project/package.json`);
+	} else if (MODE === "gh-pages") {
+		BASE_URL = new URL("../tmp/packages/@ui5/project/package.json", import.meta.url);
+	} else {
+		throw new Error(`Unknown mode: '${MODE}'. Supported modes are 'workspace' and 'gh-pages'.`);
+	}
+
+	console.log(`Building JSON Schema files in mode '${MODE}' using package at: ${BASE_URL}`);
+
 	// Use ui5.yaml.json and ui5-workspace.yaml.json
 	const schemaNames = ["ui5", "ui5-workspace"];
 
 	schemaNames.forEach(async (schemaName) => {
 		const SOURCE_SCHEMA_PATH = fileURLToPath(
-			new URL(`./lib/validation/schema/${schemaName}.json`,
-				import.meta.resolve(`${UI5_PROJECT_VERSION}/package.json`))
+			new URL(`./lib/validation/schema/${schemaName}.json`, BASE_URL)
 		);
 		const TARGET_SCHEMA_PATH = fileURLToPath(
 			new URL(`../schema/${schemaName}.yaml.json`, import.meta.url)

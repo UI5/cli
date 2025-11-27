@@ -39,13 +39,25 @@ jobs:
     - name: Run unit tests
       run: npm run coverage
 
-    - name: Generate JSDoc documentation
+    - name: Generate JSDoc documentation (workspace)
       working-directory: internal/documentation
       run: npm run jsdoc-generate
 
-    - name: Generate merged JSON schema
+    - name: Generate merged JSON schema (workspace)
       working-directory: internal/documentation
       run: npm run schema-generate
+
+    - name: Download UI5 CLI packages
+      working-directory: internal/documentation
+      run: npm run download-packages
+
+    - name: Generate JSDoc documentation (gh-pages)
+      working-directory: internal/documentation
+      run: npm run jsdoc-generate-gh-pages
+
+    - name: Generate merged JSON schema (gh-pages)
+      working-directory: internal/documentation
+      run: npm run schema-generate-gh-pages
 
     - name: Generate CLI documentation
       working-directory: internal/documentation

@@ -3,15 +3,14 @@
 		"allowUnknownTags": false
 	},
 	"source": {
-		"include": ["jsdoc/index.md", "../../node_modules/@ui5"],
+		"include": ["jsdoc/index.md"],
 		"exclude": [
-			"../../node_modules/@ui5/builder-npm/lib/lbt/utils/JSTokenizer.js",
-			"../../node_modules/@ui5/builder-npm/lib/processors/jsdoc/lib/ui5/plugin.js",
-			"../../node_modules/@ui5/builder-npm/lib/processors/jsdoc/lib/ui5/template/publish.js",
-			"../../node_modules/@ui5/builder-npm/lib/processors/jsdoc/lib/ui5/template/utils/versionUtil.js"
+			"tmp/packages/@ui5/builder/lib/lbt/utils/JSTokenizer.js",
+			"tmp/packages/@ui5/builder/lib/processors/jsdoc/lib/ui5/plugin.js",
+			"tmp/packages/@ui5/builder/lib/processors/jsdoc/lib/ui5/template/publish.js",
+			"tmp/packages/@ui5/builder/lib/processors/jsdoc/lib/ui5/template/utils/versionUtil.js"
 		],
-		"includePattern": "@ui5/[^/]*-npm/(lib/.+|index)\\.js$",
-		"excludePattern": "@ui5/.*/node_modules/@ui5"
+		"includePattern": "tmp/packages/@ui5/[^/]*/(lib/.+|index)\\.js$"
 	},
 	"plugins": [
 		"jsdoc/jsdoc-plugin.cjs"

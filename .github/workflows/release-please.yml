@@ -45,17 +45,6 @@ jobs:
           # Regenerate package-lock.json to sync with updated workspace packages
           npm install
 
-          # Fix lockfile corruption: node-workspace plugin updates npm alias entries in package-lock.json
-          # but the internal/* packages have npm aliases (@ui5/builder-npm, @ui5/cli-npm, etc.) that point
-          # to old versions (^4.0.x) which are still correct and should not be updated to new versions (^5.0.x)
-          # that don't exist on npm yet. We restore these specific entries from the main branch.
-          # Restore original entries for @ui5/*-npm packages to avoid unintended updates
-          # Note: npm aliases can be in node_modules or internal/documentation/node_modules
-          git show origin/main:package-lock.json | jq -r '.packages | to_entries[] | select(.key | test("(node_modules|internal/documentation/node_modules)/@ui5/(builder|cli|fs|logger|project|server)-npm$")) | .key' | while read key; do
-            original_entry=$(git show origin/main:package-lock.json | jq ".packages[\"$key\"]")
-            jq --tab --arg key "$key" --argjson entry "$original_entry" '.packages[$key] = $entry' package-lock.json > tmp.$$.json && mv tmp.$$.json package-lock.json
-          done
-
           # Commit the change back to the PR branch
           # Amend the Release Please commit to include our fixes
           # This keeps the PR clean with a single commit
@@ -84,13 +73,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24.x
-          
+
       - name: Install dependencies
         run: npm ci
 
       - name: Publish ${{ matrix.package }} package
         working-directory: packages/${{ matrix.package }}
-        run: | 
+        run: |
           echo "🚀 Publishing @ui5/${{ matrix.package }}"
           npm publish --access public --tag next
 
