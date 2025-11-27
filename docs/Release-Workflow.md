@@ -247,7 +247,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 ---
 
-### Changelog Sections
+### `changelog-sections`
 
 ```json
 "changelog-sections": [
