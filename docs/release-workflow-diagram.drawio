@@ -22,7 +22,7 @@
                 <mxCell id="job1-step3" value="• Generates CHANGELOGs for each package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="240" width="330" height="28" as="geometry"/>
                 </mxCell>
-                <mxCell id="job1-step4" value="• Fixes circular peerDependency &amp;amp; lockfile issues ** (Not handled by Release Please)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="job1-step4" value="• Fixes circular peer dependency &amp;amp; lockfile issues ** (not handled by Release Please)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="279" width="330" height="28" as="geometry"/>
                 </mxCell>
                 <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="job1" target="merge-event" edge="1">
