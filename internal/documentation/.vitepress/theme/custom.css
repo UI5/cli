@@ -14,14 +14,14 @@
 
     /* Water */
     --ui5-water-main: #1873b4;        /* denim-600 */
-    --ui5-water-secondary: #53b8de;   /* viking-400 */ 
+    --ui5-water-secondary: #53b8de;   /* viking-400 */
     --ui5-water-background: #ffffff;  /* white */
 
     /* Tailwind CSS Color Generator
     ** https://uicolors.app/create
     */
 
-    /* VP */    
+    /* VP */
     /* The most solid color used mainly for colored text. */
     --vp-c-brand-1: #1873b4; /* lochmara-600 */
     /* The color used mainly for hover state of the button. */
@@ -32,7 +32,14 @@
     /* The soft color must be semi transparent alpha channel. */
     /*--vp-c-brand-soft: rgba(12, 72, 120, 0.14);*/ /* --brand-dark-blue */
     --vp-c-brand-soft: rgba(3, 103, 161, 0.14); /* lochmara-700 */
+
+    /* Makes the page wider for the api docs */
+    --vp-layout-max-width: 80%;
+
+	/* Makes the sidebar wider */
+	--vp-sidebar-width: 300px;
   }
+
   .dark {
     /* The most solid color used mainly for colored text. */
     --vp-c-brand-1: #ff5a37; /* lochmara-600 */
@@ -44,15 +51,15 @@
     /* The bg color used for main screen */
     --vp-c-bg: #000000;
     /* The alternative bg color used in places such as "sidebar" or "code block". */
-    
+
     /* The elevated bg color. This is used at parts where it "floats", such as "dialog". */
     /*--vp-c-bg-elv: red;*/ /* #1d2025;*/
-    /* The bg color to slightly ditinguish some components from the page. 
-    ** Used for things like "carbon ads" or "table". 
+    /* The bg color to slightly ditinguish some components from the page.
+    ** Used for things like "carbon ads" or "table".
     */
     --vp-c-bg-soft: #2b313a; /* 202127 */
-    /* This is used for separators. This is used to divide sections within the same components, 
-    ** such as having separator on "h2" heading. 
+    /* This is used for separators. This is used to divide sections within the same components,
+    ** such as having separator on "h2" heading.
     */
     --vp-c-divider: rgba(82,82,89,0.32); /*#2e2e32;*/
     /* This is designed for borders on interactive components.
@@ -86,7 +93,7 @@
   }
 
   /* Default KBD
-    ** https://flowbite.com/docs/components/kbd/ 
+    ** https://flowbite.com/docs/components/kbd/
     */
   .u-kbd {
     @apply px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-50 border border-gray-300 rounded-lg dark:bg-gray-600 dark:text-gray-100 dark:border-gray-500;
@@ -142,7 +149,7 @@
 * Custom Block
 * -------------------------------------------------------------------------- */
 .vp-doc .custom-block {
-  padding: 16px;  
+  padding: 16px;
 }
 
 .vp-doc .custom-block.tip {
@@ -300,4 +307,24 @@ li .learn-more {
   height: 20px;
   margin-right: 5px;
   vertical-align: middle;
+}
+
+/**
+* Vitepress content width fix
+* This expands the content to fit more stuff
+* -------------------------------------------------------------------------- */
+.VPDoc.has-aside .content-container {
+  max-width: 100% !important;
+}
+
+/**
+* This makes the header anchor appear left next to the method names
+* again
+ */
+.jsdoc-object + .header-anchor {
+	padding: 15px;
+}
+
+.VPSidebarItem p {
+	overflow-wrap: anywhere !important;
 }

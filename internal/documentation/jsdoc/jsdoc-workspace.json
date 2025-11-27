@@ -18,7 +18,7 @@
 	],
 	"opts": {
 		"encoding": "utf8",
-		"destination": "dist/api/",
+		"destination": "docs/api/",
 		"recurse": true,
 		"verbose": true,
 		"access": "public"
@@ -27,11 +27,7 @@
 		"cleverLinks": false,
 		"monospaceLinks": false,
 		"default": {
-			"useLongnameInNav": true,
-			"layoutFile": "jsdoc/templates/layout.tmpl",
-			"staticFiles": {
-				"include": ["jsdoc/templates/custom.css"]
-			}
+			"useLongnameInNav": true
 		}
 	},
 	"openGraph": {
@@ -66,6 +62,7 @@
 				"class": "menu-item",
 				"id": "github_link"
 			}
-		}
+		},
+		"githubSourceBaseUrl": "https://github.com/UI5/cli/blob/main/packages"
 	}
 }

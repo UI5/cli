@@ -68,4 +68,5 @@ internal/documentation/.vitepress/dist
 internal/documentation/.vitepress/cache
 internal/documentation/dist
 internal/documentation/schema/*
+internal/documentation/docs/api
 internal/documentation/tmp
