@@ -62,7 +62,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 ---
 
-### Release Type
+### `release-type`
 
 ```json
 "release-type": "node"
