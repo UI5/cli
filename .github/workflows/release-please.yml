@@ -13,6 +13,8 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-24.04
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
       - uses: actions/checkout@v5
 
@@ -26,6 +28,44 @@ jobs:
         id: release
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: "Fix peerDependency and lockfile in Release PR"
+        if: ${{ steps.release.outputs.pr }}
+        run: |
+          set -ex
+          gh pr checkout ${{ fromJson(steps.release.outputs.pr).number }}
+
+          # Update peer dependency: Release Please doesn't handle circular peerDependencies
+          # @ui5/project has peerDependency on @ui5/builder, and @ui5/builder has devDependency on @ui5/project
+          # The node-workspace plugin can't resolve this cycle, so we update it manually
+          # Extract builder version and update project peer dependency
+          BUILDER_VERSION=$(jq -r '.version' packages/builder/package.json)
+          jq --tab --arg new_version "^$BUILDER_VERSION" '.peerDependencies."@ui5/builder" = $new_version' packages/project/package.json > tmp.$$.json && mv tmp.$$.json packages/project/package.json
+
+          # Regenerate package-lock.json to sync with updated workspace packages
+          npm install
+
+          # Fix lockfile corruption: node-workspace plugin updates npm alias entries in package-lock.json
+          # but the internal/* packages have npm aliases (@ui5/builder-npm, @ui5/cli-npm, etc.) that point
+          # to old versions (^4.0.x) which are still correct and should not be updated to new versions (^5.0.x)
+          # that don't exist on npm yet. We restore these specific entries from the main branch.
+          # Restore original entries for @ui5/*-npm packages to avoid unintended updates
+          # Note: npm aliases can be in node_modules or internal/documentation/node_modules
+          git show origin/main:package-lock.json | jq -r '.packages | to_entries[] | select(.key | test("(node_modules|internal/documentation/node_modules)/@ui5/(builder|cli|fs|logger|project|server)-npm$")) | .key' | while read key; do
+            original_entry=$(git show origin/main:package-lock.json | jq ".packages[\"$key\"]")
+            jq --tab --arg key "$key" --argjson entry "$original_entry" '.packages[$key] = $entry' package-lock.json > tmp.$$.json && mv tmp.$$.json package-lock.json
+          done
+
+          # Commit the change back to the PR branch
+          # Amend the Release Please commit to include our fixes
+          # This keeps the PR clean with a single commit
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/project/package.json package-lock.json
+          git commit --amend --no-edit
+          git push --force-with-lease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-packages:
     runs-on: ubuntu-24.04
