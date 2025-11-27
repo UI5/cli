@@ -25,7 +25,7 @@ The workflow consists of three main jobs:
 
 ### 1. `release-please` Job
 - **Trigger**: Push to `main` branch
-- **Purpose**: Create/update release PR with version bumps and changelogs
+- **Purpose**: Creates/updates release PR with version bumps and changelogs
 - **Output**: Information about created releases and PRs
 
 ### 2. `publish-packages` Job
