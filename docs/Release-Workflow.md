@@ -103,7 +103,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "pull-request-header": ":tractor: New release prepared"
 ```
 
-**Purpose**: Customizes the header text in the release PR description.
+**Purpose**: Customizes the header text in the release PR description
 
 **Behavior**: 
 - Appears at the top of the release PR body
