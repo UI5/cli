@@ -29,7 +29,7 @@ The workflow consists of three main jobs:
 - **Output**: Information about created releases and PRs
 
 ### 2. `publish-packages` Job
-- **Trigger**: When release PR is merged to `main`
+- **Trigger**: Merger of release PR into `main` branch
 - **Action**: Developer merges the release PR in GitHub
 - **Result**: 
   - Release Please creates releases & tags in GitHub for every package
