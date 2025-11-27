@@ -97,7 +97,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 ---
 
-### Pull Request Header
+### `pull-request-header`
 
 ```json
 "pull-request-header": ":tractor: New release prepared"
