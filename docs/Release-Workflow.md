@@ -10,7 +10,7 @@ This document explains the automated release and publishing workflow for the UI5
 
 ## Overview
 
-The UI5 CLI uses an automated release workflow powered by Release Please to:
+UI5 CLI uses an automated release workflow powered by Release Please to perform the following tasks:
 1. **Automatically generate release PRs** based on Conventional Commits
 2. **Update version numbers** across all workspace packages synchronously
 3. **Generate changelogs** for each package
