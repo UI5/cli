@@ -131,7 +131,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **`prerelease-type`**: 
 - Defines the prerelease identifier (alpha, beta, rc, etc.)
-- Appended to version: `5.0.0-alpha.0`, `5.0.0-alpha.1`, etc.
+- Appended to version designation: `5.0.0-alpha.0`, `5.0.0-alpha.1`, etc.
 - [Documentation](https://github.com/googleapis/release-please?tab=readme-ov-file#prerelease-type)
 
 **`release-as`**: 
