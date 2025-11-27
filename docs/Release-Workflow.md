@@ -23,7 +23,7 @@ UI5 CLI uses an automated release workflow powered by Release Please to perform 
 
 The workflow consists of three main jobs:
 
-### 1. Release Please Job
+### 1. `release-please` Job
 - **Trigger**: Push to `main` branch
 - **Purpose**: Create/update release PR with version bumps and changelogs
 - **Output**: Information about created releases and PRs
