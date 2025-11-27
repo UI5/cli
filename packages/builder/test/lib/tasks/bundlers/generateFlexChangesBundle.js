@@ -579,3 +579,74 @@ test("flexBundle property overrides existing value when bundle is created", asyn
 	t.true(manifestContent["sap.ui5"].flexBundle, "flexBundle should be overridden to true when bundle is created");
 	t.deepEqual(manifestContent["sap.ui5"].dependencies.libs["sap.ui.fl"], {}, "sap.ui.fl dependency should be added");
 });
+
+test("task does not fail when manifest.json is missing and no changes exist", async (t) => {
+	const placeholderWorkspace = {
+		byGlob: async () => [], // No changes
+		byPath: async (path) => {
+			// Return null for all paths (no manifest.json, no flexibility-bundle.json)
+			return null;
+		},
+		write: sinon.stub().returnsArg(0)
+	};
+
+	// This should not throw an error
+	await t.notThrowsAsync(async () => {
+		await generateFlexChangesBundle({
+			workspace: placeholderWorkspace,
+			taskUtil: false,
+			options: {
+				projectNamespace: "sap/ui/demo/app"
+			}
+		});
+	}, "Task should not fail when manifest.json is missing");
+
+	// No write calls should have been made since there's no manifest and no changes
+	t.is(placeholderWorkspace.write.callCount, 0, "workspace.write should not be called when manifest is missing");
+});
+
+test("task does not fail when manifest.json is missing but changes exist", async (t) => {
+	const changeList = [{
+		"fileName": "test_change",
+		"fileType": "change",
+		"changeType": "rename",
+		"reference": "test.Component",
+		"content": {},
+		"selector": {"id": "testId"},
+		"layer": "CUSTOMER"
+	}];
+
+	const placeholderWorkspace = {
+		byGlob: async () => changeList.map((change) => createPlaceholderResource(change)),
+		byPath: async (path) => {
+			// Return null for all paths (no manifest.json, no flexibility-bundle.json)
+			return null;
+		},
+		write: sinon.stub().returnsArg(0)
+	};
+
+	// This should not throw an error
+	await t.notThrowsAsync(async () => {
+		await generateFlexChangesBundle({
+			workspace: placeholderWorkspace,
+			taskUtil: false,
+			options: {
+				projectNamespace: "sap/ui/demo/app"
+			}
+		});
+	}, "Task should not fail when manifest.json is missing even with changes");
+
+	// Verify the task created the flexibility-bundle.json
+	const writeCalls = [];
+	for (let i = 0; i < placeholderWorkspace.write.callCount; i++) {
+		const call = placeholderWorkspace.write.getCall(i);
+		const path = call.args[0].getPath ? await call.args[0].getPath() : "unknown";
+		writeCalls.push(path);
+	}
+
+	// Should have written flexibility-bundle.json but NOT manifest.json
+	t.true(writeCalls.some((path) => path.includes("flexibility-bundle.json")),
+		"flexibility-bundle.json should be created");
+	t.false(writeCalls.some((path) => path.includes("manifest.json")),
+		"No manifest.json write should occur when manifest is missing");
+});
