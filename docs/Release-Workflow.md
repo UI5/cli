@@ -55,7 +55,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 **Purpose**: Defines the title format for release pull requests in monorepos.
 
 **Behavior**: 
-- Uses `${branch}` placeholder which gets replaced with the branch name
+- Uses `${branch}` placeholder, which gets replaced with the branch name
 - For linked versions, Release Please creates a single PR for all packages
 
 **Documentation**: [Grouping Pull Requests](https://github.com/googleapis/release-please?tab=readme-ov-file#group-pull-request-title-pattern)
