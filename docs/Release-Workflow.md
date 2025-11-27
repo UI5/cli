@@ -282,5 +282,5 @@ The configuration is defined in [`release-please-config.json`](../release-please
 **Documentation**: [Changelog Sections](https://github.com/googleapis/release-please?tab=readme-ov-file#changelog-sections)
 
 **Our Configuration**:
-- **Visible**: Features, Bug Fixes, Performance Improvements, Dependencies, Reverts
+- **Visible**: Features, bugfixes, performance improvements, dependencies, reverts
 - **Hidden**: Documentation, styles, refactoring, tests, build, CI, release
