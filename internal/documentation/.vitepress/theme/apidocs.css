@@ -1,0 +1,19 @@
+/**
+	JSDoc Function Highlighting
+ */
+.jsdoc-object {
+	background-color: var(--vp-c-bg-soft);
+	padding: 15px;
+}
+
+.jsdoc-object .type-signature {
+	color: var(--vp-c-brand-2);
+}
+
+.jsdoc-object .signature {
+	color: var(--vp-c-brand-1);
+}
+
+.jsdoc-object .signature .signature-attributes {
+	font-size: 11px;
+}
