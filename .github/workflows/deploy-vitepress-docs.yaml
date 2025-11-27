@@ -56,12 +56,15 @@ jobs:
                 # The alias output
                 npm run build:vitepress -- --base="/${{ github.event.repository.name }}/${DOC_ALIAS}/" --outDir="dist-${DOC_ALIAS}"
                 npm run build:assets -- ./dist-${DOC_ALIAS}
+            - name: Download UI5 CLI packages
+              working-directory: internal/documentation
+              run: npm run download-packages
             - name: Build jsdoc
               working-directory: internal/documentation
-              run: npm run jsdoc-generate
+              run: npm run jsdoc-generate-gh-pages
             - name: Build Schema
               working-directory: internal/documentation
-              run: npm run schema-generate
+              run: npm run schema-generate-gh-pages
             - name: Checkout gh-pages
               uses: actions/checkout@v5
               with:
