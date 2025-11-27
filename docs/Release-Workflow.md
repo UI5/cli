@@ -28,7 +28,7 @@ The workflow consists of three main jobs:
 - **Purpose**: Create/update release PR with version bumps and changelogs
 - **Output**: Information about created releases and PRs
 
-### 2. Publish Packages Job
+### 2. `publish-packages` Job
 - **Trigger**: When release PR is merged to `main`
 - **Action**: Developer merges the release PR in GitHub
 - **Result**: 
