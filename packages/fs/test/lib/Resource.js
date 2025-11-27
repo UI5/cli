@@ -1571,34 +1571,35 @@ test("getSize", async (t) => {
 	t.is(await resourceNoSize.getSize(), 91);
 });
 
-/* Integrity Glossary
+/* Hash Glossary
 
 	"Content" = "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
 	"New content" = "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
 */
-test("getIntegrity: Throws error for directory resource", async (t) => {
+test("getHash: Throws error for directory resource", async (t) => {
 	const resource = new Resource({
 		path: "/my/directory",
 		isDirectory: true
 	});
 
-	await t.throwsAsync(resource.getIntegrity(), {
-		message: "Unable to calculate integrity for directory resource: /my/directory"
+	await t.throwsAsync(resource.getHash(), {
+		message: "Unable to calculate hash for directory resource: /my/directory"
 	});
 });
 
-test("getIntegrity: Returns integrity for buffer content", async (t) => {
+test("getHash: Returns hash for buffer content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		buffer: Buffer.from("Content")
 	});
 
-	const integrity = await resource.getIntegrity();
-	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity for content");
+	const hash = await resource.getHash();
+	t.is(typeof hash, "string", "Hash is a string");
+	t.true(hash.startsWith("sha256-"), "Hash starts with sha256-");
+	t.is(hash, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash for content");
 });
 
-test("getIntegrity: Returns integrity for stream content", async (t) => {
+test("getHash: Returns hash for stream content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		stream: new Stream.Readable({
@@ -1609,12 +1610,13 @@ test("getIntegrity: Returns integrity for stream content", async (t) => {
 		}),
 	});
 
-	const integrity = await resource.getIntegrity();
-	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity for content");
+	const hash = await resource.getHash();
+	t.is(typeof hash, "string", "Hash is a string");
+	t.true(hash.startsWith("sha256-"), "Hash starts with sha256-");
+	t.is(hash, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash for content");
 });
 
-test("getIntegrity: Returns integrity for factory content", async (t) => {
+test("getHash: Returns hash for factory content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		createStream: () => {
@@ -1627,22 +1629,23 @@ test("getIntegrity: Returns integrity for factory content", async (t) => {
 		}
 	});
 
-	const integrity = await resource.getIntegrity();
-	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity for content");
+	const hash = await resource.getHash();
+	t.is(typeof hash, "string", "Hash is a string");
+	t.true(hash.startsWith("sha256-"), "Hash starts with sha256-");
+	t.is(hash, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash for content");
 });
 
-test("getIntegrity: Throws error for resource with no content", async (t) => {
+test("getHash: Throws error for resource with no content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource"
 	});
 
-	await t.throwsAsync(resource.getIntegrity(), {
+	await t.throwsAsync(resource.getHash(), {
 		message: "Resource /my/path/to/resource has no content"
 	});
 });
 
-test("getIntegrity: Different content produces different integrities", async (t) => {
+test("getHash: Different content produces different hashes", async (t) => {
 	const resource1 = new Resource({
 		path: "/my/path/to/resource1",
 		string: "Content 1"
@@ -1653,13 +1656,13 @@ test("getIntegrity: Different content produces different integrities", async (t)
 		string: "Content 2"
 	});
 
-	const integrity1 = await resource1.getIntegrity();
-	const integrity2 = await resource2.getIntegrity();
+	const hash1 = await resource1.getHash();
+	const hash2 = await resource2.getHash();
 
-	t.not(integrity1, integrity2, "Different content produces different integrities");
+	t.not(hash1, hash2, "Different content produces different hashes");
 });
 
-test("getIntegrity: Same content produces same integrity", async (t) => {
+test("getHash: Same content produces same hash", async (t) => {
 	const resource1 = new Resource({
 		path: "/my/path/to/resource1",
 		string: "Content"
@@ -1680,32 +1683,31 @@ test("getIntegrity: Same content produces same integrity", async (t) => {
 		}),
 	});
 
-	const integrity1 = await resource1.getIntegrity();
-	const integrity2 = await resource2.getIntegrity();
-	const integrity3 = await resource3.getIntegrity();
+	const hash1 = await resource1.getHash();
+	const hash2 = await resource2.getHash();
+	const hash3 = await resource3.getHash();
 
-	t.is(integrity1, integrity2, "Same content produces same integrity for string and buffer content");
-	t.is(integrity1, integrity3, "Same content produces same integrity for string and stream");
+	t.is(hash1, hash2, "Same content produces same hash for string and buffer content");
+	t.is(hash1, hash3, "Same content produces same hash for string and stream");
 });
 
-test("getIntegrity: Waits for drained content", async (t) => {
+test("getHash: Waits for drained content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		string: "Initial content"
 	});
 
 	// Drain the stream
-	await resource.getStreamAsync();
-	const p1 = resource.getIntegrity(); // Start getIntegrity which should wait for new content
+	await resource.getStream();
+	const p1 = resource.getHash(); // Start getHash which should wait for new content
 
 	resource.setString("New content");
 
-	const integrity = await p1;
-	t.is(integrity, "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo=",
-		"Correct integrity for new content");
+	const hash = await p1;
+	t.is(hash, "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo=", "Correct hash for new content");
 });
 
-test("getIntegrity: Waits for content transformation to complete", async (t) => {
+test("getHash: Waits for content transformation to complete", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		stream: new Stream.Readable({
@@ -1719,34 +1721,31 @@ test("getIntegrity: Waits for content transformation to complete", async (t) => 
 	// Start getBuffer which will transform content
 	const bufferPromise = resource.getBuffer();
 
-	// Immediately call getIntegrity while transformation is in progress
-	const integrityPromise = resource.getIntegrity();
+	// Immediately call getHash while transformation is in progress
+	const hashPromise = resource.getHash();
 
 	// Both should complete successfully
 	await bufferPromise;
-	const integrity = await integrityPromise;
-	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity after waiting for transformation");
+	const hash = await hashPromise;
+	t.is(hash, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash after waiting for transformation");
 });
 
-test("getIntegrity: Can be called multiple times on buffer content", async (t) => {
+test("getHash: Can be called multiple times on buffer content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		buffer: Buffer.from("Content")
 	});
 
-	const integrity1 = await resource.getIntegrity();
-	const integrity2 = await resource.getIntegrity();
-	const integrity3 = await resource.getIntegrity();
+	const hash1 = await resource.getHash();
+	const hash2 = await resource.getHash();
+	const hash3 = await resource.getHash();
 
-	t.is(integrity1, integrity2, "First and second integrity are identical");
-	t.is(integrity2, integrity3, "Second and third integrity are identical");
-
-	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity for content");
+	t.is(hash1, hash2, "First and second hash are identical");
+	t.is(hash2, hash3, "Second and third hash are identical");
+	t.is(hash1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash value");
 });
 
-test("getIntegrity: Can be called multiple times on factory content", async (t) => {
+test("getHash: Can be called multiple times on factory content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		createStream: () => {
@@ -1759,18 +1758,16 @@ test("getIntegrity: Can be called multiple times on factory content", async (t) 
 		}
 	});
 
-	const integrity1 = await resource.getIntegrity();
-	const integrity2 = await resource.getIntegrity();
-	const integrity3 = await resource.getIntegrity();
+	const hash1 = await resource.getHash();
+	const hash2 = await resource.getHash();
+	const hash3 = await resource.getHash();
 
-	t.is(integrity1, integrity2, "First and second integrity are identical");
-	t.is(integrity2, integrity3, "Second and third integrity are identical");
-
-	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity for content");
+	t.is(hash1, hash2, "First and second hash are identical");
+	t.is(hash2, hash3, "Second and third hash are identical");
+	t.is(hash1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash value");
 });
 
-test("getIntegrity: Can be called multiple times on stream content", async (t) => {
+test("getHash: Can only be called once on stream content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		stream: new Stream.Readable({
@@ -1781,56 +1778,52 @@ test("getIntegrity: Can be called multiple times on stream content", async (t) =
 		})
 	});
 
-	const integrity1 = await resource.getIntegrity();
-	const integrity2 = await resource.getIntegrity();
-	const integrity3 = await resource.getIntegrity();
+	const hash1 = await resource.getHash();
+	await t.throwsAsync(resource.getHash(), {
+		message: /Timeout waiting for content of Resource \/my\/path\/to\/resource to become available./
+	}, `Threw with expected error message`);
 
-	t.is(integrity1, integrity2, "First and second integrity are identical");
-	t.is(integrity2, integrity3, "Second and third integrity are identical");
-
-	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-		"Correct integrity for content");
+	t.is(hash1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=", "Correct hash value");
 });
 
-test("getIntegrity: Integrity changes after content modification", async (t) => {
+test("getHash: Hash changes after content modification", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		string: "Original content"
 	});
 
-	const integrity1 = await resource.getIntegrity();
-	t.is(integrity1, "sha256-OUni2q0Lopc2NkTnXeaaYPNQJNUATQtbAqMWJvtCVNo=",
-		"Correct integrity for original content");
+	const hash1 = await resource.getHash();
+	t.is(hash1, "sha256-OUni2q0Lopc2NkTnXeaaYPNQJNUATQtbAqMWJvtCVNo=", "Correct hash for original content");
 
 	resource.setString("Modified content");
 
-	const integrity2 = await resource.getIntegrity();
-	t.is(integrity2, "sha256-8fba0TDG5CusKMUf/7GVTTxaYjVbRXacQv2lt3RdtT8=",
-		"Integrity changes after content modification");
-	t.not(integrity1, integrity2, "New integrity is different from original");
+	const hash2 = await resource.getHash();
+	t.is(hash2, "sha256-8fba0TDG5CusKMUf/7GVTTxaYjVbRXacQv2lt3RdtT8=", "Hash changes after modification");
+	t.not(hash1, hash2, "New hash is different from original");
 });
 
-test("getIntegrity: Works with empty content", async (t) => {
+test("getHash: Works with empty content", async (t) => {
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		string: ""
 	});
 
-	const integrity = await resource.getIntegrity();
-
-	t.is(integrity, "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-		"Correct integrity for empty content");
+	const hash = await resource.getHash();
+	t.is(typeof hash, "string", "Hash is a string");
+	t.true(hash.startsWith("sha256-"), "Hash starts with sha256-");
+	t.is(hash, "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=", "Correct hash for empty content");
 });
 
-test("getIntegrity: Works with large content", async (t) => {
+test("getHash: Works with large content", async (t) => {
 	const largeContent = "x".repeat(1024 * 1024); // 1MB of 'x'
 	const resource = new Resource({
 		path: "/my/path/to/resource",
 		string: largeContent
 	});
 
-	const integrity = await resource.getIntegrity();
-
-	t.is(integrity, "sha256-j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s=",
-		"Correct integrity for large content");
+	const hash = await resource.getHash();
+	t.is(typeof hash, "string", "Hash is a string");
+	t.true(hash.startsWith("sha256-"), "Hash starts with sha256-");
+	// Hash of 1MB of 'x' characters
+	t.is(hash, "sha256-j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s=", "Correct hash for large content");
 });
