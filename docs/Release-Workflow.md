@@ -234,7 +234,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Behavior**:
 - All specified components get the same version number
-- Single release PR for all packages
+- Single release PR created for all packages
 - Single GitHub release created for the group
 - Changelogs are still separate per package
 
