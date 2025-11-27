@@ -46,7 +46,7 @@ The workflow consists of three main jobs:
 The configuration is defined in [`release-please-config.json`](../release-please-config.json). Below is a detailed explanation of each property:
 
 
-### Pull Request Title Pattern
+### `group-pull-request-title-pattern`
 
 ```json
 "group-pull-request-title-pattern": "release: UI5 CLI packages ${branch}"
