@@ -82,7 +82,7 @@
                 <mxCell id="note-cli" value="&lt;b&gt;Why CLI published last?&lt;/b&gt;&lt;br&gt;• Shrinkwrap needs all dependencies&lt;br&gt;&amp;nbsp;&amp;nbsp;to exist on npm registry&lt;br&gt;• Ensures production-only locked deps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;dashed=1;dashPattern=3 3;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="20" y="780" width="280" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="2" value="• Syncronizes package.json intra dependency versions for the packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="2" value="• Synchronizes package.json intra-dependency versions for the packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="200" width="330" height="28" as="geometry"/>
                 </mxCell>
             </root>
