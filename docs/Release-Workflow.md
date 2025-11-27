@@ -169,7 +169,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Documentation**: [Monorepo Support](https://github.com/googleapis/release-please?tab=readme-ov-file#monorepo-support)
 
-**Note**: We explicitly configure packages instead of using `exclude-paths` because:
+**Note**: We explicitly configure packages instead of using `exclude-paths` for the following reasons:
 1. More maintainable - clear list of released packages
 2. Prevents accidental inclusion of internal tooling
 3. Better for documentation and understanding
