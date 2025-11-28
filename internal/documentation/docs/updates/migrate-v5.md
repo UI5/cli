@@ -11,17 +11,17 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 
 ## Breaking Changes
 
-**All UI5 CLI Modules: Require Node.js >= 22.20.0 or >= 24.0.0**
+- **All UI5 CLI Modules require Node.js >= 22.20.0 or >= 24.0.0**
 
-**@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
+- **@ui5/cli: `ui5 init` defaults to Specification Version 5.0**
 
-**@ui5/project: New Component Type**
+- **@ui5/project: New Component Type**
 
-A new project type `component` has been introduced with **Specification Version 5.0**. Component Type projects follow standardized conventions:
-- Source files in `/src` directory
-- Test files in `/test` directory
+	A new project type `component` has been introduced with **Specification Version 5.0**. Component Type projects follow standardized conventions:
+	- Source files in `/src` directory
+	- Test files in `/test` directory
 
-See [RFC 1083](https://github.com/SAP/ui5-tooling/issues/1083) for details.
+	See [RFC 1083](https://github.com/UI5/cli/blob/rfc-component-type/rfcs/0018-component-type.md) for details.
 
 ## Node.js and npm Version Support
 
