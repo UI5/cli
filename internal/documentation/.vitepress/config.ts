@@ -234,6 +234,10 @@ function guide() {
       collapsed: false,
       items: [
         {
+          text: "Migrate to v5",
+          link: "/updates/migrate-v5",
+        },
+        {
           text: "Migrate to v4",
           link: "/updates/migrate-v4",
         },
