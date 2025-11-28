@@ -25,21 +25,21 @@ The workflow consists of three main jobs:
 
 ### 1. `release-please` Job
 - **Trigger**: Push to `main` branch
-- **Purpose**: Creates/updates release PR with version bumps and changelogs
-- **Output**: Information about created releases and PRs
+- **Purpose**: Creates/updates version bumps and changelogs for all of the packages in a single PR.
 
 ### 2. `publish-packages` Job
-- **Trigger**: Merger of release PR into `main` branch
+- **Trigger**: Merge of release PR into `main` branch
 - **Action**: Developer merges the release PR in GitHub
 - **Result**: 
-  - Release Please creates releases & tags in GitHub for every package
-  - Packages are published to npm sequentially (logger → fs → builder → server → project)
+  - Release Please creates separate releases & tags in GitHub for every package
+  - Packages are published to NPM sequentially (logger → fs → builder → server → project)
 - **Strategy**: Sequential execution (`max-parallel: 1`) to ensure dependencies exist before dependents
 
 ### 3. `publish-cli` Job
 - **Trigger**: All other packages have been published
-- **Purpose**: Generates `npm-shrinkwrap.json` and publishes the CLI package
-- **Dependency**: Requires all other packages to be available on npm registry
+- **Purpose**: Generates `npm-shrinkwrap.json` using `shrinkwrap-extractor` and publishes the CLI package
+- **Why separate**: The shrinkwrap must contain published registry versions of workspace packages, not workspace links. This requires all dependencies to be available on npm registry first.
+- **How it works**: The `shrinkwrap-extractor` reads the monorepo's `package-lock.json`, extracts production dependencies for `@ui5/cli`, converts workspace references to registry URLs, and generates a valid `npm-shrinkwrap.json` that will be included in the published CLI package.
 
 ## Release Please Configuration
 
@@ -53,7 +53,8 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "group-pull-request-title-pattern": "release: UI5 CLI packages ${branch}"
 ```
 
-**Why we can't use `${version}`**: When using the `linked-versions` plugin, Release Please doesn't support the `${version}` placeholder in the PR title pattern. This is because linked versions create a single PR for multiple packages with the same version, but the templating system doesn't expose this shared version to the title pattern. As a workaround, we use `${branch}` (which resolves to "main") instead.
+**Why we can't use `${version}`**: When using the `linked-versions` plugin, Release Please doesn't support the `${version}` placeholder in the PR title pattern when creating single PR with multiple packages. In such case release please does not have a single source of truth even though packages are released under the same version. 
+Adding the root package, will resolve this, but it will pollute the release notes with unnecessary information that we need to manually remove.
 
 **Documentation**: [group-pull-request-title-pattern](https://github.com/googleapis/release-please?tab=readme-ov-file#group-pull-request-title-pattern)
 
@@ -77,8 +78,7 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "packages": {
   "packages/logger": { "component": "logger" },
   "packages/cli": { 
-    "component": "cli",
-    "extra-files": ["npm-shrinkwrap.json"]
+    "component": "cli"
   }
 }
 ```
@@ -90,25 +90,10 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Why `"component"` doesn't include `@ui5` scope**: Using scoped names (e.g., `"@ui5/logger"`) in the component field can cause incorrect GitHub tagging behavior.
 
-**Why `extra-files` for CLI**: The CLI package's `npm-shrinkwrap.json` must be version-bumped alongside `package.json` to maintain consistency.
 
 ---
 
 #### Plugin Configuration
-
-```json
-"plugins": [
-  {
-    "type": "node-workspace",
-    "merge": false
-  },
-  {
-    "type": "linked-versions",
-    "groupName": "ui5-cli-packages",
-    "components": ["logger", "fs", "builder", "server", "project", "cli"]
-  }
-]
-```
 
 **`node-workspace` with `merge: false`**: When using `linked-versions`, the `node-workspace` plugin **must** set `merge: false` ([documented requirement](https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md#linked-versions)). This prevents conflicts in Release Please's internal manifest processing between:
 1. The `linked-versions` plugin synchronizing versions across all packages
@@ -118,7 +103,7 @@ Without this flag, Release Please may fail to generate the release PR or produce
 
 **Note**: Release Please always force-pushes to the PR branch, so this flag only affects internal manifest processing, not Git commit structure.
 
-**`linked-versions` rationale**: All UI5 CLI packages are tightly coupled and should be released together with synchronized version numbers.
+**`linked-versions`**: All UI5 CLI packages will be released together with synchronized version numbers.
 
 **Known limitations**:
 - Cannot resolve circular peer dependencies (e.g., `@ui5/project` ↔ `@ui5/builder`)
