@@ -5,6 +5,18 @@ import { defineConfig } from "vitepress";
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 
+import fs from "node:fs";
+import path from "node:path";
+
+// Create items for all api pages
+const apiPages: { text: string; link: string; }[] = [];
+for (const file of fs.readdirSync(path.join("docs", "api"))) {
+  apiPages.push({
+    text: file.replaceAll("@", ""),
+    link: "api/" + file
+  });
+}
+
 export default defineConfig({
 
   // Would be set in CI job via CLI arguments. For local development, it's just root.
@@ -274,10 +286,9 @@ function guide() {
       ],
     },
     {
-      text: "API Reference",
-      link: "/api/index.html",
-      target: "_blank"
-
+      text: "API",
+      collapsed: true,
+      items: apiPages
     },
 
   ];
