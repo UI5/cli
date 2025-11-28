@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/fs",
-	"version": "4.0.2",
+	"version": "5.0.0-alpha.0",
 	"description": "UI5 CLI - File System Abstraction",
 	"author": {
 		"name": "SAP SE",
@@ -112,7 +112,7 @@
 		"directory": "packages/fs"
 	},
 	"dependencies": {
-		"@ui5/logger": "^4.0.2",
+		"@ui5/logger": "^5.0.0-alpha.0",
 		"clone": "^2.1.2",
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^15.0.0",
