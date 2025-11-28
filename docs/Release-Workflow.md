@@ -43,78 +43,23 @@ The workflow consists of three main jobs:
 
 ## Release Please Configuration
 
-The configuration is defined in [`release-please-config.json`](../release-please-config.json). Below is a detailed explanation of each property:
+The configuration is defined in [`release-please-config.json`](../release-please-config.json). This section explains our specific configuration choices and constraints.
 
+### Key Configuration Decisions
 
-### `group-pull-request-title-pattern`
+#### PR Title Pattern
 
 ```json
 "group-pull-request-title-pattern": "release: UI5 CLI packages ${branch}"
 ```
 
-**Purpose**: Defines the title format for release pull requests in monorepos
+**Why we can't use `${version}`**: When using the `linked-versions` plugin, Release Please doesn't support the `${version}` placeholder in the PR title pattern. This is because linked versions create a single PR for multiple packages with the same version, but the templating system doesn't expose this shared version to the title pattern. As a workaround, we use `${branch}` (which resolves to "main") instead.
 
-**Behavior**: 
-- Uses `${branch}` placeholder, which gets replaced with the branch name
-- For linked versions, Release Please creates a single PR for all packages
-
-**Documentation**: [Grouping Pull Requests](https://github.com/googleapis/release-please?tab=readme-ov-file#group-pull-request-title-pattern)
+**Documentation**: [group-pull-request-title-pattern](https://github.com/googleapis/release-please?tab=readme-ov-file#group-pull-request-title-pattern)
 
 ---
 
-### `release-type`
-
-```json
-"release-type": "node"
-```
-
-**Purpose**: Specifies the project type, which determines the default behavior for versioning and changelog generation
-
-**Behavior**: 
-- Uses Node.js/npm conventions
-- Updates `package.json` version field
-- Generates conventional changelog format
-- Handles npm-specific files
-
-**Documentation**: [Release Types](https://github.com/googleapis/release-please?tab=readme-ov-file#release-types-supported)
-
----
-
-### `always-update`
-
-```json
-"always-update": true
-```
-
-**Purpose**: Ensures the release PR is updated with every commit to the main branch
-
-**Behavior**: 
-- Scans commits since last release
-- Updates PR description, version numbers, and changelogs
-- Prevents stale release PRs
-
-**Documentation**: This is a standard boolean flag in Release Please for keeping PRs current.
-
----
-
-### `pull-request-header`
-
-```json
-"pull-request-header": ":tractor: New release prepared"
-```
-
-**Purpose**: Customizes the header text in the release PR description
-
-**Behavior**: 
-- Appears at the top of the release PR body
-- Can include emojis and markdown
-- Provides context to reviewers
-
-**Documentation**: [Pull Request Header](https://github.com/googleapis/release-please?tab=readme-ov-file#pull-request-header)
-
----
-
-### Prerelease Configuration
+#### Prerelease Configuration
 
 ```json
 "prerelease": true,
@@ -122,61 +67,34 @@ The configuration is defined in [`release-please-config.json`](../release-please
 "release-as": "5.0.0-alpha.0"
 ```
 
-**Purpose**: Configures prerelease versioning for alpha/beta releases
-
-**`prerelease`**: 
-- Enables prerelease mode
-- Affects version bumping logic
-- [Documentation](https://github.com/googleapis/release-please?tab=readme-ov-file#prerelease)
-
-**`prerelease-type`**: 
-- Defines the prerelease identifier (alpha, beta, rc, etc.)
-- Appended to version designation: `5.0.0-alpha.0`, `5.0.0-alpha.1`, etc.
-- [Documentation](https://github.com/googleapis/release-please?tab=readme-ov-file#prerelease-type)
-
-**`release-as`**: 
-- Forces the next release version
-- Used for major version bumps or initial releases
-- Takes precedence over conventional commit version bumps
-- [Documentation](https://github.com/googleapis/release-please?tab=readme-ov-file#release-as)
+**Purpose**: We're currently in alpha phase for v5.0.0. Once stable, these flags should be removed to enable normal semantic versioning.
 
 ---
 
-### `packages`
+#### Package Configuration
 
 ```json
 "packages": {
-  "packages/logger": {
-    "component": "logger"
-  },
-  "packages/cli": {
+  "packages/logger": { "component": "logger" },
+  "packages/cli": { 
     "component": "cli",
     "extra-files": ["npm-shrinkwrap.json"]
   }
 }
 ```
 
-**Purpose**: Defines which packages in the monorepo are managed by Release Please
+**Why explicit package configuration**: We explicitly list packages rather than using `exclude-paths` to:
+1. Make it clear which packages are released
+2. Prevent accidental inclusion of internal tooling
+3. Keep the configuration maintainable
 
-**Structure**:
-- **Key**: Path to package directory (relative to repo root)
-- **`component`**: Name used in changelog and release notes. Avoid scopes (@ui5) as this might tag something wrongly on GitHub
-- **`extra-files`**: Additional files to version-bump (beyond `package.json`)
+**Why `"component"` doesn't include `@ui5` scope**: Using scoped names (e.g., `"@ui5/logger"`) in the component field can cause incorrect GitHub tagging behavior.
 
-**Behavior**:
-- Each package gets its own changelog
-- Only specified packages are included in releases
-
-**Documentation**: [Monorepo Support](https://github.com/googleapis/release-please?tab=readme-ov-file#monorepo-support)
-
-**Note**: We explicitly configure packages instead of using `exclude-paths` for the following reasons:
-1. More maintainable - clear list of released packages
-2. Prevents accidental inclusion of internal tooling
-3. Better for documentation and understanding
+**Why `extra-files` for CLI**: The CLI package's `npm-shrinkwrap.json` must be version-bumped alongside `package.json` to maintain consistency.
 
 ---
 
-### Plugins
+#### Plugin Configuration
 
 ```json
 "plugins": [
@@ -192,23 +110,15 @@ The configuration is defined in [`release-please-config.json`](../release-please
 ]
 ```
 
-**Purpose**: Extends Release Please functionality with additional behaviors
+**`node-workspace` with `merge: false`**: When using `linked-versions`, the `node-workspace` plugin **must** set `merge: false` ([documented requirement](https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md#linked-versions)). This prevents conflicts in Release Please's internal manifest processing between:
+1. The `linked-versions` plugin synchronizing versions across all packages
+2. The `node-workspace` plugin updating workspace dependency references
 
-#### `node-workspace` Plugin
+Without this flag, Release Please may fail to generate the release PR or produce incorrect version updates.
 
-```json
-{
-  "type": "node-workspace",
-  "merge": false
-}
-```
+**Note**: Release Please always force-pushes to the PR branch, so this flag only affects internal manifest processing, not Git commit structure.
 
-**Purpose**: Automatically updates workspace dependency versions in `package.json` files
-
-**Behavior**:
-- Scans all `package.json` files in the workspace
-- Updates `dependencies` and `devDependencies` when workspace packages are bumped
-- `merge: false` updates versions, but doesn't merge PRs automatically
+**`linked-versions` rationale**: All UI5 CLI packages are tightly coupled and should be released together with synchronized version numbers.
 
 **Known limitations**:
 - Cannot resolve circular peer dependencies (e.g., `@ui5/project` ↔ `@ui5/builder`)
@@ -216,71 +126,21 @@ The configuration is defined in [`release-please-config.json`](../release-please
 
 **Workaround**: We manually update circular peer dependencies in the workflow after Release Please runs.
 
-**Documentation**: [Node Workspace Plugin](https://github.com/googleapis/release-please/blob/main/docs/plugins.md#node-workspace)
-
 ---
 
-#### `linked-versions` Plugin
-
-```json
-{
-  "type": "linked-versions",
-  "groupName": "ui5-cli-packages",
-  "components": ["logger", "fs", "builder", "server", "project", "cli"]
-}
-```
-
-**Purpose**: Synchronizes version numbers across multiple packages in a monorepo
-
-**Behavior**:
-- All specified components get the same version number
-- Single release PR created for all packages
-- Single GitHub release created for the group
-- Changelogs are still separate per package
-
-**Benefits**:
-- Simplifies versioning for tightly coupled packages
-- Easier for consumers to know compatible versions
-- Reduces release management overhead
-
-**Documentation**: [Linked Versions Plugin](https://github.com/googleapis/release-please/blob/main/docs/plugins.md#linked-versions)
-
----
-
-### `changelog-sections`
+#### Changelog Sections
 
 ```json
 "changelog-sections": [
-  {
-    "type": "feat",
-    "section": "Features"
-  },
-  {
-    "type": "fix",
-    "section": "Bug Fixes"
-  },
-  {
-    "type": "docs",
-    "section": "Documentation",
-    "hidden": true
-  }
+  { "type": "feat", "section": "Features" },
+  { "type": "fix", "section": "Bug Fixes" },
+  { "type": "docs", "section": "Documentation", "hidden": true }
 ]
 ```
 
-**Purpose**: Defines which commit types appear in the changelog and how they're grouped
+**Visible in changelogs**: Features, bug fixes, performance improvements, dependencies, reverts
 
-**Structure**:
-- **`type`**: Conventional commit type (feat, fix, docs, etc.)
-- **`section`**: Heading in the changelog
-- **`hidden`**: If `true`, commits won't appear in changelog but may still trigger version bumps
+**Hidden but tracked**: Documentation, styles, refactoring, tests, build, CI, release
 
-**Behavior**:
-- Only configured types are included
-- Types can be reordered by array position
-- Hidden types are useful for internal changes (tests, CI, etc.)
+**Rationale**: Internal changes don't need to appear in user-facing changelogs, but should still be tracked in commit history.
 
-**Documentation**: [Changelog Sections](https://github.com/googleapis/release-please?tab=readme-ov-file#changelog-sections)
-
-**Our Configuration**:
-- **Visible**: Features, bugfixes, performance improvements, dependencies, reverts
-- **Hidden**: Documentation, styles, refactoring, tests, build, CI, release
