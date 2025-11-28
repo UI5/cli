@@ -21,7 +21,7 @@ Or update your global install via: `npm i --global @ui5/cli@next`
 	- Source files in `/src` directory
 	- Test files in `/test` directory
 
-	See [RFC 1083](https://github.com/UI5/cli/blob/rfc-component-type/rfcs/0018-component-type.md) for details.
+	See [RFC 0018](https://github.com/UI5/cli/blob/rfc-component-type/rfcs/0018-component-type.md) for details.
 
 ## Node.js and npm Version Support
 
@@ -43,6 +43,8 @@ The `ui5 init` command now generates projects with Specification Version 5.0 by 
 The `component` type feature aims to introduce a new project type within the UI5 CLI ecosystem to support the development of UI5 component-like applications intended to run in container apps such as the Fiori Launchpad (FLP) Sandbox or testsuite environments.
 
 This feature will allow developers to serve and build multiple UI5 application components concurrently, enhancing the local development environment for integration scenarios.
+
+**Note:** A component type project must contain both a `Component.js` and a `manifest.json` file in the source directory.
 
 ### Migrating from Application to Component Type
 
@@ -111,4 +113,4 @@ my-app/
 ## Learn More
 
 - [Configuration: Specification Version 5.0](../pages/Configuration#specification-version-5-0)
-- [UI5 Tooling RFC: Component Type](https://github.com/UI5/cli/pull/1083)
+- [RFC 0018: Component Type](https://github.com/UI5/cli/blob/rfc-component-type/rfcs/0018-component-type.md)
