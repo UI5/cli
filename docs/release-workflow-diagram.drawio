@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="Release Workflow" id="release-workflow">
-        <mxGraphModel dx="342" dy="1550" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+        <mxGraphModel dx="607" dy="1267" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -55,10 +55,10 @@
                 <mxCell id="job2-step3" value="3. Publish @ui5/builder (depends on fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="360" y="633" width="320" height="25" as="geometry"/>
                 </mxCell>
-                <mxCell id="job2-step4" value="4. Publish @ui5/server (depends on fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="job2-step4" value="4. Publish @ui5/server (depends on builder, fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="360" y="663" width="320" height="25" as="geometry"/>
                 </mxCell>
-                <mxCell id="job2-step5" value="5. Publish @ui5/project (depends on fs, logger)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
+                <mxCell id="job2-step5" value="5. Publish @ui5/project (depends on fs, logger; peer dependency to&amp;nbsp;&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;builder&lt;/span&gt;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;spacingLeft=10;fontSize=11;" parent="1" vertex="1">
                     <mxGeometry x="360" y="693" width="320" height="25" as="geometry"/>
                 </mxCell>
                 <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="job2" target="job3" edge="1">
