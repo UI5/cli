@@ -1,4 +1,37 @@
 # Development Conventions and Guidelines
+## Local Development Environment
+You can use any IDE or text editor of your choice. There are no specific requirements or additions for a certain IDE.
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (See `engines` section in [package.json](../package.json) for the required version)
+- [npm](https://www.npmjs.com/) (comes with Node.js)
+
+UI5 CLI is tested on Windows, macOS, and Linux. However, some tools and scripts require a Unix-like shell environment, so we recommend using [Git Bash](https://git-scm.com/install/windows) on Windows.
+
+### Installation
+
+1. Clone the repository and navigate into it:
+   ```sh
+   git clone https://github.com/UI5/cli.git
+   cd cli
+   ```
+2. Install all dependencies in the repository (npm workspace):
+   ```sh
+   npm install
+   ```
+3. *(Optional)* If you want to test the CLI locally, you can link the package to make the `ui5` command available globally:
+   ```sh
+   npm link --workspace @ui5/cli
+   ```
+   **Note:** You might need to set the environment variable `UI5_CLI_NO_LOCAL` to `X` (or any value) to avoid invoking a local installation of UI5 CLI in your current working directory.
+
+   You can remove the global link using:
+   ```sh
+   npm uninstall --global @ui5/cli
+   ```
+   If you had previously installed UI5 CLI globally using `npm install --global @ui5/cli`, you need to re-install it after removing the link.
+
 ## JavaScript Coding Guidelines
 We enforce code style rules using [ESLint](https://eslint.org). Execute `npm run lint` to check your code for style issues.  
 You may also find an ESLint integration for your favorite IDE [here](https://eslint.org/docs/user-guide/integrations).
