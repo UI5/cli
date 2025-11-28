@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="Release Workflow" id="release-workflow">
-        <mxGraphModel dx="607" dy="1267" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
+        <mxGraphModel dx="584" dy="1267" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="900" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -16,13 +16,13 @@
                 <mxCell id="job1-step1" value="• Analyzes commits since last release" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="120" width="330" height="28" as="geometry"/>
                 </mxCell>
-                <mxCell id="job1-step2" value="• Creates/updates release PR with version bumps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="job1-step2" value="• Creates/updates release a single PR with version bumps for each package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="163" width="330" height="28" as="geometry"/>
                 </mxCell>
                 <mxCell id="job1-step3" value="• Generates changelogs for each package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="240" width="330" height="28" as="geometry"/>
                 </mxCell>
-                <mxCell id="job1-step4" value="• Fixes circular peer dependency &amp;amp; lockfile issues ** (not handled by Release Please)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="job1-step4" value="• Fixes circular peer dependency issues (not handled by Release Please)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="355" y="279" width="330" height="28" as="geometry"/>
                 </mxCell>
                 <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="job1" target="merge-event" edge="1">
@@ -34,8 +34,8 @@
                 <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="merge-event" target="info-box" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="info-box" value="✓ Release Please creates GitHub releases &amp; tags&lt;br&gt;✓ Workflow triggers package publishing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;strokeWidth=2;fontStyle=1;fontSize=10;" parent="1" vertex="1">
-                    <mxGeometry x="360" y="440" width="320" height="45" as="geometry"/>
+                <mxCell id="info-box" value="✓ Release Please creates GitHub releases &amp;amp; tags for each package separately&lt;br&gt;✓ Workflow triggers package publishing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;strokeWidth=2;fontStyle=1;fontSize=10;" parent="1" vertex="1">
+                    <mxGeometry x="355" y="440" width="330" height="45" as="geometry"/>
                 </mxCell>
                 <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="info-box" target="job2" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
@@ -79,7 +79,7 @@
                 <mxCell id="note-sequential" value="&lt;b&gt;Why sequential publishing?&lt;/b&gt;&lt;br&gt;• Packages have dependencies on each other&lt;br&gt;• NPM must have dependencies available&lt;br&gt;&amp;nbsp;&amp;nbsp;before publishing dependents&lt;br&gt;• `max-parallel: 1` ensures proper ordering" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;dashed=1;dashPattern=3 3;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="740" y="580" width="280" height="100" as="geometry"/>
                 </mxCell>
-                <mxCell id="note-cli" value="&lt;b&gt;Why CLI published last?&lt;/b&gt;&lt;br&gt;• Shrinkwrap needs all dependencies&lt;br&gt;&amp;nbsp;&amp;nbsp;to exist on npm registry&lt;br&gt;• Ensures production-only locked deps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;dashed=1;dashPattern=3 3;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
+                <mxCell id="note-cli" value="&lt;b&gt;Why CLI published last?&lt;/b&gt;&lt;br&gt;• Shrinkwrap needs all dependencies (@ui5/* packages)&lt;br&gt;&amp;nbsp;&amp;nbsp;to exist on npm registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff9e6;strokeColor=#d6b656;dashed=1;dashPattern=3 3;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
                     <mxGeometry x="20" y="780" width="280" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="2" value="• Synchronizes package.json intra-dependency versions for the packages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#01579b;align=left;spacingLeft=10;fontSize=10;" parent="1" vertex="1">
