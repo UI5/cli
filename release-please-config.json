@@ -21,10 +21,7 @@
 			"component": "project"
 		},
 		"packages/cli": {
-			"component": "cli",
-			"extra-files": [
-				"npm-shrinkwrap.json"
-			]
+			"component": "cli"
 		}
 	},
 	"release-type": "node",
