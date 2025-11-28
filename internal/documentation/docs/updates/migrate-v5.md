@@ -106,7 +106,7 @@ my-app/
 
 The `index.html` file is typically moved from `/webapp` to `/test` since it's primarily used for testing the component.
 
-Update the bootstrap script path and remove the obsolete `data-sap-ui-resourceroots` configuration:
+Update the bootstrap script path and remove the obsolete `data-sap-ui-resource-roots` configuration:
 
 ::: code-group
 ```html [Before (webapp/index.html)]
@@ -115,7 +115,7 @@ Update the bootstrap script path and remove the obsolete `data-sap-ui-resourcero
     src="resources/sap-ui-core.js"
     data-sap-ui-libs="sap.m"
     data-sap-ui-theme="sap_horizon"
-    data-sap-ui-resourceroots='{
+    data-sap-ui-resource-roots='{
         "sap.ui.demo.todo": "./"
     }'
     data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
@@ -150,7 +150,7 @@ Simplify the test suite HTML by removing obsolete bootstrap attributes:
     <script
         src="../resources/sap/ui/test/starter/createSuite.js"
         data-sap-ui-testsuite="test-resources/sap/ui/demo/todo/testsuite.qunit"
-        data-sap-ui-resourceroots='{
+        data-sap-ui-resource-roots='{
             "test-resources.sap.ui.demo.todo": "./"
         }'
     ></script>
@@ -176,15 +176,83 @@ Simplify the test suite HTML by removing obsolete bootstrap attributes:
 
 **Changes:**
 - Remove the `data-sap-ui-testsuite` attribute
-- Remove the `data-sap-ui-resourceroots` attribute
+- Remove the `data-sap-ui-resource-roots` attribute
 - Update the `src` path to the correct relative location
 
-#### 5. Delete Obsolete Test Files
+#### 5. Adjust `testsuite.qunit.js`
 
-Delete the custom `Test.qunit.html` file from your test directory. This file is no longer needed. The framework-provided test page can now be used directly. 
+Update the test suite configuration to remove obsolete path mappings:
+
+::: code-group
+```js [Before]
+sap.ui.define(function () {
+    return {
+        name: "QUnit test suite for Todo App",
+        defaults: {
+            page: "ui5://test-resources/sap/ui/demo/todo/Test.qunit.html?testsuite={suite}&test={name}",
+            qunit: {
+                version: 2
+            },
+            loader: {
+                paths: {
+                    "sap/ui/demo/todo": "../"
+                }
+            }
+        },
+        tests: {
+            // ... test definitions
+        }
+    };
+});
+```
+
+```js [After]
+sap.ui.define(function () {
+    return {
+        name: "QUnit test suite for Todo App",
+        defaults: {
+            qunit: {
+                version: 2
+            }
+        },
+        tests: {
+            // ... test definitions
+        }
+    };
+});
+```
+:::
+
+#### 6. Delete Obsolete Test Files
+
+Delete the custom `Test.qunit.html` file from your test directory. This file is no longer needed. The framework-provided test page can now be used directly.
+
+#### 7. Update Test Runner Script
+
+If you use the UI5 Test Runner in your `package.json`, update the test URL to reflect the new path structure:
+
+::: code-group
+```json [Before]
+{
+    "scripts": {
+        "test-runner": "ui5-test-runner --url http://localhost:8080/test/testsuite.qunit.html"
+    }
+}
+```
+
+```json [After]
+{
+    "scripts": {
+        "test-runner": "ui5-test-runner --url http://localhost:8080/test-resources/sap/ui/demo/todo/testsuite.qunit.html"
+    }
+}
+```
+:::
+
+The test suite is now served under the standard `/test-resources/` path with the component's full namespace
 
 
 ## Learn More
 
 - [Configuration: Specification Version 5.0](../pages/Configuration#specification-version-5-0)
-- [RFC 0018: Component Type](https://github.com/UI5/cli/blob/rfc-component-type/rfcs/0018-component-type.md)
+- [RFC 0018: Component Type](https://github.com/UI5/cli/blob/c8771aa63964fcf1e3d322b1376dbefe44c73652/rfcs/0018-component-type.md)
