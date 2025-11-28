@@ -10,6 +10,34 @@ import rehypeVideo from "rehype-video";
 import fs from "node:fs";
 import path from "node:path";
 
+function escapeMarkdown(input) {
+	const map = {
+        "|": "&#124;"
+    };
+
+    const escapeLine = (line) => {
+        let out = line;
+        for (const key of Object.keys(map)) {
+            out = out.replaceAll(key, map[key]);
+        }
+        return out;
+    };
+
+    return input
+        .split("\n")
+        .map((line) => {
+            const trimmed = line.trimStart();
+
+            // Ignore entire line if it starts with "|"
+            if (trimmed.startsWith("|")) {
+                return line;
+            }
+
+            return escapeLine(line);
+        })
+        .join("\n");
+}
+
 async function htmlToMarkdown(options = {}) {
 	const file = await unified()
 		.use(rehypeParse, {fragment: true})
@@ -23,12 +51,16 @@ async function htmlToMarkdown(options = {}) {
 	return String(file);
 }
 
-const excludedFiles = {"index.html": "", "global.html": ""};
+const excludedFiles = {"index.html": "", "global.html": "", "custom.css": ""};
 const inputDirectory = path.join("dist", "api");
 const outputDirectory = path.join("docs", "api");
 
 if (!fs.existsSync(outputDirectory)) {
     fs.mkdirSync(outputDirectory);
+} else {
+	for (const file of fs.readdirSync(outputDirectory)) {
+		fs.rmSync(path.join(outputDirectory, file));
+	}
 }
 
 for (const file of fs.readdirSync(path.join("dist", "api"))) {
@@ -41,6 +73,6 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
 	});
     fs.writeFileSync(
         path.join(outputDirectory, file.replace(".html", ".md")),
-        markdown
+        escapeMarkdown(markdown)
     );
 }
