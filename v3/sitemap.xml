@@ -2,132 +2,132 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/Guidelines/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/indexJsdoc/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Benchmarking/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Builder/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/CLI/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/CodeAnalysis/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Configuration/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/ESSupport/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/FAQ/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/FileSystem/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/GettingStarted/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/OpenUI5/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Overview/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Privacy/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Project/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/SAPUI5/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Server/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Troubleshooting/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/Workspace/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/extensibility/CustomServerMiddleware/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/extensibility/CustomTasks/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/pages/extensibility/ProjectShims/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/updates/migrate-v1/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/updates/migrate-v2/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://sap.github.io/ui5-tooling/v3/updates/migrate-v3/</loc>
-         <lastmod>2025-11-21</lastmod>
+         <lastmod>2025-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
