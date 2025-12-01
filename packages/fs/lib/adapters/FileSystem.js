@@ -7,6 +7,7 @@ const copyFile = promisify(fs.copyFile);
 const chmod = promisify(fs.chmod);
 const mkdir = promisify(fs.mkdir);
 const stat = promisify(fs.stat);
+const readFile = promisify(fs.readFile);
 import {globby, isGitIgnored} from "globby";
 import {PassThrough} from "node:stream";
 import AbstractAdapter from "./AbstractAdapter.js";
@@ -129,6 +130,9 @@ class FileSystem extends AbstractAdapter {
 								},
 								createStream: () => {
 									return fs.createReadStream(fsPath);
+								},
+								createBuffer: () => {
+									return readFile(fsPath);
 								}
 							}));
 						}
@@ -201,6 +205,9 @@ class FileSystem extends AbstractAdapter {
 				// Add content as lazy stream
 				resourceOptions.createStream = function() {
 					return fs.createReadStream(fsPath);
+				};
+				resourceOptions.createBuffer = function() {
+					return readFile(fsPath);
 				};
 			}
 
