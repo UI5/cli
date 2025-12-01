@@ -68,7 +68,7 @@ Update your `ui5.yaml` file to use the Component Type and Specification Version 
 
 Component Type follows a standardized directory structure:
 
-- **Move `webapp/test` to `test`** - Test files are now at the project root level
+- **Move `webapp/test` to `test`** - Test folder is now at the project root level
 - **Move `webapp` to `src`** - The source directory is now named `src` instead of `webapp`
 
 ::: code-group
@@ -107,6 +107,10 @@ my-app/
 
 The `index.html` file is typically moved from `/webapp` to `/test` since it's primarily used for testing the component.
 
+::: tip Note
+If your application needs an HTML page for purposes other than testing, this might be an indicator that the project should continue to use the **application type** instead of migrating to the component type.
+:::
+
 Update the bootstrap script path to the correct relative location (taking the project's namespace into account) and remove the obsolete `data-sap-ui-resource-roots` configuration:
 
 ```diff
@@ -123,6 +127,12 @@ Update the bootstrap script path to the correct relative location (taking the pr
       data-sap-ui-async="true">
   </script>
 ```
+
+::: tip Alternative: Using `<base>` Tag
+Instead of updating the bootstrap script path, you can add a `<base href="../../../../../">` tag in the `<head>` section of your HTML file. This allows you to keep the original path references.
+
+**Important:** The `<base>` tag affects **all relative URLs** in the document (including images, stylesheets, links, scripts, and even in-page anchors like `#some-id`). If certain resources are not loading correctly after adding the `<base>` tag, check whether they were using relative paths that are now being resolved differently than intended.
+:::
 
 #### 4. Adjust `test/testsuite.qunit.html`
 
