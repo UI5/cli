@@ -2,6 +2,26 @@ import micromatch from "micromatch";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:cache:BuildTaskCache");
 
+/**
+ * @typedef {object} RequestMetadata
+ * @property {string[]} pathsRead - Specific resource paths that were read
+ * @property {string[]} patterns - Glob patterns used to read resources
+ */
+
+/**
+ * @typedef {object} ResourceMetadata
+ * @property {string} hash - Content hash of the resource
+ * @property {number} lastModified - Last modified timestamp (mtimeMs)
+ */
+
+/**
+ * @typedef {object} TaskCacheMetadata
+ * @property {RequestMetadata} [projectRequests] - Project resource requests
+ * @property {RequestMetadata} [dependencyRequests] - Dependency resource requests
+ * @property {Object.<string, ResourceMetadata>} [resourcesRead] - Resources read by task
+ * @property {Object.<string, ResourceMetadata>} [resourcesWritten] - Resources written by task
+ */
+
 function unionArray(arr, items) {
 	for (const item of items) {
 		if (!arr.includes(item)) {
@@ -35,6 +55,12 @@ async function createMetadataForResources(resourceMap) {
 	return metadata;
 }
 
+/**
+ * Manages the build cache for a single task
+ *
+ * Tracks resource reads/writes and provides methods to validate cache validity
+ * based on resource changes.
+ */
 export default class BuildTaskCache {
 	#projectName;
 	#taskName;
@@ -54,6 +80,15 @@ export default class BuildTaskCache {
 	#resourcesRead;
 	#resourcesWritten;
 
+	// ===== LIFECYCLE =====
+
+	/**
+	 * Creates a new BuildTaskCache instance
+	 *
+	 * @param {string} projectName - Name of the project
+	 * @param {string} taskName - Name of the task
+	 * @param {TaskCacheMetadata} metadata - Task cache metadata
+	 */
 	constructor(projectName, taskName, {projectRequests, dependencyRequests, resourcesRead, resourcesWritten}) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
@@ -71,11 +106,27 @@ export default class BuildTaskCache {
 		this.#resourcesWritten = resourcesWritten ?? Object.create(null);
 	}
 
+	// ===== METADATA ACCESS =====
+
+	/**
+	 * Gets the name of the task
+	 *
+	 * @returns {string} Task name
+	 */
 	getTaskName() {
 		return this.#taskName;
 	}
 
-	updateResources(projectRequests, dependencyRequests, resourcesRead, resourcesWritten) {
+	/**
+	 * Updates the task cache with new resource metadata
+	 *
+	 * @param {RequestMetadata} projectRequests - Project resource requests
+	 * @param {RequestMetadata} [dependencyRequests] - Dependency resource requests
+	 * @param {Object.<string, object>} resourcesRead - Resources read by task
+	 * @param {Object.<string, object>} resourcesWritten - Resources written by task
+	 * @returns {void}
+	 */
+	updateMetadata(projectRequests, dependencyRequests, resourcesRead, resourcesWritten) {
 		unionArray(this.#projectRequests.pathsRead, projectRequests.pathsRead);
 		unionArray(this.#projectRequests.patterns, projectRequests.patterns);
 
@@ -88,7 +139,12 @@ export default class BuildTaskCache {
 		unionObject(this.#resourcesWritten, resourcesWritten);
 	}
 
-	async toObject() {
+	/**
+	 * Serializes the task cache to a JSON-compatible object
+	 *
+	 * @returns {Promise<object>} Serialized task cache data
+	 */
+	async toJSON() {
 		return {
 			taskName: this.#taskName,
 			resourceMetadata: {
@@ -100,7 +156,19 @@ export default class BuildTaskCache {
 		};
 	}
 
-	checkPossiblyInvalidatesTask(projectResourcePaths, dependencyResourcePaths) {
+	// ===== VALIDATION =====
+
+	/**
+	 * Checks if changed resources match this task's tracked resources
+	 *
+	 * This is a fast check that determines if the task *might* be invalidated
+	 * based on path matching and glob patterns.
+	 *
+	 * @param {Set<string>|string[]} projectResourcePaths - Changed project resource paths
+	 * @param {Set<string>|string[]} dependencyResourcePaths - Changed dependency resource paths
+	 * @returns {boolean} True if any changed resources match this task's tracked resources
+	 */
+	matchesChangedResources(projectResourcePaths, dependencyResourcePaths) {
 		if (this.#isRelevantResourceChange(this.#projectRequests, projectResourcePaths)) {
 			log.verbose(
 				`Build cache for task ${this.#taskName} of project ${this.#projectName} possibly invalidated ` +
@@ -118,15 +186,35 @@ export default class BuildTaskCache {
 		return false;
 	}
 
-	getReadResourceCacheEntry(searchResourcePath) {
+	// ===== CACHE LOOKUPS =====
+
+	/**
+	 * Gets the cache entry for a resource that was read
+	 *
+	 * @param {string} searchResourcePath - Path of the resource to look up
+	 * @returns {ResourceMetadata|object|undefined} Cache entry or undefined if not found
+	 */
+	getReadCacheEntry(searchResourcePath) {
 		return this.#resourcesRead[searchResourcePath];
 	}
 
-	getWrittenResourceCache(searchResourcePath) {
+	/**
+	 * Gets the cache entry for a resource that was written
+	 *
+	 * @param {string} searchResourcePath - Path of the resource to look up
+	 * @returns {ResourceMetadata|object|undefined} Cache entry or undefined if not found
+	 */
+	getWriteCacheEntry(searchResourcePath) {
 		return this.#resourcesWritten[searchResourcePath];
 	}
 
-	async isResourceInReadCache(resource) {
+	/**
+	 * Checks if a resource exists in the read cache and has the same content
+	 *
+	 * @param {object} resource - Resource instance to check
+	 * @returns {Promise<boolean>} True if resource is in cache with matching content
+	 */
+	async hasResourceInReadCache(resource) {
 		const cachedResource = this.#resourcesRead[resource.getPath()];
 		if (!cachedResource) {
 			return false;
@@ -138,7 +226,13 @@ export default class BuildTaskCache {
 		}
 	}
 
-	async isResourceInWriteCache(resource) {
+	/**
+	 * Checks if a resource exists in the write cache and has the same content
+	 *
+	 * @param {object} resource - Resource instance to check
+	 * @returns {Promise<boolean>} True if resource is in cache with matching content
+	 */
+	async hasResourceInWriteCache(resource) {
 		const cachedResource = this.#resourcesWritten[resource.getPath()];
 		if (!cachedResource) {
 			return false;
@@ -150,6 +244,14 @@ export default class BuildTaskCache {
 		}
 	}
 
+	/**
+	 * Compares two resource instances for equality
+	 *
+	 * @param {object} resourceA - First resource to compare
+	 * @param {object} resourceB - Second resource to compare
+	 * @returns {Promise<boolean>} True if resources are equal
+	 * @throws {Error} If either resource is undefined
+	 */
 	async #isResourceEqual(resourceA, resourceB) {
 		if (!resourceA || !resourceB) {
 			throw new Error("Cannot compare undefined resources");
@@ -157,7 +259,7 @@ export default class BuildTaskCache {
 		if (resourceA === resourceB) {
 			return true;
 		}
-		if (resourceA.getStatInfo()?.mtimeMs !== resourceA.getStatInfo()?.mtimeMs) {
+		if (resourceA.getStatInfo()?.mtimeMs !== resourceB.getStatInfo()?.mtimeMs) {
 			return false;
 		}
 		if (await resourceA.getString() === await resourceB.getString()) {
@@ -166,6 +268,14 @@ export default class BuildTaskCache {
 		return false;
 	}
 
+	/**
+	 * Compares a resource instance with cached metadata fingerprint
+	 *
+	 * @param {object} resourceA - Resource instance to compare
+	 * @param {ResourceMetadata} resourceBMetadata - Cached metadata to compare against
+	 * @returns {Promise<boolean>} True if resource matches the fingerprint
+	 * @throws {Error} If resource or metadata is undefined
+	 */
 	async #isResourceFingerprintEqual(resourceA, resourceBMetadata) {
 		if (!resourceA || !resourceBMetadata) {
 			throw new Error("Cannot compare undefined resources");
