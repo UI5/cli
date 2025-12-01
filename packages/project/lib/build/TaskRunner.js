@@ -489,6 +489,9 @@ class TaskRunner {
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
 		if (this._cache.hasValidCacheForTask(taskName)) {
+			// Immediately skip task if cache is valid
+			// Continue if cache is (potentially) invalid, in which case taskFunction will
+			// validate the cache thoroughly
 			this._log.skipTask(taskName);
 			return;
 		}

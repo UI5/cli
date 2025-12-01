@@ -36,10 +36,11 @@ export default class ProjectBuildCache {
 	#restoreFailed = false;
 
 	/**
+	 * Creates a new ProjectBuildCache instance
 	 *
-	 * @param {Project} project Project instance
-	 * @param {string} cacheKey Cache key
-	 * @param {string} [cacheDir] Cache directory
+	 * @param {object} project - Project instance
+	 * @param {string} cacheKey - Cache key identifying this build configuration
+	 * @param {string} [cacheDir] - Optional cache directory for persistence
 	 */
 	constructor(project, cacheKey, cacheDir) {
 		this.#project = project;
@@ -51,7 +52,22 @@ export default class ProjectBuildCache {
 		});
 	}
 
-	async updateTaskResult(taskName, workspaceTracker, dependencyTracker) {
+	// ===== TASK MANAGEMENT =====
+
+	/**
+	 * Records the result of a task execution and updates the cache
+	 *
+	 * This method:
+	 * 1. Stores metadata about resources read/written by the task
+	 * 2. Detects which resources have actually changed
+	 * 3. Invalidates downstream tasks if necessary
+	 *
+	 * @param {string} taskName - Name of the executed task
+	 * @param {object} workspaceTracker - Tracker that monitored workspace reads
+	 * @param {object} [dependencyTracker] - Tracker that monitored dependency reads
+	 * @returns {Promise<void>}
+	 */
+	async recordTaskResult(taskName, workspaceTracker, dependencyTracker) {
 		const projectTrackingResults = workspaceTracker.getResults();
 		const dependencyTrackingResults = dependencyTracker?.getResults();
 
@@ -74,7 +90,7 @@ export default class ProjectBuildCache {
 				const changedPaths = new Set((await Promise.all(writtenResourcePaths
 					.map(async (resourcePath) => {
 						// Check whether resource content actually changed
-						if (await taskCache.isResourceInWriteCache(resourcesWritten[resourcePath])) {
+						if (await taskCache.hasResourceInWriteCache(resourcesWritten[resourcePath])) {
 							return undefined;
 						}
 						return resourcePath;
@@ -97,7 +113,7 @@ export default class ProjectBuildCache {
 				const emptySet = new Set();
 				for (let i = taskIndex + 1; i < allTasks.length; i++) {
 					const nextTaskName = allTasks[i];
-					if (!this.#taskCache.get(nextTaskName).checkPossiblyInvalidatesTask(changedPaths, emptySet)) {
+					if (!this.#taskCache.get(nextTaskName).matchesChangedResources(changedPaths, emptySet)) {
 						continue;
 					}
 					if (this.#invalidatedTasks.has(taskName)) {
@@ -114,7 +130,7 @@ export default class ProjectBuildCache {
 					}
 				}
 			}
-			taskCache.updateResources(
+			taskCache.updateMetadata(
 				projectTrackingResults.requests,
 				dependencyTrackingResults?.requests,
 				resourcesRead,
@@ -137,7 +153,27 @@ export default class ProjectBuildCache {
 		}
 	}
 
-	harvestUpdatedResources() {
+	/**
+	 * Returns the task cache for a specific task
+	 *
+	 * @param {string} taskName - Name of the task
+	 * @returns {BuildTaskCache|undefined} The task cache or undefined if not found
+	 */
+	getTaskCache(taskName) {
+		return this.#taskCache.get(taskName);
+	}
+
+	// ===== INVALIDATION =====
+
+	/**
+	 * Collects all modified resource paths and clears the internal tracking set
+	 *
+	 * Note: This method has side effects - it clears the internal modified resources set.
+	 * Call this only when you're ready to consume and process all accumulated changes.
+	 *
+	 * @returns {Set<string>} Set of resource paths that have been modified
+	 */
+	collectAndClearModifiedPaths() {
 		const updatedResources = new Set(this.#updatedResources);
 		this.#updatedResources.clear();
 		return updatedResources;
@@ -169,7 +205,19 @@ export default class ProjectBuildCache {
 		return taskInvalidated;
 	}
 
-	async validateChangedProjectResources(taskName, workspace, dependencies) {
+	/**
+	 * Validates whether supposedly changed resources have actually changed
+	 *
+	 * Performs fine-grained validation by comparing resource content (hash/mtime)
+	 * and removes false positives from the invalidation set.
+	 *
+	 * @param {string} taskName - Name of the task to validate
+	 * @param {object} workspace - Workspace reader
+	 * @param {object} dependencies - Dependencies reader
+	 * @returns {Promise<void>}
+	 * @throws {Error} If task cache not found for the given taskName
+	 */
+	async validateChangedResources(taskName, workspace, dependencies) {
 		// Check whether the supposedly changed resources for the task have actually changed
 		if (!this.#invalidatedTasks.has(taskName)) {
 			return;
@@ -196,7 +244,7 @@ export default class ProjectBuildCache {
 			if (!taskCache) {
 				throw new Error(`Failed to validate changed resources for task ${taskName}: Task cache not found`);
 			}
-			if (await taskCache.isResourceInReadCache(resource)) {
+			if (await taskCache.hasResourceInReadCache(resource)) {
 				log.verbose(`Resource content has not changed for task ${taskName}, ` +
 					`removing ${resourcePath} from set of changed resource paths`);
 				changedResourcePaths.delete(resourcePath);
@@ -204,36 +252,91 @@ export default class ProjectBuildCache {
 		}
 	}
 
-	getChangedProjectResourcePaths(taskName) {
+	/**
+	 * Gets the set of changed project resource paths for a task
+	 *
+	 * @param {string} taskName - Name of the task
+	 * @returns {Set<string>} Set of changed project resource paths
+	 */
+	getChangedProjectPaths(taskName) {
 		return this.#invalidatedTasks.get(taskName)?.changedProjectResourcePaths ?? new Set();
 	}
 
-	getChangedDependencyResourcePaths(taskName) {
+	/**
+	 * Gets the set of changed dependency resource paths for a task
+	 *
+	 * @param {string} taskName - Name of the task
+	 * @returns {Set<string>} Set of changed dependency resource paths
+	 */
+	getChangedDependencyPaths(taskName) {
 		return this.#invalidatedTasks.get(taskName)?.changedDependencyResourcePaths ?? new Set();
 	}
 
-	hasCache() {
+	// ===== CACHE QUERIES =====
+
+	/**
+	 * Checks if any task cache exists
+	 *
+	 * @returns {boolean} True if at least one task has been cached
+	 */
+	hasAnyCache() {
 		return this.#taskCache.size > 0;
 	}
 
-	/*
-		Check whether the project's build cache has an entry for the given stage.
-		This means that the cache has been filled with the output of the given stage.
-	*/
-	hasCacheForTask(taskName) {
+	/**
+	 * Checks whether the project's build cache has an entry for the given task
+	 *
+	 * This means that the cache has been filled with the input and output of the given task.
+	 *
+	 * @param {string} taskName - Name of the task
+	 * @returns {boolean} True if cache exists for this task
+	 */
+	hasTaskCache(taskName) {
 		return this.#taskCache.has(taskName);
 	}
 
-	hasValidCacheForTask(taskName) {
+	/**
+	 * Checks whether the cache for a specific task is currently valid
+	 *
+	 * @param {string} taskName - Name of the task
+	 * @returns {boolean} True if cache exists and is valid for this task
+	 */
+	isTaskCacheValid(taskName) {
 		return this.#taskCache.has(taskName) && !this.#invalidatedTasks.has(taskName);
 	}
 
-	getCacheForTask(taskName) {
-		return this.#taskCache.get(taskName);
+	/**
+	 * Determines whether a rebuild is needed
+	 *
+	 * @returns {boolean} True if no cache exists or if any tasks have been invalidated
+	 */
+	needsRebuild() {
+		return !this.hasAnyCache() || this.#invalidatedTasks.size > 0;
 	}
 
-	requiresBuild() {
-		return !this.hasCache() || this.#invalidatedTasks.size > 0;
+	/**
+	 * Gets the current status of the cache for debugging and monitoring
+	 *
+	 * @returns {object} Status information including cache state and statistics
+	 */
+	getStatus() {
+		return {
+			hasCache: this.hasAnyCache(),
+			totalTasks: this.#taskCache.size,
+			invalidatedTasks: this.#invalidatedTasks.size,
+			modifiedResourceCount: this.#updatedResources.size,
+			cacheKey: this.#cacheKey,
+			restoreFailed: this.#restoreFailed
+		};
+	}
+
+	/**
+	 * Gets the names of all invalidated tasks
+	 *
+	 * @returns {string[]} Array of task names that have been invalidated
+	 */
+	getInvalidatedTaskNames() {
+		return Array.from(this.#invalidatedTasks.keys());
 	}
 
 	async toObject() {
@@ -255,7 +358,7 @@ export default class ProjectBuildCache {
 		// }
 		const taskCache = [];
 		for (const cache of this.#taskCache.values()) {
-			const cacheObject = await cache.toObject();
+			const cacheObject = await cache.toJSON();
 			taskCache.push(cacheObject);
 			// addResourcesToIndex(taskName, cacheObject.resources.project.resourcesRead);
 			// addResourcesToIndex(taskName, cacheObject.resources.project.resourcesWritten);
@@ -283,7 +386,7 @@ export default class ProjectBuildCache {
 	}
 
 	async #serializeMetadata() {
-		const serializedCache = await this.toObject();
+		const serializedCache = await this.toJSON();
 		const cacheContent = JSON.stringify(serializedCache, null, 2);
 		const res = createResource({
 			path: `/cache-info.json`,
@@ -351,8 +454,8 @@ export default class ProjectBuildCache {
 			}*/
 		}
 		if (changedResources.size) {
-			const tasksInvalidated = this.resourceChanged(changedResources, new Set());
-			if (tasksInvalidated) {
+			const invalidatedTasks = this.markResourcesChanged(changedResources, new Set());
+			if (invalidatedTasks.length > 0) {
 				log.info(`Invalidating tasks due to changed resources for project ${this.#project.getName()}`);
 			}
 		}
@@ -379,7 +482,13 @@ export default class ProjectBuildCache {
 		this.#project.importCachedStages(cachedStages);
 	}
 
-	async serializeToDisk() {
+	/**
+	 * Saves the cache to disk
+	 *
+	 * @returns {Promise<void>}
+	 * @throws {Error} If cache persistence is not available
+	 */
+	async saveToDisk() {
 		if (!this.#cacheRoot) {
 			log.error("Cannot save cache to disk: No cache persistence available");
 			return;
@@ -390,7 +499,16 @@ export default class ProjectBuildCache {
 		]);
 	}
 
-	async attemptDeserializationFromDisk() {
+	/**
+	 * Attempts to load the cache from disk
+	 *
+	 * If a cache file exists, it will be loaded and validated. If any source files
+	 * have changed since the cache was created, affected tasks will be invalidated.
+	 *
+	 * @returns {Promise<void>}
+	 * @throws {Error} If cache restoration fails
+	 */
+	async loadFromDisk() {
 		if (this.#restoreFailed || !this.#cacheRoot) {
 			return;
 		}
