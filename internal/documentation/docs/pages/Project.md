@@ -34,7 +34,7 @@ Unlike `application`-type projects, component projects typically don't have dedi
 
 Component projects support all [output styles](#build-output-style) that library projects currently support. This allows a deployment where you can omit the namespace from the final directory structure using the output style: `flat`.
 
-For more details, see also [RFC 0018 Component Type](https://github.com/UI5/cli/blob/rfc-component-type/rfcs/0018-component-type.md#rfc-0018-component-type).
+For more details, see also [RFC 0018 Component Type](https://github.com/UI5/cli/blob/-/rfcs/0018-component-type.md).
 
 ### application
 Projects of the `application` type typically serve as the main or root project. In a project's dependency tree, there shouldn't be more than one project of this type. If the system detects additional application projects, it ignores those that are further away from the root.

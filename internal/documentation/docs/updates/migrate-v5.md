@@ -39,36 +39,37 @@ This feature will allow developers to serve and build multiple UI5 application c
 
 **Note:** A component type project must contain both a `Component.js` and a `manifest.json` file in the source directory.
 
+More details about the Component Type can be found in the [Project: Type `component`](../pages/Project#component) documentation.
+
 ### Migrating from Application to Component Type
 
-If you have an existing application that you'd like to migrate to the Component Type, follow these steps:
+If you have an existing application that you'd like to migrate to the Component Type, there are several steps to follow.
+The migration involves updating your project configuration and restructuring your project directories to align with the Component Type conventions.
+
+**Main changes**:
+1. Source directories `src` and `test` instead of `webapp` and `webapp/test`
+1. Files are served under `/resources/<namespace>/` and `/test-resources/<namespace>/` paths (instead of `/` and `/test/`)
+    - This affects (relative)-paths in HTML files, test suite configuration, and test runner setups
 
 #### 1. Update `ui5.yaml` Configuration
 
 Update your `ui5.yaml` file to use the Component Type and Specification Version 5.0:
 
-::: code-group
-```yaml [Before (Application)]
-specVersion: "4.0"
-type: application
-metadata:
-  name: my.sample.app
+```diff
+- specVersion: "4.0"
+- type: application
++ specVersion: "5.0"
++ type: component
+  metadata:
+    name: my.sample.app
 ```
-
-```yaml [After (Component)]
-specVersion: "5.0"
-type: component
-metadata:
-  name: my.sample.app
-```
-:::
 
 #### 2. Restructure Project Directories
 
 Component Type follows a standardized directory structure:
 
-- **Move `/webapp/test` to `/test`** - Test files are now at the project root level
-- **Move `/webapp` to `/src`** - The source directory is now named `src` instead of `webapp`
+- **Move `webapp/test` to `test`** - Test files are now at the project root level
+- **Move `webapp` to `src`** - The source directory is now named `src` instead of `webapp`
 
 ::: code-group
 ```text [Before (Application)]
@@ -102,157 +103,93 @@ my-app/
 ```
 :::
 
-#### 3. Adjust `index.html`
+#### 3. Adjust `test/index.html`
 
 The `index.html` file is typically moved from `/webapp` to `/test` since it's primarily used for testing the component.
 
-Update the bootstrap script path and remove the obsolete `data-sap-ui-resource-roots` configuration:
+Update the bootstrap script path to the correct relative location (taking the project's namespace into account) and remove the obsolete `data-sap-ui-resource-roots` configuration:
 
-::: code-group
-```html [Before (webapp/index.html)]
-<script
-    id="sap-ui-bootstrap"
-    src="resources/sap-ui-core.js"
-    data-sap-ui-libs="sap.m"
-    data-sap-ui-theme="sap_horizon"
-    data-sap-ui-resource-roots='{
-        "sap.ui.demo.todo": "./"
-    }'
-    data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-    data-sap-ui-async="true">
-</script>
+```diff
+  <script
+      id="sap-ui-bootstrap"
+-     src="resources/sap-ui-core.js"
++     src="../../../../../resources/sap-ui-core.js"
+      data-sap-ui-libs="sap.m"
+      data-sap-ui-theme="sap_horizon"
+-     data-sap-ui-resource-roots='{
+-         "sap.ui.demo.todo": "./"
+-     }'
+      data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
+      data-sap-ui-async="true">
+  </script>
 ```
 
-```html [After (test/index.html)]
-<script
-    id="sap-ui-bootstrap"
-    src="../../../../../resources/sap-ui-core.js"
-    data-sap-ui-libs="sap.m"
-    data-sap-ui-theme="sap_horizon"
-    data-sap-ui-on-init="module:sap/ui/core/ComponentSupport"
-    data-sap-ui-async="true">
-</script>
-```
-:::
-
-
-#### 4. Adjust `testsuite.qunit.html`
+#### 4. Adjust `test/testsuite.qunit.html`
 
 Simplify the test suite HTML by removing obsolete bootstrap attributes:
 
-::: code-group
-```html [Before (webapp/test/testsuite.qunit.html)]
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>QUnit test suite for Todo App</title>
-    <script
-        src="../resources/sap/ui/test/starter/createSuite.js"
-        data-sap-ui-testsuite="test-resources/sap/ui/demo/todo/testsuite.qunit"
-        data-sap-ui-resource-roots='{
-            "test-resources.sap.ui.demo.todo": "./"
-        }'
-    ></script>
-</head>
-<body>
-</body>
-</html>
+```diff
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <meta charset="utf-8">
+      <title>QUnit test suite for Todo App</title>
+      <script
+-         src="../resources/sap/ui/test/starter/createSuite.js"
++         src="../../../../../resources/sap/ui/test/starter/createSuite.js"
+-         data-sap-ui-testsuite="test-resources/sap/ui/demo/todo/testsuite.qunit"
+-         data-sap-ui-resource-roots='{
+-             "test-resources.sap.ui.demo.todo": "./"
+-         }'
+     ></script>
+  </head>
+  <body>
+  </body>
+  </html>
 ```
-
-```html [After (test/testsuite.qunit.html)]
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>QUnit test suite for Todo App</title>
-    <script src="../../../../../resources/sap/ui/test/starter/createSuite.js"></script>
-</head>
-<body>
-</body>
-</html>
-```
-:::
 
 **Changes:**
 - Remove the `data-sap-ui-testsuite` attribute
 - Remove the `data-sap-ui-resource-roots` attribute
 - Update the `src` path to the correct relative location
 
-#### 5. Adjust `testsuite.qunit.js`
+#### 5. Adjust `test/testsuite.qunit.js`
 
 Update the test suite configuration to remove obsolete path mappings:
 
-::: code-group
-```js [Before]
-sap.ui.define(function () {
-    return {
-        name: "QUnit test suite for Todo App",
-        defaults: {
-            page: "ui5://test-resources/sap/ui/demo/todo/Test.qunit.html?testsuite={suite}&test={name}",
-            qunit: {
-                version: 2
-            },
-            loader: {
-                paths: {
-                    "sap/ui/demo/todo": "../"
-                }
-            }
-        },
-        tests: {
-            // ... test definitions
-        }
-    };
-});
+```diff
+  sap.ui.define(function () {
+      return {
+          name: "QUnit test suite for Todo App",
+          defaults: {
+-             page: "ui5://test-resources/sap/ui/demo/todo/Test.qunit.html?testsuite={suite}&test={name}",
+              qunit: {
+                  version: 2
+-             },
+-             loader: {
+-                 paths: {
+-                     "sap/ui/demo/todo": "../"
+-                 }
+              }
+          },
+          tests: {
+              // ... test definitions
+          }
+      };
+  });
 ```
-
-```js [After]
-sap.ui.define(function () {
-    return {
-        name: "QUnit test suite for Todo App",
-        defaults: {
-            qunit: {
-                version: 2
-            }
-        },
-        tests: {
-            // ... test definitions
-        }
-    };
-});
-```
-:::
 
 #### 6. Delete Obsolete Test Files
 
-Delete the custom `Test.qunit.html` file from your test directory. This file is no longer needed. The framework-provided test page can now be used directly.
+Delete the custom `test/Test.qunit.html` file from your test directory. This file is no longer needed. The framework-provided test page can now be used directly.
 
-#### 7. Update Test Runner Script
+#### 7. Update Additional Paths
 
-If you use the UI5 Test Runner in your `package.json`, update the test URL to reflect the new path structure:
-
-::: code-group
-```json [Before]
-{
-    "scripts": {
-        "test-runner": "ui5-test-runner --url http://localhost:8080/test/testsuite.qunit.html"
-    }
-}
-```
-
-```json [After]
-{
-    "scripts": {
-        "test-runner": "ui5-test-runner --url http://localhost:8080/test-resources/sap/ui/demo/todo/testsuite.qunit.html"
-    }
-}
-```
-:::
-
-The test suite is now served under the standard `/test-resources/` path with the component's full namespace
-
+Depending on your project setup, you might need to update additional paths in configuration files or test runners to reflect the new structure.
+The test suite is now served under the standard `/test-resources/` path with the component's full namespace (e.g. `/test-resources/sap/ui/demo/todo/testsuite.qunit.html`).
 
 ## Learn More
 
+- [Project: Type `component`](../pages/Project#component)
 - [Configuration: Specification Version 5.0](../pages/Configuration#specification-version-5-0)
-- [RFC 0018: Component Type](https://github.com/UI5/cli/blob/c8771aa63964fcf1e3d322b1376dbefe44c73652/rfcs/0018-component-type.md)
+- [RFC 0018: Component Type](https://github.com/UI5/cli/blob/-/rfcs/0018-component-type.md)
