@@ -12,17 +12,17 @@ The following is a walk-through on how to evaluate the performance impact of cha
 2. Prepare the UI5 CLI repository *(optional if your development environment already reflects this)*:
     1. Clone [UI5 CLI](https://github.com/UI5/cli) (or your fork) and navigate into it
         ```sh
-        git clone git@github.com:UI5/cli.git
+        git clone https://github.com/UI5/cli.git
         cd cli
         ```
         Make sure you check out the `main` branch, since we'll perform the baseline test first
-    2. Install npm dependencies
+    2. Install all dependencies in the repository (npm workspace):
         ```sh
         npm install
         ```
-    3. Create a global npm link for `@ui5/cli`
+    3. Link the `@ui5/cli` package to make the `ui5` command available globally
         ```sh
-        (cd packages/cli && npm link)
+        npm link --workspace @ui5/cli
         ```
     4. Verify your setup
         ```sh
