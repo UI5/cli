@@ -2,5 +2,13 @@
     // $schema provides code completion hints to IDEs.
     "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
     "low": true,
-    "allowlist": []
+    "allowlist": [
+        // GHSA-67mh-4wv8-2f99 allows malicious websites to read localhost files while dev server runs.
+        // We use VitePress for documentation build and all the information is already publicly available on GitHub Pages.
+        // Exposure during local development doesn't leak confidential information.
+        // This issue affects only the dev server. Production/CI builds are unaffected.
+        //
+        // Fix is available in VitePress 2.x with esbuild v0.25.x, but no stable release yet (only alpha).
+        "GHSA-67mh-4wv8-2f99|vitepress>vite>esbuild"
+    ]
 }
