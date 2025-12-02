@@ -88,6 +88,7 @@ The cache consists of two main parts:
 	"buildManifest": {
 		"manifestVersion": "1.0",
 		"timestamp": "2025-11-24T13:43:24.612Z",
+		"signature": "bb3a3262d893fcb9adf16bff63f", // <-- New "signature" attribute, uniquely identifying the build
 		"versions": {
 			"builderVersion": "5.0.0",
 			"projectVersion": "5.0.0",
@@ -113,8 +114,7 @@ The cache consists of two main parts:
 			}
 		}
 	},
-	"cache": {
-		"integrity": "bb3a3262d893fcb9adf16bff63f"
+	"cache": { // <-- New "cache" section containing incremental build metadata
 		"index": {
 			// Map of source paths to their fs-stat metadata and content hashes
 			"/resources/project/namespace/Component.js": {
@@ -126,19 +126,21 @@ The cache consists of two main parts:
 		},
 		"indexTimestamp": 1764688556165,
 		"tasks": {
-			"replaceCopyright": {
+			"replaceCopyright": { // Task name
 				"projectRequests": {
+					// Resource paths and glob patterns requested from the project during task execution
 					"pathsRead": [],
 					"patterns": [
 						"/**/*.{js,library,css,less,theme,html}"
 					]
 				},
 				"dependencyRequests": {
+					// Resource paths and glob patterns requested from dependencies during task execution
 					"pathsRead": [],
 					"patterns": []
 				},
 				"input": {
-					// Map of logical paths read to their content hashes
+					// Logical paths read by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
 						"mtime": 1764688556165,
 						"size": 1234,
@@ -146,7 +148,7 @@ The cache consists of two main parts:
 					}
 				},
 				"output": {
-					// Map of logical paths written to their content hashes
+					// Logical paths written by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
 						"mtime": 176468853453,
 						"size": 4567,
@@ -161,25 +163,25 @@ The cache consists of two main parts:
 
 The concept of a `build-manifest.json` has already been explored in [RFC 0011 Reuse Build Results](https://github.com/SAP/ui5-tooling/pull/612) and found an implementation for consumption of pre-built UI5 framework libraries in [UI5 3.0](https://github.com/UI5/cli/pull/612).
 
-This concept reuses and extends the `build-manifest.json` idea to also include incremental build cache information. A new `cache` section is added to the manifest, containing all relevant metadata for the incremental build cache.
+This concept reuses and extends the `build-manifest.json` idea to also include incremental build cache information. In addition to a new `signature` attribute, added to the `buildManifest` section (which now defines version `1.0`), a new `cache` section is introduced, containing all relevant metadata for the incremental build cache.
 
-##### Integrity
+##### Signature
 
-The cache integrity is calculated based on the **build configuration and environment** of a project. It's purpose is to easily tell whether a cache can be reused for a project build or not.
+The signature is calculated based on the **build configuration and environment** of a project. It's purpose is to easily tell whether a cache can be reused for a project build or not.
 
-The integrity is a simple hash (represented as a hexadecimal string), calculated from the following information:
+The signature is a simple hash (represented as a hexadecimal string, to allow usage in file names), calculated from the following information:
 
-* Project namespace and version.
-	* Different projects must produce different caches.
+* Project namespace and version
+	* Different projects must produce different caches
 * The versions of all UI5 CLI packages used to create the cache: `@ui5/project`, `@ui5/builder` and `@ui5/fs`
-	* Different UI5 CLI versions must produce a new cache. Alternatively, we could introduce a dedicated "cache version" that is incremented whenever a breaking change to the cache format is introduced. This would allow reusing the cache across minor UI5 CLI updates.
-* The relevant build configuration (ui5.yaml + CLI parameters).
-	* Changes in the build configuration must result in dedicated cache.
-	* Some configuration options might not be relevant for the build process (e.g. server configuration). Those could be excluded from the hash calculation to improve cache reusability.
-* The names and versions of all UI5 extensions in the dependency tree.
-	* Changes to custom tasks must invalidate the cache. Even changes to their npm dependencies might invalidate the cache. Therefore, a hash of the current project's lockfile (e.g. package-lock.json, yarn.lock or pnpm-lock.yaml - if present) should be included in the cache key as well.
-* _**To be decided:** The names and versions of all UI5 projects in the dependency tree._
-	* Changes in project dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes.
+	* Different UI5 CLI versions must produce a new cache. Alternatively, we could introduce a dedicated "cache version" that is incremented whenever a breaking change to the cache format is introduced. This would allow reusing the cache across minor UI5 CLI updates
+* The relevant build configuration (ui5.yaml + CLI parameters)
+	* Changes in the build configuration must result in dedicated cache
+	* Some configuration options might not be relevant for the build process (e.g. server configuration). Those could be excluded from the hash calculation to improve cache reusability
+* The names and versions of all UI5 extensions in the dependency tree
+	* Changes to custom tasks must invalidate the cache. Even changes to their npm dependencies might invalidate the cache. Therefore, a hash of the current project's lockfile (e.g. package-lock.json, yarn.lock or pnpm-lock.yaml - if present) should be included in the cache key as well
+* _**To be decided:** The names and versions of all UI5 projects in the dependency tree_
+	* Changes in project dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes
 
 ##### Index
 
@@ -204,7 +206,7 @@ It can also be used to protect against race conditions such as those described i
 
 ##### Tasks
 
-An object containing entries for each build task executed during the build process.
+An object containing entries for each build task executed during the build process. Keys must be stored in the order of task execution.
 
 For each task, the following information is stored:
 
