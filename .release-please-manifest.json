@@ -1,8 +1,8 @@
 {
-	"packages/logger": "4.0.2",
-	"packages/fs": "4.0.2",
-	"packages/builder": "4.0.11",
-	"packages/server": "4.0.7",
-	"packages/project": "4.0.6",
-	"packages/cli": "4.0.26"
+	"packages/logger": "5.0.0-alpha.0",
+	"packages/fs": "5.0.0-alpha.0",
+	"packages/builder": "5.0.0-alpha.0",
+	"packages/server": "5.0.0-alpha.0",
+	"packages/project": "5.0.0-alpha.0",
+	"packages/cli": "5.0.0-alpha.0"
 }
