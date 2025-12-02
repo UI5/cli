@@ -106,7 +106,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git@github.com:UI5/cli.git",
+		"url": "git+ssh://git@github.com/UI5/cli.git",
 		"directory": "packages/builder"
 	},
 	"dependencies": {
