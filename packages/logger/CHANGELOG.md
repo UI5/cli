@@ -4,7 +4,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
-<a name="v4.0.2"></a>
+<a name="5.0.0-alpha.0"></a>
+## [5.0.0-alpha.0](https://github.com/UI5/cli/compare/logger-v4.0.2...logger-v5.0.0-alpha.0) (2025-11-25)
+
+
+### Breaking Changes
+
+* **logger:** Require Node.js 22.20.0 || >= 24.0.0
+
+
+### Features
+
+* **logger:** Add module filtering, task-skip event ([5a1b071](https://github.com/UI5/cli/commit/5a1b07127ad91ba27deaface060235ddb16a9e21))
+
 ## [v4.0.2] - 2025-09-11
 ### Bug Fixes
 - Rename project to UI5 CLI [`18d935a`](https://github.com/SAP/ui5-logger/commit/18d935a7caf7d53312b4f3976b0075aeae608902)

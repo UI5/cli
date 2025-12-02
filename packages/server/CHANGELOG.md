@@ -4,6 +4,25 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-server/compare/v4.0.7...HEAD).
 
+<a name="5.0.0-alpha.0"></a>
+## [5.0.0-alpha.0](https://github.com/UI5/cli/compare/server-v4.0.7...server-v5.0.0-alpha.0) (2025-11-25)
+
+
+### Breaking Changes
+
+* **server:** Require Node.js 22.20.0 || >= 24.0.0
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/builder bumped from ^4.0.11 to ^5.0.0-alpha.0
+    * @ui5/fs bumped from ^4.0.2 to ^5.0.0-alpha.0
+    * @ui5/logger bumped from ^4.0.2 to ^5.0.0-alpha.0
+  * devDependencies
+    * @ui5/project bumped from ^4.0.6 to ^5.0.0-alpha.0
+
 <a name="v4.0.7"></a>
 ## [v4.0.7] - 2025-09-11
 ### Bug Fixes
