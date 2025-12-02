@@ -78,7 +78,13 @@ The cache consists of two main parts:
 
 ````jsonc
 {
-	"cacheKey": "project-name-1.0.0-bb3a3262d893fcb9adf16bff63f",
+	"project": {
+		"specVersion": "5.0",
+		"type": "application",
+		"metadata": {
+			"name": "project.namespace"
+		}
+	},
 	"buildManifest": {
 		"manifestVersion": "1.0",
 		"timestamp": "2025-11-24T13:43:24.612Z",
@@ -107,57 +113,105 @@ The cache consists of two main parts:
 			}
 		}
 	},
-	"sourceMetadata": {
-		// Map of source paths to their content hashes
-		"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9800998ecf8427e"
-	},
-	"taskCache": [{
-		"taskName": "replaceCopyright",
-		"resourceMetadata": {
-			"projectRequests": {
-				"pathsRead": [],
-				"patterns": [
-					"/**/*.{js,library,css,less,theme,html}"
-				]
-			},
-			"dependencyRequests": {
-				"pathsRead": [],
-				"patterns": []
-			},
-			"inputs": {
-				// Map of logical paths read to their content hashes
-				"/resources/project/namespace/Component.js": "d41d8cd98f00b204e9899998ecf8427e"
-			},
-			"outputs": {
-				// Map of logical paths written to their content hashes
-				"/resources/project/namespace/Component.js": "c1c77edc5c689a471b12fe8ba79c51d1"
+	"cache": {
+		"integrity": "bb3a3262d893fcb9adf16bff63f"
+		"index": {
+			// Map of source paths to their fs-stat metadata and content hashes
+			"/resources/project/namespace/Component.js": {
+				"mtime": 1764688556165,
+				"size": 1234,
+				"inode": 5678,
+				"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
+			}
+		},
+		"indexTimestamp": 1764688556165,
+		"tasks": {
+			"replaceCopyright": {
+				"projectRequests": {
+					"pathsRead": [],
+					"patterns": [
+						"/**/*.{js,library,css,less,theme,html}"
+					]
+				},
+				"dependencyRequests": {
+					"pathsRead": [],
+					"patterns": []
+				},
+				"input": {
+					// Map of logical paths read to their content hashes
+					"/resources/project/namespace/Component.js": {
+						"mtime": 1764688556165,
+						"size": 1234,
+						"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
+					}
+				},
+				"output": {
+					// Map of logical paths written to their content hashes
+					"/resources/project/namespace/Component.js": {
+						"mtime": 176468853453,
+						"size": 4567,
+						"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
+					}
+				}
 			}
 		}
-	}]
+	}
 }
 ````
 
-The concept of a `build-manifest.json` has already been explored in [RFC 0011 Reuse Build Results](https://github.com/SAP/ui5-tooling/pull/612) and found an implementation for consumption of pre-built UI5 framework libraries in [UI5 3.0](https://github.com/UI5/cli/pull/612). The **buildManifest** object is based on that concept.
+The concept of a `build-manifest.json` has already been explored in [RFC 0011 Reuse Build Results](https://github.com/SAP/ui5-tooling/pull/612) and found an implementation for consumption of pre-built UI5 framework libraries in [UI5 3.0](https://github.com/UI5/cli/pull/612).
 
-**cacheKey**
+This concept reuses and extends the `build-manifest.json` idea to also include incremental build cache information. A new `cache` section is added to the manifest, containing all relevant metadata for the incremental build cache.
 
-The cache key can be used to identify the cache for a project. It shall be based on the project's name and package version, as well as a SHA256 hash compiled from the following information:
+##### Integrity
 
+The cache integrity is calculated based on the **build configuration and environment** of a project. It's purpose is to easily tell whether a cache can be reused for a project build or not.
+
+The integrity is a simple hash (represented as a hexadecimal string), calculated from the following information:
+
+* Project namespace and version.
+	* Different projects must produce different caches.
 * The versions of all UI5 CLI packages used to create the cache: `@ui5/project`, `@ui5/builder` and `@ui5/fs`
 	* Different UI5 CLI versions must produce a new cache. Alternatively, we could introduce a dedicated "cache version" that is incremented whenever a breaking change to the cache format is introduced. This would allow reusing the cache across minor UI5 CLI updates.
 * The relevant build configuration (ui5.yaml + CLI parameters).
 	* Changes in the build configuration must result in dedicated cache.
 	* Some configuration options might not be relevant for the build process (e.g. server configuration). Those could be excluded from the hash calculation to improve cache reusability.
-* _**To be decided:** the names and versions of all UI5 project in the dependency tree_
-	* Changes in dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes.
+* The names and versions of all UI5 extensions in the dependency tree.
+	* Changes to custom tasks must invalidate the cache. Even changes to their npm dependencies might invalidate the cache. Therefore, a hash of the current project's lockfile (e.g. package-lock.json, yarn.lock or pnpm-lock.yaml - if present) should be included in the cache key as well.
+* _**To be decided:** The names and versions of all UI5 projects in the dependency tree._
+	* Changes in project dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes.
 
-**taskCache**
+##### Index
 
-An array of objects, each representing a task that was executed during the build. The object contains the name of the task and its resource requests. `inputs` maps the logical path of resources read by the task to their content hash, and `outputs` does the same for resources written by the task. This hash acts as a pointer to the actual file content in the shared CAS object store. If the task used glob patterns to read resources, those patterns are stored so that they can be matched against newly created resources.
+The index provides metadata for all source files of the project. This allows the UI5 CLI to quickly determine whether source files have changed since the last build.
 
-**sourceMetadata**
+The integrity of a source file shall be calculated based on its raw content. A SHA256 hash should be used for this purpose. The hash should stored in Base64 format to reduce the size of the manifest file. A library like [ssri](https://github.com/npm/ssri) should be used for this purpose, allowing easy interoperability with [cacache](#cacache) (see below).
 
-For each *source* file of the project, this object maps the logical path to the SHA256 hash of its content. This allows the UI5 CLI to quickly determine whether source files have changed since the last build.
+When comparing the stored metadata with the current metadata of a source file, the following attributes should be considered initially:
+* `mtime` - Modification time
+* `size` - File size
+* `inode` - Inode number (to detect file replacements)
+
+If **any** of these attributes differ, the file is considered modified. If none of them differ, the file is considered unchanged.
+
+The integrity is only used in special cases, such as when the modification time is equal to the index timestamp (see below).
+
+##### Index Timestamp
+
+The time the index has been created. This allows quick invalidation if source files have a modification time later than this timestamp.
+
+It can also be used to protect against race conditions such as those described in [Racy Git](https://git-scm.com/docs/racy-git), where a file could be modified so quickly (and in parallel to the creation of the index) that its timestamp doesn't change. In such cases, the modification timestamp would be equal to the index timestamp. Therefore, if a file has a modification time equal to the index timestamp, its integrity must be compared to the stored integrity to determine whether it has changed.
+
+##### Tasks
+
+An object containing entries for each build task executed during the build process.
+
+For each task, the following information is stored:
+
+* `projectRequests` and `dependencyRequests`: Resource paths and glob patterns that the task requested from the project and its dependencies during its execution. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the requested resources. The glob patterns are needed in particular to detect newly added resources that match the patterns.
+* `inputs`: Metadata for all resources **read** by the task during its execution. This is tracked via the provided workspace and dependencies readers. The metadata includes the `mtime`, `size` and `integrity` of each resource. Similar to the index. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the input resources.
+* `outputs`: Metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `mtime`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
+
 
 #### Cache directory structure
 
@@ -171,29 +225,34 @@ The directory structure is flat and efficient. A global `cas` directory stores a
 │   └── ... (all other unique file contents)
 │
 └── buildManifests/
-    ├── @ui5/
-    │    └── sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
-    └── @openui5/
-        ├── sap.m-1.142.0-xy3a3262d893fcb9adf16bff63f.json.json
-        └── sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
+    ├── @ui5-sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
+    └── @openui5-sap.m-1.142.0-xy3a3262d893fcb9adf16bff63f.json.json
+    └── @openui5-sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
 ```
 
 A new `buildCache` directory shall be added to the ~/.ui5/ directory. The location of this directory can be configured using the [`UI5_DATA_DIR` environment variable](https://ui5.github.io/cli/stable/pages/Troubleshooting/#environment-variable-ui5_data_dir).
 
-The `cas` directory contains files named by their SHA256 content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store.
+The `cas` directory contains files named by their content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store. In this case, the actual directory structure might differ from what is depicted above.
 
-The `buildManifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and cache key.
+The `buildManifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and [cache integrity](#integrity).
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
 #### cacache
 
-The [`cacache`](https://www.npmjs.com/package/cacache) library is a well-established content-addressable cache implementation used by npm itself. It provides efficient storage and retrieval of file contents based on their content hash, along with built-in mechanisms for cache integrity verification and garbage collection.
+The [`cacache`](https://github.com/npm/cacache) library is a well-established content-addressable cache implementation developed and used by npm itself. It provides efficient storage and retrieval of file contents based on their content hash, along with built-in mechanisms for cache integrity verification and garbage collection.
 
-It allows to store and retrieve files using a unique key. Files can also be retrieved directly by their hash.
+It allows to store and retrieve files using a unique key. Files can also be retrieved directly by their content hash ("digest").
 
-To be decided: What to use as key? Project name and version, project path, etc.?
+In this concept, cacache will be used to store the content of resources produced during the build. The key for each resources should follow this schema:
 
+```
+<cache integrity>|<task name>|<input|output>|<Resource logical path>
+```
+
+The cache [integrity](#integrity) binds the entry to the current project build cache. The task name and input/output structure follows the [Tasks](#tasks) section of the `build-manifest.json` and should allow for easy retrieval of resources based on the metadata stored in the manifest.
+
+At the same time, this schema also enables the use of cacache's garbage collection. If a task execution produces new content for a resource, the cacache entry will be updated to point to the new content hash. Eventually, the old content hash will no longer be referenced by any cache entry and can be cleaned up during [garbage collection](#garbage-collection).
 
 ### Cache Import
 
@@ -217,13 +276,13 @@ After a *project* has finished building, a list of all the modified resource is 
 
 ![Activity Diagram illustrating how a build cache is used when building a project](./resources/0017-incremental-build/Activity_Diagram.png)
 
-### Cache Purging
+### Garbage Collection
 
-A mechanism to purge unused cache on disk is required. The cache can grow very large and consume a lot of disk space. The latest PoC produced cache entries with a size ranging from few kilobytes for applications up to 70 MB for framework libraries like sap.ui.core or sap.m.
+A mechanism to free unused cache resources on disk is required. The cache can potentially grow very large over time, and consume a lot of disk space.
 
-This should probably use some sort of LRU-cache to purge unused cache entries dynamically. The same mechanism could be applied to the npm artifacts downloaded by UI5 CLI.
+This should probably use some sort of LRU-cache, in combination with the garbage collection mechanism integrated in [cacache](#cacache), to remove cache entries dynamically. The same mechanism could also be applied to the npm artifacts already downloaded by UI5 CLI today.
 
-To avoid slowing down core commands, the purge check should run as a non-blocking process after a successful ui5 build or ui5 serve command completes. This process checks if either of the configured thresholds (age or size) has been exceeded. If so, it proceeds with the purge. Some of this functionality might be provided by the underlying content-addressable store library, such as cacache's internal garbage collection.
+To avoid slowing down core commands, the garbage collection check should run as a non-blocking process after a successful `ui5 build` or `ui5 serve` command completes. This process may check if for example configured thresholds (age or size) have been exceeded. If so, it proceeds with removing unused cache entries.
 
 A dedicated command, such as `ui5 cache clean`, should be introduced in addition. This command allows users to manually trigger a cache purge, providing options to specify criteria such as maximum age or size for cache entries to be removed. Similarly, a command `ui5 cache verify` could be provided to check the integrity of the cache.
 
@@ -264,7 +323,7 @@ All of this should be communicated in the UI5 CLI documentation and in blog post
 * Projects might have to adapt their configurations
 * Custom tasks might need to be adapted. Before they could only access the sources of a project. With this change, they will access the build result instead. Access to the sources is still possible but requires the use of a dedicated API
 * UI5 CLI standard tasks need to be adapted to use the new cache API. Especially the bundling tasks currently have no concept for partially re-creating bundles. However, this is an essential requirement to achieve fast incremental builds.
-* While the content-addressable cache is highly efficient at deduplication, the central cache can still grow very large over time. A robust purging mechanism is critical for managing disk space.
+* While the content-addressable cache is highly efficient at deduplication, the central cache can still grow very large over time. A robust [garbage collection](#garbage-collection) mechanism is critical for managing disk space.
 
 ## Alternatives
 
