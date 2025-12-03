@@ -4,7 +4,6 @@
 	"release-type": "node",
 	"always-update": true,
 	"pull-request-header": ":tractor: New release prepared",
-	"release-as": "5.0.0",
 	"packages": {
 		"packages/logger": {
 			"component": "logger"
