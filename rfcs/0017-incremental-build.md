@@ -64,6 +64,15 @@ This shall enable the following workflow:
 
 ![Diagram illustrating an initial and a successive build leveraging the build cache](./resources/0017-incremental-build/Build_With_Cache.png)
 
+
+#### Project Build Cache
+
+The `Project Build Cache` is responsible for managing the build cache of a single project. It handles the import and export of the cache to and from disk, as well as determining which whether the project needs to be rebuilt.
+
+#### Build Task Cache
+
+The `Build Task Cache` is responsible for managing the cache of a single build task within a project. It tracks which resources were read and written by the task during its last execution, along with their metadata.
+
 ### Cache Creation
 
 The build cache shall be serialized onto disk in order to use it in successive UI5 CLI executions. This will be done using a **Content-Addressable Store (CAS)** model, which separates file content from metadata. This ensures that each unique piece of content is stored only once on disk, greatly reducing disk space usage and improving I/O performance.
@@ -72,7 +81,7 @@ Every project has its own cache metadata. This allows for reuse of a project's c
 
 The cache consists of two main parts:
 1. A global **object store (the CAS)** where all file contents are stored, named by a hash of their content.
-2. A per-project `build-manifest.json` file which acts as a lightweight **metadata index**, mapping logical file paths to their content hashes in the object store.
+2. A per-project `build-manifest.json` file which acts as a lightweight **metadata index**, mapping virtual file paths to their content hashes in the object store.
 
 #### build-manifest.json
 
@@ -140,7 +149,7 @@ The cache consists of two main parts:
 					"patterns": []
 				},
 				"input": {
-					// Logical paths read by the task during execution, mapped to their cache metadata
+					// Virtual paths read by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
 						"mtime": 1764688556165,
 						"size": 1234,
@@ -148,7 +157,7 @@ The cache consists of two main parts:
 					}
 				},
 				"output": {
-					// Logical paths written by the task during execution, mapped to their cache metadata
+					// Virtual paths written by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
 						"mtime": 176468853453,
 						"size": 4567,
@@ -167,7 +176,7 @@ This concept reuses and extends the `build-manifest.json` idea to also include i
 
 ##### Signature
 
-The signature is calculated based on the **build configuration and environment** of a project. It's purpose is to easily tell whether a cache can be reused for a project build or not.
+The build signature is calculated based on the **build configuration and environment** of a project. It's purpose is to easily tell whether a cache can be reused for a project build or not.
 
 The signature is a simple hash (represented as a hexadecimal string, to allow usage in file names), calculated from the following information:
 
@@ -179,7 +188,7 @@ The signature is a simple hash (represented as a hexadecimal string, to allow us
 	* Changes in the build configuration must result in dedicated cache
 	* Some configuration options might not be relevant for the build process (e.g. server configuration). Those could be excluded from the hash calculation to improve cache reusability
 * The names and versions of all UI5 extensions in the dependency tree
-	* Changes to custom tasks must invalidate the cache. Even changes to their npm dependencies might invalidate the cache. Therefore, a hash of the current project's lockfile (e.g. package-lock.json, yarn.lock or pnpm-lock.yaml - if present) should be included in the cache key as well
+	* Changes to custom tasks must invalidate the cache. Even changes to their npm dependencies might invalidate the cache. Therefore, a hash of the current project's lockfile (e.g. package-lock.json, yarn.lock or pnpm-lock.yaml - if present) should be included in the signature as well
 * _**To be decided:** The names and versions of all UI5 projects in the dependency tree_
 	* Changes in project dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes
 
@@ -215,7 +224,7 @@ For each task, the following information is stored:
 * `outputs`: Metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `mtime`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
 
 
-#### Cache directory structure
+#### Cache Directory Structure
 
 The directory structure is flat and efficient. A global `cas` directory stores all unique file contents from all builds, while project-specific directories contain only their lightweight metadata.
 
@@ -227,16 +236,22 @@ The directory structure is flat and efficient. A global `cas` directory stores a
 │   └── ... (all other unique file contents)
 │
 └── buildManifests/
-    ├── @ui5-sample-app-0.5.0-bb3a3262d893fcb9adf16bff63f.json
-    └── @openui5-sap.m-1.142.0-xy3a3262d893fcb9adf16bff63f.json.json
-    └── @openui5-sap.ui.core-1.142.0-fh3a3262d893fcb3adf16bff63f.json
+    ├── app-name
+    │   ├── bb3a3262d893fcb9adf16bff63f.json
+    │   └── gh3a4162d456fcbgrebsdf345df.json
+    └── @openui5
+        ├── sap.m
+        │   ├── sfeg2g62d893fcb9adf16bfffex.json
+        │   └── xy3a3262d893fc4gdfss6esfesw.json
+        └── sap.ui.core
+            └── fh3a3262d893fcb3adf16bff63f.json
 ```
 
 A new `buildCache` directory shall be added to the ~/.ui5/ directory. The location of this directory can be configured using the [`UI5_DATA_DIR` environment variable](https://ui5.github.io/cli/stable/pages/Troubleshooting/#environment-variable-ui5_data_dir).
 
 The `cas` directory contains files named by their content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store. In this case, the actual directory structure might differ from what is depicted above.
 
-The `buildManifests` directory contains one build manifest file per project build cache. The filename is derived from the project's namespace, version and [cache integrity](#integrity).
+The `buildManifests` directory contains one build manifest file per project build cache. The directory structure is derived from the project's package name (Project ID). The files are named by the [build signature](#signature).
 
 ![Diagram illustrating the creation of a build cache](./resources/0017-incremental-build/Create_Cache.png)
 
@@ -249,18 +264,24 @@ It allows to store and retrieve files using a unique key. Files can also be retr
 In this concept, cacache will be used to store the content of resources produced during the build. The key for each resources should follow this schema:
 
 ```
-<cache integrity>|<task name>|<input|output>|<Resource logical path>
+<build signature>|<task name>|<virtual resource path>
 ```
 
-The cache [integrity](#integrity) binds the entry to the current project build cache. The task name and input/output structure follows the [Tasks](#tasks) section of the `build-manifest.json` and should allow for easy retrieval of resources based on the metadata stored in the manifest.
+The [build signature](#signature) binds the entry to the current project build cache. The task name and resource path correspond to a task's **output** resource metadata as defined in the [`tasks`](#tasks) section of the `build-manifest.json`.
 
-At the same time, this schema also enables the use of cacache's garbage collection. If a task execution produces new content for a resource, the cacache entry will be updated to point to the new content hash. Eventually, the old content hash will no longer be referenced by any cache entry and can be cleaned up during [garbage collection](#garbage-collection).
+This naming schema should allow for easy retrieval of resources based on the metadata stored in the build manifest.
+
+At the same time, this also enables the cacache-internal garbage collection to identify unused entries. If a task execution produces new content for a resource, the cacache entry will be updated to point to the new content hash. Eventually, the old content hash will no longer be referenced by any cache entry and can be cleaned up during [garbage collection](#garbage-collection).
 
 ### Cache Import
 
-Before building a project, UI5 CLI shall scan for a cache directory with the respective cache key and import the cache if one is found.
+Before building a project, UI5 CLI shall check for an existing cache by calculating the [build signature](#signature) for the current build, and searching the [cache directory structure](#cache-directory-structure) for a matching build manifest.
 
-The import process is very fast, as it only involves reading the lightweight `build-manifest.json` file to populate the `Build Task Cache` instances with their metadata. When the build process needs to access a cached resource, it uses the metadata map to find the content hash and reads the corresponding file directly from the global `cas` store.
+If a build manifest is found it is imported by the `Project Build Cache`
+1. Check the source files of the project against the `index` section of the build manifest to determine which files have changed since the last build
+2. Create `Build Task Cache` instances using the metadata from the `tasks` section of the build manifest
+3. Provide the `Project` with readers for the cached `writer stages` (i.e. tasks outputs)
+	* When the build process needs to access a cached resource, it can access them using those readers. Internally, they will use the resource metadata from the build manifest to find the corresponding resource content hash, and then reads the file from the global `cas` store
 
 This allows executing individual tasks and providing them with the results of all preceding tasks without the overhead of creating numerous file system readers or managing physical copies of files for each build stage.
 
