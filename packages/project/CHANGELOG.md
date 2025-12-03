@@ -5,6 +5,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
 <a name="5.0.0-alpha.0"></a>
+## [5.0.0-alpha.0](https://github.com/d3xter666/cli/compare/project-v5.0.0-alpha.0...project-v5.0.0-alpha.0) (2025-12-03)
+
+
+### Features
+
+* **project:** Add component type ([46eb4e4](https://github.com/d3xter666/cli/commit/46eb4e4ec45b26495b5248354966701eb8c6b374))
+* **project:** Add Specification Version 5.0 ([1452401](https://github.com/d3xter666/cli/commit/1452401b2a26bc60a34dae2d16ab82e0d78f404c))
+
+
+### Dependencies
+
+* Bump js-yaml ([#1197](https://github.com/d3xter666/cli/issues/1197)) ([78d312b](https://github.com/d3xter666/cli/commit/78d312bc62fa7004ddca87f44ca6acac94e9d1fa))
+
 ## [5.0.0-alpha.0](https://github.com/UI5/cli/compare/project-v4.0.6...project-v5.0.0-alpha.0) (2025-11-25)
 
 

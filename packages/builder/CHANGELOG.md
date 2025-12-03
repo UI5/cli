@@ -5,6 +5,13 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-builder/compare/v4.0.11...HEAD).
 
 <a name="5.0.0-alpha.0"></a>
+## [5.0.0-alpha.0](https://github.com/d3xter666/cli/compare/builder-v5.0.0-alpha.0...builder-v5.0.0-alpha.0) (2025-12-03)
+
+
+### Features
+
+* **builder:** Enhance generateFlexChangeBundle task to add new 'flexBundle' property to the manifest.json ([#1165](https://github.com/d3xter666/cli/issues/1165)) ([7ee5914](https://github.com/d3xter666/cli/commit/7ee5914f5ee636b24846a8dbd9bc617adb9dbe45))
+
 ## [5.0.0-alpha.0](https://github.com/UI5/cli/compare/builder-v4.0.11...builder-v5.0.0-alpha.0) (2025-11-25)
 
 
