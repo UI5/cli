@@ -214,41 +214,43 @@ test("Error handling - invalid workspace directory", async (t) => {
 test("Error handling - invalid package-lock.json files", async (t) => {
 	const __dirname = import.meta.dirname;
 
-	// Test malformed JSON
+	// Setup symlinks for all invalid fixtures
 	const malformedDir = path.join(__dirname, "..", "fixture", "invalid", "malformed");
-	const malformedSymlink = await setupFixtureSymlink(malformedDir);
-	t.after(async () => await unlink(malformedSymlink).catch(() => {}));
+	const noPackagesDir = path.join(__dirname, "..", "fixture", "invalid", "no-packages");
+	const invalidPackagesDir = path.join(__dirname, "..", "fixture", "invalid", "invalid-packages");
+	const v2Dir = path.join(__dirname, "..", "fixture", "invalid", "v2");
 
+	const symlinks = [
+		await setupFixtureSymlink(malformedDir),
+		await setupFixtureSymlink(noPackagesDir),
+		await setupFixtureSymlink(invalidPackagesDir),
+		await setupFixtureSymlink(v2Dir)
+	];
+
+	// Cleanup all symlinks after test
+	t.after(async () => {
+		await Promise.all(symlinks.map((link) => unlink(link).catch(() => {})));
+	});
+
+	// Test malformed JSON
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(malformedDir, "@ui5/cli"),
 		/Unexpected token/
 	);
 
 	// Test missing packages field
-	const noPackagesDir = path.join(__dirname, "..", "fixture", "invalid", "no-packages");
-	const noPackagesSymlink = await setupFixtureSymlink(noPackagesDir);
-	t.after(async () => await unlink(noPackagesSymlink).catch(() => {}));
-
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(noPackagesDir, "@ui5/cli"),
 		/Invalid package-lock\.json: missing packages field/
 	);
 
 	// Test invalid packages field
-	const invalidPackagesDir = path.join(__dirname, "..", "fixture", "invalid", "invalid-packages");
-	const invalidPackagesSymlink = await setupFixtureSymlink(invalidPackagesDir);
-	t.after(async () => await unlink(invalidPackagesSymlink).catch(() => {}));
-
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(invalidPackagesDir, "@ui5/cli"),
 		/Invalid package-lock\.json: packages field must be an object/
 	);
 
 	// Test unsupported lockfile version
-	const v2Dir = path.join(__dirname, "..", "fixture", "invalid", "v2");
-	const v2Symlink = await setupFixtureSymlink(v2Dir);
-	t.after(async () => await unlink(v2Symlink).catch(() => {}));
-
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(v2Dir, "@ui5/cli"),
 		/Unsupported lockfile version: 2\. Only lockfile version 3 is supported/
