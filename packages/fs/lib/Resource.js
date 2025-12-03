@@ -47,6 +47,7 @@ class Resource {
 	#lastModified;
 	#statInfo;
 	#isDirectory;
+	#integrity;
 
 	/* States */
 	#isModified = false;
@@ -518,7 +519,10 @@ class Resource {
 		this.#contendModified();
 	}
 
-	async getHash() {
+	async getIntegrity() {
+		if (this.#integrity) {
+			return this.#integrity;
+		}
 		if (this.isDirectory()) {
 			throw new Error(`Unable to calculate hash for directory resource: ${this.#path}`);
 		}
@@ -535,13 +539,16 @@ class Resource {
 
 		switch (this.#contentType) {
 		case CONTENT_TYPES.BUFFER:
-			return ssri.fromData(this.#content, SSRI_OPTIONS).toString();
+			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS);
+			break;
 		case CONTENT_TYPES.FACTORY:
-			return (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
+			this.#integrity = await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS);
+			break;
 		case CONTENT_TYPES.STREAM:
 			// To be discussed: Should we read the stream into a buffer here (using #getBufferFromStream) to avoid
 			// draining it?
-			return (await ssri.fromStream(this.#getStream(), SSRI_OPTIONS)).toString();
+			this.#integrity = ssri.fromData(await this.#getBufferFromStream(this.#content), SSRI_OPTIONS);
+			break;
 		case CONTENT_TYPES.DRAINED_STREAM:
 			throw new Error(`Unexpected error: Content of Resource ${this.#path} is flagged as drained.`);
 		case CONTENT_TYPES.IN_TRANSFORMATION:
@@ -549,6 +556,7 @@ class Resource {
 		default:
 			throw new Error(`Resource ${this.#path} has no content`);
 		}
+		return this.#integrity;
 	}
 
 	#contendModified() {
@@ -556,6 +564,7 @@ class Resource {
 		this.#isModified = true;
 
 		this.#byteSize = undefined;
+		this.#integrity = undefined;
 		this.#lastModified = new Date().getTime(); // TODO: Always update or keep initial value (= fs stat)?
 
 		if (this.#contentType === CONTENT_TYPES.BUFFER) {

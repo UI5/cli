@@ -27,9 +27,9 @@ const log = getLogger("build:cache:ProjectBuildCache");
 export default class ProjectBuildCache {
 	#taskCache = new Map();
 	#project;
-	#cacheKey;
-	#cacheDir;
-	#cacheRoot;
+	#buildSignature;
+	#cacheManager;
+	// #cacheDir;
 
 	#invalidatedTasks = new Map();
 	#updatedResources = new Set();
@@ -38,18 +38,26 @@ export default class ProjectBuildCache {
 	/**
 	 * Creates a new ProjectBuildCache instance
 	 *
-	 * @param {object} project - Project instance
-	 * @param {string} cacheKey - Cache key identifying this build configuration
-	 * @param {string} [cacheDir] - Optional cache directory for persistence
+	 * @param {object} project Project instance
+	 * @param {string} buildSignature Build signature for the current build
+	 * @param {string} [cacheDir] Optional cache directory for persistence
+	 *
+	 * @private - Use ProjectBuildCache.create() instead
 	 */
-	constructor(project, cacheKey, cacheDir) {
+	constructor(project, buildSignature, cacheManager) {
 		this.#project = project;
-		this.#cacheKey = cacheKey;
-		this.#cacheDir = cacheDir;
-		this.#cacheRoot = cacheDir && createAdapter({
-			fsBasePath: cacheDir,
-			virBasePath: "/"
-		});
+		this.#buildSignature = buildSignature;
+		this.#cacheManager = cacheManager;
+		// this.#cacheRoot = cacheDir && createAdapter({
+		// 	fsBasePath: cacheDir,
+		// 	virBasePath: "/"
+		// });
+	}
+
+	static async create(project, buildSignature, cacheManager) {
+		const cache = new ProjectBuildCache(project, buildSignature, cacheManager);
+		await cache._attemptLoadFromDisk();
+		return cache;
 	}
 
 	// ===== TASK MANAGEMENT =====
@@ -314,21 +322,21 @@ export default class ProjectBuildCache {
 		return !this.hasAnyCache() || this.#invalidatedTasks.size > 0;
 	}
 
-	/**
-	 * Gets the current status of the cache for debugging and monitoring
-	 *
-	 * @returns {object} Status information including cache state and statistics
-	 */
-	getStatus() {
-		return {
-			hasCache: this.hasAnyCache(),
-			totalTasks: this.#taskCache.size,
-			invalidatedTasks: this.#invalidatedTasks.size,
-			modifiedResourceCount: this.#updatedResources.size,
-			cacheKey: this.#cacheKey,
-			restoreFailed: this.#restoreFailed
-		};
-	}
+	// /**
+	//  * Gets the current status of the cache for debugging and monitoring
+	//  *
+	//  * @returns {object} Status information including cache state and statistics
+	//  */
+	// getStatus() {
+	// 	return {
+	// 		hasCache: this.hasAnyCache(),
+	// 		totalTasks: this.#taskCache.size,
+	// 		invalidatedTasks: this.#invalidatedTasks.size,
+	// 		modifiedResourceCount: this.#updatedResources.size,
+	// 		buildSignature: this.#buildSignature,
+	// 		restoreFailed: this.#restoreFailed
+	// 	};
+	// }
 
 	/**
 	 * Gets the names of all invalidated tasks
@@ -339,7 +347,7 @@ export default class ProjectBuildCache {
 		return Array.from(this.#invalidatedTasks.keys());
 	}
 
-	async toObject() {
+	async toJson() {
 		// const globalResourceIndex = Object.create(null);
 		// function addResourcesToIndex(taskName, resourceMap) {
 		// 	for (const resourcePath of Object.keys(resourceMap)) {
@@ -386,13 +394,16 @@ export default class ProjectBuildCache {
 	}
 
 	async #serializeMetadata() {
-		const serializedCache = await this.toJSON();
-		const cacheContent = JSON.stringify(serializedCache, null, 2);
-		const res = createResource({
-			path: `/cache-info.json`,
-			string: cacheContent,
-		});
-		await this.#cacheRoot.write(res);
+		await this.#cacheManager.writeBuildManifest(
+			this.#project, this.#buildSignature, await this.createBuildManifest());
+
+		// const serializedCache = await this.toJSON();
+		// const cacheContent = JSON.stringify(serializedCache, null, 2);
+		// const res = createResource({
+		// 	path: `/cache-info.json`,
+		// 	string: cacheContent,
+		// });
+		// await this.#cacheRoot.write(res);
 	}
 
 	async #serializeTaskOutputs() {
@@ -489,10 +500,6 @@ export default class ProjectBuildCache {
 	 * @throws {Error} If cache persistence is not available
 	 */
 	async saveToDisk() {
-		if (!this.#cacheRoot) {
-			log.error("Cannot save cache to disk: No cache persistence available");
-			return;
-		}
 		await Promise.all([
 			await this.#serializeTaskOutputs(),
 			await this.#serializeMetadata()
@@ -508,20 +515,35 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 * @throws {Error} If cache restoration fails
 	 */
-	async loadFromDisk() {
-		if (this.#restoreFailed || !this.#cacheRoot) {
+	async _attemptLoadFromDisk() {
+		const manifest = this.#cacheManager.readBuildManifest(this.#project, this.#buildSignature);
+		if (!manifest) {
+			log.verbose(
+				`No build manifest found for project ${this.#project.getName()} with build signature ${this.#buildSignature}`);
 			return;
 		}
-		const res = await this.#cacheRoot.byPath(`/cache-info.json`);
-		if (!res) {
-			this.#restoreFailed = true;
+
+		// Check build manifest version
+		if (manifest.version !== 1) {
+			log.verbose(
+				`Incompatible build manifest version ${manifest.version} found for project ${this.#project.getName()}`);
 			return;
 		}
-		const cacheContent = JSON.parse(await res.getString());
+
+		// Validate build signature match
+		if (this.#buildSiganture !== manifest.buildManifest.signature) {
+			log.verbose(
+				`Build manifest signature ${manifest.buildManifest.signature} does not match expected ` +
+				`build signature ${this.#buildSignature} for project ${this.#project.getName()}`);
+			return;
+		}
+		log.info(
+			`Restoring build cache for project ${this.#project.getName()} from build manifest ` +
+			`with signature ${this.#buildSignature}`);
+
 		try {
-			const projectName = this.#project.getName();
-			for (const {taskName, resourceMetadata} of cacheContent.taskCache) {
-				this.#taskCache.set(taskName, new BuildTaskCache(projectName, taskName, resourceMetadata));
+			for (const [taskName, resourceMetadata] of Object.entries(manifest.cache.tasks)) {
+				this.#taskCache.set(taskName, new BuildTaskCache(this.#project.getName(), taskName, resourceMetadata));
 			}
 			await Promise.all([
 				this.#checkSourceChanges(cacheContent.sourceMetadata),

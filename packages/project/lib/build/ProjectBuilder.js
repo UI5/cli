@@ -140,7 +140,6 @@ class ProjectBuilder {
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
 		dependencyIncludes,
-		cacheDir,
 		watch,
 	}) {
 		if (!destPath && !watch) {
@@ -179,7 +178,7 @@ class ProjectBuilder {
 			}
 		}
 
-		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects, cacheDir);
+		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
 		const cleanupSigHooks = this._registerCleanupSigHooks();
 		let fsTarget;
 		if (destPath) {
@@ -372,7 +371,7 @@ class ProjectBuilder {
 		await Promise.all(pWrites);
 	}
 
-	async _createRequiredBuildContexts(requestedProjects, cacheDir) {
+	async _createRequiredBuildContexts(requestedProjects) {
 		const requiredProjects = new Set(this._graph.getProjectNames().filter((projectName) => {
 			return requestedProjects.includes(projectName);
 		}));
@@ -382,8 +381,7 @@ class ProjectBuilder {
 		for (const projectName of requiredProjects) {
 			this.#log.verbose(`Creating build context for project ${projectName}...`);
 			const projectBuildContext = await this._buildContext.createProjectContext({
-				project: this._graph.getProject(projectName),
-				cacheDir,
+				project: this._graph.getProject(projectName)
 			});
 
 			projectBuildContexts.set(projectName, projectBuildContext);
@@ -493,7 +491,7 @@ class ProjectBuilder {
 			} = await import("./helpers/createBuildManifest.js");
 			const metadata = await createBuildManifest(
 				project, this._graph, buildConfig, this._buildContext.getTaskRepository(),
-				projectBuildContext.getBuildCache());
+				projectBuildContext.getCacheKey());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
 				string: JSON.stringify(metadata, null, "\t")

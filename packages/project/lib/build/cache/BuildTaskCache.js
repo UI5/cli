@@ -89,7 +89,7 @@ export default class BuildTaskCache {
 	 * @param {string} taskName - Name of the task
 	 * @param {TaskCacheMetadata} metadata - Task cache metadata
 	 */
-	constructor(projectName, taskName, {projectRequests, dependencyRequests, resourcesRead, resourcesWritten}) {
+	constructor(projectName, taskName, {projectRequests, dependencyRequests, input, output}) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 
@@ -102,8 +102,8 @@ export default class BuildTaskCache {
 			pathsRead: [],
 			patterns: [],
 		};
-		this.#resourcesRead = resourcesRead ?? Object.create(null);
-		this.#resourcesWritten = resourcesWritten ?? Object.create(null);
+		this.#resourcesRead = input ?? Object.create(null);
+		this.#resourcesWritten = output ?? Object.create(null);
 	}
 
 	// ===== METADATA ACCESS =====
