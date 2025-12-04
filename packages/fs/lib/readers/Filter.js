@@ -23,6 +23,7 @@ class Filter extends AbstractReader {
 	 *
  	 * @public
 	 * @param {object} parameters Parameters
+	 * @param {object} parameters.name Name of the reader
 	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader or collection to wrap
 	 * @param {@ui5/fs/readers/Filter~callback} parameters.callback
 	 * 				Filter function. Will be called for every resource read through this reader.

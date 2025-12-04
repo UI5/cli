@@ -9,6 +9,7 @@ import Resource from "./Resource.js";
 import WriterCollection from "./WriterCollection.js";
 import Filter from "./readers/Filter.js";
 import Link from "./readers/Link.js";
+import Proxy from "./readers/Proxy.js";
 import Tracker from "./Tracker.js";
 import DuplexTracker from "./DuplexTracker.js";
 import {getLogger} from "@ui5/logger";
@@ -237,6 +238,19 @@ export function createFilterReader(parameters) {
  */
 export function createLinkReader(parameters) {
 	return new Link(parameters);
+}
+
+/**
+ * @param {object} parameters
+ * @param {object} parameters.name Name of the reader
+ * @param {@ui5/fs/readers/Proxy~getResource} parameters.getResource
+ * 	Callback function to retrieve a resource by its virtual path.
+ * @param {@ui5/fs/readers/Proxy~listResourcePaths} parameters.listResourcePaths
+ * 	Callback function to list all available virtual resource paths.
+ * @returns {@ui5/fs/readers/Proxy} Reader instance
+ */
+export function createProxy(parameters) {
+	return new Proxy(parameters);
 }
 
 /**
