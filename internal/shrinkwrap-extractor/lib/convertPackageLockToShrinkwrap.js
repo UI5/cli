@@ -48,7 +48,8 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		path: workspaceRootDir,
 	});
 	const tree = await arb.loadVirtual();
-	const cliNode = Array.from(tree.tops).find((node) => node.packageName === targetPackageName);
+	const tops = Array.from(tree.tops.values());
+	const cliNode = tops.find((node) => node.packageName === targetPackageName);
 	if (!cliNode) {
 		throw new Error(`Target package "${targetPackageName}" not found in workspace`);
 	}
@@ -71,7 +72,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
 		} else {
-			packageLoc = normalizePackageLocation(packageLoc);
+			packageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName);
 		}
 		if (packageLoc !== "" && !pkg.resolved) {
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
@@ -104,24 +105,27 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 }
 
 /**
- * Normalize package locations from workspace-specific paths to standard npm paths
- * Examples:
+ * Normalize package locations from workspace-specific paths to standard npm paths.
+ * Examples (assuming @ui5/cli is the targetPackageName):
  * 	- packages/cli/node_modules/foo -> node_modules/foo
- * 	- packages/fs/node_modules/bar -> node_modules/bar
+ * 	- packages/fs/node_modules/bar -> node_modules/@ui5/fs/node_modules/bar
  *
  * @param {string} location - Package location from arborist
+ * @param {object} node - Package node from arborist
+ * @param {string} targetPackageName - Target package name for shrinkwrap file
+ * @param {string} rootPackageName - Root / workspace package name
  * @returns {string} - Normalized location for npm-shrinkwrap.json
  */
-function normalizePackageLocation(location) {
-	// Remove workspace prefix (packages/*/...) and convert to standard node_modules path
-	// Match: packages/<workspace-name>/node_modules/... or packages/<workspace-name>
-	const workspacePattern = /^packages\/[^/]+\/(node_modules\/.+)$/;
-	const match = location.match(workspacePattern);
-	if (match) {
-		return match[1];
+function normalizePackageLocation(location, node, targetPackageName, rootPackageName) {
+	const topPackageName = node.top.packageName;
+	if (topPackageName === targetPackageName) {
+		// Remove location for packages within target package (e.g. @ui5/cli)
+		return location.substring(node.top.location.length + 1);
+	} else if (topPackageName !== rootPackageName) {
+		// Add package within node_modules of actual package name (e.g. @ui5/fs)
+		return `node_modules/${topPackageName}/${location.substring(node.top.location.length + 1)}`;
 	}
-	// If it's just the workspace package itself (packages/<name>), keep as-is
-	// Otherwise return the location unchanged
+	// If it's already within the root workspace package, keep as-is
 	return location;
 }
 
