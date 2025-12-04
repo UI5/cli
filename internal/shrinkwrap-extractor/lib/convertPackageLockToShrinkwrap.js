@@ -65,6 +65,8 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		if (pkg.link) {
 			pkg = packageLockJson.packages[pkg.resolved];
 		}
+
+		const originalLocation = packageLoc;
 		if (pkg.name === targetPackageName) {
 			// Make the target package the root package
 			packageLoc = "";
@@ -72,7 +74,8 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
 		} else {
-			packageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName);
+			packageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName,
+				extractedPackages);
 		}
 		if (packageLoc !== "" && !pkg.resolved) {
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
@@ -82,14 +85,15 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			pkg.resolved = resolved;
 			pkg.integrity = integrity;
 		}
-		extractedPackages[packageLoc] = pkg;
+
+		extractedPackages[packageLoc] = {pkg, originalLocation};
 	}
 
 	// Sort packages by key to ensure consistent order (just like the npm cli does it)
 	const sortedExtractedPackages = Object.create(null);
 	const sortedKeys = Object.keys(extractedPackages).sort((a, b) => a.localeCompare(b));
 	for (const key of sortedKeys) {
-		sortedExtractedPackages[key] = extractedPackages[key];
+		sortedExtractedPackages[key] = extractedPackages[key].pkg;
 	}
 
 	// Generate npm-shrinkwrap.json
@@ -106,26 +110,57 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 
 /**
  * Normalize package locations from workspace-specific paths to standard npm paths.
+ * Automatically detects and resolves version collisions by checking source locations.
+ *
  * Examples (assuming @ui5/cli is the targetPackageName):
- * 	- packages/cli/node_modules/foo -> node_modules/foo
+ * 	- packages/cli/node_modules/foo -> node_modules/foo (if no collision)
+ * 	- packages/cli/node_modules/foo -> node_modules/@ui5/cli/node_modules/foo (if root has different version)
  * 	- packages/fs/node_modules/bar -> node_modules/@ui5/fs/node_modules/bar
  *
  * @param {string} location - Package location from arborist
  * @param {object} node - Package node from arborist
  * @param {string} targetPackageName - Target package name for shrinkwrap file
  * @param {string} rootPackageName - Root / workspace package name
+ * @param {Object<string, {pkg: object, originalLocation: string}>} extractedPackages - Already extracted packages
  * @returns {string} - Normalized location for npm-shrinkwrap.json
  */
-function normalizePackageLocation(location, node, targetPackageName, rootPackageName) {
+function normalizePackageLocation(
+	location, node, targetPackageName, rootPackageName, extractedPackages
+) {
 	const topPackageName = node.top.packageName;
+	const currentIsFromRoot = !location.startsWith("packages/");
+
 	if (topPackageName === targetPackageName) {
-		// Remove location for packages within target package (e.g. @ui5/cli)
-		return location.substring(node.top.location.length + 1);
+		// Package is within target package (e.g. @ui5/cli)
+		const normalizedPath = location.substring(node.top.location.length + 1);
+		const existing = extractedPackages[normalizedPath];
+
+		if (existing && existing.pkg.version !== node.version) {
+			// Collision detected: Check which should be at root level
+			const existingIsFromRoot = !existing.originalLocation.startsWith("packages/");
+
+			// Root packages always get priority at top level
+			if (existingIsFromRoot && !currentIsFromRoot) {
+				// Existing is from root, current is from workspace -> nest current
+				return `node_modules/${topPackageName}/${normalizedPath}`;
+			} else if (!existingIsFromRoot && currentIsFromRoot) {
+				// Current is from root, existing is from workspace -> shouldn't happen
+				// due to processing order, but handle gracefully
+				const msg = `Unexpected collision: root package processed after workspace ` +
+					`package at ${normalizedPath}`;
+				throw new Error(msg);
+			}
+			// Both from same type of location with different versions -> nest current
+			return `node_modules/${topPackageName}/${normalizedPath}`;
+		}
+
+		return normalizedPath;
 	} else if (topPackageName !== rootPackageName) {
 		// Add package within node_modules of actual package name (e.g. @ui5/fs)
 		return `node_modules/${topPackageName}/${location.substring(node.top.location.length + 1)}`;
 	}
-	// If it's already within the root workspace package, keep as-is
+
+	// Package is within root workspace, keep as-is
 	return location;
 }
 
