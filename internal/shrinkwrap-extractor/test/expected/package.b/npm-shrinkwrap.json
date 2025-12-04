@@ -2981,6 +2981,15 @@
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		},
+		"node_modules/ignore": {
+			"version": "7.0.5",
+			"license": "MIT",
+			"engines": {
+				"node": ">= 4"
+			},
+			"resolved": "https://registry.npmjs.org/package/version.tgz",
+			"integrity": "sha512-mock-integrity-hash"
+		},
 		"node_modules/ignore-walk": {
 			"version": "7.0.0",
 			"license": "ISC",
@@ -4419,6 +4428,18 @@
 		"node_modules/path-to-regexp": {
 			"version": "0.1.12",
 			"license": "MIT",
+			"resolved": "https://registry.npmjs.org/package/version.tgz",
+			"integrity": "sha512-mock-integrity-hash"
+		},
+		"node_modules/path-type": {
+			"version": "6.0.0",
+			"license": "MIT",
+			"engines": {
+				"node": ">=18"
+			},
+			"funding": {
+				"url": "https://github.com/sponsors/sindresorhus"
+			},
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		},
