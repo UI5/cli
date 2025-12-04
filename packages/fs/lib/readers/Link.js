@@ -41,6 +41,7 @@ class Link extends AbstractReader {
 	 *
  	 * @public
 	 * @param {object} parameters Parameters
+	 * @param {object} parameters.name Name of the reader
 	 * @param {@ui5/fs/AbstractReader} parameters.reader The resource reader or collection to wrap
 	 * @param {@ui5/fs/readers/Link/PathMapping} parameters.pathMapping
 	 */
