@@ -47,6 +47,8 @@ class Resource {
 	#lastModified;
 	#statInfo;
 	#isDirectory;
+	#integrity;
+	#inode;
 
 	/* States */
 	#isModified = false;
@@ -91,10 +93,12 @@ class Resource {
 	 * @param {boolean} [parameters.isDirectory] Flag whether the resource represents a directory
 	 * @param {number} [parameters.byteSize] Size of the resource content in bytes
 	 * @param {number} [parameters.lastModified] Last modified timestamp (in milliseconds since UNIX epoch)
+	 * @param {string} [parameters.integrity] Integrity hash of the resource content
+	 * @param {number} [parameters.inode] Inode number of the resource
 	 */
 	constructor({
 		path, statInfo, buffer, createBuffer, string, createStream, stream, project, sourceMetadata,
-		isDirectory, byteSize, lastModified,
+		isDirectory, byteSize, lastModified, integrity, inode,
 	}) {
 		if (!path) {
 			throw new Error("Unable to create Resource: Missing parameter 'path'");
@@ -140,6 +144,7 @@ class Resource {
 		this.#sourceMetadata.contentModified ??= false;
 
 		this.#project = project;
+		this.#integrity = integrity;
 
 		if (createStream) {
 			// We store both factories individually
@@ -193,6 +198,13 @@ class Resource {
 			this.#lastModified = lastModified;
 		}
 
+		if (inode !== undefined) {
+			if (typeof inode !== "number" || inode < 0) {
+				throw new Error("Unable to create Resource: Parameter 'inode' must be a positive number");
+			}
+			this.#inode = inode;
+		}
+
 		if (statInfo) {
 			this.#isDirectory ??= statInfo.isDirectory();
 			if (!this.#isDirectory && statInfo.isFile && !statInfo.isFile()) {
@@ -200,6 +212,7 @@ class Resource {
 			}
 			this.#byteSize ??= statInfo.size;
 			this.#lastModified ??= statInfo.mtimeMs;
+			this.#inode ??= statInfo.ino;
 
 			// Create legacy statInfo object
 			this.#statInfo = parseStat(statInfo);
@@ -518,7 +531,10 @@ class Resource {
 		this.#contendModified();
 	}
 
-	async getHash() {
+	async getIntegrity() {
+		if (this.#integrity) {
+			return this.#integrity;
+		}
 		if (this.isDirectory()) {
 			throw new Error(`Unable to calculate hash for directory resource: ${this.#path}`);
 		}
@@ -535,13 +551,16 @@ class Resource {
 
 		switch (this.#contentType) {
 		case CONTENT_TYPES.BUFFER:
-			return ssri.fromData(this.#content, SSRI_OPTIONS).toString();
+			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS);
+			break;
 		case CONTENT_TYPES.FACTORY:
-			return (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
+			this.#integrity = await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS);
+			break;
 		case CONTENT_TYPES.STREAM:
 			// To be discussed: Should we read the stream into a buffer here (using #getBufferFromStream) to avoid
 			// draining it?
-			return (await ssri.fromStream(this.#getStream(), SSRI_OPTIONS)).toString();
+			this.#integrity = ssri.fromData(await this.#getBufferFromStream(this.#content), SSRI_OPTIONS);
+			break;
 		case CONTENT_TYPES.DRAINED_STREAM:
 			throw new Error(`Unexpected error: Content of Resource ${this.#path} is flagged as drained.`);
 		case CONTENT_TYPES.IN_TRANSFORMATION:
@@ -549,6 +568,7 @@ class Resource {
 		default:
 			throw new Error(`Resource ${this.#path} has no content`);
 		}
+		return this.#integrity;
 	}
 
 	#contendModified() {
@@ -556,6 +576,7 @@ class Resource {
 		this.#isModified = true;
 
 		this.#byteSize = undefined;
+		this.#integrity = undefined;
 		this.#lastModified = new Date().getTime(); // TODO: Always update or keep initial value (= fs stat)?
 
 		if (this.#contentType === CONTENT_TYPES.BUFFER) {
@@ -679,6 +700,16 @@ class Resource {
 	 */
 	getLastModified() {
 		return this.#lastModified;
+	}
+
+	/**
+	 * Gets the inode number of the resource.
+	 *
+	 * @public
+	 * @returns {number} Inode number of the resource
+	 */
+	getInode() {
+		return this.#inode;
 	}
 
 	/**
