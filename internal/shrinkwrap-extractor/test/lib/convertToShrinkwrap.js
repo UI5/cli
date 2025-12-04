@@ -119,7 +119,7 @@ test("Workspace paths should be normalized to node_modules format", async (t) =>
 	console.log(`✓ All ${packagePaths.length - 1} package paths correctly normalized`);
 });
 
-test("Compare generated shrinkwrap with expected result", async (t) => {
+test("Compare generated shrinkwrap with expected result: package.a", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
 	t.after(() => mockRestore());
@@ -172,8 +172,7 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 		"Generated shrinkwrap packages should match expected");
 });
 
-
-test("Compare generated shrinkwrap with expected result", async (t) => {
+test("Compare generated shrinkwrap with expected result: package.b", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
 	t.after(() => mockRestore());
@@ -195,6 +194,37 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 
 	// Load expected shrinkwrap
 	const expectedShrinkwrapPath = path.join(__dirname, "..", "expected", "package.b", "npm-shrinkwrap.json");
+	const expectedShrinkwrap = await readJson(expectedShrinkwrapPath);
+
+	// Write generated shrinkwrap to tmp dir for debugging purposes
+	await writeFile(generatedShrinkwrapPath, JSON.stringify(generatedShrinkwrap, null, "\t"), "utf-8");
+
+	assert.deepEqual(generatedShrinkwrap.packages, expectedShrinkwrap.packages,
+		"Generated shrinkwrap packages should match expected");
+});
+
+test("Compare generated shrinkwrap with expected result: package.c", async (t) => {
+	// Setup mock to prevent actual npm registry requests
+	const mockRestore = setupPacoteMock();
+	t.after(() => mockRestore());
+
+	const __dirname = import.meta.dirname;
+	const generatedShrinkwrapPath = path.join(__dirname, "..", "tmp", "package.c", "npm-shrinkwrap.generated.json");
+	// Clean any existing generated file
+	await mkdir(path.dirname(generatedShrinkwrapPath), {recursive: true});
+	await unlink(generatedShrinkwrapPath).catch(() => {});
+
+	// Generate shrinkwrap from fixture
+	const cwd = path.join(__dirname, "..", "fixture", "project.c");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const targetPackageName = "@ui5/target";
+
+	const generatedShrinkwrap = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+
+	// Load expected shrinkwrap
+	const expectedShrinkwrapPath = path.join(__dirname, "..", "expected", "package.c", "npm-shrinkwrap.json");
 	const expectedShrinkwrap = await readJson(expectedShrinkwrapPath);
 
 	// Write generated shrinkwrap to tmp dir for debugging purposes
