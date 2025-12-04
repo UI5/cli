@@ -70,7 +70,10 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			if (extractedPackages[packageLoc]) {
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
-		} else if (!pkg.resolved) {
+		} else {
+			packageLoc = normalizePackageLocation(packageLoc);
+		}
+		if (packageLoc !== "" && !pkg.resolved) {
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
 			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
 			// from local cache)
@@ -98,6 +101,28 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	};
 
 	return shrinkwrap;
+}
+
+/**
+ * Normalize package locations from workspace-specific paths to standard npm paths
+ * Examples:
+ * 	- packages/cli/node_modules/foo -> node_modules/foo
+ * 	- packages/fs/node_modules/bar -> node_modules/bar
+ *
+ * @param {string} location - Package location from arborist
+ * @returns {string} - Normalized location for npm-shrinkwrap.json
+ */
+function normalizePackageLocation(location) {
+	// Remove workspace prefix (packages/*/...) and convert to standard node_modules path
+	// Match: packages/<workspace-name>/node_modules/... or packages/<workspace-name>
+	const workspacePattern = /^packages\/[^/]+\/(node_modules\/.+)$/;
+	const match = location.match(workspacePattern);
+	if (match) {
+		return match[1];
+	}
+	// If it's just the workspace package itself (packages/<name>), keep as-is
+	// Otherwise return the location unchanged
+	return location;
 }
 
 function collectDependencies(node, relevantPackageLocations) {
