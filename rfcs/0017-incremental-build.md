@@ -127,7 +127,7 @@ The cache consists of two main parts:
 		"index": {
 			// Map of source paths to their fs-stat metadata and content hashes
 			"/resources/project/namespace/Component.js": {
-				"mtime": 1764688556165,
+				"lastModified": 1764688556165,
 				"size": 1234,
 				"inode": 5678,
 				"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
@@ -151,7 +151,7 @@ The cache consists of two main parts:
 				"input": {
 					// Virtual paths read by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
-						"mtime": 1764688556165,
+						"lastModified": 1764688556165,
 						"size": 1234,
 						"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
 					}
@@ -159,7 +159,7 @@ The cache consists of two main parts:
 				"output": {
 					// Virtual paths written by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
-						"mtime": 176468853453,
+						"lastModified": 176468853453,
 						"size": 4567,
 						"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
 					}
@@ -199,7 +199,7 @@ The index provides metadata for all source files of the project. This allows the
 The integrity of a source file shall be calculated based on its raw content. A SHA256 hash should be used for this purpose. The hash should stored in Base64 format to reduce the size of the manifest file. A library like [ssri](https://github.com/npm/ssri) should be used for this purpose, allowing easy interoperability with [cacache](#cacache) (see below).
 
 When comparing the stored metadata with the current metadata of a source file, the following attributes should be considered initially:
-* `mtime` - Modification time
+* `lastModified` - Modification time
 * `size` - File size
 * `inode` - Inode number (to detect file replacements)
 
@@ -220,8 +220,8 @@ An object containing entries for each build task executed during the build proce
 For each task, the following information is stored:
 
 * `projectRequests` and `dependencyRequests`: Resource paths and glob patterns that the task requested from the project and its dependencies during its execution. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the requested resources. The glob patterns are needed in particular to detect newly added resources that match the patterns.
-* `inputs`: Metadata for all resources **read** by the task during its execution. This is tracked via the provided workspace and dependencies readers. The metadata includes the `mtime`, `size` and `integrity` of each resource. Similar to the index. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the input resources.
-* `outputs`: Metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `mtime`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
+* `inputs`: Metadata for all resources **read** by the task during its execution. This is tracked via the provided workspace and dependencies readers. The metadata includes the `lastModified`, `size` and `integrity` of each resource. Similar to the index. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the input resources.
+* `outputs`: Metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
 
 
 #### Cache Directory Structure
