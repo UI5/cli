@@ -65,8 +65,6 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		if (pkg.link) {
 			pkg = packageLockJson.packages[pkg.resolved];
 		}
-
-		const originalLocation = packageLoc;
 		if (pkg.name === targetPackageName) {
 			// Make the target package the root package
 			packageLoc = "";
@@ -86,14 +84,14 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			pkg.integrity = integrity;
 		}
 
-		extractedPackages[packageLoc] = {pkg, originalLocation};
+		extractedPackages[packageLoc] = pkg;
 	}
 
 	// Sort packages by key to ensure consistent order (just like the npm cli does it)
 	const sortedExtractedPackages = Object.create(null);
 	const sortedKeys = Object.keys(extractedPackages).sort((a, b) => a.localeCompare(b));
 	for (const key of sortedKeys) {
-		sortedExtractedPackages[key] = extractedPackages[key].pkg;
+		sortedExtractedPackages[key] = extractedPackages[key];
 	}
 
 	// Generate npm-shrinkwrap.json
