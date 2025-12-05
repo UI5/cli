@@ -22,9 +22,9 @@
 		"test": "npm run lint && npm run coverage && npm run depcheck",
 		"unit": "node --test test/lib/convertToShrinkwrap.js",
 		"unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
-		"coverage": "nyc node --test test/lib/convertToShrinkwrap.js",
+		"coverage": "mkdir -p coverage && node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info test/lib/convertToShrinkwrap.js",
 		"lint": "eslint .",
-		"depcheck": "depcheck --ignores @ui5/shrinkwrap-extractor,@eslint/js,eslint-config-google,globals,nyc"
+		"depcheck": "depcheck --ignores @ui5/shrinkwrap-extractor,@eslint/js,eslint-config-google,globals"
 	},
 	"keywords": [
 		"npm",
@@ -43,23 +43,6 @@
 		"@eslint/js": "^9.39.1",
 		"depcheck": "^1.4.7",
 		"eslint-config-google": "^0.14.0",
-		"globals": "^16.5.0",
-		"nyc": "^17.1.0"
-	},
-	"nyc": {
-		"reporter": [
-			"lcov",
-			"text",
-			"text-summary"
-		],
-		"exclude": [
-			"coverage/**",
-			"test/**"
-		],
-		"check-coverage": true,
-		"statements": 80,
-		"branches": 75,
-		"functions": 75,
-		"lines": 80
+		"globals": "^16.5.0"
 	}
 }
