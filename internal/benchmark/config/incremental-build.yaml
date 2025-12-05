@@ -1,0 +1,36 @@
+# Benchmark configuration for UI5 CLI incremental build
+
+revisions:
+  baseline:
+    name: "Baseline"
+    revision:
+      merge_base_from: "feat/incremental-build"
+      target_branch: "main"
+  incremental_build:
+    name: "Incremental Build PoC"
+    revision: "feat/incremental-build"
+
+hyperfine:
+  warmup: 1
+  runs: 10
+
+groups:
+  build:
+    name: "ui5 build"
+
+benchmarks:
+
+  - command: "build"
+    prepare: "rm -rf .ui5-cache"
+    groups:
+      build:
+        name: "No Cache"
+
+  - command: "build"
+    groups:
+      build:
+        name: "Cache"
+    revisions:
+      # Benchmark with cache is only relevant for comparison,
+      # as the baseline does not have a cache
+      - "incremental_build"
