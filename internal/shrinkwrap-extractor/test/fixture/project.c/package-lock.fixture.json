@@ -59,10 +59,13 @@
 			"devDependencies": {}
 		},
 		"node_modules/@sapui5/some-thirdparty": {
+			"version": "1.0.0"
+		},
+		"node_modules/@ui5/module-a/node_modules/@sapui5/some-thirdparty": {
 			"version": "2.0.0"
 		},
-		"node_modules/@ui5/target/node_modules/@sapui5/some-thirdparty": {
-			"version": "1.0.0"
+		"node_modules/@ui5/module-b/node_modules/@sapui5/some-thirdparty": {
+			"version": "2.0.0"
 		}
 	}
 }
