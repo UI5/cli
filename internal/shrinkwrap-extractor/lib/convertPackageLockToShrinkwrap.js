@@ -49,14 +49,14 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	});
 	const tree = await arb.loadVirtual();
 	const tops = Array.from(tree.tops.values());
-	const cliNode = tops.find((node) => node.packageName === targetPackageName);
-	if (!cliNode) {
+	const targetNode = tops.find((node) => node.packageName === targetPackageName);
+	if (!targetNode) {
 		throw new Error(`Target package "${targetPackageName}" not found in workspace`);
 	}
 
 	const relevantPackageLocations = new Map();
 	// Collect all package keys using arborist
-	collectDependencies(cliNode, relevantPackageLocations);
+	collectDependencies(targetNode, relevantPackageLocations);
 
 	// Using the keys, extract relevant package-entries from package-lock.json
 	const extractedPackages = Object.create(null);
@@ -74,8 +74,8 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
 		} else {
-			packageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName,
-				extractedPackages);
+			packageLoc = normalizePackageLocation(
+				packageLoc, node, targetPackageName, tree.packageName, relevantPackageLocations);
 		}
 		if (packageLoc !== "" && !pkg.resolved) {
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
@@ -99,7 +99,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	// Generate npm-shrinkwrap.json
 	const shrinkwrap = {
 		name: targetPackageName,
-		version: cliNode.version,
+		version: targetNode.version,
 		lockfileVersion: 3,
 		requires: true,
 		packages: sortedExtractedPackages
@@ -121,36 +121,21 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
  * @param {object} node - Package node from arborist
  * @param {string} targetPackageName - Target package name for shrinkwrap file
  * @param {string} rootPackageName - Root / workspace package name
- * @param {Object<string, {pkg: object, originalLocation: string}>} extractedPackages - Already extracted packages
+ * @param {Map<string, object>} relevantPackageLocations
  * @returns {string} - Normalized location for npm-shrinkwrap.json
  */
 function normalizePackageLocation(
-	location, node, targetPackageName, rootPackageName, extractedPackages
-) {
+	location, node, targetPackageName, rootPackageName, relevantPackageLocations) {
 	const topPackageName = node.top.packageName;
-	const currentIsFromRoot = !location.startsWith("packages/");
 
 	if (topPackageName === targetPackageName) {
 		// Package is within target package (e.g. @ui5/cli)
 		const normalizedPath = location.substring(node.top.location.length + 1);
-		const existing = extractedPackages[normalizedPath];
+		const existing = relevantPackageLocations.get(normalizedPath);
 
-		if (existing && existing.pkg.version !== node.version) {
-			// Collision detected: Check which should be at root level
-			const existingIsFromRoot = !existing.originalLocation.startsWith("packages/");
-
-			// Root packages always get priority at top level
-			if (existingIsFromRoot && !currentIsFromRoot) {
-				// Existing is from root, current is from workspace -> nest current
-				return `node_modules/${topPackageName}/${normalizedPath}`;
-			} else if (!existingIsFromRoot && currentIsFromRoot) {
-				// Current is from root, existing is from workspace -> shouldn't happen
-				// due to processing order, but handle gracefully
-				const msg = `Unexpected collision: root package processed after workspace ` +
-					`package at ${normalizedPath}`;
-				throw new Error(msg);
-			}
-			// Both from same type of location with different versions -> nest current
+		// Check for version collision
+		if (existing && existing.version !== node.version) {
+			// Different version exists - nest this one under the target package
 			return `node_modules/${topPackageName}/${normalizedPath}`;
 		}
 
