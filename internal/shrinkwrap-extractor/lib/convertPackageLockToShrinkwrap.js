@@ -48,14 +48,15 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		path: workspaceRootDir,
 	});
 	const tree = await arb.loadVirtual();
-	const cliNode = Array.from(tree.tops).find((node) => node.packageName === targetPackageName);
-	if (!cliNode) {
+	const tops = Array.from(tree.tops.values());
+	const targetNode = tops.find((node) => node.packageName === targetPackageName);
+	if (!targetNode) {
 		throw new Error(`Target package "${targetPackageName}" not found in workspace`);
 	}
 
 	const relevantPackageLocations = new Map();
 	// Collect all package keys using arborist
-	collectDependencies(cliNode, relevantPackageLocations);
+	collectDependencies(targetNode, relevantPackageLocations);
 
 	// Using the keys, extract relevant package-entries from package-lock.json
 	const extractedPackages = Object.create(null);
@@ -70,7 +71,11 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			if (extractedPackages[packageLoc]) {
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
-		} else if (!pkg.resolved) {
+		} else {
+			packageLoc = normalizePackageLocation(
+				packageLoc, node, targetPackageName, tree.packageName, relevantPackageLocations);
+		}
+		if (packageLoc !== "" && !pkg.resolved) {
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
 			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
 			// from local cache)
@@ -78,6 +83,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			pkg.resolved = resolved;
 			pkg.integrity = integrity;
 		}
+
 		extractedPackages[packageLoc] = pkg;
 	}
 
@@ -91,13 +97,54 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	// Generate npm-shrinkwrap.json
 	const shrinkwrap = {
 		name: targetPackageName,
-		version: cliNode.version,
+		version: targetNode.version,
 		lockfileVersion: 3,
 		requires: true,
 		packages: sortedExtractedPackages
 	};
 
 	return shrinkwrap;
+}
+
+/**
+ * Normalize package locations from workspace-specific paths to standard npm paths.
+ * Automatically detects and resolves version collisions by checking source locations.
+ *
+ * Examples (assuming @ui5/cli is the targetPackageName):
+ * 	- packages/cli/node_modules/foo -> node_modules/foo (if no collision)
+ * 	- packages/cli/node_modules/foo -> node_modules/@ui5/cli/node_modules/foo (if root has different version)
+ * 	- packages/fs/node_modules/bar -> node_modules/@ui5/fs/node_modules/bar
+ *
+ * @param {string} location - Package location from arborist
+ * @param {object} node - Package node from arborist
+ * @param {string} targetPackageName - Target package name for shrinkwrap file
+ * @param {string} rootPackageName - Root / workspace package name
+ * @param {Map<string, object>} relevantPackageLocations
+ * @returns {string} - Normalized location for npm-shrinkwrap.json
+ */
+function normalizePackageLocation(
+	location, node, targetPackageName, rootPackageName, relevantPackageLocations) {
+	const topPackageName = node.top.packageName;
+
+	if (topPackageName === targetPackageName) {
+		// Package is within target package (e.g. @ui5/cli)
+		const normalizedPath = location.substring(node.top.location.length + 1);
+		const existing = relevantPackageLocations.get(normalizedPath);
+
+		// Check for version collision
+		if (existing && existing.version !== node.version) {
+			// Different version exists - nest this one under the target package
+			return `node_modules/${topPackageName}/${normalizedPath}`;
+		}
+
+		return normalizedPath;
+	} else if (topPackageName !== rootPackageName) {
+		// Add package within node_modules of actual package name (e.g. @ui5/fs)
+		return `node_modules/${topPackageName}/${location.substring(node.top.location.length + 1)}`;
+	}
+
+	// Package is within root workspace, keep as-is
+	return location;
 }
 
 function collectDependencies(node, relevantPackageLocations) {
