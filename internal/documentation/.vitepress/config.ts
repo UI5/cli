@@ -11,7 +11,7 @@ import path from "node:path";
 // Create items for all api pages
 const apiPages: { text: string; link: string; }[] = [];
 for (const file of fs.readdirSync(path.join("docs", "api"))) {
-  if (file.endsWith(".js")) continue;
+  if (file.endsWith(".js.md")) continue;
   apiPages.push({
     text: file.replaceAll("_", "/").replace(".md", ""),
     link: "api/" + file

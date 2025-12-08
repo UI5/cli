@@ -9,6 +9,8 @@ import remarkGfm from "remark-gfm";
 import rehypeVideo from "rehype-video";
 import fs from "node:fs";
 import path from "node:path";
+import {toHtml} from "hast-util-to-html";
+import {JSDOM} from "jsdom";
 
 function escapeMarkdown(input) {
 	const map = {
@@ -28,7 +30,6 @@ function escapeMarkdown(input) {
         .map((line) => {
             const trimmed = line.trimStart();
 
-            // Ignore entire line if it starts with "|"
             if (trimmed.startsWith("|")) {
                 return line;
             }
@@ -38,6 +39,10 @@ function escapeMarkdown(input) {
         .join("\n");
 }
 
+function fixMarkdown(input) {
+    return input.replaceAll("\\<optional>", "Optional").replaceAll("<optional>", "Optional");
+}
+
 async function htmlToMarkdown(options = {}) {
 	const file = await unified()
 		.use(rehypeParse, {fragment: true})
@@ -45,8 +50,25 @@ async function htmlToMarkdown(options = {}) {
 		.use(remarkGfm)
 		.use(rehypeVideo)
 		.use(rehypeFormat)
-		.use(rehypeRemark)
-		.use(remarkStringify)
+		.use(rehypeRemark, {
+            document: false,
+            handlers: {
+                table(state, node) {
+                    let html = toHtml(node);
+                    const parsedHTML = new JSDOM(html).window.document.getElementsByClassName("params")[1];
+                    if (parsedHTML !== undefined) {
+                        html = parsedHTML.outerHTML;
+                    }
+                    const result = {type: "html", value: html};
+                    state.patch(node, result);
+                    return result;
+                }
+            }
+        })
+		.use(remarkStringify, {
+            commonmark: true,
+            entities: true
+        })
 		.processSync(options.html);
 	return String(file);
 }
@@ -68,11 +90,16 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
     const filePath = path.join(inputDirectory, file);
 	if (fs.statSync(filePath).isDirectory()) continue;
 	const htmlString = fs.readFileSync(filePath);
-	const markdown = await htmlToMarkdown({
+	let markdown = await htmlToMarkdown({
 		html: htmlString
 	});
+    markdown = escapeMarkdown(markdown);
+    markdown = fixMarkdown(markdown);
+    if (file.endsWith(".js.html")) {
+        markdown = markdown.replace("```", "```javascript");
+    }
     fs.writeFileSync(
         path.join(outputDirectory, file.replace(".html", ".md")),
-        escapeMarkdown(markdown)
+        markdown
     );
 }
