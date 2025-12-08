@@ -3,10 +3,14 @@ set -euo pipefail
 
 # Constants
 readonly UI5_CLI_PACKAGES_VERSION="next"
-readonly UI5_CLI_PACKAGES=($(find ../../packages/*/package.json -exec jq -r '.name' {} \;))
+UI5_CLI_PACKAGES=()
+while IFS= read -r pkg; do
+	UI5_CLI_PACKAGES+=("$pkg")
+done < <(find ../../packages/*/package.json -exec jq -r '.name' {} \;)
 
 # Directories
-readonly SCRIPT_DIR="$(dirname -- "$0")"
+SCRIPT_DIR="$(dirname -- "$0")"
+readonly SCRIPT_DIR
 readonly DOC_ROOT="${SCRIPT_DIR}/.."
 readonly TMP_PACKAGES_DIR="./tmp/packages"
 
@@ -31,8 +35,9 @@ download_packages() {
 	for package in "${UI5_CLI_PACKAGES[@]}"; do
 		echo "Downloading and extracting $package..."
 		npm pack "$package@$UI5_CLI_PACKAGES_VERSION" --workspaces false --quiet --pack-destination "$TMP_PACKAGES_DIR"
-		local package_file_name="$(extract_package_file_name "$package")"
-		rm -rf "$TMP_PACKAGES_DIR/${package}"
+		local package_file_name
+		package_file_name="$(extract_package_file_name "$package")"
+		rm -rf "$TMP_PACKAGES_DIR/${package:?}"
 		mkdir -p "$TMP_PACKAGES_DIR/${package}"
 		tar -xzf "$TMP_PACKAGES_DIR/${package_file_name}"-*.tgz --strip-components=1 -C "$TMP_PACKAGES_DIR/${package}"
 		rm "$TMP_PACKAGES_DIR/${package_file_name}"-*.tgz
