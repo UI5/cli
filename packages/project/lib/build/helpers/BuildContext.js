@@ -1,8 +1,7 @@
-import path from "node:path";
 import ProjectBuildContext from "./ProjectBuildContext.js";
 import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
-import {createCacheKey} from "./createBuildManifest.js";
 import WatchHandler from "./WatchHandler.js";
+import CacheManager from "../cache/CacheManager.js";
 
 /**
  * Context of a build process
@@ -12,6 +11,7 @@ import WatchHandler from "./WatchHandler.js";
  */
 class BuildContext {
 	#watchHandler;
+	#cacheManager;
 
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
@@ -104,17 +104,8 @@ class BuildContext {
 		return this._graph;
 	}
 
-	async createProjectContext({project, cacheDir}) {
-		const cacheKey = await this.#createCacheKeyForProject(project);
-		if (cacheDir) {
-			cacheDir = path.join(cacheDir, cacheKey);
-		}
-		const projectBuildContext = new ProjectBuildContext({
-			buildContext: this,
-			project,
-			cacheKey,
-			cacheDir,
-		});
+	async createProjectContext({project}) {
+		const projectBuildContext = await ProjectBuildContext.create(this, project);
 		this._projectBuildContexts.push(projectBuildContext);
 		return projectBuildContext;
 	}
@@ -130,9 +121,12 @@ class BuildContext {
 		return this.#watchHandler;
 	}
 
-	async #createCacheKeyForProject(project) {
-		return createCacheKey(project, this._graph,
-			this.getBuildConfig(), this.getTaskRepository());
+	async getCacheManager() {
+		if (this.#cacheManager) {
+			return this.#cacheManager;
+		}
+		this.#cacheManager = await CacheManager.create(this._graph.getRoot().getRootPath());
+		return this.#cacheManager;
 	}
 
 	getBuildContext(projectName) {
