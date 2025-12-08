@@ -298,6 +298,10 @@ class Project extends Specification {
 		return this._getStyledReader(style);
 	}
 
+	getStages() {
+		return {};
+	}
+
 	#getWriter() {
 		if (this.#currentWriter) {
 			return this.#currentWriter;
@@ -531,14 +535,14 @@ class Project extends Specification {
 		if (!this.#workspaceSealed) {
 			throw new Error(`Unable to import cached stages: Workspace is not sealed`);
 		}
-		for (const {stage, reader} of stages) {
-			if (!this.#stages.includes(stage)) {
-				this.#stages.push(stage);
+		for (const {stageName, reader} of stages) {
+			if (!this.#stages.includes(stageName)) {
+				this.#stages.push(stageName);
 			}
 			if (reader) {
-				this.#writers.set(stage, [reader]);
+				this.#writers.set(stageName, [reader]);
 			} else {
-				this.#writers.set(stage, []);
+				this.#writers.set(stageName, []);
 			}
 		}
 		this.#currentVersion = 0;

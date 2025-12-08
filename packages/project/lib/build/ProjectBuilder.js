@@ -5,6 +5,7 @@ import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
+import createBuildManifest from "./helpers/createBuildManifest.js";
 
 /**
  * @public
@@ -140,7 +141,6 @@ class ProjectBuilder {
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
 		dependencyIncludes,
-		cacheDir,
 		watch,
 	}) {
 		if (!destPath && !watch) {
@@ -179,7 +179,7 @@ class ProjectBuilder {
 			}
 		}
 
-		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects, cacheDir);
+		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
 		const cleanupSigHooks = this._registerCleanupSigHooks();
 		let fsTarget;
 		if (destPath) {
@@ -274,9 +274,13 @@ class ProjectBuilder {
 					pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 				}
 
-				if (cacheDir && !alreadyBuilt.includes(projectName)) {
-					this.#log.verbose(`Serializing cache...`);
-					pWrites.push(projectBuildContext.getBuildCache().serializeToDisk());
+				if (!alreadyBuilt.includes(projectName)) {
+					this.#log.verbose(`Saving cache...`);
+					const metadata = await createBuildManifest(
+						project,
+						this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+						projectBuildContext.getBuildSignature());
+					pWrites.push(projectBuildContext.getBuildCache().saveToDisk(metadata));
 				}
 			}
 			await Promise.all(pWrites);
@@ -294,7 +298,7 @@ class ProjectBuilder {
 				return projectBuildContext.getProject();
 			});
 			const watchHandler = this._buildContext.initWatchHandler(relevantProjects, async () => {
-				await this.#update(projectBuildContexts, requestedProjects, fsTarget, cacheDir);
+				await this.#update(projectBuildContexts, requestedProjects, fsTarget);
 			});
 			return watchHandler;
 
@@ -315,7 +319,7 @@ class ProjectBuilder {
 		}
 	}
 
-	async #update(projectBuildContexts, requestedProjects, fsTarget, cacheDir) {
+	async #update(projectBuildContexts, requestedProjects, fsTarget) {
 		const queue = [];
 		await this._graph.traverseDepthFirst(async ({project}) => {
 			const projectName = project.getName();
@@ -362,17 +366,14 @@ class ProjectBuilder {
 				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 			}
 
-			if (cacheDir) {
-				this.#log.verbose(`Updating cache...`);
-				// TODO: Only serialize if cache has changed
-				// TODO: Serialize lazily, or based on memory pressure
-				pWrites.push(projectBuildContext.getBuildCache().serializeToDisk());
-			}
+			this.#log.verbose(`Updating cache...`);
+			// TODO: Serialize lazily, or based on memory pressure
+			pWrites.push(projectBuildContext.getBuildCache().saveToDisk());
 		}
 		await Promise.all(pWrites);
 	}
 
-	async _createRequiredBuildContexts(requestedProjects, cacheDir) {
+	async _createRequiredBuildContexts(requestedProjects) {
 		const requiredProjects = new Set(this._graph.getProjectNames().filter((projectName) => {
 			return requestedProjects.includes(projectName);
 		}));
@@ -382,8 +383,7 @@ class ProjectBuilder {
 		for (const projectName of requiredProjects) {
 			this.#log.verbose(`Creating build context for project ${projectName}...`);
 			const projectBuildContext = await this._buildContext.createProjectContext({
-				project: this._graph.getProject(projectName),
-				cacheDir,
+				project: this._graph.getProject(projectName)
 			});
 
 			projectBuildContexts.set(projectName, projectBuildContext);
@@ -488,12 +488,9 @@ class ProjectBuilder {
 
 		if (createBuildManifest) {
 			// Create and write a build manifest metadata file
-			const {
-				default: createBuildManifest
-			} = await import("./helpers/createBuildManifest.js");
 			const metadata = await createBuildManifest(
 				project, this._graph, buildConfig, this._buildContext.getTaskRepository(),
-				projectBuildContext.getBuildCache());
+				projectBuildContext.getBuildSignature());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
 				string: JSON.stringify(metadata, null, "\t")
