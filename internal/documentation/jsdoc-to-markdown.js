@@ -9,11 +9,8 @@ import remarkGfm from "remark-gfm";
 import rehypeVideo from "rehype-video";
 import fs from "node:fs";
 import path from "node:path";
-<<<<<<< HEAD
 import {toHtml} from "hast-util-to-html";
 import {JSDOM} from "jsdom";
-=======
->>>>>>> refs/remotes/origin/jsdoc-to-markdow
 
 function escapeMarkdown(input) {
 	const map = {
@@ -33,10 +30,6 @@ function escapeMarkdown(input) {
         .map((line) => {
             const trimmed = line.trimStart();
 
-<<<<<<< HEAD
-=======
-            // Ignore entire line if it starts with "|"
->>>>>>> refs/remotes/origin/jsdoc-to-markdow
             if (trimmed.startsWith("|")) {
                 return line;
             }
@@ -46,13 +39,10 @@ function escapeMarkdown(input) {
         .join("\n");
 }
 
-<<<<<<< HEAD
 function fixMarkdown(input) {
     return input.replaceAll("\\<optional>", "Optional").replaceAll("<optional>", "Optional");
 }
 
-=======
->>>>>>> refs/remotes/origin/jsdoc-to-markdow
 async function htmlToMarkdown(options = {}) {
 	const file = await unified()
 		.use(rehypeParse, {fragment: true})
@@ -60,7 +50,6 @@ async function htmlToMarkdown(options = {}) {
 		.use(remarkGfm)
 		.use(rehypeVideo)
 		.use(rehypeFormat)
-<<<<<<< HEAD
 		.use(rehypeRemark, {
             document: false,
             handlers: {
@@ -80,10 +69,6 @@ async function htmlToMarkdown(options = {}) {
             commonmark: true,
             entities: true
         })
-=======
-		.use(rehypeRemark)
-		.use(remarkStringify)
->>>>>>> refs/remotes/origin/jsdoc-to-markdow
 		.processSync(options.html);
 	return String(file);
 }
@@ -105,7 +90,6 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
     const filePath = path.join(inputDirectory, file);
 	if (fs.statSync(filePath).isDirectory()) continue;
 	const htmlString = fs.readFileSync(filePath);
-<<<<<<< HEAD
 	let markdown = await htmlToMarkdown({
 		html: htmlString
 	});
@@ -117,13 +101,5 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
     fs.writeFileSync(
         path.join(outputDirectory, file.replace(".html", ".md")),
         markdown
-=======
-	const markdown = await htmlToMarkdown({
-		html: htmlString
-	});
-    fs.writeFileSync(
-        path.join(outputDirectory, file.replace(".html", ".md")),
-        escapeMarkdown(markdown)
->>>>>>> refs/remotes/origin/jsdoc-to-markdow
     );
 }
