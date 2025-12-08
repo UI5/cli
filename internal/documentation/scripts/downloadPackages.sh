@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Constants
-readonly UI5_CLI_PACKAGES_VERSION="latest"
+readonly UI5_CLI_PACKAGES_VERSION="next"
 readonly UI5_CLI_PACKAGES=($(find ../../packages/*/package.json -exec jq -r '.name' {} \;))
 
 # Directories
