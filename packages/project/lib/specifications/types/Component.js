@@ -165,13 +165,13 @@ class Component extends ComponentProject {
 	/**
 	 * @private
 	 * @param {object} config Configuration object
-	 * @param {object} buildDescription Cache metadata object
+	 * @param {object} buildManifest Cache metadata object
 	*/
-	async _parseConfiguration(config, buildDescription) {
-		await super._parseConfiguration(config, buildDescription);
+	async _parseConfiguration(config, buildManifest) {
+		await super._parseConfiguration(config, buildManifest);
 
-		if (buildDescription) {
-			this._namespace = buildDescription.namespace;
+		if (buildManifest) {
+			this._namespace = buildManifest.namespace;
 			return;
 		}
 		this._namespace = await this._getNamespace();

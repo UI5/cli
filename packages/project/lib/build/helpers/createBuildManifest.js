@@ -1,5 +1,4 @@
 import {createRequire} from "node:module";
-import crypto from "node:crypto";
 
 // Using CommonsJS require since JSON module imports are still experimental
 const require = createRequire(import.meta.url);
@@ -17,18 +16,7 @@ function getSortedTags(project) {
 	return Object.fromEntries(entities);
 }
 
-async function collectDepInfo(graph, project) {
-	const transitiveDependencyInfo = Object.create(null);
-	for (const depName of graph.getTransitiveDependencies(project.getName())) {
-		const dep = graph.getProject(depName);
-		transitiveDependencyInfo[depName] = {
-			version: dep.getVersion()
-		};
-	}
-	return transitiveDependencyInfo;
-}
-
-export default async function(project, graph, buildConfig, taskRepository, transitiveDependencyInfo, buildCache) {
+export default async function(project, graph, buildConfig, taskRepository, buildSignature, cache) {
 	if (!project) {
 		throw new Error(`Missing parameter 'project'`);
 	}
@@ -41,9 +29,7 @@ export default async function(project, graph, buildConfig, taskRepository, trans
 	if (!taskRepository) {
 		throw new Error(`Missing parameter 'taskRepository'`);
 	}
-	if (!buildCache) {
-		throw new Error(`Missing parameter 'buildCache'`);
-	}
+
 	const projectName = project.getName();
 	const type = project.getType();
 
@@ -62,20 +48,19 @@ export default async function(project, graph, buildConfig, taskRepository, trans
 			`Unable to create archive metadata for project ${project.getName()}: ` +
 			`Project type ${type} is currently not supported`);
 	}
-	let buildManifest;
-	if (project.isFrameworkProject()) {
-		buildManifest = await createFrameworkManifest(project, buildConfig, taskRepository);
-	} else {
-		buildManifest = {
-			manifestVersion: "0.3",
-			timestamp: new Date().toISOString(),
-			dependencies: collectDepInfo(graph, project),
-			version: project.getVersion(),
-			namespace: project.getNamespace(),
-			tags: getSortedTags(project),
-			cacheKey: createCacheKey(project, graph, buildConfig, taskRepository),
-		};
-	}
+	// let buildManifest;
+	// if (project.isFrameworkProject()) {
+	// 	buildManifest = await createFrameworkManifest(project, buildConfig, taskRepository);
+	// } else {
+	// 	buildManifest = {
+	// 		manifestVersion: "0.3",
+	// 		timestamp: new Date().toISOString(),
+	// 		dependencies: collectDepInfo(graph, project),
+	// 		version: project.getVersion(),
+	// 		namespace: project.getNamespace(),
+	// 		tags: getSortedTags(project),
+	// 	};
+	// }
 
 	const metadata = {
 		project: {
@@ -90,19 +75,23 @@ export default async function(project, graph, buildConfig, taskRepository, trans
 				}
 			}
 		},
-		buildManifest,
-		buildCache: await buildCache.serialize(),
+		buildManifest: createBuildManifest(project, buildConfig, taskRepository, buildSignature),
 	};
+
+	if (cache) {
+		metadata.cache = cache;
+	}
 
 	return metadata;
 }
 
-async function createFrameworkManifest(project, buildConfig, taskRepository) {
+async function createBuildManifest(project, buildConfig, taskRepository, buildSignature) {
 	// Use legacy manifest version for framework libraries to ensure compatibility
 	const {builderVersion, fsVersion: builderFsVersion} = await taskRepository.getVersions();
 	const buildManifest = {
-		manifestVersion: "0.2",
+		manifestVersion: "1.0",
 		timestamp: new Date().toISOString(),
+		buildSignature,
 		versions: {
 			builderVersion: builderVersion,
 			projectVersion: await getVersion("@ui5/project"),
@@ -121,18 +110,4 @@ async function createFrameworkManifest(project, buildConfig, taskRepository) {
 		buildManifest.versions.builderFsVersion = builderFsVersion;
 	}
 	return buildManifest;
-}
-
-export async function createCacheKey(project, graph, buildConfig, taskRepository) {
-	const depInfo = collectDepInfo(graph, project);
-	const {builderVersion, fsVersion: builderFsVersion} = await taskRepository.getVersions();
-	const projectVersion = await getVersion("@ui5/project");
-	const fsVersion = await getVersion("@ui5/fs");
-
-	const key = `${builderVersion}-${projectVersion}-${fsVersion}-${builderFsVersion}-` +
-	`${JSON.stringify(buildConfig)}-${JSON.stringify(depInfo)}`;
-	const hash = crypto.createHash("sha256").update(key).digest("hex");
-
-	// Create a hash from the cache key
-	return `${project.getName()}-${project.getVersion()}-${hash}`;
 }

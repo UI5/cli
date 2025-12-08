@@ -1,5 +1,6 @@
 import micromatch from "micromatch";
 import {getLogger} from "@ui5/logger";
+import {createResourceIndex} from "./utils.js";
 const log = getLogger("build:cache:BuildTaskCache");
 
 /**
@@ -37,23 +38,23 @@ function unionObject(target, obj) {
 	}
 }
 
-async function createMetadataForResources(resourceMap) {
-	const metadata = Object.create(null);
-	await Promise.all(Object.keys(resourceMap).map(async (resourcePath) => {
-		const resource = resourceMap[resourcePath];
-		if (resource.hash) {
-			// Metadata object
-			metadata[resourcePath] = resource;
-			return;
-		}
-		// Resource instance
-		metadata[resourcePath] = {
-			hash: await resource.getHash(),
-			lastModified: resource.getStatInfo()?.mtimeMs,
-		};
-	}));
-	return metadata;
-}
+// async function createMetadataForResources(resourceMap) {
+// 	const metadata = Object.create(null);
+// 	await Promise.all(Object.keys(resourceMap).map(async (resourcePath) => {
+// 		const resource = resourceMap[resourcePath];
+// 		if (resource.hash) {
+// 			// Metadata object
+// 			metadata[resourcePath] = resource;
+// 			return;
+// 		}
+// 		// Resource instance
+// 		metadata[resourcePath] = {
+// 			integrity: await resource.getIntegrity(),
+// 			lastModified: resource.getLastModified(),
+// 		};
+// 	}));
+// 	return metadata;
+// }
 
 /**
  * Manages the build cache for a single task
@@ -89,7 +90,7 @@ export default class BuildTaskCache {
 	 * @param {string} taskName - Name of the task
 	 * @param {TaskCacheMetadata} metadata - Task cache metadata
 	 */
-	constructor(projectName, taskName, {projectRequests, dependencyRequests, resourcesRead, resourcesWritten}) {
+	constructor(projectName, taskName, {projectRequests, dependencyRequests, input, output}) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 
@@ -102,8 +103,8 @@ export default class BuildTaskCache {
 			pathsRead: [],
 			patterns: [],
 		};
-		this.#resourcesRead = resourcesRead ?? Object.create(null);
-		this.#resourcesWritten = resourcesWritten ?? Object.create(null);
+		this.#resourcesRead = input ?? Object.create(null);
+		this.#resourcesWritten = output ?? Object.create(null);
 	}
 
 	// ===== METADATA ACCESS =====
@@ -122,8 +123,8 @@ export default class BuildTaskCache {
 	 *
 	 * @param {RequestMetadata} projectRequests - Project resource requests
 	 * @param {RequestMetadata} [dependencyRequests] - Dependency resource requests
-	 * @param {Object.<string, object>} resourcesRead - Resources read by task
-	 * @param {Object.<string, object>} resourcesWritten - Resources written by task
+	 * @param {Object<string, object>} resourcesRead - Resources read by task
+	 * @param {Object<string, object>} resourcesWritten - Resources written by task
 	 * @returns {void}
 	 */
 	updateMetadata(projectRequests, dependencyRequests, resourcesRead, resourcesWritten) {
@@ -144,15 +145,12 @@ export default class BuildTaskCache {
 	 *
 	 * @returns {Promise<object>} Serialized task cache data
 	 */
-	async toJSON() {
+	async createMetadata() {
 		return {
-			taskName: this.#taskName,
-			resourceMetadata: {
-				projectRequests: this.#projectRequests,
-				dependencyRequests: this.#dependencyRequests,
-				resourcesRead: await createMetadataForResources(this.#resourcesRead),
-				resourcesWritten: await createMetadataForResources(this.#resourcesWritten)
-			}
+			projectRequests: this.#projectRequests,
+			dependencyRequests: this.#dependencyRequests,
+			taskIndex: await createResourceIndex(Object.values(this.#resourcesRead)),
+			// resourcesWritten: await createMetadataForResources(this.#resourcesWritten)
 		};
 	}
 

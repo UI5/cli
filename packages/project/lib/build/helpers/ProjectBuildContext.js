@@ -2,6 +2,7 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
+import calculateBuildSignature from "./calculateBuildSignature.js";
 import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 
 /**
@@ -14,14 +15,13 @@ import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 class ProjectBuildContext {
 	/**
 	 *
-	 * @param {object} parameters Parameters
-	 * @param {object} parameters.buildContext The build context.
-	 * @param {object} parameters.project The project instance.
-	 * @param {string} parameters.cacheKey The cache key.
-	 * @param {string} parameters.cacheDir The cache directory.
+	 * @param {object} buildContext The build context.
+	 * @param {object} project The project instance.
+	 * @param {string} buildSignature The signature of the build.
+	 * @param {ProjectBuildCache} buildCache
 	 * @throws {Error} Throws an error if 'buildContext' or 'project' is missing.
 	 */
-	constructor({buildContext, project, cacheKey, cacheDir}) {
+	constructor(buildContext, project, buildSignature, buildCache) {
 		if (!buildContext) {
 			throw new Error(`Missing parameter 'buildContext'`);
 		}
@@ -35,8 +35,8 @@ class ProjectBuildContext {
 			projectName: project.getName(),
 			projectType: project.getType()
 		});
-		this._cacheKey = cacheKey;
-		this._cache = new ProjectBuildCache(this._project, cacheKey, cacheDir);
+		this._buildSignature = buildSignature;
+		this._buildCache = buildCache;
 		this._queues = {
 			cleanup: []
 		};
@@ -45,11 +45,25 @@ class ProjectBuildContext {
 			allowedTags: ["ui5:OmitFromBuildResult", "ui5:IsBundle"],
 			allowedNamespaces: ["build"]
 		});
-		const buildManifest = this.#getBuildManifest();
-		if (buildManifest) {
-			this._cache.deserialize(buildManifest.buildManifest.cache);
-		}
+		// const buildManifest = this.#getBuildManifest();
+		// if (buildManifest) {
+		// 	this._buildCache.deserialize(buildManifest.buildManifest.cache);
+		// }
 	}
+
+	static async create(buildContext, project) {
+		const buildSignature = await calculateBuildSignature(project, buildContext.getGraph(),
+			buildContext.getBuildConfig(), buildContext.getTaskRepository());
+		const buildCache = await ProjectBuildCache.create(
+			project, buildSignature, await buildContext.getCacheManager());
+		return new ProjectBuildContext(
+			buildContext,
+			project,
+			buildSignature,
+			buildCache
+		);
+	}
+
 
 	isRootProject() {
 		return this._project === this._buildContext.getRootProject();
@@ -127,7 +141,7 @@ class ProjectBuildContext {
 			this._taskRunner = new TaskRunner({
 				project: this._project,
 				log: this._log,
-				cache: this._cache,
+				buildCache: this._buildCache,
 				taskUtil: this.getTaskUtil(),
 				graph: this._buildContext.getGraph(),
 				taskRepository: this._buildContext.getTaskRepository(),
@@ -148,16 +162,16 @@ class ProjectBuildContext {
 			return false;
 		}
 
-		if (!this._cache.hasCache()) {
-			await this._cache.attemptDeserializationFromDisk();
-		}
+		// if (!this._buildCache.hasAnyCache()) {
+		// 	await this._buildCache.attemptDeserializationFromDisk();
+		// }
 
-		return this._cache.requiresBuild();
+		return this._buildCache.needsRebuild();
 	}
 
 	async runTasks() {
 		await this.getTaskRunner().runTasks();
-		const updatedResourcePaths = this._cache.harvestUpdatedResources();
+		const updatedResourcePaths = this._buildCache.collectAndClearModifiedPaths();
 
 		if (updatedResourcePaths.size === 0) {
 			return;
@@ -170,7 +184,7 @@ class ProjectBuildContext {
 		// Propagate changes to all dependents of the project
 		for (const {project: dep} of graph.traverseDependents(this._project.getName())) {
 			const projectBuildContext = this._buildContext.getBuildContext(dep.getName());
-			projectBuildContext.getBuildCache().resourceChanged(emptySet, updatedResourcePaths);
+			projectBuildContext.getBuildCache().this.markResourcesChanged(emptySet, updatedResourcePaths);
 		}
 	}
 
@@ -184,11 +198,11 @@ class ProjectBuildContext {
 			// Manifest version 0.1 and 0.2 are always used without further checks for legacy reasons
 			return manifest;
 		}
-		if (manifest.buildManifest.manifestVersion === "0.3" &&
-			manifest.buildManifest.cacheKey === this.getCacheKey()) {
-			// Manifest version 0.3 is used with a matching cache key
-			return manifest;
-		}
+		// if (manifest.buildManifest.manifestVersion === "0.3" &&
+		// 	manifest.buildManifest.cacheKey === this.getCacheKey()) {
+		// 	// Manifest version 0.3 is used with a matching cache key
+		// 	return manifest;
+		// }
 		// Unknown manifest version can't be used
 		return;
 	}
@@ -208,11 +222,11 @@ class ProjectBuildContext {
 	}
 
 	getBuildCache() {
-		return this._cache;
+		return this._buildCache;
 	}
 
-	getCacheKey() {
-		return this._cacheKey;
+	getBuildSignature() {
+		return this._buildSignature;
 	}
 
 	// async watchFileChanges() {
@@ -229,7 +243,7 @@ class ProjectBuildContext {
 	// 	// 	const resourcePath = this._project.getVirtualPath(filePath);
 	// 	// 	this._log.info(`File changed: ${resourcePath} (${filePath})`);
 	// 	// 	// Inform cache
-	// 	// 	this._cache.fileChanged(resourcePath);
+	// 	// 	this._buildCache.fileChanged(resourcePath);
 	// 	// 	// Inform dependents
 	// 	// 	for (const dependent of this._buildContext.getGraph().getTransitiveDependents(this._project.getName())) {
 	// 	// 		await this._buildContext.getProjectBuildContext(dependent).dependencyFileChanged(resourcePath);
@@ -241,7 +255,7 @@ class ProjectBuildContext {
 
 	// dependencyFileChanged(resourcePath) {
 	// 	this._log.info(`Dependency file changed: ${resourcePath}`);
-	// 	this._cache.fileChanged(resourcePath);
+	// 	this._buildCache.fileChanged(resourcePath);
 	// }
 }
 
