@@ -16,13 +16,14 @@ class TaskRunner {
 	 * @param {object} parameters.graph
 	 * @param {object} parameters.project
 	 * @param {@ui5/logger/loggers/ProjectBuild} parameters.log Logger to use
+	 * @param {@ui5/project/build/cache/ProjectBuildCache} parameters.buildCache Build cache instance
 	 * @param {@ui5/project/build/helpers/TaskUtil} parameters.taskUtil TaskUtil instance
 	 * @param {@ui5/builder/tasks/taskRepository} parameters.taskRepository Task repository
 	 * @param {@ui5/project/build/ProjectBuilder~BuildConfiguration} parameters.buildConfig
 	 * 			Build configuration
 	 */
-	constructor({graph, project, log, cache, taskUtil, taskRepository, buildConfig}) {
-		if (!graph || !project || !log || !cache || !taskUtil || !taskRepository || !buildConfig) {
+	constructor({graph, project, log, buildCache, taskUtil, taskRepository, buildConfig}) {
+		if (!graph || !project || !log || !buildCache || !taskUtil || !taskRepository || !buildConfig) {
 			throw new Error("TaskRunner: One or more mandatory parameters not provided");
 		}
 		this._project = project;
@@ -31,7 +32,7 @@ class TaskRunner {
 		this._taskRepository = taskRepository;
 		this._buildConfig = buildConfig;
 		this._log = log;
-		this._cache = cache;
+		this._buildCache = buildCache;
 
 		this._directDependencies = new Set(this._taskUtil.getDependencies());
 	}
@@ -192,38 +193,35 @@ class TaskRunner {
 				options.projectNamespace = this._project.getNamespace();
 
 				// TODO: Apply cache and stage handling for custom tasks as well
-				this._project.useStage(taskName);
-
-				// Check whether any of the relevant resources have changed
-				if (this._cache.hasCacheForTask(taskName)) {
-					await this._cache.validateChangedProjectResources(
-						taskName, this._project.getReader(), this._allDependenciesReader);
-					if (this._cache.hasValidCacheForTask(taskName)) {
-						this._log.skipTask(taskName);
-						return;
-					}
+				const requiresRun = await this._buildCache.prepareTaskExecution(taskName, this._allDependenciesReader);
+				if (!requiresRun) {
+					this._log.skipTask(taskName);
+					return;
 				}
+
+				const expectedOutput = new Set(); // TODO: Determine expected output properly
+
 				this._log.info(
 					`Executing task ${taskName} for project ${this._project.getName()}`);
 				const workspace = createTracker(this._project.getWorkspace());
 				const params = {
 					workspace,
 					taskUtil: this._taskUtil,
-					options,
-					buildCache: {
+					cacheUtil: {
 						// TODO: Create a proper interface for this
 						hasCache: () => {
-							return this._cache.hasCacheForTask(taskName);
+							return this._buildCache.hasTaskCache(taskName);
 						},
 						getChangedProjectResourcePaths: () => {
-							return this._cache.getChangedProjectResourcePaths(taskName);
+							return this._buildCache.getChangedProjectResourcePaths(taskName);
 						},
 						getChangedDependencyResourcePaths: () => {
-							return this._cache.getChangedDependencyResourcePaths(taskName);
+							return this._buildCache.getChangedDependencyResourcePaths(taskName);
 						},
-					}
+					},
+					options,
 				};
-				// const invalidatedResources = this._cache.getDepsOfInvalidatedResourcesForTask(taskName);
+				// const invalidatedResources = this._buildCache.getDepsOfInvalidatedResourcesForTask(taskName);
 				// if (invalidatedResources) {
 				// 	params.invalidatedResources = invalidatedResources;
 				// }
@@ -246,7 +244,7 @@ class TaskRunner {
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 				}
 				this._log.endTask(taskName);
-				await this._cache.updateTaskResult(taskName, workspace, dependencies);
+				await this._buildCache.recordTaskResult(taskName, expectedOutput, workspace, dependencies);
 			};
 		}
 		this._tasks[taskName] = {
@@ -319,6 +317,8 @@ class TaskRunner {
 
 		// Tasks can provide an optional callback to tell build process which dependencies they require
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
+		const getBuildSignatureCallback = await task.getBuildSignatureCallback();
+		const getExpectedOutputCallback = await task.getExpectedOutputCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -390,6 +390,8 @@ class TaskRunner {
 				taskName: newTaskName,
 				taskConfiguration: taskDef.configuration,
 				provideDependenciesReader,
+				getBuildSignatureCallback,
+				getExpectedOutputCallback,
 				getDependenciesReader: () => {
 					// Create the dependencies reader on-demand
 					return this._createDependenciesReader(requiredDependencies);
@@ -488,7 +490,7 @@ class TaskRunner {
 	 * @returns {Promise} Resolves when task has finished
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
-		if (this._cache.hasValidCacheForTask(taskName)) {
+		if (this._buildCache.isTaskCacheValid(taskName)) {
 			// Immediately skip task if cache is valid
 			// Continue if cache is (potentially) invalid, in which case taskFunction will
 			// validate the cache thoroughly
