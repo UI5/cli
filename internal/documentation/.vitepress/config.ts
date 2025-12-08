@@ -11,9 +11,14 @@ import path from "node:path";
 // Create items for all api pages
 const apiPages: { text: string; link: string; }[] = [];
 for (const file of fs.readdirSync(path.join("docs", "api"))) {
+<<<<<<< HEAD
   if (file.endsWith(".js.md")) continue;
   apiPages.push({
     text: file.replaceAll("_", "/").replace(".md", ""),
+=======
+  apiPages.push({
+    text: file.replaceAll("@", ""),
+>>>>>>> refs/remotes/origin/jsdoc-to-markdow
     link: "api/" + file
   });
 }
