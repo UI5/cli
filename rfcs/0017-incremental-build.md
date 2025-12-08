@@ -44,34 +44,78 @@ For the incremental build cache feature, a new entity `Build Task Cache` shall b
 
 This shall enable the following workflow:
 
-1. **Action:** Build is started
+**1. Action: A project build is started**
+
 1. Task A, Task B and Task C are executed in sequence, writing their results into individual writer stages.
-1. *Task outputs are written to a content-addressable store and the `build-manifest.json` metadata is serialized to disk.*
+1. _Task outputs are written to a content-addressable store and the `build-manifest.json` metadata is serialized to disk._
 1. Build finishes and the resources of all writer stages and the source reader are combined and written into the target output directory.
     * Resources present in later writer stages (and higher versions) are preferred over competing resources with the same path.
-1. **Action:** A source file is modified and a new build is triggered
-1. *The `build-manifest.json` is read from disk, allowing the build to access cached content from the content-addressable store.*
+
+_The project has been built and a cache has been stored._
+
+**2. Action: A source file is modified, a new build is started**
+
+1. _The `build-manifest.json` is read from disk, allowing the build to access cached content from the content-addressable store._
+	* All cached stages are imported into the `Project` as v1 of their respective writer stages.
 1. The build determines which tasks need to be executed using the imported cache and information about the modified source file.
     * In this example, it is determined that Task A and Task C need to be executed since they requested the modified resource in their previous execution.
-1. Task A is executed. The output is written into a new **version** (v2) of the associated writer stage.
+1. Task A is executed. The output is written into a **new version** (v2) of the associated writer stage.
     * The task is given access to a new `cache` parameter, allowing it to access cache related information, such as which resources have changed since the task's last execution.
     * Based on that, Task A may decide to only process the changed resources and ignore the others.
-    * Task A can't access v1 of its writer stage. It can only access the combined resources of all previous writer stages.
+    * **Task A can't access v1 of its writer stage.** It can only access the combined resources of all previous writer stages, just like in a regular build.
 1. The `Project Build Cache` determines whether the resources produced in this latest execution of Task A are relevant for Task B. If yes, the content of those resources is compared to the cached content of the resources Task B has received during its last execution. In this example, the output of Task A is not relevant for Task B and it is skipped.
-1. Task C is called and has access to both versions (v1 and v2) of the writer stage of Task A. Allowing it to access all resources produced in all previous executions of Task A.
-1. *Task outputs are written to the content-addressable store and the `build-manifest.json` is updated.*
+1. Task C is executed (assuming that relevant resources have changed) and has access to both versions (v1 and v2) of the writer stage of Task A as well as the v1 stage of Task B, which has been imported from the cache. Allowing it to access all resources produced in all previous executions of Task A and Task B. 
+	* The output of Task C is written into a **new version** (v2) of the associated writer stage.
+1. _All new writer stages (v2) are exported from the `Project` to the content-addressable store, and the `build-manifest.json` is updated with the new metadata._
+	* _Optional: All current writer stages are combined into a new v1 stage_
 1. The build finishes. The combined resources of all writer stages and the source reader are written to the target output directory.
 
 ![Diagram illustrating an initial and a successive build leveraging the build cache](./resources/0017-incremental-build/Build_With_Cache.png)
 
-
 #### Project Build Cache
 
-The `Project Build Cache` is responsible for managing the build cache of a single project. It handles the import and export of the cache to and from disk, as well as determining which whether the project needs to be rebuilt.
+The `Project Build Cache` is responsible for managing the build cache of a single project. It handles the import and export of the cache to and from disk, as well as determining whether a new build of the project is required (e.g. because of source- or dependency changes or lack of a matching cache).
 
 #### Build Task Cache
 
-The `Build Task Cache` is responsible for managing the cache of a single build task within a project. It tracks which resources were read and written by the task during its last execution, along with their metadata.
+The `Build Task Cache` is responsible for managing the cache information for a single build task within a project. It keeps track of which resources have been read and written by the task during its last execution, along with their metadata.
+
+Later during a re-build, it can use this information to determine whether the task needs to be re-executed based on changes to the input resources. If any of the input resources have changed since the last execution, the task is marked for re-execution.
+
+All necessary metadata stored in the `Build Task Cache` is serialized to disk as part of the `build-manifest.json` (see [Cache Creation](#cache-creation) below).
+
+#### Project
+
+The existing `Project` super-class shall be extended to support the new concept of `writer stages`.
+
+Already before, it was responsible for creating the `workspace` for a build, which consisted of a single `reader` (providing access to the project's sources) and a `writer` (storing all resources that have been newly produced or changed by the build in memory).
+
+Now, it shall contain multiple `writer stages`, one for each task in the build process.
+
+![Diagram illustrating project stages](./resources/0017-incremental-build/Project_Stages.png)
+
+#### Task Runner
+
+The `Task Runner` shall be enhanced to:
+
+a. Consult the `Project Build Cache` before executing each task to determine whether the task needs to be executed or can be skipped based on the cache information.
+b. After a task has been executed, update the `Project Build Cache` with information about the resources read and written during the task's execution.
+	* This can be achieved by providing the task with instances of the `workspace`-reader/writer and `dependencies`-reader that have been wrapped in `Tracker` instances. These trackers will monitor which resources are being accessed during the task's execution.
+	* The `Project Build Cache` will then:
+		* Update the metadata in the respective `Build Task Cache`
+		* Validate which resources have actually changed
+		* Based on that, check which downstream tasks need to be potentially invalidated (see [Cache Invalidation](#cache-invalidation))
+c. Provide the build task with a `buildCache` parameter, allowing it to access cache-related information during its execution. This can be used by tasks to optimize their processing based on which resources have changed since their last execution.
+
+Build tasks shall be provided with the following new helper functions:
+
+* `hasCache`: Checks whether the project's build cache has an entry for the given task
+* `getChangedProjectPaths`: Returns the set of changed project resource paths for the given task
+* `getChangedDependencyPaths`: Returns the set of changed dependency resource paths for the given task
+
+#### Tracker
+
+A `Tracker` is a wrapper around a `Reader` or `Writer` instance that monitors which resources are being accessed during its usage. It records the paths of resources that are read or written, along with the respective [`Resource`](https://ui5.github.io/cli/stable/api/@ui5_fs_Resource.html) instance. It also tracks which glob patterns have been used to request resources.
 
 ### Cache Creation
 
@@ -94,7 +138,7 @@ The cache consists of two main parts:
 			"name": "project.namespace"
 		}
 	},
-	"buildManifest": {
+	"buildManifest": { // Build Manifest Configuration
 		"manifestVersion": "1.0",
 		"timestamp": "2025-11-24T13:43:24.612Z",
 		"signature": "bb3a3262d893fcb9adf16bff63f", // <-- New "signature" attribute, uniquely identifying the build
@@ -134,7 +178,7 @@ The cache consists of two main parts:
 			}
 		},
 		"indexTimestamp": 1764688556165,
-		"tasks": {
+		"taskMetadata": {
 			"replaceCopyright": { // Task name
 				"projectRequests": {
 					// Resource paths and glob patterns requested from the project during task execution
@@ -148,7 +192,7 @@ The cache consists of two main parts:
 					"pathsRead": [],
 					"patterns": []
 				},
-				"input": {
+				"index": {
 					// Virtual paths read by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
 						"lastModified": 1764688556165,
@@ -156,13 +200,15 @@ The cache consists of two main parts:
 						"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
 					}
 				},
-				"output": {
-					// Virtual paths written by the task during execution, mapped to their cache metadata
-					"/resources/project/namespace/Component.js": {
-						"lastModified": 176468853453,
-						"size": 4567,
-						"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
-					}
+			}
+		}
+		"stages": {
+			"tasks/replaceCopyright": { // Task name
+				// Virtual paths written by the task during execution, mapped to their cache metadata
+				"/resources/project/namespace/Component.js": {
+					"lastModified": 176468853453,
+					"size": 4567,
+					"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
 				}
 			}
 		}
@@ -172,7 +218,31 @@ The cache consists of two main parts:
 
 The concept of a `build-manifest.json` has already been explored in [RFC 0011 Reuse Build Results](https://github.com/SAP/ui5-tooling/pull/612) and found an implementation for consumption of pre-built UI5 framework libraries in [UI5 3.0](https://github.com/UI5/cli/pull/612).
 
-This concept reuses and extends the `build-manifest.json` idea to also include incremental build cache information. In addition to a new `signature` attribute, added to the `buildManifest` section (which now defines version `1.0`), a new `cache` section is introduced, containing all relevant metadata for the incremental build cache.
+This concept reuses and extends the `build-manifest.json` idea to also include incremental build cache information. In addition to a new `signature` attribute is added to the `buildManifest` section (which now defines version `1.0`) and a new `cache` section is introduced, containing all relevant metadata for the incremental build cache. The "manifestVersion" is now set to "1.0" to indicate that this is a build manifest containing cache information.
+
+##### Differentiation with Pre-Built Projects
+
+To differentiate between a pre-built project (as introduced in RFC 0011) and a project with incremental build cache support, the presence of the `cache` section can be checked. Only if this section is present, the project can be used for incremental builds. Otherwise, it is "only" a pre-built project that can be used to speed up builds of dependent projects.
+
+There are major differences in how those two types of build manifests are handled:
+
+**1. Timing**
+
+* For pre-built projects, the build manifest is taken into account immediately during the creation of the dependency graph and instantiation of the project class as it replaces the `ui5.yaml`.
+* For projects with incremental build cache support, the build manifest is only retrieved during the build of a project. Changing build parameters may lead to a different cache and therefore a different build manifest being used.
+
+**2. Content**
+
+* Pre-built projects only contain information about the final build result (i.e. the resources produced by the build).
+	* The original source files are not part of the pre-built project.
+	* All required resources are included in the pre-built project itself.
+* Projects with incremental build cache support contain detailed metadata about the build process itself, including information about source files, tasks, and intermediate build stages.
+	* All resources referenced in build manifest (except for the project sources) need to be available in the local content-addressable store in order to use them during the build.
+
+**3. Usage**
+
+* Pre-built projects are primarily used to avoid rebuilding dependencies that have already been built. They can not be built again.
+* Projects with incremental build cache support _can_ be rebuilt, if required.
 
 ##### Signature
 
@@ -220,9 +290,13 @@ An object containing entries for each build task executed during the build proce
 For each task, the following information is stored:
 
 * `projectRequests` and `dependencyRequests`: Resource paths and glob patterns that the task requested from the project and its dependencies during its execution. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the requested resources. The glob patterns are needed in particular to detect newly added resources that match the patterns.
-* `inputs`: Metadata for all resources **read** by the task during its execution. This is tracked via the provided workspace and dependencies readers. The metadata includes the `lastModified`, `size` and `integrity` of each resource. Similar to the index. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the input resources.
-* `outputs`: Metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
+* `index`: Metadata for all resources **read** by the task during its execution. This is tracked via the provided workspace and dependencies readers. The metadata includes the `lastModified`, `size` and `integrity` of each resource. Similar to the index. This information is required for determining whether the task needs to be re-executed in future builds, based on changes to the input resources.
 
+#### Stages
+
+In this concept, each stage corresponds to the execution of a task. It contains the metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
+
+In the future, additional stages might be introduced. Therefore, stage names for tasks must be prefixed with `tasks/`.
 
 #### Cache Directory Structure
 
@@ -264,10 +338,10 @@ It allows to store and retrieve files using a unique key. Files can also be retr
 In this concept, cacache will be used to store the content of resources produced during the build. The key for each resources should follow this schema:
 
 ```
-<build signature>|<task name>|<virtual resource path>
+<build signature>|<stage name>|<virtual resource path>
 ```
 
-The [build signature](#signature) binds the entry to the current project build cache. The task name and resource path correspond to a task's **output** resource metadata as defined in the [`tasks`](#tasks) section of the `build-manifest.json`.
+The [build signature](#signature) binds the entry to the current project build cache. The stage name and resource path correspond to a task's **output** resource metadata as defined in the [`stages`](#stages) section of the `build-manifest.json`.
 
 This naming schema should allow for easy retrieval of resources based on the metadata stored in the build manifest.
 
@@ -298,6 +372,14 @@ If the task ends up being executed, it might produce new resources. After the ex
 After a *project* has finished building, a list of all the modified resource is compiled and passed to the `Project Build Cache` instances of all depending projects (i.e. projects that depend on the current project and therefore might use the modified resources).
 
 ![Activity Diagram illustrating how a build cache is used when building a project](./resources/0017-incremental-build/Activity_Diagram.png)
+
+### Concurrency
+
+Since the build manifest expects to find all resources of a build in the content-addressable store, it is important to ensure that concurrent builds of the same project do not interfere with each other.
+
+Updating the build manifest and writing resources to the content-addressable store must be done atomically. This means that either all resources and the manifest are written successfully, or none at all. This prevents scenarios where a build is interrupted (e.g. due to a crash or user cancellation) and leaves the cache in an inconsistent state.
+
+This can be achieved by creating a lock for the build signature. TODO: Set lock only when updating the cache or already before starting the build (i.e. using the cache)?
 
 ### Garbage Collection
 
