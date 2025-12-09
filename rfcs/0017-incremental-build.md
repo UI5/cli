@@ -102,14 +102,14 @@ Stages have an explicit order, based on the order they have been created/used. S
 
 The `Task Runner` shall be enhanced to:
 
-a. Consult the `Project Build Cache` before executing each task to determine whether the task needs to be executed or can be skipped based on the cache information.
-b. After a task has been executed, update the `Project Build Cache` with information about the resources read and written during the task's execution.
+1. Consult the `Project Build Cache` before executing each task to determine whether the task needs to be executed or can be skipped based on the cache information.
+2. After a task has been executed, update the `Project Build Cache` with information about the resources read and written during the task's execution.
 	* This can be achieved by providing the task with instances of the `workspace`-reader/writer and `dependencies`-reader that have been wrapped in `Tracker` instances. These trackers will monitor which resources are being accessed during the task's execution.
 	* The `Project Build Cache` will then:
 		* Update the metadata in the respective `Build Task Cache`
 		* Validate which resources have actually changed
 		* Based on that, check which downstream tasks need to be potentially invalidated (see [Cache Invalidation](#cache-invalidation))
-c. Provide the build task with a `buildCache` parameter, allowing it to access cache-related information during its execution. This can be used by tasks to optimize their processing based on which resources have changed since their last execution.
+3. Provide the build task with a `buildCache` parameter, allowing it to access cache-related information during its execution. This can be used by tasks to optimize their processing based on which resources have changed since their last execution.
 
 Build tasks shall be provided with the following new helper functions:
 
