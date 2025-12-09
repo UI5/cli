@@ -90,7 +90,11 @@ The existing `Project` super-class shall be extended to support the new concept 
 
 Already before, it was responsible for creating the `workspace` for a build, which consisted of a single `reader` (providing access to the project's sources) and a `writer` (storing all resources that have been newly produced or changed by the build in memory).
 
-Now, it shall contain multiple `writer stages`, one for each task in the build process.
+Now, it shall contain multiple `writer stages`, one for each task in the build process. Each writer stage may consist of multiple versions of writers, allowing consecutive executions of the same tasks to build upon each other.
+
+During the project build, and before executing a task, the [Task Runner](#task-runner) shall set the current stage in the Project. Whenever changing the stage, a new writer version for that stage shall be created. Once a `workspace` is requested from the project, it will provide a `reader` that combines the sources of the project with all resources from the preceding writer stages, and a `writer` that corresponds to the current stage's latest version.
+
+Stages have an explicit order, based on the order they have been created/used. Stages shall be named using the following schema: `<type>/<name>`, where `<type>` is the type of the stage (e.g. `tasks`) and `<name>` is the name of the entity creating the stage (e.g. the task name).
 
 ![Diagram illustrating project stages](./resources/0017-incremental-build/Project_Stages.png)
 
@@ -192,7 +196,7 @@ The cache consists of two main parts:
 					"pathsRead": [],
 					"patterns": []
 				},
-				"index": {
+				"taskIndex": {
 					// Virtual paths read by the task during execution, mapped to their cache metadata
 					"/resources/project/namespace/Component.js": {
 						"lastModified": 1764688556165,
@@ -201,9 +205,9 @@ The cache consists of two main parts:
 					}
 				},
 			}
-		}
+		},
 		"stages": {
-			"tasks/replaceCopyright": { // Task name
+			"task/replaceCopyright": { // Type and task name
 				// Virtual paths written by the task during execution, mapped to their cache metadata
 				"/resources/project/namespace/Component.js": {
 					"lastModified": 176468853453,
@@ -261,6 +265,8 @@ The signature is a simple hash (represented as a hexadecimal string, to allow us
 	* Changes to custom tasks must invalidate the cache. Even changes to their npm dependencies might invalidate the cache. Therefore, a hash of the current project's lockfile (e.g. package-lock.json, yarn.lock or pnpm-lock.yaml - if present) should be included in the signature as well
 * _**To be decided:** The names and versions of all UI5 projects in the dependency tree_
 	* Changes in project dependencies might affect the build result of the current project. However, relying on resource-level cache invalidation might be sufficient to detect such changes
+* A mechanism shall be created for custom tasks to provide a signature as well. This allows the incorporation of task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature
+
 
 ##### Index
 
@@ -379,7 +385,7 @@ Since the build manifest expects to find all resources of a build in the content
 
 Updating the build manifest and writing resources to the content-addressable store must be done atomically. This means that either all resources and the manifest are written successfully, or none at all. This prevents scenarios where a build is interrupted (e.g. due to a crash or user cancellation) and leaves the cache in an inconsistent state.
 
-This can be achieved by creating a lock for the build signature. TODO: Set lock only when updating the cache or already before starting the build (i.e. using the cache)?
+This can be achieved by creating a lock for the build signature. When starting the build, a shared or "read lock" should be acquired. This allows multiple builds of the same project to run concurrently, as long as they are only reading from the cache. Only when updating, i.e. writing new resources to the content-addressable store and updating the build manifest, an exclusive or "write lock" should be acquired. This prevents other builds from reading or writing to the cache while it is being updated.
 
 ### Garbage Collection
 
@@ -445,3 +451,4 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 * What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be used from the cache
 * Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * Test with selected (community) custom tasks
+* Stale Cache Artifacts: Address scenarios where a task ceases to generate a resource that it created in a previous run. Because the old output is stored in a cached writer stage (v1), that stale file would be incorrectly included in the final build result.
