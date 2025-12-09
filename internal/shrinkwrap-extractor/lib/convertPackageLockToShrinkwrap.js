@@ -110,6 +110,10 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 					// Move existing package to a package-specific subdirectories to avoid conflict
 					for (const edge of existingPackageAtNewLocation.edgesIn) {
 						const parentPackage = edge.from.top.packageName;
+						if (parentPackage === tree.packageName) {
+							// Skip dependencies of the workspace package
+							continue;
+						}
 						console.log(`Moving conflicting package "${node.packageName}" under ` +
 							`"node_modules/${parentPackage}/node_modules/"`);
 						const subPath = `node_modules/${parentPackage}/node_modules/${node.packageName}`;
