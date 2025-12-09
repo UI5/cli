@@ -84,7 +84,56 @@ test("Convert package-lock.json to shrinkwrap", async (t) => {
 	console.log(`Generated shrinkwrap with ${packagePaths.length - 1} dependencies`);
 });
 
-test("Compare generated shrinkwrap with expected result", async (t) => {
+test("Workspace paths should be normalized to node_modules format", async (t) => {
+	const __dirname = import.meta.dirname;
+	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
+	const packagePaths = Object.keys(shrinkwrapJson.packages).filter((p) => p !== "");
+
+	// All paths must start with node_modules/, never with packages/
+	for (const packagePath of packagePaths) {
+		assert.ok(!packagePath.startsWith("packages/"),
+			`Path "${packagePath}" should not contain workspace prefix`);
+		assert.ok(packagePath.startsWith("node_modules/"),
+			`Path "${packagePath}" should start with node_modules/`);
+	}
+
+	// Verify a CLI dependency was normalized correctly
+	const npmCliConfig = shrinkwrapJson.packages["node_modules/@npmcli/config"];
+	assert.ok(npmCliConfig, "@npmcli/config should be at normalized path");
+	assert.equal(npmCliConfig.version, "9.0.0");
+
+	console.log(`✓ All ${packagePaths.length} package paths correctly normalized`);
+});
+
+test("Version collisions: root packages get priority at top level", async (t) => {
+	const __dirname = import.meta.dirname;
+	const cwd = path.join(__dirname, "..", "fixture", "project.b");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
+
+	// ansi-regex: root has v6.2.2, CLI workspace has v5.0.1
+	// Root version should be at top level, workspace version nested
+	const rootAnsiRegex = shrinkwrapJson.packages["node_modules/ansi-regex"];
+	assert.equal(rootAnsiRegex?.version, "6.2.2", "Root ansi-regex at top level");
+
+	const cliAnsiRegex = shrinkwrapJson.packages["node_modules/@ui5/cli/node_modules/ansi-regex"];
+	assert.equal(cliAnsiRegex?.version, "5.0.1", "Workspace ansi-regex nested under @ui5/cli");
+
+	// Verify root version satisfies dependents
+	const stripAnsi = shrinkwrapJson.packages["node_modules/strip-ansi"];
+	assert.equal(stripAnsi.dependencies["ansi-regex"], "^6.0.1");
+	assert.ok(rootAnsiRegex.version.startsWith("6."), "Root v6.2.2 satisfies ^6.0.1");
+
+	console.log("✓ Root package prioritized at top level, workspace version nested");
+});
+
+test("Compare generated shrinkwrap with expected result: package.a", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
 	t.after(() => mockRestore());
@@ -137,8 +186,7 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 		"Generated shrinkwrap packages should match expected");
 });
 
-
-test("Compare generated shrinkwrap with expected result", async (t) => {
+test("Compare generated shrinkwrap with expected result: package.b", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
 	t.after(() => mockRestore());
@@ -160,6 +208,37 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 
 	// Load expected shrinkwrap
 	const expectedShrinkwrapPath = path.join(__dirname, "..", "expected", "package.b", "npm-shrinkwrap.json");
+	const expectedShrinkwrap = await readJson(expectedShrinkwrapPath);
+
+	// Write generated shrinkwrap to tmp dir for debugging purposes
+	await writeFile(generatedShrinkwrapPath, JSON.stringify(generatedShrinkwrap, null, "\t"), "utf-8");
+
+	assert.deepEqual(generatedShrinkwrap.packages, expectedShrinkwrap.packages,
+		"Generated shrinkwrap packages should match expected");
+});
+
+test("Compare generated shrinkwrap with expected result: package.c", async (t) => {
+	// Setup mock to prevent actual npm registry requests
+	const mockRestore = setupPacoteMock();
+	t.after(() => mockRestore());
+
+	const __dirname = import.meta.dirname;
+	const generatedShrinkwrapPath = path.join(__dirname, "..", "tmp", "package.c", "npm-shrinkwrap.generated.json");
+	// Clean any existing generated file
+	await mkdir(path.dirname(generatedShrinkwrapPath), {recursive: true});
+	await unlink(generatedShrinkwrapPath).catch(() => {});
+
+	// Generate shrinkwrap from fixture
+	const cwd = path.join(__dirname, "..", "fixture", "project.c");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const targetPackageName = "@ui5/target";
+
+	const generatedShrinkwrap = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+
+	// Load expected shrinkwrap
+	const expectedShrinkwrapPath = path.join(__dirname, "..", "expected", "package.c", "npm-shrinkwrap.json");
 	const expectedShrinkwrap = await readJson(expectedShrinkwrapPath);
 
 	// Write generated shrinkwrap to tmp dir for debugging purposes

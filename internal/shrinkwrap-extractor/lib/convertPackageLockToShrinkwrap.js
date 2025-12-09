@@ -48,29 +48,58 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		path: workspaceRootDir,
 	});
 	const tree = await arb.loadVirtual();
-	const cliNode = Array.from(tree.tops).find((node) => node.packageName === targetPackageName);
-	if (!cliNode) {
+	const tops = Array.from(tree.tops.values());
+	const targetNode = tops.find((node) => node.packageName === targetPackageName);
+	if (!targetNode) {
 		throw new Error(`Target package "${targetPackageName}" not found in workspace`);
 	}
 
 	const relevantPackageLocations = new Map();
 	// Collect all package keys using arborist
-	collectDependencies(cliNode, relevantPackageLocations);
+	collectDependencies(targetNode, relevantPackageLocations);
 
+
+	// Build a map of package paths to their versions for collision detection
+	function buildVersionMap(relevantPackageLocations) {
+		const versionMap = new Map();
+		for (const [key, node] of relevantPackageLocations) {
+			const pkgPath = key.split("|")[0];
+			versionMap.set(pkgPath, node.version);
+		}
+		return versionMap;
+	}
+
+	// Build a map: key = package path, value = array of unique versions
+	const existingLocationsAndVersions = buildVersionMap(relevantPackageLocations);
 	// Using the keys, extract relevant package-entries from package-lock.json
+	// Extract and process packages
 	const extractedPackages = Object.create(null);
-	for (let [packageLoc, node] of relevantPackageLocations) {
-		let pkg = packageLockJson.packages[packageLoc];
+	for (const [locAndParentPackage, node] of relevantPackageLocations) {
+		const [originalLocation, parentPackage] = locAndParentPackage.split("|");
+
+		let pkg = packageLockJson.packages[node.location];
 		if (pkg.link) {
 			pkg = packageLockJson.packages[pkg.resolved];
 		}
+
+		let packageLoc;
 		if (pkg.name === targetPackageName) {
 			// Make the target package the root package
 			packageLoc = "";
 			if (extractedPackages[packageLoc]) {
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
-		} else if (!pkg.resolved) {
+		} else {
+			packageLoc = normalizePackageLocation(
+				[originalLocation, parentPackage],
+				node,
+				targetPackageName,
+				tree.packageName,
+				existingLocationsAndVersions,
+				targetNode
+			);
+		}
+		if (packageLoc !== "" && !pkg.resolved) {
 			// For all but the root package, ensure that "resolved" and "integrity" fields are present
 			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
 			// from local cache)
@@ -78,6 +107,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 			pkg.resolved = resolved;
 			pkg.integrity = integrity;
 		}
+
 		extractedPackages[packageLoc] = pkg;
 	}
 
@@ -91,7 +121,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	// Generate npm-shrinkwrap.json
 	const shrinkwrap = {
 		name: targetPackageName,
-		version: cliNode.version,
+		version: targetNode.version,
 		lockfileVersion: 3,
 		requires: true,
 		packages: sortedExtractedPackages
@@ -100,12 +130,64 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	return shrinkwrap;
 }
 
-function collectDependencies(node, relevantPackageLocations) {
-	if (relevantPackageLocations.has(node.location)) {
+function isDirectDependency(node, targetNode) {
+	return Array.from(node.edgesIn.values()).some((edge) => edge.from === targetNode);
+}
+
+function normalizePackageLocation(
+	[location, parentPackage],
+	node,
+	targetPackageName,
+	rootPackageName,
+	existingLocationsAndVersions,
+	targetNode
+) {
+	const topPackageName = node.top.packageName;
+
+	if (topPackageName === targetPackageName) {
+		// Package belongs to target package
+		const normalizedPath = location.substring(node.top.location.length + 1);
+		const existingVersion = existingLocationsAndVersions.get(normalizedPath);
+
+		// Handle version collision
+		if (existingVersion && existingVersion !== node.version) {
+			// Direct dependencies get priority, transitive ones get nested
+			const finalPath = isDirectDependency(node, targetNode) ?
+				normalizedPath : `node_modules/${topPackageName}/${normalizedPath}`;
+
+			existingLocationsAndVersions.set(finalPath, node.version);
+			return finalPath;
+		}
+
+		existingLocationsAndVersions.set(normalizedPath, node.version);
+		return normalizedPath;
+	} else if (topPackageName !== rootPackageName) {
+		// Package belongs to another workspace package - nest under it
+		const nestedPath = `node_modules/${topPackageName}/${location.substring(node.top.location.length + 1)}`;
+		existingLocationsAndVersions.set(nestedPath, node.version);
+		return nestedPath;
+	} else {
+		const existingVersion = existingLocationsAndVersions.get(location);
+		if (existingVersion && existingVersion !== node.version) {
+			// Version collision at root - nest under parent
+			const nestedPath = `node_modules/${parentPackage}/${location}`;
+			existingLocationsAndVersions.set(nestedPath, node.version);
+			return nestedPath;
+		}
+	}
+
+	return location;
+}
+
+function collectDependencies(node, relevantPackageLocations, parentPackage = "") {
+	if (relevantPackageLocations.has(node.location + "|" + parentPackage)) {
 		// Already processed
 		return;
 	}
-	relevantPackageLocations.set(node.location, node);
+	// We need this as the module could be in the root node_modules and later might need to be nested
+	// under many different parent packages due to version collisions. If this step is skipped, some
+	// packages might be missing in the final shrinkwrap due to key overwrites.
+	relevantPackageLocations.set(node.location + "|" + parentPackage, node);
 	if (node.isLink) {
 		node = node.target;
 	}
@@ -113,7 +195,7 @@ function collectDependencies(node, relevantPackageLocations) {
 		if (edge.dev) {
 			continue;
 		}
-		collectDependencies(edge.to, relevantPackageLocations);
+		collectDependencies(edge.to, relevantPackageLocations, node.packageName);
 	}
 }
 
