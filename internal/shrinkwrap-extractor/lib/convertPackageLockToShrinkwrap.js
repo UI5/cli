@@ -60,7 +60,12 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 
 	// Using the keys, extract relevant package-entries from package-lock.json
 	const extractedPackages = Object.create(null);
+	const resolvedConflicts = new Set();
 	for (let [packageLoc, node] of relevantPackageLocations) {
+		if (resolvedConflicts.has(packageLoc)) {
+			// This package location was already moved due to a conflict
+			continue;
+		}
 		let pkg = packageLockJson.packages[packageLoc];
 		if (pkg.link) {
 			pkg = packageLockJson.packages[pkg.resolved];
@@ -72,15 +77,47 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
 			}
 		} else {
-			packageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName);
-		}
-		if (packageLoc !== "" && !pkg.resolved) {
-			// For all but the root package, ensure that "resolved" and "integrity" fields are present
-			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
-			// from local cache)
-			const {resolved, integrity} = await fetchPackageMetadata(node.packageName, node.version, workspaceRootDir);
-			pkg.resolved = resolved;
-			pkg.integrity = integrity;
+			if (!pkg.resolved) {
+				// For all but the root package, ensure that "resolved" and "integrity" fields are present
+				// These are always missing for locally linked packages, but sometimes also for others
+				// (e.g. if installed from local cache)
+				const {resolved, integrity} = await fetchPackageMetadata(
+					node.packageName, node.version, workspaceRootDir);
+				pkg.resolved = resolved;
+				pkg.integrity = integrity;
+			}
+			// Align package locations with new target
+			const newPackageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName);
+			// Detect conflicts with dependencies hoisted to root level for packages other than the target
+			const existingPackageAtNewLocation = relevantPackageLocations.get(newPackageLoc);
+			if (newPackageLoc !== packageLoc && existingPackageAtNewLocation) {
+				if (pkg.version !== existingPackageAtNewLocation.version) {
+					console.log(
+						`Hoisting conflict: Package "${node.packageName}" (from "${packageLoc}") already exists at ` +
+						`new location ${newPackageLoc} in version ${existingPackageAtNewLocation.version}`);
+					resolvedConflicts.add(newPackageLoc);
+					const conflictPkg = packageLockJson.packages[newPackageLoc];
+					if (!conflictPkg.resolved) {
+						// For all but the root package, ensure that "resolved" and "integrity" fields are present
+						// These are always missing for locally linked packages, but sometimes also for others
+						// (e.g. if installed from local cache)
+						const {resolved, integrity} = await fetchPackageMetadata(
+							existingPackageAtNewLocation.packageName, existingPackageAtNewLocation.version,
+							workspaceRootDir);
+						conflictPkg.resolved = resolved;
+						conflictPkg.integrity = integrity;
+					}
+					// Move existing package to a package-specific subdirectories to avoid conflict
+					for (const edge of existingPackageAtNewLocation.edgesIn) {
+						const parentPackage = edge.from.top.packageName;
+						console.log(`Moving conflicting package "${node.packageName}" under ` +
+							`"node_modules/${parentPackage}/node_modules/"`);
+						const subPath = `node_modules/${parentPackage}/node_modules/${node.packageName}`;
+						extractedPackages[subPath] = structuredClone(conflictPkg);
+					}
+				}
+			}
+			packageLoc = newPackageLoc;
 		}
 		extractedPackages[packageLoc] = pkg;
 	}
