@@ -33,7 +33,8 @@
 			"version": "1.0.0",
 			"license": "Apache-2.0",
 			"dependencies": {
-				"@sapui5/some-thirdparty": "^2.0.0",
+				"@sapui5/thirdparty-a": "^2.0.0",
+				"@sapui5/thirdparty-b": "^1.0.0",
 				"@ui5/module-a": "^1.0.0",
 				"@ui5/module-b": "^1.0.0"
 			},
@@ -45,7 +46,8 @@
 			"license": "Apache-2.0",
 			"dependencies": {
 				"@ui5/module-b": "^1.0.0",
-				"@sapui5/some-thirdparty": "^1.0.0"
+				"@sapui5/thirdparty-a": "^1.0.0",
+				"@sapui5/thirdparty-b": "^1.0.0"
 			},
 			"devDependencies": {}
 		},
@@ -54,14 +56,33 @@
 			"version": "1.0.0",
 			"license": "Apache-2.0",
 			"dependencies": {
-				"@sapui5/some-thirdparty": "^1.0.0"
+				"@sapui5/thirdparty-a": "^1.0.0",
+				"@sapui5/thirdparty-b": "^1.0.0"
 			},
 			"devDependencies": {}
 		},
-		"node_modules/@sapui5/some-thirdparty": {
+		"node_modules/@sapui5/thirdparty-a": {
+			"version": "1.0.0",
+			"dependencies": {
+				"@sapui5/thirdparty-x": "^1.0.0"
+			}
+		},
+		"node_modules/@sapui5/thirdparty-b": {
+			"version": "1.0.0",
+			"dependencies": {
+				"@sapui5/thirdparty-x": "^1.0.0"
+			}
+		},
+		"node_modules/@sapui5/thirdparty-x": {
 			"version": "1.0.0"
 		},
-		"packages/target/node_modules/@sapui5/some-thirdparty": {
+		"packages/target/node_modules/@sapui5/thirdparty-a": {
+			"version": "2.0.0",
+			"dependencies": {
+				"@sapui5/thirdparty-x": "^2.0.0"
+			}
+		},
+		"packages/target/node_modules/@sapui5/thirdparty-x": {
 			"version": "2.0.0"
 		}
 	}
