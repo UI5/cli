@@ -12,6 +12,8 @@ import path from "node:path";
 import {toHtml} from "hast-util-to-html";
 import {JSDOM} from "jsdom";
 
+const aElementRegex = /<a.*?href="(.*?)".*?>([^<]*)<\/a>/;
+
 function escapeMarkdown(input) {
 	const map = {
         "|": "&#124;"
@@ -66,13 +68,19 @@ async function htmlToMarkdown(options = {}) {
                 },
                 a(state, node) {
                     // This fixes internal linking e.g. from #~myawesomemethod to #myawesomemethod
-                    const regex = /<a.*?href="(.*?)".*?>([^<]*)<\/a>/;
                     const result = {type: "html", value: toHtml(node).replaceAll("~", "")};
-                    let href = result.value.match(regex);
-                    if (href !== null && href[1].split("#")[1] != null) {
-                        let text = href[2];
+                    let href = result.value.match(aElementRegex);
+                    // Filters for a tags that need fixing
+                    // href !== null - Checks if href is null (A element has no href)
+                    // href[1].split("#")[1] != null - Checks if the a element is an internal link
+                    // !href[2].includes("line") - Checks for links to GitHub source code
+                    if (href !== null && href[1].split("#")[1] != null && !href[2].includes("line")) {
+                        const text = href[2];
                         href = href[1];
-                        result.value = result.value.replace(href, "#" + href.split("#")[1].toLowerCase()).replace(text, text.replace(href.split("#")[1], "") + "#" + href.split("#")[1]);
+                        result.value =
+                            result.value.replace(href, href.split("#")[0] + "#" + href.split("#")[1].toLowerCase())
+                                .replace(text, text.replace(href.split("#")[1], "") + "#" + href.split("#")[1])
+                                .replace("##", "#");
                     }
                     state.patch(node, result);
                     return result;
@@ -87,6 +95,8 @@ async function htmlToMarkdown(options = {}) {
 	return String(file);
 }
 
+const deadLinks = [];
+const deadLinksCheckPromises = [];
 const excludedFiles = {"index.html": "", "global.html": "", "custom.css": ""};
 const inputDirectory = path.join("dist", "api");
 const outputDirectory = path.join("docs", "api");
@@ -117,11 +127,11 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
     if (file.endsWith(".js.html")) continue;
 
     const filePath = path.join(inputDirectory, file);
-    const mardownPath = path.join(outputDirectory, file.replace(".html", ".md"));
     // Skip directories
 	if (fs.statSync(filePath).isDirectory()) continue;
 
-    //console.log("HTML -> Markdown", "|", filePath, "->", mardownPath);
+    const mardownPath = path.join(outputDirectory, file.replace(".html", ".md"));
+    console.log("HTML -> Markdown", "|", filePath, "->", mardownPath);
 
     // Read the html file
 	const htmlString = fs.readFileSync(filePath);
@@ -138,17 +148,43 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
     markdown = fixMarkdown(markdown);
 
     // Point all js links to GitHub
-    const linkMatches = markdown.matchAll(/\((.*?)\.js.html\)/g);
+    const linkMatches = markdown.matchAll(/"[^"]*\.[A-Za-z0-9]+\.[A-Za-z0-9]+[^"]*"/g);
     for (const linkMatch of linkMatches) {
-        const githubUrl = packageTagName + linkMatch[1].replace(".js.html", "").replaceAll("_", "/").replace("project", "") + ".js";
-        markdown = markdown.replaceAll(linkMatch[1] + ".js.html#line", githubUrl + "#L").replaceAll(linkMatch[1] + ".js.html", githubUrl);
+        const githubUrl = packageTagName +
+            linkMatch[0].replaceAll("\"", "").replace(".js.html", "").replaceAll("_", "/").replace("project", "") +
+            ".js";
+        markdown = markdown
+                    .replaceAll(linkMatch[0].replaceAll("\"", "") + "#line", githubUrl + "#L")
+                    .replaceAll(linkMatch[0].replaceAll("\"", ""), githubUrl);
     }
-    
+
+    // Add target="_blank" to the a element (Must link to external site) for a better user experience
+    markdown = markdown.replaceAll("<a href=\"http", "<a target=\"_blank\" href=\"http");
+
+    for (const aElement of markdown.matchAll(aElementRegex + "g")) {
+        deadLinksCheckPromises.push(checkDeadlinks(aElement[1], filePath));
+    }
+
     // Save markdown file
     fs.writeFileSync(
         mardownPath,
         markdown
     );
+
+    Promise.all(deadLinksCheckPromises);
+}
+
+async function checkDeadlinks(link, sourcePath) {
+    if ((await fetch(link)).status != 200) {
+        deadLinks.push({
+            link: link,
+            sourcePath: sourcePath
+        });
+    }
 }
 
 console.log("Conversion done");
+console.log("Found", deadLinks.length, "dead links");
+if (deadLinks.length != 0) {
+    console.log(deadLinks);
+}
