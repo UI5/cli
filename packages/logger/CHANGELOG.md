@@ -5,6 +5,19 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-logger/compare/v4.0.2...HEAD).
 
 <a name="5.0.0-alpha.0"></a>
+## [5.0.0](https://github.com/d3xter666/cli/compare/logger-v4.0.2...logger-v5.0.0) (2025-12-03)
+
+
+### chore
+
+* release 5.0.0 ([32f4dab](https://github.com/d3xter666/cli/commit/32f4dabc91a2e51af2678c3e86549bcdc397aaac))
+
+
+### Features
+
+* **logger:** Add module filtering, task-skip event ([5a1b071](https://github.com/d3xter666/cli/commit/5a1b07127ad91ba27deaface060235ddb16a9e21))
+* Test ([f91cb2d](https://github.com/d3xter666/cli/commit/f91cb2d4ecf4a052f67a3fb9b4564fc49075d983))
+
 ## [5.0.0-alpha.0](https://github.com/d3xter666/cli/compare/logger-v5.0.0-alpha.0...logger-v5.0.0-alpha.0) (2025-12-03)
 
 

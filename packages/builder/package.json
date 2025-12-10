@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/builder",
-	"version": "5.0.0-alpha.0",
+	"version": "5.0.0",
 	"description": "UI5 CLI - Builder",
 	"author": {
 		"name": "SAP SE",
@@ -111,8 +111,8 @@
 	},
 	"dependencies": {
 		"@jridgewell/sourcemap-codec": "^1.5.5",
-		"@ui5/fs": "^5.0.0-alpha.0",
-		"@ui5/logger": "^5.0.0-alpha.0",
+		"@ui5/fs": "^5.0.0",
+		"@ui5/logger": "^5.0.0",
 		"cheerio": "1.0.0",
 		"escape-unicode": "^0.2.0",
 		"escope": "^4.0.0",
@@ -129,7 +129,7 @@
 	"devDependencies": {
 		"@istanbuljs/esm-loader-hook": "^0.3.0",
 		"@jridgewell/trace-mapping": "^0.3.31",
-		"@ui5/project": "^5.0.0-alpha.0",
+		"@ui5/project": "^5.0.0",
 		"ava": "^6.4.1",
 		"cross-env": "^7.0.3",
 		"depcheck": "^1.4.7",

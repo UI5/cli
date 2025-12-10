@@ -5,6 +5,21 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-fs/compare/v4.0.2...HEAD).
 
 <a name="5.0.0-alpha.0"></a>
+## [5.0.0](https://github.com/d3xter666/cli/compare/fs-v4.0.2...fs-v5.0.0) (2025-12-03)
+
+
+### chore
+
+* release 5.0.0 ([32f4dab](https://github.com/d3xter666/cli/commit/32f4dabc91a2e51af2678c3e86549bcdc397aaac))
+
+
+### Dependencies
+
+* bump globby from 14.1.0 to 15.0.0 ([#1152](https://github.com/d3xter666/cli/issues/1152)) ([2cb5cd1](https://github.com/d3xter666/cli/commit/2cb5cd1380f43086a2cf52ca7c15aa4a6ff09877))
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/logger bumped from ^5.0.0-alpha.0 to ^5.0.0
+
 ## [5.0.0-alpha.0](https://github.com/d3xter666/cli/compare/fs-v5.0.0-alpha.0...fs-v5.0.0-alpha.0) (2025-12-03)
 
 
