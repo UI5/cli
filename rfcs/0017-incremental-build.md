@@ -102,20 +102,44 @@ Stages have an explicit order, based on the order they have been created/used. S
 
 The `Task Runner` shall be enhanced to:
 
-1. Consult the `Project Build Cache` before executing each task to determine whether the task needs to be executed or can be skipped based on the cache information.
-2. After a task has been executed, update the `Project Build Cache` with information about the resources read and written during the task's execution.
+1. Request the build signature of any tasks implementing the `determineBuildSignature` method at the beginning of the build process. These signatures are then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation)).
+2. Consult the `Project Build Cache` before executing each task to determine whether the task needs to be executed or can be skipped based on the cache information.
+3. Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution.
+4. Execute the task with a new `cacheUtil` parameter, allowing it to access cache-related information during its execution. This can be used by tasks to optimize their processing based on which resources have changed since their last execution (see [Build Task Cache API](#build-task-cache-api) below).
+5. After a task has been executed, update the `Project Build Cache` with information about the resources read and written during the task's execution, as well as the set of resources expected to be written (as provided by the `determineExpectedOutput` method).
 	* This can be achieved by providing the task with instances of the `workspace`-reader/writer and `dependencies`-reader that have been wrapped in `Tracker` instances. These trackers will monitor which resources are being accessed during the task's execution.
 	* The `Project Build Cache` will then:
 		* Update the metadata in the respective `Build Task Cache`
 		* Validate which resources have actually changed
+		* Delete or tag resources that have become stale
 		* Based on that, check which downstream tasks need to be potentially invalidated (see [Cache Invalidation](#cache-invalidation))
-3. Provide the build task with a `buildCache` parameter, allowing it to access cache-related information during its execution. This can be used by tasks to optimize their processing based on which resources have changed since their last execution.
 
-Build tasks shall be provided with the following new helper functions:
+##### Build Task Cache API
 
-* `hasCache`: Checks whether the project's build cache has an entry for the given task
-* `getChangedProjectPaths`: Returns the set of changed project resource paths for the given task
-* `getChangedDependencyPaths`: Returns the set of changed dependency resource paths for the given task
+Build tasks shall be provided with the following new helper functions as part of a new `cacheUtil` helper class (similar to the existing [`taskUtil` helper class](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#helper-class-taskutil)):
+
+* **hasCache()**: Checks whether the project's build cache has an entry for the given task, i.e. whether the task has been executed in a previous build and its result has been cached
+* **getChangedProjectResourcePaths()**: Returns a set of paths of resources that have changed in the project since the last execution of the given task
+* **getChangedDependencyResourcePaths()**: Returns a set of paths of resources that have changed in the dependencies since the last execution of the given task
+
+In addition, tasks may also implement the following new methods:
+
+* **async determineBuildSignature({log, options})**
+	* `log`: A logger instance scoped to the task
+	* `options`: Same as for the main task function. `{projectName, projectNamespace, configuration, taskName}`
+	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string shouldn't be a hash value (the build signature hash is calculated later on). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input-resources change.
+	* This method is called once at the beginning of every build. The return value used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
+* **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**:
+	* `workspace`: Reader to access resources of the project's workspace (read only)
+	* `dependencies`: Reader to access resources of the project's dependencies
+	* `cacheUtil`: Same as above
+	* `log`: A logger instance scoped to the task
+	* `options`: Same as for the main task function. `{projectName, projectNamespace, configuration, taskName}`
+	* Returns: A set of resource paths which the task anticipates to write (output) in a clean run. That is, without cache. In case the task ends up writing fewer resources or resources outside of this set, an error will be produced. In case of a cache hit, the task may write fewer resources than declared here. If `undefined` is returned, or if the method is not implemented, it is assumed that the task's output is always the same as in the previous execution. Therefore, no stale output detection will be performed.
+	* This method is called right before the task is being executed. It is used to detect stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution. Such stale resources must be removed from the build output to avoid inconsistencies.
+
+
+These methods took some inspiration from to the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
 
 #### Tracker
 
@@ -203,7 +227,7 @@ The cache consists of two main parts:
 						"size": 1234,
 						"integrity": "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
 					}
-				},
+				}
 			}
 		},
 		"stages": {
@@ -442,7 +466,7 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 
 ## Unresolved Questions and Bikeshedding
 
-* How to distinguish projects with build cache from pre-built projects (with project manifest)
+* ✅ How to distinguish projects with build cache from pre-built projects (with project manifest)
 	* Check presence of "sourceMetadata" attribute. Only with "sourceMetadata", the cache can be used for incremental (re-)builds the project. Otherwise it is "only" a build *result* that can be used for building dependent projects.
 * Cache related topics
 	* Allow tasks to store additional information in the cache
@@ -451,4 +475,3 @@ An alternative to using the incremental build in the UI5 CLI server would be to 
 * What if a task ceases to create a resource because of a change in another resource? The previously created version of the resource would still be used from the cache
 * Measure performance in BAS. Find out whether this approach results in acceptable performance.
 * Test with selected (community) custom tasks
-* Stale Cache Artifacts: Address scenarios where a task ceases to generate a resource that it created in a previous run. Because the old output is stored in a cached writer stage (v1), that stale file would be incorrectly included in the final build result.
