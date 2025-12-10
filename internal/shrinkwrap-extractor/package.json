@@ -11,11 +11,12 @@
 	"license": "Apache-2.0",
 	"main": "lib/convertPackageLockToShrinkwrap.js",
 	"bin": {
-		"shrinkwrap-extractor": "./cli.js"
+		"shrinkwrap-extractor": "cli.js"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git@github.com:UI5/cli.git"
+		"url": "git+ssh://git@github.com/UI5/cli.git",
+		"directory": "internal/shrinkwrap-extractor"
 	},
 	"scripts": {
 		"test": "npm run lint && npm run coverage && npm run depcheck",

@@ -1,5 +1,5 @@
 import path from "node:path";
-import {readFile, mkdir, writeFile, unlink} from "node:fs/promises";
+import {readFile, mkdir, writeFile, unlink, symlink} from "node:fs/promises";
 import convertPackageLockToShrinkwrap from "../../lib/convertPackageLockToShrinkwrap.js";
 import {test} from "node:test";
 import assert from "node:assert";
@@ -18,10 +18,27 @@ function setupPacoteMock() {
 	});
 }
 
+/**
+ * Create a temporary symlink from package-lock.fixture.json to package-lock.json
+ * This is needed because @npmcli/arborist.loadVirtual() expects package-lock.json
+ *
+ * @param {string} fixtureDir - Directory containing the fixture file
+ * @returns {Promise<string>} Path to the created symlink
+ */
+async function setupFixtureSymlink(fixtureDir) {
+	const symlinkPath = path.join(fixtureDir, "package-lock.json");
+	const targetPath = "package-lock.fixture.json";
+	await symlink(targetPath, symlinkPath);
+	return symlinkPath;
+}
+
 test("Convert package-lock.json to shrinkwrap", async (t) => {
 	const __dirname = import.meta.dirname;
 
 	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
 	const targetPackageName = "@ui5/cli";
 	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
 
@@ -67,6 +84,41 @@ test("Convert package-lock.json to shrinkwrap", async (t) => {
 	console.log(`Generated shrinkwrap with ${packagePaths.length - 1} dependencies`);
 });
 
+test("Workspace paths should be normalized to node_modules format", async (t) => {
+	const __dirname = import.meta.dirname;
+
+	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const targetPackageName = "@ui5/cli";
+	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+
+	// Verify that no package paths contain workspace prefixes like "packages/cli/node_modules/..."
+	const packagePaths = Object.keys(shrinkwrapJson.packages);
+
+	for (const packagePath of packagePaths) {
+		// Skip root package (empty string)
+		if (packagePath === "") continue;
+
+		// Assert that no path starts with "packages/"
+		assert.ok(!packagePath.startsWith("packages/"),
+			`Package path "${packagePath}" should not start with "packages/" prefix`);
+
+		// Assert that non-root paths start with "node_modules/"
+		assert.ok(packagePath.startsWith("node_modules/"),
+			`Package path "${packagePath}" should start with "node_modules/" prefix`);
+	}
+
+	// Specifically check a package that would have been under packages/cli/node_modules in the monorepo
+	// The "@npmcli/config" package is a direct dependency that exists in the CLI's node_modules
+	const npmCliConfigPackage = shrinkwrapJson.packages["node_modules/@npmcli/config"];
+	assert.ok(npmCliConfigPackage, "The '@npmcli/config' package should be present at normalized path");
+	assert.equal(npmCliConfigPackage.version, "9.0.0", "@npmcli/config package should have correct version");
+
+	console.log(`✓ All ${packagePaths.length - 1} package paths correctly normalized`);
+});
+
 test("Compare generated shrinkwrap with expected result", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();
@@ -80,6 +132,9 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 
 	// Generate shrinkwrap from fixture
 	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
 	const targetPackageName = "@ui5/cli";
 	const generatedShrinkwrap = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
 
@@ -131,6 +186,9 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 
 	// Generate shrinkwrap from fixture
 	const cwd = path.join(__dirname, "..", "fixture", "project.b");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
 	const targetPackageName = "@ui5/cli";
 
 	const generatedShrinkwrap = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
@@ -150,6 +208,8 @@ test("Compare generated shrinkwrap with expected result", async (t) => {
 test("Error handling - invalid target package name", async (t) => {
 	const __dirname = import.meta.dirname;
 	const validCwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(validCwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(validCwd, null),
@@ -170,6 +230,8 @@ test("Error handling - invalid target package name", async (t) => {
 test("Error handling - target package not found", async (t) => {
 	const __dirname = import.meta.dirname;
 	const validCwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(validCwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
 
 	await assert.rejects(
 		convertPackageLockToShrinkwrap(validCwd, "non-existent-package"),
@@ -187,28 +249,45 @@ test("Error handling - invalid workspace directory", async (t) => {
 test("Error handling - invalid package-lock.json files", async (t) => {
 	const __dirname = import.meta.dirname;
 
+	// Setup symlinks for all invalid fixtures
+	const malformedDir = path.join(__dirname, "..", "fixture", "invalid", "malformed");
+	const noPackagesDir = path.join(__dirname, "..", "fixture", "invalid", "no-packages");
+	const invalidPackagesDir = path.join(__dirname, "..", "fixture", "invalid", "invalid-packages");
+	const v2Dir = path.join(__dirname, "..", "fixture", "invalid", "v2");
+
+	const symlinks = [
+		await setupFixtureSymlink(malformedDir),
+		await setupFixtureSymlink(noPackagesDir),
+		await setupFixtureSymlink(invalidPackagesDir),
+		await setupFixtureSymlink(v2Dir)
+	];
+
+	// Cleanup all symlinks after test
+	t.after(async () => {
+		await Promise.all(symlinks.map((link) => unlink(link).catch(() => {})));
+	});
+
 	// Test malformed JSON
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(path.join(__dirname, "..", "fixture", "invalid", "malformed"), "@ui5/cli"),
+		convertPackageLockToShrinkwrap(malformedDir, "@ui5/cli"),
 		/Unexpected token/
 	);
 
 	// Test missing packages field
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(path.join(__dirname, "..", "fixture", "invalid", "no-packages"), "@ui5/cli"),
+		convertPackageLockToShrinkwrap(noPackagesDir, "@ui5/cli"),
 		/Invalid package-lock\.json: missing packages field/
 	);
 
 	// Test invalid packages field
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(
-			path.join(__dirname, "..", "fixture", "invalid", "invalid-packages"), "@ui5/cli"),
+		convertPackageLockToShrinkwrap(invalidPackagesDir, "@ui5/cli"),
 		/Invalid package-lock\.json: packages field must be an object/
 	);
 
 	// Test unsupported lockfile version
 	await assert.rejects(
-		convertPackageLockToShrinkwrap(path.join(__dirname, "..", "fixture", "invalid", "v2"), "@ui5/cli"),
+		convertPackageLockToShrinkwrap(v2Dir, "@ui5/cli"),
 		/Unsupported lockfile version: 2\. Only lockfile version 3 is supported/
 	);
 });
