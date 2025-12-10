@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/cli",
-	"version": "5.0.0-alpha.0",
+	"version": "5.0.0-alpha.1",
 	"description": "UI5 CLI - CLI",
 	"author": {
 		"name": "SAP SE",
@@ -104,11 +104,11 @@
 		"directory": "packages/cli"
 	},
 	"dependencies": {
-		"@ui5/builder": "^5.0.0-alpha.0",
-		"@ui5/fs": "^5.0.0-alpha.0",
-		"@ui5/logger": "^5.0.0-alpha.0",
-		"@ui5/project": "^5.0.0-alpha.0",
-		"@ui5/server": "^5.0.0-alpha.0",
+		"@ui5/builder": "^5.0.0-alpha.1",
+		"@ui5/fs": "^5.0.0-alpha.1",
+		"@ui5/logger": "^5.0.0-alpha.1",
+		"@ui5/project": "^5.0.0-alpha.1",
+		"@ui5/server": "^5.0.0-alpha.1",
 		"chalk": "^5.6.2",
 		"data-with-position": "^0.5.0",
 		"import-local": "^3.2.0",
