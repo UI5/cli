@@ -6,7 +6,7 @@
 	"pull-request-header": ":tractor: New release prepared",
 	"prerelease": true,
 	"prerelease-type": "alpha",
-	"release-as": "5.0.0-alpha.0",
+	"release-as": "5.0.0-alpha.1",
 	"packages": {
 		"packages/logger": {
 			"component": "logger"
