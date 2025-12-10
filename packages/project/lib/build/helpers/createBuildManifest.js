@@ -48,19 +48,6 @@ export default async function(project, graph, buildConfig, taskRepository, build
 			`Unable to create archive metadata for project ${project.getName()}: ` +
 			`Project type ${type} is currently not supported`);
 	}
-	// let buildManifest;
-	// if (project.isFrameworkProject()) {
-	// 	buildManifest = await createFrameworkManifest(project, buildConfig, taskRepository);
-	// } else {
-	// 	buildManifest = {
-	// 		manifestVersion: "0.3",
-	// 		timestamp: new Date().toISOString(),
-	// 		dependencies: collectDepInfo(graph, project),
-	// 		version: project.getVersion(),
-	// 		namespace: project.getNamespace(),
-	// 		tags: getSortedTags(project),
-	// 	};
-	// }
 
 	const metadata = {
 		project: {
