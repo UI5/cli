@@ -221,10 +221,6 @@ class TaskRunner {
 					},
 					options,
 				};
-				// const invalidatedResources = this._buildCache.getDepsOfInvalidatedResourcesForTask(taskName);
-				// if (invalidatedResources) {
-				// 	params.invalidatedResources = invalidatedResources;
-				// }
 
 				let dependencies;
 				if (requiresDependencies) {
