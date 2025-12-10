@@ -14,25 +14,29 @@ import stringReplacer from "../processors/stringReplacer.js";
  *
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {object} parameters.cacheUtil Cache utility instance
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @param {string} parameters.options.version Replacement version
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default function({workspace, options: {pattern, version}}) {
-	return workspace.byGlob(pattern)
-		.then((allResources) => {
-			return stringReplacer({
-				resources: allResources,
-				options: {
-					pattern: /\$\{(?:project\.)?version\}/g,
-					replacement: version
-				}
-			});
-		})
-		.then((processedResources) => {
-			return Promise.all(processedResources.map((resource) => {
-				return workspace.write(resource);
-			}));
-		});
+export default async function({workspace, cacheUtil, options: {pattern, version}}) {
+	let resources = await workspace.byGlob(pattern);
+
+	if (cacheUtil.hasCache()) {
+		const changedPaths = cacheUtil.getChangedProjectResourcePaths();
+		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
+	}
+	const processedResources = await stringReplacer({
+		resources,
+		options: {
+			pattern: /\$\{(?:project\.)?version\}/g,
+			replacement: version
+		}
+	});
+	await Promise.all(processedResources.map((resource) => {
+		if (resource) {
+			return workspace.write(resource);
+		}
+	}));
 }

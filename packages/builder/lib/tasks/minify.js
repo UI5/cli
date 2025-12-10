@@ -16,6 +16,7 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
  * @param {@ui5/project/build/helpers/TaskUtil|object} [parameters.taskUtil] TaskUtil
+ * @param {object} [parameters.cacheUtil] Cache utility instance
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @param {boolean} [parameters.options.omitSourceMapResources=false] Whether source map resources shall
@@ -26,9 +27,17 @@ import fsInterface from "@ui5/fs/fsInterface";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({
-	workspace, taskUtil, options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true
-	}}) {
-	const resources = await workspace.byGlob(pattern);
+	workspace, taskUtil, cacheUtil,
+	options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true}
+}) {
+	let resources = await workspace.byGlob(pattern);
+	if (cacheUtil.hasCache()) {
+		const changedPaths = cacheUtil.getChangedProjectResourcePaths();
+		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
+	}
+	if (resources.length === 0) {
+		return;
+	}
 	const processedResources = await minifier({
 		resources,
 		fs: fsInterface(workspace),
