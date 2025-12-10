@@ -24,12 +24,13 @@ import stringReplacer from "../processors/stringReplacer.js";
  *
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {object} [parameters.cacheUtil] Cache utility instance
  * @param {object} parameters.options Options
  * @param {string} parameters.options.copyright Replacement copyright
  * @param {string} parameters.options.pattern Pattern to locate the files to be processed
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
-export default async function({workspace, buildCache, options: {copyright, pattern}}) {
+export default async function({workspace, cacheUtil, options: {copyright, pattern}}) {
 	if (!copyright) {
 		return;
 	}
@@ -38,8 +39,8 @@ export default async function({workspace, buildCache, options: {copyright, patte
 	copyright = copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
 
 	let resources = await workspace.byGlob(pattern);
-	if (buildCache.hasCache()) {
-		const changedPaths = buildCache.getChangedProjectResourcePaths();
+	if (cacheUtil.hasCache()) {
+		const changedPaths = cacheUtil.getChangedProjectResourcePaths();
 		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
 	}
 
