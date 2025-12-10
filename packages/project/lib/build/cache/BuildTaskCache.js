@@ -19,8 +19,8 @@ const log = getLogger("build:cache:BuildTaskCache");
  * @typedef {object} TaskCacheMetadata
  * @property {RequestMetadata} [projectRequests] - Project resource requests
  * @property {RequestMetadata} [dependencyRequests] - Dependency resource requests
- * @property {Object.<string, ResourceMetadata>} [resourcesRead] - Resources read by task
- * @property {Object.<string, ResourceMetadata>} [resourcesWritten] - Resources written by task
+ * @property {Object<string, ResourceMetadata>} [resourcesRead] - Resources read by task
+ * @property {Object<string, ResourceMetadata>} [resourcesWritten] - Resources written by task
  */
 
 function unionArray(arr, items) {
@@ -37,24 +37,6 @@ function unionObject(target, obj) {
 		}
 	}
 }
-
-// async function createMetadataForResources(resourceMap) {
-// 	const metadata = Object.create(null);
-// 	await Promise.all(Object.keys(resourceMap).map(async (resourcePath) => {
-// 		const resource = resourceMap[resourcePath];
-// 		if (resource.hash) {
-// 			// Metadata object
-// 			metadata[resourcePath] = resource;
-// 			return;
-// 		}
-// 		// Resource instance
-// 		metadata[resourcePath] = {
-// 			integrity: await resource.getIntegrity(),
-// 			lastModified: resource.getLastModified(),
-// 		};
-// 	}));
-// 	return metadata;
-// }
 
 /**
  * Manages the build cache for a single task

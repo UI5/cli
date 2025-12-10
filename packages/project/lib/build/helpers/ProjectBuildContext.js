@@ -45,10 +45,6 @@ class ProjectBuildContext {
 			allowedTags: ["ui5:OmitFromBuildResult", "ui5:IsBundle"],
 			allowedNamespaces: ["build"]
 		});
-		// const buildManifest = this.#getBuildManifest();
-		// if (buildManifest) {
-		// 	this._buildCache.deserialize(buildManifest.buildManifest.cache);
-		// }
 	}
 
 	static async create(buildContext, project) {
@@ -162,10 +158,6 @@ class ProjectBuildContext {
 			return false;
 		}
 
-		// if (!this._buildCache.hasAnyCache()) {
-		// 	await this._buildCache.attemptDeserializationFromDisk();
-		// }
-
 		return this._buildCache.needsRebuild();
 	}
 
@@ -228,35 +220,6 @@ class ProjectBuildContext {
 	getBuildSignature() {
 		return this._buildSignature;
 	}
-
-	// async watchFileChanges() {
-	// 	// const paths = this._project.getSourcePaths();
-	// 	// this._log.verbose(`Watching source paths: ${paths.join(", ")}`);
-	// 	// const {default: chokidar} = await import("chokidar");
-	// 	// const watcher = chokidar.watch(paths, {
-	// 	// 	ignoreInitial: true,
-	// 	// 	persistent: false,
-	// 	// });
-	// 	// watcher.on("add", async (filePath) => {
-	// 	// });
-	// 	// watcher.on("change", async (filePath) => {
-	// 	// 	const resourcePath = this._project.getVirtualPath(filePath);
-	// 	// 	this._log.info(`File changed: ${resourcePath} (${filePath})`);
-	// 	// 	// Inform cache
-	// 	// 	this._buildCache.fileChanged(resourcePath);
-	// 	// 	// Inform dependents
-	// 	// 	for (const dependent of this._buildContext.getGraph().getTransitiveDependents(this._project.getName())) {
-	// 	// 		await this._buildContext.getProjectBuildContext(dependent).dependencyFileChanged(resourcePath);
-	// 	// 	}
-	// 	// 	// Inform build context
-	// 	// 	await this._buildContext.fileChanged(this._project.getName(), resourcePath);
-	// 	// });
-	// }
-
-	// dependencyFileChanged(resourcePath) {
-	// 	this._log.info(`Dependency file changed: ${resourcePath}`);
-	// 	this._buildCache.fileChanged(resourcePath);
-	// }
 }
 
 export default ProjectBuildContext;
