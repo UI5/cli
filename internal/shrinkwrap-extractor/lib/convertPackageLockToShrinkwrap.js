@@ -48,8 +48,7 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		path: workspaceRootDir,
 	});
 	const tree = await arb.loadVirtual();
-	const tops = Array.from(tree.tops.values());
-	const targetNode = tops.find((node) => node.packageName === targetPackageName);
+	const targetNode = tree.inventory.get(`node_modules/${targetPackageName}`);
 	if (!targetNode) {
 		throw new Error(`Target package "${targetPackageName}" not found in workspace`);
 	}
