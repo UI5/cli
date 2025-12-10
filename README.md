@@ -26,6 +26,7 @@ Note that previous versions (up to v4) are maintained in [dedicated repositories
 - [API Reference](https://ui5.github.io/cli/stable/api/)
 - [CLI Documentation](https://ui5.github.io/cli/stable/pages/CLI/)
 - [Project Configuration](https://ui5.github.io/cli/stable/pages/Configuration/)
+- 🎬 [UI5con@SAP 2025 Talk](https://www.youtube.com/live/0D0_M4RDiZY?si=tuOjd8s6S_FUvAaF&t=4948)
 - 🎬 [UI5con@SAP 2020 Talk](https://www.youtube.com/watch?v=8IHoVJLKN34)
 - 🎬 [UI5con@SAP 2018 Talk](https://www.youtube.com/watch?v=iQ07oe26y_k)
 - [Contribution Guidelines](https://github.com/UI5/cli/blob/main/CONTRIBUTING.md)
