@@ -150,8 +150,9 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
     // Point all js links to GitHub
     const linkMatches = markdown.matchAll(/"[^"]*\.[A-Za-z0-9]+\.[A-Za-z0-9]+[^"]*"/g);
     for (const linkMatch of linkMatches) {
+        if (!linkMatch[0].endsWith(".js.html\"")) continue;
         const githubUrl = packageTagName +
-            linkMatch[0].replaceAll("\"", "").replace(".js.html", "").replaceAll("_", "/").replace("project", "") +
+            linkMatch[0].replaceAll("\"", "").replace(".js.html", "").replaceAll("_", "/") +
             ".js";
         markdown = markdown
                     .replaceAll(linkMatch[0].replaceAll("\"", "") + "#line", githubUrl + "#L")
@@ -160,6 +161,8 @@ for (const file of fs.readdirSync(path.join("dist", "api"))) {
 
     // Add target="_blank" to the a element (Must link to external site) for a better user experience
     markdown = markdown.replaceAll("<a href=\"http", "<a target=\"_blank\" href=\"http");
+
+    markdown = stripHtmlComments(markdown);
 
     for (const aElement of markdown.matchAll(aElementRegex + "g")) {
         deadLinksCheckPromises.push(checkDeadlinks(aElement[1], filePath));
@@ -181,6 +184,10 @@ async function checkDeadlinks(link, sourcePath) {
             sourcePath: sourcePath
         });
     }
+}
+
+function stripHtmlComments(str) {
+  return str.replace(/<!--[\s\S]*?-->/g, "");
 }
 
 console.log("Conversion done");

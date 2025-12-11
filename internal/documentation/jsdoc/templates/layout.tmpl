@@ -3,27 +3,14 @@
 // This file was initialy copied from https://github.com/clenemt/docdash/blob/-/tmpl/layout.tmpl
 // and adjusted to offer a customized footer according to the SAP Web Presence Policy.
 // See also the corresponding stylesheet content in lib/jsdoc/plugin/template/custom.css.
-// ##### END: MODIFIED BY SAP
 ?>
 
-<div id="main">
     <?js if (title != 'Home') { ?>
     <h1 class="page-title"><?js= title ?></h1>
     <?js } ?>
 
     <?js= content ?>
-    
-    <?js if (env.conf.docdash.disqus) { ?>
-    <div id="disqus_thread"></div>
-    <script>
-    (function() { // DON'T EDIT BELOW THIS LINE
-    var d = document, s = d.createElement('script');
-    s.src = '//<?js= env.conf.docdash.disqus ?>.disqus.com/embed.js';
-    s.setAttribute('data-timestamp', +new Date());
-    (d.head || d.body).appendChild(s);
-    })();
-    </script>
-    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-    <?js } ?>
-</div>
-</html>
+
+<?js
+// ##### END: MODIFIED BY SAP
+?>

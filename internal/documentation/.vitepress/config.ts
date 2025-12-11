@@ -4,6 +4,8 @@ import { defineConfig } from "vitepress";
 
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
+import { pagefindPlugin } from 'vitepress-plugin-pagefind'
+
 
 import fs from "node:fs";
 import path from "node:path";
@@ -82,14 +84,6 @@ export default defineConfig({
 
 
     },
-
-    search: {
-      provider: "local",
-      //hotKeys: [], // disable hotkeys to avoid search while using UI5 web components input
-    },
-
-
-
   },
 
   markdown: {
@@ -106,7 +100,8 @@ export default defineConfig({
   vite: {
     build: {
       chunkSizeWarningLimit: 4000, // chunk for local search index dominates
-    }
+    },
+    plugins: [pagefindPlugin()]
   }
 });
 
