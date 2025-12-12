@@ -32,7 +32,14 @@
     /* The soft color must be semi transparent alpha channel. */
     /*--vp-c-brand-soft: rgba(12, 72, 120, 0.14);*/ /* --brand-dark-blue */
     --vp-c-brand-soft: rgba(3, 103, 161, 0.14); /* lochmara-700 */
+
+    /* Makes the sidebar ever so slighty wider, fixes claustrophobic width with api docs */
+    --vp-sidebar-width: 290px;
+
+    /* Makes the page wider for the api docs */
+    --vp-layout-max-width: 80%;
   }
+
   .dark {
     /* The most solid color used mainly for colored text. */
     --vp-c-brand-1: #ff5a37; /* lochmara-600 */
@@ -300,4 +307,12 @@ li .learn-more {
   height: 20px;
   margin-right: 5px;
   vertical-align: middle;
+}
+
+/** 
+* Vitepress content width fix
+* This expands the content to fit more stuff
+* -------------------------------------------------------------------------- */
+.VPDoc.has-aside .content-container {
+  max-width: 100% !important;
 }
