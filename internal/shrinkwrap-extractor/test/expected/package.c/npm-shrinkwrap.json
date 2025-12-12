@@ -24,6 +24,11 @@
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		},
+		"node_modules/@sapui5/thirdparty-a/node_modules/@sapui5/thirdparty-x": {
+			"version": "2.0.0",
+			"resolved": "https://registry.npmjs.org/package/version.tgz",
+			"integrity": "sha512-mock-integrity-hash"
+		},
 		"node_modules/@sapui5/thirdparty-b": {
 			"version": "1.0.0",
 			"dependencies": {
@@ -32,13 +37,8 @@
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		},
-		"node_modules/@sapui5/thirdparty-b/node_modules/@sapui5/thirdparty-x": {
-			"version": "1.0.0",
-			"resolved": "https://registry.npmjs.org/package/version.tgz",
-			"integrity": "sha512-mock-integrity-hash"
-		},
 		"node_modules/@sapui5/thirdparty-x": {
-			"version": "2.0.0",
+			"version": "1.0.0",
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		},
@@ -63,11 +63,6 @@
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		},
-		"node_modules/@ui5/module-a/node_modules/@sapui5/thirdparty-x": {
-			"version": "1.0.0",
-			"resolved": "https://registry.npmjs.org/package/version.tgz",
-			"integrity": "sha512-mock-integrity-hash"
-		},
 		"node_modules/@ui5/module-b": {
 			"name": "@ui5/module-b",
 			"version": "1.0.0",
@@ -85,11 +80,6 @@
 			"dependencies": {
 				"@sapui5/thirdparty-x": "^1.0.0"
 			},
-			"resolved": "https://registry.npmjs.org/package/version.tgz",
-			"integrity": "sha512-mock-integrity-hash"
-		},
-		"node_modules/@ui5/module-b/node_modules/@sapui5/thirdparty-x": {
-			"version": "1.0.0",
 			"resolved": "https://registry.npmjs.org/package/version.tgz",
 			"integrity": "sha512-mock-integrity-hash"
 		}
