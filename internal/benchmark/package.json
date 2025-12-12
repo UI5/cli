@@ -1,0 +1,24 @@
+{
+	"name": "@ui5-internal/benchmark",
+	"private": true,
+	"license": "Apache-2.0",
+	"type": "module",
+	"bin": {
+		"ui5-cli-benchmark": "./cli.js"
+	},
+	"scripts": {
+		"test": "npm run lint && npm run coverage && npm run depcheck",
+		"unit": "node --test 'test/e2e/**/*.js'",
+		"unit-watch": "node --test --watch 'test/e2e/**/*.js'",
+		"coverage": "node --test --experimental-test-coverage 'test/e2e/**/*.js'",
+		"lint": "eslint .",
+		"depcheck": "depcheck"
+	},
+	"dependencies": {
+		"js-yaml": "^4.1.1"
+	},
+	"devDependencies": {
+		"depcheck": "^1.4.7",
+		"eslint": "^9.39.1"
+	}
+}

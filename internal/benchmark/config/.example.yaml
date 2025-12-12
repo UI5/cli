@@ -1,0 +1,35 @@
+# Example Benchmark configuration for UI5 CLI
+
+revisions:
+  baseline:
+    name: "Baseline"
+    revision:
+      merge_base_from: "feat/example-feature"
+      target_branch: "main"
+  example_feature:
+    name: "Example Feature"
+    revision: "feat/example-feature"
+
+hyperfine:
+  warmup: 1
+  runs: 10
+
+groups:
+  build:
+    name: "ui5 build"
+
+benchmarks:
+
+  - command: "build"
+    groups:
+      build:
+        name: "build"
+
+  - command: "build --some-new-flag"
+    groups:
+      build:
+        name: "build (with some new flag)"
+    revisions:
+      # Benchmark with some new flag is only relevant for the feature revision,
+      # as the baseline does not contain the flag
+      - "example_feature"
