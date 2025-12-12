@@ -1,18 +1,12 @@
 import micromatch from "micromatch";
 import {getLogger} from "@ui5/logger";
-import {createResourceIndex} from "./utils.js";
+import {createResourceIndex, areResourcesEqual} from "./utils.js";
 const log = getLogger("build:cache:BuildTaskCache");
 
 /**
  * @typedef {object} RequestMetadata
  * @property {string[]} pathsRead - Specific resource paths that were read
  * @property {string[]} patterns - Glob patterns used to read resources
- */
-
-/**
- * @typedef {object} ResourceMetadata
- * @property {string} hash - Content hash of the resource
- * @property {number} lastModified - Last modified timestamp (mtimeMs)
  */
 
 /**
@@ -199,11 +193,11 @@ export default class BuildTaskCache {
 		if (!cachedResource) {
 			return false;
 		}
-		if (cachedResource.hash) {
-			return this.#isResourceFingerprintEqual(resource, cachedResource);
-		} else {
-			return this.#isResourceEqual(resource, cachedResource);
-		}
+		// if (cachedResource.integrity) {
+		// 	return await matchIntegrity(resource, cachedResource);
+		// } else {
+		return await areResourcesEqual(resource, cachedResource);
+		// }
 	}
 
 	/**
@@ -217,56 +211,11 @@ export default class BuildTaskCache {
 		if (!cachedResource) {
 			return false;
 		}
-		if (cachedResource.hash) {
-			return this.#isResourceFingerprintEqual(resource, cachedResource);
-		} else {
-			return this.#isResourceEqual(resource, cachedResource);
-		}
-	}
-
-	/**
-	 * Compares two resource instances for equality
-	 *
-	 * @param {object} resourceA - First resource to compare
-	 * @param {object} resourceB - Second resource to compare
-	 * @returns {Promise<boolean>} True if resources are equal
-	 * @throws {Error} If either resource is undefined
-	 */
-	async #isResourceEqual(resourceA, resourceB) {
-		if (!resourceA || !resourceB) {
-			throw new Error("Cannot compare undefined resources");
-		}
-		if (resourceA === resourceB) {
-			return true;
-		}
-		if (resourceA.getStatInfo()?.mtimeMs !== resourceB.getStatInfo()?.mtimeMs) {
-			return false;
-		}
-		if (await resourceA.getString() === await resourceB.getString()) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Compares a resource instance with cached metadata fingerprint
-	 *
-	 * @param {object} resourceA - Resource instance to compare
-	 * @param {ResourceMetadata} resourceBMetadata - Cached metadata to compare against
-	 * @returns {Promise<boolean>} True if resource matches the fingerprint
-	 * @throws {Error} If resource or metadata is undefined
-	 */
-	async #isResourceFingerprintEqual(resourceA, resourceBMetadata) {
-		if (!resourceA || !resourceBMetadata) {
-			throw new Error("Cannot compare undefined resources");
-		}
-		if (resourceA.getStatInfo()?.mtimeMs !== resourceBMetadata.lastModified) {
-			return false;
-		}
-		if (await resourceA.getHash() === resourceBMetadata.hash) {
-			return true;
-		}
-		return false;
+		// if (cachedResource.integrity) {
+		// 	return await matchIntegrity(resource, cachedResource);
+		// } else {
+		return await areResourcesEqual(resource, cachedResource);
+		// }
 	}
 
 	#isRelevantResourceChange({pathsRead, patterns}, changedResourcePaths) {
