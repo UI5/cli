@@ -698,10 +698,8 @@ test("Do not throw when Component.ts exists", async (t) => {
 	await t.notThrowsAsync(Specification.create(componentHInput), "Should not throw an error");
 });
 
-test("Throw when both Component.js and Component.ts exist", async (t) => {
+test("Do not throw when both Component.js and Component.ts exist", async (t) => {
 	const {componentHInput} = t.context;
 	componentHInput.configuration.resources.configuration.paths.src = "src-with-component-js-and-component-ts";
-	const error = await t.throwsAsync(Specification.create(componentHInput));
-	t.is(error.message,
-		"Both \"Component.js\" and \"Component.ts\" found in component project component.h");
+	await t.notThrowsAsync(Specification.create(componentHInput), "Should not throw an error");
 });
