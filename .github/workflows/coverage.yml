@@ -56,5 +56,6 @@ jobs:
     steps:
       - name: Close parallel build
         uses: coverallsapp/github-action@v2.3.7
+        continue-on-error: true # Do not fail the job if coverage reporting fails (e.g. service is down)
         with:
           parallel-finished: true
