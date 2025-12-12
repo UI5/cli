@@ -117,13 +117,16 @@ test("Version collisions: root packages get priority at top level", async (t) =>
 
 	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, "@ui5/cli");
 
-	// ansi-regex: root has v6.2.2, CLI workspace has v5.0.1
-	// Root version should be at top level, workspace version nested
+	// ansi-regex: root has v6.2.2, CLI workspace has v5.0.1, but not direct dependency to @ui5/cli
 	const rootAnsiRegex = shrinkwrapJson.packages["node_modules/ansi-regex"];
 	assert.equal(rootAnsiRegex?.version, "6.2.2", "Root ansi-regex at top level");
 
-	const cliAnsiRegex = shrinkwrapJson.packages["node_modules/@ui5/cli/node_modules/ansi-regex"];
-	assert.equal(cliAnsiRegex?.version, "5.0.1", "Workspace ansi-regex nested under @ui5/cli");
+	Object.keys(shrinkwrapJson.packages)
+		.filter((pkg) => pkg.endsWith("node_modules/ansi-regex") && pkg !== "node_modules/ansi-regex")
+		.forEach((pkgName) => {
+			assert.equal(shrinkwrapJson.packages[pkgName]?.version,
+				"5.0.1", `Workspace ansi-regex nested under @ui5/cli -> ${pkgName}`);
+		});
 
 	// Verify root version satisfies dependents
 	const stripAnsi = shrinkwrapJson.packages["node_modules/strip-ansi"];
