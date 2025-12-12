@@ -83,11 +83,16 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 }
 
 function resolveVirtualTree(node, virtualFlatTree, curPath, parentNode) {
+	if (node.isLink) {
+		node = node.target;
+	}
+
 	const fullPath = [curPath, node.name].join(" | ");
 
 	if (virtualFlatTree.some(([path]) => path === fullPath)) {
 		return;
 	}
+
 	if (node.isLink) {
 		node = node.target;
 	}
@@ -98,6 +103,7 @@ function resolveVirtualTree(node, virtualFlatTree, curPath, parentNode) {
 		if (edge.dev) {
 			continue;
 		}
+
 		resolveVirtualTree(edge.to, virtualFlatTree, fullPath, node);
 	}
 }
@@ -119,41 +125,70 @@ async function buildPhysicalTree(
 	const targetNode = virtualFlatTree[0][1][0];
 	const targetPackageName = targetNode.packageName;
 
+	// Collect information to resolve potential version conflicts later
+	const statsToResolveConflicts = new Map();
 	for (const [, nodes] of virtualFlatTree) {
-		let packageLoc;
-		let [node, parentNode] = nodes;
+		const packageLoc = resolveLocation(nodes, physicalTree, targetPackageName);
+		const [node, parentNode] = nodes;
+		const {version} = node;
+		const isTargetPackageHardDep = (parentNode?.packageName === targetPackageName);
+
+		// index 0: Set of versions found for this location
+		// index 1: Map of version -> count
+		// 	(this will be used eventually to elect the most common version in root node_modules)
+		// index 2: If target package has direct dependency here, the version
+		const packageStats = statsToResolveConflicts.get(packageLoc) || [new Set(), Object.create(null)];
+		packageStats[0].add(version);
+		packageStats[1][version] ??= 0;
+		packageStats[1][version]++;
+		if (isTargetPackageHardDep) {
+			if (packageStats[2]) {
+				throw new Error(`Impossible to resolve hoisting conflicts. ` +
+					`Target package direct dependency "${node.packageName}" ` +
+					`has multiple versions: ${packageStats[2]} and ${version}.`);
+			}
+			packageStats[2] = version;
+		}
+
+		statsToResolveConflicts.set(packageLoc, packageStats);
+	}
+
+	const resolvedPackageLocations = new Map();
+	for (const [, nodes] of virtualFlatTree) {
+		let packageLoc = resolveLocation(nodes, physicalTree, targetPackageName);
+		const [node, parentNode] = nodes;
 		const {location, version} = node;
 		const pkg = packageLockJson.packages[location];
 
-		if (node.isLink) {
-			// For linked packages, use the target node
-			node = node.target;
-		}
+		const isRootNodeModulesLocation = `node_modules/${node.packageName}` === packageLoc;
+		const isTargetModuleDependency = (parentNode?.packageName === targetPackageName);
 
-		if (node.packageName === targetPackageName) {
-			// Make the target package the root package
-			packageLoc = "";
-			if (physicalTree[location]) {
-				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
+		// Handle version conflicts in root node_modules
+		if (isRootNodeModulesLocation && !isTargetModuleDependency) {
+			const packageStats = statsToResolveConflicts.get(packageLoc);
+			const hasConflictingLocationAndVersion = packageStats[0].size > 1;
+			// Which is the version of the package that's (eventually) used as
+			// dependency of the target package.
+			let selectedVersionForRootNodeModules = version;
+
+			if (hasConflictingLocationAndVersion) {
+				const targetPackageVersion = packageStats[2];
+				const versionsCount = packageStats[1];
+				// Use target package direct dependency version if available,
+				// otherwise elect the most common version among dependents
+				selectedVersionForRootNodeModules = targetPackageVersion ??
+					Object.keys(packageStats[1]).reduce((acc, versionKey) => {
+						return versionsCount[acc] > versionsCount[versionKey] ? acc : versionKey;
+					});
 			}
-		} else if (node.parent?.packageName === targetPackageName) {
-			// Direct dependencies of the target package go into node_modules.
-			packageLoc = `node_modules/${node.packageName}`;
-		} else {
-			packageLoc = normalizePackageLocation(location, node, targetPackageName);
-		}
 
-
-		const [, existingNode] = physicalTree.get(packageLoc) ?? [];
-		// TODO: Optimize this
-		const pathAlreadyReserved = virtualFlatTree
-			.find((record) => record[1][0].location === packageLoc)?.[1]?.[0];
-		if ((existingNode && existingNode.version !== version) ||
-			(pathAlreadyReserved && pathAlreadyReserved.version !== version)
-		) {
-			const parentPath = normalizePackageLocation(parentNode.location, parentNode, targetPackageName);
-			packageLoc = parentPath ? `${parentPath}/${packageLoc}` : packageLoc;
-			console.warn(`Duplicate package location detected: "${packageLoc}"`);
+			if (selectedVersionForRootNodeModules !== version) {
+				const parentPath = resolvedPackageLocations.get(parentNode) ??
+					// Fallback in case parentNode is not yet resolved (should never happen)
+					// check virtualFlatTree.sort(...) above
+					normalizePackageLocation(parentNode.location, parentNode, targetPackageName);
+				packageLoc = parentPath ? `${parentPath}/${packageLoc}` : packageLoc;
+			}
 		}
 
 		if (packageLoc !== "" && !pkg.resolved) {
@@ -166,8 +201,30 @@ async function buildPhysicalTree(
 			pkg.integrity = integrity;
 		}
 
+		resolvedPackageLocations.set(node, packageLoc);
 		physicalTree.set(packageLoc, [pkg, node]);
 	}
+}
+
+function resolveLocation(nodes, physicalTree, targetPackageName) {
+	let packageLoc;
+	const [node, parentNode] = nodes;
+	const {location} = node;
+
+	if (node.packageName === targetPackageName) {
+		// Make the target package the root package
+		packageLoc = "";
+		if (physicalTree[location]) {
+			throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
+		}
+	} else if (parentNode?.packageName === targetPackageName) {
+		// Direct dependencies of the target package go into node_modules.
+		packageLoc = `node_modules/${node.packageName}`;
+	} else {
+		packageLoc = normalizePackageLocation(location, node, targetPackageName);
+	}
+
+	return packageLoc;
 }
 
 function normalizePackageLocation(location, node, targetPackageName) {
