@@ -1,3 +1,4 @@
+import semver from "semver";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("builder:tasks:bundlers:generateLibraryPreload");
 import moduleBundler from "../../processors/bundlers/moduleBundler.js";
@@ -9,6 +10,32 @@ function getDefaultLibraryPreloadFilters(namespace, excludes) {
 	const filters = [
 		`${namespace}/`,
 		`${namespace}/**/manifest.json`,
+		`!${namespace}/**/*-preload.js`, // exclude all bundles
+		`!${namespace}/designtime/`,
+		`!${namespace}/**/*.designtime.js`,
+		`!${namespace}/**/*.support.js`
+	];
+
+	if (Array.isArray(excludes)) {
+		const allFilterExcludes = negateFilters(excludes);
+		// Add configured excludes at the end of filter list
+		allFilterExcludes.forEach((filterExclude) => {
+			// Allow all excludes (!) and limit re-includes (+) to the library namespace
+			if (filterExclude.startsWith("!") || filterExclude.startsWith(`+${namespace}/`)) {
+				filters.push(filterExclude);
+			} else {
+				log.warn(`Configured preload exclude contains invalid re-include: !${filterExclude.substr(1)}. ` +
+				`Re-includes must start with the library's namespace ${namespace}`);
+			}
+		});
+	}
+
+	return filters;
+}
+
+function getExperimentalDefaultLibraryPreloadFilters(namespace, excludes) {
+	const filters = [
+		`${namespace}/library.js`,
 		`!${namespace}/**/*-preload.js`, // exclude all bundles
 		`!${namespace}/designtime/`,
 		`!${namespace}/**/*.designtime.js`,
@@ -103,6 +130,69 @@ function getBundleDefinition(namespace, excludes) {
 				renderer: true
 			}
 		]
+	};
+}
+
+function getBundleInfoPreloadDefinition(namespace, excludes, coreVersion) {
+	const sections = [{
+		mode: "preload",
+		filters: getExperimentalDefaultLibraryPreloadFilters(namespace, excludes),
+		resolve: true
+	},
+	{
+		mode: "bundleInfo",
+		name: `${namespace}/_library-content.js`,
+		filters: getDefaultLibraryPreloadFilters(namespace, excludes),
+		resolve: false,
+		resolveConditional: false,
+		renderer: true
+	}];
+
+	if (coreVersion) {
+		const parsedVersion = semver.parse(coreVersion);
+		let targetUi5CoreVersionMajor = parsedVersion.major;
+
+		// legacy-free versions include changes of the upcoming major version
+		// so we should treat them the same as the next major version
+		if (
+			parsedVersion.prerelease.includes("legacy-free") ||
+			parsedVersion.prerelease.includes("legacy-free-SNAPSHOT") // Maven snapshot version
+		) {
+			targetUi5CoreVersionMajor += 1;
+		}
+		if (parsedVersion) {
+			if (targetUi5CoreVersionMajor >= 2) {
+				// Do not include manifest.json in UI5 2.x and higher to allow for loading it upfront for all libraries
+				sections.unshift({
+					mode: "provided",
+					filters: [
+						`${namespace}/manifest.json`,
+					]
+				});
+			}
+		}
+	}
+
+	return {
+		name: `${namespace}/library-preload.js`,
+		sections,
+	};
+}
+
+function getContentBundleDefinition(namespace, excludes) {
+	return {
+		name: `${namespace}/_library-content.js`,
+		sections: [{
+			mode: "provided",
+			filters: getExperimentalDefaultLibraryPreloadFilters(namespace, excludes),
+			resolve: true
+		}, {
+			mode: "preload",
+			filters: getDefaultLibraryPreloadFilters(namespace, excludes),
+			resolve: false,
+			resolveConditional: false,
+			renderer: true
+		}]
 	};
 }
 
@@ -258,6 +348,7 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
+	const createBundleInfoPreload = !!process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD;
 	const execModuleBundlerIfNeeded = ({options, resources}) => {
 		if (skipBundles.includes(options.bundleDefinition.name)) {
 			log.verbose(`Skipping generation of bundle ${options.bundleDefinition.name}`);
@@ -390,42 +481,117 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 					const libraryNamespaceMatch = libraryIndicatorPath.match(libraryNamespacePattern);
 					if (libraryNamespaceMatch && libraryNamespaceMatch[1]) {
 						const libraryNamespace = libraryNamespaceMatch[1];
-						const results = await Promise.all([
-							execModuleBundlerIfNeeded({
-								options: {
-									bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
-									bundleOptions: {
-										optimize: true,
-										ignoreMissingModules: true
-									}
-								},
-								resources
-							}),
-							execModuleBundlerIfNeeded({
-								options: {
-									bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
-									bundleOptions: {
-										optimize: true,
-										ignoreMissingModules: true,
-										skipIfEmpty: true
-									}
-								},
-								resources
-							}),
-							execModuleBundlerIfNeeded({
-								options: {
-									bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
-									bundleOptions: {
-										optimize: false,
-										ignoreMissingModules: true,
-										skipIfEmpty: true
-									}
-									// Note: Although the bundle uses optimize=false, there is
-									// no moduleNameMapping needed, as support files are excluded from minification.
-								},
-								resources
-							})
-						]);
+						let results;
+						if (!createBundleInfoPreload) {
+							// Regular bundling
+							results = await Promise.all([
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getBundleDefinition(libraryNamespace, excludes),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: false,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+										// Note: Although the bundle uses optimize=false, there is
+										// no moduleNameMapping needed, as support files are excluded from minification.
+									},
+									resources
+								})
+							]);
+						} else {
+							log.info(
+								`Using experimental bundling with bundle info preload ` +
+								`for library ${libraryNamespace} in project ${projectName}`);
+							log.info(`Detected sap.ui.core version is ${coreVersion || "unknown"}`);
+
+
+							if (skipBundles.includes(`${libraryNamespace}/library-preload.js`) &&
+								!skipBundles.includes(`${libraryNamespace}/_library-content.js`)) {
+								// If the standard preload bundle is skipped, ensure to also skip the content bundle,
+								// since they depend on each other
+								skipBundles.push(`${libraryNamespace}/_library-content.js`);
+							}
+
+							if (skipBundles.includes(`${libraryNamespace}/_library-content.js`) &&
+								!skipBundles.includes(`${libraryNamespace}/library-preload.js`)) {
+								// If the content bundle is skipped, the default preload bundle must be skipped as well
+								throw new Error(
+									`A custom bundle '${libraryNamespace}/_library-content.js' has been defined, ` +
+									`but it also requires a corresponding custom bundle definition for ` +
+									`'${libraryNamespace}/library-preload.js'`);
+							}
+
+							// Experimental bundling with bundle info preload
+							results = await Promise.all([
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition:
+											getBundleInfoPreloadDefinition(libraryNamespace, excludes, coreVersion),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getContentBundleDefinition(libraryNamespace, excludes),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getDesigntimeBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: true,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+									},
+									resources
+								}),
+								execModuleBundlerIfNeeded({
+									options: {
+										bundleDefinition: getSupportFilesBundleDefinition(libraryNamespace),
+										bundleOptions: {
+											optimize: false,
+											ignoreMissingModules: true,
+											skipIfEmpty: true
+										}
+										// Note: Although the bundle uses optimize=false, there is
+										// no moduleNameMapping needed, as support files are excluded from minification.
+									},
+									resources
+								})
+							]);
+						}
 						const bundles = Array.prototype.concat.apply([], results).filter(Boolean);
 						return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
 							if (bundle) {
