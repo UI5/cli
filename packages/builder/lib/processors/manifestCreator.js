@@ -491,11 +491,18 @@ async function createManifest(
 				}
 			}
 
-			return {
+			const libraryMetadata = {
 				i18n: i18n(),
 				css: css(),
 				content: content()
 			};
+
+			if (process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD) {
+				// Add flag indicating that the (currently experimental) bundleVersion 2 preload bundling is used
+				libraryMetadata.bundleVersion = 2;
+			}
+
+			return libraryMetadata;
 		}
 
 		const sapUI5 = {

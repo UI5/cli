@@ -38,7 +38,8 @@ function createMockPool(dependencies) {
 			name: "x.view.xml"
 		}, {
 			name: "c.properties"
-		}]
+		}],
+		getIgnoreMissingModules: () => false,
 	};
 }
 
@@ -165,7 +166,8 @@ test("integration: Extreme AutoSplitter with numberOfParts 50", async (t) => {
 				});
 			return {info};
 		},
-		resources: modules.map((res) => ({name: res}))
+		resources: modules.map((res) => ({name: res})),
+		getIgnoreMissingModules: () => false,
 	};
 	const autoSplitter = new AutoSplitter(pool, new BundleResolver(pool));
 	const bundleDefinition = {
@@ -208,7 +210,8 @@ test("integration: AutoSplitter with bundleInfo", async (t) => {
 			const info = new ModuleInfo(name);
 			return {info};
 		},
-		resources: modules.map((res) => ({name: res}))
+		resources: modules.map((res) => ({name: res})),
+		getIgnoreMissingModules: () => false,
 	};
 	const autoSplitter = new AutoSplitter(pool, new BundleResolver(pool));
 	const bundleDefinition = {
