@@ -678,11 +678,28 @@ test("namespace: detect namespace from pom.xml via ${appId} from properties", as
 		" couldn't be resolved from maven property \"appId\" of pom.xml of project component.h");
 });
 
-test("Throw for missing Component.js", async (t) => {
+test("Throw when neither Component.js nor Component.ts exists", async (t) => {
 	const {componentHInput} = t.context;
 	componentHInput.configuration.resources.configuration.paths.src = "src-no-component";
-
 	const error = await t.throwsAsync(Specification.create(componentHInput));
 	t.is(error.message,
-		"Unable to find required file Component.js in component project component.h");
+		"Unable to find either required \"Component.js\" or \"Component.ts\" in component project component.h");
+});
+
+test("Do not throw when Component.js exists", async (t) => {
+	const {componentHInput} = t.context;
+	componentHInput.configuration.resources.configuration.paths.src = "src-with-component-js";
+	await t.notThrowsAsync(Specification.create(componentHInput), "Should not throw an error");
+});
+
+test("Do not throw when Component.ts exists", async (t) => {
+	const {componentHInput} = t.context;
+	componentHInput.configuration.resources.configuration.paths.src = "src-with-component-ts";
+	await t.notThrowsAsync(Specification.create(componentHInput), "Should not throw an error");
+});
+
+test("Do not throw when both Component.js and Component.ts exist", async (t) => {
+	const {componentHInput} = t.context;
+	componentHInput.configuration.resources.configuration.paths.src = "src-with-component-js-and-component-ts";
+	await t.notThrowsAsync(Specification.create(componentHInput), "Should not throw an error");
 });
