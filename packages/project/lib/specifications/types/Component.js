@@ -292,7 +292,6 @@ class Component extends ComponentProject {
 
 	async _ensureComponent() {
 		// Throw if neither Component.js nor Component.ts is present
-		// or if both are present
 		const componentResource = await this._getRawSourceReader().byPath("/Component.js") ||
 			await this._getRawSourceReader().byPath("/Component.ts");
 		if (!componentResource) {
