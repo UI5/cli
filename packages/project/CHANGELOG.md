@@ -4,6 +4,23 @@ This project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html
 
 A list of unreleased changes can be found [here](https://github.com/SAP/ui5-project/compare/v4.0.6...HEAD).
 
+## [5.0.0-alpha.2](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.1...project-v5.0.0-alpha.2) (2025-12-15)
+
+
+### Bug Fixes
+
+* **project:** Allow Component.ts ([#1243](https://github.com/UI5/cli/issues/1243)) ([3b8ce29](https://github.com/UI5/cli/commit/3b8ce296d5bc0eb2f6c3452bae7ef0247f3bbd71))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @ui5/fs bumped from ^5.0.0-alpha.1 to ^5.0.0-alpha.2
+    * @ui5/logger bumped from ^5.0.0-alpha.1 to ^5.0.0-alpha.2
+  * peerDependencies
+    * @ui5/builder bumped from ^5.0.0-alpha.1 to ^5.0.0-alpha.2
+
 <a name="5.0.0-alpha.1"></a>
 ## [5.0.0-alpha.1](https://github.com/UI5/cli/compare/project-v5.0.0-alpha.0...project-v5.0.0-alpha.1) (2025-12-10)
 
