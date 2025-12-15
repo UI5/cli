@@ -37,6 +37,12 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    # Intentionally fail the job (prevents uploads below)
+    - name: Fail intentionally
+      run: |
+        echo "Intentionally failing coverage job"
+        exit 1
+
     - name: Check coverage
       working-directory: packages/${{ matrix.package }}
       run: npm run coverage
@@ -51,7 +57,8 @@ jobs:
 
   finish:
     needs: coverage
-    if: ${{ always() }}
+    # Only run the "finish" step if the matrix succeeded (skip when we fail intentionally)
+    if: ${{ needs.coverage.result == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Close parallel build
