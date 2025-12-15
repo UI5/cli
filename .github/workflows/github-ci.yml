@@ -27,6 +27,12 @@ jobs:
     - name: Install dependencies
       run: npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
 
+    # Intentionally fail the job (prevents uploads below)
+    - name: Fail intentionally
+      run: |
+        echo "Intentionally failing coverage job"
+        exit 1
+
     - name: Perform ESLint check
       run: npm run lint
 
