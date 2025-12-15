@@ -1,197 +1,134 @@
 /* eslint-disable indent */
-import {unified} from "unified";
-import rehypeParse from "rehype-parse";
-import rehypeRemark from "rehype-remark";
-import remarkStringify from "remark-stringify";
-import rehypeIgnore from "rehype-ignore";
-import rehypeFormat from "rehype-format";
-import remarkGfm from "remark-gfm";
-import rehypeVideo from "rehype-video";
-import fs from "node:fs";
-import path from "node:path";
-import {toHtml} from "hast-util-to-html";
-import {JSDOM} from "jsdom";
+const file = "dist/api/module-@ui5_server.html";
 
-const aElementRegex = /<a.*?href="(.*?)".*?>([^<]*)<\/a>/;
+import {parse as parseHTML} from "parse5";
+import fs from "fs";
 
-function escapeMarkdown(input) {
-	const map = {
-        "|": "&#124;"
-    };
+class HTMLUtils {
+    ignoredTags = [
+        "header"
+    ];
 
-    const escapeLine = (line) => {
-        let out = line;
-        for (const key of Object.keys(map)) {
-            out = out.replaceAll(key, map[key]);
+    /**
+     * Finds an HTML tag in the given html
+     *
+     * @param {object} html - HTML where the tag is
+     * @param {string} name - The name of the tag
+     * @param {object} attributes - Map of attributes the tag should have
+     * @param {object} reasons - (INTERNAL) Keeps track of reasons why tag doesn't match
+     */
+    findHTMLTag(html, name, attributes = null, reasons = []) {
+        if (this.ignoredTags.includes(html.nodeName)) {
+            return {found: false, node: null, reason: "Tag is ignored"};
         }
-        return out;
-    };
 
-    return input
-        .split("\n")
-        .map((line) => {
-            const trimmed = line.trimStart();
-
-            if (trimmed.startsWith("|")) {
-                return line;
+        if (html.nodeName === name) {
+            if (attributes != null && !this.matchAttributes(html, attributes)) {
+                return {found: false, nodes: null, reason: "Attributes mismatch"};
             }
+            return {found: true, node: html};
+        }
 
-            return escapeLine(line);
-        })
-        .join("\n");
+        if (!Object.keys(html).includes("childNodes")) {
+            return {found: false, node: null, reason: "Not found", reasons: reasons};
+        }
+
+        for (const child of html.childNodes) {
+            const searchResult = this.findHTMLTag(child, name, attributes, reasons);
+            if (searchResult.found) {
+                return searchResult;
+            }
+            reasons.push(searchResult.reason);
+        }
+
+        return {found: false, node: null, reason: "Not found", reasons: reasons};
+    }
+
+    matchAttributes(tag, attributes) {
+        if (tag["attrs"] == undefined) {
+            return false;
+        }
+
+        for (const attribute of tag.attrs) {
+            if (attributes[attribute.name] === attribute.value) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    isNodeOnlyWhitespace(node) {
+        if (node.value.trim().length == 0) return true;
+        return false;
+    }
 }
 
-function fixMarkdown(input) {
-    return input.replaceAll("\\<optional>", "Optional").replaceAll("<optional>", "Optional");
+class MarkdownElement {
+    /**
+     * @type {string}
+     */
+    name;
+
+    parse(html) {
+    }
 }
 
-async function htmlToMarkdown(options = {}) {
-	const file = await unified()
-		.use(rehypeParse, {fragment: true})
-		.use(rehypeIgnore)
-		.use(remarkGfm)
-		.use(rehypeVideo)
-		.use(rehypeFormat)
-		.use(rehypeRemark, {
-            document: false,
-            handlers: {
-                table(state, node) {
-                    // This fixes nested tables that happen in the conversion from html to markdown
-                    let html = toHtml(node);
-                    const parsedHTML = new JSDOM(html).window.document.getElementsByClassName("params")[1];
-                    if (parsedHTML !== undefined) {
-                        html = parsedHTML.outerHTML;
-                    }
-                    const result = {type: "html", value: html};
-                    state.patch(node, result);
-                    return result;
-                },
-                a(state, node) {
-                    // This fixes internal linking e.g. from #~myawesomemethod to #myawesomemethod
-                    const result = {type: "html", value: toHtml(node).replaceAll("~", "")};
-                    let href = result.value.match(aElementRegex);
-                    // Filters for a tags that need fixing
-                    // href !== null - Checks if href is null (A element has no href)
-                    // href[1].split("#")[1] != null - Checks if the a element is an internal link
-                    // !href[2].includes("line") - Checks for links to GitHub source code
-                    if (href !== null && href[1].split("#")[1] != null && !href[2].includes("line")) {
-                        const text = href[2];
-                        href = href[1];
-                        result.value =
-                            result.value.replace(href, href.split("#")[0] + "#" + href.split("#")[1].toLowerCase())
-                                .replace(text, text.replace(href.split("#")[1], "") + "#" + href.split("#")[1])
-                                .replace("##", "#");
-                    }
-                    state.patch(node, result);
-                    return result;
+class MarkdownSection extends MarkdownElement {
+    parse(sectionElements) {
+
+    }
+}
+
+
+class MarkdownDocFile extends HTMLUtils {
+     /**
+     * @type {string}
+     */
+    title;
+
+	/**
+     *@type {[]}
+     */
+    markdownElements;
+
+    #parseSections(articleElement) {
+        const sections = [];
+        let elements = [];
+        for (const child of articleElement.childNodes) {
+            if (child.nodeName === "#text" && this.isNodeOnlyWhitespace(child)) continue;
+            if (child.nodeName === "h3" &&
+                child.attrs[0].name === "class" &&
+                child.attrs[0].value === "subsection-title") {
+                if (elements.length !== 0) {
+                    sections.push(new MarkdownSection().parse(elements));
+                    elements = [];
                 }
+            } else {
+                elements.push(child);
             }
-        })
-		.use(remarkStringify, {
-            commonmark: true,
-            entities: true
-        })
-		.processSync(options.html);
-	return String(file);
-}
-
-const deadLinks = [];
-const deadLinksCheckPromises = [];
-const excludedFiles = {"index.html": "", "global.html": "", "custom.css": ""};
-const inputDirectory = path.join("dist", "api");
-const outputDirectory = path.join("docs", "api");
-let packageTagName = "https://github.com/UI5/cli/blob/main/packages/";
-
-// 1. Find tag name
-if (process.argv[2] == "gh-pages") {
-    // Read package.json of packages/builder
-    const builderJson = JSON.parse(fs.readFileSync("tmp/packages/@ui5/builder/package.json"));
-    packageTagName = `https://github.com/UI5/cli/blob/cli-v${builderJson["version"]}/packages/`;
-}
-
-// 2. Check and create api directory, also remove all existing files if it exists
-if (!fs.existsSync(outputDirectory)) {
-    fs.mkdirSync(outputDirectory);
-} else {
-	for (const file of fs.readdirSync(outputDirectory)) {
-		fs.rmSync(path.join(outputDirectory, file));
-	}
-}
-
-// 3. Iterate through every .html generated by jsdoc
-for (const file of fs.readdirSync(path.join("dist", "api"))) {
-    // Skip some files
-	if (excludedFiles[file] !== undefined) continue;
-
-    // Skip js files
-    if (file.endsWith(".js.html")) continue;
-
-    const filePath = path.join(inputDirectory, file);
-    // Skip directories
-	if (fs.statSync(filePath).isDirectory()) continue;
-
-    const mardownPath = path.join(outputDirectory, file.replace(".html", ".md"));
-    console.log("HTML -> Markdown", "|", filePath, "->", mardownPath);
-
-    // Read the html file
-	const htmlString = fs.readFileSync(filePath);
-
-    // Convert html to markdown
-	let markdown = await htmlToMarkdown({
-		html: htmlString
-	});
-
-    // Escape characters in markdown
-    markdown = escapeMarkdown(markdown);
-
-    // Fix some markdown syntax e.g. <optional> -> Optional
-    markdown = fixMarkdown(markdown);
-
-    // Point all js links to GitHub
-    const linkMatches = markdown.matchAll(/"[^"]*\.[A-Za-z0-9]+\.[A-Za-z0-9]+[^"]*"/g);
-    for (const linkMatch of linkMatches) {
-        if (!linkMatch[0].endsWith(".js.html\"")) continue;
-        const githubUrl = packageTagName +
-            linkMatch[0].replaceAll("\"", "").replace(".js.html", "").replaceAll("_", "/") +
-            ".js";
-        markdown = markdown
-                    .replaceAll(linkMatch[0].replaceAll("\"", "") + "#line", githubUrl + "#L")
-                    .replaceAll(linkMatch[0].replaceAll("\"", ""), githubUrl);
+        }
+        return sections;
     }
 
-    // Add target="_blank" to the a element (Must link to external site) for a better user experience
-    markdown = markdown.replaceAll("<a href=\"http", "<a target=\"_blank\" href=\"http");
-
-    markdown = stripHtmlComments(markdown);
-
-    for (const aElement of markdown.matchAll(aElementRegex + "g")) {
-        deadLinksCheckPromises.push(checkDeadlinks(aElement[1], filePath));
-    }
-
-    // Save markdown file
-    fs.writeFileSync(
-        mardownPath,
-        markdown
-    );
-
-    Promise.all(deadLinksCheckPromises);
-}
-
-async function checkDeadlinks(link, sourcePath) {
-    if ((await fetch(link)).status != 200) {
-        deadLinks.push({
-            link: link,
-            sourcePath: sourcePath
+    /**
+     * Parses the given html file to markdown object
+     *
+     * @param {*} html - HTML to convert to markdown
+     */
+    parse(html) {
+        // 1. Find title
+        this.title = this.findHTMLTag(html, "h1", {
+            "class": "page-title"
         });
+
+        // 2. Parse content
+        this.markdownElements = this.#parseSections(this.findHTMLTag(html, "article").node);
+
+        return this;
     }
 }
 
-function stripHtmlComments(str) {
-  return str.replace(/<!--[\s\S]*?-->/g, "");
-}
+const parsed = parseHTML(fs.readFileSync(file, {encoding: "utf-8"}));
 
-console.log("Conversion done");
-console.log("Found", deadLinks.length, "dead links");
-if (deadLinks.length != 0) {
-    console.log(deadLinks);
-}
+new MarkdownDocFile().parse(parsed);

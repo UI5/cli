@@ -48,7 +48,8 @@
 		"globals": "^16.4.0",
 		"husky": "^9.1.7",
 		"licensee": "^11.1.1",
-		"local-web-server": "^5.4.0"
+		"local-web-server": "^5.4.0",
+		"parse5": "^8.0.0"
 	},
 	"workspaces": [
 		"packages/*",

@@ -3,4 +3,5 @@ Compare random files manually
 
 Find issues in layouting also find the reason
 
-- Messed up table columns
+- [?] Link js files to GitHub (Local Development = main, Else = tmp/pacakges/@ui5) 
+- [ ] Internal linking to methods is still borked

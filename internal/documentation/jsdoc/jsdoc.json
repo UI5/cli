@@ -17,7 +17,7 @@
 	],
 	"opts": {
 		"encoding": "utf8",
-		"destination": "dist/api/",
+		"destination": "docs/api/",
 		"recurse": true,
 		"verbose": true,
 		"access": "public"
@@ -27,7 +27,6 @@
 		"monospaceLinks": false,
 		"default": {
 			"useLongnameInNav": true,
-			"layoutFile": "jsdoc/templates/layout.tmpl",
 			"staticFiles": {
 				"include": ["jsdoc/templates/custom.css"]
 			}
