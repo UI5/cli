@@ -28,14 +28,13 @@ function getTimestamp() {
  * @typedef {Object<string, {lazy: boolean}>} ManifestLibraries
  *
  * sample:
- * <pre>
+ * @example
  * {
  * 	"sap.chart": {
  * 		"lazy": true
  * 	},
  * 	"sap.f": { }
  * }
- * </pre>
  */
 
 /**
@@ -366,14 +365,16 @@ const processLibraryInfo = async (libraryInfo) => {
  * @param {string} parameters.options.rootProjectVersion Version of the root project
  * @param {module:@ui5/builder/processors/versionInfoGenerator~LibraryInfo[]} parameters.options.libraryInfos Array of
  *				objects representing libraries,
- *  e.g. <pre>
+ *  e.g.
+ *  ```
  *   {
  *      name: "lib.x",
  *      version: "1.0.0",
  *      libraryManifest: @ui5/fs/Resource,
  *      embeddedManifests: @ui5/fs/Resource[]
  *   }
- * </pre>
+ *   ```
+ *
  * @returns {Promise<@ui5/fs/Resource[]>} Promise resolving with an array containing the versionInfo resource
  */
 

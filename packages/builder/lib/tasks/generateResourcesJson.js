@@ -55,7 +55,8 @@ function getCreatorOptions(projectName) {
  * Therefore it is also not supported in combination with self-contained build.
  * </p>
  *
- * @example <caption>sample resources.json</caption>
+ * <caption>sample resources.json</caption>
+ * ```
  * const resourcesJson = {
  * 	"_version": "1.1.0",
  * 	"resources": [
@@ -95,6 +96,7 @@ function getCreatorOptions(projectName) {
  * 		}
  * 	]
  * };
+ * ```
  *
  * @public
  * @function default
