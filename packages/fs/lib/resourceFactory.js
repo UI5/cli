@@ -235,7 +235,7 @@ export function createLinkReader(parameters) {
 
 /**
  * Create a [Link-Reader]{@link @ui5/fs/readers/Link} where all requests are prefixed with
- * <code>/resources/<namespace></code>.
+ * <code>/resources/&lt;namespace&gt;</code>.
  *
  * This simulates "flat" resource access, which is for example common for projects of type
  * "application".

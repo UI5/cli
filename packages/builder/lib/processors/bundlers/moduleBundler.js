@@ -57,7 +57,8 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  *		denote an arbitrary number of characters or folder names.
  * 		Excludes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
  *		exclusion overrides an earlier inclusion, and vice versa.
- * @example <caption>List of modules as glob patterns that should be in- or excluded</caption>
+ * <caption>List of modules as glob patterns that should be in- or excluded</caption>
+ * ```
  * // Includes everything from "some/path/to/module/",
  * // but excludes the subfolder "some/path/to/module/to/be/excluded/"
  * const section = {
@@ -66,6 +67,7 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  * 		"!some/path/to/module/to/be/excluded/"
  * 	]
  * };
+ * ```
  *
  * @property {boolean} [resolve=false] Whether (transitive) dependencies of modules that match the given filters
  *		should be resolved and added to the module set
