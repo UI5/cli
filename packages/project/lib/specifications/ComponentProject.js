@@ -171,19 +171,19 @@ class ComponentProject extends Project {
 	_createWriter() {
 		// writer is always of style "buildtime"
 		const namespaceWriter = resourceFactory.createAdapter({
-			name: `Namespace writer for project ${this.getName()} (${this.getCurrentStage()} stage)`,
+			name: `Namespace writer for project ${this.getName()}`,
 			virBasePath: "/",
 			project: this
 		});
 
 		const generalWriter = resourceFactory.createAdapter({
-			name: `General writer for project ${this.getName()} (${this.getCurrentStage()} stage)`,
+			name: `General writer for project ${this.getName()}`,
 			virBasePath: "/",
 			project: this
 		});
 
 		const collection = resourceFactory.createWriterCollection({
-			name: `Writers for project ${this.getName()} (${this.getCurrentStage()} stage)`,
+			name: `Writers for project ${this.getName()}`,
 			writerMapping: {
 				[`/resources/${this._namespace}/`]: namespaceWriter,
 				[`/test-resources/${this._namespace}/`]: namespaceWriter,
