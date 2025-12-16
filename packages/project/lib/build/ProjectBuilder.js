@@ -556,7 +556,7 @@ class ProjectBuilder {
 			return function() {
 				// Asynchronously cleanup resources, then exit
 				that._executeCleanupTasks(true).then(() => {
-					process.exit(exitCode);
+					process.exitCode = exitCode;
 				});
 			};
 		}
