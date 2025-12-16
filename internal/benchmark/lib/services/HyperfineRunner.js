@@ -89,10 +89,10 @@ export default class HyperfineRunner {
 				stdio: "inherit",
 				captureOutput: false,
 				env: {
+					// Inherit all other environment variables
+					...process.env,
 					// Disable invocation of local UI5 CLI installations
 					UI5_CLI_NO_LOCAL: "X",
-					// Inherit all other environment variables
-					...process.env
 				},
 				errorMessage: "hyperfine exited with non-zero code"
 			});
