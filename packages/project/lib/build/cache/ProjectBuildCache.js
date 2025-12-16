@@ -127,17 +127,6 @@ export default class ProjectBuildCache {
 			resourcesRead,
 			resourcesWritten
 		);
-		// } else {
-		// log.verbose(`Initializing build cache for task ${taskName} in project ${this.#project.getName()}`);
-		// this.#taskCache.set(taskName,
-		// 	new BuildTaskCache(this.#project.getName(), taskName, {
-		// 		projectRequests: projectTrackingResults.requests,
-		// 		dependencyRequests: dependencyTrackingResults?.requests,
-		// 		resourcesRead,
-		// 		resourcesWritten
-		// 	})
-		// );
-		// }
 
 		if (this.#invalidatedTasks.has(taskName)) {
 			this.#invalidatedTasks.delete(taskName);
@@ -306,35 +295,6 @@ export default class ProjectBuildCache {
 	}
 
 	async setTasks(taskNames) {
-		// if (this.#taskCache.size) {
-		// 	// If task cache entries already exist, validate they match the provided task names
-		// 	const existingTaskNames = Array.from(this.#taskCache.keys());
-		// 	if (existingTaskNames.length !== taskNames.length ||
-		// 		!existingTaskNames.every((taskName, idx) => taskName === taskNames[idx])) {
-		// 		throw new Error(
-		// 			`Cannot set tasks for project ${this.#project.getName()}: ` +
-		// 			`Existing cached tasks ${existingTaskNames.join(", ")} do not match ` +
-		// 			`provided task names ${taskNames.join(", ")}`);
-		// 	}
-		// 	return;
-		// }
-		// // Create task cache entries for all tasks and initialize stages
-		// for (const taskName of taskNames) {
-		// 	if (!this.#taskCache.has(taskName)) {
-		// 		this.#taskCache.set(taskName,
-		// 			new BuildTaskCache(this.#project.getName(), taskName, {
-		// 				projectRequests: [],
-		// 				dependencyRequests: [],
-		// 				resourcesRead: {},
-		// 				resourcesWritten: {}
-		// 			})
-		// 		);
-		// 		this.#invalidatedTasks.set(taskName, {
-		// 			changedProjectResourcePaths: new Set(),
-		// 			changedDependencyResourcePaths: new Set(),
-		// 		});
-		// 	}
-		// }
 		const stageNames = taskNames.map((taskName) => this.#getStageNameForTask(taskName));
 		this.#project.setStages(stageNames);
 	}
@@ -415,21 +375,10 @@ export default class ProjectBuildCache {
 		log.info(`Storing task outputs for project ${this.#project.getName()} in cache...`);
 
 		return await Promise.all(this.#project.getStagesForCache().map(async ({stageId, reader}) => {
-			// if (!reader) {
-			// 	log.verbose(
-			// 		`Skipping serialization of empty writer for task ${taskName} in project ${this.#project.getName()}`
-			// 	);
-			// 	return;
-			// }
 			const resources = await reader.byGlob("/**/*");
 			const resourceMetadata = Object.create(null);
 			await Promise.all(resources.map(async (res) => {
 				// Store resource content in cacache via CacheManager
-				// const integrity = await this.#cacheManager.writeStageStream(
-				// 	this.#buildSignature, stageId,
-				// 	res.getOriginalPath(), await res.getStreamAsync()
-				// );
-				// TODO: Decide whether to use stream or buffer
 				const integrity = await this.#cacheManager.writeStage(
 					this.#buildSignature, stageId,
 					res.getOriginalPath(), await res.getBuffer()
@@ -567,9 +516,6 @@ export default class ProjectBuildCache {
 
 	async saveToDisk(buildManifest) {
 		await this.#saveBuildManifest(buildManifest);
-		// await Promise.all([
-		// 	await this.#saveCachedStages();
-		// ]);
 	}
 
 	/**
@@ -608,10 +554,6 @@ export default class ProjectBuildCache {
 			log.info(
 				`Restoring build cache for project ${this.#project.getName()} from build manifest ` +
 				`with signature ${this.#buildSignature}`);
-
-			// for (const [taskName, metadata] of Object.entries(cache.taskMetadata)) {
-			// 	this.#taskCache.set(taskName, new BuildTaskCache(this.#project.getName(), taskName, metadata));
-			// }
 
 			// Import task- and stage metadata first and in parallel
 			await Promise.all([
