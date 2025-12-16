@@ -66,7 +66,7 @@ export default class BuildTaskCache {
 	 * @param {string} taskName - Name of the task
 	 * @param {TaskCacheMetadata} metadata - Task cache metadata
 	 */
-	constructor(projectName, taskName, {projectRequests, dependencyRequests, input, output}) {
+	constructor(projectName, taskName, {projectRequests, dependencyRequests, input, output} = {}) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
 

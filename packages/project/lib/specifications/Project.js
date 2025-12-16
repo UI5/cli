@@ -292,12 +292,11 @@ class Project extends Specification {
 
 		// Collect writers from all relevant stages
 		for (let i = stageReadIdx; i >= 0; i--) {
-			const stageReaders = this.#getReaderForStage(this.#stages[i], style);
-			if (stageReaders) {
-				readers.push();
+			const stageReader = this.#getReaderForStage(this.#stages[i], style);
+			if (stageReader) {
+				readers.push(stageReader);
 			}
 		}
-
 
 		// Always add source reader
 		readers.push(this._getStyledReader(style));
@@ -432,7 +431,7 @@ class Project extends Specification {
 		// if (newWriter && this.#writers.has(stageId)) {
 		// 	this.#writers.delete(stageId);
 		// }
-		if (stageId === this.#currentStage.getId()) {
+		if (stageId === this.#currentStage?.getId()) {
 			// Already using requested stage
 			return;
 		}
@@ -476,7 +475,7 @@ class Project extends Specification {
 		const readers = [];
 		for (const writer of writers) {
 			// Apply project specific handling for using writers as readers, depending on the requested style
-			this._addWriter("buildtime", readers, writer);
+			this._addWriter(style, readers, writer);
 		}
 
 		return createReaderCollectionPrioritized({
@@ -575,12 +574,12 @@ class Project extends Specification {
 						`(existing: ${this.#stages[i].getId()}, new: ${stageId})`);
 				}
 			}
-			if (cacheReaders.length) {
+			if (cacheReaders?.length) {
 				throw new Error(
 					`Unable to set stages for project ${this.getName()}: Cache readers can only be set ` +
 					`when stages are created for the first time`);
 			}
-			return;
+			return; // Stages already set and matching, no further processing needed
 		}
 		for (let i = 0; i < stageIds.length; i++) {
 			const stageId = stageIds[i];
