@@ -10,7 +10,7 @@ import Configuration from "../../config/Configuration.js";
 import {getPathFromPackageName} from "../../utils/sanitizeFileName.js";
 import {getLogger} from "@ui5/logger";
 
-const log = getLogger("project:build:cache:CacheManager");
+const log = getLogger("build:cache:CacheManager");
 
 const chacheManagerInstances = new Map();
 const CACACHE_OPTIONS = {algorithms: ["sha256"]};
@@ -24,8 +24,12 @@ const CACACHE_OPTIONS = {algorithms: ["sha256"]};
  *
  */
 export default class CacheManager {
+	#casDir;
+	#manifestDir;
+
 	constructor(cacheDir) {
-		this._cacheDir = cacheDir;
+		this.#casDir = path.join(cacheDir, "cas");
+		this.#manifestDir = path.join(cacheDir, "buildManifests");
 	}
 
 	static async create(cwd) {
@@ -51,7 +55,7 @@ export default class CacheManager {
 
 	#getBuildManifestPath(packageName, buildSignature) {
 		const pkgDir = getPathFromPackageName(packageName);
-		return path.join(this._cacheDir, pkgDir, `${buildSignature}.json`);
+		return path.join(this.#manifestDir, pkgDir, `${buildSignature}.json`);
 	}
 
 	async readBuildManifest(project, buildSignature) {
@@ -73,22 +77,22 @@ export default class CacheManager {
 		await writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
 	}
 
-	async getResourcePathForStage(buildSignature, stageName, resourcePath, integrity) {
+	async getResourcePathForStage(buildSignature, stageId, resourcePath, integrity) {
 		// try {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		const cacheKey = this.#createKeyForStage(buildSignature, stageName, resourcePath);
-		const result = await cacache.get.info(this._cacheDir, cacheKey);
+		const cacheKey = this.#createKeyForStage(buildSignature, stageId, resourcePath);
+		const result = await cacache.get.info(this.#casDir, cacheKey);
 		if (result.integrity !== integrity) {
 			log.info(`Integrity mismatch for cache entry ` +
 				`${cacheKey}: expected ${integrity}, got ${result.integrity}`);
 
-			const res = await cacache.get.byDigest(this._cacheDir, result.integrity);
+			const res = await cacache.get.byDigest(this.#casDir, result.integrity);
 			if (res) {
 				log.info(`Updating cache entry with expectation...`);
-				await this.writeStage(buildSignature, stageName, resourcePath, res.data);
-				return await this.getResourcePathForStage(buildSignature, stageName, resourcePath, integrity);
+				await this.writeStage(buildSignature, stageId, resourcePath, res.data);
+				return await this.getResourcePathForStage(buildSignature, stageId, resourcePath, integrity);
 			}
 		}
 		if (!result) {
@@ -104,19 +108,19 @@ export default class CacheManager {
 		// }
 	}
 
-	async writeStage(buildSignature, stageName, resourcePath, buffer) {
+	async writeStage(buildSignature, stageId, resourcePath, buffer) {
 		return await cacache.put(
-			this._cacheDir,
-			this.#createKeyForStage(buildSignature, stageName, resourcePath),
+			this.#casDir,
+			this.#createKeyForStage(buildSignature, stageId, resourcePath),
 			buffer,
 			CACACHE_OPTIONS
 		);
 	}
 
-	async writeStageStream(buildSignature, stageName, resourcePath, stream) {
+	async writeStageStream(buildSignature, stageId, resourcePath, stream) {
 		const writable = cacache.put.stream(
-			this._cacheDir,
-			this.#createKeyForStage(buildSignature, stageName, resourcePath),
+			this.#casDir,
+			this.#createKeyForStage(buildSignature, stageId, resourcePath),
 			stream,
 			CACACHE_OPTIONS,
 		);
@@ -131,7 +135,7 @@ export default class CacheManager {
 		});
 	}
 
-	#createKeyForStage(buildSignature, stageName, resourcePath) {
-		return `${buildSignature}|${stageName}|${resourcePath}`;
+	#createKeyForStage(buildSignature, stageId, resourcePath) {
+		return `${buildSignature}|${stageId}|${resourcePath}`;
 	}
 }

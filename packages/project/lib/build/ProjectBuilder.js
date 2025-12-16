@@ -135,6 +135,7 @@ class ProjectBuilder {
 	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
 	 *   Allows for a more sophisticated configuration for defining which dependencies should be
 	 *   part of the build result. If this is provided, the other mentioned parameters are ignored.
+	 * @param parameters.watch
 	 * @returns {Promise} Promise resolving once the build has finished
 	 */
 	async build({
@@ -258,13 +259,12 @@ class ProjectBuilder {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
 					this.#log.startProjectBuild(projectName, projectType);
-					project.newVersion();
 					await projectBuildContext.getTaskRunner().runTasks();
-					project.sealWorkspace();
 					this.#log.endProjectBuild(projectName, projectType);
 				}
-				if (!requestedProjects.includes(projectName) || !!process.env.UI5_BUILD_NO_WRITE_DEST) {
-					// Project has not been requested or writing is disabled
+				project.sealWorkspace();
+				if (!requestedProjects.includes(projectName)) {
+					// Project has not been requested
 					//	=> Its resources shall not be part of the build result
 					continue;
 				}
@@ -276,11 +276,11 @@ class ProjectBuilder {
 
 				if (!alreadyBuilt.includes(projectName)) {
 					this.#log.verbose(`Saving cache...`);
-					const metadata = await createBuildManifest(
+					const buildManifest = await createBuildManifest(
 						project,
 						this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
 						projectBuildContext.getBuildSignature());
-					pWrites.push(projectBuildContext.getBuildCache().saveToDisk(metadata));
+					pWrites.push(projectBuildContext.getBuildCache().saveToDisk(buildManifest));
 				}
 			}
 			await Promise.all(pWrites);
@@ -351,7 +351,6 @@ class ProjectBuilder {
 			}
 
 			this.#log.startProjectBuild(projectName, projectType);
-			project.newVersion();
 			await projectBuildContext.runTasks();
 			project.sealWorkspace();
 			this.#log.endProjectBuild(projectName, projectType);
@@ -367,8 +366,11 @@ class ProjectBuilder {
 			}
 
 			this.#log.verbose(`Updating cache...`);
-			// TODO: Serialize lazily, or based on memory pressure
-			pWrites.push(projectBuildContext.getBuildCache().saveToDisk());
+			const buildManifest = await createBuildManifest(
+				project,
+				this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+				projectBuildContext.getBuildSignature());
+			pWrites.push(projectBuildContext.getBuildCache().saveToDisk(buildManifest));
 		}
 		await Promise.all(pWrites);
 	}
@@ -488,12 +490,12 @@ class ProjectBuilder {
 
 		if (createBuildManifest) {
 			// Create and write a build manifest metadata file
-			const metadata = await createBuildManifest(
+			const buildManifest = await createBuildManifest(
 				project, this._graph, buildConfig, this._buildContext.getTaskRepository(),
 				projectBuildContext.getBuildSignature());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
-				string: JSON.stringify(metadata, null, "\t")
+				string: JSON.stringify(buildManifest, null, "\t")
 			}));
 		}
 
