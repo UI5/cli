@@ -122,6 +122,7 @@ class TaskRunner {
 		});
 
 		this._log.setTasks(allTasks);
+		this._buildCache.setTasks(allTasks);
 		for (const taskName of allTasks) {
 			const taskFunction = this._tasks[taskName].task;
 

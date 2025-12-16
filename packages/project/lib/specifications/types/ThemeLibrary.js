@@ -18,7 +18,6 @@ class ThemeLibrary extends Project {
 		this._srcPath = "src";
 		this._testPath = "test";
 		this._testPathExists = false;
-		this._writer = null;
 	}
 
 	/* === Attributes === */
@@ -113,14 +112,10 @@ class ThemeLibrary extends Project {
 	}
 
 	_createWriter() {
-		if (!this._writer) {
-			this._writer = resourceFactory.createAdapter({
-				virBasePath: "/",
-				project: this
-			});
-		}
-
-		return this._writer;
+		return resourceFactory.createAdapter({
+			virBasePath: "/",
+			project: this
+		});
 	}
 
 	/* === Internals === */
