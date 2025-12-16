@@ -326,7 +326,7 @@ For each task, the following information is stored:
 
 In this concept, each stage corresponds to the execution of a task. It contains the metadata for all resources **written** by the task during its execution. This is tracked via the provided workspace writer. The metadata includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
 
-In the future, additional stages might be introduced. Therefore, stage names for tasks must be prefixed with `tasks/`.
+In the future, additional stages might be introduced. Therefore, stage names for tasks must be prefixed with `task/`.
 
 #### Cache Directory Structure
 
@@ -425,6 +425,18 @@ A dedicated command, such as `ui5 cache clean`, should be introduced in addition
 
 The build API should provide a "watch" mode that will re-trigger the build when a source file is modified. The watch mode shall select the projects to watch based on which projects have been requested to be built. If a [UI5 CLI workspace](https://sap.github.io/ui5-tooling/stable/pages/Workspace/) is used, this can be fine-tuned in the workspace configuration.
 
+The watch mode shall be used by the server to automatically rebuild projects when source files are modified and serve the updated resources. See below.
+
+#### Cache Invalidation
+
+Besides watching relevant source files, the watch mode shall also watch configuration files relevant for the build signature (e.g. ui5.yaml, package.json, tsconfig.json, etc.). If any of those files change, the cache needs to be replaced using the build signature.
+
+#### Error Handling
+
+If a task execution fails in watch mode, the error shall be logged but the watch mode shall stay active in anticipation of further changes. The process shall not crash or stop. This shall be a configuration option.
+
+If some tasks have executed successfully before the error occurred, their results shall be kept in the cache and used for subsequent builds. Only the failed task and any downstream tasks shall be re-executed on the next build.
+
 ### Server Integration
 
 The UI5 CLI server shall integrate the incremental build as a mean to pre-process projects before serving the build result. It shall use the watch mode to automatically rebuild the projects when source files are modified, so that always the latest resources are served.
@@ -438,6 +450,23 @@ Since executing a full build requires more time than the on-the-fly processing o
 While a build is running, the server shall pause responding to incoming requests for the duration of the build. This is necessary to ensure that the server does not serve outdated resources.
 
 The server may implement "live-reload" functionality to inform client side code to refresh the page whenever changes have been detected and the build has finished.
+
+#### Live Reload
+
+The server may implement live-reload functionality to inform connected clients about changes in the build result. This can be achieved using WebSockets or Server-Sent Events (SSE).
+
+This is an essential feature, since after saving an edited file, the user might not know when the build has finished and the changes are available in the browser. Although the server should also pause all incoming requests until the build has finished, an automatic refresh of the page improves the developer experience significantly.
+
+For this purpose, a script is to be injected into the served HTML pages that establishes a connection to the server and listens for change notifications. Upon receiving a notification, the script should trigger a page reload to reflect the latest changes. The endpoint should be secured using a token-based mechanism to prevent unauthorized access.
+
+## Integration in UI5 CLI
+
+The following new arguments shall be added to the `ui5 build` and `ui5 serve` commands:
+
+* `--no-cache`: Disables the use of the build cache entirely. The project will be built from scratch without leveraging any cached results.
+	* **To be discussed:** This clashes with the currently existing [`--cache-mode` parameter](https://ui5.github.io/cli/stable/pages/CLI/#ui5-build). Should that one be renamed or repurposed?
+* `--watch`: Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
+	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command shall always use watch mode.
 
 ## How we teach this
 
