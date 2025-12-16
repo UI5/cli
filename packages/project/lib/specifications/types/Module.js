@@ -16,7 +16,6 @@ class Module extends Project {
 		super(parameters);
 
 		this._paths = null;
-		this._writer = null;
 	}
 
 	/* === Attributes === */
@@ -83,13 +82,9 @@ class Module extends Project {
 	}
 
 	_createWriter() {
-		if (!this._writer) {
-			this._writer = resourceFactory.createAdapter({
-				virBasePath: "/"
-			});
-		}
-
-		return this._writer;
+		return resourceFactory.createAdapter({
+			virBasePath: "/"
+		});
 	}
 
 	/* === Internals === */

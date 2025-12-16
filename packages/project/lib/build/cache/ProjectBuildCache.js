@@ -65,74 +65,77 @@ export default class ProjectBuildCache {
 		}
 		const resourcesWritten = projectTrackingResults.resourcesWritten;
 
-		if (this.#taskCache.has(taskName)) {
-			log.verbose(`Updating build cache with results of task ${taskName} in project ${this.#project.getName()}`);
-			const taskCache = this.#taskCache.get(taskName);
+		if (!this.#taskCache.has(taskName)) {
+			throw new Error(`Cannot record results for unknown task ${taskName} ` +
+				`in project ${this.#project.getName()}`);
+		}
+		log.verbose(`Updating build cache with results of task ${taskName} in project ${this.#project.getName()}`);
+		const taskCache = this.#taskCache.get(taskName);
 
-			const writtenResourcePaths = Object.keys(resourcesWritten);
-			if (writtenResourcePaths.length) {
-				log.verbose(`Task ${taskName} produced ${writtenResourcePaths.length} resources`);
+		const writtenResourcePaths = Object.keys(resourcesWritten);
+		if (writtenResourcePaths.length) {
+			log.verbose(`Task ${taskName} produced ${writtenResourcePaths.length} resources`);
 
-				const changedPaths = new Set((await Promise.all(writtenResourcePaths
-					.map(async (resourcePath) => {
-						// Check whether resource content actually changed
-						if (await taskCache.hasResourceInWriteCache(resourcesWritten[resourcePath])) {
-							return undefined;
-						}
-						return resourcePath;
-					}))).filter((resourcePath) => resourcePath !== undefined));
+			const changedPaths = new Set((await Promise.all(writtenResourcePaths
+				.map(async (resourcePath) => {
+					// Check whether resource content actually changed
+					if (await taskCache.hasResourceInWriteCache(resourcesWritten[resourcePath])) {
+						return undefined;
+					}
+					return resourcePath;
+				}))).filter((resourcePath) => resourcePath !== undefined));
 
-				if (!changedPaths.size) {
-					log.verbose(
-						`Resources produced by task ${taskName} match with cache from previous executions. ` +
-						`This task will not invalidate any other tasks`);
-					return;
-				}
+			if (!changedPaths.size) {
 				log.verbose(
-					`Task ${taskName} produced ${changedPaths.size} resources that might invalidate other tasks`);
-				for (const resourcePath of changedPaths) {
-					this.#updatedResources.add(resourcePath);
+					`Resources produced by task ${taskName} match with cache from previous executions. ` +
+					`This task will not invalidate any other tasks`);
+				return;
+			}
+			log.verbose(
+				`Task ${taskName} produced ${changedPaths.size} resources that might invalidate other tasks`);
+			for (const resourcePath of changedPaths) {
+				this.#updatedResources.add(resourcePath);
+			}
+			// Check whether other tasks need to be invalidated
+			const allTasks = Array.from(this.#taskCache.keys());
+			const taskIdx = allTasks.indexOf(taskName);
+			const emptySet = new Set();
+			for (let i = taskIdx + 1; i < allTasks.length; i++) {
+				const nextTaskName = allTasks[i];
+				if (!this.#taskCache.get(nextTaskName).matchesChangedResources(changedPaths, emptySet)) {
+					continue;
 				}
-				// Check whether other tasks need to be invalidated
-				const allTasks = Array.from(this.#taskCache.keys());
-				const taskIdx = allTasks.indexOf(taskName);
-				const emptySet = new Set();
-				for (let i = taskIdx + 1; i < allTasks.length; i++) {
-					const nextTaskName = allTasks[i];
-					if (!this.#taskCache.get(nextTaskName).matchesChangedResources(changedPaths, emptySet)) {
-						continue;
+				if (this.#invalidatedTasks.has(taskName)) {
+					const {changedDependencyResourcePaths} =
+						this.#invalidatedTasks.get(taskName);
+					for (const resourcePath of changedPaths) {
+						changedDependencyResourcePaths.add(resourcePath);
 					}
-					if (this.#invalidatedTasks.has(taskName)) {
-						const {changedDependencyResourcePaths} =
-							this.#invalidatedTasks.get(taskName);
-						for (const resourcePath of changedPaths) {
-							changedDependencyResourcePaths.add(resourcePath);
-						}
-					} else {
-						this.#invalidatedTasks.set(taskName, {
-							changedProjectResourcePaths: changedPaths,
-							changedDependencyResourcePaths: emptySet
-						});
-					}
+				} else {
+					this.#invalidatedTasks.set(taskName, {
+						changedProjectResourcePaths: changedPaths,
+						changedDependencyResourcePaths: emptySet
+					});
 				}
 			}
-			taskCache.updateMetadata(
-				projectTrackingResults.requests,
-				dependencyTrackingResults?.requests,
-				resourcesRead,
-				resourcesWritten
-			);
-		} else {
-			log.verbose(`Initializing build cache for task ${taskName} in project ${this.#project.getName()}`);
-			this.#taskCache.set(taskName,
-				new BuildTaskCache(this.#project.getName(), taskName, {
-					projectRequests: projectTrackingResults.requests,
-					dependencyRequests: dependencyTrackingResults?.requests,
-					resourcesRead,
-					resourcesWritten
-				})
-			);
 		}
+		taskCache.updateMetadata(
+			projectTrackingResults.requests,
+			dependencyTrackingResults?.requests,
+			resourcesRead,
+			resourcesWritten
+		);
+		// } else {
+		// log.verbose(`Initializing build cache for task ${taskName} in project ${this.#project.getName()}`);
+		// this.#taskCache.set(taskName,
+		// 	new BuildTaskCache(this.#project.getName(), taskName, {
+		// 		projectRequests: projectTrackingResults.requests,
+		// 		dependencyRequests: dependencyTrackingResults?.requests,
+		// 		resourcesRead,
+		// 		resourcesWritten
+		// 	})
+		// );
+		// }
 
 		if (this.#invalidatedTasks.has(taskName)) {
 			this.#invalidatedTasks.delete(taskName);
@@ -300,6 +303,24 @@ export default class ProjectBuildCache {
 		return !this.hasAnyCache() || this.#invalidatedTasks.size > 0;
 	}
 
+	async setTasks(taskNames) {
+		// Ensure task cache entries exist for all tasks
+		for (const taskName of taskNames) {
+			if (!this.#taskCache.has(taskName)) {
+				this.#taskCache.set(taskName,
+					new BuildTaskCache(this.#project.getName(), taskName, {
+						projectRequests: [],
+						dependencyRequests: [],
+						resourcesRead: {},
+						resourcesWritten: {}
+					})
+				);
+			}
+		}
+		const stageNames = taskNames.map((taskName) => this.#getStageNameForTask(taskName));
+		this.#project.ensureStages(stageNames);
+	}
+
 	async prepareTaskExecution(taskName, dependencyReader) {
 		// Check cache exists and ensure it's still valid before using it
 		if (this.hasTaskCache(taskName)) {
@@ -372,41 +393,43 @@ export default class ProjectBuildCache {
 	}
 
 	async #getStageNameForTask(taskName) {
-		return `tasks/${taskName}`;
+		return `task/${taskName}`;
 	}
 
 	async #saveCachedStages() {
 		log.info(`Storing task outputs for project ${this.#project.getName()} in cache...`);
-		const stageCache = await Promise.all(Array.from(this.#taskCache.keys()).map(async (taskName, idx) => {
-			const stageName = this.#getStageNameForTask(taskName);
-			const reader = this.#project.getDeltaReader(stageName);
-			if (!reader) {
-				log.verbose(
-					`Skipping serialization of empty writer for task ${taskName} in project ${this.#project.getName()}`
-				);
-				return;
-			}
-			const resources = await reader.byGlob("/**/*");
 
-			for (const res of resources) {
+		const stageMetadata = Object.create(null);
+		await Promise.all(this.#project.getStagesForCache().map(async ({stageId, reader}) => {
+			// if (!reader) {
+			// 	log.verbose(
+			// 		`Skipping serialization of empty writer for task ${taskName} in project ${this.#project.getName()}`
+			// 	);
+			// 	return;
+			// }
+			const resources = await reader.byGlob("/**/*");
+			const metadata = stageMetadata[stageId];
+
+			await Promise.all(resources.map(async (res) => {
 				// Store resource content in cacache via CacheManager
 				const integrity = await this.#cacheManager.writeStageStream(
-					this.#buildSignature, stageName,
+					this.#buildSignature, stageId,
 					res.getOriginalPath(), await res.getStreamAsync()
 				);
 				// TODO: Decide whether to use stream or buffer
 				// const integrity = await this.#cacheManager.writeStage(
-				// 	this.#buildSignature, stageName,
+				// 	this.#buildSignature, stageId,
 				// 	res.getOriginalPath(), await res.getBuffer()
 				// );
-			}
-			return {
-				reader: target,
-				stage: taskName
-			};
+
+				metadata[res.getOriginalPath()] = {
+					size: await res.getSize(),
+					lastModified: res.getLastModified(),
+					integrity,
+				};
+			}));
 		}));
-		// Re-import cache as base layer to reduce memory pressure
-		this.#project.importCachedStages(stageCache.filter((entry) => entry));
+		// Optional TODO: Re-import cache as base layer to reduce memory pressure?
 	}
 
 	async #checkForIndexChanges(index, indexTimestamp) {
@@ -515,14 +538,10 @@ export default class ProjectBuildCache {
 	}
 
 	async #importCachedStages(stages) {
-		const cachedStages = await Promise.all(Object.entries(stages).map(async ([stageName, resourceMetadata]) => {
-			const reader = await this.#createReaderForStageCache(stageName, resourceMetadata);
-			return {
-				stageName,
-				reader
-			};
+		const readers = await Promise.all(Object.entries(stages).map(async ([stageName, resourceMetadata]) => {
+			return await this.#createReaderForStageCache(stageName, resourceMetadata);
 		}));
-		this.#project.importCachedStages(cachedStages);
+		this.#project.setStages(Object.keys(stages), readers);
 	}
 
 	async saveToDisk(buildManifest) {

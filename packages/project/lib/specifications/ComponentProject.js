@@ -210,7 +210,7 @@ class ComponentProject extends Project {
 		return reader;
 	}
 
-	_addWriterToReaders(style, readers, writer) {
+	_addWriter(style, readers, writer) {
 		let {namespaceWriter, generalWriter} = writer;
 		if (!namespaceWriter || !generalWriter) {
 			// TODO: Too hacky
