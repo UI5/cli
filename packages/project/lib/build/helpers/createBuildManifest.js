@@ -16,7 +16,7 @@ function getSortedTags(project) {
 	return Object.fromEntries(entities);
 }
 
-export default async function(project, graph, buildConfig, taskRepository, buildSignature, cache) {
+export default async function(project, graph, buildConfig, taskRepository, signature) {
 	if (!project) {
 		throw new Error(`Missing parameter 'project'`);
 	}
@@ -62,23 +62,19 @@ export default async function(project, graph, buildConfig, taskRepository, build
 				}
 			}
 		},
-		buildManifest: createBuildManifest(project, buildConfig, taskRepository, buildSignature),
+		buildManifest: await createBuildManifest(project, buildConfig, taskRepository, signature),
 	};
-
-	if (cache) {
-		metadata.cache = cache;
-	}
 
 	return metadata;
 }
 
-async function createBuildManifest(project, buildConfig, taskRepository, buildSignature) {
+async function createBuildManifest(project, buildConfig, taskRepository, signature) {
 	// Use legacy manifest version for framework libraries to ensure compatibility
 	const {builderVersion, fsVersion: builderFsVersion} = await taskRepository.getVersions();
 	const buildManifest = {
 		manifestVersion: "1.0",
 		timestamp: new Date().toISOString(),
-		buildSignature,
+		signature,
 		versions: {
 			builderVersion: builderVersion,
 			projectVersion: await getVersion("@ui5/project"),
