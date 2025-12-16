@@ -78,7 +78,6 @@ export default class CacheManager {
 	}
 
 	async getResourcePathForStage(buildSignature, stageId, resourcePath, integrity) {
-		// try {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
@@ -99,13 +98,6 @@ export default class CacheManager {
 			return null;
 		}
 		return result.path;
-		// } catch (err) {
-		// 	if (err.code === "ENOENT") {
-		// 		// Cache miss
-		// 		return null;
-		// 	}
-		// 	throw err;
-		// }
 	}
 
 	async writeStage(buildSignature, stageId, resourcePath, buffer) {
