@@ -2,7 +2,7 @@ import express from "express";
 import portscanner from "portscanner";
 import path from "node:path/posix";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
-import {createAdapter, createReaderCollection} from "@ui5/fs/resourceFactory";
+import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
 import {getLogger} from "@ui5/logger";
 
@@ -137,16 +137,8 @@ export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
 }) {
-	// const rootReader = createAdapter({
-	// 	virBasePath: "/",
-	// });
-	// const dependencies = createAdapter({
-	// 	virBasePath: "/",
-	// });
-
 	const rootProject = graph.getRoot();
 	const watchHandler = await graph.build({
-		cacheDir: path.join(rootProject.getRootPath(), ".ui5-cache"),
 		includedDependencies: ["*"],
 		watch: true,
 	});
@@ -182,7 +174,7 @@ export async function serve(graph, {
 
 	const resources = await createReaders();
 
-	watchHandler.on("buildUpdated", async () => {
+	watchHandler.on("projectResourcesUpdated", async () => {
 		const newResources = await createReaders();
 		// Patch resources
 		resources.rootProject = newResources.rootProject;
