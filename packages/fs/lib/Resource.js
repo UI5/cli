@@ -4,7 +4,7 @@ import ssri from "ssri";
 import clone from "clone";
 import posixPath from "node:path/posix";
 import {setTimeout} from "node:timers/promises";
-import {withTimeout, Mutex} from "async-mutex";
+import {Mutex} from "async-mutex";
 import {getLogger} from "@ui5/logger";
 
 const log = getLogger("fs:Resource");
@@ -52,8 +52,8 @@ class Resource {
 
 	/* States */
 	#isModified = false;
-	// Mutex to prevent access/modification while content is being transformed. 100 ms timeout
-	#contentMutex = withTimeout(new Mutex(), 100, new Error("Timeout waiting for resource content access"));
+	// Mutex to prevent access/modification while content is being transformed
+	#contentMutex = new Mutex();
 
 	// Tracing
 	#collections = [];
@@ -404,20 +404,23 @@ class Resource {
 		}
 		// Then make sure no other operation is currently modifying the content and then lock it
 		const release = await this.#contentMutex.acquire();
-		const newContent = await callback(this.#getStream());
+		try {
+			const newContent = await callback(this.#getStream());
 
-		// New content is either buffer or stream
-		if (Buffer.isBuffer(newContent)) {
-			this.#content = newContent;
-			this.#contentType = CONTENT_TYPES.BUFFER;
-		} else if (typeof newContent === "object" && typeof newContent.pipe === "function") {
-			this.#content = newContent;
-			this.#contentType = CONTENT_TYPES.STREAM;
-		} else {
-			throw new Error("Unable to set new content: Content must be either a Buffer or a Readable Stream");
+			// New content is either buffer or stream
+			if (Buffer.isBuffer(newContent)) {
+				this.#content = newContent;
+				this.#contentType = CONTENT_TYPES.BUFFER;
+			} else if (typeof newContent === "object" && typeof newContent.pipe === "function") {
+				this.#content = newContent;
+				this.#contentType = CONTENT_TYPES.STREAM;
+			} else {
+				throw new Error("Unable to set new content: Content must be either a Buffer or a Readable Stream");
+			}
+			this.#contendModified();
+		} finally {
+			release();
 		}
-		this.#contendModified();
-		release();
 	}
 
 	/**
