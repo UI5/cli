@@ -135,7 +135,7 @@ class ProjectBuilder {
 	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
 	 *   Allows for a more sophisticated configuration for defining which dependencies should be
 	 *   part of the build result. If this is provided, the other mentioned parameters are ignored.
-	 * @param parameters.watch
+	 * @param {boolean} [parameters.watch] Whether to watch for file changes and re-execute the build automatically
 	 * @returns {Promise} Promise resolving once the build has finished
 	 */
 	async build({
@@ -301,21 +301,6 @@ class ProjectBuilder {
 				await this.#update(projectBuildContexts, requestedProjects, fsTarget);
 			});
 			return watchHandler;
-
-			// Register change handler
-			// this._buildContext.onSourceFileChange(async (event) => {
-			// 	await this.#update(projectBuildContexts, requestedProjects,
-			// 		fsTarget,
-			// 		targetWriterProject, targetWriterDependencies);
-			// 	updateOnChange(event);
-			// }, (err) => {
-			// 	updateOnChange(err);
-			// });
-
-			// // Start watching
-			// for (const projectBuildContext of queue) {
-			// 	await projectBuildContext.watchFileChanges();
-			// }
 		}
 	}
 
@@ -328,9 +313,7 @@ class ProjectBuilder {
 				// Build context exists
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
-				// if (await projectBuildContext.requiresBuild()) {
 				queue.push(projectBuildContext);
-				// }
 			}
 		});
 

@@ -276,14 +276,6 @@ class Project extends Specification {
 			// Use cached reader
 			return reader;
 		}
-		// const readers = [];
-		// this._addWriter(style, readers, this.getWriter());
-		// readers.push(this._getStyledReader(style));
-		// reader = createReaderCollectionPrioritized({
-		// 	name: `Reader collection for project ${this.getName()}`,
-		// 	readers
-		// });
-		// reader = this.#getReader(this.#currentStage, style);
 
 		const readers = [];
 
@@ -310,29 +302,9 @@ class Project extends Specification {
 		return reader;
 	}
 
-	// getCacheReader({style = "buildtime"} = {}) {
-	// 	return this.#getReader(this.#currentStage, style, true);
-	// }
-
 	getSourceReader(style = "buildtime") {
 		return this._getStyledReader(style);
 	}
-
-	// #getWriter() {
-	// 	return this.#currentStage.getWriter();
-	// }
-
-	// #createNewWriterStage(stageId) {
-	// 	const writer = this._createWriter();
-	// 	this.#writers.set(stageId, writer);
-	// 	this.#currentWriter = writer;
-
-	// 	// Invalidate dependents
-	// 	this.#currentWorkspace = null;
-	// 	this.#currentReader = new Map();
-
-	// 	return writer;
-	// }
 
 	/**
 	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
@@ -356,16 +328,6 @@ class Project extends Specification {
 			return this.#currentStageWorkspace;
 		}
 		const writer = this.#currentStage.getWriter();
-
-		// if (this.#stageCacheReaders.has(this.getCurrentStage())) {
-		// 	reader = createReaderCollectionPrioritized({
-		// 		name: `Reader collection for project ${this.getName()} stage ${this.getCurrentStage()}`,
-		// 		readers: [
-		// 			this.#stageCacheReaders.get(this.getCurrentStage()),
-		// 			reader,
-		// 		]
-		// 	});
-		// }
 		const workspace = createWorkspace({
 			reader: this.getReader(),
 			writer: writer.collection || writer
@@ -373,59 +335,6 @@ class Project extends Specification {
 		this.#currentStageWorkspace = workspace;
 		return workspace;
 	}
-
-	// getWorkspaceForVersion(version) {
-	// 	return createWorkspace({
-	// 		reader: this.#getReader(version),
-	// 		writer: this.#writerVersions[version].collection || this.#writerVersions[version]
-	// 	});
-	// }
-
-
-	// newVersion() {
-	// 	this.#workspaceSealed = false;
-	// 	this.#currentVersion++;
-	// 	this.useInitialStage();
-	// }
-
-	// revertToLastVersion() {
-	// 	if (this.#currentVersion === 0) {
-	// 		throw new Error(`Unable to revert to previous version: No previous version available`);
-	// 	}
-	// 	this.#currentVersion--;
-	// 	this.useInitialStage();
-
-	// 	// Remove writer version from all stages
-	// 	for (const writerVersions of this.#writers.values()) {
-	// 		if (writerVersions[this.#currentVersion]) {
-	// 			delete writerVersions[this.#currentVersion];
-	// 		}
-	// 	}
-	// }
-
-	// #getReader(style = "buildtime") {
-	// 	const readers = [];
-
-	// 	// Add writers for previous stages as readers
-	// 	const stageIdx = this.#stages.findIndex((s) => s.getName() === stageId);
-	// 	if (stageIdx > 0) { // Stage 0 has no previous stage
-	// 		// Collect writers from all preceding stages
-	// 		for (let i = stageIdx - 1; i >= 0; i--) {
-	// 			const stageWriters = this.#getWriters(this.#stages[i], version, style);
-	// 			if (stageWriters) {
-	// 				readers.push(stageWriters);
-	// 			}
-	// 		}
-	// 	}
-
-	// 	// Always add source reader
-	// 	readers.push(this._getStyledReader(style));
-
-	// 	return createReaderCollectionPrioritized({
-	// 		name: `Reader collection for stage '${stage}' of project ${this.getName()}`,
-	// 		readers: readers
-	// 	});
-	// }
 
 	useStage(stageId) {
 		// if (newWriter && this.#writers.has(stageId)) {
@@ -484,75 +393,6 @@ class Project extends Specification {
 		});
 	}
 
-	// #getWriters(stage, version, style = "buildtime") {
-	// 	const readers = [];
-	// 	const stageWriters = this.#writers.get(stage);
-	// 	if (!stageWriters?.length) {
-	// 		return null;
-	// 	}
-	// 	for (let i = version; i >= 0; i--) {
-	// 		if (!stageWriters[i]) {
-	// 			// Writers is a sparse array, some stages might skip a version
-	// 			continue;
-	// 		}
-	// 		this._addWriter(style, readers, stageWriters[i]);
-	// 	}
-
-	// 	return createReaderCollectionPrioritized({
-	// 		name: `Collection of all writers for stage '${stage}', version ${version} of project ${this.getName()}`,
-	// 		readers
-	// 	});
-	// }
-
-	// getDeltaReader(stage) {
-	// 	const readers = [];
-	// 	const stageWriters = this.#writers.get(stage);
-	// 	if (!stageWriters?.length) {
-	// 		return null;
-	// 	}
-	// 	const version = this.#currentVersion;
-	// 	for (let i = version; i >= 1; i--) { // Skip version 0 (possibly containing cached writers)
-	// 		if (!stageWriters[i]) {
-	// 			// Writers is a sparse array, some stages might skip a version
-	// 			continue;
-	// 		}
-	// 		this._addWriter("buildtime", readers, stageWriters[i]);
-	// 	}
-
-	// 	const reader = createReaderCollectionPrioritized({
-	// 		name: `Collection of new writers for stage '${stage}', version ${version} of project ${this.getName()}`,
-	// 		readers
-	// 	});
-
-
-	// 	// Condense writer versions (TODO: this step is optional but might improve memory consumption)
-	// 	// this.#condenseVersions(reader);
-	// 	return reader;
-	// }
-
-	// #condenseVersions(reader) {
-	// 	for (const stage of this.#stages) {
-	// 		const stageWriters = this.#writers.get(stage);
-	// 		if (!stageWriters) {
-	// 			continue;
-	// 		}
-	// 		const condensedWriter = this._createWriter();
-
-	// 		for (let i = 1; i < stageWriters.length; i++) {
-	// 			if (stageWriters[i]) {
-
-	// 			}
-	// 		}
-
-	// 		// eslint-disable-next-line no-sparse-arrays
-	// 		const newWriters = [, condensedWriter];
-	// 		if (stageWriters[0]) {
-	// 			newWriters[0] = stageWriters[0];
-	// 		}
-	// 		this.#writers.set(stage, newWriters);
-	// 	}
-	// }
-
 	getStagesForCache() {
 		return this.#stages.map((stage) => {
 			const reader = this.#getReaderForStage(stage, "buildtime", false);
@@ -586,56 +426,7 @@ class Project extends Specification {
 			const newStage = new Stage(stageId, cacheReaders?.[i]);
 			this.#stages.push(newStage);
 		}
-
-		// let lastIdx;
-		// for (let i = 0; i < stageIds.length; i++) {
-		// 	const stageId = stageIds[i];
-		// 	const idx = this.#stages.findIndex((s) => {
-		// 		return s.getName() === stageId;
-		// 	});
-		// 	if (idx !== -1) {
-		// 		// Stage already exists, remember its position for later use
-		// 		lastIdx = idx;
-		// 		continue;
-		// 	}
-		// 	const newStage = new Stage(stageId, cacheReaders?.[i]);
-		// 	if (lastIdx !== undefined) {
-		// 		// Insert new stage after the last existing one to maintain order
-		// 		this.#stages.splice(lastIdx + 1, 0, newStage);
-		// 		lastIdx++;
-		// 	} else {
-		// 		// Append new stage
-		// 		this.#stages.push(newStage);
-		// 	}
-		// }
 	}
-
-	// /**
-	//  * Import cached stages into the project
-	//  *
-	//  * @param {Array<{stageName: string, reader: import("@ui5/fs").Reader}>} stages Stages to import
-	//  */
-	// importCachedStages(stages) {
-	// 	if (!this.#workspaceSealed) {
-	// 		throw new Error(`Unable to import cached stages: Workspace is not sealed`);
-	// 	}
-	// 	for (const {stageName, reader} of stages) {
-	// 		if (!this.#stages.includes(stageName)) {
-	// 			this.#stages.push(stageName);
-	// 		}
-	// 		if (reader) {
-	// 			this.#writers.set(stageName, [reader]);
-	// 		} else {
-	// 			this.#writers.set(stageName, []);
-	// 		}
-	// 	}
-	// 	this.#currentVersion = 0;
-	// 	this.useFinalStage();
-	// }
-
-	// getCurrentStage() {
-	// 	return this.#currentStage;
-	// }
 
 	/* Overwritten in ComponentProject subclass */
 	_addWriter(style, readers, writer) {
