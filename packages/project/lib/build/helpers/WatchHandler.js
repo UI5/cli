@@ -125,9 +125,9 @@ class WatchHandler extends EventEmitter {
 		});
 
 		if (someProjectTasksInvalidated) {
-			this.emit("projectInvalidated");
+			this.emit("projectResourcesInvalidated");
 			await this.#updateBuildResult();
-			this.emit("buildUpdated");
+			this.emit("projectResourcesUpdated");
 		}
 	}
 }
