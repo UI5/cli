@@ -8,13 +8,8 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 
-> [UI5 CLI v4](https://sap.github.io/ui5-tooling/v4) is the latest and stable version 🎉
->
-> [UI5 CLI v3](https://sap.github.io/ui5-tooling/v3) is a stable version and in maintenance mode 🚢
->
-> [UI5 CLI v2](https://sap.github.io/ui5-tooling/v2) has been deprecated 🚫  
->
-> Please migrate your projects to [UI5 CLI v3](https://sap.github.io/ui5-tooling/v3/updates/migrate-v3/)!
+> ⚠️ UI5 CLI v3 has been deprecated! We highly recommend migrating to [**the latest version**](https://ui5.github.io/cli/stable/).
+
 
 
 
