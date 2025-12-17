@@ -1,12 +1,12 @@
 {#-
-  This file was initialy copied from https://squidfunk.github.io/mkdocs-material/customization/#overriding-blocks
+  This file was initially copied from https://squidfunk.github.io/mkdocs-material/customization/#overriding-blocks
   It displays a message for the non-default branch
 -#}
 {% extends "base.html" %}
 
 {% block announce %}
   ⚠️ UI5 CLI v2 has been deprecated! We highly recommend migrating to
-  <a href="{{ base_url ~ '/../v3/' }}">
-  <strong>the latest version (v3).</strong>
+  <a href="{{ base_url ~ '/../stable/' }}">
+  <strong>the latest version.</strong>
   </a>
 {% endblock %}
