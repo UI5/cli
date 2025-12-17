@@ -117,7 +117,7 @@ Note that all configured paths must be written in POSIX (i.e. using only forward
 
 #### Available Path Mappings
 
-=== "Applications"
+=== "application"
     - `webapp`: Mapped to runtime path `/` (root)
 
     ```yaml title="Default Configuration"
@@ -127,7 +127,7 @@ Note that all configured paths must be written in POSIX (i.e. using only forward
           webapp: webapp
     ```
 
-=== "Libraries"
+=== "library / theme-library"
     - `src`: Mapped to runtime path `/resources`
     - `test`: Mapped to runtime path `/test-resources`
 
@@ -139,7 +139,7 @@ Note that all configured paths must be written in POSIX (i.e. using only forward
           test: test
     ```
 
-=== "Modules"
+=== "module"
     Modules can map any virtual paths to any physical path within the project.
 
     However, it is recommended that modules include their namespace in the virtual path and use the `/resources` prefix (e.g. `/resources/my/library/module-xy/`) to avoid name clashes with other projects.
@@ -369,7 +369,7 @@ You can choose which theme library to use by the application that is consuming t
               - "/resources/my/project/namespace/test/**"
         ```
 
-    === "library or theme-library"
+    === "library / theme-library"
         ```yaml
         builder:
           resources:
