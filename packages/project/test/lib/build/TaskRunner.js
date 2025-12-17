@@ -296,7 +296,8 @@ test("_initTasks: Project of type 'library' (framework project)", async (t) => {
 test("_initTasks: Project of type 'theme-library'", async (t) => {
 	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger, cache} = t.context;
 	const taskRunner = new TaskRunner({
-		project: getMockProject("theme-library"), graph, taskUtil, taskRepository, log: projectBuildLogger, cache, buildConfig
+		project: getMockProject("theme-library"), graph, taskUtil, taskRepository,
+		log: projectBuildLogger, cache, buildConfig
 	});
 	await taskRunner._initTasks();
 
