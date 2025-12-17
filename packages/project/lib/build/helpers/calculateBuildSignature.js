@@ -40,6 +40,7 @@ async function getVersion(pkg) {
 async function getLockfileHash(project) {
 	const rootReader = project.getRootReader({useGitIgnore: false});
 	const lockfiles = await Promise.all([
+		// TODO: Search upward for lockfiles in parent directories?
 		// npm
 		await rootReader.byPath("/package-lock.json"),
 		await rootReader.byPath("/npm-shrinkwrap.json"),
@@ -59,18 +60,43 @@ async function getLockfileHash(project) {
 }
 
 function collectDepInfo(graph, project) {
-	const projects = Object.create(null);
+	let projects = [];
 	for (const depName of graph.getTransitiveDependencies(project.getName())) {
 		const dep = graph.getProject(depName);
-		projects[depName] = {
+		projects.push({
+			name: dep.getName(),
 			version: dep.getVersion()
-		};
+		});
 	}
-	const extensions = Object.create(null);
-	for (const extension of graph.getExtensions()) {
-		extensions[extension.getName()] = {
-			version: extension.getVersion()
-		};
+	projects = projects.sort((a, b) => {
+		return a.name.localeCompare(b.name);
+	});
+
+	// Collect relevant extensions
+	let extensions = [];
+	if (graph.getRoot() === project) {
+		// Custom middleware is only relevant for root project
+		project.getCustomMiddleware().forEach((middlewareDef) => {
+			const extension = graph.getExtension(middlewareDef.name);
+			if (extension) {
+				extensions.push({
+					name: extension.getName(),
+					version: extension.getVersion()
+				});
+			}
+		});
 	}
+	project.getCustomTasks().forEach((taskDef) => {
+		const extension = graph.getExtension(taskDef.name);
+		if (extension) {
+			extensions.push({
+				name: extension.getName(),
+				version: extension.getVersion()
+			});
+		}
+	});
+	extensions = extensions.sort((a, b) => {
+		return a.name.localeCompare(b.name);
+	});
 	return {projects, extensions};
 }
