@@ -786,6 +786,7 @@ class Resource {
 			isDirectory: this.#isDirectory,
 			byteSize: this.#byteSize,
 			lastModified: this.#lastModified,
+			integrity: this.#integrity,
 			sourceMetadata: clone(this.#sourceMetadata)
 		};
 
