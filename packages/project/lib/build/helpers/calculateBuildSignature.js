@@ -40,8 +40,12 @@ async function getVersion(pkg) {
 async function getLockfileHash(project) {
 	const rootReader = project.getRootReader({useGitIgnore: false});
 	const lockfiles = await Promise.all([
+		// npm
 		await rootReader.byPath("/package-lock.json"),
+		await rootReader.byPath("/npm-shrinkwrap.json"),
+		// Yarn
 		await rootReader.byPath("/yarn.lock"),
+		// pnpm
 		await rootReader.byPath("/pnpm-lock.yaml"),
 	]);
 	let hash = "";
