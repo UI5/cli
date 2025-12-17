@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false # Continue all jobs even if one fails
       matrix:
-        branch: ["main", "v3", "v4"] # List of branches to run the security audit on
+        branch: ["main", "v4"] # List of branches to run the security audit on
 
     steps:
       - name: Checkout '${{ matrix.branch }}' branch
