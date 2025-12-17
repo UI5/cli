@@ -20,6 +20,7 @@ class Project extends Specification {
 	#currentStage;
 	#currentStageReadIndex = -1;
 	#currentStageName = "<source>";
+	#workspaceVersion = 0;
 
 	constructor(parameters) {
 		super(parameters);
@@ -370,8 +371,9 @@ class Project extends Specification {
 	 *
 	 */
 	sealWorkspace() {
+		this.#workspaceVersion++;
 		this.#currentStage = null; // Unset stage - This blocks further getWorkspace() calls
-		this.#currentStageName = "<final>";
+		this.#currentStageName = `<final - workspace version ${this.#workspaceVersion}>`;
 		this.#currentStageReadIndex = this.#stages.length - 1; // Read from all stages
 
 		// Unset "current" reader/writer. They will be recreated on demand
