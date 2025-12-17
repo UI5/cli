@@ -188,7 +188,7 @@ export default class BuildTaskCache {
 	 * @param {object} resource - Resource instance to check
 	 * @returns {Promise<boolean>} True if resource is in cache with matching content
 	 */
-	async hasResourceInReadCache(resource) {
+	async matchResourceInReadCache(resource) {
 		const cachedResource = this.#resourcesRead[resource.getPath()];
 		if (!cachedResource) {
 			return false;
@@ -206,7 +206,7 @@ export default class BuildTaskCache {
 	 * @param {object} resource - Resource instance to check
 	 * @returns {Promise<boolean>} True if resource is in cache with matching content
 	 */
-	async hasResourceInWriteCache(resource) {
+	async matchResourceInWriteCache(resource) {
 		const cachedResource = this.#resourcesWritten[resource.getPath()];
 		if (!cachedResource) {
 			return false;
@@ -223,7 +223,7 @@ export default class BuildTaskCache {
 			if (pathsRead.includes(resourcePath)) {
 				return true;
 			}
-			if (patterns.length && micromatch.isMatch(resourcePath, patterns)) {
+			if (patterns.length && micromatch(resourcePath, patterns).length > 0) {
 				return true;
 			}
 		}

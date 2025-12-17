@@ -24,15 +24,15 @@ export async function areResourcesEqual(resourceA, resourceB) {
 	if (resourceA.getOriginalPath() !== resourceB.getOriginalPath()) {
 		throw new Error("Cannot compare resources with different original paths");
 	}
-	if (resourceA.getLastModified() !== resourceB.getLastModified()) {
-		return false;
+	if (resourceA.getLastModified() === resourceB.getLastModified()) {
+		return true;
 	}
-	if (await resourceA.getSize() !== resourceB.getSize()) {
-		return false;
+	if (await resourceA.getSize() === await resourceB.getSize()) {
+		return true;
 	}
-	// if (await resourceA.getString() === await resourceB.getString()) {
-	// 	return true;
-	// }
+	if (await resourceA.getIntegrity() === await resourceB.getIntegrity()) {
+		return true;
+	}
 	return false;
 }
 

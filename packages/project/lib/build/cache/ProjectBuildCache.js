@@ -81,7 +81,7 @@ export default class ProjectBuildCache {
 			const changedPaths = new Set((await Promise.all(writtenResourcePaths
 				.map(async (resourcePath) => {
 					// Check whether resource content actually changed
-					if (await taskCache.hasResourceInWriteCache(resourcesWritten[resourcePath])) {
+					if (await taskCache.matchResourceInWriteCache(resourcesWritten[resourcePath])) {
 						return undefined;
 					}
 					return resourcePath;
@@ -224,7 +224,7 @@ export default class ProjectBuildCache {
 			if (!taskCache) {
 				throw new Error(`Failed to validate changed resources for task ${taskName}: Task cache not found`);
 			}
-			if (await taskCache.hasResourceInReadCache(resource)) {
+			if (await taskCache.matchResourceInReadCache(resource)) {
 				log.verbose(`Resource content has not changed for task ${taskName}, ` +
 					`removing ${resourcePath} from set of changed resource paths`);
 				changedResourcePaths.delete(resourcePath);
