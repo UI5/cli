@@ -14,6 +14,7 @@ import nonAsciiEscaper from "../processors/nonAsciiEscaper.js";
  *
  * @param {object} parameters Parameters
  * @param {@ui5/fs/DuplexCollection} parameters.workspace DuplexCollection to read and write files
+ * @param {Array<string>} parameters.invalidatedResources List of invalidated resource paths
  * @param {object} parameters.options Options
  * @param {string} parameters.options.pattern Glob pattern to locate the files to be processed
  * @param {string} parameters.options.encoding source file encoding either "UTF-8" or "ISO-8859-1"
