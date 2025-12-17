@@ -106,7 +106,7 @@ The `Task Runner` shall be enhanced to:
 3. Before executing a task, call the `determineExpectedOutput` method if provided. This allows the task to specify which resources it expects to write during its execution. The `Project Build Cache` can then use this information to detect and remove stale output resources that were produced in a previous execution of the task, but are no longer produced in the current execution.
 4. Execute the task with a new `cacheUtil` parameter, allowing it to access cache-related information during its execution. This can be used by tasks to optimize their processing based on which resources have changed since their last execution (see [Build Task Cache API](#build-task-cache-api) below).
 5. After a task has been executed, update the `Project Build Cache` with information about the resources read and written during the task's execution, as well as the set of resources expected to be written (as provided by the `determineExpectedOutput` method).
-	* This can be achieved by providing the task with instances of the `workspace`-reader/writer and `dependencies`-reader that have been wrapped in `Tracker` instances. These trackers will monitor which resources are being accessed during the task's execution.
+	* This can be achieved by providing the task with instances of the `workspace`-reader/writer and `dependencies`-reader that have been wrapped in ["Monitor"](#monitor) instances. They are responsible for observing which resources are being accessed during the task's execution.
 	* The `Project Build Cache` will then:
 		* Update the metadata in the respective `Build Task Cache`
 		* Validate which resources have actually changed
@@ -140,9 +140,9 @@ In addition, tasks may also implement the following new methods:
 
 These methods took some inspiration from to the existing [`determineRequiredDependencies` method](https://github.com/UI5/cli/blob/main/rfcs/0012-UI5-Tooling-Extension-API-3.md#new-api-2) ([docs](https://ui5.github.io/cli/stable/pages/extensibility/CustomTasks/#required-dependencies)).
 
-#### Tracker
+#### Monitor
 
-A `Tracker` is a wrapper around a `Reader` or `Writer` instance that monitors which resources are being accessed during its usage. It records the paths of resources that are read or written, along with the respective [`Resource`](https://ui5.github.io/cli/stable/api/@ui5_fs_Resource.html) instance. It also tracks which glob patterns have been used to request resources.
+A `Monitor` is a wrapper around a `Reader` or `Writer` instance that observes which resources are being accessed during its usage. It records the paths of resources that are read or written, along with the respective [`Resource`](https://ui5.github.io/cli/stable/api/@ui5_fs_Resource.html) instance. It also records which glob patterns have been used to request resources.
 
 ### Cache Creation
 
@@ -229,8 +229,9 @@ The cache consists of two main parts:
 				}
 			}
 		},
-		"stages": {
-			"task/replaceCopyright": { // Type and task name
+		"stages": [
+			"task/replaceCopyright",
+			{
 				// Virtual paths written by the task during execution, mapped to their cache metadata
 				"/resources/project/namespace/Component.js": {
 					"lastModified": 176468853453,
@@ -238,7 +239,7 @@ The cache consists of two main parts:
 					"integrity": "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
 				}
 			}
-		}
+		]
 	}
 }
 ````
