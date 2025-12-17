@@ -87,10 +87,10 @@ export default class CacheManager {
 			log.info(`Integrity mismatch for cache entry ` +
 				`${cacheKey}: expected ${integrity}, got ${result.integrity}`);
 
-			const res = await cacache.get.byDigest(this.#casDir, result.integrity);
+			const res = await cacache.get.byDigest(this.#casDir, integrity);
 			if (res) {
 				log.info(`Updating cache entry with expectation...`);
-				await this.writeStage(buildSignature, stageId, resourcePath, res.data);
+				await this.writeStage(buildSignature, stageId, resourcePath, res);
 				return await this.getResourcePathForStage(buildSignature, stageId, resourcePath, integrity);
 			}
 		}

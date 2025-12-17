@@ -554,15 +554,15 @@ class Resource {
 
 		switch (this.#contentType) {
 		case CONTENT_TYPES.BUFFER:
-			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS);
+			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS).toString();
 			break;
 		case CONTENT_TYPES.FACTORY:
-			this.#integrity = await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS);
+			this.#integrity = (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
 			break;
 		case CONTENT_TYPES.STREAM:
 			// To be discussed: Should we read the stream into a buffer here (using #getBufferFromStream) to avoid
 			// draining it?
-			this.#integrity = ssri.fromData(await this.#getBufferFromStream(this.#content), SSRI_OPTIONS);
+			this.#integrity = ssri.fromData(await this.#getBufferFromStream(this.#content), SSRI_OPTIONS).toString();
 			break;
 		case CONTENT_TYPES.DRAINED_STREAM:
 			throw new Error(`Unexpected error: Content of Resource ${this.#path} is flagged as drained.`);
