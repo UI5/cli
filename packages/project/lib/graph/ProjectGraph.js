@@ -632,6 +632,8 @@ class ProjectGraph {
 	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
 	 * @param {module:@ui5/project/build/ProjectBuilderOutputStyle} [parameters.outputStyle=Default]
 	 *   Processes build results into a specific directory structure.
+	 * @param {string} [parameters.cacheDir] Path to the cache directory
+	 * @param {boolean} [parameters.watch] Whether to watch for file changes and re-execute the build automatically
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -666,7 +668,8 @@ class ProjectGraph {
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
-			cacheDir, watch,
+			// cacheDir, // FIXME/TODO: Not implemented yet
+			watch,
 		});
 	}
 
