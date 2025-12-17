@@ -1,0 +1,758 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>project/lib/projectPreprocessor.js - UI5 CLI - API Reference</title>
+    
+    <meta name="description" content="UI5 CLI - API Reference" />
+    
+        <meta name="keywords" content="openui5 sapui5 ui5 build development tool api reference" />
+        <meta name="keyword" content="openui5 sapui5 ui5 build development tool api reference" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+     <link type="text/css" rel="stylesheet" href="custom.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/SAP/ui5-tooling" target="_blank" class="menu-item" id="github_link" >GitHub</a></h2><h3>Modules</h3><ul><li><a href="module-@ui5_builder.html">@ui5/builder</a></li><li><a href="module-@ui5_fs.html">@ui5/fs</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.html#.fsInterface">fsInterface</a></li></ul></li><li><a href="module-@ui5_project.html">@ui5/project</a></li><li><a href="module-@ui5_server.html">@ui5/server</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-@ui5_builder.builder.html">@ui5/builder.builder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.builder.html#.build">build</a></li></ul></li><li><a href="module-@ui5_builder.processors.html">@ui5/builder.processors</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.html#.apiIndexGenerator">apiIndexGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.debugFileCreator">debugFileCreator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.flexChangesBundler">flexChangesBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.jsdocGenerator">jsdocGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.libraryLessGenerator">libraryLessGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.manifestBundler">manifestBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.moduleBundler">moduleBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper">nonAsciiEscaper</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper%25E2%2580%25A4getEncodingFromAlias">nonAsciiEscaper․getEncodingFromAlias</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.resourceCopier">resourceCopier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.sdkTransformer">sdkTransformer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.stringReplacer">stringReplacer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.themeBuilder">themeBuilder</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.uglifier">uglifier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.versionInfoGenerator">versionInfoGenerator</a></li></ul></li><li><a href="module-@ui5_builder.tasks.html">@ui5/builder.tasks</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.html#.buildThemes">buildThemes</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.createDebugFiles">createDebugFiles</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.escapeNonAsciiCharacters">escapeNonAsciiCharacters</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.executeJsdocSdkTransformation">executeJsdocSdkTransformation</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateApiIndex">generateApiIndex</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateBundle">generateBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateCachebusterInfo">generateCachebusterInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateComponentPreload">generateComponentPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateFlexChangesBundle">generateFlexChangesBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateJsdoc">generateJsdoc</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryManifest">generateLibraryManifest</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryPreload">generateLibraryPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateManifestBundle">generateManifestBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateResourcesJson">generateResourcesJson</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateStandaloneAppBundle">generateStandaloneAppBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateThemeDesignerResources">generateThemeDesignerResources</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateVersionInfo">generateVersionInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceBuildtime">replaceBuildtime</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceCopyright">replaceCopyright</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceVersion">replaceVersion</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.uglify">uglify</a></li></ul></li><li><a href="module-@ui5_fs.adapters.html">@ui5/fs.adapters</a></li><li><a href="module-@ui5_fs.resourceFactory.html">@ui5/fs.resourceFactory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createAdapter">createAdapter</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createCollectionsForTree">createCollectionsForTree</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createResource">createResource</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createWorkspace">createWorkspace</a></li></ul></li><li><a href="module-@ui5_project.normalizer.html">@ui5/project.normalizer</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateDependencyTree">generateDependencyTree</a></li><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateProjectTree">generateProjectTree</a></li></ul></li><li><a href="module-@ui5_project.projectPreprocessor.html">@ui5/project.projectPreprocessor</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.projectPreprocessor.html#.processTree">processTree</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.html">@ui5/project.ui5Framework</a></li><li><a href="module-@ui5_project.validation.html">@ui5/project.validation</a></li><li><a href="module-@ui5_project.validation.validator.html">@ui5/project.validation.validator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.validation.validator.html#.validate">validate</a></li></ul></li><li><a href="module-@ui5_server.server.html">@ui5/server.server</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.server.html#.serve">serve</a></li></ul></li></ul><h3>Classes</h3><ul><li><a href="module-@ui5_builder.processors.ThemeBuilder.html">@ui5/builder.processors.ThemeBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#build">build</a></li><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#clearCache">clearCache</a></li></ul></li><li><a href="module-@ui5_builder.tasks.TaskUtil.html">@ui5/builder.tasks.TaskUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#clearTag">clearTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#getTag">getTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#isRootProject">isRootProject</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#registerCleanupTask">registerCleanupTask</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#setTag">setTag</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReader.html">@ui5/fs.AbstractReader</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReaderWriter.html">@ui5/fs.AbstractReaderWriter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.AbstractAdapter.html">@ui5/fs.adapters.AbstractAdapter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.FileSystem.html">@ui5/fs.adapters.FileSystem</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.Memory.html">@ui5/fs.adapters.Memory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.DuplexCollection.html">@ui5/fs.DuplexCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollection.html">@ui5/fs.ReaderCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollectionPrioritized.html">@ui5/fs.ReaderCollectionPrioritized</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.Resource.html">@ui5/fs.Resource</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.Resource.html#clone">clone</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getBuffer">getBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getPath">getPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStatInfo">getStatInfo</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStream">getStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getString">getString</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setBuffer">setBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setPath">setPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setStream">setStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setString">setString</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.AbstractResolver.html">@ui5/project.ui5Framework.AbstractResolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.AbstractResolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html">@ui5/project.ui5Framework.Openui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html">@ui5/project.ui5Framework.Sapui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.validation.ValidationError.html">@ui5/project.validation.ValidationError</a></li><li><a href="module-@ui5_server.middleware.MiddlewareUtil.html">@ui5/server.middleware.MiddlewareUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getMimeInfo">getMimeInfo</a></li><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getPathname">getPathname</a></li></ul></li></ul><h3><a href="global.html">Global</a></h3>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">project/lib/projectPreprocessor.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const log = require("@ui5/logger").getLogger("normalizer:projectPreprocessor");
+const fs = require("graceful-fs");
+const path = require("path");
+const {promisify} = require("util");
+const readFile = promisify(fs.readFile);
+const jsyaml = require("js-yaml");
+const typeRepository = require("@ui5/builder").types.typeRepository;
+const {validate} = require("./validation/validator");
+
+class ProjectPreprocessor {
+	constructor({tree}) {
+		this.tree = tree;
+		this.processedProjects = {};
+		this.configShims = {};
+		this.collections = {};
+		this.appliedExtensions = {};
+	}
+
+	/*
+		Adapt and enhance the project tree:
+			- Replace duplicate projects further away from the root with those closer to the root
+			- Add configuration to projects
+	*/
+	async processTree() {
+		const queue = [{
+			projects: [this.tree],
+			parent: null,
+			level: 0
+		}];
+		const configPromises = [];
+		let startTime;
+		if (log.isLevelEnabled("verbose")) {
+			startTime = process.hrtime();
+		}
+
+		// Breadth-first search to prefer projects closer to root
+		while (queue.length) {
+			const {projects, parent, level} = queue.shift(); // Get and remove first entry from queue
+
+			// Before processing all projects on a level concurrently, we need to set all of them as being processed.
+			// This prevents transitive dependencies pointing to the same projects from being processed first
+			//	 by the dependency lookahead
+			const projectsToProcess = projects.filter((project) => {
+				if (!project.id) {
+					const parentRefText = parent ? `(child of ${parent.id})` : `(root project)`;
+					throw new Error(`Encountered project with missing id ${parentRefText}`);
+				}
+				if (this.isBeingProcessed(parent, project)) {
+					return false;
+				}
+				// Flag this project as being processed
+				this.processedProjects[project.id] = {
+					project,
+					// If a project is referenced multiple times in the dependency tree it is replaced
+					//	with the instance that is closest to the root.
+					// Here we track the parents referencing that project
+					parents: [parent]
+				};
+				return true;
+			});
+
+			await Promise.all(projectsToProcess.map(async (project) => {
+				project._level = level;
+				if (level === 0) {
+					project._isRoot = true;
+				}
+				log.verbose(`Processing project ${project.id} on level ${project._level}...`);
+
+				if (project.dependencies &amp;&amp; project.dependencies.length) {
+					// Do a dependency lookahead to apply any extensions that might affect this project
+					await this.dependencyLookahead(project, project.dependencies);
+				} else {
+					// When using the static translator for instance, dependencies is not defined and will
+					// fail later access calls to it
+					project.dependencies = [];
+				}
+
+				const {extensions} = await this.loadProjectConfiguration(project);
+				if (extensions &amp;&amp; extensions.length) {
+					// Project contains additional extensions
+					// => apply them
+					// TODO: Check whether extensions get applied twice in case depLookahead already processed them
+					await Promise.all(extensions.map((extProject) => {
+						return this.applyExtension(extProject);
+					}));
+				}
+				await this.applyShims(project);
+				if (this.isConfigValid(project)) {
+					// Do not apply transparent projects.
+					// Their only purpose might be to have their dependencies processed
+					if (!project._transparentProject) {
+						await this.applyType(project);
+						this.checkProjectMetadata(parent, project);
+					}
+					queue.push({
+						// copy array, so that the queue is stable while ignored project dependencies are removed
+						projects: [...project.dependencies],
+						parent: project,
+						level: level + 1
+					});
+				} else {
+					if (project === this.tree) {
+						throw new Error(
+							`Failed to configure root project "${project.id}". Please check verbose log for details.`);
+					}
+					// No config available
+					// => reject this project by removing it from its parents list of dependencies
+					log.verbose(`Ignoring project ${project.id} with missing configuration ` +
+						"(might be a non-UI5 dependency)");
+
+					const parents = this.processedProjects[project.id].parents;
+					for (let i = parents.length - 1; i >= 0; i--) {
+						parents[i].dependencies.splice(parents[i].dependencies.indexOf(project), 1);
+					}
+					this.processedProjects[project.id] = {ignored: true};
+				}
+			}));
+		}
+		return Promise.all(configPromises).then(() => {
+			if (log.isLevelEnabled("verbose")) {
+				const prettyHrtime = require("pretty-hrtime");
+				const timeDiff = process.hrtime(startTime);
+				log.verbose(
+					`Processed ${Object.keys(this.processedProjects).length} projects in ${prettyHrtime(timeDiff)}`);
+			}
+			return this.tree;
+		});
+	}
+
+	async dependencyLookahead(parent, dependencies) {
+		return Promise.all(dependencies.map(async (project) => {
+			if (this.isBeingProcessed(parent, project)) {
+				return;
+			}
+			log.verbose(`Processing dependency lookahead for ${parent.id}: ${project.id}`);
+			// Temporarily flag project as being processed
+			this.processedProjects[project.id] = {
+				project,
+				parents: [parent]
+			};
+			const {extensions} = await this.loadProjectConfiguration(project);
+			if (extensions &amp;&amp; extensions.length) {
+				// Project contains additional extensions
+				// => apply them
+				await Promise.all(extensions.map((extProject) => {
+					return this.applyExtension(extProject);
+				}));
+			}
+
+			if (project.kind === "extension") {
+				// Not a project but an extension
+				// => remove it as from any known projects that depend on it
+				const parents = this.processedProjects[project.id].parents;
+				for (let i = parents.length - 1; i >= 0; i--) {
+					parents[i].dependencies.splice(parents[i].dependencies.indexOf(project), 1);
+				}
+				// Also ignore it from further processing by other projects depending on it
+				this.processedProjects[project.id] = {ignored: true};
+
+				if (this.isConfigValid(project)) {
+					// Finally apply the extension
+					await this.applyExtension(project);
+				} else {
+					log.verbose(`Ignoring extension ${project.id} with missing configuration`);
+				}
+			} else {
+				// Project is not an extension: Reset processing status of lookahead to allow the real processing
+				this.processedProjects[project.id] = null;
+			}
+		}));
+	}
+
+	isBeingProcessed(parent, project) { // Check whether a project is currently being or has already been processed
+		const processedProject = this.processedProjects[project.id];
+		if (project.deduped) {
+			// Ignore deduped modules
+			return true;
+		}
+		if (processedProject) {
+			if (processedProject.ignored) {
+				log.verbose(`Dependency of project ${parent.id}, "${project.id}" is flagged as ignored.`);
+				if (parent.dependencies.includes(project)) {
+					parent.dependencies.splice(parent.dependencies.indexOf(project), 1);
+				}
+				return true;
+			}
+			log.verbose(
+				`Dependency of project ${parent.id}, "${project.id}": ` +
+				`Distance to root of ${parent._level + 1}. Will be replaced `+
+				`by project with same ID and distance to root of ${processedProject.project._level}.`);
+
+			// Replace with the already processed project (closer to root -> preferred)
+			parent.dependencies[parent.dependencies.indexOf(project)] = processedProject.project;
+			processedProject.parents.push(parent);
+
+			// No further processing needed
+			return true;
+		}
+		return false;
+	}
+
+	async loadProjectConfiguration(project) {
+		if (project.specVersion) { // Project might already be configured
+			// Currently, specVersion is the indicator for configured projects
+
+			if (project._transparentProject) {
+				// Assume that project is already processed
+				return {};
+			}
+
+			await this.validateAndNormalizeExistingProject(project);
+
+			return {};
+		}
+
+		const configs = await this.readConfigFile(project);
+
+		if (!configs || !configs.length) {
+			return {};
+		}
+
+		for (let i = configs.length - 1; i >= 0; i--) {
+			this.normalizeConfig(configs[i]);
+		}
+
+		const projectConfigs = configs.filter((config) => {
+			return config.kind === "project";
+		});
+
+		const extensionConfigs = configs.filter((config) => {
+			return config.kind === "extension";
+		});
+
+		const projectClone = JSON.parse(JSON.stringify(project));
+
+		// While a project can contain multiple configurations,
+		//	from a dependency tree perspective it is always a single project
+		// This means it can represent one "project", plus multiple extensions or
+		//	one extension, plus multiple extensions
+
+		if (projectConfigs.length === 1) {
+			// All well, this is the one. Merge config into project
+			Object.assign(project, projectConfigs[0]);
+		} else if (projectConfigs.length > 1) {
+			throw new Error(`Found ${projectConfigs.length} configurations of kind 'project' for ` +
+								`project ${project.id}. There is only one project per configuration allowed.`);
+		} else if (projectConfigs.length === 0 &amp;&amp; extensionConfigs.length) {
+			// No project, but extensions
+			// => choose one to represent the project -> the first one
+			Object.assign(project, extensionConfigs.shift());
+		} else {
+			throw new Error(`Found ${configs.length} configurations for ` +
+								`project ${project.id}. None are of valid kind.`);
+		}
+
+		const extensionProjects = extensionConfigs.map((config) => {
+			// Clone original project
+			const configuredProject = JSON.parse(JSON.stringify(projectClone));
+
+			// Enhance project with its configuration
+			Object.assign(configuredProject, config);
+			return configuredProject;
+		});
+
+		return {extensions: extensionProjects};
+	}
+
+	normalizeConfig(config) {
+		if (!config.kind) {
+			config.kind = "project"; // default
+		}
+	}
+
+	isConfigValid(project) {
+		if (!project.specVersion) {
+			if (project._isRoot) {
+				throw new Error(`No specification version defined for root project ${project.id}`);
+			}
+			log.verbose(`No specification version defined for project ${project.id}`);
+			return false; // ignore this project
+		}
+
+		if (project.specVersion !== "0.1" &amp;&amp; project.specVersion !== "1.0" &amp;&amp;
+			project.specVersion !== "1.1" &amp;&amp; project.specVersion !== "2.0" &amp;&amp;
+			project.specVersion !== "2.1" &amp;&amp; project.specVersion !== "2.2" &amp;&amp;
+			project.specVersion !== "2.3" &amp;&amp; project.specVersion !== "2.4" &amp;&amp;
+			project.specVersion !== "2.5" &amp;&amp; project.specVersion !== "2.6") {
+			throw new Error(
+				`Unsupported specification version ${project.specVersion} defined for project ` +
+				`${project.id}. Your UI5 CLI installation might be outdated. ` +
+				`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`);
+		}
+
+		if (!project.type) {
+			if (project._isRoot) {
+				throw new Error(`No type configured for root project ${project.id}`);
+			}
+			log.verbose(`No type configured for project ${project.id}`);
+			return false; // ignore this project
+		}
+
+		if (project.kind !== "project" &amp;&amp; project._isRoot) {
+			// This is arguable. It is not the concern of ui5-project to define the entry point of a project tree
+			// On the other hand, there is no known use case for anything else right now and failing early here
+			//	makes sense in that regard
+			throw new Error(`Root project needs to be of kind "project". ${project.id} is of kind ${project.kind}`);
+		}
+
+		if (project.kind === "project" &amp;&amp; project.type === "application") {
+			// There must be exactly one application project per dependency tree
+			// If multiple are found, all but the one closest to the root are rejected (ignored)
+			// If there are two projects equally close to the root, an error is being thrown
+			if (!this.qualifiedApplicationProject) {
+				this.qualifiedApplicationProject = project;
+			} else if (this.qualifiedApplicationProject._level === project._level) {
+				throw new Error(`Found at least two projects ${this.qualifiedApplicationProject.id} and ` +
+					`${project.id} of type application with the same distance to the root project. ` +
+					"Only one project of type application can be used. Failed to decide which one to ignore.");
+			} else {
+				return false; // ignore this project
+			}
+		}
+
+		return true;
+	}
+
+	async applyType(project) {
+		let type;
+		try {
+			type = typeRepository.getType(project.type);
+		} catch (err) {
+			throw new Error(`Failed to retrieve type for project ${project.id}: ${err.message}`);
+		}
+		await type.format(project);
+	}
+
+	checkProjectMetadata(parent, project) {
+		if (project.metadata.deprecated &amp;&amp; parent &amp;&amp; parent._isRoot) {
+			// Only warn for direct dependencies of the root project
+			log.warn(`Dependency ${project.metadata.name} is deprecated and should not be used for new projects!`);
+		}
+
+		if (project.metadata.sapInternal &amp;&amp; parent &amp;&amp; parent._isRoot &amp;&amp; !parent.metadata.allowSapInternal) {
+			// Only warn for direct dependencies of the root project, except it defines "allowSapInternal"
+			log.warn(`Dependency ${project.metadata.name} is restricted for use by SAP internal projects only! ` +
+				`If the project ${parent.metadata.name} is an SAP internal project, add the attribute ` +
+				`"allowSapInternal: true" to its metadata configuration`);
+		}
+	}
+
+	async applyExtension(extension) {
+		if (!extension.metadata || !extension.metadata.name) {
+			throw new Error(`metadata.name configuration is missing for extension ${extension.id}`);
+		}
+		log.verbose(`Applying extension ${extension.metadata.name}...`);
+
+		if (!extension.specVersion) {
+			throw new Error(`No specification version defined for extension ${extension.metadata.name}`);
+		} else if (extension.specVersion !== "0.1" &amp;&amp;
+				extension.specVersion !== "1.0" &amp;&amp;
+				extension.specVersion !== "1.1" &amp;&amp;
+				extension.specVersion !== "2.0" &amp;&amp;
+				extension.specVersion !== "2.1" &amp;&amp;
+				extension.specVersion !== "2.2" &amp;&amp;
+				extension.specVersion !== "2.3" &amp;&amp;
+				extension.specVersion !== "2.4" &amp;&amp;
+				extension.specVersion !== "2.5" &amp;&amp;
+				extension.specVersion !== "2.6") {
+			throw new Error(
+				`Unsupported specification version ${extension.specVersion} defined for extension ` +
+				`${extension.metadata.name}. Your UI5 CLI installation might be outdated. ` +
+				`For details see https://sap.github.io/ui5-tooling/pages/Configuration/#specification-versions`);
+		} else if (this.appliedExtensions[extension.metadata.name]) {
+			log.verbose(`Extension with the name ${extension.metadata.name} has already been applied. ` +
+				"This might have been done during dependency lookahead.");
+			log.verbose(`Already applied extension ID: ${this.appliedExtensions[extension.metadata.name].id}. ` +
+				`New extension ID: ${extension.id}`);
+			return;
+		}
+		this.appliedExtensions[extension.metadata.name] = extension;
+
+		switch (extension.type) {
+		case "project-shim":
+			this.handleShim(extension);
+			break;
+		case "task":
+			this.handleTask(extension);
+			break;
+		case "server-middleware":
+			this.handleServerMiddleware(extension);
+			break;
+		default:
+			throw new Error(`Unknown extension type '${extension.type}' for ${extension.id}`);
+		}
+	}
+
+	async readConfigFile(project) {
+		// A projects configPath property takes precedence over the default "&lt;projectPath>/ui5.yaml" path
+		const configPath = project.configPath || path.join(project.path, "ui5.yaml");
+		let configFile;
+		try {
+			configFile = await readFile(configPath, {encoding: "utf8"});
+		} catch (err) {
+			const errorText = "Failed to read configuration for project " +
+					`${project.id} at "${configPath}". Error: ${err.message}`;
+
+			// Something else than "File or directory does not exist" or root project
+			if (err.code !== "ENOENT" || project._isRoot) {
+				throw new Error(errorText);
+			} else {
+				log.verbose(errorText);
+				return null;
+			}
+		}
+
+		let configs;
+
+		try {
+			configs = jsyaml.loadAll(configFile, undefined, {
+				filename: configPath
+			});
+		} catch (err) {
+			if (err.name === "YAMLException") {
+				throw new Error("Failed to parse configuration for project " +
+				`${project.id} at "${configPath}"\nError: ${err.message}`);
+			} else {
+				throw err;
+			}
+		}
+
+		if (!configs || !configs.length) {
+			return configs;
+		}
+
+		const validationResults = await Promise.all(
+			configs.map(async (config, documentIndex) => {
+				// Catch validation errors to ensure proper order of rejections within Promise.all
+				try {
+					await validate({
+						config,
+						project: {
+							id: project.id
+						},
+						yaml: {
+							path: configPath,
+							source: configFile,
+							documentIndex
+						}
+					});
+				} catch (error) {
+					return error;
+				}
+			})
+		);
+
+		const validationErrors = validationResults.filter(($) => $);
+
+		if (validationErrors.length > 0) {
+			// For now just throw the error of the first invalid document
+			throw validationErrors[0];
+		}
+
+		return configs;
+	}
+
+	handleShim(extension) {
+		if (!extension.shims) {
+			throw new Error(`Project shim extension ${extension.id} is missing 'shims' configuration`);
+		}
+		const {configurations, dependencies, collections} = extension.shims;
+
+		if (configurations) {
+			log.verbose(`Project shim ${extension.id} contains ` +
+				`${Object.keys(configurations)} configuration(s)`);
+			for (const projectId of Object.keys(configurations)) {
+				this.normalizeConfig(configurations[projectId]); // TODO: Clone object beforehand?
+				if (this.configShims[projectId]) {
+					log.verbose(`Project shim ${extension.id}: A configuration shim for project ${projectId} `+
+							"has already been applied. Skipping.");
+				} else if (this.isConfigValid(configurations[projectId])) {
+					log.verbose(`Project shim ${extension.id}: Adding project configuration for ${projectId}...`);
+					this.configShims[projectId] = configurations[projectId];
+				} else {
+					log.verbose(`Project shim ${extension.id}: Ignoring invalid ` +
+							`configuration shim for project ${projectId}`);
+				}
+			}
+		}
+
+		if (dependencies) {
+			// For the time being, shimmed dependencies only apply to shimmed project configurations
+			for (const projectId of Object.keys(dependencies)) {
+				if (this.configShims[projectId]) {
+					log.verbose(`Project shim ${extension.id}: Adding dependencies ` +
+							`to project shim '${projectId}'...`);
+					this.configShims[projectId].dependencies = dependencies[projectId];
+				} else {
+					log.verbose(`Project shim ${extension.id}: No configuration shim found for ` +
+							`project ID '${projectId}'. Dependency shims currently only apply ` +
+							"to projects with configuration shims.");
+				}
+			}
+		}
+
+		if (collections) {
+			log.verbose(`Project shim ${extension.id} contains ` +
+				`${Object.keys(collections).length} collection(s)`);
+			for (const projectId of Object.keys(collections)) {
+				if (this.collections[projectId]) {
+					log.verbose(`Project shim ${extension.id}: A collection with id '${projectId}' `+
+							"is already known. Skipping.");
+				} else {
+					log.verbose(`Project shim ${extension.id}: Adding collection with id '${projectId}'...`);
+					this.collections[projectId] = collections[projectId];
+				}
+			}
+		}
+	}
+
+	async applyShims(project) {
+		const configShim = this.configShims[project.id];
+		// Apply configuration shims
+		if (configShim) {
+			log.verbose(`Applying configuration shim for project ${project.id}...`);
+
+			if (configShim.dependencies &amp;&amp; configShim.dependencies.length) {
+				if (!configShim.shimDependenciesResolved) {
+					configShim.dependencies = configShim.dependencies.map((depId) => {
+						const depProject = this.processedProjects[depId].project;
+						if (!depProject) {
+							throw new Error(
+								`Failed to resolve shimmed dependency '${depId}' for project ${project.id}. ` +
+								`Is a dependency with ID '${depId}' part of the dependency tree?`);
+						}
+						return depProject;
+					});
+					configShim.shimDependenciesResolved = true;
+				}
+				configShim.dependencies.forEach((depProject) => {
+					const parents = this.processedProjects[depProject.id].parents;
+					if (parents.indexOf(project) === -1) {
+						parents.push(project);
+					} else {
+						log.verbose(`Project ${project.id} is already parent of shimmed dependency ${depProject.id}`);
+					}
+				});
+			}
+
+			Object.assign(project, configShim);
+			delete project.shimDependenciesResolved; // Remove shim processing metadata from project
+
+			await this.validateAndNormalizeExistingProject(project);
+		}
+
+		// Apply collections
+		for (let i = project.dependencies.length - 1; i >= 0; i--) {
+			const depId = project.dependencies[i].id;
+			if (this.collections[depId]) {
+				log.verbose(`Project ${project.id} depends on collection ${depId}. Resolving...`);
+				// This project depends on a collection
+				// => replace collection dependency with first collection project.
+				const collectionDep = project.dependencies[i];
+				const collectionModules = this.collections[depId].modules;
+				const projects = [];
+				for (const projectId of Object.keys(collectionModules)) {
+					// Clone and modify collection "project"
+					const project = JSON.parse(JSON.stringify(collectionDep));
+					project.id = projectId;
+					project.path = path.join(project.path, collectionModules[projectId]);
+					projects.push(project);
+				}
+
+				// Use first collection project to replace the collection dependency
+				project.dependencies[i] = projects.shift();
+				// Add any additional collection projects to end of dependency array (already processed)
+				project.dependencies.push(...projects);
+			}
+		}
+	}
+
+	handleTask(extension) {
+		if (!extension.metadata &amp;&amp; !extension.metadata.name) {
+			throw new Error(`Task extension ${extension.id} is missing 'metadata.name' configuration`);
+		}
+		if (!extension.task) {
+			throw new Error(`Task extension ${extension.id} is missing 'task' configuration`);
+		}
+		const taskRepository = require("@ui5/builder").tasks.taskRepository;
+
+		const taskPath = path.join(extension.path, extension.task.path);
+
+		taskRepository.addTask({
+			name: extension.metadata.name,
+			specVersion: extension.specVersion,
+			taskPath,
+		});
+	}
+
+	handleServerMiddleware(extension) {
+		if (!extension.metadata &amp;&amp; !extension.metadata.name) {
+			throw new Error(`Middleware extension ${extension.id} is missing 'metadata.name' configuration`);
+		}
+		if (!extension.middleware) {
+			throw new Error(`Middleware extension ${extension.id} is missing 'middleware' configuration`);
+		}
+		const {middlewareRepository} = require("@ui5/server");
+
+		const middlewarePath = path.join(extension.path, extension.middleware.path);
+		middlewareRepository.addMiddleware({
+			name: extension.metadata.name,
+			specVersion: extension.specVersion,
+			middlewarePath
+		});
+	}
+
+	async validateAndNormalizeExistingProject(project) {
+		// Validate project config, but exclude additional properties
+		const excludedProperties = [
+			"id",
+			"version",
+			"path",
+			"dependencies",
+			"_level",
+			"_isRoot"
+		];
+		const config = {};
+		for (const key of Object.keys(project)) {
+			if (!excludedProperties.includes(key)) {
+				config[key] = project[key];
+			}
+		}
+		await validate({
+			config,
+			project: {
+				id: project.id
+			}
+		});
+
+		this.normalizeConfig(project);
+	}
+}
+
+/**
+ * The Project Preprocessor enriches the dependency information with project configuration
+ *
+ * @public
+ * @namespace
+ * @alias module:@ui5/project.projectPreprocessor
+ */
+module.exports = {
+	/**
+	 * Collects project information and its dependencies to enrich it with project configuration
+	 *
+	 * @public
+	 * @param {object} tree Dependency tree of the project
+	 * @returns {Promise&lt;object>} Promise resolving with the dependency tree and enriched project configuration
+	 */
+	processTree: function(tree) {
+		return new ProjectPreprocessor({tree}).processTree();
+	},
+	_ProjectPreprocessor: ProjectPreprocessor
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+
+<footer>
+    <div class="ui5-footer-item ui5-footer-item-growing">
+        <div>© Copyright 2022, SAP SE and UI5 CLI Contributors</div>
+        <div>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.11</a> using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.</div>
+        
+        <div>Build: 2025-12-17 13:38:41 UTC</div>
+        
+    </div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/impressum.html" target="_blank" rel="noopener">Legal Disclosure</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/terms-of-use.html" target="_blank" rel="noopener">Terms of Use</a></div>
+    <div class="ui5-footer-item"><a href="../pages/Privacy/" target="_blank">Privacy</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/trademark.html" target="_blank" rel="noopener">Trademarks</a></div>
+</footer>
+
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>

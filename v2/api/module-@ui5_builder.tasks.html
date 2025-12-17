@@ -1,0 +1,7555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>tasks - UI5 CLI - API Reference</title>
+    
+    <meta name="description" content="UI5 CLI - API Reference" />
+    
+        <meta name="keywords" content="openui5 sapui5 ui5 build development tool api reference" />
+        <meta name="keyword" content="openui5 sapui5 ui5 build development tool api reference" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+     <link type="text/css" rel="stylesheet" href="custom.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/SAP/ui5-tooling" target="_blank" class="menu-item" id="github_link" >GitHub</a></h2><h3>Modules</h3><ul><li><a href="module-@ui5_builder.html">@ui5/builder</a></li><li><a href="module-@ui5_fs.html">@ui5/fs</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.html#.fsInterface">fsInterface</a></li></ul></li><li><a href="module-@ui5_project.html">@ui5/project</a></li><li><a href="module-@ui5_server.html">@ui5/server</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-@ui5_builder.builder.html">@ui5/builder.builder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.builder.html#.build">build</a></li></ul></li><li><a href="module-@ui5_builder.processors.html">@ui5/builder.processors</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.html#.apiIndexGenerator">apiIndexGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.debugFileCreator">debugFileCreator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.flexChangesBundler">flexChangesBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.jsdocGenerator">jsdocGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.libraryLessGenerator">libraryLessGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.manifestBundler">manifestBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.moduleBundler">moduleBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper">nonAsciiEscaper</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper%25E2%2580%25A4getEncodingFromAlias">nonAsciiEscaper․getEncodingFromAlias</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.resourceCopier">resourceCopier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.sdkTransformer">sdkTransformer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.stringReplacer">stringReplacer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.themeBuilder">themeBuilder</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.uglifier">uglifier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.versionInfoGenerator">versionInfoGenerator</a></li></ul></li><li><a href="module-@ui5_builder.tasks.html">@ui5/builder.tasks</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.html#.buildThemes">buildThemes</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.createDebugFiles">createDebugFiles</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.escapeNonAsciiCharacters">escapeNonAsciiCharacters</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.executeJsdocSdkTransformation">executeJsdocSdkTransformation</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateApiIndex">generateApiIndex</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateBundle">generateBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateCachebusterInfo">generateCachebusterInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateComponentPreload">generateComponentPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateFlexChangesBundle">generateFlexChangesBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateJsdoc">generateJsdoc</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryManifest">generateLibraryManifest</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryPreload">generateLibraryPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateManifestBundle">generateManifestBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateResourcesJson">generateResourcesJson</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateStandaloneAppBundle">generateStandaloneAppBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateThemeDesignerResources">generateThemeDesignerResources</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateVersionInfo">generateVersionInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceBuildtime">replaceBuildtime</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceCopyright">replaceCopyright</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceVersion">replaceVersion</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.uglify">uglify</a></li></ul></li><li><a href="module-@ui5_fs.adapters.html">@ui5/fs.adapters</a></li><li><a href="module-@ui5_fs.resourceFactory.html">@ui5/fs.resourceFactory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createAdapter">createAdapter</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createCollectionsForTree">createCollectionsForTree</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createResource">createResource</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createWorkspace">createWorkspace</a></li></ul></li><li><a href="module-@ui5_project.normalizer.html">@ui5/project.normalizer</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateDependencyTree">generateDependencyTree</a></li><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateProjectTree">generateProjectTree</a></li></ul></li><li><a href="module-@ui5_project.projectPreprocessor.html">@ui5/project.projectPreprocessor</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.projectPreprocessor.html#.processTree">processTree</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.html">@ui5/project.ui5Framework</a></li><li><a href="module-@ui5_project.validation.html">@ui5/project.validation</a></li><li><a href="module-@ui5_project.validation.validator.html">@ui5/project.validation.validator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.validation.validator.html#.validate">validate</a></li></ul></li><li><a href="module-@ui5_server.server.html">@ui5/server.server</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.server.html#.serve">serve</a></li></ul></li></ul><h3>Classes</h3><ul><li><a href="module-@ui5_builder.processors.ThemeBuilder.html">@ui5/builder.processors.ThemeBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#build">build</a></li><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#clearCache">clearCache</a></li></ul></li><li><a href="module-@ui5_builder.tasks.TaskUtil.html">@ui5/builder.tasks.TaskUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#clearTag">clearTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#getTag">getTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#isRootProject">isRootProject</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#registerCleanupTask">registerCleanupTask</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#setTag">setTag</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReader.html">@ui5/fs.AbstractReader</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReaderWriter.html">@ui5/fs.AbstractReaderWriter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.AbstractAdapter.html">@ui5/fs.adapters.AbstractAdapter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.FileSystem.html">@ui5/fs.adapters.FileSystem</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.Memory.html">@ui5/fs.adapters.Memory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.DuplexCollection.html">@ui5/fs.DuplexCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollection.html">@ui5/fs.ReaderCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollectionPrioritized.html">@ui5/fs.ReaderCollectionPrioritized</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.Resource.html">@ui5/fs.Resource</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.Resource.html#clone">clone</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getBuffer">getBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getPath">getPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStatInfo">getStatInfo</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStream">getStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getString">getString</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setBuffer">setBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setPath">setPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setStream">setStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setString">setString</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.AbstractResolver.html">@ui5/project.ui5Framework.AbstractResolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.AbstractResolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html">@ui5/project.ui5Framework.Openui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html">@ui5/project.ui5Framework.Sapui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.validation.ValidationError.html">@ui5/project.validation.ValidationError</a></li><li><a href="module-@ui5_server.middleware.MiddlewareUtil.html">@ui5/server.middleware.MiddlewareUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getMimeInfo">getMimeInfo</a></li><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getPathname">getPathname</a></li></ul></li></ul><h3><a href="global.html">Global</a></h3>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">tasks</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+            <span class="ancestors"><a href="module-@ui5_builder.html">@ui5/builder</a>.</span>
+        
+        tasks
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_index.js.html">builder/index.js</a>, <a href="builder_index.js.html#line86">line 86</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Classes</h3>
+
+        <dl>
+            <dt><a href="module-@ui5_builder.tasks.TaskUtil.html">TaskUtil</a></dt>
+            <dd></dd>
+        </dl>
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id=".buildThemes"><span class="type-signature">(static) </span>buildThemes<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_buildThemes.js.html">builder/lib/tasks/buildThemes.js</a>, <a href="builder_lib_tasks_buildThemes.js.html#line24">line 24</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to build a library theme.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>inputPattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Search pattern for *.less files to be built</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>librariesPattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Search pattern for .library files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>themesPattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Search pattern for sap.ui.core theme folders</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>compress</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>true</code>
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>cssVariables</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">boolean</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>false</code>
+                
+                </td>
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".createDebugFiles"><span class="type-signature">(static) </span>createDebugFiles<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_createDebugFiles.js.html">builder/lib/tasks/createDebugFiles.js</a>, <a href="builder_lib_tasks_createDebugFiles.js.html#line15">line 15</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to create dbg files.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pattern to locate the files to be processed</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".escapeNonAsciiCharacters"><span class="type-signature">(static) </span>escapeNonAsciiCharacters<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_escapeNonAsciiCharacters.js.html">builder/lib/tasks/escapeNonAsciiCharacters.js</a>, <a href="builder_lib_tasks_escapeNonAsciiCharacters.js.html#line15">line 15</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to escape non ascii characters in properties files resources.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Glob pattern to locate the files to be processed</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>encoding</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">source file encoding either "UTF-8" or "ISO-8859-1"</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".executeJsdocSdkTransformation"><span class="type-signature">(async, static) </span>executeJsdocSdkTransformation<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_jsdoc_executeJsdocSdkTransformation.js.html">builder/lib/tasks/jsdoc/executeJsdocSdkTransformation.js</a>, <a href="builder_lib_tasks_jsdoc_executeJsdocSdkTransformation.js.html#line21">line 21</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to transform the api.json file as created by the
+<a href="module-@ui5_builder.tasks.html#.generateJsdoc">generateJsdoc</a> task into a pre-processed api.json
+file suitable for the SDK.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>dotLibraryPattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+|
+
+<span class="param-type">Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pattern to locate the .library resource to be processed</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateApiIndex"><span class="type-signature">(static) </span>generateApiIndex<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_jsdoc_generateApiIndex.js.html">builder/lib/tasks/jsdoc/generateApiIndex.js</a>, <a href="builder_lib_tasks_jsdoc_generateApiIndex.js.html#line20">line 20</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Compiles an api-index.json resource from all available api.json resources as created by the
+<a href="module-@ui5_builder.tasks.html#.executeJsdocSdkTransformation">executeJsdocSdkTransformation</a> task.
+The resulting api-index.json resource is mainly to be used in the SDK.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateBundle"><span class="type-signature">(static) </span>generateBundle<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_bundlers_generateBundle.js.html">builder/lib/tasks/bundlers/generateBundle.js</a>, <a href="builder_lib_tasks_bundlers_generateBundle.js.html#line19">line 19</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Generates a bundle based on the given bundle definition
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.ReaderCollection.html">module:@ui5/fs.ReaderCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>bundleDefinition</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#ModuleBundleDefinition">ModuleBundleDefinition</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Module bundle definition</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>bundleOptions</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#ModuleBundleOptions">ModuleBundleOptions</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Module bundle options</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateCachebusterInfo"><span class="type-signature">(static) </span>generateCachebusterInfo<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_generateCachebusterInfo.js.html">builder/lib/tasks/generateCachebusterInfo.js</a>, <a href="builder_lib_tasks_generateCachebusterInfo.js.html#line44">line 44</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to generate the application cachebuster info file.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>namespace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Namespace of the application</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>signatureType</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>'time'</code>
+                
+                </td>
+            
+
+            <td class="description last">Type of signature to be used ('time' or 'hash')</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateComponentPreload"><span class="type-signature">(static) </span>generateComponentPreload<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_bundlers_generateComponentPreload.js.html">builder/lib/tasks/bundlers/generateComponentPreload.js</a>, <a href="builder_lib_tasks_bundlers_generateComponentPreload.js.html#line28">line 28</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to for application bundling.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>excludes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;string></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>[]</code>
+                
+                </td>
+            
+
+            <td class="description last">List of modules declared as glob patterns (resource name patterns)
+that should be excluded.
+A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
+denote an arbitrary number of characters or folder names.
+Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+inclusion overrides an earlier exclusion, and vice versa.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>paths</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;string></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Array of paths (or glob patterns) for component files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>namespaces</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;string></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Array of component namespaces</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateFlexChangesBundle"><span class="type-signature">(static) </span>generateFlexChangesBundle<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_bundlers_generateFlexChangesBundle.js.html">builder/lib/tasks/bundlers/generateFlexChangesBundle.js</a>, <a href="builder_lib_tasks_bundlers_generateFlexChangesBundle.js.html#line22">line 22</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to create changesBundle.json file containing all changes stored in the /changes folder for easier consumption
+at runtime.
+If a change bundle is created, "sap.ui.fl" is added as a dependency to the manifest.json if not already present -
+if the dependency is already listed but lazy-loaded, lazy loading is disabled.
+If minUI5Version >= 1.73 flexibility-bundle.json will be create.
+If there are control variants and minUI5Version < 1.73 build will break and throw an error.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>namespace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Application Namespace</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateJsdoc"><span class="type-signature">(async, static) </span>generateJsdoc<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_jsdoc_generateJsdoc.js.html">builder/lib/tasks/jsdoc/generateJsdoc.js</a>, <a href="builder_lib_tasks_jsdoc_generateJsdoc.js.html#line35">line 35</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to execute a JSDoc build for UI5 projects
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#GenerateJsdocOptions">GenerateJsdocOptions</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>buildContext</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Internal, deprecated parameter</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateLibraryManifest"><span class="type-signature">(static) </span>generateLibraryManifest<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_generateLibraryManifest.js.html">builder/lib/tasks/generateLibraryManifest.js</a>, <a href="builder_lib_tasks_generateLibraryManifest.js.html#line20">line 20</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task for creating a library manifest.json from its .library file.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateLibraryPreload"><span class="type-signature">(static) </span>generateLibraryPreload<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_bundlers_generateLibraryPreload.js.html">builder/lib/tasks/bundlers/generateLibraryPreload.js</a>, <a href="builder_lib_tasks_bundlers_generateLibraryPreload.js.html#line274">line 274</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task for library bundling.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options.excludes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;string></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>[]</code>
+                
+                </td>
+            
+
+            <td class="description last">List of modules declared as glob patterns (resource name patterns)
+that should be excluded from the library-preload.js bundle.
+A pattern ending with a slash '/' will, similarly to the use of a single '*' or double '**' asterisk,
+denote an arbitrary number of characters or folder names.
+Re-includes should be marked with a leading exclamation mark '!'. The order of filters is relevant; a later
+inclusion overrides an earlier exclusion, and vice versa.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateManifestBundle"><span class="type-signature">(static) </span>generateManifestBundle<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_bundlers_generateManifestBundle.js.html">builder/lib/tasks/bundlers/generateManifestBundle.js</a>, <a href="builder_lib_tasks_bundlers_generateManifestBundle.js.html#line25">line 25</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task for manifestBundler.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#ManifestBundlerOptions">ManifestBundlerOptions</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateResourcesJson"><span class="type-signature">(static) </span>generateResourcesJson<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_generateResourcesJson.js.html">builder/lib/tasks/generateResourcesJson.js</a>, <a href="builder_lib_tasks_generateResourcesJson.js.html#line104">line 104</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task for creating a resources.json file, describing all productive build resources.
+
+<p>
+The detailed structure can be found in the documentation:
+<a href="https://sdk.openui5.org/topic/adcbcf8b50924556ab3f321fcd9353ea">https://sdk.openui5.org/topic/adcbcf8b50924556ab3f321fcd9353ea</a>
+</p>
+
+<p>
+Not supported in combination with task <a href="module-@ui5_builder.tasks.html#.generateStandaloneAppBundle">module:@ui5/builder.tasks.generateStandaloneAppBundle</a>.
+Therefore it is also not supported in combination with self-contained build.
+</p>
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Example</h5>
+    
+        <p class="code-caption">sample resources.json</p>
+    
+    <pre class="prettyprint"><code>const resourcesJson = {
+	"_version": "1.1.0",
+	"resources": [
+		{
+			"name": "Component-preload.js",
+			"module": "application/mine/Component-preload.js",
+			"size": 3746,
+			"merged": true,
+			"included": [
+				"application/mine/Component.js",
+				"application/mine/changes/coding/MyExtension.js",
+				"application/mine/changes/flexibility-bundle.json",
+				"application/mine/changes/fragments/MyFragment.fragment.xml",
+				"application/mine/manifest.json"
+			]
+		},
+		{
+			"name": "resources.json",
+			"size": 1870
+		},
+		{
+			"name": "rules/Button-dbg.support.js",
+			"module": "application/mine/rules/Button.support.js",
+			"size": 211,
+			"format": "raw",
+			"isDebug": true,
+			"required": [
+				"application/mine/library.js",
+				"sap/ui/core/Control.js"
+			],
+			"condRequired": [
+				"application/mine/changeHandler/SplitButton.js",
+				"sap/ui/core/format/DateFormat.js"
+			],
+			"dynRequired": true,
+			"support": true
+		}
+	]
+};</code></pre>
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateStandaloneAppBundle"><span class="type-signature">(static) </span>generateStandaloneAppBundle<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_bundlers_generateStandaloneAppBundle.js.html">builder/lib/tasks/bundlers/generateStandaloneAppBundle.js</a>, <a href="builder_lib_tasks_bundlers_generateStandaloneAppBundle.js.html#line73">line 73</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task for bundling standalone applications.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>namespace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Project namespace</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateThemeDesignerResources"><span class="type-signature">(static) </span>generateThemeDesignerResources<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_generateThemeDesignerResources.js.html">builder/lib/tasks/generateThemeDesignerResources.js</a>, <a href="builder_lib_tasks_generateThemeDesignerResources.js.html#line98">line 98</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Generates resources required for integration with the SAP Theme Designer.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>projectName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Project name</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>version</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Project version</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>namespace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">If the project is of type <code>library</code>, provide its namespace.
+Omit for type <code>theme-library</code></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".generateVersionInfo"><span class="type-signature">(static) </span>generateVersionInfo<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_generateVersionInfo.js.html">builder/lib/tasks/generateVersionInfo.js</a>, <a href="builder_lib_tasks_generateVersionInfo.js.html#line18">line 18</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to create sap-ui-version.json
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>dependencies</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Reader or Collection to read dependency files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Glob pattern for .library resources</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>rootProject</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".replaceBuildtime"><span class="type-signature">(static) </span>replaceBuildtime<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_replaceBuildtime.js.html">builder/lib/tasks/replaceBuildtime.js</a>, <a href="builder_lib_tasks_replaceBuildtime.js.html#line28">line 28</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to replace the buildtime <code>${buildtime}</code>.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pattern to locate the files to be processed</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".replaceCopyright"><span class="type-signature">(static) </span>replaceCopyright<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_replaceCopyright.js.html">builder/lib/tasks/replaceCopyright.js</a>, <a href="builder_lib_tasks_replaceCopyright.js.html#line25">line 25</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to to replace the copyright.
+
+The following placeholders are replaced with corresponding values:
+<ul>
+	<li>${copyright}</li>
+	<li>@copyright@</li>
+</ul>
+
+If the copyright string contains the optional placeholder ${currentYear}
+it will be replaced with the current year.
+If no copyright string is given, no replacement is being done.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>copyright</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Replacement copyright</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pattern to locate the files to be processed</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".replaceVersion"><span class="type-signature">(static) </span>replaceVersion<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_replaceVersion.js.html">builder/lib/tasks/replaceVersion.js</a>, <a href="builder_lib_tasks_replaceVersion.js.html#line15">line 15</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to replace the version <code>${version}</code>.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pattern to locate the files to be processed</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>version</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Replacement version</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".uglify"><span class="type-signature">(static) </span>uglify<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {Promise.&lt;undefined>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="builder_lib_tasks_uglify.js.html">builder/lib/tasks/uglify.js</a>, <a href="builder_lib_tasks_uglify.js.html#line15">line 15</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Task to minify resources.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>workspace</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">DuplexCollection to read and write files</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>taskUtil</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_builder.tasks.TaskUtil.html">module:@ui5/builder.tasks.TaskUtil</a></span>
+|
+
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">TaskUtil</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Options
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>pattern</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Pattern to locate the files to be processed</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Promise resolving with <code>undefined</code> once data has been written
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;undefined></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+    
+
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+
+<footer>
+    <div class="ui5-footer-item ui5-footer-item-growing">
+        <div>© Copyright 2022, SAP SE and UI5 CLI Contributors</div>
+        <div>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.11</a> using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.</div>
+        
+        <div>Build: 2025-12-17 13:38:41 UTC</div>
+        
+    </div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/impressum.html" target="_blank" rel="noopener">Legal Disclosure</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/terms-of-use.html" target="_blank" rel="noopener">Terms of Use</a></div>
+    <div class="ui5-footer-item"><a href="../pages/Privacy/" target="_blank">Privacy</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/trademark.html" target="_blank" rel="noopener">Trademarks</a></div>
+</footer>
+
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>
