@@ -462,7 +462,7 @@ class Project extends Specification {
 
 class Stage {
 	#id;
-	#writerVersions = [];
+	#writerVersions = []; // First element is the latest writer
 	#cacheReader;
 
 	constructor(id, cacheReader) {
@@ -475,16 +475,16 @@ class Stage {
 	}
 
 	newVersion(writer) {
-		this.#writerVersions.push(writer);
+		this.#writerVersions.unshift(writer);
 	}
 
 	getWriter() {
-		return this.#writerVersions[this.#writerVersions.length - 1];
+		return this.#writerVersions[0];
 	}
 
 	getAllWriters(includeCache = true) {
 		if (includeCache && this.#cacheReader) {
-			return [this.#cacheReader, ...this.#writerVersions];
+			return [...this.#writerVersions, this.#cacheReader];
 		}
 		return this.#writerVersions;
 	}
