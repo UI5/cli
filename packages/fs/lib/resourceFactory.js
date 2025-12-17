@@ -10,6 +10,7 @@ import WriterCollection from "./WriterCollection.js";
 import Filter from "./readers/Filter.js";
 import Link from "./readers/Link.js";
 import Proxy from "./readers/Proxy.js";
+import Switch from "./readers/Switch.js";
 import MonitoredReader from "./MonitoredReader.js";
 import MonitoredReaderWriter from "./MonitoredReaderWriter.js";
 import {getLogger} from "@ui5/logger";
@@ -278,6 +279,19 @@ export function createFlatReader({name, reader, namespace}) {
 	});
 }
 
+export function createSwitch({name, reader}) {
+	return new Switch({
+		name,
+		reader: reader,
+	});
+}
+
+/**
+ * Creates a monitored reader or reader-writer depending on the provided instance
+ * of the given readerWriter.
+ *
+ * @param {@ui5/fs/AbstractReader|@ui5/fs/AbstractReaderWriter} readerWriter Reader or ReaderWriter to monitor
+ */
 export function createMonitor(readerWriter) {
 	if (readerWriter instanceof DuplexCollection) {
 		return new MonitoredReaderWriter(readerWriter);
