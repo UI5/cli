@@ -1,6 +1,5 @@
 import express from "express";
 import portscanner from "portscanner";
-import path from "node:path/posix";
 import MiddlewareManager from "./middleware/MiddlewareManager.js";
 import {createReaderCollection} from "@ui5/fs/resourceFactory";
 import ReaderCollectionPrioritized from "@ui5/fs/ReaderCollectionPrioritized";
