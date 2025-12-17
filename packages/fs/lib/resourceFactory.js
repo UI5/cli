@@ -10,8 +10,8 @@ import WriterCollection from "./WriterCollection.js";
 import Filter from "./readers/Filter.js";
 import Link from "./readers/Link.js";
 import Proxy from "./readers/Proxy.js";
-import Tracker from "./Tracker.js";
-import DuplexTracker from "./DuplexTracker.js";
+import MonitoredReader from "./MonitoredReader.js";
+import MonitoredReaderWriter from "./MonitoredReaderWriter.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("resources:resourceFactory");
 
@@ -278,11 +278,11 @@ export function createFlatReader({name, reader, namespace}) {
 	});
 }
 
-export function createTracker(readerWriter) {
+export function createMonitor(readerWriter) {
 	if (readerWriter instanceof DuplexCollection) {
-		return new DuplexTracker(readerWriter);
+		return new MonitoredReaderWriter(readerWriter);
 	}
-	return new Tracker(readerWriter);
+	return new MonitoredReader(readerWriter);
 }
 
 /**

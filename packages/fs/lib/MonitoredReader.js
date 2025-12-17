@@ -1,6 +1,6 @@
 import AbstractReader from "./AbstractReader.js";
 
-export default class Trace extends AbstractReader {
+export default class MonitoredReader extends AbstractReader {
 	#reader;
 	#sealed = false;
 	#pathsRead = [];
