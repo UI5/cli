@@ -65,7 +65,7 @@ class WatchHandler extends EventEmitter {
 	}
 
 	async #fileChanged(project, filePath) {
-		// Collect changes (grouped by project), then trigger callbacks (debounced)
+		// Collect changes (grouped by project), then trigger callbacks
 		const resourcePath = project.getVirtualPath(filePath);
 		if (!this.#sourceChanges.has(project)) {
 			this.#sourceChanges.set(project, new Set());
@@ -73,18 +73,13 @@ class WatchHandler extends EventEmitter {
 		this.#sourceChanges.get(project).add(resourcePath);
 
 		// Trigger callbacks debounced
-		if (!this.#fileChangeHandlerTimeout) {
-			this.#fileChangeHandlerTimeout = setTimeout(async () => {
-				await this.#handleResourceChanges();
-				this.#fileChangeHandlerTimeout = null;
-			}, 100);
-		} else {
+		if (this.#fileChangeHandlerTimeout) {
 			clearTimeout(this.#fileChangeHandlerTimeout);
-			this.#fileChangeHandlerTimeout = setTimeout(async () => {
-				await this.#handleResourceChanges();
-				this.#fileChangeHandlerTimeout = null;
-			}, 100);
 		}
+		this.#fileChangeHandlerTimeout = setTimeout(async () => {
+			await this.#handleResourceChanges();
+			this.#fileChangeHandlerTimeout = null;
+		}, 100);
 	}
 
 	async #handleResourceChanges() {
