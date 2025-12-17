@@ -539,7 +539,7 @@ class Resource {
 			return this.#integrity;
 		}
 		if (this.isDirectory()) {
-			throw new Error(`Unable to calculate hash for directory resource: ${this.#path}`);
+			throw new Error(`Unable to calculate integrity for directory resource: ${this.#path}`);
 		}
 
 		// First wait for new content if the current content is flagged as drained
