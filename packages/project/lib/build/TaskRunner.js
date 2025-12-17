@@ -1,6 +1,6 @@
 import {getLogger} from "@ui5/logger";
 import composeTaskList from "./helpers/composeTaskList.js";
-import {createReaderCollection, createTracker} from "@ui5/fs/resourceFactory";
+import {createReaderCollection, createMonitor} from "@ui5/fs/resourceFactory";
 
 /**
  * TaskRunner
@@ -204,7 +204,7 @@ class TaskRunner {
 
 				this._log.info(
 					`Executing task ${taskName} for project ${this._project.getName()}`);
-				const workspace = createTracker(this._project.getWorkspace());
+				const workspace = createMonitor(this._project.getWorkspace());
 				const params = {
 					workspace,
 					taskUtil: this._taskUtil,
@@ -225,7 +225,7 @@ class TaskRunner {
 
 				let dependencies;
 				if (requiresDependencies) {
-					dependencies = createTracker(this._allDependenciesReader);
+					dependencies = createMonitor(this._allDependenciesReader);
 					params.dependencies = dependencies;
 				}
 

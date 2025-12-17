@@ -49,13 +49,13 @@ export default class ProjectBuildCache {
 	 *
 	 * @param {string} taskName Name of the executed task
 	 * @param {Set|undefined} expectedOutput Expected output resource paths
-	 * @param {object} workspaceTracker Tracker that monitored workspace reads
-	 * @param {object} [dependencyTracker] Tracker that monitored dependency reads
+	 * @param {object} workspaceMonitor Tracker that monitored workspace reads
+	 * @param {object} [dependencyMonitor] Tracker that monitored dependency reads
 	 * @returns {Promise<void>}
 	 */
-	async recordTaskResult(taskName, expectedOutput, workspaceTracker, dependencyTracker) {
-		const projectTrackingResults = workspaceTracker.getResults();
-		const dependencyTrackingResults = dependencyTracker?.getResults();
+	async recordTaskResult(taskName, expectedOutput, workspaceMonitor, dependencyMonitor) {
+		const projectTrackingResults = workspaceMonitor.getResults();
+		const dependencyTrackingResults = dependencyMonitor?.getResults();
 
 		const resourcesRead = projectTrackingResults.resourcesRead;
 		if (dependencyTrackingResults) {

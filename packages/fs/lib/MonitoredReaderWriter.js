@@ -1,8 +1,6 @@
 import AbstractReaderWriter from "./AbstractReaderWriter.js";
 
-// TODO: Alternative name: Inspector/Interceptor/...
-
-export default class Trace extends AbstractReaderWriter {
+export default class MonitoredReaderWriter extends AbstractReaderWriter {
 	#readerWriter;
 	#sealed = false;
 	#pathsRead = [];
