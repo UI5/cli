@@ -190,8 +190,12 @@ class ResourceFacade {
 		return this.#resource.setStream(stream);
 	}
 
-	getHash() {
-		return this.#resource.getHash();
+	getIntegrity() {
+		return this.#resource.getIntegrity();
+	}
+
+	getInode() {
+		return this.#resource.getInode();
 	}
 
 	/**
