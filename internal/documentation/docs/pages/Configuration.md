@@ -130,7 +130,7 @@ resources:
       webapp: webapp
 ```
 
-#### Libraries and Components
+#### Libraries, Theme Libraries, and Components
 - `src`: Mapped to runtime path `/resources`
 - `test`: Mapped to runtime path `/test-resources`
 
