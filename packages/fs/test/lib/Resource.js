@@ -4,7 +4,6 @@ import {Stream, Transform} from "node:stream";
 import {statSync, createReadStream} from "node:fs";
 import {stat, readFile} from "node:fs/promises";
 import path from "node:path";
-import ssri from "ssri";
 import Resource from "../../lib/Resource.js";
 
 function createBasicResource() {
@@ -1595,16 +1594,8 @@ test("getIntegrity: Returns integrity for buffer content", async (t) => {
 	});
 
 	const integrity = await resource.getIntegrity();
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity for content");
+	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
 });
 
 test("getIntegrity: Returns integrity for stream content", async (t) => {
@@ -1619,16 +1610,8 @@ test("getIntegrity: Returns integrity for stream content", async (t) => {
 	});
 
 	const integrity = await resource.getIntegrity();
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity for content");
+	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
 });
 
 test("getIntegrity: Returns integrity for factory content", async (t) => {
@@ -1645,16 +1628,8 @@ test("getIntegrity: Returns integrity for factory content", async (t) => {
 	});
 
 	const integrity = await resource.getIntegrity();
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity for content");
+	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
 });
 
 test("getIntegrity: Throws error for resource with no content", async (t) => {
@@ -1681,7 +1656,7 @@ test("getIntegrity: Different content produces different integrities", async (t)
 	const integrity1 = await resource1.getIntegrity();
 	const integrity2 = await resource2.getIntegrity();
 
-	t.notDeepEqual(integrity1, integrity2, "Different content produces different integrities");
+	t.not(integrity1, integrity2, "Different content produces different integrities");
 });
 
 test("getIntegrity: Same content produces same integrity", async (t) => {
@@ -1709,8 +1684,8 @@ test("getIntegrity: Same content produces same integrity", async (t) => {
 	const integrity2 = await resource2.getIntegrity();
 	const integrity3 = await resource3.getIntegrity();
 
-	t.deepEqual(integrity1, integrity2, "Same content produces same integrity for string and buffer content");
-	t.deepEqual(integrity1, integrity3, "Same content produces same integrity for string and stream");
+	t.is(integrity1, integrity2, "Same content produces same integrity for string and buffer content");
+	t.is(integrity1, integrity3, "Same content produces same integrity for string and stream");
 });
 
 test("getIntegrity: Waits for drained content", async (t) => {
@@ -1726,16 +1701,8 @@ test("getIntegrity: Waits for drained content", async (t) => {
 	resource.setString("New content");
 
 	const integrity = await p1;
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo=",
-				options: [],
-				source: "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo="
-			}
-		]
-	}), "Correct integrity for new content");
+	t.is(integrity, "sha256-EvQbHDId8MgpzlgZllZv3lKvbK/h0qDHRmzeU+bxPMo=",
+		"Correct integrity for new content");
 });
 
 test("getIntegrity: Waits for content transformation to complete", async (t) => {
@@ -1758,16 +1725,8 @@ test("getIntegrity: Waits for content transformation to complete", async (t) => 
 	// Both should complete successfully
 	await bufferPromise;
 	const integrity = await integrityPromise;
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity after waiting for transformation");
+	t.is(integrity, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity after waiting for transformation");
 });
 
 test("getIntegrity: Can be called multiple times on buffer content", async (t) => {
@@ -1780,19 +1739,11 @@ test("getIntegrity: Can be called multiple times on buffer content", async (t) =
 	const integrity2 = await resource.getIntegrity();
 	const integrity3 = await resource.getIntegrity();
 
-	t.deepEqual(integrity1, integrity2, "First and second integrity are identical");
-	t.deepEqual(integrity2, integrity3, "Second and third integrity are identical");
+	t.is(integrity1, integrity2, "First and second integrity are identical");
+	t.is(integrity2, integrity3, "Second and third integrity are identical");
 
-	t.deepEqual(integrity1, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity for content");
+	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
 });
 
 test("getIntegrity: Can be called multiple times on factory content", async (t) => {
@@ -1812,19 +1763,11 @@ test("getIntegrity: Can be called multiple times on factory content", async (t) 
 	const integrity2 = await resource.getIntegrity();
 	const integrity3 = await resource.getIntegrity();
 
-	t.deepEqual(integrity1, integrity2, "First and second integrity are identical");
-	t.deepEqual(integrity2, integrity3, "Second and third integrity are identical");
+	t.is(integrity1, integrity2, "First and second integrity are identical");
+	t.is(integrity2, integrity3, "Second and third integrity are identical");
 
-	t.deepEqual(integrity1, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity for content");
+	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
 });
 
 test("getIntegrity: Can be called multiple times on stream content", async (t) => {
@@ -1842,19 +1785,11 @@ test("getIntegrity: Can be called multiple times on stream content", async (t) =
 	const integrity2 = await resource.getIntegrity();
 	const integrity3 = await resource.getIntegrity();
 
-	t.deepEqual(integrity1, integrity2, "First and second integrity are identical");
-	t.deepEqual(integrity2, integrity3, "Second and third integrity are identical");
+	t.is(integrity1, integrity2, "First and second integrity are identical");
+	t.is(integrity2, integrity3, "Second and third integrity are identical");
 
-	t.deepEqual(integrity1, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
-				options: [],
-				source: "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8="
-			}
-		]
-	}), "Correct integrity for content");
+	t.is(integrity1, "sha256-R70pB1+LgBnwvuxthr7afJv2eq8FBT3L4LO8tjloUX8=",
+		"Correct integrity for content");
 });
 
 test("getIntegrity: Integrity changes after content modification", async (t) => {
@@ -1864,31 +1799,15 @@ test("getIntegrity: Integrity changes after content modification", async (t) => 
 	});
 
 	const integrity1 = await resource.getIntegrity();
-	t.deepEqual(integrity1, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "OUni2q0Lopc2NkTnXeaaYPNQJNUATQtbAqMWJvtCVNo=",
-				options: [],
-				source: "sha256-OUni2q0Lopc2NkTnXeaaYPNQJNUATQtbAqMWJvtCVNo="
-			}
-		]
-	}), "Correct integrity for original content");
+	t.is(integrity1, "sha256-OUni2q0Lopc2NkTnXeaaYPNQJNUATQtbAqMWJvtCVNo=",
+		"Correct integrity for original content");
 
 	resource.setString("Modified content");
 
 	const integrity2 = await resource.getIntegrity();
-	t.deepEqual(integrity2, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "8fba0TDG5CusKMUf/7GVTTxaYjVbRXacQv2lt3RdtT8=",
-				options: [],
-				source: "sha256-8fba0TDG5CusKMUf/7GVTTxaYjVbRXacQv2lt3RdtT8="
-			}
-		]
-	}), "Integrity changes after content modification");
-	t.notDeepEqual(integrity1, integrity2, "New integrity is different from original");
+	t.is(integrity2, "sha256-8fba0TDG5CusKMUf/7GVTTxaYjVbRXacQv2lt3RdtT8=",
+		"Integrity changes after content modification");
+	t.not(integrity1, integrity2, "New integrity is different from original");
 });
 
 test("getIntegrity: Works with empty content", async (t) => {
@@ -1899,16 +1818,8 @@ test("getIntegrity: Works with empty content", async (t) => {
 
 	const integrity = await resource.getIntegrity();
 
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
-				options: [],
-				source: "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="
-			}
-		]
-	}), "Correct integrity for empty content");
+	t.is(integrity, "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+		"Correct integrity for empty content");
 });
 
 test("getIntegrity: Works with large content", async (t) => {
@@ -1920,14 +1831,6 @@ test("getIntegrity: Works with large content", async (t) => {
 
 	const integrity = await resource.getIntegrity();
 
-	t.deepEqual(integrity, ssri.parse({
-		sha256: [
-			{
-				algorithm: "sha256",
-				digest: "j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s=",
-				options: [],
-				source: "sha256-j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s="
-			}
-		]
-	}), "Correct integrity for large content");
+	t.is(integrity, "sha256-j5kLoLV3tRzwCeoEk2jBa72hsh4bk74HqCR1i7JTw5s=",
+		"Correct integrity for large content");
 });
