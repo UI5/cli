@@ -176,7 +176,7 @@ class ProjectBuildContext {
 		// Propagate changes to all dependents of the project
 		for (const {project: dep} of graph.traverseDependents(this._project.getName())) {
 			const projectBuildContext = this._buildContext.getBuildContext(dep.getName());
-			projectBuildContext.getBuildCache().this.markResourcesChanged(emptySet, updatedResourcePaths);
+			projectBuildContext.getBuildCache().resourceChanged(emptySet, updatedResourcePaths);
 		}
 	}
 
