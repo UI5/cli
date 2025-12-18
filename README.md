@@ -14,11 +14,11 @@ Note that previous versions (up to v4) are maintained in [dedicated repositories
 
 > [UI5 CLI v4](https://ui5.github.io/cli/v4) is the latest and stable version 🎉
 >
-> [UI5 CLI v3](https://ui5.github.io/cli/v3) is a stable version and in maintenance mode 🚢
+> [UI5 CLI v3](https://ui5.github.io/cli/v3) has been deprecated 🚫
 >
-> [UI5 CLI v2](https://ui5.github.io/cli/v2) has been deprecated 🚫  
+> [UI5 CLI v2](https://ui5.github.io/cli/v2) has been deprecated 🚫
 >
-> Please migrate your projects to [UI5 CLI v4](https://ui5.github.io/cli/v4/updates/migrate-v4/)!
+> We highly recommend migrating to [**the latest version**](https://ui5.github.io/cli/stable/).
 
 ## Resources
 
