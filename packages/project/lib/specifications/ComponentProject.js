@@ -106,7 +106,7 @@ class ComponentProject extends Project {
 	 * <li><b>runtime:</b> Resource paths always match with what the UI5 runtime expects.
 	 *  This means that paths generally depend on the project type. Applications for example use a "flat"-like
 	 *  structure, while libraries use a "buildtime"-like structure.
-	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied
+	 *  This style is typically used for serving resources directly. Therefore, build-excludes are not applied</li>
 	 * <li><b>flat:</b> Resource paths are never prefixed and namespaces are omitted if possible. Note that
 	 *  project types like "theme-library", which can have multiple namespaces, can't omit them.
 	 *  Any configured build-excludes are applied</li>
