@@ -65,6 +65,7 @@
 				"class": "menu-item",
 				"id": "github_link"
 			}
-		}
+		},
+		"githubSourceBaseUrl": "https://github.com/UI5/cli/blob/main"
 	}
 }
