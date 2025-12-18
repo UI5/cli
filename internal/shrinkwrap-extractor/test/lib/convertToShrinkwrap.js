@@ -84,6 +84,41 @@ test("Convert package-lock.json to shrinkwrap", async (t) => {
 	console.log(`Generated shrinkwrap with ${packagePaths.length - 1} dependencies`);
 });
 
+test("Workspace paths should be normalized to node_modules format", async (t) => {
+	const __dirname = import.meta.dirname;
+
+	const cwd = path.join(__dirname, "..", "fixture", "project.a");
+	const symlinkPath = await setupFixtureSymlink(cwd);
+	t.after(async () => await unlink(symlinkPath).catch(() => {}));
+
+	const targetPackageName = "@ui5/cli";
+	const shrinkwrapJson = await convertPackageLockToShrinkwrap(cwd, targetPackageName);
+
+	// Verify that no package paths contain workspace prefixes like "packages/cli/node_modules/..."
+	const packagePaths = Object.keys(shrinkwrapJson.packages);
+
+	for (const packagePath of packagePaths) {
+		// Skip root package (empty string)
+		if (packagePath === "") continue;
+
+		// Assert that no path starts with "packages/"
+		assert.ok(!packagePath.startsWith("packages/"),
+			`Package path "${packagePath}" should not start with "packages/" prefix`);
+
+		// Assert that non-root paths start with "node_modules/"
+		assert.ok(packagePath.startsWith("node_modules/"),
+			`Package path "${packagePath}" should start with "node_modules/" prefix`);
+	}
+
+	// Specifically check a package that would have been under packages/cli/node_modules in the monorepo
+	// The "@npmcli/config" package is a direct dependency that exists in the CLI's node_modules
+	const npmCliConfigPackage = shrinkwrapJson.packages["node_modules/@npmcli/config"];
+	assert.ok(npmCliConfigPackage, "The '@npmcli/config' package should be present at normalized path");
+	assert.equal(npmCliConfigPackage.version, "9.0.0", "@npmcli/config package should have correct version");
+
+	console.log(`✓ All ${packagePaths.length - 1} package paths correctly normalized`);
+});
+
 test("Compare generated shrinkwrap with expected result", async (t) => {
 	// Setup mock to prevent actual npm registry requests
 	const mockRestore = setupPacoteMock();

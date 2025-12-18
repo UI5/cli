@@ -182,7 +182,7 @@ class MiddlewareUtil {
 	 * @property {Function} createLinkReader
 	 * 	Create a [Link-Reader]{@link @ui5/fs/readers/Filter} with the given reader.
 	 * @property {Function} createFlatReader Create a [Link-Reader]{@link @ui5/fs/readers/Link}
-	 * where all requests are prefixed with <code>/resources/<namespace></code>.
+	 * where all requests are prefixed with <code>/resources/&lt;namespace&gt;</code>.
 	 */
 
 	/**

@@ -1,6 +1,6 @@
 {
 	"name": "@ui5/project",
-	"version": "5.0.0-alpha.0",
+	"version": "5.0.0-alpha.2",
 	"description": "UI5 CLI - Project",
 	"author": {
 		"name": "SAP SE",
@@ -48,7 +48,7 @@
 		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md v4.0.0.. && git add CHANGELOG.md",
 		"prepublishOnly": "git push --follow-tags",
 		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version",
-		"depcheck": "depcheck --ignores @ui5/project,@istanbuljs/esm-loader-hook,rimraf"
+		"depcheck": "depcheck --ignores @ui5/project,@istanbuljs/esm-loader-hook,rimraf,sap"
 	},
 	"files": [
 		"CHANGELOG.md",
@@ -110,8 +110,8 @@
 	},
 	"dependencies": {
 		"@npmcli/config": "^10.4.0",
-		"@ui5/fs": "^5.0.0-alpha.0",
-		"@ui5/logger": "^5.0.0-alpha.0",
+		"@ui5/fs": "^5.0.0-alpha.2",
+		"@ui5/logger": "^5.0.0-alpha.2",
 		"ajv": "^6.12.6",
 		"ajv-errors": "^1.0.1",
 		"chalk": "^5.6.2",
@@ -132,7 +132,7 @@
 		"yesno": "^0.4.0"
 	},
 	"peerDependencies": {
-		"@ui5/builder": "^5.0.0-alpha.0"
+		"@ui5/builder": "^5.0.0-alpha.2"
 	},
 	"peerDependenciesMeta": {
 		"@ui5/builder": {

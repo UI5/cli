@@ -141,10 +141,11 @@ export default class ResourceFilterList {
 	 * and vice versa.
 	 *
 	 * Example:
-	 * <pre>
+	 * ```
 	 *	 !sap/ui/core/
 	*	 +sap/ui/core/utils/
-	* </pre>
+	 * ```
+	*
 	* excludes everything from sap/ui/core, but includes everything from the subpackage sap/ui/core/utils/.
 	*
 	* Note that the filter operates on the full name of each resource. If a resource name

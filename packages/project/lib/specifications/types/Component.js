@@ -291,11 +291,14 @@ class Component extends ComponentProject {
 	}
 
 	async _ensureComponent() {
-		// Ensure that a Component.js exists
-		const componentResource = await this._getRawSourceReader().byPath("/Component.js");
+		// Throw if neither Component.js nor Component.ts is present
+		const componentResource = await this._getRawSourceReader().byPath("/Component.js") ||
+			await this._getRawSourceReader().byPath("/Component.ts");
 		if (!componentResource) {
 			throw new Error(
-				`Unable to find required file Component.js in component project ${this.getName()}`);
+				`Unable to find either required "Component.js" or "Component.ts"` +
+				` in component project ${this.getName()}`
+			);
 		}
 	}
 }

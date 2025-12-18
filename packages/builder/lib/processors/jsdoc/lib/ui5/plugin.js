@@ -436,11 +436,12 @@ function getPropertyKey(prop) {
  *
  * If a <code>defaultKey</code> is given and if the <code>node</code> is not an object literal
  * but another simple type literal, the value is treated as a shortcut for
- * <pre>
+ * ```
  *   {
  *     [defaultKey]: node.value
  *   }
- * </pre>
+ * ```
+ *
  * This is used in ManagedObjectMetadata to allow a simpler declaration of properties by
  * specifying a type name only.
  *
@@ -2849,11 +2850,11 @@ exports.defineTags = function(dictionary) {
 	 * - a type parameter can have a default value (default type)
 	 *
 	 * Examples:
-	 * <pre>
+	 * @example
 	 *   @template E - Element type, just a name (<E>)
 	 *   @template {UI5Element} E - Element type with type constraint (<E extends UI5Element>)
 	 *   @template {UI5Element} [E=UI5Control] - Type param with a default type (<E extends UI5Element = UI5Control>)
-	 * </pre>
+	 *
 	 *
 	 * Note: Defining a type constraint implicitly makes the constraint the default value of the param.
 	 * Additionally documenting a default type is only necessary when it differs from the constraint.
