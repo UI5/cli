@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>resourceFactory - UI5 CLI - API Reference</title>
+    
+    <meta name="description" content="UI5 CLI - API Reference" />
+    
+        <meta name="keywords" content="openui5 sapui5 ui5 build development tool api reference" />
+        <meta name="keyword" content="openui5 sapui5 ui5 build development tool api reference" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+     <link type="text/css" rel="stylesheet" href="custom.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/SAP/ui5-tooling" target="_blank" class="menu-item" id="github_link" >GitHub</a></h2><h3>Modules</h3><ul><li><a href="module-@ui5_builder.html">@ui5/builder</a></li><li><a href="module-@ui5_fs.html">@ui5/fs</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.html#.fsInterface">fsInterface</a></li></ul></li><li><a href="module-@ui5_project.html">@ui5/project</a></li><li><a href="module-@ui5_server.html">@ui5/server</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-@ui5_builder.builder.html">@ui5/builder.builder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.builder.html#.build">build</a></li></ul></li><li><a href="module-@ui5_builder.processors.html">@ui5/builder.processors</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.html#.apiIndexGenerator">apiIndexGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.debugFileCreator">debugFileCreator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.flexChangesBundler">flexChangesBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.jsdocGenerator">jsdocGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.libraryLessGenerator">libraryLessGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.manifestBundler">manifestBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.moduleBundler">moduleBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper">nonAsciiEscaper</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper%25E2%2580%25A4getEncodingFromAlias">nonAsciiEscaper․getEncodingFromAlias</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.resourceCopier">resourceCopier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.sdkTransformer">sdkTransformer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.stringReplacer">stringReplacer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.themeBuilder">themeBuilder</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.uglifier">uglifier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.versionInfoGenerator">versionInfoGenerator</a></li></ul></li><li><a href="module-@ui5_builder.tasks.html">@ui5/builder.tasks</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.html#.buildThemes">buildThemes</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.createDebugFiles">createDebugFiles</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.escapeNonAsciiCharacters">escapeNonAsciiCharacters</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.executeJsdocSdkTransformation">executeJsdocSdkTransformation</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateApiIndex">generateApiIndex</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateBundle">generateBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateCachebusterInfo">generateCachebusterInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateComponentPreload">generateComponentPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateFlexChangesBundle">generateFlexChangesBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateJsdoc">generateJsdoc</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryManifest">generateLibraryManifest</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryPreload">generateLibraryPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateManifestBundle">generateManifestBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateResourcesJson">generateResourcesJson</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateStandaloneAppBundle">generateStandaloneAppBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateThemeDesignerResources">generateThemeDesignerResources</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateVersionInfo">generateVersionInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceBuildtime">replaceBuildtime</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceCopyright">replaceCopyright</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceVersion">replaceVersion</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.uglify">uglify</a></li></ul></li><li><a href="module-@ui5_fs.adapters.html">@ui5/fs.adapters</a></li><li><a href="module-@ui5_fs.resourceFactory.html">@ui5/fs.resourceFactory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createAdapter">createAdapter</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createCollectionsForTree">createCollectionsForTree</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createResource">createResource</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createWorkspace">createWorkspace</a></li></ul></li><li><a href="module-@ui5_project.normalizer.html">@ui5/project.normalizer</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateDependencyTree">generateDependencyTree</a></li><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateProjectTree">generateProjectTree</a></li></ul></li><li><a href="module-@ui5_project.projectPreprocessor.html">@ui5/project.projectPreprocessor</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.projectPreprocessor.html#.processTree">processTree</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.html">@ui5/project.ui5Framework</a></li><li><a href="module-@ui5_project.validation.html">@ui5/project.validation</a></li><li><a href="module-@ui5_project.validation.validator.html">@ui5/project.validation.validator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.validation.validator.html#.validate">validate</a></li></ul></li><li><a href="module-@ui5_server.server.html">@ui5/server.server</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.server.html#.serve">serve</a></li></ul></li></ul><h3>Classes</h3><ul><li><a href="module-@ui5_builder.processors.ThemeBuilder.html">@ui5/builder.processors.ThemeBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#build">build</a></li><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#clearCache">clearCache</a></li></ul></li><li><a href="module-@ui5_builder.tasks.TaskUtil.html">@ui5/builder.tasks.TaskUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#clearTag">clearTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#getTag">getTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#isRootProject">isRootProject</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#registerCleanupTask">registerCleanupTask</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#setTag">setTag</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReader.html">@ui5/fs.AbstractReader</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReaderWriter.html">@ui5/fs.AbstractReaderWriter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.AbstractAdapter.html">@ui5/fs.adapters.AbstractAdapter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.FileSystem.html">@ui5/fs.adapters.FileSystem</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.Memory.html">@ui5/fs.adapters.Memory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.DuplexCollection.html">@ui5/fs.DuplexCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollection.html">@ui5/fs.ReaderCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollectionPrioritized.html">@ui5/fs.ReaderCollectionPrioritized</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.Resource.html">@ui5/fs.Resource</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.Resource.html#clone">clone</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getBuffer">getBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getPath">getPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStatInfo">getStatInfo</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStream">getStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getString">getString</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setBuffer">setBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setPath">setPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setStream">setStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setString">setString</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.AbstractResolver.html">@ui5/project.ui5Framework.AbstractResolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.AbstractResolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html">@ui5/project.ui5Framework.Openui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html">@ui5/project.ui5Framework.Sapui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.validation.ValidationError.html">@ui5/project.validation.ValidationError</a></li><li><a href="module-@ui5_server.middleware.MiddlewareUtil.html">@ui5/server.middleware.MiddlewareUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getMimeInfo">getMimeInfo</a></li><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getPathname">getPathname</a></li></ul></li></ul><h3><a href="global.html">Global</a></h3>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">resourceFactory</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+            <span class="ancestors"><a href="module-@ui5_fs.html">@ui5/fs</a>.</span>
+        
+        resourceFactory
+        </h2>
+        
+    
+</header>
+
+<article>
+    
+        <div class="container-overview">
+        
+            
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line18">line 18</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+            
+                <div class="description usertext">Resource Factory</div>
+            
+
+            
+        
+        </div>
+    
+
+    
+
+    
+
+    
+    
+    
+
+     
+
+    
+
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id=".createAdapter"><span class="type-signature">(static) </span>createAdapter<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {<a href="module-@ui5_fs.adapters.FileSystem.html">module:@ui5/fs.adapters.FileSystem</a>|<a href="module-@ui5_fs.adapters.Memory.html">module:@ui5/fs.adapters.Memory</a>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line234">line 234</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Creates a resource <code>ReaderWriter</code>.
+
+If a file system base path is given, file system resource <code>ReaderWriter</code> is returned.
+In any other case a virtual one.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>virBasePath</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Virtual base path</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>fsBasePath</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">File system base path</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>excludes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;string></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">List of glob patterns to exclude</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>project</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Experimental, internal parameter. Do not use</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    File System- or Virtual Adapter
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="module-@ui5_fs.adapters.FileSystem.html">module:@ui5/fs.adapters.FileSystem</a></span>
+|
+
+<span class="param-type"><a href="module-@ui5_fs.adapters.Memory.html">module:@ui5/fs.adapters.Memory</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".createCollectionsForTree"><span class="type-signature">(static) </span>createCollectionsForTree<span class="signature">(tree, parameters<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {object}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line58">line 58</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Creates resource reader collections for a (sub-)tree. Returns an object of resource readers:
+<pre>
+{
+ source: Resource reader for source resources
+ dependencies: Resource readers for dependency resources
+}
+</pre>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>tree</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">A (sub-)tree</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>getProjectExcludes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.resourceFactory.html#~getProjectExcludes">module:@ui5/fs.resourceFactory~getProjectExcludes</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Callback to retrieve the exclude globs of a project</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>getVirtualBasePathPrefix</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.resourceFactory.html#~getVirtualBasePathPrefix">module:@ui5/fs.resourceFactory~getVirtualBasePathPrefix</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Callback to retrieve a prefix for a given virtual base path of a project if required</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>virtualReaders</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">Experimental, internal parameter. Do not use</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Object containing <code>source</code> and <code>dependencies</code> resource readers
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".createResource"><span class="type-signature">(static) </span>createResource<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {<a href="module-@ui5_fs.Resource.html">module:@ui5/fs.Resource</a>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line250">line 250</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Creates a <code>Resource</code>. Accepts the same parameters as the Resource constructor.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters to be passed to the resource constructor</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Resource
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="module-@ui5_fs.Resource.html">module:@ui5/fs.Resource</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+            
+
+    
+
+    <h4 class="name" id=".createWorkspace"><span class="type-signature">(static) </span>createWorkspace<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {<a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line270">line 270</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Creates a Workspace
+
+A workspace is a DuplexCollection which reads from the project sources. It is used during the build process
+to write modified files into a separate writer, this is usually a Memory adapter. If a file already exists it is
+fetched from the memory to work on it in further build steps.
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>reader</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReader.html">module:@ui5/fs.AbstractReader</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">Single reader or collection of readers</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>writer</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="module-@ui5_fs.AbstractReaderWriter.html">module:@ui5/fs.AbstractReaderWriter</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">A ReaderWriter instance which is
+							only used for writing files. If not supplied, a Memory adapter will be created.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>"vir &amp; fs source"</code>
+                
+                </td>
+            
+
+            <td class="description last">Name of the collection</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>virBasePath</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    <code>"/"</code>
+                
+                </td>
+            
+
+            <td class="description last">Virtual base path</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    DuplexCollection which wraps the provided resource locators
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="module-@ui5_fs.DuplexCollection.html">module:@ui5/fs.DuplexCollection</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Type Definitions</h3>
+
+        
+                
+
+    
+
+    <h4 class="name" id="~getProjectExcludes"><span class="type-signature"></span>getProjectExcludes<span class="signature">(Project)</span><span class="type-signature"> &rarr; {Array.&lt;string>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line19">line 19</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Callback to retrieve excludes for a given project
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>Project</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    List of glob patterns to exclude
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;string></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="~getVirtualBasePathPrefix"><span class="type-signature"></span>getVirtualBasePathPrefix<span class="signature">(parameters)</span><span class="type-signature"> &rarr; {string}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="fs_lib_resourceFactory.js.html">fs/lib/resourceFactory.js</a>, <a href="fs_lib_resourceFactory.js.html#line28">line 28</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description usertext">
+    Callback to retrieve a prefix to use for a given virtual base path of a project
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>parameters</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Parameters
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>project</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">Project</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>virBasePath</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">virtual base path to prefix</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+            </td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    Prefix for the virtual base path
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">string</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+            
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+
+<footer>
+    <div class="ui5-footer-item ui5-footer-item-growing">
+        <div>© Copyright 2022, SAP SE and UI5 CLI Contributors</div>
+        <div>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.11</a> using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.</div>
+        
+        <div>Build: 2025-12-18 12:31:47 UTC</div>
+        
+    </div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/impressum.html" target="_blank" rel="noopener">Legal Disclosure</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/terms-of-use.html" target="_blank" rel="noopener">Terms of Use</a></div>
+    <div class="ui5-footer-item"><a href="../pages/Privacy/" target="_blank">Privacy</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/trademark.html" target="_blank" rel="noopener">Trademarks</a></div>
+</footer>
+
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>

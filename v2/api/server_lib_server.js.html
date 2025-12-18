@@ -1,0 +1,278 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta charset="utf-8">
+    <title>server/lib/server.js - UI5 CLI - API Reference</title>
+    
+    <meta name="description" content="UI5 CLI - API Reference" />
+    
+        <meta name="keywords" content="openui5 sapui5 ui5 build development tool api reference" />
+        <meta name="keyword" content="openui5 sapui5 ui5 build development tool api reference" />
+    
+    
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+     <link type="text/css" rel="stylesheet" href="custom.css">
+    <script src="scripts/nav.js" defer></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav class="wrap">
+    
+    <input type="text" id="nav-search" placeholder="Search" />
+    
+    
+    <h2><a href="index.html">Home</a></h2><h2><a href="https://github.com/SAP/ui5-tooling" target="_blank" class="menu-item" id="github_link" >GitHub</a></h2><h3>Modules</h3><ul><li><a href="module-@ui5_builder.html">@ui5/builder</a></li><li><a href="module-@ui5_fs.html">@ui5/fs</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.html#.fsInterface">fsInterface</a></li></ul></li><li><a href="module-@ui5_project.html">@ui5/project</a></li><li><a href="module-@ui5_server.html">@ui5/server</a></li></ul><h3>Namespaces</h3><ul><li><a href="module-@ui5_builder.builder.html">@ui5/builder.builder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.builder.html#.build">build</a></li></ul></li><li><a href="module-@ui5_builder.processors.html">@ui5/builder.processors</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.html#.apiIndexGenerator">apiIndexGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.debugFileCreator">debugFileCreator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.flexChangesBundler">flexChangesBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.jsdocGenerator">jsdocGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.libraryLessGenerator">libraryLessGenerator</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.manifestBundler">manifestBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.moduleBundler">moduleBundler</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper">nonAsciiEscaper</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.nonAsciiEscaper%25E2%2580%25A4getEncodingFromAlias">nonAsciiEscaper․getEncodingFromAlias</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.resourceCopier">resourceCopier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.sdkTransformer">sdkTransformer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.stringReplacer">stringReplacer</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.themeBuilder">themeBuilder</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.uglifier">uglifier</a></li><li data-type='method'><a href="module-@ui5_builder.processors.html#.versionInfoGenerator">versionInfoGenerator</a></li></ul></li><li><a href="module-@ui5_builder.tasks.html">@ui5/builder.tasks</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.html#.buildThemes">buildThemes</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.createDebugFiles">createDebugFiles</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.escapeNonAsciiCharacters">escapeNonAsciiCharacters</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.executeJsdocSdkTransformation">executeJsdocSdkTransformation</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateApiIndex">generateApiIndex</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateBundle">generateBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateCachebusterInfo">generateCachebusterInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateComponentPreload">generateComponentPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateFlexChangesBundle">generateFlexChangesBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateJsdoc">generateJsdoc</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryManifest">generateLibraryManifest</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateLibraryPreload">generateLibraryPreload</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateManifestBundle">generateManifestBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateResourcesJson">generateResourcesJson</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateStandaloneAppBundle">generateStandaloneAppBundle</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateThemeDesignerResources">generateThemeDesignerResources</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.generateVersionInfo">generateVersionInfo</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceBuildtime">replaceBuildtime</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceCopyright">replaceCopyright</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.replaceVersion">replaceVersion</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.html#.uglify">uglify</a></li></ul></li><li><a href="module-@ui5_fs.adapters.html">@ui5/fs.adapters</a></li><li><a href="module-@ui5_fs.resourceFactory.html">@ui5/fs.resourceFactory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createAdapter">createAdapter</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createCollectionsForTree">createCollectionsForTree</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createResource">createResource</a></li><li data-type='method'><a href="module-@ui5_fs.resourceFactory.html#.createWorkspace">createWorkspace</a></li></ul></li><li><a href="module-@ui5_project.normalizer.html">@ui5/project.normalizer</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateDependencyTree">generateDependencyTree</a></li><li data-type='method'><a href="module-@ui5_project.normalizer.html#.generateProjectTree">generateProjectTree</a></li></ul></li><li><a href="module-@ui5_project.projectPreprocessor.html">@ui5/project.projectPreprocessor</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.projectPreprocessor.html#.processTree">processTree</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.html">@ui5/project.ui5Framework</a></li><li><a href="module-@ui5_project.validation.html">@ui5/project.validation</a></li><li><a href="module-@ui5_project.validation.validator.html">@ui5/project.validation.validator</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.validation.validator.html#.validate">validate</a></li></ul></li><li><a href="module-@ui5_server.server.html">@ui5/server.server</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.server.html#.serve">serve</a></li></ul></li></ul><h3>Classes</h3><ul><li><a href="module-@ui5_builder.processors.ThemeBuilder.html">@ui5/builder.processors.ThemeBuilder</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#build">build</a></li><li data-type='method'><a href="module-@ui5_builder.processors.ThemeBuilder.html#clearCache">clearCache</a></li></ul></li><li><a href="module-@ui5_builder.tasks.TaskUtil.html">@ui5/builder.tasks.TaskUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#clearTag">clearTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#getTag">getTag</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#isRootProject">isRootProject</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#registerCleanupTask">registerCleanupTask</a></li><li data-type='method'><a href="module-@ui5_builder.tasks.TaskUtil.html#setTag">setTag</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReader.html">@ui5/fs.AbstractReader</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReader.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.AbstractReaderWriter.html">@ui5/fs.AbstractReaderWriter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.AbstractReaderWriter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.AbstractAdapter.html">@ui5/fs.adapters.AbstractAdapter</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.AbstractAdapter.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.FileSystem.html">@ui5/fs.adapters.FileSystem</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.FileSystem.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.adapters.Memory.html">@ui5/fs.adapters.Memory</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.adapters.Memory.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.DuplexCollection.html">@ui5/fs.DuplexCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#byPath">byPath</a></li><li data-type='method'><a href="module-@ui5_fs.DuplexCollection.html#write">write</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollection.html">@ui5/fs.ReaderCollection</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollection.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.ReaderCollectionPrioritized.html">@ui5/fs.ReaderCollectionPrioritized</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byGlob">byGlob</a></li><li data-type='method'><a href="module-@ui5_fs.ReaderCollectionPrioritized.html#byPath">byPath</a></li></ul></li><li><a href="module-@ui5_fs.Resource.html">@ui5/fs.Resource</a><ul class='methods'><li data-type='method'><a href="module-@ui5_fs.Resource.html#clone">clone</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getBuffer">getBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getPath">getPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStatInfo">getStatInfo</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getStream">getStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#getString">getString</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setBuffer">setBuffer</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setPath">setPath</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setStream">setStream</a></li><li data-type='method'><a href="module-@ui5_fs.Resource.html#setString">setString</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.AbstractResolver.html">@ui5/project.ui5Framework.AbstractResolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.AbstractResolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html">@ui5/project.ui5Framework.Openui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Openui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html">@ui5/project.ui5Framework.Sapui5Resolver</a><ul class='methods'><li data-type='method'><a href="module-@ui5_project.ui5Framework.Sapui5Resolver.html#install">install</a></li></ul></li><li><a href="module-@ui5_project.validation.ValidationError.html">@ui5/project.validation.ValidationError</a></li><li><a href="module-@ui5_server.middleware.MiddlewareUtil.html">@ui5/server.middleware.MiddlewareUtil</a><ul class='methods'><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getMimeInfo">getMimeInfo</a></li><li data-type='method'><a href="module-@ui5_server.middleware.MiddlewareUtil.html#getPathname">getPathname</a></li></ul></li></ul><h3><a href="global.html">Global</a></h3>
+    
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">server/lib/server.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const express = require("express");
+const portscanner = require("portscanner");
+
+const MiddlewareManager = require("./middleware/MiddlewareManager");
+
+const ui5Fs = require("@ui5/fs");
+const resourceFactory = ui5Fs.resourceFactory;
+const ReaderCollectionPrioritized = ui5Fs.ReaderCollectionPrioritized;
+
+/**
+ * Returns a promise resolving by starting the server.
+ *
+ * @param {object} app The express application object
+ * @param {number} port Desired port to listen to
+ * @param {boolean} changePortIfInUse If true and the port is already in use, an unused port is searched
+ * @param {boolean} acceptRemoteConnections If true, listens to remote connections and not only to localhost connections
+ * @returns {Promise&lt;object>} Returns an object containing server related information like (selected port, protocol)
+ * @private
+ */
+function _listen(app, port, changePortIfInUse, acceptRemoteConnections) {
+	return new Promise(function(resolve, reject) {
+		const options = {};
+
+		if (!acceptRemoteConnections) {
+			options.host = "localhost";
+		}
+
+		const host = options.host || "127.0.0.1";
+		let portMax;
+		if (changePortIfInUse) {
+			portMax = port + 30;
+		} else {
+			portMax = port;
+		}
+
+		portscanner.findAPortNotInUse(port, portMax, host, function(error, foundPort) {
+			if (error) {
+				reject(error);
+				return;
+			}
+
+			if (!foundPort) {
+				if (changePortIfInUse) {
+					const error = new Error(
+						`EADDRINUSE: Could not find available ports between ${port} and ${portMax}.`);
+					error.code = "EADDRINUSE";
+					error.errno = "EADDRINUSE";
+					error.address = host;
+					error.port = portMax;
+					reject(error);
+					return;
+				} else {
+					const error = new Error(`EADDRINUSE: Port ${port} is already in use.`);
+					error.code = "EADDRINUSE";
+					error.errno = "EADDRINUSE";
+					error.address = host;
+					error.port = portMax;
+					reject(error);
+					return;
+				}
+			}
+
+			options.port = foundPort;
+			const server = app.listen(options, function() {
+				resolve({port: options.port, server});
+			});
+
+			server.on("error", function(err) {
+				reject(err);
+			});
+		});
+	});
+}
+
+/**
+ * Adds SSL support to an express application.
+ *
+ * @param {object} parameters
+ * @param {object} parameters.app The original express application
+ * @param {string} parameters.key Path to private key to be used for https
+ * @param {string} parameters.cert Path to certificate to be used for for https
+ * @returns {object} The express application with SSL support
+ * @private
+ */
+function _addSsl({app, key, cert}) {
+	// Using spdy as http2 server as the native http2 implementation
+	// from Node v8.4.0 doesn't seem to work with express
+	return require("spdy").createServer({cert, key}, app);
+}
+
+
+/**
+ * SAP target CSP middleware options
+ *
+ * @public
+ * @typedef {object} module:@ui5/server.server.SAPTargetCSPOptions
+ * @property {string} [defaultPolicy="sap-target-level-1"]
+ * @property {string} [defaultPolicyIsReportOnly=true]
+ * @property {string} [defaultPolicy2="sap-target-level-2"]
+ * @property {string} [defaultPolicy2IsReportOnly=true]
+ * @property {string[]} [ignorePaths=["test-resources/sap/ui/qunit/testrunner.html"]]
+ */
+
+
+/**
+ * @public
+ * @namespace
+ * @alias module:@ui5/server.server
+ */
+module.exports = {
+	/**
+	 * Start a server for the given project (sub-)tree.
+	 *
+	 * @public
+	 * @param {object} tree A (sub-)tree
+	 * @param {object} options Options
+	 * @param {number} options.port Port to listen to
+	 * @param {boolean} [options.changePortIfInUse=false] If true, change the port if it is already in use
+	 * @param {boolean} [options.h2=false] Whether HTTP/2 should be used - defaults to &lt;code>http&lt;/code>
+	 * @param {string} [options.key] Path to private key to be used for https
+	 * @param {string} [options.cert] Path to certificate to be used for for https
+	 * @param {boolean} [options.simpleIndex=false] Use a simplified view for the server directory listing
+	 * @param {boolean} [options.acceptRemoteConnections=false] If true, listens to remote connections and
+	 * 															not only to localhost connections
+	 * @param {boolean|module:@ui5/server.server.SAPTargetCSPOptions} [options.sendSAPTargetCSP=false]
+	 * 										If set to &lt;code>true&lt;/code> or an object, then the default (or configured)
+	 * 										set of security policies that SAP and UI5 aim for (AKA 'target policies'),
+	 * 										are send for any requested &lt;code>*.html&lt;/code> file
+	 * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
+	 * 										'/.ui5/csp/csp-reports.json'
+	 * @returns {Promise&lt;object>} Promise resolving once the server is listening.
+	 * 							It resolves with an object containing the &lt;code>port&lt;/code>,
+	 * 							&lt;code>h2&lt;/code>-flag and a &lt;code>close&lt;/code> function,
+	 * 							which can be used to stop the server.
+	 */
+	async serve(tree, {
+		port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
+		acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
+	}) {
+		const projectResourceCollections = resourceFactory.createCollectionsForTree(tree);
+
+
+		// TODO change to ReaderCollection once duplicates are sorted out
+		const combo = new ReaderCollectionPrioritized({
+			name: "server - prioritize workspace over dependencies",
+			readers: [projectResourceCollections.source, projectResourceCollections.dependencies]
+		});
+
+		const resources = {
+			rootProject: projectResourceCollections.source,
+			dependencies: projectResourceCollections.dependencies,
+			all: combo
+		};
+
+		const middlewareManager = new MiddlewareManager({
+			tree,
+			resources,
+			options: {
+				sendSAPTargetCSP,
+				serveCSPReports,
+				simpleIndex
+			}
+		});
+
+		let app = express();
+		await middlewareManager.applyMiddleware(app);
+
+		if (h2) {
+			app = _addSsl({app, key, cert});
+		}
+
+		const {port, server} = await _listen(app, requestedPort, changePortIfInUse, acceptRemoteConnections);
+
+		return {
+			h2,
+			port,
+			close: function(callback) {
+				server.close(callback);
+			}
+		};
+	}
+};
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+    
+    
+</div>
+
+<br class="clear">
+
+
+<footer>
+    <div class="ui5-footer-item ui5-footer-item-growing">
+        <div>© Copyright 2022, SAP SE and UI5 CLI Contributors</div>
+        <div>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.6.11</a> using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.</div>
+        
+        <div>Build: 2025-12-18 12:31:47 UTC</div>
+        
+    </div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/impressum.html" target="_blank" rel="noopener">Legal Disclosure</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/terms-of-use.html" target="_blank" rel="noopener">Terms of Use</a></div>
+    <div class="ui5-footer-item"><a href="../pages/Privacy/" target="_blank">Privacy</a></div>
+    <div class="ui5-footer-item"><a href="https://www.sap.com/corporate/en/legal/trademark.html" target="_blank" rel="noopener">Trademarks</a></div>
+</footer>
+
+
+<script>prettyPrint();</script>
+<script src="scripts/polyfill.js"></script>
+<script src="scripts/linenumber.js"></script>
+
+<script src="scripts/search.js" defer></script>
+
+
+
+</body>
+</html>
