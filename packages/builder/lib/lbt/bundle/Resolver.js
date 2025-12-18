@@ -252,6 +252,8 @@ class BundleResolver {
 			const {positivePatterns, negativePatterns, requiresPostFiltering} =
 				filters.toGlobPatterns();
 
+			// TODO: Include negativePatterns to byGlob instead of post-filtering
+
 			// Use byGlob to fetch only matching resources instead of iterating all pool resources
 			let resourcePromise;
 			if (pool._reader) {
@@ -260,20 +262,6 @@ class BundleResolver {
 					.then((resources) => {
 						// Filter out directories
 						return resources.filter((res) => !res.getStatInfo().isDirectory());
-					})
-					.then((resources) => {
-						// Apply negative patterns if any
-						if (negativePatterns.length > 0) {
-							const negativeFilterList = new ResourceFilterList(
-								negativePatterns.map((p) => "!" + p),
-								fileTypes
-							);
-							resources = resources.filter((res) => {
-								const moduleName = res.getPath().slice("/resources/".length);
-								return !negativeFilterList.matches(moduleName);
-							});
-						}
-						return resources;
 					})
 					.then(async (resources) => {
 						// Wrap resources in LocatorResource and cache them in the pool

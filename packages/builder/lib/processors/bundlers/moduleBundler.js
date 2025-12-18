@@ -171,12 +171,12 @@ export default function({resources, reader, options: {
 		log.verbose(`bundleDefinition: ${JSON.stringify(bundleDefinition, null, 2)}`);
 		log.verbose(`bundleOptions: ${JSON.stringify(bundleOptions, null, 2)}`);
 	}
-	
+
 	// Support both legacy (resources array) and new (reader) modes
 	const preparePromise = reader ?
 		pool.prepare(reader, moduleNameMapping) :
 		pool.prepare(resources, moduleNameMapping);
-	
+
 	return preparePromise.
 		then( () => builder.createBundle(bundleDefinition, bundleOptions) ).
 		then( (results) => {
