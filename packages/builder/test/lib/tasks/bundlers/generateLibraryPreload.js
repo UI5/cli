@@ -150,7 +150,7 @@ test.serial("generateLibraryPreload", async (t) => {
 
 	t.is(workspace.byGlob.callCount, 2,
 		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -461,7 +461,7 @@ test.serial("generateLibraryPreload for sap.ui.core (w/o ui5loader.js)", async (
 
 	t.is(workspace.byGlob.callCount, 2,
 		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -521,9 +521,9 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js)", async (t
 
 	t.is(workspace.byGlob.callCount, 3,
 		"workspace.byGlob should have been called three times");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-	t.deepEqual(workspace.byGlob.getCall(1).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -947,9 +947,9 @@ test.serial("generateLibraryPreload for sap.ui.core with old specVersion defined
 
 	t.is(workspace.byGlob.callCount, 3,
 		"workspace.byGlob should have been called three times");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-	t.deepEqual(workspace.byGlob.getCall(1).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -1486,7 +1486,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 
 	t.is(workspace.byGlob.callCount, 2,
 		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -1677,7 +1677,7 @@ test.serial("generateLibraryPreload for sap.ui.core with own bundle configuratio
 
 	t.is(workspace.byGlob.callCount, 2,
 		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -1805,7 +1805,7 @@ test.serial("generateLibraryPreload with excludes", async (t) => {
 
 	t.is(workspace.byGlob.callCount, 2,
 		"workspace.byGlob should have been called twice");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
@@ -1939,9 +1939,9 @@ test.serial("generateLibraryPreload for sap.ui.core (/w ui5loader.js), UI5 Versi
 
 	t.is(workspace.byGlob.callCount, 3,
 		"workspace.byGlob should have been called three times");
-	t.deepEqual(workspace.byGlob.getCall(0).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
-	t.deepEqual(workspace.byGlob.getCall(1).args, ["/**/*.{js,json,xml,html,properties,library,js.map}"],
+	t.deepEqual(workspace.byGlob.getCall(1).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
 		"workspace.byGlob should have been called with expected pattern");
 	t.deepEqual(workspace.byGlob.getCall(2).args, ["/resources/**/.library"],
 		"workspace.byGlob should have been called with expected pattern");
