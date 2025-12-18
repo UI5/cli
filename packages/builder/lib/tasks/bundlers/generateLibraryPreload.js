@@ -271,7 +271,9 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 		return moduleBundler({options, resources});
 	};
 
-	return nonDbgWorkspace.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}").then(async (resources) => {
+	return nonDbgWorkspace.byGlob(
+		"/resources/**/*.{js,json,xml,html,properties,library,js.map}"
+	).then(async (resources) => {
 		// Find all libraries and create a library-preload.js bundle
 
 		let p = Promise.resolve();
@@ -299,8 +301,8 @@ export default async function({workspace, taskUtil, options: {skipBundles = [], 
 							return !taskUtil.getTag(resource, taskUtil.STANDARD_TAGS.HasDebugVariant);
 						}
 					});
-					unoptimizedResources =
-						await unoptimizedWorkspace.byGlob("/**/*.{js,json,xml,html,properties,library,js.map}");
+					unoptimizedResources = await unoptimizedWorkspace.byGlob(
+						"/resources/**/*.{js,json,xml,html,properties,library,js.map}");
 
 					unoptimizedModuleNameMapping = createModuleNameMapping({
 						resources: unoptimizedResources,
