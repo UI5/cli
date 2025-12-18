@@ -381,6 +381,16 @@ class Project extends Specification {
 		this.#currentStageWorkspace = null;
 	}
 
+	_resetStages() {
+		this.#stages = [];
+		this.#currentStage = null;
+		this.#currentStageName = "<source>";
+		this.#currentStageReadIndex = -1;
+		this.#currentStageReaders = new Map();
+		this.#currentStageWorkspace = null;
+		this.#workspaceVersion = 0;
+	}
+
 	#getReaderForStage(stage, style = "buildtime", includeCache = true) {
 		const writers = stage.getAllWriters(includeCache);
 		const readers = [];
@@ -406,23 +416,7 @@ class Project extends Specification {
 	}
 
 	setStages(stageIds, cacheReaders) {
-		if (this.#stages.length > 0) {
-			// Stages have already been set. Compare existing stages with new ones and throw on mismatch
-			for (let i = 0; i < stageIds.length; i++) {
-				const stageId = stageIds[i];
-				if (this.#stages[i].getId() !== stageId) {
-					throw new Error(
-						`Unable to set stages for project ${this.getName()}: Stage mismatch at position ${i} ` +
-						`(existing: ${this.#stages[i].getId()}, new: ${stageId})`);
-				}
-			}
-			if (cacheReaders?.length) {
-				throw new Error(
-					`Unable to set stages for project ${this.getName()}: Cache readers can only be set ` +
-					`when stages are created for the first time`);
-			}
-			return; // Stages already set and matching, no further processing needed
-		}
+		this._resetStages(); // Reset current stages and metadata
 		for (let i = 0; i < stageIds.length; i++) {
 			const stageId = stageIds[i];
 			const newStage = new Stage(stageId, cacheReaders?.[i]);

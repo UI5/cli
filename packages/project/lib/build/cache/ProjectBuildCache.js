@@ -365,6 +365,9 @@ export default class ProjectBuildCache {
 
 		await this.#cacheManager.writeBuildManifest(
 			this.#project, this.#buildSignature, buildManifest);
+
+		// Import cached stages back into project to prevent inconsistent state during next build/save
+		await this.#importCachedStages(buildManifest.cache.stages);
 	}
 
 	#getStageNameForTask(taskName) {
@@ -392,7 +395,6 @@ export default class ProjectBuildCache {
 			}));
 			return [stageId, resourceMetadata];
 		}));
-		// Optional TODO: Re-import cache as base layer to reduce memory pressure?
 	}
 
 	async #checkForIndexChanges(index, indexTimestamp) {
