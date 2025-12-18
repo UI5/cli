@@ -27,10 +27,7 @@
 		"cleverLinks": false,
 		"monospaceLinks": false,
 		"default": {
-			"useLongnameInNav": true,
-			"staticFiles": {
-				"include": ["jsdoc/templates/custom.css"]
-			}
+			"useLongnameInNav": true
 		}
 	},
 	"openGraph": {

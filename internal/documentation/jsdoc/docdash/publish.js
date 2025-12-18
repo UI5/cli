@@ -625,6 +625,11 @@ function linkTo(longname, linkText, cssClass, fragmentId) {
         if (fileUrl && githubSourceBaseUrl && (fileUrl.endsWith('.js.md') || longname.endsWith('.js'))) {
             fileUrl = convertSourceLinkToGitHub(fileUrl, longname);
         }
+        // Remove .md extension from internal links for VitePress compatibility
+        // Handle both cases: with and without fragment identifiers
+        else if (fileUrl) {
+            fileUrl = fileUrl.replace(/\.md(#|$)/, '$1');
+        }
     }
 
     text = text || longname;
@@ -679,8 +684,10 @@ function linkComplexType(longname, linkText, cssClass) {
     if (/^.+\|.+$/.test(longname) && !/<.+>/.test(longname)) {
         const types = longname.split('|').map(t => t.trim());
         return types.map(type => {
-            const url = helper.longnameToUrl[type];
+            let url = helper.longnameToUrl[type];
             if (url) {
+                // Remove .md extension for VitePress compatibility
+                url = url.replace(/\.md$/, '');
                 return util.format('<a href="%s"%s>%s</a>', encodeURI(url), classString, htmlsafe(type));
             }
             return htmlsafe(type);
@@ -714,8 +721,10 @@ function linkGenericType(type, classString) {
 
     // Link the base type if it has a URL
     let result = '';
-    const baseUrl = helper.longnameToUrl[baseType];
+    let baseUrl = helper.longnameToUrl[baseType];
     if (baseUrl) {
+        // Remove .md extension for VitePress compatibility
+        baseUrl = baseUrl.replace(/\.md$/, '');
         result = util.format('<a href="%s"%s>%s</a>', encodeURI(baseUrl), classString, htmlsafe(baseType));
     } else {
         result = htmlsafe(baseType);
@@ -727,8 +736,10 @@ function linkGenericType(type, classString) {
     if (isComplexTypeExpression(innerType)) {
         result += linkComplexType(innerType, null, classString.replace(' class="', '').replace('"', ''));
     } else {
-        const innerUrl = helper.longnameToUrl[innerType];
+        let innerUrl = helper.longnameToUrl[innerType];
         if (innerUrl) {
+            // Remove .md extension for VitePress compatibility
+            innerUrl = innerUrl.replace(/\.md$/, '');
             result += util.format('<a href="%s"%s>%s</a>', encodeURI(innerUrl), classString, htmlsafe(innerType));
         } else {
             result += htmlsafe(innerType);
