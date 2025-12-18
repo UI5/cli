@@ -128,8 +128,9 @@ async function determineDependencyInfo(resource, rawInfo, pool) {
 }
 
 class ResourcePool {
-	constructor({ignoreMissingModules} = {}) {
+	constructor({ignoreMissingModules, reader} = {}) {
 		this._ignoreMissingModules = !!ignoreMissingModules;
+		this._reader = reader; // Optional reader for lazy resource access
 		// this._roots = [];
 		this._resources = [];
 		this._resourcesByName = new Map();

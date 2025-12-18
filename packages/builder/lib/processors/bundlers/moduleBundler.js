@@ -129,7 +129,8 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  * @static
  *
  * @param {object} parameters Parameters
- * @param {@ui5/fs/Resource[]} parameters.resources Resources
+ * @param {@ui5/fs/Resource[]} [parameters.resources] Resources (legacy mode)
+ * @param {object} [parameters.reader] Reader for lazy resource loading (new mode)
  * @param {object} parameters.options Options
  * @param {object} [parameters.options.moduleNameMapping]
  				Optional mapping of resource paths to module name in order to overwrite the default determination
@@ -145,7 +146,7 @@ const log = getLogger("builder:processors:bundlers:moduleBundler");
  * Promise resolving with module bundle resources
  */
 /* eslint-enable max-len */
-export default function({resources, options: {
+export default function({resources, reader, options: {
 	bundleDefinition, bundleOptions, moduleNameMapping, targetUi5CoreVersion, allowStringBundling = false
 }}) {
 	// Apply defaults without modifying the passed object
@@ -170,7 +171,13 @@ export default function({resources, options: {
 		log.verbose(`bundleDefinition: ${JSON.stringify(bundleDefinition, null, 2)}`);
 		log.verbose(`bundleOptions: ${JSON.stringify(bundleOptions, null, 2)}`);
 	}
-	return pool.prepare( resources, moduleNameMapping ).
+	
+	// Support both legacy (resources array) and new (reader) modes
+	const preparePromise = reader ?
+		pool.prepare(reader, moduleNameMapping) :
+		pool.prepare(resources, moduleNameMapping);
+	
+	return preparePromise.
 		then( () => builder.createBundle(bundleDefinition, bundleOptions) ).
 		then( (results) => {
 			let bundles;

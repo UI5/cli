@@ -104,13 +104,11 @@ test.serial("generateBundle: No taskUtil, no bundleOptions", async (t) => {
 			bundleDefinition,
 			bundleOptions: undefined
 		},
-		resources
+		reader: combo
 	}]);
 
-	t.is(combo.byGlob.callCount, 1,
-		"combo.byGlob should have been called once");
-	t.deepEqual(combo.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
-		"combo.byGlob should have been called with expected pattern");
+	t.is(combo.byGlob.callCount, 0,
+		"combo.byGlob should not have been called (reader-based approach)");
 
 	t.is(createFilterReaderStub.callCount, 0,
 		"createFilterReaderStub should not have been called");
@@ -178,11 +176,11 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 			bundleOptions: undefined,
 			targetUi5CoreVersion: "1.120.0",
 		},
-		resources
+		reader: filteredCombo
 	}]);
 
 	t.is(combo.byGlob.callCount, 0,
-		"combo.byGlob should not have been called");
+		"combo.byGlob should not have been called (reader-based approach)");
 
 	t.is(createFilterReaderStub.callCount, 1,
 		"createFilterReader should have been called once");
@@ -195,10 +193,8 @@ test.serial("generateBundle: No bundleOptions, with taskUtil", async (t) => {
 	t.is(filterReader, combo,
 		"createFilterReader should have been called with correct reader instance");
 
-	t.is(filteredCombo.byGlob.callCount, 1,
-		"filteredCombo.byGlob should have been called once");
-	t.deepEqual(filteredCombo.byGlob.getCall(0).args, ["/resources/**/*.{js,json,xml,html,properties,library,js.map}"],
-		"filteredCombo.byGlob should have been called with expected pattern");
+	t.is(filteredCombo.byGlob.callCount, 0,
+		"filteredCombo.byGlob should not have been called (reader-based approach)");
 
 	t.is(taskUtil.clearTag.callCount, 1);
 	t.deepEqual(taskUtil.clearTag.getCall(0).args,
@@ -541,7 +537,7 @@ test.serial("generateBundle: bundleOptions: sourceMap=false, with taskUtil", asy
 			bundleOptions,
 			targetUi5CoreVersion: "1.120.0"
 		},
-		resources
+		reader: filteredCombo
 	}]);
 
 	t.is(combo.byGlob.callCount, 0,
@@ -640,11 +636,11 @@ test.serial("generateBundle: Empty bundle (skipIfEmpty=true)", async (t) => {
 			bundleOptions,
 			targetUi5CoreVersion: "1.120.0"
 		},
-		resources
+		reader: filteredCombo
 	}]);
 
 	t.is(combo.byGlob.callCount, 0,
-		"combo.byGlob should not have been called");
+		"combo.byGlob should not have been called (reader-based approach)");
 
 	t.is(createFilterReaderStub.callCount, 1,
 		"createFilterReader should have been called once");
@@ -773,11 +769,11 @@ test.serial("generateBundle: No bundleOptions, with taskUtil, UI5 Version >= 2",
 			bundleOptions: undefined,
 			targetUi5CoreVersion: "2.0.0",
 		},
-		resources
+		reader: filteredCombo
 	}]);
 
 	t.is(combo.byGlob.callCount, 0,
-		"combo.byGlob should not have been called");
+		"combo.byGlob should not have been called (reader-based approach)");
 
 	t.is(createFilterReaderStub.callCount, 1,
 		"createFilterReader should have been called once");

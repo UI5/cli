@@ -97,38 +97,54 @@ export default async function({
 	}
 	const coreVersion = taskUtil?.getProject("sap.ui.core")?.getVersion();
 	const allowStringBundling = taskUtil?.getProject().getSpecVersion().lt("4.0");
-	return combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}").then((resources) => {
-		const options = {
-			bundleDefinition: applyDefaultsToBundleDefinition(bundleDefinition, taskUtil),
-			bundleOptions,
-			allowStringBundling
-		};
-		if (!optimize && taskUtil) {
-			options.moduleNameMapping = createModuleNameMapping({resources, taskUtil});
-		}
+
+	// Prepare options for moduleBundler
+	const options = {
+		bundleDefinition: applyDefaultsToBundleDefinition(bundleDefinition, taskUtil),
+		bundleOptions,
+		allowStringBundling
+	};
+
+	// For debug bundles with taskUtil, we need moduleNameMapping which requires pre-loading resources
+	let bundlerPromise;
+	if (!optimize && taskUtil) {
+		// Legacy path: need to load resources to create moduleNameMapping
+		bundlerPromise = combo.byGlob("/resources/**/*.{js,json,xml,html,properties,library,js.map}")
+			.then((resources) => {
+				options.moduleNameMapping = createModuleNameMapping({resources, taskUtil});
+				if (coreVersion) {
+					options.targetUi5CoreVersion = coreVersion;
+				}
+				// Use resources array for this case
+				return moduleBundler({options, resources});
+			});
+	} else {
+		// New reader-based path: pass reader to moduleBundler for lazy loading
 		if (coreVersion) {
 			options.targetUi5CoreVersion = coreVersion;
 		}
-		return moduleBundler({options, resources}).then((bundles) => {
-			return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
-				if (!bundle) {
-					// Skip empty bundles
-					return;
-				}
-				if (taskUtil) {
-					taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
-					if (sourceMap) {
-						// Clear tag that might have been set by the minify task, in cases where
-						// the bundle name is identical to a source file
-						taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
-					}
-				}
-				const writes = [workspace.write(bundle)];
+		bundlerPromise = moduleBundler({options, reader: combo});
+	}
+
+	return bundlerPromise.then((bundles) => {
+		return Promise.all(bundles.map(({bundle, sourceMap} = {}) => {
+			if (!bundle) {
+				// Skip empty bundles
+				return;
+			}
+			if (taskUtil) {
+				taskUtil.setTag(bundle, taskUtil.STANDARD_TAGS.IsBundle);
 				if (sourceMap) {
-					writes.push(workspace.write(sourceMap));
+					// Clear tag that might have been set by the minify task, in cases where
+					// the bundle name is identical to a source file
+					taskUtil.clearTag(sourceMap, taskUtil.STANDARD_TAGS.OmitFromBuildResult);
 				}
-				return Promise.all(writes);
-			}));
-		});
+			}
+			const writes = [workspace.write(bundle)];
+			if (sourceMap) {
+				writes.push(workspace.write(sourceMap));
+			}
+			return Promise.all(writes);
+		}));
 	});
 }

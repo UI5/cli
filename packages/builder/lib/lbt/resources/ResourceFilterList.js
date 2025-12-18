@@ -129,6 +129,91 @@ export default class ResourceFilterList {
 	}
 
 	/**
+	 * Converts the filter list to glob patterns for use with UI5 FS APIs.
+	 *
+	 * This method analyzes the sequential include/exclude filters and attempts to convert them
+	 * to glob patterns. However, some sequential filter combinations cannot be fully expressed
+	 * as glob patterns (e.g., excluding a path then re-including a subset of it).
+	 *
+	 * @returns {{
+	 *   positivePatterns: string[],
+	 *   negativePatterns: string[],
+	 *   requiresPostFiltering: boolean
+	 * }} Object containing:
+	 *   - positivePatterns: Array of glob patterns to include
+	 *   - negativePatterns: Array of glob patterns to exclude
+	 *   - requiresPostFiltering: True if the sequential filter semantics cannot be fully
+	 *     preserved with glob patterns alone and additional filtering via matches() is needed
+	 */
+	toGlobPatterns() {
+		const positivePatterns = [];
+		const negativePatterns = [];
+		let requiresPostFiltering = false;
+
+		// Special case: if matchByDefault is true and we have no includes yet,
+		// we need a wildcard positive pattern
+		let needsWildcard = this.matchByDefault;
+
+		// Track if we've seen exclusions followed by inclusions that overlap
+		// This indicates we need post-filtering to preserve sequential semantics
+		let hasExcludeBeforeInclude = false;
+
+		for (let i = 0; i < this.matchers.length; i++) {
+			const matcher = this.matchers[i];
+			const pattern = matcher.value || matcher.regexp?.source;
+
+			if (!pattern) {
+				continue;
+			}
+
+			// Convert pattern to glob-compatible format
+			let globPattern;
+			if (matcher.regexp) {
+				// Convert internal regexp back to glob-like pattern
+				// This is a simplified conversion - the original pattern is stored in matcher.pattern
+				globPattern = matcher.pattern;
+			} else {
+				// String match - use as-is
+				globPattern = pattern;
+			}
+
+			// Remove prefix markers (+, -, !)
+			globPattern = globPattern.replace(/^[+\-!]/, "");
+
+			if (matcher.include) {
+				// Check if we had any excludes before this include
+				if (negativePatterns.length > 0) {
+					// Check if this include could potentially overlap with previous excludes
+					// For now, conservatively mark as requiring post-filtering
+					hasExcludeBeforeInclude = true;
+				}
+				// Once we have an include, we don't need the wildcard
+				needsWildcard = false;
+				positivePatterns.push(globPattern);
+			} else {
+				negativePatterns.push(globPattern);
+			}
+		}
+
+		// If we have includes after excludes, we might need post-filtering
+		// to handle re-inclusion scenarios that glob patterns can't express
+		if (hasExcludeBeforeInclude) {
+			requiresPostFiltering = true;
+		}
+
+		// Add wildcard if needed (only excludes with matchByDefault=true)
+		if (needsWildcard) {
+			positivePatterns.unshift("**/*");
+		}
+
+		return {
+			positivePatterns,
+			negativePatterns,
+			requiresPostFiltering
+		};
+	}
+
+	/**
 	 * Each filter entry can be a comma separated list of simple filters. Each simple filter
 	 * can be a pattern in resource name pattern syntax: A double asterisk '&0x2a;&0x2a;/' denotes an arbitrary
 	 * number of resource name segments (folders) incl. a trailing slash, whereas a simple asterisk '*'

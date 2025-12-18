@@ -248,12 +248,74 @@ class BundleResolver {
 			}
 			*/
 
-			// scan all known resources
-			const promises = pool.resources.map( function(resource) {
-				return checkAndAddResource(resource.name, 0);
-			});
+			// Convert filters to glob patterns for efficient FS querying
+			const {positivePatterns, negativePatterns, requiresPostFiltering} =
+				filters.toGlobPatterns();
 
-			return Promise.all(promises).then( function() {
+			// Use byGlob to fetch only matching resources instead of iterating all pool resources
+			let resourcePromise;
+			if (pool._reader) {
+				// New reader-based approach: query FS directly with glob patterns
+				resourcePromise = pool._reader.byGlob(positivePatterns.map((p) => "/resources/" + p))
+					.then((resources) => {
+						// Filter out directories
+						return resources.filter((res) => !res.getStatInfo().isDirectory());
+					})
+					.then((resources) => {
+						// Apply negative patterns if any
+						if (negativePatterns.length > 0) {
+							const negativeFilterList = new ResourceFilterList(
+								negativePatterns.map((p) => "!" + p),
+								fileTypes
+							);
+							resources = resources.filter((res) => {
+								const moduleName = res.getPath().slice("/resources/".length);
+								return !negativeFilterList.matches(moduleName);
+							});
+						}
+						return resources;
+					})
+					.then(async (resources) => {
+						// Wrap resources in LocatorResource and cache them in the pool
+						const LocatorResource = (await import("../resources/LocatorResource.js")).default;
+						return Promise.all(resources.map(async (fsResource) => {
+							const resourcePath = fsResource.getPath();
+							let moduleName = pool._moduleNameMapping?.[resourcePath];
+							if (!moduleName) {
+								moduleName = resourcePath.slice("/resources/".length);
+							}
+
+							// Check if already cached
+							let resource = pool._resourcesByName.get(moduleName);
+							if (!resource) {
+								resource = new LocatorResource(pool, fsResource, moduleName);
+								pool._resources.push(resource);
+								pool._resourcesByName.set(moduleName, resource);
+
+								// Handle .library files
+								if (/\.library$/.test(moduleName)) {
+									const buffer = await resource.buffer();
+									const {getDependencyInfos} = await import("../resources/LibraryFileAnalyzer.js");
+									const infos = getDependencyInfos(moduleName, buffer);
+									for (const infoName of Object.keys(infos)) {
+										pool._rawModuleInfos.set(infoName, infos[infoName]);
+									}
+								}
+							}
+							return resource;
+						}));
+					});
+			} else {
+				// Legacy mode: scan all known resources from pre-loaded pool
+				resourcePromise = Promise.resolve(pool.resources);
+			}
+
+			return resourcePromise.then((resources) => {
+				const promises = resources.map(function(resource) {
+					return checkAndAddResource(resource.name, 0);
+				});
+				return Promise.all(promises);
+			}).then( function() {
 				if ( [SectionType.Require, SectionType.DepCache].includes(section.mode) ) {
 					newKeys = selectedResourcesSequence;
 					selectedResources = oldSelectedResources;
