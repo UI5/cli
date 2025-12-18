@@ -68,7 +68,8 @@ export default async (pkg) => {
 	// Format terminal output to full available width
 	cli.wrap(cli.terminalWidth());
 
-	// yargs registers a get method on the argv property.
-	// The property needs to be accessed to initialize everything.
-	cli.argv;
+	const {_} = await cli.argv;
+	return {
+		command: _[0]
+	};
 };
