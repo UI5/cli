@@ -441,6 +441,12 @@ class ManifestEnhancer {
 
 		if (this.manifest["sap.app"].type === "library") {
 			await this.processSapUi5LibraryI18n();
+
+			if (process.env.UI5_CLI_EXPERIMENTAL_BUNDLE_INFO_PRELOAD) {
+				// Add flag indicating that the (currently experimental) bundleVersion 2 preload bundling is used
+				this.manifest["sap.ui5"].library ??= {};
+				this.manifest["sap.ui5"].library.bundleVersion = 2;
+			}
 		} else {
 			await Promise.all([
 				this.processSapAppI18n(),
