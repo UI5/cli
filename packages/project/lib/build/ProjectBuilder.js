@@ -5,6 +5,7 @@ import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
+import createBuildManifest from "./helpers/createBuildManifest.js";
 
 /**
  * @public
@@ -134,14 +135,16 @@ class ProjectBuilder {
 	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
 	 *   Allows for a more sophisticated configuration for defining which dependencies should be
 	 *   part of the build result. If this is provided, the other mentioned parameters are ignored.
+	 * @param {boolean} [parameters.watch] Whether to watch for file changes and re-execute the build automatically
 	 * @returns {Promise} Promise resolving once the build has finished
 	 */
 	async build({
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
-		dependencyIncludes
+		dependencyIncludes,
+		watch,
 	}) {
-		if (!destPath) {
+		if (!destPath && !watch) {
 			throw new Error(`Missing parameter 'destPath'`);
 		}
 		if (dependencyIncludes) {
@@ -179,10 +182,13 @@ class ProjectBuilder {
 
 		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
 		const cleanupSigHooks = this._registerCleanupSigHooks();
-		const fsTarget = resourceFactory.createAdapter({
-			fsBasePath: destPath,
-			virBasePath: "/"
-		});
+		let fsTarget;
+		if (destPath) {
+			fsTarget = resourceFactory.createAdapter({
+				fsBasePath: destPath,
+				virBasePath: "/"
+			});
+		}
 
 		const queue = [];
 		const alreadyBuilt = [];
@@ -196,7 +202,7 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
-				if (!projectBuildContext.requiresBuild()) {
+				if (!await projectBuildContext.requiresBuild()) {
 					alreadyBuilt.push(projectName);
 				}
 			}
@@ -220,8 +226,12 @@ class ProjectBuilder {
 						let msg;
 						if (alreadyBuilt.includes(projectName)) {
 							const buildMetadata = projectBuildContext.getBuildMetadata();
-							const ts = new Date(buildMetadata.timestamp).toUTCString();
-							msg = `*> ${projectName} /// already built at ${ts}`;
+							let buildAt = "";
+							if (buildMetadata) {
+								const ts = new Date(buildMetadata.timestamp).toUTCString();
+								buildAt = ` at ${ts}`;
+							}
+							msg = `*> ${projectName} /// already built${buildAt}`;
 						} else {
 							msg = `=> ${projectName}`;
 						}
@@ -231,7 +241,7 @@ class ProjectBuilder {
 			}
 		}
 
-		if (cleanDest) {
+		if (destPath && cleanDest) {
 			this.#log.info(`Cleaning target directory...`);
 			await rmrf(destPath);
 		}
@@ -239,8 +249,9 @@ class ProjectBuilder {
 		try {
 			const pWrites = [];
 			for (const projectBuildContext of queue) {
-				const projectName = projectBuildContext.getProject().getName();
-				const projectType = projectBuildContext.getProject().getType();
+				const project = projectBuildContext.getProject();
+				const projectName = project.getName();
+				const projectType = project.getType();
 				this.#log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
@@ -251,14 +262,26 @@ class ProjectBuilder {
 					await projectBuildContext.getTaskRunner().runTasks();
 					this.#log.endProjectBuild(projectName, projectType);
 				}
+				project.sealWorkspace();
 				if (!requestedProjects.includes(projectName)) {
 					// Project has not been requested
 					//	=> Its resources shall not be part of the build result
 					continue;
 				}
 
-				this.#log.verbose(`Writing out files...`);
-				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+				if (fsTarget) {
+					this.#log.verbose(`Writing out files...`);
+					pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+				}
+
+				if (!alreadyBuilt.includes(projectName)) {
+					this.#log.verbose(`Saving cache...`);
+					const buildManifest = await createBuildManifest(
+						project,
+						this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+						projectBuildContext.getBuildSignature());
+					pWrites.push(projectBuildContext.getBuildCache().saveToDisk(buildManifest));
+				}
 			}
 			await Promise.all(pWrites);
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
@@ -269,6 +292,70 @@ class ProjectBuilder {
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
 		}
+
+		if (watch) {
+			const relevantProjects = queue.map((projectBuildContext) => {
+				return projectBuildContext.getProject();
+			});
+			const watchHandler = this._buildContext.initWatchHandler(relevantProjects, async () => {
+				await this.#update(projectBuildContexts, requestedProjects, fsTarget);
+			});
+			return watchHandler;
+		}
+	}
+
+	async #update(projectBuildContexts, requestedProjects, fsTarget) {
+		const queue = [];
+		await this._graph.traverseDepthFirst(async ({project}) => {
+			const projectName = project.getName();
+			const projectBuildContext = projectBuildContexts.get(projectName);
+			if (projectBuildContext) {
+				// Build context exists
+				//	=> This project needs to be built or, in case it has already
+				//		been built, it's build result needs to be written out (if requested)
+				queue.push(projectBuildContext);
+			}
+		});
+
+		this.#log.setProjects(queue.map((projectBuildContext) => {
+			return projectBuildContext.getProject().getName();
+		}));
+
+		const pWrites = [];
+		for (const projectBuildContext of queue) {
+			const project = projectBuildContext.getProject();
+			const projectName = project.getName();
+			const projectType = project.getType();
+			this.#log.verbose(`Updating project ${projectName}...`);
+
+			if (!await projectBuildContext.requiresBuild()) {
+				this.#log.skipProjectBuild(projectName, projectType);
+				continue;
+			}
+
+			this.#log.startProjectBuild(projectName, projectType);
+			await projectBuildContext.runTasks();
+			project.sealWorkspace();
+			this.#log.endProjectBuild(projectName, projectType);
+			if (!requestedProjects.includes(projectName)) {
+				// Project has not been requested
+				//	=> Its resources shall not be part of the build result
+				continue;
+			}
+
+			if (fsTarget) {
+				this.#log.verbose(`Writing out files...`);
+				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+			}
+
+			this.#log.verbose(`Updating cache...`);
+			const buildManifest = await createBuildManifest(
+				project,
+				this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+				projectBuildContext.getBuildSignature());
+			pWrites.push(projectBuildContext.getBuildCache().saveToDisk(buildManifest));
+		}
+		await Promise.all(pWrites);
 	}
 
 	async _createRequiredBuildContexts(requestedProjects) {
@@ -280,13 +367,13 @@ class ProjectBuilder {
 
 		for (const projectName of requiredProjects) {
 			this.#log.verbose(`Creating build context for project ${projectName}...`);
-			const projectBuildContext = this._buildContext.createProjectContext({
+			const projectBuildContext = await this._buildContext.createProjectContext({
 				project: this._graph.getProject(projectName)
 			});
 
 			projectBuildContexts.set(projectName, projectBuildContext);
 
-			if (projectBuildContext.requiresBuild()) {
+			if (await projectBuildContext.requiresBuild()) {
 				const taskRunner = projectBuildContext.getTaskRunner();
 				const requiredDependencies = await taskRunner.getRequiredDependencies();
 
@@ -386,13 +473,12 @@ class ProjectBuilder {
 
 		if (createBuildManifest) {
 			// Create and write a build manifest metadata file
-			const {
-				default: createBuildManifest
-			} = await import("./helpers/createBuildManifest.js");
-			const metadata = await createBuildManifest(project, buildConfig, this._buildContext.getTaskRepository());
+			const buildManifest = await createBuildManifest(
+				project, this._graph, buildConfig, this._buildContext.getTaskRepository(),
+				projectBuildContext.getBuildSignature());
 			await target.write(resourceFactory.createResource({
 				path: `/.ui5/build-manifest.json`,
-				string: JSON.stringify(metadata, null, "\t")
+				string: JSON.stringify(buildManifest, null, "\t")
 			}));
 		}
 
@@ -455,7 +541,7 @@ class ProjectBuilder {
 			return function() {
 				// Asynchronously cleanup resources, then exit
 				that._executeCleanupTasks(true).then(() => {
-					process.exit(exitCode);
+					process.exitCode = exitCode;
 				});
 			};
 		}

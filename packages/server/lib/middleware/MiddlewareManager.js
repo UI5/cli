@@ -218,7 +218,7 @@ class MiddlewareManager {
 		});
 		await this.addMiddleware("serveResources");
 		await this.addMiddleware("testRunner");
-		await this.addMiddleware("serveThemes");
+		// await this.addMiddleware("serveThemes");
 		await this.addMiddleware("versionInfo", {
 			mountPath: "/resources/sap-ui-version.json"
 		});

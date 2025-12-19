@@ -137,33 +137,49 @@ export async function serve(graph, {
 	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
 }) {
 	const rootProject = graph.getRoot();
-
-	const readers = [];
-	await graph.traverseBreadthFirst(async function({project: dep}) {
-		if (dep.getName() === rootProject.getName()) {
-			// Ignore root project
-			return;
-		}
-		readers.push(dep.getReader({style: "runtime"}));
+	const watchHandler = await graph.build({
+		includedDependencies: ["*"],
+		watch: true,
 	});
 
-	const dependencies = createReaderCollection({
-		name: `Dependency reader collection for project ${rootProject.getName()}`,
-		readers
-	});
+	async function createReaders() {
+		const readers = [];
+		await graph.traverseBreadthFirst(async function({project: dep}) {
+			if (dep.getName() === rootProject.getName()) {
+				// Ignore root project
+				return;
+			}
+			readers.push(dep.getReader({style: "runtime"}));
+		});
 
-	const rootReader = rootProject.getReader({style: "runtime"});
+		const dependencies = createReaderCollection({
+			name: `Dependency reader collection for project ${rootProject.getName()}`,
+			readers
+		});
 
-	// TODO change to ReaderCollection once duplicates are sorted out
-	const combo = new ReaderCollectionPrioritized({
-		name: "server - prioritize workspace over dependencies",
-		readers: [rootReader, dependencies]
+		const rootReader = rootProject.getReader({style: "runtime"});
+		// TODO change to ReaderCollection once duplicates are sorted out
+		const combo = new ReaderCollectionPrioritized({
+			name: "server - prioritize workspace over dependencies",
+			readers: [rootReader, dependencies]
+		});
+		const resources = {
+			rootProject: rootReader,
+			dependencies: dependencies,
+			all: combo
+		};
+		return resources;
+	}
+
+	const resources = await createReaders();
+
+	watchHandler.on("projectResourcesUpdated", async () => {
+		const newResources = await createReaders();
+		// Patch resources
+		resources.rootProject = newResources.rootProject;
+		resources.dependencies = newResources.dependencies;
+		resources.all = newResources.all;
 	});
-	const resources = {
-		rootProject: rootReader,
-		dependencies: dependencies,
-		all: combo
-	};
 
 	const middlewareManager = new MiddlewareManager({
 		graph,

@@ -17,6 +17,7 @@ test("Create instance", (t) => {
 		resource
 	});
 	t.is(resourceFacade.getPath(), "/my/path", "Returns correct path");
+	t.is(resourceFacade.getOriginalPath(), "/my/path/to/resource", "Returns correct original path");
 	t.is(resourceFacade.getName(), "path", "Returns correct name");
 	t.is(resourceFacade.getConcealedResource(), resource, "Returns correct concealed resource");
 });
@@ -86,7 +87,7 @@ test("ResourceFacade provides same public functions as Resource", (t) => {
 
 	methods.forEach((method) => {
 		t.truthy(resourceFacade[method], `resourceFacade provides function #${method}`);
-		if (["constructor", "getPath", "getName", "setPath", "clone"].includes(method)) {
+		if (["constructor", "getPath", "getOriginalPath", "getName", "setPath", "clone"].includes(method)) {
 			// special functions with separate tests
 			return;
 		}

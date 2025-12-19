@@ -135,7 +135,7 @@ export default function(cli) {
 				process.stderr.write(chalk.dim(`See 'ui5 --help'`));
 				process.stderr.write("\n");
 			}
-			process.exit(1);
+			process.exitCode = 1;
 		});
 }
 

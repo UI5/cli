@@ -1,5 +1,7 @@
 import ProjectBuildContext from "./ProjectBuildContext.js";
 import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
+import WatchHandler from "./WatchHandler.js";
+import CacheManager from "../cache/CacheManager.js";
 
 /**
  * Context of a build process
@@ -8,11 +10,15 @@ import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
  * @memberof @ui5/project/build/helpers
  */
 class BuildContext {
+	#watchHandler;
+	#cacheManager;
+
 	constructor(graph, taskRepository, { // buildConfig
 		selfContained = false,
 		cssVariables = false,
 		jsdoc = false,
 		createBuildManifest = false,
+		useCache = false,
 		outputStyle = OutputStyleEnum.Default,
 		includedTasks = [], excludedTasks = [],
 	} = {}) {
@@ -67,6 +73,7 @@ class BuildContext {
 			outputStyle,
 			includedTasks,
 			excludedTasks,
+			useCache,
 		};
 
 		this._taskRepository = taskRepository;
@@ -97,13 +104,35 @@ class BuildContext {
 		return this._graph;
 	}
 
-	createProjectContext({project}) {
-		const projectBuildContext = new ProjectBuildContext({
-			buildContext: this,
-			project
-		});
+	async createProjectContext({project}) {
+		const projectBuildContext = await ProjectBuildContext.create(this, project);
 		this._projectBuildContexts.push(projectBuildContext);
 		return projectBuildContext;
+	}
+
+	initWatchHandler(projects, updateBuildResult) {
+		const watchHandler = new WatchHandler(this, updateBuildResult);
+		watchHandler.watch(projects);
+		this.#watchHandler = watchHandler;
+		return watchHandler;
+	}
+
+	getWatchHandler() {
+		return this.#watchHandler;
+	}
+
+	async getCacheManager() {
+		if (this.#cacheManager) {
+			return this.#cacheManager;
+		}
+		this.#cacheManager = await CacheManager.create(this._graph.getRoot().getRootPath());
+		return this.#cacheManager;
+	}
+
+	getBuildContext(projectName) {
+		if (projectName) {
+			return this._projectBuildContexts.find((ctx) => ctx.getProject().getName() === projectName);
+		}
 	}
 
 	async executeCleanupTasks(force = false) {

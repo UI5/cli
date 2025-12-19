@@ -1,5 +1,6 @@
 import Specification from "./Specification.js";
 import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
+import {createWorkspace, createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 
 /**
  * Project
@@ -12,6 +13,15 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
  * @hideconstructor
  */
 class Project extends Specification {
+	#stages = []; // Stages in order of creation
+
+	#currentStageWorkspace;
+	#currentStageReaders = new Map(); // Initialize an empty map to store the various reader styles
+	#currentStage;
+	#currentStageReadIndex = -1;
+	#currentStageName = "<source>";
+	#workspaceVersion = 0;
+
 	constructor(parameters) {
 		super(parameters);
 		if (new.target === Project) {
@@ -85,6 +95,14 @@ class Project extends Specification {
 	 */
 	getSourcePath() {
 		throw new Error(`getSourcePath must be implemented by subclass ${this.constructor.name}`);
+	}
+
+	getSourcePaths() {
+		throw new Error(`getSourcePaths must be implemented by subclass ${this.constructor.name}`);
+	}
+
+	getVirtualPath() {
+		throw new Error(`getVirtualPath must be implemented by subclass ${this.constructor.name}`);
 	}
 
 	/**
@@ -220,6 +238,7 @@ class Project extends Specification {
 	}
 
 	/* === Resource Access === */
+
 	/**
 	 * Get a [ReaderCollection]{@link @ui5/fs/ReaderCollection} for accessing all resources of the
 	 * project in the specified "style":
@@ -241,16 +260,173 @@ class Project extends Specification {
 	 *  Any configured build-excludes are applied</li>
 	 * </ul>
 	 *
+	 * If project resources have been changed through the means of a workspace, those changes
+	 * are reflected in the provided reader too.
+	 *
 	 * Resource readers always use POSIX-style paths.
 	 *
 	 * @public
 	 * @param {object} [options]
 	 * @param {string} [options.style=buildtime] Path style to access resources.
 	 *   Can be "buildtime", "dist", "runtime" or "flat"
-	 * @returns {@ui5/fs/ReaderCollection} Reader collection allowing access to all resources of the project
+	 * @returns {@ui5/fs/ReaderCollection} A reader collection instance
 	 */
-	getReader(options) {
-		throw new Error(`getReader must be implemented by subclass ${this.constructor.name}`);
+	getReader({style = "buildtime"} = {}) {
+		let reader = this.#currentStageReaders.get(style);
+		if (reader) {
+			// Use cached reader
+			return reader;
+		}
+
+		const readers = [];
+
+		// Add writers for previous stages as readers
+		const stageReadIdx = this.#currentStageReadIndex;
+
+		// Collect writers from all relevant stages
+		for (let i = stageReadIdx; i >= 0; i--) {
+			const stageReader = this.#getReaderForStage(this.#stages[i], style);
+			if (stageReader) {
+				readers.push(stageReader);
+			}
+		}
+
+		// Always add source reader
+		readers.push(this._getStyledReader(style));
+
+		reader = createReaderCollectionPrioritized({
+			name: `Reader collection for stage '${this.#currentStageName}' of project ${this.getName()}`,
+			readers: readers
+		});
+
+		this.#currentStageReaders.set(style, reader);
+		return reader;
+	}
+
+	getSourceReader(style = "buildtime") {
+		return this._getStyledReader(style);
+	}
+
+	/**
+	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
+	* project's resources. This is always of style <code>buildtime</code>.
+	*
+	* Once a project has finished building, this method will throw to prevent further modifications
+	* since those would have no effect. Use the getReader method to access the project's (modified) resources
+	*
+	* @public
+	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
+	*/
+	getWorkspace() {
+		if (!this.#currentStage) {
+			throw new Error(
+				`Workspace of project ${this.getName()} is currently not available. ` +
+				`This might indicate that the project has already finished building ` +
+				`and its content can not be modified further. ` +
+				`Use method 'getReader' for read-only access`);
+		}
+		if (this.#currentStageWorkspace) {
+			return this.#currentStageWorkspace;
+		}
+		const writer = this.#currentStage.getWriter();
+		const workspace = createWorkspace({
+			reader: this.getReader(),
+			writer: writer.collection || writer
+		});
+		this.#currentStageWorkspace = workspace;
+		return workspace;
+	}
+
+	useStage(stageId) {
+		// if (newWriter && this.#writers.has(stageId)) {
+		// 	this.#writers.delete(stageId);
+		// }
+		if (stageId === this.#currentStage?.getId()) {
+			// Already using requested stage
+			return;
+		}
+
+		const stageIdx = this.#stages.findIndex((s) => s.getId() === stageId);
+
+		if (stageIdx === -1) {
+			throw new Error(`Stage '${stageId}' does not exist in project ${this.getName()}`);
+		}
+
+		const stage = this.#stages[stageIdx];
+		stage.newVersion(this._createWriter());
+		this.#currentStage = stage;
+		this.#currentStageName = stageId;
+		this.#currentStageReadIndex = stageIdx - 1; // Read from all previous stages
+
+		// Unset "current" reader/writer. They will be recreated on demand
+		this.#currentStageReaders = new Map();
+		this.#currentStageWorkspace = null;
+	}
+
+	/**
+	 * Seal the workspace of the project, preventing further modifications.
+	 * This is typically called once the project has finished building. Resources from all stages will be used.
+	 *
+	 * A project can be unsealed by calling useStage() again.
+	 *
+	 */
+	sealWorkspace() {
+		this.#workspaceVersion++;
+		this.#currentStage = null; // Unset stage - This blocks further getWorkspace() calls
+		this.#currentStageName = `<final - workspace version ${this.#workspaceVersion}>`;
+		this.#currentStageReadIndex = this.#stages.length - 1; // Read from all stages
+
+		// Unset "current" reader/writer. They will be recreated on demand
+		this.#currentStageReaders = new Map();
+		this.#currentStageWorkspace = null;
+	}
+
+	_resetStages() {
+		this.#stages = [];
+		this.#currentStage = null;
+		this.#currentStageName = "<source>";
+		this.#currentStageReadIndex = -1;
+		this.#currentStageReaders = new Map();
+		this.#currentStageWorkspace = null;
+		this.#workspaceVersion = 0;
+	}
+
+	#getReaderForStage(stage, style = "buildtime", includeCache = true) {
+		const writers = stage.getAllWriters(includeCache);
+		const readers = [];
+		for (const writer of writers) {
+			// Apply project specific handling for using writers as readers, depending on the requested style
+			this._addWriter(style, readers, writer);
+		}
+
+		return createReaderCollectionPrioritized({
+			name: `Reader collection for stage '${stage.getId()}' of project ${this.getName()}`,
+			readers
+		});
+	}
+
+	getStagesForCache() {
+		return this.#stages.map((stage) => {
+			const reader = this.#getReaderForStage(stage, "buildtime", false);
+			return {
+				stageId: stage.getId(),
+				reader
+			};
+		});
+	}
+
+	setStages(stageIds, cacheReaders) {
+		this._resetStages(); // Reset current stages and metadata
+		for (let i = 0; i < stageIds.length; i++) {
+			const stageId = stageIds[i];
+			const newStage = new Stage(stageId, cacheReaders?.[i]);
+			this.#stages.push(newStage);
+		}
+	}
+
+	/* Overwritten in ComponentProject subclass */
+	_addWriter(style, readers, writer) {
+		readers.push(writer);
 	}
 
 	getResourceTagCollection() {
@@ -262,17 +438,6 @@ class Project extends Specification {
 			});
 		}
 		return this._resourceTagCollection;
-	}
-
-	/**
-	* Get a [DuplexCollection]{@link @ui5/fs/DuplexCollection} for accessing and modifying a
-	* project's resources. This is always of style <code>buildtime</code>.
-	*
-	* @public
-	* @returns {@ui5/fs/DuplexCollection} DuplexCollection
-	*/
-	getWorkspace() {
-		throw new Error(`getWorkspace must be implemented by subclass ${this.constructor.name}`);
 	}
 
 	/* === Internals === */
@@ -287,6 +452,36 @@ class Project extends Specification {
 	 * @param {object} config Configuration object
 	*/
 	async _parseConfiguration(config) {}
+}
+
+class Stage {
+	#id;
+	#writerVersions = []; // First element is the latest writer
+	#cacheReader;
+
+	constructor(id, cacheReader) {
+		this.#id = id;
+		this.#cacheReader = cacheReader;
+	}
+
+	getId() {
+		return this.#id;
+	}
+
+	newVersion(writer) {
+		this.#writerVersions.unshift(writer);
+	}
+
+	getWriter() {
+		return this.#writerVersions[0];
+	}
+
+	getAllWriters(includeCache = true) {
+		if (includeCache && this.#cacheReader) {
+			return [...this.#writerVersions, this.#cacheReader];
+		}
+		return this.#writerVersions;
+	}
 }
 
 export default Project;
