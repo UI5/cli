@@ -237,8 +237,10 @@ class ComponentProject extends Project {
 				reader: namespaceWriter,
 				namespace: this._namespace
 			}));
-			// Add general writer as is
-			readers.push(generalWriter);
+			// Add general writer only if it differs to prevent duplicate entries (with and without namespace)
+			if (namespaceWriter !== generalWriter) {
+				readers.push(generalWriter);
+			}
 			break;
 		case "flat":
 			// Rewrite paths from "flat" to "buildtime"
