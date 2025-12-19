@@ -11,8 +11,8 @@ export async function readFileContent(filePath) {
 }
 
 export async function directoryDeepEqual(t, destPath, expectedPath) {
-	const dest = await readdir(destPath, {recursive: true});
-	const expected = await readdir(expectedPath, {recursive: true});
+	const dest = (await readdir(destPath, {recursive: true})).sort();
+	const expected = (await readdir(expectedPath, {recursive: true})).sort();
 	t.deepEqual(dest, expected);
 }
 
