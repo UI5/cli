@@ -123,7 +123,12 @@ class MarkdownDocFile extends HTMLUtils {
         });
 
         // 2. Parse content
-        this.markdownElements = this.#parseSections(this.findHTMLTag(html, "article").node);
+        const articleResult = this.findHTMLTag(html, "article");
+        if (articleResult.found && articleResult.node) {
+            this.markdownElements = this.#parseSections(articleResult.node);
+        } else {
+            this.markdownElements = [];
+        }
 
         return this;
     }

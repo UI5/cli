@@ -520,11 +520,6 @@ exports.publish = function(taffyData, opts, tutorials) {
         ).concat(files),
     indexUrl);
 
-    // common nav generation, no need for templating here, we already have full html
-    if (docdash.commonNav) {
-        fs.writeFileSync(path.join(outdir, 'nav.inc.html'), view.nav, 'utf8');
-    }
-
     // set up the lists that we'll use to generate pages
     var classes = taffy(members.classes);
     var modules = taffy(members.modules);
@@ -596,7 +591,7 @@ exports.publish = function(taffyData, opts, tutorials) {
 function linkTo(longname, linkText, cssClass, fragmentId) {
     const classString = cssClass ? util.format(' class="%s"', cssClass) : '';
     let fileUrl;
-    const fragmentString = fragmentId ? `#${fragmentId}` : '';
+    let fragmentString = fragmentId ? `#${fragmentId}` : '';
     let stripped;
     let text;
 
@@ -621,6 +616,16 @@ function linkTo(longname, linkText, cssClass, fragmentId) {
         fileUrl = helper.longnameToUrl[longname] || '';
         text = linkText || longname;
 
+        // If the URL contains a fragment (hash), extract it
+        if (fileUrl && fileUrl.indexOf('#') > -1) {
+            const parts = fileUrl.split('#');
+            fileUrl = parts[0];
+            // Only use the URL's fragment if no explicit fragmentId was provided
+            if (!fragmentId) {
+                fragmentString = '#' + parts[1];
+            }
+        }
+
         // Convert source file links to GitHub URLs if configured
         if (fileUrl && githubSourceBaseUrl && (fileUrl.endsWith('.js.md') || longname.endsWith('.js'))) {
             fileUrl = convertSourceLinkToGitHub(fileUrl, longname);
@@ -628,7 +633,7 @@ function linkTo(longname, linkText, cssClass, fragmentId) {
         // Remove .md extension from internal links for VitePress compatibility
         // Handle both cases: with and without fragment identifiers
         else if (fileUrl) {
-            fileUrl = fileUrl.replace(/\.md(#|$)/, '$1');
+            fileUrl = fileUrl.replace(/\.md$/, '');
         }
     }
 

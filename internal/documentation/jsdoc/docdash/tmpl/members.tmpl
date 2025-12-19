@@ -1,8 +1,11 @@
 <?js
 var data = obj;
 var self = this;
+var signature = data.signature ? data.signature : '';
+// Check if signature already contains closing </div>, if so don't add another one
+var hasClosingDiv = signature.includes('</div>');
 ?>
-#### <?js= data.attribs + name + (data.signature ? data.signature : '') ?>
+#### <div class='jsdoc-object' id='<?js= data.id ?>'><?js= data.attribs.replace(/<div class='jsdoc-object'>/, '').replace(/<\/div>$/, '') + name + signature + (hasClosingDiv ? '' : '</div>') ?>
 
 <?js if (data.summary) { ?>
 <?js= summary ?>

@@ -7,7 +7,7 @@ var self = this;
 ## Constructor
     <?js } ?>
 
-#### <?js= data.attribs ?><?js
+#### <div class='jsdoc-object' id='<?js= data.id ?>'><?js= data.attribs.replace(/<div class='jsdoc-object'>/, '') ?><?js
       if(kind === 'class' && name.indexOf('module:') === 0) {
         print('new (require("' + name.slice(7) + '"))');
       } else if(kind === 'class') {
@@ -79,7 +79,7 @@ var self = this;
 <?js }); ?>
 <?js } ?>
 
-<?js if (data.modifies && modifies.length) {?>		
+<?js if (data.modifies && modifies.length) {?>
 ##### Modifies:
 <?js if (modifies.length > 1) { ?>
 <?js modifies.forEach(function(m) { ?>
@@ -115,7 +115,7 @@ var self = this;
     <?js });
 } } ?>
 
-<?js if (data.yields && yields.length) { ?>		
+<?js if (data.yields && yields.length) { ?>
 ##### Yields:
 <?js if (yields.length > 1) { ?>
 <?js yields.forEach(function(r) { ?>
