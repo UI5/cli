@@ -48,54 +48,32 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 		path: workspaceRootDir,
 	});
 	const tree = await arb.loadVirtual();
-	const tops = Array.from(tree.tops.values());
-	const cliNode = tops.find((node) => node.packageName === targetPackageName);
-	if (!cliNode) {
+	let targetNode = tree.inventory.get(`node_modules/${targetPackageName}`);
+	if (!targetNode) {
 		throw new Error(`Target package "${targetPackageName}" not found in workspace`);
 	}
+	targetNode = targetNode.isLink ? targetNode.target : targetNode;
 
-	const relevantPackageLocations = new Map();
+	const virtualFlatTree = [];
 	// Collect all package keys using arborist
-	collectDependencies(cliNode, relevantPackageLocations);
+	resolveVirtualTree(targetNode, virtualFlatTree);
 
-	// Using the keys, extract relevant package-entries from package-lock.json
-	const extractedPackages = Object.create(null);
-	for (let [packageLoc, node] of relevantPackageLocations) {
-		let pkg = packageLockJson.packages[packageLoc];
-		if (pkg.link) {
-			pkg = packageLockJson.packages[pkg.resolved];
-		}
-		if (pkg.name === targetPackageName) {
-			// Make the target package the root package
-			packageLoc = "";
-			if (extractedPackages[packageLoc]) {
-				throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
-			}
-		} else {
-			packageLoc = normalizePackageLocation(packageLoc, node, targetPackageName, tree.packageName);
-		}
-		if (packageLoc !== "" && !pkg.resolved) {
-			// For all but the root package, ensure that "resolved" and "integrity" fields are present
-			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
-			// from local cache)
-			const {resolved, integrity} = await fetchPackageMetadata(node.packageName, node.version, workspaceRootDir);
-			pkg.resolved = resolved;
-			pkg.integrity = integrity;
-		}
-		extractedPackages[packageLoc] = pkg;
-	}
+	const physicalTree = new Map();
+	await buildPhysicalTree(
+		virtualFlatTree, physicalTree, packageLockJson, workspaceRootDir);
+	// Build a map of package paths to their versions for collision detection
 
 	// Sort packages by key to ensure consistent order (just like the npm cli does it)
 	const sortedExtractedPackages = Object.create(null);
-	const sortedKeys = Object.keys(extractedPackages).sort((a, b) => a.localeCompare(b));
+	const sortedKeys = Array.from(physicalTree.keys()).sort((a, b) => a.localeCompare(b));
 	for (const key of sortedKeys) {
-		sortedExtractedPackages[key] = extractedPackages[key];
+		sortedExtractedPackages[key] = physicalTree.get(key)[0];
 	}
 
 	// Generate npm-shrinkwrap.json
 	const shrinkwrap = {
 		name: targetPackageName,
-		version: cliNode.version,
+		version: targetNode.version,
 		lockfileVersion: 3,
 		requires: true,
 		packages: sortedExtractedPackages
@@ -104,46 +82,164 @@ export default async function convertPackageLockToShrinkwrap(workspaceRootDir, t
 	return shrinkwrap;
 }
 
-/**
- * Normalize package locations from workspace-specific paths to standard npm paths.
- * Examples (assuming @ui5/cli is the targetPackageName):
- * 	- packages/cli/node_modules/foo -> node_modules/foo
- * 	- packages/fs/node_modules/bar -> node_modules/@ui5/fs/node_modules/bar
- *
- * @param {string} location - Package location from arborist
- * @param {object} node - Package node from arborist
- * @param {string} targetPackageName - Target package name for shrinkwrap file
- * @param {string} rootPackageName - Root / workspace package name
- * @returns {string} - Normalized location for npm-shrinkwrap.json
- */
-function normalizePackageLocation(location, node, targetPackageName, rootPackageName) {
-	const topPackageName = node.top.packageName;
-	if (topPackageName === targetPackageName) {
-		// Remove location for packages within target package (e.g. @ui5/cli)
-		return location.substring(node.top.location.length + 1);
-	} else if (topPackageName !== rootPackageName) {
-		// Add package within node_modules of actual package name (e.g. @ui5/fs)
-		return `node_modules/${topPackageName}/${location.substring(node.top.location.length + 1)}`;
-	}
-	// If it's already within the root workspace package, keep as-is
-	return location;
-}
-
-function collectDependencies(node, relevantPackageLocations) {
-	if (relevantPackageLocations.has(node.location)) {
-		// Already processed
-		return;
-	}
-	relevantPackageLocations.set(node.location, node);
+function resolveVirtualTree(node, virtualFlatTree, curPath, parentNode) {
 	if (node.isLink) {
 		node = node.target;
 	}
+
+	const fullPath = [curPath, node.name].join(" | ");
+
+	if (virtualFlatTree.some(([path]) => path === fullPath)) {
+		return;
+	}
+
+	if (node.isLink) {
+		node = node.target;
+	}
+
+	virtualFlatTree.push([fullPath, [node, parentNode]]);
+
 	for (const edge of node.edgesOut.values()) {
 		if (edge.dev) {
 			continue;
 		}
-		collectDependencies(edge.to, relevantPackageLocations);
+
+		resolveVirtualTree(edge.to, virtualFlatTree, fullPath, node);
 	}
+}
+
+async function buildPhysicalTree(
+	virtualFlatTree, physicalTree, packageLockJson, workspaceRootDir) {
+	// Sort by path depth and then alphabetically to ensure parent
+	// packages are processed before children. It's important to
+	// process parents first to correctly handle version collisions and hoisting
+	virtualFlatTree.sort(([pathA], [pathB]) => {
+		if (pathA.split(" | ").length < pathB.split(" | ").length) {
+			return -1;
+		} else if (pathA.split(" | ").length > pathB.split(" | ").length) {
+			return 1;
+		} else {
+			return pathA.localeCompare(pathB);
+		}
+	});
+	const targetNode = virtualFlatTree[0][1][0];
+	const targetPackageName = targetNode.packageName;
+
+	// Collect information to resolve potential version conflicts later
+	const statsToResolveConflicts = new Map();
+	for (const [, nodes] of virtualFlatTree) {
+		const packageLoc = resolveLocation(nodes, physicalTree, targetPackageName);
+		const [node, parentNode] = nodes;
+		const {version} = node;
+		const isTargetPackageHardDep = (parentNode?.packageName === targetPackageName);
+
+		// index 0: Set of versions found for this location
+		// index 1: Map of version -> count
+		// 	(this will be used eventually to elect the most common version in root node_modules)
+		// index 2: If target package has direct dependency here, the version
+		const packageStats = statsToResolveConflicts.get(packageLoc) || [new Set(), Object.create(null)];
+		packageStats[0].add(version);
+		packageStats[1][version] ??= 0;
+		packageStats[1][version]++;
+		if (isTargetPackageHardDep) {
+			if (packageStats[2]) {
+				throw new Error(`Impossible to resolve hoisting conflicts. ` +
+					`Target package direct dependency "${node.packageName}" ` +
+					`has multiple versions: ${packageStats[2]} and ${version}.`);
+			}
+			packageStats[2] = version;
+		}
+
+		statsToResolveConflicts.set(packageLoc, packageStats);
+	}
+
+	const resolvedPackageLocations = new Map();
+	for (const [, nodes] of virtualFlatTree) {
+		let packageLoc = resolveLocation(nodes, physicalTree, targetPackageName);
+		const [node, parentNode] = nodes;
+		const {location, version} = node;
+		const pkg = packageLockJson.packages[location];
+
+		const isRootNodeModulesLocation = `node_modules/${node.packageName}` === packageLoc;
+		const isTargetModuleDependency = (parentNode?.packageName === targetPackageName);
+
+		// Handle version conflicts in root node_modules
+		if (isRootNodeModulesLocation && !isTargetModuleDependency) {
+			const packageStats = statsToResolveConflicts.get(packageLoc);
+			const hasConflictingLocationAndVersion = packageStats[0].size > 1;
+			// Which is the version of the package that's (eventually) used as
+			// dependency of the target package.
+			let selectedVersionForRootNodeModules = version;
+
+			if (hasConflictingLocationAndVersion) {
+				const targetPackageVersion = packageStats[2];
+				const versionsCount = packageStats[1];
+				// Use target package direct dependency version if available,
+				// otherwise elect the most common version among dependents
+				selectedVersionForRootNodeModules = targetPackageVersion ??
+					Object.keys(packageStats[1]).reduce((acc, versionKey) => {
+						return versionsCount[acc] > versionsCount[versionKey] ? acc : versionKey;
+					});
+			}
+
+			if (selectedVersionForRootNodeModules !== version) {
+				const parentPath = resolvedPackageLocations.get(parentNode) ??
+					// Fallback in case parentNode is not yet resolved (should never happen)
+					// check virtualFlatTree.sort(...) above
+					normalizePackageLocation(parentNode.location, parentNode, targetPackageName);
+				packageLoc = parentPath ? `${parentPath}/${packageLoc}` : packageLoc;
+			}
+		}
+
+		if (packageLoc !== "" && !pkg.resolved) {
+			// For all but the root package, ensure that "resolved" and "integrity" fields are present
+			// These are always missing for locally linked packages, but sometimes also for others (e.g. if installed
+			// from local cache)
+			const {resolved, integrity} =
+				await fetchPackageMetadata(node.packageName, node.version, workspaceRootDir);
+			pkg.resolved = resolved;
+			pkg.integrity = integrity;
+		}
+
+		resolvedPackageLocations.set(node, packageLoc);
+		physicalTree.set(packageLoc, [pkg, node]);
+	}
+}
+
+function resolveLocation(nodes, physicalTree, targetPackageName) {
+	let packageLoc;
+	const [node, parentNode] = nodes;
+	const {location} = node;
+
+	if (node.packageName === targetPackageName) {
+		// Make the target package the root package
+		packageLoc = "";
+		if (physicalTree[location]) {
+			throw new Error(`Duplicate root package entry for "${targetPackageName}"`);
+		}
+	} else if (parentNode?.packageName === targetPackageName) {
+		// Direct dependencies of the target package go into node_modules.
+		packageLoc = `node_modules/${node.packageName}`;
+	} else {
+		packageLoc = normalizePackageLocation(location, node, targetPackageName);
+	}
+
+	return packageLoc;
+}
+
+function normalizePackageLocation(location, node, targetPackageName) {
+	const topPackageName = node.top.packageName;
+	const rootPackageName = node.root.packageName;
+	let curLocation = location;
+	if (topPackageName === targetPackageName) {
+		// Remove location for packages within target package (e.g. @ui5/cli)
+		curLocation = location.substring(node.top.location.length + 1);
+	} else if (topPackageName !== rootPackageName) {
+		// Add package within node_modules of actual package name (e.g. @ui5/fs)
+		curLocation = `node_modules/${topPackageName}/${location.substring(node.top.location.length + 1)}`;
+	}
+	// If it's already within the root workspace package, keep as-is
+	return curLocation.endsWith("/") ? curLocation.slice(0, -1) : curLocation;
 }
 
 /**
