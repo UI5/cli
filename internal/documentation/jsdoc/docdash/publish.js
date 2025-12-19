@@ -604,6 +604,9 @@ function linkTo(longname, linkText, cssClass, fragmentId) {
     if (hasUrlPrefix) {
         fileUrl = stripped;
         text = linkText || stripped;
+        // Add target and rel attributes for external links
+        return util.format('<a href="%s"%s target="_blank" rel="noopener noreferrer">%s</a>',
+            encodeURI(fileUrl + fragmentString), classString, text);
     }
     // handle complex type expressions that may require multiple links
     // (but skip anything that looks like an inline tag or HTML tag)
@@ -629,6 +632,9 @@ function linkTo(longname, linkText, cssClass, fragmentId) {
         // Convert source file links to GitHub URLs if configured
         if (fileUrl && githubSourceBaseUrl && (fileUrl.endsWith('.js.md') || longname.endsWith('.js'))) {
             fileUrl = convertSourceLinkToGitHub(fileUrl, longname);
+            // GitHub links should open in new tab
+            return util.format('<a href="%s"%s target="_blank" rel="noopener noreferrer">%s</a>',
+                encodeURI(fileUrl + fragmentString), classString, text);
         }
         // Remove .md extension from internal links for VitePress compatibility
         // Handle both cases: with and without fragment identifiers

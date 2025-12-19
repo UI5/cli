@@ -20,7 +20,7 @@ if (data.defaultvalue && (data.defaultvaluetype === 'object' || data.defaultvalu
 <?js } ?>
 
 <?js if (data.meta && self.outputSourceFiles) {?>
-**Source:** <?js= self.linkto(meta.shortpath) ?>, <?js= self.linkto(meta.shortpath, 'line ' + meta.lineno, null, 'line' + meta.lineno) ?>
+**Source:** <?js= self.linkto(meta.shortpath) ?>, <?js= self.linkto(meta.shortpath, 'line ' + meta.lineno, null, 'L' + meta.lineno) ?>
 
 <?js } ?>
 
