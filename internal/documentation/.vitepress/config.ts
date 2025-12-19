@@ -4,6 +4,21 @@ import { defineConfig } from "vitepress";
 
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
+import { pagefindPlugin } from 'vitepress-plugin-pagefind'
+
+
+import fs from "node:fs";
+import path from "node:path";
+
+// Create items for all api pages
+const apiPages: { text: string; link: string; }[] = [];
+for (const file of fs.readdirSync(path.join("docs", "api"))) {
+  if (file.endsWith(".js.md")) continue;
+  apiPages.push({
+    text: file.replaceAll("_", "/").replace(".md", ""),
+    link: "api/" + file
+  });
+}
 
 export default defineConfig({
 
@@ -69,14 +84,6 @@ export default defineConfig({
 
 
     },
-
-    search: {
-      provider: "local",
-      //hotKeys: [], // disable hotkeys to avoid search while using UI5 web components input
-    },
-
-
-
   },
 
   markdown: {
@@ -93,7 +100,8 @@ export default defineConfig({
   vite: {
     build: {
       chunkSizeWarningLimit: 4000, // chunk for local search index dominates
-    }
+    },
+    plugins: [pagefindPlugin()]
   }
 });
 
@@ -278,10 +286,9 @@ function guide() {
       ],
     },
     {
-      text: "API Reference",
-      link: "/api/index.html",
-      target: "_blank"
-
+      text: "API",
+      collapsed: true,
+      items: apiPages
     },
 
   ];

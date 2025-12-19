@@ -1,4 +1,4 @@
-(function(window) {
+nbpm(function(window) {
 	"use strict";
 
 	/*global CollectGarbage, Handlebars */

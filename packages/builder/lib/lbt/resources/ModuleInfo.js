@@ -84,9 +84,10 @@ class ModuleInfo {
 		 * global scope. If a module declares global variables, all of them will be exported
 		 * with additional code of the form:
 		 *
-		 * <pre>
-		 *	 this["name"] = name;
-		 * </pre>
+		 * ```
+		 * this["name"] = name;
+		 * ```
+		 *
 		 *
 		 * To avoid this, developers can either add "name" to the <code>ignoreGlobals</code>
 		 * attribute of a raw-module or they can completely suppress embedding of the module
