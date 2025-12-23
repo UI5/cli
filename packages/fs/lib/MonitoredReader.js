@@ -3,23 +3,19 @@ import AbstractReader from "./AbstractReader.js";
 export default class MonitoredReader extends AbstractReader {
 	#reader;
 	#sealed = false;
-	#pathsRead = [];
+	#paths = [];
 	#patterns = [];
-	#resourcesRead = Object.create(null);
 
 	constructor(reader) {
 		super(reader.getName());
 		this.#reader = reader;
 	}
 
-	getResults() {
+	getResourceRequests() {
 		this.#sealed = true;
 		return {
-			requests: {
-				pathsRead: this.#pathsRead,
-				patterns: this.#patterns,
-			},
-			resourcesRead: this.#resourcesRead,
+			paths: this.#paths,
+			patterns: this.#patterns,
 		};
 	}
 
@@ -30,20 +26,10 @@ export default class MonitoredReader extends AbstractReader {
 		if (this.#reader.resolvePattern) {
 			const resolvedPattern = this.#reader.resolvePattern(virPattern);
 			this.#patterns.push(resolvedPattern);
-		} else if (virPattern instanceof Array) {
-			for (const pattern of virPattern) {
-				this.#patterns.push(pattern);
-			}
 		} else {
 			this.#patterns.push(virPattern);
 		}
-		const resources = await this.#reader._byGlob(virPattern, options, trace);
-		for (const resource of resources) {
-			if (!resource.getStatInfo()?.isDirectory()) {
-				this.#resourcesRead[resource.getOriginalPath()] = resource;
-			}
-		}
-		return resources;
+		return await this.#reader._byGlob(virPattern, options, trace);
 	}
 
 	async _byPath(virPath, options, trace) {
@@ -53,17 +39,11 @@ export default class MonitoredReader extends AbstractReader {
 		if (this.#reader.resolvePath) {
 			const resolvedPath = this.#reader.resolvePath(virPath);
 			if (resolvedPath) {
-				this.#pathsRead.push(resolvedPath);
+				this.#paths.push(resolvedPath);
 			}
 		} else {
-			this.#pathsRead.push(virPath);
+			this.#paths.push(virPath);
 		}
-		const resource = await this.#reader._byPath(virPath, options, trace);
-		if (resource) {
-			if (!resource.getStatInfo()?.isDirectory()) {
-				this.#resourcesRead[resource.getOriginalPath()] = resource;
-			}
-		}
-		return resource;
+		return await this.#reader._byPath(virPath, options, trace);
 	}
 }

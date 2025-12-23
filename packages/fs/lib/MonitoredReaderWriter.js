@@ -3,26 +3,26 @@ import AbstractReaderWriter from "./AbstractReaderWriter.js";
 export default class MonitoredReaderWriter extends AbstractReaderWriter {
 	#readerWriter;
 	#sealed = false;
-	#pathsRead = [];
-	#patterns = [];
-	#resourcesRead = Object.create(null);
-	#resourcesWritten = Object.create(null);
+	#paths = new Set();
+	#patterns = new Set();
+	#pathsWritten = new Set();
 
 	constructor(readerWriter) {
 		super(readerWriter.getName());
 		this.#readerWriter = readerWriter;
 	}
 
-	getResults() {
+	getResourceRequests() {
 		this.#sealed = true;
 		return {
-			requests: {
-				pathsRead: this.#pathsRead,
-				patterns: this.#patterns,
-			},
-			resourcesRead: this.#resourcesRead,
-			resourcesWritten: this.#resourcesWritten,
+			paths: this.#paths,
+			patterns: this.#patterns,
 		};
+	}
+
+	getWrittenResourcePaths() {
+		this.#sealed = true;
+		return this.#pathsWritten;
 	}
 
 	async _byGlob(virPattern, options, trace) {
@@ -31,21 +31,11 @@ export default class MonitoredReaderWriter extends AbstractReaderWriter {
 		}
 		if (this.#readerWriter.resolvePattern) {
 			const resolvedPattern = this.#readerWriter.resolvePattern(virPattern);
-			this.#patterns.push(resolvedPattern);
-		} else if (virPattern instanceof Array) {
-			for (const pattern of virPattern) {
-				this.#patterns.push(pattern);
-			}
+			this.#patterns.add(resolvedPattern);
 		} else {
-			this.#patterns.push(virPattern);
+			this.#patterns.add(virPattern);
 		}
-		const resources = await this.#readerWriter._byGlob(virPattern, options, trace);
-		for (const resource of resources) {
-			if (!resource.getStatInfo()?.isDirectory()) {
-				this.#resourcesRead[resource.getOriginalPath()] = resource;
-			}
-		}
-		return resources;
+		return await this.#readerWriter._byGlob(virPattern, options, trace);
 	}
 
 	async _byPath(virPath, options, trace) {
@@ -55,18 +45,12 @@ export default class MonitoredReaderWriter extends AbstractReaderWriter {
 		if (this.#readerWriter.resolvePath) {
 			const resolvedPath = this.#readerWriter.resolvePath(virPath);
 			if (resolvedPath) {
-				this.#pathsRead.push(resolvedPath);
+				this.#paths.add(resolvedPath);
 			}
 		} else {
-			this.#pathsRead.push(virPath);
+			this.#paths.add(virPath);
 		}
-		const resource = await this.#readerWriter._byPath(virPath, options, trace);
-		if (resource) {
-			if (!resource.getStatInfo()?.isDirectory()) {
-				this.#resourcesRead[resource.getOriginalPath()] = resource;
-			}
-		}
-		return resource;
+		return await this.#readerWriter._byPath(virPath, options, trace);
 	}
 
 	async _write(resource, options) {
@@ -76,7 +60,7 @@ export default class MonitoredReaderWriter extends AbstractReaderWriter {
 		if (!resource) {
 			throw new Error(`Cannot write undefined resource`);
 		}
-		this.#resourcesWritten[resource.getOriginalPath()] = resource;
+		this.#pathsWritten.add(resource.getOriginalPath());
 		return this.#readerWriter.write(resource, options);
 	}
 }
