@@ -96,6 +96,7 @@ class TaskRunner {
 			name: `Dependency reader collection of project ${project.getName()}`,
 			readers: depReaders
 		});
+		this._buildCache.setDependencyReader(this._allDependenciesReader);
 	}
 
 	/**
@@ -130,6 +131,7 @@ class TaskRunner {
 				await this._executeTask(taskName, taskFunction);
 			}
 		}
+		this._buildCache.allTasksCompleted();
 	}
 
 	/**
@@ -192,9 +194,8 @@ class TaskRunner {
 			task = async (log) => {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
-
 				// TODO: Apply cache and stage handling for custom tasks as well
-				const requiresRun = await this._buildCache.prepareTaskExecution(taskName, this._allDependenciesReader);
+				const requiresRun = await this._buildCache.prepareTaskExecution(taskName, requiresDependencies);
 				if (!requiresRun) {
 					this._log.skipTask(taskName);
 					return;
@@ -241,7 +242,10 @@ class TaskRunner {
 						`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 				}
 				this._log.endTask(taskName);
-				await this._buildCache.recordTaskResult(taskName, expectedOutput, workspace, dependencies);
+				await this._buildCache.recordTaskResult(taskName,
+					workspace.getWrittenResourcePaths(),
+					workspace.getResourceRequests(),
+					dependencies?.getResourceRequests());
 			};
 		}
 		this._tasks[taskName] = {

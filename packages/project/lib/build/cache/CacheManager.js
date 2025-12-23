@@ -12,26 +12,71 @@ import {getLogger} from "@ui5/logger";
 
 const log = getLogger("build:cache:CacheManager");
 
+// Singleton instances mapped by cache directory path
 const chacheManagerInstances = new Map();
+
+// Options for cacache operations (using SHA-256 for integrity checks)
 const CACACHE_OPTIONS = {algorithms: ["sha256"]};
 
+// Cache version for compatibility management
+const CACHE_VERSION = "v0";
+
 /**
- * Persistence management for the build cache. Using a file-based index and cacache
+ * Manages persistence for the build cache using file-based storage and cacache
  *
- * cacheDir structure:
- * - cas/ -- cacache content addressable storage
- * - buildManifests/ -- build manifest files (acting as index, internally referencing cacache entries)
+ * CacheManager provides a hierarchical file-based cache structure:
+ * - cas/ - Content-addressable storage (cacache) for resource content
+ * - buildManifests/ - Build manifest files containing metadata about builds
+ * - stageMetadata/ - Stage-level metadata organized by project, build, and stage
+ * - index/ - Resource index files for efficient change detection
  *
+ * The cache is organized by:
+ * 1. Project ID (sanitized package name)
+ * 2. Build signature (hash of build configuration)
+ * 3. Stage ID (e.g., "result" or "task/taskName")
+ * 4. Stage signature (hash of input resources)
+ *
+ * Key features:
+ * - Content-addressable storage with integrity verification
+ * - Singleton pattern per cache directory
+ * - Configurable cache location via UI5_DATA_DIR or configuration
+ * - Efficient resource deduplication through cacache
  */
 export default class CacheManager {
 	#casDir;
 	#manifestDir;
+	#stageMetadataDir;
+	#indexDir;
 
+	/**
+	 * Creates a new CacheManager instance
+	 *
+	 * Initializes the directory structure for the cache. This constructor is private -
+	 * use CacheManager.create() instead to get a singleton instance.
+	 *
+	 * @private
+	 * @param {string} cacheDir - Base directory for the cache
+	 */
 	constructor(cacheDir) {
+		cacheDir = path.join(cacheDir, CACHE_VERSION);
 		this.#casDir = path.join(cacheDir, "cas");
 		this.#manifestDir = path.join(cacheDir, "buildManifests");
+		this.#stageMetadataDir = path.join(cacheDir, "stageMetadata");
+		this.#indexDir = path.join(cacheDir, "index");
 	}
 
+	/**
+	 * Factory method to create or retrieve a CacheManager instance
+	 *
+	 * Returns a singleton CacheManager for the determined cache directory.
+	 * The cache directory is resolved in this order:
+	 * 1. UI5_DATA_DIR environment variable (resolved relative to cwd)
+	 * 2. ui5DataDir from UI5 configuration file
+	 * 3. Default: ~/.ui5/
+	 *
+	 * @param {string} cwd - Current working directory for resolving relative paths
+	 * @returns {Promise<CacheManager>} Singleton CacheManager instance for the cache directory
+	 */
 	static async create(cwd) {
 		// ENV var should take precedence over the dataDir from the configuration.
 		let ui5DataDir = process.env.UI5_DATA_DIR;
@@ -53,14 +98,30 @@ export default class CacheManager {
 		return chacheManagerInstances.get(cacheDir);
 	}
 
+	/**
+	 * Generates the file path for a build manifest
+	 *
+	 * @private
+	 * @param {string} packageName - Package/project identifier
+	 * @param {string} buildSignature - Build signature hash
+	 * @returns {string} Absolute path to the build manifest file
+	 */
 	#getBuildManifestPath(packageName, buildSignature) {
 		const pkgDir = getPathFromPackageName(packageName);
 		return path.join(this.#manifestDir, pkgDir, `${buildSignature}.json`);
 	}
 
-	async readBuildManifest(project, buildSignature) {
+	/**
+	 * Reads a build manifest from cache
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @returns {Promise<object|null>} Parsed manifest object or null if not found
+	 * @throws {Error} If file read fails for reasons other than file not existing
+	 */
+	async readBuildManifest(projectId, buildSignature) {
 		try {
-			const manifest = await readFile(this.#getBuildManifestPath(project.getId(), buildSignature), "utf8");
+			const manifest = await readFile(this.#getBuildManifestPath(projectId, buildSignature), "utf8");
 			return JSON.parse(manifest);
 		} catch (err) {
 			if (err.code === "ENOENT") {
@@ -71,18 +132,164 @@ export default class CacheManager {
 		}
 	}
 
-	async writeBuildManifest(project, buildSignature, manifest) {
-		const manifestPath = this.#getBuildManifestPath(project.getId(), buildSignature);
+	/**
+	 * Writes a build manifest to cache
+	 *
+	 * Creates parent directories if they don't exist. Manifests are stored as
+	 * formatted JSON (2-space indentation) for readability.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {object} manifest - Build manifest object to serialize
+	 * @returns {Promise<void>}
+	 */
+	async writeBuildManifest(projectId, buildSignature, manifest) {
+		const manifestPath = this.#getBuildManifestPath(projectId, buildSignature);
 		await mkdir(path.dirname(manifestPath), {recursive: true});
 		await writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf8");
 	}
 
-	async getResourcePathForStage(buildSignature, stageId, resourcePath, integrity) {
+	/**
+	 * Generates the file path for resource index metadata
+	 *
+	 * @private
+	 * @param {string} packageName - Package/project identifier
+	 * @param {string} buildSignature - Build signature hash
+	 * @returns {string} Absolute path to the index metadata file
+	 */
+	#getIndexMetadataPath(packageName, buildSignature) {
+		const pkgDir = getPathFromPackageName(packageName);
+		return path.join(this.#indexDir, pkgDir, `${buildSignature}.json`);
+	}
+
+	/**
+	 * Reads resource index cache from storage
+	 *
+	 * The index cache contains the resource tree structure and task metadata,
+	 * enabling efficient change detection and cache validation.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @returns {Promise<object|null>} Parsed index cache object or null if not found
+	 * @throws {Error} If file read fails for reasons other than file not existing
+	 */
+	async readIndexCache(projectId, buildSignature) {
+		try {
+			const metadata = await readFile(this.#getIndexMetadataPath(projectId, buildSignature), "utf8");
+			return JSON.parse(metadata);
+		} catch (err) {
+			if (err.code === "ENOENT") {
+				// Cache miss
+				return null;
+			}
+			throw err;
+		}
+	}
+
+	/**
+	 * Writes resource index cache to storage
+	 *
+	 * Persists the resource index and associated task metadata for later retrieval.
+	 * Creates parent directories if needed.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {object} index - Index object containing resource tree and task metadata
+	 * @returns {Promise<void>}
+	 */
+	async writeIndexCache(projectId, buildSignature, index) {
+		const indexPath = this.#getIndexMetadataPath(projectId, buildSignature);
+		await mkdir(path.dirname(indexPath), {recursive: true});
+		await writeFile(indexPath, JSON.stringify(index, null, 2), "utf8");
+	}
+
+	/**
+	 * Generates the file path for stage metadata
+	 *
+	 * @private
+	 * @param {string} packageName - Package/project identifier
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @returns {string} Absolute path to the stage metadata file
+	 */
+	#getStageMetadataPath(packageName, buildSignature, stageId, stageSignature) {
+		const pkgDir = getPathFromPackageName(packageName);
+		return path.join(this.#stageMetadataDir, pkgDir, buildSignature, stageId, `${stageSignature}.json`);
+	}
+
+	/**
+	 * Reads stage metadata from cache
+	 *
+	 * Stage metadata contains information about resources produced by a build stage,
+	 * including resource paths and their metadata.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
+	 * @throws {Error} If file read fails for reasons other than file not existing
+	 */
+	async readStageCache(projectId, buildSignature, stageId, stageSignature) {
+		try {
+			const metadata = await readFile(
+				this.#getStageMetadataPath(projectId, buildSignature, stageId, stageSignature
+				), "utf8");
+			return JSON.parse(metadata);
+		} catch (err) {
+			if (err.code === "ENOENT") {
+				// Cache miss
+				return null;
+			}
+			throw err;
+		}
+	}
+
+	/**
+	 * Writes stage metadata to cache
+	 *
+	 * Persists metadata about resources produced by a build stage.
+	 * Creates parent directories if needed.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @param {object} metadata - Stage metadata object to serialize
+	 * @returns {Promise<void>}
+	 */
+	async writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
+		const metadataPath = this.#getStageMetadataPath(
+			projectId, buildSignature, stageId, stageSignature);
+		await mkdir(path.dirname(metadataPath), {recursive: true});
+		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+	}
+
+	/**
+	 * Retrieves the file system path for a cached resource
+	 *
+	 * Looks up a resource in the content-addressable storage using its cache key
+	 * and verifies its integrity. If integrity mismatches, attempts to recover by
+	 * looking up the content by digest and updating the index.
+	 *
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature - Stage signature hash
+	 * @param {string} resourcePath - Virtual path of the resource
+	 * @param {string} integrity - Expected integrity hash (e.g., "sha256-...")
+	 * @returns {Promise<string|null>} Absolute path to the cached resource file, or null if not found
+	 * @throws {Error} If integrity is not provided
+	 */
+	async getResourcePathForStage(buildSignature, stageId, stageSignature, resourcePath, integrity) {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		const cacheKey = this.#createKeyForStage(buildSignature, stageId, resourcePath);
+		const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath);
 		const result = await cacache.get.info(this.#casDir, cacheKey);
+		if (!result) {
+			return null;
+		}
 		if (result.integrity !== integrity) {
 			log.info(`Integrity mismatch for cache entry ` +
 				`${cacheKey}: expected ${integrity}, got ${result.integrity}`);
@@ -91,43 +298,90 @@ export default class CacheManager {
 			if (res) {
 				log.info(`Updating cache entry with expectation...`);
 				await this.writeStage(buildSignature, stageId, resourcePath, res);
-				return await this.getResourcePathForStage(buildSignature, stageId, resourcePath, integrity);
+				return await this.getResourcePathForStage(
+					buildSignature, stageId, stageSignature, resourcePath, integrity);
 			}
-		}
-		if (!result) {
-			return null;
 		}
 		return result.path;
 	}
 
-	async writeStage(buildSignature, stageId, resourcePath, buffer) {
-		return await cacache.put(
-			this.#casDir,
-			this.#createKeyForStage(buildSignature, stageId, resourcePath),
-			buffer,
-			CACACHE_OPTIONS
-		);
+	/**
+	 * Writes a resource to the cache for a specific stage
+	 *
+	 * If the resource content (identified by integrity hash) already exists in the
+	 * content-addressable storage, only updates the index with a new cache key.
+	 * Otherwise, writes the full content to storage.
+	 *
+	 * This enables efficient deduplication when the same resource content appears
+	 * in multiple stages or builds.
+	 *
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature - Stage signature hash
+	 * @param {module:@ui5/fs.Resource} resource - Resource to cache
+	 * @returns {Promise<void>}
+	 */
+	async writeStageResource(buildSignature, stageId, stageSignature, resource) {
+		// Check if resource has already been written
+		const integrity = await resource.getIntegrity();
+		const hasResource = await cacache.get.hasContent(this.#casDir, integrity);
+		const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resource.getOriginalPath());
+		if (!hasResource) {
+			const buffer = await resource.getBuffer();
+			await cacache.put(
+				this.#casDir,
+				cacheKey,
+				buffer,
+				CACACHE_OPTIONS
+			);
+		} else {
+			// Update index
+			await cacache.index.insert(this.#casDir, cacheKey, integrity, CACACHE_OPTIONS);
+		}
 	}
 
-	async writeStageStream(buildSignature, stageId, resourcePath, stream) {
-		const writable = cacache.put.stream(
-			this.#casDir,
-			this.#createKeyForStage(buildSignature, stageId, resourcePath),
-			stream,
-			CACACHE_OPTIONS,
-		);
-		return new Promise((resolve, reject) => {
-			writable.on("integrity", (digest) => {
-				resolve(digest);
-			});
-			writable.on("error", (err) => {
-				reject(err);
-			});
-			stream.pipe(writable);
-		});
-	}
+	// async writeStage(buildSignature, stageId, resourcePath, buffer) {
+	// 	return await cacache.put(
+	// 		this.#casDir,
+	// 		this.#createKeyForStage(buildSignature, stageId, resourcePath),
+	// 		buffer,
+	// 		CACACHE_OPTIONS
+	// 	);
+	// }
 
-	#createKeyForStage(buildSignature, stageId, resourcePath) {
-		return `${buildSignature}|${stageId}|${resourcePath}`;
+	// async writeStageStream(buildSignature, stageId, resourcePath, stream) {
+	// 	const writable = cacache.put.stream(
+	// 		this.#casDir,
+	// 		this.#createKeyForStage(buildSignature, stageId, resourcePath),
+	// 		stream,
+	// 		CACACHE_OPTIONS,
+	// 	);
+	// 	return new Promise((resolve, reject) => {
+	// 		writable.on("integrity", (digest) => {
+	// 			resolve(digest);
+	// 		});
+	// 		writable.on("error", (err) => {
+	// 			reject(err);
+	// 		});
+	// 		stream.pipe(writable);
+	// 	});
+	// }
+
+	/**
+	 * Creates a cache key for a resource in a specific stage
+	 *
+	 * The key format is: buildSignature|stageId|stageSignature|resourcePath
+	 * This ensures unique identification of resources across different builds,
+	 * stages, and input combinations.
+	 *
+	 * @private
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature - Stage signature hash
+	 * @param {string} resourcePath - Virtual path of the resource
+	 * @returns {string} Cache key string
+	 */
+	#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath) {
+		return `${buildSignature}|${stageId}|${stageSignature}|${resourcePath}`;
 	}
 }
