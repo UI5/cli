@@ -129,7 +129,6 @@ class ComponentProject extends Project {
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
 
-		// reader = this._addWriter(reader, style, writer);
 		return reader;
 	}
 
@@ -191,11 +190,7 @@ class ComponentProject extends Project {
 			}
 		});
 
-		return {
-			namespaceWriter,
-			generalWriter,
-			collection
-		};
+		return collection;
 	}
 
 	_getReader(excludes) {
@@ -210,18 +205,29 @@ class ComponentProject extends Project {
 		return reader;
 	}
 
-	_addWriter(style, readers, writer) {
-		let {namespaceWriter, generalWriter} = writer;
-		if (!namespaceWriter || !generalWriter) {
-			// TODO: Too hacky
-			namespaceWriter = writer;
-			generalWriter = writer;
-		}
-
+	_addReadersForWriter(readers, writer, style) {
 		if ((style === "runtime" || style === "dist") && this._isRuntimeNamespaced) {
 			// If the project's type requires a namespace at runtime, the
 			// dist- and runtime-style paths are identical to buildtime-style paths
 			style = "buildtime";
+		}
+
+		let generalWriter;
+		let namespaceWriter;
+		if (writer.getMapping) {
+			const mapping = writer.getMapping();
+			generalWriter = mapping[`/`];
+			for (const writer of Object.values(mapping)) {
+				if (writer === generalWriter) {
+					continue;
+				}
+				if (namespaceWriter && writer !== namespaceWriter) {
+					throw new Error(`Cannot determine unique namespace writer for project ${this.getName()}`);
+				}
+				namespaceWriter = writer;
+			}
+		} else {
+			throw new Error(`Cannot determine writers for project ${this.getName()}`);
 		}
 
 		switch (style) {
@@ -253,13 +259,6 @@ class ComponentProject extends Project {
 		default:
 			throw new Error(`Unknown path mapping style ${style}`);
 		}
-		// return readers;
-		// readers.push(reader);
-
-		// return resourceFactory.createReaderCollectionPrioritized({
-		// 	name: `Reader/Writer collection for project ${this.getName()}`,
-		// 	readers
-		// });
 	}
 
 	/* === Internals === */

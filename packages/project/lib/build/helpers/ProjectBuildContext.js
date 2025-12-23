@@ -149,7 +149,7 @@ class ProjectBuildContext {
 
 	/**
 	 * Determine whether the project has to be built or is already built
-	 * (typically indicated by the presence of a build manifest)
+	 * (typically indicated by the presence of a build manifest or a valid cache)
 	 *
 	 * @returns {boolean} True if the project needs to be built
 	 */
@@ -158,26 +158,11 @@ class ProjectBuildContext {
 			return false;
 		}
 
-		return this._buildCache.needsRebuild();
+		return this._buildCache.requiresBuild();
 	}
 
 	async runTasks() {
 		await this.getTaskRunner().runTasks();
-		const updatedResourcePaths = this._buildCache.collectAndClearModifiedPaths();
-
-		if (updatedResourcePaths.size === 0) {
-			return;
-		}
-		this._log.verbose(
-			`Project ${this._project.getName()} updated resources: ${Array.from(updatedResourcePaths).join(", ")}`);
-		const graph = this._buildContext.getGraph();
-		const emptySet = new Set();
-
-		// Propagate changes to all dependents of the project
-		for (const {project: dep} of graph.traverseDependents(this._project.getName())) {
-			const projectBuildContext = this._buildContext.getBuildContext(dep.getName());
-			projectBuildContext.getBuildCache().resourceChanged(emptySet, updatedResourcePaths);
-		}
 	}
 
 	#getBuildManifest() {
@@ -190,11 +175,6 @@ class ProjectBuildContext {
 			// Manifest version 0.1 and 0.2 are always used without further checks for legacy reasons
 			return manifest;
 		}
-		// if (manifest.buildManifest.manifestVersion === "0.3" &&
-		// 	manifest.buildManifest.cacheKey === this.getCacheKey()) {
-		// 	// Manifest version 0.3 is used with a matching cache key
-		// 	return manifest;
-		// }
 		// Unknown manifest version can't be used
 		return;
 	}

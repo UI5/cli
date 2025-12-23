@@ -1,86 +1,68 @@
 import micromatch from "micromatch";
-import {getLogger} from "@ui5/logger";
-import {createResourceIndex, areResourcesEqual} from "./utils.js";
-const log = getLogger("build:cache:BuildTaskCache");
+// import {getLogger} from "@ui5/logger";
+import ResourceRequestGraph, {Request} from "./ResourceRequestGraph.js";
+import ResourceIndex from "./index/ResourceIndex.js";
+import TreeRegistry from "./index/TreeRegistry.js";
+// const log = getLogger("build:cache:BuildTaskCache");
 
 /**
- * @typedef {object} RequestMetadata
- * @property {string[]} pathsRead - Specific resource paths that were read
- * @property {string[]} patterns - Glob patterns used to read resources
+ * @typedef {object} @ui5/project/build/cache/BuildTaskCache~ResourceRequests
+ * @property {Set<string>} paths - Specific resource paths that were accessed
+ * @property {Set<string>} patterns - Glob patterns used to access resources
  */
 
 /**
  * @typedef {object} TaskCacheMetadata
- * @property {RequestMetadata} [projectRequests] - Project resource requests
- * @property {RequestMetadata} [dependencyRequests] - Dependency resource requests
- * @property {Object<string, ResourceMetadata>} [resourcesRead] - Resources read by task
- * @property {Object<string, ResourceMetadata>} [resourcesWritten] - Resources written by task
+ * @property {object} requestSetGraph - Serialized resource request graph
+ * @property {Array<object>} requestSetGraph.nodes - Graph nodes representing request sets
+ * @property {number} requestSetGraph.nextId - Next available node ID
  */
-
-function unionArray(arr, items) {
-	for (const item of items) {
-		if (!arr.includes(item)) {
-			arr.push(item);
-		}
-	}
-}
-function unionObject(target, obj) {
-	for (const key in obj) {
-		if (Object.prototype.hasOwnProperty.call(obj, key)) {
-			target[key] = obj[key];
-		}
-	}
-}
 
 /**
  * Manages the build cache for a single task
  *
- * Tracks resource reads/writes and provides methods to validate cache validity
- * based on resource changes.
+ * This class tracks all resources accessed by a task (both project and dependency resources)
+ * and maintains a graph of resource request sets. Each request set represents a unique
+ * combination of resource accesses, enabling efficient cache invalidation and reuse.
+ *
+ * Key features:
+ * - Tracks resource reads using paths and glob patterns
+ * - Maintains resource indices for different request combinations
+ * - Supports incremental updates when resources change
+ * - Provides cache invalidation based on changed resources
+ * - Serializes/deserializes cache metadata for persistence
+ *
+ * The request graph allows derived request sets (when a task reads additional resources)
+ * to reuse existing resource indices, optimizing both memory and computation.
  */
 export default class BuildTaskCache {
-	#projectName;
+	// #projectName;
 	#taskName;
 
-	// Track which resource paths (and patterns) the task reads
-	// This is used to check whether a resource change *might* invalidates the task
-	#projectRequests;
-	#dependencyRequests;
-
-	// Track metadata for the actual resources the task has read and written
-	// This is used to check whether a resource has actually changed from the last time the task has been executed (and
-	// its result has been cached)
-	// Per resource path, this reflects the last known state of the resource (a task might be executed multiple times,
-	// i.e. with a small delta of changed resources)
-	// This map can contain either a resource instance (if the cache has been filled during this session) or an object
-	// containing the last modified timestamp and an md5 hash of the resource (if the cache has been loaded from disk)
-	#resourcesRead;
-	#resourcesWritten;
+	#resourceRequests;
+	#treeRegistries = [];
 
 	// ===== LIFECYCLE =====
 
 	/**
 	 * Creates a new BuildTaskCache instance
 	 *
-	 * @param {string} projectName - Name of the project
-	 * @param {string} taskName - Name of the task
-	 * @param {TaskCacheMetadata} metadata - Task cache metadata
+	 * @param {string} projectName - Name of the project (currently unused but reserved for logging)
+	 * @param {string} taskName - Name of the task this cache manages
+	 * @param {string} buildSignature - Build signature for the current build (currently unused but reserved)
+	 * @param {TaskCacheMetadata} [metadata] - Previously cached metadata to restore from.
+	 *   If provided, reconstructs the resource request graph from serialized data.
+	 *   If omitted, starts with an empty request graph.
 	 */
-	constructor(projectName, taskName, {projectRequests, dependencyRequests, input, output} = {}) {
-		this.#projectName = projectName;
+	constructor(projectName, taskName, buildSignature, metadata) {
+		// this.#projectName = projectName;
 		this.#taskName = taskName;
 
-		this.#projectRequests = projectRequests ?? {
-			pathsRead: [],
-			patterns: [],
-		};
-
-		this.#dependencyRequests = dependencyRequests ?? {
-			pathsRead: [],
-			patterns: [],
-		};
-		this.#resourcesRead = input ?? Object.create(null);
-		this.#resourcesWritten = output ?? Object.create(null);
+		if (metadata) {
+			this.#resourceRequests = ResourceRequestGraph.fromCacheObject(metadata.requestSetGraph);
+		} else {
+			this.#resourceRequests = new ResourceRequestGraph();
+		}
 	}
 
 	// ===== METADATA ACCESS =====
@@ -95,39 +77,342 @@ export default class BuildTaskCache {
 	}
 
 	/**
-	 * Updates the task cache with new resource metadata
+	 * Gets all possible stage signatures for this task
 	 *
-	 * @param {RequestMetadata} projectRequests - Project resource requests
-	 * @param {RequestMetadata} [dependencyRequests] - Dependency resource requests
-	 * @param {Object<string, object>} resourcesRead - Resources read by task
-	 * @param {Object<string, object>} resourcesWritten - Resources written by task
-	 * @returns {void}
+	 * Returns signatures from all recorded request sets. Each signature represents
+	 * a unique combination of resources that were accessed during task execution.
+	 * Used to look up cached build stages.
+	 *
+	 * @param {module:@ui5/fs.AbstractReader} [projectReader] - Reader for project resources (currently unused)
+	 * @param {module:@ui5/fs.AbstractReader} [dependencyReader] - Reader for dependency resources (currently unused)
+	 * @returns {Promise<string[]>} Array of stage signature strings
+	 * @throws {Error} If resource index is missing for any request set
 	 */
-	updateMetadata(projectRequests, dependencyRequests, resourcesRead, resourcesWritten) {
-		unionArray(this.#projectRequests.pathsRead, projectRequests.pathsRead);
-		unionArray(this.#projectRequests.patterns, projectRequests.patterns);
-
-		if (dependencyRequests) {
-			unionArray(this.#dependencyRequests.pathsRead, dependencyRequests.pathsRead);
-			unionArray(this.#dependencyRequests.patterns, dependencyRequests.patterns);
-		}
-
-		unionObject(this.#resourcesRead, resourcesRead);
-		unionObject(this.#resourcesWritten, resourcesWritten);
+	async getPossibleStageSignatures(projectReader, dependencyReader) {
+		const requestSetIds = this.#resourceRequests.getAllNodeIds();
+		const signatures = requestSetIds.map((requestSetId) => {
+			const {resourceIndex} = this.#resourceRequests.getMetadata(requestSetId);
+			if (!resourceIndex) {
+				throw new Error(`Resource index missing for request set ID ${requestSetId}`);
+			}
+			return resourceIndex.getSignature();
+		});
+		return signatures;
 	}
 
 	/**
-	 * Serializes the task cache to a JSON-compatible object
+	 * Updates resource indices for request sets affected by changed resources
 	 *
-	 * @returns {Promise<object>} Serialized task cache data
+	 * This method:
+	 * 1. Traverses the request graph to find request sets matching changed resources
+	 * 2. Restores missing resource indices if needed
+	 * 3. Updates or removes resources in affected indices
+	 * 4. Flushes all tree registries to apply batched changes
+	 *
+	 * Changes propagate from parent to child nodes in the request graph, ensuring
+	 * all derived request sets are updated consistently.
+	 *
+	 * @param {Set<string>} changedProjectResourcePaths - Set of changed project resource paths
+	 * @param {Set<string>} changedDepResourcePaths - Set of changed dependency resource paths
+	 * @param {module:@ui5/fs.AbstractReader} projectReader - Reader for accessing project resources
+	 * @param {module:@ui5/fs.AbstractReader} dependencyReader - Reader for accessing dependency resources
+	 * @returns {Promise<void>}
 	 */
-	async createMetadata() {
-		return {
-			projectRequests: this.#projectRequests,
-			dependencyRequests: this.#dependencyRequests,
-			taskIndex: await createResourceIndex(Object.values(this.#resourcesRead)),
-			// resourcesWritten: await createMetadataForResources(this.#resourcesWritten)
-		};
+	async updateIndices(changedProjectResourcePaths, changedDepResourcePaths, projectReader, dependencyReader) {
+		// Filter relevant resource changes and update the indices if necessary
+		const matchingRequestSetIds = [];
+		const updatesByRequestSetId = new Map();
+		const changedProjectResourcePathsArray = Array.from(changedProjectResourcePaths);
+		const changedDepResourcePathsArray = Array.from(changedDepResourcePaths);
+		// Process all nodes, parents before children
+		for (const {nodeId, node, parentId} of this.#resourceRequests.traverseByDepth()) {
+			const addedRequests = node.getAddedRequests(); // Resource requests added at this level
+			let relevantUpdates;
+			if (addedRequests.length) {
+				relevantUpdates = this.#matchResourcePaths(
+					addedRequests, changedProjectResourcePathsArray, changedDepResourcePathsArray);
+			} else {
+				relevantUpdates = [];
+			}
+			if (parentId) {
+				// Include updates from parent nodes
+				const parentUpdates = updatesByRequestSetId.get(parentId);
+				if (parentUpdates && parentUpdates.length) {
+					relevantUpdates.push(...parentUpdates);
+				}
+			}
+			if (relevantUpdates.length) {
+				if (!this.#resourceRequests.getMetadata(nodeId).resourceIndex) {
+					// Restore missing resource index
+					await this.#restoreResourceIndex(nodeId, projectReader, dependencyReader);
+					continue; // Index is fresh now, no need to update again
+				}
+				updatesByRequestSetId.set(nodeId, relevantUpdates);
+				matchingRequestSetIds.push(nodeId);
+			}
+		}
+
+		const resourceCache = new Map();
+		// Update matching resource indices
+		for (const requestSetId of matchingRequestSetIds) {
+			const {resourceIndex} = this.#resourceRequests.getMetadata(requestSetId);
+
+			const resourcePathsToUpdate = updatesByRequestSetId.get(requestSetId);
+			const resourcesToUpdate = [];
+			const removedResourcePaths = [];
+			for (const resourcePath of resourcePathsToUpdate) {
+				let resource;
+				if (resourceCache.has(resourcePath)) {
+					resource = resourceCache.get(resourcePath);
+				} else {
+					if (changedDepResourcePaths.has(resourcePath)) {
+						resource = await dependencyReader.byPath(resourcePath);
+					} else {
+						resource = await projectReader.byPath(resourcePath);
+					}
+					resourceCache.set(resourcePath, resource);
+				}
+				if (resource) {
+					resourcesToUpdate.push(resource);
+				} else {
+					// Resource has been removed
+					removedResourcePaths.push(resourcePath);
+				}
+			}
+			if (removedResourcePaths.length) {
+				await resourceIndex.removeResources(removedResourcePaths);
+			}
+			if (resourcesToUpdate.length) {
+				await resourceIndex.upsertResources(resourcesToUpdate);
+			}
+		}
+		return await this.#flushTreeRegistries();
+	}
+
+	/**
+	 * Restores a missing resource index for a request set
+	 *
+	 * Recursively restores parent indices first, then derives or creates the index
+	 * for the current request set. Uses tree derivation when a parent index exists
+	 * to share common resources efficiently.
+	 *
+	 * @private
+	 * @param {number} requestSetId - ID of the request set to restore
+	 * @param {module:@ui5/fs.AbstractReader} projectReader - Reader for project resources
+	 * @param {module:@ui5/fs.AbstractReader} dependencyReader - Reader for dependency resources
+	 * @returns {Promise<ResourceIndex>} The restored resource index
+	 */
+	async #restoreResourceIndex(requestSetId, projectReader, dependencyReader) {
+		const node = this.#resourceRequests.getNode(requestSetId);
+		const addedRequests = node.getAddedRequests();
+		const parentId = node.getParentId();
+		let resourceIndex;
+		if (parentId) {
+			let {resourceIndex: parentResourceIndex} = this.#resourceRequests.getMetadata(parentId);
+			if (!parentResourceIndex) {
+				// Restore parent index first
+				parentResourceIndex = await this.#restoreResourceIndex(parentId, projectReader, dependencyReader);
+			}
+			// Add resources from delta to index
+			const resourcesToAdd = this.#getResourcesForRequests(addedRequests, projectReader, dependencyReader);
+			resourceIndex = parentResourceIndex.deriveTree(resourcesToAdd);
+		} else {
+			const resourcesRead =
+				await this.#getResourcesForRequests(addedRequests, projectReader, dependencyReader);
+			resourceIndex = await ResourceIndex.create(resourcesRead, this.#newTreeRegistry());
+		}
+		const metadata = this.#resourceRequests.getMetadata(requestSetId);
+		metadata.resourceIndex = resourceIndex;
+		return resourceIndex;
+	}
+
+	/**
+	 * Matches changed resources against a set of requests
+	 *
+	 * Tests each request against the changed resource paths using exact path matching
+	 * for 'path'/'dep-path' requests and glob pattern matching for 'patterns'/'dep-patterns' requests.
+	 *
+	 * @private
+	 * @param {Request[]} resourceRequests - Array of resource requests to match against
+	 * @param {string[]} projectResourcePaths - Changed project resource paths
+	 * @param {string[]} dependencyResourcePaths - Changed dependency resource paths
+	 * @returns {string[]} Array of matched resource paths
+	 * @throws {Error} If an unknown request type is encountered
+	 */
+	#matchResourcePaths(resourceRequests, projectResourcePaths, dependencyResourcePaths) {
+		const matchedResources = [];
+		for (const {type, value} of resourceRequests) {
+			switch (type) {
+			case "path":
+				if (projectResourcePaths.includes(value)) {
+					matchedResources.push(value);
+				}
+				break;
+			case "patterns":
+				matchedResources.push(...micromatch(projectResourcePaths, value));
+				break;
+			case "dep-path":
+				if (dependencyResourcePaths.includes(value)) {
+					matchedResources.push(value);
+				}
+				break;
+			case "dep-patterns":
+				matchedResources.push(...micromatch(dependencyResourcePaths, value));
+				break;
+			default:
+				throw new Error(`Unknown request type: ${type}`);
+			}
+		}
+		return matchedResources;
+	}
+
+	/**
+	 * Calculates a signature for the task based on accessed resources
+	 *
+	 * This method:
+	 * 1. Converts resource requests to Request objects
+	 * 2. Searches for an exact match in the request graph
+	 * 3. If found, returns the existing index signature
+	 * 4. If not found, creates a new request set and resource index
+	 * 5. Uses tree derivation when possible to reuse parent indices
+	 *
+	 * The signature uniquely identifies the set of resources accessed and their
+	 * content, enabling cache lookup for previously executed task results.
+	 *
+	 * @param {ResourceRequests} projectRequests - Project resource requests (paths and patterns)
+	 * @param {ResourceRequests} [dependencyRequests] - Dependency resource requests (paths and patterns)
+	 * @param {module:@ui5/fs.AbstractReader} projectReader - Reader for accessing project resources
+	 * @param {module:@ui5/fs.AbstractReader} dependencyReader - Reader for accessing dependency resources
+	 * @returns {Promise<string>} Signature hash string of the resource index
+	 */
+	async calculateSignature(projectRequests, dependencyRequests, projectReader, dependencyReader) {
+		const requests = [];
+		for (const pathRead of projectRequests.paths) {
+			requests.push(new Request("path", pathRead));
+		}
+		for (const patterns of projectRequests.patterns) {
+			requests.push(new Request("patterns", patterns));
+		}
+		if (dependencyRequests) {
+			for (const pathRead of dependencyRequests.paths) {
+				requests.push(new Request("dep-path", pathRead));
+			}
+			for (const patterns of dependencyRequests.patterns) {
+				requests.push(new Request("dep-patterns", patterns));
+			}
+		}
+		let setId = this.#resourceRequests.findExactMatch(requests);
+		let resourceIndex;
+		if (setId) {
+			resourceIndex = this.#resourceRequests.getMetadata(setId).resourceIndex;
+			// await resourceIndex.updateResources(resourcesRead); // Index was already updated before the task executed
+		} else {
+			// New request set, check whether we can create a delta
+			const metadata = {}; // Will populate with resourceIndex below
+			setId = this.#resourceRequests.addRequestSet(requests, metadata);
+
+
+			const requestSet = this.#resourceRequests.getNode(setId);
+			const parentId = requestSet.getParentId();
+			if (parentId) {
+				const {resourceIndex: parentResourceIndex} = this.#resourceRequests.getMetadata(parentId);
+				// Add resources from delta to index
+				const addedRequests = requestSet.getAddedRequests();
+				const resourcesToAdd =
+					await this.#getResourcesForRequests(addedRequests, projectReader, dependencyReader);
+				resourceIndex = await parentResourceIndex.deriveTree(resourcesToAdd);
+				// await newIndex.add(resourcesToAdd);
+			} else {
+				const resourcesRead =
+					await this.#getResourcesForRequests(requests, projectReader, dependencyReader);
+				resourceIndex = await ResourceIndex.create(resourcesRead, this.#newTreeRegistry());
+			}
+			metadata.resourceIndex = resourceIndex;
+		}
+		return resourceIndex.getSignature();
+	}
+
+	/**
+	 * Creates and registers a new tree registry
+	 *
+	 * Tree registries enable batched updates across multiple derived trees,
+	 * improving performance when multiple indices share common subtrees.
+	 *
+	 * @private
+	 * @returns {TreeRegistry} New tree registry instance
+	 */
+	#newTreeRegistry() {
+		const registry = new TreeRegistry();
+		this.#treeRegistries.push(registry);
+		return registry;
+	}
+
+	/**
+	 * Flushes all tree registries to apply batched updates
+	 *
+	 * Commits all pending tree modifications across all registries in parallel.
+	 * Must be called after operations that schedule updates via registries.
+	 *
+	 * @private
+	 * @returns {Promise<void>}
+	 */
+	async #flushTreeRegistries() {
+		await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
+	}
+
+	/**
+	 * Retrieves resources for a set of resource requests
+	 *
+	 * Processes different request types:
+	 * - 'path': Retrieves single resource by path from project reader
+	 * - 'patterns': Retrieves resources matching glob patterns from project reader
+	 * - 'dep-path': Retrieves single resource by path from dependency reader
+	 * - 'dep-patterns': Retrieves resources matching glob patterns from dependency reader
+	 *
+	 * @private
+	 * @param {Request[]|Array<{type: string, value: string|string[]}>} resourceRequests - Resource requests to process
+	 * @param {module:@ui5/fs.AbstractReader} projectReader - Reader for project resources
+	 * @param {module:@ui5/fs.AbstractReader} dependencyReder - Reader for dependency resources
+	 * @returns {Promise<IterableIterator<module:@ui5/fs.Resource>>} Iterator of retrieved resources
+	 * @throws {Error} If an unknown request type is encountered
+	 */
+	async #getResourcesForRequests(resourceRequests, projectReader, dependencyReder) {
+		const resourcesMap = new Map();
+		for (const {type, value} of resourceRequests) {
+			switch (type) {
+			case "path": {
+				const resource = await projectReader.byPath(value);
+				if (resource) {
+					resourcesMap.set(value, resource);
+				}
+				break;
+			}
+			case "patterns": {
+				const matchedResources = await projectReader.byGlob(value);
+				for (const resource of matchedResources) {
+					resourcesMap.set(resource.getOriginalPath(), resource);
+				}
+				break;
+			}
+			case "dep-path": {
+				const resource = await dependencyReder.byPath(value);
+				if (resource) {
+					resourcesMap.set(value, resource);
+				}
+				break;
+			}
+			case "dep-patterns": {
+				const matchedResources = await dependencyReder.byGlob(value);
+				for (const resource of matchedResources) {
+					resourcesMap.set(resource.getOriginalPath(), resource);
+				}
+				break;
+			}
+			default:
+				throw new Error(`Unknown request type: ${type}`);
+			}
+		}
+		return resourcesMap.values();
 	}
 
 	// ===== VALIDATION =====
@@ -138,95 +423,40 @@ export default class BuildTaskCache {
 	 * This is a fast check that determines if the task *might* be invalidated
 	 * based on path matching and glob patterns.
 	 *
-	 * @param {Set<string>|string[]} projectResourcePaths - Changed project resource paths
-	 * @param {Set<string>|string[]} dependencyResourcePaths - Changed dependency resource paths
+	 * @param {string[]} projectResourcePaths - Changed project resource paths
+	 * @param {string[]} dependencyResourcePaths - Changed dependency resource paths
 	 * @returns {boolean} True if any changed resources match this task's tracked resources
 	 */
 	matchesChangedResources(projectResourcePaths, dependencyResourcePaths) {
-		if (this.#isRelevantResourceChange(this.#projectRequests, projectResourcePaths)) {
-			log.verbose(
-				`Build cache for task ${this.#taskName} of project ${this.#projectName} possibly invalidated ` +
-				`by changes made to the following resources ${Array.from(projectResourcePaths).join(", ")}`);
-			return true;
-		}
-
-		if (this.#isRelevantResourceChange(this.#dependencyRequests, dependencyResourcePaths)) {
-			log.verbose(
-				`Build cache for task ${this.#taskName} of project ${this.#projectName} possibly invalidated ` +
-				`by changes made to the following resources: ${Array.from(dependencyResourcePaths).join(", ")}`);
-			return true;
-		}
-
-		return false;
-	}
-
-	// ===== CACHE LOOKUPS =====
-
-	/**
-	 * Gets the cache entry for a resource that was read
-	 *
-	 * @param {string} searchResourcePath - Path of the resource to look up
-	 * @returns {ResourceMetadata|object|undefined} Cache entry or undefined if not found
-	 */
-	getReadCacheEntry(searchResourcePath) {
-		return this.#resourcesRead[searchResourcePath];
-	}
-
-	/**
-	 * Gets the cache entry for a resource that was written
-	 *
-	 * @param {string} searchResourcePath - Path of the resource to look up
-	 * @returns {ResourceMetadata|object|undefined} Cache entry or undefined if not found
-	 */
-	getWriteCacheEntry(searchResourcePath) {
-		return this.#resourcesWritten[searchResourcePath];
-	}
-
-	/**
-	 * Checks if a resource exists in the read cache and has the same content
-	 *
-	 * @param {object} resource - Resource instance to check
-	 * @returns {Promise<boolean>} True if resource is in cache with matching content
-	 */
-	async matchResourceInReadCache(resource) {
-		const cachedResource = this.#resourcesRead[resource.getPath()];
-		if (!cachedResource) {
-			return false;
-		}
-		// if (cachedResource.integrity) {
-		// 	return await matchIntegrity(resource, cachedResource);
-		// } else {
-		return await areResourcesEqual(resource, cachedResource);
-		// }
-	}
-
-	/**
-	 * Checks if a resource exists in the write cache and has the same content
-	 *
-	 * @param {object} resource - Resource instance to check
-	 * @returns {Promise<boolean>} True if resource is in cache with matching content
-	 */
-	async matchResourceInWriteCache(resource) {
-		const cachedResource = this.#resourcesWritten[resource.getPath()];
-		if (!cachedResource) {
-			return false;
-		}
-		// if (cachedResource.integrity) {
-		// 	return await matchIntegrity(resource, cachedResource);
-		// } else {
-		return await areResourcesEqual(resource, cachedResource);
-		// }
-	}
-
-	#isRelevantResourceChange({pathsRead, patterns}, changedResourcePaths) {
-		for (const resourcePath of changedResourcePaths) {
-			if (pathsRead.includes(resourcePath)) {
-				return true;
+		const resourceRequests = this.#resourceRequests.getAllRequests();
+		return resourceRequests.some(({type, value}) => {
+			if (type === "path") {
+				return projectResourcePaths.includes(value);
 			}
-			if (patterns.length && micromatch(resourcePath, patterns).length > 0) {
-				return true;
+			if (type === "patterns") {
+				return micromatch(projectResourcePaths, value).length > 0;
 			}
-		}
-		return false;
+			if (type === "dep-path") {
+				return dependencyResourcePaths.includes(value);
+			}
+			if (type === "dep-patterns") {
+				return micromatch(dependencyResourcePaths, value).length > 0;
+			}
+			throw new Error(`Unknown request type: ${type}`);
+		});
+	}
+
+	/**
+	 * Serializes the task cache to a plain object for persistence
+	 *
+	 * Exports the resource request graph in a format suitable for JSON serialization.
+	 * The serialized data can be passed to the constructor to restore the cache state.
+	 *
+	 * @returns {TaskCacheMetadata} Serialized cache metadata containing the request set graph
+	 */
+	toCacheObject() {
+		return {
+			requestSetGraph: this.#resourceRequests.toCacheObject()
+		};
 	}
 }
