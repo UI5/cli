@@ -108,8 +108,8 @@ class WatchHandler extends EventEmitter {
 			if (!sourceChanges.has(project) && !dependencyChanges.has(project)) {
 				return;
 			}
-			const projectSourceChanges = sourceChanges.get(project) ?? new Set();
-			const projectDependencyChanges = dependencyChanges.get(project) ?? new Set();
+			const projectSourceChanges = Array.from(sourceChanges.get(project) ?? new Set());
+			const projectDependencyChanges = Array.from(dependencyChanges.get(project) ?? new Set());
 			const projectBuildContext = this.#buildContext.getBuildContext(project.getName());
 			const tasksInvalidated =
 				projectBuildContext.getBuildCache().resourceChanged(projectSourceChanges, projectDependencyChanges);

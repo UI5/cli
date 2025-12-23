@@ -262,7 +262,6 @@ class ProjectBuilder {
 					await projectBuildContext.getTaskRunner().runTasks();
 					this.#log.endProjectBuild(projectName, projectType);
 				}
-				project.sealWorkspace();
 				if (!requestedProjects.includes(projectName)) {
 					// Project has not been requested
 					//	=> Its resources shall not be part of the build result
@@ -280,7 +279,7 @@ class ProjectBuilder {
 						project,
 						this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
 						projectBuildContext.getBuildSignature());
-					pWrites.push(projectBuildContext.getBuildCache().saveToDisk(buildManifest));
+					pWrites.push(projectBuildContext.getBuildCache().storeCache(buildManifest));
 				}
 			}
 			await Promise.all(pWrites);
@@ -335,7 +334,6 @@ class ProjectBuilder {
 
 			this.#log.startProjectBuild(projectName, projectType);
 			await projectBuildContext.runTasks();
-			project.sealWorkspace();
 			this.#log.endProjectBuild(projectName, projectType);
 			if (!requestedProjects.includes(projectName)) {
 				// Project has not been requested
@@ -353,7 +351,7 @@ class ProjectBuilder {
 				project,
 				this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
 				projectBuildContext.getBuildSignature());
-			pWrites.push(projectBuildContext.getBuildCache().saveToDisk(buildManifest));
+			pWrites.push(projectBuildContext.getBuildCache().storeCache(buildManifest));
 		}
 		await Promise.all(pWrites);
 	}
