@@ -21,12 +21,7 @@ import stringReplacer from "../processors/stringReplacer.js";
  * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
  */
 export default async function({workspace, cacheUtil, options: {pattern, version}}) {
-	let resources = await workspace.byGlob(pattern);
-
-	if (cacheUtil.hasCache()) {
-		const changedPaths = cacheUtil.getChangedProjectResourcePaths();
-		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
-	}
+	const resources = await workspace.byGlob(pattern);
 	const processedResources = await stringReplacer({
 		resources,
 		options: {

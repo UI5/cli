@@ -38,11 +38,7 @@ export default async function({workspace, cacheUtil, options: {copyright, patter
 	// Replace optional placeholder ${currentYear} with the current year
 	copyright = copyright.replace(/(?:\$\{currentYear\})/, new Date().getFullYear());
 
-	let resources = await workspace.byGlob(pattern);
-	if (cacheUtil.hasCache()) {
-		const changedPaths = cacheUtil.getChangedProjectResourcePaths();
-		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
-	}
+	const resources = await workspace.byGlob(pattern);
 
 	const processedResources = await stringReplacer({
 		resources,
