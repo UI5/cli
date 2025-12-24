@@ -557,7 +557,13 @@ class Resource {
 			this.#integrity = ssri.fromData(this.#content, SSRI_OPTIONS).toString();
 			break;
 		case CONTENT_TYPES.FACTORY:
+			// TODO: Investigate performance impact of buffer factory vs. stream factory for integrity calculation
+			// if (this.#createBufferFactory) {
+			// 	this.#integrity = ssri.fromData(
+			// 		await this.#getBufferFromFactory(this.#createBufferFactory, SSRI_OPTIONS).toString());
+			// } else {
 			this.#integrity = (await ssri.fromStream(this.#createStreamFactory(), SSRI_OPTIONS)).toString();
+			// }
 			break;
 		case CONTENT_TYPES.STREAM:
 			// To be discussed: Should we read the stream into a buffer here (using #getBufferFromStream) to avoid
@@ -784,9 +790,9 @@ class Resource {
 			path: this.#path,
 			statInfo: this.#statInfo, // Will be cloned in constructor
 			isDirectory: this.#isDirectory,
-			byteSize: this.#byteSize,
+			byteSize: this.#isDirectory ? undefined : await this.getSize(),
 			lastModified: this.#lastModified,
-			integrity: this.#integrity,
+			integrity: this.#isDirectory ? undefined : await this.getIntegrity(),
 			sourceMetadata: clone(this.#sourceMetadata)
 		};
 
