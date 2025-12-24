@@ -30,11 +30,7 @@ export default async function({
 	workspace, taskUtil, cacheUtil,
 	options: {pattern, omitSourceMapResources = false, useInputSourceMaps = true}
 }) {
-	let resources = await workspace.byGlob(pattern);
-	if (cacheUtil.hasCache()) {
-		const changedPaths = cacheUtil.getChangedProjectResourcePaths();
-		resources = resources.filter((resource) => changedPaths.has(resource.getPath()));
-	}
+	const resources = await workspace.byGlob(pattern);
 	if (resources.length === 0) {
 		return;
 	}
