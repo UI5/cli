@@ -128,6 +128,7 @@ In addition, tasks may also implement the following new methods:
 	* `options`: Same as for the main task function. `{projectName, projectNamespace, configuration, taskName}`
 	* Returns: `undefined` or an arbitrary string representing the build signature for the task. This can be used to incorporate task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature of the project, causing the cache to be invalidated if those files change. The string shouldn't be a hash value (the build signature hash is calculated later on). If `undefined` is returned, or if the method is not implemented, it is assumed that the task's cache remains valid until relevant input-resources change.
 	* This method is called once at the beginning of every build. The return value used to calculate a unique signature for the task based on its configuration. This signature is then incorporated into the overall build signature of the project (see [Cache Creation](#cache-creation) below).
+	* Might return a list of file paths that shall be watched for changes (when running in watch mode). On change, the build signature is recalculated and the cache invalidated if it has changed.
 * **async determineExpectedOutput({workspace, dependencies, cacheUtil, log, options})**:
 	* `workspace`: Reader to access resources of the project's workspace (read only)
 	* `dependencies`: Reader to access resources of the project's dependencies
@@ -463,10 +464,15 @@ For this purpose, a script is to be injected into the served HTML pages that est
 
 The following new arguments shall be added to the `ui5 build` and `ui5 serve` commands:
 
-* `--no-cache`: Disables the use of the build cache entirely. The project will be built from scratch without leveraging any cached results.
-	* **To be discussed:** This clashes with the currently existing [`--cache-mode` parameter](https://ui5.github.io/cli/stable/pages/CLI/#ui5-build). Should that one be renamed or repurposed?
+* `--cache-mode`: Disables the use of the build cache entirely. The project will be built from scratch without leveraging any cached results.
+	* Possible modes:
+		* Default: Use the cache if available
+		* Force: Always use the cache. If it is incomplete or invalid, fail the build
+		* Read-only: Do not create or update the cache but make use of any existing cache if available (useful for CI/CD)
+		* Off: Do not use the cache at all
+	* **To be discussed:** This clashes with the already existing [`--cache-mode` parameter](https://ui5.github.io/cli/stable/pages/CLI/#ui5-build). Should that one be renamed or repurposed?
 * `--watch`: Enables watch mode, causing the build to be re-triggered whenever a source file or relevant configuration file changes.
-	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command shall always use watch mode.
+	* This parameter is only relevant for the `ui5 build` command. The `ui5 serve` command shall always use the watch mode internally.
 
 ## How we teach this
 
