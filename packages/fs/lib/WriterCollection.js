@@ -65,6 +65,10 @@ class WriterCollection extends AbstractReaderWriter {
 		});
 	}
 
+	getMapping() {
+		return this._writerMapping;
+	}
+
 	/**
 	 * Locates resources by glob.
 	 *
