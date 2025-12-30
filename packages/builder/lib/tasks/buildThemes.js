@@ -192,7 +192,7 @@ export default async function({
 	}
 
 	let processedResources;
-	const useWorkers = !!taskUtil;
+	const useWorkers = !process.env.UI5_CLI_NO_WORKERS && !!taskUtil;
 	if (useWorkers) {
 		const threadMessageHandler = new FsMainThreadInterface(fsInterface(combo));
 
