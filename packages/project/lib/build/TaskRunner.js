@@ -243,7 +243,6 @@ class TaskRunner {
 				}
 				this._log.endTask(taskName);
 				await this._buildCache.recordTaskResult(taskName,
-					workspace.getWrittenResourcePaths(),
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests());
 			};
