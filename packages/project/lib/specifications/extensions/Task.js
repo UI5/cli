@@ -41,6 +41,13 @@ class Task extends Extension {
 	/**
 	* @public
 	*/
+	async getDifferentialUpdateCallback() {
+		return (await this._getImplementation()).differentialUpdate;
+	}
+
+	/**
+	* @public
+	*/
 	async getExpectedOutputCallback() {
 		return (await this._getImplementation()).determineExpectedOutput;
 	}
