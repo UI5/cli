@@ -2,6 +2,7 @@ import cacache from "cacache";
 import path from "node:path";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
+import {gzip} from "node:zlib";
 const mkdir = promisify(fs.mkdir);
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
@@ -285,22 +286,10 @@ export default class CacheManager {
 		if (!integrity) {
 			throw new Error("Integrity hash must be provided to read from cache");
 		}
-		const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath);
-		const result = await cacache.get.info(this.#casDir, cacheKey);
+		// const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath, integrity);
+		const result = await cacache.get.info(this.#casDir, integrity);
 		if (!result) {
 			return null;
-		}
-		if (result.integrity !== integrity) {
-			log.info(`Integrity mismatch for cache entry ` +
-				`${cacheKey}: expected ${integrity}, got ${result.integrity}`);
-
-			const res = await cacache.get.byDigest(this.#casDir, integrity);
-			if (res) {
-				log.info(`Updating cache entry with expectation...`);
-				await this.writeStage(buildSignature, stageId, resourcePath, res);
-				return await this.getResourcePathForStage(
-					buildSignature, stageId, stageSignature, resourcePath, integrity);
-			}
 		}
 		return result.path;
 	}
@@ -324,64 +313,17 @@ export default class CacheManager {
 	async writeStageResource(buildSignature, stageId, stageSignature, resource) {
 		// Check if resource has already been written
 		const integrity = await resource.getIntegrity();
-		const hasResource = await cacache.get.hasContent(this.#casDir, integrity);
-		const cacheKey = this.#createKeyForStage(buildSignature, stageId, stageSignature, resource.getOriginalPath());
+		const hasResource = await cacache.get.info(this.#casDir, integrity);
 		if (!hasResource) {
 			const buffer = await resource.getBuffer();
+			// Compress the buffer using gzip before caching
+			const compressedBuffer = await promisify(gzip)(buffer);
 			await cacache.put(
 				this.#casDir,
-				cacheKey,
-				buffer,
+				integrity,
+				compressedBuffer,
 				CACACHE_OPTIONS
 			);
-		} else {
-			// Update index
-			await cacache.index.insert(this.#casDir, cacheKey, integrity, CACACHE_OPTIONS);
 		}
-	}
-
-	// async writeStage(buildSignature, stageId, resourcePath, buffer) {
-	// 	return await cacache.put(
-	// 		this.#casDir,
-	// 		this.#createKeyForStage(buildSignature, stageId, resourcePath),
-	// 		buffer,
-	// 		CACACHE_OPTIONS
-	// 	);
-	// }
-
-	// async writeStageStream(buildSignature, stageId, resourcePath, stream) {
-	// 	const writable = cacache.put.stream(
-	// 		this.#casDir,
-	// 		this.#createKeyForStage(buildSignature, stageId, resourcePath),
-	// 		stream,
-	// 		CACACHE_OPTIONS,
-	// 	);
-	// 	return new Promise((resolve, reject) => {
-	// 		writable.on("integrity", (digest) => {
-	// 			resolve(digest);
-	// 		});
-	// 		writable.on("error", (err) => {
-	// 			reject(err);
-	// 		});
-	// 		stream.pipe(writable);
-	// 	});
-	// }
-
-	/**
-	 * Creates a cache key for a resource in a specific stage
-	 *
-	 * The key format is: buildSignature|stageId|stageSignature|resourcePath
-	 * This ensures unique identification of resources across different builds,
-	 * stages, and input combinations.
-	 *
-	 * @private
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature - Stage signature hash
-	 * @param {string} resourcePath - Virtual path of the resource
-	 * @returns {string} Cache key string
-	 */
-	#createKeyForStage(buildSignature, stageId, stageSignature, resourcePath) {
-		return `${buildSignature}|${stageId}|${stageSignature}|${resourcePath}`;
 	}
 }
