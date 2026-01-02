@@ -11,7 +11,8 @@ test.beforeEach(async (t) => {
 		notify: t.context.updateNotifierNotify
 	}).named("updateNotifier");
 
-	t.context.argvGetter = sinon.stub();
+	t.context.yargsHideBin = sinon.stub().named("hideBin").returns([]);
+
 	t.context.yargsInstance = {
 		parserConfiguration: sinon.stub(),
 		version: sinon.stub(),
@@ -19,10 +20,7 @@ test.beforeEach(async (t) => {
 		command: sinon.stub(),
 		terminalWidth: sinon.stub().returns(123),
 		wrap: sinon.stub(),
-		get argv() {
-			t.context.argvGetter();
-			return undefined;
-		}
+		parse: sinon.stub().resolves({_: []})
 	};
 
 	t.context.yargs = sinon.stub().returns(t.context.yargsInstance).named("yargs");
@@ -54,10 +52,9 @@ test.beforeEach(async (t) => {
 	t.context.cli = await esmock.p("../../../lib/cli/cli.js", {
 		"update-notifier": t.context.updateNotifier,
 		"yargs": t.context.yargs,
-		// TODO: Somehow esmock is unable to mock this import
-		// "yargs/helpers": {
-		// 	hideBin: t.context.yargsHideBin
-		// },
+		"yargs/helpers": {
+			hideBin: t.context.yargsHideBin
+		},
 		"../../../lib/cli/version.js": {
 			setVersion: t.context.setVersion
 		},
@@ -76,7 +73,7 @@ test.afterEach.always((t) => {
 
 test.serial("CLI", async (t) => {
 	const {
-		cli, updateNotifier, updateNotifierNotify, argvGetter, yargsInstance, yargs,
+		cli, updateNotifier, updateNotifierNotify, yargsInstance, yargs,
 		setVersion, cliBase
 	} = t.context;
 
@@ -131,8 +128,8 @@ test.serial("CLI", async (t) => {
 	t.is(yargsInstance.wrap.callCount, 1);
 	t.deepEqual(yargsInstance.wrap.getCall(0).args, [123]);
 
-	t.is(argvGetter.callCount, 1);
-	t.deepEqual(argvGetter.getCall(0).args, []);
+	t.is(yargsInstance.parse.callCount, 1);
+	t.deepEqual(yargsInstance.parse.getCall(0).args, []);
 
 	sinon.assert.callOrder(
 		updateNotifier,
@@ -146,7 +143,7 @@ test.serial("CLI", async (t) => {
 		yargsInstance.command,
 		yargsInstance.terminalWidth,
 		yargsInstance.wrap,
-		argvGetter
+		yargsInstance.parse
 	);
 });
 
