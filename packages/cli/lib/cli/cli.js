@@ -68,8 +68,5 @@ export default async (pkg) => {
 	// Format terminal output to full available width
 	cli.wrap(cli.terminalWidth());
 
-	const {_} = await cli.argv;
-	return {
-		command: _[0]
-	};
+	return cli.parse();
 };
