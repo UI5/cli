@@ -100,11 +100,11 @@ const ui5 = {
 			await profile.start();
 		}
 		const {default: cli} = await import("../lib/cli/cli.js");
-		const {command} = await cli(pkg);
+		const argv = await cli(pkg);
 
 		// Stop profiling after CLI finished execution
 		// Except for "serve" command, which continues running and only stops on sigint (see profile.js)
-		if (profile && command !== "serve") {
+		if (profile && argv._[0] !== "serve") {
 			await profile.stop();
 		}
 	},
