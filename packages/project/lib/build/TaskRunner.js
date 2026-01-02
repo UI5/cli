@@ -195,13 +195,21 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 				// TODO: Apply cache and stage handling for custom tasks as well
-				const requiresRun = await this._buildCache.prepareTaskExecution(taskName, requiresDependencies);
-				if (!requiresRun) {
+				const cacheInfo = await this._buildCache.prepareTaskExecution(taskName, requiresDependencies);
+				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
 					return;
 				}
-
-				const expectedOutput = new Set(); // TODO: Determine expected output properly
+				let usingCache = false;
+				if (!taskFunction) {
+					const {task, differentialUpdate} = await this._taskRepository.getTask(taskName);
+					if (differentialUpdate && cacheInfo) {
+						usingCache = true;
+						taskFunction = differentialUpdate;
+					} else {
+						taskFunction = task;
+					}
+				}
 
 				this._log.info(
 					`Executing task ${taskName} for project ${this._project.getName()}`);
@@ -209,18 +217,6 @@ class TaskRunner {
 				const params = {
 					workspace,
 					taskUtil: this._taskUtil,
-					cacheUtil: {
-						// TODO: Create a proper interface for this
-						hasCache: () => {
-							return this._buildCache.hasTaskCache(taskName);
-						},
-						getChangedProjectResourcePaths: () => {
-							return this._buildCache.getChangedProjectResourcePaths(taskName);
-						},
-						getChangedDependencyResourcePaths: () => {
-							return this._buildCache.getChangedDependencyResourcePaths(taskName);
-						},
-					},
 					options,
 				};
 
@@ -230,8 +226,14 @@ class TaskRunner {
 					params.dependencies = dependencies;
 				}
 
-				if (!taskFunction) {
-					taskFunction = (await this._taskRepository.getTask(taskName)).task;
+				if (usingCache) {
+					this._log.info(
+						`Using differential update for task ${taskName} of project ${this._project.getName()}`);
+					// workspace =
+					params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
+					if (requiresDependencies) {
+						params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
+					}
 				}
 
 				this._log.startTask(taskName);
@@ -244,7 +246,8 @@ class TaskRunner {
 				this._log.endTask(taskName);
 				await this._buildCache.recordTaskResult(taskName,
 					workspace.getResourceRequests(),
-					dependencies?.getResourceRequests());
+					dependencies?.getResourceRequests(),
+					cacheInfo.previousStageCache);
 			};
 		}
 		this._tasks[taskName] = {
@@ -319,6 +322,7 @@ class TaskRunner {
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
 		const getBuildSignatureCallback = await task.getBuildSignatureCallback();
 		const getExpectedOutputCallback = await task.getExpectedOutputCallback();
+		const differentialUpdateCallback = await task.getDifferentialUpdateCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -392,6 +396,7 @@ class TaskRunner {
 				provideDependenciesReader,
 				getBuildSignatureCallback,
 				getExpectedOutputCallback,
+				differentialUpdateCallback,
 				getDependenciesReader: () => {
 					// Create the dependencies reader on-demand
 					return this._createDependenciesReader(requiredDependencies);
