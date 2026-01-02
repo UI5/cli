@@ -174,10 +174,13 @@ class TaskRunner {
 	 * @param {string} taskName Name of the task which should be in the list availableTasks.
 	 * @param {object} [parameters]
 	 * @param {boolean} [parameters.requiresDependencies]
+	 * @param {boolean} [parameters.supportsDifferentialUpdates]
 	 * @param {object} [parameters.options]
 	 * @param {Function} [parameters.taskFunction]
 	 */
-	_addTask(taskName, {requiresDependencies = false, options = {}, taskFunction} = {}) {
+	_addTask(taskName, {
+		requiresDependencies = false, supportsDifferentialUpdates = false, options = {}, taskFunction
+	} = {}) {
 		if (this._tasks[taskName]) {
 			throw new Error(`Failed to add duplicate task ${taskName} for project ${this._project.getName()}`);
 		}
@@ -195,13 +198,12 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 				// TODO: Apply cache and stage handling for custom tasks as well
-				const requiresRun = await this._buildCache.prepareTaskExecution(taskName, requiresDependencies);
-				if (!requiresRun) {
+				const cacheInfo = await this._buildCache.prepareTaskExecution(taskName, requiresDependencies);
+				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
 					return;
 				}
-
-				const expectedOutput = new Set(); // TODO: Determine expected output properly
+				const usingCache = supportsDifferentialUpdates && cacheInfo;
 
 				this._log.info(
 					`Executing task ${taskName} for project ${this._project.getName()}`);
@@ -209,18 +211,6 @@ class TaskRunner {
 				const params = {
 					workspace,
 					taskUtil: this._taskUtil,
-					cacheUtil: {
-						// TODO: Create a proper interface for this
-						hasCache: () => {
-							return this._buildCache.hasTaskCache(taskName);
-						},
-						getChangedProjectResourcePaths: () => {
-							return this._buildCache.getChangedProjectResourcePaths(taskName);
-						},
-						getChangedDependencyResourcePaths: () => {
-							return this._buildCache.getChangedDependencyResourcePaths(taskName);
-						},
-					},
 					options,
 				};
 
@@ -229,11 +219,19 @@ class TaskRunner {
 					dependencies = createMonitor(this._allDependenciesReader);
 					params.dependencies = dependencies;
 				}
-
-				if (!taskFunction) {
-					taskFunction = (await this._taskRepository.getTask(taskName)).task;
+				if (usingCache) {
+					this._log.info(
+						`Using differential update for task ${taskName} of project ${this._project.getName()}`);
+					// workspace =
+					params.changedProjectResourcePaths = Array.from(cacheInfo.changedProjectResourcePaths);
+					if (requiresDependencies) {
+						params.changedDependencyResourcePaths = Array.from(cacheInfo.changedDependencyResourcePaths);
+					}
 				}
-
+				if (!taskFunction) {
+					const {task} = await this._taskRepository.getTask(taskName);
+					taskFunction = task;
+				}
 				this._log.startTask(taskName);
 				this._taskStart = performance.now();
 				await taskFunction(params);
@@ -244,7 +242,8 @@ class TaskRunner {
 				this._log.endTask(taskName);
 				await this._buildCache.recordTaskResult(taskName,
 					workspace.getResourceRequests(),
-					dependencies?.getResourceRequests());
+					dependencies?.getResourceRequests(),
+					usingCache ? cacheInfo : undefined);
 			};
 		}
 		this._tasks[taskName] = {
@@ -319,6 +318,7 @@ class TaskRunner {
 		const requiredDependenciesCallback = await task.getRequiredDependenciesCallback();
 		const getBuildSignatureCallback = await task.getBuildSignatureCallback();
 		const getExpectedOutputCallback = await task.getExpectedOutputCallback();
+		const differentialUpdateCallback = await task.getDifferentialUpdateCallback();
 		const specVersion = task.getSpecVersion();
 		let requiredDependencies;
 
@@ -392,6 +392,7 @@ class TaskRunner {
 				provideDependenciesReader,
 				getBuildSignatureCallback,
 				getExpectedOutputCallback,
+				differentialUpdateCallback,
 				getDependenciesReader: () => {
 					// Create the dependencies reader on-demand
 					return this._createDependenciesReader(requiredDependencies);

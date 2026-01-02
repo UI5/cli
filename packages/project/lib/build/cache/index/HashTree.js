@@ -627,8 +627,9 @@ export default class HashTree {
 	 * Skips resources whose metadata hasn't changed (optimization).
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to upsert
-	 * @returns {Promise<{added: Array<string>, updated: Array<string>, unchanged: Array<string>, scheduled?: Array<string>}>}
-	 *   Status report: arrays of paths by operation type. 'scheduled' is present when using registry.
+	 * @returns {Promise<{added: Array<string>, updated: Array<string>, unchanged: Array<string>}|undefined>}
+	 *   Status report: arrays of paths by operation type.
+	 * Undefined if using registry (results determined during flush).
 	 */
 	async upsertResources(resources) {
 		if (!resources || resources.length === 0) {
@@ -640,12 +641,7 @@ export default class HashTree {
 				this.registry.scheduleUpsert(resource);
 			}
 			// When using registry, actual results are determined during flush
-			return {
-				added: [],
-				updated: [],
-				unchanged: [],
-				scheduled: resources.map((r) => r.getOriginalPath())
-			};
+			return;
 		}
 
 		// Immediate mode
@@ -738,9 +734,9 @@ export default class HashTree {
 	 * sharing the affected directories (intentional for the shared view model).
 	 *
 	 * @param {Array<string>} resourcePaths - Array of resource paths to remove
-	 * @returns {Promise<{removed: Array<string>, notFound: Array<string>, scheduled?: Array<string>}>}
+	 * @returns {Promise<{removed: Array<string>, notFound: Array<string>}|undefined>}
 	 *   Status report: 'removed' contains successfully removed paths, 'notFound' contains paths that didn't exist.
-	 *   'scheduled' is present when using registry.
+	 *   Undefined if using registry (results determined during flush).
 	 */
 	async removeResources(resourcePaths) {
 		if (!resourcePaths || resourcePaths.length === 0) {
@@ -751,11 +747,7 @@ export default class HashTree {
 			for (const resourcePath of resourcePaths) {
 				this.registry.scheduleRemoval(resourcePath);
 			}
-			return {
-				removed: [],
-				notFound: [],
-				scheduled: resourcePaths
-			};
+			return;
 		}
 
 		// Immediate mode
@@ -1099,5 +1091,49 @@ export default class HashTree {
 
 		traverse(this.root, "/");
 		return paths.sort();
+	}
+
+	/**
+	 * For a tree derived from a base tree, get the list of resource nodes
+	 * that were added compared to the base tree.
+	 *
+	 * @param {HashTree} rootTree - The base tree to compare against
+	 * @returns {Array<TreeNode>} Array of added resource nodes
+	 */
+	getAddedResources(rootTree) {
+		const added = [];
+
+		const traverse = (node, currentPath, implicitlyAdded = false) => {
+			if (implicitlyAdded) {
+				if (node.type === "resource") {
+					added.push(node);
+				}
+			} else {
+				const baseNode = rootTree._findNode(currentPath);
+				if (baseNode && baseNode === node) {
+					// Node exists in base tree and is the same (structural sharing)
+					// Neither node nor children are added
+					return;
+				} else {
+					// Node doesn't exist in base tree - it's added
+					if (node.type === "resource") {
+						added.push(node);
+					} else {
+						// Directory - all children are added
+						implicitlyAdded = true;
+					}
+				}
+			}
+
+			if (node.type === "directory") {
+				for (const [name, child] of node.children) {
+					const childPath = currentPath ? path.join(currentPath, name) : name;
+					traverse(child, childPath, implicitlyAdded);
+				}
+			}
+		};
+
+		traverse(this.root, "");
+		return added;
 	}
 }

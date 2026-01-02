@@ -114,8 +114,9 @@ export default class TreeRegistry {
 	 *
 	 * After successful completion, all pending operations are cleared.
 	 *
-	 * @returns {Promise<{added: string[], updated: string[], unchanged: string[], removed: string[]}>}
-	 *          Object containing arrays of resource paths categorized by operation result
+	 * @returns {Promise<{added: string[], updated: string[], unchanged: string[], removed: string[], treeStats: Map<import('./HashTree.js').default, {added: string[], updated: string[], unchanged: string[], removed: string[]}>}>}
+	 *          Object containing arrays of resource paths categorized by operation result,
+	 *          plus per-tree statistics showing which resource paths were added/updated/unchanged/removed in each tree
 	 */
 	async flush() {
 		if (this.pendingUpserts.size === 0 && this.pendingRemovals.size === 0) {
@@ -123,7 +124,8 @@ export default class TreeRegistry {
 				added: [],
 				updated: [],
 				unchanged: [],
-				removed: []
+				removed: [],
+				treeStats: new Map()
 			};
 		}
 
@@ -132,6 +134,12 @@ export default class TreeRegistry {
 		const updatedResources = [];
 		const unchangedResources = [];
 		const removedResources = [];
+
+		// Track per-tree statistics
+		const treeStats = new Map(); // tree -> {added: string[], updated: string[], unchanged: string[], removed: string[]}
+		for (const tree of this.trees) {
+			treeStats.set(tree, {added: [], updated: [], unchanged: [], removed: []});
+		}
 
 		// Track which resource nodes we've already modified to handle shared nodes
 		const modifiedNodes = new Set();
@@ -145,24 +153,33 @@ export default class TreeRegistry {
 			const resourceName = parts[parts.length - 1];
 			const parentPath = parts.slice(0, -1).join(path.sep);
 
+			// Track which trees have this resource before deletion (for shared nodes)
+			const treesWithResource = [];
 			for (const tree of this.trees) {
 				const parentNode = tree._findNode(parentPath);
-				if (!parentNode || parentNode.type !== "directory") {
-					continue;
+				if (parentNode && parentNode.type === "directory" && parentNode.children.has(resourceName)) {
+					treesWithResource.push({tree, parentNode});
 				}
+			}
 
-				if (parentNode.children.has(resourceName)) {
-					parentNode.children.delete(resourceName);
+			// Perform deletion once and track for all trees that had it
+			if (treesWithResource.length > 0) {
+				const {parentNode} = treesWithResource[0];
+				parentNode.children.delete(resourceName);
 
+				for (const {tree} of treesWithResource) {
 					if (!affectedTrees.has(tree)) {
 						affectedTrees.set(tree, new Set());
 					}
 
 					this._markAncestorsAffected(tree, parts.slice(0, -1), affectedTrees);
 
-					if (!removedResources.includes(resourcePath)) {
-						removedResources.push(resourcePath);
-					}
+					// Track per-tree removal
+					treeStats.get(tree).removed.push(resourcePath);
+				}
+
+				if (!removedResources.includes(resourcePath)) {
+					removedResources.push(resourcePath);
 				}
 			}
 		}
@@ -187,7 +204,8 @@ export default class TreeRegistry {
 				// Ensure parent directory exists
 				let parentNode = tree._findNode(parentPath);
 				if (!parentNode) {
-					parentNode = this._ensureDirectoryPath(tree, parentPath.split(path.sep).filter((p) => p.length > 0));
+					parentNode = this._ensureDirectoryPath(
+						tree, parentPath.split(path.sep).filter((p) => p.length > 0));
 				}
 
 				if (parentNode.type !== "directory") {
@@ -210,6 +228,9 @@ export default class TreeRegistry {
 						parentNode.children.set(upsert.resourceName, resourceNode);
 						modifiedNodes.add(resourceNode);
 						dirModified = true;
+
+						// Track per-tree addition
+						treeStats.get(tree).added.push(upsert.fullPath);
 
 						if (!addedResources.includes(upsert.fullPath)) {
 							addedResources.push(upsert.fullPath);
@@ -238,15 +259,24 @@ export default class TreeRegistry {
 								modifiedNodes.add(resourceNode);
 								dirModified = true;
 
+								// Track per-tree update
+								treeStats.get(tree).updated.push(upsert.fullPath);
+
 								if (!updatedResources.includes(upsert.fullPath)) {
 									updatedResources.push(upsert.fullPath);
 								}
 							} else {
+								// Track per-tree unchanged
+								treeStats.get(tree).unchanged.push(upsert.fullPath);
+
 								if (!unchangedResources.includes(upsert.fullPath)) {
 									unchangedResources.push(upsert.fullPath);
 								}
 							}
 						} else {
+							// Node was already modified by another tree (shared node)
+							// Still count it as an update for this tree since the change affects it
+							treeStats.get(tree).updated.push(upsert.fullPath);
 							dirModified = true;
 						}
 					}
@@ -266,7 +296,8 @@ export default class TreeRegistry {
 					}
 
 					tree._computeHash(parentNode);
-					this._markAncestorsAffected(tree, parentPath.split(path.sep).filter((p) => p.length > 0), affectedTrees);
+					this._markAncestorsAffected(
+						tree, parentPath.split(path.sep).filter((p) => p.length > 0), affectedTrees);
 				}
 			}
 		}
@@ -297,7 +328,8 @@ export default class TreeRegistry {
 			added: addedResources,
 			updated: updatedResources,
 			unchanged: unchangedResources,
-			removed: removedResources
+			removed: removedResources,
+			treeStats
 		};
 	}
 
