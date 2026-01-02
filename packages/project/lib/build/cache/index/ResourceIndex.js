@@ -52,7 +52,7 @@ export default class ResourceIndex {
 	 * signature calculation and change tracking.
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Resources to index
-	 * @param {import("./TreeRegistry.js").default} [registry] - Optional tree registry for deduplication
+	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<ResourceIndex>} A new resource index
 	 * @public
 	 */
@@ -77,13 +77,14 @@ export default class ResourceIndex {
 	 * @param {number} indexCache.indexTimestamp - Timestamp of cached index
 	 * @param {object} indexCache.indexTree - Cached hash tree structure
 	 * @param {Array<@ui5/fs/Resource>} resources - Current resources to compare against cache
+	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<{changedPaths: string[], resourceIndex: ResourceIndex}>}
 	 *   Object containing array of all changed resource paths and the updated index
 	 * @public
 	 */
-	static async fromCacheWithDelta(indexCache, resources) {
+	static async fromCacheWithDelta(indexCache, resources, registry) {
 		const {indexTimestamp, indexTree} = indexCache;
-		const tree = HashTree.fromCache(indexTree, {indexTimestamp});
+		const tree = HashTree.fromCache(indexTree, {indexTimestamp, registry});
 		const currentResourcePaths = new Set(resources.map((resource) => resource.getOriginalPath()));
 		const removed = tree.getResourcePaths().filter((resourcePath) => {
 			return !currentResourcePaths.has(resourcePath);
@@ -104,23 +105,20 @@ export default class ResourceIndex {
 	 * and fast restoration is needed.
 	 *
 	 * @param {object} indexCache - Cached index object
-	 * @param {Object<string, import("./HashTree.js").ResourceMetadata>} indexCache.resourceMetadata -
-	 *   Map of resource paths to metadata (integrity, lastModified, size)
-	 * @param {import("./TreeRegistry.js").default} [registry] - Optional tree registry for deduplication
+	 * @param {number} indexCache.indexTimestamp - Timestamp of cached index
+	 * @param {object} indexCache.indexTree - Cached hash tree structure
+	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<ResourceIndex>} Restored resource index
 	 * @public
 	 */
-	static async fromCache(indexCache, registry) {
-		const resourceIndex = Object.entries(indexCache.resourceMetadata).map(([path, metadata]) => {
-			return {
-				path,
-				integrity: metadata.integrity,
-				lastModified: metadata.lastModified,
-				size: metadata.size,
-			};
-		});
-		const tree = new HashTree(resourceIndex, {registry});
+	static fromCache(indexCache, registry) {
+		const {indexTimestamp, indexTree} = indexCache;
+		const tree = HashTree.fromCache(indexTree, {indexTimestamp, registry});
 		return new ResourceIndex(tree);
+	}
+
+	getTree() {
+		return this.#tree;
 	}
 
 	/**
@@ -153,6 +151,10 @@ export default class ResourceIndex {
 		return new ResourceIndex(this.#tree.deriveTree(resourceIndex));
 	}
 
+	async deriveTreeWithIndex(resourceIndex) {
+		return new ResourceIndex(this.#tree.deriveTree(resourceIndex));
+	}
+
 	/**
 	 * Updates existing resources in the index.
 	 *
@@ -165,6 +167,25 @@ export default class ResourceIndex {
 	 */
 	async updateResources(resources) {
 		return await this.#tree.updateResources(resources);
+	}
+
+	/**
+	 * Compares this index against a base index and returns metadata
+	 * for resources that have been added in this index.
+	 *
+	 * @param {ResourceIndex} baseIndex - The base resource index to compare against
+	 */
+	getAddedResourceIndex(baseIndex) {
+		const addedResources = this.#tree.getAddedResources(baseIndex.getTree());
+		return addedResources.map(((resource) => {
+			return {
+				path: resource.path,
+				integrity: resource.integrity,
+				size: resource.size,
+				lastModified: resource.lastModified,
+				inode: resource.inode,
+			};
+		}));
 	}
 
 	/**
