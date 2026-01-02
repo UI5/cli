@@ -230,14 +230,13 @@ export default class ProjectBuildCache {
 	 * 4. Removes the task from the invalidated tasks list
 	 *
 	 * @param {string} taskName - Name of the executed task
-	 * @param {Set<string>} writtenResourcePaths - Set of resource paths written by the task
 	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests} projectResourceRequests
 	 *  Resource requests for project resources
 	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests} dependencyResourceRequests
 	 *  Resource requests for dependency resources
 	 * @returns {Promise<void>}
 	 */
-	async recordTaskResult(taskName, writtenResourcePaths, projectResourceRequests, dependencyResourceRequests) {
+	async recordTaskResult(taskName, projectResourceRequests, dependencyResourceRequests) {
 		if (!this.#taskCache.has(taskName)) {
 			// Initialize task cache
 			this.#taskCache.set(taskName, new BuildTaskCache(this.#project.getName(), taskName, this.#buildSignature));
@@ -253,17 +252,11 @@ export default class ProjectBuildCache {
 			this.#dependencyReader
 		);
 
-		// TODO: Read written resources from writer instead of relying on monitor?
-		// const stage = this.#project.getStage();
-		// const stageWriter = stage.getWriter();
-		// const writer = stageWriter.collection ? stageWriter.collection : stageWriter;
-		// const writtenResources = await writer.byGlob("/**/*");
-		// if (writtenResources.length !== writtenResourcePaths.size) {
-		// 	throw new Error(
-		// 		`Mismatch between recorded written resources (${writtenResourcePaths.size}) ` +
-		// 		`and actual resources in stage (${writtenResources.length}) for task ${taskName} ` +
-		// 		`in project ${this.#project.getName()}`);
-		// }
+		// Identify resources written by task
+		const stage = this.#project.getStage();
+		const stageWriter = stage.getWriter();
+		const writtenResources = await stageWriter.byGlob("/**/*");
+		const writtenResourcePaths = writtenResources.map((res) => res.getOriginalPath());
 
 		log.verbose(`Storing stage for task ${taskName} in project ${this.#project.getName()} ` +
 			`with signature ${stageSignature}`);
