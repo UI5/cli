@@ -5,7 +5,6 @@ export default class MonitoredReaderWriter extends AbstractReaderWriter {
 	#sealed = false;
 	#paths = new Set();
 	#patterns = new Set();
-	#pathsWritten = new Set();
 
 	constructor(readerWriter) {
 		super(readerWriter.getName());
@@ -18,11 +17,6 @@ export default class MonitoredReaderWriter extends AbstractReaderWriter {
 			paths: this.#paths,
 			patterns: this.#patterns,
 		};
-	}
-
-	getWrittenResourcePaths() {
-		this.#sealed = true;
-		return this.#pathsWritten;
 	}
 
 	async _byGlob(virPattern, options, trace) {
@@ -54,13 +48,6 @@ export default class MonitoredReaderWriter extends AbstractReaderWriter {
 	}
 
 	async _write(resource, options) {
-		if (this.#sealed) {
-			throw new Error(`Unexpected write operation after writer has been sealed`);
-		}
-		if (!resource) {
-			throw new Error(`Cannot write undefined resource`);
-		}
-		this.#pathsWritten.add(resource.getOriginalPath());
 		return this.#readerWriter.write(resource, options);
 	}
 }
