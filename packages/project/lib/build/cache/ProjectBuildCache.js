@@ -2,6 +2,7 @@ import {createResource, createProxy} from "@ui5/fs/resourceFactory";
 import {getLogger} from "@ui5/logger";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
+import {gunzip, createGunzip} from "node:zlib";
 const readFile = promisify(fs.readFile);
 import BuildTaskCache from "./BuildTaskCache.js";
 import StageCache from "./StageCache.js";
@@ -616,10 +617,13 @@ export default class ProjectBuildCache {
 						fsPath: cachePath
 					},
 					createStream: () => {
-						return fs.createReadStream(cachePath);
+						// Decompress the gzip-compressed stream
+						return fs.createReadStream(cachePath).pipe(createGunzip());
 					},
 					createBuffer: async () => {
-						return await readFile(cachePath);
+						// Decompress the gzip-compressed buffer
+						const compressedBuffer = await readFile(cachePath);
+						return await promisify(gunzip)(compressedBuffer);
 					},
 					size,
 					lastModified,
