@@ -410,9 +410,7 @@ test("upsertResources - with registry schedules operations", async (t) => {
 		createMockResource("b.js", "hash-b", Date.now(), 1024, 1)
 	]);
 
-	t.deepEqual(result.scheduled, ["b.js"], "Should report scheduled paths");
-	t.deepEqual(result.added, [], "Should have empty added in scheduled mode");
-	t.deepEqual(result.updated, [], "Should have empty updated in scheduled mode");
+	t.is(result, undefined, "Should return undefined in scheduled mode");
 });
 
 test("upsertResources - with registry and flush", async (t) => {
@@ -466,8 +464,7 @@ test("removeResources - with registry schedules operations", async (t) => {
 
 	const result = await tree.removeResources(["b.js"]);
 
-	t.deepEqual(result.scheduled, ["b.js"], "Should report scheduled paths");
-	t.deepEqual(result.removed, [], "Should have empty removed in scheduled mode");
+	t.is(result, undefined, "Should return undefined in scheduled mode");
 });
 
 test("removeResources - with registry and flush", async (t) => {
@@ -564,4 +561,275 @@ test("upsertResources and removeResources - conflicting operations on same path"
 	t.deepEqual(result.removed, [], "Should have no removals");
 	t.true(result.updated.includes("a.js") || result.changed.includes("a.js"), "Should update or keep a.js");
 	t.truthy(tree.hasPath("a.js"), "Tree should still have a.js");
+});
+
+// ============================================================================
+// Per-Tree Statistics Tests
+// ============================================================================
+
+test("TreeRegistry - flush returns per-tree statistics", async (t) => {
+	const registry = new TreeRegistry();
+	const tree1 = new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
+	const tree2 = new HashTree([{path: "b.js", integrity: "hash-b"}], {registry});
+
+	// Update tree1 resource
+	registry.scheduleUpdate(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
+	// Add new resource - gets added to all trees
+	registry.scheduleUpsert(createMockResource("c.js", "hash-c", Date.now(), 2048, 2));
+
+	const result = await registry.flush();
+
+	// Verify global results
+	// a.js gets updated in tree1 but added to tree2 (didn't exist before)
+	t.true(result.updated.includes("a.js"), "Should report a.js as updated");
+	t.true(result.added.includes("c.js"), "Should report c.js as added");
+	t.true(result.added.includes("a.js"), "Should report a.js as added to tree2");
+
+	// Verify per-tree statistics
+	t.truthy(result.treeStats, "Should have treeStats");
+	t.is(result.treeStats.size, 2, "Should have stats for both trees");
+
+	const stats1 = result.treeStats.get(tree1);
+	const stats2 = result.treeStats.get(tree2);
+
+	t.truthy(stats1, "Should have stats for tree1");
+	t.truthy(stats2, "Should have stats for tree2");
+
+	// Tree1: 1 update to a.js, 1 add for c.js
+	t.is(stats1.updated.length, 1, "Tree1 should have 1 update (a.js)");
+	t.true(stats1.updated.includes("a.js"), "Tree1 should have a.js in updated");
+	t.is(stats1.added.length, 1, "Tree1 should have 1 addition (c.js)");
+	t.true(stats1.added.includes("c.js"), "Tree1 should have c.js in added");
+	t.is(stats1.unchanged.length, 0, "Tree1 should have 0 unchanged");
+	t.is(stats1.removed.length, 0, "Tree1 should have 0 removals");
+
+	// Tree2: 1 add for c.js, 1 add for a.js (didn't exist in tree2)
+	t.is(stats2.updated.length, 0, "Tree2 should have 0 updates");
+	t.is(stats2.added.length, 2, "Tree2 should have 2 additions (a.js, c.js)");
+	t.true(stats2.added.includes("a.js"), "Tree2 should have a.js in added");
+	t.true(stats2.added.includes("c.js"), "Tree2 should have c.js in added");
+	t.is(stats2.unchanged.length, 0, "Tree2 should have 0 unchanged");
+	t.is(stats2.removed.length, 0, "Tree2 should have 0 removals");
+});
+
+test("TreeRegistry - per-tree statistics with shared nodes", async (t) => {
+	const registry = new TreeRegistry();
+	const tree1 = new HashTree([
+		{path: "shared/a.js", integrity: "hash-a"},
+		{path: "shared/b.js", integrity: "hash-b"}
+	], {registry});
+	const tree2 = tree1.deriveTree([{path: "unique/c.js", integrity: "hash-c"}]);
+
+	// Verify trees share the "shared" directory
+	const sharedDir1 = tree1.root.children.get("shared");
+	const sharedDir2 = tree2.root.children.get("shared");
+	t.is(sharedDir1, sharedDir2, "Should share the same 'shared' directory node");
+
+	// Update shared resource
+	registry.scheduleUpdate(createMockResource("shared/a.js", "new-hash-a", Date.now(), 1024, 1));
+
+	const result = await registry.flush();
+
+	// Verify global results
+	t.deepEqual(result.updated, ["shared/a.js"], "Should report shared/a.js as updated");
+
+	// Verify per-tree statistics
+	const stats1 = result.treeStats.get(tree1);
+	const stats2 = result.treeStats.get(tree2);
+
+	// Both trees should count the update since they share the node
+	t.is(stats1.updated.length, 1, "Tree1 should count the shared update");
+	t.true(stats1.updated.includes("shared/a.js"), "Tree1 should have shared/a.js in updated");
+	t.is(stats2.updated.length, 1, "Tree2 should count the shared update");
+	t.true(stats2.updated.includes("shared/a.js"), "Tree2 should have shared/a.js in updated");
+	t.is(stats1.added.length, 0, "Tree1 should have 0 additions");
+	t.is(stats2.added.length, 0, "Tree2 should have 0 additions");
+	t.is(stats1.unchanged.length, 0, "Tree1 should have 0 unchanged");
+	t.is(stats2.unchanged.length, 0, "Tree2 should have 0 unchanged");
+	t.is(stats1.removed.length, 0, "Tree1 should have 0 removals");
+	t.is(stats2.removed.length, 0, "Tree2 should have 0 removals");
+});
+
+test("TreeRegistry - per-tree statistics with mixed operations", async (t) => {
+	const registry = new TreeRegistry();
+	const tree1 = new HashTree([
+		{path: "a.js", integrity: "hash-a"},
+		{path: "b.js", integrity: "hash-b"},
+		{path: "c.js", integrity: "hash-c"}
+	], {registry});
+	const tree2 = tree1.deriveTree([{path: "d.js", integrity: "hash-d"}]);
+
+	// Update a.js (affects both trees - shared)
+	registry.scheduleUpdate(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
+	// Remove b.js (affects both trees - shared)
+	registry.scheduleRemoval("b.js");
+	// Add e.js (affects both trees)
+	registry.scheduleUpsert(createMockResource("e.js", "hash-e", Date.now(), 2048, 5));
+	// Update d.js (exists in tree2, will be added to tree1)
+	registry.scheduleUpdate(createMockResource("d.js", "new-hash-d", Date.now(), 1024, 4));
+
+	const result = await registry.flush();
+
+	// Verify per-tree statistics
+	const stats1 = result.treeStats.get(tree1);
+	const stats2 = result.treeStats.get(tree2);
+
+	// Tree1: 1 update (a.js), 2 additions (e.js, d.js), 1 removal (b.js)
+	t.is(stats1.updated.length, 1, "Tree1 should have 1 update (a.js)");
+	t.true(stats1.updated.includes("a.js"), "Tree1 should have a.js in updated");
+	t.is(stats1.added.length, 2, "Tree1 should have 2 additions (e.js, d.js)");
+	t.true(stats1.added.includes("e.js"), "Tree1 should have e.js in added");
+	t.true(stats1.added.includes("d.js"), "Tree1 should have d.js in added");
+	t.is(stats1.unchanged.length, 0, "Tree1 should have 0 unchanged");
+	t.is(stats1.removed.length, 1, "Tree1 should have 1 removal (b.js)");
+	t.true(stats1.removed.includes("b.js"), "Tree1 should have b.js in removed");
+
+	// Tree2: 2 updates (a.js shared, d.js), 1 addition (e.js), 1 removal (b.js shared)
+	t.is(stats2.updated.length, 2, "Tree2 should have 2 updates (a.js, d.js)");
+	t.true(stats2.updated.includes("a.js"), "Tree2 should have a.js in updated");
+	t.true(stats2.updated.includes("d.js"), "Tree2 should have d.js in updated");
+	t.is(stats2.added.length, 1, "Tree2 should have 1 addition (e.js)");
+	t.true(stats2.added.includes("e.js"), "Tree2 should have e.js in added");
+	t.is(stats2.unchanged.length, 0, "Tree2 should have 0 unchanged");
+	t.is(stats2.removed.length, 1, "Tree2 should have 1 removal (b.js)");
+	t.true(stats2.removed.includes("b.js"), "Tree2 should have b.js in removed");
+});
+
+test("TreeRegistry - per-tree statistics with no changes", async (t) => {
+	const registry = new TreeRegistry();
+	const timestamp = Date.now();
+	const tree1 = new HashTree([{
+		path: "a.js",
+		integrity: "hash-a",
+		lastModified: timestamp,
+		size: 1024,
+		inode: 100
+	}], {registry});
+	const tree2 = new HashTree([{
+		path: "b.js",
+		integrity: "hash-b",
+		lastModified: timestamp,
+		size: 2048,
+		inode: 200
+	}], {registry});
+
+	// Schedule updates with unchanged metadata
+	// Note: These will add missing resources to the other tree
+	registry.scheduleUpdate(createMockResource("a.js", "hash-a", timestamp, 1024, 100));
+	registry.scheduleUpdate(createMockResource("b.js", "hash-b", timestamp, 2048, 200));
+
+	const result = await registry.flush();
+
+	// a.js is unchanged in tree1 but added to tree2
+	// b.js is unchanged in tree2 but added to tree1
+	t.deepEqual(result.updated, [], "Should have no updates");
+	t.true(result.added.includes("a.js"), "a.js should be added to tree2");
+	t.true(result.added.includes("b.js"), "b.js should be added to tree1");
+	t.true(result.unchanged.includes("a.js"), "a.js should be unchanged in tree1");
+	t.true(result.unchanged.includes("b.js"), "b.js should be unchanged in tree2");
+
+	// Verify per-tree statistics
+	const stats1 = result.treeStats.get(tree1);
+	const stats2 = result.treeStats.get(tree2);
+
+	// Tree1: a.js unchanged, b.js added
+	t.is(stats1.updated.length, 0, "Tree1 should have 0 updates");
+	t.is(stats1.added.length, 1, "Tree1 should have 1 addition (b.js)");
+	t.true(stats1.added.includes("b.js"), "Tree1 should have b.js in added");
+	t.is(stats1.unchanged.length, 1, "Tree1 should have 1 unchanged (a.js)");
+	t.true(stats1.unchanged.includes("a.js"), "Tree1 should have a.js in unchanged");
+	t.is(stats1.removed.length, 0, "Tree1 should have 0 removals");
+
+	// Tree2: b.js unchanged, a.js added
+	t.is(stats2.updated.length, 0, "Tree2 should have 0 updates");
+	t.is(stats2.added.length, 1, "Tree2 should have 1 addition (a.js)");
+	t.true(stats2.added.includes("a.js"), "Tree2 should have a.js in added");
+	t.is(stats2.unchanged.length, 1, "Tree2 should have 1 unchanged (b.js)");
+	t.true(stats2.unchanged.includes("b.js"), "Tree2 should have b.js in unchanged");
+	t.is(stats2.removed.length, 0, "Tree2 should have 0 removals");
+});
+
+test("TreeRegistry - empty flush returns empty treeStats", async (t) => {
+	const registry = new TreeRegistry();
+	new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
+	new HashTree([{path: "b.js", integrity: "hash-b"}], {registry});
+
+	// Flush without scheduling any operations
+	const result = await registry.flush();
+
+	t.truthy(result.treeStats, "Should have treeStats");
+	t.is(result.treeStats.size, 0, "Should have empty treeStats when no operations");
+	t.deepEqual(result.added, [], "Should have no additions");
+	t.deepEqual(result.updated, [], "Should have no updates");
+	t.deepEqual(result.removed, [], "Should have no removals");
+});
+
+test("TreeRegistry - derived tree reflects base tree resource changes in statistics", async (t) => {
+	const registry = new TreeRegistry();
+
+	// Create base tree with some resources
+	const baseTree = new HashTree([
+		{path: "shared/resource1.js", integrity: "hash1"},
+		{path: "shared/resource2.js", integrity: "hash2"}
+	], {registry});
+
+	// Derive a new tree from base tree (shares same registry)
+	// Note: deriveTree doesn't schedule the new resources, it adds them directly to the derived tree
+	const derivedTree = baseTree.deriveTree([
+		{path: "derived/resource3.js", integrity: "hash3"}
+	]);
+
+	// Verify both trees are registered
+	t.is(registry.getTreeCount(), 2, "Registry should have both trees");
+
+	// Verify they share the same nodes
+	const sharedDir1 = baseTree.root.children.get("shared");
+	const sharedDir2 = derivedTree.root.children.get("shared");
+	t.is(sharedDir1, sharedDir2, "Both trees should share the 'shared' directory node");
+
+	// Update a resource that exists in base tree (and is shared with derived tree)
+	registry.scheduleUpdate(createMockResource("shared/resource1.js", "new-hash1", Date.now(), 2048, 100));
+
+	// Add a new resource to the shared path
+	registry.scheduleUpsert(createMockResource("shared/resource4.js", "hash4", Date.now(), 1024, 200));
+
+	// Remove a shared resource
+	registry.scheduleRemoval("shared/resource2.js");
+
+	const result = await registry.flush();
+
+	// Verify global results
+	t.deepEqual(result.updated, ["shared/resource1.js"], "Should report resource1 as updated");
+	t.true(result.added.includes("shared/resource4.js"), "Should report resource4 as added");
+	t.deepEqual(result.removed, ["shared/resource2.js"], "Should report resource2 as removed");
+
+	// Verify per-tree statistics
+	const baseStats = result.treeStats.get(baseTree);
+	const derivedStats = result.treeStats.get(derivedTree);
+
+	// Base tree statistics
+	// Base tree will also get derived/resource3.js added via registry (since it processes all trees)
+	t.is(baseStats.updated.length, 1, "Base tree should have 1 update");
+	t.true(baseStats.updated.includes("shared/resource1.js"), "Base tree should have resource1 in updated");
+	// baseStats.added should include both resource4 and resource3
+	t.true(baseStats.added.includes("shared/resource4.js"), "Base tree should have resource4 in added");
+	t.is(baseStats.removed.length, 1, "Base tree should have 1 removal");
+	t.true(baseStats.removed.includes("shared/resource2.js"), "Base tree should have resource2 in removed");
+
+	// Derived tree statistics - CRITICAL: should reflect the same changes for shared resources
+	// Note: resource4 shows as "updated" because it's added to an already-existing shared node that was modified
+	t.is(derivedStats.updated.length, 2, "Derived tree should have 2 updates (resource1 changed, resource4 added to shared dir)");
+	t.true(derivedStats.updated.includes("shared/resource1.js"), "Derived tree should have resource1 in updated");
+	t.true(derivedStats.updated.includes("shared/resource4.js"), "Derived tree should have resource4 in updated");
+	t.is(derivedStats.added.length, 0, "Derived tree should have 0 additions tracked separately");
+	t.is(derivedStats.removed.length, 1, "Derived tree should have 1 removal (shared resource2)");
+	t.true(derivedStats.removed.includes("shared/resource2.js"), "Derived tree should have resource2 in removed");
+
+	// Verify the actual tree state
+	t.is(baseTree.getResourceByPath("shared/resource1.js").integrity, "new-hash1", "Base tree should have updated integrity");
+	t.is(derivedTree.getResourceByPath("shared/resource1.js").integrity, "new-hash1", "Derived tree should have updated integrity (shared node)");
+	t.truthy(baseTree.hasPath("shared/resource4.js"), "Base tree should have new resource");
+	t.truthy(derivedTree.hasPath("shared/resource4.js"), "Derived tree should have new resource (shared)");
+	t.false(baseTree.hasPath("shared/resource2.js"), "Base tree should not have removed resource");
+	t.false(derivedTree.hasPath("shared/resource2.js"), "Derived tree should not have removed resource (shared)");
 });

@@ -462,19 +462,22 @@ class Project extends Specification {
 		if (stageOrCacheReader instanceof Stage) {
 			newStage = stageOrCacheReader;
 			if (oldStage === newStage) {
-				// No change
-				return;
+				// Same stage as before
+				return false; // Stored stage has not changed
 			}
 		} else {
 			newStage = new Stage(stageId, undefined, stageOrCacheReader);
 		}
 		this.#stages[stageIdx] = newStage;
+
+		// Update current stage reference if necessary
 		if (oldStage === this.#currentStage) {
 			this.#currentStage = newStage;
 			// Unset "current" reader/writer. They might be outdated
 			this.#currentStageReaders = new Map();
 			this.#currentStageWorkspace = null;
 		}
+		return true; // Indicate that the stored stage has changed
 	}
 
 	setResultStage(reader) {

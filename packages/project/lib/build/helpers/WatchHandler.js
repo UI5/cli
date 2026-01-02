@@ -104,15 +104,15 @@ class WatchHandler extends EventEmitter {
 			}
 		}
 
-		await graph.traverseDepthFirst(({project}) => {
+		await graph.traverseDepthFirst(async ({project}) => {
 			if (!sourceChanges.has(project) && !dependencyChanges.has(project)) {
 				return;
 			}
 			const projectSourceChanges = Array.from(sourceChanges.get(project) ?? new Set());
 			const projectDependencyChanges = Array.from(dependencyChanges.get(project) ?? new Set());
 			const projectBuildContext = this.#buildContext.getBuildContext(project.getName());
-			const tasksInvalidated =
-				projectBuildContext.getBuildCache().resourceChanged(projectSourceChanges, projectDependencyChanges);
+			const tasksInvalidated = await projectBuildContext.getBuildCache()
+				.resourceChanged(projectSourceChanges, projectDependencyChanges);
 
 			if (tasksInvalidated) {
 				someProjectTasksInvalidated = true;
