@@ -123,7 +123,7 @@
 		"pretty-data": "^0.40.0",
 		"semver": "^7.7.2",
 		"terser": "^5.44.0",
-		"workerpool": "^9.3.4",
+		"workerpool": "^10.0.1",
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
