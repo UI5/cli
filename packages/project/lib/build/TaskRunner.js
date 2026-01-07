@@ -205,8 +205,9 @@ class TaskRunner {
 				}
 				const usingCache = supportsDifferentialUpdates && cacheInfo;
 
-				this._log.info(
-					`Executing task ${taskName} for project ${this._project.getName()}`);
+				this._log.verbose(
+					`Executing task ${taskName} for project ${this._project.getName()}` +
+						(usingCache ? ` (using differential update)` : ""));
 				const workspace = createMonitor(this._project.getWorkspace());
 				const params = {
 					workspace,
@@ -220,9 +221,6 @@ class TaskRunner {
 					params.dependencies = dependencies;
 				}
 				if (usingCache) {
-					this._log.info(
-						`Using differential update for task ${taskName} of project ${this._project.getName()}`);
-					// workspace =
 					params.changedProjectResourcePaths = Array.from(cacheInfo.changedProjectResourcePaths);
 					if (requiresDependencies) {
 						params.changedDependencyResourcePaths = Array.from(cacheInfo.changedDependencyResourcePaths);
