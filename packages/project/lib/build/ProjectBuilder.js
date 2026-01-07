@@ -318,7 +318,7 @@ class ProjectBuilder {
 			this.#log.info(`Update succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
 			this.#log.error(`Update failed`);
-			this.#log.error(err);
+			throw err;
 		} finally {
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();

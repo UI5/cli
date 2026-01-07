@@ -94,8 +94,13 @@ class WatchHandler extends EventEmitter {
 			this.#sourceChanges = new Map();
 
 			this.#updateInProgress = true;
-			await this.#handleResourceChanges(sourceChanges);
-			this.#updateInProgress = false;
+			try {
+				await this.#handleResourceChanges(sourceChanges);
+			} catch (err) {
+				this.emit("error", err);
+			} finally {
+				this.#updateInProgress = false;
+			}
 
 			if (this.#sourceChanges.size > 0) {
 				// New changes have occurred during processing, trigger queue again
