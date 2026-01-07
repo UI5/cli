@@ -182,6 +182,9 @@ export default class ProjectBuildCache {
 				const deltaStageCache = await this.#findStageCache(stageName, [deltaInfo.originalSignature]);
 				if (deltaStageCache) {
 					log.verbose(`Using delta cached stage for task ${taskName} in project ${this.#project.getName()}`);
+
+					// Store current project reader for later use in recordTaskResult
+					this.#currentProjectReader = this.#project.getReader();
 					return {
 						previousStageCache: deltaStageCache,
 						newSignature: deltaInfo.newSignature,
@@ -190,10 +193,12 @@ export default class ProjectBuildCache {
 					};
 				}
 			}
+		} else {
+			// Store current project reader for later use in recordTaskResult
+			this.#currentProjectReader = this.#project.getReader();
+
+			return false; // Task needs to be executed
 		}
-		// No cached stage found, store current project reader for later use in recordTaskResult
-		this.#currentProjectReader = this.#project.getReader();
-		return false; // Task needs to be executed
 	}
 
 	/**
