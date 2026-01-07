@@ -114,7 +114,9 @@ export default class TreeRegistry {
 	 *
 	 * After successful completion, all pending operations are cleared.
 	 *
-	 * @returns {Promise<{added: string[], updated: string[], unchanged: string[], removed: string[], treeStats: Map<import('./HashTree.js').default, {added: string[], updated: string[], unchanged: string[], removed: string[]}>}>}
+	 * @returns {Promise<{added: string[], updated: string[], unchanged: string[], removed: string[],
+	 * treeStats: Map<import('./HashTree.js').default,
+	 * {added: string[], updated: string[], unchanged: string[], removed: string[]}>}>}
 	 *          Object containing arrays of resource paths categorized by operation result,
 	 *          plus per-tree statistics showing which resource paths were added/updated/unchanged/removed in each tree
 	 */
@@ -136,7 +138,7 @@ export default class TreeRegistry {
 		const removedResources = [];
 
 		// Track per-tree statistics
-		const treeStats = new Map(); // tree -> {added: string[], updated: string[], unchanged: string[], removed: string[]}
+		const treeStats = new Map();
 		for (const tree of this.trees) {
 			treeStats.set(tree, {added: [], updated: [], unchanged: [], removed: []});
 		}
@@ -318,6 +320,7 @@ export default class TreeRegistry {
 					tree._computeHash(node);
 				}
 			}
+			tree._updateIndexTimestamp();
 		}
 
 		// Clear all pending operations

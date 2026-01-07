@@ -237,18 +237,4 @@ export default class ResourceIndex {
 			indexTree: this.#tree.toCacheObject(),
 		};
 	}
-
-	// #getResourceMetadata() {
-	// 	const resources = this.#tree.getAllResources();
-	// 	const resourceMetadata = Object.create(null);
-	// 	for (const resource of resources) {
-	// 		resourceMetadata[resource.path] = {
-	// 			lastModified: resource.lastModified,
-	// 			size: resource.size,
-	// 			integrity: resource.integrity,
-	// 			inode: resource.inode,
-	// 		};
-	// 	}
-	// 	return resourceMetadata;
-	// }
 }
