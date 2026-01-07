@@ -4,10 +4,11 @@ import {matchResourceMetadataStrict} from "../utils.js";
 
 /**
  * @typedef {object} @ui5/project/build/cache/index/HashTree~ResourceMetadata
- * @property {number} size - File size in bytes
- * @property {number} lastModified - Last modification timestamp
- * @property {number|undefined} inode - File inode identifier
- * @property {string} integrity - Content hash
+ * @property {string} path Resource path using POSIX separators, prefixed with a slash (e.g. "/resources/file.js")
+ * @property {number} size File size in bytes
+ * @property {number} lastModified Last modification timestamp
+ * @property {number|undefined} inode File inode identifier
+ * @property {string} integrity Content hash
  */
 
 /**
@@ -219,30 +220,8 @@ export default class HashTree {
 	_insertResourceWithSharing(resourcePath, resourceData) {
 		const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
 		let current = this.root;
-		const pathToCopy = []; // Track path that needs copy-on-write
 
-		// Phase 1: Navigate to find where we need to start copying
-		for (let i = 0; i < parts.length - 1; i++) {
-			const dirName = parts[i];
-
-			if (!current.children.has(dirName)) {
-				// New directory needed - we'll create from here
-				break;
-			}
-
-			const existing = current.children.get(dirName);
-			if (existing.type !== "directory") {
-				throw new Error(`Path conflict: ${dirName} exists as resource but expected directory`);
-			}
-
-			pathToCopy.push({parent: current, dirName, node: existing});
-			current = existing;
-		}
-
-		// Phase 2: Copy path from root down (copy-on-write)
-		// Only copy directories that will have their children modified
-		current = this.root;
-
+		// Navigate and copy-on-write for all directories in the path
 		for (let i = 0; i < parts.length - 1; i++) {
 			const dirName = parts[i];
 
@@ -251,17 +230,17 @@ export default class HashTree {
 				const newDir = new TreeNode(dirName, "directory");
 				current.children.set(dirName, newDir);
 				current = newDir;
-			} else if (i === parts.length - 2) {
-				// This is the parent directory that will get the new resource
-				// Copy it to avoid modifying shared structure
+			} else {
+				// Directory exists - need to copy it because we'll modify its children
 				const existing = current.children.get(dirName);
+				if (existing.type !== "directory") {
+					throw new Error(`Path conflict: ${dirName} exists as resource but expected directory`);
+				}
+
+				// Shallow copy to preserve copy-on-write semantics
 				const copiedDir = this._shallowCopyDirectory(existing);
 				current.children.set(dirName, copiedDir);
 				current = copiedDir;
-			} else {
-				// Just traverse - don't copy intermediate directories
-				// They remain shared with the source tree (structural sharing)
-				current = current.children.get(dirName);
 			}
 		}
 
@@ -958,30 +937,63 @@ export default class HashTree {
 	 * that were added compared to the base tree.
 	 *
 	 * @param {HashTree} rootTree - The base tree to compare against
-	 * @returns {Array<TreeNode>} Array of added resource nodes
+	 * @returns {Array<ResourceMetadata>}
+	 * Array of added resource metadata
 	 */
 	getAddedResources(rootTree) {
 		const added = [];
 
 		const traverse = (node, currentPath, implicitlyAdded = false) => {
 			if (implicitlyAdded) {
+				// We're in a subtree that's entirely new - add all resources
 				if (node.type === "resource") {
-					added.push(node);
+					added.push({
+						path: currentPath,
+						integrity: node.integrity,
+						size: node.size,
+						lastModified: node.lastModified,
+						inode: node.inode
+					});
 				}
 			} else {
 				const baseNode = rootTree._findNode(currentPath);
 				if (baseNode && baseNode === node) {
-					// Node exists in base tree and is the same (structural sharing)
+					// Node exists in base tree and is the same object (structural sharing)
 					// Neither node nor children are added
 					return;
-				} else {
-					// Node doesn't exist in base tree - it's added
-					if (node.type === "resource") {
-						added.push(node);
-					} else {
-						// Directory - all children are added
-						implicitlyAdded = true;
+				} else if (baseNode && node.type === "directory") {
+					// Directory exists in both trees but may have been shallow-copied
+					// Check children individually - only process children that differ
+					for (const [name, child] of node.children) {
+						const childPath = currentPath ? path.join(currentPath, name) : name;
+						const baseChild = baseNode.children.get(name);
+
+						if (!baseChild || baseChild !== child) {
+							// Child doesn't exist in base or is different - determine if added
+							if (!baseChild) {
+								// Entirely new - all descendants are added
+								traverse(child, childPath, true);
+							} else {
+								// Child was modified/replaced - recurse normally
+								traverse(child, childPath, false);
+							}
+						}
+						// If baseChild === child, skip it (shared)
 					}
+					return; // Don't continue with normal traversal
+				} else if (!baseNode && node.type === "resource") {
+					// Resource doesn't exist in base tree - it's added
+					added.push({
+						path: currentPath,
+						integrity: node.integrity,
+						size: node.size,
+						lastModified: node.lastModified,
+						inode: node.inode
+					});
+					return;
+				} else if (!baseNode && node.type === "directory") {
+					// Directory doesn't exist in base tree - all children are added
+					implicitlyAdded = true;
 				}
 			}
 
@@ -992,8 +1004,7 @@ export default class HashTree {
 				}
 			}
 		};
-
-		traverse(this.root, "");
+		traverse(this.root, "/");
 		return added;
 	}
 }

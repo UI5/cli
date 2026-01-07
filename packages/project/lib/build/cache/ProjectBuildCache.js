@@ -45,6 +45,8 @@ export default class ProjectBuildCache {
 	 * @param {object} cacheManager - Cache manager instance for reading/writing cache data
 	 */
 	constructor(project, buildSignature, cacheManager) {
+		log.verbose(
+			`ProjectBuildCache for project ${project.getName()} uses build signature ${buildSignature}`);
 		this.#project = project;
 		this.#buildSignature = buildSignature;
 		this.#cacheManager = cacheManager;
@@ -140,18 +142,18 @@ export default class ProjectBuildCache {
 	 * 4. Returns whether the task needs to be executed
 	 *
 	 * @param {string} taskName - Name of the task to prepare
-	 * @param {boolean} requiresDependencies - Whether the task requires dependency reader
 	 * @returns {Promise<boolean|object>} True or object if task can use cache, false otherwise
 	 */
-	async prepareTaskExecution(taskName, requiresDependencies) {
+	async prepareTaskExecution(taskName) {
 		const stageName = this.#getStageNameForTask(taskName);
 		const taskCache = this.#taskCache.get(taskName);
 		// Switch project to new stage
 		this.#project.useStage(stageName);
-
+		log.verbose(`Preparing task execution for task ${taskName} in project ${this.#project.getName()}...`);
 		if (taskCache) {
 			let deltaInfo;
 			if (this.#invalidatedTasks.has(taskName)) {
+				log.verbose(`Task cache for task ${taskName} has been invalidated, updating indices...`);
 				const invalidationInfo =
 					this.#invalidatedTasks.get(taskName);
 				deltaInfo = await taskCache.updateIndices(
@@ -181,7 +183,11 @@ export default class ProjectBuildCache {
 
 				const deltaStageCache = await this.#findStageCache(stageName, [deltaInfo.originalSignature]);
 				if (deltaStageCache) {
-					log.verbose(`Using delta cached stage for task ${taskName} in project ${this.#project.getName()}`);
+					log.verbose(
+						`Using delta cached stage for task ${taskName} in project ${this.#project.getName()} ` +
+						`with original signature ${deltaInfo.originalSignature} (now ${deltaInfo.newSignature}) ` +
+						`and ${deltaInfo.changedProjectResourcePaths.size} changed project resource paths and ` +
+						`${deltaInfo.changedDependencyResourcePaths.size} changed dependency resource paths.`);
 
 					// Store current project reader for later use in recordTaskResult
 					this.#currentProjectReader = this.#project.getReader();
@@ -194,11 +200,12 @@ export default class ProjectBuildCache {
 				}
 			}
 		} else {
-			// Store current project reader for later use in recordTaskResult
-			this.#currentProjectReader = this.#project.getReader();
-
-			return false; // Task needs to be executed
+			log.verbose(`No task cache found`);
 		}
+		// Store current project reader for later use in recordTaskResult
+		this.#currentProjectReader = this.#project.getReader();
+
+		return false; // Task needs to be executed
 	}
 
 	/**
@@ -456,7 +463,7 @@ export default class ProjectBuildCache {
 	 * @returns {boolean} True if cache exists and is valid for this task
 	 */
 	isTaskCacheValid(taskName) {
-		return this.#taskCache.has(taskName) && !this.#invalidatedTasks.has(taskName);
+		return this.#taskCache.has(taskName) && !this.#invalidatedTasks.has(taskName) && !this.#requiresInitialBuild;
 	}
 
 	/**

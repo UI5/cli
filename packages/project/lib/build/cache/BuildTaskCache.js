@@ -569,7 +569,7 @@ export default class BuildTaskCache {
 				if (!registry) {
 					throw new Error(`Missing tree registry for parent of node ID ${nodeId}`);
 				}
-				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex, registry);
+				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
 
 				resourceRequests.setMetadata(nodeId, {
 					resourceIndex,
