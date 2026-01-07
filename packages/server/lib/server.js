@@ -180,6 +180,10 @@ export async function serve(graph, {
 		resources.dependencies = newResources.dependencies;
 		resources.all = newResources.all;
 	});
+	watchHandler.on("error", async (err) => {
+		log.error(`Watch handler error: ${err.message}`);
+		process.exit(1);
+	});
 
 	const middlewareManager = new MiddlewareManager({
 		graph,
