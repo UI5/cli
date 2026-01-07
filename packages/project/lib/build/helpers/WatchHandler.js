@@ -15,6 +15,7 @@ class WatchHandler extends EventEmitter {
 	#updateBuildResult;
 	#abortControllers = [];
 	#sourceChanges = new Map();
+	#updateInProgress = false;
 	#fileChangeHandlerTimeout;
 
 	constructor(buildContext, updateBuildResult) {
@@ -64,7 +65,7 @@ class WatchHandler extends EventEmitter {
 		}
 	}
 
-	async #fileChanged(project, filePath) {
+	#fileChanged(project, filePath) {
 		// Collect changes (grouped by project), then trigger callbacks
 		const resourcePath = project.getVirtualPath(filePath);
 		if (!this.#sourceChanges.has(project)) {
@@ -72,20 +73,38 @@ class WatchHandler extends EventEmitter {
 		}
 		this.#sourceChanges.get(project).add(resourcePath);
 
+		this.#queueHandleResourceChanges();
+	}
+
+	#queueHandleResourceChanges() {
+		if (this.#updateInProgress) {
+			// Prevent concurrent updates
+			return;
+		}
+
 		// Trigger callbacks debounced
 		if (this.#fileChangeHandlerTimeout) {
 			clearTimeout(this.#fileChangeHandlerTimeout);
 		}
 		this.#fileChangeHandlerTimeout = setTimeout(async () => {
-			await this.#handleResourceChanges();
 			this.#fileChangeHandlerTimeout = null;
+
+			const sourceChanges = this.#sourceChanges;
+			// Reset file changes before processing
+			this.#sourceChanges = new Map();
+
+			this.#updateInProgress = true;
+			await this.#handleResourceChanges(sourceChanges);
+			this.#updateInProgress = false;
+
+			if (this.#sourceChanges.size > 0) {
+				// New changes have occurred during processing, trigger queue again
+				this.#queueHandleResourceChanges();
+			}
 		}, 100);
 	}
 
-	async #handleResourceChanges() {
-		// Reset file changes before processing
-		const sourceChanges = this.#sourceChanges;
-		this.#sourceChanges = new Map();
+	async #handleResourceChanges(sourceChanges) {
 		const dependencyChanges = new Map();
 		let someProjectTasksInvalidated = false;
 
