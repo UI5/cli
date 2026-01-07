@@ -129,7 +129,10 @@ export default class CacheManager {
 				// Cache miss
 				return null;
 			}
-			throw err;
+			throw new Error(`Failed to read build manifest for ` +
+				`${projectId} / ${buildSignature}: ${err.message}`, {
+				cause: err,
+			});
 		}
 	}
 
@@ -183,7 +186,10 @@ export default class CacheManager {
 				// Cache miss
 				return null;
 			}
-			throw err;
+			throw new Error(`Failed to read resource index cache for ` +
+				`${projectId} / ${buildSignature}: ${err.message}`, {
+				cause: err,
+			});
 		}
 	}
 
@@ -243,7 +249,10 @@ export default class CacheManager {
 				// Cache miss
 				return null;
 			}
-			throw err;
+			throw new Error(`Failed to read stage metadata from cache for ` +
+				`${projectId} / ${buildSignature} / ${stageId} / ${stageSignature}: ${err.message}`, {
+				cause: err,
+			});
 		}
 	}
 
@@ -302,7 +311,10 @@ export default class CacheManager {
 				// Cache miss
 				return null;
 			}
-			throw err;
+			throw new Error(`Failed to read task metadata from cache for ` +
+				`${projectId} / ${buildSignature} / ${taskName}: ${err.message}`, {
+				cause: err,
+			});
 		}
 	}
 
