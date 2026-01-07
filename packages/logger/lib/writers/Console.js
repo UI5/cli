@@ -334,7 +334,7 @@ class Console {
 			}
 			projectMetadata.buildSkipped = true;
 			message = `${chalk.yellow(figures.tick)} ` +
-				`Skipping build of ${projectType} project ${chalk.bold(projectName)}`;
+				chalk.grey(`Skipping build of ${projectType} project ${chalk.bold(projectName)}`);
 
 			// Update progress bar (if used)
 			// All tasks of this projects are completed
@@ -412,7 +412,7 @@ class Console {
 					`Task execution already started`);
 			}
 			taskMetadata.executionEnded = true;
-			message = `${chalk.green(figures.tick)} Skipping task ${chalk.bold(taskName)}`;
+			message = chalk.yellow(figures.tick) + chalk.grey(` Skipping task ${chalk.bold(taskName)}`);
 
 			// Update progress bar (if used)
 			this._getProgressBar()?.increment(1);
