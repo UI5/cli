@@ -47,6 +47,7 @@ export default class CacheManager {
 	#casDir;
 	#manifestDir;
 	#stageMetadataDir;
+	#taskMetadataDir;
 	#indexDir;
 
 	/**
@@ -63,6 +64,7 @@ export default class CacheManager {
 		this.#casDir = path.join(cacheDir, "cas");
 		this.#manifestDir = path.join(cacheDir, "buildManifests");
 		this.#stageMetadataDir = path.join(cacheDir, "stageMetadata");
+		this.#taskMetadataDir = path.join(cacheDir, "taskMetadata");
 		this.#indexDir = path.join(cacheDir, "index");
 	}
 
@@ -222,6 +224,7 @@ export default class CacheManager {
 	 */
 	#getStageMetadataPath(packageName, buildSignature, stageId, stageSignature) {
 		const pkgDir = getPathFromPackageName(packageName);
+		stageId = stageId.replace("/", "_");
 		return path.join(this.#stageMetadataDir, pkgDir, buildSignature, stageId, `${stageSignature}.json`);
 	}
 
@@ -287,7 +290,7 @@ export default class CacheManager {
 	 */
 	#getTaskMetadataPath(packageName, buildSignature, taskName) {
 		const pkgDir = getPathFromPackageName(packageName);
-		return path.join(this.#stageMetadataDir, pkgDir, buildSignature, taskName, `metadata.json`);
+		return path.join(this.#taskMetadataDir, pkgDir, buildSignature, taskName, `metadata.json`);
 	}
 
 	/**

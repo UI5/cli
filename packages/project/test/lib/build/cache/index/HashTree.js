@@ -551,3 +551,131 @@ test("deriveTree - changes propagate to derived trees (shared view)", async (t) 
 	// This is the intended behavior: derived trees are views, not snapshots
 	// Tree2 filters which resources it exposes, but underlying data is shared
 });
+
+// ============================================================================
+// getAddedResources Tests
+// ============================================================================
+
+test("getAddedResources - returns empty array when no resources added", (t) => {
+	const baseTree = new HashTree([
+		{path: "a.js", integrity: "hash-a"},
+		{path: "b.js", integrity: "hash-b"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.deepEqual(added, [], "Should return empty array when no resources added");
+});
+
+test("getAddedResources - returns added resources from derived tree", (t) => {
+	const baseTree = new HashTree([
+		{path: "a.js", integrity: "hash-a"},
+		{path: "b.js", integrity: "hash-b"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([
+		{path: "c.js", integrity: "hash-c", size: 100, lastModified: 1000, inode: 1},
+		{path: "d.js", integrity: "hash-d", size: 200, lastModified: 2000, inode: 2}
+	]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.is(added.length, 2, "Should return 2 added resources");
+	t.deepEqual(added, [
+		{path: "/c.js", integrity: "hash-c", size: 100, lastModified: 1000, inode: 1},
+		{path: "/d.js", integrity: "hash-d", size: 200, lastModified: 2000, inode: 2}
+	], "Should return correct added resources with metadata");
+});
+
+test("getAddedResources - handles nested directory additions", (t) => {
+	const baseTree = new HashTree([
+		{path: "root/a.js", integrity: "hash-a"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([
+		{path: "root/nested/b.js", integrity: "hash-b", size: 100, lastModified: 1000, inode: 1},
+		{path: "root/nested/c.js", integrity: "hash-c", size: 200, lastModified: 2000, inode: 2}
+	]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.is(added.length, 2, "Should return 2 added resources");
+	t.true(added.some((r) => r.path === "/root/nested/b.js"), "Should include nested b.js");
+	t.true(added.some((r) => r.path === "/root/nested/c.js"), "Should include nested c.js");
+});
+
+test("getAddedResources - handles new directory with multiple resources", (t) => {
+	const baseTree = new HashTree([
+		{path: "src/a.js", integrity: "hash-a"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([
+		{path: "lib/b.js", integrity: "hash-b", size: 100, lastModified: 1000, inode: 1},
+		{path: "lib/c.js", integrity: "hash-c", size: 200, lastModified: 2000, inode: 2},
+		{path: "lib/nested/d.js", integrity: "hash-d", size: 300, lastModified: 3000, inode: 3}
+	]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.is(added.length, 3, "Should return 3 added resources");
+	t.true(added.some((r) => r.path === "/lib/b.js"), "Should include lib/b.js");
+	t.true(added.some((r) => r.path === "/lib/c.js"), "Should include lib/c.js");
+	t.true(added.some((r) => r.path === "/lib/nested/d.js"), "Should include nested resource");
+});
+
+test("getAddedResources - preserves metadata for added resources", (t) => {
+	const baseTree = new HashTree([
+		{path: "a.js", integrity: "hash-a"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([
+		{path: "b.js", integrity: "hash-b", size: 12345, lastModified: 9999, inode: 7777}
+	]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.is(added.length, 1, "Should return 1 added resource");
+	t.is(added[0].path, "/b.js", "Should have correct path");
+	t.is(added[0].integrity, "hash-b", "Should preserve integrity");
+	t.is(added[0].size, 12345, "Should preserve size");
+	t.is(added[0].lastModified, 9999, "Should preserve lastModified");
+	t.is(added[0].inode, 7777, "Should preserve inode");
+});
+
+test("getAddedResources - handles mixed shared and added resources", (t) => {
+	const baseTree = new HashTree([
+		{path: "shared/a.js", integrity: "hash-a"},
+		{path: "shared/b.js", integrity: "hash-b"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([
+		{path: "shared/c.js", integrity: "hash-c", size: 100, lastModified: 1000, inode: 1},
+		{path: "unique/d.js", integrity: "hash-d", size: 200, lastModified: 2000, inode: 2}
+	]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.is(added.length, 2, "Should return 2 added resources");
+	t.true(added.some((r) => r.path === "/shared/c.js"), "Should include c.js in shared dir");
+	t.true(added.some((r) => r.path === "/unique/d.js"), "Should include d.js in unique dir");
+	t.false(added.some((r) => r.path === "/shared/a.js"), "Should not include shared a.js");
+	t.false(added.some((r) => r.path === "/shared/b.js"), "Should not include shared b.js");
+});
+
+test("getAddedResources - handles deeply nested additions", (t) => {
+	const baseTree = new HashTree([
+		{path: "a.js", integrity: "hash-a"}
+	]);
+
+	const derivedTree = baseTree.deriveTree([
+		{path: "dir1/dir2/dir3/dir4/deep.js", integrity: "hash-deep", size: 100, lastModified: 1000, inode: 1}
+	]);
+
+	const added = derivedTree.getAddedResources(baseTree);
+
+	t.is(added.length, 1, "Should return 1 added resource");
+	t.is(added[0].path, "/dir1/dir2/dir3/dir4/deep.js", "Should have correct deeply nested path");
+	t.is(added[0].integrity, "hash-deep", "Should preserve integrity");
+});

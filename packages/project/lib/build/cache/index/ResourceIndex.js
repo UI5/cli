@@ -151,7 +151,7 @@ export default class ResourceIndex {
 		return new ResourceIndex(this.#tree.deriveTree(resourceIndex));
 	}
 
-	async deriveTreeWithIndex(resourceIndex) {
+	deriveTreeWithIndex(resourceIndex) {
 		return new ResourceIndex(this.#tree.deriveTree(resourceIndex));
 	}
 
@@ -174,18 +174,10 @@ export default class ResourceIndex {
 	 * for resources that have been added in this index.
 	 *
 	 * @param {ResourceIndex} baseIndex - The base resource index to compare against
+	 * @returns {Array<@ui5/project/build/cache/index/HashTree~ResourceMetadata>}
 	 */
 	getAddedResourceIndex(baseIndex) {
-		const addedResources = this.#tree.getAddedResources(baseIndex.getTree());
-		return addedResources.map(((resource) => {
-			return {
-				path: resource.path,
-				integrity: resource.integrity,
-				size: resource.size,
-				lastModified: resource.lastModified,
-				inode: resource.inode,
-			};
-		}));
+		return this.#tree.getAddedResources(baseIndex.getTree());
 	}
 
 	/**
