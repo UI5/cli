@@ -270,14 +270,16 @@ test("recordTaskResult: removes task from invalidated list", async (t) => {
 	await cache.prepareTaskExecution("task1", false);
 
 	// Record initial result
-	await cache.recordTaskResult("task1", new Set(), {paths: new Set(), patterns: new Set()}, {paths: new Set(), patterns: new Set()});
+	await cache.recordTaskResult("task1", new Set(),
+		{paths: new Set(), patterns: new Set()}, {paths: new Set(), patterns: new Set()});
 
 	// Invalidate task
 	cache.resourceChanged(["/test.js"], []);
 
 	// Re-execute and record
 	await cache.prepareTaskExecution("task1", false);
-	await cache.recordTaskResult("task1", new Set(), {paths: new Set(), patterns: new Set()}, {paths: new Set(), patterns: new Set()});
+	await cache.recordTaskResult("task1", new Set(),
+		{paths: new Set(), patterns: new Set()}, {paths: new Set(), patterns: new Set()});
 
 	t.deepEqual(cache.getInvalidatedTaskNames(), [], "No invalidated tasks after re-execution");
 });
@@ -494,18 +496,6 @@ test("Throw error on build signature mismatch", async (t) => {
 		"Throws error on signature mismatch"
 	);
 });
-
-// ===== HELPER FUNCTION TESTS =====
-
-test("firstTruthy: returns first truthy value from promises", async (t) => {
-	const {default: ProjectBuildCacheModule} = await import("../../../../lib/build/cache/ProjectBuildCache.js");
-
-	// Access the firstTruthy function through dynamic evaluation
-	// Since it's not exported, we test it indirectly through the module's behavior
-	// This test verifies the behavior exists without direct access
-	t.pass("firstTruthy is used internally for cache lookups");
-});
-
 // ===== EDGE CASES =====
 
 test("Create cache with empty project name", async (t) => {

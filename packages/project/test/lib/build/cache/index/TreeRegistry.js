@@ -818,7 +818,8 @@ test("TreeRegistry - derived tree reflects base tree resource changes in statist
 
 	// Derived tree statistics - CRITICAL: should reflect the same changes for shared resources
 	// Note: resource4 shows as "updated" because it's added to an already-existing shared node that was modified
-	t.is(derivedStats.updated.length, 2, "Derived tree should have 2 updates (resource1 changed, resource4 added to shared dir)");
+	t.is(derivedStats.updated.length, 2,
+		"Derived tree should have 2 updates (resource1 changed, resource4 added to shared dir)");
 	t.true(derivedStats.updated.includes("shared/resource1.js"), "Derived tree should have resource1 in updated");
 	t.true(derivedStats.updated.includes("shared/resource4.js"), "Derived tree should have resource4 in updated");
 	t.is(derivedStats.added.length, 0, "Derived tree should have 0 additions tracked separately");
@@ -826,8 +827,10 @@ test("TreeRegistry - derived tree reflects base tree resource changes in statist
 	t.true(derivedStats.removed.includes("shared/resource2.js"), "Derived tree should have resource2 in removed");
 
 	// Verify the actual tree state
-	t.is(baseTree.getResourceByPath("shared/resource1.js").integrity, "new-hash1", "Base tree should have updated integrity");
-	t.is(derivedTree.getResourceByPath("shared/resource1.js").integrity, "new-hash1", "Derived tree should have updated integrity (shared node)");
+	t.is(baseTree.getResourceByPath("shared/resource1.js").integrity, "new-hash1",
+		"Base tree should have updated integrity");
+	t.is(derivedTree.getResourceByPath("shared/resource1.js").integrity, "new-hash1",
+		"Derived tree should have updated integrity (shared node)");
 	t.truthy(baseTree.hasPath("shared/resource4.js"), "Base tree should have new resource");
 	t.truthy(derivedTree.hasPath("shared/resource4.js"), "Derived tree should have new resource (shared)");
 	t.false(baseTree.hasPath("shared/resource2.js"), "Base tree should not have removed resource");
