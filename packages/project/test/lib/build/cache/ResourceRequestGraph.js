@@ -178,7 +178,7 @@ test("ResourceRequestGraph: getMaterializedRequests returns full set", (t) => {
 		new Request("path", "a.js"),
 		new Request("path", "b.js")
 	];
-	const node1 = graph.addRequestSet(set1);
+	graph.addRequestSet(set1);
 
 	const set2 = [
 		new Request("path", "a.js"),
@@ -545,7 +545,7 @@ test("ResourceRequestGraph: findBestParent chooses optimal parent", (t) => {
 		new Request("path", "a.js"),
 		new Request("path", "b.js")
 	];
-	const node1 = graph.addRequestSet(set1);
+	graph.addRequestSet(set1);
 
 	const set2 = [
 		new Request("path", "x.js"),
