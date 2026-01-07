@@ -46,11 +46,7 @@ class ThemeLibrary extends Project {
 		const sourcePath = this.getSourcePath();
 		if (sourceFilePath.startsWith(sourcePath)) {
 			const relSourceFilePath = fsPath.relative(sourcePath, sourceFilePath);
-			let virBasePath = "/resources/";
-			if (!this._isSourceNamespaced) {
-				virBasePath += `${this._namespace}/`;
-			}
-			return `${virBasePath}${relSourceFilePath}`;
+			return `/resources/${relSourceFilePath}`;
 		}
 
 		throw new Error(

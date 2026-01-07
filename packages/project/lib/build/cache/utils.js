@@ -98,6 +98,15 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	return currentIntegrity === cachedMetadata.integrity;
 }
 
+
+/**
+ * Creates an index of resource metadata from an array of resources.
+ *
+ * @param {Array<@ui5/fs/Resource>} resources - Array of resources to index
+ * @param {boolean} [includeInode=false] - Whether to include inode information in the metadata
+ * @returns {Promise<Array<@ui5/project/build/cache/index/HashTree~ResourceMetadata>>}
+ * Array of resource metadata objects
+ */
 export async function createResourceIndex(resources, includeInode = false) {
 	return await Promise.all(resources.map(async (resource) => {
 		const resourceMetadata = {
@@ -105,7 +114,6 @@ export async function createResourceIndex(resources, includeInode = false) {
 			integrity: await resource.getIntegrity(),
 			lastModified: resource.getLastModified(),
 			size: await resource.getSize(),
-			inode: await resource.getInode(),
 		};
 		if (includeInode) {
 			resourceMetadata.inode = resource.getInode();
