@@ -206,6 +206,15 @@ export default class ResourceIndex {
 	}
 
 	/**
+	 * Removes resources from the index.
+	 *
+	 * @param {Array<string>} resourcePaths - Paths of resources to remove
+	 */
+	async removeResources(resourcePaths) {
+		return await this.#tree.removeResources(resourcePaths);
+	}
+
+	/**
 	 * Computes the signature hash for this resource index.
 	 *
 	 * The signature is the root hash of the underlying hash tree,
