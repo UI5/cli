@@ -181,7 +181,6 @@ class ProjectBuilder {
 		}
 
 		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
-		const cleanupSigHooks = this._registerCleanupSigHooks();
 		let fsTarget;
 		if (destPath) {
 			fsTarget = resourceFactory.createAdapter({
@@ -191,7 +190,6 @@ class ProjectBuilder {
 		}
 
 		const queue = [];
-		const alreadyBuilt = [];
 
 		// Create build queue based on graph depth-first search to ensure correct build order
 		await this._graph.traverseDepthFirst(async ({project}) => {
@@ -202,15 +200,38 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
-				if (!await projectBuildContext.requiresBuild()) {
-					alreadyBuilt.push(projectName);
-				}
 			}
 		});
 
+		if (destPath && cleanDest) {
+			this.#log.info(`Cleaning target directory...`);
+			await rmrf(destPath);
+		}
+
+		await this.#build(queue, projectBuildContexts, requestedProjects, fsTarget);
+
+		if (watch) {
+			const relevantProjects = queue.map((projectBuildContext) => {
+				return projectBuildContext.getProject();
+			});
+			return this._buildContext.initWatchHandler(relevantProjects, async () => {
+				await this.#updateBuild(projectBuildContexts, requestedProjects, fsTarget);
+			});
+		}
+	}
+
+	async #build(queue, projectBuildContexts, requestedProjects, fsTarget) {
 		this.#log.setProjects(queue.map((projectBuildContext) => {
 			return projectBuildContext.getProject().getName();
 		}));
+
+		const alreadyBuilt = [];
+		for (const projectBuildContext of queue) {
+			if (!await projectBuildContext.requiresBuild()) {
+				const projectName = projectBuildContext.getProject().getName();
+				alreadyBuilt.push(projectName);
+			}
+		}
 		if (queue.length > 1) { // Do not log if only the root project is being built
 			this.#log.info(`Processing ${queue.length} projects`);
 			if (alreadyBuilt.length) {
@@ -240,13 +261,9 @@ class ProjectBuilder {
 					.join("\n    ")}`);
 			}
 		}
-
-		if (destPath && cleanDest) {
-			this.#log.info(`Cleaning target directory...`);
-			await rmrf(destPath);
-		}
-		const startTime = process.hrtime();
+		const cleanupSigHooks = this._registerCleanupSigHooks();
 		try {
+			const startTime = process.hrtime();
 			const pWrites = [];
 			for (const projectBuildContext of queue) {
 				const project = projectBuildContext.getProject();
@@ -285,21 +302,26 @@ class ProjectBuilder {
 			await Promise.all(pWrites);
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
-			this.#log.error(`Build failed in ${this._getElapsedTime(startTime)}`);
+			this.#log.error(`Build failed`);
 			throw err;
 		} finally {
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
 		}
+	}
 
-		if (watch) {
-			const relevantProjects = queue.map((projectBuildContext) => {
-				return projectBuildContext.getProject();
-			});
-			const watchHandler = this._buildContext.initWatchHandler(relevantProjects, async () => {
-				await this.#update(projectBuildContexts, requestedProjects, fsTarget);
-			});
-			return watchHandler;
+	async #updateBuild(projectBuildContexts, requestedProjects, fsTarget) {
+		const cleanupSigHooks = this._registerCleanupSigHooks();
+		try {
+			const startTime = process.hrtime();
+			await this.#update(projectBuildContexts, requestedProjects, fsTarget);
+			this.#log.info(`Update succeeded in ${this._getElapsedTime(startTime)}`);
+		} catch (err) {
+			this.#log.error(`Update failed`);
+			this.#log.error(err);
+		} finally {
+			this._deregisterCleanupSigHooks(cleanupSigHooks);
+			await this._executeCleanupTasks();
 		}
 	}
 
