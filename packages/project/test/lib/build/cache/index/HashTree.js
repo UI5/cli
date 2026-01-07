@@ -69,8 +69,8 @@ test("Updating resources in two trees produces same root hash", async (t) => {
 
 	// Update same resource in both trees
 	const resource = createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1);
-	await tree1.updateResource(resource);
-	await tree2.updateResource(resource);
+	await tree1.updateResources([resource]);
+	await tree2.updateResources([resource]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should have same root hash after identical updates");
@@ -89,13 +89,13 @@ test("Multiple updates in same order produce same root hash", async (t) => {
 	const indexTimestamp = tree1.getIndexTimestamp();
 
 	// Update multiple resources in same order
-	await tree1.updateResource(createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1));
-	await tree1.updateResource(createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4));
-	await tree1.updateResource(createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2));
+	await tree1.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree1.updateResources([createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4)]);
+	await tree1.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
 
-	await tree2.updateResource(createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1));
-	await tree2.updateResource(createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4));
-	await tree2.updateResource(createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2));
+	await tree2.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree2.updateResources([createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4)]);
+	await tree2.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should have same root hash after same sequence of updates");
@@ -113,13 +113,13 @@ test("Multiple updates in different order produce same root hash", async (t) => 
 	const indexTimestamp = tree1.getIndexTimestamp();
 
 	// Update in different orders
-	await tree1.updateResource(createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1));
-	await tree1.updateResource(createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2));
-	await tree1.updateResource(createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3));
+	await tree1.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree1.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
+	await tree1.updateResources([createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3)]);
 
-	await tree2.updateResource(createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3));
-	await tree2.updateResource(createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1));
-	await tree2.updateResource(createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2));
+	await tree2.updateResources([createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3)]);
+	await tree2.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree2.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should have same root hash regardless of update order");
@@ -137,8 +137,8 @@ test("Batch updates produce same hash as individual updates", async (t) => {
 	const indexTimestamp = tree1.getIndexTimestamp();
 
 	// Individual updates
-	await tree1.updateResource(createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1));
-	await tree1.updateResource(createMockResource("file2.js", "new-hash2", indexTimestamp + 1, 201, 2));
+	await tree1.updateResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
+	await tree1.updateResources([createMockResource("file2.js", "new-hash2", indexTimestamp + 1, 201, 2)]);
 
 	// Batch update
 	const resources = [
@@ -161,7 +161,7 @@ test("Updating resource changes root hash", async (t) => {
 	const originalHash = tree.getRootHash();
 	const indexTimestamp = tree.getIndexTimestamp();
 
-	await tree.updateResource(createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1));
+	await tree.updateResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
 	const newHash = tree.getRootHash();
 
 	t.not(originalHash, newHash,
@@ -179,8 +179,8 @@ test("Updating resource back to original value restores original hash", async (t
 	const indexTimestamp = tree.getIndexTimestamp();
 
 	// Update and then revert
-	await tree.updateResource(createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1));
-	await tree.updateResource(createMockResource("file1.js", "hash1", 1000, 100, 1));
+	await tree.updateResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
+	await tree.updateResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
 
 	t.is(tree.getRootHash(), originalHash,
 		"Root hash should be restored when resource is reverted to original value");
@@ -193,7 +193,9 @@ test("updateResource returns changed resource path", async (t) => {
 
 	const tree = new HashTree(resources);
 	const indexTimestamp = tree.getIndexTimestamp();
-	const changed = await tree.updateResource(createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1));
+	const changed = await tree.updateResources([
+		createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)
+	]);
 
 	t.deepEqual(changed, ["file1.js"], "Should return path of changed resource");
 });
@@ -204,7 +206,7 @@ test("updateResource returns empty array when integrity unchanged", async (t) =>
 	];
 
 	const tree = new HashTree(resources);
-	const changed = await tree.updateResource(createMockResource("file1.js", "hash1", 1000, 100, 1));
+	const changed = await tree.updateResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
 
 	t.deepEqual(changed, [], "Should return empty array when integrity unchanged");
 });
@@ -216,7 +218,7 @@ test("updateResource does not change hash when integrity unchanged", async (t) =
 
 	const tree = new HashTree(resources);
 	const originalHash = tree.getRootHash();
-	await tree.updateResource(createMockResource("file1.js", "hash1", 1000, 100, 1));
+	await tree.updateResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
 
 	t.is(tree.getRootHash(), originalHash, "Hash should not change when integrity unchanged");
 });
@@ -284,12 +286,12 @@ test("Updating unrelated resource doesn't affect consistency", async (t) => {
 	const tree2 = new HashTree(initialResources);
 
 	// Update different resources
-	await tree1.updateResource(createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789));
-	await tree2.updateResource(createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789));
+	await tree1.updateResources([createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789)]);
+	await tree2.updateResources([createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789)]);
 
 	// Update an unrelated resource in both
-	await tree1.updateResource(createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790));
-	await tree2.updateResource(createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790));
+	await tree1.updateResources([createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790)]);
+	await tree2.updateResources([createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790)]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should remain consistent after updating multiple resources");
@@ -534,9 +536,9 @@ test("deriveTree - changes propagate to derived trees (shared view)", async (t) 
 
 	// When tree1 is updated, tree2 sees the change (filtered view behavior)
 	const indexTimestamp = tree1.getIndexTimestamp();
-	await tree1.updateResource(
+	await tree1.updateResources([
 		createMockResource("shared/a.js", "new-hash-a", indexTimestamp + 1, 101, 1)
-	);
+	]);
 
 	// Both trees see the update as per design
 	const node1 = tree1.root.children.get("shared").children.get("a.js");

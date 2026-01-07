@@ -136,9 +136,9 @@ export default class HashTree {
 	 * @param {Array<ResourceMetadata>|null} resources
 	 *   Initial resources to populate the tree. Each resource should have a path and optional metadata.
 	 * @param {object} options
-	 * @param {TreeRegistry} [options.registry] - Optional registry for coordinated batch updates across multiple trees
-	 * @param {number} [options.indexTimestamp] - Timestamp when the resource index was created (for metadata comparison)
-	 * @param {TreeNode} [options._root] - Internal: pre-existing root node for derived trees (enables structural sharing)
+	 * @param {TreeRegistry} [options.registry] Optional registry for coordinated batch updates across multiple trees
+	 * @param {number} [options.indexTimestamp] Timestamp when the resource index was created (for metadata comparison)
+	 * @param {TreeNode} [options._root] Internal: pre-existing root node for derived trees (enables structural sharing)
 	 */
 	constructor(resources = null, options = {}) {
 		this.registry = options.registry || null;
@@ -242,7 +242,6 @@ export default class HashTree {
 		// Phase 2: Copy path from root down (copy-on-write)
 		// Only copy directories that will have their children modified
 		current = this.root;
-		let needsNewChild = false;
 
 		for (let i = 0; i < parts.length - 1; i++) {
 			const dirName = parts[i];
@@ -252,7 +251,6 @@ export default class HashTree {
 				const newDir = new TreeNode(dirName, "directory");
 				current.children.set(dirName, newDir);
 				current = newDir;
-				needsNewChild = true;
 			} else if (i === parts.length - 2) {
 				// This is the parent directory that will get the new resource
 				// Copy it to avoid modifying shared structure
@@ -403,6 +401,10 @@ export default class HashTree {
 		return this.#indexTimestamp;
 	}
 
+	_updateIndexTimestamp() {
+		this.#indexTimestamp = Date.now();
+	}
+
 	/**
 	 * Find a node by path
 	 *
@@ -451,89 +453,6 @@ export default class HashTree {
 		});
 
 		return derived;
-	}
-
-	/**
-	 * Update a single resource and recompute affected hashes.
-	 *
-	 * When a registry is attached, schedules the update for batch processing.
-	 * Otherwise, applies the update immediately and recomputes ancestor hashes.
-	 * Skips update if resource metadata hasn't changed (optimization).
-	 *
-	 * @param {@ui5/fs/Resource} resource - Resource instance to update
-	 * @returns {Promise<Array<string>>} Array containing the resource path if changed, empty array if unchanged
-	 */
-	async updateResource(resource) {
-		const resourcePath = resource.getOriginalPath();
-
-		// If registry is attached, schedule update instead of applying immediately
-		if (this.registry) {
-			this.registry.scheduleUpdate(resource);
-			return [resourcePath]; // Will be determined after flush
-		}
-
-		// Fall back to immediate update
-		const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
-
-		if (parts.length === 0) {
-			throw new Error("Cannot update root directory");
-		}
-
-		// Navigate to parent directory
-		let current = this.root;
-		const pathToRoot = [current];
-
-		for (let i = 0; i < parts.length - 1; i++) {
-			const dirName = parts[i];
-
-			if (!current.children.has(dirName)) {
-				throw new Error(`Directory not found: ${parts.slice(0, i + 1).join("/")}`);
-			}
-
-			current = current.children.get(dirName);
-			pathToRoot.push(current);
-		}
-
-		// Update the resource
-		const resourceName = parts[parts.length - 1];
-		const resourceNode = current.children.get(resourceName);
-
-		if (!resourceNode) {
-			throw new Error(`Resource not found: ${resourcePath}`);
-		}
-
-		if (resourceNode.type !== "resource") {
-			throw new Error(`Path is not a resource: ${resourcePath}`);
-		}
-
-		// Create metadata object from current node state
-		const currentMetadata = {
-			integrity: resourceNode.integrity,
-			lastModified: resourceNode.lastModified,
-			size: resourceNode.size,
-			inode: resourceNode.inode
-		};
-
-		// Check whether resource actually changed
-		const isUnchanged = await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
-		if (isUnchanged) {
-			return []; // No change
-		}
-
-		// Update resource metadata
-		resourceNode.integrity = await resource.getIntegrity();
-		resourceNode.lastModified = resource.getLastModified();
-		resourceNode.size = await resource.getSize();
-		resourceNode.inode = resource.getInode();
-
-		// Recompute hashes from resource up to root
-		this._computeHash(resourceNode);
-
-		for (let i = pathToRoot.length - 1; i >= 0; i--) {
-			this._computeHash(pathToRoot[i]);
-		}
-
-		return [resourcePath];
 	}
 
 	/**
@@ -613,6 +532,7 @@ export default class HashTree {
 			}
 		}
 
+		this._updateIndexTimestamp();
 		return changedResources;
 	}
 
@@ -721,6 +641,7 @@ export default class HashTree {
 			}
 		}
 
+		this._updateIndexTimestamp();
 		return {added, updated, unchanged};
 	}
 
@@ -808,6 +729,7 @@ export default class HashTree {
 			}
 		}
 
+		this._updateIndexTimestamp();
 		return {removed, notFound};
 	}
 
@@ -865,71 +787,6 @@ export default class HashTree {
 	hasDirectoryChanged(dirPath, previousHash) {
 		const currentHash = this.getDirectoryHash(dirPath);
 		return currentHash !== previousHash;
-	}
-
-	/**
-	 * Get all resources in a directory (non-recursive).
-	 *
-	 * Useful for inspecting directory contents or performing directory-level operations.
-	 *
-	 * @param {string} dirPath - Path to directory
-	 * @returns {Array<{name: string, path: string, type: string, hash: string}>} Array of directory entries sorted by name
-	 * @throws {Error} If directory not found or path is not a directory
-	 */
-	listDirectory(dirPath) {
-		const node = this._findNode(dirPath);
-		if (!node) {
-			throw new Error(`Directory not found: ${dirPath}`);
-		}
-		if (node.type !== "directory") {
-			throw new Error(`Path is not a directory: ${dirPath}`);
-		}
-
-		const items = [];
-		for (const [name, child] of node.children) {
-			items.push({
-				name,
-				path: path.join(dirPath, name),
-				type: child.type,
-				hash: child.hash.toString("hex")
-			});
-		}
-
-		return items.sort((a, b) => a.name.localeCompare(b.name));
-	}
-
-	/**
-	 * Get all resources recursively.
-	 *
-	 * Returns complete resource metadata including paths, integrity hashes, and file stats.
-	 * Useful for full tree inspection or export.
-	 *
-	 * @returns {Array<{path: string, integrity?: string, hash: string, lastModified?: number, size?: number, inode?: number}>}
-	 *   Array of all resources with metadata, sorted by path
-	 */
-	getAllResources() {
-		const resources = [];
-
-		const traverse = (node, currentPath) => {
-			if (node.type === "resource") {
-				resources.push({
-					path: currentPath,
-					integrity: node.integrity,
-					hash: node.hash.toString("hex"),
-					lastModified: node.lastModified,
-					size: node.size,
-					inode: node.inode
-				});
-			} else {
-				for (const [name, child] of node.children) {
-					const childPath = currentPath ? path.join(currentPath, name) : name;
-					traverse(child, childPath);
-				}
-			}
-		};
-
-		traverse(this.root, "/");
-		return resources.sort((a, b) => a.path.localeCompare(b.path));
 	}
 
 	/**
@@ -1001,6 +858,8 @@ export default class HashTree {
 	/**
 	 * Validate tree structure and hashes
 	 *
+	 * Currently unused, but possibly useful future integrity checks.
+	 *
 	 * @returns {boolean}
 	 */
 	validate() {
@@ -1035,6 +894,7 @@ export default class HashTree {
 
 		return true;
 	}
+
 	/**
 	 * Create a deep clone of this tree.
 	 *
