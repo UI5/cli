@@ -532,7 +532,7 @@ export default class BuildTaskCache {
 					resourceIndex: resourceIndex.toCacheObject(),
 				});
 			} else {
-				const rootResourceIndex = this.#resourceRequests.getMetadata(parentId);
+				const {resourceIndex: rootResourceIndex} = this.#resourceRequests.getMetadata(parentId);
 				if (!rootResourceIndex) {
 					throw new Error(`Missing root resource index for parent ID ${parentId}`);
 				}
