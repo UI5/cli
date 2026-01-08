@@ -198,16 +198,12 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 				// TODO: Apply cache and stage handling for custom tasks as well
-				const cacheInfo = await this._buildCache.prepareTaskExecution(taskName, requiresDependencies);
+				const cacheInfo = await this._buildCache.prepareTaskExecution(taskName);
 				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
 					return;
 				}
 				const usingCache = supportsDifferentialUpdates && cacheInfo;
-
-				this._log.verbose(
-					`Executing task ${taskName} for project ${this._project.getName()}` +
-						(usingCache ? ` (using differential update)` : ""));
 				const workspace = createMonitor(this._project.getWorkspace());
 				const params = {
 					workspace,
@@ -230,7 +226,7 @@ class TaskRunner {
 					const {task} = await this._taskRepository.getTask(taskName);
 					taskFunction = task;
 				}
-				this._log.startTask(taskName);
+				this._log.startTask(taskName, usingCache);
 				this._taskStart = performance.now();
 				await taskFunction(params);
 				if (this._log.isLevelEnabled("perf")) {
