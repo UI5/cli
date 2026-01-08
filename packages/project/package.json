@@ -64,6 +64,7 @@
 		"ajv-errors": "^1.0.1",
 		"cacache": "^20.0.3",
 		"chalk": "^5.6.2",
+		"chokidar": "^3.6.0",
 		"escape-string-regexp": "^5.0.0",
 		"globby": "^14.1.0",
 		"graceful-fs": "^4.2.11",

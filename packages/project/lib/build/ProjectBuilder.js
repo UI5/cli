@@ -208,16 +208,23 @@ class ProjectBuilder {
 			await rmrf(destPath);
 		}
 
-		await this.#build(queue, projectBuildContexts, requestedProjects, fsTarget);
-
+		let pWatchInit;
 		if (watch) {
 			const relevantProjects = queue.map((projectBuildContext) => {
 				return projectBuildContext.getProject();
 			});
-			return this._buildContext.initWatchHandler(relevantProjects, async () => {
+			// Start watching already while the initial build is running
+			pWatchInit = this._buildContext.initWatchHandler(relevantProjects, async () => {
 				await this.#updateBuild(projectBuildContexts, requestedProjects, fsTarget);
 			});
 		}
+
+		const [, watchHandler] = await Promise.all([
+			this.#build(queue, projectBuildContexts, requestedProjects, fsTarget),
+			pWatchInit
+		]);
+		watchHandler.setReady();
+		return watchHandler;
 	}
 
 	async #build(queue, projectBuildContexts, requestedProjects, fsTarget) {
