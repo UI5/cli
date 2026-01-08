@@ -1,6 +1,5 @@
 import EventEmitter from "node:events";
-import path from "node:path";
-import {watch} from "node:fs/promises";
+import chokidar from "chokidar";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:helpers:WatchHandler");
 
@@ -13,8 +12,9 @@ const log = getLogger("build:helpers:WatchHandler");
 class WatchHandler extends EventEmitter {
 	#buildContext;
 	#updateBuildResult;
-	#abortControllers = [];
+	#closeCallbacks = [];
 	#sourceChanges = new Map();
+	#ready = false;
 	#updateInProgress = false;
 	#fileChangeHandlerTimeout;
 
@@ -24,45 +24,47 @@ class WatchHandler extends EventEmitter {
 		this.#updateBuildResult = updateBuildResult;
 	}
 
-	watch(projects) {
+	setReady() {
+		this.#ready = true;
+		this.#processQueue();
+	}
+
+	async watch(projects) {
+		const readyPromises = [];
 		for (const project of projects) {
 			const paths = project.getSourcePaths();
 			log.verbose(`Watching source paths: ${paths.join(", ")}`);
 
-			for (const sourceDir of paths) {
-				const ac = new AbortController();
-				const watcher = watch(sourceDir, {
-					persistent: true,
-					recursive: true,
-					signal: ac.signal,
-				});
+			const watcher = chokidar.watch(paths, {
+				ignoreInitial: true,
+			});
+			this.#closeCallbacks.push(async () => {
+				await watcher.close();
+			});
+			watcher.on("all", (event, filePath) => {
+				this.#handleWatchEvents(event, filePath, project);
+			});
+			const {promise, resolve} = Promise.withResolvers();
+			readyPromises.push(promise);
+			watcher.on("ready", () => {
+				resolve();
+			});
+			watcher.on("error", (err) => {
+				this.emit("error", err);
+			});
+		}
+		return await Promise.all(readyPromises);
+	}
 
-				this.#abortControllers.push(ac);
-				this.#handleWatchEvents(watcher, sourceDir, project); // Do not await as this would block the loop
-			}
+	async stop() {
+		for (const cb of this.#closeCallbacks) {
+			await cb();
 		}
 	}
 
-	stop() {
-		for (const ac of this.#abortControllers) {
-			ac.abort();
-		}
-	}
-
-	async #handleWatchEvents(watcher, basePath, project) {
-		try {
-			for await (const {eventType, filename} of watcher) {
-				log.verbose(`File changed: ${eventType} ${filename}`);
-				if (filename) {
-					await this.#fileChanged(project, path.join(basePath, filename.toString()));
-				}
-			}
-		} catch (err) {
-			if (err.name === "AbortError") {
-				return;
-			}
-			throw err;
-		}
+	async #handleWatchEvents(eventType, filePath, project) {
+		log.verbose(`File changed: ${eventType} ${filePath}`);
+		await this.#fileChanged(project, filePath);
 	}
 
 	#fileChanged(project, filePath) {
@@ -73,11 +75,11 @@ class WatchHandler extends EventEmitter {
 		}
 		this.#sourceChanges.get(project).add(resourcePath);
 
-		this.#queueHandleResourceChanges();
+		this.#processQueue();
 	}
 
-	#queueHandleResourceChanges() {
-		if (this.#updateInProgress) {
+	#processQueue() {
+		if (!this.#ready || this.#updateInProgress) {
 			// Prevent concurrent updates
 			return;
 		}
@@ -104,7 +106,7 @@ class WatchHandler extends EventEmitter {
 
 			if (this.#sourceChanges.size > 0) {
 				// New changes have occurred during processing, trigger queue again
-				this.#queueHandleResourceChanges();
+				this.#processQueue();
 			}
 		}, 100);
 	}
