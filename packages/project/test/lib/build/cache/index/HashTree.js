@@ -452,10 +452,6 @@ test("removeResources - remove from nested directory", async (t) => {
 	t.truthy(tree.hasPath("dir1/c.js"), "Should still have dir1/c.js");
 });
 
-// ============================================================================
-// Critical Flaw Tests
-// ============================================================================
-
 test("deriveTree - copies only modified directories (copy-on-write)", (t) => {
 	const tree1 = new HashTree([
 		{path: "shared/a.js", integrity: "hash-a"},

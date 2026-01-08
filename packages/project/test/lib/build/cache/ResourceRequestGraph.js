@@ -155,18 +155,17 @@ test("ResourceRequestGraph: Add request set with parent relationship", (t) => {
 	t.true(node2Data.addedRequests.has("path:c.js"));
 });
 
-test("ResourceRequestGraph: Add request set with no overlap creates parent", (t) => {
+test("ResourceRequestGraph: Add request set with no overlap", (t) => {
 	const graph = new ResourceRequestGraph();
 
 	const set1 = [new Request("path", "a.js")];
-	const node1 = graph.addRequestSet(set1);
+	graph.addRequestSet(set1);
 
 	const set2 = [new Request("path", "x.js")];
 	const node2 = graph.addRequestSet(set2);
 
 	const node2Data = graph.getNode(node2);
-	// Even with no overlap, greedy algorithm will select best parent
-	t.is(node2Data.parent, node1);
+	t.falsy(node2Data.parent);
 	t.is(node2Data.addedRequests.size, 1);
 	t.true(node2Data.addedRequests.has("path:x.js"));
 });
@@ -218,7 +217,7 @@ test("ResourceRequestGraph: getAddedRequests returns only delta", (t) => {
 	t.is(added[0].toKey(), "path:c.js");
 });
 
-test("ResourceRequestGraph: findBestMatch returns node with largest subset", (t) => {
+test("ResourceRequestGraph: findBestParent returns node with largest subset", (t) => {
 	const graph = new ResourceRequestGraph();
 
 	// Add first request set
@@ -243,13 +242,13 @@ test("ResourceRequestGraph: findBestMatch returns node with largest subset", (t)
 		new Request("path", "c.js"),
 		new Request("path", "x.js")
 	];
-	const match = graph.findBestMatch(query);
+	const match = graph.findBestParent(query);
 
 	// Should return node2 (largest subset: 3 items)
 	t.is(match, node2);
 });
 
-test("ResourceRequestGraph: findBestMatch returns null when no subset found", (t) => {
+test("ResourceRequestGraph: findBestParent returns null when no subset found", (t) => {
 	const graph = new ResourceRequestGraph();
 
 	const set1 = [
@@ -263,7 +262,7 @@ test("ResourceRequestGraph: findBestMatch returns null when no subset found", (t
 		new Request("path", "x.js"),
 		new Request("path", "y.js")
 	];
-	const match = graph.findBestMatch(query);
+	const match = graph.findBestParent(query);
 
 	t.is(match, null);
 });
@@ -416,7 +415,7 @@ test("ResourceRequestGraph: getStats returns correct statistics", (t) => {
 	t.is(stats.compressionRatio, 0.6); // 3 stored / 5 total
 });
 
-test("ResourceRequestGraph: toMetadataObject exports graph structure", (t) => {
+test("ResourceRequestGraph: toCacheObject exports graph structure", (t) => {
 	const graph = new ResourceRequestGraph();
 
 	const set1 = [new Request("path", "a.js")];
@@ -428,7 +427,7 @@ test("ResourceRequestGraph: toMetadataObject exports graph structure", (t) => {
 	];
 	const node2 = graph.addRequestSet(set2);
 
-	const exported = graph.toMetadataObject();
+	const exported = graph.toCacheObject();
 
 	t.is(exported.nodes.length, 2);
 	t.is(exported.nextId, 3);
@@ -444,7 +443,7 @@ test("ResourceRequestGraph: toMetadataObject exports graph structure", (t) => {
 	t.deepEqual(exportedNode2.addedRequests, ["path:b.js"]);
 });
 
-test("ResourceRequestGraph: fromMetadataObject reconstructs graph", (t) => {
+test("ResourceRequestGraph: fromCacheObject reconstructs graph", (t) => {
 	const graph1 = new ResourceRequestGraph();
 
 	const set1 = [new Request("path", "a.js")];
@@ -457,8 +456,8 @@ test("ResourceRequestGraph: fromMetadataObject reconstructs graph", (t) => {
 	const node2 = graph1.addRequestSet(set2);
 
 	// Export and reconstruct
-	const exported = graph1.toMetadataObject();
-	const graph2 = ResourceRequestGraph.fromMetadataObject(exported);
+	const exported = graph1.toCacheObject();
+	const graph2 = ResourceRequestGraph.fromCacheObject(exported);
 
 	// Verify reconstruction
 	t.is(graph2.nodes.size, 2);
@@ -542,15 +541,15 @@ test("ResourceRequestGraph: findBestParent chooses optimal parent", (t) => {
 
 	// Create two potential parents
 	const set1 = [
-		new Request("path", "a.js"),
-		new Request("path", "b.js")
+		new Request("path", "x.js"),
+		new Request("path", "y.js")
 	];
 	graph.addRequestSet(set1);
 
 	const set2 = [
 		new Request("path", "x.js"),
 		new Request("path", "y.js"),
-		new Request("path", "z.js")
+		new Request("path", "z.js"),
 	];
 	const node2 = graph.addRequestSet(set2);
 
@@ -607,7 +606,7 @@ test("ResourceRequestGraph: Caching works correctly", (t) => {
 	t.deepEqual(Array.from(materialized1).sort(), Array.from(materialized2).sort());
 });
 
-test("ResourceRequestGraph: Usage example from documentation", (t) => {
+test("ResourceRequestGraph: Integration", (t) => {
 	// Create graph
 	const graph = new ResourceRequestGraph();
 
@@ -637,9 +636,8 @@ test("ResourceRequestGraph: Usage example from documentation", (t) => {
 	const query = [
 		new Request("path", "a.js"),
 		new Request("path", "b.js"),
-		new Request("path", "x.js")
 	];
-	const match = graph.findBestMatch(query);
+	const match = graph.findExactMatch(query);
 	t.is(match, node1);
 
 	// Get metadata

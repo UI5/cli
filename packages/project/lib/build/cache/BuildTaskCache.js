@@ -282,6 +282,7 @@ export default class BuildTaskCache {
 				requests.push(new Request("dep-patterns", patterns));
 			}
 		}
+		// Try to find an existing request set that we can reuse
 		let setId = this.#resourceRequests.findExactMatch(requests);
 		let resourceIndex;
 		if (setId) {
@@ -301,8 +302,14 @@ export default class BuildTaskCache {
 				const addedRequests = requestSet.getAddedRequests();
 				const resourcesToAdd =
 					await this.#getResourcesForRequests(addedRequests, projectReader, dependencyReader);
+				if (!resourcesToAdd.length) {
+					throw new Error(`Unexpected empty added resources for request set ID ${setId} ` +
+						`of task '${this.#taskName}' of project '${this.#projectName}'`);
+				}
+				log.verbose(`Task '${this.#taskName}' of project '${this.#projectName}' ` +
+					`created derived resource index for request set ID ${setId} ` +
+					`based on parent ID ${parentId} with ${resourcesToAdd.length} additional resources`);
 				resourceIndex = await parentResourceIndex.deriveTree(resourcesToAdd);
-				// await newIndex.add(resourcesToAdd);
 			} else {
 				const resourcesRead =
 					await this.#getResourcesForRequests(requests, projectReader, dependencyReader);
@@ -438,7 +445,7 @@ export default class BuildTaskCache {
 	 * @param {Request[]|Array<{type: string, value: string|string[]}>} resourceRequests - Resource requests to process
 	 * @param {module:@ui5/fs.AbstractReader} projectReader - Reader for project resources
 	 * @param {module:@ui5/fs.AbstractReader} dependencyReder - Reader for dependency resources
-	 * @returns {Promise<IterableIterator<module:@ui5/fs.Resource>>} Iterator of retrieved resources
+	 * @returns {Promise<Array<module:@ui5/fs.Resource>>} Iterator of retrieved resources
 	 * @throws {Error} If an unknown request type is encountered
 	 */
 	async #getResourcesForRequests(resourceRequests, projectReader, dependencyReder) {
@@ -477,7 +484,7 @@ export default class BuildTaskCache {
 				throw new Error(`Unknown request type: ${type}`);
 			}
 		}
-		return resourcesMap.values();
+		return Array.from(resourcesMap.values());
 	}
 
 	/**
@@ -519,6 +526,10 @@ export default class BuildTaskCache {
 	 * @returns {TaskCacheMetadata} Serialized cache metadata containing the request set graph
 	 */
 	toCacheObject() {
+		if (!this.#resourceRequests) {
+			throw new Error("BuildTaskCache#toCacheObject: Resource requests not initialized for task " +
+				`'${this.#taskName}' of project '${this.#projectName}'`);
+		}
 		const rootIndices = [];
 		const deltaIndices = [];
 		for (const {nodeId, parentId} of this.#resourceRequests.traverseByDepth()) {
@@ -536,6 +547,8 @@ export default class BuildTaskCache {
 				if (!rootResourceIndex) {
 					throw new Error(`Missing root resource index for parent ID ${parentId}`);
 				}
+				// Store the metadata for all added resources. Note: Those resources might not be available
+				// in the current tree. In that case we store an empty array.
 				const addedResourceIndex = resourceIndex.getAddedResourceIndex(rootResourceIndex);
 				deltaIndices.push({
 					nodeId,
@@ -567,7 +580,8 @@ export default class BuildTaskCache {
 				const {resourceIndex: parentResourceIndex} = resourceRequests.getMetadata(node.getParentId());
 				const registry = registries.get(node.getParentId());
 				if (!registry) {
-					throw new Error(`Missing tree registry for parent of node ID ${nodeId}`);
+					throw new Error(`Missing tree registry for parent of node ID ${nodeId} of task ` +
+						`'${this.#taskName}' of project '${this.#projectName}'`);
 				}
 				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
 
