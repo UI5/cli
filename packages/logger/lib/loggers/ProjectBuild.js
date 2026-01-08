@@ -48,7 +48,7 @@ class ProjectBuild extends Logger {
 		});
 	}
 
-	startTask(taskName) {
+	startTask(taskName, isDifferentialBuild) {
 		if (!this.#tasksToRun || !this.#tasksToRun.includes(taskName)) {
 			throw new Error(`loggers/ProjectBuild#startTask: Unknown task ${taskName}`);
 		}
@@ -59,6 +59,7 @@ class ProjectBuild extends Logger {
 			projectType: this.#projectType,
 			taskName,
 			status: "task-start",
+			isDifferentialBuild,
 		});
 
 		if (!hasListeners) {
@@ -66,7 +67,7 @@ class ProjectBuild extends Logger {
 		}
 	}
 
-	endTask(taskName) {
+	endTask(taskName, isDifferentialBuild) {
 		if (!this.#tasksToRun || !this.#tasksToRun.includes(taskName)) {
 			throw new Error(`loggers/ProjectBuild#endTask: Unknown task ${taskName}`);
 		}
@@ -77,6 +78,7 @@ class ProjectBuild extends Logger {
 			projectType: this.#projectType,
 			taskName,
 			status: "task-end",
+			isDifferentialBuild,
 		});
 
 		if (!hasListeners) {
