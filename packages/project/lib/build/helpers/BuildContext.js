@@ -110,9 +110,9 @@ class BuildContext {
 		return projectBuildContext;
 	}
 
-	initWatchHandler(projects, updateBuildResult) {
+	async initWatchHandler(projects, updateBuildResult) {
 		const watchHandler = new WatchHandler(this, updateBuildResult);
-		watchHandler.watch(projects);
+		await watchHandler.watch(projects);
 		this.#watchHandler = watchHandler;
 		return watchHandler;
 	}
