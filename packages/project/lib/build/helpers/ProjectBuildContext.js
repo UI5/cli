@@ -2,6 +2,8 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
+import calculateBuildSignature from "./calculateBuildSignature.js";
+import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 
 /**
  * Build context of a single project. Always part of an overall
@@ -11,7 +13,15 @@ import TaskRunner from "../TaskRunner.js";
  * @memberof @ui5/project/build/helpers
  */
 class ProjectBuildContext {
-	constructor({buildContext, project}) {
+	/**
+	 *
+	 * @param {object} buildContext The build context.
+	 * @param {object} project The project instance.
+	 * @param {string} buildSignature The signature of the build.
+	 * @param {ProjectBuildCache} buildCache
+	 * @throws {Error} Throws an error if 'buildContext' or 'project' is missing.
+	 */
+	constructor(buildContext, project, buildSignature, buildCache) {
 		if (!buildContext) {
 			throw new Error(`Missing parameter 'buildContext'`);
 		}
@@ -25,6 +35,8 @@ class ProjectBuildContext {
 			projectName: project.getName(),
 			projectType: project.getType()
 		});
+		this._buildSignature = buildSignature;
+		this._buildCache = buildCache;
 		this._queues = {
 			cleanup: []
 		};
@@ -34,6 +46,20 @@ class ProjectBuildContext {
 			allowedNamespaces: ["build"]
 		});
 	}
+
+	static async create(buildContext, project) {
+		const buildSignature = await calculateBuildSignature(project, buildContext.getGraph(),
+			buildContext.getBuildConfig(), buildContext.getTaskRepository());
+		const buildCache = await ProjectBuildCache.create(
+			project, buildSignature, await buildContext.getCacheManager());
+		return new ProjectBuildContext(
+			buildContext,
+			project,
+			buildSignature,
+			buildCache
+		);
+	}
+
 
 	isRootProject() {
 		return this._project === this._buildContext.getRootProject();
@@ -111,6 +137,7 @@ class ProjectBuildContext {
 			this._taskRunner = new TaskRunner({
 				project: this._project,
 				log: this._log,
+				buildCache: this._buildCache,
 				taskUtil: this.getTaskUtil(),
 				graph: this._buildContext.getGraph(),
 				taskRepository: this._buildContext.getTaskRepository(),
@@ -122,26 +149,56 @@ class ProjectBuildContext {
 
 	/**
 	 * Determine whether the project has to be built or is already built
-	 * (typically indicated by the presence of a build manifest)
+	 * (typically indicated by the presence of a build manifest or a valid cache)
 	 *
 	 * @returns {boolean} True if the project needs to be built
 	 */
-	requiresBuild() {
-		return !this._project.getBuildManifest();
+	async requiresBuild() {
+		if (this.#getBuildManifest()) {
+			return false;
+		}
+
+		return this._buildCache.requiresBuild();
+	}
+
+	async runTasks() {
+		await this.getTaskRunner().runTasks();
+	}
+
+	#getBuildManifest() {
+		const manifest = this._project.getBuildManifest();
+		if (!manifest) {
+			return;
+		}
+		// Check whether the manifest can be used for this build
+		if (manifest.buildManifest.manifestVersion === "0.1" || manifest.buildManifest.manifestVersion === "0.2") {
+			// Manifest version 0.1 and 0.2 are always used without further checks for legacy reasons
+			return manifest;
+		}
+		// Unknown manifest version can't be used
+		return;
 	}
 
 	getBuildMetadata() {
-		const buildManifest = this._project.getBuildManifest();
+		const buildManifest = this.#getBuildManifest();
 		if (!buildManifest) {
 			return null;
 		}
 		const timeDiff = (new Date().getTime() - new Date(buildManifest.timestamp).getTime());
 
-		// TODO: Format age properly via a new @ui5/logger util module
+		// TODO: Format age properly
 		return {
 			timestamp: buildManifest.timestamp,
 			age: timeDiff / 1000 + " seconds"
 		};
+	}
+
+	getBuildCache() {
+		return this._buildCache;
+	}
+
+	getBuildSignature() {
+		return this._buildSignature;
 	}
 }
 

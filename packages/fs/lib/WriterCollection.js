@@ -61,8 +61,12 @@ class WriterCollection extends AbstractReaderWriter {
 		this._writerMapping = writerMapping;
 		this._readerCollection = new ReaderCollection({
 			name: `Reader collection of writer collection '${this._name}'`,
-			readers: Object.values(writerMapping)
+			readers: Array.from(new Set(Object.values(writerMapping))) // Ensure unique readers
 		});
+	}
+
+	getMapping() {
+		return this._writerMapping;
 	}
 
 	/**
