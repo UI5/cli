@@ -188,55 +188,6 @@ export default class ResourceRequestGraph {
 	}
 
 	/**
-	 * Find the best parent for a new request set using greedy selection
-	 *
-	 * @param {Request[]} requestSet - Array of Request objects
-	 * @returns {{parentId: number, deltaSize: number}|null} Parent info or null if no suitable parent
-	 */
-	findBestParent(requestSet) {
-		if (this.nodes.size === 0) {
-			return null;
-		}
-
-		const requestKeys = new Set(requestSet.map((r) => r.toKey()));
-		let bestParent = null;
-		let smallestDelta = Infinity;
-
-		// Compare against all existing nodes
-		for (const [nodeId, node] of this.nodes) {
-			const nodeSet = node.getMaterializedSet(this);
-
-			// Calculate how many new requests would need to be added
-			const delta = this._calculateDelta(requestKeys, nodeSet);
-
-			// We want the parent that minimizes the delta (maximum overlap)
-			if (delta < smallestDelta) {
-				smallestDelta = delta;
-				bestParent = nodeId;
-			}
-		}
-
-		return bestParent !== null ? {parentId: bestParent, deltaSize: smallestDelta} : null;
-	}
-
-	/**
-	 * Calculate the size of the delta (requests in newSet not in existingSet)
-	 *
-	 * @param {Set<string>} newSetKeys - Set of request keys
-	 * @param {Set<string>} existingSetKeys - Set of existing request keys
-	 * @returns {number} Number of requests in newSet not in existingSet
-	 */
-	_calculateDelta(newSetKeys, existingSetKeys) {
-		let deltaCount = 0;
-		for (const key of newSetKeys) {
-			if (!existingSetKeys.has(key)) {
-				deltaCount++;
-			}
-		}
-		return deltaCount;
-	}
-
-	/**
 	 * Calculate which requests need to be added (delta)
 	 *
 	 * @param {Request[]} newRequestSet - New request set
@@ -245,15 +196,9 @@ export default class ResourceRequestGraph {
 	 */
 	_calculateAddedRequests(newRequestSet, parentSet) {
 		const newKeys = new Set(newRequestSet.map((r) => r.toKey()));
-		const addedKeys = [];
+		const addedKeys = newKeys.difference(parentSet);
 
-		for (const key of newKeys) {
-			if (!parentSet.has(key)) {
-				addedKeys.push(key);
-			}
-		}
-
-		return addedKeys.map((key) => Request.fromKey(key));
+		return Array.from(addedKeys).map((key) => Request.fromKey(key));
 	}
 
 	/**
@@ -267,9 +212,9 @@ export default class ResourceRequestGraph {
 		const nodeId = this.nextId++;
 
 		// Find best parent
-		const parentInfo = this.findBestParent(requests);
+		const parentId = this.findBestParent(requests);
 
-		if (parentInfo === null) {
+		if (parentId === null) {
 			// No existing nodes, or no suitable parent - create root node
 			const node = new RequestSetNode(nodeId, null, requests, metadata);
 			this.nodes.set(nodeId, node);
@@ -277,43 +222,46 @@ export default class ResourceRequestGraph {
 		}
 
 		// Create node with delta from best parent
-		const parentNode = this.getNode(parentInfo.parentId);
+		const parentNode = this.getNode(parentId);
 		const parentSet = parentNode.getMaterializedSet(this);
 		const addedRequests = this._calculateAddedRequests(requests, parentSet);
 
-		const node = new RequestSetNode(nodeId, parentInfo.parentId, addedRequests, metadata);
+		const node = new RequestSetNode(nodeId, parentId, addedRequests, metadata);
 		this.nodes.set(nodeId, node);
 
 		return nodeId;
 	}
 
 	/**
-	 * Find the best matching node for a query request set
-	 * Returns the node ID where the node's set is a subset of the query
-	 * and is maximal (largest subset match)
+	 * Find the best parent for a new request set. That is, the largest subset of the new request set.
 	 *
-	 * @param {Request[]} queryRequests - Array of Request objects to match
-	 * @returns {number|null} Node ID of best match, or null if no match found
+	 * @param {Request[]} requestSet - Array of Request objects
+	 * @returns {{parentId: number, deltaSize: number}|null} Parent info or null if no suitable parent
 	 */
-	findBestMatch(queryRequests) {
-		const queryKeys = new Set(queryRequests.map((r) => r.toKey()));
+	findBestParent(requestSet) {
+		if (this.nodes.size === 0) {
+			return null;
+		}
 
-		let bestMatch = null;
-		let bestMatchSize = -1;
+		const queryKeys = new Set(requestSet.map((r) => r.toKey()));
+		let bestParent = null;
+		let greatestSubset = -1;
 
+		// Compare against all existing nodes
 		for (const [nodeId, node] of this.nodes) {
 			const nodeSet = node.getMaterializedSet(this);
 
 			// Check if nodeSet is a subset of queryKeys
-			const isSubset = this._isSubset(nodeSet, queryKeys);
+			const isSubset = nodeSet.isSubsetOf(queryKeys);
 
-			if (isSubset && nodeSet.size > bestMatchSize) {
-				bestMatch = nodeId;
-				bestMatchSize = nodeSet.size;
+			// We want the parent the greatest overlap
+			if (isSubset && nodeSet.size > greatestSubset) {
+				bestParent = nodeId;
+				greatestSubset = nodeSet.size;
 			}
 		}
 
-		return bestMatch;
+		return bestParent;
 	}
 
 	/**
@@ -338,28 +286,12 @@ export default class ResourceRequestGraph {
 			}
 
 			// Check if sets are identical (same size + subset = equality)
-			if (this._isSubset(nodeSet, queryKeys)) {
+			if (nodeSet.isSubsetOf(queryKeys)) {
 				return nodeId;
 			}
 		}
 
 		return null;
-	}
-
-	/**
-	 * Check if setA is a subset of setB
-	 *
-	 * @param {Set<string>} setA - First set
-	 * @param {Set<string>} setB - Second set
-	 * @returns {boolean} True if setA is a subset of setB
-	 */
-	_isSubset(setA, setB) {
-		for (const item of setA) {
-			if (!setB.has(item)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	/**

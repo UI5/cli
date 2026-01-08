@@ -235,6 +235,7 @@ export default class ProjectBuildCache {
 				const stageMetadata = await this.#cacheManager.readStageCache(
 					this.#project.getId(), this.#buildSignature, stageName, stageSignature);
 				if (stageMetadata) {
+					log.verbose(`Found cached stage with signature ${stageSignature}`);
 					const reader = await this.#createReaderForStageCache(
 						stageName, stageSignature, stageMetadata.resourceMetadata);
 					return {
