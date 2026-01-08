@@ -182,6 +182,7 @@ export async function serve(graph, {
 	});
 	watchHandler.on("error", async (err) => {
 		log.error(`Watch handler error: ${err.message}`);
+		log.verbose(err.stack);
 		process.exit(1);
 	});
 
