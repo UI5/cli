@@ -349,7 +349,7 @@ class Console {
 		this.#writeMessage(level, `${chalk.grey(buildIndex)}: ${message}`);
 	}
 
-	#handleProjectBuildStatusEvent({level, projectName, projectType, taskName, status}) {
+	#handleProjectBuildStatusEvent({level, projectName, projectType, taskName, status, isDifferentialBuild}) {
 		const {projectTasks} = this.#getProjectMetadata(projectName);
 		const taskMetadata = projectTasks.get(taskName);
 		if (!taskMetadata) {
@@ -382,7 +382,8 @@ class Console {
 					`for project ${projectName}, task ${taskName}`);
 			}
 			taskMetadata.executionStarted = true;
-			message = `${chalk.blue(figures.pointerSmall)} Running task ${chalk.bold(taskName)}...`;
+			message = (isDifferentialBuild ? chalk.grey(figures.lozengeOutline) : chalk.blue(figures.pointerSmall)) +
+				` Running task ${chalk.bold(taskName)}...`;
 			break;
 		case "task-end":
 			if (taskMetadata.executionEnded) {
