@@ -114,7 +114,7 @@
 		"@ui5/fs": "^5.0.0-alpha.2",
 		"@ui5/logger": "^5.0.0-alpha.2",
 		"cheerio": "1.0.0",
-		"escape-unicode": "^0.2.0",
+		"escape-unicode": "^0.3.0",
 		"escope": "^4.0.0",
 		"espree": "^10.4.0",
 		"graceful-fs": "^4.2.11",

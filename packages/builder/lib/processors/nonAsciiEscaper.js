@@ -1,4 +1,4 @@
-import escapeUnicode from "escape-unicode";
+import {escapeUnicode} from "escape-unicode";
 
 /**
  * @public
