@@ -43,6 +43,7 @@ export default class BuildTaskCache {
 	#readTaskMetadataCache;
 	#treeRegistries = [];
 	#useDifferentialUpdate = true;
+	#isNewOrModified;
 
 	// ===== LIFECYCLE =====
 
@@ -66,6 +67,7 @@ export default class BuildTaskCache {
 		if (!this.#readTaskMetadataCache) {
 			// No cache reader provided, start with empty graph
 			this.#resourceRequests = new ResourceRequestGraph();
+			this.#isNewOrModified = true;
 			return;
 		}
 
@@ -76,6 +78,7 @@ export default class BuildTaskCache {
 				`of project '${this.#projectName}'`);
 		}
 		this.#resourceRequests = this.#restoreGraphFromCache(taskMetadata);
+		this.#isNewOrModified = false;
 	}
 
 	// ===== METADATA ACCESS =====
@@ -87,6 +90,10 @@ export default class BuildTaskCache {
 	 */
 	getTaskName() {
 		return this.#taskName;
+	}
+
+	isNewOrModified() {
+		return this.#isNewOrModified;
 	}
 
 	/**
@@ -284,13 +291,13 @@ export default class BuildTaskCache {
 		let setId = this.#resourceRequests.findExactMatch(requests);
 		let resourceIndex;
 		if (setId) {
+			// Reuse existing resource index.
+			// Note: This index has already been updated before the task executed, so no update is necessary here
 			resourceIndex = this.#resourceRequests.getMetadata(setId).resourceIndex;
-			// Index was already updated before the task executed
 		} else {
 			// New request set, check whether we can create a delta
 			const metadata = {}; // Will populate with resourceIndex below
 			setId = this.#resourceRequests.addRequestSet(requests, metadata);
-
 
 			const requestSet = this.#resourceRequests.getNode(setId);
 			const parentId = requestSet.getParentId();
@@ -398,6 +405,8 @@ export default class BuildTaskCache {
 		if (!relevantTree) {
 			return;
 		}
+		this.#isNewOrModified = true;
+
 		// Update signatures for affected request sets
 		const {requestSetId, signature: originalSignature} = trees.get(relevantTree);
 		const newSignature = relevantTree.getRootHash();
