@@ -13,7 +13,7 @@
  *
  * @param {object} resource Resource instance to compare
  * @param {ResourceMetadata} resourceMetadata Resource metadata to compare against
- * @param {number} indexTimestamp Timestamp of the metadata creation
+ * @param {number} [indexTimestamp] Timestamp of the metadata creation
  * @returns {Promise<boolean>} True if resource is found to match the metadata
  * @throws {Error} If resource or metadata is undefined
  */
@@ -23,7 +23,7 @@ export async function matchResourceMetadata(resource, resourceMetadata, indexTim
 	}
 
 	const currentLastModified = resource.getLastModified();
-	if (currentLastModified > indexTimestamp) {
+	if (indexTimestamp && currentLastModified > indexTimestamp) {
 		// Resource modified after index was created, no need for further checks
 		return false;
 	}
@@ -59,7 +59,7 @@ export async function matchResourceMetadata(resource, resourceMetadata, indexTim
  *
  * @param {object} resource - Resource instance with methods: getInode(), getSize(), getLastModified(), getIntegrity()
  * @param {ResourceMetadata} cachedMetadata - Cached metadata from the tree
- * @param {number} indexTimestamp - Timestamp when the tree state was created
+ * @param {number} [indexTimestamp] - Timestamp when the tree state was created
  * @returns {Promise<boolean>} True if resource content is unchanged
  * @throws {Error} If resource or metadata is undefined
  */
@@ -69,16 +69,16 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 	}
 
 	// Check 1: Inode mismatch would indicate file replacement (comparison only if inodes are provided)
-	const currentInode = resource.getInode();
-	if (cachedMetadata.inode !== undefined && currentInode !== undefined &&
-		currentInode !== cachedMetadata.inode) {
-		return false;
-	}
+	// const currentInode = resource.getInode();
+	// if (cachedMetadata.inode !== undefined && currentInode !== undefined &&
+	// 	currentInode !== cachedMetadata.inode) {
+	// 	return false;
+	// }
 
 	// Check 2: Modification time unchanged would suggest no update needed
 	const currentLastModified = resource.getLastModified();
 	if (currentLastModified === cachedMetadata.lastModified) {
-		if (currentLastModified !== indexTimestamp) {
+		if (indexTimestamp && currentLastModified !== indexTimestamp) {
 			// File has not been modified since last indexing. No update needed
 			return true;
 		} // else: Edge case. File modified exactly at index time

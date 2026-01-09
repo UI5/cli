@@ -38,7 +38,7 @@ test("TreeRegistry - schedule and flush updates", async (t) => {
 	const originalHash = tree.getRootHash();
 
 	const resource = createMockResource("file.js", "hash2", Date.now(), 2048, 456);
-	registry.scheduleUpdate(resource);
+	registry.scheduleUpsert(resource);
 	t.is(registry.getPendingUpdateCount(), 1, "Should have one pending update");
 
 	const result = await registry.flush();
@@ -58,8 +58,8 @@ test("TreeRegistry - flush returns only changed resources", async (t) => {
 	];
 	new HashTree(resources, {registry});
 
-	registry.scheduleUpdate(createMockResource("file1.js", "new-hash1", timestamp, 1024, 123));
-	registry.scheduleUpdate(createMockResource("file2.js", "hash2", timestamp, 2048, 124)); // unchanged
+	registry.scheduleUpsert(createMockResource("file1.js", "new-hash1", timestamp, 1024, 123));
+	registry.scheduleUpsert(createMockResource("file2.js", "hash2", timestamp, 2048, 124)); // unchanged
 
 	const result = await registry.flush();
 	t.deepEqual(result.updated, ["file1.js"], "Should return only changed resource");
@@ -71,7 +71,7 @@ test("TreeRegistry - flush returns empty array when no changes", async (t) => {
 	const resources = [{path: "file.js", integrity: "hash1", lastModified: timestamp, size: 1024, inode: 123}];
 	new HashTree(resources, {registry});
 
-	registry.scheduleUpdate(createMockResource("file.js", "hash1", timestamp, 1024, 123)); // same value
+	registry.scheduleUpsert(createMockResource("file.js", "hash1", timestamp, 1024, 123)); // same value
 
 	const result = await registry.flush();
 	t.deepEqual(result.updated, [], "Should return empty array when no actual changes");
@@ -98,7 +98,7 @@ test("TreeRegistry - batch updates affect all trees sharing nodes", async (t) =>
 	t.is(sharedDir1, sharedDir2, "Should share the same 'shared' directory node");
 
 	// Update shared resource
-	registry.scheduleUpdate(createMockResource("shared/a.js", "new-hash-a", Date.now(), 2048, 999));
+	registry.scheduleUpsert(createMockResource("shared/a.js", "new-hash-a", Date.now(), 2048, 999));
 	const result = await registry.flush();
 
 	t.deepEqual(result.updated, ["shared/a.js"], "Should report the updated resource");
@@ -123,7 +123,7 @@ test("TreeRegistry - handles missing resources gracefully during flush", async (
 	new HashTree([{path: "exists.js", integrity: "hash1"}], {registry});
 
 	// Schedule update for non-existent resource
-	registry.scheduleUpdate(createMockResource("missing.js", "hash2", Date.now(), 1024, 444));
+	registry.scheduleUpsert(createMockResource("missing.js", "hash2", Date.now(), 1024, 444));
 
 	// Should not throw
 	await t.notThrows(async () => await registry.flush(), "Should handle missing resources gracefully");
@@ -134,9 +134,9 @@ test("TreeRegistry - multiple updates to same resource", async (t) => {
 	const tree = new HashTree([{path: "file.js", integrity: "v1"}], {registry});
 
 	const timestamp = Date.now();
-	registry.scheduleUpdate(createMockResource("file.js", "v2", timestamp, 1024, 100));
-	registry.scheduleUpdate(createMockResource("file.js", "v3", timestamp + 1, 1024, 100));
-	registry.scheduleUpdate(createMockResource("file.js", "v4", timestamp + 2, 1024, 100));
+	registry.scheduleUpsert(createMockResource("file.js", "v2", timestamp, 1024, 100));
+	registry.scheduleUpsert(createMockResource("file.js", "v3", timestamp + 1, 1024, 100));
+	registry.scheduleUpsert(createMockResource("file.js", "v4", timestamp + 2, 1024, 100));
 
 	t.is(registry.getPendingUpdateCount(), 1, "Should consolidate updates to same path");
 
@@ -159,7 +159,7 @@ test("TreeRegistry - updates without changes lead to same hash", async (t) => {
 	const initialHash = tree.getRootHash();
 	const file2Hash = tree.getResourceByPath("/src/foo/file2.js").hash;
 
-	registry.scheduleUpdate(createMockResource("/src/foo/file2.js", "v1", timestamp, 1024, 200));
+	registry.scheduleUpsert(createMockResource("/src/foo/file2.js", "v1", timestamp, 1024, 200));
 
 	t.is(registry.getPendingUpdateCount(), 1, "Should have one pending update");
 
@@ -182,7 +182,7 @@ test("TreeRegistry - unregister tree", async (t) => {
 	t.is(registry.getTreeCount(), 1);
 
 	// Flush should only affect tree2
-	registry.scheduleUpdate(createMockResource("b.js", "new-hash2", Date.now(), 1024, 777));
+	registry.scheduleUpsert(createMockResource("b.js", "new-hash2", Date.now(), 1024, 777));
 	await registry.flush();
 
 	t.notThrows(() => tree2.getRootHash(), "Tree2 should still work");
@@ -247,7 +247,7 @@ test("deriveTree - updates to shared nodes visible in all trees", async (t) => {
 	t.is(node1Before.integrity, "original", "Original integrity");
 
 	// Update via registry
-	registry.scheduleUpdate(createMockResource("shared/file.js", "updated", Date.now(), 1024, 555));
+	registry.scheduleUpsert(createMockResource("shared/file.js", "updated", Date.now(), 1024, 555));
 	await registry.flush();
 
 	// Both should see the update (same node)
@@ -267,7 +267,7 @@ test("deriveTree - multiple levels of derivation", async (t) => {
 	t.truthy(tree3.hasPath("c.js"), "Should have its own resources");
 
 	// Update shared resource
-	registry.scheduleUpdate(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 111));
+	registry.scheduleUpsert(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 111));
 	await registry.flush();
 
 	// All trees should see the update
@@ -292,7 +292,7 @@ test("deriveTree - efficient hash recomputation", async (t) => {
 	const compute2Spy = sinon.spy(tree2, "_computeHash");
 
 	// Update resource in shared directory
-	registry.scheduleUpdate(createMockResource("dir1/a.js", "new-hash-a", Date.now(), 2048, 222));
+	registry.scheduleUpsert(createMockResource("dir1/a.js", "new-hash-a", Date.now(), 2048, 222));
 	await registry.flush();
 
 	// Each affected directory should be hashed once per tree
@@ -314,7 +314,7 @@ test("deriveTree - independent updates to different directories", async (t) => {
 	const hash2Before = tree2.getRootHash();
 
 	// Update only in tree2's unique directory
-	registry.scheduleUpdate(createMockResource("dir2/b.js", "new-hash-b", Date.now(), 1024, 333));
+	registry.scheduleUpsert(createMockResource("dir2/b.js", "new-hash-b", Date.now(), 1024, 333));
 	await registry.flush();
 
 	const hash1After = tree1.getRootHash();
@@ -383,7 +383,7 @@ test("deriveTree - complex shared structure", async (t) => {
 	]);
 
 	// Update deeply nested shared file
-	registry.scheduleUpdate(createMockResource("shared/deep/nested/file1.js", "new-hash1", Date.now(), 2048, 666));
+	registry.scheduleUpsert(createMockResource("shared/deep/nested/file1.js", "new-hash1", Date.now(), 2048, 666));
 	await registry.flush();
 
 	// Both trees should reflect the change
@@ -516,6 +516,116 @@ test("removeResources - with derived trees propagates removal", async (t) => {
 	t.truthy(tree2.hasPath("unique/c.js"), "Tree2 should still have unique/c.js");
 });
 
+test("removeResources - with registry cleans up empty directories", async (t) => {
+	const registry = new TreeRegistry();
+	const tree = new HashTree([
+		{path: "dir1/dir2/only.js", integrity: "hash-only"},
+		{path: "dir1/other.js", integrity: "hash-other"}
+	], {registry});
+
+	// Verify structure before removal
+	t.truthy(tree.hasPath("dir1/dir2/only.js"), "Should have dir1/dir2/only.js");
+	t.truthy(tree._findNode("dir1/dir2"), "Directory dir1/dir2 should exist");
+
+	// Remove the only resource in dir2
+	await tree.removeResources(["dir1/dir2/only.js"]);
+	const result = await registry.flush();
+
+	t.true(result.removed.includes("dir1/dir2/only.js"), "Should report resource as removed");
+	t.false(tree.hasPath("dir1/dir2/only.js"), "Should not have dir1/dir2/only.js");
+
+	// Check if empty directory is cleaned up
+	const dir2Node = tree._findNode("dir1/dir2");
+	t.is(dir2Node, null, "Empty directory dir1/dir2 should be removed");
+
+	// Parent directory should still exist with other.js
+	t.truthy(tree.hasPath("dir1/other.js"), "Should still have dir1/other.js");
+	t.truthy(tree._findNode("dir1"), "Parent directory dir1 should still exist");
+});
+
+test("removeResources - with registry cleans up deeply nested empty directories", async (t) => {
+	const registry = new TreeRegistry();
+	const tree = new HashTree([
+		{path: "a/b/c/d/e/deep.js", integrity: "hash-deep"},
+		{path: "a/sibling.js", integrity: "hash-sibling"}
+	], {registry});
+
+	// Verify structure before removal
+	t.truthy(tree.hasPath("a/b/c/d/e/deep.js"), "Should have deeply nested file");
+	t.truthy(tree._findNode("a/b/c/d/e"), "Deep directory should exist");
+
+	// Remove the only resource in the deep hierarchy
+	await tree.removeResources(["a/b/c/d/e/deep.js"]);
+	const result = await registry.flush();
+
+	t.true(result.removed.includes("a/b/c/d/e/deep.js"), "Should report resource as removed");
+
+	// All empty directories in the chain should be removed
+	t.is(tree._findNode("a/b/c/d/e"), null, "Directory e should be removed");
+	t.is(tree._findNode("a/b/c/d"), null, "Directory d should be removed");
+	t.is(tree._findNode("a/b/c"), null, "Directory c should be removed");
+	t.is(tree._findNode("a/b"), null, "Directory b should be removed");
+
+	// Parent directory with sibling should still exist
+	t.truthy(tree._findNode("a"), "Directory a should still exist (has sibling.js)");
+	t.truthy(tree.hasPath("a/sibling.js"), "Sibling file should still exist");
+});
+
+test("removeResources - with derived trees cleans up empty directories in both trees", async (t) => {
+	const registry = new TreeRegistry();
+	const tree1 = new HashTree([
+		{path: "shared/dir/only.js", integrity: "hash-only"},
+		{path: "shared/other.js", integrity: "hash-other"}
+	], {registry});
+	const tree2 = tree1.deriveTree([{path: "unique/file.js", integrity: "hash-unique"}]);
+
+	// Verify both trees share the directory structure
+	const sharedDirBefore = tree1.root.children.get("shared").children.get("dir");
+	const sharedDirBefore2 = tree2.root.children.get("shared").children.get("dir");
+	t.is(sharedDirBefore, sharedDirBefore2, "Should share the same 'shared/dir' node");
+
+	// Remove the only resource in shared/dir
+	await tree1.removeResources(["shared/dir/only.js"]);
+	await registry.flush();
+
+	// Both trees should see empty directory removal
+	t.is(tree1._findNode("shared/dir"), null, "Tree1: empty directory should be removed");
+	t.is(tree2._findNode("shared/dir"), null, "Tree2: empty directory should be removed");
+
+	// Shared parent directory should still exist with other.js
+	t.truthy(tree1._findNode("shared"), "Tree1: shared directory should still exist");
+	t.truthy(tree2._findNode("shared"), "Tree2: shared directory should still exist");
+	t.truthy(tree1.hasPath("shared/other.js"), "Tree1 should still have shared/other.js");
+	t.truthy(tree2.hasPath("shared/other.js"), "Tree2 should still have shared/other.js");
+
+	// Tree2's unique content should be unaffected
+	t.truthy(tree2.hasPath("unique/file.js"), "Tree2 should still have unique file");
+});
+
+test("removeResources - multiple removals with registry clean up shared empty directories", async (t) => {
+	const registry = new TreeRegistry();
+	const tree = new HashTree([
+		{path: "dir1/sub1/file1.js", integrity: "hash1"},
+		{path: "dir1/sub2/file2.js", integrity: "hash2"},
+		{path: "dir2/file3.js", integrity: "hash3"}
+	], {registry});
+
+	// Remove both files from dir1 (making both sub1 and sub2 empty)
+	await tree.removeResources(["dir1/sub1/file1.js", "dir1/sub2/file2.js"]);
+	await registry.flush();
+
+	// Both subdirectories should be cleaned up
+	t.is(tree._findNode("dir1/sub1"), null, "sub1 should be removed");
+	t.is(tree._findNode("dir1/sub2"), null, "sub2 should be removed");
+
+	// dir1 should also be removed since it's now empty
+	const dir1 = tree._findNode("dir1");
+	t.is(dir1, null, "dir1 should be removed (now empty)");
+
+	// dir2 should be unaffected
+	t.truthy(tree.hasPath("dir2/file3.js"), "dir2/file3.js should still exist");
+});
+
 // ============================================================================
 // Combined upsert and remove operations with Registry
 // ============================================================================
@@ -573,7 +683,7 @@ test("TreeRegistry - flush returns per-tree statistics", async (t) => {
 	const tree2 = new HashTree([{path: "b.js", integrity: "hash-b"}], {registry});
 
 	// Update tree1 resource
-	registry.scheduleUpdate(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
+	registry.scheduleUpsert(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
 	// Add new resource - gets added to all trees
 	registry.scheduleUpsert(createMockResource("c.js", "hash-c", Date.now(), 2048, 2));
 
@@ -626,7 +736,7 @@ test("TreeRegistry - per-tree statistics with shared nodes", async (t) => {
 	t.is(sharedDir1, sharedDir2, "Should share the same 'shared' directory node");
 
 	// Update shared resource
-	registry.scheduleUpdate(createMockResource("shared/a.js", "new-hash-a", Date.now(), 1024, 1));
+	registry.scheduleUpsert(createMockResource("shared/a.js", "new-hash-a", Date.now(), 1024, 1));
 
 	const result = await registry.flush();
 
@@ -660,13 +770,13 @@ test("TreeRegistry - per-tree statistics with mixed operations", async (t) => {
 	const tree2 = tree1.deriveTree([{path: "d.js", integrity: "hash-d"}]);
 
 	// Update a.js (affects both trees - shared)
-	registry.scheduleUpdate(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
+	registry.scheduleUpsert(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
 	// Remove b.js (affects both trees - shared)
 	registry.scheduleRemoval("b.js");
 	// Add e.js (affects both trees)
 	registry.scheduleUpsert(createMockResource("e.js", "hash-e", Date.now(), 2048, 5));
 	// Update d.js (exists in tree2, will be added to tree1)
-	registry.scheduleUpdate(createMockResource("d.js", "new-hash-d", Date.now(), 1024, 4));
+	registry.scheduleUpsert(createMockResource("d.js", "new-hash-d", Date.now(), 1024, 4));
 
 	const result = await registry.flush();
 
@@ -715,8 +825,8 @@ test("TreeRegistry - per-tree statistics with no changes", async (t) => {
 
 	// Schedule updates with unchanged metadata
 	// Note: These will add missing resources to the other tree
-	registry.scheduleUpdate(createMockResource("a.js", "hash-a", timestamp, 1024, 100));
-	registry.scheduleUpdate(createMockResource("b.js", "hash-b", timestamp, 2048, 200));
+	registry.scheduleUpsert(createMockResource("a.js", "hash-a", timestamp, 1024, 100));
+	registry.scheduleUpsert(createMockResource("b.js", "hash-b", timestamp, 2048, 200));
 
 	const result = await registry.flush();
 
@@ -788,7 +898,7 @@ test("TreeRegistry - derived tree reflects base tree resource changes in statist
 	t.is(sharedDir1, sharedDir2, "Both trees should share the 'shared' directory node");
 
 	// Update a resource that exists in base tree (and is shared with derived tree)
-	registry.scheduleUpdate(createMockResource("shared/resource1.js", "new-hash1", Date.now(), 2048, 100));
+	registry.scheduleUpsert(createMockResource("shared/resource1.js", "new-hash1", Date.now(), 2048, 100));
 
 	// Add a new resource to the shared path
 	registry.scheduleUpsert(createMockResource("shared/resource4.js", "hash4", Date.now(), 1024, 200));
