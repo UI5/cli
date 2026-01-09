@@ -23,6 +23,7 @@ export default class TreeRegistry {
 	trees = new Set();
 	pendingUpserts = new Map();
 	pendingRemovals = new Set();
+	pendingTimestampUpdate;
 
 	/**
 	 * Register a HashTree instance with this registry for coordinated updates.
@@ -49,18 +50,6 @@ export default class TreeRegistry {
 	}
 
 	/**
-	 * Schedule a resource update to be applied during flush().
-	 *
-	 * This method delegates to scheduleUpsert() for backward compatibility.
-	 * Prefer using scheduleUpsert() directly for new code.
-	 *
-	 * @param {@ui5/fs/Resource} resource - Resource instance to update
-	 */
-	scheduleUpdate(resource) {
-		this.scheduleUpsert(resource);
-	}
-
-	/**
 	 * Schedule a resource upsert (insert or update) to be applied during flush().
 	 *
 	 * If a resource with the same path doesn't exist, it will be inserted (including creating
@@ -68,12 +57,14 @@ export default class TreeRegistry {
 	 * Scheduling an upsert cancels any pending removal for the same resource path.
 	 *
 	 * @param {@ui5/fs/Resource} resource - Resource instance to upsert
+	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
 	 */
-	scheduleUpsert(resource) {
+	scheduleUpsert(resource, newIndexTimestamp) {
 		const resourcePath = resource.getOriginalPath();
 		this.pendingUpserts.set(resourcePath, resource);
 		// Cancel any pending removal for this path
 		this.pendingRemovals.delete(resourcePath);
+		this.pendingTimestampUpdate = newIndexTimestamp;
 	}
 
 	/**
@@ -160,7 +151,7 @@ export default class TreeRegistry {
 			for (const tree of this.trees) {
 				const parentNode = tree._findNode(parentPath);
 				if (parentNode && parentNode.type === "directory" && parentNode.children.has(resourceName)) {
-					treesWithResource.push({tree, parentNode});
+					treesWithResource.push({tree, parentNode, pathNodes: this._getPathNodes(tree, parts)});
 				}
 			}
 
@@ -169,12 +160,34 @@ export default class TreeRegistry {
 				const {parentNode} = treesWithResource[0];
 				parentNode.children.delete(resourceName);
 
-				for (const {tree} of treesWithResource) {
+				// Clean up empty parent directories in all affected trees
+				for (const {tree, pathNodes} of treesWithResource) {
+					// Clean up empty parent directories bottom-up
+					for (let i = parts.length - 1; i > 0; i--) {
+						const currentDirNode = pathNodes[i];
+						if (currentDirNode && currentDirNode.children.size === 0) {
+							// Directory is empty, remove it from its parent
+							const parentDirNode = pathNodes[i - 1];
+							if (parentDirNode) {
+								parentDirNode.children.delete(parts[i - 1]);
+							}
+						} else {
+							// Directory still has children, stop cleanup for this tree
+							break;
+						}
+					}
+
 					if (!affectedTrees.has(tree)) {
 						affectedTrees.set(tree, new Set());
 					}
 
-					this._markAncestorsAffected(tree, parts.slice(0, -1), affectedTrees);
+					// Mark ancestors for recomputation (only up to where directories still exist)
+					for (let i = 0; i < parts.length; i++) {
+						const ancestorPath = parts.slice(0, i).join(path.sep);
+						if (tree._findNode(ancestorPath)) {
+							affectedTrees.get(tree).add(ancestorPath);
+						}
+					}
 
 					// Track per-tree removal
 					treeStats.get(tree).removed.push(resourcePath);
@@ -320,12 +333,15 @@ export default class TreeRegistry {
 					tree._computeHash(node);
 				}
 			}
-			tree._updateIndexTimestamp();
+			if (this.pendingTimestampUpdate) {
+				tree.setIndexTimestamp(this.pendingTimestampUpdate);
+			}
 		}
 
 		// Clear all pending operations
 		this.pendingUpserts.clear();
 		this.pendingRemovals.clear();
+		this.pendingTimestampUpdate = null;
 
 		return {
 			added: addedResources,
@@ -334,6 +350,32 @@ export default class TreeRegistry {
 			removed: removedResources,
 			treeStats
 		};
+	}
+
+	/**
+	 * Get all nodes along a path from root to the target.
+	 *
+	 * Returns an array of TreeNode objects representing the full path,
+	 * starting with root at index 0 and ending with the target node.
+	 *
+	 * @param {import('./HashTree.js').default} tree - Tree to traverse
+	 * @param {string[]} pathParts - Path components to follow
+	 * @returns {Array<object>} Array of TreeNode objects along the path
+	 * @private
+	 */
+	_getPathNodes(tree, pathParts) {
+		const nodes = [tree.root];
+		let current = tree.root;
+
+		for (let i = 0; i < pathParts.length - 1; i++) {
+			if (!current.children.has(pathParts[i])) {
+				break;
+			}
+			current = current.children.get(pathParts[i]);
+			nodes.push(current);
+		}
+
+		return nodes;
 	}
 
 	/**
