@@ -1,0 +1,89 @@
+{
+	"name": "@ui5/cli-monorepo",
+	"version": "0.0.1",
+	"lockfileVersion": 3,
+	"requires": true,
+	"packages": {
+		"": {
+			"name": "monorepo-root",
+			"version": "0.0.1",
+			"license": "Apache-2.0",
+			"workspaces": [
+				"packages/target",
+				"packages/module-a",
+				"packages/module-b"
+			],
+			"dependencies": {},
+			"devDependencies": {}
+		},
+		"node_modules/@ui5/target": {
+			"resolved": "packages/target",
+			"link": true
+		},
+		"node_modules/@ui5/module-a": {
+			"resolved": "packages/module-a",
+			"link": true
+		},
+		"node_modules/@ui5/module-b": {
+			"resolved": "packages/module-b",
+			"link": true
+		},
+		"packages/target": {
+			"name": "@ui5/target",
+			"version": "1.0.0",
+			"license": "Apache-2.0",
+			"dependencies": {
+				"@sapui5/thirdparty-a": "^2.0.0",
+				"@sapui5/thirdparty-b": "^1.0.0",
+				"@ui5/module-a": "^1.0.0",
+				"@ui5/module-b": "^1.0.0"
+			},
+			"devDependencies": {}
+		},
+		"packages/module-a": {
+			"name": "@ui5/module-a",
+			"version": "1.0.0",
+			"license": "Apache-2.0",
+			"dependencies": {
+				"@ui5/module-b": "^1.0.0",
+				"@sapui5/thirdparty-a": "^1.0.0",
+				"@sapui5/thirdparty-b": "^1.0.0"
+			},
+			"devDependencies": {}
+		},
+		"packages/module-b": {
+			"name": "@ui5/module-b",
+			"version": "1.0.0",
+			"license": "Apache-2.0",
+			"dependencies": {
+				"@sapui5/thirdparty-a": "^1.0.0",
+				"@sapui5/thirdparty-b": "^1.0.0"
+			},
+			"devDependencies": {}
+		},
+		"node_modules/@sapui5/thirdparty-a": {
+			"version": "1.0.0",
+			"dependencies": {
+				"@sapui5/thirdparty-x": "^1.0.0"
+			}
+		},
+		"node_modules/@sapui5/thirdparty-b": {
+			"version": "1.0.0",
+			"dependencies": {
+				"@sapui5/thirdparty-x": "^1.0.0"
+			}
+		},
+		"node_modules/@sapui5/thirdparty-x": {
+			"version": "1.0.0"
+		},
+		"packages/target/node_modules/@sapui5/thirdparty-a": {
+			"version": "2.0.0",
+			"dependencies": {
+				"@sapui5/thirdparty-x": "^2.0.0"
+			}
+		},
+		"packages/target/node_modules/@sapui5/thirdparty-x": {
+			"version": "2.0.0"
+		}
+	}
+}
