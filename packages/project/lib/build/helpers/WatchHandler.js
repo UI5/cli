@@ -79,8 +79,8 @@ class WatchHandler extends EventEmitter {
 	}
 
 	#processQueue() {
-		if (!this.#ready || this.#updateInProgress) {
-			// Prevent concurrent updates
+		if (!this.#ready || this.#updateInProgress || !this.#sourceChanges.size) {
+			// Prevent concurrent or premature processing
 			return;
 		}
 
