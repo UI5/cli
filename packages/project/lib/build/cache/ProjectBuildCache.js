@@ -78,7 +78,9 @@ export default class ProjectBuildCache {
 	async #init() {
 		this.#resourceIndex = await this.#initResourceIndex();
 		this.#buildManifest = await this.#loadBuildManifest();
-		this.#requiresInitialBuild = !(await this.#loadIndexCache());
+		const hasIndexCache = await this.#loadIndexCache();
+		const requiresDepdendencyResources = true; // TODO: Determine dynamically using task caches
+		this.#requiresInitialBuild = !hasIndexCache || requiresDepdendencyResources;
 	}
 
 	/**
@@ -147,6 +149,8 @@ export default class ProjectBuildCache {
 	async prepareTaskExecution(taskName) {
 		const stageName = this.#getStageNameForTask(taskName);
 		const taskCache = this.#taskCache.get(taskName);
+		// Store current project reader (= state of the previous stage) for later use (e.g. in recordTaskResult)
+		this.#currentProjectReader = this.#project.getReader();
 		// Switch project to new stage
 		this.#project.useStage(stageName);
 		log.verbose(`Preparing task execution for task ${taskName} in project ${this.#project.getName()}...`);
@@ -161,7 +165,7 @@ export default class ProjectBuildCache {
 				deltaInfo = await taskCache.updateIndices(
 					invalidationInfo.changedProjectResourcePaths,
 					invalidationInfo.changedDependencyResourcePaths,
-					this.#project.getReader(), this.#dependencyReader);
+					this.#currentProjectReader, this.#dependencyReader);
 			} // else: Index will be created upon task completion
 
 			// After index update, try to find cached stages for the new signatures
@@ -191,8 +195,6 @@ export default class ProjectBuildCache {
 						`and ${deltaInfo.changedProjectResourcePaths.size} changed project resource paths and ` +
 						`${deltaInfo.changedDependencyResourcePaths.size} changed dependency resource paths.`);
 
-					// Store current project reader for later use in recordTaskResult
-					this.#currentProjectReader = this.#project.getReader();
 					return {
 						previousStageCache: deltaStageCache,
 						newSignature: deltaInfo.newSignature,
@@ -204,8 +206,6 @@ export default class ProjectBuildCache {
 		} else {
 			log.verbose(`No task cache found`);
 		}
-		// Store current project reader for later use in recordTaskResult
-		this.#currentProjectReader = this.#project.getReader();
 
 		return false; // Task needs to be executed
 	}

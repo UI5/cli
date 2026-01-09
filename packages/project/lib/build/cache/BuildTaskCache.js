@@ -228,12 +228,10 @@ export default class BuildTaskCache {
 	 * a unique combination of resources that were accessed during task execution.
 	 * Used to look up cached build stages.
 	 *
-	 * @param {module:@ui5/fs.AbstractReader} [projectReader] - Reader for project resources (currently unused)
-	 * @param {module:@ui5/fs.AbstractReader} [dependencyReader] - Reader for dependency resources (currently unused)
 	 * @returns {Promise<string[]>} Array of stage signature strings
 	 * @throws {Error} If resource index is missing for any request set
 	 */
-	async getPossibleStageSignatures(projectReader, dependencyReader) {
+	async getPossibleStageSignatures() {
 		await this.#initResourceRequests();
 		const requestSetIds = this.#resourceRequests.getAllNodeIds();
 		const signatures = requestSetIds.map((requestSetId) => {
@@ -287,7 +285,7 @@ export default class BuildTaskCache {
 		let resourceIndex;
 		if (setId) {
 			resourceIndex = this.#resourceRequests.getMetadata(setId).resourceIndex;
-			// await resourceIndex.updateResources(resourcesRead); // Index was already updated before the task executed
+			// Index was already updated before the task executed
 		} else {
 			// New request set, check whether we can create a delta
 			const metadata = {}; // Will populate with resourceIndex below
@@ -384,7 +382,8 @@ export default class BuildTaskCache {
 		for (const {treeStats} of res) {
 			for (const [tree, stats] of treeStats) {
 				if (stats.removed.length > 0) {
-					// If resources have been removed, we currently decide to not rely on any cache
+					// If the update process removed resources from that tree, this means that using it in a
+					// differential build might lead to stale removed resources
 					return;
 				}
 				const numberOfChanges = stats.added.length + stats.updated.length;

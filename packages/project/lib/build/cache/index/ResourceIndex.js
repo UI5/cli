@@ -30,18 +30,15 @@ import {createResourceIndex} from "../utils.js";
  */
 export default class ResourceIndex {
 	#tree;
-	#indexTimestamp;
 
 	/**
 	 * Creates a new ResourceIndex instance.
 	 *
 	 * @param {HashTree} tree - The hash tree containing resource metadata
-	 * @param {number} [indexTimestamp] - Timestamp when the index was created (defaults to current time)
 	 * @private
 	 */
-	constructor(tree, indexTimestamp) {
+	constructor(tree) {
 		this.#tree = tree;
-		this.#indexTimestamp = indexTimestamp || Date.now();
 	}
 
 	/**
@@ -53,12 +50,13 @@ export default class ResourceIndex {
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Resources to index
 	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
+	 * @param {number} indexTimestamp Timestamp at which the provided resources have been indexed
 	 * @returns {Promise<ResourceIndex>} A new resource index
 	 * @public
 	 */
-	static async create(resources, registry) {
+	static async create(resources, registry, indexTimestamp) {
 		const resourceIndex = await createResourceIndex(resources);
-		const tree = new HashTree(resourceIndex, {registry});
+		const tree = new HashTree(resourceIndex, {registry, indexTimestamp});
 		return new ResourceIndex(tree);
 	}
 
@@ -77,20 +75,21 @@ export default class ResourceIndex {
 	 * @param {number} indexCache.indexTimestamp - Timestamp of cached index
 	 * @param {object} indexCache.indexTree - Cached hash tree structure
 	 * @param {Array<@ui5/fs/Resource>} resources - Current resources to compare against cache
+	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
 	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<{changedPaths: string[], resourceIndex: ResourceIndex}>}
 	 *   Object containing array of all changed resource paths and the updated index
 	 * @public
 	 */
-	static async fromCacheWithDelta(indexCache, resources, registry) {
+	static async fromCacheWithDelta(indexCache, resources, newIndexTimestamp, registry) {
 		const {indexTimestamp, indexTree} = indexCache;
 		const tree = HashTree.fromCache(indexTree, {indexTimestamp, registry});
 		const currentResourcePaths = new Set(resources.map((resource) => resource.getOriginalPath()));
-		const removed = tree.getResourcePaths().filter((resourcePath) => {
+		const removedPaths = tree.getResourcePaths().filter((resourcePath) => {
 			return !currentResourcePaths.has(resourcePath);
 		});
-		await tree.removeResources(removed);
-		const {added, updated} = await tree.upsertResources(resources);
+		const {removed} = await tree.removeResources(removedPaths);
+		const {added, updated} = await tree.upsertResources(resources, newIndexTimestamp);
 		return {
 			changedPaths: [...added, ...updated, ...removed],
 			resourceIndex: new ResourceIndex(tree),
@@ -131,7 +130,7 @@ export default class ResourceIndex {
 	 * @public
 	 */
 	clone() {
-		const cloned = new ResourceIndex(this.#tree.clone(), this.#indexTimestamp);
+		const cloned = new ResourceIndex(this.#tree.clone());
 		return cloned;
 	}
 
@@ -155,19 +154,19 @@ export default class ResourceIndex {
 		return new ResourceIndex(this.#tree.deriveTree(resourceIndex));
 	}
 
-	/**
-	 * Updates existing resources in the index.
-	 *
-	 * Updates metadata for resources that already exist in the index.
-	 * Resources not present in the index are ignored.
-	 *
-	 * @param {Array<@ui5/fs/Resource>} resources - Resources to update
-	 * @returns {Promise<string[]>} Array of paths for resources that were updated
-	 * @public
-	 */
-	async updateResources(resources) {
-		return await this.#tree.updateResources(resources);
-	}
+	// /**
+	//  * Updates existing resources in the index.
+	//  *
+	//  * Updates metadata for resources that already exist in the index.
+	//  * Resources not present in the index are ignored.
+	//  *
+	//  * @param {Array<@ui5/fs/Resource>} resources - Resources to update
+	//  * @returns {Promise<string[]>} Array of paths for resources that were updated
+	//  * @public
+	//  */
+	// async updateResources(resources) {
+	// 	return await this.#tree.updateResources(resources);
+	// }
 
 	/**
 	 * Compares this index against a base index and returns metadata
@@ -234,7 +233,7 @@ export default class ResourceIndex {
 	 */
 	toCacheObject() {
 		return {
-			indexTimestamp: this.#indexTimestamp,
+			indexTimestamp: this.#tree.getIndexTimestamp(),
 			indexTree: this.#tree.toCacheObject(),
 		};
 	}

@@ -138,13 +138,13 @@ export default class HashTree {
 	 *   Initial resources to populate the tree. Each resource should have a path and optional metadata.
 	 * @param {object} options
 	 * @param {TreeRegistry} [options.registry] Optional registry for coordinated batch updates across multiple trees
-	 * @param {number} [options.indexTimestamp] Timestamp when the resource index was created (for metadata comparison)
+	 * @param {number} [options.indexTimestamp] Timestamp of the latest resource metadata update
 	 * @param {TreeNode} [options._root] Internal: pre-existing root node for derived trees (enables structural sharing)
 	 */
 	constructor(resources = null, options = {}) {
 		this.registry = options.registry || null;
 		this.root = options._root || new TreeNode("", "directory");
-		this.#indexTimestamp = options.indexTimestamp || Date.now();
+		this.#indexTimestamp = options.indexTimestamp;
 
 		// Register with registry if provided
 		if (this.registry) {
@@ -380,8 +380,10 @@ export default class HashTree {
 		return this.#indexTimestamp;
 	}
 
-	_updateIndexTimestamp() {
-		this.#indexTimestamp = Date.now();
+	setIndexTimestamp(timestamp) {
+		if (timestamp) {
+			this.#indexTimestamp = timestamp;
+		}
 	}
 
 	/**
@@ -434,86 +436,86 @@ export default class HashTree {
 		return derived;
 	}
 
-	/**
-	 * Update multiple resources efficiently.
-	 *
-	 * When a registry is attached, schedules updates for batch processing.
-	 * Otherwise, updates all resources immediately, collecting affected directories
-	 * and recomputing hashes bottom-up for optimal performance.
-	 *
-	 * Skips resources whose metadata hasn't changed (optimization).
-	 *
-	 * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to update
-	 * @returns {Promise<Array<string>>} Paths of resources that actually changed
-	 */
-	async updateResources(resources) {
-		if (!resources || resources.length === 0) {
-			return [];
-		}
+	// /**
+	//  * Update multiple resources efficiently.
+	//  *
+	//  * When a registry is attached, schedules updates for batch processing.
+	//  * Otherwise, updates all resources immediately, collecting affected directories
+	//  * and recomputing hashes bottom-up for optimal performance.
+	//  *
+	//  * Skips resources whose metadata hasn't changed (optimization).
+	//  *
+	//  * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to update
+	//  * @returns {Promise<Array<string>>} Paths of resources that actually changed
+	//  */
+	// async updateResources(resources) {
+	// 	if (!resources || resources.length === 0) {
+	// 		return [];
+	// 	}
 
-		const changedResources = [];
-		const affectedPaths = new Set();
+	// 	const changedResources = [];
+	// 	const affectedPaths = new Set();
 
-		// Update all resources and collect affected directory paths
-		for (const resource of resources) {
-			const resourcePath = resource.getOriginalPath();
-			const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
+	// 	// Update all resources and collect affected directory paths
+	// 	for (const resource of resources) {
+	// 		const resourcePath = resource.getOriginalPath();
+	// 		const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
 
-			// Find the resource node
-			const node = this._findNode(resourcePath);
-			if (!node || node.type !== "resource") {
-				throw new Error(`Resource not found: ${resourcePath}`);
-			}
+	// 		// Find the resource node
+	// 		const node = this._findNode(resourcePath);
+	// 		if (!node || node.type !== "resource") {
+	// 			throw new Error(`Resource not found: ${resourcePath}`);
+	// 		}
 
-			// Create metadata object from current node state
-			const currentMetadata = {
-				integrity: node.integrity,
-				lastModified: node.lastModified,
-				size: node.size,
-				inode: node.inode
-			};
+	// 		// Create metadata object from current node state
+	// 		const currentMetadata = {
+	// 			integrity: node.integrity,
+	// 			lastModified: node.lastModified,
+	// 			size: node.size,
+	// 			inode: node.inode
+	// 		};
 
-			// Check whether resource actually changed
-			const isUnchanged = await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
-			if (isUnchanged) {
-				continue; // Skip unchanged resources
-			}
+	// 		// Check whether resource actually changed
+	// 		const isUnchanged = await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
+	// 		if (isUnchanged) {
+	// 			continue; // Skip unchanged resources
+	// 		}
 
-			// Update resource metadata
-			node.integrity = await resource.getIntegrity();
-			node.lastModified = resource.getLastModified();
-			node.size = await resource.getSize();
-			node.inode = resource.getInode();
-			changedResources.push(resourcePath);
+	// 		// Update resource metadata
+	// 		node.integrity = await resource.getIntegrity();
+	// 		node.lastModified = resource.getLastModified();
+	// 		node.size = await resource.getSize();
+	// 		node.inode = resource.getInode();
+	// 		changedResources.push(resourcePath);
 
-			// Recompute resource hash
-			this._computeHash(node);
+	// 		// Recompute resource hash
+	// 		this._computeHash(node);
 
-			// Mark all ancestor directories as needing recomputation
-			for (let i = 0; i < parts.length; i++) {
-				affectedPaths.add(parts.slice(0, i).join(path.sep));
-			}
-		}
+	// 		// Mark all ancestor directories as needing recomputation
+	// 		for (let i = 0; i < parts.length; i++) {
+	// 			affectedPaths.add(parts.slice(0, i).join(path.sep));
+	// 		}
+	// 	}
 
-		// Recompute directory hashes bottom-up
-		const sortedPaths = Array.from(affectedPaths).sort((a, b) => {
-			// Sort by depth (deeper first) and then alphabetically
-			const depthA = a.split(path.sep).length;
-			const depthB = b.split(path.sep).length;
-			if (depthA !== depthB) return depthB - depthA;
-			return a.localeCompare(b);
-		});
+	// 	// Recompute directory hashes bottom-up
+	// 	const sortedPaths = Array.from(affectedPaths).sort((a, b) => {
+	// 		// Sort by depth (deeper first) and then alphabetically
+	// 		const depthA = a.split(path.sep).length;
+	// 		const depthB = b.split(path.sep).length;
+	// 		if (depthA !== depthB) return depthB - depthA;
+	// 		return a.localeCompare(b);
+	// 	});
 
-		for (const dirPath of sortedPaths) {
-			const node = this._findNode(dirPath);
-			if (node && node.type === "directory") {
-				this._computeHash(node);
-			}
-		}
+	// 	for (const dirPath of sortedPaths) {
+	// 		const node = this._findNode(dirPath);
+	// 		if (node && node.type === "directory") {
+	// 			this._computeHash(node);
+	// 		}
+	// 	}
 
-		this._updateIndexTimestamp();
-		return changedResources;
-	}
+	// 	this._updateIndexTimestamp();
+	// 	return changedResources;
+	// }
 
 	/**
 	 * Upsert multiple resources (insert if new, update if exists).
@@ -526,18 +528,19 @@ export default class HashTree {
 	 * Skips resources whose metadata hasn't changed (optimization).
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to upsert
+	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
 	 * @returns {Promise<{added: Array<string>, updated: Array<string>, unchanged: Array<string>}|undefined>}
 	 *   Status report: arrays of paths by operation type.
 	 * Undefined if using registry (results determined during flush).
 	 */
-	async upsertResources(resources) {
+	async upsertResources(resources, newIndexTimestamp) {
 		if (!resources || resources.length === 0) {
 			return {added: [], updated: [], unchanged: []};
 		}
 
 		if (this.registry) {
 			for (const resource of resources) {
-				this.registry.scheduleUpsert(resource);
+				this.registry.scheduleUpsert(resource, newIndexTimestamp);
 			}
 			// When using registry, actual results are determined during flush
 			return;
@@ -619,8 +622,7 @@ export default class HashTree {
 				this._computeHash(node);
 			}
 		}
-
-		this._updateIndexTimestamp();
+		this.setIndexTimestamp(newIndexTimestamp);
 		return {added, updated, unchanged};
 	}
 
@@ -662,15 +664,18 @@ export default class HashTree {
 				throw new Error("Cannot remove root");
 			}
 
-			// Navigate to parent
+			// Navigate to parent, keeping track of the path
+			const pathNodes = [this.root];
 			let current = this.root;
 			let pathExists = true;
+
 			for (let i = 0; i < parts.length - 1; i++) {
 				if (!current.children.has(parts[i])) {
 					pathExists = false;
 					break;
 				}
 				current = current.children.get(parts[i]);
+				pathNodes.push(current);
 			}
 
 			if (!pathExists) {
@@ -684,9 +689,26 @@ export default class HashTree {
 
 			if (wasRemoved) {
 				removed.push(resourcePath);
-				// Mark ancestors for recomputation
+
+				// Clean up empty parent directories bottom-up
+				for (let i = parts.length - 1; i > 0; i--) {
+					const parentNode = pathNodes[i];
+					if (parentNode.children.size === 0) {
+						// Directory is empty, remove it from its parent
+						const grandparentNode = pathNodes[i - 1];
+						grandparentNode.children.delete(parts[i - 1]);
+					} else {
+						// Directory still has children, stop cleanup
+						break;
+					}
+				}
+
+				// Mark ancestors for recomputation (only up to where directories still exist)
 				for (let i = 0; i < parts.length; i++) {
-					affectedPaths.add(parts.slice(0, i).join(path.sep));
+					const ancestorPath = parts.slice(0, i).join(path.sep);
+					if (this._findNode(ancestorPath)) {
+						affectedPaths.add(ancestorPath);
+					}
 				}
 			} else {
 				notFound.push(resourcePath);
@@ -708,7 +730,6 @@ export default class HashTree {
 			}
 		}
 
-		this._updateIndexTimestamp();
 		return {removed, notFound};
 	}
 
