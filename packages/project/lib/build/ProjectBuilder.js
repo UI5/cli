@@ -297,7 +297,7 @@ class ProjectBuilder {
 					pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 				}
 
-				if (!alreadyBuilt.includes(projectName)) {
+				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_CACHE_UPDATE) {
 					this.#log.verbose(`Saving cache...`);
 					const buildManifest = await createBuildManifest(
 						project,
@@ -375,6 +375,9 @@ class ProjectBuilder {
 				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 			}
 
+			if (process.env.UI5_BUILD_NO_CACHE_UPDATE) {
+				continue;
+			}
 			this.#log.verbose(`Updating cache...`);
 			const buildManifest = await createBuildManifest(
 				project,
