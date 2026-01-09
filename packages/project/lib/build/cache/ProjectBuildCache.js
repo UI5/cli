@@ -153,9 +153,11 @@ export default class ProjectBuildCache {
 		if (taskCache) {
 			let deltaInfo;
 			if (this.#invalidatedTasks.has(taskName)) {
-				log.verbose(`Task cache for task ${taskName} has been invalidated, updating indices...`);
 				const invalidationInfo =
 					this.#invalidatedTasks.get(taskName);
+				log.verbose(`Task cache for task ${taskName} has been invalidated, updating indices ` +
+					`with ${invalidationInfo.changedProjectResourcePaths.size} changed project resource paths and ` +
+					`${invalidationInfo.changedDependencyResourcePaths.size} changed dependency resource paths...`);
 				deltaInfo = await taskCache.updateIndices(
 					invalidationInfo.changedProjectResourcePaths,
 					invalidationInfo.changedDependencyResourcePaths,
