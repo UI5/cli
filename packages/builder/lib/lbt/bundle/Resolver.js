@@ -56,6 +56,7 @@ class BundleResolver {
 		 * in the resource pool.
 		 */
 		const missingModules = Object.create(null);
+		const ignoreMissingModules = pool.getIgnoreMissingModules();
 		/**
 		 * Names of modules that are included in non-decomposable bundles.
 		 * If they occur in the missingModules, then this is not an error.
@@ -123,7 +124,7 @@ class BundleResolver {
 					done = pool.findResourceWithInfo(resourceName)
 						.catch( (err) => {
 							// if the caller provided an error message, log it
-							if ( msg ) {
+							if ( msg && !ignoreMissingModules ) {
 								missingModules[resourceName] ??= [];
 								missingModules[resourceName].push(msg);
 							}
