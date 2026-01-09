@@ -33,6 +33,7 @@ export default class ProjectBuildCache {
 	#dependencyReader;
 	#resourceIndex;
 	#requiresInitialBuild;
+	#isNewOrModified;
 
 	#invalidatedTasks = new Map();
 
@@ -332,6 +333,7 @@ export default class ProjectBuildCache {
 		}
 		// Reset current project reader
 		this.#currentProjectReader = null;
+		this.#isNewOrModified = true;
 	}
 
 	/**
@@ -579,6 +581,7 @@ export default class ProjectBuildCache {
 			stageId, stageSignature, stageCache.resourceMetadata);
 		this.#project.setResultStage(reader);
 		this.#project.useResultStage();
+		this.#isNewOrModified = false;
 		return true;
 	}
 
@@ -695,9 +698,10 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async storeCache(buildManifest) {
-		log.verbose(`Storing build cache for project ${this.#project.getName()} ` +
-			`with build signature ${this.#buildSignature}`);
 		if (!this.#buildManifest) {
+			log.verbose(`Storing build manifest for project ${this.#project.getName()} ` +
+				`with build signature ${this.#buildSignature}`);
+			// Write build manifest if it wasn't loaded from cache before
 			this.#buildManifest = buildManifest;
 			await this.#cacheManager.writeBuildManifest(this.#project.getId(), this.#buildSignature, buildManifest);
 		}
@@ -707,11 +711,20 @@ export default class ProjectBuildCache {
 
 		// Store task caches
 		for (const [taskName, taskCache] of this.#taskCache) {
-			await this.#cacheManager.writeTaskMetadata(this.#project.getId(), this.#buildSignature, taskName,
-				taskCache.toCacheObject());
+			if (taskCache.isNewOrModified()) {
+				log.verbose(`Storing task cache metadata for task ${taskName} in project ${this.#project.getName()} ` +
+					`with build signature ${this.#buildSignature}`);
+				await this.#cacheManager.writeTaskMetadata(this.#project.getId(), this.#buildSignature, taskName,
+					taskCache.toCacheObject());
+			}
 		}
 
+		if (!this.#isNewOrModified) {
+			return;
+		}
 		// Store stage caches
+		log.verbose(`Storing stage caches for project ${this.#project.getName()} ` +
+			`with build signature ${this.#buildSignature}`);
 		const stageQueue = this.#stageCache.flushCacheQueue();
 		await Promise.all(stageQueue.map(async ([stageId, stageSignature]) => {
 			const {stage} = this.#stageCache.getCacheForSignature(stageId, stageSignature);
@@ -739,6 +752,8 @@ export default class ProjectBuildCache {
 		}));
 
 		// Finally store index cache
+		log.verbose(`Storing resource index cache for project ${this.#project.getName()} ` +
+			`with build signature ${this.#buildSignature}`);
 		const indexMetadata = this.#resourceIndex.toCacheObject();
 		await this.#cacheManager.writeIndexCache(this.#project.getId(), this.#buildSignature, {
 			...indexMetadata,
