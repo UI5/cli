@@ -69,8 +69,8 @@ test("Updating resources in two trees produces same root hash", async (t) => {
 
 	// Update same resource in both trees
 	const resource = createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1);
-	await tree1.updateResources([resource]);
-	await tree2.updateResources([resource]);
+	await tree1.upsertResources([resource]);
+	await tree2.upsertResources([resource]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should have same root hash after identical updates");
@@ -89,13 +89,13 @@ test("Multiple updates in same order produce same root hash", async (t) => {
 	const indexTimestamp = tree1.getIndexTimestamp();
 
 	// Update multiple resources in same order
-	await tree1.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
-	await tree1.updateResources([createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4)]);
-	await tree1.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
+	await tree1.upsertResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree1.upsertResources([createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4)]);
+	await tree1.upsertResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
 
-	await tree2.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
-	await tree2.updateResources([createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4)]);
-	await tree2.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
+	await tree2.upsertResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree2.upsertResources([createMockResource("dir/d.js", "new-hash-d", indexTimestamp + 1, 401, 4)]);
+	await tree2.upsertResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should have same root hash after same sequence of updates");
@@ -113,13 +113,13 @@ test("Multiple updates in different order produce same root hash", async (t) => 
 	const indexTimestamp = tree1.getIndexTimestamp();
 
 	// Update in different orders
-	await tree1.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
-	await tree1.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
-	await tree1.updateResources([createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3)]);
+	await tree1.upsertResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree1.upsertResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
+	await tree1.upsertResources([createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3)]);
 
-	await tree2.updateResources([createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3)]);
-	await tree2.updateResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
-	await tree2.updateResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
+	await tree2.upsertResources([createMockResource("c.js", "new-hash-c", indexTimestamp + 1, 301, 3)]);
+	await tree2.upsertResources([createMockResource("a.js", "new-hash-a", indexTimestamp + 1, 101, 1)]);
+	await tree2.upsertResources([createMockResource("b.js", "new-hash-b", indexTimestamp + 1, 201, 2)]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should have same root hash regardless of update order");
@@ -137,15 +137,15 @@ test("Batch updates produce same hash as individual updates", async (t) => {
 	const indexTimestamp = tree1.getIndexTimestamp();
 
 	// Individual updates
-	await tree1.updateResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
-	await tree1.updateResources([createMockResource("file2.js", "new-hash2", indexTimestamp + 1, 201, 2)]);
+	await tree1.upsertResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
+	await tree1.upsertResources([createMockResource("file2.js", "new-hash2", indexTimestamp + 1, 201, 2)]);
 
 	// Batch update
 	const resources = [
 		createMockResource("file1.js", "new-hash1", 1001, 101, 1),
 		createMockResource("file2.js", "new-hash2", 2001, 201, 2)
 	];
-	await tree2.updateResources(resources);
+	await tree2.upsertResources(resources);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Batch updates should produce same hash as individual updates");
@@ -161,7 +161,7 @@ test("Updating resource changes root hash", async (t) => {
 	const originalHash = tree.getRootHash();
 	const indexTimestamp = tree.getIndexTimestamp();
 
-	await tree.updateResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
+	await tree.upsertResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
 	const newHash = tree.getRootHash();
 
 	t.not(originalHash, newHash,
@@ -179,8 +179,8 @@ test("Updating resource back to original value restores original hash", async (t
 	const indexTimestamp = tree.getIndexTimestamp();
 
 	// Update and then revert
-	await tree.updateResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
-	await tree.updateResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
+	await tree.upsertResources([createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)]);
+	await tree.upsertResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
 
 	t.is(tree.getRootHash(), originalHash,
 		"Root hash should be restored when resource is reverted to original value");
@@ -193,11 +193,11 @@ test("updateResource returns changed resource path", async (t) => {
 
 	const tree = new HashTree(resources);
 	const indexTimestamp = tree.getIndexTimestamp();
-	const changed = await tree.updateResources([
+	const {updated} = await tree.upsertResources([
 		createMockResource("file1.js", "new-hash1", indexTimestamp + 1, 101, 1)
 	]);
 
-	t.deepEqual(changed, ["file1.js"], "Should return path of changed resource");
+	t.deepEqual(updated, ["file1.js"], "Should return path of changed resource");
 });
 
 test("updateResource returns empty array when integrity unchanged", async (t) => {
@@ -206,9 +206,9 @@ test("updateResource returns empty array when integrity unchanged", async (t) =>
 	];
 
 	const tree = new HashTree(resources);
-	const changed = await tree.updateResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
+	const {updated} = await tree.upsertResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
 
-	t.deepEqual(changed, [], "Should return empty array when integrity unchanged");
+	t.deepEqual(updated, [], "Should return empty array when integrity unchanged");
 });
 
 test("updateResource does not change hash when integrity unchanged", async (t) => {
@@ -218,12 +218,12 @@ test("updateResource does not change hash when integrity unchanged", async (t) =
 
 	const tree = new HashTree(resources);
 	const originalHash = tree.getRootHash();
-	await tree.updateResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
+	await tree.upsertResources([createMockResource("file1.js", "hash1", 1000, 100, 1)]);
 
 	t.is(tree.getRootHash(), originalHash, "Hash should not change when integrity unchanged");
 });
 
-test("updateResources returns changed resource paths", async (t) => {
+test("upsertResources returns changed resource paths", async (t) => {
 	const resources = [
 		{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100},
 		{path: "file2.js", integrity: "hash2", lastModified: 2000, size: 200},
@@ -238,12 +238,12 @@ test("updateResources returns changed resource paths", async (t) => {
 		createMockResource("file2.js", "hash2", 2000, 200, 2), // unchanged
 		createMockResource("file3.js", "new-hash3", indexTimestamp + 1, 301, 3) // Changed
 	];
-	const changed = await tree.updateResources(resourceUpdates);
+	const {updated} = await tree.upsertResources(resourceUpdates);
 
-	t.deepEqual(changed, ["file1.js", "file3.js"], "Should return only changed paths");
+	t.deepEqual(updated, ["file1.js", "file3.js"], "Should return only updated paths");
 });
 
-test("updateResources returns empty array when no changes", async (t) => {
+test("upsertResources returns empty array when no changes", async (t) => {
 	const resources = [
 		{path: "file1.js", integrity: "hash1", lastModified: 1000, size: 100},
 		{path: "file2.js", integrity: "hash2", lastModified: 2000, size: 200}
@@ -254,9 +254,9 @@ test("updateResources returns empty array when no changes", async (t) => {
 		createMockResource("file1.js", "hash1", 1000, 100, 1),
 		createMockResource("file2.js", "hash2", 2000, 200, 2)
 	];
-	const changed = await tree.updateResources(resourceUpdates);
+	const {updated} = await tree.upsertResources(resourceUpdates);
 
-	t.deepEqual(changed, [], "Should return empty array when no changes");
+	t.deepEqual(updated, [], "Should return empty array when no changes");
 });
 
 test("Different nested structures with same resources produce different hashes", (t) => {
@@ -286,12 +286,12 @@ test("Updating unrelated resource doesn't affect consistency", async (t) => {
 	const tree2 = new HashTree(initialResources);
 
 	// Update different resources
-	await tree1.updateResources([createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789)]);
-	await tree2.updateResources([createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789)]);
+	await tree1.upsertResources([createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789)]);
+	await tree2.upsertResources([createMockResource("file1.js", "new-hash1", Date.now(), 1024, 789)]);
 
 	// Update an unrelated resource in both
-	await tree1.updateResources([createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790)]);
-	await tree2.updateResources([createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790)]);
+	await tree1.upsertResources([createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790)]);
+	await tree2.upsertResources([createMockResource("dir/file3.js", "new-hash3", Date.now(), 2048, 790)]);
 
 	t.is(tree1.getRootHash(), tree2.getRootHash(),
 		"Trees should remain consistent after updating multiple resources");
@@ -452,6 +452,57 @@ test("removeResources - remove from nested directory", async (t) => {
 	t.truthy(tree.hasPath("dir1/c.js"), "Should still have dir1/c.js");
 });
 
+test("removeResources - removing last resource in directory cleans up directory", async (t) => {
+	const tree = new HashTree([
+		{path: "dir1/dir2/only.js", integrity: "hash-only"},
+		{path: "dir1/other.js", integrity: "hash-other"}
+	]);
+
+	// Verify structure before removal
+	t.truthy(tree.hasPath("dir1/dir2/only.js"), "Should have dir1/dir2/only.js");
+	t.truthy(tree._findNode("dir1/dir2"), "Directory dir1/dir2 should exist");
+
+	// Remove the only resource in dir2
+	const result = await tree.removeResources(["dir1/dir2/only.js"]);
+
+	t.deepEqual(result.removed, ["dir1/dir2/only.js"], "Should remove resource");
+	t.false(tree.hasPath("dir1/dir2/only.js"), "Should not have dir1/dir2/only.js");
+
+	// Check if empty directory is cleaned up
+	const dir2Node = tree._findNode("dir1/dir2");
+	t.is(dir2Node, null, "Empty directory dir1/dir2 should be removed");
+
+	// Parent directory should still exist with other.js
+	t.truthy(tree.hasPath("dir1/other.js"), "Should still have dir1/other.js");
+	t.truthy(tree._findNode("dir1"), "Parent directory dir1 should still exist");
+});
+
+test("removeResources - cleans up deeply nested empty directories", async (t) => {
+	const tree = new HashTree([
+		{path: "a/b/c/d/e/deep.js", integrity: "hash-deep"},
+		{path: "a/sibling.js", integrity: "hash-sibling"}
+	]);
+
+	// Verify structure before removal
+	t.truthy(tree.hasPath("a/b/c/d/e/deep.js"), "Should have deeply nested file");
+	t.truthy(tree._findNode("a/b/c/d/e"), "Deep directory should exist");
+
+	// Remove the only resource in the deep hierarchy
+	const result = await tree.removeResources(["a/b/c/d/e/deep.js"]);
+
+	t.deepEqual(result.removed, ["a/b/c/d/e/deep.js"], "Should remove resource");
+
+	// All empty directories in the chain should be removed
+	t.is(tree._findNode("a/b/c/d/e"), null, "Directory e should be removed");
+	t.is(tree._findNode("a/b/c/d"), null, "Directory d should be removed");
+	t.is(tree._findNode("a/b/c"), null, "Directory c should be removed");
+	t.is(tree._findNode("a/b"), null, "Directory b should be removed");
+
+	// Parent directory with sibling should still exist
+	t.truthy(tree._findNode("a"), "Directory a should still exist (has sibling.js)");
+	t.truthy(tree.hasPath("a/sibling.js"), "Sibling file should still exist");
+});
+
 test("deriveTree - copies only modified directories (copy-on-write)", (t) => {
 	const tree1 = new HashTree([
 		{path: "shared/a.js", integrity: "hash-a"},
@@ -532,7 +583,7 @@ test("deriveTree - changes propagate to derived trees (shared view)", async (t) 
 
 	// When tree1 is updated, tree2 sees the change (filtered view behavior)
 	const indexTimestamp = tree1.getIndexTimestamp();
-	await tree1.updateResources([
+	await tree1.upsertResources([
 		createMockResource("shared/a.js", "new-hash-a", indexTimestamp + 1, 101, 1)
 	]);
 
