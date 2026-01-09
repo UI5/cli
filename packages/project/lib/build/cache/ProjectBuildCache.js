@@ -147,6 +147,8 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<boolean|object>} True or object if task can use cache, false otherwise
 	 */
 	async prepareTaskExecution(taskName) {
+		// Remove initial build requirement once first task is prepared
+		this.#requiresInitialBuild = false;
 		const stageName = this.#getStageNameForTask(taskName);
 		const taskCache = this.#taskCache.get(taskName);
 		// Store current project reader (= state of the previous stage) for later use (e.g. in recordTaskResult)
