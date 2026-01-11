@@ -161,11 +161,12 @@ export default class CacheManager {
 	 * @private
 	 * @param {string} packageName - Package/project identifier
 	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} kind "source" or "result"
 	 * @returns {string} Absolute path to the index metadata file
 	 */
-	#getIndexCachePath(packageName, buildSignature) {
+	#getIndexCachePath(packageName, buildSignature, kind) {
 		const pkgDir = getPathFromPackageName(packageName);
-		return path.join(this.#indexDir, pkgDir, `${buildSignature}.json`);
+		return path.join(this.#indexDir, pkgDir, `${kind}-${buildSignature}.json`);
 	}
 
 	/**
@@ -176,12 +177,13 @@ export default class CacheManager {
 	 *
 	 * @param {string} projectId - Project identifier (typically package name)
 	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} kind "source" or "result"
 	 * @returns {Promise<object|null>} Parsed index cache object or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
-	async readIndexCache(projectId, buildSignature) {
+	async readIndexCache(projectId, buildSignature, kind) {
 		try {
-			const metadata = await readFile(this.#getIndexCachePath(projectId, buildSignature), "utf8");
+			const metadata = await readFile(this.#getIndexCachePath(projectId, buildSignature, kind), "utf8");
 			return JSON.parse(metadata);
 		} catch (err) {
 			if (err.code === "ENOENT") {
@@ -203,11 +205,12 @@ export default class CacheManager {
 	 *
 	 * @param {string} projectId - Project identifier (typically package name)
 	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} kind "source" or "result"
 	 * @param {object} index - Index object containing resource tree and task metadata
 	 * @returns {Promise<void>}
 	 */
-	async writeIndexCache(projectId, buildSignature, index) {
-		const indexPath = this.#getIndexCachePath(projectId, buildSignature);
+	async writeIndexCache(projectId, buildSignature, kind, index) {
+		const indexPath = this.#getIndexCachePath(projectId, buildSignature, kind);
 		await mkdir(path.dirname(indexPath), {recursive: true});
 		await writeFile(indexPath, JSON.stringify(index, null, 2), "utf8");
 	}
