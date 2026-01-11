@@ -180,7 +180,7 @@ class ProjectBuilder {
 			}
 		}
 
-		const projectBuildContexts = await this._createRequiredBuildContexts(requestedProjects);
+		const projectBuildContexts = await this._buildContext.createRequiredProjectContexts(requestedProjects);
 		let fsTarget;
 		if (destPath) {
 			fsTarget = resourceFactory.createAdapter({
@@ -236,7 +236,16 @@ class ProjectBuilder {
 		}));
 
 		const alreadyBuilt = [];
+		const changedDependencyResources = [];
 		for (const projectBuildContext of queue) {
+			if (changedDependencyResources.length) {
+				// Notify build cache of changed resources from dependencies
+				projectBuildContext.dependencyResourcesChanged(changedDependencyResources);
+			}
+			const changedResources = await projectBuildContext.determineChangedResources();
+			for (const resourcePath of changedResources) {
+				changedDependencyResources.push(resourcePath);
+			}
 			if (!await projectBuildContext.requiresBuild()) {
 				const projectName = projectBuildContext.getProject().getName();
 				alreadyBuilt.push(projectName);
@@ -275,19 +284,24 @@ class ProjectBuilder {
 		try {
 			const startTime = process.hrtime();
 			const pWrites = [];
-			for (const projectBuildContext of queue) {
+			while (queue.length) {
+				const projectBuildContext = queue.shift();
 				const project = projectBuildContext.getProject();
 				const projectName = project.getName();
 				const projectType = project.getType();
 				this.#log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
-				if (alreadyBuilt.includes(projectName)) {
+				if (alreadyBuilt.includes(projectName) || !(await projectBuildContext.requiresBuild())) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
 					this.#log.startProjectBuild(projectName, projectType);
-					await projectBuildContext.getTaskRunner().runTasks();
+					const changedResources = await projectBuildContext.runTasks();
 					this.#log.endProjectBuild(projectName, projectType);
+					for (const pbc of queue) {
+						// Propagate resource changes to following projects
+						pbc.getBuildCache().dependencyResourcesChanged(changedResources);
+					}
 				}
 				if (!requestedProjects.includes(projectName)) {
 					// Project has not been requested
@@ -306,7 +320,7 @@ class ProjectBuilder {
 						project,
 						this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
 						projectBuildContext.getBuildSignature());
-					pWrites.push(projectBuildContext.getBuildCache().storeCache(buildManifest));
+					pWrites.push(projectBuildContext.getBuildCache().writeCache(buildManifest));
 				}
 			}
 			await Promise.all(pWrites);
@@ -337,6 +351,7 @@ class ProjectBuilder {
 
 	async #update(projectBuildContexts, requestedProjects, fsTarget) {
 		const queue = [];
+		const changedDependencyResources = [];
 		await this._graph.traverseDepthFirst(async ({project}) => {
 			const projectName = project.getName();
 			const projectBuildContext = projectBuildContexts.get(projectName);
@@ -345,6 +360,15 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
+
+				if (changedDependencyResources.length) {
+					// Notify build cache of changed resources from dependencies
+					await projectBuildContext.dependencyResourcesChanged(changedDependencyResources);
+				}
+				const changedResources = await projectBuildContext.determineChangedResources();
+				for (const resourcePath of changedResources) {
+					changedDependencyResources.push(resourcePath);
+				}
 			}
 		});
 
@@ -353,7 +377,8 @@ class ProjectBuilder {
 		}));
 
 		const pWrites = [];
-		for (const projectBuildContext of queue) {
+		while (queue.length) {
+			const projectBuildContext = queue.shift();
 			const project = projectBuildContext.getProject();
 			const projectName = project.getName();
 			const projectType = project.getType();
@@ -365,8 +390,12 @@ class ProjectBuilder {
 			}
 
 			this.#log.startProjectBuild(projectName, projectType);
-			await projectBuildContext.runTasks();
+			const changedResources = await projectBuildContext.runTasks();
 			this.#log.endProjectBuild(projectName, projectType);
+			for (const pbc of queue) {
+				// Propagate resource changes to following projects
+				pbc.getBuildCache().dependencyResourcesChanged(changedResources);
+			}
 			if (!requestedProjects.includes(projectName)) {
 				// Project has not been requested
 				//	=> Its resources shall not be part of the build result
@@ -386,50 +415,9 @@ class ProjectBuilder {
 				project,
 				this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
 				projectBuildContext.getBuildSignature());
-			pWrites.push(projectBuildContext.getBuildCache().storeCache(buildManifest));
+			pWrites.push(projectBuildContext.getBuildCache().writeCache(buildManifest));
 		}
 		await Promise.all(pWrites);
-	}
-
-	async _createRequiredBuildContexts(requestedProjects) {
-		const requiredProjects = new Set(this._graph.getProjectNames().filter((projectName) => {
-			return requestedProjects.includes(projectName);
-		}));
-
-		const projectBuildContexts = new Map();
-
-		for (const projectName of requiredProjects) {
-			this.#log.verbose(`Creating build context for project ${projectName}...`);
-			const projectBuildContext = await this._buildContext.createProjectContext({
-				project: this._graph.getProject(projectName)
-			});
-
-			projectBuildContexts.set(projectName, projectBuildContext);
-
-			if (await projectBuildContext.requiresBuild()) {
-				const taskRunner = projectBuildContext.getTaskRunner();
-				const requiredDependencies = await taskRunner.getRequiredDependencies();
-
-				if (requiredDependencies.size === 0) {
-					continue;
-				}
-				// This project needs to be built and required dependencies to be built as well
-				this._graph.getDependencies(projectName).forEach((depName) => {
-					if (projectBuildContexts.has(depName)) {
-						// Build context already exists
-						//	=> Dependency will be built
-						return;
-					}
-					if (!requiredDependencies.has(depName)) {
-						return;
-					}
-					// Add dependency to list of projects to build
-					requiredProjects.add(depName);
-				});
-			}
-		}
-
-		return projectBuildContexts;
 	}
 
 	async _getProjectFilter({
