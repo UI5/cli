@@ -2,6 +2,7 @@ import {createResource, createProxy} from "@ui5/fs/resourceFactory";
 import {getLogger} from "@ui5/logger";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
+import crypto from "node:crypto";
 import {gunzip, createGunzip} from "node:zlib";
 const readFile = promisify(fs.readFile);
 import BuildTaskCache from "./BuildTaskCache.js";
@@ -27,13 +28,23 @@ export default class ProjectBuildCache {
 
 	#project;
 	#buildSignature;
-	#buildManifest;
+	// #buildManifest;
 	#cacheManager;
 	#currentProjectReader;
 	#dependencyReader;
-	#resourceIndex;
-	#requiresInitialBuild;
-	#isNewOrModified;
+	#sourceIndex;
+	#cachedSourceSignature;
+	#resultIndex;
+	#cachedResultSignature;
+	#currentResultSignature;
+
+	#usingResultStage = false;
+
+	// Pending changes
+	#changedProjectSourcePaths = new Set();
+	#changedProjectResourcePaths = new Set();
+	#changedDependencyResourcePaths = new Set();
+	#changedResultResourcePaths = new Set();
 
 	#invalidatedTasks = new Map();
 
@@ -77,11 +88,72 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<void>}
 	 */
 	async #init() {
-		this.#resourceIndex = await this.#initResourceIndex();
-		this.#buildManifest = await this.#loadBuildManifest();
-		const hasIndexCache = await this.#loadIndexCache();
-		const requiresDepdendencyResources = true; // TODO: Determine dynamically using task caches
-		this.#requiresInitialBuild = !hasIndexCache || requiresDepdendencyResources;
+		// this.#buildManifest = await this.#loadBuildManifest();
+		// this.#sourceIndex = await this.#initResourceIndex();
+		// const hasIndexCache = await this.#loadIndexCache();
+		// const requiresDepdendencyResources = true; // TODO: Determine dynamically using task caches
+		// this.#requiresInitialBuild = !hasIndexCache || requiresDepdendencyResources;
+	}
+
+	/**
+	 * Determines changed resources since last build
+	 *
+	 * This is expected to be the first method called on the cache.
+	 * Hence it will perform some initialization and deserialization tasks as needed.
+ 	*/
+	async determineChangedResources() {
+		// TODO: Start detached initializations in constructor and await them here?
+		let changedSourcePaths;
+		if (!this.#sourceIndex) {
+			changedSourcePaths = await this.#initSourceIndex();
+			for (const resourcePath of changedSourcePaths) {
+				this.#changedProjectSourcePaths.add(resourcePath);
+			}
+		} else if (this.#changedProjectSourcePaths.size) {
+			changedSourcePaths = await this._updateSourceIndex(this.#changedProjectSourcePaths);
+		} else {
+			changedSourcePaths = [];
+		}
+
+		if (!this.#resultIndex) {
+			await this.#initResultIndex();
+		}
+
+		await this.#flushPendingInputChanges();
+		return changedSourcePaths;
+	}
+
+	/**
+	 * Determines whether a rebuild is needed.
+	 *
+	 * A rebuild is required if:
+	 * - No task cache exists
+	 * - Any tasks have been invalidated
+	 * - Initial build is required (e.g., cache couldn't be loaded)
+	 *
+	 * @param {string[]} dependencySignatures - Sorted by name of the dependency project
+	 * @returns {boolean} True if rebuild is needed, false if cache can be fully utilized
+	 */
+	async requiresBuild(dependencySignatures) {
+		if (this.#invalidatedTasks.size > 0) {
+			this.#usingResultStage = false;
+			return true;
+		}
+
+		if (this.#usingResultStage && this.#invalidatedTasks.size === 0) {
+			return false;
+		}
+
+		if (await this.#hasValidResultCache(dependencySignatures)) {
+			return false;
+		}
+		return true;
+	}
+
+	async getResultSignature() {
+		// Do not include dependency signatures here. They are not relevant to consumers of this project and would
+		// unnecessarily invalidate their caches.
+		return this.#resultIndex.getSignature();
 	}
 
 	/**
@@ -92,14 +164,13 @@ export default class ProjectBuildCache {
 	 * resources have changed. If no cache exists, creates a fresh index.
 	 *
 	 * @private
-	 * @returns {Promise<ResourceIndex>} The initialized resource index
 	 * @throws {Error} If cached index signature doesn't match computed signature
 	 */
-	async #initResourceIndex() {
+	async #initSourceIndex() {
 		const sourceReader = this.#project.getSourceReader();
 		const [resources, indexCache] = await Promise.all([
 			await sourceReader.byGlob("/**/*"),
-			await this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature),
+			await this.#cacheManager.readIndexCache(this.#project.getId(), this.#buildSignature, "source"),
 		]);
 		if (indexCache) {
 			log.verbose(`Using cached resource index for project ${this.#project.getName()}`);
@@ -120,17 +191,109 @@ export default class ProjectBuildCache {
 				// Since no tasks have been invalidated, a rebuild is still necessary in this case, so that
 				// each task can find and use its individual stage cache.
 				// Hence requiresInitialBuild will be set to true in this case (and others.
-				await this.resourceChanged(changedPaths, []);
+				const tasksInvalidated = await this._invalidateTasks(changedPaths, []);
+				if (!tasksInvalidated) {
+					this.#cachedSourceSignature = resourceIndex.getSignature();
+				}
+				// for (const resourcePath of changedPaths) {
+				// 	this.#changedProjectResourcePaths.add(resourcePath);
+				// }
 			} else if (indexCache.indexTree.root.hash !== resourceIndex.getSignature()) {
 				// Validate index signature matches with cached signature
 				throw new Error(
 					`Resource index signature mismatch for project ${this.#project.getName()}: ` +
 					`expected ${indexCache.indexTree.root.hash}, got ${resourceIndex.getSignature()}`);
+			} else {
+				log.verbose(
+					`Resource index signature for project ${this.#project.getName()} matches cached signature: ` +
+					`${resourceIndex.getSignature()}`);
+				this.#cachedSourceSignature = resourceIndex.getSignature();
 			}
-			return resourceIndex;
+			this.#sourceIndex = resourceIndex;
+			return changedPaths;
+		} else {
+			// No index cache found, create new index
+			this.#sourceIndex = await ResourceIndex.create(resources);
+			return [];
 		}
-		// No index cache found, create new index
-		return await ResourceIndex.create(resources);
+	}
+
+	async _updateSourceIndex(resourcePaths) {
+		if (resourcePaths.size === 0) {
+			return [];
+		}
+		const sourceReader = this.#project.getSourceReader();
+		const resources = await Promise.all(Array.from(resourcePaths).map(async (resourcePath) => {
+			const resource = await sourceReader.byPath(resourcePath);
+			if (!resource) {
+				throw new Error(
+					`Failed to update source index for project ${this.#project.getName()}: ` +
+					`resource at path ${resourcePath} not found in source reader`);
+			}
+			return resource;
+		}));
+		const res = await this.#sourceIndex.upsertResources(resources);
+		return [...res.added, ...res.updated];
+	}
+
+	async #initResultIndex() {
+		const indexCache = await this.#cacheManager.readIndexCache(
+			this.#project.getId(), this.#buildSignature, "result");
+
+		if (indexCache) {
+			log.verbose(`Using cached result resource index for project ${this.#project.getName()}`);
+			this.#resultIndex = await ResourceIndex.fromCache(indexCache);
+			this.#cachedResultSignature = this.#resultIndex.getSignature();
+		} else {
+			this.#resultIndex = await ResourceIndex.create([]);
+		}
+	}
+
+	#getResultStageSignature(sourceSignature, dependencySignatures) {
+		// Different from the project cache's "result signature", the "result stage signature" includes the
+		// signatures of dependencies, since they possibly affect the result stage's content.
+		const stageSignature = `${sourceSignature}|${dependencySignatures.join("|")}`;
+		return crypto.createHash("sha256").update(stageSignature).digest("hex");
+	}
+
+	/**
+	 * Loads the cached result stage from persistent storage
+	 *
+	 * Attempts to load a cached result stage using the resource index signature.
+	 * If found, creates a reader for the cached stage and sets it as the project's
+	 * result stage.
+	 *
+	 * @param {string[]} dependencySignatures
+	 * @private
+	 * @returns {Promise<boolean>} True if cache was loaded successfully, false otherwise
+	 */
+	async #hasValidResultCache(dependencySignatures) {
+		const stageSignature = this.#getResultStageSignature(this.#sourceIndex.getSignature(), dependencySignatures);
+		if (this.#currentResultSignature === stageSignature) {
+			// log.verbose(
+			// 	`Project ${this.#project.getName()} result stage signature unchanged: ${stageSignature}`);
+			// TODO: Requires setResultStage again?
+			return this.#usingResultStage;
+		}
+		this.#currentResultSignature = stageSignature;
+		const stageId = "result";
+		log.verbose(`Project ${this.#project.getName()} resource index signature: ${stageSignature}`);
+		const stageCache = await this.#cacheManager.readStageCache(
+			this.#project.getId(), this.#buildSignature, stageId, stageSignature);
+
+		if (!stageCache) {
+			log.verbose(
+				`No cached stage found for project ${this.#project.getName()} with index signature ${stageSignature}`);
+			return false;
+		}
+		log.verbose(
+			`Using cached result stage for project ${this.#project.getName()} with index signature ${stageSignature}`);
+		const reader = await this.#createReaderForStageCache(
+			stageId, stageSignature, stageCache.resourceMetadata);
+		this.#project.setResultStage(reader);
+		this.#project.useResultStage();
+		this.#usingResultStage = true;
+		return true;
 	}
 
 	// ===== TASK MANAGEMENT =====
@@ -148,8 +311,6 @@ export default class ProjectBuildCache {
 	 * @returns {Promise<boolean|object>} True or object if task can use cache, false otherwise
 	 */
 	async prepareTaskExecution(taskName) {
-		// Remove initial build requirement once first task is prepared
-		this.#requiresInitialBuild = false;
 		const stageName = this.#getStageNameForTask(taskName);
 		const taskCache = this.#taskCache.get(taskName);
 		// Store current project reader (= state of the previous stage) for later use (e.g. in recordTaskResult)
@@ -184,7 +345,7 @@ export default class ProjectBuildCache {
 
 				if (!stageChanged && stageCache.writtenResourcePaths.size) {
 					// Invalidate following tasks
-					this.#invalidateFollowingTasks(taskName, stageCache.writtenResourcePaths);
+					this.#invalidateFollowingTasks(taskName, Array.from(stageCache.writtenResourcePaths));
 				}
 				return true; // No need to execute the task
 			} else if (deltaInfo) {
@@ -327,13 +488,12 @@ export default class ProjectBuildCache {
 		}
 
 		// Update task cache with new metadata
-		if (writtenResourcePaths.size) {
-			log.verbose(`Task ${taskName} produced ${writtenResourcePaths.size} resources`);
+		if (writtenResourcePaths.length) {
+			log.verbose(`Task ${taskName} produced ${writtenResourcePaths.length} resources`);
 			this.#invalidateFollowingTasks(taskName, writtenResourcePaths);
 		}
 		// Reset current project reader
 		this.#currentProjectReader = null;
-		this.#isNewOrModified = true;
 	}
 
 	/**
@@ -344,17 +504,15 @@ export default class ProjectBuildCache {
 	 *
 	 * @private
 	 * @param {string} taskName - Name of the task that wrote resources
-	 * @param {Set<string>} writtenResourcePaths - Paths of resources written by the task
+	 * @param {string[]} writtenResourcePaths - Paths of resources written by the task
 	 */
 	async #invalidateFollowingTasks(taskName, writtenResourcePaths) {
-		const writtenPathsArray = Array.from(writtenResourcePaths);
-
 		// Check whether following tasks need to be invalidated
 		const allTasks = Array.from(this.#taskCache.keys());
 		const taskIdx = allTasks.indexOf(taskName);
 		for (let i = taskIdx + 1; i < allTasks.length; i++) {
 			const nextTaskName = allTasks[i];
-			if (!await this.#taskCache.get(nextTaskName).matchesChangedResources(writtenPathsArray, [])) {
+			if (!await this.#taskCache.get(nextTaskName).matchesChangedResources(writtenResourcePaths, [])) {
 				continue;
 			}
 			if (this.#invalidatedTasks.has(nextTaskName)) {
@@ -370,6 +528,27 @@ export default class ProjectBuildCache {
 				});
 			}
 		}
+
+		for (const resourcePath of writtenResourcePaths) {
+			this.#changedResultResourcePaths.add(resourcePath);
+		}
+	}
+
+	async #updateResultIndex(resourcePaths) {
+		const deltaReader = this.#project.getReader({excludeSourceReader: true});
+
+		const resources = await Promise.all(Array.from(resourcePaths).map(async (resourcePath) => {
+			const resource = await deltaReader.byPath(resourcePath);
+			if (!resource) {
+				throw new Error(
+					`Failed to update result index for project ${this.#project.getName()}: ` +
+					`resource at path ${resourcePath} not found in result reader`);
+			}
+			return resource;
+		}));
+
+		const res = await this.#resultIndex.upsertResources(resources);
+		return [...res.added, ...res.updated];
 	}
 
 	/**
@@ -382,6 +561,77 @@ export default class ProjectBuildCache {
 		return this.#taskCache.get(taskName);
 	}
 
+	async projectSourcesChanged(changedPaths) {
+		for (const resourcePath of changedPaths) {
+			this.#changedProjectSourcePaths.add(resourcePath);
+		}
+	}
+
+	/**
+	 * Handles resource changes
+	 *
+	 * Iterates through all cached tasks and checks if any match the changed resources.
+	 * Matching tasks are marked as invalidated and will need to be re-executed.
+	 * Changed resource paths are accumulated if a task is already invalidated.
+	 *
+	 * @param {string[]} changedPaths - Changed project resource paths
+	 * @returns {boolean} True if any task was invalidated, false otherwise
+	 */
+	// async projectResourcesChanged(changedPaths) {
+	// 	let taskInvalidated = false;
+	// 	for (const taskCache of this.#taskCache.values()) {
+	// 		if (await taskCache.isAffectedByProjectChanges(changedPaths)) {
+	// 			taskInvalidated = true;
+	// 			break;
+	// 		}
+	// 	}
+	// 	if (taskInvalidated) {
+	// 		for (const resourcePath of changedPaths) {
+	// 			this.#changedProjectResourcePaths.add(resourcePath);
+	// 		}
+	// 	}
+	// 	return taskInvalidated;
+	// }
+
+	/**
+	 * Handles resource changes and invalidates affected tasks
+	 *
+	 * Iterates through all cached tasks and checks if any match the changed resources.
+	 * Matching tasks are marked as invalidated and will need to be re-executed.
+	 * Changed resource paths are accumulated if a task is already invalidated.
+	 *
+	 * @param {string[]} changedPaths - Changed dependency resource paths
+	 * @returns {boolean} True if any task was invalidated, false otherwise
+	 */
+	async dependencyResourcesChanged(changedPaths) {
+		// let taskInvalidated = false;
+		// for (const taskCache of this.#taskCache.values()) {
+		// 	if (await taskCache.isAffectedByDependencyChanges(changedPaths)) {
+		// 		taskInvalidated = true;
+		// 		break;
+		// 	}
+		// }
+		// if (taskInvalidated) {
+		for (const resourcePath of changedPaths) {
+			this.#changedDependencyResourcePaths.add(resourcePath);
+		}
+		// }
+		// return taskInvalidated;
+	}
+
+	async #flushPendingInputChanges() {
+		if (this.#changedProjectSourcePaths.size === 0 &&
+			this.#changedDependencyResourcePaths.size === 0) {
+			return [];
+		}
+		await this._invalidateTasks(
+			Array.from(this.#changedProjectSourcePaths),
+			Array.from(this.#changedDependencyResourcePaths));
+
+		// Reset pending changes
+		this.#changedProjectSourcePaths = new Set();
+		this.#changedDependencyResourcePaths = new Set();
+	}
 
 	/**
 	 * Handles resource changes and invalidates affected tasks
@@ -394,7 +644,7 @@ export default class ProjectBuildCache {
 	 * @param {string[]} dependencyResourcePaths - Changed dependency resource paths
 	 * @returns {boolean} True if any task was invalidated, false otherwise
 	 */
-	async resourceChanged(projectResourcePaths, dependencyResourcePaths) {
+	async _invalidateTasks(projectResourcePaths, dependencyResourcePaths) {
 		let taskInvalidated = false;
 		for (const [taskName, taskCache] of this.#taskCache) {
 			if (!await taskCache.matchesChangedResources(projectResourcePaths, dependencyResourcePaths)) {
@@ -419,6 +669,14 @@ export default class ProjectBuildCache {
 		}
 		return taskInvalidated;
 	}
+
+	// async areTasksAffectedByResource(projectResourcePaths, dependencyResourcePaths) {
+	// 	for (const taskCache of this.#taskCache.values()) {
+	// 		if (await taskCache.matchesChangedResources(projectResourcePaths, dependencyResourcePaths)) {
+	// 			return true;
+	// 		}
+	// 	}
+	// }
 
 	/**
 	 * Gets the set of changed project resource paths for a task
@@ -447,7 +705,7 @@ export default class ProjectBuildCache {
 	 *
 	 * @returns {boolean} True if at least one task has been cached
 	 */
-	hasAnyCache() {
+	hasAnyTaskCache() {
 		return this.#taskCache.size > 0;
 	}
 
@@ -470,21 +728,7 @@ export default class ProjectBuildCache {
 	 * @returns {boolean} True if cache exists and is valid for this task
 	 */
 	isTaskCacheValid(taskName) {
-		return this.#taskCache.has(taskName) && !this.#invalidatedTasks.has(taskName) && !this.#requiresInitialBuild;
-	}
-
-	/**
-	 * Determines whether a rebuild is needed
-	 *
-	 * A rebuild is required if:
-	 * - No task cache exists
-	 * - Any tasks have been invalidated
-	 * - Initial build is required (e.g., cache couldn't be loaded)
-	 *
-	 * @returns {boolean} True if rebuild is needed, false if cache can be fully utilized
-	 */
-	requiresBuild() {
-		return !this.hasAnyCache() || this.#invalidatedTasks.size > 0 || this.#requiresInitialBuild;
+		return this.#taskCache.has(taskName) && !this.#invalidatedTasks.has(taskName);
 	}
 
 	/**
@@ -521,11 +765,18 @@ export default class ProjectBuildCache {
 	 *
 	 * This finalizes the build process by switching the project to use the
 	 * final result stage containing all build outputs.
+	 * Also updates the result resource index accordingly.
 	 *
-	 * @returns {void}
+	 * @returns {Promise<string[]>} Resolves with list of changed resources since the last build
 	 */
-	allTasksCompleted() {
+	async allTasksCompleted() {
 		this.#project.useResultStage();
+		this.#usingResultStage = true;
+		const changedPaths = await this.#updateResultIndex(this.#changedResultResourcePaths);
+
+		// Reset updated resource paths
+		this.#changedResultResourcePaths = new Set();
+		return changedPaths;
 	}
 
 	/**
@@ -551,38 +802,63 @@ export default class ProjectBuildCache {
 		return `task/${taskName}`;
 	}
 
-	// ===== SERIALIZATION =====
+	// ===== CACHE SERIALIZATION =====
 
 	/**
-	 * Loads the cached result stage from persistent storage
+	 * Stores all cache data to persistent storage
 	 *
-	 * Attempts to load a cached result stage using the resource index signature.
-	 * If found, creates a reader for the cached stage and sets it as the project's
-	 * result stage.
+	 * This method:
+	 * 1. Writes the build manifest (if not already written)
+	 * 2. Stores the result stage with all resources
+	 * 3. Writes the resource index and task metadata
+	 * 4. Stores all stage caches from the queue
 	 *
-	 * @private
-	 * @returns {Promise<boolean>} True if cache was loaded successfully, false otherwise
+	 * @param {object} buildManifest - Build manifest containing metadata about the build
+	 * @param {string} buildManifest.manifestVersion - Version of the manifest format
+	 * @param {string} buildManifest.signature - Build signature
+	 * @returns {Promise<void>}
 	 */
-	async #loadIndexCache() {
-		const stageSignature = this.#resourceIndex.getSignature();
-		const stageId = "result";
-		log.verbose(`Project ${this.#project.getName()} resource index signature: ${stageSignature}`);
-		const stageCache = await this.#cacheManager.readStageCache(
-			this.#project.getId(), this.#buildSignature, stageId, stageSignature);
+	async writeCache(buildManifest) {
+		// if (!this.#buildManifest) {
+		// 	log.verbose(`Storing build manifest for project ${this.#project.getName()} ` +
+		// 		`with build signature ${this.#buildSignature}`);
+		// 	// Write build manifest if it wasn't loaded from cache before
+		// 	this.#buildManifest = buildManifest;
+		// 	await this.#cacheManager.writeBuildManifest(this.#project.getId(), this.#buildSignature, buildManifest);
+		// }
 
-		if (!stageCache) {
-			log.verbose(
-				`No cached stage found for project ${this.#project.getName()} with index signature ${stageSignature}`);
-			return false;
+		// Store result stage
+		await this.#writeResultIndex();
+
+		// Store task caches
+		for (const [taskName, taskCache] of this.#taskCache) {
+			if (taskCache.hasNewOrModifiedCacheEntries()) {
+				log.verbose(`Storing task cache metadata for task ${taskName} in project ${this.#project.getName()} ` +
+					`with build signature ${this.#buildSignature}`);
+				await this.#cacheManager.writeTaskMetadata(this.#project.getId(), this.#buildSignature, taskName,
+					taskCache.toCacheObject());
+			}
 		}
-		log.verbose(
-			`Using cached result stage for project ${this.#project.getName()} with index signature ${stageSignature}`);
-		const reader = await this.#createReaderForStageCache(
-			stageId, stageSignature, stageCache.resourceMetadata);
-		this.#project.setResultStage(reader);
-		this.#project.useResultStage();
-		this.#isNewOrModified = false;
-		return true;
+
+		await this.#writeStageCaches();
+
+		await this.#writeSourceIndex();
+	}
+
+	async #writeSourceIndex() {
+		if (this.#cachedSourceSignature === this.#sourceIndex.getSignature()) {
+			// No changes to already cached result index
+			return;
+		}
+
+		// Finally store index cache
+		log.verbose(`Storing resource index cache for project ${this.#project.getName()} ` +
+			`with build signature ${this.#buildSignature}`);
+		const sourceIndexObject = this.#sourceIndex.toCacheObject();
+		await this.#cacheManager.writeIndexCache(this.#project.getId(), this.#buildSignature, "source", {
+			...sourceIndexObject,
+			taskList: Array.from(this.#taskCache.keys()),
+		});
 	}
 
 	/**
@@ -595,8 +871,12 @@ export default class ProjectBuildCache {
 	 * @private
 	 * @returns {Promise<void>}
 	 */
-	async #writeResultStage() {
-		const stageSignature = this.#resourceIndex.getSignature();
+	async #writeResultIndex() {
+		if (this.#cachedResultSignature === this.#resultIndex.getSignature()) {
+			// No changes to already cached result index
+			return;
+		}
+		const stageSignature = this.#currentResultSignature;
 		const stageId = "result";
 
 		const deltaReader = this.#project.getReader({excludeSourceReader: true});
@@ -622,6 +902,49 @@ export default class ProjectBuildCache {
 		};
 		await this.#cacheManager.writeStageCache(
 			this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
+
+		// After all resources have been stored, write updated result index hash tree
+		const resultIndexObject = this.#resultIndex.toCacheObject();
+		await this.#cacheManager.writeIndexCache(this.#project.getId(), this.#buildSignature, "result", {
+			...resultIndexObject
+		});
+	}
+
+	async #writeStageCaches() {
+		// Store stage caches
+		log.verbose(`Storing stage caches for project ${this.#project.getName()} ` +
+			`with build signature ${this.#buildSignature}`);
+		const stageQueue = this.#stageCache.flushCacheQueue();
+		await Promise.all(stageQueue.map(async ([stageId, stageSignature]) => {
+			const {stage} = this.#stageCache.getCacheForSignature(stageId, stageSignature);
+			const writer = stage.getWriter();
+			const reader = writer.collection ? writer.collection : writer;
+			const resources = await reader.byGlob("/**/*");
+			const resourceMetadata = Object.create(null);
+			await Promise.all(resources.map(async (res) => {
+				// Store resource content in cacache via CacheManager
+				await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
+
+				resourceMetadata[res.getOriginalPath()] = {
+					inode: res.getInode(),
+					lastModified: res.getLastModified(),
+					size: await res.getSize(),
+					integrity: await res.getIntegrity(),
+				};
+			}));
+
+			const metadata = {
+				resourceMetadata,
+			};
+			await this.#cacheManager.writeStageCache(
+				this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
+		}));
+	}
+
+	#createBuildTaskCacheMetadataReader(taskName) {
+		return () => {
+			return this.#cacheManager.readTaskMetadata(this.#project.getId(), this.#buildSignature, taskName);
+		};
 	}
 
 	/**
@@ -682,85 +1005,6 @@ export default class ProjectBuildCache {
 			}
 		});
 	}
-
-	/**
-	 * Stores all cache data to persistent storage
-	 *
-	 * This method:
-	 * 1. Writes the build manifest (if not already written)
-	 * 2. Stores the result stage with all resources
-	 * 3. Writes the resource index and task metadata
-	 * 4. Stores all stage caches from the queue
-	 *
-	 * @param {object} buildManifest - Build manifest containing metadata about the build
-	 * @param {string} buildManifest.manifestVersion - Version of the manifest format
-	 * @param {string} buildManifest.signature - Build signature
-	 * @returns {Promise<void>}
-	 */
-	async storeCache(buildManifest) {
-		if (!this.#buildManifest) {
-			log.verbose(`Storing build manifest for project ${this.#project.getName()} ` +
-				`with build signature ${this.#buildSignature}`);
-			// Write build manifest if it wasn't loaded from cache before
-			this.#buildManifest = buildManifest;
-			await this.#cacheManager.writeBuildManifest(this.#project.getId(), this.#buildSignature, buildManifest);
-		}
-
-		// Store result stage
-		await this.#writeResultStage();
-
-		// Store task caches
-		for (const [taskName, taskCache] of this.#taskCache) {
-			if (taskCache.isNewOrModified()) {
-				log.verbose(`Storing task cache metadata for task ${taskName} in project ${this.#project.getName()} ` +
-					`with build signature ${this.#buildSignature}`);
-				await this.#cacheManager.writeTaskMetadata(this.#project.getId(), this.#buildSignature, taskName,
-					taskCache.toCacheObject());
-			}
-		}
-
-		if (!this.#isNewOrModified) {
-			return;
-		}
-		// Store stage caches
-		log.verbose(`Storing stage caches for project ${this.#project.getName()} ` +
-			`with build signature ${this.#buildSignature}`);
-		const stageQueue = this.#stageCache.flushCacheQueue();
-		await Promise.all(stageQueue.map(async ([stageId, stageSignature]) => {
-			const {stage} = this.#stageCache.getCacheForSignature(stageId, stageSignature);
-			const writer = stage.getWriter();
-			const reader = writer.collection ? writer.collection : writer;
-			const resources = await reader.byGlob("/**/*");
-			const resourceMetadata = Object.create(null);
-			await Promise.all(resources.map(async (res) => {
-				// Store resource content in cacache via CacheManager
-				await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
-
-				resourceMetadata[res.getOriginalPath()] = {
-					inode: res.getInode(),
-					lastModified: res.getLastModified(),
-					size: await res.getSize(),
-					integrity: await res.getIntegrity(),
-				};
-			}));
-
-			const metadata = {
-				resourceMetadata,
-			};
-			await this.#cacheManager.writeStageCache(
-				this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
-		}));
-
-		// Finally store index cache
-		log.verbose(`Storing resource index cache for project ${this.#project.getName()} ` +
-			`with build signature ${this.#buildSignature}`);
-		const indexMetadata = this.#resourceIndex.toCacheObject();
-		await this.#cacheManager.writeIndexCache(this.#project.getId(), this.#buildSignature, {
-			...indexMetadata,
-			taskList: Array.from(this.#taskCache.keys()),
-		});
-	}
-
 	/**
 	 * Loads and validates the build manifest from persistent storage
 	 *
@@ -770,46 +1014,41 @@ export default class ProjectBuildCache {
 	 *
 	 * If validation fails, the cache is considered invalid and will be ignored.
 	 *
+	 * @param taskName
 	 * @private
 	 * @returns {Promise<object|undefined>} Build manifest object or undefined if not found/invalid
 	 * @throws {Error} If build signature mismatch or cache restoration fails
 	 */
-	async #loadBuildManifest() {
-		const manifest = await this.#cacheManager.readBuildManifest(this.#project.getId(), this.#buildSignature);
-		if (!manifest) {
-			log.verbose(`No build manifest found for project ${this.#project.getName()} ` +
-				`with build signature ${this.#buildSignature}`);
-			return;
-		}
+	// async #loadBuildManifest() {
+	// 	const manifest = await this.#cacheManager.readBuildManifest(this.#project.getId(), this.#buildSignature);
+	// 	if (!manifest) {
+	// 		log.verbose(`No build manifest found for project ${this.#project.getName()} ` +
+	// 			`with build signature ${this.#buildSignature}`);
+	// 		return;
+	// 	}
 
-		try {
-			// Check build manifest version
-			const {buildManifest} = manifest;
-			if (buildManifest.manifestVersion !== "1.0") {
-				log.verbose(`Incompatible build manifest version ${manifest.version} found for project ` +
-				`${this.#project.getName()} with build signature ${this.#buildSignature}. Ignoring cache.`);
-				return;
-			}
-			// TODO: Validate manifest against a schema
+	// 	try {
+	// 		// Check build manifest version
+	// 		const {buildManifest} = manifest;
+	// 		if (buildManifest.manifestVersion !== "1.0") {
+	// 			log.verbose(`Incompatible build manifest version ${manifest.version} found for project ` +
+	// 			`${this.#project.getName()} with build signature ${this.#buildSignature}. Ignoring cache.`);
+	// 			return;
+	// 		}
+	// 		// TODO: Validate manifest against a schema
 
-			// Validate build signature match
-			if (this.#buildSignature !== manifest.buildManifest.signature) {
-				throw new Error(
-					`Build manifest signature ${manifest.buildManifest.signature} does not match expected ` +
-					`build signature ${this.#buildSignature} for project ${this.#project.getName()}`);
-			}
-			return buildManifest;
-		} catch (err) {
-			throw new Error(
-				`Failed to restore cache from disk for project ${this.#project.getName()}: ${err.message}`, {
-					cause: err
-				});
-		}
-	}
-
-	#createBuildTaskCacheMetadataReader(taskName) {
-		return () => {
-			return this.#cacheManager.readTaskMetadata(this.#project.getId(), this.#buildSignature, taskName);
-		};
-	}
+	// 		// Validate build signature match
+	// 		if (this.#buildSignature !== manifest.buildManifest.signature) {
+	// 			throw new Error(
+	// 				`Build manifest signature ${manifest.buildManifest.signature} does not match expected ` +
+	// 				`build signature ${this.#buildSignature} for project ${this.#project.getName()}`);
+	// 		}
+	// 		return buildManifest;
+	// 	} catch (err) {
+	// 		throw new Error(
+	// 			`Failed to restore cache from disk for project ${this.#project.getName()}: ${err.message}`, {
+	// 				cause: err
+	// 			});
+	// 	}
+	// }
 }
