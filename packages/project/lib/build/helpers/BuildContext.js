@@ -2,6 +2,7 @@ import ProjectBuildContext from "./ProjectBuildContext.js";
 import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
 import WatchHandler from "./WatchHandler.js";
 import CacheManager from "../cache/CacheManager.js";
+import {getBaseSignature} from "./getBuildSignature.js";
 
 /**
  * Context of a build process
@@ -75,6 +76,7 @@ class BuildContext {
 			excludedTasks,
 			useCache,
 		};
+		this._buildSignatureBase = getBaseSignature(this._buildConfig);
 
 		this._taskRepository = taskRepository;
 
@@ -105,9 +107,32 @@ class BuildContext {
 	}
 
 	async createProjectContext({project}) {
-		const projectBuildContext = await ProjectBuildContext.create(this, project);
+		const projectBuildContext = await ProjectBuildContext.create(
+			this, project, await this.getCacheManager(), this._buildSignatureBase);
 		this._projectBuildContexts.push(projectBuildContext);
 		return projectBuildContext;
+	}
+
+	async createRequiredProjectContexts(requestedProjects) {
+		const projectBuildContexts = new Map();
+		const requiredProjects = new Set(requestedProjects);
+
+		for (const projectName of requiredProjects) {
+			const projectBuildContext = await this.createProjectContext({
+				project: this._graph.getProject(projectName)
+			});
+
+			projectBuildContexts.set(projectName, projectBuildContext);
+
+			// Collect all direct dependencies of the project that are required to build the project
+			const requiredDependencies = await projectBuildContext.getRequiredDependencies();
+
+			for (const depName of requiredDependencies) {
+				// Add dependency to list of required projects
+				requiredProjects.add(depName);
+			}
+		}
+		return projectBuildContexts;
 	}
 
 	async initWatchHandler(projects, updateBuildResult) {

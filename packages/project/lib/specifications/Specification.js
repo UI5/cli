@@ -161,6 +161,10 @@ class Specification {
 	}
 
 	/* === Attributes === */
+	getConfig() {
+		return this._config;
+	}
+
 	/**
 	 * Gets the ID of this specification.
 	 *
