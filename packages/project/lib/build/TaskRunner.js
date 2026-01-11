@@ -131,7 +131,7 @@ class TaskRunner {
 				await this._executeTask(taskName, taskFunction);
 			}
 		}
-		this._buildCache.allTasksCompleted();
+		return await this._buildCache.allTasksCompleted();
 	}
 
 	/**
@@ -485,13 +485,13 @@ class TaskRunner {
 	 * @returns {Promise} Resolves when task has finished
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
-		if (this._buildCache.isTaskCacheValid(taskName)) {
-			// Immediately skip task if cache is valid
-			// Continue if cache is (potentially) invalid, in which case taskFunction will
-			// validate the cache thoroughly
-			this._log.skipTask(taskName);
-			return;
-		}
+		// if (this._buildCache.isTaskCacheValid(taskName)) {
+		// 	// Immediately skip task if cache is valid
+		// 	// Continue if cache is (potentially) invalid, in which case taskFunction will
+		// 	// validate the cache thoroughly
+		// 	this._log.skipTask(taskName);
+		// 	return;
+		// }
 		this._taskStart = performance.now();
 		await taskFunction(taskParams, this._log);
 		if (this._log.isLevelEnabled("perf")) {

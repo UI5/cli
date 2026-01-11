@@ -43,7 +43,7 @@ export default class BuildTaskCache {
 	#readTaskMetadataCache;
 	#treeRegistries = [];
 	#useDifferentialUpdate = true;
-	#isNewOrModified;
+	#hasNewOrModifiedCacheEntries = true;
 
 	// ===== LIFECYCLE =====
 
@@ -67,7 +67,7 @@ export default class BuildTaskCache {
 		if (!this.#readTaskMetadataCache) {
 			// No cache reader provided, start with empty graph
 			this.#resourceRequests = new ResourceRequestGraph();
-			this.#isNewOrModified = true;
+			this.#hasNewOrModifiedCacheEntries = true;
 			return;
 		}
 
@@ -78,7 +78,7 @@ export default class BuildTaskCache {
 				`of project '${this.#projectName}'`);
 		}
 		this.#resourceRequests = this.#restoreGraphFromCache(taskMetadata);
-		this.#isNewOrModified = false;
+		this.#hasNewOrModifiedCacheEntries = false; // Using cache
 	}
 
 	// ===== METADATA ACCESS =====
@@ -92,8 +92,8 @@ export default class BuildTaskCache {
 		return this.#taskName;
 	}
 
-	isNewOrModified() {
-		return this.#isNewOrModified;
+	hasNewOrModifiedCacheEntries() {
+		return this.#hasNewOrModifiedCacheEntries;
 	}
 
 	/**
@@ -405,7 +405,7 @@ export default class BuildTaskCache {
 		if (!relevantTree) {
 			return;
 		}
-		this.#isNewOrModified = true;
+		this.#hasNewOrModifiedCacheEntries = true;
 
 		// Update signatures for affected request sets
 		const {requestSetId, signature: originalSignature} = trees.get(relevantTree);
@@ -522,6 +522,32 @@ export default class BuildTaskCache {
 				return micromatch(dependencyResourcePaths, value).length > 0;
 			}
 			throw new Error(`Unknown request type: ${type}`);
+		});
+	}
+
+	async isAffectedByProjectChanges(changedPaths) {
+		await this.#initResourceRequests();
+		const resourceRequests = this.#resourceRequests.getAllRequests();
+		return resourceRequests.some(({type, value}) => {
+			if (type === "path") {
+				return changedPaths.includes(value);
+			}
+			if (type === "patterns") {
+				return micromatch(changedPaths, value).length > 0;
+			}
+		});
+	}
+
+	async isAffectedByDependencyChanges(changedPaths) {
+		await this.#initResourceRequests();
+		const resourceRequests = this.#resourceRequests.getAllRequests();
+		return resourceRequests.some(({type, value}) => {
+			if (type === "dep-path") {
+				return changedPaths.includes(value);
+			}
+			if (type === "dep-patterns") {
+				return micromatch(changedPaths, value).length > 0;
+			}
 		});
 	}
 

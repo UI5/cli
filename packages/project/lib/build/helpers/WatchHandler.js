@@ -70,10 +70,11 @@ class WatchHandler extends EventEmitter {
 	#fileChanged(project, filePath) {
 		// Collect changes (grouped by project), then trigger callbacks
 		const resourcePath = project.getVirtualPath(filePath);
-		if (!this.#sourceChanges.has(project)) {
-			this.#sourceChanges.set(project, new Set());
+		const projectName = project.getName();
+		if (!this.#sourceChanges.has(projectName)) {
+			this.#sourceChanges.set(projectName, new Set());
 		}
-		this.#sourceChanges.get(project).add(resourcePath);
+		this.#sourceChanges.get(projectName).add(resourcePath);
 
 		this.#processQueue();
 	}
@@ -113,43 +114,34 @@ class WatchHandler extends EventEmitter {
 
 	async #handleResourceChanges(sourceChanges) {
 		const dependencyChanges = new Map();
-		let someProjectTasksInvalidated = false;
 
 		const graph = this.#buildContext.getGraph();
-		for (const [project, changedResourcePaths] of sourceChanges) {
+		for (const [projectName, changedResourcePaths] of sourceChanges) {
 			// Propagate changes to dependents of the project
-			for (const {project: dep} of graph.traverseDependents(project.getName())) {
-				const depChanges = dependencyChanges.get(dep);
+			for (const {project: dep} of graph.traverseDependents(projectName)) {
+				const depChanges = dependencyChanges.get(dep.getName());
 				if (!depChanges) {
-					dependencyChanges.set(dep, new Set(changedResourcePaths));
+					dependencyChanges.set(dep.getName(), new Set(changedResourcePaths));
 					continue;
 				}
 				for (const res of changedResourcePaths) {
 					depChanges.add(res);
 				}
 			}
+			const projectBuildContext = this.#buildContext.getBuildContext(projectName);
+			projectBuildContext.getBuildCache()
+				.projectSourcesChanged(Array.from(changedResourcePaths));
 		}
 
-		await graph.traverseDepthFirst(async ({project}) => {
-			if (!sourceChanges.has(project) && !dependencyChanges.has(project)) {
-				return;
-			}
-			const projectSourceChanges = Array.from(sourceChanges.get(project) ?? new Set());
-			const projectDependencyChanges = Array.from(dependencyChanges.get(project) ?? new Set());
-			const projectBuildContext = this.#buildContext.getBuildContext(project.getName());
-			const tasksInvalidated = await projectBuildContext.getBuildCache()
-				.resourceChanged(projectSourceChanges, projectDependencyChanges);
-
-			if (tasksInvalidated) {
-				someProjectTasksInvalidated = true;
-			}
-		});
-
-		if (someProjectTasksInvalidated) {
-			this.emit("projectResourcesInvalidated");
-			await this.#updateBuildResult();
-			this.emit("projectResourcesUpdated");
+		for (const [projectName, changedResourcePaths] of dependencyChanges) {
+			const projectBuildContext = this.#buildContext.getBuildContext(projectName);
+			projectBuildContext.getBuildCache()
+				.dependencyResourcesChanged(Array.from(changedResourcePaths));
 		}
+
+		this.emit("projectResourcesInvalidated");
+		await this.#updateBuildResult();
+		this.emit("projectResourcesUpdated");
 	}
 }
 

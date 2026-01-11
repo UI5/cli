@@ -2,7 +2,7 @@ import ResourceTagCollection from "@ui5/fs/internal/ResourceTagCollection";
 import ProjectBuildLogger from "@ui5/logger/internal/loggers/ProjectBuild";
 import TaskUtil from "./TaskUtil.js";
 import TaskRunner from "../TaskRunner.js";
-import calculateBuildSignature from "./calculateBuildSignature.js";
+import {getProjectSignature} from "./getBuildSignature.js";
 import ProjectBuildCache from "../cache/ProjectBuildCache.js";
 
 /**
@@ -47,11 +47,11 @@ class ProjectBuildContext {
 		});
 	}
 
-	static async create(buildContext, project) {
-		const buildSignature = await calculateBuildSignature(project, buildContext.getGraph(),
-			buildContext.getBuildConfig(), buildContext.getTaskRepository());
+	static async create(buildContext, project, cacheManager, baseSignature) {
+		const buildSignature = getProjectSignature(
+			baseSignature, project, buildContext.getGraph(), buildContext.getTaskRepository());
 		const buildCache = await ProjectBuildCache.create(
-			project, buildSignature, await buildContext.getCacheManager());
+			project, buildSignature, cacheManager);
 		return new ProjectBuildContext(
 			buildContext,
 			project,
@@ -102,6 +102,16 @@ class ProjectBuildContext {
 	 */
 	getDependencies(projectName) {
 		return this._buildContext.getGraph().getDependencies(projectName || this._project.getName());
+	}
+
+	async getRequiredDependencies() {
+		if (this._requiredDependencies) {
+			return this._requiredDependencies;
+		}
+		const taskRunner = this.getTaskRunner();
+		this._requiredDependencies = Array.from(await taskRunner.getRequiredDependencies())
+			.sort((a, b) => a.localeCompare(b));
+		return this._requiredDependencies;
 	}
 
 	getResourceTagCollection(resource, tag) {
@@ -155,14 +165,54 @@ class ProjectBuildContext {
 	 */
 	async requiresBuild() {
 		if (this.#getBuildManifest()) {
+			// Build manifest present -> No build required
 			return false;
 		}
 
-		return this._buildCache.requiresBuild();
+		// Check whether all required dependencies are built and collect their signatures so that
+		// we can validate our build cache (keyed using the project's sources and relevant dependency signatures)
+		const depSignatures = [];
+		const requiredDependencyNames = await this.getRequiredDependencies();
+		for (const depName of requiredDependencyNames) {
+			const depCtx = this._buildContext.getBuildContext(depName);
+			if (!depCtx) {
+				throw new Error(`Unexpected missing build context for project '${depName}', dependency of ` +
+					`project '${this._project.getName()}'`);
+			}
+			const signature = await depCtx.getBuildResultSignature();
+			if (!signature) {
+				// Dependency is unable to provide a signature, likely because it needs to be built itself
+				// Until then, we assume this project requires a build as well and return here
+				return true;
+			}
+			// Collect signatures
+			depSignatures.push(signature);
+		}
+
+		return this._buildCache.requiresBuild(depSignatures);
+	}
+
+	async getBuildResultSignature() {
+		if (await this.requiresBuild()) {
+			return null;
+		}
+		return await this._buildCache.getResultSignature();
+	}
+
+	async determineChangedResources() {
+		return this._buildCache.determineChangedResources();
 	}
 
 	async runTasks() {
-		await this.getTaskRunner().runTasks();
+		return await this.getTaskRunner().runTasks();
+	}
+
+	async projectResourcesChanged(changedPaths) {
+		return this._buildCache.projectResourcesChanged(changedPaths);
+	}
+
+	async dependencyResourcesChanged(changedPaths) {
+		return this._buildCache.dependencyResourcesChanged(changedPaths);
 	}
 
 	#getBuildManifest() {
