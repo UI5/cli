@@ -54,43 +54,6 @@
 		"lib/**",
 		"LICENSES/**"
 	],
-	"nyc": {
-		"reporter": [
-			"lcov",
-			"text",
-			"text-summary"
-		],
-		"exclude": [
-			"docs/**",
-			"coverage/**",
-			"test/**"
-		],
-		"check-coverage": true,
-		"statements": 85,
-		"branches": 80,
-		"functions": 90,
-		"lines": 85,
-		"watermarks": {
-			"statements": [
-				70,
-				90
-			],
-			"branches": [
-				70,
-				90
-			],
-			"functions": [
-				70,
-				90
-			],
-			"lines": [
-				70,
-				90
-			]
-		},
-		"cache": true,
-		"all": true
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+ssh://git@github.com/UI5/cli.git",
