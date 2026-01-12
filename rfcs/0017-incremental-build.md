@@ -236,14 +236,13 @@ There are major differences in how those two types of build manifests are handle
 
 #### Build Signature
 
-The build signature is used to distinguish different builds of the same project. It is mainly calculated based on the **build configuration** of a project. But it also incorporates information that depends on the UI5 CLI version (specifically an internal `BUILD_CACHE_VERSION` integer), as well as potentially provided signatures of custom tasks.
+The build signature is used to distinguish different builds of the same project. It is mainly calculated based on the **build configuration** of a project. But it also incorporates information that depends on the UI5 CLI version (specifically an internal `BUILD_SIG_VERSION` integer constant), as well as optional signatures provided by custom tasks.
 
-It's purpose is to easily tell whether an existing cache should be used for a given build execution or not. For example, a "jsdoc"-build should use a different cache than a regular project build.
+This signature is used to easily tell whether an existing cache can be used in a given build execution or not. For example, a "jsdoc"-build leads to a different build signature than a regular project build. Therefore, two independent cache entries will be created on disk.
 
 The signature is a simple hash (represented as a hexadecimal string, to allow usage in directory and file names).
 
-A mechanism shall be created for custom tasks to provide a signature as well. This allows the incorporation of task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature
-
+A mechanism shall be created for custom tasks to provide a signature as well. This allows the incorporation of task-specific configuration files (e.g. tsconfig.json for a TypeScript compilation task) into the build signature.
 
 ### Index Cache
 
@@ -355,7 +354,7 @@ These signatures can be used to quickly check whether a cache exists by looking 
 
 Stores the metadata of all resources for a given "stage". This metadata can be used to access the resource content from the content-addressable store.
 
-Stage cache metadata is keyed using the project's build signature, the stage name, and the index signature of the input resources for that stage.
+Stage cache metadata is keyed using the project's [build signature](#build-signature), the stage name, and the index signature of the input resources for that stage.
 
 Each stage usually corresponds to the execution of a task. The contained metadata represents all resources **written** by that task during its execution.  The metadata includes the `lastModified`, `size` and `integrity` of each resource. This information is required for determining whether subsequent tasks need to be re-executed.
 
@@ -393,7 +392,7 @@ A new `buildCache` directory shall be added to the ~/.ui5/ directory. The locati
 
 The `cas` directory contains files named by their content hash. Each file contains the raw content of a resource produced during a build. Ideally a library like [`cacache`](#cacache) should be used to manage the content-addressable store. In this case, the actual directory structure might differ from what is depicted above.
 
-The `buildManifests` directory contains one build manifest file per project build cache. The directory structure is derived from the project's package name (Project ID). The files are named by the [build signature](#signature).
+The `buildManifests` directory contains one build manifest file per project build cache. The directory structure is derived from the project's package name (Project ID). The files are named by the [build signature](#build-signature).
 
 Instead of storing the index cache, stage caches and build task caches as separate files on disk, they shall also be stored in a database such as LevelDB or SQLite. This allows for faster access and reduces the number of files on disk.
 
@@ -411,7 +410,7 @@ In this concept, cacache will be used to store the content of resources produced
 <build signature>|<stage name>|<virtual resource path>
 ```
 
-The [build signature](#signature) binds the entry to the current project build cache. The stage name and resource path correspond to a task's **output** resource metadata as defined in the [`stages`](#stages) section of the `build-manifest.json`.
+The [build signature](#build-signature) binds the entry to the current project build cache. The stage name and resource path correspond to a task's **output** resource metadata as defined in the [`stages`](#stages) section of the `build-manifest.json`.
 
 This naming schema should allow for easy retrieval of resources based on the metadata stored in the build manifest.
 
@@ -419,7 +418,7 @@ At the same time, this also enables the cacache-internal garbage collection to i
 
 ### Cache Import
 
-Before building a project, UI5 CLI shall check for an existing cache by calculating the [build signature](#signature) for the current build, and searching the [cache directory structure](#cache-directory-structure) for a matching build manifest.
+Before building a project, UI5 CLI shall check for an existing cache by calculating the [build signature](#build-signature) for the current build, and searching the [cache directory structure](#cache-directory-structure) for a matching build manifest.
 
 If a build manifest is found it is imported by the `Project Build Cache`
 1. Check the source files of the project against the `index` section of the build manifest to determine which files have changed since the last build
@@ -469,7 +468,7 @@ The watch mode shall be used by the server to automatically rebuild projects whe
 
 #### Cache Invalidation
 
-**It is to be decided** whether, besides watching relevant source files, the watch mode shall also watch configuration files relevant for the build signature (e.g. ui5.yaml, package.json, tsconfig.json, etc.). If any of those files change, the cache needs to be replaced using the build signature.
+**It is to be decided** whether, besides watching relevant source files, the watch mode shall also watch configuration files relevant for the build signature (e.g. ui5.yaml, package.json, tsconfig.json, etc.). If any of those files change, a different cache would have to be used. This might be unexpected behavior to some users, where launching a development tool only reads the relevant configuration once and then keeps using it even when the underlying files change.
 
 #### Error Handling
 
