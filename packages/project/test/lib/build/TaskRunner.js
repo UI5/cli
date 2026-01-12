@@ -1448,6 +1448,17 @@ test("getRequiredDependencies: Default application", async (t) => {
 		"Default application project does not require dependencies");
 });
 
+test("getRequiredDependencies: Default component", async (t) => {
+	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger} = t.context;
+	const project = getMockProject("component");
+	project.getBundles = () => [];
+	const taskRunner = new TaskRunner({
+		project, graph, taskUtil, taskRepository, log: projectBuildLogger, buildConfig
+	});
+	t.deepEqual(await taskRunner.getRequiredDependencies(), new Set([]),
+		"Default component project does not require dependencies");
+});
+
 test("getRequiredDependencies: Default library", async (t) => {
 	const {graph, taskUtil, taskRepository, TaskRunner, projectBuildLogger} = t.context;
 	const project = getMockProject("library");
