@@ -55,17 +55,6 @@
 		"lib/**",
 		"LICENSES/**"
 	],
-	"ava": {
-		"files": [
-			"test/lib/**/*.js",
-			"!test/**/__helper__/**"
-		],
-		"nodeArguments": [
-			"--loader=esmock",
-			"--no-warnings"
-		],
-		"workerThreads": false
-	},
 	"nyc": {
 		"reporter": [
 			"lcov",

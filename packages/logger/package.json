@@ -47,15 +47,6 @@
 		"lib/**",
 		"LICENSES/**"
 	],
-	"ava": {
-		"files": [
-			"test/lib/**/*.js"
-		],
-		"nodeArguments": [
-			"--no-warnings"
-		],
-		"workerThreads": false
-	},
 	"nyc": {
 		"reporter": [
 			"lcov",
