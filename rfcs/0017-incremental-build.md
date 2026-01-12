@@ -197,11 +197,7 @@ The cache consists of several components:
 			"/resources/project/namespace/Component.js": {
 				"ui5:HasDebugVariant": true
 			}
-		},
-		"taskList": [ // <-- New "taskList" attribute, defining the order of executed tasks
-			"replaceCopyright",
-			"minify",
-		]
+		}
 	}
 }
 ````
@@ -249,7 +245,11 @@ A mechanism shall be created for custom tasks to provide a signature as well. Th
 ```jsonc
 {
 	"indexTimestamp": 1764688556165,
-	"indexTree": { /* Serialized hash tree */ }
+	"indexTree": { /* Serialized hash tree */ },
+	"taskList": [ // <-- New "taskList" attribute, defining the order of executed tasks
+		"replaceCopyright",
+		"minify",
+	]
 }
 ```
 
@@ -290,7 +290,7 @@ These signatures can be used to quickly check whether a cache exists by looking 
 		}],
 		"nextId": 2
 	},
-	"rootIndices" [{
+	"rootIndices": [{
 		"nodeId": 1,
 		"resourceIndex": { 
 			"indexTimestamp": 1764688556165,
@@ -319,7 +319,7 @@ These signatures can be used to quickly check whether a cache exists by looking 
 		}],
 		"nextId": 2
 	},
-	"rootIndices" [{
+	"rootIndices": [{
 		"nodeId": 1,
 		"resourceIndex": { 
 			"indexTimestamp": 1764688556165,
