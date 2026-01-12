@@ -440,9 +440,9 @@ class Console {
 			return chalk.yellow(level);
 		case "error":
 			return chalk.bgRed.white(level);
-		// Log level silent does not produce messages
 		default:
-			return level;
+			// Log level silent does not produce messages
+			throw new Error(`writers/Console: Invalid message log level "${level}"`);
 		}
 	}
 

@@ -32,6 +32,22 @@ test.serial("Log event", (t) => {
 		"Logged expected message");
 });
 
+test.serial("Log event with invalid log level 'silent'", (t) => {
+	const {stderrWriteStub} = t.context;
+
+	t.throws(() => {
+		process.emit("ui5.log", {
+			level: "silent",
+			message: "Message 1",
+			moduleName: "my:module"
+		});
+	}, {
+		message: `writers/Console: Invalid message log level "silent"`
+	});
+
+	t.is(stderrWriteStub.callCount, 0, "Logged no message");
+});
+
 test.serial("Enable", (t) => {
 	const {stderrWriteStub} = t.context;
 
