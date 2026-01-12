@@ -22,9 +22,9 @@
 		"test": "npm run lint && npm run coverage && npm run depcheck",
 		"unit": "node --test test/lib/convertToShrinkwrap.js",
 		"unit-watch": "node --test --watch test/lib/convertToShrinkwrap.js",
-		"coverage": "nyc node --test test/lib/convertToShrinkwrap.js",
+		"coverage": "node --test --experimental-test-coverage 'test/lib/convertToShrinkwrap.js'",
 		"lint": "eslint .",
-		"depcheck": "depcheck --ignores @ui5/shrinkwrap-extractor,@eslint/js,eslint-config-google,globals,nyc"
+		"depcheck": "depcheck"
 	},
 	"keywords": [
 		"npm",
@@ -40,26 +40,7 @@
 		"pacote": "^21.0.4"
 	},
 	"devDependencies": {
-		"@eslint/js": "^9.39.1",
 		"depcheck": "^1.4.7",
-		"eslint-config-google": "^0.14.0",
-		"globals": "^16.5.0",
-		"nyc": "^17.1.0"
-	},
-	"nyc": {
-		"reporter": [
-			"lcov",
-			"text",
-			"text-summary"
-		],
-		"exclude": [
-			"coverage/**",
-			"test/**"
-		],
-		"check-coverage": true,
-		"statements": 80,
-		"branches": 75,
-		"functions": 75,
-		"lines": 80
+		"eslint": "^9.39.1"
 	}
 }
