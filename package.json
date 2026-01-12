@@ -30,6 +30,7 @@
 		"coverage": "npm run coverage --workspaces --if-present",
 		"depcheck": "depcheck --ignores @ui5/builder,@ui5/cli,@ui5/fs,@ui5/logger,@ui5/project,@ui5/server,local-web-server,@commitlint/config-conventional,husky && npm run depcheck --workspaces --if-present",
 		"check-licenses": "licensee --errors-only",
+		"schema-generate": "npm run schema-generate --workspace=@ui5/documentation",
 		"generate-cli-doc": "npm run generate-cli-doc --workspace=@ui5/documentation"
 	},
 	"repository": {
