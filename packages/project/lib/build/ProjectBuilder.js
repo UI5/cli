@@ -219,12 +219,15 @@ class ProjectBuilder {
 			});
 		}
 
-		const [, watchHandler] = await Promise.all([
-			this.#build(queue, projectBuildContexts, requestedProjects, fsTarget),
-			pWatchInit
-		]);
-		watchHandler.setReady();
-		return watchHandler;
+		await this.#build(queue, projectBuildContexts, requestedProjects, fsTarget);
+
+		if (watch) {
+			const watchHandler = await pWatchInit;
+			watchHandler.setReady();
+			return watchHandler;
+		} else {
+			return null;
+		}
 	}
 
 	async #build(queue, projectBuildContexts, requestedProjects, fsTarget) {
