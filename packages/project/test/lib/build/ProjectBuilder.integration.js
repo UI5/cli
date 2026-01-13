@@ -33,7 +33,7 @@ test.afterEach.always((t) => {
 	process.off("ui5.project-build-status", t.context.projectBuildStatusEventStub);
 });
 
-test.serial("Build application project multiple times", async (t) => {
+test.serial("Build application.a project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 
 	let projectBuilder; let buildStatusEventArgs;
@@ -118,7 +118,83 @@ test.serial("Build application project multiple times", async (t) => {
 	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
 	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
 
-	// // #4 build (with cache, no changes)
+	// #4 build (with cache, no changes)
+	projectBuilder = await fixtureTester.createProjectBuilder();
+	await projectBuilder.build({destPath, cleanDest: true});
+
+	t.is(projectBuilder._buildProject.callCount, 0, "No projects built in build #4");
+});
+
+test.serial("Build library.d project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "library.d");
+
+	let projectBuilder; let buildStatusEventArgs;
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (with empty cache)
+	projectBuilder = await fixtureTester.createProjectBuilder();
+	await projectBuilder.build({destPath, cleanDest: false /* No clean dest needed for build #1 */});
+
+	t.is(projectBuilder._buildProject.callCount, 1);
+	t.is(
+		projectBuilder._buildProject.getCall(0).args[0].getProject().getName(),
+		"library.d",
+		"library.d built in build #1"
+	);
+
+	buildStatusEventArgs = t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
+	t.deepEqual(
+		buildStatusEventArgs.filter(({status}) => status === "task-skip"), [],
+		"No 'task-skip' status in build #1"
+	);
+
+	// #2 build (with cache, no changes)
+	projectBuilder = await fixtureTester.createProjectBuilder();
+	await projectBuilder.build({destPath, cleanDest: true});
+
+	t.is(projectBuilder._buildProject.callCount, 0, "No projects built in build #2");
+
+	// Change a source file in library.d
+	const changedFilePath = `${fixtureTester.fixturePath}/main/src/library/d/.library`;
+	await fs.writeFile(
+		changedFilePath,
+		(await fs.readFile(changedFilePath, {encoding: "utf8"})).replace(
+			`<copyright>Some fancy copyright</copyright>`,
+			`<copyright>Some new fancy copyright</copyright>`
+		)
+	);
+
+	// #3 build (with cache, with changes)
+	projectBuilder = await fixtureTester.createProjectBuilder();
+	await projectBuilder.build({destPath, cleanDest: true});
+
+	t.is(projectBuilder._buildProject.callCount, 1);
+	t.is(
+		projectBuilder._buildProject.getCall(0).args[0].getProject().getName(),
+		"library.d",
+		"library.d rebuilt in build #3"
+	);
+
+	buildStatusEventArgs = t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
+	t.deepEqual(
+		buildStatusEventArgs.filter(({status}) => status === "task-skip"), [],
+		"No 'task-skip' status in build #3"
+	);
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/resources/library/d/.library`, {encoding: "utf8"});
+	t.true(
+		builtFileContent.includes(`<copyright>Some new fancy copyright</copyright>`),
+		"Build dest contains changed file content"
+	);
+	// Check whether the updated copyright replacement took place
+	const builtSomeJsContent = await fs.readFile(`${destPath}/resources/library/d/some.js`, {encoding: "utf8"});
+	t.true(
+		builtSomeJsContent.includes(`Some new fancy copyright`),
+		"Build dest contains updated copyright in some.js"
+	);
+
+	// #4 build (with cache, no changes)
 	projectBuilder = await fixtureTester.createProjectBuilder();
 	await projectBuilder.build({destPath, cleanDest: true});
 
