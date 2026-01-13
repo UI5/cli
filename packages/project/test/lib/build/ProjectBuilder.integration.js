@@ -7,23 +7,41 @@ import * as taskRepository from "@ui5/builder/internal/taskRepository";
 import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
 
 test.beforeEach((t) => {
-	t.context.sinon = sinonGlobal.createSandbox();
+	const sinon = t.context.sinon = sinonGlobal.createSandbox();
+
+	t.context.logEventStub = sinon.stub();
+	t.context.buildMetadataEventStub = sinon.stub();
+	t.context.projectBuildMetadataEventStub = sinon.stub();
+	t.context.buildStatusEventStub = sinon.stub();
+	t.context.projectBuildStatusEventStub = sinon.stub();
+
+	process.on("ui5.log", t.context.logEventStub);
+	process.on("ui5.build-metadata", t.context.buildMetadataEventStub);
+	process.on("ui5.project-build-metadata", t.context.projectBuildMetadataEventStub);
+	process.on("ui5.build-status", t.context.buildStatusEventStub);
+	process.on("ui5.project-build-status", t.context.projectBuildStatusEventStub);
 });
 
 test.afterEach.always((t) => {
 	t.context.sinon.restore();
 	delete process.env.UI5_DATA_DIR;
+
+	process.off("ui5.log", t.context.logEventStub);
+	process.off("ui5.build-metadata", t.context.buildMetadataEventStub);
+	process.off("ui5.project-build-metadata", t.context.projectBuildMetadataEventStub);
+	process.off("ui5.build-status", t.context.buildStatusEventStub);
+	process.off("ui5.project-build-status", t.context.projectBuildStatusEventStub);
 });
 
 test.serial("Build application project multiple times", async (t) => {
 	const fixtureTester = new FixtureTester(t, "application.a");
 
-	let projectBuilder;
+	let projectBuilder; let buildStatusEventArgs;
 	const destPath = fixtureTester.destPath;
 
 	// #1 build (with empty cache)
 	projectBuilder = await fixtureTester.createProjectBuilder();
-	await projectBuilder.build({destPath});
+	await projectBuilder.build({destPath, cleanDest: false /* No clean dest needed for build #1 */});
 
 	t.is(projectBuilder._buildProject.callCount, 1);
 	t.is(
@@ -32,9 +50,15 @@ test.serial("Build application project multiple times", async (t) => {
 		"application.a built in build #1"
 	);
 
+	buildStatusEventArgs = t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
+	t.deepEqual(
+		buildStatusEventArgs.filter(({status}) => status === "task-skip"), [],
+		"No 'task-skip' status in build #1"
+	);
+
 	// #2 build (with cache, no changes)
 	projectBuilder = await fixtureTester.createProjectBuilder();
-	await projectBuilder.build({destPath});
+	await projectBuilder.build({destPath, cleanDest: true});
 
 	t.is(projectBuilder._buildProject.callCount, 0, "No projects built in build #2");
 
@@ -44,7 +68,7 @@ test.serial("Build application project multiple times", async (t) => {
 
 	// #3 build (with cache, with changes)
 	projectBuilder = await fixtureTester.createProjectBuilder();
-	await projectBuilder.build({destPath});
+	await projectBuilder.build({destPath, cleanDest: true});
 
 	t.is(projectBuilder._buildProject.callCount, 1);
 	t.is(
@@ -53,9 +77,50 @@ test.serial("Build application project multiple times", async (t) => {
 		"application.a rebuilt in build #3"
 	);
 
-	// #4 build (with cache, no changes)
+	buildStatusEventArgs = t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
+	t.deepEqual(
+		buildStatusEventArgs.filter(({status}) => status === "task-skip"), [
+			{
+				level: "info",
+				projectName: "application.a",
+				projectType: "application",
+				status: "task-skip",
+				taskName: "escapeNonAsciiCharacters",
+			},
+			// Note: replaceCopyright task is expected to be skipped as the project
+			// does not define a copyright in its ui5.yaml.
+			{
+				level: "info",
+				projectName: "application.a",
+				projectType: "application",
+				status: "task-skip",
+				taskName: "replaceCopyright",
+			},
+			{
+				level: "info",
+				projectName: "application.a",
+				projectType: "application",
+				status: "task-skip",
+				taskName: "enhanceManifest",
+			},
+			{
+				level: "info",
+				projectName: "application.a",
+				projectType: "application",
+				status: "task-skip",
+				taskName: "generateFlexChangesBundle",
+			},
+		],
+		"'task-skip' status in build #3 for tasks that did not need to be re-executed based on changed test.js file"
+	);
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(`${destPath}/test.js`, {encoding: "utf8"});
+	t.true(builtFileContent.includes(`test("line added");`), "Build dest contains changed file content");
+
+	// // #4 build (with cache, no changes)
 	projectBuilder = await fixtureTester.createProjectBuilder();
-	await projectBuilder.build({destPath});
+	await projectBuilder.build({destPath, cleanDest: true});
 
 	t.is(projectBuilder._buildProject.callCount, 0, "No projects built in build #4");
 });
@@ -90,6 +155,7 @@ class FixtureTester {
 
 	async createProjectBuilder() {
 		await this._initialize();
+		this._sinon.resetHistory(); // Reset history of spies/stubs from previous builds (e.g. process event handlers)
 		const graph = await graphFromPackageDependencies({
 			cwd: this.fixturePath
 		});
