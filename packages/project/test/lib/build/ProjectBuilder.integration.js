@@ -123,6 +123,34 @@ test.serial("Build application.a project multiple times", async (t) => {
 	await projectBuilder.build({destPath, cleanDest: true});
 
 	t.is(projectBuilder._buildProject.callCount, 0, "No projects built in build #4");
+
+	// #5 build (with cache, no changes, with dependencies)
+	projectBuilder = await fixtureTester.createProjectBuilder();
+	await projectBuilder.build({destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}});
+
+	t.is(projectBuilder._buildProject.callCount, 4, "Only dependency projects built in build #5");
+	t.is(
+		projectBuilder._buildProject.getCall(0).args[0].getProject().getName(),
+		"library.d",
+	);
+	t.is(
+		projectBuilder._buildProject.getCall(1).args[0].getProject().getName(),
+		"library.a",
+	);
+	t.is(
+		projectBuilder._buildProject.getCall(2).args[0].getProject().getName(),
+		"library.b",
+	);
+	t.is(
+		projectBuilder._buildProject.getCall(3).args[0].getProject().getName(),
+		"library.c",
+	);
+
+	// #6 build (with cache, no changes)
+	projectBuilder = await fixtureTester.createProjectBuilder();
+	await projectBuilder.build({destPath, cleanDest: true});
+
+	t.is(projectBuilder._buildProject.callCount, 0, "No projects built in build #6");
 });
 
 test.serial("Build library.d project multiple times", async (t) => {
@@ -178,7 +206,7 @@ test.serial("Build library.d project multiple times", async (t) => {
 	buildStatusEventArgs = t.context.projectBuildStatusEventStub.args.map((args) => args[0]);
 	t.deepEqual(
 		buildStatusEventArgs.filter(({status}) => status === "task-skip"), [],
-		"No 'task-skip' status in build #3"
+		"No 'task-skip' status in build #3" // TODO: Is this correct?
 	);
 
 	// Check whether the changed file is in the destPath
