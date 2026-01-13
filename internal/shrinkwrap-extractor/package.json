@@ -39,7 +39,7 @@
 		"npm": ">= 8"
 	},
 	"dependencies": {
-		"@npmcli/arborist": "^9.1.7",
+		"@npmcli/arborist": "^9.1.9",
 		"@npmcli/config": "^10.4.0",
 		"pacote": "^21.0.4"
 	},
