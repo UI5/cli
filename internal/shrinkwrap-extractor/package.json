@@ -34,6 +34,10 @@
 		"dependencies"
 	],
 	"type": "module",
+	"engines": {
+		"node": "^22.20.0 || >=24.0.0",
+		"npm": ">= 8"
+	},
 	"dependencies": {
 		"@npmcli/arborist": "^9.1.7",
 		"@npmcli/config": "^10.4.0",
