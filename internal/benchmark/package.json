@@ -3,6 +3,10 @@
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",
+	"engines": {
+		"node": "^22.20.0 || >=24.0.0",
+		"npm": ">= 8"
+	},
 	"bin": {
 		"ui5-cli-benchmark": "./cli.js"
 	},

@@ -27,6 +27,28 @@ jobs:
     - name: Install dependencies
       run: npm ci --engine-strict # --engine-strict is used to fail-fast if deps require node versions unsupported by the repo
 
+    - name: Check package.json "engines" consistency
+      run: |
+        node << 'EOF'
+        const { execSync } = require('child_process');
+        const fs = require('fs');
+
+        const rootPkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+        const workspaces = JSON.parse(execSync('npm query .workspace --json', { encoding: 'utf8' }));
+
+        let hasError = false;
+        workspaces.forEach(pkg => {
+          if (JSON.stringify(pkg.engines) !== JSON.stringify(rootPkg.engines)) {
+            console.error(`❌ ${pkg.location}/package.json "engines" mismatch with root package.json`);
+            hasError = true;
+          }
+        });
+
+        if (hasError) process.exit(1);
+        console.log('✅ All workspace packages "engines" are consistent with root package.json');
+
+        EOF
+
     - name: Perform ESLint check
       run: npm run lint
 
