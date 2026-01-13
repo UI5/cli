@@ -36,10 +36,6 @@
 		"unit-watch": "npm run unit -- --watch",
 		"unit-inspect": "cross-env UI5_LOG_LVL=verbose ava debug --break",
 		"coverage": "rimraf test/tmp && nyc ava --node-arguments=\"--experimental-loader=@istanbuljs/esm-loader-hook\"",
-		"preversion": "npm test",
-		"version": "git-chglog --sort semver --next-tag v$npm_package_version -o CHANGELOG.md v4.0.0.. && git add CHANGELOG.md",
-		"prepublishOnly": "git push --follow-tags",
-		"release-note": "git-chglog --sort semver -c .chglog/release-config.yml v$npm_package_version",
 		"depcheck": "depcheck --ignores @ui5/logger,rimraf,@istanbuljs/esm-loader-hook,cross-env"
 	},
 	"files": [
