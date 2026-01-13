@@ -295,9 +295,7 @@ class ProjectBuilder {
 				if (alreadyBuilt.includes(projectName) || !(await projectBuildContext.requiresBuild())) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
-					this.#log.startProjectBuild(projectName, projectType);
-					const changedResources = await projectBuildContext.runTasks();
-					this.#log.endProjectBuild(projectName, projectType);
+					const {changedResources} = await this._buildProject(projectBuildContext);
 					for (const pbc of queue) {
 						// Propagate resource changes to following projects
 						pbc.getBuildCache().dependencyResourcesChanged(changedResources);
@@ -389,9 +387,7 @@ class ProjectBuilder {
 				continue;
 			}
 
-			this.#log.startProjectBuild(projectName, projectType);
-			const changedResources = await projectBuildContext.runTasks();
-			this.#log.endProjectBuild(projectName, projectType);
+			const {changedResources} = await this._buildProject(projectBuildContext);
 			for (const pbc of queue) {
 				// Propagate resource changes to following projects
 				pbc.getBuildCache().dependencyResourcesChanged(changedResources);
@@ -418,6 +414,18 @@ class ProjectBuilder {
 			pWrites.push(projectBuildContext.getBuildCache().writeCache(buildManifest));
 		}
 		await Promise.all(pWrites);
+	}
+
+	async _buildProject(projectBuildContext) {
+		const project = projectBuildContext.getProject();
+		const projectName = project.getName();
+		const projectType = project.getType();
+
+		this.#log.startProjectBuild(projectName, projectType);
+		const changedResources = await projectBuildContext.runTasks();
+		this.#log.endProjectBuild(projectName, projectType);
+
+		return {changedResources};
 	}
 
 	async _getProjectFilter({
