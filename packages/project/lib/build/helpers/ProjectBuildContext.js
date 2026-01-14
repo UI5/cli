@@ -110,8 +110,7 @@ class ProjectBuildContext {
 			return this._requiredDependencies;
 		}
 		const taskRunner = this.getTaskRunner();
-		this._requiredDependencies = Array.from(await taskRunner.getRequiredDependencies())
-			.sort((a, b) => a.localeCompare(b));
+		this._requiredDependencies = await taskRunner.getRequiredDependencies();
 		return this._requiredDependencies;
 	}
 
@@ -159,60 +158,67 @@ class ProjectBuildContext {
 	}
 
 	/**
-	 * Determine whether the project has to be built or is already built
-	 * (typically indicated by the presence of a build manifest or a valid cache)
+	 * Early check whether a project build is possibly required.
 	 *
-	 * @returns {boolean} True if the project needs to be built
+	 * In some cases, the cache state cannot be determined until all dependencies have been processed and
+	 * the cache has been updated with that information. This happens during prepareProjectBuildAndValidateCache().
+	 *
+	 * This method allows for an early check whether a project build can be skipped.
+	 *
+	 * @returns {Promise<boolean>} True if a build might required, false otherwise
 	 */
-	async requiresBuild() {
+	async possiblyRequiresBuild() {
 		if (this.#getBuildManifest()) {
 			// Build manifest present -> No build required
 			return false;
 		}
-
-		// Check whether all required dependencies are built and collect their signatures so that
-		// we can validate our build cache (keyed using the project's sources and relevant dependency signatures)
-		const depSignatures = [];
-		const requiredDependencyNames = await this.getRequiredDependencies();
-		for (const depName of requiredDependencyNames) {
-			const depCtx = this._buildContext.getBuildContext(depName);
-			if (!depCtx) {
-				throw new Error(`Unexpected missing build context for project '${depName}', dependency of ` +
-					`project '${this._project.getName()}'`);
-			}
-			const signature = await depCtx.getBuildResultSignature();
-			if (!signature) {
-				// Dependency is unable to provide a signature, likely because it needs to be built itself
-				// Until then, we assume this project requires a build as well and return here
-				return true;
-			}
-			// Collect signatures
-			depSignatures.push(signature);
-		}
-
-		return this._buildCache.requiresBuild(depSignatures);
+		// Without build manifest, check cache state
+		return !this.getBuildCache().isFresh();
 	}
 
-	async getBuildResultSignature() {
-		if (await this.requiresBuild()) {
-			return null;
-		}
-		return await this._buildCache.getResultSignature();
+	/**
+	 * Prepares the project build by updating, and then validating the build cache as needed
+	 *
+	 * @param {boolean} initialBuild
+	 * @returns {Promise<boolean>} True if project cache is fresh and can be used, false otherwise
+	 */
+	async prepareProjectBuildAndValidateCache(initialBuild) {
+		// if (this.getBuildCache().hasCache() && this.getBuildCache().requiresDependencyIndexInitialization()) {
+		// 	const depReader = this.getTaskRunner().getDependenciesReader(this.getTaskRunner.getRequiredDependencies());
+		// 	await this.getBuildCache().updateDependencyCache(depReader);
+		// }
+		const depReader = await this.getTaskRunner().getDependenciesReader(
+			await this.getTaskRunner().getRequiredDependencies(),
+			true, // Force creation of new reader since project readers might have changed during their (re-)build
+		);
+		this._currentDependencyReader = depReader;
+		return await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader, initialBuild);
 	}
 
-	async determineChangedResources() {
-		return this._buildCache.determineChangedResources();
-	}
-
-	async runTasks() {
+	/**
+	 * Builds the project by running all required tasks
+	 * Requires prepareProjectBuildAndValidateCache to be called beforehand
+	 *
+	 * @returns {Promise<string[]>} Resolves with list of changed resources since the last build
+	 */
+	async buildProject() {
 		return await this.getTaskRunner().runTasks();
 	}
-
-	async projectResourcesChanged(changedPaths) {
-		return this._buildCache.projectResourcesChanged(changedPaths);
+	/**
+	 * Informs the build cache about changed project source resources
+	 *
+	 * @param {string[]} changedPaths - Changed project source file paths
+	 */
+	projectSourcesChanged(changedPaths) {
+		return this._buildCache.projectSourcesChanged(changedPaths);
 	}
 
-	async dependencyResourcesChanged(changedPaths) {
+	/**
+	 * Informs the build cache about changed dependency resources
+	 *
+	 * @param {string[]} changedPaths - Changed dependency resource paths
+	 */
+	dependencyResourcesChanged(changedPaths) {
 		return this._buildCache.dependencyResourcesChanged(changedPaths);
 	}
 
