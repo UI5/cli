@@ -247,9 +247,9 @@ export default class HashTree {
 		// Insert the resource
 		const resourceName = parts[parts.length - 1];
 
-		if (current.children.has(resourceName)) {
-			throw new Error(`Duplicate resource path: ${resourcePath}`);
-		}
+		// if (current.children.has(resourceName)) {
+		// 	throw new Error(`Duplicate resource path: ${resourcePath}`);
+		// }
 
 		const resourceNode = new TreeNode(resourceName, "resource", {
 			integrity: resourceData.integrity,

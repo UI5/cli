@@ -49,12 +49,12 @@ export default class ResourceIndex {
 	 * signature calculation and change tracking.
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Resources to index
-	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @param {number} indexTimestamp Timestamp at which the provided resources have been indexed
+	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<ResourceIndex>} A new resource index
 	 * @public
 	 */
-	static async create(resources, registry, indexTimestamp) {
+	static async create(resources, indexTimestamp, registry) {
 		const resourceIndex = await createResourceIndex(resources);
 		const tree = new HashTree(resourceIndex, {registry, indexTimestamp});
 		return new ResourceIndex(tree);
@@ -154,20 +154,6 @@ export default class ResourceIndex {
 		return new ResourceIndex(this.#tree.deriveTree(resourceIndex));
 	}
 
-	// /**
-	//  * Updates existing resources in the index.
-	//  *
-	//  * Updates metadata for resources that already exist in the index.
-	//  * Resources not present in the index are ignored.
-	//  *
-	//  * @param {Array<@ui5/fs/Resource>} resources - Resources to update
-	//  * @returns {Promise<string[]>} Array of paths for resources that were updated
-	//  * @public
-	//  */
-	// async updateResources(resources) {
-	// 	return await this.#tree.updateResources(resources);
-	// }
-
 	/**
 	 * Compares this index against a base index and returns metadata
 	 * for resources that have been added in this index.
@@ -188,12 +174,13 @@ export default class ResourceIndex {
 	 * - If it exists and hasn't changed, no action is taken
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Resources to upsert
+	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
 	 * @returns {Promise<{added: string[], updated: string[]}>}
 	 *   Object with arrays of added and updated resource paths
 	 * @public
 	 */
-	async upsertResources(resources) {
-		return await this.#tree.upsertResources(resources);
+	async upsertResources(resources, newIndexTimestamp) {
+		return await this.#tree.upsertResources(resources, newIndexTimestamp);
 	}
 
 	/**
@@ -203,6 +190,10 @@ export default class ResourceIndex {
 	 */
 	async removeResources(resourcePaths) {
 		return await this.#tree.removeResources(resourcePaths);
+	}
+
+	getResourcePaths() {
+		return this.#tree.getResourcePaths();
 	}
 
 	/**

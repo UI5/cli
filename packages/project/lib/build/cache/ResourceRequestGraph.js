@@ -1,11 +1,11 @@
-const ALLOWED_REQUEST_TYPES = new Set(["path", "patterns", "dep-path", "dep-patterns"]);
+const ALLOWED_REQUEST_TYPES = new Set(["path", "patterns"]);
 
 /**
  * Represents a single request with type and value
  */
 export class Request {
 	/**
-	 * @param {string} type - Either 'path', 'pattern', "dep-path" or "dep-pattern"
+	 * @param {string} type - Either 'path' or 'pattern'
 	 * @param {string|string[]} value - The request value (string for path types, array for pattern types)
 	 */
 	constructor(type, value) {
@@ -14,7 +14,7 @@ export class Request {
 		}
 
 		// Validate value type based on request type
-		if ((type === "path" || type === "dep-path") && typeof value !== "string") {
+		if (type === "path" && typeof value !== "string") {
 			throw new Error(`Request type '${type}' requires value to be a string`);
 		}
 
@@ -366,6 +366,10 @@ export default class ResourceRequestGraph {
 			maxDepth: depths.length > 0 ? Math.max(...depths) : 0,
 			compressionRatio: totalRequests > 0 ? totalStoredDeltas / totalRequests : 1
 		};
+	}
+
+	getSize() {
+		return this.nodes.size;
 	}
 
 	/**

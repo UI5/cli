@@ -236,17 +236,8 @@ class ProjectBuilder {
 		}));
 
 		const alreadyBuilt = [];
-		const changedDependencyResources = [];
 		for (const projectBuildContext of queue) {
-			if (changedDependencyResources.length) {
-				// Notify build cache of changed resources from dependencies
-				projectBuildContext.dependencyResourcesChanged(changedDependencyResources);
-			}
-			const changedResources = await projectBuildContext.determineChangedResources();
-			for (const resourcePath of changedResources) {
-				changedDependencyResources.push(resourcePath);
-			}
-			if (!await projectBuildContext.requiresBuild()) {
+			if (!await projectBuildContext.possiblyRequiresBuild()) {
 				const projectName = projectBuildContext.getProject().getName();
 				alreadyBuilt.push(projectName);
 			}
@@ -292,13 +283,13 @@ class ProjectBuilder {
 				this.#log.verbose(`Processing project ${projectName}...`);
 
 				// Only build projects that are not already build (i.e. provide a matching build manifest)
-				if (alreadyBuilt.includes(projectName) || !(await projectBuildContext.requiresBuild())) {
+				if (alreadyBuilt.includes(projectName)) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
-					const {changedResources} = await this._buildProject(projectBuildContext);
-					for (const pbc of queue) {
-						// Propagate resource changes to following projects
-						pbc.getBuildCache().dependencyResourcesChanged(changedResources);
+					if (await projectBuildContext.prepareProjectBuildAndValidateCache(true)) {
+						this.#log.skipProjectBuild(projectName, projectType);
+					} else {
+						await this._buildProject(projectBuildContext);
 					}
 				}
 				if (!requestedProjects.includes(projectName)) {
@@ -313,12 +304,12 @@ class ProjectBuilder {
 				}
 
 				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_CACHE_UPDATE) {
-					this.#log.verbose(`Saving cache...`);
-					const buildManifest = await createBuildManifest(
-						project,
-						this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
-						projectBuildContext.getBuildSignature());
-					pWrites.push(projectBuildContext.getBuildCache().writeCache(buildManifest));
+					this.#log.verbose(`Triggering cache write...`);
+					// const buildManifest = await createBuildManifest(
+					// 	project,
+					// 	this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+					// 	projectBuildContext.getBuildSignature());
+					pWrites.push(projectBuildContext.getBuildCache().writeCache());
 				}
 			}
 			await Promise.all(pWrites);
@@ -349,7 +340,6 @@ class ProjectBuilder {
 
 	async #update(projectBuildContexts, requestedProjects, fsTarget) {
 		const queue = [];
-		const changedDependencyResources = [];
 		await this._graph.traverseDepthFirst(async ({project}) => {
 			const projectName = project.getName();
 			const projectBuildContext = projectBuildContexts.get(projectName);
@@ -358,15 +348,6 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
-
-				if (changedDependencyResources.length) {
-					// Notify build cache of changed resources from dependencies
-					await projectBuildContext.dependencyResourcesChanged(changedDependencyResources);
-				}
-				const changedResources = await projectBuildContext.determineChangedResources();
-				for (const resourcePath of changedResources) {
-					changedDependencyResources.push(resourcePath);
-				}
 			}
 		});
 
@@ -382,15 +363,18 @@ class ProjectBuilder {
 			const projectType = project.getType();
 			this.#log.verbose(`Updating project ${projectName}...`);
 
-			if (!await projectBuildContext.requiresBuild()) {
+			let changedPaths = await projectBuildContext.prepareProjectBuildAndValidateCache();
+			if (changedPaths) {
 				this.#log.skipProjectBuild(projectName, projectType);
-				continue;
+			} else {
+				changedPaths = await this._buildProject(projectBuildContext);
 			}
 
-			const {changedResources} = await this._buildProject(projectBuildContext);
-			for (const pbc of queue) {
-				// Propagate resource changes to following projects
-				pbc.getBuildCache().dependencyResourcesChanged(changedResources);
+			if (changedPaths.length) {
+				for (const pbc of queue) {
+					// Propagate resource changes to following projects
+					pbc.getBuildCache().dependencyResourcesChanged(changedPaths);
+				}
 			}
 			if (!requestedProjects.includes(projectName)) {
 				// Project has not been requested
@@ -406,12 +390,12 @@ class ProjectBuilder {
 			if (process.env.UI5_BUILD_NO_CACHE_UPDATE) {
 				continue;
 			}
-			this.#log.verbose(`Updating cache...`);
-			const buildManifest = await createBuildManifest(
-				project,
-				this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
-				projectBuildContext.getBuildSignature());
-			pWrites.push(projectBuildContext.getBuildCache().writeCache(buildManifest));
+			this.#log.verbose(`Triggering cache write...`);
+			// const buildManifest = await createBuildManifest(
+			// 	project,
+			// 	this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+			// 	projectBuildContext.getBuildSignature());
+			pWrites.push(projectBuildContext.getBuildCache().writeCache());
 		}
 		await Promise.all(pWrites);
 	}
@@ -422,7 +406,7 @@ class ProjectBuilder {
 		const projectType = project.getType();
 
 		this.#log.startProjectBuild(projectName, projectType);
-		const changedResources = await projectBuildContext.runTasks();
+		const changedResources = await projectBuildContext.buildProject();
 		this.#log.endProjectBuild(projectName, projectType);
 
 		return {changedResources};

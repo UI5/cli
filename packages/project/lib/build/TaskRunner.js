@@ -81,31 +81,19 @@ class TaskRunner {
 		}
 
 		await this._addCustomTasks();
-
-		// Create readers for *all* dependencies
-		const depReaders = [];
-		await this._graph.traverseBreadthFirst(project.getName(), async function({project: dep}) {
-			if (dep.getName() === project.getName()) {
-				// Ignore project itself
-				return;
-			}
-			depReaders.push(dep.getReader());
-		});
-
-		this._allDependenciesReader = createReaderCollection({
-			name: `Dependency reader collection of project ${project.getName()}`,
-			readers: depReaders
-		});
-		this._buildCache.setDependencyReader(this._allDependenciesReader);
 	}
 
 	/**
 	 * Takes a list of tasks which should be executed from the available task list of the current builder
 	 *
-	 * @returns {Promise} Returns promise resolving once all tasks have been executed
+	 * @returns {Promise<string[]>} Resolves with list of changed resources since the last build
 	 */
 	async runTasks() {
 		await this._initTasks();
+
+		// Ensure cached dependencies reader is initialized and up-to-date (TODO: improve this lifecycle)
+		await this.getDependenciesReader(this._directDependencies);
+
 		const tasksToRun = composeTaskList(Object.keys(this._tasks), this._buildConfig);
 		const allTasks = this._taskExecutionOrder.filter((taskName) => {
 			// There might be a numeric suffix in case a custom task is configured multiple times.
@@ -141,6 +129,9 @@ class TaskRunner {
 	 * @returns {Set<string>} Returns a set containing the names of all required direct project dependencies
 	 */
 	async getRequiredDependencies() {
+		if (this._requiredDependencies) {
+			return this._requiredDependencies;
+		}
 		await this._initTasks();
 		const tasksToRun = composeTaskList(Object.keys(this._tasks), this._buildConfig);
 		const allTasks = this._taskExecutionOrder.filter((taskName) => {
@@ -155,7 +146,7 @@ class TaskRunner {
 			const taskWithoutSuffixCounter = taskName.replace(/--\d+$/, "");
 			return tasksToRun.includes(taskWithoutSuffixCounter);
 		});
-		return allTasks.reduce((requiredDependencies, taskName) => {
+		this._requiredDependencies = allTasks.reduce((requiredDependencies, taskName) => {
 			if (this._tasks[taskName].requiredDependencies.size) {
 				this._log.verbose(`Task ${taskName} for project ${this._project.getName()} requires dependencies`);
 			}
@@ -164,6 +155,7 @@ class TaskRunner {
 			}
 			return requiredDependencies;
 		}, new Set());
+		return this._requiredDependencies;
 	}
 
 	/**
@@ -198,7 +190,7 @@ class TaskRunner {
 				options.projectName = this._project.getName();
 				options.projectNamespace = this._project.getNamespace();
 				// TODO: Apply cache and stage handling for custom tasks as well
-				const cacheInfo = await this._buildCache.prepareTaskExecution(taskName);
+				const cacheInfo = await this._buildCache.prepareTaskExecutionAndValidateCache(taskName);
 				if (cacheInfo === true) {
 					this._log.skipTask(taskName);
 					return;
@@ -213,7 +205,7 @@ class TaskRunner {
 
 				let dependencies;
 				if (requiresDependencies) {
-					dependencies = createMonitor(this._allDependenciesReader);
+					dependencies = createMonitor(this._cachedDependenciesReader);
 					params.dependencies = dependencies;
 				}
 				if (usingCache) {
@@ -387,9 +379,9 @@ class TaskRunner {
 				getBuildSignatureCallback,
 				getExpectedOutputCallback,
 				differentialUpdateCallback,
-				getDependenciesReader: () => {
+				getDependenciesReaderCb: () => {
 					// Create the dependencies reader on-demand
-					return this._createDependenciesReader(requiredDependencies);
+					return this.getDependenciesReader(requiredDependencies);
 				},
 			}),
 			requiredDependencies
@@ -422,7 +414,7 @@ class TaskRunner {
 	}
 
 	_createCustomTaskWrapper({
-		project, taskUtil, getDependenciesReader, provideDependenciesReader, task, taskName, taskConfiguration
+		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, task, taskName, taskConfiguration
 	}) {
 		return async function() {
 			/* Custom Task Interface
@@ -469,7 +461,7 @@ class TaskRunner {
 			}
 
 			if (provideDependenciesReader) {
-				params.dependencies = await getDependenciesReader();
+				params.dependencies = await getDependenciesReaderCb();
 			}
 			return taskFunction(params);
 		};
@@ -485,13 +477,6 @@ class TaskRunner {
 	 * @returns {Promise} Resolves when task has finished
 	 */
 	async _executeTask(taskName, taskFunction, taskParams) {
-		// if (this._buildCache.isTaskCacheValid(taskName)) {
-		// 	// Immediately skip task if cache is valid
-		// 	// Continue if cache is (potentially) invalid, in which case taskFunction will
-		// 	// validate the cache thoroughly
-		// 	this._log.skipTask(taskName);
-		// 	return;
-		// }
 		this._taskStart = performance.now();
 		await taskFunction(taskParams, this._log);
 		if (this._log.isLevelEnabled("perf")) {
@@ -499,10 +484,10 @@ class TaskRunner {
 		}
 	}
 
-	async _createDependenciesReader(requiredDirectDependencies) {
-		if (requiredDirectDependencies.size === this._directDependencies.size) {
+	async getDependenciesReader(dependencyNames, forceUpdate = false) {
+		if (!forceUpdate && dependencyNames.size === this._directDependencies.size) {
 			// Shortcut: If all direct dependencies are required, just return the already created reader
-			return this._allDependenciesReader;
+			return this._cachedDependenciesReader;
 		}
 		const rootProject = this._project;
 
@@ -510,8 +495,8 @@ class TaskRunner {
 		const readers = [];
 
 		// Add transitive dependencies to set of required dependencies
-		const requiredDependencies = new Set(requiredDirectDependencies);
-		for (const projectName of requiredDirectDependencies) {
+		const requiredDependencies = new Set(dependencyNames);
+		for (const projectName of dependencyNames) {
 			this._graph.getTransitiveDependencies(projectName).forEach((depName) => {
 				requiredDependencies.add(depName);
 			});
@@ -525,10 +510,15 @@ class TaskRunner {
 		});
 
 		// Create a reader collection for that
-		return createReaderCollection({
+		const reader = createReaderCollection({
 			name: `Reduced dependency reader collection of project ${rootProject.getName()}`,
 			readers
 		});
+
+		if (dependencyNames.size === this._directDependencies.size) {
+			this._cachedDependenciesReader = reader;
+		}
+		return reader;
 	}
 }
 
