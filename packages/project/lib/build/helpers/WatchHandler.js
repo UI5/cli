@@ -129,14 +129,12 @@ class WatchHandler extends EventEmitter {
 				}
 			}
 			const projectBuildContext = this.#buildContext.getBuildContext(projectName);
-			projectBuildContext.getBuildCache()
-				.projectSourcesChanged(Array.from(changedResourcePaths));
+			projectBuildContext.projectSourcesChanged(Array.from(changedResourcePaths));
 		}
 
 		for (const [projectName, changedResourcePaths] of dependencyChanges) {
 			const projectBuildContext = this.#buildContext.getBuildContext(projectName);
-			projectBuildContext.getBuildCache()
-				.dependencyResourcesChanged(Array.from(changedResourcePaths));
+			projectBuildContext.dependencyResourcesChanged(Array.from(changedResourcePaths));
 		}
 
 		this.emit("projectResourcesInvalidated");

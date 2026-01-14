@@ -1,7 +1,7 @@
 /**
  * @typedef {object} StageCacheEntry
  * @property {object} stage - The cached stage instance (typically a reader or writer)
- * @property {Set<string>} writtenResourcePaths - Set of resource paths written during stage execution
+ * @property {string[]} writtenResourcePaths - Set of resource paths written during stage execution
  */
 
 /**
@@ -36,7 +36,7 @@ export default class StageCache {
 	 * @param {string} stageId - Identifier for the stage (e.g., "task/generateBundle")
 	 * @param {string} signature - Content hash signature of the stage's input resources
 	 * @param {object} stageInstance - The stage instance to cache (typically a reader or writer)
-	 * @param {Set<string>} writtenResourcePaths - Set of resource paths written during this stage
+	 * @param {string[]} writtenResourcePaths - Set of resource paths written during this stage
 	 * @returns {void}
 	 */
 	addSignature(stageId, signature, stageInstance, writtenResourcePaths) {
@@ -45,6 +45,7 @@ export default class StageCache {
 		}
 		const signatureToStageInstance = this.#stageIdToSignatures.get(stageId);
 		signatureToStageInstance.set(signature, {
+			signature,
 			stage: stageInstance,
 			writtenResourcePaths,
 		});
@@ -85,5 +86,14 @@ export default class StageCache {
 		const queue = this.#cacheQueue;
 		this.#cacheQueue = [];
 		return queue;
+	}
+
+	/**
+	 * Checks if there are pending entries in the cache queue
+	 *
+	 * @returns {boolean} True if there are entries to flush, false otherwise
+	 */
+	hasPendingCacheQueue() {
+		return this.#cacheQueue.length > 0;
 	}
 }
