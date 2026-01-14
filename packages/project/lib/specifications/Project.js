@@ -480,9 +480,16 @@ class Project extends Specification {
 		return true; // Indicate that the stored stage has changed
 	}
 
-	setResultStage(reader) {
+	setResultStage(stageOrCacheReader) {
 		this._initStageMetadata();
-		const resultStage = new Stage(RESULT_STAGE_ID, undefined, reader);
+
+		let resultStage;
+		if (stageOrCacheReader instanceof Stage) {
+			resultStage = stageOrCacheReader;
+		} else {
+			resultStage = new Stage(RESULT_STAGE_ID, undefined, stageOrCacheReader);
+		}
+
 		this.#stages.push(resultStage);
 	}
 
