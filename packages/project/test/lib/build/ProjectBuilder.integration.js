@@ -94,20 +94,6 @@ test.serial("Build application.a project multiple times", async (t) => {
 				"library.a": {},
 				"library.b": {},
 				"library.c": {},
-
-				// FIXME: application.a should not be rebuilt here at all.
-				// Currently it is rebuilt but all tasks are skipped.
-				"application.a": {
-					skippedTasks: [
-						"enhanceManifest",
-						"escapeNonAsciiCharacters",
-						"generateComponentPreload",
-						"generateFlexChangesBundle",
-						"minify",
-						"replaceCopyright",
-						"replaceVersion",
-					]
-				}
 			}
 		}
 	});
@@ -116,21 +102,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {
-				// FIXME: application.a should not be rebuilt here at all.
-				// Currently it is rebuilt but all tasks are skipped.
-				"application.a": {
-					skippedTasks: [
-						"enhanceManifest",
-						"escapeNonAsciiCharacters",
-						"generateComponentPreload",
-						"generateFlexChangesBundle",
-						"minify",
-						"replaceCopyright",
-						"replaceVersion",
-					]
-				}
-			}
+			projects: {}
 		}
 	});
 
@@ -138,21 +110,7 @@ test.serial("Build application.a project multiple times", async (t) => {
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
 		assertions: {
-			projects: {
-				// FIXME: application.a should not be rebuilt here at all.
-				// Currently it is rebuilt but all tasks are skipped.
-				"application.a": {
-					skippedTasks: [
-						"enhanceManifest",
-						"escapeNonAsciiCharacters",
-						"generateComponentPreload",
-						"generateFlexChangesBundle",
-						"minify",
-						"replaceCopyright",
-						"replaceVersion",
-					]
-				}
-			}
+			projects: {}
 		}
 	});
 });
@@ -206,6 +164,64 @@ test.serial("Build library.d project multiple times", async (t) => {
 	t.true(
 		builtSomeJsContent.includes(`Some new fancy copyright`),
 		"Build dest contains updated copyright in some.js"
+	);
+
+	// #4 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+});
+
+test.serial("Build theme.library.e project multiple times", async (t) => {
+	const fixtureTester = new FixtureTester(t, "theme.library.e");
+	const destPath = fixtureTester.destPath;
+
+	// #1 build (with empty cache)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: false},
+		assertions: {
+			projects: {"theme.library.e": {}}
+		}
+	});
+
+	// #2 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// Change a source file in theme.library.e
+	const changedFilePath = `${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
+	await fs.appendFile(changedFilePath, `\n.someNewClass {\n\tcolor: red;\n}\n`);
+
+	// #3 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {}}
+		}
+	});
+
+	// Check whether the changed file is in the destPath
+	const builtFileContent = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.source.less`, {encoding: "utf8"}
+	);
+	t.true(
+		builtFileContent.includes(`.someNewClass`),
+		"Build dest contains changed file content"
+	);
+	// Check whether the updated copyright replacement took place
+	const builtCssContent = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+	);
+	t.true(
+		builtCssContent.includes(`.someNewClass`),
+		"Build dest contains new rule in library.css"
 	);
 
 	// #4 build (with cache, no changes)
