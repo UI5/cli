@@ -180,7 +180,8 @@ class ProjectBuildContext {
 	 * Prepares the project build by updating, and then validating the build cache as needed
 	 *
 	 * @param {boolean} initialBuild
-	 * @returns {Promise<boolean>} True if project cache is fresh and can be used, false otherwise
+	 * @returns {Promise<string[]|undefined>} Undefined if no cache has been found. Otherwise a list of changed
+	 * resources
 	 */
 	async prepareProjectBuildAndValidateCache(initialBuild) {
 		// if (this.getBuildCache().hasCache() && this.getBuildCache().requiresDependencyIndexInitialization()) {
