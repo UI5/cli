@@ -111,6 +111,34 @@ test.serial("Build application.a project multiple times", async (t) => {
 			projects: {}
 		}
 	});
+
+	// #6 build (with cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {
+				"application.a": {}
+			}
+		}
+	});
+
+	// #7 build (with cache, no changes, with custom tasks)
+	await fixtureTester.buildProject({
+		graphConfig: {rootConfigPath: "ui5-customTask.yaml"},
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {}
+		}
+	});
+
+	// #8 build (with cache, no changes, with dependencies)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true, dependencyIncludes: {includeAllDependencies: true}},
+		assertions: {
+			projects: {}
+		}
+	});
 });
 
 test.serial("Build library.d project multiple times", async (t) => {
@@ -265,12 +293,13 @@ class FixtureTester {
 		this._initialized = true;
 	}
 
-	async buildProject({config = {}, assertions = {}} = {}) {
+	async buildProject({graphConfig = {}, config = {}, assertions = {}} = {}) {
 		await this._initialize();
 		this._sinon.resetHistory();
 
 		const graph = await graphFromPackageDependencies({
-			cwd: this.fixturePath
+			...graphConfig,
+			cwd: this.fixturePath,
 		});
 
 		// Execute the build
