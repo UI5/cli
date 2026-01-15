@@ -37,7 +37,7 @@ class ResourceRequestManager {
 			const metadata = requestGraph.getMetadata(nodeId);
 			const registry = resourceRequestManager.#newTreeRegistry();
 			registries.set(nodeId, registry);
-			metadata.resourceIndex = ResourceIndex.fromCache(serializedIndex, registry);
+			metadata.resourceIndex = ResourceIndex.fromCacheShared(serializedIndex, registry);
 		}
 		// Restore delta resource indices
 		if (deltaIndices) {
