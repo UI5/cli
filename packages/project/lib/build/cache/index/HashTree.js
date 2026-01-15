@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path/posix";
+import TreeNode from "./TreeNode.js";
 import {matchResourceMetadataStrict} from "../utils.js";
 
 /**
@@ -12,118 +13,11 @@ import {matchResourceMetadataStrict} from "../utils.js";
  */
 
 /**
- * Represents a node in the directory-based Merkle tree
- */
-class TreeNode {
-	constructor(name, type, options = {}) {
-		this.name = name; // resource name or directory name
-		this.type = type; // 'resource' | 'directory'
-		this.hash = options.hash || null; // Buffer
-
-		// Resource node properties
-		this.integrity = options.integrity; // Resource content hash
-		this.lastModified = options.lastModified; // Last modified timestamp
-		this.size = options.size; // File size in bytes
-		this.inode = options.inode; // File system inode number
-
-		// Directory node properties
-		this.children = options.children || new Map(); // name -> TreeNode
-	}
-
-	/**
-	 * Get full path from root to this node
-	 *
-	 * @param {string} parentPath
-	 * @returns {string}
-	 */
-	getPath(parentPath = "") {
-		return parentPath ? path.join(parentPath, this.name) : this.name;
-	}
-
-	/**
-	 * Serialize to JSON
-	 *
-	 * @returns {object}
-	 */
-	toJSON() {
-		const obj = {
-			name: this.name,
-			type: this.type,
-			hash: this.hash ? this.hash.toString("hex") : null
-		};
-
-		if (this.type === "resource") {
-			obj.integrity = this.integrity;
-			obj.lastModified = this.lastModified;
-			obj.size = this.size;
-			obj.inode = this.inode;
-		} else {
-			obj.children = {};
-			for (const [name, child] of this.children) {
-				obj.children[name] = child.toJSON();
-			}
-		}
-
-		return obj;
-	}
-
-	/**
-	 * Deserialize from JSON
-	 *
-	 * @param {object} data
-	 * @returns {TreeNode}
-	 */
-	static fromJSON(data) {
-		const options = {
-			hash: data.hash ? Buffer.from(data.hash, "hex") : null,
-			integrity: data.integrity,
-			lastModified: data.lastModified,
-			size: data.size,
-			inode: data.inode
-		};
-
-		if (data.type === "directory" && data.children) {
-			options.children = new Map();
-			for (const [name, childData] of Object.entries(data.children)) {
-				options.children.set(name, TreeNode.fromJSON(childData));
-			}
-		}
-
-		return new TreeNode(data.name, data.type, options);
-	}
-
-	/**
-	 * Create a deep copy of this node
-	 *
-	 * @returns {TreeNode}
-	 */
-	clone() {
-		const options = {
-			hash: this.hash ? Buffer.from(this.hash) : null,
-			integrity: this.integrity,
-			lastModified: this.lastModified,
-			size: this.size,
-			inode: this.inode
-		};
-
-		if (this.type === "directory") {
-			options.children = new Map();
-			for (const [name, child] of this.children) {
-				options.children.set(name, child.clone());
-			}
-		}
-
-		return new TreeNode(this.name, this.type, options);
-	}
-}
-
-/**
  * Directory-based Merkle Tree for efficient resource tracking with hierarchical structure.
  *
  * Computes deterministic SHA256 hashes for resources and directories, enabling:
  * - Fast change detection via root hash comparison
  * - Structural sharing through derived trees (memory efficient)
- * - Coordinated multi-tree updates via TreeRegistry
  * - Batch upsert and removal operations
  *
  * Primary use case: Build caching systems where multiple related resource trees
@@ -137,19 +31,12 @@ export default class HashTree {
 	 * @param {Array<ResourceMetadata>|null} resources
 	 *   Initial resources to populate the tree. Each resource should have a path and optional metadata.
 	 * @param {object} options
-	 * @param {TreeRegistry} [options.registry] Optional registry for coordinated batch updates across multiple trees
 	 * @param {number} [options.indexTimestamp] Timestamp of the latest resource metadata update
 	 * @param {TreeNode} [options._root] Internal: pre-existing root node for derived trees (enables structural sharing)
 	 */
 	constructor(resources = null, options = {}) {
-		this.registry = options.registry || null;
 		this.root = options._root || new TreeNode("", "directory");
 		this.#indexTimestamp = options.indexTimestamp;
-
-		// Register with registry if provided
-		if (this.registry) {
-			this.registry.register(this);
-		}
 
 		if (resources && !options._root) {
 			this._buildTree(resources);
@@ -412,138 +299,22 @@ export default class HashTree {
 	}
 
 	/**
-	 * Create a derived tree that shares subtrees with this tree.
-	 *
-	 * Derived trees are filtered views on shared data - they share node references with the parent tree,
-	 * enabling efficient memory usage. Changes propagate through the TreeRegistry to all derived trees.
-	 *
-	 * Use case: Represent different resource sets (e.g., debug vs. production builds) that share common files.
-	 *
-	 * @param {Array<ResourceMetadata>} additionalResources
-	 *   Resources to add to the derived tree (in addition to shared resources from parent)
-	 * @returns {HashTree} New tree sharing subtrees with this tree
-	 */
-	deriveTree(additionalResources = []) {
-		// Shallow copy root to allow adding new top-level directories
-		const derivedRoot = this._shallowCopyDirectory(this.root);
-
-		// Create derived tree with shared root and same registry
-		const derived = new HashTree(additionalResources, {
-			registry: this.registry,
-			_root: derivedRoot
-		});
-
-		return derived;
-	}
-
-	// /**
-	//  * Update multiple resources efficiently.
-	//  *
-	//  * When a registry is attached, schedules updates for batch processing.
-	//  * Otherwise, updates all resources immediately, collecting affected directories
-	//  * and recomputing hashes bottom-up for optimal performance.
-	//  *
-	//  * Skips resources whose metadata hasn't changed (optimization).
-	//  *
-	//  * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to update
-	//  * @returns {Promise<Array<string>>} Paths of resources that actually changed
-	//  */
-	// async updateResources(resources) {
-	// 	if (!resources || resources.length === 0) {
-	// 		return [];
-	// 	}
-
-	// 	const changedResources = [];
-	// 	const affectedPaths = new Set();
-
-	// 	// Update all resources and collect affected directory paths
-	// 	for (const resource of resources) {
-	// 		const resourcePath = resource.getOriginalPath();
-	// 		const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
-
-	// 		// Find the resource node
-	// 		const node = this._findNode(resourcePath);
-	// 		if (!node || node.type !== "resource") {
-	// 			throw new Error(`Resource not found: ${resourcePath}`);
-	// 		}
-
-	// 		// Create metadata object from current node state
-	// 		const currentMetadata = {
-	// 			integrity: node.integrity,
-	// 			lastModified: node.lastModified,
-	// 			size: node.size,
-	// 			inode: node.inode
-	// 		};
-
-	// 		// Check whether resource actually changed
-	// 		const isUnchanged = await matchResourceMetadataStrict(resource, currentMetadata, this.#indexTimestamp);
-	// 		if (isUnchanged) {
-	// 			continue; // Skip unchanged resources
-	// 		}
-
-	// 		// Update resource metadata
-	// 		node.integrity = await resource.getIntegrity();
-	// 		node.lastModified = resource.getLastModified();
-	// 		node.size = await resource.getSize();
-	// 		node.inode = resource.getInode();
-	// 		changedResources.push(resourcePath);
-
-	// 		// Recompute resource hash
-	// 		this._computeHash(node);
-
-	// 		// Mark all ancestor directories as needing recomputation
-	// 		for (let i = 0; i < parts.length; i++) {
-	// 			affectedPaths.add(parts.slice(0, i).join(path.sep));
-	// 		}
-	// 	}
-
-	// 	// Recompute directory hashes bottom-up
-	// 	const sortedPaths = Array.from(affectedPaths).sort((a, b) => {
-	// 		// Sort by depth (deeper first) and then alphabetically
-	// 		const depthA = a.split(path.sep).length;
-	// 		const depthB = b.split(path.sep).length;
-	// 		if (depthA !== depthB) return depthB - depthA;
-	// 		return a.localeCompare(b);
-	// 	});
-
-	// 	for (const dirPath of sortedPaths) {
-	// 		const node = this._findNode(dirPath);
-	// 		if (node && node.type === "directory") {
-	// 			this._computeHash(node);
-	// 		}
-	// 	}
-
-	// 	this._updateIndexTimestamp();
-	// 	return changedResources;
-	// }
-
-	/**
 	 * Upsert multiple resources (insert if new, update if exists).
 	 *
 	 * Intelligently determines whether each resource is new (insert) or existing (update).
-	 * When a registry is attached, schedules operations for batch processing.
-	 * Otherwise, applies operations immediately with optimized hash recomputation.
+	 * Applies operations immediately with optimized hash recomputation.
 	 *
 	 * Automatically creates missing parent directories during insertion.
 	 * Skips resources whose metadata hasn't changed (optimization).
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Array of Resource instances to upsert
 	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
-	 * @returns {Promise<{added: Array<string>, updated: Array<string>, unchanged: Array<string>}|undefined>}
+	 * @returns {Promise<{added: Array<string>, updated: Array<string>, unchanged: Array<string>}>}
 	 *   Status report: arrays of paths by operation type.
-	 * Undefined if using registry (results determined during flush).
 	 */
 	async upsertResources(resources, newIndexTimestamp) {
 		if (!resources || resources.length === 0) {
 			return {added: [], updated: [], unchanged: []};
-		}
-
-		if (this.registry) {
-			for (const resource of resources) {
-				this.registry.scheduleUpsert(resource, newIndexTimestamp);
-			}
-			// When using registry, actual results are determined during flush
-			return;
 		}
 
 		// Immediate mode
@@ -629,27 +400,15 @@ export default class HashTree {
 	/**
 	 * Remove multiple resources efficiently.
 	 *
-	 * When a registry is attached, schedules removals for batch processing.
-	 * Otherwise, removes resources immediately and recomputes affected ancestor hashes.
-	 *
-	 * Note: When using a registry with derived trees, removals propagate to all trees
-	 * sharing the affected directories (intentional for the shared view model).
+	 * Removes resources immediately and recomputes affected ancestor hashes.
 	 *
 	 * @param {Array<string>} resourcePaths - Array of resource paths to remove
-	 * @returns {Promise<{removed: Array<string>, notFound: Array<string>}|undefined>}
+	 * @returns {Promise<{removed: Array<string>, notFound: Array<string>}>}
 	 *   Status report: 'removed' contains successfully removed paths, 'notFound' contains paths that didn't exist.
-	 *   Undefined if using registry (results determined during flush).
 	 */
 	async removeResources(resourcePaths) {
 		if (!resourcePaths || resourcePaths.length === 0) {
 			return {removed: [], notFound: []};
-		}
-
-		if (this.registry) {
-			for (const resourcePath of resourcePaths) {
-				this.registry.scheduleRemoval(resourcePath);
-			}
-			return;
 		}
 
 		// Immediate mode

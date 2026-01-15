@@ -6,6 +6,7 @@
  * enabling fast delta detection and signature calculation for build caching.
  */
 import HashTree from "./HashTree.js";
+import SharedHashTree from "./SharedHashTree.js";
 import {createResourceIndex} from "../utils.js";
 
 /**
@@ -50,13 +51,31 @@ export default class ResourceIndex {
 	 *
 	 * @param {Array<@ui5/fs/Resource>} resources - Resources to index
 	 * @param {number} indexTimestamp Timestamp at which the provided resources have been indexed
-	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<ResourceIndex>} A new resource index
 	 * @public
 	 */
-	static async create(resources, indexTimestamp, registry) {
+	static async create(resources, indexTimestamp) {
 		const resourceIndex = await createResourceIndex(resources);
-		const tree = new HashTree(resourceIndex, {registry, indexTimestamp});
+		const tree = new HashTree(resourceIndex, {indexTimestamp});
+		return new ResourceIndex(tree);
+	}
+
+	/**
+	 * Creates a new shared ResourceIndex from a set of resources.
+	 *
+	 * Creates a SharedHashTree that coordinates updates through a TreeRegistry.
+	 * Use this for scenarios where multiple indices need to share nodes and
+	 * coordinate batch updates.
+	 *
+	 * @param {Array<@ui5/fs/Resource>} resources - Resources to index
+	 * @param {number} indexTimestamp Timestamp at which the provided resources have been indexed
+	 * @param {TreeRegistry} registry - Registry for coordinated batch updates
+	 * @returns {Promise<ResourceIndex>} A new resource index with shared tree
+	 * @public
+	 */
+	static async createShared(resources, indexTimestamp, registry) {
+		const resourceIndex = await createResourceIndex(resources);
+		const tree = new SharedHashTree(resourceIndex, registry, {indexTimestamp});
 		return new ResourceIndex(tree);
 	}
 
@@ -76,20 +95,52 @@ export default class ResourceIndex {
 	 * @param {object} indexCache.indexTree - Cached hash tree structure
 	 * @param {Array<@ui5/fs/Resource>} resources - Current resources to compare against cache
 	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
-	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
 	 * @returns {Promise<{changedPaths: string[], resourceIndex: ResourceIndex}>}
 	 *   Object containing array of all changed resource paths and the updated index
 	 * @public
 	 */
-	static async fromCacheWithDelta(indexCache, resources, newIndexTimestamp, registry) {
+	static async fromCacheWithDelta(indexCache, resources, newIndexTimestamp) {
 		const {indexTimestamp, indexTree} = indexCache;
-		const tree = HashTree.fromCache(indexTree, {indexTimestamp, registry});
+		const tree = HashTree.fromCache(indexTree, {indexTimestamp});
 		const currentResourcePaths = new Set(resources.map((resource) => resource.getOriginalPath()));
 		const removedPaths = tree.getResourcePaths().filter((resourcePath) => {
 			return !currentResourcePaths.has(resourcePath);
 		});
 		const {removed} = await tree.removeResources(removedPaths);
 		const {added, updated} = await tree.upsertResources(resources, newIndexTimestamp);
+		return {
+			changedPaths: [...added, ...updated, ...removed],
+			resourceIndex: new ResourceIndex(tree),
+		};
+	}
+
+	/**
+	 * Restores a shared ResourceIndex from cache and applies delta updates.
+	 *
+	 * Same as fromCacheWithDelta, but creates a SharedHashTree that coordinates
+	 * updates through a TreeRegistry.
+	 *
+	 * @param {object} indexCache - Cached index object from previous build
+	 * @param {number} indexCache.indexTimestamp - Timestamp of cached index
+	 * @param {object} indexCache.indexTree - Cached hash tree structure
+	 * @param {Array<@ui5/fs/Resource>} resources - Current resources to compare against cache
+	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
+	 * @param {TreeRegistry} registry - Registry for coordinated batch updates
+	 * @returns {Promise<{changedPaths: string[], resourceIndex: ResourceIndex}>}
+	 *   Object containing array of all changed resource paths and the updated index
+	 * @public
+	 */
+	static async fromCacheWithDeltaShared(indexCache, resources, newIndexTimestamp, registry) {
+		const {indexTimestamp, indexTree} = indexCache;
+		const tree = SharedHashTree.fromCache(indexTree, registry, {indexTimestamp});
+		const currentResourcePaths = new Set(resources.map((resource) => resource.getOriginalPath()));
+		const removedPaths = tree.getResourcePaths().filter((resourcePath) => {
+			return !currentResourcePaths.has(resourcePath);
+		});
+		await tree.removeResources(removedPaths);
+		await tree.upsertResources(resources, newIndexTimestamp);
+		// For shared trees, we need to flush the registry to get results
+		const {added, updated, removed} = await registry.flush();
 		return {
 			changedPaths: [...added, ...updated, ...removed],
 			resourceIndex: new ResourceIndex(tree),
@@ -106,13 +157,31 @@ export default class ResourceIndex {
 	 * @param {object} indexCache - Cached index object
 	 * @param {number} indexCache.indexTimestamp - Timestamp of cached index
 	 * @param {object} indexCache.indexTree - Cached hash tree structure
-	 * @param {TreeRegistry} [registry] - Optional tree registry for structural sharing within trees
-	 * @returns {Promise<ResourceIndex>} Restored resource index
+	 * @returns {ResourceIndex} Restored resource index
 	 * @public
 	 */
-	static fromCache(indexCache, registry) {
+	static fromCache(indexCache) {
 		const {indexTimestamp, indexTree} = indexCache;
-		const tree = HashTree.fromCache(indexTree, {indexTimestamp, registry});
+		const tree = HashTree.fromCache(indexTree, {indexTimestamp});
+		return new ResourceIndex(tree);
+	}
+
+	/**
+	 * Restores a shared ResourceIndex from cached metadata.
+	 *
+	 * Same as fromCache, but creates a SharedHashTree that coordinates
+	 * updates through a TreeRegistry.
+	 *
+	 * @param {object} indexCache - Cached index object
+	 * @param {number} indexCache.indexTimestamp - Timestamp of cached index
+	 * @param {object} indexCache.indexTree - Cached hash tree structure
+	 * @param {TreeRegistry} registry - Registry for coordinated batch updates
+	 * @returns {ResourceIndex} Restored resource index with shared tree
+	 * @public
+	 */
+	static fromCacheShared(indexCache, registry) {
+		const {indexTimestamp, indexTree} = indexCache;
+		const tree = SharedHashTree.fromCache(indexTree, registry, {indexTimestamp});
 		return new ResourceIndex(tree);
 	}
 
