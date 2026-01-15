@@ -416,7 +416,7 @@ class TaskRunner {
 	_createCustomTaskWrapper({
 		project, taskUtil, getDependenciesReaderCb, provideDependenciesReader, task, taskName, taskConfiguration
 	}) {
-		return async function() {
+		return async () => {
 			/* Custom Task Interface
 				Parameters:
 					{Object} parameters Parameters
@@ -463,7 +463,9 @@ class TaskRunner {
 			if (provideDependenciesReader) {
 				params.dependencies = await getDependenciesReaderCb();
 			}
-			return taskFunction(params);
+			this._log.startTask(taskName, false);
+			await taskFunction(params);
+			this._log.endTask(taskName);
 		};
 	}
 
@@ -480,6 +482,8 @@ class TaskRunner {
 		this._taskStart = performance.now();
 		await taskFunction(taskParams, this._log);
 		if (this._log.isLevelEnabled("perf")) {
+			// FIXME: Standard tasks are currently additionally measured within taskFunction (See _addTask).
+			// The measurement here includes the time for checking whether the task can be skipped via cache.
 			this._log.perf(`Task ${taskName} finished in ${Math.round((performance.now() - this._taskStart))} ms`);
 		}
 	}
