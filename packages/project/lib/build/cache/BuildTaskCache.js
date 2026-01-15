@@ -26,8 +26,9 @@ const log = getLogger("build:cache:BuildTaskCache");
  * to reuse existing resource indices, optimizing both memory and computation.
  */
 export default class BuildTaskCache {
-	#taskName;
 	#projectName;
+	#taskName;
+	#supportsDifferentialUpdates;
 
 	#projectRequestManager;
 	#dependencyRequestManager;
@@ -35,24 +36,32 @@ export default class BuildTaskCache {
 	/**
 	 * Creates a new BuildTaskCache instance
 	 *
-	 * @param {string} taskName - Name of the task this cache manages
 	 * @param {string} projectName - Name of the project this task belongs to
-	 * @param {object} [cachedTaskMetadata]
+	 * @param {string} taskName - Name of the task this cache manages
+	 * @param {boolean} supportsDifferentialUpdates
+	 * @param {ResourceRequestManager} [projectRequestManager]
+	 * @param {ResourceRequestManager} [dependencyRequestManager]
 	 */
-	constructor(taskName, projectName, cachedTaskMetadata) {
-		this.#taskName = taskName;
+	constructor(projectName, taskName, supportsDifferentialUpdates, projectRequestManager, dependencyRequestManager) {
 		this.#projectName = projectName;
+		this.#taskName = taskName;
+		this.#supportsDifferentialUpdates = supportsDifferentialUpdates;
+		log.verbose(`Initializing BuildTaskCache for task "${taskName}" of project "${this.#projectName}" ` +
+			`(supportsDifferentialUpdates=${supportsDifferentialUpdates})`);
 
-		if (cachedTaskMetadata) {
-			this.#projectRequestManager = ResourceRequestManager.fromCache(taskName, projectName,
-				cachedTaskMetadata.projectRequests);
-			this.#dependencyRequestManager = ResourceRequestManager.fromCache(taskName, projectName,
-				cachedTaskMetadata.dependencyRequests);
-		} else {
-			// No cache reader provided, start with empty graph
-			this.#projectRequestManager = new ResourceRequestManager(taskName, projectName);
-			this.#dependencyRequestManager = new ResourceRequestManager(taskName, projectName);
-		}
+		this.#projectRequestManager = projectRequestManager ??
+			new ResourceRequestManager(projectName, taskName, supportsDifferentialUpdates);
+		this.#dependencyRequestManager = dependencyRequestManager ??
+			new ResourceRequestManager(projectName, taskName, supportsDifferentialUpdates);
+	}
+
+	static fromCache(projectName, taskName, supportsDifferentialUpdates, projectRequests, dependencyRequests) {
+		const projectRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
+			supportsDifferentialUpdates, projectRequests);
+		const dependencyRequestManager = ResourceRequestManager.fromCache(projectName, taskName,
+			supportsDifferentialUpdates, dependencyRequests);
+		return new BuildTaskCache(projectName, taskName, supportsDifferentialUpdates,
+			projectRequestManager, dependencyRequestManager);
 	}
 
 	// ===== METADATA ACCESS =====
@@ -64,6 +73,10 @@ export default class BuildTaskCache {
 	 */
 	getTaskName() {
 		return this.#taskName;
+	}
+
+	getSupportsDifferentialUpdates() {
+		return this.#supportsDifferentialUpdates;
 	}
 
 	hasNewOrModifiedCacheEntries() {
@@ -105,7 +118,7 @@ export default class BuildTaskCache {
 	 * a unique combination of resources, belonging to the current project, that were accessed
 	 * during task execution. This can be used to form a cache keys for restoring cached task results.
 	 *
-	 * @returns {Promise<string[]>} Array of signature strings
+	 * @returns {string[]} Array of signature strings
 	 * @throws {Error} If resource index is missing for any request set
 	 */
 	getProjectIndexSignatures() {
@@ -119,11 +132,19 @@ export default class BuildTaskCache {
 	 * a unique combination of resources, belonging to all dependencies of the current project, that were accessed
 	 * during task execution. This can be used to form a cache keys for restoring cached task results.
 	 *
-	 * @returns {Promise<string[]>} Array of signature strings
+	 * @returns {string[]} Array of signature strings
 	 * @throws {Error} If resource index is missing for any request set
 	 */
 	getDependencyIndexSignatures() {
 		return this.#dependencyRequestManager.getIndexSignatures();
+	}
+
+	getProjectIndexDeltas() {
+		return this.#projectRequestManager.getDeltas();
+	}
+
+	getDependencyIndexDeltas() {
+		return this.#dependencyRequestManager.getDeltas();
 	}
 
 	/**
@@ -159,13 +180,9 @@ export default class BuildTaskCache {
 			this.#projectRequestManager.addAffiliatedRequestSet(projectReqSetId, depReqSetId);
 			dependencyReqSignature = depReqSignature;
 		} else {
-			dependencyReqSignature = "X"; // No dependencies accessed
+			dependencyReqSignature = this.#dependencyRequestManager.recordNoRequests();
 		}
 		return [projectReqSignature, dependencyReqSignature];
-	}
-
-	findDelta() {
-		// TODO: Implement
 	}
 
 	/**
@@ -174,12 +191,9 @@ export default class BuildTaskCache {
 	 * Exports the resource request graph in a format suitable for JSON serialization.
 	 * The serialized data can be passed to the constructor to restore the cache state.
 	 *
-	 * @returns {TaskCacheMetadata} Serialized cache metadata containing the request set graph
+	 * @returns {object[]} Serialized cache metadata containing the request set graphs
 	 */
 	toCacheObjects() {
-		return {
-			projectRequests: this.#projectRequestManager.toCacheObject(),
-			dependencyRequests: this.#dependencyRequestManager.toCacheObject(),
-		};
+		return [this.#projectRequestManager.toCacheObject(), this.#dependencyRequestManager.toCacheObject()];
 	}
 }
