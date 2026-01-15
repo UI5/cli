@@ -11,14 +11,17 @@ class ResourceRequestManager {
 	#requestGraph;
 
 	#treeRegistries = [];
-	#treeDiffs = new Map();
+	#treeUpdateDeltas = new Map();
 
 	#hasNewOrModifiedCacheEntries;
-	#useDifferentialUpdate = true;
+	#useDifferentialUpdate;
+	#unusedAtLeastOnce;
 
-	constructor(taskName, projectName, requestGraph) {
-		this.#taskName = taskName;
+	constructor(projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
 		this.#projectName = projectName;
+		this.#taskName = taskName;
+		this.#useDifferentialUpdate = useDifferentialUpdate;
+		this.#unusedAtLeastOnce = unusedAtLeastOnce;
 		if (requestGraph) {
 			this.#requestGraph = requestGraph;
 			this.#hasNewOrModifiedCacheEntries = false; // Using cache
@@ -28,9 +31,12 @@ class ResourceRequestManager {
 		}
 	}
 
-	static fromCache(taskName, projectName, {requestSetGraph, rootIndices, deltaIndices}) {
+	static fromCache(projectName, taskName, useDifferentialUpdate, {
+		requestSetGraph, rootIndices, deltaIndices, unusedAtLeastOnce
+	}) {
 		const requestGraph = ResourceRequestGraph.fromCacheObject(requestSetGraph);
-		const resourceRequestManager = new ResourceRequestManager(taskName, projectName, requestGraph);
+		const resourceRequestManager = new ResourceRequestManager(
+			projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce);
 		const registries = new Map();
 		// Restore root resource indices
 		for (const {nodeId, resourceIndex: serializedIndex} of rootIndices) {
@@ -71,9 +77,6 @@ class ResourceRequestManager {
 	 */
 	getIndexSignatures() {
 		const requestSetIds = this.#requestGraph.getAllNodeIds();
-		if (requestSetIds.length === 0) {
-			return ["X"]; // No requests recorded, return static signature
-		}
 		const signatures = requestSetIds.map((requestSetId) => {
 			const {resourceIndex} = this.#requestGraph.getMetadata(requestSetId);
 			if (!resourceIndex) {
@@ -81,6 +84,9 @@ class ResourceRequestManager {
 			}
 			return resourceIndex.getSignature();
 		});
+		if (this.#unusedAtLeastOnce) {
+			signatures.push("X"); // Signature for when no requests were made
+		}
 		return signatures;
 	}
 
@@ -154,6 +160,9 @@ class ResourceRequestManager {
 				updatesByRequestSetId.set(nodeId, relevantUpdates);
 				matchingRequestSetIds.push(nodeId);
 			}
+		}
+		if (!matchingRequestSetIds.length) {
+			return false; // No relevant changes for any request set
 		}
 
 		const resourceCache = new Map();
@@ -245,19 +254,15 @@ class ResourceRequestManager {
 	 */
 	async #flushTreeChangesWithDiffTracking() {
 		const requestSetIds = this.#requestGraph.getAllNodeIds();
+		const previousTreeSignatures = new Map();
 		// Record current signatures and create mapping between trees and request sets
 		requestSetIds.map((requestSetId) => {
 			const {resourceIndex} = this.#requestGraph.getMetadata(requestSetId);
 			if (!resourceIndex) {
 				throw new Error(`Resource index missing for request set ID ${requestSetId}`);
 			}
-			// Store original signatures for all trees that are not yet tracked
-			if (!this.#treeDiffs.has(resourceIndex.getTree())) {
-				this.#treeDiffs.set(resourceIndex.getTree(), {
-					requestSetId,
-					signature: resourceIndex.getSignature(),
-				});
-			}
+			// Remember the original signature
+			previousTreeSignatures.set(resourceIndex.getTree(), [requestSetId, resourceIndex.getSignature()]);
 		});
 		const results = await this.#flushTreeChanges();
 		let hasChanges = false;
@@ -265,68 +270,13 @@ class ResourceRequestManager {
 			if (res.added.length || res.updated.length || res.unchanged.length || res.removed.length) {
 				hasChanges = true;
 			}
-			for (const [tree, stats] of res.treeStats) {
-				this.#addStatsToTreeDiff(this.#treeDiffs.get(tree), stats);
+			for (const [tree, diff] of res.treeStats) {
+				const [requestSetId, originalSignature] = previousTreeSignatures.get(tree);
+				const newSignature = tree.getRootHash();
+				this.#addDeltaEntry(requestSetId, originalSignature, newSignature, diff);
 			}
 		}
 		return hasChanges;
-
-		// let greatestNumberOfChanges = 0;
-		// let relevantTree;
-		// let relevantStats;
-		// let hasChanges = false;
-		// const results = await this.#flushTreeChanges();
-
-		// // Based on the returned stats, find the tree with the greatest difference
-		// // If none of the updated trees lead to a valid cache, this tree can be used to execute a differential
-		// // build (assuming there's a cache for its previous signature)
-		// for (const res of results) {
-		// 	if (res.added.length || res.updated.length || res.unchanged.length || res.removed.length) {
-		// 		hasChanges = true;
-		// 	}
-		// 	for (const [tree, stats] of res.treeStats) {
-		// 		if (stats.removed.length > 0) {
-		// 			// If the update process removed resources from that tree, this means that using it in a
-		// 			// differential build might lead to stale removed resources
-		// 			return; // TODO: continue; instead?
-		// 		}
-		// 		const numberOfChanges = stats.added.length + stats.updated.length;
-		// 		if (numberOfChanges > greatestNumberOfChanges) {
-		// 			greatestNumberOfChanges = numberOfChanges;
-		// 			relevantTree = tree;
-		// 			relevantStats = stats;
-		// 		}
-		// 	}
-		// }
-		// if (hasChanges) {
-		// 	this.#hasNewOrModifiedCacheEntries = true;
-		// }
-
-		// if (!relevantTree) {
-		// 	return hasChanges;
-		// }
-
-		// // Update signatures for affected request sets
-		// const {requestSetId, signature: originalSignature} = trees.get(relevantTree);
-		// const newSignature = relevantTree.getRootHash();
-		// log.verbose(`Task '${this.#taskName}' of project '${this.#projectName}' ` +
-		// 	`updated resource index for request set ID ${requestSetId} ` +
-		// 	`from signature ${originalSignature} ` +
-		// 	`to ${newSignature}`);
-
-		// const changedPaths = new Set();
-		// for (const path of relevantStats.added) {
-		// 	changedPaths.add(path);
-		// }
-		// for (const path of relevantStats.updated) {
-		// 	changedPaths.add(path);
-		// }
-
-		// return {
-		// 	originalSignature,
-		// 	newSignature,
-		// 	changedPaths,
-		// };
 	}
 
 	/**
@@ -341,27 +291,61 @@ class ResourceRequestManager {
 		return await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
 	}
 
-	#addStatsToTreeDiff(treeDiff, stats) {
-		if (!treeDiff.stats) {
-			treeDiff.stats = {
-				added: new Set(),
-				updated: new Set(),
-				unchanged: new Set(),
-				removed: new Set(),
-			};
+	#addDeltaEntry(requestSetId, originalSignature, newSignature, diff) {
+		if (!this.#treeUpdateDeltas.has(requestSetId)) {
+			this.#treeUpdateDeltas.set(requestSetId, {
+				originalSignature,
+				newSignature,
+				diff
+			});
+			return;
 		}
-		for (const path of stats.added) {
-			treeDiff.stats.added.add(path);
+		const entry = this.#treeUpdateDeltas.get(requestSetId);
+
+		entry.previousSignatures ??= [];
+		entry.previousSignatures.push(entry.originalSignature);
+		entry.originalSignature = originalSignature;
+		entry.newSignature = newSignature;
+
+		const {added, updated, unchanged, removed} = entry.diff;
+		for (const resourcePath of diff.added) {
+			if (!added.includes(resourcePath)) {
+				added.push(resourcePath);
+			}
 		}
-		for (const path of stats.updated) {
-			treeDiff.stats.updated.add(path);
+		for (const resourcePath of diff.updated) {
+			if (!updated.includes(resourcePath)) {
+				updated.push(resourcePath);
+			}
 		}
-		for (const path of stats.unchanged) {
-			treeDiff.stats.unchanged.add(path);
+		for (const resourcePath of diff.unchanged) {
+			if (!unchanged.includes(resourcePath)) {
+				unchanged.push(resourcePath);
+			}
 		}
-		for (const path of stats.removed) {
-			treeDiff.stats.removed.add(path);
+		for (const resourcePath of diff.removed) {
+			if (!removed.includes(resourcePath)) {
+				removed.push(resourcePath);
+			}
 		}
+	}
+
+	getDeltas() {
+		const deltas = new Map();
+		for (const {originalSignature, newSignature, diff} of this.#treeUpdateDeltas.values()) {
+			let changedPaths;
+			if (diff) {
+				const {added, updated, removed} = diff;
+				changedPaths = Array.from(new Set([...added, ...updated, ...removed]));
+			} else {
+				changedPaths = [];
+			}
+			deltas.set(originalSignature, {
+				newSignature,
+				changedPaths,
+			});
+		}
+		return deltas;
 	}
 
 	/**
@@ -379,6 +363,11 @@ class ResourceRequestManager {
 			projectRequests.push(new Request("patterns", patterns));
 		}
 		return await this.#addRequestSet(projectRequests, reader);
+	}
+
+	recordNoRequests() {
+		this.#unusedAtLeastOnce = true;
+		return "X"; // Signature for when no requests were made
 	}
 
 	async #addRequestSet(requests, reader) {
@@ -413,7 +402,7 @@ class ResourceRequestManager {
 			} else {
 				const resourcesRead =
 					await this.#getResourcesForRequests(requests, reader);
-				resourceIndex = await ResourceIndex.create(resourcesRead, Date.now(), this.#newTreeRegistry());
+				resourceIndex = await ResourceIndex.createShared(resourcesRead, Date.now(), this.#newTreeRegistry());
 			}
 			metadata.resourceIndex = resourceIndex;
 		}
@@ -526,6 +515,7 @@ class ResourceRequestManager {
 			requestSetGraph: this.#requestGraph.toCacheObject(),
 			rootIndices,
 			deltaIndices,
+			unusedAtLeastOnce: this.#unusedAtLeastOnce,
 		};
 	}
 }

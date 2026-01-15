@@ -195,7 +195,7 @@ class TaskRunner {
 					this._log.skipTask(taskName);
 					return;
 				}
-				const usingCache = supportsDifferentialUpdates && cacheInfo;
+				const usingCache = !!(supportsDifferentialUpdates && cacheInfo);
 				const workspace = createMonitor(this._project.getWorkspace());
 				const params = {
 					workspace,
@@ -209,9 +209,9 @@ class TaskRunner {
 					params.dependencies = dependencies;
 				}
 				if (usingCache) {
-					params.changedProjectResourcePaths = Array.from(cacheInfo.changedProjectResourcePaths);
+					params.changedProjectResourcePaths = cacheInfo.changedProjectResourcePaths;
 					if (requiresDependencies) {
-						params.changedDependencyResourcePaths = Array.from(cacheInfo.changedDependencyResourcePaths);
+						params.changedDependencyResourcePaths = cacheInfo.changedDependencyResourcePaths;
 					}
 				}
 				if (!taskFunction) {
@@ -229,7 +229,8 @@ class TaskRunner {
 				await this._buildCache.recordTaskResult(taskName,
 					workspace.getResourceRequests(),
 					dependencies?.getResourceRequests(),
-					usingCache ? cacheInfo : undefined);
+					usingCache ? cacheInfo : undefined,
+					supportsDifferentialUpdates);
 			};
 		}
 		this._tasks[taskName] = {

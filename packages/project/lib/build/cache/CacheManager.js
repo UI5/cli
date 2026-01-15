@@ -20,7 +20,7 @@ const chacheManagerInstances = new Map();
 const CACACHE_OPTIONS = {algorithms: ["sha256"]};
 
 // Cache version for compatibility management
-const CACHE_VERSION = "v0";
+const CACHE_VERSION = "v0_0";
 
 /**
  * Manages persistence for the build cache using file-based storage and cacache
