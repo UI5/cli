@@ -1,6 +1,6 @@
 import test from "ava";
 import sinon from "sinon";
-import HashTree from "../../../../../lib/build/cache/index/HashTree.js";
+import SharedHashTree from "../../../../../lib/build/cache/index/SharedHashTree.js";
 import TreeRegistry from "../../../../../lib/build/cache/index/TreeRegistry.js";
 
 // Helper to create mock Resource instances
@@ -24,8 +24,8 @@ test.afterEach.always((t) => {
 
 test("TreeRegistry - register and track trees", (t) => {
 	const registry = new TreeRegistry();
-	new HashTree([{path: "a.js", integrity: "hash1"}], {registry});
-	new HashTree([{path: "b.js", integrity: "hash2"}], {registry});
+	new SharedHashTree([{path: "a.js", integrity: "hash1"}], registry);
+	new SharedHashTree([{path: "b.js", integrity: "hash2"}], registry);
 
 	t.is(registry.getTreeCount(), 2, "Should track both trees");
 });
@@ -33,7 +33,7 @@ test("TreeRegistry - register and track trees", (t) => {
 test("TreeRegistry - schedule and flush updates", async (t) => {
 	const registry = new TreeRegistry();
 	const resources = [{path: "file.js", integrity: "hash1"}];
-	const tree = new HashTree(resources, {registry});
+	const tree = new SharedHashTree(resources, registry);
 
 	const originalHash = tree.getRootHash();
 
@@ -56,7 +56,7 @@ test("TreeRegistry - flush returns only changed resources", async (t) => {
 		{path: "file1.js", integrity: "hash1", lastModified: timestamp, size: 1024, inode: 123},
 		{path: "file2.js", integrity: "hash2", lastModified: timestamp, size: 2048, inode: 124}
 	];
-	new HashTree(resources, {registry});
+	new SharedHashTree(resources, registry);
 
 	registry.scheduleUpsert(createMockResource("file1.js", "new-hash1", timestamp, 1024, 123));
 	registry.scheduleUpsert(createMockResource("file2.js", "hash2", timestamp, 2048, 124)); // unchanged
@@ -69,7 +69,7 @@ test("TreeRegistry - flush returns empty array when no changes", async (t) => {
 	const registry = new TreeRegistry();
 	const timestamp = Date.now();
 	const resources = [{path: "file.js", integrity: "hash1", lastModified: timestamp, size: 1024, inode: 123}];
-	new HashTree(resources, {registry});
+	new SharedHashTree(resources, registry);
 
 	registry.scheduleUpsert(createMockResource("file.js", "hash1", timestamp, 1024, 123)); // same value
 
@@ -84,7 +84,7 @@ test("TreeRegistry - batch updates affect all trees sharing nodes", async (t) =>
 		{path: "shared/b.js", integrity: "hash-b"}
 	];
 
-	const tree1 = new HashTree(resources, {registry});
+	const tree1 = new SharedHashTree(resources, registry);
 	const originalHash1 = tree1.getRootHash();
 
 	// Create derived tree that shares "shared" directory
@@ -120,7 +120,7 @@ test("TreeRegistry - batch updates affect all trees sharing nodes", async (t) =>
 
 test("TreeRegistry - handles missing resources gracefully during flush", async (t) => {
 	const registry = new TreeRegistry();
-	new HashTree([{path: "exists.js", integrity: "hash1"}], {registry});
+	new SharedHashTree([{path: "exists.js", integrity: "hash1"}], registry);
 
 	// Schedule update for non-existent resource
 	registry.scheduleUpsert(createMockResource("missing.js", "hash2", Date.now(), 1024, 444));
@@ -131,7 +131,7 @@ test("TreeRegistry - handles missing resources gracefully during flush", async (
 
 test("TreeRegistry - multiple updates to same resource", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([{path: "file.js", integrity: "v1"}], {registry});
+	const tree = new SharedHashTree([{path: "file.js", integrity: "v1"}], registry);
 
 	const timestamp = Date.now();
 	registry.scheduleUpsert(createMockResource("file.js", "v2", timestamp, 1024, 100));
@@ -149,13 +149,13 @@ test("TreeRegistry - multiple updates to same resource", async (t) => {
 test("TreeRegistry - updates without changes lead to same hash", async (t) => {
 	const registry = new TreeRegistry();
 	const timestamp = Date.now();
-	const tree = new HashTree([{
+	const tree = new SharedHashTree([{
 		path: "/src/foo/file1.js", integrity: "v1",
 	}, {
 		path: "/src/foo/file3.js", integrity: "v1",
 	}, {
 		path: "/src/foo/file2.js", integrity: "v1",
-	}], {registry});
+	}], registry);
 	const initialHash = tree.getRootHash();
 	const file2Hash = tree.getResourceByPath("/src/foo/file2.js").hash;
 
@@ -173,8 +173,8 @@ test("TreeRegistry - updates without changes lead to same hash", async (t) => {
 
 test("TreeRegistry - unregister tree", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([{path: "a.js", integrity: "hash1"}], {registry});
-	const tree2 = new HashTree([{path: "b.js", integrity: "hash2"}], {registry});
+	const tree1 = new SharedHashTree([{path: "a.js", integrity: "hash1"}], registry);
+	const tree2 = new SharedHashTree([{path: "b.js", integrity: "hash2"}], registry);
 
 	t.is(registry.getTreeCount(), 2);
 
@@ -193,12 +193,13 @@ test("TreeRegistry - unregister tree", async (t) => {
 // ============================================================================
 
 test("deriveTree - creates tree sharing subtrees", (t) => {
+	const registry = new TreeRegistry();
 	const resources = [
 		{path: "dir1/a.js", integrity: "hash-a"},
 		{path: "dir1/b.js", integrity: "hash-b"}
 	];
 
-	const tree1 = new HashTree(resources);
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([{path: "dir2/c.js", integrity: "hash-c"}]);
 
 	// Both trees should have dir1
@@ -210,11 +211,12 @@ test("deriveTree - creates tree sharing subtrees", (t) => {
 });
 
 test("deriveTree - shared nodes are the same reference", (t) => {
+	const registry = new TreeRegistry();
 	const resources = [
 		{path: "shared/file.js", integrity: "hash1"}
 	];
 
-	const tree1 = new HashTree(resources);
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([]);
 
 	// Get the shared directory node from both trees
@@ -236,7 +238,7 @@ test("deriveTree - updates to shared nodes visible in all trees", async (t) => {
 		{path: "shared/file.js", integrity: "original"}
 	];
 
-	const tree1 = new HashTree(resources, {registry});
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([]);
 
 	// Get nodes before update
@@ -258,7 +260,7 @@ test("deriveTree - updates to shared nodes visible in all trees", async (t) => {
 test("deriveTree - multiple levels of derivation", async (t) => {
 	const registry = new TreeRegistry();
 
-	const tree1 = new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
+	const tree1 = new SharedHashTree([{path: "a.js", integrity: "hash-a"}], registry);
 	const tree2 = tree1.deriveTree([{path: "b.js", integrity: "hash-b"}]);
 	const tree3 = tree2.deriveTree([{path: "c.js", integrity: "hash-c"}]);
 
@@ -284,7 +286,7 @@ test("deriveTree - efficient hash recomputation", async (t) => {
 		{path: "dir2/c.js", integrity: "hash-c"}
 	];
 
-	const tree1 = new HashTree(resources, {registry});
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([{path: "dir3/d.js", integrity: "hash-d"}]);
 
 	// Spy on _computeHash to count calls
@@ -307,7 +309,7 @@ test("deriveTree - independent updates to different directories", async (t) => {
 		{path: "dir1/a.js", integrity: "hash-a"}
 	];
 
-	const tree1 = new HashTree(resources, {registry});
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([{path: "dir2/b.js", integrity: "hash-b"}]);
 
 	const hash1Before = tree1.getRootHash();
@@ -330,12 +332,13 @@ test("deriveTree - independent updates to different directories", async (t) => {
 });
 
 test("deriveTree - preserves tree statistics correctly", (t) => {
+	const registry = new TreeRegistry();
 	const resources = [
 		{path: "dir1/a.js", integrity: "hash-a"},
 		{path: "dir1/b.js", integrity: "hash-b"}
 	];
 
-	const tree1 = new HashTree(resources);
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([
 		{path: "dir2/c.js", integrity: "hash-c"},
 		{path: "dir2/d.js", integrity: "hash-d"}
@@ -350,11 +353,12 @@ test("deriveTree - preserves tree statistics correctly", (t) => {
 });
 
 test("deriveTree - empty derivation creates exact copy with shared nodes", (t) => {
+	const registry = new TreeRegistry();
 	const resources = [
 		{path: "file.js", integrity: "hash1"}
 	];
 
-	const tree1 = new HashTree(resources);
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([]);
 
 	// Should have same structure
@@ -377,7 +381,7 @@ test("deriveTree - complex shared structure", async (t) => {
 		{path: "shared/file3.js", integrity: "hash3"}
 	];
 
-	const tree1 = new HashTree(resources, {registry});
+	const tree1 = new SharedHashTree(resources, registry);
 	const tree2 = tree1.deriveTree([
 		{path: "unique/file4.js", integrity: "hash4"}
 	]);
@@ -404,7 +408,7 @@ test("deriveTree - complex shared structure", async (t) => {
 
 test("upsertResources - with registry schedules operations", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
+	const tree = new SharedHashTree([{path: "a.js", integrity: "hash-a"}], registry);
 
 	const result = await tree.upsertResources([
 		createMockResource("b.js", "hash-b", Date.now(), 1024, 1)
@@ -415,7 +419,7 @@ test("upsertResources - with registry schedules operations", async (t) => {
 
 test("upsertResources - with registry and flush", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
+	const tree = new SharedHashTree([{path: "a.js", integrity: "hash-a"}], registry);
 	const originalHash = tree.getRootHash();
 
 	await tree.upsertResources([
@@ -436,7 +440,7 @@ test("upsertResources - with registry and flush", async (t) => {
 
 test("upsertResources - with derived trees", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([{path: "shared/a.js", integrity: "hash-a"}], {registry});
+	const tree1 = new SharedHashTree([{path: "shared/a.js", integrity: "hash-a"}], registry);
 	const tree2 = tree1.deriveTree([{path: "unique/b.js", integrity: "hash-b"}]);
 
 	await tree1.upsertResources([
@@ -457,10 +461,10 @@ test("upsertResources - with derived trees", async (t) => {
 
 test("removeResources - with registry schedules operations", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([
+	const tree = new SharedHashTree([
 		{path: "a.js", integrity: "hash-a"},
 		{path: "b.js", integrity: "hash-b"}
-	], {registry});
+	], registry);
 
 	const result = await tree.removeResources(["b.js"]);
 
@@ -469,11 +473,11 @@ test("removeResources - with registry schedules operations", async (t) => {
 
 test("removeResources - with registry and flush", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([
+	const tree = new SharedHashTree([
 		{path: "a.js", integrity: "hash-a"},
 		{path: "b.js", integrity: "hash-b"},
 		{path: "c.js", integrity: "hash-c"}
-	], {registry});
+	], registry);
 	const originalHash = tree.getRootHash();
 
 	await tree.removeResources(["b.js", "c.js"]);
@@ -492,10 +496,10 @@ test("removeResources - with registry and flush", async (t) => {
 
 test("removeResources - with derived trees propagates removal", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([
+	const tree1 = new SharedHashTree([
 		{path: "shared/a.js", integrity: "hash-a"},
 		{path: "shared/b.js", integrity: "hash-b"}
-	], {registry});
+	], registry);
 	const tree2 = tree1.deriveTree([{path: "unique/c.js", integrity: "hash-c"}]);
 
 	// Verify both trees share the resources
@@ -518,10 +522,10 @@ test("removeResources - with derived trees propagates removal", async (t) => {
 
 test("removeResources - with registry cleans up empty directories", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([
+	const tree = new SharedHashTree([
 		{path: "dir1/dir2/only.js", integrity: "hash-only"},
 		{path: "dir1/other.js", integrity: "hash-other"}
-	], {registry});
+	], registry);
 
 	// Verify structure before removal
 	t.truthy(tree.hasPath("dir1/dir2/only.js"), "Should have dir1/dir2/only.js");
@@ -545,10 +549,10 @@ test("removeResources - with registry cleans up empty directories", async (t) =>
 
 test("removeResources - with registry cleans up deeply nested empty directories", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([
+	const tree = new SharedHashTree([
 		{path: "a/b/c/d/e/deep.js", integrity: "hash-deep"},
 		{path: "a/sibling.js", integrity: "hash-sibling"}
-	], {registry});
+	], registry);
 
 	// Verify structure before removal
 	t.truthy(tree.hasPath("a/b/c/d/e/deep.js"), "Should have deeply nested file");
@@ -573,10 +577,10 @@ test("removeResources - with registry cleans up deeply nested empty directories"
 
 test("removeResources - with derived trees cleans up empty directories in both trees", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([
+	const tree1 = new SharedHashTree([
 		{path: "shared/dir/only.js", integrity: "hash-only"},
 		{path: "shared/other.js", integrity: "hash-other"}
-	], {registry});
+	], registry);
 	const tree2 = tree1.deriveTree([{path: "unique/file.js", integrity: "hash-unique"}]);
 
 	// Verify both trees share the directory structure
@@ -604,11 +608,11 @@ test("removeResources - with derived trees cleans up empty directories in both t
 
 test("removeResources - multiple removals with registry clean up shared empty directories", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([
+	const tree = new SharedHashTree([
 		{path: "dir1/sub1/file1.js", integrity: "hash1"},
 		{path: "dir1/sub2/file2.js", integrity: "hash2"},
 		{path: "dir2/file3.js", integrity: "hash3"}
-	], {registry});
+	], registry);
 
 	// Remove both files from dir1 (making both sub1 and sub2 empty)
 	await tree.removeResources(["dir1/sub1/file1.js", "dir1/sub2/file2.js"]);
@@ -632,10 +636,10 @@ test("removeResources - multiple removals with registry clean up shared empty di
 
 test("upsertResources and removeResources - combined operations", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([
+	const tree = new SharedHashTree([
 		{path: "a.js", integrity: "hash-a"},
 		{path: "b.js", integrity: "hash-b"}
-	], {registry});
+	], registry);
 	const originalHash = tree.getRootHash();
 
 	// Schedule both operations
@@ -657,7 +661,7 @@ test("upsertResources and removeResources - combined operations", async (t) => {
 
 test("upsertResources and removeResources - conflicting operations on same path", async (t) => {
 	const registry = new TreeRegistry();
-	const tree = new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
+	const tree = new SharedHashTree([{path: "a.js", integrity: "hash-a"}], registry);
 
 	// Schedule removal then upsert (upsert should win)
 	await tree.removeResources(["a.js"]);
@@ -679,8 +683,8 @@ test("upsertResources and removeResources - conflicting operations on same path"
 
 test("TreeRegistry - flush returns per-tree statistics", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
-	const tree2 = new HashTree([{path: "b.js", integrity: "hash-b"}], {registry});
+	const tree1 = new SharedHashTree([{path: "a.js", integrity: "hash-a"}], registry);
+	const tree2 = new SharedHashTree([{path: "b.js", integrity: "hash-b"}], registry);
 
 	// Update tree1 resource
 	registry.scheduleUpsert(createMockResource("a.js", "new-hash-a", Date.now(), 1024, 1));
@@ -724,10 +728,10 @@ test("TreeRegistry - flush returns per-tree statistics", async (t) => {
 
 test("TreeRegistry - per-tree statistics with shared nodes", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([
+	const tree1 = new SharedHashTree([
 		{path: "shared/a.js", integrity: "hash-a"},
 		{path: "shared/b.js", integrity: "hash-b"}
-	], {registry});
+	], registry);
 	const tree2 = tree1.deriveTree([{path: "unique/c.js", integrity: "hash-c"}]);
 
 	// Verify trees share the "shared" directory
@@ -762,11 +766,11 @@ test("TreeRegistry - per-tree statistics with shared nodes", async (t) => {
 
 test("TreeRegistry - per-tree statistics with mixed operations", async (t) => {
 	const registry = new TreeRegistry();
-	const tree1 = new HashTree([
+	const tree1 = new SharedHashTree([
 		{path: "a.js", integrity: "hash-a"},
 		{path: "b.js", integrity: "hash-b"},
 		{path: "c.js", integrity: "hash-c"}
-	], {registry});
+	], registry);
 	const tree2 = tree1.deriveTree([{path: "d.js", integrity: "hash-d"}]);
 
 	// Update a.js (affects both trees - shared)
@@ -808,20 +812,20 @@ test("TreeRegistry - per-tree statistics with mixed operations", async (t) => {
 test("TreeRegistry - per-tree statistics with no changes", async (t) => {
 	const registry = new TreeRegistry();
 	const timestamp = Date.now();
-	const tree1 = new HashTree([{
+	const tree1 = new SharedHashTree([{
 		path: "a.js",
 		integrity: "hash-a",
 		lastModified: timestamp,
 		size: 1024,
 		inode: 100
-	}], {registry});
-	const tree2 = new HashTree([{
+	}], registry);
+	const tree2 = new SharedHashTree([{
 		path: "b.js",
 		integrity: "hash-b",
 		lastModified: timestamp,
 		size: 2048,
 		inode: 200
-	}], {registry});
+	}], registry);
 
 	// Schedule updates with unchanged metadata
 	// Note: These will add missing resources to the other tree
@@ -861,8 +865,8 @@ test("TreeRegistry - per-tree statistics with no changes", async (t) => {
 
 test("TreeRegistry - empty flush returns empty treeStats", async (t) => {
 	const registry = new TreeRegistry();
-	new HashTree([{path: "a.js", integrity: "hash-a"}], {registry});
-	new HashTree([{path: "b.js", integrity: "hash-b"}], {registry});
+	new SharedHashTree([{path: "a.js", integrity: "hash-a"}], registry);
+	new SharedHashTree([{path: "b.js", integrity: "hash-b"}], registry);
 
 	// Flush without scheduling any operations
 	const result = await registry.flush();
@@ -878,10 +882,10 @@ test("TreeRegistry - derived tree reflects base tree resource changes in statist
 	const registry = new TreeRegistry();
 
 	// Create base tree with some resources
-	const baseTree = new HashTree([
+	const baseTree = new SharedHashTree([
 		{path: "shared/resource1.js", integrity: "hash1"},
 		{path: "shared/resource2.js", integrity: "hash2"}
-	], {registry});
+	], registry);
 
 	// Derive a new tree from base tree (shares same registry)
 	// Note: deriveTree doesn't schedule the new resources, it adds them directly to the derived tree
