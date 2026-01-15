@@ -2,8 +2,6 @@ import test from "ava";
 import sinonGlobal from "sinon";
 import {fileURLToPath} from "node:url";
 import fs from "node:fs/promises";
-import ProjectBuilder from "../../../lib/build/ProjectBuilder.js";
-import * as taskRepository from "@ui5/builder/internal/taskRepository";
 import {graphFromPackageDependencies} from "../../../lib/graph/graph.js";
 import {setLogLevel} from "@ui5/logger";
 
@@ -274,22 +272,14 @@ class FixtureTester {
 		const graph = await graphFromPackageDependencies({
 			cwd: this.fixturePath
 		});
-		graph.seal();
-		const projectBuilder = new ProjectBuilder({
-			graph,
-			taskRepository,
-			buildConfig: {}
-		});
 
 		// Execute the build
-		await projectBuilder.build(config);
+		await graph.build(config);
 
 		// Apply assertions if provided
 		if (assertions) {
 			this._assertBuild(assertions);
 		}
-
-		return projectBuilder;
 	}
 
 	_assertBuild(assertions) {
