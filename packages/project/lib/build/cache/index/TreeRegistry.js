@@ -1,4 +1,5 @@
 import path from "node:path/posix";
+import TreeNode from "./TreeNode.js";
 import {matchResourceMetadataStrict} from "../utils.js";
 
 /**
@@ -15,7 +16,7 @@ import {matchResourceMetadataStrict} from "../utils.js";
  *
  * This approach ensures consistency when multiple trees represent filtered views of the same underlying data.
  *
- * @property {Set<import('./HashTree.js').default>} trees - All registered HashTree instances
+ * @property {Set<import('./SharedHashTree.js').default>} trees - All registered HashTree/SharedHashTree instances
  * @property {Map<string, @ui5/fs/Resource>} pendingUpserts - Resource path to resource mappings for scheduled upserts
  * @property {Set<string>} pendingRemovals - Resource paths scheduled for removal
  */
@@ -26,24 +27,24 @@ export default class TreeRegistry {
 	pendingTimestampUpdate;
 
 	/**
-	 * Register a HashTree instance with this registry for coordinated updates.
+	 * Register a HashTree or SharedHashTree instance with this registry for coordinated updates.
 	 *
 	 * Once registered, the tree will participate in all batch operations triggered by flush().
 	 * Multiple trees can share the same underlying nodes through structural sharing.
 	 *
-	 * @param {import('./HashTree.js').default} tree - HashTree instance to register
+	 * @param {import('./SharedHashTree.js').default} tree - HashTree or SharedHashTree instance to register
 	 */
 	register(tree) {
 		this.trees.add(tree);
 	}
 
 	/**
-	 * Remove a HashTree instance from this registry.
+	 * Remove a HashTree or SharedHashTree instance from this registry.
 	 *
 	 * After unregistering, the tree will no longer participate in batch operations.
 	 * Any pending operations scheduled before unregistration will still be applied during flush().
 	 *
-	 * @param {import('./HashTree.js').default} tree - HashTree instance to unregister
+	 * @param {import('./SharedHashTree.js').default} tree - HashTree or SharedHashTree instance to unregister
 	 */
 	unregister(tree) {
 		this.trees.delete(tree);
@@ -106,7 +107,7 @@ export default class TreeRegistry {
 	 * After successful completion, all pending operations are cleared.
 	 *
 	 * @returns {Promise<{added: string[], updated: string[], unchanged: string[], removed: string[],
-	 * treeStats: Map<import('./HashTree.js').default,
+	 * treeStats: Map<import('./SharedHashTree.js').default,
 	 * {added: string[], updated: string[], unchanged: string[], removed: string[]}>}>}
 	 *          Object containing arrays of resource paths categorized by operation result,
 	 *          plus per-tree statistics showing which resource paths were added/updated/unchanged/removed in each tree
@@ -233,7 +234,6 @@ export default class TreeRegistry {
 
 					if (!resourceNode) {
 						// INSERT: Create new resource node
-						const TreeNode = tree.root.constructor;
 						resourceNode = new TreeNode(upsert.resourceName, "resource", {
 							integrity: await upsert.resource.getIntegrity(),
 							lastModified: upsert.resource.getLastModified(),
@@ -358,10 +358,9 @@ export default class TreeRegistry {
 	 * Returns an array of TreeNode objects representing the full path,
 	 * starting with root at index 0 and ending with the target node.
 	 *
-	 * @param {import('./HashTree.js').default} tree - Tree to traverse
+	 * @param {import('./SharedHashTree.js').default} tree - Tree to traverse
 	 * @param {string[]} pathParts - Path components to follow
-	 * @returns {Array<object>} Array of TreeNode objects along the path
-	 * @private
+	 * @returns {Array<TreeNode>} Array of TreeNode objects along the path
 	 */
 	_getPathNodes(tree, pathParts) {
 		const nodes = [tree.root];
@@ -385,10 +384,10 @@ export default class TreeRegistry {
 	 * need their hashes recomputed to reflect the change. This method tracks those paths
 	 * in the affectedTrees map for later batch processing.
 	 *
-	 * @param {import('./HashTree.js').default} tree - Tree containing the affected path
+	 * @param {import('./SharedHashTree.js').default} tree - Tree containing the affected path
 	 * @param {string[]} pathParts - Path components of the modified resource/directory
-	 * @param {Map<import('./HashTree.js').default, Set<string>>} affectedTrees - Map tracking affected paths per tree
-	 * @private
+	 * @param {Map<import('./SharedHashTree.js').default, Set<string>>} affectedTrees
+	 * 	 Map tracking affected paths per tree
 	 */
 	_markAncestorsAffected(tree, pathParts, affectedTrees) {
 		if (!affectedTrees.has(tree)) {
@@ -407,14 +406,12 @@ export default class TreeRegistry {
 	 * It's used during upsert operations to automatically create parent directories
 	 * when inserting resources into paths that don't yet exist.
 	 *
-	 * @param {import('./HashTree.js').default} tree - Tree to create directory path in
+	 * @param {import('./SharedHashTree.js').default} tree - Tree to create directory path in
 	 * @param {string[]} pathParts - Path components of the directory to ensure exists
-	 * @returns {object} The directory node at the end of the path
-	 * @private
+	 * @returns {TreeNode} The directory node at the end of the path
 	 */
 	_ensureDirectoryPath(tree, pathParts) {
 		let current = tree.root;
-		const TreeNode = tree.root.constructor;
 
 		for (const part of pathParts) {
 			if (!current.children.has(part)) {
