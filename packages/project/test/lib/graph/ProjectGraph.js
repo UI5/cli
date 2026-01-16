@@ -1315,7 +1315,7 @@ test("traverseDependenciesDepthFirst: No project visited twice", async (t) => {
 	}
 
 	// library.d should appear only once
-	const dCount = results.filter(name => name === "library.d").length;
+	const dCount = results.filter((name) => name === "library.d").length;
 	t.is(dCount, 1, "library.d should be visited exactly once");
 	t.is(results.length, 3, "Should visit exactly 3 projects");
 });

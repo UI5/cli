@@ -165,9 +165,9 @@ class ProjectBuildContext {
 	 *
 	 * This method allows for an early check whether a project build can be skipped.
 	 *
-	 * @returns {Promise<boolean>} True if a build might required, false otherwise
+	 * @returns {boolean} True if a build might required, false otherwise
 	 */
-	async possiblyRequiresBuild() {
+	possiblyRequiresBuild() {
 		if (this.#getBuildManifest()) {
 			// Build manifest present -> No build required
 			return false;

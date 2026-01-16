@@ -713,7 +713,6 @@ class ProjectGraph {
 	 * @param {Array.<string>} [parameters.excludedTasks=[]] List of tasks to be excluded.
 	 * @param {module:@ui5/project/build/ProjectBuilderOutputStyle} [parameters.outputStyle=Default]
 	 *   Processes build results into a specific directory structure.
-	 * @param {boolean} [parameters.watch] Whether to watch for file changes and re-execute the build automatically
 	 * @returns {Promise} Promise resolving to <code>undefined</code> once build has finished
 	 */
 	async build({
@@ -723,15 +722,14 @@ class ProjectGraph {
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
 		outputStyle = OutputStyleEnum.Default,
-		watch,
 	}) {
 		this.seal(); // Do not allow further changes to the graph
-		if (this._built) {
+		if (this._builtOrServed) {
 			throw new Error(
-				`Project graph with root node ${this._rootProjectName} has already been built. ` +
-				`Each graph can only be built once`);
+				`Project graph with root node ${this._rootProjectName} has already been built or served. ` +
+				`Each graph can only be built or served once`);
 		}
-		this._built = true;
+		this._builtOrServed = true;
 		const {
 			default: ProjectBuilder
 		} = await import("../build/ProjectBuilder.js");
@@ -744,12 +742,42 @@ class ProjectGraph {
 				includedTasks, excludedTasks, outputStyle,
 			}
 		});
-		return await builder.build({
+		return await builder.buildToTarget({
 			destPath, cleanDest,
 			includedDependencies, excludedDependencies,
 			dependencyIncludes,
-			watch,
 		});
+	}
+
+	async serve({
+		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
+		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
+		includedTasks = [], excludedTasks = [],
+	}) {
+		this.seal(); // Do not allow further changes to the graph
+		if (this._builtOrServed) {
+			throw new Error(
+				`Project graph with root node ${this._rootProjectName} has already been built or served. ` +
+				`Each graph can only be built or served once`);
+		}
+		this._builtOrServed = true;
+		const {
+			default: ProjectBuilder
+		} = await import("../build/ProjectBuilder.js");
+		const builder = new ProjectBuilder({
+			graph: this,
+			taskRepository: await this._getTaskRepository(),
+			buildConfig: {
+				selfContained, cssVariables, jsdoc,
+				createBuildManifest,
+				includedTasks, excludedTasks,
+				outputStyle: OutputStyleEnum.Default,
+			}
+		});
+		const {
+			default: BuildServer
+		} = await import("../build/BuildServer.js");
+		return new BuildServer(this, builder, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
 	}
 
 	/**

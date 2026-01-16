@@ -10,23 +10,13 @@ const log = getLogger("build:helpers:WatchHandler");
  * @memberof @ui5/project/build/helpers
  */
 class WatchHandler extends EventEmitter {
-	#buildContext;
-	#updateBuildResult;
 	#closeCallbacks = [];
 	#sourceChanges = new Map();
 	#ready = false;
-	#updateInProgress = false;
 	#fileChangeHandlerTimeout;
 
-	constructor(buildContext, updateBuildResult) {
+	constructor() {
 		super();
-		this.#buildContext = buildContext;
-		this.#updateBuildResult = updateBuildResult;
-	}
-
-	setReady() {
-		this.#ready = true;
-		this.#processQueue();
 	}
 
 	async watch(projects) {
@@ -44,10 +34,11 @@ class WatchHandler extends EventEmitter {
 			watcher.on("all", (event, filePath) => {
 				this.#handleWatchEvents(event, filePath, project);
 			});
-			const {promise, resolve} = Promise.withResolvers();
+			const {promise, resolve: ready} = Promise.withResolvers();
 			readyPromises.push(promise);
 			watcher.on("ready", () => {
-				resolve();
+				this.#ready = true;
+				ready();
 			});
 			watcher.on("error", (err) => {
 				this.emit("error", err);
@@ -56,7 +47,7 @@ class WatchHandler extends EventEmitter {
 		return await Promise.all(readyPromises);
 	}
 
-	async stop() {
+	async destroy() {
 		for (const cb of this.#closeCallbacks) {
 			await cb();
 		}
@@ -80,12 +71,12 @@ class WatchHandler extends EventEmitter {
 	}
 
 	#processQueue() {
-		if (!this.#ready || this.#updateInProgress || !this.#sourceChanges.size) {
-			// Prevent concurrent or premature processing
+		if (!this.#ready || !this.#sourceChanges.size) {
+			// Prevent premature processing
 			return;
 		}
 
-		// Trigger callbacks debounced
+		// Trigger change event debounced
 		if (this.#fileChangeHandlerTimeout) {
 			clearTimeout(this.#fileChangeHandlerTimeout);
 		}
@@ -93,53 +84,15 @@ class WatchHandler extends EventEmitter {
 			this.#fileChangeHandlerTimeout = null;
 
 			const sourceChanges = this.#sourceChanges;
-			// Reset file changes before processing
+			// Reset file changes
 			this.#sourceChanges = new Map();
 
-			this.#updateInProgress = true;
 			try {
-				await this.#handleResourceChanges(sourceChanges);
+				this.emit("sourcesChanged", sourceChanges);
 			} catch (err) {
 				this.emit("error", err);
-			} finally {
-				this.#updateInProgress = false;
-			}
-
-			if (this.#sourceChanges.size > 0) {
-				// New changes have occurred during processing, trigger queue again
-				this.#processQueue();
 			}
 		}, 100);
-	}
-
-	async #handleResourceChanges(sourceChanges) {
-		const dependencyChanges = new Map();
-
-		const graph = this.#buildContext.getGraph();
-		for (const [projectName, changedResourcePaths] of sourceChanges) {
-			// Propagate changes to dependents of the project
-			for (const {project: dep} of graph.traverseDependents(projectName)) {
-				const depChanges = dependencyChanges.get(dep.getName());
-				if (!depChanges) {
-					dependencyChanges.set(dep.getName(), new Set(changedResourcePaths));
-					continue;
-				}
-				for (const res of changedResourcePaths) {
-					depChanges.add(res);
-				}
-			}
-			const projectBuildContext = this.#buildContext.getBuildContext(projectName);
-			projectBuildContext.projectSourcesChanged(Array.from(changedResourcePaths));
-		}
-
-		for (const [projectName, changedResourcePaths] of dependencyChanges) {
-			const projectBuildContext = this.#buildContext.getBuildContext(projectName);
-			projectBuildContext.dependencyResourcesChanged(Array.from(changedResourcePaths));
-		}
-
-		this.emit("projectResourcesInvalidated");
-		await this.#updateBuildResult();
-		this.emit("projectResourcesUpdated");
 	}
 }
 
