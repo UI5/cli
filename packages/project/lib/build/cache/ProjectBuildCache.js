@@ -680,19 +680,18 @@ export default class ProjectBuildCache {
 	async #updateSourceIndex(changedResourcePaths) {
 		const sourceReader = this.#project.getSourceReader();
 
-		const resources = await Promise.all(changedResourcePaths.map((resourcePath) => {
-			return sourceReader.byPath(resourcePath);
-		}));
-		const removedResources = [];
-		const foundResources = resources.filter((resource) => {
-			if (!resource) {
-				removedResources.push(resource);
-				return false;
+		const resources = [];
+		const removedResourcePaths = [];
+		await Promise.all(changedResourcePaths.map(async (resourcePath) => {
+			const resource = await sourceReader.byPath(resourcePath);
+			if (resource) {
+				resources.push(resource);
+			} else {
+				removedResourcePaths.push(resourcePath);
 			}
-			return true;
-		});
-		const {removed} = await this.#sourceIndex.removeResources(removedResources);
-		const {added, updated} = await this.#sourceIndex.upsertResources(foundResources, Date.now());
+		}));
+		const {removed} = await this.#sourceIndex.removeResources(removedResourcePaths);
+		const {added, updated} = await this.#sourceIndex.upsertResources(resources, Date.now());
 
 		if (removed.length || added.length || updated.length) {
 			log.verbose(`Source resource index for project ${this.#project.getName()} updated: ` +
