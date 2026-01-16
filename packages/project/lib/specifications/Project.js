@@ -294,7 +294,7 @@ class Project extends Specification {
 			} else {
 				const currentReader = this.#currentStage.getCacheReader();
 				if (currentReader) {
-					readers.push(currentReader);
+					this._addReadersForWriter(readers, currentReader, style);
 				}
 			}
 		}
