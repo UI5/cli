@@ -336,7 +336,11 @@ class ResourceRequestManager {
 			let changedPaths;
 			if (diff) {
 				const {added, updated, removed} = diff;
-				changedPaths = Array.from(new Set([...added, ...updated, ...removed]));
+				if (removed.length) {
+					// Cannot use differential build if a resource has been removed
+					continue;
+				}
+				changedPaths = Array.from(new Set([...added, ...updated]));
 			} else {
 				changedPaths = [];
 			}
