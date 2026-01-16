@@ -6,17 +6,17 @@ const log = getLogger("build:helpers:composeProjectList");
  * its value is an array of all of its transitive dependencies.
  *
  * @param {@ui5/project/graph/ProjectGraph} graph
- * @returns {Promise<Object<string, string[]>>} A promise resolving to an object with dependency names as
+ * @returns {Object<string, string[]>} A promise resolving to an object with dependency names as
  * 												key and each with an array of its transitive dependencies as value
  */
-async function getFlattenedDependencyTree(graph) {
+function getFlattenedDependencyTree(graph) {
 	const dependencyMap = Object.create(null);
 	const rootName = graph.getRoot().getName();
 
-	await graph.traverseDepthFirst(({project, dependencies}) => {
+	for (const {project, dependencies} of graph.traverseDependenciesDepthFirst()) {
 		if (project.getName() === rootName) {
 			// Skip root project
-			return;
+			continue;
 		}
 		const projectDeps = [];
 		dependencies.forEach((depName) => {
@@ -26,7 +26,7 @@ async function getFlattenedDependencyTree(graph) {
 			}
 		});
 		dependencyMap[project.getName()] = projectDeps;
-	});
+	}
 	return dependencyMap;
 }
 
@@ -41,7 +41,7 @@ async function getFlattenedDependencyTree(graph) {
  * @returns {{includedDependencies:string[],excludedDependencies:string[]}} An object containing the
  *   'includedDependencies' and 'excludedDependencies'
  */
-async function createDependencyLists(graph, {
+function createDependencyLists(graph, {
 	includeAllDependencies = false,
 	includeDependency = [], includeDependencyRegExp = [], includeDependencyTree = [],
 	excludeDependency = [], excludeDependencyRegExp = [], excludeDependencyTree = [],
@@ -57,7 +57,7 @@ async function createDependencyLists(graph, {
 		return {includedDependencies: [], excludedDependencies: []};
 	}
 
-	const flattenedDependencyTree = await getFlattenedDependencyTree(graph);
+	const flattenedDependencyTree = getFlattenedDependencyTree(graph);
 
 	function isExcluded(excludeList, depName) {
 		return excludeList && excludeList.has(depName);
