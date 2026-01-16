@@ -1,6 +1,5 @@
 import ProjectBuildContext from "./ProjectBuildContext.js";
 import OutputStyleEnum from "./ProjectBuilderOutputStyle.js";
-import WatchHandler from "./WatchHandler.js";
 import CacheManager from "../cache/CacheManager.js";
 import {getBaseSignature} from "./getBuildSignature.js";
 
@@ -83,7 +82,7 @@ class BuildContext {
 		this._options = {
 			cssVariables: cssVariables
 		};
-		this._projectBuildContexts = [];
+		this._projectBuildContexts = new Map();
 	}
 
 	getRootProject() {
@@ -106,21 +105,23 @@ class BuildContext {
 		return this._graph;
 	}
 
-	async createProjectContext({project}) {
+	async getProjectContext(projectName) {
+		if (this._projectBuildContexts.has(projectName)) {
+			return this._projectBuildContexts.get(projectName);
+		}
+		const project = this._graph.getProject(projectName);
 		const projectBuildContext = await ProjectBuildContext.create(
 			this, project, await this.getCacheManager(), this._buildSignatureBase);
-		this._projectBuildContexts.push(projectBuildContext);
+		this._projectBuildContexts.set(projectName, projectBuildContext);
 		return projectBuildContext;
 	}
 
-	async createRequiredProjectContexts(requestedProjects) {
+	async getRequiredProjectContexts(requestedProjects) {
 		const projectBuildContexts = new Map();
 		const requiredProjects = new Set(requestedProjects);
 
 		for (const projectName of requiredProjects) {
-			const projectBuildContext = await this.createProjectContext({
-				project: this._graph.getProject(projectName)
-			});
+			const projectBuildContext = await this.getProjectContext(projectName);
 
 			projectBuildContexts.set(projectName, projectBuildContext);
 
@@ -135,17 +136,6 @@ class BuildContext {
 		return projectBuildContexts;
 	}
 
-	async initWatchHandler(projects, updateBuildResult) {
-		const watchHandler = new WatchHandler(this, updateBuildResult);
-		await watchHandler.watch(projects);
-		this.#watchHandler = watchHandler;
-		return watchHandler;
-	}
-
-	getWatchHandler() {
-		return this.#watchHandler;
-	}
-
 	async getCacheManager() {
 		if (this.#cacheManager) {
 			return this.#cacheManager;
@@ -155,15 +145,50 @@ class BuildContext {
 	}
 
 	getBuildContext(projectName) {
-		if (projectName) {
-			return this._projectBuildContexts.find((ctx) => ctx.getProject().getName() === projectName);
-		}
+		return this._projectBuildContexts.get(projectName);
 	}
 
 	async executeCleanupTasks(force = false) {
-		await Promise.all(this._projectBuildContexts.map((ctx) => {
+		await Promise.all(Array.from(this._projectBuildContexts.values()).map((ctx) => {
 			return ctx.executeCleanupTasks(force);
 		}));
+	}
+
+	/**
+	 *
+	 * @param {Map<string, Set<string>>} resourceChanges
+	 * @returns {Set<string>} Names of projects potentially affected by the resource changes
+	 */
+	propagateResourceChanges(resourceChanges) {
+		const affectedProjectNames = new Set();
+		const dependencyChanges = new Map();
+		for (const [projectName, changedResourcePaths] of resourceChanges) {
+			affectedProjectNames.add(projectName);
+			// Propagate changes to dependents of the project
+			for (const {project: dep} of this._graph.traverseDependents(projectName)) {
+				const depChanges = dependencyChanges.get(dep.getName());
+				if (!depChanges) {
+					dependencyChanges.set(dep.getName(), new Set(changedResourcePaths));
+					continue;
+				}
+				for (const res of changedResourcePaths) {
+					depChanges.add(res);
+				}
+			}
+			const projectBuildContext = this.getBuildContext(projectName);
+			if (projectBuildContext) {
+				projectBuildContext.projectSourcesChanged(Array.from(changedResourcePaths));
+			}
+		}
+
+		for (const [projectName, changedResourcePaths] of dependencyChanges) {
+			affectedProjectNames.add(projectName);
+			const projectBuildContext = this.getBuildContext(projectName);
+			if (projectBuildContext) {
+				projectBuildContext.dependencyResourcesChanged(Array.from(changedResourcePaths));
+			}
+		}
+		return affectedProjectNames;
 	}
 }
 

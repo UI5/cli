@@ -5,7 +5,6 @@ import composeProjectList from "./helpers/composeProjectList.js";
 import BuildContext from "./helpers/BuildContext.js";
 import prettyHrtime from "pretty-hrtime";
 import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
-import createBuildManifest from "./helpers/createBuildManifest.js";
 
 /**
  * @public
@@ -14,6 +13,9 @@ import createBuildManifest from "./helpers/createBuildManifest.js";
  */
 class ProjectBuilder {
 	#log;
+	#buildIsRunning = false;
+	// #resourceChanges = new Map();
+
 	/**
 	 * Build Configuration
 	 *
@@ -119,6 +121,35 @@ class ProjectBuilder {
 		this.#log = new BuildLogger("ProjectBuilder");
 	}
 
+	resourcesChanged(changes) {
+		// if (!this.#resourceChanges.size) {
+		// 	this.#resourceChanges = changes;
+		// 	return;
+		// }
+		// for (const [project, resourcePaths] of changes.entries()) {
+		// 	if (!this.#resourceChanges.has(project.getName())) {
+		// 		this.#resourceChanges.set(project.getName(), []);
+		// 	}
+		// 	const projectChanges = this.#resourceChanges.get(project.getName());
+		// 	projectChanges.push(...resourcePaths);
+		// }
+
+		return this._buildContext.propagateResourceChanges(changes);
+	}
+
+	// _flushResourceChanges() {
+	// 	this._buildContext.propagateResurceChanges(this.#resourceChanges);
+	// 	this.#resourceChanges = new Map();
+	// }
+
+	async build({
+		includedDependencies = [], excludedDependencies = [],
+	}) {
+		const requestedProjects = this._determineRequestedProjects(
+			includedDependencies, excludedDependencies);
+		return await this.#build(requestedProjects);
+	}
+
 	/**
 	 * Executes a project build, including all necessary or requested dependencies
 	 *
@@ -135,18 +166,17 @@ class ProjectBuilder {
 	 *   Alternative to the <code>includedDependencies</code> and <code>excludedDependencies</code> parameters.
 	 *   Allows for a more sophisticated configuration for defining which dependencies should be
 	 *   part of the build result. If this is provided, the other mentioned parameters are ignored.
-	 * @param {boolean} [parameters.watch] Whether to watch for file changes and re-execute the build automatically
 	 * @returns {Promise} Promise resolving once the build has finished
 	 */
-	async build({
+	async buildToTarget({
 		destPath, cleanDest = false,
 		includedDependencies = [], excludedDependencies = [],
 		dependencyIncludes,
-		watch,
 	}) {
-		if (!destPath && !watch) {
+		if (!destPath) {
 			throw new Error(`Missing parameter 'destPath'`);
 		}
+
 		if (dependencyIncludes) {
 			if (includedDependencies.length || excludedDependencies.length) {
 				throw new Error(
@@ -154,13 +184,27 @@ class ProjectBuilder {
 					"with parameters 'includedDependencies' or 'excludedDependencies");
 			}
 		}
-		const rootProjectName = this._graph.getRoot().getName();
-		this.#log.info(`Preparing build for project ${rootProjectName}`);
-		this.#log.info(`  Target directory: ${destPath}`);
+		this.#log.info(`Target directory: ${destPath}`);
+		const requestedProjects = this._determineRequestedProjects(
+			includedDependencies, excludedDependencies, dependencyIncludes);
 
+		if (destPath && cleanDest) {
+			this.#log.info(`Cleaning target directory...`);
+			await rmrf(destPath);
+		}
+
+		const fsTarget = resourceFactory.createAdapter({
+			fsBasePath: destPath,
+			virBasePath: "/"
+		});
+
+		await this.#build(requestedProjects, fsTarget);
+	}
+
+	_determineRequestedProjects(includedDependencies, excludedDependencies, dependencyIncludes) {
 		// Get project filter function based on include/exclude params
 		// (also logs some info to console)
-		const filterProject = await this._getProjectFilter({
+		const filterProject = this._createProjectFilter({
 			explicitIncludes: includedDependencies,
 			explicitExcludes: excludedDependencies,
 			dependencyIncludes
@@ -180,20 +224,26 @@ class ProjectBuilder {
 			}
 		}
 
-		const projectBuildContexts = await this._buildContext.createRequiredProjectContexts(requestedProjects);
-		let fsTarget;
-		if (destPath) {
-			fsTarget = resourceFactory.createAdapter({
-				fsBasePath: destPath,
-				virBasePath: "/"
-			});
-		}
+		return requestedProjects;
+	}
 
-		const queue = [];
+	async #build(requestedProjects, fsTarget) {
+		if (this.#buildIsRunning) {
+			throw new Error("A build is already running");
+		}
+		this.#buildIsRunning = true;
+		const rootProjectName = this._graph.getRoot().getName();
+		this.#log.info(`Preparing build for project ${rootProjectName}`);
+
+		// this._flushResourceChanges();
+		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
 
 		// Create build queue based on graph depth-first search to ensure correct build order
-		await this._graph.traverseDepthFirst(async ({project}) => {
+		const queue = [];
+		const builtProjects = [];
+		for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
 			const projectName = project.getName();
+			builtProjects.push(projectName);
 			const projectBuildContext = projectBuildContexts.get(projectName);
 			if (projectBuildContext) {
 				// Build context exists
@@ -201,76 +251,20 @@ class ProjectBuilder {
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
 			}
-		});
-
-		if (destPath && cleanDest) {
-			this.#log.info(`Cleaning target directory...`);
-			await rmrf(destPath);
 		}
 
-		let pWatchInit;
-		if (watch) {
-			const relevantProjects = queue.map((projectBuildContext) => {
-				return projectBuildContext.getProject();
-			});
-			// Start watching already while the initial build is running
-			pWatchInit = this._buildContext.initWatchHandler(relevantProjects, async () => {
-				await this.#updateBuild(projectBuildContexts, requestedProjects, fsTarget);
-			});
-		}
-
-		await this.#build(queue, projectBuildContexts, requestedProjects, fsTarget);
-
-		if (watch) {
-			const watchHandler = await pWatchInit;
-			watchHandler.setReady();
-			return watchHandler;
-		} else {
-			return null;
-		}
-	}
-
-	async #build(queue, projectBuildContexts, requestedProjects, fsTarget) {
 		this.#log.setProjects(queue.map((projectBuildContext) => {
 			return projectBuildContext.getProject().getName();
 		}));
 
 		const alreadyBuilt = [];
 		for (const projectBuildContext of queue) {
-			if (!await projectBuildContext.possiblyRequiresBuild()) {
+			if (!projectBuildContext.possiblyRequiresBuild()) {
 				const projectName = projectBuildContext.getProject().getName();
 				alreadyBuilt.push(projectName);
 			}
 		}
-		if (queue.length > 1) { // Do not log if only the root project is being built
-			this.#log.info(`Processing ${queue.length} projects`);
-			if (alreadyBuilt.length) {
-				this.#log.info(`  Reusing build results of ${alreadyBuilt.length} projects`);
-				this.#log.info(`  Building ${queue.length - alreadyBuilt.length} projects`);
-			}
 
-			if (this.#log.isLevelEnabled("verbose")) {
-				this.#log.verbose(`  Required projects:`);
-				this.#log.verbose(`    ${queue
-					.map((projectBuildContext) => {
-						const projectName = projectBuildContext.getProject().getName();
-						let msg;
-						if (alreadyBuilt.includes(projectName)) {
-							const buildMetadata = projectBuildContext.getBuildMetadata();
-							let buildAt = "";
-							if (buildMetadata) {
-								const ts = new Date(buildMetadata.timestamp).toUTCString();
-								buildAt = ` at ${ts}`;
-							}
-							msg = `*> ${projectName} /// already built${buildAt}`;
-						} else {
-							msg = `=> ${projectName}`;
-						}
-						return msg;
-					})
-					.join("\n    ")}`);
-			}
-		}
 		const cleanupSigHooks = this._registerCleanupSigHooks();
 		try {
 			const startTime = process.hrtime();
@@ -293,24 +287,17 @@ class ProjectBuilder {
 						await this._buildProject(projectBuildContext);
 					}
 				}
-				if (!requestedProjects.includes(projectName)) {
-					// Project has not been requested
-					//	=> Its resources shall not be part of the build result
-					continue;
-				}
-
-				if (fsTarget) {
-					this.#log.verbose(`Writing out files...`);
-					pWrites.push(this._writeResults(projectBuildContext, fsTarget));
-				}
 
 				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_CACHE_UPDATE) {
-					this.#log.verbose(`Triggering cache write...`);
-					// const buildManifest = await createBuildManifest(
-					// 	project,
-					// 	this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
-					// 	projectBuildContext.getBuildSignature());
+					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
 					pWrites.push(projectBuildContext.getBuildCache().writeCache());
+				}
+
+				if (fsTarget && requestedProjects.includes(projectName)) {
+					// Only write requested projects to target
+					// (excluding dependencies that were required to be built, but not requested)
+					this.#log.verbose(`Writing out files for project ${projectName}...`);
+					pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 				}
 			}
 			await Promise.all(pWrites);
@@ -322,84 +309,86 @@ class ProjectBuilder {
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
 		}
+		this.#buildIsRunning = false;
+		return builtProjects;
 	}
 
-	async #updateBuild(projectBuildContexts, requestedProjects, fsTarget) {
-		const cleanupSigHooks = this._registerCleanupSigHooks();
-		try {
-			const startTime = process.hrtime();
-			await this.#update(projectBuildContexts, requestedProjects, fsTarget);
-			this.#log.info(`Update succeeded in ${this._getElapsedTime(startTime)}`);
-		} catch (err) {
-			this.#log.error(`Update failed`);
-			throw err;
-		} finally {
-			this._deregisterCleanupSigHooks(cleanupSigHooks);
-			await this._executeCleanupTasks();
-		}
-	}
+	// async #updateBuild(projectBuildContexts, requestedProjects, fsTarget) {
+	// 	const cleanupSigHooks = this._registerCleanupSigHooks();
+	// 	try {
+	// 		const startTime = process.hrtime();
+	// 		await this.#update(projectBuildContexts, requestedProjects, fsTarget);
+	// 		this.#log.info(`Update succeeded in ${this._getElapsedTime(startTime)}`);
+	// 	} catch (err) {
+	// 		this.#log.error(`Update failed`);
+	// 		throw err;
+	// 	} finally {
+	// 		this._deregisterCleanupSigHooks(cleanupSigHooks);
+	// 		await this._executeCleanupTasks();
+	// 	}
+	// }
 
-	async #update(projectBuildContexts, requestedProjects, fsTarget) {
-		const queue = [];
-		await this._graph.traverseDepthFirst(async ({project}) => {
-			const projectName = project.getName();
-			const projectBuildContext = projectBuildContexts.get(projectName);
-			if (projectBuildContext) {
-				// Build context exists
-				//	=> This project needs to be built or, in case it has already
-				//		been built, it's build result needs to be written out (if requested)
-				queue.push(projectBuildContext);
-			}
-		});
+	// async #update(projectBuildContexts, requestedProjects, fsTarget) {
+	// 	const queue = [];
+	// 	// await this._graph.traverseDepthFirst(async ({project}) => {
+	// 	// 	const projectName = project.getName();
+	// 	// 	const projectBuildContext = projectBuildContexts.get(projectName);
+	// 	// 	if (projectBuildContext) {
+	// 	// 		// Build context exists
+	// 	// 		//	=> This project needs to be built or, in case it has already
+	// 	// 		//		been built, it's build result needs to be written out (if requested)
+	// 	// 		queue.push(projectBuildContext);
+	// 	// 	}
+	// 	// });
 
-		this.#log.setProjects(queue.map((projectBuildContext) => {
-			return projectBuildContext.getProject().getName();
-		}));
+	// 	// this.#log.setProjects(queue.map((projectBuildContext) => {
+	// 	// 	return projectBuildContext.getProject().getName();
+	// 	// }));
 
-		const pWrites = [];
-		while (queue.length) {
-			const projectBuildContext = queue.shift();
-			const project = projectBuildContext.getProject();
-			const projectName = project.getName();
-			const projectType = project.getType();
-			this.#log.verbose(`Updating project ${projectName}...`);
+	// 	const pWrites = [];
+	// 	while (queue.length) {
+	// 		const projectBuildContext = queue.shift();
+	// 		const project = projectBuildContext.getProject();
+	// 		const projectName = project.getName();
+	// 		const projectType = project.getType();
+	// 		this.#log.verbose(`Updating project ${projectName}...`);
 
-			let changedPaths = await projectBuildContext.prepareProjectBuildAndValidateCache();
-			if (changedPaths) {
-				this.#log.skipProjectBuild(projectName, projectType);
-			} else {
-				changedPaths = await this._buildProject(projectBuildContext);
-			}
+	// 		let changedPaths = await projectBuildContext.prepareProjectBuildAndValidateCache();
+	// 		if (changedPaths) {
+	// 			this.#log.skipProjectBuild(projectName, projectType);
+	// 		} else {
+	// 			changedPaths = await this._buildProject(projectBuildContext);
+	// 		}
 
-			if (changedPaths.length) {
-				for (const pbc of queue) {
-					// Propagate resource changes to following projects
-					pbc.getBuildCache().dependencyResourcesChanged(changedPaths);
-				}
-			}
-			if (!requestedProjects.includes(projectName)) {
-				// Project has not been requested
-				//	=> Its resources shall not be part of the build result
-				continue;
-			}
+	// 		if (changedPaths.length) {
+	// 			for (const pbc of queue) {
+	// 				// Propagate resource changes to following projects
+	// 				pbc.getBuildCache().dependencyResourcesChanged(changedPaths);
+	// 			}
+	// 		}
+	// 		if (!requestedProjects.includes(projectName)) {
+	// 			// Project has not been requested
+	// 			//	=> Its resources shall not be part of the build result
+	// 			continue;
+	// 		}
 
-			if (fsTarget) {
-				this.#log.verbose(`Writing out files...`);
-				pWrites.push(this._writeResults(projectBuildContext, fsTarget));
-			}
+	// 		if (fsTarget) {
+	// 			this.#log.verbose(`Writing out files...`);
+	// 			pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+	// 		}
 
-			if (process.env.UI5_BUILD_NO_CACHE_UPDATE) {
-				continue;
-			}
-			this.#log.verbose(`Triggering cache write...`);
-			// const buildManifest = await createBuildManifest(
-			// 	project,
-			// 	this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
-			// 	projectBuildContext.getBuildSignature());
-			pWrites.push(projectBuildContext.getBuildCache().writeCache());
-		}
-		await Promise.all(pWrites);
-	}
+	// 		if (process.env.UI5_BUILD_NO_CACHE_UPDATE) {
+	// 			continue;
+	// 		}
+	// 		this.#log.verbose(`Triggering cache write...`);
+	// 		// const buildManifest = await createBuildManifest(
+	// 		// 	project,
+	// 		// 	this._graph, this._buildContext.getBuildConfig(), this._buildContext.getTaskRepository(),
+	// 		// 	projectBuildContext.getBuildSignature());
+	// 		pWrites.push(projectBuildContext.getBuildCache().writeCache());
+	// 	}
+	// 	await Promise.all(pWrites);
+	// }
 
 	async _buildProject(projectBuildContext) {
 		const project = projectBuildContext.getProject();
@@ -413,12 +402,12 @@ class ProjectBuilder {
 		return {changedResources};
 	}
 
-	async _getProjectFilter({
+	_createProjectFilter({
 		dependencyIncludes,
 		explicitIncludes,
 		explicitExcludes
 	}) {
-		const {includedDependencies, excludedDependencies} = await composeProjectList(
+		const {includedDependencies, excludedDependencies} = composeProjectList(
 			this._graph,
 			dependencyIncludes || {
 				includeDependencyTree: explicitIncludes,
@@ -486,7 +475,10 @@ class ProjectBuilder {
 		const resources = await reader.byGlob("/**/*");
 
 		if (createBuildManifest) {
-			// Create and write a build manifest metadata file
+			// Create and write a build manifest metadata file+
+			const {
+				default: createBuildManifest
+			} = await import("./helpers/createBuildManifest.js");
 			const buildManifest = await createBuildManifest(
 				project, this._graph, buildConfig, this._buildContext.getTaskRepository(),
 				projectBuildContext.getBuildSignature());
