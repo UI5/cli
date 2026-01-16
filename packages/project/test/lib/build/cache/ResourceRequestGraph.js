@@ -14,18 +14,6 @@ test("Request: Create patterns request", (t) => {
 	t.deepEqual(request.value, ["*.js", "*.css"]);
 });
 
-test("Request: Create dep-path request", (t) => {
-	const request = new Request("dep-path", "dependency/file.js");
-	t.is(request.type, "dep-path");
-	t.is(request.value, "dependency/file.js");
-});
-
-test("Request: Create dep-patterns request", (t) => {
-	const request = new Request("dep-patterns", ["dep/*.js"]);
-	t.is(request.type, "dep-patterns");
-	t.deepEqual(request.value, ["dep/*.js"]);
-});
-
 test("Request: Reject invalid type", (t) => {
 	const error = t.throws(() => {
 		new Request("invalid-type", "value");
@@ -38,13 +26,6 @@ test("Request: Reject non-string value for path type", (t) => {
 		new Request("path", ["array", "value"]);
 	}, {instanceOf: Error});
 	t.is(error.message, "Request type 'path' requires value to be a string");
-});
-
-test("Request: Reject non-string value for dep-path type", (t) => {
-	const error = t.throws(() => {
-		new Request("dep-path", ["array", "value"]);
-	}, {instanceOf: Error});
-	t.is(error.message, "Request type 'dep-path' requires value to be a string");
 });
 
 test("Request: toKey with string value", (t) => {
@@ -73,12 +54,6 @@ test("Request: equals returns true for identical requests", (t) => {
 	const req1 = new Request("path", "a.js");
 	const req2 = new Request("path", "a.js");
 	t.true(req1.equals(req2));
-});
-
-test("Request: equals returns false for different types", (t) => {
-	const req1 = new Request("path", "a.js");
-	const req2 = new Request("dep-path", "a.js");
-	t.false(req1.equals(req2));
 });
 
 test("Request: equals returns false for different values", (t) => {
@@ -484,18 +459,16 @@ test("ResourceRequestGraph: Handles different request types", (t) => {
 	const set1 = [
 		new Request("path", "a.js"),
 		new Request("patterns", ["*.js"]),
-		new Request("dep-path", "dep/file.js"),
-		new Request("dep-patterns", ["dep/*.js"])
 	];
 	const nodeId = graph.addRequestSet(set1);
 
 	const node = graph.getNode(nodeId);
 	const materialized = node.getMaterializedRequests(graph);
 
-	t.is(materialized.length, 4);
+	t.is(materialized.length, 2);
 
 	const types = materialized.map((r) => r.type).sort();
-	t.deepEqual(types, ["dep-path", "dep-patterns", "path", "patterns"]);
+	t.deepEqual(types, ["path", "patterns"]);
 });
 
 test("ResourceRequestGraph: Complex parent hierarchy", (t) => {
