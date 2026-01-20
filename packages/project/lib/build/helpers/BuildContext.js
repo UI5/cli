@@ -10,7 +10,6 @@ import {getBaseSignature} from "./getBuildSignature.js";
  * @memberof @ui5/project/build/helpers
  */
 class BuildContext {
-	#watchHandler;
 	#cacheManager;
 
 	constructor(graph, taskRepository, { // buildConfig

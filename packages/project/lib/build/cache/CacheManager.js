@@ -42,6 +42,8 @@ const CACHE_VERSION = "v0_1";
  * - Singleton pattern per cache directory
  * - Configurable cache location via UI5_DATA_DIR or configuration
  * - Efficient resource deduplication through cacache
+ *
+ * @class
  */
 export default class CacheManager {
 	#casDir;
@@ -58,7 +60,7 @@ export default class CacheManager {
 	 * use CacheManager.create() instead to get a singleton instance.
 	 *
 	 * @private
-	 * @param {string} cacheDir - Base directory for the cache
+	 * @param {string} cacheDir Base directory for the cache
 	 */
 	constructor(cacheDir) {
 		cacheDir = path.join(cacheDir, CACHE_VERSION);
@@ -79,7 +81,8 @@ export default class CacheManager {
 	 * 2. ui5DataDir from UI5 configuration file
 	 * 3. Default: ~/.ui5/
 	 *
-	 * @param {string} cwd - Current working directory for resolving relative paths
+	 * @public
+	 * @param {string} cwd Current working directory for resolving relative paths
 	 * @returns {Promise<CacheManager>} Singleton CacheManager instance for the cache directory
 	 */
 	static async create(cwd) {
@@ -106,9 +109,8 @@ export default class CacheManager {
 	/**
 	 * Generates the file path for a build manifest
 	 *
-	 * @private
-	 * @param {string} packageName - Package/project identifier
-	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} packageName Package/project identifier
+	 * @param {string} buildSignature Build signature hash
 	 * @returns {string} Absolute path to the build manifest file
 	 */
 	#getBuildManifestPath(packageName, buildSignature) {
@@ -119,8 +121,9 @@ export default class CacheManager {
 	/**
 	 * Reads a build manifest from cache
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
 	 * @returns {Promise<object|null>} Parsed manifest object or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
@@ -146,9 +149,10 @@ export default class CacheManager {
 	 * Creates parent directories if they don't exist. Manifests are stored as
 	 * formatted JSON (2-space indentation) for readability.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {object} manifest - Build manifest object to serialize
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {object} manifest Build manifest object to serialize
 	 * @returns {Promise<void>}
 	 */
 	async writeBuildManifest(projectId, buildSignature, manifest) {
@@ -160,9 +164,8 @@ export default class CacheManager {
 	/**
 	 * Generates the file path for resource index metadata
 	 *
-	 * @private
-	 * @param {string} packageName - Package/project identifier
-	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} packageName Package/project identifier
+	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
 	 * @returns {string} Absolute path to the index metadata file
 	 */
@@ -177,8 +180,9 @@ export default class CacheManager {
 	 * The index cache contains the resource tree structure and task metadata,
 	 * enabling efficient change detection and cache validation.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
 	 * @returns {Promise<object|null>} Parsed index cache object or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
@@ -205,10 +209,11 @@ export default class CacheManager {
 	 * Persists the resource index and associated task metadata for later retrieval.
 	 * Creates parent directories if needed.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
 	 * @param {string} kind "source" or "result"
-	 * @param {object} index - Index object containing resource tree and task metadata
+	 * @param {object} index Index object containing resource tree and task metadata
 	 * @returns {Promise<void>}
 	 */
 	async writeIndexCache(projectId, buildSignature, kind, index) {
@@ -220,11 +225,10 @@ export default class CacheManager {
 	/**
 	 * Generates the file path for stage metadata
 	 *
-	 * @private
-	 * @param {string} packageName - Package/project identifier
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @param {string} packageName Package/project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature Stage signature hash (based on input resources)
 	 * @returns {string} Absolute path to the stage metadata file
 	 */
 	#getStageMetadataPath(packageName, buildSignature, stageId, stageSignature) {
@@ -239,10 +243,11 @@ export default class CacheManager {
 	 * Stage metadata contains information about resources produced by a build stage,
 	 * including resource paths and their metadata.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature Stage signature hash (based on input resources)
 	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
@@ -270,11 +275,12 @@ export default class CacheManager {
 	 * Persists metadata about resources produced by a build stage.
 	 * Creates parent directories if needed.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature - Stage signature hash (based on input resources)
-	 * @param {object} metadata - Stage metadata object to serialize
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature Stage signature hash (based on input resources)
+	 * @param {object} metadata Stage metadata object to serialize
 	 * @returns {Promise<void>}
 	 */
 	async writeStageCache(projectId, buildSignature, stageId, stageSignature, metadata) {
@@ -285,14 +291,13 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Generates the file path for stage metadata
+	 * Generates the file path for task metadata
 	 *
-	 * @private
-	 * @param {string} packageName - Package/project identifier
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} taskName
-	 * @param {string} type - "project" or "dependency"
-	 * @returns {string} Absolute path to the stage metadata file
+	 * @param {string} packageName Package/project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} taskName Task name
+	 * @param {string} type "project" or "dependency"
+	 * @returns {string} Absolute path to the task metadata file
 	 */
 	#getTaskMetadataPath(packageName, buildSignature, taskName, type) {
 		const pkgDir = getPathFromPackageName(packageName);
@@ -300,16 +305,17 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Reads stage metadata from cache
+	 * Reads task metadata from cache
 	 *
-	 * Stage metadata contains information about resources produced by a build stage,
-	 * including resource paths and their metadata.
+	 * Task metadata contains resource request graphs and indices for tracking
+	 * which resources a task accessed during execution.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} taskName
-	 * @param {string} type - "project" or "dependency"
-	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} taskName Task name
+	 * @param {string} type "project" or "dependency"
+	 * @returns {Promise<object|null>} Parsed task metadata or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readTaskMetadata(projectId, buildSignature, taskName, type) {
@@ -330,16 +336,17 @@ export default class CacheManager {
 	}
 
 	/**
-	 * Writes stage metadata to cache
+	 * Writes task metadata to cache
 	 *
-	 * Persists metadata about resources produced by a build stage.
+	 * Persists task-specific metadata including resource request graphs and indices.
 	 * Creates parent directories if needed.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} taskName
-	 * @param {string} type - "project" or "dependency"
-	 * @param {object} metadata - Stage metadata object to serialize
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} taskName Task name
+	 * @param {string} type "project" or "dependency"
+	 * @param {object} metadata Task metadata object to serialize
 	 * @returns {Promise<void>}
 	 */
 	async writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
@@ -351,11 +358,10 @@ export default class CacheManager {
 	/**
 	 * Generates the file path for result metadata
 	 *
-	 * @private
-	 * @param {string} packageName - Package/project identifier
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageSignature - Stage signature hash (based on input resources)
-	 * @returns {string} Absolute path to the stage metadata file
+	 * @param {string} packageName Package/project identifier
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageSignature Stage signature hash (based on input resources)
+	 * @returns {string} Absolute path to the result metadata file
 	 */
 	#getResultMetadataPath(packageName, buildSignature, stageSignature) {
 		const pkgDir = getPathFromPackageName(packageName);
@@ -365,13 +371,14 @@ export default class CacheManager {
 	/**
 	 * Reads result metadata from cache
 	 *
-	 * Stage metadata contains information about resources produced by a build stage,
-	 * including resource paths and their metadata.
+	 * Result metadata contains information about the final build output, including
+	 * references to all stage signatures that comprise the result.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageSignature - Stage signature hash (based on input resources)
-	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageSignature Stage signature hash (based on input resources)
+	 * @returns {Promise<object|null>} Parsed result metadata or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
 	async readResultMetadata(projectId, buildSignature, stageSignature) {
@@ -395,13 +402,14 @@ export default class CacheManager {
 	/**
 	 * Writes result metadata to cache
 	 *
-	 * Persists metadata about resources produced by a build stage.
+	 * Persists metadata about the final build result, including stage signature mappings.
 	 * Creates parent directories if needed.
 	 *
-	 * @param {string} projectId - Project identifier (typically package name)
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageSignature - Stage signature hash (based on input resources)
-	 * @param {object} metadata - Stage metadata object to serialize
+	 * @public
+	 * @param {string} projectId Project identifier (typically package name)
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageSignature Stage signature hash (based on input resources)
+	 * @param {object} metadata Result metadata object to serialize
 	 * @returns {Promise<void>}
 	 */
 	async writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
@@ -418,11 +426,12 @@ export default class CacheManager {
 	 * and verifies its integrity. If integrity mismatches, attempts to recover by
 	 * looking up the content by digest and updating the index.
 	 *
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature - Stage signature hash
-	 * @param {string} resourcePath - Virtual path of the resource
-	 * @param {string} integrity - Expected integrity hash (e.g., "sha256-...")
+	 * @public
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature Stage signature hash
+	 * @param {string} resourcePath Virtual path of the resource
+	 * @param {string} integrity Expected integrity hash (e.g., "sha256-...")
 	 * @returns {Promise<string|null>} Absolute path to the cached resource file, or null if not found
 	 * @throws {Error} If integrity is not provided
 	 */
@@ -448,10 +457,11 @@ export default class CacheManager {
 	 * This enables efficient deduplication when the same resource content appears
 	 * in multiple stages or builds.
 	 *
-	 * @param {string} buildSignature - Build signature hash
-	 * @param {string} stageId - Stage identifier (e.g., "result" or "task/taskName")
-	 * @param {string} stageSignature - Stage signature hash
-	 * @param {module:@ui5/fs.Resource} resource - Resource to cache
+	 * @public
+	 * @param {string} buildSignature Build signature hash
+	 * @param {string} stageId Stage identifier (e.g., "result" or "task/taskName")
+	 * @param {string} stageSignature Stage signature hash
+	 * @param {@ui5/fs/Resource} resource Resource to cache
 	 * @returns {Promise<void>}
 	 */
 	async writeStageResource(buildSignature, stageId, stageSignature, resource) {
