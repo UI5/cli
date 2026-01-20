@@ -324,13 +324,11 @@ class ProjectBuilder {
 			if (includedDependencies.length === this._graph.getSize() - 1) {
 				this.#log.info(`  Including all dependencies`);
 			} else {
-				this.#log.info(`  Requested dependencies:`);
-				this.#log.info(`    + ${includedDependencies.join("\n    + ")}`);
+				this.#log.info(`  Requested dependencies:\n    + ${includedDependencies.join("\n    + ")}`);
 			}
 		}
 		if (excludedDependencies.length) {
-			this.#log.info(`  Excluded dependencies:`);
-			this.#log.info(`    - ${excludedDependencies.join("\n    + ")}`);
+			this.#log.info(`  Excluded dependencies:\n    - ${excludedDependencies.join("\n    + ")}`);
 		}
 
 		const rootProjectName = this._graph.getRoot().getName();
