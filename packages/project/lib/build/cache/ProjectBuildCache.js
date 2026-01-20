@@ -840,12 +840,10 @@ export default class ProjectBuildCache {
 	 * 3. Stores all stage caches from the queue
 	 *
 	 * @public
-	 * @param {object} buildManifest Build manifest containing metadata about the build
-	 * @param {string} buildManifest.manifestVersion Version of the manifest format
-	 * @param {string} buildManifest.signature Build signature
 	 * @returns {Promise<void>}
 	 */
-	async writeCache(buildManifest) {
+	async writeCache() {
+		const cacheWriteStart = performance.now();
 		await Promise.all([
 			this.#writeResultCache(),
 
@@ -854,6 +852,11 @@ export default class ProjectBuildCache {
 
 			this.#writeSourceIndex(),
 		]);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`Wrote build cache for project ${this.#project.getName()} in ` +
+				`${(performance.now() - cacheWriteStart).toFixed(2)} ms`);
+		}
 	}
 
 	/**
