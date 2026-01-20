@@ -1,4 +1,4 @@
-import {createResource, createProxy} from "@ui5/fs/resourceFactory";
+import {createResource, createProxy, createWriterCollection} from "@ui5/fs/resourceFactory";
 import {getLogger} from "@ui5/logger";
 import fs from "graceful-fs";
 import {promisify} from "node:util";
@@ -42,7 +42,7 @@ export default class ProjectBuildCache {
 	#currentDependencyReader;
 	#sourceIndex;
 	#cachedSourceSignature;
-	#currentDependencySignatures = new Map();
+	#currentStageSignatures = new Map();
 	#cachedResultSignature;
 	#currentResultSignature;
 
@@ -177,7 +177,7 @@ export default class ProjectBuildCache {
 	 * If found, creates a reader for the cached stage and sets it as the project's
 	 * result stage.
 	 *
-	 * @returns {Promise<void>}
+	 * @returns {Promise<string[]>} Array of resource paths written by the cached result stage
 	 */
 	async #findResultCache() {
 		if (this.#cacheState === CACHE_STATES.STALE && this.#currentResultSignature) {
@@ -192,31 +192,64 @@ export default class ProjectBuildCache {
 				`skipping result cache validation.`);
 			return;
 		}
-		const stageSignatures = this.#getPossibleResultStageSignatures();
-		if (stageSignatures.includes(this.#currentResultSignature)) {
+		const resultSignatures = this.#getPossibleResultStageSignatures();
+		if (resultSignatures.includes(this.#currentResultSignature)) {
 			log.verbose(
 				`Project ${this.#project.getName()} result stage signature unchanged: ${this.#currentResultSignature}`);
 			this.#cacheState = CACHE_STATES.FRESH;
 			return [];
 		}
-		const stageCache = await this.#findStageCache("result", stageSignatures);
-		if (!stageCache) {
+
+		const res = await firstTruthy(resultSignatures.map(async (resultSignature) => {
+			const metadata = await this.#cacheManager.readResultMetadata(
+				this.#project.getId(), this.#buildSignature, resultSignature);
+			if (!metadata) {
+				return;
+			}
+			return [resultSignature, metadata];
+		}));
+
+		if (!res) {
 			log.verbose(
-				`No cached stage found for project ${this.#project.getName()}. Searching with ` +
-				`${stageSignatures.length} possible signatures.`);
-			// Cache state remains dirty
-			// this.#cacheState = CACHE_STATES.EMPTY;
+				`No cached stage found for project ${this.#project.getName()}. Searched with ` +
+				`${resultSignatures.length} possible signatures.`);
 			return;
 		}
-		const {stage, signature, writtenResourcePaths} = stageCache;
+		const [resultSignature, resultMetadata] = res;
+		log.verbose(`Found result cache with signature ${resultSignature}`);
+		const {stageSignatures} = resultMetadata;
+
+		const writtenResourcePaths = await this.#importStages(stageSignatures);
+
 		log.verbose(
-			`Using cached result stage for project ${this.#project.getName()} with index signature ${signature}`);
-		this.#currentResultSignature = signature;
-		this.#cachedResultSignature = signature;
-		this.#project.setResultStage(stage);
-		this.#project.useResultStage();
+			`Using cached result stage for project ${this.#project.getName()} with index signature ${resultSignature}`);
+		this.#currentResultSignature = resultSignature;
+		this.#cachedResultSignature = resultSignature;
 		this.#cacheState = CACHE_STATES.FRESH;
 		return writtenResourcePaths;
+	}
+
+	async #importStages(stageSignatures) {
+		const stageNames = Object.keys(stageSignatures);
+		this.#project.initStages(stageNames);
+		const importedStages = await Promise.all(stageNames.map(async (stageName) => {
+			const stageSignature = stageSignatures[stageName];
+			const stageCache = await this.#findStageCache(stageName, [stageSignature]);
+			if (!stageCache) {
+				throw new Error(`Inconsistent result cache: Could not find cached stage ` +
+					`${stageName} with signature ${stageSignature} for project ${this.#project.getName()}`);
+			}
+			return [stageName, stageCache];
+		}));
+		this.#project.useResultStage();
+		const writtenResourcePaths = new Set();
+		for (const [stageName, stageCache] of importedStages) {
+			this.#project.setStage(stageName, stageCache.stage);
+			for (const resourcePath of stageCache.writtenResourcePaths) {
+				writtenResourcePaths.add(resourcePath);
+			}
+		}
+		return Array.from(writtenResourcePaths);
 	}
 
 	#getPossibleResultStageSignatures() {
@@ -236,7 +269,11 @@ export default class ProjectBuildCache {
 
 	#getResultStageSignature() {
 		const projectSourceSignature = this.#sourceIndex.getSignature();
-		const combinedDepSignature = createDependencySignature(Array.from(this.#currentDependencySignatures.values()));
+		const dependencySignatures = [];
+		for (const [, depSignature] of this.#currentStageSignatures.values()) {
+			dependencySignatures.push(depSignature);
+		}
+		const combinedDepSignature = createDependencySignature(dependencySignatures);
 		return createStageSignature(projectSourceSignature, combinedDepSignature);
 	}
 
@@ -290,7 +327,7 @@ export default class ProjectBuildCache {
 			const stageChanged = this.#project.setStage(stageName, stageCache.stage);
 
 			// Store dependency signature for later use in result stage signature calculation
-			this.#currentDependencySignatures.set(taskName, stageCache.signature.split("-")[1]);
+			this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
 
 			// Cached stage might differ from the previous one
 			// Add all resources written by the cached stage to the set of written/potentially changed resources
@@ -334,7 +371,7 @@ export default class ProjectBuildCache {
 			if (deltaStageCache) {
 				// Store dependency signature for later use in result stage signature calculation
 				const [foundProjectSig, foundDepSig] = deltaStageCache.signature.split("-");
-				this.#currentDependencySignatures.set(taskName, foundDepSig);
+				this.#currentStageSignatures.set(stageName, [foundProjectSig, foundDepSig]);
 				const projectDeltaInfo = projectDeltas.get(foundProjectSig);
 				const dependencyDeltaInfo = depDeltas.get(foundDepSig);
 
@@ -397,16 +434,44 @@ export default class ProjectBuildCache {
 		const stageCache = await firstTruthy(stageSignatures.map(async (stageSignature) => {
 			const stageMetadata = await this.#cacheManager.readStageCache(
 				this.#project.getId(), this.#buildSignature, stageName, stageSignature);
-			if (stageMetadata) {
-				log.verbose(`Found cached stage with signature ${stageSignature}`);
-				const reader = this.#createReaderForStageCache(
-					stageName, stageSignature, stageMetadata.resourceMetadata);
-				return {
-					signature: stageSignature,
-					stage: reader,
-					writtenResourcePaths: Object.keys(stageMetadata.resourceMetadata),
-				};
+			if (!stageMetadata) {
+				return;
 			}
+			log.verbose(`Found cached stage with signature ${stageSignature}`);
+			const {resourceMapping, resourceMetadata} = stageMetadata;
+			let writtenResourcePaths;
+			let stageReader;
+			if (resourceMapping) {
+				writtenResourcePaths = [];
+				// Restore writer collection
+				const readers = resourceMetadata.map((metadata) => {
+					writtenResourcePaths.push(...Object.keys(metadata));
+					return this.#createReaderForStageCache(
+						stageName, stageSignature, metadata);
+				});
+
+				const writerMapping = Object.create(null);
+				for (const [resourcePath, metadataIndex] of Object.entries(resourceMapping)) {
+					if (!readers[metadataIndex]) {
+						throw new Error(`Inconsistent stage cache: No resource metadata ` +
+							`found at index ${metadataIndex} for resource ${resourcePath}`);
+					}
+					writerMapping[resourcePath] = readers[metadataIndex];
+				}
+
+				stageReader = createWriterCollection({
+					name: `Restored cached stage ${stageName} for project ${this.#project.getName()}`,
+					writerMapping,
+				});
+			} else {
+				writtenResourcePaths = Object.keys(resourceMetadata);
+				stageReader = this.#createReaderForStageCache(stageName, stageSignature, resourceMetadata);
+			}
+			return {
+				signature: stageSignature,
+				stage: stageReader,
+				writtenResourcePaths,
+			};
 		}));
 		return stageCache;
 	}
@@ -458,7 +523,7 @@ export default class ProjectBuildCache {
 			} else {
 				// Stage instance
 				reader = cacheInfo.previousStageCache.stage.getWriter() ??
-					cacheInfo.previousStageCache.stage.getReader();
+					cacheInfo.previousStageCache.stage.getCachedWriter();
 			}
 			const previousWrittenResources = await reader.byGlob("/**/*");
 			for (const res of previousWrittenResources) {
@@ -475,7 +540,8 @@ export default class ProjectBuildCache {
 				this.#currentDependencyReader
 			);
 			// If provided, set dependency signature for later use in result stage signature calculation
-			this.#currentDependencySignatures.set(taskName, currentSignaturePair[1]);
+			const stageName = this.#getStageNameForTask(taskName);
+			this.#currentStageSignatures.set(stageName, currentSignaturePair);
 			stageSignature = createStageSignature(...currentSignaturePair);
 		}
 
@@ -577,7 +643,6 @@ export default class ProjectBuildCache {
 
 		// Reset updated resource paths
 		this.#writtenResultResourcePaths = [];
-		this.#currentDependencySignatures = new Map();
 		return changedPaths;
 	}
 
@@ -724,7 +789,7 @@ export default class ProjectBuildCache {
 	 */
 	async writeCache(buildManifest) {
 		await Promise.all([
-			this.#writeResultStageCache(),
+			this.#writeResultCache(),
 
 			this.#writeTaskStageCaches(),
 			this.#writeTaskMetadataCaches(),
@@ -734,7 +799,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Writes the result stage to persistent cache storage
+	 * Writes the result metadata to persistent cache storage
 	 *
 	 * Collects all resources from the result stage (excluding source reader),
 	 * stores their content via the cache manager, and writes stage metadata
@@ -742,38 +807,23 @@ export default class ProjectBuildCache {
 	 *
 	 * @returns {Promise<void>}
 	 */
-	async #writeResultStageCache() {
+	async #writeResultCache() {
 		const stageSignature = this.#currentResultSignature;
 		if (stageSignature === this.#cachedResultSignature) {
 			// No changes to already cached result stage
 			return;
 		}
-		const stageId = "result";
-		const deltaReader = this.#project.getReader({excludeSourceReader: true});
-		const resources = await deltaReader.byGlob("/**/*");
-		const resourceMetadata = Object.create(null);
-		log.verbose(`Writing result cache for project ${this.#project.getName()}:\n` +
-			`- Result stage signature is: ${stageSignature}\n` +
-			`- Cache state: ${this.#cacheState}\n` +
-			`- Storing ${resources.length} resources`);
-
-		await Promise.all(resources.map(async (res) => {
-			// Store resource content in cacache via CacheManager
-			await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
-
-			resourceMetadata[res.getOriginalPath()] = {
-				inode: res.getInode(),
-				lastModified: res.getLastModified(),
-				size: await res.getSize(),
-				integrity: await res.getIntegrity(),
-			};
-		}));
+		log.verbose(`Storing result metadata for project ${this.#project.getName()}`);
+		const stageSignatures = Object.create(null);
+		for (const [stageName, stageSigs] of this.#currentStageSignatures.entries()) {
+			stageSignatures[stageName] = stageSigs.join("-");
+		}
 
 		const metadata = {
-			resourceMetadata,
+			stageSignatures,
 		};
-		await this.#cacheManager.writeStageCache(
-			this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
+		await this.#cacheManager.writeResultMetadata(
+			this.#project.getId(), this.#buildSignature, stageSignature, metadata);
 	}
 
 	async #writeTaskStageCaches() {
@@ -787,27 +837,51 @@ export default class ProjectBuildCache {
 		await Promise.all(stageQueue.map(async ([stageId, stageSignature]) => {
 			const {stage} = this.#stageCache.getCacheForSignature(stageId, stageSignature);
 			const writer = stage.getWriter();
-			const reader = writer.collection ? writer.collection : writer;
-			const resources = await reader.byGlob("/**/*");
-			const resourceMetadata = Object.create(null);
-			await Promise.all(resources.map(async (res) => {
-				// Store resource content in cacache via CacheManager
-				await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
 
-				resourceMetadata[res.getOriginalPath()] = {
-					inode: res.getInode(),
-					lastModified: res.getLastModified(),
-					size: await res.getSize(),
-					integrity: await res.getIntegrity(),
-				};
-			}));
+			let metadata;
+			if (writer.getMapping) {
+				const writerMapping = writer.getMapping();
+				// Ensure unique readers are used
+				const readers = Array.from(new Set(Object.values(writerMapping)));
+				// Map mapping entries to reader indices
+				const resourceMapping = Object.create(null);
+				for (const [virPath, reader] of Object.entries(writerMapping)) {
+					const readerIdx = readers.indexOf(reader);
+					resourceMapping[virPath] = readerIdx;
+				}
 
-			const metadata = {
-				resourceMetadata,
-			};
+				const resourceMetadata = await Promise.all(readers.map(async (reader, idx) => {
+					const resources = await reader.byGlob("/**/*");
+
+					return await this.#writeStageResources(resources, stageId, stageSignature);
+				}));
+
+				metadata = {resourceMapping, resourceMetadata};
+			} else {
+				const resources = await writer.byGlob("/**/*");
+				const resourceMetadata = await this.#writeStageResources(resources, stageId, stageSignature);
+				metadata = {resourceMetadata};
+			}
+
 			await this.#cacheManager.writeStageCache(
 				this.#project.getId(), this.#buildSignature, stageId, stageSignature, metadata);
 		}));
+	}
+
+	async #writeStageResources(resources, stageId, stageSignature) {
+		const resourceMetadata = Object.create(null);
+		await Promise.all(resources.map(async (res) => {
+			// Store resource content in cacache via CacheManager
+			await this.#cacheManager.writeStageResource(this.#buildSignature, stageId, stageSignature, res);
+
+			resourceMetadata[res.getOriginalPath()] = {
+				inode: res.getInode(),
+				lastModified: res.getLastModified(),
+				size: await res.getSize(),
+				integrity: await res.getIntegrity(),
+			};
+		}));
+		return resourceMetadata;
 	}
 
 	async #writeTaskMetadataCaches() {
@@ -903,6 +977,7 @@ export default class ProjectBuildCache {
 					lastModified,
 					integrity,
 					inode,
+					project: this.#project,
 				});
 			}
 		});
