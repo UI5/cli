@@ -7,11 +7,13 @@
  */
 
 /**
- * Compares a resource instance with cached resource metadata.
+ * Compares a resource instance with cached resource metadata
  *
- * Optimized for quickly rejecting changed files
+ * Optimized for quickly rejecting changed files. Performs a series of checks
+ * starting with the cheapest (timestamp) to more expensive (integrity hash).
  *
- * @param {object} resource Resource instance to compare
+ * @public
+ * @param {@ui5/fs/Resource} resource Resource instance to compare
  * @param {ResourceMetadata} resourceMetadata Resource metadata to compare against
  * @param {number} [indexTimestamp] Timestamp of the metadata creation
  * @returns {Promise<boolean>} True if resource is found to match the metadata
@@ -54,12 +56,14 @@ export async function matchResourceMetadata(resource, resourceMetadata, indexTim
 /**
  * Determines if a resource has changed compared to cached metadata
  *
- * Optimized for quickly accepting unchanged files.
- * I.e. Resources are assumed to be usually unchanged (same lastModified timestamp)
+ * Optimized for quickly accepting unchanged files. Resources are assumed to be
+ * usually unchanged (same lastModified timestamp). Performs checks from cheapest
+ * to most expensive, falling back to integrity comparison when necessary.
  *
- * @param {object} resource - Resource instance with methods: getInode(), getSize(), getLastModified(), getIntegrity()
- * @param {ResourceMetadata} cachedMetadata - Cached metadata from the tree
- * @param {number} [indexTimestamp] - Timestamp when the tree state was created
+ * @public
+ * @param {@ui5/fs/Resource} resource Resource instance to compare
+ * @param {ResourceMetadata} cachedMetadata Cached metadata from the tree
+ * @param {number} [indexTimestamp] Timestamp when the tree state was created
  * @returns {Promise<boolean>} True if resource content is unchanged
  * @throws {Error} If resource or metadata is undefined
  */
@@ -100,12 +104,16 @@ export async function matchResourceMetadataStrict(resource, cachedMetadata, inde
 
 
 /**
- * Creates an index of resource metadata from an array of resources.
+ * Creates an index of resource metadata from an array of resources
  *
- * @param {Array<@ui5/fs/Resource>} resources - Array of resources to index
- * @param {boolean} [includeInode=false] - Whether to include inode information in the metadata
+ * Processes all resources in parallel, extracting their metadata including
+ * path, integrity, lastModified timestamp, and size. Optionally includes inode information.
+ *
+ * @public
+ * @param {Array<@ui5/fs/Resource>} resources Array of resources to index
+ * @param {boolean} [includeInode=false] Whether to include inode information in the metadata
  * @returns {Promise<Array<@ui5/project/build/cache/index/HashTree~ResourceMetadata>>}
- * Array of resource metadata objects
+ *   Array of resource metadata objects
  */
 export async function createResourceIndex(resources, includeInode = false) {
 	return await Promise.all(resources.map(async (resource) => {
@@ -129,8 +137,7 @@ export async function createResourceIndex(resources, includeInode = false) {
  * when the first truthy value is found. If all promises resolve to falsy
  * values, null is returned.
  *
- * @private
- * @param {Promise[]} promises - Array of promises to evaluate
+ * @param {Promise[]} promises Array of promises to evaluate
  * @returns {Promise<*>} The first truthy resolved value or null if all are falsy
  */
 export async function firstTruthy(promises) {
