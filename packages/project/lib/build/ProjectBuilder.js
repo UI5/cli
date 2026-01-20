@@ -243,13 +243,13 @@ class ProjectBuilder {
 		const builtProjects = [];
 		for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
 			const projectName = project.getName();
-			builtProjects.push(projectName);
 			const projectBuildContext = projectBuildContexts.get(projectName);
 			if (projectBuildContext) {
 				// Build context exists
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
+				builtProjects.push(projectName);
 			}
 		}
 
