@@ -137,51 +137,52 @@ export async function serve(graph, {
 	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
 }) {
 	const rootProject = graph.getRoot();
-	const watchHandler = await graph.build({
-		includedDependencies: ["*"],
-		watch: true,
+
+	const readers = [];
+	await graph.traverseBreadthFirst(async function({project: dep}) {
+		if (dep.getName() === rootProject.getName()) {
+			// Ignore root project
+			return;
+		}
+		readers.push(dep.getSourceReader("runtime"));
 	});
 
-	async function createReaders() {
-		const readers = [];
-		await graph.traverseBreadthFirst(async function({project: dep}) {
-			if (dep.getName() === rootProject.getName()) {
-				// Ignore root project
-				return;
-			}
-			readers.push(dep.getReader({style: "runtime"}));
-		});
+	const dependencies = createReaderCollection({
+		name: `Dependency reader collection for sources of project ${rootProject.getName()}`,
+		readers
+	});
 
-		const dependencies = createReaderCollection({
-			name: `Dependency reader collection for project ${rootProject.getName()}`,
-			readers
-		});
+	const rootReader = rootProject.getSourceReader("runtime");
 
-		const rootReader = rootProject.getReader({style: "runtime"});
-		// TODO change to ReaderCollection once duplicates are sorted out
-		const combo = new ReaderCollectionPrioritized({
-			name: "server - prioritize workspace over dependencies",
-			readers: [rootReader, dependencies]
-		});
-		const resources = {
-			rootProject: rootReader,
-			dependencies: dependencies,
-			all: combo
-		};
-		return resources;
+	// TODO change to ReaderCollection once duplicates are sorted out
+	const combo = new ReaderCollectionPrioritized({
+		name: "Server: Reader for sources of all projects",
+		readers: [rootReader, dependencies]
+	});
+	const sources = {
+		rootProject: rootReader,
+		dependencies: dependencies,
+		all: combo
+	};
+
+	const initialBuildIncludedDependencies = [];
+	if (graph.getProject("sap.ui.core")) {
+		// Ensure sap.ui.core is always built initially (if present in the graph)
+		initialBuildIncludedDependencies.push("sap.ui.core");
 	}
-
-	const resources = await createReaders();
-
-	watchHandler.on("projectResourcesUpdated", async () => {
-		const newResources = await createReaders();
-		// Patch resources
-		resources.rootProject = newResources.rootProject;
-		resources.dependencies = newResources.dependencies;
-		resources.all = newResources.all;
+	const buildServer = await graph.serve({
+		initialBuildIncludedDependencies,
+		excludedTasks: ["minify"],
 	});
-	watchHandler.on("error", async (err) => {
-		log.error(`Watch handler error: ${err.message}`);
+
+	const resources = {
+		rootProject: buildServer.getRootReader(),
+		dependencies: buildServer.getDependenciesReader(),
+		all: buildServer.getReader(),
+	};
+
+	buildServer.on("error", async (err) => {
+		log.error(`Error during project build: ${err.message}`);
 		log.verbose(err.stack);
 		process.exit(1);
 	});
@@ -189,6 +190,7 @@ export async function serve(graph, {
 	const middlewareManager = new MiddlewareManager({
 		graph,
 		rootProject,
+		sources,
 		resources,
 		options: {
 			sendSAPTargetCSP,
