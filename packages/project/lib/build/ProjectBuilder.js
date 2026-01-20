@@ -14,7 +14,6 @@ import OutputStyleEnum from "./helpers/ProjectBuilderOutputStyle.js";
 class ProjectBuilder {
 	#log;
 	#buildIsRunning = false;
-	// #resourceChanges = new Map();
 
 	/**
 	 * Build Configuration
@@ -122,25 +121,8 @@ class ProjectBuilder {
 	}
 
 	resourcesChanged(changes) {
-		// if (!this.#resourceChanges.size) {
-		// 	this.#resourceChanges = changes;
-		// 	return;
-		// }
-		// for (const [project, resourcePaths] of changes.entries()) {
-		// 	if (!this.#resourceChanges.has(project.getName())) {
-		// 		this.#resourceChanges.set(project.getName(), []);
-		// 	}
-		// 	const projectChanges = this.#resourceChanges.get(project.getName());
-		// 	projectChanges.push(...resourcePaths);
-		// }
-
 		return this._buildContext.propagateResourceChanges(changes);
 	}
-
-	// _flushResourceChanges() {
-	// 	this._buildContext.propagateResurceChanges(this.#resourceChanges);
-	// 	this.#resourceChanges = new Map();
-	// }
 
 	async build({
 		includedDependencies = [], excludedDependencies = [],
@@ -188,7 +170,7 @@ class ProjectBuilder {
 		const requestedProjects = this._determineRequestedProjects(
 			includedDependencies, excludedDependencies, dependencyIncludes);
 
-		if (destPath && cleanDest) {
+		if (cleanDest) {
 			this.#log.info(`Cleaning target directory...`);
 			await rmrf(destPath);
 		}
@@ -288,12 +270,12 @@ class ProjectBuilder {
 					}
 				}
 
-				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_CACHE_UPDATE) {
+				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
 					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
 					pWrites.push(projectBuildContext.getBuildCache().writeCache());
 				}
 
-				if (fsTarget && requestedProjects.includes(projectName)) {
+				if (fsTarget && requestedProjects.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_DEST) {
 					// Only write requested projects to target
 					// (excluding dependencies that were required to be built, but not requested)
 					this.#log.verbose(`Writing out files for project ${projectName}...`);
