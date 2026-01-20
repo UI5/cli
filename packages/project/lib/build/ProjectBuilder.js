@@ -251,8 +251,8 @@ class ProjectBuilder {
 					await projectBuildContext.getTaskRunner().runTasks();
 					this.#log.endProjectBuild(projectName, projectType);
 				}
-				if (!requestedProjects.includes(projectName)) {
-					// Project has not been requested
+				if (!requestedProjects.includes(projectName) || !!process.env.UI5_BUILD_NO_WRITE_DEST) {
+					// Project has not been requested or writing is disabled
 					//	=> Its resources shall not be part of the build result
 					continue;
 				}
