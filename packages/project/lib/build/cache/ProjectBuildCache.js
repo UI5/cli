@@ -23,12 +23,14 @@ export const CACHE_STATES = Object.freeze({
 /**
  * @typedef {object} StageMetadata
  * @property {Object<string, @ui5/project/build/cache/index/HashTree~ResourceMetadata>} resourceMetadata
+ *   Resource metadata indexed by resource path
  */
 
 /**
  * @typedef {object} StageCacheEntry
- * @property {@ui5/fs/AbstractReader} stage - Reader for the cached stage
- * @property {string[]} writtenResourcePaths - Set of resource paths written by the task
+ * @property {string} signature Signature of the cached stage
+ * @property {@ui5/fs/AbstractReader} stage Reader for the cached stage
+ * @property {string[]} writtenResourcePaths Array of resource paths written by the task
  */
 
 export default class ProjectBuildCache {
@@ -55,11 +57,11 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Creates a new ProjectBuildCache instance
+	 * Use ProjectBuildCache.create() instead
 	 *
-	 * @private - Use ProjectBuildCache.create() instead
-	 * @param {object} project - Project instance
-	 * @param {string} buildSignature - Build signature for the current build
-	 * @param {object} cacheManager - Cache manager instance for reading/writing cache data
+	 * @param {@ui5/project/specifications/Project} project Project instance
+	 * @param {string} buildSignature Build signature for the current build
+	 * @param {object} cacheManager Cache manager instance for reading/writing cache data
 	 */
 	constructor(project, buildSignature, cacheManager) {
 		log.verbose(
@@ -75,10 +77,11 @@ export default class ProjectBuildCache {
 	 * This is the recommended way to create a ProjectBuildCache as it ensures
 	 * proper asynchronous initialization of the resource index and cache loading.
 	 *
-	 * @param {object} project - Project instance
-	 * @param {string} buildSignature - Build signature for the current build
-	 * @param {object} cacheManager - Cache manager instance
-	 * @returns {Promise<ProjectBuildCache>} Initialized cache instance
+	 * @public
+	 * @param {@ui5/project/specifications/Project} project Project instance
+	 * @param {string} buildSignature Build signature for the current build
+	 * @param {object} cacheManager Cache manager instance
+	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache>} Initialized cache instance
 	 */
 	static async create(project, buildSignature, cacheManager) {
 		const cache = new ProjectBuildCache(project, buildSignature, cacheManager);
@@ -92,10 +95,12 @@ export default class ProjectBuildCache {
 	 * The dependency reader is used by tasks to access resources from project
 	 * dependencies. Must be set before tasks that require dependencies are executed.
 	 *
-	 * @param {@ui5/fs/AbstractReader} dependencyReader - Reader for dependency resources
-	 * @param {boolean} [forceDependencyUpdate=false]
-	 * @returns {Promise<string[]|undefined>} Undefined if no cache has been found. Otherwise a list of changed
-	 * resources
+	 * @public
+	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
+	 * @param {boolean} [forceDependencyUpdate=false] Force update of dependency indices
+	 * @returns {Promise<string[]|false|undefined>}
+	 *   Undefined if no cache has been found, false if cache is empty,
+	 *   or an array of changed resource paths
 	 */
 	async prepareProjectBuildAndValidateCache(dependencyReader, forceDependencyUpdate = false) {
 		this.#currentProjectReader = this.#project.getReader();
@@ -115,7 +120,9 @@ export default class ProjectBuildCache {
 
 	/**
 	 * Processes changed resources since last build, updating indices and invalidating tasks as needed
- 	*/
+	 *
+	 * @returns {Promise<void>}
+	 */
 	async #flushPendingChanges() {
 		if (this.#changedProjectSourcePaths.length === 0 &&
 			this.#changedDependencyResourcePaths.length === 0) {
@@ -150,6 +157,12 @@ export default class ProjectBuildCache {
 		this.#changedDependencyResourcePaths = [];
 	}
 
+	/**
+	 * Updates dependency indices for all tasks
+	 *
+	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
+	 * @returns {Promise<void>}
+	 */
 	async #updateDependencyIndices(dependencyReader) {
 		let depIndicesChanged = false;
 		await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
@@ -166,6 +179,12 @@ export default class ProjectBuildCache {
 		this.#changedDependencyResourcePaths = [];
 	}
 
+	/**
+	 * Checks whether the cache is in a fresh state
+	 *
+	 * @public
+	 * @returns {boolean} True if the cache is fresh
+	 */
 	isFresh() {
 		return this.#cacheState === CACHE_STATES.FRESH;
 	}
@@ -177,7 +196,8 @@ export default class ProjectBuildCache {
 	 * If found, creates a reader for the cached stage and sets it as the project's
 	 * result stage.
 	 *
-	 * @returns {Promise<string[]>} Array of resource paths written by the cached result stage
+	 * @returns {Promise<string[]|undefined>}
+	 *   Array of resource paths written by the cached result stage, or undefined if no cache found
 	 */
 	async #findResultCache() {
 		if (this.#cacheState === CACHE_STATES.STALE && this.#currentResultSignature) {
@@ -229,6 +249,12 @@ export default class ProjectBuildCache {
 		return writtenResourcePaths;
 	}
 
+	/**
+	 * Imports cached stages and sets them in the project
+	 *
+	 * @param {Object<string, string>} stageSignatures Map of stage names to their signatures
+	 * @returns {Promise<string[]>} Array of resource paths written by all imported stages
+	 */
 	async #importStages(stageSignatures) {
 		const stageNames = Object.keys(stageSignatures);
 		this.#project.initStages(stageNames);
@@ -252,6 +278,11 @@ export default class ProjectBuildCache {
 		return Array.from(writtenResourcePaths);
 	}
 
+	/**
+	 * Calculates all possible result stage signatures based on current state
+	 *
+	 * @returns {string[]} Array of possible result stage signatures
+	 */
 	#getPossibleResultStageSignatures() {
 		const projectSourceSignature = this.#sourceIndex.getSignature();
 
@@ -267,6 +298,11 @@ export default class ProjectBuildCache {
 		});
 	}
 
+	/**
+	 * Gets the current result stage signature
+	 *
+	 * @returns {string} Current result stage signature
+	 */
 	#getResultStageSignature() {
 		const projectSourceSignature = this.#sourceIndex.getSignature();
 		const dependencySignatures = [];
@@ -288,8 +324,11 @@ export default class ProjectBuildCache {
 	 * 3. Attempts to find a cached stage for the task
 	 * 4. Returns whether the task needs to be executed
 	 *
-	 * @param {string} taskName - Name of the task to prepare
-	 * @returns {Promise<boolean|object>} True or object if task can use cache, false otherwise
+	 * @public
+	 * @param {string} taskName Name of the task to prepare
+	 * @returns {Promise<boolean|object>}
+	 *   True if task can use cache, false if task needs execution,
+	 *   or an object with cache information for differential updates
 	 */
 	async prepareTaskExecutionAndValidateCache(taskName) {
 		const stageName = this.#getStageNameForTask(taskName);
@@ -410,10 +449,10 @@ export default class ProjectBuildCache {
 	 * Checks both in-memory stage cache and persistent cache storage for a matching
 	 * stage signature. Returns the first matching cached stage found.
 	 *
-	 * @private
-	 * @param {string} stageName - Name of the stage to find
-	 * @param {string[]} stageSignatures - Possible signatures for the stage
-	 * @returns {Promise<StageCacheEntry|null>} Cached stage entry or null if not found
+	 * @param {string} stageName Name of the stage to find
+	 * @param {string[]} stageSignatures Possible signatures for the stage
+	 * @returns {Promise<@ui5/project/build/cache/ProjectBuildCache~StageCacheEntry|undefined>}
+	 *   Cached stage entry or undefined if not found
 	 */
 	async #findStageCache(stageName, stageSignatures) {
 		if (!stageSignatures.length) {
@@ -485,13 +524,14 @@ export default class ProjectBuildCache {
 	 * 3. Invalidates downstream tasks if they depend on written resources
 	 * 4. Removes the task from the invalidated tasks list
 	 *
-	 * @param {string} taskName - Name of the executed task
+	 * @public
+	 * @param {string} taskName Name of the executed task
 	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests} projectResourceRequests
-	 *  Resource requests for project resources
+	 *   Resource requests for project resources
 	 * @param {@ui5/project/build/cache/BuildTaskCache~ResourceRequests|undefined} dependencyResourceRequests
-	 *  Resource requests for dependency resources
-	 * @param {object} cacheInfo
-	 * @param {boolean} supportsDifferentialUpdates - Whether the task supports differential updates
+	 *   Resource requests for dependency resources
+	 * @param {object} cacheInfo Cache information for differential updates
+	 * @param {boolean} supportsDifferentialUpdates Whether the task supports differential updates
 	 * @returns {Promise<void>}
 	 */
 	async recordTaskResult(
@@ -568,8 +608,10 @@ export default class ProjectBuildCache {
 	/**
 	 * Returns the task cache for a specific task
 	 *
-	 * @param {string} taskName - Name of the task
-	 * @returns {BuildTaskCache|undefined} The task cache or undefined if not found
+	 * @public
+	 * @param {string} taskName Name of the task
+	 * @returns {@ui5/project/build/cache/BuildTaskCache|undefined}
+	 *   The task cache or undefined if not found
 	 */
 	getTaskCache(taskName) {
 		return this.#taskCache.get(taskName);
@@ -578,7 +620,8 @@ export default class ProjectBuildCache {
 	/**
 	 * Records changed source files of the project and marks cache as stale
 	 *
-	 * @param {string[]} changedPaths - Changed project source file paths
+	 * @public
+	 * @param {string[]} changedPaths Changed project source file paths
 	 */
 	projectSourcesChanged(changedPaths) {
 		for (const resourcePath of changedPaths) {
@@ -595,7 +638,8 @@ export default class ProjectBuildCache {
 	/**
 	 * Records changed dependency resources and marks cache as stale
 	 *
-	 * @param {string[]} changedPaths - Changed dependency resource paths
+	 * @public
+	 * @param {string[]} changedPaths Changed dependency resource paths
 	 */
 	dependencyResourcesChanged(changedPaths) {
 		for (const resourcePath of changedPaths) {
@@ -615,7 +659,8 @@ export default class ProjectBuildCache {
 	 * Creates stage names for each task and initializes them in the project.
 	 * This must be called before task execution begins.
 	 *
-	 * @param {string[]} taskNames - Array of task names to initialize stages for
+	 * @public
+	 * @param {string[]} taskNames Array of task names to initialize stages for
 	 * @returns {Promise<void>}
 	 */
 	async setTasks(taskNames) {
@@ -632,7 +677,8 @@ export default class ProjectBuildCache {
 	 * final result stage containing all build outputs.
 	 * Also updates the result resource index accordingly.
 	 *
-	 * @returns {Promise<string[]>} Resolves with list of changed resources since the last build
+	 * @public
+	 * @returns {Promise<string[]>} Array of changed resource paths since the last build
 	 */
 	async allTasksCompleted() {
 		this.#project.useResultStage();
@@ -649,8 +695,7 @@ export default class ProjectBuildCache {
 	/**
 	 * Generates the stage name for a given task
 	 *
-	 * @private
-	 * @param {string} taskName - Name of the task
+	 * @param {string} taskName Name of the task
 	 * @returns {string} Stage name in the format "task/{taskName}"
 	 */
 	#getStageNameForTask(taskName) {
@@ -664,7 +709,7 @@ export default class ProjectBuildCache {
 	 * the index against current source files and invalidates affected tasks if
 	 * resources have changed. If no cache exists, creates a fresh index.
 	 *
-	 * @private
+	 * @returns {Promise<void>}
 	 * @throws {Error} If cached index signature doesn't match computed signature
 	 */
 	async #initSourceIndex() {
@@ -719,6 +764,12 @@ export default class ProjectBuildCache {
 		}
 	}
 
+	/**
+	 * Updates the source index with changed resource paths
+	 *
+	 * @param {string[]} changedResourcePaths Array of changed resource paths
+	 * @returns {Promise<boolean>} True if index was updated
+	 */
 	async #updateSourceIndex(changedResourcePaths) {
 		const sourceReader = this.#project.getSourceReader();
 
@@ -755,13 +806,14 @@ export default class ProjectBuildCache {
 	 * Stores all cache data to persistent storage
 	 *
 	 * This method:
-	 * 2. Stores the result stage with all resources
-	 * 3. Writes the resource index and task metadata
-	 * 4. Stores all stage caches from the queue
+	 * 1. Stores the result stage with all resources
+	 * 2. Writes the resource index and task metadata
+	 * 3. Stores all stage caches from the queue
 	 *
-	 * @param {object} buildManifest - Build manifest containing metadata about the build
-	 * @param {string} buildManifest.manifestVersion - Version of the manifest format
-	 * @param {string} buildManifest.signature - Build signature
+	 * @public
+	 * @param {object} buildManifest Build manifest containing metadata about the build
+	 * @param {string} buildManifest.manifestVersion Version of the manifest format
+	 * @param {string} buildManifest.signature Build signature
 	 * @returns {Promise<void>}
 	 */
 	async writeCache(buildManifest) {
@@ -803,6 +855,11 @@ export default class ProjectBuildCache {
 			this.#project.getId(), this.#buildSignature, stageSignature, metadata);
 	}
 
+	/**
+	 * Writes all pending task stage caches to persistent storage
+	 *
+	 * @returns {Promise<void>}
+	 */
 	async #writeTaskStageCaches() {
 		if (!this.#stageCache.hasPendingCacheQueue()) {
 			return;
@@ -845,6 +902,14 @@ export default class ProjectBuildCache {
 		}));
 	}
 
+	/**
+	 * Writes stage resources to persistent storage and returns their metadata
+	 *
+	 * @param {@ui5/fs/Resource[]} resources Array of resources to write
+	 * @param {string} stageId Stage identifier
+	 * @param {string} stageSignature Stage signature
+	 * @returns {Promise<Object<string, object>>} Resource metadata indexed by path
+	 */
 	async #writeStageResources(resources, stageId, stageSignature) {
 		const resourceMetadata = Object.create(null);
 		await Promise.all(resources.map(async (res) => {
@@ -861,6 +926,11 @@ export default class ProjectBuildCache {
 		return resourceMetadata;
 	}
 
+	/**
+	 * Writes task metadata caches to persistent storage
+	 *
+	 * @returns {Promise<void>}
+	 */
 	async #writeTaskMetadataCaches() {
 		// Store task caches
 		for (const [taskName, taskCache] of this.#taskCache) {
@@ -882,6 +952,11 @@ export default class ProjectBuildCache {
 		}
 	}
 
+	/**
+	 * Writes the source index cache to persistent storage
+	 *
+	 * @returns {Promise<void>}
+	 */
 	async #writeSourceIndex() {
 		if (this.#cachedSourceSignature === this.#sourceIndex.getSignature()) {
 			// No changes to already cached result index
@@ -906,11 +981,10 @@ export default class ProjectBuildCache {
 	 * The reader provides virtual access to cached resources by loading them from
 	 * the cache storage on demand. Resource metadata is used to validate cache entries.
 	 *
-	 * @private
-	 * @param {string} stageId - Identifier for the stage (e.g., "result" or "task/{taskName}")
-	 * @param {string} stageSignature - Signature hash of the stage
-	 * @param {Object<string, ResourceMetadata>} resourceMetadata - Metadata for all cached resources
-	 * @returns {Promise<@ui5/fs/AbstractReader>} Proxy reader for cached resources
+	 * @param {string} stageId Identifier for the stage (e.g., "result" or "task/{taskName}")
+	 * @param {string} stageSignature Signature hash of the stage
+	 * @param {Object<string, object>} resourceMetadata Metadata for all cached resources
+	 * @returns {@ui5/fs/AbstractReader} Proxy reader for cached resources
 	 */
 	#createReaderForStageCache(stageId, stageSignature, resourceMetadata) {
 		const allResourcePaths = Object.keys(resourceMetadata);
@@ -961,6 +1035,12 @@ export default class ProjectBuildCache {
 	}
 }
 
+/**
+ * Computes the cartesian product of an array of arrays
+ *
+ * @param {Array<Array>} arrays Array of arrays to compute the product of
+ * @returns {Array<Array>} Array of all possible combinations
+ */
 function cartesianProduct(arrays) {
 	if (arrays.length === 0) return [[]];
 	if (arrays.some((arr) => arr.length === 0)) return [];
@@ -980,6 +1060,16 @@ function cartesianProduct(arrays) {
 	return result;
 }
 
+/**
+ * Fast combination of two arrays into pairs
+ *
+ * Creates all possible pairs by combining each element from the first array
+ * with each element from the second array.
+ *
+ * @param {Array} array1 First array
+ * @param {Array} array2 Second array
+ * @returns {Array<Array>} Array of two-element pairs
+ */
 function combineTwoArraysFast(array1, array2) {
 	const len1 = array1.length;
 	const len2 = array2.length;
@@ -995,10 +1085,23 @@ function combineTwoArraysFast(array1, array2) {
 	return result;
 }
 
+/**
+ * Creates a combined stage signature from project and dependency signatures
+ *
+ * @param {string} projectSignature Project resource signature
+ * @param {string} dependencySignature Dependency resource signature
+ * @returns {string} Combined stage signature in format "projectSignature-dependencySignature"
+ */
 function createStageSignature(projectSignature, dependencySignature) {
 	return `${projectSignature}-${dependencySignature}`;
 }
 
+/**
+ * Creates a combined signature hash from multiple stage dependency signatures
+ *
+ * @param {string[]} stageDependencySignatures Array of dependency signatures to combine
+ * @returns {string} SHA-256 hash of the combined signatures
+ */
 function createDependencySignature(stageDependencySignatures) {
 	return crypto.createHash("sha256").update(stageDependencySignatures.join("")).digest("hex");
 }
