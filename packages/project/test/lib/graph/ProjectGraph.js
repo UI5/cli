@@ -1328,6 +1328,7 @@ test("traverseDependenciesDepthFirst: Can't find start node", async (t) => {
 	graph.addProject(await createProject("library.a"));
 
 	const error = t.throws(() => {
+		// eslint-disable-next-line no-unused-vars
 		for (const result of graph.traverseDependenciesDepthFirst("library.nonexistent")) {
 			// Should not reach here
 		}
@@ -1385,6 +1386,7 @@ test("traverseDependenciesDepthFirst: Detect cycle", async (t) => {
 	graph.declareDependency("library.b", "library.a");
 
 	const error = t.throws(() => {
+		// eslint-disable-next-line no-unused-vars
 		for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
 			// Should not complete iteration
 		}
@@ -1624,6 +1626,7 @@ test("traverseDependents: Can't find start node", async (t) => {
 
 	const error = t.throws(() => {
 		// Consume the generator to trigger the error
+		// eslint-disable-next-line no-unused-vars
 		for (const result of graph.traverseDependents("library.nonexistent")) {
 			// Should not reach here
 		}
@@ -1683,6 +1686,7 @@ test("traverseDependents: Detect cycle", async (t) => {
 	graph.declareDependency("library.b", "library.a");
 
 	const error = t.throws(() => {
+		// eslint-disable-next-line no-unused-vars
 		for (const result of graph.traverseDependents("library.a")) {
 			// Should not complete iteration
 		}
