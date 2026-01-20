@@ -87,7 +87,7 @@ class ResourceRequestManager {
 				const registry = registries.get(node.getParentId());
 				if (!registry) {
 					throw new Error(`Missing tree registry for parent of node ID ${nodeId} of task ` +
-						`'${this.#taskName}' of project '${this.#projectName}'`);
+					`'${taskName}' of project '${projectName}'`);
 				}
 				const resourceIndex = parentResourceIndex.deriveTreeWithIndex(addedResourceIndex);
 
