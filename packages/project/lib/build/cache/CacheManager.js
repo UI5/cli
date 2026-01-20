@@ -20,7 +20,7 @@ const chacheManagerInstances = new Map();
 const CACACHE_OPTIONS = {algorithms: ["sha256"]};
 
 // Cache version for compatibility management
-const CACHE_VERSION = "v0_0";
+const CACHE_VERSION = "v0_1";
 
 /**
  * Manages persistence for the build cache using file-based storage and cacache
@@ -48,6 +48,7 @@ export default class CacheManager {
 	#manifestDir;
 	#stageMetadataDir;
 	#taskMetadataDir;
+	#resultMetadataDir;
 	#indexDir;
 
 	/**
@@ -65,6 +66,7 @@ export default class CacheManager {
 		this.#manifestDir = path.join(cacheDir, "buildManifests");
 		this.#stageMetadataDir = path.join(cacheDir, "stageMetadata");
 		this.#taskMetadataDir = path.join(cacheDir, "taskMetadata");
+		this.#resultMetadataDir = path.join(cacheDir, "resultMetadata");
 		this.#indexDir = path.join(cacheDir, "index");
 	}
 
@@ -338,6 +340,69 @@ export default class CacheManager {
 	 */
 	async writeTaskMetadata(projectId, buildSignature, taskName, metadata) {
 		const metadataPath = this.#getTaskMetadataPath(projectId, buildSignature, taskName);
+		await mkdir(path.dirname(metadataPath), {recursive: true});
+		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
+	}
+
+	/**
+	 * Generates the file path for result metadata
+	 *
+	 * @private
+	 * @param {string} packageName - Package/project identifier
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @returns {string} Absolute path to the stage metadata file
+	 */
+	#getResultMetadataPath(packageName, buildSignature, stageSignature) {
+		const pkgDir = getPathFromPackageName(packageName);
+		return path.join(this.#resultMetadataDir, pkgDir, buildSignature, `${stageSignature}.json`);
+	}
+
+	/**
+	 * Reads result metadata from cache
+	 *
+	 * Stage metadata contains information about resources produced by a build stage,
+	 * including resource paths and their metadata.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
+	 * @throws {Error} If file read fails for reasons other than file not existing
+	 */
+	async readResultMetadata(projectId, buildSignature, stageSignature) {
+		try {
+			const metadata = await readFile(
+				this.#getResultMetadataPath(projectId, buildSignature, stageSignature
+				), "utf8");
+			return JSON.parse(metadata);
+		} catch (err) {
+			if (err.code === "ENOENT") {
+				// Cache miss
+				return null;
+			}
+			throw new Error(`Failed to read stage metadata from cache for ` +
+				`${projectId} / ${buildSignature} / ${stageSignature}: ${err.message}`, {
+				cause: err,
+			});
+		}
+	}
+
+	/**
+	 * Writes result metadata to cache
+	 *
+	 * Persists metadata about resources produced by a build stage.
+	 * Creates parent directories if needed.
+	 *
+	 * @param {string} projectId - Project identifier (typically package name)
+	 * @param {string} buildSignature - Build signature hash
+	 * @param {string} stageSignature - Stage signature hash (based on input resources)
+	 * @param {object} metadata - Stage metadata object to serialize
+	 * @returns {Promise<void>}
+	 */
+	async writeResultMetadata(projectId, buildSignature, stageSignature, metadata) {
+		const metadataPath = this.#getResultMetadataPath(
+			projectId, buildSignature, stageSignature);
 		await mkdir(path.dirname(metadataPath), {recursive: true});
 		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
 	}
