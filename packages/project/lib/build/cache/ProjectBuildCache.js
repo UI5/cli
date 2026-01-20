@@ -85,7 +85,13 @@ export default class ProjectBuildCache {
 	 */
 	static async create(project, buildSignature, cacheManager) {
 		const cache = new ProjectBuildCache(project, buildSignature, cacheManager);
+		const initStart = performance.now();
 		await cache.#initSourceIndex();
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`Initialized source index for project ${project.getName()} ` +
+				`in ${(performance.now() - initStart).toFixed(2)} ms`);
+		}
 		return cache;
 	}
 
@@ -111,10 +117,28 @@ export default class ProjectBuildCache {
 			return false;
 		}
 		if (forceDependencyUpdate) {
-			await this.#updateDependencyIndices(dependencyReader);
+			const updateStart = performance.now();
+			await this.#refreshDependencyIndices(dependencyReader);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`Refreshed dependency indices for project ${this.#project.getName()} ` +
+					`in ${(performance.now() - updateStart).toFixed(2)} ms`);
+			}
 		}
+		const flushStart = performance.now();
 		await this.#flushPendingChanges();
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`Flushed pending changes for project ${this.#project.getName()} ` +
+					`in ${(performance.now() - flushStart).toFixed(2)} ms`);
+		}
+		const findStart = performance.now();
 		const changedResources = await this.#findResultCache();
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`Validated result cache for project ${this.#project.getName()} ` +
+				`in ${(performance.now() - findStart).toFixed(2)} ms`);
+		}
 		return changedResources;
 	}
 
@@ -158,15 +182,15 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Updates dependency indices for all tasks
+	 * Refresh dependency indices for all tasks
 	 *
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
 	 * @returns {Promise<void>}
 	 */
-	async #updateDependencyIndices(dependencyReader) {
+	async #refreshDependencyIndices(dependencyReader) {
 		let depIndicesChanged = false;
 		await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
-			const changed = await taskCache.updateDependencyIndices(this.#currentDependencyReader);
+			const changed = await taskCache.refreshDependencyIndices(this.#currentDependencyReader);
 			if (changed) {
 				depIndicesChanged = true;
 			}
@@ -342,10 +366,15 @@ export default class ProjectBuildCache {
 			log.verbose(`No task cache found`);
 			return false;
 		}
-
 		if (this.#writtenResultResourcePaths.length) {
 			// Update task indices based on source changes and changes from by previous tasks
+			const updateProjectIndicesStart = performance.now();
 			await taskCache.updateProjectIndices(this.#currentProjectReader, this.#writtenResultResourcePaths);
+			if (log.isLevelEnabled("perf")) {
+				log.perf(
+					`Updated project indices for task ${taskName} in project ${this.#project.getName()} ` +
+					`in ${(performance.now() - updateProjectIndicesStart).toFixed(2)} ms`);
+			}
 		}
 
 		// TODO: Implement:
