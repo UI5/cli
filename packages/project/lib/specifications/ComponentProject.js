@@ -150,23 +150,6 @@ class ComponentProject extends Project {
 		throw new Error(`_getTestReader must be implemented by subclass ${this.constructor.name}`);
 	}
 
-	// /**
-	//  * Get a resource reader/writer for accessing and modifying a project's resources
-	//  *
-	//  * @public
-	//  * @returns {@ui5/fs/ReaderCollection} A reader collection instance
-	//  */
-	// getWorkspace() {
-	// 	// Workspace is always of style "buildtime"
-	// 	// Therefore builder resource-excludes are always to be applied
-	// 	const excludes = this.getBuilderResourcesExcludes();
-	// 	return resourceFactory.createWorkspace({
-	// 		name: `Workspace for project ${this.getName()}`,
-	// 		reader: this._getPlainReader(excludes),
-	// 		writer: this._createWriter().collection
-	// 	});
-	// }
-
 	_createWriter() {
 		// writer is always of style "buildtime"
 		const namespaceWriter = resourceFactory.createAdapter({
