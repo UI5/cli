@@ -21,17 +21,19 @@ const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
  * @alias @ui5/server/internal/MiddlewareManager
  */
 class MiddlewareManager {
-	constructor({graph, rootProject, resources, options = {
+	constructor({graph, rootProject, sources, resources, buildReader, options = {
 		sendSAPTargetCSP: false,
 		serveCSPReports: false
 	}}) {
-		if (!graph || !rootProject || !resources || !resources.all ||
+		if (!graph || !rootProject || !sources || !resources || !resources.all ||
 			!resources.rootProject || !resources.dependencies) {
 			throw new Error("[MiddlewareManager]: One or more mandatory parameters not provided");
 		}
 		this.graph = graph;
 		this.rootProject = rootProject;
+		this.sources = sources;
 		this.resources = resources;
+		this.buildReader = buildReader;
 		this.options = options;
 
 		this.middleware = Object.create(null);
