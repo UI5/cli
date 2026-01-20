@@ -5,6 +5,15 @@ import TreeRegistry from "./index/TreeRegistry.js";
 import {getLogger} from "@ui5/logger";
 const log = getLogger("build:cache:ResourceRequestManager");
 
+/**
+ * Manages resource requests and their associated indices for a single task
+ *
+ * Tracks all resources accessed by a task during execution and maintains resource indices
+ * for cache validation and differential updates. Supports both full and delta-based caching
+ * strategies.
+ *
+ * @class
+ */
 class ResourceRequestManager {
 	#taskName;
 	#projectName;
@@ -17,6 +26,15 @@ class ResourceRequestManager {
 	#useDifferentialUpdate;
 	#unusedAtLeastOnce;
 
+	/**
+	 * Creates a new ResourceRequestManager instance
+	 *
+	 * @param {string} projectName Name of the project
+	 * @param {string} taskName Name of the task
+	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
+	 * @param {ResourceRequestGraph} [requestGraph] Optional pre-existing request graph from cache
+	 * @param {boolean} [unusedAtLeastOnce=false] Whether the task has been unused at least once
+	 */
 	constructor(projectName, taskName, useDifferentialUpdate, requestGraph, unusedAtLeastOnce = false) {
 		this.#projectName = projectName;
 		this.#taskName = taskName;
@@ -31,6 +49,22 @@ class ResourceRequestManager {
 		}
 	}
 
+	/**
+	 * Factory method to restore a ResourceRequestManager from cached data
+	 *
+	 * Deserializes a previously cached request graph and its associated resource indices,
+	 * including both root indices and delta indices for differential updates.
+	 *
+	 * @param {string} projectName Name of the project
+	 * @param {string} taskName Name of the task
+	 * @param {boolean} useDifferentialUpdate Whether to track differential updates
+	 * @param {object} cacheData Cached metadata object
+	 * @param {object} cacheData.requestSetGraph Serialized request graph
+	 * @param {Array<object>} cacheData.rootIndices Array of root resource indices
+	 * @param {Array<object>} [cacheData.deltaIndices] Array of delta resource indices
+	 * @param {boolean} [cacheData.unusedAtLeastOnce] Whether the task has been unused
+	 * @returns {ResourceRequestManager} Restored manager instance
+	 */
 	static fromCache(projectName, taskName, useDifferentialUpdate, {
 		requestSetGraph, rootIndices, deltaIndices, unusedAtLeastOnce
 	}) {
@@ -70,9 +104,10 @@ class ResourceRequestManager {
 	 *
 	 * Returns signatures from all recorded project-request sets. Each signature represents
 	 * a unique combination of resources belonging to the current project that were accessed
-	 * during task execution. This can be used to form a cache keys for restoring cached task results.
+	 * during task execution. This can be used to form cache keys for restoring cached task results.
 	 *
-	 * @returns {Promise<string[]>} Array of signature strings
+	 * @public
+	 * @returns {string[]} Array of signature strings
 	 * @throws {Error} If resource index is missing for any request set
 	 */
 	getIndexSignatures() {
@@ -91,9 +126,15 @@ class ResourceRequestManager {
 	}
 
 	/**
-	 * Update all indices based on current resources (no delta update)
+	 * Updates all indices based on current resources without delta tracking
 	 *
-	 * @param {module:@ui5/fs.AbstractReader} reader - Reader for accessing project resources
+	 * Performs a full refresh of all resource indices by fetching current resources
+	 * and updating or removing indexed resources as needed. Does not track changes
+	 * between the old and new state.
+	 *
+	 * @public
+	 * @param {module:@ui5/fs.AbstractReader} reader Reader for accessing project resources
+	 * @returns {Promise<boolean>} True if any changes were detected, false otherwise
 	 */
 	async refreshIndices(reader) {
 		if (this.#requestGraph.getSize() === 0) {
@@ -126,10 +167,15 @@ class ResourceRequestManager {
 	}
 
 	/**
-	 * Filter relevant resource changes and update the indices if necessary
+	 * Filters relevant resource changes and updates the indices if necessary
 	 *
-	 * @param {module:@ui5/fs.AbstractReader} reader - Reader for accessing project resources
-	 * @param {string[]} changedResourcePaths - Array of changed project resource path
+	 * Processes changed resource paths, identifies which request sets are affected,
+	 * and updates their resource indices accordingly. Supports both full updates and
+	 * differential tracking based on the manager configuration.
+	 *
+	 * @public
+	 * @param {module:@ui5/fs.AbstractReader} reader Reader for accessing project resources
+	 * @param {string[]} changedResourcePaths Array of changed project resource paths
 	 * @returns {Promise<boolean>} True if any changes were detected, false otherwise
 	 */
 	async updateIndices(reader, changedResourcePaths) {
@@ -211,7 +257,6 @@ class ResourceRequestManager {
 	 * Tests each request against the changed resource paths using exact path matching
 	 * for 'path'/'dep-path' requests and glob pattern matching for 'patterns'/'dep-patterns' requests.
 	 *
-	 * @private
 	 * @param {Request[]} resourceRequests - Array of resource requests to match against
 	 * @param {string[]} resourcePaths - Changed project resource paths
 	 * @returns {string[]} Array of matched resource paths
@@ -231,7 +276,10 @@ class ResourceRequestManager {
 	}
 
 	/**
-	 * Flushes all tree registries to apply batched updates, ignoring how trees changed
+	 * Flushes all tree registries to apply batched updates without tracking changes
+	 *
+	 * Commits all pending tree modifications but does not record the specific changes
+	 * (added, updated, removed resources). Used when differential updates are disabled.
 	 *
 	 * @returns {Promise<boolean>} True if any changes were detected, false otherwise
 	 */
@@ -248,7 +296,11 @@ class ResourceRequestManager {
 	}
 
 	/**
-	 * Flushes all tree registries to apply batched updates, keeping track of how trees changed
+	 * Flushes all tree registries to apply batched updates while tracking changes
+	 *
+	 * Commits all pending tree modifications and records detailed information about
+	 * which resources were added, updated, or removed. Used when differential updates
+	 * are enabled to support incremental cache invalidation.
 	 *
 	 * @returns {Promise<boolean>} True if any changes were detected, false otherwise
 	 */
@@ -285,12 +337,24 @@ class ResourceRequestManager {
 	 * Commits all pending tree modifications across all registries in parallel.
 	 * Must be called after operations that schedule updates via registries.
 	 *
-	 * @returns {Promise<object>} Object containing sets of added, updated, and removed resource paths
+	 * @returns {Promise<Array<object>>} Array of flush results from all registries,
+	 *   each containing added, updated, unchanged, and removed resource paths
 	 */
 	async #flushTreeChanges() {
 		return await Promise.all(this.#treeRegistries.map((registry) => registry.flush()));
 	}
 
+	/**
+	 * Adds or updates a delta entry for tracking resource index changes
+	 *
+	 * Records the transition from an original signature to a new signature along with
+	 * the specific resources that changed. Accumulates changes across multiple updates.
+	 *
+	 * @param {string} requestSetId Identifier of the request set
+	 * @param {string} originalSignature Original resource index signature
+	 * @param {string} newSignature New resource index signature
+	 * @param {object} diff Object containing arrays of added, updated, unchanged, and removed resource paths
+	 */
 	#addDeltaEntry(requestSetId, originalSignature, newSignature, diff) {
 		if (!this.#treeUpdateDeltas.has(requestSetId)) {
 			this.#treeUpdateDeltas.set(requestSetId, {
@@ -330,6 +394,17 @@ class ResourceRequestManager {
 		}
 	}
 
+	/**
+	 * Gets all delta entries for differential cache updates
+	 *
+	 * Returns a map of signature transitions and their associated changed resource paths.
+	 * Only includes deltas where no resources were removed, as removed resources prevent
+	 * differential updates.
+	 *
+	 * @public
+	 * @returns {Map<string, object>} Map from original signature to delta information
+	 *   containing newSignature and changedPaths array
+	 */
 	getDeltas() {
 		const deltas = new Map();
 		for (const {originalSignature, newSignature, diff} of this.#treeUpdateDeltas.values()) {
@@ -353,10 +428,17 @@ class ResourceRequestManager {
 	}
 
 	/**
+	 * Adds a new set of resource requests and returns their signature
 	 *
-	 * @param {ResourceRequests} requestRecording - Project resource requests (paths and patterns)
-	 * @param {module:@ui5/fs.AbstractReader} reader - Reader for accessing project resources
-	 * @returns {Promise<string>} Signature hash string of the resource index
+	 * Processes recorded resource requests (both path and pattern-based), creates or reuses
+	 * a request set in the graph, and returns the resulting resource index signature.
+	 *
+	 * @public
+	 * @param {object} requestRecording Project resource requests
+	 * @param {string[]} requestRecording.paths Array of requested resource paths
+	 * @param {Array<string[]>} requestRecording.patterns Array of glob pattern arrays
+	 * @param {module:@ui5/fs.AbstractReader} reader Reader for accessing project resources
+	 * @returns {Promise<object>} Object containing setId and signature of the resource index
 	 */
 	async addRequests(requestRecording, reader) {
 		const projectRequests = [];
@@ -369,11 +451,31 @@ class ResourceRequestManager {
 		return await this.#addRequestSet(projectRequests, reader);
 	}
 
+	/**
+	 * Records that a task made no resource requests
+	 *
+	 * Marks the manager as having been unused at least once and returns a special
+	 * signature indicating no requests were made.
+	 *
+	 * @public
+	 * @returns {string} Special signature "X" indicating no requests
+	 */
 	recordNoRequests() {
 		this.#unusedAtLeastOnce = true;
 		return "X"; // Signature for when no requests were made
 	}
 
+	/**
+	 * Adds a request set and creates or reuses a resource index
+	 *
+	 * Attempts to find an existing matching request set to reuse. If not found, creates
+	 * a new request set with either a derived or fresh resource index based on whether
+	 * a parent request set exists.
+	 *
+	 * @param {Request[]} requests Array of resource requests
+	 * @param {module:@ui5/fs.AbstractReader} reader Reader for accessing project resources
+	 * @returns {Promise<object>} Object containing setId and signature of the resource index
+	 */
 	async #addRequestSet(requests, reader) {
 		// Try to find an existing request set that we can reuse
 		let setId = this.#requestGraph.findExactMatch(requests);
@@ -416,6 +518,14 @@ class ResourceRequestManager {
 		};
 	}
 
+	/**
+	 * Associates a request set from this manager with one from another manager
+	 *
+	 * @public
+	 * @param {string} ourRequestSetId Request set ID from this manager
+	 * @param {string} foreignRequestSetId Request set ID from another manager
+	 * @todo Implementation pending
+	 */
 	addAffiliatedRequestSet(ourRequestSetId, foreignRequestSetId) {
 		// TODO
 	}
@@ -441,7 +551,6 @@ class ResourceRequestManager {
 	 * - 'path': Retrieves single resource by path from the given reader
 	 * - 'patterns': Retrieves resources matching glob patterns from the given reader
 	 *
-	 * @private
 	 * @param {Request[]|Array<{type: string, value: string|string[]}>} resourceRequests - Resource requests to process
 	 * @param {module:@ui5/fs.AbstractReader} reader - Resource reader
 	 * @param {Map<string, module:@ui5/fs.Resource>} [resourceCache]
@@ -473,17 +582,32 @@ class ResourceRequestManager {
 		return Array.from(resourcesMap.values());
 	}
 
+	/**
+	 * Checks whether new or modified cache entries exist
+	 *
+	 * Returns false if the manager was restored from cache and no modifications were made.
+	 * Returns true if this is a new manager or if new request sets have been added.
+	 *
+	 * @public
+	 * @returns {boolean} True if cache entries need to be written
+	 */
 	hasNewOrModifiedCacheEntries() {
 		return this.#hasNewOrModifiedCacheEntries;
 	}
 
 	/**
-	 * Serializes the task cache to a plain object for persistence
+	 * Serializes the manager to a plain object for persistence
 	 *
-	 * Exports the resource request graph in a format suitable for JSON serialization.
-	 * The serialized data can be passed to the constructor to restore the cache state.
+	 * Exports the resource request graph and all resource indices in a format suitable
+	 * for JSON serialization. The serialized data can be passed to fromCache() to restore
+	 * the manager state. Returns undefined if no new or modified cache entries exist.
 	 *
-	 * @returns {TaskCacheMetadata} Serialized cache metadata containing the request set graph
+	 * @public
+	 * @returns {object|undefined} Serialized cache metadata or undefined if no changes
+	 * @returns {object} return.requestSetGraph Serialized request graph
+	 * @returns {Array<object>} return.rootIndices Array of root resource indices with node IDs
+	 * @returns {Array<object>} return.deltaIndices Array of delta resource indices with node IDs
+	 * @returns {boolean} return.unusedAtLeastOnce Whether the task has been unused
 	 */
 	toCacheObject() {
 		if (!this.#hasNewOrModifiedCacheEntries) {
