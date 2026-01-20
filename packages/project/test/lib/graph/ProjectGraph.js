@@ -1152,6 +1152,546 @@ test("traverseDepthFirst: Dependency declaration order is followed", async (t) =
 	]);
 });
 
+test("traverseDependenciesDepthFirst: Basic traversal without including start module", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.c");
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.c",
+		"library.b"
+	], "Should traverse dependencies in depth-first order, excluding start module");
+});
+
+test("traverseDependenciesDepthFirst: Basic traversal including start module", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.c");
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a", true)) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.c",
+		"library.b",
+		"library.a"
+	], "Should traverse dependencies in depth-first order, including start module");
+});
+
+test("traverseDependenciesDepthFirst: Using boolean as first parameter", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.c");
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst(true)) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.c",
+		"library.b",
+		"library.a"
+	], "Should traverse from root and include root when boolean is passed as first parameter");
+});
+
+test("traverseDependenciesDepthFirst: No dependencies", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [], "Should return empty results when project has no dependencies");
+});
+
+test("traverseDependenciesDepthFirst: Diamond dependency structure", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.a", "library.c");
+	graph.declareDependency("library.b", "library.d");
+	graph.declareDependency("library.c", "library.d");
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.d",
+		"library.b",
+		"library.c"
+	], "Should visit library.d once, then library.b, then library.c");
+});
+
+test("traverseDependenciesDepthFirst: Complex dependency chain", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+	graph.addProject(await createProject("library.e"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.c", "library.d");
+	graph.declareDependency("library.d", "library.e");
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.e",
+		"library.d",
+		"library.c",
+		"library.b"
+	], "Should traverse entire dependency chain in depth-first order");
+});
+
+test("traverseDependenciesDepthFirst: No project visited twice", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.a", "library.c");
+	graph.declareDependency("library.b", "library.d");
+	graph.declareDependency("library.c", "library.d");
+
+	const results = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+		results.push(result.project.getName());
+	}
+
+	// library.d should appear only once
+	const dCount = results.filter(name => name === "library.d").length;
+	t.is(dCount, 1, "library.d should be visited exactly once");
+	t.is(results.length, 3, "Should visit exactly 3 projects");
+});
+
+test("traverseDependenciesDepthFirst: Can't find start node", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+
+	const error = t.throws(() => {
+		for (const result of graph.traverseDependenciesDepthFirst("library.nonexistent")) {
+			// Should not reach here
+		}
+	});
+	t.is(error.message,
+		"Failed to start graph traversal: Could not find project library.nonexistent in project graph",
+		"Should throw with expected error message");
+});
+
+test("traverseDependenciesDepthFirst: dependencies parameter", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.a", "library.c");
+	graph.declareDependency("library.b", "library.d");
+
+	const results = [];
+	const dependencies = [];
+	for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+		results.push(result.project.getName());
+		dependencies.push(result.dependencies);
+	}
+
+	t.deepEqual(results, [
+		"library.d",
+		"library.b",
+		"library.c"
+	], "Should visit dependencies in depth-first order");
+
+	const dIndex = results.indexOf("library.d");
+	const bIndex = results.indexOf("library.b");
+	const cIndex = results.indexOf("library.c");
+
+	t.deepEqual(dependencies[dIndex], [], "library.d should have no dependencies");
+	t.deepEqual(dependencies[bIndex], ["library.d"], "library.b should have library.d as dependency");
+	t.deepEqual(dependencies[cIndex], [], "library.c should have no dependencies");
+});
+
+test("traverseDependenciesDepthFirst: Detect cycle", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.a");
+
+	const error = t.throws(() => {
+		for (const result of graph.traverseDependenciesDepthFirst("library.a")) {
+			// Should not complete iteration
+		}
+	});
+	t.is(error.message,
+		"Detected cyclic dependency chain: *library.a* -> library.b -> *library.a*",
+		"Should throw with expected error message");
+});
+
+test("traverseDependenciesDepthFirst: Dependency declaration order is followed", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph1 = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph1.addProject(await createProject("library.a"));
+	graph1.addProject(await createProject("library.b"));
+	graph1.addProject(await createProject("library.c"));
+	graph1.addProject(await createProject("library.d"));
+
+	graph1.declareDependency("library.a", "library.b");
+	graph1.declareDependency("library.a", "library.c");
+	graph1.declareDependency("library.a", "library.d");
+
+	const results1 = [];
+	for (const result of graph1.traverseDependenciesDepthFirst("library.a")) {
+		results1.push(result.project.getName());
+	}
+
+	t.deepEqual(results1, [
+		"library.b",
+		"library.c",
+		"library.d"
+	], "First graph should visit in declaration order");
+
+	const graph2 = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph2.addProject(await createProject("library.a"));
+	graph2.addProject(await createProject("library.b"));
+	graph2.addProject(await createProject("library.c"));
+	graph2.addProject(await createProject("library.d"));
+
+	graph2.declareDependency("library.a", "library.d");
+	graph2.declareDependency("library.a", "library.c");
+	graph2.declareDependency("library.a", "library.b");
+
+	const results2 = [];
+	for (const result of graph2.traverseDependenciesDepthFirst("library.a")) {
+		results2.push(result.project.getName());
+	}
+
+	t.deepEqual(results2, [
+		"library.d",
+		"library.c",
+		"library.b"
+	], "Second graph should visit in reverse declaration order");
+});
+
+test("traverseDependents: Basic traversal without including start module", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.a", "library.b");
+
+	const results = [];
+	for (const result of graph.traverseDependents("library.c")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.b",
+		"library.a"
+	], "Should traverse dependents in correct order, excluding start module");
+});
+
+test("traverseDependents: Basic traversal including start module", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.a", "library.b");
+
+	const results = [];
+	for (const result of graph.traverseDependents("library.c", true)) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.c",
+		"library.b",
+		"library.a"
+	], "Should traverse dependents in correct order, including start module");
+});
+
+test("traverseDependents: Using boolean as first parameter", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.c"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+
+	graph.declareDependency("library.a", "library.c");
+	graph.declareDependency("library.b", "library.c");
+
+	const results = [];
+	for (const result of graph.traverseDependents(true)) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results.sort(), [
+		"library.a",
+		"library.b",
+		"library.c"
+	].sort(), "Should traverse from root and include root when boolean is passed as first parameter");
+});
+
+test("traverseDependents: No dependents", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+
+	graph.declareDependency("library.a", "library.b");
+
+	const results = [];
+	for (const result of graph.traverseDependents("library.a")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [], "Should return empty results when project has no dependents");
+});
+
+test("traverseDependents: Multiple dependents", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+
+	graph.declareDependency("library.a", "library.d");
+	graph.declareDependency("library.b", "library.d");
+	graph.declareDependency("library.c", "library.d");
+
+	const results = [];
+	for (const result of graph.traverseDependents("library.d")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results.sort(), [
+		"library.a",
+		"library.b",
+		"library.c"
+	].sort(), "Should return all projects that depend on the target project");
+});
+
+test("traverseDependents: Complex chain", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+	graph.addProject(await createProject("library.e"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.c", "library.d");
+	graph.declareDependency("library.d", "library.e");
+
+	const results = [];
+	for (const result of graph.traverseDependents("library.e")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results, [
+		"library.d",
+		"library.c",
+		"library.b",
+		"library.a"
+	], "Should traverse entire dependent chain");
+});
+
+test("traverseDependents: No project visited twice", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+
+	graph.declareDependency("library.a", "library.c");
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.a", "library.d");
+	graph.declareDependency("library.b", "library.d");
+	graph.declareDependency("library.c", "library.d");
+
+	const results = [];
+	for (const result of graph.traverseDependents("library.d")) {
+		results.push(result.project.getName());
+	}
+
+	t.deepEqual(results.sort(), [
+		"library.a",
+		"library.b",
+		"library.c"
+	].sort(), "Should visit each project exactly once");
+});
+
+test("traverseDependents: Can't find start node", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+
+	const error = t.throws(() => {
+		// Consume the generator to trigger the error
+		for (const result of graph.traverseDependents("library.nonexistent")) {
+			// Should not reach here
+		}
+	});
+	t.is(error.message,
+		"Failed to start graph traversal: Could not find project library.nonexistent in project graph",
+		"Should throw with expected error message");
+});
+
+test("traverseDependents: dependents parameter", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+	graph.addProject(await createProject("library.c"));
+	graph.addProject(await createProject("library.d"));
+
+	graph.declareDependency("library.a", "library.d");
+	graph.declareDependency("library.b", "library.d");
+	graph.declareDependency("library.b", "library.c");
+	graph.declareDependency("library.c", "library.d");
+
+	const results = [];
+	const dependents = [];
+	for (const result of graph.traverseDependents("library.d")) {
+		results.push(result.project.getName());
+		dependents.push(result.dependents);
+	}
+
+	t.deepEqual(results.sort(), [
+		"library.a",
+		"library.b",
+		"library.c"
+	].sort(), "Should visit all dependents");
+
+	// Check that dependents information is provided correctly
+	const aIndex = results.indexOf("library.a");
+	const bIndex = results.indexOf("library.b");
+	const cIndex = results.indexOf("library.c");
+
+	t.deepEqual(dependents[aIndex], [], "library.a should have no dependents");
+	t.deepEqual(dependents[bIndex], [], "library.b should have no dependents");
+	t.deepEqual(dependents[cIndex], ["library.b"], "library.c should have library.b as dependent");
+});
+
+test("traverseDependents: Detect cycle", async (t) => {
+	const {ProjectGraph} = t.context;
+	const graph = new ProjectGraph({
+		rootProjectName: "library.a"
+	});
+	graph.addProject(await createProject("library.a"));
+	graph.addProject(await createProject("library.b"));
+
+	graph.declareDependency("library.a", "library.b");
+	graph.declareDependency("library.b", "library.a");
+
+	const error = t.throws(() => {
+		for (const result of graph.traverseDependents("library.a")) {
+			// Should not complete iteration
+		}
+	});
+	t.is(error.message,
+		"Detected cyclic dependency chain: *library.a* -> library.b -> *library.a*",
+		"Should throw with expected error message");
+});
+
 test("join", async (t) => {
 	const {ProjectGraph} = t.context;
 	const graph1 = new ProjectGraph({

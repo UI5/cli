@@ -509,6 +509,87 @@ class ProjectGraph {
 		})();
 	}
 
+	/**
+	 * Generator function that traverses all dependencies of the given start project depth-first.
+	 * Each dependency project is visited exactly once, and dependencies are fully explored
+	 * before the dependent project is yielded (post-order traversal).
+	 * In case a cycle is detected, an error is thrown.
+	 *
+	 * @public
+	 * @generator
+	 * @param {string|boolean} [startName] Name of the project to start the traversal at,
+	 *   or a boolean to set includeStartModule while using the root project as start.
+	 *   Defaults to the graph's root project.
+	 * @param {boolean} [includeStartModule=false] Whether to include the start project itself in the results
+	 * @yields {object} Object containing the project and its direct dependencies
+	 * @yields {module:@ui5/project/specifications/Project} return.project The dependency project
+	 * @yields {string[]} return.dependencies Array of direct dependency names for this project
+	 * @throws {Error} If the start project cannot be found or if a cycle is detected
+	 */
+	* traverseDependenciesDepthFirst(startName, includeStartModule = false) {
+		if (typeof startName === "boolean") {
+			includeStartModule = startName;
+			startName = undefined;
+		}
+		if (!startName) {
+			startName = this._rootProjectName;
+		} else if (!this.getProject(startName)) {
+			throw new Error(`Failed to start graph traversal: Could not find project ${startName} in project graph`);
+		}
+
+		const visited = Object.create(null);
+		const processing = Object.create(null);
+
+		const traverse = function* (projectName, ancestors) {
+			this._checkCycle(ancestors, projectName);
+
+			if (visited[projectName]) {
+				return;
+			}
+
+			if (processing[projectName]) {
+				return;
+			}
+
+			processing[projectName] = true;
+			const newAncestors = [...ancestors, projectName];
+			const dependencies = this.getDependencies(projectName);
+
+			for (const depName of dependencies) {
+				yield* traverse.call(this, depName, newAncestors);
+			}
+
+			visited[projectName] = true;
+			processing[projectName] = false;
+
+			if (includeStartModule || projectName !== startName) {
+				yield {
+					project: this.getProject(projectName),
+					dependencies
+				};
+			}
+		}.bind(this);
+
+		yield* traverse(startName, []);
+	}
+
+	/**
+	 * Generator function that traverses all projects that depend on the given start project.
+	 * Traversal is breadth-first, visiting each dependent project exactly once.
+	 * Projects are yielded in the order they are discovered as dependents.
+	 * In case a cycle is detected, an error is thrown.
+	 *
+	 * @public
+	 * @generator
+	 * @param {string|boolean} [startName] Name of the project to start the traversal at,
+	 *   or a boolean to set includeStartModule while using the root project as start.
+	 *   Defaults to the graph's root project.
+	 * @param {boolean} [includeStartModule=false] Whether to include the start project itself in the results
+	 * @yields {object} Object containing the dependent project and its dependents
+	 * @yields {module:@ui5/project/specifications/Project} return.project The dependent project
+	 * @yields {string[]} return.dependents Array of project names that depend on this project
+	 * @throws {Error} If the start project cannot be found or if a cycle is detected
+	 */
 	* traverseDependents(startName, includeStartModule = false) {
 		if (typeof startName === "boolean") {
 			includeStartModule = startName;
