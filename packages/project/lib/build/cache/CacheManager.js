@@ -291,11 +291,12 @@ export default class CacheManager {
 	 * @param {string} packageName - Package/project identifier
 	 * @param {string} buildSignature - Build signature hash
 	 * @param {string} taskName
+	 * @param {string} type - "project" or "dependency"
 	 * @returns {string} Absolute path to the stage metadata file
 	 */
-	#getTaskMetadataPath(packageName, buildSignature, taskName) {
+	#getTaskMetadataPath(packageName, buildSignature, taskName, type) {
 		const pkgDir = getPathFromPackageName(packageName);
-		return path.join(this.#taskMetadataDir, pkgDir, buildSignature, taskName, `metadata.json`);
+		return path.join(this.#taskMetadataDir, pkgDir, buildSignature, taskName, `${type}.json`);
 	}
 
 	/**
@@ -307,12 +308,14 @@ export default class CacheManager {
 	 * @param {string} projectId - Project identifier (typically package name)
 	 * @param {string} buildSignature - Build signature hash
 	 * @param {string} taskName
+	 * @param {string} type - "project" or "dependency"
 	 * @returns {Promise<object|null>} Parsed stage metadata or null if not found
 	 * @throws {Error} If file read fails for reasons other than file not existing
 	 */
-	async readTaskMetadata(projectId, buildSignature, taskName) {
+	async readTaskMetadata(projectId, buildSignature, taskName, type) {
 		try {
-			const metadata = await readFile(this.#getTaskMetadataPath(projectId, buildSignature, taskName), "utf8");
+			const metadata = await readFile(
+				this.#getTaskMetadataPath(projectId, buildSignature, taskName, type), "utf8");
 			return JSON.parse(metadata);
 		} catch (err) {
 			if (err.code === "ENOENT") {
@@ -320,7 +323,7 @@ export default class CacheManager {
 				return null;
 			}
 			throw new Error(`Failed to read task metadata from cache for ` +
-				`${projectId} / ${buildSignature} / ${taskName}: ${err.message}`, {
+				`${projectId} / ${buildSignature} / ${taskName} / ${type}: ${err.message}`, {
 				cause: err,
 			});
 		}
@@ -335,11 +338,12 @@ export default class CacheManager {
 	 * @param {string} projectId - Project identifier (typically package name)
 	 * @param {string} buildSignature - Build signature hash
 	 * @param {string} taskName
+	 * @param {string} type - "project" or "dependency"
 	 * @param {object} metadata - Stage metadata object to serialize
 	 * @returns {Promise<void>}
 	 */
-	async writeTaskMetadata(projectId, buildSignature, taskName, metadata) {
-		const metadataPath = this.#getTaskMetadataPath(projectId, buildSignature, taskName);
+	async writeTaskMetadata(projectId, buildSignature, taskName, type, metadata) {
+		const metadataPath = this.#getTaskMetadataPath(projectId, buildSignature, taskName, type);
 		await mkdir(path.dirname(metadataPath), {recursive: true});
 		await writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf8");
 	}
