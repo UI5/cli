@@ -222,9 +222,9 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 	});
 
 	// Change a source file in theme.library.e
-	const changedFilePath = `${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
-	await fs.appendFile(changedFilePath, `\n.someNewClass {\n\tcolor: red;\n}\n`);
-
+	const librarySourceFilePath =
+		`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/library.source.less`;
+	await fs.appendFile(librarySourceFilePath, `\n.someNewClass {\n\tcolor: red;\n}\n`);
 	// #3 build (with cache, with changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
@@ -232,7 +232,6 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 			projects: {"theme.library.e": {}}
 		}
 	});
-
 	// Check whether the changed file is in the destPath
 	const builtFileContent = await fs.readFile(
 		`${destPath}/resources/theme/library/e/themes/my_theme/library.source.less`, {encoding: "utf8"}
@@ -241,7 +240,7 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 		builtFileContent.includes(`.someNewClass`),
 		"Build dest contains changed file content"
 	);
-	// Check whether the updated copyright replacement took place
+	// Check whether the build output contains the new CSS rule
 	const builtCssContent = await fs.readFile(
 		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
 	);
@@ -250,11 +249,71 @@ test.serial("Build theme.library.e project multiple times", async (t) => {
 		"Build dest contains new rule in library.css"
 	);
 
-	// #4 build (with cache, no changes)
+	// Add a new less file and import it in library.source.less
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`,
+		`.someOtherNewClass {\n\tcolor: blue;\n}\n`
+	);
+	await fs.appendFile(librarySourceFilePath, `\n@import "newImportFile.less";\n`);
+	// #4 build (with cache, with changes)
 	await fixtureTester.buildProject({
 		config: {destPath, cleanDest: true},
 		assertions: {
-			projects: {}
+			projects: {"theme.library.e": {}},
+		}
+	});
+	// Check whether the build output contains the import to the new file
+	const builtCssContent2 = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+	);
+	t.true(
+		builtCssContent2.includes(`.someOtherNewClass`),
+		"Build dest contains new rule in library.css"
+	);
+
+	// #5 build (with cache, no changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {},
+		}
+	});
+
+	// Change content of new less file
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`,
+		`.someOtherNewClass {\n\tcolor: green;\n}\n`
+	);
+	// #6 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {}},
+		}
+	});
+	// Check whether the build output contains the changed content of the imported file
+	const builtCssContent3 = await fs.readFile(
+		`${destPath}/resources/theme/library/e/themes/my_theme/library.css`, {encoding: "utf8"}
+	);
+	t.true(
+		builtCssContent3.includes(`.someOtherNewClass{color:green}`),
+		"Build dest contains new rule in library.css"
+	);
+
+	// Delete import of library.source.less
+	const librarySourceFileContent = (await fs.readFile(librarySourceFilePath)).toString();
+	await fs.writeFile(librarySourceFilePath,
+		librarySourceFileContent.replace(`\n@import "newImportFile.less";\n`, "")
+	);
+	// Change content of new less file again
+	await fs.writeFile(`${fixtureTester.fixturePath}/src/theme/library/e/themes/my_theme/newImportFile.less`,
+		`.someOtherNewClass {\n\tcolor: yellow;\n}\n`
+	);
+	// #7 build (with cache, with changes)
+	await fixtureTester.buildProject({
+		config: {destPath, cleanDest: true},
+		assertions: {
+			projects: {"theme.library.e": {
+				skippedTasks: ["buildThemes"]
+			}},
 		}
 	});
 });
