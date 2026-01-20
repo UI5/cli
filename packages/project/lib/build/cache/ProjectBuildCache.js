@@ -683,13 +683,13 @@ export default class ProjectBuildCache {
 			const buildTaskCaches = await Promise.all(
 				indexCache.tasks.map(async ([taskName, supportsDifferentialUpdates]) => {
 					const projectRequests = await this.#cacheManager.readTaskMetadata(
-						this.#project.getId(), this.#buildSignature, `${taskName}-pr`);
+						this.#project.getId(), this.#buildSignature, taskName, "project");
 					if (!projectRequests) {
 						throw new Error(`Failed to load project request cache for task ` +
 							`${taskName} in project ${this.#project.getName()}`);
 					}
 					const dependencyRequests = await this.#cacheManager.readTaskMetadata(
-						this.#project.getId(), this.#buildSignature, `${taskName}-dr`);
+						this.#project.getId(), this.#buildSignature, taskName, "dependencies");
 					if (!dependencyRequests) {
 						throw new Error(`Failed to load dependency request cache for task ` +
 							`${taskName} in project ${this.#project.getName()}`);
@@ -708,29 +708,6 @@ export default class ProjectBuildCache {
 			} else {
 				this.#cacheState = CACHE_STATES.INITIALIZED;
 			}
-			// 	// Invalidate tasks based on changed resources
-			// 	// Note: If the changed paths don't affect any task, the index cache still can't be used due to the
-			// 	// root hash mismatch.
-			// 	// Since no tasks have been invalidated, a rebuild is still necessary in this case, so that
-			// 	// each task can find and use its individual stage cache.
-			// 	// Hence requiresInitialBuild will be set to true in this case (and others.
-			// 	// const tasksInvalidated = await this.#invalidateTasks(changedPaths, []);
-			// 	// if (!tasksInvalidated) {
-
-			// 	// }
-			// } else if (indexCache.indexTree.root.hash !== resourceIndex.getSignature()) {
-			// 	// Validate index signature matches with cached signature
-			// 	throw new Error(
-			// 		`Resource index signature mismatch for project ${this.#project.getName()}: ` +
-			// 		`expected ${indexCache.indexTree.root.hash}, got ${resourceIndex.getSignature()}`);
-			// }
-
-			// else {
-			// 	log.verbose(
-			// 		`Resource index signature for project ${this.#project.getName()} matches cached signature: ` +
-			// 		`${resourceIndex.getSignature()}`);
-			// 	// this.#cachedSourceSignature = resourceIndex.getSignature();
-			// }
 			this.#sourceIndex = resourceIndex;
 			this.#cachedSourceSignature = resourceIndex.getSignature();
 			this.#changedProjectSourcePaths = changedPaths;
@@ -894,11 +871,11 @@ export default class ProjectBuildCache {
 				const writes = [];
 				if (projectRequests) {
 					writes.push(this.#cacheManager.writeTaskMetadata(
-						this.#project.getId(), this.#buildSignature, `${taskName}-pr`, projectRequests));
+						this.#project.getId(), this.#buildSignature, taskName, "project", projectRequests));
 				}
 				if (dependencyRequests) {
 					writes.push(this.#cacheManager.writeTaskMetadata(
-						this.#project.getId(), this.#buildSignature, `${taskName}-dr`, dependencyRequests));
+						this.#project.getId(), this.#buildSignature, taskName, "dependencies", dependencyRequests));
 				}
 				await Promise.all(writes);
 			}
