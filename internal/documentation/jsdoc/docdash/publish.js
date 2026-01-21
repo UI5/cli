@@ -221,7 +221,7 @@ function generate(type, title, docs, filename, resolveLinks) {
 		docs: docs
 	};
 
-	var outpath = path.join(outdir, filename),
+	var outpath = path.join(outdir, filename + ".md"),
 		html = view.render('container.tmpl', docData);
 
 	if (resolveLinks) {
@@ -402,7 +402,7 @@ function buildNav(members) {
  */
 exports.publish = function(taffyData, opts, tutorials) {
 	// Modified from .html to .md to output Markdown files
-	helper.fileExtension = ".md";
+	helper.fileExtension = "";
 
 	var docdash = env && env.conf && env.conf.docdash || {};
 	data = taffyData;
@@ -594,6 +594,7 @@ exports.publish = function(taffyData, opts, tutorials) {
 	//view.nav = buildNav(members);
 	attachModuleSymbols( find({ longname: {left: 'module:'} }), members.modules );
 
+
 	// generate the pretty-printed source files first so other pages can link to them
 	if (outputSourceFiles) {
 		generateSourceFiles(sourceFiles, opts.encoding);
@@ -680,6 +681,8 @@ exports.publish = function(taffyData, opts, tutorials) {
 
 	saveChildren(tutorials);
 };
+
+// Taken from templateHelper.js in jsdoc/util
 
 function linkTo(longname, linkText, cssClass, fragmentId) {
 	const classString = cssClass ? util.format(' class="%s"', cssClass) : '';
