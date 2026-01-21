@@ -127,6 +127,7 @@ async function _addSsl({app, key, cert}) {
  * 										are send for any requested <code>*.html</code> file
  * @param {boolean} [options.serveCSPReports=false] Enable CSP reports serving for request url
  * 										'/.ui5/csp/csp-reports.json'
+ * @param {Function} error Error callback. Will be called when an error occurs outside of request handling.
  * @returns {Promise<object>} Promise resolving once the server is listening.
  * 							It resolves with an object containing the <code>port</code>,
  * 							<code>h2</code>-flag and a <code>close</code> function,
@@ -135,7 +136,7 @@ async function _addSsl({app, key, cert}) {
 export async function serve(graph, {
 	port: requestedPort, changePortIfInUse = false, h2 = false, key, cert,
 	acceptRemoteConnections = false, sendSAPTargetCSP = false, simpleIndex = false, serveCSPReports = false
-}) {
+}, error) {
 	const rootProject = graph.getRoot();
 
 	const readers = [];
@@ -182,9 +183,7 @@ export async function serve(graph, {
 	};
 
 	buildServer.on("error", async (err) => {
-		log.error(`Error during project build: ${err.message}`);
-		log.verbose(err.stack);
-		process.exit(1);
+		error(err);
 	});
 
 	const middlewareManager = new MiddlewareManager({
