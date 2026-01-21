@@ -66,10 +66,16 @@ export default class HyperfineRunner {
 			// Add each benchmark as a separate command to hyperfine
 			for (const benchmark of benchmarks) {
 				const commandName = this.#buildCommandName(name, revisionKey, benchmark);
-				const fullCommand = `node ${this.#ui5CliPath} ${benchmark.command}`;
+				let env = "";
+				if (benchmark.env) {
+					env += `${benchmark.env} `;
+				}
+				const fullCommand = `${env}node ${this.#ui5CliPath} ${benchmark.command}`;
 
 				// Add prepare command (empty string if none)
 				args.push("--prepare", benchmark.prepare || "");
+				// Add conclude command (empty string if none)
+				args.push("--conclude", benchmark.conclude || "");
 
 				// Add the benchmark command
 				args.push("--command-name", commandName, fullCommand);

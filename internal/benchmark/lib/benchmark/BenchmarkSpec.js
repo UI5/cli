@@ -6,7 +6,9 @@ export default class BenchmarkSpec {
 	/**
 	 * @param {object} config - The benchmark configuration object
 	 * @param {string} config.command - The UI5 CLI command to benchmark (e.g., "build")
+	 * @param {string} [config.env] - Optional environment variables to prefix the command with
 	 * @param {string} [config.prepare] - Optional shell command to run before each benchmark
+	 * @param {string} [config.conclude] - Optional shell command to run after each benchmark
 	 * @param {object} config.groups - Map of group keys to group-specific config
 	 * @param {string} config.groups[].name - Display name for this benchmark in the group
 	 * @param {string[]} [config.revisions] - Optional list of revision keys this benchmark should run on
@@ -19,8 +21,14 @@ export default class BenchmarkSpec {
 		if (!config.command || typeof config.command !== "string") {
 			throw new Error("Benchmark must have a command string");
 		}
+		if (config.env !== undefined && typeof config.env !== "string") {
+			throw new Error("Benchmark env must be a string if provided");
+		}
 		if (config.prepare !== undefined && typeof config.prepare !== "string") {
 			throw new Error("Benchmark prepare must be a string if provided");
+		}
+		if (config.conclude !== undefined && typeof config.conclude !== "string") {
+			throw new Error("Benchmark conclude must be a string if provided");
 		}
 		if (!config.groups || typeof config.groups !== "object" || Object.keys(config.groups).length === 0) {
 			throw new Error("Benchmark must belong to at least one group");
@@ -53,14 +61,18 @@ export default class BenchmarkSpec {
 
 		this.#index = index;
 		this.#command = config.command;
+		this.#env = config.env || null;
 		this.#prepare = config.prepare || null;
+		this.#conclude = config.conclude || null;
 		this.#groupMemberships = new Map(Object.entries(config.groups));
 		this.#revisionKeys = config.revisions ? [...config.revisions] : null;
 	}
 
 	#index;
 	#command;
+	#env;
 	#prepare;
+	#conclude;
 	#groupMemberships; // Map<groupKey, {name: displayName}>
 	#revisionKeys; // null means all revisions, otherwise array of revision keys
 
@@ -72,8 +84,16 @@ export default class BenchmarkSpec {
 		return this.#command;
 	}
 
+	get env() {
+		return this.#env;
+	}
+
 	get prepare() {
 		return this.#prepare;
+	}
+
+	get conclude() {
+		return this.#conclude;
 	}
 
 	get groupMemberships() {
