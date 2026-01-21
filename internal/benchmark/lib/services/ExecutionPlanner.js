@@ -24,7 +24,9 @@ export default class ExecutionPlanner {
 	 * BenchmarkExecution = {
 	 *   index: number,
 	 *   command: string,
+	 *   env: string|null,
 	 *   prepare: string|null,
+	 *   conclude: string|null,
 	 *   groupMemberships: Array<{groupKey: string, displayName: string}>
 	 * }
 	 */
@@ -58,7 +60,9 @@ export default class ExecutionPlanner {
 					revisionPlan.benchmarks.push({
 						index: benchmark.index,
 						command: benchmark.command,
+						env: benchmark.env,
 						prepare: benchmark.prepare,
+						conclude: benchmark.conclude,
 						groupMemberships
 					});
 				}
@@ -96,8 +100,14 @@ export default class ExecutionPlanner {
 					.map((gm) => `${gm.groupKey}: "${gm.displayName}"`)
 					.join(", ");
 				summary += `      [${benchmark.index}] ui5 ${benchmark.command}`;
+				if (benchmark.env) {
+					summary += ` [env: ${benchmark.env}]`;
+				}
 				if (benchmark.prepare) {
 					summary += ` (prepare: ${benchmark.prepare})`;
+				}
+				if (benchmark.conclude) {
+					summary += ` (conclude: ${benchmark.conclude})`;
 				}
 				summary += `\n        Groups: ${groupNames}\n`;
 			}
