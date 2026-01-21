@@ -146,7 +146,10 @@ serve.handler = async function(argv) {
 		serverConfig.cert = cert;
 	}
 
-	const {h2, port: actualPort} = await serverServe(graph, serverConfig);
+	const {promise: pOnError, reject} = Promise.withResolvers();
+	const {h2, port: actualPort} = await serverServe(graph, serverConfig, function(err) {
+		reject(err);
+	});
 
 	const protocol = h2 ? "https" : "http";
 	let browserUrl = protocol + "://localhost:" + actualPort;
@@ -183,6 +186,7 @@ serve.handler = async function(argv) {
 		const {default: open} = await import("open");
 		open(browserUrl);
 	}
+	await pOnError; // Await errors that should bubble into the yargs handler
 };
 
 export default serve;
