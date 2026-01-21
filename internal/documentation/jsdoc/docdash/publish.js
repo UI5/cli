@@ -11,10 +11,6 @@ var util = require('node:util');
 
 var htmlsafe = helper.htmlsafe;
 var resolveAuthorLinks = helper.resolveAuthorLinks;
-// Not needed anymore
-//var linkto = helper.linkto;
-//var scopeToPunc = helper.scopeToPunc;
-//var hasOwnProp = Object.prototype.hasOwnProperty;
 
 var data;
 var view;
@@ -288,7 +284,7 @@ function attachModuleSymbols(doclets, modules) {
     @param {Tutorial} tutorials
  */
 exports.publish = function(taffyData, opts, tutorials) {
-	// Modified from .html to .md to output Markdown files
+	// Modified to fix .md file extensions in internal links
 	helper.fileExtension = "";
 
 	var docdash = env && env.conf && env.conf.docdash || {};
