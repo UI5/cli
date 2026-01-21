@@ -323,7 +323,7 @@ function getFixturePath(fixtureName) {
 }
 
 function getTmpPath(folderName) {
-	return fileURLToPath(new URL(`../../tmp/${folderName}`, import.meta.url));
+	return fileURLToPath(new URL(`../../tmp/ProjectBuilder/${folderName}`, import.meta.url));
 }
 
 async function rmrf(dirPath) {

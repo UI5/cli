@@ -29,6 +29,8 @@ const log = getLogger("build:BuildServer");
 class BuildServer extends EventEmitter {
 	#graph;
 	#projectBuilder;
+	#watchHandler;
+	#rootProjectName;
 	#buildQueue = new Map();
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
@@ -46,12 +48,17 @@ class BuildServer extends EventEmitter {
 	 * @public
 	 * @param {@ui5/project/graph/ProjectGraph} graph Project graph containing all projects
 	 * @param {@ui5/project/build/ProjectBuilder} projectBuilder Builder instance for executing builds
+	 * @param {boolean} initialBuildRootProject Whether to build the root project in the initial build
 	 * @param {string[]} initialBuildIncludedDependencies Project names to include in initial build
 	 * @param {string[]} initialBuildExcludedDependencies Project names to exclude from initial build
 	 */
-	constructor(graph, projectBuilder, initialBuildIncludedDependencies, initialBuildExcludedDependencies) {
+	constructor(
+		graph, projectBuilder,
+		initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies
+	) {
 		super();
 		this.#graph = graph;
+		this.#rootProjectName = graph.getRoot().getName();
 		this.#projectBuilder = projectBuilder;
 		this.#allReader = new BuildReader("Build Server: All Projects Reader",
 			Array.from(this.#graph.getProjects()),
@@ -68,6 +75,9 @@ class BuildServer extends EventEmitter {
 			this.#getReaderForProject.bind(this),
 			this.#getReaderForProjects.bind(this));
 
+		if (initialBuildRootProject) {
+			this.#pendingBuildRequest.add(this.#rootProjectName);
+		}
 		if (initialBuildIncludedDependencies.length > 0) {
 			// Enqueue initial build dependencies
 			for (const projectName of initialBuildIncludedDependencies) {
@@ -81,6 +91,7 @@ class BuildServer extends EventEmitter {
 		}
 
 		const watchHandler = new WatchHandler();
+		this.#watchHandler = watchHandler;
 		const allProjects = graph.getProjects();
 		watchHandler.watch(allProjects).catch((err) => {
 			// Error during watch setup
@@ -89,11 +100,14 @@ class BuildServer extends EventEmitter {
 		watchHandler.on("error", (err) => {
 			this.emit("error", err);
 		});
-		watchHandler.on("sourcesChanged", (changes) => {
+		watchHandler.on("change", (eventType, filePath, project) => {
+			log.verbose(`Source change detected: ${eventType} ${filePath} in project '${project.getName()}'`);
+			// TODO: Abort any active build
+		});
+		watchHandler.on("batchedChanges", (changes) => {
+			log.verbose(`Received batched source changes for projects: ${[...changes.keys()].join(", ")}`);
+
 			// Inform project builder
-
-			log.verbose("Source changes detected: ", changes);
-
 			const affectedProjects = this.#projectBuilder.resourcesChanged(changes);
 
 			for (const projectName of affectedProjects) {
@@ -109,6 +123,14 @@ class BuildServer extends EventEmitter {
 			const changedResourcePaths = [...changes.values()].flat();
 			this.emit("sourcesChanged", changedResourcePaths);
 		});
+	}
+
+	async destroy() {
+		await this.#watchHandler.destroy();
+		if (this.#activeBuild) {
+			// Await active build to finish
+			await this.#activeBuild;
+		}
 	}
 
 	/**
@@ -271,13 +293,21 @@ class BuildServer extends EventEmitter {
 		while (this.#pendingBuildRequest.size > 0) {
 			// Collect all pending projects for this batch
 			const projectsToBuild = Array.from(this.#pendingBuildRequest);
+			let buildRootProject = false;
+			if (projectsToBuild.includes(this.#rootProjectName)) {
+				buildRootProject = true;
+			}
 			this.#pendingBuildRequest.clear();
 
 			log.verbose(`Building projects: ${projectsToBuild.join(", ")}`);
 
 			// Set active build to prevent concurrent builds
 			const buildPromise = this.#activeBuild = this.#projectBuilder.build({
+				includeRootProject: buildRootProject,
 				includedDependencies: projectsToBuild
+			}, (projectName, project) => {
+				// Project has been built and result can be served
+				// TODO: Immediately resolve pending promises here instead of waiting for full build to finish
 			});
 
 			try {
