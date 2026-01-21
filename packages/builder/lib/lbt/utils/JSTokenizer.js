@@ -29,10 +29,11 @@
 	 *
 	 * Contains functions to consume tokens on an input string.
 	 *
-	 * @example
+	 * ```js
 	 * sap.ui.require(["sap/base/util/JSTokenizer"], function(JSTokenizer){
 	 *      JSTokenizer().parseJS("{test:'123'}"); // {test:'123'}
 	 * });
+	 * ```
 	 *
 	 * @class sap/base/util/JSTokenizer
 	 * @since 1.58

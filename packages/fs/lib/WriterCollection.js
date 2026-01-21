@@ -19,7 +19,7 @@ class WriterCollection extends AbstractReaderWriter {
 	 * @param {object.<string, @ui5/fs/AbstractReaderWriter>} parameters.writerMapping
 	 * 	Mapping of virtual base paths to writers. Path are matched greedy
 	 *
-	 * @example
+	 * ```js
 	 * new WriterCollection({
 	 *     name: "Writer Collection",
 	 *     writerMapping: {
@@ -27,6 +27,7 @@ class WriterCollection extends AbstractReaderWriter {
 	 *	       "/my/path/": writerB,
 	 *     }
 	 * });
+	 * ```
 	 */
 	constructor({name, writerMapping}) {
 		super(name);

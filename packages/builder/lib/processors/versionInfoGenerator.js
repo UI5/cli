@@ -28,13 +28,14 @@ function getTimestamp() {
  * @typedef {Object<string, {lazy: boolean}>} ManifestLibraries
  *
  * sample:
- * @example
+ * ```json
  * {
  * 	"sap.chart": {
  * 		"lazy": true
  * 	},
  * 	"sap.f": { }
  * }
+ * ```
  */
 
 /**
@@ -366,7 +367,7 @@ const processLibraryInfo = async (libraryInfo) => {
  * @param {module:@ui5/builder/processors/versionInfoGenerator~LibraryInfo[]} parameters.options.libraryInfos Array of
  *				objects representing libraries,
  *  e.g.
- *  ```
+ *  ```json
  *   {
  *      name: "lib.x",
  *      version: "1.0.0",

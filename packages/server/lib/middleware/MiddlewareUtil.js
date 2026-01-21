@@ -63,12 +63,13 @@ class MiddlewareUtil {
 	/**
 	 * MIME Info
 	 *
-	 * @example
+	 * ```js
 	 * const mimeInfo = {
 	 * 	"type": "text/html",
 	 * 	"charset": "utf-8",
 	 * 	"contentType": "text/html; charset=utf-8"
 	 * };
+	 * ```
 	 *
 	 * @public
 	 * @typedef {object} MimeInfo
