@@ -686,7 +686,9 @@ function linkGenericType(type, classString) {
 		result = htmlsafe(baseType);
 	}
 
-	result += '.&lt;';
+	// Only add a separating dot if the baseType doesn't already end with one
+	const needsDot = !String(baseType).trim().endsWith('.');
+	result += (needsDot ? '.&lt;' : '&lt;');
 
 	// Recursively handle the inner type
 	if (isComplexTypeExpression(innerType)) {
