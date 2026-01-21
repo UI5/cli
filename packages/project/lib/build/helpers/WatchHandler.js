@@ -32,7 +32,13 @@ class WatchHandler extends EventEmitter {
 				await watcher.close();
 			});
 			watcher.on("all", (event, filePath) => {
-				this.#handleWatchEvents(event, filePath, project);
+				if (event === "addDir") {
+					// Ignore directory creation events
+					return;
+				}
+				this.#handleWatchEvents(event, filePath, project).catch((err) => {
+					this.emit("error", err);
+				});
 			});
 			const {promise, resolve: ready} = Promise.withResolvers();
 			readyPromises.push(promise);
@@ -56,6 +62,7 @@ class WatchHandler extends EventEmitter {
 	async #handleWatchEvents(eventType, filePath, project) {
 		log.verbose(`File changed: ${eventType} ${filePath}`);
 		await this.#fileChanged(project, filePath);
+		this.emit("change", eventType, filePath, project);
 	}
 
 	#fileChanged(project, filePath) {
@@ -88,7 +95,7 @@ class WatchHandler extends EventEmitter {
 			this.#sourceChanges = new Map();
 
 			try {
-				this.emit("sourcesChanged", sourceChanges);
+				this.emit("batchedChanges", sourceChanges);
 			} catch (err) {
 				this.emit("error", err);
 			}
