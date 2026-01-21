@@ -750,6 +750,7 @@ class ProjectGraph {
 	}
 
 	async serve({
+		initialBuildRootProject = false,
 		initialBuildIncludedDependencies = [], initialBuildExcludedDependencies = [],
 		selfContained = false, cssVariables = false, jsdoc = false, createBuildManifest = false,
 		includedTasks = [], excludedTasks = [],
@@ -777,7 +778,8 @@ class ProjectGraph {
 		const {
 			default: BuildServer
 		} = await import("../build/BuildServer.js");
-		return new BuildServer(this, builder, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
+		return new BuildServer(this, builder,
+			initialBuildRootProject, initialBuildIncludedDependencies, initialBuildExcludedDependencies);
 	}
 
 	/**
