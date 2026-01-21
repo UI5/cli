@@ -2,6 +2,8 @@ import EventEmitter from "node:events";
 import {createReaderCollectionPrioritized} from "@ui5/fs/resourceFactory";
 import BuildReader from "./BuildReader.js";
 import WatchHandler from "./helpers/WatchHandler.js";
+import {getLogger} from "@ui5/logger";
+const log = getLogger("build:BuildServer");
 
 /**
  * Development server that provides access to built project resources with automatic rebuilding
@@ -27,7 +29,9 @@ import WatchHandler from "./helpers/WatchHandler.js";
 class BuildServer extends EventEmitter {
 	#graph;
 	#projectBuilder;
-	#pCurrentBuild;
+	#buildQueue = new Map();
+	#pendingBuildRequest = new Set();
+	#activeBuild = null;
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
@@ -65,12 +69,13 @@ class BuildServer extends EventEmitter {
 			this.#getReaderForProjects.bind(this));
 
 		if (initialBuildIncludedDependencies.length > 0) {
-			this.#pCurrentBuild = projectBuilder.build({
-				includedDependencies: initialBuildIncludedDependencies,
-				excludedDependencies: initialBuildExcludedDependencies
-			}).then((builtProjects) => {
-				this.#projectBuildFinished(builtProjects);
-			}).catch((err) => {
+			// Enqueue initial build dependencies
+			for (const projectName of initialBuildIncludedDependencies) {
+				if (!initialBuildExcludedDependencies.includes(projectName)) {
+					this.#pendingBuildRequest.add(projectName);
+				}
+			}
+			this.#processBuildQueue().catch((err) => {
 				this.emit("error", err);
 			});
 		}
@@ -86,10 +91,19 @@ class BuildServer extends EventEmitter {
 		});
 		watchHandler.on("sourcesChanged", (changes) => {
 			// Inform project builder
+
+			log.verbose("Source changes detected: ", changes);
+
 			const affectedProjects = this.#projectBuilder.resourcesChanged(changes);
 
 			for (const projectName of affectedProjects) {
+				log.verbose(`Invalidating built project '${projectName}' due to source changes`);
 				this.#projectReaders.delete(projectName);
+				// If project is currently in build queue, re-enqueue it for rebuild
+				if (this.#buildQueue.has(projectName)) {
+					log.verbose(`Re-enqueuing project '${projectName}' for rebuild`);
+					this.#pendingBuildRequest.add(projectName);
+				}
 			}
 
 			const changedResourcePaths = [...changes.values()].flat();
@@ -142,8 +156,8 @@ class BuildServer extends EventEmitter {
 	 * Gets a reader for a single project, building it if necessary
 	 *
 	 * Checks if the project has already been built and returns its reader from cache.
-	 * If not built, waits for any in-progress build, then triggers a build for the
-	 * requested project.
+	 * If not built, enqueues the project for building and returns a promise that
+	 * resolves when the reader is available.
 	 *
 	 * @param {string} projectName Name of the project to get reader for
 	 * @returns {Promise<@ui5/fs/AbstractReader>} Reader for the built project
@@ -152,73 +166,30 @@ class BuildServer extends EventEmitter {
 		if (this.#projectReaders.has(projectName)) {
 			return this.#projectReaders.get(projectName);
 		}
-		if (this.#pCurrentBuild) {
-			// If set, await currently running build
-			await this.#pCurrentBuild;
-		}
-		if (this.#projectReaders.has(projectName)) {
-			return this.#projectReaders.get(projectName);
-		}
-		this.#pCurrentBuild = this.#projectBuilder.build({
-			includedDependencies: [projectName]
-		}).catch((err) => {
-			this.emit("error", err);
-		});
-		const builtProjects = await this.#pCurrentBuild;
-		this.#projectBuildFinished(builtProjects);
-
-		// Clear current build promise
-		this.#pCurrentBuild = null;
-
-		return this.#projectReaders.get(projectName);
+		return this.#enqueueBuild(projectName);
 	}
 
 	/**
 	 * Gets a combined reader for multiple projects, building them if necessary
 	 *
-	 * Determines which projects need to be built, waits for any in-progress build,
-	 * then triggers a build for any missing projects. Returns a prioritized collection
-	 * reader combining all requested projects.
+	 * Enqueues all projects that need to be built and waits for all of them to complete.
+	 * Returns a prioritized collection reader combining all requested projects.
 	 *
 	 * @param {string[]} projectNames Array of project names to get readers for
 	 * @returns {Promise<@ui5/fs/ReaderCollection>} Combined reader for all requested projects
 	 */
 	async #getReaderForProjects(projectNames) {
-		let projectsRequiringBuild = [];
+		// Enqueue all projects that aren't cached yet
+		const buildPromises = [];
 		for (const projectName of projectNames) {
 			if (!this.#projectReaders.has(projectName)) {
-				projectsRequiringBuild.push(projectName);
+				buildPromises.push(this.#enqueueBuild(projectName));
 			}
 		}
-		if (projectsRequiringBuild.length === 0) {
-			// Projects already built
-			return this.#getReaderForCachedProjects(projectNames);
+		// Wait for all builds to complete
+		if (buildPromises.length > 0) {
+			await Promise.all(buildPromises);
 		}
-		if (this.#pCurrentBuild) {
-			// If set, await currently running build
-			await this.#pCurrentBuild;
-		}
-		projectsRequiringBuild = [];
-		for (const projectName of projectNames) {
-			if (!this.#projectReaders.has(projectName)) {
-				projectsRequiringBuild.push(projectName);
-			}
-		}
-		if (projectsRequiringBuild.length === 0) {
-			// Projects already built
-			return this.#getReaderForCachedProjects(projectNames);
-		}
-		this.#pCurrentBuild = this.#projectBuilder.build({
-			includedDependencies: projectsRequiringBuild
-		}).catch((err) => {
-			this.emit("error", err);
-		});
-		const builtProjects = await this.#pCurrentBuild;
-		this.#projectBuildFinished(builtProjects);
-
-		// Clear current build promise
-		this.#pCurrentBuild = null;
-
 		return this.#getReaderForCachedProjects(projectNames);
 	}
 
@@ -245,32 +216,106 @@ class BuildServer extends EventEmitter {
 		});
 	}
 
-	// async #getReaderForAllProjects() {
-	// 	if (this.#pCurrentBuild) {
-	// 		// If set, await initial build
-	// 		await this.#pCurrentBuild;
-	// 	}
-	// 	if (this.#allProjectsReader) {
-	// 		return this.#allProjectsReader;
-	// 	}
-	// 	this.#pCurrentBuild = this.#projectBuilder.build({
-	// 		includedDependencies: ["*"]
-	// 	}).catch((err) => {
-	// 		this.emit("error", err);
-	// 	});
-	// 	const builtProjects = await this.#pCurrentBuild;
-	// 	this.#projectBuildFinished(builtProjects);
+	/**
+	 * Enqueues a project for building and returns a promise that resolves with its reader
+	 *
+	 * If the project is already queued, returns the existing promise. Otherwise, creates
+	 * a new promise, adds the project to the pending build queue, and triggers queue processing.
+	 *
+	 * @param {string} projectName Name of the project to enqueue
+	 * @returns {Promise<@ui5/fs/AbstractReader>} Promise that resolves with the project's reader
+	 */
+	#enqueueBuild(projectName) {
+		// If already queued, return existing promise
+		if (this.#buildQueue.has(projectName)) {
+			return this.#buildQueue.get(projectName).promise;
+		}
 
-	// 	// Clear current build promise
-	// 	this.#pCurrentBuild = null;
+		log.verbose(`Enqueuing project '${projectName}' for build`);
 
-	// 	// Create a combined reader for all projects
-	// 	this.#allProjectsReader = createReaderCollectionPrioritized({
-	// 		name: "All projects build reader",
-	// 		readers: [...this.#projectReaders.values()]
-	// 	});
-	// 	return this.#allProjectsReader;
-	// }
+		// Create new promise for this project
+		let resolve;
+		let reject;
+		const promise = new Promise((res, rej) => {
+			resolve = res;
+			reject = rej;
+		});
+
+		// Store promise and resolvers in the queue
+		this.#buildQueue.set(projectName, {promise, resolve, reject});
+
+		// Add to pending build requests
+		this.#pendingBuildRequest.add(projectName);
+
+		// Trigger queue processing if no build is active
+		if (!this.#activeBuild) {
+			this.#processBuildQueue().catch((err) => {
+				this.emit("error", err);
+			});
+		}
+
+		return promise;
+	}
+
+	/**
+	 * Processes the build queue by batching pending projects and building them
+	 *
+	 * Runs while there are pending build requests. Collects all pending projects,
+	 * builds them in a single batch, resolves/rejects promises for built projects,
+	 * and handles errors with proper isolation.
+	 *
+	 * @returns {Promise<void>} Promise that resolves when queue processing is complete
+	 */
+	async #processBuildQueue() {
+		// Process queue while there are pending requests
+		while (this.#pendingBuildRequest.size > 0) {
+			// Collect all pending projects for this batch
+			const projectsToBuild = Array.from(this.#pendingBuildRequest);
+			this.#pendingBuildRequest.clear();
+
+			log.verbose(`Building projects: ${projectsToBuild.join(", ")}`);
+
+			// Set active build to prevent concurrent builds
+			const buildPromise = this.#activeBuild = this.#projectBuilder.build({
+				includedDependencies: projectsToBuild
+			});
+
+			try {
+				const builtProjects = await buildPromise;
+				this.#projectBuildFinished(builtProjects);
+
+				// Resolve promises for all successfully built projects
+				for (const projectName of builtProjects) {
+					const queueEntry = this.#buildQueue.get(projectName);
+					if (queueEntry) {
+						const reader = this.#projectReaders.get(projectName);
+						queueEntry.resolve(reader);
+						// Only remove from queue if not re-enqueued during build
+						if (!this.#pendingBuildRequest.has(projectName)) {
+							log.verbose(`Project '${projectName}' build finished. Removing from build queue.`);
+							this.#buildQueue.delete(projectName);
+						}
+					}
+				}
+			} catch (err) {
+				// Build failed - reject promises for projects that weren't built
+				for (const projectName of projectsToBuild) {
+					log.error(`Project '${projectName}' build failed: ${err.message}`);
+					const queueEntry = this.#buildQueue.get(projectName);
+					if (queueEntry && !this.#projectReaders.has(projectName)) {
+						queueEntry.reject(err);
+						this.#buildQueue.delete(projectName);
+						this.#pendingBuildRequest.delete(projectName);
+					}
+				}
+				// Re-throw to be handled by caller
+				throw err;
+			} finally {
+				// Clear active build
+				this.#activeBuild = null;
+			}
+		}
+	}
 
 	/**
 	 * Handles completion of a project build
