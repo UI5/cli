@@ -12,6 +12,8 @@ import ProjectBuildCache from "../cache/ProjectBuildCache.js";
  * @memberof @ui5/project/build/helpers
  */
 class ProjectBuildContext {
+	#initialPrepareRun = true;
+
 	/**
 	 * Creates a new ProjectBuildContext instance
 	 *
@@ -258,18 +260,23 @@ class ProjectBuildContext {
 	 * Creates a dependency reader and validates the cache state against current resources.
 	 * Must be called before buildProject().
 	 *
-	 * @param {boolean} initialBuild Whether this is the initial build (forces dependency index update)
 	 * @returns {Promise<string[]|false|undefined>}
 	 *   Undefined if no cache was found, false if cache is empty,
 	 *   or an array of changed resource paths since the last build
 	 */
-	async prepareProjectBuildAndValidateCache(initialBuild) {
+	async prepareProjectBuildAndValidateCache() {
 		const depReader = await this.getTaskRunner().getDependenciesReader(
 			await this.getTaskRunner().getRequiredDependencies(),
 			true, // Force creation of new reader since project readers might have changed during their (re-)build
 		);
-		this._currentDependencyReader = depReader;
-		return await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader, initialBuild);
+		if (this.#initialPrepareRun) {
+			this.#initialPrepareRun = false;
+			// If this is the first build of the project, the dependency indices must be refreshed
+			// Later builds of the same project during the same overall build can reuse the existing indices
+			// (they will be updated based on input via #dependencyResourcesChanged)
+			await this.getBuildCache().refreshDependencyIndices(depReader);
+		}
+		return await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader);
 	}
 
 	/**

@@ -95,6 +95,20 @@ export default class ProjectBuildCache {
 		return cache;
 	}
 
+	async refreshDependencyIndices(dependencyReader) {
+		if (this.#cacheState === CACHE_STATES.EMPTY) {
+			// No need to update indices for empty cache
+			return false;
+		}
+		const updateStart = performance.now();
+		await this.#refreshDependencyIndices(dependencyReader);
+		if (log.isLevelEnabled("perf")) {
+			log.perf(
+				`Refreshed dependency indices for project ${this.#project.getName()} ` +
+				`in ${(performance.now() - updateStart).toFixed(2)} ms`);
+		}
+	}
+
 	/**
 	 * Sets the dependency reader for accessing dependency resources
 	 *
@@ -103,27 +117,20 @@ export default class ProjectBuildCache {
 	 *
 	 * @public
 	 * @param {@ui5/fs/AbstractReader} dependencyReader Reader for dependency resources
-	 * @param {boolean} [forceDependencyUpdate=false] Force update of dependency indices
 	 * @returns {Promise<string[]|false|undefined>}
 	 *   Undefined if no cache has been found, false if cache is empty,
 	 *   or an array of changed resource paths
 	 */
-	async prepareProjectBuildAndValidateCache(dependencyReader, forceDependencyUpdate = false) {
+	async prepareProjectBuildAndValidateCache(dependencyReader) {
 		this.#currentProjectReader = this.#project.getReader();
 		this.#currentDependencyReader = dependencyReader;
 
+		if (this.#cacheState === CACHE_STATES.INITIALIZING) {
+			throw new Error(`Project ${this.#project.getName()} build cache unexpectedly not yet initialized.`);
+		}
 		if (this.#cacheState === CACHE_STATES.EMPTY) {
 			log.verbose(`Project ${this.#project.getName()} has empty cache, skipping change processing.`);
 			return false;
-		}
-		if (forceDependencyUpdate) {
-			const updateStart = performance.now();
-			await this.#refreshDependencyIndices(dependencyReader);
-			if (log.isLevelEnabled("perf")) {
-				log.perf(
-					`Refreshed dependency indices for project ${this.#project.getName()} ` +
-					`in ${(performance.now() - updateStart).toFixed(2)} ms`);
-			}
 		}
 		const flushStart = performance.now();
 		await this.#flushPendingChanges();
@@ -190,7 +197,7 @@ export default class ProjectBuildCache {
 	async #refreshDependencyIndices(dependencyReader) {
 		let depIndicesChanged = false;
 		await Promise.all(Array.from(this.#taskCache.values()).map(async (taskCache) => {
-			const changed = await taskCache.refreshDependencyIndices(this.#currentDependencyReader);
+			const changed = await taskCache.refreshDependencyIndices(dependencyReader);
 			if (changed) {
 				depIndicesChanged = true;
 			}
@@ -198,6 +205,9 @@ export default class ProjectBuildCache {
 		if (depIndicesChanged) {
 			// Relevant resources have changed, mark the cache as dirty
 			this.#cacheState = CACHE_STATES.DIRTY;
+		} else if (this.#cacheState === CACHE_STATES.INITIALIZING) {
+			// Dependency index is up-to-date. Set cache state to initialized if it was still initializing (not dirty)
+			this.#cacheState = CACHE_STATES.INITIALIZED;
 		}
 		// Reset pending dependency changes since indices are fresh now anyways
 		this.#changedDependencyResourcePaths = [];
@@ -796,9 +806,12 @@ export default class ProjectBuildCache {
 			}
 
 			if (changedPaths.length) {
+				// Relevant resources have changed, mark the cache as dirty
 				this.#cacheState = CACHE_STATES.DIRTY;
 			} else {
-				this.#cacheState = CACHE_STATES.INITIALIZED;
+				// Source index is up-to-date, awaiting dependency indices validation
+				// Status remains at initializing
+				this.#cacheState = CACHE_STATES.INITIALIZING;
 			}
 			this.#sourceIndex = resourceIndex;
 			this.#cachedSourceSignature = resourceIndex.getSignature();

@@ -126,10 +126,10 @@ class ProjectBuilder {
 
 	async build({
 		includedDependencies = [], excludedDependencies = [],
-	}) {
+	}, projectBuiltCallback) {
 		const requestedProjects = this._determineRequestedProjects(
 			includedDependencies, excludedDependencies);
-		return await this.#build(requestedProjects);
+		return await this.#build(requestedProjects, projectBuiltCallback);
 	}
 
 	/**
@@ -175,12 +175,25 @@ class ProjectBuilder {
 			await rmrf(destPath);
 		}
 
-		const fsTarget = resourceFactory.createAdapter({
-			fsBasePath: destPath,
-			virBasePath: "/"
+		let fsTarget;
+		if (!process.env.UI5_BUILD_NO_WRITE_DEST) {
+			fsTarget = resourceFactory.createAdapter({
+				fsBasePath: destPath,
+				virBasePath: "/"
+			});
+		}
+		const pWrites = [];
+		await this.#build(requestedProjects, (projectName, project, projectBuildContext) => {
+			if (!fsTarget) {
+				// Nothing to write to
+				return;
+			}
+			// Only write requested projects to target
+			// (excluding dependencies that were required to be built, but not requested)
+			this.#log.verbose(`Writing out files for project ${projectName}...`);
+			pWrites.push(this._writeResults(projectBuildContext, fsTarget));
 		});
-
-		await this.#build(requestedProjects, fsTarget);
+		await Promise.all(pWrites);
 	}
 
 	_determineRequestedProjects(includedDependencies, excludedDependencies, dependencyIncludes) {
@@ -209,7 +222,7 @@ class ProjectBuilder {
 		return requestedProjects;
 	}
 
-	async #build(requestedProjects, fsTarget) {
+	async #build(requestedProjects, projectBuiltCallback) {
 		if (this.#buildIsRunning) {
 			throw new Error("A build is already running");
 		}
@@ -250,7 +263,7 @@ class ProjectBuilder {
 		const cleanupSigHooks = this._registerCleanupSigHooks();
 		try {
 			const startTime = process.hrtime();
-			const pWrites = [];
+			const pCacheWrites = [];
 			while (queue.length) {
 				const projectBuildContext = queue.shift();
 				const project = projectBuildContext.getProject();
@@ -262,27 +275,31 @@ class ProjectBuilder {
 				if (alreadyBuilt.includes(projectName)) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
-					if (await projectBuildContext.prepareProjectBuildAndValidateCache(true)) {
+					let changedPaths = await projectBuildContext.prepareProjectBuildAndValidateCache();
+					if (changedPaths) {
 						this.#log.skipProjectBuild(projectName, projectType);
 						alreadyBuilt.push(projectName);
 					} else {
-						await this._buildProject(projectBuildContext);
+						changedPaths = await this._buildProject(projectBuildContext);
 					}
+					if (changedPaths.length) {
+						// Propagate resource changes to following projects
+						for (const pbc of queue) {
+							pbc.dependencyResourcesChanged(changedPaths);
+						}
+					}
+				}
+
+				if (projectBuiltCallback && requestedProjects.includes(projectName)) {
+					projectBuiltCallback(projectName, project, projectBuildContext);
 				}
 
 				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
 					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
-					pWrites.push(projectBuildContext.getBuildCache().writeCache());
-				}
-
-				if (fsTarget && requestedProjects.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_DEST) {
-					// Only write requested projects to target
-					// (excluding dependencies that were required to be built, but not requested)
-					this.#log.verbose(`Writing out files for project ${projectName}...`);
-					pWrites.push(this._writeResults(projectBuildContext, fsTarget));
+					pCacheWrites.push(projectBuildContext.getBuildCache().writeCache());
 				}
 			}
-			await Promise.all(pWrites);
+			await Promise.all(pCacheWrites);
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
 			this.#log.error(`Build failed`);
@@ -304,7 +321,7 @@ class ProjectBuilder {
 		const changedResources = await projectBuildContext.buildProject();
 		this.#log.endProjectBuild(projectName, projectType);
 
-		return {changedResources};
+		return changedResources;
 	}
 
 	_createProjectFilter({
