@@ -129,7 +129,7 @@ class AbstractResolver {
 	/**
 	 * Library metadata entry
 	 *
-	 * ``´js
+	 * ```js
 	 * const libraryMetadataEntry = {
 	 *		"id": "@openui5/sap.ui.core",
 	 *		"version": "1.75.0",
