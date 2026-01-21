@@ -125,10 +125,11 @@ class ProjectBuilder {
 	}
 
 	async build({
+		includeRootProject = true,
 		includedDependencies = [], excludedDependencies = [],
 	}, projectBuiltCallback) {
 		const requestedProjects = this._determineRequestedProjects(
-			includedDependencies, excludedDependencies);
+			includeRootProject, includedDependencies, excludedDependencies);
 		return await this.#build(requestedProjects, projectBuiltCallback);
 	}
 
@@ -168,7 +169,7 @@ class ProjectBuilder {
 		}
 		this.#log.info(`Target directory: ${destPath}`);
 		const requestedProjects = this._determineRequestedProjects(
-			includedDependencies, excludedDependencies, dependencyIncludes);
+			true, includedDependencies, excludedDependencies, dependencyIncludes);
 
 		if (cleanDest) {
 			this.#log.info(`Cleaning target directory...`);
@@ -196,10 +197,11 @@ class ProjectBuilder {
 		await Promise.all(pWrites);
 	}
 
-	_determineRequestedProjects(includedDependencies, excludedDependencies, dependencyIncludes) {
+	_determineRequestedProjects(includeRootProject, includedDependencies, excludedDependencies, dependencyIncludes) {
 		// Get project filter function based on include/exclude params
 		// (also logs some info to console)
 		const filterProject = this._createProjectFilter({
+			includeRootProject,
 			explicitIncludes: includedDependencies,
 			explicitExcludes: excludedDependencies,
 			dependencyIncludes
@@ -227,15 +229,12 @@ class ProjectBuilder {
 			throw new Error("A build is already running");
 		}
 		this.#buildIsRunning = true;
-		const rootProjectName = this._graph.getRoot().getName();
-		this.#log.info(`Preparing build for project ${rootProjectName}`);
 
-		// this._flushResourceChanges();
 		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
 
 		// Create build queue based on graph depth-first search to ensure correct build order
 		const queue = [];
-		const builtProjects = [];
+		const processedProjectNames = [];
 		for (const {project} of this._graph.traverseDependenciesDepthFirst(true)) {
 			const projectName = project.getName();
 			const projectBuildContext = projectBuildContexts.get(projectName);
@@ -244,7 +243,7 @@ class ProjectBuilder {
 				//	=> This project needs to be built or, in case it has already
 				//		been built, it's build result needs to be written out (if requested)
 				queue.push(projectBuildContext);
-				builtProjects.push(projectName);
+				processedProjectNames.push(projectName);
 			}
 		}
 
@@ -309,7 +308,7 @@ class ProjectBuilder {
 			await this._executeCleanupTasks();
 		}
 		this.#buildIsRunning = false;
-		return builtProjects;
+		return processedProjectNames;
 	}
 
 	async _buildProject(projectBuildContext) {
@@ -325,6 +324,7 @@ class ProjectBuilder {
 	}
 
 	_createProjectFilter({
+		includeRootProject = true,
 		dependencyIncludes,
 		explicitIncludes,
 		explicitExcludes
@@ -339,7 +339,7 @@ class ProjectBuilder {
 
 		if (includedDependencies.length) {
 			if (includedDependencies.length === this._graph.getSize() - 1) {
-				this.#log.info(`  Including all dependencies`);
+				this.#log.info(`  Requested all dependencies`);
 			} else {
 				this.#log.info(`  Requested dependencies:\n    + ${includedDependencies.join("\n    + ")}`);
 			}
@@ -355,8 +355,8 @@ class ProjectBuilder {
 					dep.test(projectName) : dep === projectName);
 			}
 
-			if (projectName === rootProjectName) {
-				// Always include the root project
+			if (includeRootProject && projectName === rootProjectName) {
+				// Include root project
 				return true;
 			}
 
