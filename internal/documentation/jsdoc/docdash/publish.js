@@ -236,20 +236,9 @@ function generate(type, title, docs, filename, resolveLinks) {
 function generateSourceFiles(sourceFiles, encoding) {
 	encoding = encoding || 'utf8';
 	Object.keys(sourceFiles).forEach(function(file) {
-		var source;
 		// links are keyed to the shortened path in each doclet's `meta.shortpath` property
 		var sourceOutfile = helper.getUniqueFilename(sourceFiles[file].shortened);
 		helper.registerLink(sourceFiles[file].shortened, sourceOutfile);
-
-		try {
-			source = {
-				kind: 'source',
-				code: helper.htmlsafe( fs.readFileSync(sourceFiles[file].resolved, encoding) )
-			};
-		}
-		catch(e) {
-			logger.error('Error while generating source file %s: %s', file, e.message);
-		}
 	});
 }
 
@@ -293,108 +282,6 @@ function attachModuleSymbols(doclets, modules) {
 		}
 	});
 }
-
-// Removed navbar functionality
-/*
-function buildMemberNav(items, itemHeading, itemsSeen, linktoFn) {
-	var nav = '';
-
-	if (items && items.length) {
-		var itemsNav = '';
-
-		items.forEach(function(item) {
-			var methods = find({kind:'function', memberof: item.longname});
-			var members = find({kind:'member', memberof: item.longname});
-			var docdash = env && env.conf && env.conf.docdash || {};
-
-			if ( !hasOwnProp.call(item, 'longname') ) {
-				itemsNav += '<li>' + linktoFn('', item.name);
-				itemsNav += '</li>';
-			} else if ( !hasOwnProp.call(itemsSeen, item.longname) ) {
-				itemsNav += '<li>' + linktoFn(item.longname, item.name.replace(/^module:/, ''));
-
-				if (docdash.static && members.find(function (m) { return m.scope === 'static'; } )) {
-					itemsNav += "<ul class='members'>";
-
-					members.forEach(function (member) {
-						if (!member.scope === 'static') return;
-						itemsNav += "<li data-type='member'>";
-						itemsNav += linkto(member.longname, member.name);
-						itemsNav += "</li>";
-					});
-
-					itemsNav += "</ul>";
-				}
-
-				if (methods.length) {
-					itemsNav += "<ul class='methods'>";
-
-					methods.forEach(function (method) {
-						itemsNav += "<li data-type='method'>";
-						itemsNav += linkto(method.longname, method.name);
-						itemsNav += "</li>";
-					});
-
-					itemsNav += "</ul>";
-				}
-
-				itemsNav += '</li>';
-				itemsSeen[item.longname] = true;
-			}
-		});
-
-		if (itemsNav !== '') {
-			nav += '<h3>' + itemHeading + '</h3><ul>' + itemsNav + '</ul>';
-		}
-	}
-
-	return nav;
-}
-
-function linktoTutorial(longName, name) {
-	return tutoriallink(name);
-}
-
-function linktoExternal(longName, name) {
-	return linkto(longName, name.replace(/(^"|"$)/g, ''));
-}
-
-function buildNav(members) {
-	var nav = '<h2><a href="index.html">Home</a></h2>';
-	var seen = {};
-	var seenTutorials = {};
-
-	nav += buildMemberNav(members.tutorials, 'Tutorials', seenTutorials, linktoTutorial);
-	nav += buildMemberNav(members.classes, 'Classes', seen, linkto);
-	nav += buildMemberNav(members.modules, 'Modules', {}, linkto);
-	nav += buildMemberNav(members.externals, 'Externals', seen, linktoExternal);
-	nav += buildMemberNav(members.events, 'Events', seen, linkto);
-	nav += buildMemberNav(members.namespaces, 'Namespaces', seen, linkto);
-	nav += buildMemberNav(members.mixins, 'Mixins', seen, linkto);
-	nav += buildMemberNav(members.interfaces, 'Interfaces', seen, linkto);
-
-	if (members.globals.length) {
-		var globalNav = '';
-
-		members.globals.forEach(function(g) {
-			if ( g.kind !== 'typedef' && !hasOwnProp.call(seen, g.longname) ) {
-				globalNav += '<li>' + linkto(g.longname, g.name) + '</li>';
-			}
-			seen[g.longname] = true;
-		});
-
-		if (!globalNav) {
-			// turn the heading into a link so you can actually get to the global page
-			nav += '<h3>' + linkto('global', 'Global') + '</h3>';
-		}
-		else {
-			nav += '<h3>Global</h3><ul>' + globalNav + '</ul>';
-		}
-	}
-
-	return nav;
-}
-*/
 
 /**
     @param {TAFFY} taffyData See <http://taffydb.com/>.
@@ -488,40 +375,6 @@ exports.publish = function(taffyData, opts, tutorials) {
 	fs.mkPath(outdir);
 
 	// Modified: Static files are not needed anymore
-	// copy the template's static files to outdir
-	/*var fromDir = path.join(templatePath, 'static');
-	var staticFiles = fs.ls(fromDir, 3);
-
-	staticFiles.forEach(function(fileName) {
-		var toDir = fs.toDir( fileName.replace(fromDir, outdir) );
-		fs.mkPath(toDir);
-		fs.copyFileSync(fileName, toDir);
-	});
-
-	// copy user-specified static files to outdir
-	var staticFilePaths;
-	var staticFileFilter;
-	var staticFileScanner;
-	if (conf.default.staticFiles) {
-		// The canonical property name is `include`. We accept `paths` for backwards compatibility
-		// with a bug in JSDoc 3.2.x.
-		staticFilePaths = conf.default.staticFiles.include ||
-			conf.default.staticFiles.paths ||
-			[];
-		staticFileFilter = new (require('jsdoc/src/filter')).Filter(conf.default.staticFiles);
-		staticFileScanner = new (require('jsdoc/src/scanner')).Scanner();
-
-		staticFilePaths.forEach(function(filePath) {
-			var extraStaticFiles = staticFileScanner.scan([filePath], 10, staticFileFilter);
-
-			extraStaticFiles.forEach(function(fileName) {
-				var sourcePath = fs.toDir(filePath);
-				var toDir = fs.toDir( fileName.replace(sourcePath, outdir) );
-				fs.mkPath(toDir);
-				fs.copyFileSync(fileName, toDir);
-			});
-		});
-	}*/
 
 	if (sourceFilePaths.length) {
 		sourceFiles = shortenPaths( sourceFiles, path.commonPrefix(sourceFilePaths) );
