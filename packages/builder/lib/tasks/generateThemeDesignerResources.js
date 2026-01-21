@@ -16,9 +16,10 @@ import fsInterface from "@ui5/fs/fsInterface";
  * UI5 resources are part of a "UI5" folder (e.g. "UI5/sap/ui/core/") that
  * is next to a "Base" folder.
  *
- * @example
+ * ```js
  * getPathToRoot("/resources/sap/ui/foo/themes/base")
  * > "../../../../../"
+ * ```
  *
  * @param {string} themeFolder Virtual path including /resources/
  * @returns {string} Relative path to root namespace

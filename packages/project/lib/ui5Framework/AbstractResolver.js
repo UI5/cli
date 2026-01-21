@@ -129,7 +129,7 @@ class AbstractResolver {
 	/**
 	 * Library metadata entry
 	 *
-	 * @example
+	 * ``´js
 	 * const libraryMetadataEntry = {
 	 *		"id": "@openui5/sap.ui.core",
 	 *		"version": "1.75.0",
@@ -137,6 +137,7 @@ class AbstractResolver {
 	 *		"dependencies": [],
 	 *		"optionalDependencies": []
 	 * };
+	 * ```
 	 *
 	 * @public
 	 * @typedef {object} @ui5/project/ui5Framework/AbstractResolver~LibraryMetadataEntry
@@ -150,7 +151,7 @@ class AbstractResolver {
 	/**
 	 * Install result
 	 *
-	 * @example
+	 * ```js
 	 * const resolverInstallResult = {
 	 * 	"libraryMetadata": {
 	 * 		"sap.ui.core": {
@@ -161,6 +162,7 @@ class AbstractResolver {
 	 * 		}
 	 * 	}
 	 * };
+	 * ```
 	 *
 	 * @public
 	 * @typedef {object} @ui5/project/ui5Framework/AbstractResolver~ResolverInstallResult
@@ -171,7 +173,7 @@ class AbstractResolver {
 	/**
 	 * Installs the provided libraries and their dependencies
 	 *
-	 * @example
+	 * ```js
 	 * const resolver = new Sapui5Resolver({version: "1.76.0"});
 	 * // Or for OpenUI5:
 	 * // const resolver = new Openui5Resolver({version: "1.76.0"});
@@ -181,6 +183,7 @@ class AbstractResolver {
 	 * }).catch((err) => {
 	 * 	// Handle installation errors
 	 * });
+	 * ```
 	 *
 	 * @public
 	 * @param {string[]} libraryNames List of library names to be installed

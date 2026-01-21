@@ -35,10 +35,11 @@ class AbstractReader {
 	/**
 	 * Locates resources by matching glob patterns.
 	 *
-	 * @example
+	 * ```js
 	 * byGlob("**‏/*.{html,htm}");
 	 * byGlob("**‏/.library");
 	 * byGlob("/pony/*");
+	 * ```
 	 *
 	 * @public
 	 * @param {string|string[]} virPattern glob pattern as string or array of glob patterns for

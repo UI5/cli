@@ -57,9 +57,10 @@ const escapeNonAscii = function(string) {
 /**
  * Escapes non ASCII characters with unicode escape sequences.
  *
- * @example
+ * ```js
  * const encoding = nonAsciiEscaper.getEncodingFromAlias("ISO-8859-1");
  * nonAsciiEscaper({resources, options: {encoding}});
+ * ```
  *
  *
  * @public

@@ -84,7 +84,7 @@ class ModuleInfo {
 		 * global scope. If a module declares global variables, all of them will be exported
 		 * with additional code of the form:
 		 *
-		 * ```
+		 * ```js
 		 * this["name"] = name;
 		 * ```
 		 *
