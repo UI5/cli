@@ -62,7 +62,6 @@ const escapeNonAscii = function(string) {
  * nonAsciiEscaper({resources, options: {encoding}});
  * ```
  *
- *
  * @public
  * @function default
  * @static
