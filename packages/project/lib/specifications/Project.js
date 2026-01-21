@@ -456,7 +456,7 @@ class Project extends Specification {
 		if (stageOrCachedWriter instanceof Stage) {
 			newStage = stageOrCachedWriter;
 			if (oldStage === newStage) {
-				// Same stage as before
+				// Same stage as before, nothing to do
 				return false; // Stored stage has not changed
 			}
 		} else {
@@ -464,7 +464,7 @@ class Project extends Specification {
 		}
 		this.#stages[stageIdx] = newStage;
 
-		// Update current stage reference if necessary
+		// If we are updating the current stage, make sure to update and reset all relevant references
 		if (oldStage === this.#currentStage) {
 			this.#currentStage = newStage;
 			// Unset "current" reader/writer. They might be outdated
