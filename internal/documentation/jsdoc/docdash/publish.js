@@ -228,7 +228,8 @@ function generate(type, title, docs, filename, resolveLinks) {
 		html = helper.resolveLinks(html); // turn {@link foo} into <a href="foodoc.html">foo</a>
 	}
 
-	fs.writeFileSync(outpath, html, 'utf8');
+	// Modified: replaceAll fixes pipe escaping
+	fs.writeFileSync(outpath, html.replaceAll("\\&#124;", "&#124;"), 'utf8');
 }
 
 // Modified: Don't write source files
