@@ -294,9 +294,19 @@ export default class ProjectBuildCache {
 		this.#project.useResultStage();
 		const writtenResourcePaths = new Set();
 		for (const [stageName, stageCache] of importedStages) {
-			this.#project.setStage(stageName, stageCache.stage);
-			for (const resourcePath of stageCache.writtenResourcePaths) {
-				writtenResourcePaths.add(resourcePath);
+			// Check whether the stage differs form the one currently in use
+			if (this.#currentStageSignatures.get(stageName)?.join("-") !== stageCache.signature) {
+				// Set stage
+				this.#project.setStage(stageName, stageCache.stage);
+
+				// Store signature for later use in result stage signature calculation
+				this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
+
+				// Cached stage likely differs from the previous one (if any)
+				// Add all resources written by the cached stage to the set of written/potentially changed resources
+				for (const resourcePath of stageCache.writtenResourcePaths) {
+					writtenResourcePaths.add(resourcePath);
+				}
 			}
 		}
 		return Array.from(writtenResourcePaths);
@@ -391,15 +401,17 @@ export default class ProjectBuildCache {
 		});
 
 		const stageCache = await this.#findStageCache(stageName, stageSignatures);
+		const oldStageSig = this.#currentStageSignatures.get(stageName)?.join("-");
 		if (stageCache) {
-			const stageChanged = this.#project.setStage(stageName, stageCache.stage);
+			// Check whether the stage actually changed
+			if (stageCache.signature !== oldStageSig) {
+				this.#project.setStage(stageName, stageCache.stage);
 
-			// Store dependency signature for later use in result stage signature calculation
-			this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
+				// Store new stage signature for later use in result stage signature calculation
+				this.#currentStageSignatures.set(stageName, stageCache.signature.split("-"));
 
-			// Cached stage might differ from the previous one
-			// Add all resources written by the cached stage to the set of written/potentially changed resources
-			if (stageChanged) {
+				// Cached stage likely differs from the previous one (if any)
+				// Add all resources written by the cached stage to the set of written/potentially changed resources
 				for (const resourcePath of stageCache.writtenResourcePaths) {
 					if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
 						this.#writtenResultResourcePaths.push(resourcePath);
@@ -439,21 +451,27 @@ export default class ProjectBuildCache {
 			if (deltaStageCache) {
 				// Store dependency signature for later use in result stage signature calculation
 				const [foundProjectSig, foundDepSig] = deltaStageCache.signature.split("-");
-				this.#currentStageSignatures.set(stageName, [foundProjectSig, foundDepSig]);
+
+				// Check whether the stage actually changed
+				if (oldStageSig !== deltaStageCache.signature) {
+					this.#currentStageSignatures.set(stageName, [foundProjectSig, foundDepSig]);
+
+					// Cached stage likely differs from the previous one (if any)
+					// Add all resources written by the cached stage to the set of written/potentially changed resources
+					for (const resourcePath of deltaStageCache.writtenResourcePaths) {
+						if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
+							this.#writtenResultResourcePaths.push(resourcePath);
+						}
+					}
+				}
+
+				// Create new signature and determine changed resource paths
 				const projectDeltaInfo = projectDeltas.get(foundProjectSig);
 				const dependencyDeltaInfo = depDeltas.get(foundDepSig);
 
 				const newSignature = createStageSignature(
 					projectDeltaInfo?.newSignature ?? foundProjectSig,
 					dependencyDeltaInfo?.newSignature ?? foundDepSig);
-
-				// Using cached stage which might differ from the previous one
-				// Add all resources written by the cached stage to the set of written/potentially changed resources
-				for (const resourcePath of deltaStageCache.writtenResourcePaths) {
-					if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
-						this.#writtenResultResourcePaths.push(resourcePath);
-					}
-				}
 
 				log.verbose(
 					`Using delta cached stage for task ${taskName} in project ${this.#project.getName()} ` +
@@ -616,8 +634,8 @@ export default class ProjectBuildCache {
 
 		log.verbose(`Caching stage for task ${taskName} in project ${this.#project.getName()} ` +
 			`with signature ${stageSignature}`);
+
 		// Store resulting stage in stage cache
-		// TODO: Check whether signature already exists and avoid invalidating following tasks
 		this.#stageCache.addSignature(
 			this.#getStageNameForTask(taskName), stageSignature, this.#project.getStage(),
 			writtenResourcePaths);
