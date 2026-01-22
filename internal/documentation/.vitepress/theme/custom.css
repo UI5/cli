@@ -316,3 +316,11 @@ li .learn-more {
 .VPDoc.has-aside .content-container {
   max-width: 100% !important;
 }
+
+/**
+* This makes the header anchor appear left next to the method names
+* again
+ */
+.jsdoc-object + .header-anchor {
+	padding: 15px;
+}
