@@ -653,20 +653,22 @@ function linkGenericType(type, classString) {
 	const baseType = match[1];
 	const innerType = match[2];
 
-	// Link the base type if it has a URL
+	// Strip any trailing dots from baseType for display (handles "Promise." cases)
+	const displayBase = String(baseType).replace(/\.+$/g, '').trim();
+
+	// Link the base type if it has a URL. Try both the original baseType and the stripped variant.
 	let result = '';
-	let baseUrl = helper.longnameToUrl[baseType];
+	let baseUrl = helper.longnameToUrl[baseType] || helper.longnameToUrl[displayBase];
 	if (baseUrl) {
 		// Remove .md extension for VitePress compatibility
 		baseUrl = baseUrl.replace(/\.md$/, '');
-		result = util.format('<a href="%s"%s>%s</a>', encodeURI(baseUrl), classString, htmlsafe(baseType));
+		result = util.format('<a href="%s"%s>%s</a>', encodeURI(baseUrl), classString, htmlsafe(displayBase));
 	} else {
-		result = htmlsafe(baseType);
+		result = htmlsafe(displayBase);
 	}
 
-	// Only add a separating dot if the baseType doesn't already end with one
-	const needsDot = !String(baseType).trim().endsWith('.');
-	result += (needsDot ? '.&lt;' : '&lt;');
+	// Always use angle brackets without an extra dot: Base<Type>
+	result += '&lt;';
 
 	// Recursively handle the inner type
 	if (isComplexTypeExpression(innerType)) {
