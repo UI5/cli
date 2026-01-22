@@ -300,14 +300,6 @@ exports.publish = function(taffyData, opts, tutorials) {
 	// Store GitHub base URL for source file links
 	githubSourceBaseUrl = docdash.githubSourceBaseUrl || null;
 
-	// claim some special filenames in advance, so the All-Powerful Overseer of Filename Uniqueness
-	// doesn't try to hand them out later
-	var indexUrl = helper.getUniqueFilename('index');
-	// don't call registerLink() on this one! 'index' is also a valid longname
-
-	var globalUrl = helper.getUniqueFilename('global');
-	helper.registerLink('global', globalUrl);
-
 	// set up templating
 	view.layout = conf.default.layoutFile ?
 		path.getResourcePath(path.dirname(conf.default.layoutFile),
@@ -448,20 +440,6 @@ exports.publish = function(taffyData, opts, tutorials) {
 	if (outputSourceFiles) {
 		generateSourceFiles(sourceFiles, opts.encoding);
 	}
-
-	if (members.globals.length) {
-		generate('', 'Global', [{kind: 'globalobj'}], globalUrl);
-	}
-
-	// index page displays information from package.json and lists files
-	var files = find({kind: 'file'});
-	var packages = find({kind: 'package'});
-
-	generate('', 'Home',
-		packages.concat(
-			[{kind: 'mainpage', readme: opts.readme, longname: (opts.mainpagetitle) ? opts.mainpagetitle : 'Main Page'}]
-		).concat(files),
-		indexUrl);
 
 	// set up the lists that we'll use to generate pages
 	var classes = taffy(members.classes);
