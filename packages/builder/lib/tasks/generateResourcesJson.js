@@ -56,6 +56,7 @@ function getCreatorOptions(projectName) {
  * </p>
  *
  * <caption>sample resources.json</caption>
+ *
  * ```js
  * const resourcesJson = {
  * 	"_version": "1.1.0",
