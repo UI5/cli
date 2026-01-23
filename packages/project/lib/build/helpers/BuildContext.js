@@ -155,7 +155,7 @@ class BuildContext {
 
 	/**
 	 *
-	 * @param {Map<string, Set<string>>} resourceChanges
+	 * @param {Map<string, Set<string>>} resourceChanges Mapping project name to changed resource paths
 	 * @returns {Set<string>} Names of projects potentially affected by the resource changes
 	 */
 	propagateResourceChanges(resourceChanges) {
