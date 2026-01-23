@@ -17,6 +17,45 @@ for (const file of fs.readdirSync(path.join("docs", "api"))) {
   });
 }
 
+const tree = {
+	text: "API",
+	collapsed: false,
+	items: []
+}
+
+for (let file of fs.readdirSync(path.join("docs", "api"))) {
+	file = file.replace(".md", "").replace("module-", "")
+	const treePath = file.split("_");
+	appendToTree(tree, file, treePath, 0);
+}
+
+function appendToTree(tree, file, treePath, index) {
+	if (treePath.length === index) {
+		tree.items.push({
+			text: treePath[index],
+			link: file
+		});
+		return;
+	}
+	let found = false;
+	for (const treeItem of tree.items) {
+		if (treeItem.text === treePath[index]) {
+			appendToTree(treeItem, file, treePath, index+1);
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		let newItem = {
+			text: treePath[index],
+			collapsed: false,
+			items: []
+		}
+		appendToTree(newItem, file, treePath, index+1);
+		tree.items.push(newItem);
+	}
+}
+
 export default defineConfig({
 
   // Would be set in CI job via CLI arguments. For local development, it's just root.
@@ -286,12 +325,7 @@ function guide() {
 				},
 			],
 		},
-		{
-			text: "API",
-			collapsed: true,
-			items: apiPages
-		},
-
+		tree
 	];
 }
 
