@@ -15,7 +15,7 @@ export const CACHE_STATES = Object.freeze({
 	INITIALIZING: "initializing",
 	INITIALIZED: "initialized",
 	EMPTY: "empty",
-	STALE: "stale",
+	REQUIRES_VALIDATION: "requires_validation",
 	FRESH: "fresh",
 	INVALIDATED: "invalidated",
 });
@@ -234,14 +234,17 @@ export default class ProjectBuildCache {
 	 *   Array of resource paths written by the cached result stage, or undefined if no cache found
 	 */
 	async #findResultCache() {
-		if (this.#cacheState === CACHE_STATES.STALE && this.#currentResultSignature) {
-			log.verbose(`Project ${this.#project.getName()} cache state is stale but no changes have been detected. ` +
+		if (this.#cacheState === CACHE_STATES.REQUIRES_VALIDATION && this.#currentResultSignature) {
+			log.verbose(
+				`Project ${this.#project.getName()} cache requires validation but no changes have been detected. ` +
 				`Continuing with current result stage: ${this.#currentResultSignature}`);
 			this.#cacheState = CACHE_STATES.FRESH;
 			return [];
 		}
 
-		if (![CACHE_STATES.STALE, CACHE_STATES.INVALIDATED, CACHE_STATES.INITIALIZED].includes(this.#cacheState)) {
+		if (![
+			CACHE_STATES.REQUIRES_VALIDATION, CACHE_STATES.INVALIDATED, CACHE_STATES.INITIALIZED
+		].includes(this.#cacheState)) {
 			log.verbose(`Project ${this.#project.getName()} cache state is ${this.#cacheState}, ` +
 				`skipping result cache validation.`);
 			return;
@@ -675,7 +678,7 @@ export default class ProjectBuildCache {
 	}
 
 	/**
-	 * Records changed source files of the project and marks cache as stale
+	 * Records changed source files of the project and marks cache as requiring validation
 	 *
 	 * @public
 	 * @param {string[]} changedPaths Changed project source file paths
@@ -687,13 +690,13 @@ export default class ProjectBuildCache {
 			}
 		}
 		if (this.#cacheState !== CACHE_STATES.EMPTY) {
-			// If there is a cache, mark it as stale
-			this.#cacheState = CACHE_STATES.STALE;
+			// If there is a cache, mark it as requiring validation
+			this.#cacheState = CACHE_STATES.REQUIRES_VALIDATION;
 		}
 	}
 
 	/**
-	 * Records changed dependency resources and marks cache as stale
+	 * Records changed dependency resources and marks cache as requiring validation
 	 *
 	 * @public
 	 * @param {string[]} changedPaths Changed dependency resource paths
@@ -705,8 +708,8 @@ export default class ProjectBuildCache {
 			}
 		}
 		if (this.#cacheState !== CACHE_STATES.EMPTY) {
-			// If there is a cache, mark it as stale
-			this.#cacheState = CACHE_STATES.STALE;
+			// If there is a cache, mark it as requiring validation
+			this.#cacheState = CACHE_STATES.REQUIRES_VALIDATION;
 		}
 	}
 
