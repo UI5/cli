@@ -168,10 +168,10 @@ class BuildContext {
 				const depChanges = dependencyChanges.get(dep.getName());
 				if (!depChanges) {
 					dependencyChanges.set(dep.getName(), new Set(changedResourcePaths));
-					continue;
-				}
-				for (const res of changedResourcePaths) {
-					depChanges.add(res);
+				} else {
+					for (const res of changedResourcePaths) {
+						depChanges.add(res);
+					}
 				}
 			}
 			const projectBuildContext = this.getBuildContext(projectName);
