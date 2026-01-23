@@ -323,6 +323,38 @@ function guide() {
 			}
 
 			tree.items = tree.items[0].items; // Display items inside @ui5 as root
+
+			const moveIndex = [];
+
+			for (let index = 0; index < tree.items.length; index++) {
+				const treeItem = tree.items[index];
+				if (!treeItem.link) treeItem.text = "@ui5/" + treeItem.text;
+
+				if (treeItem.link) {
+					let to;
+					for (let index2 = 0; index2 < tree.items.length; index2++) {
+						const item = tree.items[index2];
+						console.log(item, !item.link, item.text, treeItem.text.replace("@ui5/", ""))
+						if (!item.link && item.text.replace("@ui5/", "") === treeItem.text.replace("@ui5/", "")) {
+							to = index2;
+							break;
+						}
+					}
+
+					moveIndex.push({
+						from: index,
+						to: to
+					});
+				}
+			}
+
+			for (const moveItem of moveIndex) {
+				const item = tree.items[moveItem.from];
+				item.text = "main";
+				tree.items[moveItem.to].items.push(item);
+				delete tree.items[moveItem.from];
+			}
+
 			return tree;
 		})()
 	];

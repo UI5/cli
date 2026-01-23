@@ -35,6 +35,9 @@
 
     /* Makes the page wider for the api docs */
     --vp-layout-max-width: 80%;
+
+	/* Makes the sidebar wider */
+	--vp-sidebar-width: 300px;
   }
 
   .dark {
@@ -320,4 +323,8 @@ li .learn-more {
  */
 .jsdoc-object + .header-anchor {
 	padding: 15px;
+}
+
+.VPSidebarItem p {
+	overflow-wrap: anywhere !important;
 }
