@@ -17,7 +17,7 @@ export const CACHE_STATES = Object.freeze({
 	EMPTY: "empty",
 	STALE: "stale",
 	FRESH: "fresh",
-	DIRTY: "dirty",
+	INVALIDATED: "invalidated",
 });
 
 /**
@@ -177,8 +177,8 @@ export default class ProjectBuildCache {
 		}
 
 		if (sourceIndexChanged || depIndicesChanged) {
-			// Relevant resources have changed, mark the cache as dirty
-			this.#cacheState = CACHE_STATES.DIRTY;
+			// Relevant resources have changed, mark the cache as invalidated
+			this.#cacheState = CACHE_STATES.INVALIDATED;
 		} else {
 			log.verbose(`No relevant resource changes detected for project ${this.#project.getName()}`);
 		}
@@ -203,10 +203,10 @@ export default class ProjectBuildCache {
 			}
 		}));
 		if (depIndicesChanged) {
-			// Relevant resources have changed, mark the cache as dirty
-			this.#cacheState = CACHE_STATES.DIRTY;
+			// Relevant resources have changed, mark the cache as invalidated
+			this.#cacheState = CACHE_STATES.INVALIDATED;
 		} else if (this.#cacheState === CACHE_STATES.INITIALIZING) {
-			// Dependency index is up-to-date. Set cache state to initialized if it was still initializing (not dirty)
+			// Dependency index is up-to-date. Set cache state to initialized (if it was still initializing)
 			this.#cacheState = CACHE_STATES.INITIALIZED;
 		}
 		// Reset pending dependency changes since indices are fresh now anyways
@@ -241,7 +241,7 @@ export default class ProjectBuildCache {
 			return [];
 		}
 
-		if (![CACHE_STATES.STALE, CACHE_STATES.DIRTY, CACHE_STATES.INITIALIZED].includes(this.#cacheState)) {
+		if (![CACHE_STATES.STALE, CACHE_STATES.INVALIDATED, CACHE_STATES.INITIALIZED].includes(this.#cacheState)) {
 			log.verbose(`Project ${this.#project.getName()} cache state is ${this.#cacheState}, ` +
 				`skipping result cache validation.`);
 			return;
@@ -806,8 +806,8 @@ export default class ProjectBuildCache {
 			}
 
 			if (changedPaths.length) {
-				// Relevant resources have changed, mark the cache as dirty
-				this.#cacheState = CACHE_STATES.DIRTY;
+				// Relevant resources have changed, mark the cache as invalidated
+				this.#cacheState = CACHE_STATES.INVALIDATED;
 			} else {
 				// Source index is up-to-date, awaiting dependency indices validation
 				// Status remains at initializing
