@@ -33,9 +33,6 @@
     /*--vp-c-brand-soft: rgba(12, 72, 120, 0.14);*/ /* --brand-dark-blue */
     --vp-c-brand-soft: rgba(3, 103, 161, 0.14); /* lochmara-700 */
 
-    /* Makes the sidebar ever so slighty wider, fixes claustrophobic width with api docs */
-    --vp-sidebar-width: 345px;
-
     /* Makes the page wider for the api docs */
     --vp-layout-max-width: 80%;
   }
