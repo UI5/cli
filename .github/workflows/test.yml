@@ -29,6 +29,11 @@ jobs:
       with:
         node-version: ${{ matrix.version }}
 
+    # This is needed as npm 11 has issues with running "npm ci" on projects that use "overrides"
+    - name: Install recent npm version (Node 24 only)
+      if: matrix.version == 24
+      run: npm install -g npm@11 && npm --version
+
     - name: Install dependencies
       run: npm ci
 
