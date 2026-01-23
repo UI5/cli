@@ -20,20 +20,23 @@ for (const file of fs.readdirSync(path.join("docs", "api"))) {
 const tree = {
 	text: "API",
 	collapsed: false,
-	items: []
+	items: [{
+		text: "@ui5",
+		items: []
+	}]
 }
 
 for (let file of fs.readdirSync(path.join("docs", "api"))) {
-	file = file.replace(".md", "").replace("module-", "")
-	const treePath = file.split("_");
+	file = file.replace(".md", "");
+	const treePath = file.replace("module-", "").split("_");
 	appendToTree(tree, file, treePath, 0);
 }
 
 function appendToTree(tree, file, treePath, index) {
-	if (treePath.length === index) {
+	if (treePath.length - 1 === index) {
 		tree.items.push({
-			text: treePath[index],
-			link: file
+			text: treePath[index].replace("module-", ""),
+			link: "/api/" + file
 		});
 		return;
 	}
@@ -47,14 +50,16 @@ function appendToTree(tree, file, treePath, index) {
 	}
 	if (!found) {
 		let newItem = {
-			text: treePath[index],
-			collapsed: false,
+			text: treePath[index].replace("module-", ""),
+			collapsed: treePath[index] !== "@ui5",
 			items: []
 		}
 		appendToTree(newItem, file, treePath, index+1);
 		tree.items.push(newItem);
 	}
 }
+
+tree.items = tree.items[0].items; // Display items inside @ui5 as root
 
 export default defineConfig({
 
