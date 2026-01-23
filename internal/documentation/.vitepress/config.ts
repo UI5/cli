@@ -5,61 +5,9 @@ import { defineConfig } from "vitepress";
 // markdown
 import MarkdownItImplicitFigures from "markdown-it-implicit-figures";
 
-import fs from "node:fs";
-import path from "node:path";
-
-// Create items for all api pages
-const apiPages: { text: string; link: string; }[] = [];
-for (const file of fs.readdirSync(path.join("docs", "api"))) {
-  apiPages.push({
-    text: file.replaceAll("_", "/").replace(".md", ""),
-    link: "api/" + file
-  });
-}
-
-const tree = {
-	text: "API",
-	collapsed: false,
-	items: [{
-		text: "@ui5",
-		items: []
-	}]
-}
-
-for (let file of fs.readdirSync(path.join("docs", "api"))) {
-	file = file.replace(".md", "");
-	const treePath = file.replace("module-", "").split("_");
-	appendToTree(tree, file, treePath, 0);
-}
-
-function appendToTree(tree, file, treePath, index) {
-	if (treePath.length - 1 === index) {
-		tree.items.push({
-			text: treePath[index].replace("module-", ""),
-			link: "/api/" + file
-		});
-		return;
-	}
-	let found = false;
-	for (const treeItem of tree.items) {
-		if (treeItem.text === treePath[index]) {
-			appendToTree(treeItem, file, treePath, index+1);
-			found = true;
-			break;
-		}
-	}
-	if (!found) {
-		let newItem = {
-			text: treePath[index].replace("module-", ""),
-			collapsed: treePath[index] !== "@ui5",
-			items: []
-		}
-		appendToTree(newItem, file, treePath, index+1);
-		tree.items.push(newItem);
-	}
-}
-
-tree.items = tree.items[0].items; // Display items inside @ui5 as root
+// api docs
+import * as path from "node:path";
+import * as fs from "node:fs";
 
 export default defineConfig({
 
@@ -330,7 +278,53 @@ function guide() {
 				},
 			],
 		},
-		tree
+		(() => {
+			// This function builds the tree for the api docs
+			const tree = {
+				text: "API",
+				collapsed: false,
+				items: [{
+					text: "@ui5",
+					items: []
+				}]
+			}
+
+			for (let file of fs.readdirSync(path.join("docs", "api"))) {
+				file = file.replace(".md", "");
+				const treePath = file.replace("module-", "").split("_");
+				appendToTree(tree, file, treePath, 0);
+			}
+
+			function appendToTree(tree, file, treePath, index) {
+				if (treePath.length - 1 === index) {
+					tree.items.push({
+						text: treePath[index].replace("module-", ""),
+						link: "/api/" + file
+					});
+					return;
+				}
+				let found = false;
+				for (const treeItem of tree.items) {
+					if (treeItem.text === treePath[index]) {
+						appendToTree(treeItem, file, treePath, index+1);
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					let newItem = {
+						text: treePath[index].replace("module-", ""),
+						collapsed: treePath[index] !== "@ui5",
+						items: []
+					}
+					appendToTree(newItem, file, treePath, index+1);
+					tree.items.push(newItem);
+				}
+			}
+
+			tree.items = tree.items[0].items; // Display items inside @ui5 as root
+			return tree;
+		})()
 	];
 }
 
