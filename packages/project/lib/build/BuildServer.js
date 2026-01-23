@@ -31,13 +31,13 @@ class BuildServer extends EventEmitter {
 	#projectBuilder;
 	#watchHandler;
 	#rootProjectName;
-	#buildQueue = new Map();
+	#projectBuildStatus = new Map();
 	#pendingBuildRequest = new Set();
 	#activeBuild = null;
+	#processBuildRequestsTimeout;
 	#allReader;
 	#rootReader;
 	#dependenciesReader;
-	#projectReaders = new Map();
 
 	/**
 	 * Creates a new BuildServer instance
@@ -60,34 +60,42 @@ class BuildServer extends EventEmitter {
 		this.#graph = graph;
 		this.#rootProjectName = graph.getRoot().getName();
 		this.#projectBuilder = projectBuilder;
-		this.#allReader = new BuildReader("Build Server: All Projects Reader",
-			Array.from(this.#graph.getProjects()),
-			this.#getReaderForProject.bind(this),
-			this.#getReaderForProjects.bind(this));
+
+		const buildServerInterface = {
+			getReaderForProject: this.#getReaderForProject.bind(this),
+			getReaderForProjects: this.#getReaderForProjects.bind(this),
+			getCachedReadersForProjects: this.#getCachedReadersForProjects.bind(this),
+		};
+
+		this.#allReader = new BuildReader(
+			"Build Server: All Projects Reader", Array.from(this.#graph.getProjects()), buildServerInterface);
+
 		const rootProject = this.#graph.getRoot();
-		this.#rootReader = new BuildReader("Build Server: Root Project Reader",
-			[rootProject],
-			this.#getReaderForProject.bind(this),
-			this.#getReaderForProjects.bind(this));
+		this.#rootReader = new BuildReader("Build Server: Root Project Reader", [rootProject], buildServerInterface);
+
 		const dependencies = graph.getTransitiveDependencies(rootProject.getName()).map((dep) => graph.getProject(dep));
-		this.#dependenciesReader = new BuildReader("Build Server: Dependencies Reader",
-			dependencies,
-			this.#getReaderForProject.bind(this),
-			this.#getReaderForProjects.bind(this));
+		this.#dependenciesReader = new BuildReader(
+			"Build Server: Dependencies Reader", dependencies, buildServerInterface);
+
+		// Initialize cache states
+		this.#projectBuildStatus.set(this.#rootProjectName, new ProjectBuildStatus());
+
+		for (const dep of dependencies) {
+			this.#projectBuildStatus.set(dep.getName(), new ProjectBuildStatus());
+		}
 
 		if (initialBuildRootProject) {
-			this.#pendingBuildRequest.add(this.#rootProjectName);
+			log.verbose("Enqueueing root project for initial build");
+			this.#enqueueBuild(this.#rootProjectName);
 		}
 		if (initialBuildIncludedDependencies.length > 0) {
 			// Enqueue initial build dependencies
 			for (const projectName of initialBuildIncludedDependencies) {
 				if (!initialBuildExcludedDependencies.includes(projectName)) {
-					this.#pendingBuildRequest.add(projectName);
+					log.verbose(`Enqueueing project '${projectName}' for initial build`);
+					this.#enqueueBuild(projectName);
 				}
 			}
-			this.#processBuildQueue().catch((err) => {
-				this.emit("error", err);
-			});
 		}
 
 		const watchHandler = new WatchHandler();
@@ -102,26 +110,11 @@ class BuildServer extends EventEmitter {
 		});
 		watchHandler.on("change", (eventType, filePath, project) => {
 			log.verbose(`Source change detected: ${eventType} ${filePath} in project '${project.getName()}'`);
-			// TODO: Abort any active build
+			this.#projectResourceChangedLive(project, ["add", "unlink", "unlinkDir"].includes(eventType));
 		});
 		watchHandler.on("batchedChanges", (changes) => {
 			log.verbose(`Received batched source changes for projects: ${[...changes.keys()].join(", ")}`);
-
-			// Inform project builder
-			const affectedProjects = this.#projectBuilder.resourcesChanged(changes);
-
-			for (const projectName of affectedProjects) {
-				log.verbose(`Invalidating built project '${projectName}' due to source changes`);
-				this.#projectReaders.delete(projectName);
-				// If project is currently in build queue, re-enqueue it for rebuild
-				if (this.#buildQueue.has(projectName)) {
-					log.verbose(`Re-enqueuing project '${projectName}' for rebuild`);
-					this.#pendingBuildRequest.add(projectName);
-				}
-			}
-
-			const changedResourcePaths = [...changes.values()].flat();
-			this.emit("sourcesChanged", changedResourcePaths);
+			this.#batchResourceChanges(changes);
 		});
 	}
 
@@ -185,10 +178,20 @@ class BuildServer extends EventEmitter {
 	 * @returns {Promise<@ui5/fs/AbstractReader>} Reader for the built project
 	 */
 	async #getReaderForProject(projectName) {
-		if (this.#projectReaders.has(projectName)) {
-			return this.#projectReaders.get(projectName);
+		if (!this.#projectBuildStatus.has(projectName)) {
+			throw new Error(`Project '${projectName}' not found in project graph`);
 		}
-		return this.#enqueueBuild(projectName);
+		const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+
+		if (projectBuildStatus.isFresh()) {
+			return projectBuildStatus.getReader();
+		}
+		const {promise, resolve, reject} = Promise.withResolvers();
+		projectBuildStatus.addReaderRequest({resolve, reject});
+
+		log.verbose(`Reader for project '${projectName}' is not fresh. Enqueuing build request.`);
+		this.#enqueueBuild(projectName);
+		return promise;
 	}
 
 	/**
@@ -201,43 +204,72 @@ class BuildServer extends EventEmitter {
 	 * @returns {Promise<@ui5/fs/ReaderCollection>} Combined reader for all requested projects
 	 */
 	async #getReaderForProjects(projectNames) {
-		// Enqueue all projects that aren't cached yet
-		const buildPromises = [];
-		for (const projectName of projectNames) {
-			if (!this.#projectReaders.has(projectName)) {
-				buildPromises.push(this.#enqueueBuild(projectName));
-			}
+		if (projectNames.length === 1) {
+			return await this.#getReaderForProject(projectNames[0]);
 		}
-		// Wait for all builds to complete
-		if (buildPromises.length > 0) {
-			await Promise.all(buildPromises);
-		}
-		return this.#getReaderForCachedProjects(projectNames);
-	}
-
-	/**
-	 * Creates a combined reader for already-built projects
-	 *
-	 * Retrieves readers from the cache for the specified projects and combines them
-	 * into a prioritized reader collection.
-	 *
-	 * @param {string[]} projectNames Array of project names to combine
-	 * @returns {@ui5/fs/ReaderCollection} Combined reader for cached projects
-	 */
-	#getReaderForCachedProjects(projectNames) {
-		const readers = [];
-		for (const projectName of projectNames) {
-			const reader = this.#projectReaders.get(projectName);
-			if (reader) {
-				readers.push(reader);
-			}
-		}
+		const readers = await Promise.all(projectNames.map((projectName) => this.#getReaderForProject(projectName)));
 		return createReaderCollectionPrioritized({
 			name: `Build Server: Reader for projects: ${projectNames.join(", ")}`,
 			readers
 		});
 	}
 
+	#getCachedReadersForProjects(projectNames) {
+		const readers = [];
+		for (const projectName of projectNames) {
+			const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+			const reader = projectBuildStatus.getReader();
+			if (reader) {
+				readers.push(reader);
+			}
+		}
+		if (!readers.length) {
+			return;
+		}
+
+		return createReaderCollectionPrioritized({
+			name: `Build Server: Cached readers for projects: ${projectNames.join(", ")}`,
+			readers
+		});
+	}
+
+	/**
+	 * Several projects might be affected by the source file change.
+	 * However, at this time we can't tell for sure which ones:
+	 * Only the project builder can determine the affected projects for a given (set of) source file changes.
+	 * This check is only possible while no build is running, and is therefore only done in the batched change handler.
+	 *
+	 * Assuming that the change in source files might corrupt a currently running (or about to be started) build,
+	 * we abort all active builds affecting the changed project or any of its dependents.
+	 *
+	 * @param {@ui5/project/specifications/Project} project Project where the resource change occurred
+	 * @param {boolean} fileAddedOrRemoved Whether a file was added or removed
+	 */
+	#projectResourceChangedLive(project, fileAddedOrRemoved) {
+		for (const {project: affectedProject} of this.#graph.traverseDependents(project.getName(), true)) {
+			const projectBuildStatus = this.#projectBuildStatus.get(affectedProject.getName());
+			projectBuildStatus.abortBuild("Source files changed");
+			if (fileAddedOrRemoved) {
+				// Reset any cached readers in case files were added or removed
+				projectBuildStatus.resetReaderCache();
+			}
+		}
+	}
+
+	#batchResourceChanges(changes) {
+		// Inform project builder
+		const affectedProjects = this.#projectBuilder.resourcesChanged(changes);
+
+		for (const projectName of affectedProjects) {
+			log.verbose(`Invalidating built project '${projectName}' due to source changes`);
+			const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+			projectBuildStatus.invalidate();
+		}
+		this.#triggerRequestQueue();
+
+		const changedResourcePaths = [...changes.values()].flat();
+		this.emit("sourcesChanged", changedResourcePaths);
+	}
 	/**
 	 * Enqueues a project for building and returns a promise that resolves with its reader
 	 *
@@ -245,38 +277,34 @@ class BuildServer extends EventEmitter {
 	 * a new promise, adds the project to the pending build queue, and triggers queue processing.
 	 *
 	 * @param {string} projectName Name of the project to enqueue
-	 * @returns {Promise<@ui5/fs/AbstractReader>} Promise that resolves with the project's reader
 	 */
 	#enqueueBuild(projectName) {
-		// If already queued, return existing promise
-		if (this.#buildQueue.has(projectName)) {
-			return this.#buildQueue.get(projectName).promise;
+		if (this.#pendingBuildRequest.has(projectName)) {
+			// Already queued
+			return;
 		}
 
 		log.verbose(`Enqueuing project '${projectName}' for build`);
 
-		// Create new promise for this project
-		let resolve;
-		let reject;
-		const promise = new Promise((res, rej) => {
-			resolve = res;
-			reject = rej;
-		});
-
-		// Store promise and resolvers in the queue
-		this.#buildQueue.set(projectName, {promise, resolve, reject});
-
 		// Add to pending build requests
 		this.#pendingBuildRequest.add(projectName);
 
-		// Trigger queue processing if no build is active
-		if (!this.#activeBuild) {
-			this.#processBuildQueue().catch((err) => {
+		this.#triggerRequestQueue();
+	}
+
+	#triggerRequestQueue() {
+		if (this.#activeBuild) {
+			return;
+		}
+		// If no build is active, trigger queue processing debounced
+		if (this.#processBuildRequestsTimeout) {
+			clearTimeout(this.#processBuildRequestsTimeout);
+		}
+		this.#processBuildRequestsTimeout = setTimeout(() => {
+			this.#processBuildRequests().catch((err) => {
 				this.emit("error", err);
 			});
-		}
-
-		return promise;
+		}, 10);
 	}
 
 	/**
@@ -288,80 +316,132 @@ class BuildServer extends EventEmitter {
 	 *
 	 * @returns {Promise<void>} Promise that resolves when queue processing is complete
 	 */
-	async #processBuildQueue() {
+	async #processBuildRequests() {
 		// Process queue while there are pending requests
 		while (this.#pendingBuildRequest.size > 0) {
 			// Collect all pending projects for this batch
 			const projectsToBuild = Array.from(this.#pendingBuildRequest);
 			let buildRootProject = false;
-			if (projectsToBuild.includes(this.#rootProjectName)) {
+			let dependenciesToBuild;
+			const rootProjectIdx = projectsToBuild.indexOf(this.#rootProjectName);
+			if (rootProjectIdx !== -1) {
 				buildRootProject = true;
+				dependenciesToBuild = projectsToBuild.toSpliced(rootProjectIdx, 1);
+			} else {
+				dependenciesToBuild = projectsToBuild;
 			}
 			this.#pendingBuildRequest.clear();
 
 			log.verbose(`Building projects: ${projectsToBuild.join(", ")}`);
+			const signal = AbortSignal.any(projectsToBuild.map((projectName) => {
+				return this.#projectBuildStatus.get(projectName).getAbortSignal();
+			}));
 
 			// Set active build to prevent concurrent builds
 			const buildPromise = this.#activeBuild = this.#projectBuilder.build({
 				includeRootProject: buildRootProject,
-				includedDependencies: projectsToBuild
+				includedDependencies: dependenciesToBuild,
+				signal,
 			}, (projectName, project) => {
-				// Project has been built and result can be served
-				// TODO: Immediately resolve pending promises here instead of waiting for full build to finish
+				// Project has been built and result can be used
+				const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+				projectBuildStatus.setReader(project.getReader({style: "runtime"}));
 			});
 
 			try {
 				const builtProjects = await buildPromise;
-				this.#projectBuildFinished(builtProjects);
-
-				// Resolve promises for all successfully built projects
-				for (const projectName of builtProjects) {
-					const queueEntry = this.#buildQueue.get(projectName);
-					if (queueEntry) {
-						const reader = this.#projectReaders.get(projectName);
-						queueEntry.resolve(reader);
-						// Only remove from queue if not re-enqueued during build
-						if (!this.#pendingBuildRequest.has(projectName)) {
-							log.verbose(`Project '${projectName}' build finished. Removing from build queue.`);
-							this.#buildQueue.delete(projectName);
+				this.emit("buildFinished", builtProjects);
+			} catch (err) {
+				if (err.name === "AbortError") {
+					// Build was aborted - do not log as error
+					// Re-queue any outstanding projects
+					for (const projectName of projectsToBuild) {
+						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+						if (!projectBuildStatus.isFresh()) {
+							this.#pendingBuildRequest.add(projectName);
 						}
 					}
-				}
-			} catch (err) {
-				// Build failed - reject promises for projects that weren't built
-				for (const projectName of projectsToBuild) {
-					log.error(`Project '${projectName}' build failed: ${err.message}`);
-					const queueEntry = this.#buildQueue.get(projectName);
-					if (queueEntry && !this.#projectReaders.has(projectName)) {
-						queueEntry.reject(err);
-						this.#buildQueue.delete(projectName);
-						this.#pendingBuildRequest.delete(projectName);
+				} else {
+					log.error(`Build failed: ${err.message}`);
+					// Build failed - reject promises for projects that weren't built
+					for (const projectName of projectsToBuild) {
+						const projectBuildStatus = this.#projectBuildStatus.get(projectName);
+						projectBuildStatus.rejectReaderRequestes(err);
 					}
+					// Re-throw to be handled by caller
+					throw err;
 				}
-				// Re-throw to be handled by caller
-				throw err;
 			} finally {
 				// Clear active build
 				this.#activeBuild = null;
 			}
+			if (signal.aborted) {
+				log.verbose(`Build aborted for projects: ${projectsToBuild.join(", ")}`);
+				return;
+			}
 		}
 	}
+}
 
-	/**
-	 * Handles completion of a project build
-	 *
-	 * Caches readers for all built projects and emits the buildFinished event
-	 * with the list of project names that were built.
-	 *
-	 * @param {string[]} projectNames Array of project names that were built
-	 * @fires BuildServer#buildFinished
-	 */
-	#projectBuildFinished(projectNames) {
-		for (const projectName of projectNames) {
-			this.#projectReaders.set(projectName,
-				this.#graph.getProject(projectName).getReader({style: "runtime"}));
+const PROJECT_STATES = Object.freeze({
+	INITIAL: "initial",
+	INVALIDATED: "invalidated",
+	FRESH: "fresh",
+});
+
+class ProjectBuildStatus {
+	#state = PROJECT_STATES.INITIAL;
+	#readerQueue = [];
+	#reader;
+	#abortController = new AbortController();
+
+	invalidate() {
+		this.#state = PROJECT_STATES.INVALIDATED;
+		// Ensure any running build is aborted. Then reset the abort controller
+		this.#abortController.abort();
+		this.#abortController = new AbortController();
+	}
+
+	abortBuild(reason) {
+		this.#abortController.abort(reason);
+	}
+
+	getAbortSignal() {
+		return this.#abortController.signal;
+	}
+
+	isFresh() {
+		return this.#state === PROJECT_STATES.FRESH;
+	}
+
+	getReader() {
+		return this.#reader;
+	}
+
+	setReader(reader) {
+		this.#reader = reader;
+		this.#state = PROJECT_STATES.FRESH;
+		// Resolve any queued getReader promises
+		for (const {resolve} of this.#readerQueue) {
+			resolve(reader);
 		}
-		this.emit("buildFinished", projectNames);
+		this.#readerQueue = [];
+	}
+
+	resetReaderCache() {
+		this.#reader = null;
+	}
+
+	addReaderRequest(promiseResolvers) {
+		this.#readerQueue.push(promiseResolvers);
+	}
+
+	rejectReaderRequestes(error) {
+		this.#state = PROJECT_STATES.INVALIDATED;
+		for (const {reject} of this.#readerQueue) {
+			reject(error);
+		}
+		this.#readerQueue = [];
 	}
 }
 
