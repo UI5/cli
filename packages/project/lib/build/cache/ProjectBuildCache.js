@@ -815,10 +815,10 @@ export default class ProjectBuildCache {
 				// Source index is up-to-date, awaiting dependency indices validation
 				// Status remains at initializing
 				this.#cacheState = CACHE_STATES.INITIALIZING;
+				this.#cachedSourceSignature = resourceIndex.getSignature();
 			}
 			this.#sourceIndex = resourceIndex;
-			this.#cachedSourceSignature = resourceIndex.getSignature();
-			this.#changedProjectSourcePaths = changedPaths;
+			// Since all source files are part of the result, declare any detected changes as newly written resources
 			this.#writtenResultResourcePaths = changedPaths;
 		} else {
 			// No index cache found, create new index
@@ -853,6 +853,7 @@ export default class ProjectBuildCache {
 			log.verbose(`Source resource index for project ${this.#project.getName()} updated: ` +
 				`${removed.length} removed, ${added.length} added, ${updated.length} updated resources.`);
 			const changedPaths = [...removed, ...added, ...updated];
+			// Since all source files are part of the result, declare any detected changes as newly written resources
 			for (const resourcePath of changedPaths) {
 				if (!this.#writtenResultResourcePaths.includes(resourcePath)) {
 					this.#writtenResultResourcePaths.push(resourcePath);
