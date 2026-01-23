@@ -86,9 +86,10 @@ class TaskRunner {
 	/**
 	 * Takes a list of tasks which should be executed from the available task list of the current builder
 	 *
+	 * @param {AbortSignal} [signal] Abort signal
 	 * @returns {Promise<string[]>} Resolves with list of changed resources since the last build
 	 */
-	async runTasks() {
+	async runTasks(signal) {
 		await this._initTasks();
 
 		// Ensure cached dependencies reader is initialized and up-to-date (TODO: improve this lifecycle)
@@ -113,6 +114,7 @@ class TaskRunner {
 		this._log.setTasks(allTasks);
 		this._buildCache.setTasks(allTasks);
 		for (const taskName of allTasks) {
+			signal?.throwIfAborted();
 			const taskFunction = this._tasks[taskName].task;
 
 			if (typeof taskFunction === "function") {

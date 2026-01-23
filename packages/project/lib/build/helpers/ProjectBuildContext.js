@@ -289,9 +289,11 @@ class ProjectBuildContext {
 	 *
 	 * Executes all configured build tasks for the project using the task runner.
 	 * Must be called after prepareProjectBuildAndValidateCache().
+	 *
+	 * @param {AbortSignal} [signal] Abort signal
 	 */
-	async buildProject() {
-		const changedPaths = await this.getTaskRunner().runTasks();
+	async buildProject(signal) {
+		const changedPaths = await this.getTaskRunner().runTasks(signal);
 		// Propagate changed paths to dependents
 		this.propagateResourceChanges(changedPaths);
 	}
