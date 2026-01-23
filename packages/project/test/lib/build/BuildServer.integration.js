@@ -58,6 +58,8 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
 	await fs.appendFile(changedFilePath, `\ntest("line added");\n`);
 
+	await setTimeout(500); // Wait for the file watcher to detect and propagate the change
+
 	// #3 request with cache and changes
 	const res = await fixtureTester.requestResource("/test.js", {
 		projects: {
@@ -74,7 +76,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 	});
 
 	// Check whether the changed file is in the destPath
-	const servedFileContent = await res.toString();
+	const servedFileContent = await res.getString();
 	t.true(servedFileContent.includes(`test("line added");`), "Resource contains changed file content");
 });
 
