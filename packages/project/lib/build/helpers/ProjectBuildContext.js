@@ -260,9 +260,8 @@ class ProjectBuildContext {
 	 * Creates a dependency reader and validates the cache state against current resources.
 	 * Must be called before buildProject().
 	 *
-	 * @returns {Promise<string[]|false|undefined>}
-	 *   Undefined if no cache was found, false if cache is empty,
-	 *   or an array of changed resource paths since the last build
+	 * @returns {Promise<true|false|undefined>}
+	 *   True if a valid cache was found and is being used. False otherwise (indicating a build is required).
 	 */
 	async prepareProjectBuildAndValidateCache() {
 		const depReader = await this.getTaskRunner().getDependenciesReader(
@@ -276,7 +275,13 @@ class ProjectBuildContext {
 			// (they will be updated based on input via #dependencyResourcesChanged)
 			await this.getBuildCache().refreshDependencyIndices(depReader);
 		}
-		return await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader);
+		const boolOrChangedPaths = await this.getBuildCache().prepareProjectBuildAndValidateCache(depReader);
+		if (Array.isArray(boolOrChangedPaths)) {
+			// Cache can be used, but some resources have changed
+			// Propagate changed paths to dependents
+			this.propagateResourceChanges(boolOrChangedPaths);
+		}
+		return !!boolOrChangedPaths;
 	}
 
 	/**
@@ -284,11 +289,11 @@ class ProjectBuildContext {
 	 *
 	 * Executes all configured build tasks for the project using the task runner.
 	 * Must be called after prepareProjectBuildAndValidateCache().
-	 *
-	 * @returns {Promise<string[]>} List of changed resource paths since the last build
 	 */
 	async buildProject() {
-		return await this.getTaskRunner().runTasks();
+		const changedPaths = await this.getTaskRunner().runTasks();
+		// Propagate changed paths to dependents
+		this.propagateResourceChanges(changedPaths);
 	}
 	/**
 	 * Informs the build cache about changed project source resources
@@ -312,6 +317,18 @@ class ProjectBuildContext {
 	 */
 	dependencyResourcesChanged(changedPaths) {
 		return this._buildCache.dependencyResourcesChanged(changedPaths);
+	}
+
+	propagateResourceChanges(changedPaths) {
+		if (!changedPaths.length) {
+			return;
+		}
+		for (const {project: dep} of this._buildContext.getGraph().traverseDependents(this._project.getName())) {
+			const projectBuildContext = this._buildContext.getBuildContext(dep.getName());
+			if (projectBuildContext) {
+				projectBuildContext.dependencyResourcesChanged(changedPaths);
+			}
+		}
 	}
 
 	/**
@@ -366,6 +383,10 @@ class ProjectBuildContext {
 	 */
 	getBuildCache() {
 		return this._buildCache;
+	}
+
+	async writeBuildCache() {
+		await this._buildCache.writeCache();
 	}
 
 	/**

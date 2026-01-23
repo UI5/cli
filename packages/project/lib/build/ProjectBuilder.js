@@ -274,18 +274,12 @@ class ProjectBuilder {
 				if (alreadyBuilt.includes(projectName)) {
 					this.#log.skipProjectBuild(projectName, projectType);
 				} else {
-					let changedPaths = await projectBuildContext.prepareProjectBuildAndValidateCache();
-					if (changedPaths) {
+					const usesCache = await projectBuildContext.prepareProjectBuildAndValidateCache();
+					if (usesCache) {
 						this.#log.skipProjectBuild(projectName, projectType);
 						alreadyBuilt.push(projectName);
 					} else {
-						changedPaths = await this._buildProject(projectBuildContext);
-					}
-					if (changedPaths.length) {
-						// Propagate resource changes to following projects
-						for (const pbc of queue) {
-							pbc.dependencyResourcesChanged(changedPaths);
-						}
+						await this._buildProject(projectBuildContext);
 					}
 				}
 
@@ -295,7 +289,7 @@ class ProjectBuilder {
 
 				if (!alreadyBuilt.includes(projectName) && !process.env.UI5_BUILD_NO_WRITE_CACHE) {
 					this.#log.verbose(`Triggering cache update for project ${projectName}...`);
-					pCacheWrites.push(projectBuildContext.getBuildCache().writeCache());
+					pCacheWrites.push(projectBuildContext.writeBuildCache());
 				}
 			}
 			await Promise.all(pCacheWrites);
