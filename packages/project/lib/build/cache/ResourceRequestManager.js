@@ -244,11 +244,16 @@ class ResourceRequestManager {
 				await resourceIndex.upsertResources(resourcesToUpdate);
 			}
 		}
+		let hasChanges;
 		if (this.#useDifferentialUpdate) {
-			return await this.#flushTreeChangesWithDiffTracking();
+			hasChanges = await this.#flushTreeChangesWithDiffTracking();
 		} else {
-			return await this.#flushTreeChangesWithoutDiffTracking();
+			hasChanges = await this.#flushTreeChangesWithoutDiffTracking();
 		}
+		if (hasChanges) {
+			this.#hasNewOrModifiedCacheEntries = true;
+		}
+		return hasChanges;
 	}
 
 	/**
@@ -461,6 +466,9 @@ class ResourceRequestManager {
 	 * @returns {string} Special signature "X" indicating no requests
 	 */
 	recordNoRequests() {
+		if (!this.#unusedAtLeastOnce) {
+			this.#hasNewOrModifiedCacheEntries = true;
+		}
 		this.#unusedAtLeastOnce = true;
 		return "X"; // Signature for when no requests were made
 	}
@@ -477,6 +485,7 @@ class ResourceRequestManager {
 	 * @returns {Promise<object>} Object containing setId and signature of the resource index
 	 */
 	async #addRequestSet(requests, reader) {
+		this.#hasNewOrModifiedCacheEntries = true;
 		// Try to find an existing request set that we can reuse
 		let setId = this.#requestGraph.findExactMatch(requests);
 		let resourceIndex;
