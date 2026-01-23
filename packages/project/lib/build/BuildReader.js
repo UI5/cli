@@ -13,9 +13,9 @@ import AbstractReader from "@ui5/fs/AbstractReader";
 class BuildReader extends AbstractReader {
 	#projects;
 	#projectNames;
+	#applicationProjectName;
 	#namespaces = new Map();
-	#getReaderForProject;
-	#getReaderForProjects;
+	#buildServerInterface;
 
 	/**
 	 * Creates a new BuildReader instance
@@ -23,16 +23,14 @@ class BuildReader extends AbstractReader {
 	 * @public
 	 * @param {string} name Name of the reader
 	 * @param {Array<@ui5/project/specifications/Project>} projects Array of projects to read from
-	 * @param {Function} getReaderForProject Function that returns a reader for a single project by name
-	 * @param {Function} getReaderForProjects Function that returns a combined reader for multiple project names
+	 * @param {object} buildServerInterface Function that returns a reader for a single project by name
 	 * @throws {Error} If multiple projects share the same namespace
 	 */
-	constructor(name, projects, getReaderForProject, getReaderForProjects) {
+	constructor(name, projects, buildServerInterface) {
 		super(name);
 		this.#projects = projects;
 		this.#projectNames = projects.map((p) => p.getName());
-		this.#getReaderForProject = getReaderForProject;
-		this.#getReaderForProjects = getReaderForProjects;
+		this.#buildServerInterface = buildServerInterface;
 
 		for (const project of projects) {
 			const ns = project.getNamespace();
@@ -43,6 +41,10 @@ class BuildReader extends AbstractReader {
 						`${this.#namespaces.get(ns)} and ${project.getName()}`);
 				}
 				this.#namespaces.set(ns, project.getName());
+			}
+
+			if (project.getType() === "application") {
+				this.#applicationProjectName = project.getName();
 			}
 		}
 	}
@@ -57,7 +59,7 @@ class BuildReader extends AbstractReader {
 	 * @returns {Promise<Array<@ui5/fs/Resource>>} Promise resolving to list of resources
 	 */
 	async byGlob(...args) {
-		const reader = await this.#getReaderForProjects(this.#projectNames);
+		const reader = await this.#buildServerInterface.getReaderForProjects(this.#projectNames);
 		return reader.byGlob(...args);
 	}
 
@@ -77,7 +79,7 @@ class BuildReader extends AbstractReader {
 		let res = await reader.byPath(virPath, ...args);
 		if (!res) {
 			// Fallback to unspecified projects
-			const allReader = await this.#getReaderForProjects(this.#projectNames);
+			const allReader = await this.#buildServerInterface.getReaderForProjects(this.#projectNames);
 			res = await allReader.byPath(virPath, ...args);
 		}
 		return res;
@@ -94,23 +96,40 @@ class BuildReader extends AbstractReader {
 	 * @returns {Promise<@ui5/fs/AbstractReader>} Promise resolving to appropriate reader
 	 */
 	async _getReaderForResource(virPath) {
-		let reader;
 		if (this.#projects.length === 1) {
 			// Filtering on a single project (typically the root project)
-			reader = await this.#getReaderForProject(this.#projectNames[0]);
-		} else {
-			// Determine project for resource path
-			const projects = this._getProjectsForResourcePath(virPath);
-			if (projects.length) {
-				reader = await this.#getReaderForProjects(projects);
-			} else {
-				// Unable to determine project for resource
-				// Request reader for all projects
-				reader = await this.#getReaderForProjects(this.#projectNames);
+			return await this.#buildServerInterface.getReaderForProject(this.#projectNames[0]);
+		}
+		// Determine project for resource path
+		const projects = this._getProjectsForResourcePath(virPath);
+		if (projects.length) {
+			return await this.#buildServerInterface.getReaderForProjects(projects);
+		}
+
+		// Unable to determine project for resource using path
+		// Fallback 1: Try to find resource in cached readers (if available) to identify the relevant project
+		const cachedReader = this.#buildServerInterface.getCachedReadersForProjects(this.#projectNames);
+		if (cachedReader) {
+			const res = await cachedReader.byPath(virPath);
+			if (res) {
+				// Found resource in one of the cached readers. Assume it still belongs to the associated project
+				return this.#buildServerInterface.getReaderForProject(res.getProject().getName());
 			}
 		}
 
-		return reader;
+		// Fallback 2: If the root project is of type application, and the request does not start with
+		// /resources/ or /test-resources/, test whether the resource can be found in the root project
+		if (this.#applicationProjectName && !virPath.startsWith("/resources/") &&
+			!virPath.startsWith("/test-resources/")) {
+			const appReader = await this.#buildServerInterface.getReaderForProject(this.#applicationProjectName);
+			const res = await appReader.byPath(virPath);
+			if (res) {
+				return appReader;
+			}
+		}
+
+		// Fallback to request a reader for all projects
+		return await this.#buildServerInterface.getReaderForProjects(this.#projectNames);
 	}
 
 	/**
