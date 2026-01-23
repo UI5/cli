@@ -121,16 +121,20 @@ class ProjectBuilder {
 	}
 
 	resourcesChanged(changes) {
+		if (this.#buildIsRunning) {
+			throw new Error(`Unable to safely propagate resource changes. Build is currently running.`);
+		}
 		return this._buildContext.propagateResourceChanges(changes);
 	}
 
 	async build({
 		includeRootProject = true,
 		includedDependencies = [], excludedDependencies = [],
+		signal,
 	}, projectBuiltCallback) {
 		const requestedProjects = this._determineRequestedProjects(
 			includeRootProject, includedDependencies, excludedDependencies);
-		return await this.#build(requestedProjects, projectBuiltCallback);
+		return await this.#build(requestedProjects, projectBuiltCallback, signal);
 	}
 
 	/**
@@ -224,12 +228,12 @@ class ProjectBuilder {
 		return requestedProjects;
 	}
 
-	async #build(requestedProjects, projectBuiltCallback) {
+	async #build(requestedProjects, projectBuiltCallback, signal) {
 		if (this.#buildIsRunning) {
 			throw new Error("A build is already running");
 		}
 		this.#buildIsRunning = true;
-
+		this.#log.info(`Preparing build for projects: ${requestedProjects.join(", ")}`);
 		const projectBuildContexts = await this._buildContext.getRequiredProjectContexts(requestedProjects);
 
 		// Create build queue based on graph depth-first search to ensure correct build order
@@ -264,6 +268,7 @@ class ProjectBuilder {
 			const startTime = process.hrtime();
 			const pCacheWrites = [];
 			while (queue.length) {
+				signal?.throwIfAborted();
 				const projectBuildContext = queue.shift();
 				const project = projectBuildContext.getProject();
 				const projectName = project.getName();
@@ -295,23 +300,27 @@ class ProjectBuilder {
 			await Promise.all(pCacheWrites);
 			this.#log.info(`Build succeeded in ${this._getElapsedTime(startTime)}`);
 		} catch (err) {
-			this.#log.error(`Build failed`);
+			if (err.name === "AbortError") {
+				this.#log.info(`Build aborted. Reason: ${err.message}`);
+			} else {
+				this.#log.error(`Build failed`);
+			}
 			throw err;
 		} finally {
 			this._deregisterCleanupSigHooks(cleanupSigHooks);
 			await this._executeCleanupTasks();
+			this.#buildIsRunning = false;
 		}
-		this.#buildIsRunning = false;
 		return processedProjectNames;
 	}
 
-	async _buildProject(projectBuildContext) {
+	async _buildProject(projectBuildContext, signal) {
 		const project = projectBuildContext.getProject();
 		const projectName = project.getName();
 		const projectType = project.getType();
 
 		this.#log.startProjectBuild(projectName, projectType);
-		const changedResources = await projectBuildContext.buildProject();
+		const changedResources = await projectBuildContext.buildProject(signal);
 		this.#log.endProjectBuild(projectName, projectType);
 
 		return changedResources;
