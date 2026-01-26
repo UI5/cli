@@ -270,11 +270,16 @@ class ResourceRequestManager {
 		const matchedResources = [];
 		for (const {type, value} of resourceRequests) {
 			if (type === "path") {
-				if (resourcePaths.includes(value)) {
+				if (resourcePaths.includes(value) && !matchedResources.includes(value)) {
 					matchedResources.push(value);
 				}
 			} else {
-				matchedResources.push(...micromatch(resourcePaths, value));
+				const globMatches = micromatch(resourcePaths, value);
+				for (const match of globMatches) {
+					if (!matchedResources.includes(match)) {
+						matchedResources.push(match);
+					}
+				}
 			}
 		}
 		return matchedResources;
