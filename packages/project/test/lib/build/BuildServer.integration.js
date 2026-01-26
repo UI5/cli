@@ -37,9 +37,40 @@ test.afterEach.always(async (t) => {
 	process.off("ui5.project-build-status", t.context.projectBuildStatusEventStub);
 });
 
+// Note: This test should be the first test to run, as it covers initial build scenarios, which are not reproducible
+// once the BuildServer has been started and built a project at least once.
+// This is independent of caching on file-system level, which is isolated per test via tmp folders.
+test.serial.only("Serve application.a, initial file changes", async (t) => {
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
+
+	await fixtureTester.serveProject();
+
+	// Directly change a source file in application.a before requesting it
+	const changedFilePath = `${fixtureTester.fixturePath}/webapp/test.js`;
+	await fs.appendFile(changedFilePath, `\ntest("initial change");\n`);
+
+	// Request the changed resource immediately
+	const resourceRequestPromise = fixtureTester.requestResource("/test.js", {
+		projects: {
+			"application.a": {}
+		}
+	});
+	// Directly change the source file again, which should abort the current build and trigger a new one
+	await fs.appendFile(changedFilePath, `\ntest("second change");\n`);
+	await fs.appendFile(changedFilePath, `\ntest("third change");\n`);
+
+	// Wait for the resource to be served
+	const resource = await resourceRequestPromise;
+
+	// Check whether the change is reflected
+	const servedFileContent = await resource.getString();
+	t.true(servedFileContent.includes(`test("initial change");`), "Resource contains initial changed file content");
+	t.true(servedFileContent.includes(`test("second change");`), "Resource contains second changed file content");
+	t.true(servedFileContent.includes(`test("third change");`), "Resource contains third changed file content");
+});
+
 test.serial("Serve application.a, request application resource", async (t) => {
-	const fixtureTester = new FixtureTester(t, "application.a");
-	t.context.fixtureTester = fixtureTester;
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
@@ -81,8 +112,7 @@ test.serial("Serve application.a, request application resource", async (t) => {
 });
 
 test.serial("Serve application.a, request library resource", async (t) => {
-	const fixtureTester = new FixtureTester(t, "application.a");
-	t.context.fixtureTester = fixtureTester;
+	const fixtureTester = t.context.fixtureTester = new FixtureTester(t, "application.a");
 
 	// #1 request with empty cache
 	await fixtureTester.serveProject();
@@ -147,7 +177,7 @@ function getFixturePath(fixtureName) {
 }
 
 function getTmpPath(folderName) {
-	return fileURLToPath(new URL(`../../tmp/ProjectServer/${folderName}`, import.meta.url));
+	return fileURLToPath(new URL(`../../tmp/BuildServer/${folderName}`, import.meta.url));
 }
 
 async function rmrf(dirPath) {
