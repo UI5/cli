@@ -114,7 +114,14 @@ class BuildServer extends EventEmitter {
 		});
 		watchHandler.on("batchedChanges", (changes) => {
 			log.verbose(`Received batched source changes for projects: ${[...changes.keys()].join(", ")}`);
-			this.#batchResourceChanges(changes);
+			if (this.#activeBuild) {
+				log.verbose("Waiting for active build to finish before processing batched source changes");
+				this.#activeBuild.finally(() => {
+					this.#batchResourceChanges(changes);
+				});
+			} else {
+				this.#batchResourceChanges(changes);
+			}
 		});
 	}
 
