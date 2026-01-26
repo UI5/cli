@@ -90,7 +90,7 @@
 		"@ui5/builder": "^5.0.0-alpha.2",
 		"@ui5/fs": "^5.0.0-alpha.2",
 		"@ui5/logger": "^5.0.0-alpha.2",
-		"body-parser": "^1.20.2",
+		"body-parser": "^2.2.2",
 		"compression": "^1.8.1",
 		"cors": "^2.8.5",
 		"devcert-sanscache": "^0.5.1",
