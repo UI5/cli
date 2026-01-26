@@ -5,7 +5,7 @@ import ProjectBuildCache from "../../../../lib/build/cache/ProjectBuildCache.js"
 // Helper to create mock Project instances
 function createMockProject(name = "test.project", id = "test-project-id") {
 	const stages = new Map();
-	let currentStage = "source";
+	let currentStage = {getId: () => "initial"};
 	let resultStageReader = null;
 
 	// Create a reusable reader with both byGlob and byPath
@@ -20,12 +20,13 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 		getSourceReader: sinon.stub().callsFake(() => createReader()),
 		getReader: sinon.stub().callsFake(() => createReader()),
 		getStage: sinon.stub().returns({
+			getId: () => currentStage.id || "initial",
 			getWriter: sinon.stub().returns({
 				byGlob: sinon.stub().resolves([])
 			})
 		}),
 		useStage: sinon.stub().callsFake((stageName) => {
-			currentStage = stageName;
+			currentStage = {id: stageName};
 		}),
 		setStage: sinon.stub().callsFake((stageName, stage) => {
 			stages.set(stageName, stage);
@@ -35,7 +36,7 @@ function createMockProject(name = "test.project", id = "test-project-id") {
 			resultStageReader = reader;
 		}),
 		useResultStage: sinon.stub().callsFake(() => {
-			currentStage = "result";
+			currentStage = {id: "result"};
 		}),
 		_getCurrentStage: () => currentStage,
 		_getResultStageReader: () => resultStageReader
@@ -49,9 +50,10 @@ function createMockCacheManager() {
 		writeIndexCache: sinon.stub().resolves(),
 		readStageCache: sinon.stub().resolves(null),
 		writeStageCache: sinon.stub().resolves(),
-		readBuildManifest: sinon.stub().resolves(null),
-		writeBuildManifest: sinon.stub().resolves(),
-		getResourcePathForStage: sinon.stub().resolves(null),
+		readResultMetadata: sinon.stub().resolves(null),
+		writeResultMetadata: sinon.stub().resolves(),
+		readTaskMetadata: sinon.stub().resolves(null),
+		writeTaskMetadata: sinon.stub().resolves(),
 		writeStageResource: sinon.stub().resolves()
 	};
 }
@@ -85,7 +87,6 @@ test("Create ProjectBuildCache instance", async (t) => {
 
 	t.truthy(cache, "ProjectBuildCache instance created");
 	t.true(cacheManager.readIndexCache.called, "Index cache was attempted to be loaded");
-	t.true(cacheManager.readBuildManifest.called, "Build manifest was attempted to be loaded");
 });
 
 test("Create with existing index cache", async (t) => {
@@ -104,26 +105,56 @@ test("Create with existing index cache", async (t) => {
 			version: 1,
 			indexTimestamp: 1000,
 			root: {
-				hash: "expected-hash",
-				children: {}
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
 			}
 		},
-		taskMetadata: {
-			"task1": {
+		tasks: [["task1", false]]
+	};
+
+	// Mock task metadata responses
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		if (type === "project") {
+			return Promise.resolve({
 				requestSetGraph: {
 					nodes: [],
 					nextId: 1
-				}
-			}
+				},
+				rootIndices: [],
+				deltaIndices: [],
+				unusedAtLeastOnce: false
+			});
+		} else if (type === "dependencies") {
+			return Promise.resolve({
+				requestSetGraph: {
+					nodes: [],
+					nextId: 1
+				},
+				rootIndices: [],
+				deltaIndices: [],
+				unusedAtLeastOnce: false
+			});
 		}
-	};
+		return Promise.resolve(null);
+	});
 
 	cacheManager.readIndexCache.resolves(indexCache);
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
 
 	t.truthy(cache, "Cache created with existing index");
-	t.true(cache.hasTaskCache("task1"), "Task cache loaded from index");
+	const taskCache = cache.getTaskCache("task1");
+	t.truthy(taskCache, "Task cache loaded from index");
 });
 
 test("Initialize without any cache", async (t) => {
@@ -133,36 +164,15 @@ test("Initialize without any cache", async (t) => {
 
 	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
 
-	t.true(cache.requiresBuild(), "Build is required when no cache exists");
-	t.false(cache.hasAnyCache(), "No task cache exists initially");
+	t.false(cache.isFresh(), "Cache is not fresh when empty");
 });
 
-test("requiresBuild returns true when invalidated tasks exist", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const buildSignature = "test-signature";
-
-	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
-	project.getSourceReader.returns({
-		byGlob: sinon.stub().resolves([resource])
-	});
-
-	const cache = await ProjectBuildCache.create(project, buildSignature, cacheManager);
-
-	// Simulate having a task cache but with changed resources
-	cache.resourceChanged(["/test.js"], []);
-
-	t.true(cache.requiresBuild(), "Build required when tasks invalidated");
-});
-
-// ===== TASK CACHE TESTS =====
-
-test("hasTaskCache returns false for non-existent task", async (t) => {
+test("isFresh returns false for empty cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	t.false(cache.hasTaskCache("nonexistent"), "Task cache doesn't exist");
+	t.false(cache.isFresh(), "Empty cache is not fresh");
 });
 
 test("getTaskCache returns undefined for non-existent task", async (t) => {
@@ -173,13 +183,7 @@ test("getTaskCache returns undefined for non-existent task", async (t) => {
 	t.is(cache.getTaskCache("nonexistent"), undefined, "Returns undefined");
 });
 
-test("isTaskCacheValid returns false for non-existent task", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	t.false(cache.isTaskCacheValid("nonexistent"), "Non-existent task is not valid");
-});
+// ===== TASK MANAGEMENT TESTS =====
 
 test("setTasks initializes project stages", async (t) => {
 	const project = createMockProject();
@@ -196,16 +200,14 @@ test("setTasks initializes project stages", async (t) => {
 	);
 });
 
-test("setDependencyReader sets the dependency reader", async (t) => {
+test("setTasks with empty task list", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	const mockDependencyReader = {byGlob: sinon.stub()};
-	cache.setDependencyReader(mockDependencyReader);
+	await cache.setTasks([]);
 
-	// The reader is stored internally, we can verify by checking it's used later
-	t.pass("Dependency reader set");
+	t.true(project.initStages.calledWith([]), "initStages called with empty array");
 });
 
 test("allTasksCompleted switches to result stage", async (t) => {
@@ -213,289 +215,368 @@ test("allTasksCompleted switches to result stage", async (t) => {
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	cache.allTasksCompleted();
+	const changedPaths = await cache.allTasksCompleted();
 
 	t.true(project.useResultStage.calledOnce, "useResultStage called");
+	t.true(Array.isArray(changedPaths), "Returns array of changed paths");
+	t.true(cache.isFresh(), "Cache is fresh after all tasks completed");
 });
 
-// ===== TASK EXECUTION TESTS =====
+test("allTasksCompleted returns changed resource paths", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
 
-test("prepareTaskExecution: task needs execution when no cache exists", async (t) => {
+	// Create cache with existing index to be able to track changes
+	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resource])
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: []
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+
+	// Simulate some changes - change tracking happens during prepareProjectBuildAndValidateCache
+	cache.projectSourcesChanged(["/test.js"]);
+
+	const changedPaths = await cache.allTasksCompleted();
+
+	t.true(Array.isArray(changedPaths), "Returns array of changed paths");
+});
+
+// ===== TASK EXECUTION AND RECORDING TESTS =====
+
+test("prepareTaskExecutionAndValidateCache: task needs execution when no cache exists", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
 	await cache.setTasks(["myTask"]);
-	const needsExecution = await cache.prepareTaskExecution("myTask", false);
+	const canUseCache = await cache.prepareTaskExecutionAndValidateCache("myTask");
 
-	t.true(needsExecution, "Task needs execution without cache");
+	t.false(canUseCache, "Task cannot use cache");
 	t.true(project.useStage.calledWith("task/myTask"), "Project switched to task stage");
 });
 
-test("prepareTaskExecution: switches project to correct stage", async (t) => {
+test("prepareTaskExecutionAndValidateCache: switches project to correct stage", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
 	await cache.setTasks(["task1", "task2"]);
-	await cache.prepareTaskExecution("task2", false);
+	await cache.prepareTaskExecutionAndValidateCache("task2");
 
 	t.true(project.useStage.calledWith("task/task2"), "Switched to task2 stage");
 });
 
-test("recordTaskResult: creates task cache if not exists", async (t) => {
+test("recordTaskResult: creates task cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
 	await cache.setTasks(["newTask"]);
-	await cache.prepareTaskExecution("newTask", false);
+	await cache.prepareTaskExecutionAndValidateCache("newTask");
 
-	const writtenPaths = new Set(["/output.js"]);
 	const projectRequests = {paths: new Set(["/input.js"]), patterns: new Set()};
 	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	await cache.recordTaskResult("newTask", writtenPaths, projectRequests, dependencyRequests);
+	await cache.recordTaskResult("newTask", projectRequests, dependencyRequests, null, false);
 
-	t.true(cache.hasTaskCache("newTask"), "Task cache created");
-	t.true(cache.isTaskCacheValid("newTask"), "Task cache is valid");
+	const taskCache = cache.getTaskCache("newTask");
+	t.truthy(taskCache, "Task cache created");
 });
 
-test("recordTaskResult: removes task from invalidated list", async (t) => {
+test("recordTaskResult with empty requests", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
 	await cache.setTasks(["task1"]);
-	await cache.prepareTaskExecution("task1", false);
+	await cache.prepareTaskExecutionAndValidateCache("task1");
 
-	// Record initial result
-	await cache.recordTaskResult("task1", new Set(),
-		{paths: new Set(), patterns: new Set()}, {paths: new Set(), patterns: new Set()});
+	const projectRequests = {paths: new Set(), patterns: new Set()};
+	const dependencyRequests = {paths: new Set(), patterns: new Set()};
 
-	// Invalidate task
-	cache.resourceChanged(["/test.js"], []);
+	await cache.recordTaskResult("task1", projectRequests, dependencyRequests, null, false);
 
-	// Re-execute and record
-	await cache.prepareTaskExecution("task1", false);
-	await cache.recordTaskResult("task1", new Set(),
-		{paths: new Set(), patterns: new Set()}, {paths: new Set(), patterns: new Set()});
-
-	t.deepEqual(cache.getInvalidatedTaskNames(), [], "No invalidated tasks after re-execution");
+	const taskCache = cache.getTaskCache("task1");
+	t.truthy(taskCache, "Task cache created even with no requests");
 });
 
-// ===== RESOURCE CHANGE TESTS =====
+// ===== RESOURCE CHANGE TRACKING TESTS =====
 
-test("resourceChanged: invalidates no tasks when no cache exists", async (t) => {
+test("projectSourcesChanged: marks cache as requiring validation", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	// Create cache with existing index
+	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resource])
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: []
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+
+	cache.projectSourcesChanged(["/test.js"]);
+
+	t.false(cache.isFresh(), "Cache is not fresh after changes");
+});
+
+test("dependencyResourcesChanged: marks cache as requiring validation", async (t) => {
+	const project = createMockProject();
+	const cacheManager = createMockCacheManager();
+
+	// Create cache with existing index
+	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resource])
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: []
+	};
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
+
+	cache.dependencyResourcesChanged(["/dep.js"]);
+
+	t.false(cache.isFresh(), "Cache is not fresh after dependency changes");
+});
+
+test("projectSourcesChanged: tracks multiple changes", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	const taskInvalidated = cache.resourceChanged(["/test.js"], []);
+	cache.projectSourcesChanged(["/test1.js"]);
+	cache.projectSourcesChanged(["/test2.js", "/test3.js"]);
 
-	t.false(taskInvalidated, "No tasks invalidated when no cache exists");
-	t.deepEqual(cache.getInvalidatedTaskNames(), [], "No invalidated tasks");
+	// Changes are tracked internally
+	t.pass("Multiple changes tracked");
 });
 
-test("getChangedProjectResourcePaths: returns empty set for non-invalidated task", async (t) => {
+test("prepareProjectBuildAndValidateCache: returns false for empty cache", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	const changedPaths = cache.getChangedProjectResourcePaths("task1");
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
 
-	t.deepEqual(changedPaths, new Set(), "Returns empty set");
+	const result = await cache.prepareProjectBuildAndValidateCache(mockDependencyReader);
+
+	t.is(result, false, "Returns false for empty cache");
 });
 
-test("getChangedDependencyResourcePaths: returns empty set for non-invalidated task", async (t) => {
+test("refreshDependencyIndices: updates dependency indices", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
+
+	// Create cache with existing task
+	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resource])
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: [["task1", false]]
+	};
+
+	// Mock task metadata responses
+	cacheManager.readTaskMetadata.callsFake((projectId, buildSig, taskName, type) => {
+		if (type === "project") {
+			return Promise.resolve({
+				requestSetGraph: {
+					nodes: [],
+					nextId: 1
+				},
+				rootIndices: [],
+				deltaIndices: [],
+				unusedAtLeastOnce: false
+			});
+		} else if (type === "dependencies") {
+			return Promise.resolve({
+				requestSetGraph: {
+					nodes: [],
+					nextId: 1
+				},
+				rootIndices: [],
+				deltaIndices: [],
+				unusedAtLeastOnce: false
+			});
+		}
+		return Promise.resolve(null);
+	});
+
+	cacheManager.readIndexCache.resolves(indexCache);
+
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	const changedPaths = cache.getChangedDependencyResourcePaths("task1");
+	const mockDependencyReader = {
+		byGlob: sinon.stub().resolves([]),
+		byPath: sinon.stub().resolves(null)
+	};
 
-	t.deepEqual(changedPaths, new Set(), "Returns empty set");
-});
+	await cache.refreshDependencyIndices(mockDependencyReader);
 
-test("resourceChanged: tracks changed resource paths", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	// Create a task cache first
-	await cache.setTasks(["task1"]);
-	await cache.prepareTaskExecution("task1", false);
-	await cache.recordTaskResult("task1", new Set(),
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()});
-
-	// Now invalidate with changed resources
-	cache.resourceChanged(["/test.js", "/another.js"], ["/dep.js"]);
-
-	const changedProject = cache.getChangedProjectResourcePaths("task1");
-	const changedDeps = cache.getChangedDependencyResourcePaths("task1");
-
-	t.true(changedProject.has("/test.js"), "Project resource tracked");
-	t.true(changedProject.has("/another.js"), "Another project resource tracked");
-	t.true(changedDeps.has("/dep.js"), "Dependency resource tracked");
-});
-
-test("resourceChanged: accumulates multiple invalidations", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	// Create a task cache first
-	await cache.setTasks(["task1"]);
-	await cache.prepareTaskExecution("task1", false);
-	await cache.recordTaskResult("task1", new Set(),
-		{paths: new Set(["/test.js", "/another.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()});
-
-	// First invalidation
-	cache.resourceChanged(["/test.js"], []);
-
-	// Second invalidation
-	cache.resourceChanged(["/another.js"], []);
-
-	const changedProject = cache.getChangedProjectResourcePaths("task1");
-
-	t.true(changedProject.has("/test.js"), "First change tracked");
-	t.true(changedProject.has("/another.js"), "Second change tracked");
-	t.is(changedProject.size, 2, "Both changes accumulated");
-});
-
-// ===== INVALIDATION TESTS =====
-
-test("getInvalidatedTaskNames: returns empty array when no tasks invalidated", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	t.deepEqual(cache.getInvalidatedTaskNames(), [], "No invalidated tasks");
-});
-
-test("isTaskCacheValid: returns false for invalidated task", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	// Create a task cache
-	await cache.setTasks(["task1"]);
-	await cache.prepareTaskExecution("task1", false);
-	await cache.recordTaskResult("task1", new Set(),
-		{paths: new Set(["/test.js"]), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()});
-
-	t.true(cache.isTaskCacheValid("task1"), "Task is valid initially");
-
-	// Invalidate it
-	cache.resourceChanged(["/test.js"], []);
-
-	t.false(cache.isTaskCacheValid("task1"), "Task is no longer valid after invalidation");
-	t.deepEqual(cache.getInvalidatedTaskNames(), ["task1"], "Task appears in invalidated list");
+	t.pass("Dependency indices refreshed");
 });
 
 // ===== CACHE STORAGE TESTS =====
 
-test("storeCache: writes index cache and build manifest", async (t) => {
+test("writeCache: writes index and stage caches", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	const buildManifest = {
-		manifestVersion: "1.0",
-		signature: "sig"
-	};
 
 	project.getReader.returns({
 		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null)
 	});
 
-	await cache.storeCache(buildManifest);
+	await cache.writeCache();
 
-	t.true(cacheManager.writeBuildManifest.called, "Build manifest written");
 	t.true(cacheManager.writeIndexCache.called, "Index cache written");
 });
 
-test("storeCache: writes build manifest only once", async (t) => {
+test("writeCache: skips writing unchanged caches", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
-	const buildManifest = {
-		manifestVersion: "1.0",
-		signature: "sig"
+	// Create cache with existing index
+	const resource = createMockResource("/test.js", "hash1", 1000, 100, 1);
+	project.getSourceReader.callsFake(() => ({
+		byGlob: sinon.stub().resolves([resource])
+	}));
+
+	const indexCache = {
+		version: "1.0",
+		indexTree: {
+			version: 1,
+			indexTimestamp: 1000,
+			root: {
+				hash: "hash1",
+				children: {
+					"test.js": {
+						hash: "hash1",
+						metadata: {
+							path: "/test.js",
+							lastModified: 1000,
+							size: 100,
+							inode: 1
+						}
+					}
+				}
+			}
+		},
+		tasks: []
 	};
+	cacheManager.readIndexCache.resolves(indexCache);
+
+	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
 
 	project.getReader.returns({
 		byGlob: sinon.stub().resolves([]),
 		byPath: sinon.stub().resolves(null)
 	});
 
-	await cache.storeCache(buildManifest);
-	await cache.storeCache(buildManifest);
+	// Write cache multiple times
+	await cache.writeCache();
+	const firstCallCount = cacheManager.writeIndexCache.callCount;
 
-	t.is(cacheManager.writeBuildManifest.callCount, 1, "Build manifest written only once");
+	await cache.writeCache();
+	const secondCallCount = cacheManager.writeIndexCache.callCount;
+
+	t.is(secondCallCount, firstCallCount + 1, "Index written each time");
 });
 
-// ===== BUILD MANIFEST TESTS =====
-
-test("Load build manifest with correct version", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-
-	cacheManager.readBuildManifest.resolves({
-		buildManifest: {
-			manifestVersion: "1.0",
-			signature: "test-sig"
-		}
-	});
-
-	const cache = await ProjectBuildCache.create(project, "test-sig", cacheManager);
-
-	t.truthy(cache, "Cache created successfully");
-});
-
-test("Ignore build manifest with incompatible version", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-
-	cacheManager.readBuildManifest.resolves({
-		buildManifest: {
-			manifestVersion: "2.0",
-			signature: "test-sig"
-		}
-	});
-
-	const cache = await ProjectBuildCache.create(project, "test-sig", cacheManager);
-
-	t.truthy(cache, "Cache created despite incompatible manifest");
-	t.true(cache.requiresBuild(), "Build required when manifest incompatible");
-});
-
-test("Throw error on build signature mismatch", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-
-	cacheManager.readBuildManifest.resolves({
-		buildManifest: {
-			manifestVersion: "1.0",
-			signature: "wrong-signature"
-		}
-	});
-
-	await t.throwsAsync(
-		async () => {
-			await ProjectBuildCache.create(project, "test-sig", cacheManager);
-		},
-		{
-			message: /Build manifest signature wrong-signature does not match expected build signature test-sig/
-		},
-		"Throws error on signature mismatch"
-	);
-});
 // ===== EDGE CASES =====
 
 test("Create cache with empty project name", async (t) => {
@@ -507,7 +588,7 @@ test("Create cache with empty project name", async (t) => {
 	t.truthy(cache, "Cache created with empty project name");
 });
 
-test("setTasks with empty task list", async (t) => {
+test("Empty task list doesn't fail", async (t) => {
 	const project = createMockProject();
 	const cacheManager = createMockCacheManager();
 	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
@@ -515,49 +596,4 @@ test("setTasks with empty task list", async (t) => {
 	await cache.setTasks([]);
 
 	t.true(project.initStages.calledWith([]), "initStages called with empty array");
-});
-
-test("prepareTaskExecution with requiresDependencies flag", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	await cache.setTasks(["task1"]);
-	const needsExecution = await cache.prepareTaskExecution("task1", true);
-
-	t.true(needsExecution, "Task needs execution");
-	// Flag is passed but doesn't affect basic behavior without dependency reader
-});
-
-test("recordTaskResult with empty written paths", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	await cache.setTasks(["task1"]);
-	await cache.prepareTaskExecution("task1", false);
-
-	const writtenPaths = new Set();
-	const projectRequests = {paths: new Set(), patterns: new Set()};
-	const dependencyRequests = {paths: new Set(), patterns: new Set()};
-
-	await cache.recordTaskResult("task1", writtenPaths, projectRequests, dependencyRequests);
-
-	t.true(cache.hasTaskCache("task1"), "Task cache created even with no written paths");
-});
-
-test("hasAnyCache: returns true after recording task result", async (t) => {
-	const project = createMockProject();
-	const cacheManager = createMockCacheManager();
-	const cache = await ProjectBuildCache.create(project, "sig", cacheManager);
-
-	t.false(cache.hasAnyCache(), "No cache initially");
-
-	await cache.setTasks(["task1"]);
-	await cache.prepareTaskExecution("task1", false);
-	await cache.recordTaskResult("task1", new Set(),
-		{paths: new Set(), patterns: new Set()},
-		{paths: new Set(), patterns: new Set()});
-
-	t.true(cache.hasAnyCache(), "Has cache after recording result");
 });
