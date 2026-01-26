@@ -17,14 +17,18 @@ import {matchResourceMetadataStrict} from "../utils.js";
  * This approach ensures consistency when multiple trees represent filtered views of the same underlying data.
  *
  * @property {Set<import('./SharedHashTree.js').default>} trees - All registered HashTree/SharedHashTree instances
- * @property {Map<string, @ui5/fs/Resource>} pendingUpserts - Resource path to resource mappings for scheduled upserts
+ * @property {Map<string, {resource: @ui5/fs/Resource, sourceTree: import('./SharedHashTree.js').default|null}>}
+ *           pendingUpserts - Resource path to resource and source tree mappings for scheduled upserts
  * @property {Set<string>} pendingRemovals - Resource paths scheduled for removal
+ * @property {Map<import('./SharedHashTree.js').default, Set<import('./SharedHashTree.js').default>>} derivedTrees
+ *           Maps parent trees to their directly derived children
  */
 export default class TreeRegistry {
 	trees = new Set();
 	pendingUpserts = new Map();
 	pendingRemovals = new Set();
 	pendingTimestampUpdate;
+	derivedTrees = new Map(); // parent -> Set of derived trees
 
 	/**
 	 * Register a HashTree or SharedHashTree instance with this registry for coordinated updates.
@@ -33,9 +37,17 @@ export default class TreeRegistry {
 	 * Multiple trees can share the same underlying nodes through structural sharing.
 	 *
 	 * @param {import('./SharedHashTree.js').default} tree - HashTree or SharedHashTree instance to register
+	 * @param {import('./SharedHashTree.js').default} [parentTree] - Parent tree if this is a derived tree
 	 */
-	register(tree) {
+	register(tree, parentTree = null) {
 		this.trees.add(tree);
+
+		if (parentTree) {
+			if (!this.derivedTrees.has(parentTree)) {
+				this.derivedTrees.set(parentTree, new Set());
+			}
+			this.derivedTrees.get(parentTree).add(tree);
+		}
 	}
 
 	/**
@@ -48,6 +60,49 @@ export default class TreeRegistry {
 	 */
 	unregister(tree) {
 		this.trees.delete(tree);
+
+		// Remove from derivedTrees mappings
+		this.derivedTrees.delete(tree);
+		for (const [, derivedSet] of this.derivedTrees) {
+			derivedSet.delete(tree);
+		}
+	}
+
+	/**
+	 * Get all trees derived from a given tree (recursively).
+	 *
+	 * @param {import('./SharedHashTree.js').default} tree - The parent tree
+	 * @returns {Set<import('./SharedHashTree.js').default>} Set of all derived trees (direct and transitive)
+	 */
+	_getDerivedTrees(tree) {
+		const result = new Set();
+		const directDerived = this.derivedTrees.get(tree);
+
+		if (directDerived) {
+			for (const derived of directDerived) {
+				result.add(derived);
+				// Recursively get trees derived from derived
+				for (const transitive of this._getDerivedTrees(derived)) {
+					result.add(transitive);
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Check if targetTree is the same as or derived from sourceTree.
+	 *
+	 * @param {import('./SharedHashTree.js').default} sourceTree - The source/parent tree
+	 * @param {import('./SharedHashTree.js').default} targetTree - The tree to check
+	 * @returns {boolean} True if targetTree is sourceTree or derived from it
+	 */
+	_isTreeOrDerived(sourceTree, targetTree) {
+		if (sourceTree === targetTree) {
+			return true;
+		}
+		return this._getDerivedTrees(sourceTree).has(targetTree);
 	}
 
 	/**
@@ -57,15 +112,23 @@ export default class TreeRegistry {
 	 * any necessary parent directories). If it exists, its metadata will be updated if changed.
 	 * Scheduling an upsert cancels any pending removal for the same resource path.
 	 *
+	 * When sourceTree is specified, new resources will only be inserted into that tree and
+	 * any trees derived from it. Updates to existing resources will still propagate to all
+	 * trees that share the resource node.
+	 *
 	 * @param {@ui5/fs/Resource} resource - Resource instance to upsert
-	 * @param {number} newIndexTimestamp Timestamp at which the provided resources have been indexed
+	 * @param {number} [newIndexTimestamp] - Timestamp at which the provided resources have been indexed
+	 * @param {import('./SharedHashTree.js').default} [sourceTree] - Tree that initiated this upsert
+	 *        (for controlling insert propagation)
 	 */
-	scheduleUpsert(resource, newIndexTimestamp) {
+	scheduleUpsert(resource, newIndexTimestamp, sourceTree = null) {
 		const resourcePath = resource.getOriginalPath();
-		this.pendingUpserts.set(resourcePath, resource);
+		this.pendingUpserts.set(resourcePath, {resource, sourceTree});
 		// Cancel any pending removal for this path
 		this.pendingRemovals.delete(resourcePath);
-		this.pendingTimestampUpdate = newIndexTimestamp;
+		if (newIndexTimestamp) {
+			this.pendingTimestampUpdate = newIndexTimestamp;
+		}
 	}
 
 	/**
@@ -94,8 +157,8 @@ export default class TreeRegistry {
 	 *
 	 * Phase 2: Process upserts (inserts and updates)
 	 * - Group operations by parent directory for efficiency
-	 * - Create missing parent directories as needed
-	 * - Insert new resources or update existing ones
+	 * - For inserts: only create in source tree and its derived trees
+	 * - For updates: apply to all trees that share the resource node
 	 * - Skip updates for resources with unchanged metadata
 	 * - Track modified nodes to avoid duplicate updates to shared nodes
 	 *
@@ -201,9 +264,9 @@ export default class TreeRegistry {
 		}
 
 		// 2. Handle upserts - group by directory
-		const upsertsByDir = new Map(); // parentPath -> [{resourceName, resource, fullPath}]
+		const upsertsByDir = new Map(); // parentPath -> [{resourceName, resource, fullPath, sourceTree}]
 
-		for (const [resourcePath, resource] of this.pendingUpserts) {
+		for (const [resourcePath, {resource, sourceTree}] of this.pendingUpserts) {
 			const parts = resourcePath.split(path.sep).filter((p) => p.length > 0);
 			const resourceName = parts[parts.length - 1];
 			const parentPath = parts.slice(0, -1).join(path.sep);
@@ -211,29 +274,41 @@ export default class TreeRegistry {
 			if (!upsertsByDir.has(parentPath)) {
 				upsertsByDir.set(parentPath, []);
 			}
-			upsertsByDir.get(parentPath).push({resourceName, resource, fullPath: resourcePath});
+			upsertsByDir.get(parentPath).push({resourceName, resource, fullPath: resourcePath, sourceTree});
 		}
 
 		// Apply upserts
 		for (const [parentPath, upserts] of upsertsByDir) {
 			for (const tree of this.trees) {
-				// Ensure parent directory exists
+				// Check if parent directory exists in this tree
 				let parentNode = tree._findNode(parentPath);
-				if (!parentNode) {
-					parentNode = this._ensureDirectoryPath(
-						tree, parentPath.split(path.sep).filter((p) => p.length > 0));
-				}
-
-				if (parentNode.type !== "directory") {
-					continue;
-				}
 
 				let dirModified = false;
 				for (const upsert of upserts) {
-					let resourceNode = parentNode.children.get(upsert.resourceName);
+					let resourceNode = parentNode?.children?.get(upsert.resourceName);
 
 					if (!resourceNode) {
-						// INSERT: Create new resource node
+						// INSERT: Check derivation rules
+						if (upsert.sourceTree !== null) {
+							// Source tree specified - only insert into source tree and its derived trees
+							if (!this._isTreeOrDerived(upsert.sourceTree, tree)) {
+								// This tree is not the source tree or derived from it - skip insert
+								continue;
+							}
+						}
+						// If sourceTree is null, insert into all trees (backward compatibility)
+
+						// Ensure parent directory exists (only for trees we're inserting into)
+						if (!parentNode) {
+							parentNode = this._ensureDirectoryPath(
+								tree, parentPath.split(path.sep).filter((p) => p.length > 0));
+						}
+
+						if (parentNode.type !== "directory") {
+							continue;
+						}
+
+						// Create new resource node
 						resourceNode = new TreeNode(upsert.resourceName, "resource", {
 							integrity: await upsert.resource.getIntegrity(),
 							lastModified: upsert.resource.getLastModified(),
@@ -297,7 +372,7 @@ export default class TreeRegistry {
 					}
 				}
 
-				if (dirModified) {
+				if (dirModified && parentNode) {
 					// Compute hashes for modified/new resources
 					for (const upsert of upserts) {
 						const resourceNode = parentNode.children.get(upsert.resourceName);
